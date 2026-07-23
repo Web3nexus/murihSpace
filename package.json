@@ -1,0 +1,19 @@
+{
+  "name": "murihspace-web",
+  "private": true,
+  "workspaces": [
+    "frontend",
+    "marketing",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:dashboard": "npm run dev --workspace=@murihspace/dashboard",
+    "dev:marketing": "npm run dev --workspace=@murihspace/marketing",
+    "build:dashboard": "npm run build --workspace=@murihspace/dashboard",
+    "build:marketing": "npm run build --workspace=@murihspace/marketing",
+    "build:web": "npm run build --workspaces --if-present",
+    "lint:web": "npm run lint --workspaces --if-present",
+    "typecheck:web": "npm run typecheck --workspaces --if-present",
+    "test:web": "npm run test --workspaces --if-present"
+  }
+}

@@ -1,0 +1,86 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Transfer;
+use App\Models\User;
+use App\Services\Wallet\LedgerService;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+
+class TransferController extends Controller
+{
+    public function __construct(
+        private LedgerService $ledgerService,
+    ) {}
+
+    public function send(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'recipient_username' => ['required', 'string', 'max:255', 'exists:users,username'],
+            'amount'             => ['required', 'integer', 'min:1'],
+            'currency'           => ['nullable', 'string', 'max:3'],
+            'note'               => ['nullable', 'string', 'max:255'],
+            'pin'                => ['required', 'string', 'digits:4'],
+        ]);
+
+        $sender = $request->user();
+        $recipient = User::where('username', $validated['recipient_username'])->firstOrFail();
+
+        if ($sender->id === $recipient->id) {
+            return response()->json(['message' => 'Cannot transfer to yourself.', 'code' => 'SELF_TRANSFER'], 422);
+        }
+
+        $wallet = $this->ledgerService->getOrCreateWallet($sender->id);
+
+        if (! $wallet->verifyPin($validated['pin'])) {
+            return response()->json(['message' => 'Incorrect transaction PIN.', 'code' => 'INVALID_TRANSACTION_PIN'], 403);
+        }
+
+        $currency = $validated['currency'] ?? 'NGN';
+
+        $ledgerTxn = $this->ledgerService->transfer(
+            $sender->id,
+            $recipient->id,
+            $validated['amount'],
+            $currency,
+            "Transfer to @{$recipient->username}" . ($validated['note'] ? ": {$validated['note']}" : ''),
+        );
+
+        $transfer = Transfer::create([
+            'sender_id'             => $sender->id,
+            'recipient_id'          => $recipient->id,
+            'amount'                => $validated['amount'],
+            'currency'              => $currency,
+            'note'                  => $validated['note'],
+            'status'                => 'completed',
+            'ledger_transaction_id' => $ledgerTxn->id,
+        ]);
+
+        return response()->json([
+            'message' => 'Transfer completed successfully.',
+            'data'    => $transfer->fresh(['sender:id,name,username', 'recipient:id,name,username']),
+        ], 201);
+    }
+
+    public function sent(Request $request): JsonResponse
+    {
+        $transfers = Transfer::where('sender_id', $request->user()->id)
+            ->with(['sender:id,name,username', 'recipient:id,name,username'])
+            ->latest()
+            ->paginate(20);
+
+        return response()->json($transfers);
+    }
+
+    public function received(Request $request): JsonResponse
+    {
+        $transfers = Transfer::where('recipient_id', $request->user()->id)
+            ->with(['sender:id,name,username', 'recipient:id,name,username'])
+            ->latest()
+            ->paginate(20);
+
+        return response()->json($transfers);
+    }
+}

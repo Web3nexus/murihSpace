@@ -1,0 +1,13 @@
+{
+  "name": "@murihspace/brand",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "exports": {
+    "./tokens.css": "./src/tokens.css",
+    "./tokens": "./src/index.ts"
+  },
+  "files": [
+    "src"
+  ]
+}

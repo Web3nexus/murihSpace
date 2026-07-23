@@ -1,0 +1,202 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "@fontsource-variable/inter";
+@import "./styles/feed.css";
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  /* MurihSpace Light Theme Tokens (from docs/Design.md & docs/selected-frames-agent-prompt.md) */
+  --text: #102840;
+  --text-h: #102840;
+  --bg: #F7FAFC;
+  --border: #D6E0E8;
+  --code-bg: #F0F5F8;
+  --accent: #E8F8FF;
+  --accent-bg: rgba(56, 168, 216, 0.1);
+  --accent-border: rgba(56, 168, 216, 0.4);
+  --social-bg: rgba(240, 245, 248, 0.6);
+  --shadow: 0px 4px 12px rgba(16, 40, 64, 0.08);
+
+  --sans: 'Inter Variable', system-ui, -apple-system, sans-serif;
+  --heading: 'Inter Variable', system-ui, -apple-system, sans-serif;
+  --mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  font: 16px/150% var(--sans);
+  letter-spacing: -0.1px;
+  color-scheme: light;
+  color: var(--text);
+  background: var(--bg);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  --background: #F7FAFC;
+  --foreground: #102840;
+
+  --card: #FFFFFF;
+  --card-foreground: #102840;
+
+  --popover: #FFFFFF;
+  --popover-foreground: #102840;
+
+  --primary: #102840;
+  --primary-foreground: #FFFFFF;
+
+  --secondary: #38A8D8;
+  --secondary-foreground: #FFFFFF;
+
+  --muted: #F0F5F8;
+  --muted-foreground: #667085;
+
+  --accent-foreground: #102840;
+
+  --destructive: #DC2626;
+  --destructive-foreground: #FFFFFF;
+
+  --input: #D6E0E8;
+  --ring: #38A8D8;
+
+  --radius: 0.75rem;
+
+  /* Sidebar — dark navy matching Design.md frames */
+  --sidebar: #102840;
+  --sidebar-foreground: rgba(247, 250, 252, 0.90);
+  --sidebar-primary: #38A8D8;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: rgba(255, 255, 255, 0.08);
+  --sidebar-accent-foreground: #FFFFFF;
+  --sidebar-border: rgba(255, 255, 255, 0.08);
+  --sidebar-ring: #38A8D8;
+}
+
+.dark {
+  /* MurihSpace Dark Theme Tokens (from docs/Design.md & docs/selected-frames-agent-prompt.md) */
+  --text: #F7FAFC;
+  --text-h: #F7FAFC;
+  --bg: #081827;
+  --border: #294C65;
+  --code-bg: #173852;
+  --accent: #173852;
+  --accent-bg: rgba(56, 168, 216, 0.15);
+  --accent-border: rgba(56, 168, 216, 0.5);
+  --social-bg: rgba(23, 56, 82, 0.5);
+  --shadow: 0px 4px 12px rgba(0, 0, 0, 0.4);
+
+  --background: #081827;
+  --foreground: #F7FAFC;
+
+  --card: #102840;
+  --card-foreground: #F7FAFC;
+
+  --popover: #102840;
+  --popover-foreground: #F7FAFC;
+
+  --primary: #38A8D8;
+  --primary-foreground: #FFFFFF;
+
+  --secondary: #173852;
+  --secondary-foreground: #F7FAFC;
+
+  --muted: #173852;
+  --muted-foreground: #B7C6D1;
+
+  --accent-foreground: #F7FAFC;
+
+  --destructive: #EF4444;
+  --destructive-foreground: #FFFFFF;
+
+  --input: #294C65;
+  --ring: #38A8D8;
+
+  /* Sidebar — deeper navy for dark mode */
+  --sidebar: #081827;
+  --sidebar-foreground: rgba(247, 250, 252, 0.90);
+  --sidebar-primary: #38A8D8;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: rgba(56, 168, 216, 0.12);
+  --sidebar-accent-foreground: #FFFFFF;
+  --sidebar-border: rgba(255, 255, 255, 0.06);
+  --sidebar-ring: #38A8D8;
+}
+
+#root {
+  width: 100%;
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+p {
+  margin: 0;
+}
+
+code,
+.counter {
+  font-family: var(--mono);
+  display: inline-flex;
+  border-radius: 4px;
+  color: var(--text-h);
+}
+
+code {
+  font-size: 15px;
+  line-height: 135%;
+  padding: 4px 8px;
+  background: var(--code-bg);
+}
+
+@theme inline {
+  --font-heading: 'Inter Variable', system-ui, -apple-system, sans-serif;
+  --font-sans: 'Inter Variable', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+  --radius-sm: calc(var(--radius) * 0.66);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) * 1.33);
+  --radius-xl: calc(var(--radius) * 2.0);
+}
+
+@layer base {
+  *:focus-visible {
+    @apply outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
+  }
+}
