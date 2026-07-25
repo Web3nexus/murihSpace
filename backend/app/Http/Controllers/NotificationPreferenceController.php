@@ -17,7 +17,7 @@ class NotificationPreferenceController extends Controller
             foreach (NotificationPreference::CHANNELS as $channel) {
                 $prefs[] = [
                     'user_id' => $userId,
-                    'type'    => $type,
+                    'type' => $type,
                     'channel' => $channel,
                     'enabled' => true,
                     'created_at' => now(),
@@ -25,6 +25,7 @@ class NotificationPreferenceController extends Controller
                 ];
             }
         }
+
         return $prefs;
     }
 
@@ -45,10 +46,10 @@ class NotificationPreferenceController extends Controller
             foreach (NotificationPreference::CHANNELS as $channel) {
                 if (! in_array("{$type}_{$channel}", $existingKeys)) {
                     $inserts[] = [
-                        'user_id'    => $userId,
-                        'type'       => $type,
-                        'channel'    => $channel,
-                        'enabled'    => true,
+                        'user_id' => $userId,
+                        'type' => $type,
+                        'channel' => $channel,
+                        'enabled' => true,
                         'created_at' => now(),
                         'updated_at' => now(),
                     ];
@@ -72,9 +73,9 @@ class NotificationPreferenceController extends Controller
         }
 
         return response()->json([
-            'data'     => $grouped,
+            'data' => $grouped,
             'meta' => [
-                'types'    => NotificationPreference::TYPES,
+                'types' => NotificationPreference::TYPES,
                 'channels' => NotificationPreference::CHANNELS,
             ],
         ]);
@@ -87,8 +88,8 @@ class NotificationPreferenceController extends Controller
     public function update(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'preferences'           => ['required', 'array', 'min:1', 'max:50'],
-            'preferences.*.type'    => ['required', Rule::in(NotificationPreference::TYPES)],
+            'preferences' => ['required', 'array', 'min:1', 'max:50'],
+            'preferences.*.type' => ['required', Rule::in(NotificationPreference::TYPES)],
             'preferences.*.channel' => ['required', Rule::in(NotificationPreference::CHANNELS)],
             'preferences.*.enabled' => ['required', 'boolean'],
         ]);
@@ -98,7 +99,7 @@ class NotificationPreferenceController extends Controller
                 NotificationPreference::updateOrCreate(
                     [
                         'user_id' => $request->user()->id,
-                        'type'    => $pref['type'],
+                        'type' => $pref['type'],
                         'channel' => $pref['channel'],
                     ],
                     ['enabled' => $pref['enabled']],

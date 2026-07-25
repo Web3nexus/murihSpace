@@ -36,8 +36,8 @@ export function useProfile() {
       const envelope = response.data;
       const data = envelope.success ? envelope.data : envelope;
       setProfile(data);
-    } catch (err: any) {
-      setError(err.response?.data?.message || "Failed to load profile.");
+    } catch (err: unknown) {
+      setError((err as { response?: { data?: { message?: string } } }).response?.data?.message || "Failed to load profile.");
     } finally {
       setLoading(false);
     }
@@ -53,8 +53,8 @@ export function useProfile() {
       const updated = envelope.success ? envelope.data : envelope;
       setProfile((prev) => (prev ? { ...prev, ...updated } : updated));
       return true;
-    } catch (err: any) {
-      const apiErr = err.response?.data as ApiError;
+    } catch (err: unknown) {
+      const apiErr = (err as { response?: { data?: ApiError } }).response?.data as ApiError;
       if (apiErr?.errors) {
         setFieldErrors(apiErr.errors);
       }
@@ -74,8 +74,8 @@ export function useProfile() {
       const resData = envelope.success ? envelope.data : envelope;
       setProfile((prev) => (prev ? { ...prev, kyc_status: resData.kyc_status, kyc_document: resData.kyc_document, kyc_rejection_reason: null } : null));
       return true;
-    } catch (err: any) {
-      setError(err.response?.data?.message || "Failed to submit KYC document.");
+    } catch (err: unknown) {
+      setError((err as { response?: { data?: { message?: string } } }).response?.data?.message || "Failed to submit KYC document.");
       return false;
     } finally {
       setUpdating(false);
@@ -86,11 +86,11 @@ export function useProfile() {
     setLoading(true);
     setError(null);
     try {
-      const response = await apiClient.get("/admin/kyc");
+      const response = await apiClient.get("/securegate/kyc");
       const envelope = response.data;
       const list = envelope.success ? envelope.data : envelope;
       setPendingKycs(Array.isArray(list) ? list : []);
-    } catch (err: any) {
+    } catch {
       setError("Failed to fetch pending KYC submissions.");
     } finally {
       setLoading(false);
@@ -99,25 +99,26 @@ export function useProfile() {
 
   const approveKyc = async (userId: number): Promise<boolean> => {
     try {
-      await apiClient.post(`/admin/kyc/${userId}/approve`);
+      await apiClient.post(`/securegate/kyc/${userId}/approve`);
       setPendingKycs((prev) => prev.filter((item) => item.id !== userId));
       return true;
-    } catch (err) {
+    } catch {
       return false;
     }
   };
 
   const rejectKyc = async (userId: number, reason: string): Promise<boolean> => {
     try {
-      await apiClient.post(`/admin/kyc/${userId}/reject`, { reason });
+      await apiClient.post(`/securegate/kyc/${userId}/reject`, { reason });
       setPendingKycs((prev) => prev.filter((item) => item.id !== userId));
       return true;
-    } catch (err) {
+    } catch {
       return false;
     }
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchProfile();
   }, []);
 

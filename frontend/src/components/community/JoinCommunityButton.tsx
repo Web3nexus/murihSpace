@@ -81,8 +81,8 @@ export function JoinCommunityButton({
       if (onStatusChange) {
         onStatusChange(newStatus, updatedCount);
       }
-    } catch (err: any) {
-      setError(err.message || "Failed to join.");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to join.");
       // Fallback demo toggle if backend endpoint is unavailable
       const fallbackStatus = community.visibility === "public" ? "active" : "pending";
       setStatus(fallbackStatus);
@@ -119,8 +119,8 @@ export function JoinCommunityButton({
       if (onStatusChange) {
         onStatusChange("none", updatedCount);
       }
-    } catch (err: any) {
-      setError(err.message || "Failed to leave.");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to leave.");
       setStatus("none");
       if (onStatusChange) {
         onStatusChange("none", Math.max(1, community.members_count - 1));

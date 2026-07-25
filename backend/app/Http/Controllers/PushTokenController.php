@@ -15,7 +15,7 @@ class PushTokenController extends Controller
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'token'    => ['required', 'string'],
+            'token' => ['required', 'string'],
             'platform' => ['required', Rule::in(PushToken::PLATFORMS)],
         ]);
 

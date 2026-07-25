@@ -55,10 +55,11 @@ export function PurchasesPage() {
         const json = await res.json();
         setPurchases(json.data ?? []);
       }
-    } catch { /* ignore */ }
+    } catch (e) { console.error('Failed to fetch purchases', e); }
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchPurchases().finally(() => setIsLoading(false));
   }, [fetchPurchases]);
 
@@ -73,7 +74,7 @@ export function PurchasesPage() {
         const json = await res.json();
         window.open(json.data.download_url, '_blank');
       }
-    } catch { /* ignore */ }
+    } catch (e) { console.error('Failed to download', e); }
     setDownloadingId(null);
   };
 

@@ -32,17 +32,17 @@ class OrderController extends Controller
             ->get()
             ->map(function ($order) {
                 return [
-                    'id'           => $order->id,
+                    'id' => $order->id,
                     'order_number' => $order->order_number,
-                    'status'       => $order->status,
-                    'subtotal'     => $order->subtotal,
+                    'status' => $order->status,
+                    'subtotal' => $order->subtotal,
                     'platform_fee' => $order->platform_fee,
-                    'net_payout'   => round((float) $order->subtotal - (float) $order->platform_fee, 2),
-                    'total'        => $order->total,
-                    'currency'     => $order->currency,
-                    'paid_at'      => $order->paid_at,
-                    'product'      => $order->product,
-                    'buyer'        => $order->buyer,
+                    'net_payout' => round((float) $order->subtotal - (float) $order->platform_fee, 2),
+                    'total' => $order->total,
+                    'currency' => $order->currency,
+                    'paid_at' => $order->paid_at,
+                    'product' => $order->product,
+                    'buyer' => $order->buyer,
                 ];
             });
 
@@ -66,19 +66,19 @@ class OrderController extends Controller
 
         return response()->json([
             'data' => [
-                'order_number'  => $order->order_number,
-                'status'        => $order->status,
-                'subtotal'      => $order->subtotal,
-                'platform_fee'  => $order->platform_fee,
-                'total'         => $order->total,
-                'currency'      => $order->currency,
+                'order_number' => $order->order_number,
+                'status' => $order->status,
+                'subtotal' => $order->subtotal,
+                'platform_fee' => $order->platform_fee,
+                'total' => $order->total,
+                'currency' => $order->currency,
                 'payment_provider' => $order->payment_provider,
-                'paid_at'       => $order->paid_at?->toIso8601String(),
-                'created_at'    => $order->created_at->toIso8601String(),
-                'product'       => $order->product,
-                'buyer'         => $order->buyer,
-                'creator'       => $order->creator,
-                'download_url'  => $order->status === 'completed'
+                'paid_at' => $order->paid_at?->toIso8601String(),
+                'created_at' => $order->created_at->toIso8601String(),
+                'product' => $order->product,
+                'buyer' => $order->buyer,
+                'creator' => $order->creator,
+                'download_url' => $order->status === 'completed'
                     ? url("/api/v1/products/{$order->product_id}/download")
                     : null,
             ],

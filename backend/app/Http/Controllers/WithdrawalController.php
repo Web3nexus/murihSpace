@@ -16,9 +16,9 @@ class WithdrawalController extends Controller
     public function request(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'amount'   => ['required', 'integer', 'min:100'],
+            'amount' => ['required', 'integer', 'min:100'],
             'currency' => ['nullable', 'string', 'max:3'],
-            'pin'      => ['required', 'string', 'digits:4'],
+            'pin' => ['required', 'string', 'digits:4'],
         ]);
 
         $wallet = $this->ledgerService->getOrCreateWallet($request->user()->id);
@@ -34,15 +34,15 @@ class WithdrawalController extends Controller
         $currency = $validated['currency'] ?? 'NGN';
 
         $withdrawal = WithdrawalRequest::create([
-            'user_id'  => $request->user()->id,
-            'amount'   => $validated['amount'],
+            'user_id' => $request->user()->id,
+            'amount' => $validated['amount'],
             'currency' => $currency,
-            'status'   => 'pending',
+            'status' => 'pending',
         ]);
 
         return response()->json([
             'message' => 'Withdrawal request submitted for review.',
-            'data'    => $withdrawal,
+            'data' => $withdrawal,
         ], 201);
     }
 
@@ -67,7 +67,7 @@ class WithdrawalController extends Controller
     public function adminProcess(Request $request, int $id): JsonResponse
     {
         $validated = $request->validate([
-            'action'          => ['required', 'string', 'in:approve,reject'],
+            'action' => ['required', 'string', 'in:approve,reject'],
             'rejection_reason' => ['required_if:action,reject', 'nullable', 'string', 'max:1000'],
         ]);
 
@@ -79,10 +79,10 @@ class WithdrawalController extends Controller
 
         if ($validated['action'] === 'reject') {
             $withdrawal->update([
-                'status'           => 'rejected',
+                'status' => 'rejected',
                 'rejection_reason' => $validated['rejection_reason'],
-                'processed_by'     => $request->user()->id,
-                'processed_at'     => now(),
+                'processed_by' => $request->user()->id,
+                'processed_at' => now(),
             ]);
 
             return response()->json(['message' => 'Withdrawal rejected.', 'data' => $withdrawal]);
@@ -103,9 +103,9 @@ class WithdrawalController extends Controller
         );
 
         $withdrawal->update([
-            'status'                => 'completed',
-            'processed_by'          => $request->user()->id,
-            'processed_at'          => now(),
+            'status' => 'completed',
+            'processed_by' => $request->user()->id,
+            'processed_at' => now(),
             'ledger_transaction_id' => $ledgerTxn->id,
         ]);
 

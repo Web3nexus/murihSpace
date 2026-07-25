@@ -11,7 +11,7 @@ export const RoutePaths = {
   APP_SETTINGS_SECURITY: "/app/settings/security",
   APP_SETTINGS_NOTIFICATIONS: "/app/settings/notifications",
   APP_SETTINGS_PREFERENCES: "/app/settings/preferences",
-  APP_ADMIN: "/app/admin",
+  APP_ADMIN: "/app/securegate",
 } as const;
 
 export type RoutePathValues = typeof RoutePaths[keyof typeof RoutePaths];

@@ -116,7 +116,8 @@ export function CommunitiesPage() {
           setCommunities(data.data);
         }
       }
-    } catch {
+    } catch (e) {
+      console.error('Failed to fetch communities', e);
       // Fallback to seed data on connection error
     } finally {
       setIsLoading(false);
@@ -136,12 +137,11 @@ export function CommunitiesPage() {
           setMyCommunities(data.communities);
         }
       }
-    } catch {
-      // Ignore
-    }
+    } catch (e) { console.error('Failed to fetch my communities', e); }
   }, []);
 
   React.useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchCommunities();
     fetchMyCommunities();
   }, [fetchCommunities, fetchMyCommunities]);

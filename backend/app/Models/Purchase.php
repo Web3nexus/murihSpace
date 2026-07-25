@@ -13,7 +13,7 @@ class Purchase extends Model
     ];
 
     protected $casts = [
-        'download_count'     => 'integer',
+        'download_count' => 'integer',
         'last_downloaded_at' => 'datetime',
     ];
 

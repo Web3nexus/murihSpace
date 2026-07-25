@@ -14,6 +14,7 @@ class NotificationPreference extends Model
     public const TYPES = [
         'new_post',
         'new_member',
+        'new_message',
         'new_reaction',
         'new_comment',
         'moderation_action',

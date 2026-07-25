@@ -76,6 +76,7 @@ class Community extends Model
         if ($category && strtolower($category) !== 'all') {
             return $query->where('category', $category);
         }
+
         return $query;
     }
 }

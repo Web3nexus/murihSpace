@@ -13,7 +13,7 @@ class WithdrawalRequest extends Model
     ];
 
     protected $casts = [
-        'amount'       => 'integer',
+        'amount' => 'integer',
         'processed_at' => 'datetime',
     ];
 

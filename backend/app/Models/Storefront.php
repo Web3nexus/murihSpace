@@ -21,7 +21,7 @@ class Storefront extends Model
 
     protected $casts = [
         'is_published' => 'boolean',
-        'links'        => 'array',
+        'links' => 'array',
     ];
 
     public function user(): BelongsTo

@@ -25,7 +25,7 @@ class CommunityController extends Controller
         if ($search) {
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('description', 'like', "%{$search}%");
+                    ->orWhere('description', 'like', "%{$search}%");
             });
         }
 
@@ -43,7 +43,7 @@ class CommunityController extends Controller
             ->where('slug', $slug)
             ->first();
 
-        if (!$community) {
+        if (! $community) {
             return response()->json([
                 'message' => 'Community not found.',
             ], 404);

@@ -27,20 +27,20 @@ class ConversationSettingsController extends Controller
         }
 
         $validated = $request->validate([
-            'is_muted'    => ['sometimes', 'boolean'],
+            'is_muted' => ['sometimes', 'boolean'],
             'is_archived' => ['sometimes', 'boolean'],
         ]);
 
         $settings = ConversationUserSetting::firstOrCreate([
             'conversation_id' => $conversation->id,
-            'user_id'         => $request->user()->id,
+            'user_id' => $request->user()->id,
         ]);
 
         $settings->fill($validated)->save();
 
         return response()->json([
-            'message'  => 'Conversation settings updated.',
-            'data'     => $settings,
+            'message' => 'Conversation settings updated.',
+            'data' => $settings,
         ]);
     }
 
@@ -51,7 +51,7 @@ class ConversationSettingsController extends Controller
     {
         $settings = ConversationUserSetting::firstOrCreate([
             'conversation_id' => $id,
-            'user_id'         => $request->user()->id,
+            'user_id' => $request->user()->id,
         ], ['is_muted' => false, 'is_archived' => false]);
 
         return response()->json(['data' => $settings]);

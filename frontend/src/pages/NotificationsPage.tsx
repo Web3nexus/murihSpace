@@ -77,6 +77,7 @@ export default function NotificationsPage() {
   // Preferences state
   const [preferences, setPreferences] = useState<Partial<NotificationPreferencesMap>>({});
   const [isPrefLoading, setIsPrefLoading] = useState(false);
+  const [prefsLoadError, setPrefsLoadError] = useState(false);
   const [isSavingPref, setIsSavingPref] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
@@ -106,6 +107,7 @@ export default function NotificationsPage() {
 
   const fetchPreferences = useCallback(async () => {
     setIsPrefLoading(true);
+    setPrefsLoadError(false);
     const token = localStorage.getItem('auth_token');
     try {
       const res = await fetch(`${API_BASE}/notification-preferences`, {
@@ -117,18 +119,24 @@ export default function NotificationsPage() {
       if (res.ok) {
         const json = await res.json();
         setPreferences(json.data ?? {});
+      } else {
+        setPrefsLoadError(true);
       }
+    } catch {
+      setPrefsLoadError(true);
     } finally {
       setIsPrefLoading(false);
     }
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchNotifications();
   }, [fetchNotifications]);
 
   useEffect(() => {
     if (activeTab === 'preferences') {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       fetchPreferences();
     }
   }, [activeTab, fetchPreferences]);
@@ -147,7 +155,7 @@ export default function NotificationsPage() {
         prev.map((n) => ({ ...n, read_at: new Date().toISOString() }))
       );
       setUnreadCount(0);
-    } catch {}
+    } catch (e) { console.error('Failed to mark all read', e); }
   };
 
   const handleTogglePref = (type: NotificationType, channel: NotificationChannel) => {
@@ -439,7 +447,7 @@ export default function NotificationsPage() {
             )}
             <Button
               onClick={handleSavePreferences}
-              disabled={isSavingPref}
+              disabled={isSavingPref || prefsLoadError}
               className="text-xs font-bold gap-2 bg-secondary hover:bg-secondary/90 text-secondary-foreground px-6"
             >
               {isSavingPref ? 'Saving…' : 'Save Preferences'}

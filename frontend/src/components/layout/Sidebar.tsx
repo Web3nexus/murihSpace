@@ -83,7 +83,7 @@ const navItems: NavItem[] = [
   },
   {
     title: "Platform Admin",
-    href: "/app/admin",
+    href: "/app/securegate",
     icon: ShieldAlert,
     roles: ["admin"],
   },

@@ -18,13 +18,13 @@ class VerificationController extends Controller
 
         if (! hash_equals((string) $request->route('hash'), sha1($user->getEmailForVerification()))) {
             return response()->json([
-                'message' => 'Invalid verification link.'
+                'message' => 'Invalid verification link.',
             ], 403);
         }
 
         if ($user->hasVerifiedEmail()) {
             return response()->json([
-                'message' => 'Email address already verified.'
+                'message' => 'Email address already verified.',
             ]);
         }
 
@@ -33,7 +33,7 @@ class VerificationController extends Controller
         }
 
         return response()->json([
-            'message' => 'Email address verified successfully.'
+            'message' => 'Email address verified successfully.',
         ]);
     }
 
@@ -44,14 +44,14 @@ class VerificationController extends Controller
     {
         if ($request->user()->hasVerifiedEmail()) {
             return response()->json([
-                'message' => 'Email address already verified.'
+                'message' => 'Email address already verified.',
             ], 400);
         }
 
         $request->user()->sendEmailVerificationNotification();
 
         return response()->json([
-            'message' => 'Verification link sent.'
+            'message' => 'Verification link sent.',
         ]);
     }
 }

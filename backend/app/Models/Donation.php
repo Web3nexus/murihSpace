@@ -13,7 +13,7 @@ class Donation extends Model
     ];
 
     protected $casts = [
-        'amount'       => 'integer',
+        'amount' => 'integer',
         'is_anonymous' => 'boolean',
     ];
 

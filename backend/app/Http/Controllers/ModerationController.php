@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Post;
 use App\Models\Report;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -16,9 +17,9 @@ class ModerationController extends Controller
     {
         $validated = $request->validate([
             'reported_type' => ['required', Rule::in(['post', 'user', 'comment'])],
-            'reported_id'   => ['required', 'integer'],
-            'reason'        => ['required', Rule::in(Report::REASONS)],
-            'details'       => ['nullable', 'string', 'max:1000'],
+            'reported_id' => ['required', 'integer'],
+            'reason' => ['required', Rule::in(Report::REASONS)],
+            'details' => ['nullable', 'string', 'max:1000'],
         ]);
 
         // Prevent duplicate pending reports from the same reporter
@@ -31,22 +32,22 @@ class ModerationController extends Controller
         if ($exists) {
             return response()->json([
                 'message' => 'You have already reported this content.',
-                'code'    => 'ALREADY_REPORTED',
+                'code' => 'ALREADY_REPORTED',
             ], 409);
         }
 
         $report = Report::create([
-            'reporter_id'   => $request->user()->id,
+            'reporter_id' => $request->user()->id,
             'reported_type' => $validated['reported_type'],
-            'reported_id'   => $validated['reported_id'],
-            'reason'        => $validated['reason'],
-            'details'       => $validated['details'] ?? null,
-            'status'        => 'pending',
+            'reported_id' => $validated['reported_id'],
+            'reason' => $validated['reason'],
+            'details' => $validated['details'] ?? null,
+            'status' => 'pending',
         ]);
 
         return response()->json([
             'message' => 'Report submitted. Our moderation team will review it.',
-            'data'    => $report,
+            'data' => $report,
         ], 201);
     }
 
@@ -74,12 +75,12 @@ class ModerationController extends Controller
         $this->authorizeAdmin($request);
 
         $validated = $request->validate([
-            'status'      => ['required', Rule::in(['reviewed', 'dismissed', 'actioned'])],
+            'status' => ['required', Rule::in(['reviewed', 'dismissed', 'actioned'])],
             'review_note' => ['nullable', 'string', 'max:500'],
         ]);
 
         $report->update([
-            'status'      => $validated['status'],
+            'status' => $validated['status'],
             'review_note' => $validated['review_note'] ?? null,
             'reviewed_by' => $request->user()->id,
             'reviewed_at' => now(),
@@ -87,12 +88,12 @@ class ModerationController extends Controller
 
         // If actioned on a post — remove it (soft approach: could also use SoftDeletes)
         if ($validated['status'] === 'actioned' && $report->reported_type === 'post') {
-            \App\Models\Post::find($report->reported_id)?->delete();
+            Post::find($report->reported_id)?->delete();
         }
 
         return response()->json([
             'message' => 'Report updated.',
-            'data'    => $report->fresh(),
+            'data' => $report->fresh(),
         ]);
     }
 

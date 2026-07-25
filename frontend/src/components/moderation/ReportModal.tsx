@@ -78,8 +78,8 @@ export function ReportModal({
         setDetails('');
         setSelectedReason('spam');
       }, 1800);
-    } catch (err: any) {
-      setError(err.message || 'An error occurred while submitting the report.');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'An error occurred while submitting the report.');
     } finally {
       setIsSubmitting(false);
     }
@@ -118,14 +118,18 @@ export function ReportModal({
             )}
 
             <div className="space-y-2">
-              <label className="text-xs font-bold text-foreground uppercase tracking-wider">
+              <span className="text-xs font-bold text-foreground uppercase tracking-wider">
                 Select Reason
-              </label>
+              </span>
               <div className="space-y-1.5">
                 {REASONS.map((r) => (
                   <div
                     key={r.value}
                     onClick={() => setSelectedReason(r.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && setSelectedReason(r.value)}
+                    role="radio"
+                    aria-checked={selectedReason === r.value}
+                    tabIndex={0}
                     className={`p-3 rounded-xl border transition-all cursor-pointer flex flex-col gap-0.5 ${
                       selectedReason === r.value
                         ? 'border-secondary bg-secondary/10 shadow-sm'
@@ -149,10 +153,11 @@ export function ReportModal({
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-foreground uppercase tracking-wider">
+              <label htmlFor="report-details" className="text-xs font-bold text-foreground uppercase tracking-wider">
                 Additional Details (Optional)
               </label>
               <Textarea
+                id="report-details"
                 value={details}
                 onChange={(e) => setDetails(e.target.value)}
                 placeholder="Provide any additional context to help our moderators…"

@@ -12,6 +12,7 @@ export function AdminKycPage() {
 
   useEffect(() => {
     fetchPendingKycs();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleApprove = async (userId: number) => {

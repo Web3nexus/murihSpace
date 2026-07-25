@@ -4,7 +4,6 @@ namespace App\Services\Wallet;
 
 use App\Models\LedgerEntry;
 use App\Models\LedgerTransaction;
-use App\Models\User;
 use App\Models\Wallet;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
@@ -25,7 +24,7 @@ class LedgerService
         return $this->execute($userId, $amount, $currency, 'debit', $type, $description, $metadata);
     }
 
-    public function transfer(int $fromUserId, int $toUserId, int $amount, string $currency, string $description = null, array $metadata = []): LedgerTransaction
+    public function transfer(int $fromUserId, int $toUserId, int $amount, string $currency, ?string $description = null, array $metadata = []): LedgerTransaction
     {
         return DB::transaction(function () use ($fromUserId, $toUserId, $amount, $currency, $description, $metadata) {
             $fromWallet = $this->getOrCreateWallet($fromUserId, $currency);
@@ -36,9 +35,9 @@ class LedgerService
             }
 
             $txn = LedgerTransaction::create([
-                'type'        => 'transfer_out',
+                'type' => 'transfer_out',
                 'description' => $description ?? "Transfer to user #{$toUserId}",
-                'metadata'    => array_merge($metadata, ['from_user' => $fromUserId, 'to_user' => $toUserId]),
+                'metadata' => array_merge($metadata, ['from_user' => $fromUserId, 'to_user' => $toUserId]),
             ]);
 
             $fromNewBalance = $fromWallet->balance - $amount;
@@ -46,24 +45,24 @@ class LedgerService
 
             LedgerEntry::create([
                 'ledger_transaction_id' => $txn->id,
-                'account_type'          => 'user_wallet',
-                'user_id'               => $fromUserId,
-                'entry_type'            => 'debit',
-                'amount'                => $amount,
-                'currency'              => $currency,
-                'balance_before'        => $fromWallet->balance,
-                'balance_after'         => $fromNewBalance,
+                'account_type' => 'user_wallet',
+                'user_id' => $fromUserId,
+                'entry_type' => 'debit',
+                'amount' => $amount,
+                'currency' => $currency,
+                'balance_before' => $fromWallet->balance,
+                'balance_after' => $fromNewBalance,
             ]);
 
             LedgerEntry::create([
                 'ledger_transaction_id' => $txn->id,
-                'account_type'          => 'user_wallet',
-                'user_id'               => $toUserId,
-                'entry_type'            => 'credit',
-                'amount'                => $amount,
-                'currency'              => $currency,
-                'balance_before'        => $toWallet->balance,
-                'balance_after'         => $toNewBalance,
+                'account_type' => 'user_wallet',
+                'user_id' => $toUserId,
+                'entry_type' => 'credit',
+                'amount' => $amount,
+                'currency' => $currency,
+                'balance_before' => $toWallet->balance,
+                'balance_after' => $toNewBalance,
             ]);
 
             $fromWallet->update(['balance' => $fromNewBalance]);
@@ -84,31 +83,31 @@ class LedgerService
             $platformNewBalance = $platformWallet->balance + $feeAmount;
 
             $txn = LedgerTransaction::create([
-                'type'        => $type,
+                'type' => $type,
                 'description' => $description,
-                'metadata'    => $metadata,
+                'metadata' => $metadata,
             ]);
 
             LedgerEntry::create([
                 'ledger_transaction_id' => $txn->id,
-                'account_type'          => 'user_wallet',
-                'user_id'               => $userId,
-                'entry_type'            => 'credit',
-                'amount'                => $netAmount,
-                'currency'              => $currency,
-                'balance_before'        => $wallet->balance,
-                'balance_after'         => $newBalance,
+                'account_type' => 'user_wallet',
+                'user_id' => $userId,
+                'entry_type' => 'credit',
+                'amount' => $netAmount,
+                'currency' => $currency,
+                'balance_before' => $wallet->balance,
+                'balance_after' => $newBalance,
             ]);
 
             LedgerEntry::create([
                 'ledger_transaction_id' => $txn->id,
-                'account_type'          => 'platform_revenue',
-                'user_id'               => $this->platformRevenueUserId,
-                'entry_type'            => 'credit',
-                'amount'                => $feeAmount,
-                'currency'              => $currency,
-                'balance_before'        => $platformWallet->balance,
-                'balance_after'         => $platformNewBalance,
+                'account_type' => 'platform_revenue',
+                'user_id' => $this->platformRevenueUserId,
+                'entry_type' => 'credit',
+                'amount' => $feeAmount,
+                'currency' => $currency,
+                'balance_before' => $platformWallet->balance,
+                'balance_after' => $platformNewBalance,
             ]);
 
             $wallet->update(['balance' => $newBalance]);
@@ -131,20 +130,20 @@ class LedgerService
             $balanceAfter = $entryType === 'credit' ? $balanceBefore + $amount : $balanceBefore - $amount;
 
             $txn = LedgerTransaction::create([
-                'type'        => $type,
+                'type' => $type,
                 'description' => $description,
-                'metadata'    => $metadata,
+                'metadata' => $metadata,
             ]);
 
             LedgerEntry::create([
                 'ledger_transaction_id' => $txn->id,
-                'account_type'          => 'user_wallet',
-                'user_id'               => $userId,
-                'entry_type'            => $entryType,
-                'amount'                => $amount,
-                'currency'              => $currency,
-                'balance_before'        => $balanceBefore,
-                'balance_after'         => $balanceAfter,
+                'account_type' => 'user_wallet',
+                'user_id' => $userId,
+                'entry_type' => $entryType,
+                'amount' => $amount,
+                'currency' => $currency,
+                'balance_before' => $balanceBefore,
+                'balance_after' => $balanceAfter,
             ]);
 
             $wallet->update(['balance' => $balanceAfter]);

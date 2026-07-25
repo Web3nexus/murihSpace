@@ -18,11 +18,11 @@ class DonationController extends Controller
     {
         $validated = $request->validate([
             'recipient_username' => ['required', 'string', 'max:255', 'exists:users,username'],
-            'amount'             => ['required', 'integer', 'min:1'],
-            'currency'           => ['nullable', 'string', 'max:3'],
-            'message'            => ['nullable', 'string', 'max:500'],
-            'is_anonymous'       => ['nullable', 'boolean'],
-            'pin'                => ['required', 'string', 'digits:4'],
+            'amount' => ['required', 'integer', 'min:1'],
+            'currency' => ['nullable', 'string', 'max:3'],
+            'message' => ['nullable', 'string', 'max:500'],
+            'is_anonymous' => ['nullable', 'boolean'],
+            'pin' => ['required', 'string', 'digits:4'],
         ]);
 
         $sender = $request->user();
@@ -46,24 +46,24 @@ class DonationController extends Controller
             $recipient->id,
             $validated['amount'],
             $currency,
-            "Donation to @{$recipient->username}" . ($validated['message'] ? ": {$validated['message']}" : ''),
+            "Donation to @{$recipient->username}".(($validated['message'] ?? '') ? ": {$validated['message']}" : ''),
             ['donation' => true, 'anonymous' => $isAnonymous],
         );
 
         $donation = Donation::create([
-            'sender_id'             => $sender->id,
-            'recipient_id'          => $recipient->id,
-            'amount'                => $validated['amount'],
-            'currency'              => $currency,
-            'message'               => $validated['message'],
-            'is_anonymous'          => $isAnonymous,
-            'status'                => 'completed',
+            'sender_id' => $sender->id,
+            'recipient_id' => $recipient->id,
+            'amount' => $validated['amount'],
+            'currency' => $currency,
+            'message' => $validated['message'] ?? null,
+            'is_anonymous' => $isAnonymous,
+            'status' => 'completed',
             'ledger_transaction_id' => $ledgerTxn->id,
         ]);
 
         return response()->json([
             'message' => 'Donation sent successfully.',
-            'data'    => $donation->fresh(['sender:id,name,username', 'recipient:id,name,username']),
+            'data' => $donation->fresh(['sender:id,name,username', 'recipient:id,name,username']),
         ], 201);
     }
 

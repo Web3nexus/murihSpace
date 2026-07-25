@@ -15,7 +15,7 @@ export function MessageReactions({ messageId, reactions, onReactionToggle }: Mes
   const [showPicker, setShowPicker] = useState(false);
 
   const handleReact = async (emoji: string) => {
-    const token = localStorage.getItem('auth_token');
+    const token = localStorage.getItem('murihspace-token');
     setShowPicker(false);
 
     try {
@@ -32,7 +32,7 @@ export function MessageReactions({ messageId, reactions, onReactionToggle }: Mes
         const json = await res.json();
         onReactionToggle(messageId, json.reactions ?? []);
       }
-    } catch {}
+    } catch (e) { console.error('Failed to add reaction', e); }
   };
 
   return (
@@ -66,7 +66,7 @@ export function MessageReactions({ messageId, reactions, onReactionToggle }: Mes
 
         {showPicker && (
           <>
-            <div className="fixed inset-0 z-40" onClick={() => setShowPicker(false)} />
+            <div className="fixed inset-0 z-40" onClick={() => setShowPicker(false)} role="presentation" onKeyDown={(e) => e.key === 'Enter' && setShowPicker(false)} />
             <div className="absolute bottom-7 left-0 z-50 flex gap-1 p-1.5 rounded-xl border border-border bg-card shadow-xl">
               {QUICK_EMOJIS.map((emoji) => (
                 <button

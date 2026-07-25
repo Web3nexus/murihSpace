@@ -53,14 +53,15 @@ export function SalesOrdersPage() {
         const json = await res.json();
         setSales(json.data ?? []);
       }
-    } catch {
-      // Handle error gracefully
+    } catch (e) {
+      console.error('Failed to fetch sales', e);
     } finally {
       setIsLoading(false);
     }
   }, []);
 
-  useEffect(() => { fetchSales(); }, [fetchSales]);
+  useEffect(() => { // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchSales(); }, [fetchSales]);
 
   const openReceipt = async (orderId: number) => {
     const token = localStorage.getItem('auth_token');
@@ -77,8 +78,7 @@ export function SalesOrdersPage() {
         const json = await res.json();
         setSelectedReceipt(json.data);
       }
-    } catch {
-    }
+    } catch (e) { console.error('Failed to fetch receipt', e); }
   };
 
   // Summary metrics

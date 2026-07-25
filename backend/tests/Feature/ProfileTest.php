@@ -31,7 +31,7 @@ class ProfileTest extends TestCase
                     'email' => $user->email,
                     'username' => 'testuser',
                     'country' => 'United Kingdom',
-                ]
+                ],
             ]);
     }
 
@@ -58,7 +58,7 @@ class ProfileTest extends TestCase
                     'username' => 'newusername',
                     'bio' => 'New bio details',
                     'country' => 'United States',
-                ]
+                ],
             ]);
 
         $this->assertDatabaseHas('users', [
@@ -86,7 +86,7 @@ class ProfileTest extends TestCase
                 'data' => [
                     'kyc_status' => 'pending',
                     'kyc_document' => 'PASSPORT-12345678',
-                ]
+                ],
             ]);
 
         $this->assertDatabaseHas('users', [
@@ -108,17 +108,17 @@ class ProfileTest extends TestCase
         Sanctum::actingAs($admin);
 
         // List pending KYC
-        $listResponse = $this->getJson('/api/v1/admin/kyc');
+        $listResponse = $this->getJson('/api/v1/securegate/kyc');
         $listResponse->assertStatus(200);
 
         // Approve KYC
-        $approveResponse = $this->postJson("/api/v1/admin/kyc/{$creator->id}/approve");
+        $approveResponse = $this->postJson("/api/v1/securegate/kyc/{$creator->id}/approve");
         $approveResponse->assertStatus(200)
             ->assertJson([
                 'data' => [
                     'id' => $creator->id,
                     'kyc_status' => 'verified',
-                ]
+                ],
             ]);
 
         $this->assertDatabaseHas('users', [
@@ -138,7 +138,7 @@ class ProfileTest extends TestCase
 
         Sanctum::actingAs($admin);
 
-        $rejectResponse = $this->postJson("/api/v1/admin/kyc/{$creator->id}/reject", [
+        $rejectResponse = $this->postJson("/api/v1/securegate/kyc/{$creator->id}/reject", [
             'reason' => 'Document image is unreadable or blurry.',
         ]);
 
@@ -148,7 +148,7 @@ class ProfileTest extends TestCase
                     'id' => $creator->id,
                     'kyc_status' => 'rejected',
                     'kyc_rejection_reason' => 'Document image is unreadable or blurry.',
-                ]
+                ],
             ]);
 
         $this->assertDatabaseHas('users', [

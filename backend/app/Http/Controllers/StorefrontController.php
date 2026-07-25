@@ -22,11 +22,11 @@ class StorefrontController extends Controller
             ['user_id' => $user->id],
             [
                 'display_name' => $user->name,
-                'tagline'      => 'Welcome to my official creator storefront.',
-                'bio'          => 'Explore my digital products, community memberships, and exclusive content.',
-                'short_code'   => Str::slug($user->username ?? $user->name ?? "user-{$user->id}"),
+                'tagline' => 'Welcome to my official creator storefront.',
+                'bio' => 'Explore my digital products, community memberships, and exclusive content.',
+                'short_code' => Str::slug($user->username ?? $user->name ?? "user-{$user->id}"),
                 'is_published' => false,
-                'links'        => [],
+                'links' => [],
             ]
         );
 
@@ -43,21 +43,21 @@ class StorefrontController extends Controller
 
         $validated = $request->validate([
             'display_name' => ['required', 'string', 'max:100'],
-            'tagline'      => ['nullable', 'string', 'max:255'],
-            'bio'          => ['nullable', 'string', 'max:2000'],
-            'cover_url'    => ['nullable', 'string', 'max:2000'],
-            'avatar_url'   => ['nullable', 'string', 'max:2000'],
-            'short_code'   => ['required', 'string', 'alpha_dash', 'max:50', "unique:storefronts,short_code,{$store->id}"],
-            'links'        => ['nullable', 'array', 'max:10'],
+            'tagline' => ['nullable', 'string', 'max:255'],
+            'bio' => ['nullable', 'string', 'max:2000'],
+            'cover_url' => ['nullable', 'string', 'max:2000'],
+            'avatar_url' => ['nullable', 'string', 'max:2000'],
+            'short_code' => ['required', 'string', 'alpha_dash', 'max:50', "unique:storefronts,short_code,{$store->id}"],
+            'links' => ['nullable', 'array', 'max:10'],
             'links.*.label' => ['required_with:links', 'string', 'max:50'],
-            'links.*.url'   => ['required_with:links', 'string', 'url', 'max:500'],
+            'links.*.url' => ['required_with:links', 'string', 'url', 'max:500'],
         ]);
 
         $store->update($validated);
 
         return response()->json([
             'message' => 'Storefront updated successfully.',
-            'data'    => $store->fresh(),
+            'data' => $store->fresh(),
         ]);
     }
 
@@ -79,7 +79,7 @@ class StorefrontController extends Controller
 
         return response()->json([
             'message' => "Storefront is now {$statusText}.",
-            'data'    => $store,
+            'data' => $store,
         ]);
     }
 
@@ -117,17 +117,17 @@ class StorefrontController extends Controller
         return response()->json([
             'data' => [
                 'display_name' => $store->display_name,
-                'tagline'      => $store->tagline,
-                'bio'          => $store->bio,
-                'cover_url'    => $store->cover_url,
-                'avatar_url'   => $store->avatar_url ?? $creator?->avatar_url,
-                'short_code'   => $store->short_code,
-                'links'        => $store->links ?? [],
-                'creator'      => [
-                    'name'     => $creator?->name,
+                'tagline' => $store->tagline,
+                'bio' => $store->bio,
+                'cover_url' => $store->cover_url,
+                'avatar_url' => $store->avatar_url ?? $creator?->avatar_url,
+                'short_code' => $store->short_code,
+                'links' => $store->links ?? [],
+                'creator' => [
+                    'name' => $creator?->name,
                     'username' => $creator?->username,
                 ],
-                'communities'  => $communities,
+                'communities' => $communities,
             ],
         ]);
     }

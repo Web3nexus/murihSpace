@@ -34,7 +34,7 @@ return new class extends Migration
                 'state',
                 'role',
                 'kyc_status',
-                'kyc_document'
+                'kyc_document',
             ]);
         });
     }

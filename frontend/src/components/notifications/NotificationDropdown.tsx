@@ -42,6 +42,7 @@ export function NotificationDropdown() {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchNotifications();
     const interval = setInterval(fetchNotifications, 30000); // Polling every 30s
     return () => clearInterval(interval);
@@ -125,7 +126,7 @@ export function NotificationDropdown() {
       {isOpen && (
         <>
           {/* Backdrop overlay for outside click */}
-          <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
+          <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} role="presentation" onKeyDown={(e) => e.key === 'Enter' && setIsOpen(false)} />
 
           <div className="absolute right-0 mt-2 w-80 sm:w-96 rounded-2xl border border-border bg-card shadow-2xl z-50 overflow-hidden text-card-foreground animate-in fade-in slide-in-from-top-2 duration-150">
             {/* Header */}
@@ -168,6 +169,9 @@ export function NotificationDropdown() {
                     <div
                       key={n.id}
                       onClick={() => isUnread && handleMarkRead(n.id)}
+                      onKeyDown={(e) => e.key === 'Enter' && isUnread && handleMarkRead(n.id)}
+                      role="button"
+                      tabIndex={0}
                       className={`p-3 transition-colors flex items-start gap-3 cursor-pointer ${
                         isUnread ? 'bg-secondary/5 hover:bg-secondary/10 font-medium' : 'hover:bg-muted/40'
                       }`}

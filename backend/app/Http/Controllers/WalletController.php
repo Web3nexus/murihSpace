@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\LedgerEntry;
-use App\Models\Wallet;
 use App\Services\Wallet\LedgerService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -21,12 +20,12 @@ class WalletController extends Controller
 
         return response()->json([
             'data' => [
-                'id'          => $wallet->id,
-                'balance'     => $wallet->balance,
-                'currency'    => $wallet->currency,
-                'formatted'   => $this->formatAmount($wallet->balance, $wallet->currency),
-                'has_pin'     => $wallet->hasPin(),
-                'status'      => $wallet->status,
+                'id' => $wallet->id,
+                'balance' => $wallet->balance,
+                'currency' => $wallet->currency,
+                'formatted' => $this->formatAmount($wallet->balance, $wallet->currency),
+                'has_pin' => $wallet->hasPin(),
+                'status' => $wallet->status,
             ],
         ]);
     }
@@ -44,7 +43,7 @@ class WalletController extends Controller
         }
 
         $wallet->update([
-            'pin_hash'  => hash('sha256', $validated['pin']),
+            'pin_hash' => Hash::make($validated['pin']),
             'pin_set_at' => now(),
         ]);
 
@@ -55,7 +54,7 @@ class WalletController extends Controller
     {
         $validated = $request->validate([
             'current_pin' => ['required', 'string', 'digits:4'],
-            'new_pin'     => ['required', 'string', 'digits:4'],
+            'new_pin' => ['required', 'string', 'digits:4'],
         ]);
 
         $wallet = $this->ledgerService->getOrCreateWallet($request->user()->id);
@@ -65,7 +64,7 @@ class WalletController extends Controller
         }
 
         $wallet->update([
-            'pin_hash'   => hash('sha256', $validated['new_pin']),
+            'pin_hash' => Hash::make($validated['new_pin']),
             'pin_set_at' => now(),
         ]);
 
@@ -90,10 +89,10 @@ class WalletController extends Controller
     public function transactions(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'type'      => ['nullable', 'string'],
-            'from'      => ['nullable', 'date'],
-            'to'        => ['nullable', 'date'],
-            'per_page'  => ['nullable', 'integer', 'min:1', 'max:100'],
+            'type' => ['nullable', 'string'],
+            'from' => ['nullable', 'date'],
+            'to' => ['nullable', 'date'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ]);
 
         $query = LedgerEntry::where('user_id', $request->user()->id)
@@ -107,7 +106,7 @@ class WalletController extends Controller
             $query->where('created_at', '>=', $validated['from']);
         }
         if (! empty($validated['to'])) {
-            $query->where('created_at', '<=', $validated['to'] . ' 23:59:59');
+            $query->where('created_at', '<=', $validated['to'].' 23:59:59');
         }
 
         $perPage = $validated['per_page'] ?? 20;
@@ -115,16 +114,16 @@ class WalletController extends Controller
 
         $entries->getCollection()->transform(function (LedgerEntry $entry) {
             return [
-                'id'            => $entry->id,
-                'type'          => $entry->transaction?->type,
-                'entry_type'    => $entry->entry_type,
-                'amount'        => $entry->amount,
-                'currency'      => $entry->currency,
-                'formatted'     => $this->formatAmount($entry->amount, $entry->currency),
+                'id' => $entry->id,
+                'type' => $entry->transaction?->type,
+                'entry_type' => $entry->entry_type,
+                'amount' => $entry->amount,
+                'currency' => $entry->currency,
+                'formatted' => $this->formatAmount($entry->amount, $entry->currency),
                 'balance_before' => $entry->balance_before,
                 'balance_after' => $entry->balance_after,
-                'description'   => $entry->transaction?->description,
-                'created_at'    => $entry->created_at->toIso8601String(),
+                'description' => $entry->transaction?->description,
+                'created_at' => $entry->created_at->toIso8601String(),
             ];
         });
 
@@ -134,7 +133,8 @@ class WalletController extends Controller
     private function formatAmount(int $amount, string $currency): string
     {
         $symbols = ['NGN' => '₦', 'USD' => '$', 'GBP' => '£', 'EUR' => '€'];
-        $symbol = $symbols[$currency] ?? $currency . ' ';
-        return $symbol . number_format($amount / 100, 2);
+        $symbol = $symbols[$currency] ?? $currency.' ';
+
+        return $symbol.number_format($amount / 100, 2);
     }
 }

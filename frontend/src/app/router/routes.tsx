@@ -1,7 +1,7 @@
 import type { RouteObject } from "react-router";
+import { Navigate } from "react-router";
 import { LoginPage } from "@/pages/LoginPage";
 import { RegisterPage } from "@/pages/RegisterPage";
-import { HomePage } from "@/pages/HomePage";
 import { AppPage } from "@/pages/AppPage";
 import { ProfilePage } from "@/pages/ProfilePage";
 import { AdminKycPage } from "@/pages/AdminKycPage";
@@ -12,14 +12,28 @@ import { ChatLayout } from "@/components/layout/ChatLayout";
 import { CommunitiesPage } from "@/pages/CommunitiesPage";
 import { CommunityPreviewPage } from "@/pages/CommunityPreviewPage";
 import CommunityFeedPage from "@/pages/CommunityFeedPage";
+import { EventsPage } from "@/pages/EventsPage";
+import { EventDetailPage } from "@/pages/EventDetailPage";
+import { MyEventsPage } from "@/pages/MyEventsPage";
 import NotificationsPage from "@/pages/NotificationsPage";
 import { StoreManagementPage } from "@/pages/StoreManagementPage";
 import { PublicStorefrontPage } from "@/pages/PublicStorefrontPage";
 import { DigitalProductsPage } from "@/pages/DigitalProductsPage";
 import { SalesOrdersPage } from "@/pages/SalesOrdersPage";
+import { AudioRoomsPage } from "@/pages/AudioRoomsPage";
+import { CoachingPage } from "@/pages/CoachingPage";
+import { SubscriptionManagementPage } from "@/pages/SubscriptionManagementPage";
+import { BrowsePlansPage } from "@/pages/BrowsePlansPage";
+import { MySubscriptionsPage } from "@/pages/MySubscriptionsPage";
 import { WalletPage } from "@/pages/WalletPage";
 import { DonationsPage } from "@/pages/DonationsPage";
 import { PurchasesPage } from "@/pages/PurchasesPage";
+import { SecuregateOverviewPage } from "@/pages/SecuregateOverviewPage";
+import { AdminUsersPage } from "@/pages/AdminUsersPage";
+import { AdminTransactionsPage } from "@/pages/AdminTransactionsPage";
+import { AdminReportsPage } from "@/pages/AdminReportsPage";
+import { AdminFeatureFlagsPage } from "@/pages/AdminFeatureFlagsPage";
+import { AdminCmsPage } from "@/pages/AdminCmsPage";
 import {
   EmptyState,
   NotFoundState,
@@ -79,7 +93,7 @@ export const routes: RouteObject[] = [
       },
       {
         path: "store/coaching",
-        element: sprint("1:1 Coaching & Bookings", "Calendar integration for 1-on-1 calls, consultations and advice", 21),
+        element: <CoachingPage />,
       },
       {
         path: "store/physical",
@@ -87,7 +101,7 @@ export const routes: RouteObject[] = [
       },
       {
         path: "store/subscriptions",
-        element: sprint("Subscriptions & Memberships", "Tiered memberships, recurring payments and VIP access", 22),
+        element: <SubscriptionManagementPage />,
       },
 
       // ── Brand Deals & Media Kit ──────────────────
@@ -149,7 +163,29 @@ export const routes: RouteObject[] = [
       },
       {
         path: "communities/events",
-        element: sprint("Audio Rooms & Events", "Host live audio discussions, webinars and calendar events", 20),
+        element: <EventsPage />,
+      },
+      {
+        path: "audio-rooms",
+        element: <AudioRoomsPage />,
+      },
+      {
+        path: "events/:id",
+        element: <EventDetailPage />,
+      },
+      {
+        path: "my-events",
+        element: <MyEventsPage />,
+      },
+
+      // ── Subscriptions & Memberships ─────────────
+      {
+        path: "subscriptions",
+        element: <BrowsePlansPage />,
+      },
+      {
+        path: "subscriptions/mine",
+        element: <MySubscriptionsPage />,
       },
 
       // ── Messages ───────────────────────────────
@@ -243,38 +279,42 @@ export const routes: RouteObject[] = [
         ],
       },
 
-      // ── Platform Administration ─────────────────
+      // ── Sprint 17: Platform Administration (/securegate) ─
       {
-        path: "admin",
-        element: <AdminKycPage />,
+        path: "securegate",
+        element: <SecuregateOverviewPage />,
       },
       {
-        path: "admin/users",
-        element: sprint("Users & Creators", "Manage all platform users, creators and vendors", 17),
+        path: "securegate/users",
+        element: <AdminUsersPage />,
       },
       {
-        path: "admin/communities",
-        element: sprint("Communities Admin", "Oversee communities, content reports and moderation", 17),
+        path: "securegate/transactions",
+        element: <AdminTransactionsPage />,
       },
       {
-        path: "admin/transactions",
-        element: sprint("Transactions", "Review all platform transactions, withdrawals, escrow and disputes", 17),
+        path: "securegate/reports",
+        element: <AdminReportsPage />,
       },
       {
-        path: "admin/reports",
-        element: sprint("Reports & Audit", "Content reports, audit logs and system health monitoring", 17),
+        path: "securegate/feature-flags",
+        element: <AdminFeatureFlagsPage />,
       },
       {
-        path: "admin/analytics",
+        path: "securegate/analytics",
         element: sprint("Platform Analytics", "Revenue breakdown, growth trends and platform metrics", 17),
       },
       {
-        path: "admin/plans",
+        path: "securegate/plans",
         element: sprint("Plans & Fees", "Subscription plans and platform fee configuration", 17),
       },
       {
-        path: "admin/cms",
-        element: sprint("Website CMS", "Code-free management of public pages and announcements", 18),
+        path: "securegate/cms",
+        element: <AdminCmsPage />,
+      },
+      {
+        path: "securegate/kyc",
+        element: <AdminKycPage />,
       },
 
       // Catch-all within /app
@@ -282,8 +322,8 @@ export const routes: RouteObject[] = [
     ],
   },
 
-  // ── Public home / marketing ────────────────────
-  { path: RoutePaths.HOME, element: <HomePage /> },
+  // ── Public home → redirect to app dashboard ────
+  { path: RoutePaths.HOME, element: <Navigate to="/app" replace /> },
 
   // ── 404 ───────────────────────────────────────
   { path: "*", element: <NotFoundPage /> },

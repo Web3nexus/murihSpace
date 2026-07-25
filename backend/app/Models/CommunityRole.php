@@ -49,6 +49,7 @@ class CommunityRole extends Model
         if (in_array('*', $this->permissions || [])) {
             return true;
         }
+
         return in_array($permission, $this->permissions || []);
     }
 }

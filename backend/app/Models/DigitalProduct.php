@@ -26,19 +26,19 @@ class DigitalProduct extends Model
     ];
 
     protected $casts = [
-        'is_free'        => 'boolean',
-        'price'          => 'decimal:2',
+        'is_free' => 'boolean',
+        'price' => 'decimal:2',
         'file_size_bytes' => 'integer',
         'download_count' => 'integer',
     ];
 
     public const CATEGORIES = [
-        'ebook'    => 'E-Book',
+        'ebook' => 'E-Book',
         'template' => 'Template',
-        'course'   => 'Course Assets',
-        'audio'    => 'Audio & Podcast',
+        'course' => 'Course Assets',
+        'audio' => 'Audio & Podcast',
         'graphics' => 'Graphics & Design',
-        'other'    => 'Other Asset',
+        'other' => 'Other Asset',
     ];
 
     public function creator(): BelongsTo

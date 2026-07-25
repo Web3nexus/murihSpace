@@ -132,7 +132,7 @@ export default function PostCard({ post, onReact, onComment, showCommunity = fal
             </button>
             {showMenu && (
               <>
-                <div className="fixed inset-0 z-40" onClick={() => setShowMenu(false)} />
+                <div className="fixed inset-0 z-40" onClick={() => setShowMenu(false)} role="presentation" onKeyDown={(e) => e.key === 'Enter' && setShowMenu(false)} />
                 <div className="absolute right-0 mt-1 w-44 rounded-xl border border-border bg-card shadow-xl z-50 p-1 space-y-0.5 text-xs">
                   <button
                     onClick={() => {

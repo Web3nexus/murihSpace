@@ -53,7 +53,8 @@ export function CommunityPreviewPage() {
             setMembersCount(data.community.members_count || 1);
           }
         }
-      } catch {
+      } catch (e) {
+        console.error('Failed to load community', e);
         // Fallback demo community if API is offline
       } finally {
         setIsLoading(false);

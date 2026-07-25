@@ -105,8 +105,8 @@ export function CheckoutModal({ product, open, onClose }: CheckoutModalProps) {
         setResult({ order: receiptJson.data, breakdown: intentJson.data?.breakdown });
         setStep('success');
       }
-    } catch (err: any) {
-      setErrorMsg(err.message ?? 'An error occurred during checkout.');
+    } catch (err: unknown) {
+      setErrorMsg(err instanceof Error ? err.message : 'An error occurred during checkout.');
       setStep('error');
     }
   };

@@ -15,7 +15,7 @@ import {
 import { Button } from '@/components/ui/button';
 import CreatePostComposer from '@/components/feed/CreatePostComposer';
 import PostCard from '@/components/feed/PostCard';
-import type { Post, CreatePostPayload, ReactionType } from '@/types/post';
+import type { Post, PostComment, CreatePostPayload, ReactionType } from '@/types/post';
 
 const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api/v1';
 
@@ -79,17 +79,18 @@ export default function CommunityFeedPage() {
         apiFetch<{ data: Post[] }>(`/communities/${slug}/posts`),
       ]);
       setCommunity(comm.data ?? (comm as unknown as Community));
-      const rawPosts = (postsRes as any)?.data ?? postsRes;
+      const rawPosts = (postsRes as { data: Post[] })?.data ?? postsRes;
       setPosts(Array.isArray(rawPosts) ? rawPosts : []);
-    } catch (e: any) {
-      setError(e.message ?? 'Failed to load community');
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Failed to load community');
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
     }
   }, [slug]);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
+  useEffect(() => { // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchData(); }, [fetchData]);
 
   const handlePost = async (payload: CreatePostPayload) => {
     setPostError(null);
@@ -98,13 +99,14 @@ export default function CommunityFeedPage() {
         method: 'POST',
         body: JSON.stringify(payload),
       });
-      const newPost = (created as any)?.data ?? created;
+      const newPost = (created as { data: Post })?.data ?? created;
       setPosts((prev) => [newPost as Post, ...prev]);
-    } catch (e: any) {
-      if (e.message?.includes('LINK_SHARING_RESTRICTED')) {
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : '';
+      if (message.includes('LINK_SHARING_RESTRICTED')) {
         setPostError('You don\'t have permission to share links in this community.');
       } else {
-        setPostError(e.message ?? 'Failed to create post');
+        setPostError(message || 'Failed to create post');
       }
       throw e;
     }
@@ -130,11 +132,11 @@ export default function CommunityFeedPage() {
   };
 
   const handleComment = async (postId: number, content: string) => {
-    const result = await apiFetch<{ data: any }>(`/posts/${postId}/comments`, {
+    const result = await apiFetch<{ data: PostComment }>(`/posts/${postId}/comments`, {
       method: 'POST',
       body: JSON.stringify({ content }),
     });
-    const newComment = (result as any)?.data ?? result;
+    const newComment = (result as { data: PostComment })?.data ?? result;
     setPosts((prev) =>
       prev.map((p) => {
         if (p.id !== postId) return p;

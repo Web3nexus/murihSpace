@@ -39,6 +39,7 @@ import {
   BadgeDollarSign,
   ScrollText,
   ShieldCheck,
+  Flag,
   ChevronsUpDown,
   LogOut,
   UserCircle,
@@ -46,6 +47,7 @@ import {
   ChevronRight,
   Zap,
   Sparkles,
+  Crown,
 } from "lucide-react";
 import {
   Collapsible,
@@ -124,7 +126,8 @@ const userNav: NavItem[] = [
     children: [
       { title: "My Communities", url: "/app/communities" },
       { title: "Feed & Posts", url: "/app/communities/feed" },
-      { title: "Audio Rooms & Events", url: "/app/communities/events" },
+      { title: "Audio Rooms", url: "/app/audio-rooms" },
+      { title: "Events", url: "/app/events" },
     ],
   },
   {
@@ -133,6 +136,16 @@ const userNav: NavItem[] = [
     icon: <MessageSquare className="size-4" />,
     badge: 4,
     badgeColor: "bg-[#38A8D8]",
+  },
+  {
+    title: "Memberships",
+    url: "/app/subscriptions",
+    icon: <Crown className="size-4" />,
+    children: [
+      { title: "Discover Plans", url: "/app/subscriptions" },
+      { title: "My Subscriptions", url: "/app/subscriptions/mine" },
+      { title: "My Plans (Creator)", url: "/app/store/subscriptions" },
+    ],
   },
   {
     title: "MurihPay Wallet",
@@ -174,89 +187,93 @@ const userNav: NavItem[] = [
 const adminNav: NavItem[] = [
   {
     title: "Admin Overview",
-    url: "/app/admin",
+    url: "/app/securegate",
     icon: <ShieldAlert className="size-4" />,
   },
   {
     title: "KYC Approvals",
-    url: "/app/admin",
+    url: "/app/securegate/kyc",
     icon: <UserCheck className="size-4" />,
-    badge: 128,
     children: [
-      { title: "Pending Queue", url: "/app/admin" },
-      { title: "Approved Creators", url: "/app/admin" },
-      { title: "Rejected Submissions", url: "/app/admin" },
+      { title: "Pending Queue", url: "/app/securegate/kyc" },
+      { title: "Approved Creators", url: "/app/securegate/kyc" },
+      { title: "Rejected Submissions", url: "/app/securegate/kyc" },
     ],
   },
   {
+    title: "Feature Flags",
+    url: "/app/securegate/feature-flags",
+    icon: <Flag className="size-4" />,
+  },
+  {
     title: "User Directory",
-    url: "/app/admin/users",
+    url: "/app/securegate/users",
     icon: <Users className="size-4" />,
     children: [
-      { title: "All Accounts", url: "/app/admin/users" },
-      { title: "Verified Creators", url: "/app/admin/users" },
-      { title: "Vendors & Partners", url: "/app/admin/users" },
-      { title: "Banned Accounts", url: "/app/admin/users" },
+      { title: "All Accounts", url: "/app/securegate/users" },
+      { title: "Verified Creators", url: "/app/securegate/users" },
+      { title: "Vendors & Partners", url: "/app/securegate/users" },
+      { title: "Banned Accounts", url: "/app/securegate/users" },
     ],
   },
   {
     title: "Communities & Content",
-    url: "/app/admin/communities",
+    url: "/app/securegate/communities",
     icon: <ShieldCheck className="size-4" />,
     children: [
-      { title: "All Communities", url: "/app/admin/communities" },
-      { title: "Content Reports", url: "/app/admin/communities" },
-      { title: "Moderation Logs", url: "/app/admin/communities" },
+      { title: "All Communities", url: "/app/securegate/communities" },
+      { title: "Content Reports", url: "/app/securegate/communities" },
+      { title: "Moderation Logs", url: "/app/securegate/communities" },
     ],
   },
   {
     title: "Platform Ledger & Escrow",
-    url: "/app/admin/transactions",
+    url: "/app/securegate/transactions",
     icon: <BadgeDollarSign className="size-4" />,
     children: [
-      { title: "All Transactions", url: "/app/admin/transactions" },
-      { title: "Withdrawals & Payouts", url: "/app/admin/transactions" },
-      { title: "Escrow Holds", url: "/app/admin/transactions" },
-      { title: "Disputes & Refunds", url: "/app/admin/transactions" },
+      { title: "All Transactions", url: "/app/securegate/transactions" },
+      { title: "Withdrawals & Payouts", url: "/app/securegate/transactions" },
+      { title: "Escrow Holds", url: "/app/securegate/transactions" },
+      { title: "Disputes & Refunds", url: "/app/securegate/transactions" },
     ],
   },
   {
     title: "Content Reports",
-    url: "/app/admin/reports",
+    url: "/app/securegate/reports",
     icon: <FileText className="size-4" />,
     badge: 14,
     children: [
-      { title: "Open Complaints", url: "/app/admin/reports" },
-      { title: "Audit Trail", url: "/app/admin/reports" },
-      { title: "System Health", url: "/app/admin/reports" },
+      { title: "Open Complaints", url: "/app/securegate/reports" },
+      { title: "Audit Trail", url: "/app/securegate/reports" },
+      { title: "System Health", url: "/app/securegate/reports" },
     ],
   },
   {
     title: "Platform Analytics",
-    url: "/app/admin/analytics",
+    url: "/app/securegate/analytics",
     icon: <BarChart3 className="size-4" />,
     children: [
-      { title: "Ecosystem Growth", url: "/app/admin/analytics" },
-      { title: "Revenue Breakdown", url: "/app/admin/analytics" },
-      { title: "Conversion Metrics", url: "/app/admin/analytics" },
+      { title: "Ecosystem Growth", url: "/app/securegate/analytics" },
+      { title: "Revenue Breakdown", url: "/app/securegate/analytics" },
+      { title: "Conversion Metrics", url: "/app/securegate/analytics" },
     ],
   },
   {
     title: "Plans & Platform Fees",
-    url: "/app/admin/plans",
+    url: "/app/securegate/plans",
     icon: <ScrollText className="size-4" />,
     children: [
-      { title: "Tier Pricing", url: "/app/admin/plans" },
-      { title: "Transaction Fee Matrix", url: "/app/admin/plans" },
+      { title: "Tier Pricing", url: "/app/securegate/plans" },
+      { title: "Transaction Fee Matrix", url: "/app/securegate/plans" },
     ],
   },
   {
     title: "Website CMS",
-    url: "/app/admin/cms",
+    url: "/app/securegate/cms",
     icon: <Megaphone className="size-4" />,
     children: [
-      { title: "Landing Pages", url: "/app/admin/cms" },
-      { title: "Announcements", url: "/app/admin/cms" },
+      { title: "Landing Pages", url: "/app/securegate/cms" },
+      { title: "Announcements", url: "/app/securegate/cms" },
     ],
   },
 ];
@@ -266,7 +283,7 @@ const adminNav: NavItem[] = [
 function BrandLogo({ isAdmin }: { isAdmin: boolean }) {
   return (
     <Link
-      to={isAdmin ? "/app/admin" : "/app"}
+      to={isAdmin ? "/app/securegate" : "/app"}
       className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg group"
     >
       <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#38A8D8] shadow-md transition-transform group-hover:scale-105">

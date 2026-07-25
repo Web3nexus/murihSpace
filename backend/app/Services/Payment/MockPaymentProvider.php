@@ -20,13 +20,13 @@ class MockPaymentProvider implements PaymentProviderInterface
 
     public function createCheckoutIntent(Order $order): array
     {
-        $intentId = 'mock_' . Str::upper(Str::random(16));
+        $intentId = 'mock_'.Str::upper(Str::random(16));
 
         return [
-            'provider'      => 'mock',
-            'intent_id'     => $intentId,
+            'provider' => 'mock',
+            'intent_id' => $intentId,
             'client_secret' => null,
-            'redirect_url'  => null,
+            'redirect_url' => null,
         ];
     }
 
@@ -43,10 +43,10 @@ class MockPaymentProvider implements PaymentProviderInterface
         }
 
         return [
-            'event_id'   => $payload['event_id'],
+            'event_id' => $payload['event_id'],
             'event_type' => $payload['event_type'] ?? 'payment.completed',
-            'intent_id'  => $payload['intent_id'] ?? null,
-            'status'     => $payload['status'] ?? 'completed',
+            'intent_id' => $payload['intent_id'] ?? null,
+            'status' => $payload['status'] ?? 'completed',
         ];
     }
 }

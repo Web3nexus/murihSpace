@@ -62,7 +62,7 @@ export function WalletPage() {
         const json = await res.json();
         setWallet(json.data);
       }
-    } catch { /* ignore */ }
+    } catch (e) { console.error('Failed to fetch wallet', e); }
   }, []);
 
   const fetchTransactions = useCallback(async () => {
@@ -73,10 +73,11 @@ export function WalletPage() {
         const json = await res.json();
         setTransactions(json.data ?? []);
       }
-    } catch { /* ignore */ }
+    } catch (e) { console.error('Failed to fetch transactions', e); }
   }, [txnFilter]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     Promise.all([fetchWallet(), fetchTransactions()]).finally(() => setIsLoading(false));
   }, [fetchWallet, fetchTransactions]);
 

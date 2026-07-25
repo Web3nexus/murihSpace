@@ -55,7 +55,7 @@ class AuthController extends Controller
                 'role' => $user->role,
                 'kyc_status' => $user->kyc_status,
                 'email_verified' => $user->hasVerifiedEmail(),
-            ]
+            ],
         ], 201);
     }
 
@@ -90,7 +90,7 @@ class AuthController extends Controller
                 'role' => $user->role,
                 'kyc_status' => $user->kyc_status,
                 'email_verified' => $user->hasVerifiedEmail(),
-            ]
+            ],
         ]);
     }
 
@@ -102,7 +102,7 @@ class AuthController extends Controller
         $request->user()->currentAccessToken()->delete();
 
         return response()->json([
-            'message' => 'Logout successful.'
+            'message' => 'Logout successful.',
         ]);
     }
 }

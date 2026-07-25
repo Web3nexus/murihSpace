@@ -187,8 +187,8 @@ export function RoleManagementModal({
       setRoleName("");
       setSelectedPermissions(["create_posts"]);
       setTab("roles");
-    } catch (err: any) {
-      setError(err.message || "Failed to create role.");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to create role.");
       // Fallback optimistic update
       const newCustomRole: CommunityRole = {
         id: Date.now(),

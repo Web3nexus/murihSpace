@@ -61,12 +61,12 @@ class PostController extends Controller
 
         // Check link-sharing permissions on server side (Sprint 8 requirement)
         $hasUrlInContent = (bool) preg_match('/https?:\/\/[^\s]+/', $validated['content']);
-        $hasLinkUrl = !empty($validated['link_url']);
+        $hasLinkUrl = ! empty($validated['link_url']);
 
         if ($hasUrlInContent || $hasLinkUrl) {
             $isOwnerOrCreator = ($community->user_id === $user->id);
 
-            if (!$isOwnerOrCreator) {
+            if (! $isOwnerOrCreator) {
                 $membership = CommunityMembership::with('customRole')
                     ->where('community_id', $community->id)
                     ->where('user_id', $user->id)
@@ -82,7 +82,7 @@ class PostController extends Controller
                     }
                 }
 
-                if (!$hasLinkPermission) {
+                if (! $hasLinkPermission) {
                     return response()->json([
                         'message' => 'Link sharing is restricted. Regular community members cannot share external URLs by default.',
                         'error_code' => 'LINK_SHARING_RESTRICTED',

@@ -148,7 +148,6 @@ export function RegisterPage() {
                     value={email}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
                     placeholder="name@example.com"
-                    autoFocus
                     className={cn(fieldErrors.email && "border-destructive")}
                   />
                   {fieldErrors.email && (
@@ -177,7 +176,6 @@ export function RegisterPage() {
                     value={password}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
                     placeholder="••••••••"
-                    autoFocus
                     className={cn(fieldErrors.password && "border-destructive")}
                   />
                   {fieldErrors.password && (
@@ -219,7 +217,6 @@ export function RegisterPage() {
                     value={name}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
                     placeholder="Vincent Paul"
-                    autoFocus
                     className={cn(fieldErrors.name && "border-destructive")}
                   />
                   {fieldErrors.name && (
@@ -274,7 +271,6 @@ export function RegisterPage() {
                     value={country}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCountry(e.target.value)}
                     placeholder="United Kingdom"
-                    autoFocus
                   />
                 </Field>
                 <div className="grid grid-cols-2 gap-4">

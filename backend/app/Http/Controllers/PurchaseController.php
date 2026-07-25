@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Order;
 use App\Models\Purchase;
 use App\Services\Wallet\LedgerService;
 use Illuminate\Http\JsonResponse;
@@ -36,7 +35,7 @@ class PurchaseController extends Controller
         return response()->json([
             'data' => [
                 'download_url' => url("/api/v1/products/{$purchase->product_id}/download"),
-                'expires_at'   => now()->addHours(2)->toIso8601String(),
+                'expires_at' => now()->addHours(2)->toIso8601String(),
             ],
         ]);
     }

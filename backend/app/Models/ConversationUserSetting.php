@@ -15,7 +15,7 @@ class ConversationUserSetting extends Model
     ];
 
     protected $casts = [
-        'is_muted'    => 'boolean',
+        'is_muted' => 'boolean',
         'is_archived' => 'boolean',
     ];
 

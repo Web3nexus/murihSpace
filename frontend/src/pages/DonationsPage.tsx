@@ -58,10 +58,11 @@ export function DonationsPage() {
         const json = await recvRes.json();
         setReceivedDonations(json.data ?? []);
       }
-    } catch { /* ignore */ }
+    } catch (e) { console.error('Failed to fetch donations', e); }
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchDonations().finally(() => setIsLoading(false));
   }, [fetchDonations]);
 

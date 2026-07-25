@@ -81,7 +81,7 @@ class MembershipController extends Controller
             ->where('user_id', $user->id)
             ->first();
 
-        if (!$membership) {
+        if (! $membership) {
             return response()->json([
                 'message' => 'You are not a member of this community.',
             ], 404);

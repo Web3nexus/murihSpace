@@ -3,10 +3,10 @@ import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SiteHeader } from "@/components/site-header";
 
-/** Any route that starts with /app/admin gets the admin sidebar */
+/** Any route that starts with /app/securegate gets the admin sidebar */
 function useLayoutVariant(): "user" | "admin" {
   const { pathname } = useLocation();
-  return pathname.startsWith("/app/admin") ? "admin" : "user";
+  return pathname.startsWith("/app/securegate") ? "admin" : "user";
 }
 
 export function DashboardLayout() {

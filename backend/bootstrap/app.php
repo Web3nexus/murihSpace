@@ -1,9 +1,16 @@
 <?php
 
+use App\Http\Middleware\CaptureRequestAndEnvelopeResponse;
+use App\Http\Middleware\IsAdmin;
+use App\Providers\AuthServiceProvider;
+use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -14,35 +21,44 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->statefulApi();
+
         $middleware->api(prepend: [
-            \App\Http\Middleware\CaptureRequestAndEnvelopeResponse::class,
+            CaptureRequestAndEnvelopeResponse::class,
+        ]);
+
+        $middleware->alias([
+            'admin' => IsAdmin::class,
         ]);
     })
+    ->withProviders([
+        AuthServiceProvider::class,
+    ])
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*'),
         );
 
-        $exceptions->render(function (\Throwable $e, Request $request) {
+        $exceptions->render(function (Throwable $e, Request $request) {
             if ($request->is('api/*')) {
                 $status = 500;
                 $message = $e->getMessage() ?: 'Internal Server Error';
                 $errors = null;
 
-                if ($e instanceof \Symfony\Component\HttpKernel\Exception\HttpExceptionInterface) {
+                if ($e instanceof HttpExceptionInterface) {
                     $status = $e->getStatusCode();
-                } elseif ($e instanceof \Illuminate\Validation\ValidationException) {
+                } elseif ($e instanceof ValidationException) {
                     $status = 422;
                     $message = $e->getMessage();
                     $errors = $e->errors();
-                } elseif ($e instanceof \Illuminate\Auth\AuthenticationException) {
+                } elseif ($e instanceof AuthenticationException) {
                     $status = 401;
                     $message = $e->getMessage() ?: 'Unauthenticated';
                 }
 
-                $requestId = $request->header('X-Request-ID') 
-                    ?: $request->headers->get('X-Request-ID') 
-                    ?: (string) \Illuminate\Support\Str::uuid();
+                $requestId = $request->header('X-Request-ID')
+                    ?: $request->headers->get('X-Request-ID')
+                    ?: (string) Str::uuid();
 
                 return response()->json([
                     'success' => false,

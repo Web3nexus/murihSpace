@@ -3,9 +3,9 @@
 namespace Tests\Feature;
 
 use App\Models\User;
+use Illuminate\Auth\Events\Registered;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
-use Illuminate\Auth\Events\Registered;
 use Illuminate\Support\Facades\URL;
 use Tests\TestCase;
 
@@ -41,10 +41,10 @@ class AuthTest extends TestCase
                     'name',
                     'email',
                     'email_verified',
-                ]
+                ],
             ],
             'message',
-            'errors'
+            'errors',
         ]);
 
         $this->assertDatabaseHas('users', [
@@ -76,7 +76,7 @@ class AuthTest extends TestCase
                 'name',
                 'email',
                 'password',
-            ]
+            ],
         ]);
     }
 
@@ -106,7 +106,7 @@ class AuthTest extends TestCase
                     'name',
                     'email',
                     'email_verified',
-                ]
+                ],
             ],
             'message',
         ]);
@@ -140,7 +140,7 @@ class AuthTest extends TestCase
         $token = $user->createToken('test-token')->plainTextToken;
 
         $response = $this->withHeaders([
-            'Authorization' => 'Bearer ' . $token,
+            'Authorization' => 'Bearer '.$token,
         ])->postJson('/api/v1/auth/logout');
 
         $response->assertStatus(200);
@@ -163,8 +163,8 @@ class AuthTest extends TestCase
             ['id' => $user->id, 'hash' => sha1($user->getEmailForVerification())]
         );
 
-        $apiVerificationUrl = parse_url($verificationUrl, PHP_URL_PATH) 
-            . '?' . parse_url($verificationUrl, PHP_URL_QUERY);
+        $apiVerificationUrl = parse_url($verificationUrl, PHP_URL_PATH)
+            .'?'.parse_url($verificationUrl, PHP_URL_QUERY);
 
         $response = $this->getJson($apiVerificationUrl);
 

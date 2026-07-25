@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Hash;
 
 class Wallet extends Model
 {
@@ -13,7 +14,7 @@ class Wallet extends Model
     ];
 
     protected $casts = [
-        'balance'    => 'integer',
+        'balance' => 'integer',
         'pin_set_at' => 'datetime',
     ];
 
@@ -41,7 +42,8 @@ class Wallet extends Model
         if (! $this->hasPin()) {
             return false;
         }
-        return hash_equals($this->pin_hash, hash('sha256', $pin));
+
+        return Hash::check($pin, $this->pin_hash);
     }
 
     public function isActive(): bool

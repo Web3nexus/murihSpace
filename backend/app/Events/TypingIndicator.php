@@ -13,22 +13,25 @@ class TypingIndicator implements ShouldBroadcastNow
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     public int $conversationId;
+
     public int $userId;
+
     public string $userName;
+
     public bool $isTyping;
 
     public function __construct(int $conversationId, int $userId, string $userName, bool $isTyping)
     {
         $this->conversationId = $conversationId;
-        $this->userId         = $userId;
-        $this->userName       = $userName;
-        $this->isTyping       = $isTyping;
+        $this->userId = $userId;
+        $this->userName = $userName;
+        $this->isTyping = $isTyping;
     }
 
     public function broadcastOn(): array
     {
         return [
-            new PrivateChannel('conversation.' . $this->conversationId),
+            new PrivateChannel('conversation.'.$this->conversationId),
         ];
     }
 
@@ -40,7 +43,7 @@ class TypingIndicator implements ShouldBroadcastNow
     public function broadcastWith(): array
     {
         return [
-            'user_id'   => $this->userId,
+            'user_id' => $this->userId,
             'user_name' => $this->userName,
             'is_typing' => $this->isTyping,
         ];

@@ -5,7 +5,6 @@ import * as React from "react"
 import {
   Breadcrumb,
   BreadcrumbItem,
-  BreadcrumbLink,
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
@@ -121,6 +120,7 @@ const data = {
 
 export function SettingsDialog() {
   const [open, setOpen] = React.useState(true)
+  const [selectedSetting, setSelectedSetting] = React.useState("General")
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -142,12 +142,12 @@ export function SettingsDialog() {
                       <SidebarMenuItem key={item.name}>
                         <SidebarMenuButton
                           asChild
-                          isActive={item.name === "Messages & media"}
+                          isActive={selectedSetting === item.name}
                         >
-                          <a href="#">
+                          <button type="button" onClick={() => setSelectedSetting(item.name)}>
                             {item.icon}
                             <span>{item.name}</span>
-                          </a>
+                          </button>
                         </SidebarMenuButton>
                       </SidebarMenuItem>
                     ))}
@@ -162,7 +162,7 @@ export function SettingsDialog() {
                 <Breadcrumb>
                   <BreadcrumbList>
                     <BreadcrumbItem className="hidden md:block">
-                      <BreadcrumbLink href="#">Settings</BreadcrumbLink>
+                      <BreadcrumbPage>Settings</BreadcrumbPage>
                     </BreadcrumbItem>
                     <BreadcrumbSeparator className="hidden md:block" />
                     <BreadcrumbItem>

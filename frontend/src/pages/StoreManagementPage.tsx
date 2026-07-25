@@ -67,6 +67,7 @@ export function StoreManagementPage() {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchStorefront();
   }, [fetchStorefront]);
 
@@ -102,8 +103,8 @@ export function StoreManagementPage() {
       setStorefront(json.data);
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
-    } catch (err: any) {
-      setError(err.message ?? 'An error occurred while saving.');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'An error occurred while saving.');
     } finally {
       setIsSaving(false);
     }
@@ -129,8 +130,7 @@ export function StoreManagementPage() {
         const json = await res.json();
         setStorefront(json.data);
       }
-    } catch {
-    } finally {
+    } catch (e) { console.error('Failed to toggle publish', e); } finally {
       setIsTogglingPublish(false);
     }
   };
@@ -237,10 +237,11 @@ export function StoreManagementPage() {
             </h3>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-foreground uppercase tracking-wider">
+              <label htmlFor="sm-title" className="text-xs font-bold text-foreground uppercase tracking-wider">
                 Storefront Title
               </label>
               <input
+                id="sm-title"
                 type="text"
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
@@ -251,7 +252,7 @@ export function StoreManagementPage() {
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-foreground uppercase tracking-wider">
+              <label htmlFor="sm-handle" className="text-xs font-bold text-foreground uppercase tracking-wider">
                 Custom Short Handle
               </label>
               <div className="flex items-center gap-1">
@@ -259,8 +260,8 @@ export function StoreManagementPage() {
                   /store/
                 </span>
                 <input
+                  id="sm-handle"
                   type="text"
-                  value={shortCode}
                   onChange={(e) => setShortCode(e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, ''))}
                   placeholder="alex-morgan"
                   required
@@ -270,10 +271,11 @@ export function StoreManagementPage() {
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-foreground uppercase tracking-wider">
+              <label htmlFor="sm-tagline" className="text-xs font-bold text-foreground uppercase tracking-wider">
                 Tagline
               </label>
               <input
+                id="sm-tagline"
                 type="text"
                 value={tagline}
                 onChange={(e) => setTagline(e.target.value)}
@@ -283,10 +285,11 @@ export function StoreManagementPage() {
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-foreground uppercase tracking-wider">
+              <label htmlFor="sm-bio" className="text-xs font-bold text-foreground uppercase tracking-wider">
                 Biography / Description
               </label>
               <textarea
+                id="sm-bio"
                 value={bio}
                 onChange={(e) => setBio(e.target.value)}
                 placeholder="Describe your brand, offerings, and value for your audience…"
@@ -304,10 +307,11 @@ export function StoreManagementPage() {
             </h3>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-foreground uppercase tracking-wider">
+              <label htmlFor="sm-cover-url" className="text-xs font-bold text-foreground uppercase tracking-wider">
                 Cover Image URL (1200x400 recommended)
               </label>
               <input
+                id="sm-cover-url"
                 type="url"
                 value={coverUrl}
                 onChange={(e) => setCoverUrl(e.target.value)}
@@ -317,10 +321,11 @@ export function StoreManagementPage() {
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-foreground uppercase tracking-wider">
+              <label htmlFor="sm-avatar-url" className="text-xs font-bold text-foreground uppercase tracking-wider">
                 Avatar Image URL (Optional override)
               </label>
               <input
+                id="sm-avatar-url"
                 type="url"
                 value={avatarUrl}
                 onChange={(e) => setAvatarUrl(e.target.value)}

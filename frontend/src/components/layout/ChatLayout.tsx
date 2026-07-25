@@ -8,11 +8,24 @@ import { formatDistanceToNow, format } from 'date-fns';
 import type { ConversationItem, ChatMessage, MessageStatus, MessageReaction } from '@/types/chat';
 import { ReplyPreviewBar } from '@/components/chat/ReplyPreviewBar';
 import { MessageReactions } from '@/components/chat/MessageReactions';
+import { useRealtimeMessaging } from '@/hooks/useRealtimeMessaging';
 
 const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api/v1';
 
+function getToken(): string | null {
+  return localStorage.getItem('murihspace-token');
+}
+
+function getUserData(): Record<string, unknown> {
+  try {
+    return JSON.parse(localStorage.getItem('user_data') ?? '{}');
+  } catch {
+    return {};
+  }
+}
+
 async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
-  const token = localStorage.getItem('auth_token');
+  const token = getToken();
   const res = await fetch(`${API_BASE}${path}`, {
     ...options,
     headers: {
@@ -53,23 +66,55 @@ export function ChatLayout() {
   const [showHeaderMenu, setShowHeaderMenu] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [isArchived, setIsArchived] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const currentUserData = JSON.parse(localStorage.getItem('user_data') ?? '{}');
+  const currentUserData = getUserData();
+  const currentUserId = (currentUserData?.id as number | undefined) ?? undefined;
+
+  useRealtimeMessaging(activeConv?.id ?? null, currentUserId, {
+    onMessageReceived: useCallback((msg: ChatMessage) => {
+      setMessages((prev) => {
+        if (prev.some((m) => m.client_uuid && m.client_uuid === msg.client_uuid)) return prev;
+        if (prev.some((m) => m.id && m.id === msg.id)) return prev;
+        return [...prev, { ...msg, status: 'sent' }];
+      });
+      setConversations((prev) => prev.map((c) =>
+        c.id === msg.conversation_id
+          ? { ...c, latest_message: msg, updated_at: msg.created_at, unread_count: c.id === activeConv?.id ? 0 : (c.unread_count ?? 0) + 1 }
+          : c,
+      ));
+    }, [activeConv?.id]),
+    onTyping: useCallback((data) => {
+      if (data.is_typing) {
+        setTypingUsers((prev) => prev.includes(data.user_name) ? prev : [...prev, data.user_name]);
+      } else {
+        setTypingUsers((prev) => prev.filter((n) => n !== data.user_name));
+      }
+    }, []),
+    onReaction: useCallback((data) => {
+      setMessages((prev) => prev.map((m) =>
+        m.id === data.message_id ? { ...m, reactions: data.reactions } : m,
+      ));
+    }, []),
+  });
 
   const loadConversations = useCallback(async () => {
     try {
       const res = await apiFetch<{ data: ConversationItem[] }>('/conversations');
       setConversations(res.data ?? []);
-    } catch {
+    } catch (e) { console.error('Failed to load conversations', e);
     } finally {
       setIsLoadingList(false);
     }
   }, []);
 
-  useEffect(() => { loadConversations(); }, [loadConversations]);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    loadConversations();
+  }, [loadConversations]);
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
 
   const loadConvSettings = async (convId: number) => {
@@ -77,7 +122,7 @@ export function ChatLayout() {
       const res = await apiFetch<{ data: { is_muted: boolean; is_archived: boolean } }>(`/conversations/${convId}/settings`);
       setIsMuted(res.data?.is_muted ?? false);
       setIsArchived(res.data?.is_archived ?? false);
-    } catch {}
+    } catch (e) { console.error('Failed to load conv settings', e); }
   };
 
   const selectConversation = async (conv: ConversationItem) => {
@@ -87,8 +132,8 @@ export function ChatLayout() {
     setTypingUsers([]);
 
     try {
-      const res = await apiFetch<any>(`/conversations/${conv.id}/messages`);
-      const list = res?.data ?? (Array.isArray(res) ? res : []);
+      const res = await apiFetch<{ data: ChatMessage[] }>(`/conversations/${conv.id}/messages`);
+      const list = res && 'data' in res ? res.data : Array.isArray(res) ? res : [];
       const formatted = (Array.isArray(list) ? list : []).map((m: ChatMessage) => ({ ...m, status: 'sent' as MessageStatus }));
       setMessages(formatted);
 
@@ -96,7 +141,8 @@ export function ChatLayout() {
         await apiFetch(`/conversations/${conv.id}/read`, { method: 'POST' });
         setConversations((prev) => prev.map((c) => (c.id === conv.id ? { ...c, unread_count: 0 } : c)));
       }
-    } catch {
+    } catch (e) {
+      console.error('Failed to select conversation', e);
       setMessages([]);
     } finally {
       setIsLoadingMsgs(false);
@@ -107,12 +153,12 @@ export function ChatLayout() {
 
   const openSavedMessages = async () => {
     try {
-      const res = await apiFetch<{ data: any }>('/conversations/saved');
+      const res = await apiFetch<{ data: Pick<ConversationItem, 'id' | 'updated_at'> }>('/conversations/saved');
       const conv = res.data;
       const fullItem: ConversationItem = { id: conv.id, type: 'saved', title: 'Saved Messages', unread_count: 0, updated_at: conv.updated_at };
       selectConversation(fullItem);
       loadConversations();
-    } catch {}
+    } catch (e) { console.error('Failed to open saved messages', e); }
   };
 
   const executeSendMessage = async (msg: ChatMessage) => {
@@ -129,24 +175,24 @@ export function ChatLayout() {
           attachment_type: msg.attachment_type ?? null,
         }),
       });
-      const serverMsg = (res as any)?.data ?? res;
+      const serverMsg = (res as { data: ChatMessage })?.data ?? res;
       setMessages((prev) => prev.map((m) => m.client_uuid === msg.client_uuid ? { ...serverMsg, status: 'sent', client_uuid: msg.client_uuid } : m));
       setConversations((prev) => prev.map((c) => c.id === activeConv.id ? { ...c, latest_message: serverMsg, updated_at: serverMsg.created_at } : c));
-    } catch {
+    } catch (e) {
+      console.error('Failed to send message', e);
       setMessages((prev) => prev.map((m) => (m.client_uuid === msg.client_uuid ? { ...m, status: 'failed' } : m)));
     }
   };
 
-  // Typing indicator debounce
   const handleTypingDebounced = async () => {
     if (!activeConv) return;
     try {
       await apiFetch(`/conversations/${activeConv.id}/typing`, { method: 'POST', body: JSON.stringify({ is_typing: true }) });
       if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
       typingTimeoutRef.current = setTimeout(async () => {
-        try { await apiFetch(`/conversations/${activeConv.id}/typing`, { method: 'POST', body: JSON.stringify({ is_typing: false }) }); } catch {}
+        try { await apiFetch(`/conversations/${activeConv.id}/typing`, { method: 'POST', body: JSON.stringify({ is_typing: false }) }); } catch (e) { console.error('Failed to stop typing', e); }
       }, 2500);
-    } catch {}
+    } catch (e) { console.error('Failed to send typing indicator', e); }
   };
 
   const handleSendMessage = (e?: React.FormEvent) => {
@@ -158,7 +204,7 @@ export function ChatLayout() {
 
     const draft: ChatMessage = {
       conversation_id: activeConv.id,
-      user_id: currentUserData?.id ?? 0,
+      user_id: currentUserId ?? 0,
       content: contentText,
       type: 'text',
       client_uuid: clientUuid,
@@ -166,12 +212,59 @@ export function ChatLayout() {
       reply_to_id: replyingTo?.id ?? undefined,
       reply_to: replyingTo ? { id: replyingTo.id!, user_id: replyingTo.user_id, content: replyingTo.content } : undefined,
       created_at: new Date().toISOString(),
-      user: { id: currentUserData?.id ?? 0, name: currentUserData?.name ?? 'You', username: currentUserData?.username ?? 'you' },
+      user: { id: currentUserId ?? 0, name: (currentUserData?.name as string) ?? 'You', username: (currentUserData?.username as string) ?? 'you' },
     };
 
     setReplyingTo(null);
     setMessages((prev) => [...prev, draft]);
     executeSendMessage(draft);
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !activeConv) return;
+    e.target.value = '';
+
+    setUploading(true);
+    try {
+      const token = getToken();
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const res = await fetch(`${API_BASE}/messages/attachments`, {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: formData,
+      });
+
+      if (!res.ok) throw new Error('Upload failed');
+      const json = await res.json();
+      const { attachment_url, attachment_type } = json.data;
+
+      const clientUuid = crypto.randomUUID ? crypto.randomUUID() : `uuid-${Date.now()}`;
+      const draft: ChatMessage = {
+        conversation_id: activeConv.id,
+        user_id: currentUserId ?? 0,
+        content: '',
+        type: attachment_type as ChatMessage['type'],
+        client_uuid: clientUuid,
+        status: 'pending',
+        attachment_url,
+        attachment_type: attachment_type as ChatMessage['attachment_type'],
+        created_at: new Date().toISOString(),
+        user: { id: currentUserId ?? 0, name: (currentUserData?.name as string) ?? 'You', username: (currentUserData?.username as string) ?? 'you' },
+      };
+
+      setMessages((prev) => [...prev, draft]);
+      executeSendMessage(draft);
+    } catch (err) {
+      console.error('Failed to upload file', err);
+    } finally {
+      setUploading(false);
+    }
   };
 
   const handleToggleSetting = async (key: 'is_muted' | 'is_archived') => {
@@ -181,7 +274,7 @@ export function ChatLayout() {
       await apiFetch(`/conversations/${activeConv.id}/settings`, { method: 'PUT', body: JSON.stringify({ [key]: newVal }) });
       if (key === 'is_muted') setIsMuted(newVal);
       else setIsArchived(newVal);
-    } catch {}
+    } catch (e) { console.error('Failed to toggle setting', e); }
     setShowHeaderMenu(false);
   };
 
@@ -194,7 +287,7 @@ export function ChatLayout() {
     if (filterTab === 'direct' && c.type !== 'direct') return false;
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
-      return c.title.toLowerCase().includes(q) || c.latest_message?.content.toLowerCase().includes(q);
+      return c.title.toLowerCase().includes(q) || c.latest_message?.content?.toLowerCase().includes(q);
     }
     return true;
   });
@@ -284,7 +377,7 @@ export function ChatLayout() {
                 <button onClick={() => setShowHeaderMenu((v) => !v)} className="p-1.5 rounded-xl hover:bg-muted text-muted-foreground transition-colors"><MoreVertical className="h-4 w-4" /></button>
                 {showHeaderMenu && (
                   <>
-                    <div className="fixed inset-0 z-40" onClick={() => setShowHeaderMenu(false)} />
+                    <div className="fixed inset-0 z-40" onClick={() => setShowHeaderMenu(false)} role="presentation" onKeyDown={(e) => e.key === 'Enter' && setShowHeaderMenu(false)} />
                     <div className="absolute right-0 top-8 z-50 w-44 rounded-xl border border-border bg-card shadow-xl p-1 text-xs space-y-0.5">
                       <button onClick={() => handleToggleSetting('is_muted')} className="w-full flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-muted text-foreground font-medium">
                         <BellOff className="h-3.5 w-3.5 text-muted-foreground" /> {isMuted ? 'Unmute' : 'Mute'} conversation
@@ -305,7 +398,7 @@ export function ChatLayout() {
               ) : messages.length === 0 ? (
                 <div className="py-20 text-center space-y-2"><Sparkles className="h-8 w-8 text-secondary/40 mx-auto" /><p className="text-xs font-bold text-foreground">Start the conversation!</p></div>
               ) : messages.map((msg) => {
-                const isMine = msg.user_id === currentUserData?.id;
+                const isMine = msg.user_id === currentUserId;
                 const isPending = msg.status === 'pending';
                 const isFailed = msg.status === 'failed';
 
@@ -386,10 +479,22 @@ export function ChatLayout() {
             {/* Composer */}
             <form onSubmit={handleSendMessage} className="p-3 border-t border-border bg-card flex items-center gap-2">
               {/* Attachment button */}
-              <button type="button" onClick={() => fileInputRef.current?.click()} className="p-2 rounded-xl hover:bg-muted text-muted-foreground hover:text-foreground transition-colors shrink-0" title="Attach file">
-                <Paperclip className="h-4 w-4" />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+                className="p-2 rounded-xl hover:bg-muted text-muted-foreground hover:text-foreground transition-colors shrink-0 disabled:opacity-50"
+                title="Attach file"
+              >
+                {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Paperclip className="h-4 w-4" />}
               </button>
-              <input ref={fileInputRef} type="file" accept="image/*,*/*" className="hidden" onChange={() => {/* Upload logic handled in Sprint 13 */}} />
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*,.pdf,.doc,.docx,.txt,.mp3,.mp4,.mov,.zip,.csv,.xlsx,.pptx"
+                className="hidden"
+                onChange={handleFileUpload}
+              />
 
               <input
                 type="text"
@@ -398,7 +503,7 @@ export function ChatLayout() {
                 placeholder={`Message ${activeConv.title}…`}
                 className="flex-1 px-4 py-2.5 text-xs rounded-xl bg-muted border-0 outline-none focus:ring-1 focus:ring-secondary placeholder:text-muted-foreground"
               />
-              <button type="submit" disabled={!inputContent.trim()} className="p-2.5 rounded-xl bg-secondary text-secondary-foreground font-bold hover:bg-secondary/90 disabled:opacity-50 transition-all shrink-0 shadow-sm">
+              <button type="submit" disabled={!inputContent.trim() || uploading} className="p-2.5 rounded-xl bg-secondary text-secondary-foreground font-bold hover:bg-secondary/90 disabled:opacity-50 transition-all shrink-0 shadow-sm">
                 <Send className="h-4 w-4" />
               </button>
             </form>

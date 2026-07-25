@@ -26,9 +26,9 @@ class CheckoutController extends Controller
     public function createIntent(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'product_id'       => ['required', 'integer', 'exists:digital_products,id'],
+            'product_id' => ['required', 'integer', 'exists:digital_products,id'],
             'payment_provider' => ['nullable', 'string', 'in:stripe,mock'],
-            'idempotency_key'  => ['required', 'string', 'max:128'],
+            'idempotency_key' => ['required', 'string', 'max:128'],
         ]);
 
         // Idempotency: return existing order for same key
@@ -36,7 +36,7 @@ class CheckoutController extends Controller
         if ($existing) {
             return response()->json([
                 'message' => 'Existing order returned (idempotent).',
-                'data'    => $existing->load(['product', 'creator']),
+                'data' => $existing->load(['product', 'creator']),
             ]);
         }
 
@@ -44,20 +44,20 @@ class CheckoutController extends Controller
 
         // Free products don't need a payment intent
         if ($product->is_free) {
-            $order = DB::transaction(function () use ($product, $request) {
+            $order = DB::transaction(function () use ($product, $request, $validated) {
                 return Order::create([
-                    'order_number'     => $this->generateOrderNumber(),
-                    'buyer_id'         => $request->user()->id,
-                    'creator_id'       => $product->creator_id,
-                    'product_id'       => $product->id,
-                    'subtotal'         => 0.00,
-                    'platform_fee'     => 0.00,
-                    'total'            => 0.00,
-                    'currency'         => $product->currency,
-                    'status'           => 'completed',
+                    'order_number' => $this->generateOrderNumber(),
+                    'buyer_id' => $request->user()->id,
+                    'creator_id' => $product->creator_id,
+                    'product_id' => $product->id,
+                    'subtotal' => 0.00,
+                    'platform_fee' => 0.00,
+                    'total' => 0.00,
+                    'currency' => $product->currency,
+                    'status' => 'completed',
                     'payment_provider' => 'mock',
-                    'idempotency_key'  => $validated['idempotency_key'],
-                    'paid_at'          => now(),
+                    'idempotency_key' => $validated['idempotency_key'],
+                    'paid_at' => now(),
                 ]);
             });
 
@@ -65,31 +65,31 @@ class CheckoutController extends Controller
 
             return response()->json([
                 'message' => 'Free product unlocked.',
-                'data'    => $order->load(['product', 'creator']),
+                'data' => $order->load(['product', 'creator']),
                 'is_free' => true,
             ], 201);
         }
 
         // Server-calculated totals (never trust client-side price)
-        $subtotal    = round((float) $product->price, 2);
+        $subtotal = round((float) $product->price, 2);
         $platformFee = round($subtotal * self::PLATFORM_FEE_RATE, 2);
-        $total       = round($subtotal + $platformFee, 2);
+        $total = round($subtotal + $platformFee, 2);
 
         $provider = $this->resolveProvider($validated['payment_provider'] ?? 'mock');
 
         $order = DB::transaction(function () use ($product, $request, $validated, $subtotal, $platformFee, $total, $provider) {
             return Order::create([
-                'order_number'     => $this->generateOrderNumber(),
-                'buyer_id'         => $request->user()->id,
-                'creator_id'       => $product->creator_id,
-                'product_id'       => $product->id,
-                'subtotal'         => $subtotal,
-                'platform_fee'     => $platformFee,
-                'total'            => $total,
-                'currency'         => $product->currency,
-                'status'           => 'pending',
+                'order_number' => $this->generateOrderNumber(),
+                'buyer_id' => $request->user()->id,
+                'creator_id' => $product->creator_id,
+                'product_id' => $product->id,
+                'subtotal' => $subtotal,
+                'platform_fee' => $platformFee,
+                'total' => $total,
+                'currency' => $product->currency,
+                'status' => 'pending',
                 'payment_provider' => $provider->providerName(),
-                'idempotency_key'  => $validated['idempotency_key'],
+                'idempotency_key' => $validated['idempotency_key'],
             ]);
         });
 
@@ -99,14 +99,14 @@ class CheckoutController extends Controller
 
         return response()->json([
             'message' => 'Checkout intent created.',
-            'data'    => [
-                'order'       => $order->fresh()->load(['product', 'creator']),
-                'intent'      => $intentData,
-                'breakdown'   => [
-                    'subtotal'     => $subtotal,
+            'data' => [
+                'order' => $order->fresh()->load(['product', 'creator']),
+                'intent' => $intentData,
+                'breakdown' => [
+                    'subtotal' => $subtotal,
                     'platform_fee' => $platformFee,
-                    'total'        => $total,
-                    'currency'     => $product->currency,
+                    'total' => $total,
+                    'currency' => $product->currency,
                 ],
             ],
         ], 201);
@@ -135,7 +135,7 @@ class CheckoutController extends Controller
 
         return response()->json([
             'message' => 'Mock purchase completed successfully.',
-            'data'    => $order->fresh()->load(['product', 'creator']),
+            'data' => $order->fresh()->load(['product', 'creator']),
         ]);
     }
 
@@ -158,11 +158,11 @@ class CheckoutController extends Controller
         }
 
         $webhookRecord = PaymentWebhook::create([
-            'provider'   => $provider,
-            'event_id'   => $event['event_id'],
+            'provider' => $provider,
+            'event_id' => $event['event_id'],
             'event_type' => $event['event_type'],
-            'payload'    => $request->json()->all(),
-            'status'     => 'processed',
+            'payload' => $request->json()->all(),
+            'status' => 'processed',
         ]);
 
         // Handle payment success events
@@ -190,13 +190,13 @@ class CheckoutController extends Controller
     private function resolveProvider(string $name): PaymentProviderInterface
     {
         return match ($name) {
-            'mock'   => new MockPaymentProvider(),
-            default  => new MockPaymentProvider(), // Stripe integration added in future sprint
+            'mock' => new MockPaymentProvider,
+            default => new MockPaymentProvider, // Stripe integration added in future sprint
         };
     }
 
     private function generateOrderNumber(): string
     {
-        return 'ORD-' . now()->format('Ymd') . '-' . strtoupper(Str::random(6));
+        return 'ORD-'.now()->format('Ymd').'-'.strtoupper(Str::random(6));
     }
 }

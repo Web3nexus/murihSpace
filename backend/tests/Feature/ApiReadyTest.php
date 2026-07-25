@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class ApiReadyTest extends TestCase
@@ -27,11 +26,11 @@ class ApiReadyTest extends TestCase
                 'status',
                 'api_version',
                 'services' => [
-                    'database'
-                ]
+                    'database',
+                ],
             ],
             'message',
-            'errors'
+            'errors',
         ]);
 
         $this->assertTrue($response->json('success'));
@@ -53,7 +52,7 @@ class ApiReadyTest extends TestCase
             'request_id',
             'data',
             'message',
-            'errors'
+            'errors',
         ]);
 
         $this->assertFalse($response->json('success'));

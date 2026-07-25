@@ -33,18 +33,18 @@ class DigitalProductController extends Controller
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'title'       => ['required', 'string', 'max:255'],
+            'title' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:5000'],
-            'cover_url'   => ['nullable', 'string', 'max:2000'],
-            'price'       => ['required', 'numeric', 'min:0'],
-            'currency'    => ['nullable', 'string', 'size:3'],
-            'is_free'     => ['required', 'boolean'],
-            'category'    => ['required', Rule::in(array_keys(DigitalProduct::CATEGORIES))],
-            'status'      => ['nullable', Rule::in(['draft', 'published'])],
-            'file'        => ['nullable', 'file', 'max:102400'], // 100MB max
+            'cover_url' => ['nullable', 'string', 'max:2000'],
+            'price' => ['required', 'numeric', 'min:0'],
+            'currency' => ['nullable', 'string', 'size:3'],
+            'is_free' => ['required', 'boolean'],
+            'category' => ['required', Rule::in(array_keys(DigitalProduct::CATEGORIES))],
+            'status' => ['nullable', Rule::in(['draft', 'published'])],
+            'file' => ['nullable', 'file', 'max:102400'], // 100MB max
         ]);
 
-        $slug = Str::slug($validated['title']) . '-' . Str::random(6);
+        $slug = Str::slug($validated['title']).'-'.Str::random(6);
         $filePath = null;
         $fileOriginalName = null;
         $fileMimeType = null;
@@ -59,25 +59,25 @@ class DigitalProductController extends Controller
         }
 
         $product = DigitalProduct::create([
-            'creator_id'         => $request->user()->id,
-            'title'              => $validated['title'],
-            'slug'               => $slug,
-            'description'        => $validated['description'] ?? null,
-            'cover_url'          => $validated['cover_url'] ?? null,
-            'price'              => $validated['is_free'] ? 0.00 : $validated['price'],
-            'currency'           => strtoupper($validated['currency'] ?? 'USD'),
-            'is_free'            => $validated['is_free'],
-            'category'           => $validated['category'],
-            'status'             => $validated['status'] ?? 'draft',
-            'file_path'          => $filePath,
+            'creator_id' => $request->user()->id,
+            'title' => $validated['title'],
+            'slug' => $slug,
+            'description' => $validated['description'] ?? null,
+            'cover_url' => $validated['cover_url'] ?? null,
+            'price' => $validated['is_free'] ? 0.00 : $validated['price'],
+            'currency' => strtoupper($validated['currency'] ?? 'USD'),
+            'is_free' => $validated['is_free'],
+            'category' => $validated['category'],
+            'status' => $validated['status'] ?? 'draft',
+            'file_path' => $filePath,
             'file_original_name' => $fileOriginalName,
-            'file_mime_type'     => $fileMimeType,
-            'file_size_bytes'    => $fileSizeBytes,
+            'file_mime_type' => $fileMimeType,
+            'file_size_bytes' => $fileSizeBytes,
         ]);
 
         return response()->json([
             'message' => 'Digital product created successfully.',
-            'data'    => $product,
+            'data' => $product,
         ], 201);
     }
 
@@ -101,15 +101,15 @@ class DigitalProductController extends Controller
             ->findOrFail($id);
 
         $validated = $request->validate([
-            'title'       => ['sometimes', 'required', 'string', 'max:255'],
+            'title' => ['sometimes', 'required', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:5000'],
-            'cover_url'   => ['nullable', 'string', 'max:2000'],
-            'price'       => ['sometimes', 'required', 'numeric', 'min:0'],
-            'currency'    => ['nullable', 'string', 'size:3'],
-            'is_free'     => ['sometimes', 'required', 'boolean'],
-            'category'    => ['sometimes', Rule::in(array_keys(DigitalProduct::CATEGORIES))],
-            'status'      => ['sometimes', Rule::in(['draft', 'published'])],
-            'file'        => ['nullable', 'file', 'max:102400'],
+            'cover_url' => ['nullable', 'string', 'max:2000'],
+            'price' => ['sometimes', 'required', 'numeric', 'min:0'],
+            'currency' => ['nullable', 'string', 'size:3'],
+            'is_free' => ['sometimes', 'required', 'boolean'],
+            'category' => ['sometimes', Rule::in(array_keys(DigitalProduct::CATEGORIES))],
+            'status' => ['sometimes', Rule::in(['draft', 'published'])],
+            'file' => ['nullable', 'file', 'max:102400'],
         ]);
 
         if (isset($validated['is_free']) && $validated['is_free']) {
@@ -117,23 +117,27 @@ class DigitalProductController extends Controller
         }
 
         if ($request->hasFile('file')) {
-            // Delete old file if present
-            if ($product->file_path && Storage::disk('local')->exists($product->file_path)) {
-                Storage::disk('local')->delete($product->file_path);
-            }
-
             $uploadedFile = $request->file('file');
-            $validated['file_path']          = $uploadedFile->store('digital_products/private', 'local');
-            $validated['file_original_name'] = $uploadedFile->getClientOriginalName();
-            $validated['file_mime_type']     = $uploadedFile->getClientMimeType();
-            $validated['file_size_bytes']    = $uploadedFile->getSize();
-        }
+            $newPath = $uploadedFile->store('digital_products/private', 'local');
+            $oldPath = $product->file_path;
 
-        $product->update($validated);
+            $validated['file_path'] = $newPath;
+            $validated['file_original_name'] = $uploadedFile->getClientOriginalName();
+            $validated['file_mime_type'] = $uploadedFile->getClientMimeType();
+            $validated['file_size_bytes'] = $uploadedFile->getSize();
+
+            $product->update($validated);
+
+            if ($oldPath && Storage::disk('local')->exists($oldPath)) {
+                Storage::disk('local')->delete($oldPath);
+            }
+        } else {
+            $product->update($validated);
+        }
 
         return response()->json([
             'message' => 'Digital product updated successfully.',
-            'data'    => $product->fresh(),
+            'data' => $product->fresh(),
         ]);
     }
 
@@ -153,7 +157,7 @@ class DigitalProductController extends Controller
 
         return response()->json([
             'message' => "Product is now {$product->status}.",
-            'data'    => $product,
+            'data' => $product,
         ]);
     }
 
@@ -186,20 +190,20 @@ class DigitalProductController extends Controller
 
         return response()->json([
             'data' => [
-                'id'                 => $product->id,
-                'title'              => $product->title,
-                'slug'               => $product->slug,
-                'description'        => $product->description,
-                'cover_url'          => $product->cover_url,
-                'price'              => $product->price,
-                'currency'           => $product->currency,
-                'is_free'            => $product->is_free,
-                'category'           => $product->category,
+                'id' => $product->id,
+                'title' => $product->title,
+                'slug' => $product->slug,
+                'description' => $product->description,
+                'cover_url' => $product->cover_url,
+                'price' => $product->price,
+                'currency' => $product->currency,
+                'is_free' => $product->is_free,
+                'category' => $product->category,
                 'file_original_name' => $product->file_original_name,
-                'file_size_bytes'    => $product->file_size_bytes,
-                'download_count'     => $product->download_count,
-                'creator'            => $product->creator,
-                'created_at'         => $product->created_at,
+                'file_size_bytes' => $product->file_size_bytes,
+                'download_count' => $product->download_count,
+                'creator' => $product->creator,
+                'created_at' => $product->created_at,
             ],
         ]);
     }

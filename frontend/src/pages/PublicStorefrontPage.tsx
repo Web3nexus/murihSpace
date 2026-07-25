@@ -41,8 +41,8 @@ export function PublicStorefrontPage() {
 
         const json = await res.json();
         setStore(json.data);
-      } catch (err: any) {
-        setError(err.message ?? 'Unable to display storefront.');
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : 'Unable to display storefront.');
       } finally {
         setIsLoading(false);
       }

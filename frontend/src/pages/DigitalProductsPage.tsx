@@ -68,14 +68,15 @@ export function DigitalProductsPage() {
         const json = await res.json();
         setProducts(json.data ?? []);
       }
-    } catch {
-      // Handle error gracefully
+    } catch (e) {
+      console.error('Failed to fetch products', e);
     } finally {
       setIsLoading(false);
     }
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchProducts();
   }, [fetchProducts]);
 
@@ -147,8 +148,8 @@ export function DigitalProductsPage() {
 
       setShowModal(false);
       fetchProducts();
-    } catch (err: any) {
-      setError(err.message ?? 'An error occurred.');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'An error occurred.');
     } finally {
       setIsSubmitting(false);
     }
@@ -174,7 +175,7 @@ export function DigitalProductsPage() {
           prev.map((item) => (item.id === p.id ? { ...item, status: nextStatus } : item))
         );
       }
-    } catch {}
+    } catch (e) { console.error('Failed to toggle publish', e); }
   };
 
   const handleDelete = async (id: number) => {
@@ -193,7 +194,7 @@ export function DigitalProductsPage() {
       if (res.ok) {
         setProducts((prev) => prev.filter((p) => p.id !== id));
       }
-    } catch {}
+    } catch (e) { console.error('Failed to delete product', e); }
   };
 
   const handleDownload = (id: number) => {
@@ -403,10 +404,11 @@ export function DigitalProductsPage() {
 
             <form onSubmit={handleSubmit} className="space-y-4 py-2">
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-foreground uppercase tracking-wider">
+                <label htmlFor="dp-title" className="text-xs font-bold text-foreground uppercase tracking-wider">
                   Product Title
                 </label>
                 <input
+                  id="dp-title"
                   type="text"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
@@ -418,10 +420,11 @@ export function DigitalProductsPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-foreground uppercase tracking-wider">
+                  <label htmlFor="dp-category" className="text-xs font-bold text-foreground uppercase tracking-wider">
                     Category
                   </label>
                   <select
+                    id="dp-category"
                     value={category}
                     onChange={(e) => setCategory(e.target.value as ProductCategory)}
                     className="w-full px-3.5 py-2 text-xs rounded-xl bg-muted border-0 outline-none focus:ring-1 focus:ring-secondary capitalize"
@@ -435,10 +438,11 @@ export function DigitalProductsPage() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-foreground uppercase tracking-wider">
+                  <label htmlFor="dp-status" className="text-xs font-bold text-foreground uppercase tracking-wider">
                     Status
                   </label>
                   <select
+                    id="dp-status"
                     value={status}
                     onChange={(e) => setStatus(e.target.value as ProductStatus)}
                     className="w-full px-3.5 py-2 text-xs rounded-xl bg-muted border-0 outline-none focus:ring-1 focus:ring-secondary capitalize"
@@ -463,10 +467,11 @@ export function DigitalProductsPage() {
 
                 {!isFree && (
                   <div className="space-y-1.5 pt-1">
-                    <label className="text-xs font-bold text-foreground uppercase tracking-wider">
+                    <label htmlFor="dp-price" className="text-xs font-bold text-foreground uppercase tracking-wider">
                       Price (USD $)
                     </label>
                     <input
+                      id="dp-price"
                       type="number"
                       step="0.01"
                       min="0.99"
@@ -480,10 +485,11 @@ export function DigitalProductsPage() {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-foreground uppercase tracking-wider">
+                <label htmlFor="dp-description" className="text-xs font-bold text-foreground uppercase tracking-wider">
                   Description
                 </label>
                 <textarea
+                  id="dp-description"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="What is included in this digital product?"
@@ -493,10 +499,11 @@ export function DigitalProductsPage() {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-foreground uppercase tracking-wider">
+                <label htmlFor="dp-cover-url" className="text-xs font-bold text-foreground uppercase tracking-wider">
                   Cover Image URL
                 </label>
                 <input
+                  id="dp-cover-url"
                   type="url"
                   value={coverUrl}
                   onChange={(e) => setCoverUrl(e.target.value)}
@@ -507,11 +514,12 @@ export function DigitalProductsPage() {
 
               {/* Private File Upload Dropzone */}
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-foreground uppercase tracking-wider">
+                <label htmlFor="dp-file" className="text-xs font-bold text-foreground uppercase tracking-wider">
                   Private Product File (E-Book PDF, ZIP, MP3)
                 </label>
 
                 <input
+                  id="dp-file"
                   ref={fileInputRef}
                   type="file"
                   onChange={(e) => setSelectedFile(e.target.files?.[0] ?? null)}
@@ -520,6 +528,9 @@ export function DigitalProductsPage() {
 
                 <div
                   onClick={() => fileInputRef.current?.click()}
+                  onKeyDown={(e) => e.key === 'Enter' && fileInputRef.current?.click()}
+                  role="button"
+                  tabIndex={0}
                   className="p-4 border-2 border-dashed border-border hover:border-secondary rounded-2xl bg-muted/20 text-center cursor-pointer transition-colors space-y-1"
                 >
                   <UploadCloud className="h-6 w-6 text-secondary mx-auto" />

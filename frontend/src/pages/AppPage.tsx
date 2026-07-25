@@ -259,7 +259,7 @@ export function AppPage() {
                 <ArrowUpRight className="h-3.5 w-3.5 text-muted-foreground" />
               </Link>
               <Link
-                to="/app/admin"
+                to="/app/securegate"
                 className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-muted transition-colors text-xs font-medium text-foreground"
               >
                 <span>Admin KYC Queue</span>

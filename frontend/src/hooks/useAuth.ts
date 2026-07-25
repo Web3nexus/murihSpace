@@ -18,6 +18,7 @@ export function useAuth() {
     // Check if token exists in storage
     const token = localStorage.getItem("murihspace-token");
     if (!token) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setLoading(false);
       return;
     }
@@ -60,7 +61,7 @@ export function useAuth() {
       localStorage.setItem("murihspace-token", token);
       setUser(userProfile);
       return true;
-    } catch (err: any) {
+    } catch (err: unknown) {
       const apiErr = err as ApiError;
       setError(apiErr.message || "Login failed.");
       setFieldErrors(apiErr.errors || {});
@@ -109,7 +110,7 @@ export function useAuth() {
       localStorage.setItem("murihspace-token", token);
       setUser(userProfile);
       return true;
-    } catch (err: any) {
+    } catch (err: unknown) {
       const apiErr = err as ApiError;
       setError(apiErr.message || "Registration failed.");
       setFieldErrors(apiErr.errors || {});

@@ -134,8 +134,8 @@ export function CreateCommunityModal({
           "Engage constructively and share valuable insights.",
         ],
       });
-    } catch (err: any) {
-      setError(err.message || "An unexpected error occurred.");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "An unexpected error occurred.");
     } finally {
       setIsSubmitting(false);
     }

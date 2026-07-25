@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { GalleryVerticalEndIcon } from "lucide-react"
+import { Link } from "react-router"
 
 export function SignupForm({
   className,
@@ -21,18 +22,15 @@ export function SignupForm({
       <form>
         <FieldGroup>
           <div className="flex flex-col items-center gap-2 text-center">
-            <a
-              href="#"
-              className="flex flex-col items-center gap-2 font-medium"
-            >
+            <div className="flex flex-col items-center gap-2 font-medium">
               <div className="flex size-8 items-center justify-center rounded-md">
                 <GalleryVerticalEndIcon className="size-6" />
               </div>
               <span className="sr-only">Acme Inc.</span>
-            </a>
+            </div>
             <h1 className="text-xl font-bold">Welcome to Acme Inc.</h1>
             <FieldDescription>
-              Already have an account? <a href="#">Sign in</a>
+              Already have an account? <Link to="/login" className="underline underline-offset-4 hover:text-primary">Sign in</Link>
             </FieldDescription>
           </div>
           <Field>
@@ -71,8 +69,8 @@ export function SignupForm({
         </FieldGroup>
       </form>
       <FieldDescription className="px-6 text-center">
-        By clicking continue, you agree to our <a href="#">Terms of Service</a>{" "}
-        and <a href="#">Privacy Policy</a>.
+        By clicking continue, you agree to our <Link to="/terms" className="underline underline-offset-4 hover:text-primary">Terms of Service</Link>{" "}
+        and <Link to="/privacy" className="underline underline-offset-4 hover:text-primary">Privacy Policy</Link>.
       </FieldDescription>
     </div>
   )

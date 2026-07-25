@@ -24,10 +24,10 @@ class Order extends Model
     ];
 
     protected $casts = [
-        'subtotal'     => 'decimal:2',
+        'subtotal' => 'decimal:2',
         'platform_fee' => 'decimal:2',
-        'total'        => 'decimal:2',
-        'paid_at'      => 'datetime',
+        'total' => 'decimal:2',
+        'paid_at' => 'datetime',
     ];
 
     public const STATUSES = ['pending', 'processing', 'completed', 'failed', 'refunded'];

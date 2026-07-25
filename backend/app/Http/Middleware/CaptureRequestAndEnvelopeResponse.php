@@ -58,7 +58,7 @@ class CaptureRequestAndEnvelopeResponse
             $wrappedData = is_array($originalData) && count($originalData) === 0 ? null : $originalData;
 
             // Special handling for validation or structure formatting
-            if (!$success && is_null($errors) && is_array($wrappedData)) {
+            if (! $success && is_null($errors) && is_array($wrappedData)) {
                 $errors = $wrappedData;
                 $wrappedData = null;
             }
