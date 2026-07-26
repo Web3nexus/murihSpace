@@ -45,6 +45,8 @@ class PostController extends Controller
      */
     public function store(Request $request): JsonResponse
     {
+        $this->authorize('create', Post::class);
+
         $user = $request->user();
 
         $validated = $request->validate([
@@ -58,6 +60,18 @@ class PostController extends Controller
         ]);
 
         $community = Community::findOrFail($validated['community_id']);
+
+        // Enforce active membership or ownership for any post in this community
+        $isOwner = $community->user_id === $user->id;
+        if (! $isOwner) {
+            $isMember = CommunityMembership::where('community_id', $community->id)
+                ->where('user_id', $user->id)
+                ->where('status', 'active')
+                ->exists();
+            if (! $isMember) {
+                return response()->json(['message' => 'You must be an active member of this community to post.'], 403);
+            }
+        }
 
         // Check link-sharing permissions on server side (Sprint 8 requirement)
         $hasUrlInContent = (bool) preg_match('/https?:\/\/[^\s]+/', $validated['content']);

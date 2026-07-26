@@ -51,7 +51,7 @@ export function SalesOrdersPage() {
       });
       if (res.ok) {
         const json = await res.json();
-        setSales(json.data ?? []);
+        setSales(json.data?.data ?? []);
       }
     } catch (e) {
       console.error('Failed to fetch sales', e);
@@ -76,7 +76,7 @@ export function SalesOrdersPage() {
 
       if (res.ok) {
         const json = await res.json();
-        setSelectedReceipt(json.data);
+        setSelectedReceipt(json.data?.data ?? json.data);
       }
     } catch (e) { console.error('Failed to fetch receipt', e); }
   };
@@ -91,7 +91,7 @@ export function SalesOrdersPage() {
   const totalSales = sales.filter((s) => s.status === 'completed').length;
 
   return (
-    <div className="max-w-6xl mx-auto p-4 sm:p-6 space-y-6">
+    <div className="space-y-6 w-full max-w-7xl mx-auto p-6 lg:p-8">
       {/* Header */}
       <div>
         <h1 className="text-2xl font-black text-foreground tracking-tight flex items-center gap-2.5">

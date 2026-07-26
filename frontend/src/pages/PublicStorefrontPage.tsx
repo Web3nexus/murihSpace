@@ -40,7 +40,7 @@ export function PublicStorefrontPage() {
         }
 
         const json = await res.json();
-        setStore(json.data);
+        setStore(json.data?.data ?? json.data);
       } catch (err: unknown) {
         setError(err instanceof Error ? err.message : 'Unable to display storefront.');
       } finally {
@@ -89,7 +89,7 @@ export function PublicStorefrontPage() {
         <span className="text-xs font-mono text-muted-foreground">/{store.short_code}</span>
       </header>
 
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 pt-6 space-y-6">
+      <main className="w-full max-w-7xl mx-auto px-4 sm:px-6 pt-6 space-y-6">
         {/* Cover & Avatar Header Card */}
         <div className="border border-border rounded-3xl bg-card overflow-hidden shadow-xl">
           {/* Cover image */}

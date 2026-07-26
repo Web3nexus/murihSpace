@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   Users, Search, Loader2, ShieldOff, ShieldCheck, Ban,
-  AlertCircle, CheckCircle2,
+  AlertCircle, CheckCircle2, LogIn,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,16 +17,16 @@ const authHeaders = () => {
 };
 
 const ROLE_COLORS: Record<string, string> = {
-  admin: 'bg-purple-500/15 text-purple-600',
-  creator: 'bg-blue-500/15 text-blue-600',
-  vendor: 'bg-amber-500/15 text-amber-600',
+  admin: 'bg-purple-500/20 text-purple-400',
+  creator: 'bg-blue-500/20 text-blue-400',
+  vendor: 'bg-amber-500/20 text-amber-400',
   member: 'bg-muted text-muted-foreground',
 };
 
 const STATUS_COLORS: Record<string, string> = {
-  active: 'bg-emerald-500/15 text-emerald-600',
-  suspended: 'bg-amber-500/15 text-amber-600',
-  banned: 'bg-destructive/15 text-destructive',
+  active: 'bg-emerald-500/20 text-emerald-400',
+  suspended: 'bg-amber-500/20 text-amber-400',
+  banned: 'bg-rose-500/20 text-rose-400',
 };
 
 export function AdminUsersPage() {
@@ -39,17 +39,27 @@ export function AdminUsersPage() {
   const [reason, setReason] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [msg, setMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   const fetchUsers = useCallback(async () => {
     const params = new URLSearchParams();
     if (search) params.set('search', search);
     if (roleFilter) params.set('role', roleFilter);
+    setFetchError(null);
     try {
       const res = await fetch(`${API_BASE}/securegate/users?${params}`, { headers: authHeaders() });
-      if (res.ok) {
-        const j = await res.json();
-        setUsers(j.data ?? []);
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({}));
+        console.error('Users fetch failed:', res.status, errBody);
+        setFetchError(`Failed to load users (${res.status}). Check console for details.`);
+        return;
       }
+      const j = await res.json();
+      const raw = j?.data?.data ?? j?.data ?? [];
+      setUsers(Array.isArray(raw) ? raw : []);
+    } catch (e) {
+      console.error('Users fetch error:', e);
+      setFetchError('Network error loading users.');
     } finally { setLoading(false); }
   }, [search, roleFilter]);
 
@@ -64,8 +74,9 @@ export function AdminUsersPage() {
         method: 'POST', headers: authHeaders(), body: JSON.stringify(body),
       });
       const j = await res.json();
+      const d = j?.success ? j?.data : j;
       if (res.ok) {
-        setMsg({ type: 'success', text: j.message });
+        setMsg({ type: 'success', text: j.message || d?.message || 'Action completed.' });
         setActionUser(null); setActionType(null); setReason('');
         fetchUsers();
       } else setMsg({ type: 'error', text: j.message || 'Action failed.' });
@@ -73,11 +84,29 @@ export function AdminUsersPage() {
     setSubmitting(false);
   };
 
+  const handleImpersonate = async (u: AdminUser) => {
+    try {
+      const res = await fetch(`${API_BASE}/securegate/users/${u.id}/impersonate`, { method: 'POST', headers: authHeaders() });
+      const j = await res.json();
+      const data = j?.success ? j?.data : j;
+      if (!res.ok || !data?.token) {
+        setMsg({ type: 'error', text: data?.message || j?.message || 'Impersonation failed.' });
+        return;
+      }
+      const adminToken = localStorage.getItem('murihspace-token') || localStorage.getItem('auth_token');
+      if (adminToken) localStorage.setItem('admin_token', adminToken);
+      localStorage.setItem('murihspace-token', data.token);
+      localStorage.setItem('is_impersonating', 'true');
+      localStorage.setItem('impersonated_user', JSON.stringify(data.user));
+      window.location.assign('/app');
+    } catch { setMsg({ type: 'error', text: 'Impersonation failed.' }); }
+  };
+
   return (
-    <div className="max-w-6xl mx-auto p-4 sm:p-6 space-y-6">
+    <div className="w-full mx-auto max-w-[1400px] space-y-6 p-6 lg:p-10">
       <div>
-        <h1 className="text-2xl font-black text-foreground tracking-tight flex items-center gap-2.5">
-          <Users className="h-6 w-6 text-secondary" /> Users & Creators
+        <h1 className="text-2xl font-black tracking-tight flex items-center gap-2.5">
+          <Users className="h-6 w-6 text-[#38A8D8]" /> Users & Creators
         </h1>
         <p className="text-xs text-muted-foreground mt-1">Manage all platform accounts.</p>
       </div>
@@ -88,11 +117,13 @@ export function AdminUsersPage() {
           <Input className="pl-8 text-sm" placeholder="Search by name, email, username..." value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
         {['', 'admin', 'creator', 'vendor', 'member'].map((r) => (
-          <button key={r} onClick={() => setRoleFilter(r)} className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-colors ${roleFilter === r ? 'bg-secondary text-white' : 'bg-muted text-muted-foreground hover:text-foreground'}`}>{r || 'All'}</button>
+          <button key={r} onClick={() => setRoleFilter(r)} className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-colors ${roleFilter === r ? 'bg-[#38A8D8] text-foreground' : 'bg-muted text-muted-foreground hover:text-foreground'}`}>{r || 'All'}</button>
         ))}
       </div>
 
-      {loading ? <div className="flex justify-center py-16"><Loader2 className="h-8 w-8 animate-spin text-secondary" /></div>
+      {fetchError && <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-start gap-3"><AlertCircle className="h-5 w-5 text-rose-400 shrink-0 mt-0.5" /><div><p className="text-xs font-bold text-rose-400">Error</p><p className="text-xs text-muted-foreground mt-1">{fetchError}</p></div></div>}
+
+      {loading ? <div className="flex justify-center py-16"><Loader2 className="h-8 w-8 animate-spin text-[#38A8D8]" /></div>
         : users.length === 0 ? <div className="p-12 text-center border border-dashed border-border rounded-3xl bg-card"><Users className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" /><h3 className="text-sm font-bold">No users found</h3></div>
         : <div className="border border-border rounded-2xl bg-card overflow-hidden shadow-sm">
             <div className="overflow-x-auto">
@@ -112,10 +143,15 @@ export function AdminUsersPage() {
                       <td className="px-4 py-3 text-muted-foreground">@{u.username}</td>
                       <td className="px-4 py-3"><span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${ROLE_COLORS[u.role] ?? ''}`}>{u.role}</span></td>
                       <td className="px-4 py-3"><span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${STATUS_COLORS[u.status] ?? ''}`}>{u.status}</span></td>
-                      <td className="px-4 py-3"><span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${u.kyc_status === 'verified' ? 'bg-emerald-500/15 text-emerald-600' : u.kyc_status === 'rejected' ? 'bg-destructive/15 text-destructive' : 'bg-amber-500/15 text-amber-600'}`}>{u.kyc_status}</span></td>
+                      <td className="px-4 py-3"><span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${u.kyc_status === 'verified' ? 'bg-emerald-500/20 text-emerald-400' : u.kyc_status === 'rejected' ? 'bg-rose-500/20 text-rose-400' : 'bg-amber-500/20 text-amber-400'}`}>{u.kyc_status}</span></td>
                       <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{new Date(u.created_at).toLocaleDateString()}</td>
                       <td className="px-4 py-3">
                         <div className="flex gap-1">
+                          {u.role !== 'admin' && u.status === 'active' && (
+                            <Button size="sm" variant="ghost" className="h-7 text-[10px] text-[#38A8D8]" onClick={() => handleImpersonate(u)} title={`Sign in as ${u.name}`}>
+                              <LogIn className="h-3 w-3" />
+                            </Button>
+                          )}
                           {u.status === 'active' && <Button size="sm" variant="ghost" className="h-7 text-[10px] text-amber-600" onClick={() => { setActionUser(u); setActionType('suspend'); setReason(''); setMsg(null); }}><ShieldOff className="h-3 w-3" /></Button>}
                           {u.status === 'suspended' && <Button size="sm" variant="ghost" className="h-7 text-[10px] text-emerald-600" onClick={() => { setActionUser(u); setActionType('activate'); setMsg(null); }}><ShieldCheck className="h-3 w-3" /></Button>}
                           {u.status !== 'banned' && <Button size="sm" variant="ghost" className="h-7 text-[10px] text-destructive" onClick={() => { setActionUser(u); setActionType('ban'); setReason(''); setMsg(null); }}><Ban className="h-3 w-3" /></Button>}
@@ -138,7 +174,7 @@ export function AdminUsersPage() {
             </DialogTitle>
             <DialogDescription className="text-xs">{actionUser?.name} (@{actionUser?.username})</DialogDescription>
           </DialogHeader>
-          {msg && <div className={`p-3 rounded-xl text-xs font-bold flex items-center gap-2 ${msg.type === 'success' ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20' : 'bg-destructive/10 text-destructive border border-destructive/20'}`}>{msg.type === 'success' ? <CheckCircle2 className="h-4 w-4 shrink-0" /> : <AlertCircle className="h-4 w-4 shrink-0" />}{msg.text}</div>}
+          {msg && <div className={`p-3 rounded-xl text-xs font-bold flex items-center gap-2 ${msg.type === 'success' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'}`}>{msg.type === 'success' ? <CheckCircle2 className="h-4 w-4 shrink-0" /> : <AlertCircle className="h-4 w-4 shrink-0" />}{msg.text}</div>}
           {actionType !== 'activate' && (
             <textarea className="w-full min-h-[80px] rounded-xl border border-border bg-card p-3 text-xs font-medium text-foreground placeholder:text-muted-foreground resize-none" placeholder="Reason for this action..." value={reason} onChange={(e) => setReason(e.target.value)} />
           )}

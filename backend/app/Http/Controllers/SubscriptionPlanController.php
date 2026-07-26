@@ -42,6 +42,10 @@ class SubscriptionPlanController extends Controller
 
     public function store(Request $request): JsonResponse
     {
+        if (! $request->user()->isCreatorOrAdmin()) {
+            abort(403);
+        }
+
         $validated = $request->validate([
             'community_id' => ['nullable', 'integer', 'exists:communities,id'],
             'name' => ['required', 'string', 'max:255'],

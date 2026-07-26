@@ -49,7 +49,7 @@ export function StoreManagementPage() {
       });
       if (res.ok) {
         const json = await res.json();
-        const data: Storefront = json.data;
+        const data: Storefront = json.data?.data ?? json.data;
         setStorefront(data);
         setDisplayName(data.display_name ?? '');
         setTagline(data.tagline ?? '');
@@ -100,7 +100,7 @@ export function StoreManagementPage() {
       const json = await res.json();
       if (!res.ok) throw new Error(json.message ?? 'Save failed.');
 
-      setStorefront(json.data);
+      setStorefront(json.data?.data ?? json.data);
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
     } catch (err: unknown) {
@@ -128,7 +128,7 @@ export function StoreManagementPage() {
 
       if (res.ok) {
         const json = await res.json();
-        setStorefront(json.data);
+        setStorefront(json.data?.data ?? json.data);
       }
     } catch (e) { console.error('Failed to toggle publish', e); } finally {
       setIsTogglingPublish(false);
@@ -166,7 +166,7 @@ export function StoreManagementPage() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto p-4 sm:p-6 space-y-8">
+    <div className="w-full max-w-7xl mx-auto p-6 lg:p-8 space-y-8">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>

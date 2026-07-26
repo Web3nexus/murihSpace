@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Mic, Radio, Calendar, Clock, Users, Loader2, Plus, Play, StopCircle, LogIn, LogOut, Hand, MicOff, Speaker, Star, AlertCircle, X, Check, Trash2 } from 'lucide-react';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api/v1';
 
@@ -51,8 +53,8 @@ interface AudioRoom {
 type Tab = 'upcoming' | 'live' | 'past' | 'my-rooms';
 
 const STATUS_BADGE: Record<string, { color: string; label: string }> = {
-  live: { color: 'bg-red-500/15 text-red-600 border-red-500/30', label: 'LIVE' },
-  scheduled: { color: 'bg-blue-500/15 text-blue-600 border-blue-500/30', label: 'Scheduled' },
+  live: { color: 'bg-destructive/10 text-destructive border-destructive/20', label: 'LIVE' },
+  scheduled: { color: 'bg-secondary/10 text-secondary border-secondary/20', label: 'Scheduled' },
   ended: { color: 'bg-muted text-muted-foreground border-border', label: 'Ended' },
   cancelled: { color: 'bg-destructive/10 text-destructive border-destructive/20', label: 'Cancelled' },
 };
@@ -61,10 +63,10 @@ function RoomCard({ room, onAction }: { room: AudioRoom; onAction: (action: stri
   const badge = STATUS_BADGE[room.status] ?? STATUS_BADGE.ended;
 
   return (
-    <div className="rounded-2xl border border-border bg-card p-5 flex flex-col">
+    <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-xs hover:shadow-md hover:border-primary/30 transition-all duration-200 p-5 flex flex-col">
       <div className="flex items-start justify-between gap-2 mb-2">
         <div className="flex items-center gap-2 min-w-0">
-          {room.status === 'live' && <span className="h-2.5 w-2.5 rounded-full bg-red-500 animate-pulse shrink-0" />}
+          {room.status === 'live' && <span className="h-2.5 w-2.5 rounded-full bg-destructive animate-pulse shrink-0" />}
           <h3 className="text-sm font-extrabold text-foreground truncate">{room.title}</h3>
         </div>
         <span className={`shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full border ${badge.color}`}>
@@ -98,19 +100,19 @@ function RoomCard({ room, onAction }: { room: AudioRoom; onAction: (action: stri
 
       <div className="flex items-center gap-2 mt-auto">
         {room.status === 'scheduled' && (
-          <button onClick={() => onAction('join', room)} className="flex-1 py-2 rounded-xl bg-secondary text-secondary-foreground font-bold text-xs hover:bg-secondary/90 transition-all flex items-center justify-center gap-1.5">
-            <LogIn className="h-3 w-3" /> Join When Live
-          </button>
+          <Button onClick={() => onAction('join', room)} variant="secondary" size="sm" className="flex-1 gap-1.5">
+            <LogIn className="h-3.5 w-3.5" /> Join When Live
+          </Button>
         )}
         {room.status === 'live' && (
-          <button onClick={() => onAction('join', room)} className="flex-1 py-2 rounded-xl bg-red-500 text-white font-bold text-xs hover:bg-red-600 transition-all flex items-center justify-center gap-1.5 animate-pulse">
-            <Mic className="h-3 w-3" /> Join Live
-          </button>
+          <Button onClick={() => onAction('join', room)} variant="destructive" size="sm" className="flex-1 gap-1.5 animate-pulse bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            <Mic className="h-3.5 w-3.5" /> Join Live
+          </Button>
         )}
         {room.status === 'scheduled' && room.creator_id === 0 && (
-          <button onClick={() => onAction('start', room)} className="p-2 rounded-xl hover:bg-muted text-muted-foreground hover:text-foreground">
+          <Button onClick={() => onAction('start', room)} variant="ghost" size="sm" className="p-2">
             <Play className="h-4 w-4" />
-          </button>
+          </Button>
         )}
       </div>
     </div>
@@ -148,7 +150,7 @@ export function AudioRoomsPage() {
       const res = await fetch(url, { headers: getAuthHeaders() });
       if (res.ok) {
         const json = await res.json();
-        setRooms(json.data ?? []);
+        setRooms(json.data?.data ?? []);
       }
     } catch { /* silent */ }
     setIsLoading(false);
@@ -221,7 +223,7 @@ export function AudioRoomsPage() {
       const res = await fetch(`${API_BASE}/audio-rooms/${id}`, { headers: getAuthHeaders() });
       if (res.ok) {
         const json = await res.json();
-        setSelectedRoom(json.data);
+        setSelectedRoom(json.data?.data ?? json.data);
       }
     } catch { /* silent */ }
   };
@@ -278,8 +280,8 @@ export function AudioRoomsPage() {
   })();
 
   const ROLE_ICONS: Record<string, React.ReactNode> = {
-    host: <Star className="h-3 w-3 text-amber-500" />,
-    co_host: <Star className="h-3 w-3 text-blue-400" />,
+    host: <Star className="h-3 w-3 text-secondary" />,
+    co_host: <Star className="h-3 w-3 text-primary" />,
     speaker: <Speaker className="h-3 w-3 text-secondary" />,
     listener: <Users className="h-3 w-3 text-muted-foreground" />,
   };
@@ -292,43 +294,49 @@ export function AudioRoomsPage() {
   ];
 
   return (
-    <div className="max-w-6xl mx-auto p-4 sm:p-6 space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-black text-foreground tracking-tight flex items-center gap-2.5">
-            <Radio className="h-6 w-6 text-secondary" />
+    <div className="space-y-6 w-full max-w-7xl mx-auto p-6 lg:p-8">
+      {/* Gradient Header Banner */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 sm:p-8 rounded-2xl bg-gradient-to-br from-[#102840] via-[#173852] to-[#102840] text-white shadow-lg">
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-2">
+            <span className="px-2.5 py-0.5 rounded-full bg-[#38A8D8]/20 text-[#38A8D8] text-xs font-semibold uppercase tracking-wider border border-[#38A8D8]/30">
+              Phase 7 — Live Audio
+            </span>
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight flex items-center gap-2.5">
+            <Radio className="h-6 w-6 text-[#38A8D8]" />
             Audio Rooms
           </h1>
-          <p className="text-xs text-muted-foreground mt-1">
+          <p className="text-sm text-white/70 max-w-xl">
             Live audio conversations — start a room, invite speakers, and engage your audience in real time.
           </p>
         </div>
-        <button
+        <Button
           onClick={() => { resetForm(); setShowForm(true); }}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-secondary text-secondary-foreground font-bold text-xs hover:bg-secondary/90 transition-all shrink-0"
+          className="bg-[#38A8D8] text-white hover:bg-[#2E96C5] font-semibold h-11 px-5 rounded-xl shadow-md gap-2 shrink-0 self-start sm:self-auto"
         >
-          <Plus className="h-3.5 w-3.5" /> Schedule Room
-        </button>
+          <Plus className="h-5 w-5" />
+          Schedule Room
+        </Button>
       </div>
 
       {/* Message */}
       {message && (
-        <div className={`flex items-center gap-2 px-4 py-3 rounded-xl text-xs font-medium ${message.type === 'success' ? 'bg-green-500/10 text-green-600' : 'bg-destructive/10 text-destructive'}`}>
+        <div className={`flex items-center gap-2 px-4 py-3 rounded-xl text-xs font-medium ${message.type === 'success' ? 'bg-secondary/10 text-secondary' : 'bg-destructive/10 text-destructive'}`}>
           {message.type === 'success' ? <Check className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
           <span className="flex-1">{message.text}</span>
           <button onClick={() => setMessage(null)} className="p-0.5 hover:opacity-70"><X className="h-3.5 w-3.5" /></button>
         </div>
       )}
 
-      {/* Tabs */}
-      <div className="flex gap-1 overflow-x-auto pb-1 scrollbar-none border-b border-border">
+      {/* Pill Tabs */}
+      <div className="flex p-1 bg-muted rounded-xl gap-1 w-fit">
         {tabs.map((t) => (
           <button
             key={t.key}
             onClick={() => { setTab(t.key); setSelectedRoom(null); }}
-            className={`px-4 py-2 text-xs font-bold whitespace-nowrap border-b-2 transition-all ${
-              tab === t.key ? 'border-secondary text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'
+            className={`px-4 py-2 text-xs font-semibold rounded-lg transition-all ${
+              tab === t.key ? 'bg-card text-foreground shadow-xs' : 'text-muted-foreground hover:text-foreground'
             }`}
           >
             {t.label}
@@ -340,11 +348,17 @@ export function AudioRoomsPage() {
       {!selectedRoom && (
         <div className="space-y-4">
           {isLoading ? (
-            <div className="py-20 text-center"><Loader2 className="h-6 w-6 animate-spin text-secondary mx-auto" /></div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {[1, 2, 3].map((n) => (
+                <div key={n} className="h-48 rounded-2xl bg-muted animate-pulse border border-border" />
+              ))}
+            </div>
           ) : rooms.length === 0 ? (
-            <div className="p-12 text-center border border-dashed border-border rounded-3xl bg-card space-y-3">
-              <Radio className="h-10 w-10 text-muted-foreground/30 mx-auto" />
-              <h3 className="text-sm font-bold text-foreground">
+            <div className="rounded-2xl border border-dashed border-border p-12 text-center space-y-3 bg-card">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                <Radio className="h-6 w-6" />
+              </div>
+              <h3 className="text-base font-semibold text-foreground">
                 {tab === 'live' ? 'No live rooms right now' :
                  tab === 'upcoming' ? 'No upcoming rooms' :
                  tab === 'past' ? 'No past rooms' :
@@ -380,7 +394,7 @@ export function AudioRoomsPage() {
             ← Back to rooms
           </button>
 
-          <div className="rounded-2xl border border-border bg-card overflow-hidden">
+          <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-xs">
             {selectedRoom.cover_url && (
               <div className="h-40 bg-gradient-to-r from-primary to-secondary overflow-hidden">
                 <img src={selectedRoom.cover_url} alt="" className="w-full h-full object-cover" />
@@ -390,7 +404,7 @@ export function AudioRoomsPage() {
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <div className="flex items-center gap-2">
-                    {selectedRoom.status === 'live' && <span className="h-3 w-3 rounded-full bg-red-500 animate-pulse" />}
+                    {selectedRoom.status === 'live' && <span className="h-3 w-3 rounded-full bg-destructive animate-pulse" />}
                     <h2 className="text-xl font-black text-foreground">{selectedRoom.title}</h2>
                   </div>
                   <span className={`inline-block mt-1 text-[10px] font-bold px-2 py-0.5 rounded-full border ${(STATUS_BADGE[selectedRoom.status] ?? STATUS_BADGE.ended).color}`}>
@@ -401,23 +415,23 @@ export function AudioRoomsPage() {
                 <div className="flex items-center gap-2 shrink-0">
                   {selectedRoom.creator_id === currentUser?.id && selectedRoom.status === 'scheduled' && (
                     <>
-                      <button onClick={() => handleAction('start', selectedRoom)} className="px-4 py-2 rounded-xl bg-emerald-500 text-white font-bold text-xs hover:bg-emerald-600 flex items-center gap-1.5">
+                      <Button onClick={() => handleAction('start', selectedRoom)} variant="secondary" size="sm" className="gap-1.5">
                         <Play className="h-3.5 w-3.5" /> Start Room
-                      </button>
-                      <button onClick={() => handleAction('delete', selectedRoom)} className="p-2 rounded-xl hover:bg-destructive/10 text-destructive">
+                      </Button>
+                      <Button onClick={() => handleAction('delete', selectedRoom)} variant="ghost" size="sm" className="p-2 text-destructive hover:bg-destructive/10">
                         <Trash2 className="h-4 w-4" />
-                      </button>
+                      </Button>
                     </>
                   )}
                   {selectedRoom.creator_id === currentUser?.id && selectedRoom.status === 'live' && (
-                    <button onClick={() => handleAction('end', selectedRoom)} className="px-4 py-2 rounded-xl bg-red-500 text-white font-bold text-xs hover:bg-red-600 flex items-center gap-1.5">
+                    <Button onClick={() => handleAction('end', selectedRoom)} variant="destructive" size="sm" className="gap-1.5 bg-destructive text-destructive-foreground hover:bg-destructive/90">
                       <StopCircle className="h-3.5 w-3.5" /> End Room
-                    </button>
+                    </Button>
                   )}
                   {currentUser && selectedRoom.status === 'live' && (
-                    <button onClick={() => handleAction('leave', selectedRoom)} className="px-4 py-2 rounded-xl border border-border text-xs font-semibold hover:bg-muted flex items-center gap-1.5">
+                    <Button onClick={() => handleAction('leave', selectedRoom)} variant="outline" size="sm" className="gap-1.5">
                       <LogOut className="h-3.5 w-3.5" /> Leave
-                    </button>
+                    </Button>
                   )}
                 </div>
               </div>
@@ -430,7 +444,7 @@ export function AudioRoomsPage() {
                 <span className="flex items-center gap-1"><Users className="h-3.5 w-3.5" /> {selectedRoom.active_participants_count ?? 0} participant{(selectedRoom.active_participants_count ?? 0) !== 1 ? 's' : ''}</span>
                 {selectedRoom.scheduled_at && <span className="flex items-center gap-1"><Calendar className="h-3.5 w-3.5" /> Scheduled: {formatDateTime(selectedRoom.scheduled_at)}</span>}
                 {selectedRoom.started_at && <span className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> Started: {formatDateTime(selectedRoom.started_at)}</span>}
-                {selectedRoom.is_recorded && <span className="text-blue-400">🔴 Recording</span>}
+                {selectedRoom.is_recorded && <span className="text-secondary">🔴 Recording</span>}
               </div>
 
               {/* Participants */}
@@ -454,7 +468,7 @@ export function AudioRoomsPage() {
                         </div>
 
                         <div className="flex items-center gap-1 shrink-0">
-                          {p.is_hand_raised && <Hand className="h-3.5 w-3.5 text-amber-500" />}
+                          {p.is_hand_raised && <Hand className="h-3.5 w-3.5 text-destructive" />}
                           {p.is_muted && p.role !== 'listener' && <MicOff className="h-3.5 w-3.5 text-destructive" />}
 
                           {/* Host/co-host controls for non-host participants */}
@@ -468,7 +482,7 @@ export function AudioRoomsPage() {
                               <select
                                 value={p.role}
                                 onChange={(e) => handleRoleChange(selectedRoom.id, p.user_id, e.target.value)}
-                                className="text-[10px] bg-muted rounded-lg px-1.5 py-0.5 border-0 outline-none"
+                                className="text-xs bg-muted rounded-lg px-1.5 py-0.5 border border-border outline-none text-foreground"
                               >
                                 <option value="co_host">Co-Host</option>
                                 <option value="speaker">Speaker</option>
@@ -491,14 +505,14 @@ export function AudioRoomsPage() {
 
               {/* Join button for scheduled rooms */}
               {selectedRoom.status === 'scheduled' && (
-                <button onClick={() => handleAction('join', selectedRoom)} className="w-full py-2.5 rounded-xl bg-secondary text-secondary-foreground font-bold text-xs hover:bg-secondary/90 transition-all">
+                <Button onClick={() => handleAction('join', selectedRoom)} variant="secondary" size="sm" className="w-full gap-1.5">
                   Join When Live
-                </button>
+                </Button>
               )}
               {selectedRoom.status === 'live' && !selectedRoom.participants?.some((p) => p.user_id === currentUser?.id) && (
-                <button onClick={() => handleAction('join', selectedRoom)} className="w-full py-2.5 rounded-xl bg-red-500 text-white font-bold text-xs hover:bg-red-600 transition-all animate-pulse">
+                <Button onClick={() => handleAction('join', selectedRoom)} variant="destructive" size="sm" className="w-full gap-1.5 animate-pulse bg-destructive text-destructive-foreground hover:bg-destructive/90">
                   Join This Room
-                </button>
+                </Button>
               )}
             </div>
           </div>
@@ -513,7 +527,7 @@ export function AudioRoomsPage() {
             <form onSubmit={handleCreateRoom} className="space-y-3">
               <div className="space-y-1">
                 <label className="text-xs font-bold text-foreground uppercase tracking-wider">Room Title</label>
-                <input type="text" value={fTitle} onChange={(e) => setFTitle(e.target.value)} required placeholder="e.g. Weekly Creator AMA" className="w-full px-3 py-2 text-xs rounded-xl bg-muted border-0 outline-none focus:ring-1 focus:ring-secondary" />
+                <Input type="text" value={fTitle} onChange={(e) => setFTitle(e.target.value)} required placeholder="e.g. Weekly Creator AMA" className="bg-muted border-border rounded-xl text-xs" />
               </div>
               <div className="space-y-1">
                 <label className="text-xs font-bold text-foreground uppercase tracking-wider">Description</label>
@@ -522,19 +536,19 @@ export function AudioRoomsPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-foreground uppercase tracking-wider">Schedule</label>
-                  <input type="datetime-local" value={fScheduledAt} onChange={(e) => setFScheduledAt(e.target.value)} className="w-full px-3 py-2 text-xs rounded-xl bg-muted border-0 outline-none focus:ring-1 focus:ring-secondary" />
+                  <Input type="datetime-local" value={fScheduledAt} onChange={(e) => setFScheduledAt(e.target.value)} className="bg-muted border-border rounded-xl text-xs" />
                 </div>
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-foreground uppercase tracking-wider">Max participants</label>
-                  <input type="number" value={fMaxParticipants} onChange={(e) => setFMaxParticipants(e.target.value)} min={1} max={10000} placeholder="Unlimited" className="w-full px-3 py-2 text-xs rounded-xl bg-muted border-0 outline-none focus:ring-1 focus:ring-secondary" />
+                  <Input type="number" value={fMaxParticipants} onChange={(e) => setFMaxParticipants(e.target.value)} min={1} max={10000} placeholder="Unlimited" className="bg-muted border-border rounded-xl text-xs" />
                 </div>
               </div>
               <div className="flex items-center justify-end gap-2 pt-2">
-                <button type="button" onClick={() => setShowForm(false)} className="px-4 py-2 text-xs font-semibold rounded-xl hover:bg-muted transition-colors">Cancel</button>
-                <button type="submit" disabled={isSubmitting} className="px-4 py-2 text-xs font-bold rounded-xl bg-secondary text-secondary-foreground hover:bg-secondary/90 disabled:opacity-50 transition-all flex items-center gap-1.5">
+                <Button type="button" variant="ghost" onClick={() => setShowForm(false)}>Cancel</Button>
+                <Button type="submit" disabled={isSubmitting} variant="secondary" className="gap-1.5">
                   {isSubmitting ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
                   Schedule Room
-                </button>
+                </Button>
               </div>
             </form>
           </div>

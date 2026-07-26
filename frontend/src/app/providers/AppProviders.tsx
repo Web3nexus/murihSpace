@@ -1,3 +1,4 @@
+import { AuthProvider } from "@/hooks/useAuth";
 import { QueryProvider } from "./QueryProvider";
 import { ThemeProvider } from "./ThemeProvider";
 import { MotionProvider } from "./MotionProvider";
@@ -10,13 +11,15 @@ interface AppProvidersProps {
 export function AppProviders({ children }: AppProvidersProps) {
   return (
     <QueryProvider>
-      <ThemeProvider defaultTheme="light">
-        <TooltipProvider>
-          <MotionProvider>
-            {children}
-          </MotionProvider>
-        </TooltipProvider>
-      </ThemeProvider>
+      <AuthProvider>
+        <ThemeProvider defaultTheme="light">
+          <TooltipProvider>
+            <MotionProvider>
+              {children}
+            </MotionProvider>
+          </TooltipProvider>
+        </ThemeProvider>
+      </AuthProvider>
     </QueryProvider>
   );
 }

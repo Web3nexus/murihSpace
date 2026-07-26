@@ -10,6 +10,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+
+const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api/v1';
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
@@ -100,7 +102,7 @@ export function CreateCommunityModal({
 
     try {
       const token = localStorage.getItem("murihspace-token");
-      const res = await fetch("/api/v1/my-communities", {
+      const res = await fetch(`${API_BASE}/my-communities`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

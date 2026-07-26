@@ -60,7 +60,7 @@ export function WalletPage() {
       const res = await fetch(`${API_BASE}/wallet`, { headers: getAuthHeaders() });
       if (res.ok) {
         const json = await res.json();
-        setWallet(json.data);
+        setWallet(json.data?.data ?? null);
       }
     } catch (e) { console.error('Failed to fetch wallet', e); }
   }, []);
@@ -71,7 +71,7 @@ export function WalletPage() {
       const res = await fetch(`${API_BASE}/wallet/transactions${params}`, { headers: getAuthHeaders() });
       if (res.ok) {
         const json = await res.json();
-        setTransactions(json.data ?? []);
+        setTransactions(json.data?.data ?? []);
       }
     } catch (e) { console.error('Failed to fetch transactions', e); }
   }, [txnFilter]);
@@ -213,7 +213,7 @@ export function WalletPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
+      <div className="w-full flex items-center justify-center h-64">
         <Loader2 className="h-8 w-8 animate-spin text-secondary" />
       </div>
     );
@@ -232,7 +232,7 @@ export function WalletPage() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto p-4 sm:p-6 space-y-6">
+    <div className="space-y-6 w-full max-w-7xl mx-auto p-6 lg:p-8">
       {/* Header */}
       <div>
         <h1 className="text-2xl font-black text-foreground tracking-tight flex items-center gap-2.5">
@@ -261,7 +261,7 @@ export function WalletPage() {
             </Button>
           </div>
           <p className="text-4xl sm:text-5xl font-black tracking-tight">
-            {showBalance && wallet ? formatAmount(wallet.balance, wallet.currency) : '••••••'}
+            {showBalance ? formatAmount(wallet?.balance ?? 0, wallet?.currency ?? 'NGN') : '••••••'}
           </p>
           <div className="flex items-center gap-2 text-xs text-white/60">
             <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full ${wallet?.has_pin ? 'bg-emerald-400/20 text-emerald-200' : 'bg-amber-400/20 text-amber-200'}`}>
@@ -376,15 +376,15 @@ export function WalletPage() {
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-black text-foreground">Transaction History</h2>
           <div className="flex gap-1">
-            {['', 'payment', 'transfer_out', 'transfer_in', 'donation_out', 'donation_in', 'withdrawal'].map((f) => (
+            {(['', 'payment', 'transfer', 'donation', 'withdrawal'] as const).map((f) => (
               <button
                 key={f}
                 onClick={() => setTxnFilter(f)}
-                className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-colors ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
                   txnFilter === f ? 'bg-secondary text-white' : 'bg-muted text-muted-foreground hover:text-foreground'
                 }`}
               >
-                {f ? txnTypeLabel[f]?.split(' ')[0] ?? f : 'All'}
+                {f === '' ? 'All' : f === 'transfer' ? 'Transfer' : f === 'donation' ? 'Donation' : txnTypeLabel[f] ?? f}
               </button>
             ))}
           </div>

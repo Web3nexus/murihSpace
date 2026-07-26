@@ -14,7 +14,7 @@ class PostPolicy
 
     public function create(User $user): bool
     {
-        return true;
+        return $user->isCreatorOrAdmin();
     }
 
     public function update(User $user, Post $post): bool

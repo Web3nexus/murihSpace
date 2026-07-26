@@ -32,6 +32,8 @@ class DigitalProductController extends Controller
      */
     public function store(Request $request): JsonResponse
     {
+        $this->authorize('create', DigitalProduct::class);
+
         $validated = $request->validate([
             'title' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:5000'],
@@ -100,6 +102,8 @@ class DigitalProductController extends Controller
         $product = DigitalProduct::where('creator_id', $request->user()->id)
             ->findOrFail($id);
 
+        $this->authorize('update', $product);
+
         $validated = $request->validate([
             'title' => ['sometimes', 'required', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:5000'],
@@ -149,6 +153,8 @@ class DigitalProductController extends Controller
         $product = DigitalProduct::where('creator_id', $request->user()->id)
             ->findOrFail($id);
 
+        $this->authorize('publish', $product);
+
         $validated = $request->validate([
             'status' => ['required', Rule::in(['draft', 'published'])],
         ]);
@@ -168,6 +174,8 @@ class DigitalProductController extends Controller
     {
         $product = DigitalProduct::where('creator_id', $request->user()->id)
             ->findOrFail($id);
+
+        $this->authorize('delete', $product);
 
         if ($product->file_path && Storage::disk('local')->exists($product->file_path)) {
             Storage::disk('local')->delete($product->file_path);

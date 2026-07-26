@@ -89,7 +89,7 @@ export function useProfile() {
       const response = await apiClient.get("/securegate/kyc");
       const envelope = response.data;
       const list = envelope.success ? envelope.data : envelope;
-      setPendingKycs(Array.isArray(list) ? list : []);
+      setPendingKycs(Array.isArray(list) ? list : Array.isArray(list?.data) ? list.data : []);
     } catch {
       setError("Failed to fetch pending KYC submissions.");
     } finally {

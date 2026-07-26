@@ -41,6 +41,8 @@ class StorefrontController extends Controller
         $user = $request->user();
         $store = Storefront::where('user_id', $user->id)->firstOrFail();
 
+        $this->authorize('update', $store);
+
         $validated = $request->validate([
             'display_name' => ['required', 'string', 'max:100'],
             'tagline' => ['nullable', 'string', 'max:255'],
@@ -68,6 +70,8 @@ class StorefrontController extends Controller
     {
         $user = $request->user();
         $store = Storefront::where('user_id', $user->id)->firstOrFail();
+
+        $this->authorize('publish', $store);
 
         $validated = $request->validate([
             'is_published' => ['required', 'boolean'],

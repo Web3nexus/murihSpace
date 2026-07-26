@@ -8,7 +8,10 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ErrorState, EmptyState } from "@/components/common/UIStateComponents";
 import { Clock, ShieldCheck, Check, X } from "lucide-react";
+
+const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api/v1';
 import type { JoinRequest } from "@/types/community";
 
 interface JoinRequestsModalProps {
@@ -26,72 +29,41 @@ export function JoinRequestsModal({
 }: JoinRequestsModalProps) {
   const [requests, setRequests] = React.useState<JoinRequest[]>([]);
   const [isLoading, setIsLoading] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
   const [processingId, setProcessingId] = React.useState<number | null>(null);
 
   // Fetch pending join requests
-  React.useEffect(() => {
+  const fetchRequests = React.useCallback(async () => {
     if (!open || !communityId) return;
-
-    async function fetchRequests() {
-      setIsLoading(true);
-      try {
-        const token = localStorage.getItem("murihspace-token");
-        const res = await fetch(`/api/v1/communities/${communityId}/requests`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (res.ok) {
-          const data = await res.json();
-          if (data.requests) {
-            setRequests(data.requests);
-          }
-        }
-      } catch {
-        // Mock fallback if offline
-        setRequests([
-          {
-            id: 201,
-            community_id: communityId,
-            user_id: 10,
-            role: "member",
-            status: "pending",
-            created_at: "2026-07-21",
-            user: {
-              id: 10,
-              name: "David Kim",
-              username: "davidkim",
-              bio: "Product designer and digital creator interested in web3 & UI design systems.",
-              avatar: "",
-            },
-          },
-          {
-            id: 202,
-            community_id: communityId,
-            user_id: 11,
-            role: "member",
-            status: "pending",
-            created_at: "2026-07-21",
-            user: {
-              id: 11,
-              name: "Amara Nwosu",
-              username: "amara_n",
-              bio: "Full-stack developer building creator tools and community platforms.",
-              avatar: "",
-            },
-          },
-        ]);
-      } finally {
-        setIsLoading(false);
+    setIsLoading(true);
+    setError(null);
+    try {
+      const token = localStorage.getItem("murihspace-token");
+      const res = await fetch(`${API_BASE}/communities/${communityId}/requests`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setRequests(data.requests || []);
+      } else {
+        setError("Failed to load join requests. Please try again.");
       }
+    } catch {
+      setError("Unable to connect to the server. Please check your connection and try again.");
+    } finally {
+      setIsLoading(false);
     }
-
-    fetchRequests();
   }, [open, communityId]);
+
+  React.useEffect(() => {
+    fetchRequests();
+  }, [fetchRequests]);
 
   const handleAction = async (requestId: number, action: "approve" | "reject") => {
     setProcessingId(requestId);
     try {
       const token = localStorage.getItem("murihspace-token");
-      await fetch(`/api/v1/memberships/${requestId}/${action}`, {
+      await fetch(`${API_BASE}/memberships/${requestId}/${action}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -127,19 +99,23 @@ export function JoinRequestsModal({
         </DialogHeader>
 
         <div className="space-y-4 my-2 max-h-[60vh] overflow-y-auto pr-1">
-          {isLoading ? (
+          {error ? (
+            <ErrorState
+              title="Failed to load requests"
+              description={error}
+              onRetry={fetchRequests}
+            />
+          ) : isLoading ? (
             <div className="space-y-3 p-4">
               <div className="h-14 rounded-xl bg-muted animate-pulse" />
               <div className="h-14 rounded-xl bg-muted animate-pulse" />
             </div>
           ) : requests.length === 0 ? (
-            <div className="py-8 text-center space-y-2 border border-dashed border-border rounded-xl">
-              <ShieldCheck className="h-8 w-8 text-muted-foreground mx-auto" />
-              <p className="text-xs font-semibold text-foreground">No pending join requests</p>
-              <p className="text-[11px] text-muted-foreground">
-                All membership applications for this community have been reviewed.
-              </p>
-            </div>
+            <EmptyState
+              icon={ShieldCheck}
+              title="No pending join requests"
+              description="All membership applications for this community have been reviewed."
+            />
           ) : (
             requests.map((req) => (
               <div

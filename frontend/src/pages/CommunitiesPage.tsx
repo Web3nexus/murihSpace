@@ -3,6 +3,7 @@ import { Link } from "react-router";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { ErrorState, EmptyState } from "@/components/common/UIStateComponents";
 import { CreateCommunityModal } from "@/components/community/CreateCommunityModal";
 import {
   Users,
@@ -13,6 +14,8 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import type { Community } from "@/types/community";
+
+const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api/v1';
 
 const CATEGORIES = [
   "All",
@@ -26,99 +29,36 @@ const CATEGORIES = [
   "General",
 ];
 
-// Fallback seed communities to show when database has few items
-const SEED_COMMUNITIES: Community[] = [
-  {
-    id: 101,
-    user_id: 1,
-    name: "Murih Space Creators Hub",
-    slug: "murih-creators-hub",
-    description:
-      "The official community for creators, designers, and developers building on MurihSpace. Share tips, pitch products, and get early feature access.",
-    category: "Technology",
-    visibility: "public",
-    pricing_type: "free",
-    members_count: 892,
-    logo_url: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=150&auto=format&fit=crop&q=80",
-    cover_url: "https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=800&auto=format&fit=crop&q=80",
-    creator: { id: 1, name: "Elena Rivera", username: "elenarivera" },
-    rules: ["Be respectful", "No spam", "Share valuable insights"],
-  },
-  {
-    id: 102,
-    user_id: 2,
-    name: "Digital Product Designers",
-    slug: "digital-product-designers",
-    description:
-      "A collective of UI/UX designers, design system engineers, and product strategists sharing Figma kits, design reviews, and portfolio feedback.",
-    category: "Art & Design",
-    visibility: "public",
-    pricing_type: "free",
-    members_count: 432,
-    logo_url: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
-    cover_url: "https://images.unsplash.com/photo-1550684848-fac1c5b4e853?w=800&auto=format&fit=crop&q=80",
-    creator: { id: 2, name: "Marcus Chen", username: "marcuschen" },
-    rules: ["Constructive feedback only", "Original work"],
-  },
-  {
-    id: 103,
-    user_id: 3,
-    name: "SaaS Founders & Builders",
-    slug: "saas-founders-builders",
-    description:
-      "Mastermind group for software entrepreneurs building modern SaaS products, scaling revenue, and mastering creator monetization.",
-    category: "Business",
-    visibility: "public",
-    pricing_type: "paid",
-    price_amount: 29,
-    members_count: 215,
-    logo_url: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80",
-    cover_url: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=800&auto=format&fit=crop&q=80",
-    creator: { id: 3, name: "Sarah Jenkins", username: "sarahjenkins" },
-    rules: ["Strict confidentiality", "Action-oriented discussions"],
-  },
-  {
-    id: 104,
-    user_id: 4,
-    name: "AI & Future Tech Guild",
-    slug: "ai-future-tech-guild",
-    description:
-      "Exploring generative AI, large language models, agentic workflows, and emerging tech stacks for independent developers.",
-    category: "Technology",
-    visibility: "public",
-    pricing_type: "free",
-    members_count: 670,
-    logo_url: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80",
-    cover_url: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&auto=format&fit=crop&q=80",
-    creator: { id: 4, name: "Alex Morgan", username: "alexmorgan" },
-    rules: ["Open source spirit", "Share prompt strategies"],
-  },
-];
-
 export function CommunitiesPage() {
   const [tab, setTab] = React.useState<"discover" | "my">("discover");
   const [selectedCategory, setSelectedCategory] = React.useState("All");
   const [searchQuery, setSearchQuery] = React.useState("");
   const [isModalOpen, setIsModalOpen] = React.useState(false);
 
-  const [communities, setCommunities] = React.useState<Community[]>(SEED_COMMUNITIES);
+  const [communities, setCommunities] = React.useState<Community[]>([]);
   const [myCommunities, setMyCommunities] = React.useState<Community[]>([]);
   const [isLoading, setIsLoading] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
 
   // Fetch communities from API backend
   const fetchCommunities = React.useCallback(async () => {
     setIsLoading(true);
+    setError(null);
     try {
-      const res = await fetch(`/api/v1/communities?category=${selectedCategory}&search=${searchQuery}`);
+      const params = new URLSearchParams();
+      if (selectedCategory !== "All") params.set("category", selectedCategory);
+      if (searchQuery) params.set("search", searchQuery);
+      const res = await fetch(`${API_BASE}/communities?${params.toString()}`);
       if (res.ok) {
-        const data = await res.json();
-        if (data.data && Array.isArray(data.data) && data.data.length > 0) {
-          setCommunities(data.data);
-        }
+        const j = await res.json();
+        const list = j?.success ? j?.data : j;
+        setCommunities(list?.data ?? []);
+      } else {
+        setError("Failed to load communities. Please try again.");
       }
     } catch (e) {
       console.error('Failed to fetch communities', e);
-      // Fallback to seed data on connection error
+      setError("Unable to connect to the server. Please check your connection and try again.");
     } finally {
       setIsLoading(false);
     }
@@ -128,13 +68,14 @@ export function CommunitiesPage() {
     const token = localStorage.getItem("murihspace-token");
     if (!token) return;
     try {
-      const res = await fetch("/api/v1/my-communities", {
+      const res = await fetch(`${API_BASE}/my-communities`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) {
-        const data = await res.json();
-        if (data.communities) {
-          setMyCommunities(data.communities);
+        const j = await res.json();
+        const list = j?.success ? j?.data : j;
+        if (list?.communities) {
+          setMyCommunities(list.communities);
         }
       }
     } catch (e) { console.error('Failed to fetch my communities', e); }
@@ -165,7 +106,7 @@ export function CommunitiesPage() {
   });
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
+    <div className="space-y-6 w-full max-w-7xl mx-auto p-6 lg:p-8">
       {/* ── Page Header Banner ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 sm:p-8 rounded-2xl bg-gradient-to-br from-[#102840] via-[#173852] to-[#102840] text-white shadow-lg">
         <div className="space-y-1.5">
@@ -251,34 +192,33 @@ export function CommunitiesPage() {
       </div>
 
       {/* ── Community Grid ── */}
-      {isLoading ? (
+      {error ? (
+        <ErrorState
+          title="Failed to load communities"
+          description={error}
+          onRetry={fetchCommunities}
+        />
+      ) : isLoading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {[1, 2, 3].map((n) => (
             <div key={n} className="h-72 rounded-2xl bg-muted animate-pulse border border-border" />
           ))}
         </div>
       ) : filteredCommunities.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-border p-12 text-center space-y-3 bg-card">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
-            <Users className="h-6 w-6" />
-          </div>
-          <h3 className="text-base font-semibold">No communities found</h3>
-          <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-            {tab === "my"
+        <EmptyState
+          icon={Users}
+          title="No communities found"
+          description={
+            tab === "my"
               ? "You haven't created any communities yet. Click 'Create Community' to publish your first space!"
-              : "Try adjusting your search query or selected category to find communities."}
-          </p>
-          {tab === "my" && (
-            <Button
-              onClick={() => setIsModalOpen(true)}
-              size="sm"
-              className="bg-primary text-primary-foreground gap-1.5 mt-2"
-            >
-              <Plus className="h-4 w-4" />
-              Create Community
-            </Button>
-          )}
-        </div>
+              : "Try adjusting your search query or selected category to find communities."
+          }
+          action={
+            tab === "my"
+              ? { label: "Create Community", onClick: () => setIsModalOpen(true) }
+              : undefined
+          }
+        />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredCommunities.map((c) => (

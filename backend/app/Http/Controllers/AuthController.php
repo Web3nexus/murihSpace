@@ -17,7 +17,7 @@ class AuthController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
-            'username' => ['required', 'string', 'min:3', 'max:255', 'unique:users'],
+            'username' => ['required', 'string', 'min:3', 'max:50', 'unique:users', 'regex:/\A[a-zA-Z0-9_]+\z/'],
             'country' => ['nullable', 'string', 'max:255'],
             'mobile_number' => ['nullable', 'string', 'max:255'],
             'county' => ['nullable', 'string', 'max:255'],

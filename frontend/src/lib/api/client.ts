@@ -68,6 +68,11 @@ apiClient.interceptors.response.use(
           apiError.code = apiError.code === "UNKNOWN_ERROR" ? "UNAUTHORIZED" : apiError.code;
           console.warn("[API Client] 401 Unauthorized detected. Session reset hook prepared.");
           break;
+        case 403:
+          apiError.code = "FORBIDDEN";
+          apiError.message = apiError.message || "You do not have permission to perform this action.";
+          console.warn("[API Client] 403 Forbidden detected.");
+          break;
         case 419:
           apiError.code = "CSRF_TOKEN_MISMATCH";
           apiError.message = "Session expired or CSRF token invalid. Please refresh the page.";

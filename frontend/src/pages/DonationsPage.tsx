@@ -52,11 +52,11 @@ export function DonationsPage() {
       ]);
       if (sentRes.ok) {
         const json = await sentRes.json();
-        setSentDonations(json.data ?? []);
+        setSentDonations(json.data?.data ?? []);
       }
       if (recvRes.ok) {
         const json = await recvRes.json();
-        setReceivedDonations(json.data ?? []);
+        setReceivedDonations(json.data?.data ?? []);
       }
     } catch (e) { console.error('Failed to fetch donations', e); }
   }, []);
@@ -108,14 +108,14 @@ export function DonationsPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
+      <div className="w-full flex items-center justify-center h-64">
         <Loader2 className="h-8 w-8 animate-spin text-secondary" />
       </div>
     );
   }
 
   return (
-    <div className="max-w-6xl mx-auto p-4 sm:p-6 space-y-6">
+    <div className="space-y-6 w-full max-w-7xl mx-auto p-6 lg:p-8">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

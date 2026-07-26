@@ -15,11 +15,49 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
+        if (! app()->environment(['local', 'testing'])) {
+            throw new \RuntimeException('Demo users may only be seeded locally or in tests.');
+        }
 
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
-        ]);
+        $seedPassword = env('SEED_USER_PASSWORD', 'password');
+
+        $users = [
+            [
+                'name' => 'Admin User',
+                'email' => 'admin@murihspace.com',
+                'username' => 'admin',
+                'password' => bcrypt($seedPassword),
+                'role' => 'admin',
+                'kyc_status' => 'approved',
+            ],
+            [
+                'name' => 'Creator User',
+                'email' => 'creator@murihspace.com',
+                'username' => 'creator',
+                'password' => bcrypt($seedPassword),
+                'role' => 'creator',
+                'kyc_status' => 'approved',
+            ],
+            [
+                'name' => 'Vendor User',
+                'email' => 'vendor@murihspace.com',
+                'username' => 'vendor',
+                'password' => bcrypt($seedPassword),
+                'role' => 'vendor',
+                'kyc_status' => 'approved',
+            ],
+            [
+                'name' => 'Member User',
+                'email' => 'member@murihspace.com',
+                'username' => 'member',
+                'password' => bcrypt($seedPassword),
+                'role' => 'member',
+                'kyc_status' => 'approved',
+            ],
+        ];
+
+        foreach ($users as $user) {
+            User::factory()->create($user);
+        }
     }
 }

@@ -9,6 +9,8 @@ import {
 import { Sparkles, CheckCircle2, Clock, LogOut, ChevronDown, Lock } from "lucide-react";
 import type { Community } from "@/types/community";
 
+const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api/v1';
+
 interface JoinCommunityButtonProps {
   community: Community;
   onStatusChange?: (status: "active" | "pending" | "none", newCount: number) => void;
@@ -30,7 +32,7 @@ export function JoinCommunityButton({
       const token = localStorage.getItem("murihspace-token");
       if (!token || !community.id) return;
       try {
-        const res = await fetch(`/api/v1/communities/${community.id}/membership-status`, {
+        const res = await fetch(`${API_BASE}/communities/${community.id}/membership-status`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (res.ok) {
@@ -57,7 +59,7 @@ export function JoinCommunityButton({
         return;
       }
 
-      const res = await fetch(`/api/v1/communities/${community.id}/join`, {
+      const res = await fetch(`${API_BASE}/communities/${community.id}/join`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -100,7 +102,7 @@ export function JoinCommunityButton({
 
     try {
       const token = localStorage.getItem("murihspace-token");
-      const res = await fetch(`/api/v1/communities/${community.id}/leave`, {
+      const res = await fetch(`${API_BASE}/communities/${community.id}/leave`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

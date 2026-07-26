@@ -104,7 +104,7 @@ export function ChatLayout() {
   const loadConversations = useCallback(async () => {
     try {
       const res = await apiFetch<{ data: ConversationItem[] }>('/conversations');
-      setConversations(res.data ?? []);
+      setConversations(Array.isArray(res.data) ? res.data : []);
     } catch (e) { console.error('Failed to load conversations', e);
     } finally {
       setIsLoadingList(false);

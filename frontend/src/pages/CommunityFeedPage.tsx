@@ -78,8 +78,11 @@ export default function CommunityFeedPage() {
         apiFetch<{ data: Community }>(`/communities/${slug}`),
         apiFetch<{ data: Post[] }>(`/communities/${slug}/posts`),
       ]);
-      setCommunity(comm.data ?? (comm as unknown as Community));
-      const rawPosts = (postsRes as { data: Post[] })?.data ?? postsRes;
+      const envelope = comm as unknown as { success?: boolean; data: { data: Community } };
+      const commData = envelope.success ? envelope.data.data : (comm as unknown as Community);
+      setCommunity(commData);
+      const postsEnvelope = postsRes as unknown as { success?: boolean; data: { data: Post[] } };
+      const rawPosts = postsEnvelope.success ? postsEnvelope.data.data : [];
       setPosts(Array.isArray(rawPosts) ? rawPosts : []);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Failed to load community');
@@ -99,7 +102,8 @@ export default function CommunityFeedPage() {
         method: 'POST',
         body: JSON.stringify(payload),
       });
-      const newPost = (created as { data: Post })?.data ?? created;
+      const createdEnvelope = created as unknown as { success?: boolean; data: { data: Post } };
+      const newPost = createdEnvelope.success ? createdEnvelope.data.data : (created as unknown as Post);
       setPosts((prev) => [newPost as Post, ...prev]);
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : '';
@@ -136,7 +140,8 @@ export default function CommunityFeedPage() {
       method: 'POST',
       body: JSON.stringify({ content }),
     });
-    const newComment = (result as { data: PostComment })?.data ?? result;
+    const resultEnvelope = result as unknown as { success?: boolean; data: { data: PostComment } };
+    const newComment = resultEnvelope.success ? resultEnvelope.data.data : (result as unknown as PostComment);
     setPosts((prev) =>
       prev.map((p) => {
         if (p.id !== postId) return p;

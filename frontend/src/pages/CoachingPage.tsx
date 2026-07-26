@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Calendar, Clock, Video, Loader2, Plus, Trash2, Check, AlertCircle, X, MapPin, CreditCard, ExternalLink, Edit, ChevronRight } from 'lucide-react';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api/v1';
 
@@ -76,7 +78,7 @@ function ServiceCard({
   onToggleActive?: (s: CoachingService) => void;
 }) {
   return (
-    <div className="rounded-2xl border border-border bg-card p-5 flex flex-col">
+    <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-xs hover:shadow-md hover:border-primary/30 transition-all duration-200 p-5 flex flex-col">
       {service.creator && (
         <div className="flex items-center gap-2 mb-3">
           <div className="h-7 w-7 rounded-full bg-gradient-to-br from-primary to-secondary text-white text-[9px] font-bold flex items-center justify-center shrink-0">
@@ -88,7 +90,7 @@ function ServiceCard({
       )}
       <div className="flex items-start justify-between gap-2">
         <h3 className="text-sm font-extrabold text-foreground">{service.name}</h3>
-        <span className={`shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full ${service.is_active ? 'bg-emerald-500/10 text-emerald-600' : 'bg-muted text-muted-foreground'}`}>
+        <span className={`shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full ${service.is_active ? 'bg-secondary/10 text-secondary' : 'bg-muted text-muted-foreground'}`}>
           {service.is_active ? 'Active' : 'Inactive'}
         </span>
       </div>
@@ -109,27 +111,29 @@ function ServiceCard({
       )}
       <div className="flex items-center gap-2 mt-4">
         {onBook && (
-          <button
+          <Button
             onClick={() => onBook(service)}
-            className="flex-1 py-2 rounded-xl bg-secondary text-secondary-foreground font-bold text-xs hover:bg-secondary/90 transition-all"
+            variant="secondary"
+            size="sm"
+            className="flex-1"
           >
             Book Session
-          </button>
+          </Button>
         )}
         {onEdit && (
-          <button onClick={() => onEdit(service)} className="p-2 rounded-xl hover:bg-muted text-muted-foreground hover:text-foreground transition-colors">
+          <Button onClick={() => onEdit(service)} variant="ghost" size="sm" className="p-2">
             <Edit className="h-4 w-4" />
-          </button>
+          </Button>
         )}
         {onToggleActive && (
-          <button onClick={() => onToggleActive(service)} className="p-2 rounded-xl hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title={service.is_active ? 'Deactivate' : 'Activate'}>
-            <Check className={`h-4 w-4 ${service.is_active ? 'text-emerald-500' : 'text-muted-foreground'}`} />
-          </button>
+          <Button onClick={() => onToggleActive(service)} variant="ghost" size="sm" className="p-2" title={service.is_active ? 'Deactivate' : 'Activate'}>
+            <Check className={`h-4 w-4 ${service.is_active ? 'text-secondary' : 'text-muted-foreground'}`} />
+          </Button>
         )}
         {onDelete && (
-          <button onClick={() => onDelete(service.id)} className="p-2 rounded-xl hover:bg-destructive/10 text-destructive transition-colors">
+          <Button onClick={() => onDelete(service.id)} variant="ghost" size="sm" className="p-2 text-destructive hover:bg-destructive/10">
             <Trash2 className="h-4 w-4" />
-          </button>
+          </Button>
         )}
       </div>
     </div>
@@ -149,7 +153,7 @@ function BookingRow({ booking, isCreator, onCancel, onComplete }: {
 }) {
   const person = isCreator ? booking.booker : booking.service?.creator;
   return (
-    <div className="rounded-xl border border-border bg-card p-4 flex items-start justify-between gap-3">
+    <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-xs p-4 flex items-start justify-between gap-3">
       <div className="flex items-start gap-3 flex-1 min-w-0">
         <div className="h-9 w-9 rounded-full bg-gradient-to-br from-primary to-secondary text-white text-[10px] font-bold flex items-center justify-center shrink-0">
           {person?.name?.charAt(0) ?? '?'}
@@ -173,22 +177,22 @@ function BookingRow({ booking, isCreator, onCancel, onComplete }: {
       </div>
       <div className="flex items-center gap-2 shrink-0">
         <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${
-          booking.status === 'confirmed' ? 'bg-emerald-500/10 text-emerald-600' :
-          booking.status === 'completed' ? 'bg-blue-500/10 text-blue-600' :
+          booking.status === 'confirmed' ? 'bg-secondary/10 text-secondary' :
+          booking.status === 'completed' ? 'bg-primary/10 text-primary' :
           booking.status === 'cancelled' ? 'bg-destructive/10 text-destructive' :
           'bg-muted text-muted-foreground'
         }`}>
           {booking.status}
         </span>
         {booking.status === 'confirmed' && isCreator && (
-          <button onClick={() => onComplete(booking.id)} className="p-1.5 rounded-lg hover:bg-blue-500/10 text-blue-500 transition-colors" title="Mark complete">
+          <Button onClick={() => onComplete(booking.id)} variant="ghost" size="sm" className="p-1.5 text-secondary hover:bg-secondary/10" title="Mark complete">
             <Check className="h-3.5 w-3.5" />
-          </button>
+          </Button>
         )}
         {booking.status === 'confirmed' && (
-          <button onClick={() => onCancel(booking.id)} className="p-1.5 rounded-lg hover:bg-destructive/10 text-destructive transition-colors" title="Cancel booking">
+          <Button onClick={() => onCancel(booking.id)} variant="ghost" size="sm" className="p-1.5 text-destructive hover:bg-destructive/10" title="Cancel booking">
             <X className="h-3.5 w-3.5" />
-          </button>
+          </Button>
         )}
       </div>
     </div>
@@ -244,7 +248,7 @@ export function CoachingPage() {
       const res = await fetch(`${API_BASE}/coaching/services`, { headers: getAuthHeaders() });
       if (res.ok) {
         const json = await res.json();
-        setServices(json.data ?? []);
+        setServices(json.data?.data ?? []);
       }
     } catch { /* silent */ }
   }, []);
@@ -254,7 +258,7 @@ export function CoachingPage() {
       const res = await fetch(`${API_BASE}/coaching/my-services`, { headers: getAuthHeaders() });
       if (res.ok) {
         const json = await res.json();
-        setMyServices(json.data ?? []);
+        setMyServices(json.data?.data ?? []);
       }
     } catch { /* silent */ }
   }, []);
@@ -264,7 +268,7 @@ export function CoachingPage() {
       const res = await fetch(`${API_BASE}/coaching/my-bookings`, { headers: getAuthHeaders() });
       if (res.ok) {
         const json = await res.json();
-        setMyBookings(json.data ?? []);
+        setMyBookings(json.data?.data ?? []);
       }
     } catch { /* silent */ }
   }, []);
@@ -274,7 +278,7 @@ export function CoachingPage() {
       const res = await fetch(`${API_BASE}/coaching/my-sessions`, { headers: getAuthHeaders() });
       if (res.ok) {
         const json = await res.json();
-        setMySessions(json.data ?? []);
+        setMySessions(json.data?.data ?? []);
       }
     } catch { /* silent */ }
   }, []);
@@ -385,7 +389,7 @@ export function CoachingPage() {
       const res = await fetch(`${API_BASE}/coaching/services/${service.id}`, { headers: getAuthHeaders() });
       if (res.ok) {
         const json = await res.json();
-        setAvailableSlots(json.available_slots ?? []);
+        setAvailableSlots((json.data?.data ?? json.data)?.available_slots ?? []);
       }
     } catch { setAvailableSlots([]); }
   };
@@ -453,37 +457,51 @@ export function CoachingPage() {
   ];
 
   return (
-    <div className="max-w-6xl mx-auto p-4 sm:p-6 space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-black text-foreground tracking-tight flex items-center gap-2.5">
-            <Calendar className="h-6 w-6 text-secondary" />
+    <div className="space-y-6 w-full max-w-7xl mx-auto p-6 lg:p-8">
+      {/* Gradient Header Banner */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 sm:p-8 rounded-2xl bg-gradient-to-br from-[#102840] via-[#173852] to-[#102840] text-white shadow-lg">
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-2">
+            <span className="px-2.5 py-0.5 rounded-full bg-[#38A8D8]/20 text-[#38A8D8] text-xs font-semibold uppercase tracking-wider border border-[#38A8D8]/30">
+              Phase 7 — Services
+            </span>
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight flex items-center gap-2.5">
+            <Calendar className="h-6 w-6 text-[#38A8D8]" />
             1:1 Coaching & Bookings
           </h1>
-          <p className="text-xs text-muted-foreground mt-1">
+          <p className="text-sm text-white/70 max-w-xl">
             Offer paid 1-on-1 coaching, consultations, and advice sessions.
           </p>
         </div>
+        {tab === 'my-services' && (
+          <Button
+            onClick={() => { resetServiceForm(); setShowServiceForm(true); }}
+            className="bg-[#38A8D8] text-white hover:bg-[#2E96C5] font-semibold h-11 px-5 rounded-xl shadow-md gap-2 shrink-0 self-start sm:self-auto"
+          >
+            <Plus className="h-5 w-5" />
+            New Service
+          </Button>
+        )}
       </div>
 
       {/* Message banner */}
       {message && (
-        <div className={`flex items-center gap-2 px-4 py-3 rounded-xl text-xs font-medium ${message.type === 'success' ? 'bg-green-500/10 text-green-600' : 'bg-destructive/10 text-destructive'}`}>
+        <div className={`flex items-center gap-2 px-4 py-3 rounded-xl text-xs font-medium ${message.type === 'success' ? 'bg-secondary/10 text-secondary' : 'bg-destructive/10 text-destructive'}`}>
           {message.type === 'success' ? <Check className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
           <span className="flex-1">{message.text}</span>
           <button onClick={() => setMessage(null)} className="p-0.5 hover:opacity-70"><X className="h-3.5 w-3.5" /></button>
         </div>
       )}
 
-      {/* Tabs */}
-      <div className="flex gap-1 overflow-x-auto pb-1 scrollbar-none border-b border-border">
+      {/* Pill Tabs */}
+      <div className="flex p-1 bg-muted rounded-xl gap-1 w-fit">
         {tabs.map((t) => (
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
-            className={`px-4 py-2 text-xs font-bold whitespace-nowrap border-b-2 transition-all ${
-              tab === t.key ? 'border-secondary text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'
+            className={`px-4 py-2 text-xs font-semibold rounded-lg transition-all ${
+              tab === t.key ? 'bg-card text-foreground shadow-xs' : 'text-muted-foreground hover:text-foreground'
             }`}
           >
             {t.label}
@@ -495,11 +513,17 @@ export function CoachingPage() {
       {tab === 'browse' && (
         <div className="space-y-4">
           {isLoadingServices ? (
-            <div className="py-20 text-center"><Loader2 className="h-6 w-6 animate-spin text-secondary mx-auto" /></div>
-          ) : services.length === 0 ? (
-            <div className="p-12 text-center border border-dashed border-border rounded-3xl bg-card space-y-3">
-              <Calendar className="h-10 w-10 text-muted-foreground/30 mx-auto" />
-              <h3 className="text-sm font-bold text-foreground">No coaching services available</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {[1, 2, 3].map((n) => (
+                <div key={n} className="h-48 rounded-2xl bg-muted animate-pulse border border-border" />
+              ))}
+            </div>
+          ) : services.filter((s) => s.is_active).length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-border p-12 text-center space-y-3 bg-card">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                <Calendar className="h-6 w-6" />
+              </div>
+              <h3 className="text-base font-semibold text-foreground">No coaching services available</h3>
               <p className="text-xs text-muted-foreground max-w-sm mx-auto">
                 Creators haven't published any coaching services yet. Check back later!
               </p>
@@ -517,17 +541,12 @@ export function CoachingPage() {
       {/* ── Tab: My Services (Creator) ──────────────────────────── */}
       {tab === 'my-services' && (
         <div className="space-y-4">
-          <button
-            onClick={() => { resetServiceForm(); setShowServiceForm(true); }}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-secondary text-secondary-foreground font-bold text-xs hover:bg-secondary/90 transition-all"
-          >
-            <Plus className="h-3.5 w-3.5" /> New Service
-          </button>
-
           {myServices.length === 0 ? (
-            <div className="p-12 text-center border border-dashed border-border rounded-3xl bg-card space-y-3">
-              <Calendar className="h-10 w-10 text-muted-foreground/30 mx-auto" />
-              <h3 className="text-sm font-bold text-foreground">No services yet</h3>
+            <div className="rounded-2xl border border-dashed border-border p-12 text-center space-y-3 bg-card">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                <Calendar className="h-6 w-6" />
+              </div>
+              <h3 className="text-base font-semibold text-foreground">No services yet</h3>
               <p className="text-xs text-muted-foreground max-w-sm mx-auto">Create your first coaching service to start accepting bookings.</p>
             </div>
           ) : (
@@ -551,7 +570,7 @@ export function CoachingPage() {
                 <form onSubmit={handleSaveService} className="space-y-3">
                   <div className="space-y-1">
                     <label className="text-xs font-bold text-foreground uppercase tracking-wider">Service Name</label>
-                    <input type="text" value={sfName} onChange={(e) => setSfName(e.target.value)} required placeholder="e.g. 30-min Coaching Call" className="w-full px-3 py-2 text-xs rounded-xl bg-muted border-0 outline-none focus:ring-1 focus:ring-secondary" />
+                    <Input type="text" value={sfName} onChange={(e) => setSfName(e.target.value)} required placeholder="e.g. 30-min Coaching Call" className="bg-muted border-border rounded-xl text-xs" />
                   </div>
                   <div className="space-y-1">
                     <label className="text-xs font-bold text-foreground uppercase tracking-wider">Description</label>
@@ -560,45 +579,45 @@ export function CoachingPage() {
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1">
                       <label className="text-xs font-bold text-foreground uppercase tracking-wider">Duration (min)</label>
-                      <input type="number" value={sfDuration} onChange={(e) => setSfDuration(e.target.value)} min={15} max={480} required className="w-full px-3 py-2 text-xs rounded-xl bg-muted border-0 outline-none focus:ring-1 focus:ring-secondary" />
+                      <Input type="number" value={sfDuration} onChange={(e) => setSfDuration(e.target.value)} min={15} max={480} required className="bg-muted border-border rounded-xl text-xs" />
                     </div>
                     <div className="space-y-1">
                       <label className="text-xs font-bold text-foreground uppercase tracking-wider">Price (cents)</label>
-                      <div className="flex items-center gap-1">
-                        <span className="text-xs text-muted-foreground bg-muted/60 px-2 py-2 rounded-l-xl border border-r-0 border-border">$</span>
-                        <input type="number" value={sfPrice} onChange={(e) => setSfPrice(e.target.value)} min={0} step={0.01} placeholder="0.00 (free)" className="flex-1 px-3 py-2 text-xs rounded-r-xl bg-muted border-0 outline-none focus:ring-1 focus:ring-secondary" />
+                      <div className="flex items-center gap-0">
+                        <span className="text-xs text-muted-foreground bg-muted px-2.5 py-1.5 rounded-l-xl border border-r-0 border-border">$</span>
+                        <Input type="number" value={sfPrice} onChange={(e) => setSfPrice(e.target.value)} min={0} step={0.01} placeholder="0.00 (free)" className="rounded-l-none bg-muted border-border rounded-r-xl text-xs" />
                       </div>
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1">
                       <label className="text-xs font-bold text-foreground uppercase tracking-wider">Location</label>
-                      <select value={sfLocation} onChange={(e) => setSfLocation(e.target.value)} className="w-full px-3 py-2 text-xs rounded-xl bg-muted border-0 outline-none focus:ring-1 focus:ring-secondary">
+                      <select value={sfLocation} onChange={(e) => setSfLocation(e.target.value)} className="w-full px-3 py-2 text-xs rounded-xl bg-muted border border-border outline-none focus-visible:ring-1 focus-visible:ring-secondary text-foreground">
                         <option value="online">Online</option>
                         <option value="in_person">In Person</option>
                       </select>
                     </div>
                     <div className="space-y-1">
                       <label className="text-xs font-bold text-foreground uppercase tracking-wider">Buffer (min)</label>
-                      <input type="number" value={sfBuffer} onChange={(e) => setSfBuffer(e.target.value)} min={0} max={120} className="w-full px-3 py-2 text-xs rounded-xl bg-muted border-0 outline-none focus:ring-1 focus:ring-secondary" />
+                      <Input type="number" value={sfBuffer} onChange={(e) => setSfBuffer(e.target.value)} min={0} max={120} className="bg-muted border-border rounded-xl text-xs" />
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1">
                       <label className="text-xs font-bold text-foreground uppercase tracking-wider">Meeting URL</label>
-                      <input type="url" value={sfMeetingUrl} onChange={(e) => setSfMeetingUrl(e.target.value)} placeholder="https://meet.google.com/..." className="w-full px-3 py-2 text-xs rounded-xl bg-muted border-0 outline-none focus:ring-1 focus:ring-secondary" />
+                      <Input type="url" value={sfMeetingUrl} onChange={(e) => setSfMeetingUrl(e.target.value)} placeholder="https://meet.google.com/..." className="bg-muted border-border rounded-xl text-xs" />
                     </div>
                     <div className="space-y-1">
                       <label className="text-xs font-bold text-foreground uppercase tracking-wider">Max daily</label>
-                      <input type="number" value={sfMaxDaily} onChange={(e) => setSfMaxDaily(e.target.value)} min={1} max={50} placeholder="Unlimited" className="w-full px-3 py-2 text-xs rounded-xl bg-muted border-0 outline-none focus:ring-1 focus:ring-secondary" />
+                      <Input type="number" value={sfMaxDaily} onChange={(e) => setSfMaxDaily(e.target.value)} min={1} max={50} placeholder="Unlimited" className="bg-muted border-border rounded-xl text-xs" />
                     </div>
                   </div>
                   <div className="flex items-center justify-end gap-2 pt-2">
-                    <button type="button" onClick={() => setShowServiceForm(false)} className="px-4 py-2 text-xs font-semibold rounded-xl hover:bg-muted transition-colors">Cancel</button>
-                    <button type="submit" disabled={isSubmitting} className="px-4 py-2 text-xs font-bold rounded-xl bg-secondary text-secondary-foreground hover:bg-secondary/90 disabled:opacity-50 transition-all flex items-center gap-1.5">
+                    <Button type="button" variant="ghost" onClick={() => setShowServiceForm(false)}>Cancel</Button>
+                    <Button type="submit" disabled={isSubmitting} variant="secondary" className="gap-1.5">
                       {isSubmitting ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
                       {editingService ? 'Update' : 'Create'} Service
-                    </button>
+                    </Button>
                   </div>
                 </form>
               </div>
@@ -611,9 +630,11 @@ export function CoachingPage() {
       {tab === 'my-bookings' && (
         <div className="space-y-3">
           {myBookings.length === 0 ? (
-            <div className="p-12 text-center border border-dashed border-border rounded-3xl bg-card space-y-3">
-              <Calendar className="h-10 w-10 text-muted-foreground/30 mx-auto" />
-              <h3 className="text-sm font-bold text-foreground">No bookings yet</h3>
+            <div className="rounded-2xl border border-dashed border-border p-12 text-center space-y-3 bg-card">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                <Calendar className="h-6 w-6" />
+              </div>
+              <h3 className="text-base font-semibold text-foreground">No bookings yet</h3>
               <p className="text-xs text-muted-foreground max-w-sm mx-auto">Browse services and book a session with a creator.</p>
             </div>
           ) : (
@@ -628,9 +649,11 @@ export function CoachingPage() {
       {tab === 'my-sessions' && (
         <div className="space-y-3">
           {mySessions.length === 0 ? (
-            <div className="p-12 text-center border border-dashed border-border rounded-3xl bg-card space-y-3">
-              <Calendar className="h-10 w-10 text-muted-foreground/30 mx-auto" />
-              <h3 className="text-sm font-bold text-foreground">No upcoming sessions</h3>
+            <div className="rounded-2xl border border-dashed border-border p-12 text-center space-y-3 bg-card">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                <Calendar className="h-6 w-6" />
+              </div>
+              <h3 className="text-base font-semibold text-foreground">No upcoming sessions</h3>
               <p className="text-xs text-muted-foreground max-w-sm mx-auto">Sessions booked by members will appear here.</p>
             </div>
           ) : (
@@ -655,19 +678,19 @@ export function CoachingPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-foreground uppercase tracking-wider">Start time</label>
-                  <input type="time" value={slotStartTime} onChange={(e) => setSlotStartTime(e.target.value)} required className="w-full px-3 py-2 text-xs rounded-xl bg-muted border-0 outline-none focus:ring-1 focus:ring-secondary" />
+                  <Input type="time" value={slotStartTime} onChange={(e) => setSlotStartTime(e.target.value)} required className="bg-muted border-border rounded-xl text-xs" />
                 </div>
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-foreground uppercase tracking-wider">End time</label>
-                  <input type="time" value={slotEndTime} onChange={(e) => setSlotEndTime(e.target.value)} required className="w-full px-3 py-2 text-xs rounded-xl bg-muted border-0 outline-none focus:ring-1 focus:ring-secondary" />
+                  <Input type="time" value={slotEndTime} onChange={(e) => setSlotEndTime(e.target.value)} required className="bg-muted border-border rounded-xl text-xs" />
                 </div>
               </div>
               <div className="flex items-center justify-end gap-2 pt-2">
-                <button type="button" onClick={() => setShowSlotForm(false)} className="px-4 py-2 text-xs font-semibold rounded-xl hover:bg-muted transition-colors">Cancel</button>
-                <button type="submit" disabled={isSubmitting} className="px-4 py-2 text-xs font-bold rounded-xl bg-secondary text-secondary-foreground hover:bg-secondary/90 disabled:opacity-50 transition-all flex items-center gap-1.5">
+                <Button type="button" variant="ghost" onClick={() => setShowSlotForm(false)}>Cancel</Button>
+                <Button type="submit" disabled={isSubmitting} variant="secondary" className="gap-1.5">
                   {isSubmitting ? <Loader2 className="h-3 w-3 animate-spin" /> : <Plus className="h-3 w-3" />}
                   Generate Slots
-                </button>
+                </Button>
               </div>
             </form>
           </div>
@@ -687,7 +710,7 @@ export function CoachingPage() {
             </div>
 
             {availableSlots.length === 0 ? (
-              <div className="p-6 text-center border border-dashed border-border rounded-xl bg-muted/20">
+              <div className="rounded-2xl border border-dashed border-border p-6 text-center space-y-2 bg-card">
                 <p className="text-xs text-muted-foreground">No available slots. Please check back later.</p>
               </div>
             ) : (
@@ -719,11 +742,11 @@ export function CoachingPage() {
             </div>
 
             <div className="flex items-center justify-end gap-2 pt-2">
-              <button onClick={() => setShowBookingModal(false)} className="px-4 py-2 text-xs font-semibold rounded-xl hover:bg-muted transition-colors">Cancel</button>
-              <button onClick={handleBook} disabled={!selectedSlotId || isSubmitting} className="px-4 py-2 text-xs font-bold rounded-xl bg-secondary text-secondary-foreground hover:bg-secondary/90 disabled:opacity-50 transition-all flex items-center gap-1.5">
+              <Button type="button" variant="ghost" onClick={() => setShowBookingModal(false)}>Cancel</Button>
+              <Button onClick={handleBook} disabled={!selectedSlotId || isSubmitting} variant="secondary" className="gap-1.5">
                 {isSubmitting ? <Loader2 className="h-3 w-3 animate-spin" /> : <CreditCard className="h-3 w-3" />}
                 {selectedServiceForBooking.price > 0 ? `Pay ${formatPrice(selectedServiceForBooking.price, selectedServiceForBooking.currency)}` : 'Book Free Session'}
-              </button>
+              </Button>
             </div>
           </div>
         </div>

@@ -29,7 +29,7 @@ export function MySubscriptionsPage() {
   useEffect(() => {
     fetch(`${API_BASE}/subscriptions/mine`, { headers: getAuthHeaders() })
       .then((r) => r.json())
-      .then((json) => setSubscriptions(json.data ?? []))
+      .then((json) => setSubscriptions(json.data?.data ?? []))
       .catch(console.error)
       .finally(() => setIsLoading(false));
   }, []);
@@ -42,7 +42,7 @@ export function MySubscriptionsPage() {
       const res = await fetch(`${API_BASE}/subscriptions/${id}/cancel`, { method: 'POST', headers: getAuthHeaders() });
       const json = await res.json();
       if (res.ok) {
-        setSubscriptions((prev) => prev.map((s) => s.id === id ? { ...s, ...json.data, is_active: false, status: 'canceled' } : s));
+        setSubscriptions((prev) => prev.map((s) => s.id === id ? { ...s, ...(json.data?.data ?? json.data), is_active: false, status: 'canceled' } : s));
       } else {
         setError(json.message ?? 'Failed to cancel.');
       }

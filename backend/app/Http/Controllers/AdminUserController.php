@@ -102,6 +102,47 @@ class AdminUserController extends Controller
         return response()->json(['message' => 'User activated.', 'data' => $user]);
     }
 
+    public function impersonate(Request $request, int $id): JsonResponse
+    {
+        $admin = $request->user();
+        $target = User::findOrFail($id);
+
+        if ($target->isAdmin()) {
+            return response()->json(['message' => 'Cannot impersonate admin users.'], 403);
+        }
+
+        if ($target->status !== 'active') {
+            return response()->json(['message' => 'Cannot impersonate a suspended or banned user.'], 403);
+        }
+
+        $target->tokens()->where('name', 'impersonation-token')->delete();
+
+        $token = $target->createToken(
+            'impersonation-token',
+            ['impersonate'],
+            now()->addMinutes(30)
+        )->plainTextToken;
+
+        AuditLog::create([
+            'user_id' => $admin->id,
+            'action' => 'user.impersonated',
+            'resource_type' => 'user',
+            'resource_id' => (string) $target->id,
+            'metadata' => ['target_role' => $target->role],
+        ]);
+
+        return response()->json([
+            'token' => $token,
+            'user' => [
+                'id' => $target->id,
+                'name' => $target->name,
+                'email' => $target->email,
+                'username' => $target->username,
+                'role' => $target->role,
+            ],
+        ]);
+    }
+
     public function ban(Request $request, int $id): JsonResponse
     {
         $validated = $request->validate([

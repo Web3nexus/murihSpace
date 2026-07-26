@@ -10,8 +10,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+
+const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api/v1';
+import { ErrorState, EmptyState } from "@/components/common/UIStateComponents";
 import { RoleBadge } from "@/components/community/RoleBadge";
-import { Plus, Check, AlertCircle, Sparkles, Key } from "lucide-react";
+import { Plus, Check, AlertCircle, Sparkles, Key, ShieldCheck } from "lucide-react";
 import type { CommunityRole, PermissionDefinition } from "@/types/community";
 
 interface RoleManagementModalProps {
@@ -75,6 +78,8 @@ export function RoleManagementModal({
   const [roles, setRoles] = React.useState<CommunityRole[]>([]);
   const [permissionsMatrix] = React.useState<PermissionDefinition[]>(DEFAULT_PERMISSIONS);
   const [tab, setTab] = React.useState<"roles" | "create">("roles");
+  const [isLoadingRoles, setIsLoadingRoles] = React.useState(false);
+  const [rolesError, setRolesError] = React.useState<string | null>(null);
 
   // New role form state
   const [roleName, setRoleName] = React.useState("");
@@ -86,65 +91,34 @@ export function RoleManagementModal({
   const [error, setError] = React.useState("");
 
   // Fetch community roles
-  React.useEffect(() => {
+  const fetchRoles = React.useCallback(async () => {
     if (!open || !communityId) return;
-
-    async function fetchRoles() {
-      try {
-        const res = await fetch(`/api/v1/communities/${communityId}/roles`);
-        if (res.ok) {
-          const data = await res.json();
-          if (data.roles && data.roles.length > 0) {
-            setRoles(data.roles);
-            return;
-          }
-        }
-      } catch {
-        // Mock fallback roles
+    setIsLoadingRoles(true);
+    setRolesError(null);
+    try {
+      const token = localStorage.getItem("murihspace-token");
+      const res = await fetch(`${API_BASE}/communities/${communityId}/roles`, {
+        headers: {
+          Accept: "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setRoles(data.data?.roles ?? data.roles ?? []);
+      } else {
+        setRolesError("Failed to load roles. Please try again.");
       }
-
-      setRoles([
-        {
-          id: 1,
-          community_id: communityId,
-          name: "Owner",
-          slug: "owner",
-          permissions: ["*"],
-          is_system: true,
-          color: "#102840",
-        },
-        {
-          id: 2,
-          community_id: communityId,
-          name: "Administrator",
-          slug: "admin",
-          permissions: ["create_posts", "share_links", "moderate_content", "manage_requests", "manage_settings", "manage_roles"],
-          is_system: true,
-          color: "#38A8D8",
-        },
-        {
-          id: 3,
-          community_id: communityId,
-          name: "Moderator",
-          slug: "moderator",
-          permissions: ["create_posts", "share_links", "moderate_content", "manage_requests"],
-          is_system: true,
-          color: "#F59E0B",
-        },
-        {
-          id: 4,
-          community_id: communityId,
-          name: "Member",
-          slug: "member",
-          permissions: ["create_posts"],
-          is_system: true,
-          color: "#667085",
-        },
-      ]);
+    } catch {
+      setRolesError("Unable to connect to the server. Please check your connection and try again.");
+    } finally {
+      setIsLoadingRoles(false);
     }
-
-    fetchRoles();
   }, [open, communityId]);
+
+  React.useEffect(() => {
+    fetchRoles();
+  }, [fetchRoles]);
 
   const togglePermission = (key: string) => {
     setSelectedPermissions((prev) =>
@@ -164,7 +138,7 @@ export function RoleManagementModal({
 
     try {
       const token = localStorage.getItem("murihspace-token");
-      const res = await fetch(`/api/v1/communities/${communityId}/roles`, {
+      const res = await fetch(`${API_BASE}/communities/${communityId}/roles`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -189,19 +163,6 @@ export function RoleManagementModal({
       setTab("roles");
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to create role.");
-      // Fallback optimistic update
-      const newCustomRole: CommunityRole = {
-        id: Date.now(),
-        community_id: communityId,
-        name: roleName.trim(),
-        slug: roleName.toLowerCase().replace(/\s+/g, "-"),
-        permissions: selectedPermissions,
-        is_system: false,
-        color: roleColor,
-      };
-      setRoles((prev) => [...prev, newCustomRole]);
-      setRoleName("");
-      setTab("roles");
     } finally {
       setIsSubmitting(false);
     }
@@ -251,57 +212,78 @@ export function RoleManagementModal({
 
         {tab === "roles" ? (
           <div className="space-y-4 my-2">
-            <div className="space-y-3">
-              {roles.map((r) => (
-                <div
-                  key={r.id}
-                  className="p-4 rounded-xl border border-border bg-card shadow-2xs space-y-3"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2.5">
-                      <RoleBadge role={r.name} color={r.color} />
-                      <span className="text-xs text-muted-foreground font-mono">/{r.slug}</span>
-                      {r.is_system && (
-                        <Badge variant="outline" className="text-[10px] text-muted-foreground">
-                          System Role
-                        </Badge>
-                      )}
-                    </div>
-                    <span className="text-xs font-semibold text-muted-foreground">
-                      {r.permissions.includes("*") ? "Full Access (*)" : `${r.permissions.length} permissions`}
-                    </span>
-                  </div>
+            {isLoadingRoles ? (
+              <div className="space-y-3 p-4">
+                <div className="h-16 rounded-xl bg-muted animate-pulse" />
+                <div className="h-16 rounded-xl bg-muted animate-pulse" />
+              </div>
+            ) : rolesError ? (
+              <ErrorState
+                title="Failed to load roles"
+                description={rolesError}
+                onRetry={fetchRoles}
+              />
+            ) : roles.length === 0 ? (
+              <EmptyState
+                icon={ShieldCheck}
+                title="No roles configured"
+                description="Roles will appear once the community roles API is connected."
+              />
+            ) : (
+              <>
+                <div className="space-y-3">
+                  {roles.map((r) => (
+                    <div
+                      key={r.id}
+                      className="p-4 rounded-xl border border-border bg-card shadow-2xs space-y-3"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2.5">
+                          <RoleBadge role={r.name} color={r.color} />
+                          <span className="text-xs text-muted-foreground font-mono">/{r.slug}</span>
+                          {r.is_system && (
+                            <Badge variant="outline" className="text-[10px] text-muted-foreground">
+                              System Role
+                            </Badge>
+                          )}
+                        </div>
+                        <span className="text-xs font-semibold text-muted-foreground">
+                          {r.permissions.includes("*") ? "Full Access (*)" : `${r.permissions.length} permissions`}
+                        </span>
+                      </div>
 
-                  {/* Included permissions pills */}
-                  <div className="flex flex-wrap gap-1.5 pt-1">
-                    {r.permissions.includes("*") ? (
-                      <span className="px-2 py-0.5 rounded bg-primary/10 text-primary text-[11px] font-semibold">
-                        All Community Operations (*)
-                      </span>
-                    ) : (
-                      r.permissions.map((pKey) => {
-                        const def = permissionsMatrix.find((pm) => pm.key === pKey);
-                        return (
-                          <span
-                            key={pKey}
-                            className="px-2 py-0.5 rounded bg-muted text-muted-foreground text-[11px] font-medium"
-                          >
-                            {def ? def.name : pKey}
+                      {/* Included permissions pills */}
+                      <div className="flex flex-wrap gap-1.5 pt-1">
+                        {r.permissions.includes("*") ? (
+                          <span className="px-2 py-0.5 rounded bg-primary/10 text-primary text-[11px] font-semibold">
+                            All Community Operations (*)
                           </span>
-                        );
-                      })
-                    )}
-                  </div>
+                        ) : (
+                          r.permissions.map((pKey) => {
+                            const def = permissionsMatrix.find((pm) => pm.key === pKey);
+                            return (
+                              <span
+                                key={pKey}
+                                className="px-2 py-0.5 rounded bg-muted text-muted-foreground text-[11px] font-medium"
+                              >
+                                {def ? def.name : pKey}
+                              </span>
+                            );
+                          })
+                        )}
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
 
-            <div className="p-3.5 rounded-xl bg-muted/50 border border-border flex items-start gap-2.5 text-xs text-muted-foreground">
-              <AlertCircle className="h-4 w-4 text-secondary shrink-0 mt-0.5" />
-              <span>
-                <strong>Sprint 7 Security Rule:</strong> Regular members do not have link-sharing permissions by default. You can create a custom role or grant <code className="text-primary font-mono">share_links</code> to authorized members.
-              </span>
-            </div>
+                <div className="p-3.5 rounded-xl bg-muted/50 border border-border flex items-start gap-2.5 text-xs text-muted-foreground">
+                  <AlertCircle className="h-4 w-4 text-secondary shrink-0 mt-0.5" />
+                  <span>
+                    <strong>Sprint 7 Security Rule:</strong> Regular members do not have link-sharing permissions by default. You can create a custom role or grant <code className="text-primary font-mono">share_links</code> to authorized members.
+                  </span>
+                </div>
+              </>
+            )}
           </div>
         ) : (
           /* Create Custom Role Form */

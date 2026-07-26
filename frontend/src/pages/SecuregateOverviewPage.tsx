@@ -1,78 +1,450 @@
 import { useState, useEffect } from 'react';
 import {
-  ShieldAlert, Users, Store, Package, Wallet, Flag,
-  TrendingUp, CheckCircle2, Loader2,
+  TrendingUp, Users, Wallet,
+  UserCheck, AlertCircle, ArrowUpRight,
 } from 'lucide-react';
-import type { AdminStats } from '@/types/admin';
+import {
+  LineChart, Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis,
+  CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell,
+} from 'recharts';
+import { apiClient } from '@/lib/api/client';
 
-const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api/v1';
-const authHeaders = () => {
-  const t = localStorage.getItem('auth_token') || localStorage.getItem('murihspace-token');
-  return { Accept: 'application/json', ...(t ? { Authorization: `Bearer ${t}` } : {}) };
+const COLORS = ['#38A8D8', '#F59E0B', '#10B981', '#8B5CF6', '#EF4444', '#EC4899'];
+
+interface OverviewData {
+  users: { total: number; creators: number; members: number; verified_kyc: number; pending_kyc: number };
+  content: { digital_products: number; published_products: number; physical_products: number; communities: number; public_communities: number };
+  revenue: { digital_revenue: number; digital_orders: number; mrr: number; active_subscriptions: number; total_subscriptions: number };
+  subscriptions: { total_plans: number; active_plans: number };
+  wallet: { platform_balance: number; user_balances: number };
+}
+
+interface TrendData {
+  user_growth: { date: string; count: number }[];
+  revenue_trend: { date: string; revenue: number; orders: number }[];
+  subscription_trend: { date: string; count: number }[];
+}
+
+interface TopContent {
+  top_digital_products: { id: number; title: string; price: number; currency: string; sales_count: number; status: string }[];
+  top_communities: { id: number; name: string; slug: string; members_count: number; category: string }[];
+  top_creators: { id: number; name: string; username: string; product_count: number; plan_count: number; subscriber_count: number }[];
+}
+
+function MetricCard({ label, value, icon: Icon, trend, trendUp, color, sparklineColor = "#38A8D8" }: {
+  label: string; value: string; icon: React.ElementType; trend?: string; trendUp?: boolean; color: string; sparklineColor?: string;
+}) {
+  return (
+    <div className="relative overflow-hidden rounded-2xl border border-border bg-card p-5 transition-all duration-300 hover:border-primary/30 hover:shadow-2xs">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className={`rounded-xl p-2.5 ${color}`}>
+            <Icon className="h-4 w-4" />
+          </div>
+          <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{label}</span>
+        </div>
+      </div>
+      <div className="flex items-end justify-between mt-3">
+        <div>
+          <div className="text-2xl sm:text-3xl font-black text-foreground tracking-tight">{value}</div>
+          {trend && (
+            <div className={`flex items-center gap-1 text-[11px] font-bold mt-1 ${trendUp ? 'text-emerald-500' : 'text-muted-foreground'}`}>
+              {trendUp && <ArrowUpRight className="h-3 w-3" />}
+              <span>{trend}</span>
+            </div>
+          )}
+        </div>
+        <svg className="w-16 h-8 stroke-current fill-none shrink-0" style={{ color: sparklineColor }} viewBox="0 0 60 30" strokeWidth="2.5">
+          <path d={trendUp ? "M 0,25 Q 15,10 30,18 T 60,5" : "M 0,10 Q 15,22 30,12 T 60,25"} strokeLinecap="round" />
+        </svg>
+      </div>
+    </div>
+  );
+}
+
+function formatCurrency(amount: number): string {
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount / 100);
+}
+
+function formatNumber(n: number): string {
+  if (n >= 1000000) return `${(n / 1000000).toFixed(1)}M`;
+  if (n >= 1000) return `${(n / 1000).toFixed(1)}K`;
+  return n.toLocaleString();
+}
+
+const chartTooltipStyle = {
+  background: 'hsl(var(--card))',
+  border: '1px solid hsl(var(--border))',
+  borderRadius: '12px',
+  fontSize: '12px',
+  color: 'hsl(var(--foreground))',
 };
 
 export function SecuregateOverviewPage() {
-  const [stats, setStats] = useState<AdminStats | null>(null);
+  const [overview, setOverview] = useState<OverviewData | null>(null);
+  const [trends, setTrends] = useState<TrendData | null>(null);
+  const [topContent, setTopContent] = useState<TopContent | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'overview' | 'trends' | 'content'>('overview');
 
-  useEffect(() => {
-    fetch(`${API_BASE}/securegate/dashboard`, { headers: authHeaders() })
-      .then((r) => r.ok ? r.json() : null)
-      .then((j) => setStats(j?.data ?? null))
-      .finally(() => setLoading(false));
-  }, []);
+  const fetchAll = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [oRes, tRes, cRes] = await Promise.all([
+        apiClient.get('/securegate/analytics/overview'),
+        apiClient.get('/securegate/analytics/trends?days=30'),
+        apiClient.get('/securegate/analytics/top-content'),
+      ]);
+      const extract = (res: { data: { success?: boolean; data?: unknown } }) => res.data?.success ? res.data.data : res.data;
+      setOverview(extract(oRes) as OverviewData);
+      setTrends(extract(tRes) as TrendData);
+      setTopContent(extract(cRes) as TopContent);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load analytics');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  if (loading) return <div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-secondary" /></div>;
+  useEffect(() => { fetchAll(); }, []);
 
-  const cards = [
-    { label: 'Total Users', value: stats?.users.total ?? 0, icon: Users, color: 'text-blue-600 bg-blue-100 dark:text-blue-400 dark:bg-blue-950', sub: `${stats?.users.active ?? 0} active` },
-    { label: 'Pending KYC', value: stats?.users.pending_kyc ?? 0, icon: ShieldAlert, color: 'text-amber-600 bg-amber-100 dark:text-amber-400 dark:bg-amber-950', sub: `${stats?.users.suspended ?? 0} suspended` },
-    { label: 'Products', value: stats?.store.total_products ?? 0, icon: Package, color: 'text-emerald-600 bg-emerald-100 dark:text-emerald-400 dark:bg-emerald-950', sub: `${stats?.store.published_products ?? 0} published` },
-    { label: 'Orders', value: stats?.commerce.total_orders ?? 0, icon: Store, color: 'text-purple-600 bg-purple-100 dark:text-purple-400 dark:bg-purple-950', sub: `${stats?.commerce.completed_orders ?? 0} completed` },
-    { label: 'Revenue', value: `$${Number(stats?.commerce.revenue ?? 0).toFixed(2)}`, icon: TrendingUp, color: 'text-emerald-600 bg-emerald-100 dark:text-emerald-400 dark:bg-emerald-950', sub: 'total completed' },
-    { label: 'Pending Withdrawals', value: stats?.operations.pending_withdrawals ?? 0, icon: Wallet, color: 'text-rose-600 bg-rose-100 dark:text-rose-400 dark:bg-rose-950', sub: `${stats?.operations.pending_reports ?? 0} pending reports` },
-    { label: 'Platform Balance', value: `${((stats?.wallet.platform_balance ?? 0) / 100).toFixed(2)} NGN`, icon: Flag, color: 'text-indigo-600 bg-indigo-100 dark:text-indigo-400 dark:bg-indigo-950', sub: `${((stats?.wallet.user_balances ?? 0) / 100).toFixed(2)} NGN in user wallets` },
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          <p className="text-sm font-medium text-muted-foreground">Loading command center…</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="flex flex-col items-center gap-4 text-center max-w-md">
+          <AlertCircle className="h-10 w-10 text-destructive" />
+          <p className="text-sm text-muted-foreground">{error}</p>
+          <button onClick={fetchAll} className="rounded-lg bg-primary px-5 py-2 text-sm font-bold text-primary-foreground hover:bg-primary/90">Retry</button>
+        </div>
+      </div>
+    );
+  }
+
+  const userPie = overview ? [
+    { name: 'Creators', value: overview.users.creators },
+    { name: 'Members', value: overview.users.members },
+  ] : [];
+
+  const tabs = [
+    { id: 'overview' as const, label: 'Overview' },
+    { id: 'trends' as const, label: 'Trends' },
+    { id: 'content' as const, label: 'Top Content' },
   ];
 
   return (
-    <div className="max-w-6xl mx-auto p-4 sm:p-6 space-y-6">
-      <div>
-        <h1 className="text-2xl font-black text-foreground tracking-tight flex items-center gap-2.5">
-          <ShieldAlert className="h-6 w-6 text-secondary" />
-          Securegate
-        </h1>
-        <p className="text-xs text-muted-foreground mt-1">Platform administration dashboard.</p>
-      </div>
+    <div className="w-full min-h-screen bg-background text-foreground">
+      <div className="w-full mx-auto max-w-[1400px] space-y-8 p-6 lg:p-10">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-black tracking-tight flex items-center gap-3">
+              <span className="bg-gradient-to-r from-[#38A8D8] to-[#102840] bg-clip-text text-transparent">Command Center</span>
+            </h1>
+            <p className="mt-1 text-sm text-muted-foreground">Real-time platform intelligence</p>
+          </div>
+          <div className="flex items-center gap-2 rounded-xl border border-border bg-card p-1">
+            {tabs.map((t) => (
+              <button
+                key={t.id}
+                onClick={() => setActiveTab(t.id)}
+                className={`rounded-lg px-4 py-2 text-xs font-bold transition-all duration-200 ${
+                  activeTab === t.id ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+        </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {cards.map((c) => (
-          <div key={c.label} className="border border-border rounded-2xl bg-card p-4 shadow-sm flex items-center gap-4">
-            <div className={`p-2.5 rounded-xl ${c.color} shrink-0`}><c.icon className="h-5 w-5" /></div>
-            <div>
-              <p className="text-xs text-muted-foreground font-semibold">{c.label}</p>
-              <p className="text-xl font-black text-foreground">{c.value}</p>
-              <p className="text-[10px] text-muted-foreground">{c.sub}</p>
+        {activeTab === 'overview' && overview && (
+          <>
+            {/* Metric Cards */}
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <MetricCard label="Total Revenue" value={formatCurrency(overview.revenue.digital_revenue)} trend={`${formatNumber(overview.revenue.digital_orders)} orders`} trendUp icon={TrendingUp} color="bg-[#38A8D8]/15 text-[#38A8D8]" sparklineColor="#10B981" />
+              <MetricCard label="Active Subscribers" value={formatNumber(overview.revenue.active_subscriptions)} trend={`${formatCurrency(overview.revenue.mrr)} MRR`} trendUp icon={Users} color="bg-purple-500/15 text-purple-500" sparklineColor="#8B5CF6" />
+              <MetricCard label="Platform Balance" value={formatCurrency(overview.wallet.platform_balance)} trend={`${formatCurrency(overview.wallet.user_balances)} in user wallets`} trendUp icon={Wallet} color="bg-amber-500/15 text-amber-500" sparklineColor="#F59E0B" />
+              <MetricCard label="Pending KYC" value={formatNumber(overview.users.pending_kyc)} trend={`${formatNumber(overview.users.total)} total users`} icon={UserCheck} color="bg-rose-500/15 text-rose-500" sparklineColor="#EF4444" />
+            </div>
+
+            {/* Charts Row */}
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+              {/* Revenue Chart */}
+              <div className="lg:col-span-2 rounded-2xl border border-border bg-card p-6">
+                <h3 className="mb-4 text-sm font-bold text-muted-foreground uppercase tracking-[0.15em]">Revenue Overview</h3>
+                <div className="flex items-center gap-6 mb-6">
+                  <div>
+                    <p className="text-xs text-muted-foreground/70">Digital Revenue</p>
+                    <p className="text-2xl font-black text-foreground">{formatCurrency(overview.revenue.digital_revenue)}</p>
+                  </div>
+                  <div className="h-8 w-px bg-border" />
+                  <div>
+                    <p className="text-xs text-muted-foreground/70">Monthly Recurring</p>
+                    <p className="text-2xl font-black text-foreground">{formatCurrency(overview.revenue.mrr)}</p>
+                  </div>
+                  <div className="h-8 w-px bg-border" />
+                  <div>
+                    <p className="text-xs text-muted-foreground/70">Orders</p>
+                    <p className="text-2xl font-black text-foreground">{formatNumber(overview.revenue.digital_orders)}</p>
+                  </div>
+                </div>
+                {trends && trends.revenue_trend.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={220}>
+                    <AreaChart data={trends.revenue_trend}>
+                      <defs>
+                        <linearGradient id="revenueGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#38A8D8" stopOpacity={0.3} />
+                          <stop offset="100%" stopColor="#38A8D8" stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                      <XAxis dataKey="date" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }} tickLine={false} axisLine={false} tickFormatter={(v) => new Date(v).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} />
+                      <YAxis tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }} tickLine={false} axisLine={false} tickFormatter={(v) => `$${v}`} />
+                      <Tooltip contentStyle={chartTooltipStyle} labelStyle={{ color: 'hsl(var(--muted-foreground))' }} />
+                      <Area type="monotone" dataKey="revenue" stroke="#38A8D8" strokeWidth={2} fill="url(#revenueGrad)" />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex h-[220px] items-center justify-center text-sm text-muted-foreground/40">No revenue data yet</div>
+                )}
+              </div>
+
+              {/* User Distribution */}
+              <div className="rounded-2xl border border-border bg-card p-6">
+                <h3 className="mb-4 text-sm font-bold text-muted-foreground uppercase tracking-[0.15em]">User Distribution</h3>
+                <div className="flex flex-col items-center">
+                  <ResponsiveContainer width="100%" height={200}>
+                    <PieChart>
+                      <Pie data={userPie} cx="50%" cy="50%" innerRadius={55} outerRadius={80} paddingAngle={4} dataKey="value">
+                        {userPie.map((_, i) => (
+                          <Cell key={i} fill={COLORS[i]} stroke="none" />
+                        ))}
+                      </Pie>
+                      <Tooltip contentStyle={chartTooltipStyle} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div className="mt-2 flex flex-col gap-2 w-full">
+                    {userPie.map((item, i) => (
+                      <div key={item.name} className="flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-2">
+                          <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: COLORS[i] }} />
+                          <span className="text-muted-foreground">{item.name}</span>
+                        </div>
+                        <span className="font-bold text-foreground">{formatNumber(item.value)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Bottom Row */}
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+              {/* Content Stats */}
+              <div className="rounded-2xl border border-border bg-card p-6">
+                <h3 className="mb-4 text-sm font-bold text-muted-foreground uppercase tracking-[0.15em]">Platform Content</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  {[
+                    { label: 'Digital Products', value: overview.content.digital_products, sub: `${overview.content.published_products} published` },
+                    { label: 'Physical Products', value: overview.content.physical_products, sub: 'in inventory' },
+                    { label: 'Communities', value: overview.content.communities, sub: `${overview.content.public_communities} public` },
+                    { label: 'Subscription Plans', value: overview.subscriptions.total_plans, sub: `${overview.subscriptions.active_plans} active` },
+                  ].map((item) => (
+                    <div key={item.label} className="rounded-xl border border-border bg-muted/30 p-4">
+                      <p className="text-xs text-muted-foreground">{item.label}</p>
+                      <p className="mt-1 text-xl font-black text-foreground">{formatNumber(item.value)}</p>
+                      <p className="mt-0.5 text-[10px] text-muted-foreground/60">{item.sub}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* User Growth Chart */}
+              <div className="rounded-2xl border border-border bg-card p-6">
+                <h3 className="mb-4 text-sm font-bold text-muted-foreground uppercase tracking-[0.15em]">User Growth (30d)</h3>
+                {trends && trends.user_growth.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={180}>
+                    <BarChart data={trends.user_growth}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                      <XAxis dataKey="date" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }} tickLine={false} axisLine={false} tickFormatter={(v) => new Date(v).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} />
+                      <YAxis tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }} tickLine={false} axisLine={false} />
+                      <Tooltip contentStyle={chartTooltipStyle} />
+                      <Bar dataKey="count" fill="#38A8D8" radius={[3, 3, 0, 0]} opacity={0.7} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex h-[180px] items-center justify-center text-sm text-muted-foreground/40">No user growth data yet</div>
+                )}
+              </div>
+            </div>
+          </>
+        )}
+
+        {activeTab === 'trends' && trends && (
+          <div className="space-y-6">
+            {/* Revenue Trend */}
+            <div className="rounded-2xl border border-border bg-card p-6">
+              <h3 className="mb-4 text-sm font-bold text-muted-foreground uppercase tracking-[0.15em]">Revenue Trend (30d)</h3>
+              {trends.revenue_trend.length > 0 ? (
+                <ResponsiveContainer width="100%" height={300}>
+                  <LineChart data={trends.revenue_trend}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <XAxis dataKey="date" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }} tickLine={false} axisLine={false} tickFormatter={(v) => new Date(v).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} />
+                    <YAxis tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }} tickLine={false} axisLine={false} tickFormatter={(v) => `$${v}`} />
+                    <Tooltip contentStyle={chartTooltipStyle} />
+                    <Line type="monotone" dataKey="revenue" stroke="#38A8D8" strokeWidth={2} dot={{ fill: '#38A8D8', r: 3 }} />
+                  </LineChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex h-[300px] items-center justify-center text-sm text-muted-foreground/40">No revenue data yet</div>
+              )}
+            </div>
+
+            {/* User Growth & Subscription Trends side by side */}
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+              <div className="rounded-2xl border border-border bg-card p-6">
+                <h3 className="mb-4 text-sm font-bold text-muted-foreground uppercase tracking-[0.15em]">User Growth</h3>
+                {trends.user_growth.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={250}>
+                    <AreaChart data={trends.user_growth}>
+                      <defs>
+                        <linearGradient id="userGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#10B981" stopOpacity={0.3} />
+                          <stop offset="100%" stopColor="#10B981" stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                      <XAxis dataKey="date" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }} tickLine={false} axisLine={false} tickFormatter={(v) => new Date(v).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} />
+                      <YAxis tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }} tickLine={false} axisLine={false} />
+                      <Tooltip contentStyle={chartTooltipStyle} />
+                      <Area type="monotone" dataKey="count" stroke="#10B981" strokeWidth={2} fill="url(#userGrad)" />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex h-[250px] items-center justify-center text-sm text-muted-foreground/40">No user data yet</div>
+                )}
+              </div>
+              <div className="rounded-2xl border border-border bg-card p-6">
+                <h3 className="mb-4 text-sm font-bold text-muted-foreground uppercase tracking-[0.15em]">Subscription Growth</h3>
+                {trends.subscription_trend.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={250}>
+                    <AreaChart data={trends.subscription_trend}>
+                      <defs>
+                        <linearGradient id="subGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#8B5CF6" stopOpacity={0.3} />
+                          <stop offset="100%" stopColor="#8B5CF6" stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                      <XAxis dataKey="date" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }} tickLine={false} axisLine={false} tickFormatter={(v) => new Date(v).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} />
+                      <YAxis tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }} tickLine={false} axisLine={false} />
+                      <Tooltip contentStyle={chartTooltipStyle} />
+                      <Area type="monotone" dataKey="count" stroke="#8B5CF6" strokeWidth={2} fill="url(#subGrad)" />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex h-[250px] items-center justify-center text-sm text-muted-foreground/40">No subscription data yet</div>
+                )}
+              </div>
             </div>
           </div>
-        ))}
-      </div>
+        )}
 
-      <div className="border border-border rounded-2xl bg-card p-5 shadow-sm space-y-3">
-        <h2 className="text-sm font-black text-foreground">Recent Activity</h2>
-        {(!stats?.recent_activity || stats.recent_activity.length === 0) ? (
-          <p className="text-xs text-muted-foreground">No recent activity.</p>
-        ) : (
-          <div className="divide-y divide-border/50">
-            {stats.recent_activity.map((a) => (
-              <div key={a.id} className="flex items-center justify-between py-2 text-xs">
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
-                  <span className="font-medium text-foreground">{a.action}</span>
-                  {a.user_name && <span className="text-muted-foreground">by {a.user_name}</span>}
+        {activeTab === 'content' && topContent && (
+          <div className="space-y-6">
+            {/* Top Creators */}
+            <div className="rounded-2xl border border-border bg-card p-6">
+              <h3 className="mb-4 text-sm font-bold text-muted-foreground uppercase tracking-[0.15em]">Top Creators</h3>
+              {topContent.top_creators.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="text-left border-b border-border">
+                        <th className="pb-3 text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground/50">Creator</th>
+                        <th className="pb-3 text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground/50">Products</th>
+                        <th className="pb-3 text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground/50">Plans</th>
+                        <th className="pb-3 text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground/50">Subscribers</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {topContent.top_creators.map((c, i) => (
+                        <tr key={c.id} className="border-b border-border/50 hover:bg-muted/20 transition-colors">
+                          <td className="py-3">
+                            <div className="flex items-center gap-3">
+                              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-muted text-[10px] font-bold text-muted-foreground">{i + 1}</span>
+                              <div>
+                                <p className="font-semibold text-foreground">{c.name}</p>
+                                <p className="text-[10px] text-muted-foreground/60">@{c.username}</p>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="py-3 text-muted-foreground">{c.product_count}</td>
+                          <td className="py-3 text-muted-foreground">{c.plan_count}</td>
+                          <td className="py-3">
+                            <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-600">{c.subscriber_count}</span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
-                <span className="text-muted-foreground">{a.created_at}</span>
+              ) : (
+                <div className="flex h-[200px] items-center justify-center text-sm text-muted-foreground/40">No creators yet</div>
+              )}
+            </div>
+
+            {/* Top Products & Communities */}
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+              <div className="rounded-2xl border border-border bg-card p-6">
+                <h3 className="mb-4 text-sm font-bold text-muted-foreground uppercase tracking-[0.15em]">Top Digital Products</h3>
+                {topContent.top_digital_products.length > 0 ? (
+                  <div className="space-y-2">
+                    {topContent.top_digital_products.map((p) => (
+                      <div key={p.id} className="flex items-center justify-between rounded-xl border border-border bg-muted/20 px-4 py-3">
+                        <div>
+                          <p className="text-sm font-semibold text-foreground">{p.title}</p>
+                          <p className="text-[10px] text-muted-foreground/60">{p.sales_count} sales</p>
+                        </div>
+                        <span className="text-sm font-black text-foreground">{new Intl.NumberFormat('en-US', { style: 'currency', currency: p.currency || 'USD', minimumFractionDigits: 2 }).format(p.price / 100)}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex h-[200px] items-center justify-center text-sm text-muted-foreground/40">No products yet</div>
+                )}
               </div>
-            ))}
+              <div className="rounded-2xl border border-border bg-card p-6">
+                <h3 className="mb-4 text-sm font-bold text-muted-foreground uppercase tracking-[0.15em]">Top Communities</h3>
+                {topContent.top_communities.length > 0 ? (
+                  <div className="space-y-2">
+                    {topContent.top_communities.map((c) => (
+                      <div key={c.id} className="flex items-center justify-between rounded-xl border border-border bg-muted/20 px-4 py-3">
+                        <div>
+                          <p className="text-sm font-semibold text-foreground">{c.name}</p>
+                          <p className="text-[10px] text-muted-foreground/60">{c.category}</p>
+                        </div>
+                        <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-bold text-primary">{c.members_count} members</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex h-[200px] items-center justify-center text-sm text-muted-foreground/40">No communities yet</div>
+                )}
+              </div>
+            </div>
           </div>
         )}
       </div>

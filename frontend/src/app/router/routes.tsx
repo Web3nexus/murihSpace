@@ -9,6 +9,7 @@ import { NotFoundPage } from "@/pages/NotFoundPage";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { SettingsLayout } from "@/components/layout/SettingsLayout";
 import { ChatLayout } from "@/components/layout/ChatLayout";
+import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { CommunitiesPage } from "@/pages/CommunitiesPage";
 import { CommunityPreviewPage } from "@/pages/CommunityPreviewPage";
 import CommunityFeedPage from "@/pages/CommunityFeedPage";
@@ -16,23 +17,56 @@ import { EventsPage } from "@/pages/EventsPage";
 import { EventDetailPage } from "@/pages/EventDetailPage";
 import { MyEventsPage } from "@/pages/MyEventsPage";
 import NotificationsPage from "@/pages/NotificationsPage";
+import AppearancePage from "@/pages/AppearancePage";
+import SecurityPage from "@/pages/SecurityPage";
+import PrivacyPage from "@/pages/PrivacyPage";
+import KycSettingsPage from "@/pages/KycSettingsPage";
+import LanguagePage from "@/pages/LanguagePage";
+import AccessibilityPage from "@/pages/AccessibilityPage";
+import CoursesPage from "@/pages/CoursesPage";
 import { StoreManagementPage } from "@/pages/StoreManagementPage";
 import { PublicStorefrontPage } from "@/pages/PublicStorefrontPage";
 import { DigitalProductsPage } from "@/pages/DigitalProductsPage";
 import { SalesOrdersPage } from "@/pages/SalesOrdersPage";
 import { AudioRoomsPage } from "@/pages/AudioRoomsPage";
+import { AnalyticsPage } from "@/pages/AnalyticsPage";
+import { BrandDealsPage } from "@/pages/BrandDealsPage";
+import { BrandInvoicingPage } from "@/pages/BrandInvoicingPage";
 import { CoachingPage } from "@/pages/CoachingPage";
+import { PhysicalProductsPage } from "@/pages/PhysicalProductsPage";
+import { CartPage } from "@/pages/CartPage";
+import { AddressesPage } from "@/pages/AddressesPage";
+import { FulfilmentPage } from "@/pages/FulfilmentPage";
+import { ReviewsPage } from "@/pages/ReviewsPage";
+import { DisputesPage } from "@/pages/DisputesPage";
+import { ShippingProfilesPage } from "@/pages/ShippingProfilesPage";
+import { PayoutsPage } from "@/pages/PayoutsPage";
+import { MilestonesPage } from "@/pages/MilestonesPage";
+import { MediaKitPage } from "@/pages/MediaKitPage";
+import { ProposalsPage } from "@/pages/ProposalsPage";
+import { ReferralsPage } from "@/pages/ReferralsPage";
 import { SubscriptionManagementPage } from "@/pages/SubscriptionManagementPage";
 import { BrowsePlansPage } from "@/pages/BrowsePlansPage";
 import { MySubscriptionsPage } from "@/pages/MySubscriptionsPage";
 import { WalletPage } from "@/pages/WalletPage";
 import { DonationsPage } from "@/pages/DonationsPage";
+import { EmailBroadcastsPage } from "@/pages/EmailBroadcastsPage";
+import { EmailSequencesPage } from "@/pages/EmailSequencesPage";
+import { EscrowPage } from "@/pages/EscrowPage";
 import { PurchasesPage } from "@/pages/PurchasesPage";
 import { SecuregateOverviewPage } from "@/pages/SecuregateOverviewPage";
 import { AdminUsersPage } from "@/pages/AdminUsersPage";
 import { AdminTransactionsPage } from "@/pages/AdminTransactionsPage";
+import { AdminReconciliationPage } from "@/pages/AdminReconciliationPage";
 import { AdminReportsPage } from "@/pages/AdminReportsPage";
 import { AdminFeatureFlagsPage } from "@/pages/AdminFeatureFlagsPage";
+import { QueueMonitorPage } from "@/pages/QueueMonitorPage";
+import { AdminReviewsPage } from "@/pages/AdminReviewsPage";
+import { AdminAnalyticsPage } from "@/pages/AdminAnalyticsPage";
+import { AdminPlansPage } from "@/pages/AdminPlansPage";
+import { AdminCommunitiesPage } from "@/pages/AdminCommunitiesPage";
+import { AdminEscrowPage } from "@/pages/AdminEscrowPage";
+import { AdminPayoutsPage } from "@/pages/AdminPayoutsPage";
 import { AdminCmsPage } from "@/pages/AdminCmsPage";
 import {
   EmptyState,
@@ -59,10 +93,38 @@ export const routes: RouteObject[] = [
   // ── Authenticated Dashboard (sidebar-07 shell) ─
   {
     path: RoutePaths.APP,
-    element: <DashboardLayout />,
+    element: (
+      <ProtectedRoute>
+        <DashboardLayout />
+      </ProtectedRoute>
+    ),
     children: [
       // ── Home / Overview ─────────────────────────
       { index: true, element: <AppPage /> },
+
+      // ── Feed (member community feed) ─────────────
+      {
+        path: "feed",
+        element: sprint("Feed", "Your personalized community feed", 20),
+      },
+
+      // ── Community Chat ──────────────────────────
+      {
+        path: "community-chat",
+        element: sprint("Community Chat", "Real-time community chat rooms", 20),
+      },
+
+      // ── AI Assistant ────────────────────────────
+      {
+        path: "ai-assistant",
+        element: sprint("AI Assistant", "AI-powered content and community assistant", 20),
+      },
+
+      // ── Content Studio (Creator) ────────────────
+      {
+        path: "studio",
+        element: <ProtectedRoute requiredRole="creator"><>{sprint("Content Studio", "Create and manage your digital content", 18)}</></ProtectedRoute>,
+      },
 
       // ── Link in Bio & Custom Sites ──────────────
       {
@@ -84,56 +146,116 @@ export const routes: RouteObject[] = [
         element: <StoreManagementPage />,
       },
       {
+        path: "store/products",
+        element: sprint("Products", "Manage your digital and physical products", 18),
+      },
+      {
+        path: "store/memberships",
+        element: sprint("Memberships", "Manage recurring membership plans", 18),
+      },
+      {
+        path: "store/saved-addresses",
+        element: sprint("Saved Addresses", "Manage your shipping addresses", 18),
+      },
+      {
+        path: "store/physical-products",
+        element: <ProtectedRoute requiredRole="vendor"><PhysicalProductsPage /></ProtectedRoute>,
+      },
+      {
+        path: "store/inventory",
+        element: <ProtectedRoute requiredRole="vendor">{sprint("Inventory Management", "Track and manage product stock levels", 16)}</ProtectedRoute>,
+      },
+      {
+        path: "store/categories",
+        element: <ProtectedRoute requiredRole="vendor">{sprint("Categories", "Organize products into categories", 16)}</ProtectedRoute>,
+      },
+      {
+        path: "store/returns",
+        element: <ProtectedRoute requiredRole="vendor">{sprint("Returns Management", "Process customer returns and exchanges", 16)}</ProtectedRoute>,
+      },
+      {
         path: "store/digital",
         element: <DigitalProductsPage />,
       },
       {
         path: "store/courses",
-        element: sprint("Online Courses & Masterclasses", "Host and monetize video courses, modules and lessons", 14),
+        element: <ProtectedRoute requiredRole="creator"><CoursesPage /></ProtectedRoute>,
       },
       {
         path: "store/coaching",
-        element: <CoachingPage />,
+        element: <ProtectedRoute requiredRole="creator"><CoachingPage /></ProtectedRoute>,
       },
       {
         path: "store/physical",
-        element: sprint("Physical Products & Merch", "Physical products, inventory management, shipping and tracking", 30),
+        element: <ProtectedRoute requiredRole="vendor"><PhysicalProductsPage /></ProtectedRoute>,
+      },
+      {
+        path: "store/cart",
+        element: <CartPage />,
+      },
+      {
+        path: "store/addresses",
+        element: <AddressesPage />,
+      },
+      {
+        path: "store/fulfilment",
+        element: <ProtectedRoute requiredRole="vendor"><FulfilmentPage /></ProtectedRoute>,
+      },
+      {
+        path: "store/reviews",
+        element: <ReviewsPage />,
+      },
+      {
+        path: "store/disputes",
+        element: <DisputesPage />,
+      },
+      {
+        path: "store/shipping",
+        element: <ProtectedRoute requiredRole="vendor"><ShippingProfilesPage /></ProtectedRoute>,
+      },
+      {
+        path: "store/payouts",
+        element: <PayoutsPage />,
       },
       {
         path: "store/subscriptions",
-        element: <SubscriptionManagementPage />,
+        element: <ProtectedRoute requiredRole="creator"><SubscriptionManagementPage /></ProtectedRoute>,
+      },
+      {
+        path: "milestones",
+        element: <ProtectedRoute requiredRole="creator"><MilestonesPage /></ProtectedRoute>,
       },
 
       // ── Brand Deals & Media Kit ──────────────────
       {
         path: "brand-deals",
-        element: sprint("Brand Deals Hub", "Manage brand partnerships, media kits and sponsor proposals", 38),
+        element: <ProtectedRoute requiredRole="creator"><BrandDealsPage /></ProtectedRoute>,
       },
       {
         path: "brand-deals/media-kit",
-        element: sprint("Dynamic Media Kit", "Auto-updated audience analytics, engagement stats and rates sheet", 38),
+        element: <ProtectedRoute requiredRole="creator"><MediaKitPage /></ProtectedRoute>,
       },
       {
         path: "brand-deals/proposals",
-        element: sprint("Outreach & Pitching", "Send pitch proposals and manage brand deals workflow", 38),
+        element: <ProtectedRoute requiredRole="creator"><ProposalsPage /></ProtectedRoute>,
       },
       {
         path: "brand-deals/invoicing",
-        element: sprint("Brand Invoicing", "Generate professional invoices for sponsored content and deals", 38),
+        element: <ProtectedRoute requiredRole="creator"><BrandInvoicingPage /></ProtectedRoute>,
       },
 
       // ── Marketing & Automations ────────────────
       {
         path: "marketing",
-        element: sprint("Marketing & Email Automations", "Email marketing campaigns, broadcasts, sequences and affiliate links", 38),
+        element: <ProtectedRoute requiredRole="creator">{sprint("Marketing & Email Automations", "Email marketing campaigns, broadcasts, sequences and affiliate links", 38)}</ProtectedRoute>,
       },
       {
         path: "marketing/broadcasts",
-        element: sprint("Email Broadcasts", "Send newsletters and promotional updates to your subscribers", 38),
+        element: <ProtectedRoute requiredRole="creator"><EmailBroadcastsPage /></ProtectedRoute>,
       },
       {
         path: "marketing/sequences",
-        element: sprint("Automated Sequences", "Drip campaigns and automated email funnels after purchases", 39),
+        element: <ProtectedRoute requiredRole="creator"><EmailSequencesPage /></ProtectedRoute>,
       },
       {
         path: "marketing/affiliates",
@@ -141,7 +263,7 @@ export const routes: RouteObject[] = [
       },
       {
         path: "marketing/referrals",
-        element: sprint("Referral Program", "Reward fans and members for inviting friends to your community", 37),
+        element: <ReferralsPage />,
       },
 
       // ── Community & Content ─────────────────────
@@ -184,6 +306,14 @@ export const routes: RouteObject[] = [
         element: <BrowsePlansPage />,
       },
       {
+        path: "subscriptions/discover",
+        element: <BrowsePlansPage />,
+      },
+      {
+        path: "subscriptions/my-subscriptions",
+        element: <MySubscriptionsPage />,
+      },
+      {
         path: "subscriptions/mine",
         element: <MySubscriptionsPage />,
       },
@@ -192,6 +322,10 @@ export const routes: RouteObject[] = [
       {
         path: "messages",
         element: <ChatLayout />,
+      },
+      {
+        path: "messages/support",
+        element: sprint("Support Threads", "Customer support ticket threads", 16),
       },
 
       // ── MurihPay Wallet (Sprint 16) ────────────
@@ -212,33 +346,49 @@ export const routes: RouteObject[] = [
         element: <PurchasesPage />,
       },
       {
+        path: "wallet/purchase-library",
+        element: <PurchasesPage />,
+      },
+      {
+        path: "wallet/tips",
+        element: <DonationsPage />,
+      },
+      {
+        path: "wallet/payouts",
+        element: <PayoutsPage />,
+      },
+      {
         path: "wallet/withdrawals",
         element: <WalletPage />,
       },
       {
         path: "wallet/escrow",
-        element: sprint("Escrow Balances", "Track held funds for physical product deliveries and milestone payouts", 33),
+        element: <EscrowPage />,
       },
 
       // ── Analytics & Sales ──────────────────────
       {
         path: "analytics",
-        element: sprint("Analytics Overview", "Comprehensive view of traffic, sales, engagement and growth", 40),
+        element: <AnalyticsPage />,
       },
       {
         path: "analytics/traffic",
-        element: sprint("Link & Traffic Stats", "Click tracking, referral sources, link performance and top channels", 40),
+        element: <AnalyticsPage />,
       },
       {
         path: "analytics/revenue",
-        element: sprint("Revenue & Conversions", "Sales funnels, revenue breakdown by product line and average order value", 40),
+        element: <AnalyticsPage />,
+      },
+      {
+        path: "analytics/ai",
+        element: <AnalyticsPage />,
+      },
+      {
+        path: "analytics/products",
+        element: <ProtectedRoute requiredRole="vendor">{sprint("Product Performance", "Analytics for your physical product performance", 16)}</ProtectedRoute>,
       },
       {
         path: "analytics/milestones",
-        element: sprint("Milestones & Badges", "Community goals, sales targets, unlockable badges and rewards", 36),
-      },
-      {
-        path: "milestones",
         element: sprint("Milestones & Badges", "Community goals, sales targets, unlockable badges and rewards", 36),
       },
 
@@ -249,12 +399,20 @@ export const routes: RouteObject[] = [
         children: [
           { index: true, element: <ProfilePage /> },
           {
+            path: "profile",
+            element: <ProfilePage />,
+          },
+          {
+            path: "store",
+            element: <ProtectedRoute requiredRole="vendor">{sprint("Store Settings", "Configure your store profile and preferences", 16)}</ProtectedRoute>,
+          },
+          {
             path: "kyc",
-            element: sprint("KYC Verification", "Submit and track identity verification", 4),
+            element: <KycSettingsPage />,
           },
           {
             path: "security",
-            element: sprint("Security", "Password, sessions and two-factor authentication", 4),
+            element: <SecurityPage />,
           },
           {
             path: "notifications",
@@ -262,19 +420,19 @@ export const routes: RouteObject[] = [
           },
           {
             path: "privacy",
-            element: sprint("Privacy & Visibility", "Profile visibility and data privacy controls", 4),
+            element: <PrivacyPage />,
           },
           {
             path: "preferences",
-            element: sprint("Appearance", "Theme and display preferences", 2),
+            element: <AppearancePage />,
           },
           {
             path: "language",
-            element: sprint("Language & Region", "Language and regional settings", 9),
+            element: <LanguagePage />,
           },
           {
             path: "accessibility",
-            element: sprint("Accessibility", "Accessibility preferences and options", 9),
+            element: <AccessibilityPage />,
           },
         ],
       },
@@ -282,39 +440,95 @@ export const routes: RouteObject[] = [
       // ── Sprint 17: Platform Administration (/securegate) ─
       {
         path: "securegate",
-        element: <SecuregateOverviewPage />,
+        element: <ProtectedRoute requiredRole="admin"><SecuregateOverviewPage /></ProtectedRoute>,
       },
       {
         path: "securegate/users",
-        element: <AdminUsersPage />,
+        element: <ProtectedRoute requiredRole="admin"><AdminUsersPage /></ProtectedRoute>,
       },
       {
         path: "securegate/transactions",
-        element: <AdminTransactionsPage />,
+        element: <ProtectedRoute requiredRole="admin"><AdminTransactionsPage /></ProtectedRoute>,
       },
       {
         path: "securegate/reports",
-        element: <AdminReportsPage />,
+        element: <ProtectedRoute requiredRole="admin"><AdminReportsPage /></ProtectedRoute>,
       },
       {
         path: "securegate/feature-flags",
-        element: <AdminFeatureFlagsPage />,
+        element: <ProtectedRoute requiredRole="admin"><AdminFeatureFlagsPage /></ProtectedRoute>,
       },
       {
         path: "securegate/analytics",
-        element: sprint("Platform Analytics", "Revenue breakdown, growth trends and platform metrics", 17),
+        element: <ProtectedRoute requiredRole="admin"><AdminAnalyticsPage /></ProtectedRoute>,
       },
       {
         path: "securegate/plans",
-        element: sprint("Plans & Fees", "Subscription plans and platform fee configuration", 17),
+        element: <ProtectedRoute requiredRole="admin"><AdminPlansPage /></ProtectedRoute>,
       },
       {
         path: "securegate/cms",
-        element: <AdminCmsPage />,
+        element: <ProtectedRoute requiredRole="admin"><AdminCmsPage /></ProtectedRoute>,
+      },
+      {
+        path: "securegate/reconciliation",
+        element: <ProtectedRoute requiredRole="admin"><AdminReconciliationPage /></ProtectedRoute>,
       },
       {
         path: "securegate/kyc",
-        element: <AdminKycPage />,
+        element: <ProtectedRoute requiredRole="admin"><AdminKycPage /></ProtectedRoute>,
+      },
+      {
+        path: "securegate/queue",
+        element: <ProtectedRoute requiredRole="admin"><QueueMonitorPage /></ProtectedRoute>,
+      },
+      {
+        path: "securegate/reviews",
+        element: <ProtectedRoute requiredRole="admin"><AdminReviewsPage /></ProtectedRoute>,
+      },
+      {
+        path: "securegate/communities",
+        element: <ProtectedRoute requiredRole="admin"><AdminCommunitiesPage /></ProtectedRoute>,
+      },
+      {
+        path: "securegate/escrow",
+        element: <ProtectedRoute requiredRole="admin"><AdminEscrowPage /></ProtectedRoute>,
+      },
+      {
+        path: "securegate/payouts",
+        element: <ProtectedRoute requiredRole="admin"><AdminPayoutsPage /></ProtectedRoute>,
+      },
+      {
+        path: "securegate/disputes",
+        element: <ProtectedRoute requiredRole="admin">{sprint("Disputes Management", "Manage refund requests and disputes", 16)}</ProtectedRoute>,
+      },
+      {
+        path: "securegate/fulfilment-payouts",
+        element: <ProtectedRoute requiredRole="admin">{sprint("Fulfilment Payouts", "Manage vendor fulfilment payouts", 16)}</ProtectedRoute>,
+      },
+      {
+        path: "securegate/moderation-logs",
+        element: <ProtectedRoute requiredRole="admin">{sprint("Moderation Logs", "View content moderation history", 16)}</ProtectedRoute>,
+      },
+      {
+        path: "securegate/system-health",
+        element: <ProtectedRoute requiredRole="admin">{sprint("System Health", "Monitor platform system health and uptime", 16)}</ProtectedRoute>,
+      },
+      {
+        path: "securegate/audit-trail",
+        element: <ProtectedRoute requiredRole="admin">{sprint("Audit Trail", "View platform audit logs", 16)}</ProtectedRoute>,
+      },
+      {
+        path: "securegate/settings",
+        element: <ProtectedRoute requiredRole="admin">{sprint("Admin Settings", "Platform configuration and settings", 16)}</ProtectedRoute>,
+      },
+      {
+        path: "securegate/analytics/growth",
+        element: <ProtectedRoute requiredRole="admin">{sprint("Ecosystem Growth", "Platform growth and user acquisition metrics", 16)}</ProtectedRoute>,
+      },
+      {
+        path: "securegate/analytics/conversions",
+        element: <ProtectedRoute requiredRole="admin">{sprint("Conversion Metrics", "Platform conversion funnel analytics", 16)}</ProtectedRoute>,
       },
 
       // Catch-all within /app

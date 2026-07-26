@@ -13,7 +13,7 @@ use Laravel\Sanctum\HasApiTokens;
 
 #[Fillable([
     'name', 'email', 'password', 'username', 'country',
-    'mobile_number', 'county', 'state', 'role', 'kyc_status', 'kyc_document',
+    'mobile_number', 'county', 'state', 'role', 'status', 'kyc_status', 'kyc_document',
     'bio', 'avatar', 'kyc_rejection_reason',
 ])]
 #[Hidden(['password', 'remember_token'])]
@@ -33,5 +33,35 @@ class User extends Authenticatable implements MustVerifyEmail
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    public function isAdmin(): bool
+    {
+        return $this->role === 'admin';
+    }
+
+    public function isCreator(): bool
+    {
+        return $this->role === 'creator';
+    }
+
+    public function isVendor(): bool
+    {
+        return $this->role === 'vendor';
+    }
+
+    public function isMember(): bool
+    {
+        return $this->role === 'member';
+    }
+
+    public function hasRole(string $role): bool
+    {
+        return $this->role === $role;
+    }
+
+    public function isCreatorOrAdmin(): bool
+    {
+        return in_array($this->role, ['creator', 'admin']);
     }
 }

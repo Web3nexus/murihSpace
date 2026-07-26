@@ -8,22 +8,28 @@ use Illuminate\Http\Request;
 
 class AdminKycController extends Controller
 {
-    /**
-     * List all pending KYC submissions.
-     */
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
-        $pendingUsers = User::where('kyc_status', 'pending')
-            ->select(['id', 'name', 'email', 'username', 'role', 'kyc_status', 'kyc_document', 'created_at'])
+        $request->validate([
+            'status' => ['sometimes', 'string', 'in:pending,verified,rejected'],
+        ]);
+
+        $status = $request->query('status', 'pending');
+
+        $users = User::where('kyc_status', $status)
+            ->select(['id', 'name', 'email', 'username', 'role', 'kyc_status', 'kyc_document', 'kyc_rejection_reason', 'created_at'])
             ->latest()
             ->get();
 
-        return response()->json($pendingUsers);
+        $counts = [
+            'pending' => User::where('kyc_status', 'pending')->count(),
+            'verified' => User::where('kyc_status', 'verified')->count(),
+            'rejected' => User::where('kyc_status', 'rejected')->count(),
+        ];
+
+        return response()->json(['data' => $users, 'counts' => $counts]);
     }
 
-    /**
-     * Approve a user's KYC submission.
-     */
     public function approve(User $user): JsonResponse
     {
         $user->update([
@@ -37,9 +43,6 @@ class AdminKycController extends Controller
         ]);
     }
 
-    /**
-     * Reject a user's KYC submission.
-     */
     public function reject(Request $request, User $user): JsonResponse
     {
         $request->validate([

@@ -12,6 +12,11 @@ class StorefrontPolicy
         return $user->role === 'admin' ? true : null;
     }
 
+    public function create(User $user): bool
+    {
+        return $user->isCreatorOrAdmin();
+    }
+
     public function view(User $user, Storefront $storefront): bool
     {
         return $user->id === $storefront->user_id;

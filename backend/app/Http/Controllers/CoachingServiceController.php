@@ -35,6 +35,10 @@ class CoachingServiceController extends Controller
 
     public function store(Request $request): JsonResponse
     {
+        if (! $request->user()->isCreatorOrAdmin()) {
+            abort(403);
+        }
+
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:5000'],

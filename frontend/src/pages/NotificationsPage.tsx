@@ -97,7 +97,7 @@ export default function NotificationsPage() {
         const json = await res.json();
         const rawList = json.data?.data ?? json.data ?? [];
         setNotifications(Array.isArray(rawList) ? rawList : []);
-        setUnreadCount(json.unread ?? 0);
+        setUnreadCount(json.data?.unread ?? 0);
       }
     } finally {
       setIsLoading(false);
@@ -118,7 +118,7 @@ export default function NotificationsPage() {
       });
       if (res.ok) {
         const json = await res.json();
-        setPreferences(json.data ?? {});
+        setPreferences(json.data?.data ?? json.data ?? {});
       } else {
         setPrefsLoadError(true);
       }
@@ -209,7 +209,7 @@ export default function NotificationsPage() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-4 sm:p-6 space-y-6">
+    <div className="space-y-6 w-full max-w-7xl mx-auto p-6 lg:p-8">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>

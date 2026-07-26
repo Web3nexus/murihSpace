@@ -45,32 +45,30 @@ class AdminDashboardController extends Controller
             ]);
 
         return response()->json([
-            'data' => [
-                'users' => [
-                    'total' => $totalUsers,
-                    'active' => $activeUsers,
-                    'suspended' => $suspendedUsers,
-                    'pending_kyc' => $pendingKyc,
-                ],
-                'store' => [
-                    'total_products' => $totalProducts,
-                    'published_products' => $publishedProducts,
-                ],
-                'commerce' => [
-                    'total_orders' => $totalOrders,
-                    'completed_orders' => $completedOrders,
-                    'revenue' => (float) $revenue,
-                ],
-                'operations' => [
-                    'pending_withdrawals' => $pendingWithdrawals,
-                    'pending_reports' => $pendingReports,
-                ],
-                'wallet' => [
-                    'platform_balance' => $platformBalance,
-                    'user_balances' => $totalWallets,
-                ],
-                'recent_activity' => $recentLogs,
+            'users' => [
+                'total' => $totalUsers,
+                'active' => $activeUsers,
+                'suspended' => $suspendedUsers,
+                'pending_kyc' => $pendingKyc,
             ],
+            'store' => [
+                'total_products' => $totalProducts,
+                'published_products' => $publishedProducts,
+            ],
+            'commerce' => [
+                'total_orders' => $totalOrders,
+                'completed_orders' => $completedOrders,
+                'revenue' => (float) $revenue,
+            ],
+            'operations' => [
+                'pending_withdrawals' => $pendingWithdrawals,
+                'pending_reports' => $pendingReports,
+            ],
+            'wallet' => [
+                'platform_balance' => (float) $platformBalance,
+                'user_balances' => (float) $totalWallets,
+            ],
+            'recent_activity' => $recentLogs,
         ]);
     }
 }

@@ -100,7 +100,12 @@ class WalletController extends Controller
             ->latest();
 
         if (! empty($validated['type'])) {
-            $query->whereHas('transaction', fn ($q) => $q->where('type', $validated['type']));
+            $types = match ($validated['type']) {
+                'transfer' => ['transfer_in', 'transfer_out'],
+                'donation' => ['donation_in', 'donation_out'],
+                default => [$validated['type']],
+            };
+            $query->whereHas('transaction', fn ($q) => $q->whereIn('type', $types));
         }
         if (! empty($validated['from'])) {
             $query->where('created_at', '>=', $validated['from']);

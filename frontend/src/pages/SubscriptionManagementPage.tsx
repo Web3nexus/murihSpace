@@ -44,11 +44,11 @@ export function SubscriptionManagementPage() {
       ]);
       if (plansRes.ok) {
         const json = await plansRes.json();
-        setPlans(json.data ?? []);
+        setPlans(json.data?.data ?? []);
       }
       if (statsRes.ok) {
         const json = await statsRes.json();
-        setStats(json.data ?? null);
+        setStats(json.data?.data ?? json.data ?? null);
       }
     } catch { /* ignore */ }
     setIsLoading(false);

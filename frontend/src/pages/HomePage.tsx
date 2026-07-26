@@ -15,12 +15,10 @@ export function HomePage() {
     <AnimatedPage className="min-h-screen bg-background text-foreground flex flex-col justify-between">
       {/* Public Header Bar */}
       <header className="sticky top-0 z-50 border-b border-border bg-background/90 backdrop-blur-md px-6 py-4">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2 font-bold text-lg text-foreground">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground font-bold text-sm shadow-sm">
-              M
-            </div>
-            <span>MurihSpace</span>
+        <div className="w-full max-w-7xl mx-auto flex items-center justify-between">
+          <Link to="/" className="flex items-center gap-2">
+            <img src="/logo_blue.png" alt="MurihSpace" className="h-8 w-auto object-contain dark:hidden" />
+            <img src="/logo_white.png" alt="MurihSpace" className="h-8 w-auto object-contain hidden dark:block" />
           </Link>
 
           <div className="flex items-center gap-4">
@@ -69,7 +67,7 @@ export function HomePage() {
 
       {/* Product Pillars Section */}
       <section className="px-6 py-16 bg-muted/40 border-t border-b border-border">
-        <div className="max-w-7xl mx-auto space-y-12">
+        <div className="w-full max-w-7xl mx-auto space-y-12">
           <div className="text-center space-y-2 max-w-xl mx-auto">
             <h2 className="text-2xl font-bold tracking-tight text-foreground">
               Built for Creators, Communities & Vendors
@@ -151,7 +149,7 @@ export function HomePage() {
 
       {/* Public Footer */}
       <footer className="border-t border-border bg-card px-6 py-8">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-muted-foreground">
+        <div className="w-full max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-muted-foreground">
           <div className="flex items-center gap-2">
             <span className="font-bold text-foreground">MurihSpace</span>
             <span>© 2026 MurihSpace Ecosystem. All rights reserved.</span>

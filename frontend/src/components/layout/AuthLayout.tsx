@@ -35,10 +35,8 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
 
       {/* Brand logo */}
       <div className="absolute right-6 top-6 flex items-center gap-2">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold text-sm">
-          M
-        </div>
-        <span className="font-semibold text-sm">MurihSpace</span>
+        <img src="/logo_blue.png" alt="MurihSpace" className="h-7 w-auto object-contain dark:hidden" />
+        <img src="/logo_white.png" alt="MurihSpace" className="h-7 w-auto object-contain hidden dark:block" />
       </div>
 
       {/* Auth Card */}

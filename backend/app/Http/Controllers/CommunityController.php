@@ -10,9 +10,6 @@ use Illuminate\Validation\Rule;
 
 class CommunityController extends Controller
 {
-    /**
-     * Display a public list of communities for Discovery.
-     */
     public function index(Request $request): JsonResponse
     {
         $search = $request->query('search');
@@ -34,9 +31,6 @@ class CommunityController extends Controller
         return response()->json($communities);
     }
 
-    /**
-     * Show a public preview of a single community by slug.
-     */
     public function show(string $slug): JsonResponse
     {
         $community = Community::with('creator:id,name,username,avatar')
@@ -44,9 +38,7 @@ class CommunityController extends Controller
             ->first();
 
         if (! $community) {
-            return response()->json([
-                'message' => 'Community not found.',
-            ], 404);
+            return response()->json(['message' => 'Community not found.'], 404);
         }
 
         return response()->json([
@@ -54,11 +46,10 @@ class CommunityController extends Controller
         ]);
     }
 
-    /**
-     * Store a newly created community (Authenticated Creator).
-     */
     public function store(Request $request): JsonResponse
     {
+        $this->authorize('create', Community::class);
+
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:100'],
             'description' => ['nullable', 'string', 'max:1000'],
@@ -72,7 +63,6 @@ class CommunityController extends Controller
             'rules.*' => ['string', 'max:255'],
         ]);
 
-        // Auto-generate slug
         $baseSlug = Str::slug($validated['name']);
         $slug = $baseSlug;
         $counter = 1;
@@ -98,7 +88,7 @@ class CommunityController extends Controller
                 'No spam, self-promotion or unauthorized links.',
                 'Engage constructively and share valuable knowledge.',
             ],
-            'members_count' => 1, // Creator is the first member
+            'members_count' => 1,
         ]);
 
         $community->load('creator:id,name,username,avatar');
@@ -109,17 +99,68 @@ class CommunityController extends Controller
         ], 201);
     }
 
-    /**
-     * Get communities owned/created by the current user.
-     */
     public function myCommunities(Request $request): JsonResponse
     {
         $communities = Community::where('user_id', $request->user()->id)
             ->latest()
             ->get();
 
-        return response()->json([
-            'communities' => $communities,
-        ]);
+        return response()->json(['communities' => $communities]);
+    }
+
+    // ── Admin endpoints ─────────────────────────────────────────────
+
+    public function adminIndex(Request $request): JsonResponse
+    {
+        $search = $request->query('search');
+        $visibility = $request->query('visibility');
+        $category = $request->query('category');
+        $sort = $request->query('sort', 'latest');
+
+        $query = Community::with('creator:id,name,username,avatar');
+
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('description', 'like', "%{$search}%");
+            });
+        }
+        if ($visibility) $query->where('visibility', $visibility);
+        if ($category) $query->where('category', $category);
+        if ($sort === 'oldest') $query->oldest();
+        else $query->latest();
+
+        $communities = $query->withCount(['memberships', 'memberships as active_members_count' => fn ($q) => $q->where('status', 'active')])
+            ->paginate(20);
+
+        $stats = [
+            'total' => Community::count(),
+            'public' => Community::where('visibility', 'public')->count(),
+            'private' => Community::where('visibility', 'private')->count(),
+            'categories' => Community::selectRaw('category, count(*) as count')
+                ->groupBy('category')->orderByDesc('count')->get(),
+        ];
+
+        return response()->json(['data' => $communities, 'stats' => $stats]);
+    }
+
+    public function adminShow(int $id): JsonResponse
+    {
+        $community = Community::with([
+            'creator:id,name,username,email,avatar,role',
+            'memberships' => fn ($q) => $q->with('user:id,name,username,email')->latest()->limit(50),
+        ])->withCount(['memberships', 'memberships as active_members_count' => fn ($q) => $q->where('status', 'active')])
+            ->findOrFail($id);
+
+        return response()->json(['data' => $community]);
+    }
+
+    public function adminDelete(int $id): JsonResponse
+    {
+        $community = Community::findOrFail($id);
+        $community->memberships()->delete();
+        $community->delete();
+
+        return response()->json(['message' => 'Community deleted.']);
     }
 }

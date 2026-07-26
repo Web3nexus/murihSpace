@@ -19,6 +19,7 @@ class LedgerTransaction extends Model
     public const TYPES = [
         'payment', 'receive', 'transfer_out', 'transfer_in',
         'donation_out', 'donation_in', 'withdrawal', 'fee', 'refund',
+        'escrow_hold', 'escrow_release', 'escrow_refund',
     ];
 
     protected static function booted(): void

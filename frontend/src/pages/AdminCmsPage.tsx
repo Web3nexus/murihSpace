@@ -28,7 +28,7 @@ export function AdminCmsPage() {
   const fetchSections = useCallback(async () => {
     try {
       const res = await fetch(`${API_BASE}/securegate/cms?page=${selectedPage}`, { headers: authHeaders() });
-      if (res.ok) { const j = await res.json(); setSections(j.data ?? []); }
+      if (res.ok) { const j = await res.json(); setSections(j?.data?.data ?? j?.data ?? []); }
     } finally { setLoading(false); }
   }, [selectedPage]);
 
@@ -116,11 +116,11 @@ export function AdminCmsPage() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto p-4 sm:p-6 space-y-6">
+    <div className="w-full mx-auto max-w-[1400px] space-y-6 p-6 lg:p-10">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-black text-foreground tracking-tight flex items-center gap-2.5">
-            <FileText className="h-6 w-6 text-secondary" /> Website CMS
+          <h1 className="text-2xl font-black tracking-tight flex items-center gap-2.5">
+            <FileText className="h-6 w-6 text-[#38A8D8]" /> Website CMS
           </h1>
           <p className="text-xs text-muted-foreground mt-1">Manage landing page sections.</p>
         </div>
@@ -134,7 +134,7 @@ export function AdminCmsPage() {
             key={p}
             onClick={() => { setSelectedPage(p); setLoading(true); }}
             className={`px-4 py-1.5 text-sm font-medium rounded-lg transition-colors capitalize ${
-              selectedPage === p ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+              selectedPage === p ? 'bg-accent text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
             }`}
           >
             {p}
@@ -142,16 +142,16 @@ export function AdminCmsPage() {
         ))}
       </div>
 
-      {loading ? <div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-secondary" /></div>
+      {loading ? <div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-[#38A8D8]" /></div>
         : sections.length === 0 ? <div className="p-12 text-center border border-dashed border-border rounded-3xl bg-card"><FileText className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" /><h3 className="text-sm font-bold">No sections for this page</h3></div>
         : <div className="space-y-3">
             {sections.map((section, index) => (
               <div key={section.id} className="border border-border rounded-2xl bg-card overflow-hidden shadow-sm">
-                <div className="flex items-center justify-between px-4 py-3 border-b border-border/50 bg-muted/20">
+                <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-card">
                   <div className="flex items-center gap-3">
                     <div className="flex flex-col gap-0.5">
-                      <button onClick={() => moveUp(index)} className="text-muted-foreground/40 hover:text-foreground transition-colors leading-none text-[10px]">&uarr;</button>
-                      <button onClick={() => moveDown(index)} className="text-muted-foreground/40 hover:text-foreground transition-colors leading-none text-[10px]">&darr;</button>
+                      <button onClick={() => moveUp(index)} className="text-muted-foreground/50 hover:text-foreground transition-colors leading-none text-[10px]">&uarr;</button>
+                      <button onClick={() => moveDown(index)} className="text-muted-foreground/50 hover:text-foreground transition-colors leading-none text-[10px]">&darr;</button>
                     </div>
                     <div>
                       <p className="text-sm font-bold text-foreground">{section.label}</p>
@@ -159,10 +159,10 @@ export function AdminCmsPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-1">
-                    <button onClick={() => openEditor(section)} className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors text-xs font-medium">
+                    <button onClick={() => openEditor(section)} className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors text-xs font-medium">
                       Edit
                     </button>
-                    <button onClick={() => toggleActive(section)} className={`p-1.5 rounded-lg transition-colors ${section.is_active ? 'text-emerald-500 hover:bg-emerald-500/10' : 'text-muted-foreground hover:bg-muted'}`}>
+                    <button onClick={() => toggleActive(section)} className={`p-1.5 rounded-lg transition-colors ${section.is_active ? 'text-emerald-500 hover:bg-emerald-500/10' : 'text-muted-foreground hover:bg-accent'}`}>
                       {section.is_active ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
                     </button>
                     <button onClick={() => deleteSection(section.id)} className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors">
@@ -184,15 +184,15 @@ export function AdminCmsPage() {
         <DialogContent className="sm:max-w-[600px] bg-card border-border rounded-2xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-base font-bold">
-              <FileText className="h-5 w-5 text-secondary" /> Edit: {editing?.label}
+              <FileText className="h-5 w-5 text-[#38A8D8]" /> Edit: {editing?.label}
             </DialogTitle>
-            <DialogDescription className="text-xs">Edit the JSON content for this section.</DialogDescription>
+            <DialogDescription className="text-xs text-muted-foreground">Edit the JSON content for this section.</DialogDescription>
           </DialogHeader>
-          {msg && <div className={`p-3 rounded-xl text-xs font-bold flex items-center gap-2 ${msg.type === 'success' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-destructive/10 text-destructive'}`}>{msg.type === 'success' ? <CheckCircle2 className="h-4 w-4 shrink-0" /> : <AlertCircle className="h-4 w-4 shrink-0" />}{msg.text}</div>}
+          {msg && <div className={`p-3 rounded-xl text-xs font-bold flex items-center gap-2 ${msg.type === 'success' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}`}>{msg.type === 'success' ? <CheckCircle2 className="h-4 w-4 shrink-0" /> : <AlertCircle className="h-4 w-4 shrink-0" />}{msg.text}</div>}
           <textarea
             value={editContent}
             onChange={(e) => setEditContent(e.target.value)}
-            className="w-full h-64 rounded-xl border border-border bg-muted/30 p-4 text-xs font-mono resize-y focus:outline-none focus:ring-2 focus:ring-ring"
+            className="w-full h-64 rounded-xl border border-border bg-muted/30 p-4 text-xs font-mono resize-y focus:outline-none focus:ring-2 focus:ring-[#38A8D8]/30"
           />
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => setEditing(null)} className="text-xs">Cancel</Button>
@@ -208,10 +208,10 @@ export function AdminCmsPage() {
       <Dialog open={showCreate} onOpenChange={() => { setShowCreate(false); setMsg(null); }}>
         <DialogContent className="sm:max-w-[400px] bg-card border-border rounded-2xl">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-base font-bold"><FileText className="h-5 w-5 text-secondary" /> Add Section</DialogTitle>
+            <DialogTitle className="flex items-center gap-2 text-base font-bold"><FileText className="h-5 w-5 text-[#38A8D8]" /> Add Section</DialogTitle>
             <DialogDescription className="text-xs">Add a new content section to the {selectedPage} page.</DialogDescription>
           </DialogHeader>
-          {msg && <div className={`p-3 rounded-xl text-xs font-bold flex items-center gap-2 ${msg.type === 'success' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-destructive/10 text-destructive'}`}>{msg.type === 'success' ? <CheckCircle2 className="h-4 w-4 shrink-0" /> : <AlertCircle className="h-4 w-4 shrink-0" />}{msg.text}</div>}
+          {msg && <div className={`p-3 rounded-xl text-xs font-bold flex items-center gap-2 ${msg.type === 'success' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}`}>{msg.type === 'success' ? <CheckCircle2 className="h-4 w-4 shrink-0" /> : <AlertCircle className="h-4 w-4 shrink-0" />}{msg.text}</div>}
           <form onSubmit={createSection} className="space-y-3">
             <Input name="key" placeholder="Key (e.g. hero)" required className="text-sm" />
             <Input name="label" placeholder="Display label" required className="text-sm" />

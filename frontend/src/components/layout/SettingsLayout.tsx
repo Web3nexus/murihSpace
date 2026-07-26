@@ -31,7 +31,7 @@ const NAV_ITEMS = [
 
 export function SettingsLayout() {
   return (
-    <div className="flex flex-col gap-4">
+    <div className="w-full max-w-7xl mx-auto p-6 lg:p-8 flex flex-col gap-4">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
         <p className="text-muted-foreground text-sm mt-1">

@@ -1,12 +1,22 @@
 <?php
 
+use App\Http\Controllers\AdminAnalyticsController;
 use App\Http\Controllers\AdminDashboardController;
 use App\Http\Controllers\AdminKycController;
+use App\Http\Controllers\AdminPlansController;
 use App\Http\Controllers\AdminUserController;
+use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\AudioRoomController;
+use App\Http\Controllers\AddressController;
+use App\Http\Controllers\BrandController;
+use App\Http\Controllers\BrandDealController;
+use App\Http\Controllers\BrandDealProposalController;
+use App\Http\Controllers\BrandInvoiceController;
 use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\BadgeController;
 use App\Http\Controllers\BlockController;
+use App\Http\Controllers\CartController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\CoachingBookingController;
 use App\Http\Controllers\CoachingServiceController;
@@ -15,21 +25,34 @@ use App\Http\Controllers\ConversationController;
 use App\Http\Controllers\ConversationSettingsController;
 use App\Http\Controllers\DigitalProductController;
 use App\Http\Controllers\DonationController;
+use App\Http\Controllers\EmailBroadcastController;
+use App\Http\Controllers\EmailSequenceController;
+use App\Http\Controllers\EscrowController;
 use App\Http\Controllers\EventController;
 use App\Http\Controllers\FeatureFlagController;
+use App\Http\Controllers\FulfilmentDisputeController;
+use App\Http\Controllers\FulfilmentOrderController;
+use App\Http\Controllers\FulfilmentPayoutController;
+use App\Http\Controllers\MediaKitController;
 use App\Http\Controllers\MembershipController;
 use App\Http\Controllers\MessageAttachmentController;
 use App\Http\Controllers\MessageReactionController;
+use App\Http\Controllers\MilestoneController;
 use App\Http\Controllers\ModerationController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\NotificationPreferenceController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\PageSectionController;
+use App\Http\Controllers\PhysicalProductController;
 use App\Http\Controllers\PostController;
+use App\Http\Controllers\ProductReviewController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PurchaseController;
 use App\Http\Controllers\PushTokenController;
+use App\Http\Controllers\ReconciliationController;
+use App\Http\Controllers\ReferralController;
 use App\Http\Controllers\RoleController;
+use App\Http\Controllers\ShippingProfileController;
 use App\Http\Controllers\StorefrontController;
 use App\Http\Controllers\SubscriptionController;
 use App\Http\Controllers\SubscriptionPlanController;
@@ -67,8 +90,8 @@ Route::prefix('v1')->group(function () {
 
     // Authentication Routes
     Route::prefix('auth')->group(function () {
-        Route::post('/register', [AuthController::class, 'register']);
-        Route::post('/login', [AuthController::class, 'login']);
+        Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:auth');
+        Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:auth');
 
         Route::middleware('auth:sanctum')->group(function () {
             Route::post('/logout', [AuthController::class, 'logout']);
@@ -103,11 +126,33 @@ Route::prefix('v1')->group(function () {
         Route::get('/{id}', [EventController::class, 'show']);
     });
 
+    // Sprint 30: Public physical product listing (no auth required)
+    Route::get('/store/physical-products', [PhysicalProductController::class, 'indexPublic']);
+
+    // Sprint 33: Public product reviews (no auth required)
+    Route::get('/store/products/{productId}/reviews', [ProductReviewController::class, 'index']);
+
+    // Sprint 34: Public shipping estimate (no auth required)
+    Route::post('/shipping/estimate', [ShippingProfileController::class, 'estimate']);
+
+    // Sprint 36: Public milestones & badges
+    Route::get('/milestones/creator/{creatorId}', [MilestoneController::class, 'publicMilestones']);
+    Route::get('/badges', [BadgeController::class, 'index']);
+
+    // Sprint 37: Public referral click tracking
+    Route::post('/ref/{code}/click', [ReferralController::class, 'trackClick']);
+
+    // Sprint 38: Public brand listing & media kit
+    Route::get('/brands', [BrandController::class, 'index']);
+    Route::get('/brands/{id}', [BrandController::class, 'show']);
+    Route::get('/media-kit/{creatorId}', [MediaKitController::class, 'publicShow']);
+
     // Sprint 19: System health (no auth required)
     Route::get('/health', function () {
         $dbConnected = false;
         $cacheConnected = false;
         $queueResponsive = false;
+        $redisConnected = false;
 
         try {
             DB::connection()->getPdo();
@@ -128,14 +173,32 @@ Route::prefix('v1')->group(function () {
             $queueResponsive = false;
         }
 
+        try {
+            $redisConnected = app('redis')->command('ping') === 'PONG';
+        } catch (Exception $e) {
+            $redisConnected = false;
+        }
+
+        $overall = 'healthy';
+        if (! $dbConnected || ! $cacheConnected) {
+            $overall = 'degraded';
+        }
+        if (! $dbConnected) {
+            $overall = 'down';
+        }
+
         return response()->json([
-            'status' => $dbConnected && $cacheConnected ? 'healthy' : 'degraded',
+            'status' => $overall,
             'timestamp' => now()->toIso8601String(),
+            'api_version' => 'v1',
+            'environment' => app()->environment(),
             'services' => [
                 'database' => $dbConnected ? 'connected' : 'disconnected',
                 'cache' => $cacheConnected ? 'connected' : 'disconnected',
                 'queue' => $queueResponsive ? 'responsive' : 'unresponsive',
+                'redis' => $redisConnected ? 'connected' : 'disconnected',
             ],
+            'uptime' => function_exists('exec') ? @exec('uptime') : null,
         ]);
     });
 
@@ -163,7 +226,7 @@ Route::prefix('v1')->group(function () {
         // My Communities
         Route::prefix('my-communities')->group(function () {
             Route::get('/', [CommunityController::class, 'myCommunities']);
-            Route::post('/', [CommunityController::class, 'store']);
+            Route::post('/', [CommunityController::class, 'store'])->middleware('creator');
         });
 
         // Community Actions
@@ -242,14 +305,14 @@ Route::prefix('v1')->group(function () {
         });
 
         // ── Sprint 13: Creator Storefront ──────────────────────────────────
-        Route::prefix('storefront')->group(function () {
+        Route::prefix('storefront')->middleware('creator')->group(function () {
             Route::get('/', [StorefrontController::class, 'mine']);
             Route::put('/', [StorefrontController::class, 'update']);
             Route::post('/publish', [StorefrontController::class, 'publish']);
         });
 
         // ── Sprint 14: Digital Products ────────────────────────────────────
-        Route::prefix('store/products')->group(function () {
+        Route::prefix('store/products')->middleware('creator')->group(function () {
             Route::get('/', [DigitalProductController::class, 'index']);
             Route::post('/', [DigitalProductController::class, 'store']);
             Route::get('/{id}', [DigitalProductController::class, 'show']);
@@ -258,6 +321,170 @@ Route::prefix('v1')->group(function () {
             Route::delete('/{id}', [DigitalProductController::class, 'destroy']);
         });
         Route::get('/products/{id}/download', [DigitalProductController::class, 'download']);
+
+        // ── Sprint 30: Physical Products & Inventory ──────────────────────
+        Route::prefix('store/physical-products')->middleware('creator')->group(function () {
+            Route::get('/my', [PhysicalProductController::class, 'myProducts']);
+            Route::post('/', [PhysicalProductController::class, 'store']);
+            Route::get('/{id}', [PhysicalProductController::class, 'show']);
+            Route::put('/{id}', [PhysicalProductController::class, 'update']);
+            Route::delete('/{id}', [PhysicalProductController::class, 'destroy']);
+            Route::post('/{id}/stock', [PhysicalProductController::class, 'adjustStock']);
+        });
+
+                // ── Sprint 31: Cart & Address ────────────────────────────────────
+        Route::prefix('store/cart')->group(function () {
+            Route::get('/', [CartController::class, 'show']);
+            Route::post('/items', [CartController::class, 'addItem']);
+            Route::put('/items/{id}', [CartController::class, 'updateItem']);
+            Route::delete('/items/{id}', [CartController::class, 'removeItem']);
+            Route::delete('/', [CartController::class, 'clear']);
+        });
+
+        Route::prefix('addresses')->group(function () {
+            Route::get('/', [AddressController::class, 'index']);
+            Route::post('/', [AddressController::class, 'store']);
+            Route::put('/{id}', [AddressController::class, 'update']);
+            Route::delete('/{id}', [AddressController::class, 'destroy']);
+            Route::post('/{id}/default', [AddressController::class, 'setDefault']);
+        });
+
+        // ── Sprint 32: Fulfilment & Shipping ──────────────────────────────────
+        Route::prefix('store/fulfilment')->group(function () {
+            Route::post('/checkout', [FulfilmentOrderController::class, 'checkout']);
+            Route::get('/orders', [FulfilmentOrderController::class, 'myOrders']);
+            Route::get('/sales', [FulfilmentOrderController::class, 'sales']);
+            Route::get('/{id}', [FulfilmentOrderController::class, 'show']);
+            Route::get('/{id}/tracking', [FulfilmentOrderController::class, 'trackingEvents']);
+            Route::put('/{id}/status', [FulfilmentOrderController::class, 'updateStatus']);
+            Route::put('/{id}/tracking', [FulfilmentOrderController::class, 'updateTracking']);
+        });
+
+        // ── Sprint 34: Shipping Profiles ──────────────────────────────────────
+        Route::prefix('store/shipping')->group(function () {
+            Route::get('/profiles', [ShippingProfileController::class, 'index']);
+            Route::post('/profiles', [ShippingProfileController::class, 'store']);
+            Route::put('/profiles/{id}', [ShippingProfileController::class, 'update']);
+            Route::delete('/profiles/{id}', [ShippingProfileController::class, 'destroy']);
+        });
+
+        // ── Sprint 35: Fulfilment Payouts ─────────────────────────────────────
+        Route::prefix('store/payouts')->group(function () {
+            Route::get('/', [FulfilmentPayoutController::class, 'myPayouts']);
+            Route::get('/stats', [FulfilmentPayoutController::class, 'stats']);
+        });
+
+        // ── Sprint 36: Milestones & Badges ────────────────────────────────────
+        Route::prefix('milestones')->middleware('creator')->group(function () {
+            Route::get('/', [MilestoneController::class, 'index']);
+            Route::post('/', [MilestoneController::class, 'store']);
+            Route::put('/{id}', [MilestoneController::class, 'update']);
+            Route::delete('/{id}', [MilestoneController::class, 'destroy']);
+            Route::get('/my-progress', [MilestoneController::class, 'myProgress']);
+            Route::post('/progress', [MilestoneController::class, 'updateProgress']);
+        });
+
+        Route::prefix('badges')->group(function () {
+            Route::get('/my', [BadgeController::class, 'myBadges']);
+            Route::post('/earn', [BadgeController::class, 'earn']);
+        });
+
+        // ── Sprint 37: Referral & Affiliate Programs ──────────────────────────
+        Route::prefix('referrals')->group(function () {
+            Route::get('/stats', [ReferralController::class, 'stats']);
+            Route::get('/', [ReferralController::class, 'referrals']);
+
+            // Creator-only program & link management
+            Route::middleware('creator')->group(function () {
+                Route::get('/program', [ReferralController::class, 'program']);
+                Route::put('/program', [ReferralController::class, 'upsertProgram']);
+                Route::get('/links', [ReferralController::class, 'links']);
+                Route::post('/links', [ReferralController::class, 'createLink']);
+                Route::post('/links/{id}/toggle', [ReferralController::class, 'toggleLink']);
+                Route::delete('/links/{id}', [ReferralController::class, 'deleteLink']);
+            });
+        });
+
+        // ── Sprint 38: Brand Deals Hub ────────────────────────────────────────
+        Route::middleware('creator')->group(function () {
+            Route::prefix('brands')->group(function () {
+                Route::post('/', [BrandController::class, 'store']);
+            });
+
+            Route::prefix('brand-deals')->group(function () {
+                Route::get('/', [BrandDealController::class, 'index']);
+                Route::post('/', [BrandDealController::class, 'store']);
+                Route::put('/{id}', [BrandDealController::class, 'update']);
+                Route::delete('/{id}', [BrandDealController::class, 'destroy']);
+            });
+
+            Route::prefix('brand-proposals')->group(function () {
+                Route::get('/', [BrandDealProposalController::class, 'index']);
+                Route::post('/', [BrandDealProposalController::class, 'store']);
+                Route::post('/{id}/send', [BrandDealProposalController::class, 'send']);
+                Route::delete('/{id}', [BrandDealProposalController::class, 'destroy']);
+            });
+
+            Route::prefix('brand-invoices')->group(function () {
+                Route::get('/', [BrandInvoiceController::class, 'index']);
+                Route::post('/', [BrandInvoiceController::class, 'store']);
+                Route::post('/{id}/mark-sent', [BrandInvoiceController::class, 'markSent']);
+                Route::post('/{id}/mark-paid', [BrandInvoiceController::class, 'markPaid']);
+                Route::delete('/{id}', [BrandInvoiceController::class, 'destroy']);
+            });
+
+            Route::prefix('media-kit')->group(function () {
+                Route::get('/', [MediaKitController::class, 'show']);
+                Route::put('/', [MediaKitController::class, 'update']);
+                Route::get('/preview', [MediaKitController::class, 'preview']);
+            });
+        });
+
+        // ── Sprint 39: Email Automations & Sequences ──────────────────────────
+        Route::prefix('email-broadcasts')->middleware('creator')->group(function () {
+            Route::get('/', [EmailBroadcastController::class, 'index']);
+            Route::post('/', [EmailBroadcastController::class, 'store']);
+            Route::get('/{id}', [EmailBroadcastController::class, 'show']);
+            Route::put('/{id}', [EmailBroadcastController::class, 'update']);
+            Route::post('/{id}/send', [EmailBroadcastController::class, 'send']);
+            Route::delete('/{id}', [EmailBroadcastController::class, 'destroy']);
+        });
+
+        Route::prefix('email-sequences')->middleware('creator')->group(function () {
+            Route::get('/', [EmailSequenceController::class, 'index']);
+            Route::post('/', [EmailSequenceController::class, 'store']);
+            Route::put('/{id}', [EmailSequenceController::class, 'update']);
+            Route::post('/{id}/toggle', [EmailSequenceController::class, 'toggle']);
+            Route::delete('/{id}', [EmailSequenceController::class, 'destroy']);
+
+            Route::get('/{sequenceId}/steps', [EmailSequenceController::class, 'steps']);
+            Route::post('/{sequenceId}/steps', [EmailSequenceController::class, 'storeStep']);
+            Route::put('/{sequenceId}/steps/{stepId}', [EmailSequenceController::class, 'updateStep']);
+            Route::delete('/{sequenceId}/steps/{stepId}', [EmailSequenceController::class, 'deleteStep']);
+        });
+
+        // ── Sprint 40: Analytics & AI Tools ────────────────────────────────────
+        Route::prefix('analytics')->group(function () {
+            Route::get('/overview', [AnalyticsController::class, 'overview']);
+            Route::get('/sales-trends', [AnalyticsController::class, 'salesTrends']);
+            Route::get('/top-products', [AnalyticsController::class, 'topProducts']);
+            Route::get('/ai-suggestions', [AnalyticsController::class, 'aiSuggestions']);
+        });
+
+        // ── Sprint 33: Reviews & Disputes ─────────────────────────────────────
+        Route::prefix('store/reviews')->group(function () {
+            Route::get('/my', [ProductReviewController::class, 'myReviews']);
+            Route::post('/', [ProductReviewController::class, 'store']);
+            Route::put('/{id}', [ProductReviewController::class, 'update']);
+            Route::delete('/{id}', [ProductReviewController::class, 'destroy']);
+        });
+
+        Route::prefix('store/disputes')->group(function () {
+            Route::get('/', [FulfilmentDisputeController::class, 'index']);
+            Route::post('/', [FulfilmentDisputeController::class, 'store']);
+            Route::get('/{id}', [FulfilmentDisputeController::class, 'show']);
+            Route::put('/{id}/resolve', [FulfilmentDisputeController::class, 'resolve']);
+        });
 
         // ── Sprint 15: Checkout & Orders ───────────────────────────────────
         Route::prefix('checkout')->group(function () {
@@ -296,6 +523,17 @@ Route::prefix('v1')->group(function () {
             // Withdrawals
             Route::post('/withdrawals', [WithdrawalController::class, 'request']);
             Route::get('/withdrawals', [WithdrawalController::class, 'myRequests']);
+
+            // Escrow (Sprint 29)
+            Route::prefix('escrow')->group(function () {
+                Route::get('/disputes', [EscrowController::class, 'disputes']);
+                Route::post('/disputes/{id}/resolve', [EscrowController::class, 'resolveDispute']);
+                Route::post('/{escrowId}/dispute', [EscrowController::class, 'openDispute']);
+                Route::get('/', [EscrowController::class, 'index']);
+                Route::get('/{id}', [EscrowController::class, 'show']);
+                Route::post('/{id}/release', [EscrowController::class, 'release']);
+                Route::post('/{id}/refund', [EscrowController::class, 'refund']);
+            });
         });
 
         // ── Sprint 22: Subscriptions & Membership Plans ───────────────────
@@ -303,10 +541,14 @@ Route::prefix('v1')->group(function () {
             Route::get('/plans/public', [SubscriptionPlanController::class, 'indexPublic']);
             Route::get('/plans/my', [SubscriptionPlanController::class, 'myPlans']);
             Route::get('/plans/creator/{creatorId}', [SubscriptionPlanController::class, 'indexForCreator']);
-            Route::post('/plans', [SubscriptionPlanController::class, 'store']);
             Route::get('/plans/{id}', [SubscriptionPlanController::class, 'show']);
-            Route::put('/plans/{id}', [SubscriptionPlanController::class, 'update']);
-            Route::delete('/plans/{id}', [SubscriptionPlanController::class, 'destroy']);
+
+            // Creator-only plan management
+            Route::middleware('creator')->group(function () {
+                Route::post('/plans', [SubscriptionPlanController::class, 'store']);
+                Route::put('/plans/{id}', [SubscriptionPlanController::class, 'update']);
+                Route::delete('/plans/{id}', [SubscriptionPlanController::class, 'destroy']);
+            });
 
             Route::get('/mine', [SubscriptionController::class, 'mySubscriptions']);
             Route::get('/subscribers', [SubscriptionController::class, 'mySubscribers']);
@@ -320,14 +562,17 @@ Route::prefix('v1')->group(function () {
             Route::get('/services', [CoachingServiceController::class, 'indexPublic']);
             Route::get('/services/{id}', [CoachingServiceController::class, 'show']);
 
-            Route::get('/my-services', [CoachingServiceController::class, 'myServices']);
-            Route::post('/services', [CoachingServiceController::class, 'store']);
-            Route::put('/services/{id}', [CoachingServiceController::class, 'update']);
-            Route::delete('/services/{id}', [CoachingServiceController::class, 'destroy']);
+            // Creator-only coaching management
+            Route::middleware('creator')->group(function () {
+                Route::get('/my-services', [CoachingServiceController::class, 'myServices']);
+                Route::post('/services', [CoachingServiceController::class, 'store']);
+                Route::put('/services/{id}', [CoachingServiceController::class, 'update']);
+                Route::delete('/services/{id}', [CoachingServiceController::class, 'destroy']);
 
-            Route::post('/services/{id}/slots/generate', [CoachingServiceController::class, 'generateSlots']);
-            Route::get('/services/{id}/slots', [CoachingServiceController::class, 'slots']);
-            Route::delete('/services/{id}/slots/{slotId}', [CoachingServiceController::class, 'deleteSlot']);
+                Route::post('/services/{id}/slots/generate', [CoachingServiceController::class, 'generateSlots']);
+                Route::get('/services/{id}/slots', [CoachingServiceController::class, 'slots']);
+                Route::delete('/services/{id}/slots/{slotId}', [CoachingServiceController::class, 'deleteSlot']);
+            });
 
             Route::post('/book', [CoachingBookingController::class, 'book']);
             Route::get('/my-bookings', [CoachingBookingController::class, 'myBookings']);
@@ -337,7 +582,7 @@ Route::prefix('v1')->group(function () {
         });
 
         // ── Sprint 20: Events ──────────────────────────────────────────────
-        Route::prefix('my-events')->group(function () {
+        Route::prefix('my-events')->middleware('creator')->group(function () {
             Route::get('/', [EventController::class, 'myEvents']);
             Route::post('/', [EventController::class, 'store']);
             Route::get('/{id}', [EventController::class, 'show']);
@@ -359,18 +604,23 @@ Route::prefix('v1')->group(function () {
         Route::prefix('audio-rooms')->group(function () {
             Route::get('/', [AudioRoomController::class, 'index']);
             Route::get('/my-rooms', [AudioRoomController::class, 'myRooms']);
-            Route::post('/', [AudioRoomController::class, 'store']);
             Route::get('/{id}', [AudioRoomController::class, 'show']);
-            Route::put('/{id}', [AudioRoomController::class, 'update']);
-            Route::delete('/{id}', [AudioRoomController::class, 'destroy']);
 
-            Route::post('/{id}/start', [AudioRoomController::class, 'start']);
-            Route::post('/{id}/end', [AudioRoomController::class, 'end']);
+            // Participant actions (all authenticated users)
             Route::post('/{id}/join', [AudioRoomController::class, 'join']);
             Route::post('/{id}/leave', [AudioRoomController::class, 'leave']);
             Route::post('/{id}/raise-hand', [AudioRoomController::class, 'raiseHand']);
-            Route::post('/{id}/users/{userId}/role', [AudioRoomController::class, 'updateRole']);
-            Route::post('/{id}/users/{userId}/mute', [AudioRoomController::class, 'toggleMute']);
+
+            // Creator/admin actions
+            Route::middleware('creator')->group(function () {
+                Route::post('/', [AudioRoomController::class, 'store']);
+                Route::put('/{id}', [AudioRoomController::class, 'update']);
+                Route::delete('/{id}', [AudioRoomController::class, 'destroy']);
+                Route::post('/{id}/start', [AudioRoomController::class, 'start']);
+                Route::post('/{id}/end', [AudioRoomController::class, 'end']);
+                Route::post('/{id}/users/{userId}/role', [AudioRoomController::class, 'updateRole']);
+                Route::post('/{id}/users/{userId}/mute', [AudioRoomController::class, 'toggleMute']);
+            });
         });
 
         // ── Sprint 17: Core Administration (securegate) ────────────────────
@@ -385,6 +635,7 @@ Route::prefix('v1')->group(function () {
                 Route::post('/{id}/suspend', [AdminUserController::class, 'suspend']);
                 Route::post('/{id}/activate', [AdminUserController::class, 'activate']);
                 Route::post('/{id}/ban', [AdminUserController::class, 'ban']);
+                Route::post('/{id}/impersonate', [AdminUserController::class, 'impersonate']);
             });
 
             // KYC
@@ -415,12 +666,28 @@ Route::prefix('v1')->group(function () {
                 Route::get('/{id}', [AuditLogController::class, 'show']);
             });
 
+            // Reconciliation (Sprint 29)
+            Route::prefix('reconciliation')->group(function () {
+                Route::get('/audit', [ReconciliationController::class, 'audit']);
+                Route::get('/ledger-summary', [ReconciliationController::class, 'ledgerSummary']);
+            });
+
             // Feature Flags
             Route::prefix('feature-flags')->group(function () {
                 Route::get('/', [FeatureFlagController::class, 'index']);
                 Route::post('/', [FeatureFlagController::class, 'store']);
                 Route::put('/{id}', [FeatureFlagController::class, 'update']);
                 Route::delete('/{id}', [FeatureFlagController::class, 'destroy']);
+            });
+
+            // ── Sprint 19: Queue & System Monitoring ─────────────────────────
+            Route::prefix('queue')->group(function () {
+                Route::get('/stats', [\App\Http\Controllers\QueueMonitorController::class, 'stats']);
+                Route::get('/failed-jobs', [\App\Http\Controllers\QueueMonitorController::class, 'failedJobs']);
+                Route::post('/failed-jobs/{id}/retry', [\App\Http\Controllers\QueueMonitorController::class, 'retryFailed']);
+                Route::post('/failed-jobs/retry-all', [\App\Http\Controllers\QueueMonitorController::class, 'retryAllFailed']);
+                Route::delete('/failed-jobs', [\App\Http\Controllers\QueueMonitorController::class, 'flushFailed']);
+                Route::get('/system-info', [\App\Http\Controllers\QueueMonitorController::class, 'systemInfo']);
             });
 
             // ── Sprint 20: Events Management ──────────────────────────────────
@@ -436,6 +703,71 @@ Route::prefix('v1')->group(function () {
                 Route::put('/{id}', [PageSectionController::class, 'update']);
                 Route::delete('/{id}', [PageSectionController::class, 'destroy']);
                 Route::post('/reorder', [PageSectionController::class, 'reorder']);
+            });
+
+            // ── Sprint 33: Disputes Management ────────────────────────────────
+            Route::prefix('disputes')->group(function () {
+                Route::get('/', [FulfilmentDisputeController::class, 'adminIndex']);
+                Route::put('/{id}/resolve', [FulfilmentDisputeController::class, 'adminResolve']);
+            });
+
+            // ── Sprint 35: Payouts Management ─────────────────────────────────
+            Route::prefix('payouts')->group(function () {
+                Route::get('/', [FulfilmentPayoutController::class, 'adminIndex']);
+            });
+
+            // ── Sprint 36: Badges Management ──────────────────────────────────
+            Route::prefix('badges')->group(function () {
+                Route::post('/', [BadgeController::class, 'store']);
+                Route::put('/{id}', [BadgeController::class, 'update']);
+                Route::delete('/{id}', [BadgeController::class, 'destroy']);
+                Route::post('/seed', [BadgeController::class, 'seed']);
+            });
+
+            // ── Sprint 33: Reviews Management (admin-only) ─────────────────────
+            Route::prefix('reviews')->group(function () {
+                Route::get('/', [ProductReviewController::class, 'adminIndex']);
+                Route::put('/{id}', [ProductReviewController::class, 'adminUpdate']);
+                Route::post('/{id}/approve', [ProductReviewController::class, 'adminApprove']);
+                Route::delete('/{id}', [ProductReviewController::class, 'adminDestroy']);
+            });
+
+            // ── Sprint 41: Communities Management ────────────────────────────
+            Route::prefix('communities')->group(function () {
+                Route::get('/', [CommunityController::class, 'adminIndex']);
+                Route::get('/{id}', [CommunityController::class, 'adminShow']);
+                Route::delete('/{id}', [CommunityController::class, 'adminDelete']);
+            });
+
+            // ── Sprint 41: Escrow Management ─────────────────────────────────
+            Route::prefix('escrow')->group(function () {
+                Route::get('/', [EscrowController::class, 'index']);
+                Route::get('/{id}', [EscrowController::class, 'show']);
+                Route::post('/{id}/release', [EscrowController::class, 'release']);
+                Route::post('/{id}/refund', [EscrowController::class, 'refund']);
+                Route::post('/{id}/disputes', [EscrowController::class, 'openDispute']);
+                Route::get('/disputes', [EscrowController::class, 'disputes']);
+                Route::put('/disputes/{id}/resolve', [EscrowController::class, 'resolveDispute']);
+            });
+
+            // ── Sprint 41: Payouts Management ────────────────────────────────
+            Route::prefix('payouts')->group(function () {
+                Route::get('/', [FulfilmentPayoutController::class, 'adminIndex']);
+                Route::put('/{id}/mark-paid', [FulfilmentPayoutController::class, 'adminMarkPaid']);
+            });
+
+            // ── Sprint 42: Platform Analytics ────────────────────────────────
+            Route::prefix('analytics')->group(function () {
+                Route::get('/overview', [AdminAnalyticsController::class, 'overview']);
+                Route::get('/trends', [AdminAnalyticsController::class, 'trends']);
+                Route::get('/top-content', [AdminAnalyticsController::class, 'topContent']);
+            });
+
+            // ── Sprint 42: Plans & Fees Management ───────────────────────────
+            Route::prefix('plans')->group(function () {
+                Route::get('/', [AdminPlansController::class, 'index']);
+                Route::get('/{id}', [AdminPlansController::class, 'show']);
+                Route::post('/{id}/toggle', [AdminPlansController::class, 'toggleActive']);
             });
         });
     });

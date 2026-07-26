@@ -114,13 +114,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* Brand Header */}
       <div className="flex h-16 items-center justify-between px-4 border-b border-border">
         <div className="flex items-center gap-2 overflow-hidden">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold">
-            M
-          </div>
-          {!collapsed && (
-            <span className="font-semibold text-lg tracking-tight whitespace-nowrap">
-              MurihSpace
-            </span>
+          {collapsed ? (
+            <>
+              <img src="/icon_blue.png" alt="MurihSpace" className="h-8 w-8 object-contain dark:hidden shrink-0" />
+              <img src="/icon_white.png" alt="MurihSpace" className="h-8 w-8 object-contain hidden dark:block shrink-0" />
+            </>
+          ) : (
+            <>
+              <img src="/logo_blue.png" alt="MurihSpace" className="h-7 w-auto object-contain dark:hidden shrink-0" />
+              <img src="/logo_white.png" alt="MurihSpace" className="h-7 w-auto object-contain hidden dark:block shrink-0" />
+            </>
           )}
         </div>
         <Button

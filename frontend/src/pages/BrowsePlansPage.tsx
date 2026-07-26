@@ -28,7 +28,7 @@ export function BrowsePlansPage() {
   useEffect(() => {
     fetch(`${API_BASE}/subscriptions/plans/public`, { headers: getAuthHeaders() })
       .then((r) => r.json())
-      .then((json) => setPlans(json.data ?? []))
+      .then((json) => setPlans(json.data?.data ?? []))
       .catch(console.error)
       .finally(() => setIsLoading(false));
   }, []);

@@ -2,12 +2,15 @@
 
 use App\Http\Middleware\CaptureRequestAndEnvelopeResponse;
 use App\Http\Middleware\IsAdmin;
+use App\Http\Middleware\SecurityHeaders;
 use App\Providers\AuthServiceProvider;
 use Illuminate\Auth\AuthenticationException;
+use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
@@ -25,11 +28,14 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->api(prepend: [
             CaptureRequestAndEnvelopeResponse::class,
+            SecurityHeaders::class,
         ]);
 
         $middleware->alias([
             'admin' => IsAdmin::class,
+            'creator' => \App\Http\Middleware\IsCreator::class,
         ]);
+
     })
     ->withProviders([
         AuthServiceProvider::class,
