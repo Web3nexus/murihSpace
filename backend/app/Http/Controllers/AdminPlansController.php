@@ -23,9 +23,10 @@ class AdminPlansController extends Controller
             'total_subscribers' => Subscription::where('status', 'active')
                 ->where('current_period_end', '>', now())
                 ->count(),
-            'mrr' => Subscription::where('status', 'active')
-                ->where('current_period_end', '>', now())
-                ->sum('amount'),
+            'mrr' => Subscription::where('subscriptions.status', 'active')
+                ->where('subscriptions.current_period_end', '>', now())
+                ->join('subscription_plans', 'subscriptions.plan_id', '=', 'subscription_plans.id')
+                ->sum('subscription_plans.price'),
             'creators_with_plans' => SubscriptionPlan::distinct('creator_id')->count('creator_id'),
         ];
 

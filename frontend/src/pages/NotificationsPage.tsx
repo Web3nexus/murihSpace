@@ -85,7 +85,7 @@ export default function NotificationsPage() {
     if (!quiet) setIsLoading(true);
     else setIsRefreshing(true);
 
-    const token = localStorage.getItem('auth_token');
+    const token = localStorage.getItem('murihspace-token') || localStorage.getItem('auth_token');
     try {
       const res = await fetch(`${API_BASE}/notifications`, {
         headers: {
@@ -108,7 +108,7 @@ export default function NotificationsPage() {
   const fetchPreferences = useCallback(async () => {
     setIsPrefLoading(true);
     setPrefsLoadError(false);
-    const token = localStorage.getItem('auth_token');
+    const token = localStorage.getItem('murihspace-token') || localStorage.getItem('auth_token');
     try {
       const res = await fetch(`${API_BASE}/notification-preferences`, {
         headers: {
@@ -142,7 +142,7 @@ export default function NotificationsPage() {
   }, [activeTab, fetchPreferences]);
 
   const handleMarkAllRead = async () => {
-    const token = localStorage.getItem('auth_token');
+    const token = localStorage.getItem('murihspace-token') || localStorage.getItem('auth_token');
     try {
       await fetch(`${API_BASE}/notifications/read-all`, {
         method: 'POST',
@@ -175,7 +175,7 @@ export default function NotificationsPage() {
     setIsSavingPref(true);
     setSaveSuccess(false);
 
-    const token = localStorage.getItem('auth_token');
+    const token = localStorage.getItem('murihspace-token') || localStorage.getItem('auth_token');
     const payloadItems: { type: NotificationType; channel: NotificationChannel; enabled: boolean }[] = [];
 
     (Object.keys(TYPE_CONFIG) as NotificationType[]).forEach((type) => {

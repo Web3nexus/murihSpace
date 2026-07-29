@@ -16,6 +16,8 @@ class AdminUserController extends Controller
             'role' => ['nullable', 'string', 'in:member,creator,vendor,admin'],
             'status' => ['nullable', 'string', 'in:active,suspended,banned'],
             'kyc' => ['nullable', 'string', 'in:pending,verified,rejected'],
+            'sort' => ['nullable', 'string', 'in:name,email,username,role,status,kyc_status,created_at'],
+            'sort_dir' => ['nullable', 'string', 'in:asc,desc'],
             'per_page' => ['nullable', 'integer', 'min:10', 'max:100'],
         ]);
 
@@ -42,8 +44,12 @@ class AdminUserController extends Controller
             $query->where('kyc_status', $validated['kyc']);
         }
 
+        $sortField = $validated['sort'] ?? 'created_at';
+        $sortDir = $validated['sort_dir'] ?? 'desc';
+        $query->orderBy($sortField, $sortDir);
+
         return response()->json(
-            $query->latest()->paginate($validated['per_page'] ?? 20)
+            $query->paginate($validated['per_page'] ?? 20)
         );
     }
 
@@ -140,6 +146,45 @@ class AdminUserController extends Controller
                 'username' => $target->username,
                 'role' => $target->role,
             ],
+        ]);
+    }
+
+    public function export(Request $request): \Illuminate\Http\Response
+    {
+        $validated = $request->validate([
+            'search' => ['nullable', 'string', 'max:100'],
+            'role' => ['nullable', 'string', 'in:member,creator,vendor,admin'],
+            'status' => ['nullable', 'string', 'in:active,suspended,banned'],
+            'kyc' => ['nullable', 'string', 'in:pending,verified,rejected'],
+            'sort' => ['nullable', 'string', 'in:name,email,username,role,status,kyc_status,created_at'],
+            'sort_dir' => ['nullable', 'string', 'in:asc,desc'],
+        ]);
+
+        $query = User::select(['name', 'email', 'username', 'role', 'status', 'kyc_status', 'created_at']);
+
+        if (! empty($validated['search'])) {
+            $s = $validated['search'];
+            $query->where(fn($q) => $q->where('name', 'like', "%{$s}%")
+                ->orWhere('email', 'like', "%{$s}%")
+                ->orWhere('username', 'like', "%{$s}%"));
+        }
+        if (! empty($validated['role'])) $query->where('role', $validated['role']);
+        if (! empty($validated['status'])) $query->where('status', $validated['status']);
+        if (! empty($validated['kyc'])) $query->where('kyc_status', $validated['kyc']);
+
+        $sortField = $validated['sort'] ?? 'created_at';
+        $sortDir = $validated['sort_dir'] ?? 'desc';
+        $query->orderBy($sortField, $sortDir);
+
+        $csv = \League\Csv\Writer::createFromString('');
+        $csv->insertOne(['Name', 'Email', 'Username', 'Role', 'Status', 'KYC Status', 'Joined']);
+        $csv->insertAll($query->cursor()->map(fn($u) => [
+            $u->name, $u->email, $u->username, $u->role, $u->status, $u->kyc_status, $u->created_at?->toDateString(),
+        ])->toArray());
+
+        return response($csv->toString(), 200, [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="users-export.csv"',
         ]);
     }
 

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router';
-import { Shield, Loader2, AlertTriangle } from 'lucide-react';
+import { Shield, Loader2, AlertTriangle, AlertCircle } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
@@ -31,23 +31,36 @@ export function AdminEscrowPage() {
   const statusFilter = tabParam === 'disputed' ? 'disputed' : tabParam === 'escrow' ? '' : tabParam;
   const [escrows, setEscrows] = useState<EscrowItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [selectedEscrow, setSelectedEscrow] = useState<EscrowItem | null>(null);
   const [showDisputeDialog, setShowDisputeDialog] = useState(false);
   const [disputeResolution, setDisputeResolution] = useState('resolved_buyer');
   const [disputeNote, setDisputeNote] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [page, setPage] = useState(1);
+  const [lastPage, setLastPage] = useState(1);
 
   const fetchEscrows = useCallback(async () => {
+    setFetchError(null);
     try {
-      const params = statusFilter ? `?status=${statusFilter}` : '';
-      const res = await fetch(`${API_BASE}/securegate/escrow${params}`, { headers: getAuthHeaders() });
-      if (res.ok) { const j = await res.json(); setEscrows(j?.data?.data ?? j?.data ?? []); }
-    } catch { /* ignore */ }
+      const params = new URLSearchParams();
+      if (statusFilter) params.set('status', statusFilter);
+      params.set('page', String(page));
+      params.set('per_page', '20');
+      const res = await fetch(`${API_BASE}/securegate/escrow?${params}`, { headers: getAuthHeaders() });
+      if (res.ok) { const j = await res.json(); setEscrows(j?.data?.data ?? j?.data ?? []); setLastPage(j.data?.last_page ?? j.data?.data?.last_page ?? 1); }
+      else throw new Error(`HTTP ${res.status}`);
+    } catch (e) { setFetchError(e instanceof Error ? e.message : 'Failed to load escrows'); }
     finally { setIsLoading(false); }
-  }, [statusFilter]);
+  }, [statusFilter, page]);
 
   useEffect(() => { fetchEscrows(); }, [fetchEscrows]);
+
+  function handleTabChange(s: string) {
+    setSearchParams(s ? { tab: s } : {});
+    setPage(1);
+  }
 
   async function releaseEscrow(id: number) {
     if (!confirm('Release this escrow to the seller?')) return;
@@ -100,6 +113,13 @@ export function AdminEscrowPage() {
         </div>
       </div>
 
+      {fetchError && (
+        <div className="flex items-center gap-2 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-xs text-destructive">
+          <AlertCircle className="h-4 w-4 shrink-0" /> {fetchError}
+          <button onClick={() => { setIsLoading(true); fetchEscrows(); }} className="ml-auto text-muted-foreground hover:text-foreground font-bold">Retry</button>
+        </div>
+      )}
+
       {message && (
         <div className={`px-4 py-3 rounded-xl text-sm flex items-center gap-2 border ${
           message.type === 'success' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border-rose-500/20'
@@ -108,7 +128,7 @@ export function AdminEscrowPage() {
 
       <div className="flex gap-1 border-b border-border pb-1">
         {['', 'held', 'released', 'refunded', 'disputed'].map(s => (
-          <button key={s} onClick={() => setSearchParams(s ? { tab: s } : {})}
+          <button key={s} onClick={() => handleTabChange(s)}
             className={`px-3 py-1.5 rounded-t-lg text-xs font-bold transition-colors ${statusFilter === s ? 'bg-card text-foreground border-x border-t border-border' : 'text-muted-foreground hover:text-foreground'}`}
           >{s ? s.charAt(0).toUpperCase() + s.slice(1) : 'All'}</button>
         ))}
@@ -174,6 +194,14 @@ export function AdminEscrowPage() {
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {lastPage > 1 && (
+        <div className="flex items-center justify-center gap-2 pt-4">
+          <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1} className="px-3 py-1.5 rounded-lg text-xs font-bold border border-border bg-card hover:bg-muted disabled:opacity-40">Previous</button>
+          <span className="text-xs text-muted-foreground">Page {page} of {lastPage}</span>
+          <button onClick={() => setPage(p => Math.min(lastPage, p + 1))} disabled={page >= lastPage} className="px-3 py-1.5 rounded-lg text-xs font-bold border border-border bg-card hover:bg-muted disabled:opacity-40">Next</button>
         </div>
       )}
 

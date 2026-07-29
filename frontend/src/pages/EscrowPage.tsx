@@ -63,17 +63,20 @@ export function EscrowPage() {
   const [selectedEscrow, setSelectedEscrow] = useState<Escrow | null>(null);
   const [showDisputeForm, setShowDisputeForm] = useState(false);
   const [disputeReason, setDisputeReason] = useState('');
+  const [page, setPage] = useState(1);
+  const [lastPage, setLastPage] = useState(1);
 
   const fetchEscrows = useCallback(async () => {
     try {
-      const res = await fetch(`${API_BASE}/wallet/escrow`, { headers: getAuthHeaders() });
+      const res = await fetch(`${API_BASE}/wallet/escrow?page=${page}&per_page=20`, { headers: getAuthHeaders() });
       if (res.ok) {
         const json = await res.json();
         setEscrows(json.data?.data ?? []);
+        setLastPage(json.data?.last_page ?? 1);
       }
     } catch { /* silent */ }
     setIsLoading(false);
-  }, []);
+  }, [page]);
 
   useEffect(() => { fetchEscrows(); }, [fetchEscrows]);
 
@@ -148,6 +151,13 @@ export function EscrowPage() {
         </div>
       ) : !selectedEscrow ? (
         <div className="space-y-3">
+          {lastPage > 1 && (
+            <div className="flex items-center justify-center gap-2">
+              <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1} className="px-3 py-1.5 rounded-lg text-xs font-bold border border-border bg-card hover:bg-muted disabled:opacity-40">Previous</button>
+              <span className="text-xs text-muted-foreground">Page {page} of {lastPage}</span>
+              <button onClick={() => setPage(p => Math.min(lastPage, p + 1))} disabled={page >= lastPage} className="px-3 py-1.5 rounded-lg text-xs font-bold border border-border bg-card hover:bg-muted disabled:opacity-40">Next</button>
+            </div>
+          )}
           {escrows.map((escrow) => {
             const badge = STATUS_BADGE[escrow.status] ?? STATUS_BADGE.held;
             return (

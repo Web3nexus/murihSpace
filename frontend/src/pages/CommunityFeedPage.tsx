@@ -33,7 +33,7 @@ interface Community {
 }
 
 async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
-  const token = localStorage.getItem('auth_token');
+  const token = localStorage.getItem('murihspace-token') || localStorage.getItem('auth_token');
   const res = await fetch(`${API_BASE}${path}`, {
     ...options,
     headers: {

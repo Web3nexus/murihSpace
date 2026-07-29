@@ -125,6 +125,49 @@ class PostController extends Controller
         ], 201);
     }
 
+    public function update(Request $request, int $id): JsonResponse
+    {
+        $post = Post::findOrFail($id);
+        $this->authorize('update', $post);
+
+        $validated = $request->validate([
+            'content' => ['sometimes', 'string', 'max:5000'],
+            'media_urls' => ['nullable', 'array'],
+            'media_urls.*' => ['string', 'url'],
+            'link_url' => ['nullable', 'string', 'url'],
+            'is_draft' => ['nullable', 'boolean'],
+        ]);
+
+        if (! $post->community?->share_links && (! empty($validated['link_url']) || str_contains($validated['content'] ?? $post->content, 'http'))) {
+            abort(403, 'Link sharing is disabled in this community.');
+        }
+
+        $post->update($validated);
+
+        $post->load(['author:id,name,username,avatar', 'community:id,name,slug,logo_url', 'reactions']);
+
+        return response()->json([
+            'message' => 'Post updated.',
+            'post' => $post,
+        ]);
+    }
+
+    public function destroy(Request $request, int $id): JsonResponse
+    {
+        $post = Post::withTrashed()->findOrFail($id);
+        $this->authorize('delete', $post);
+
+        if ($post->trashed()) {
+            $post->reactions()->delete();
+            $post->comments()->forceDelete();
+            $post->forceDelete();
+        } else {
+            $post->delete();
+        }
+
+        return response()->json(['message' => 'Post deleted.']);
+    }
+
     /**
      * Add a comment to a post.
      */

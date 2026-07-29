@@ -39,6 +39,8 @@ export function DigitalProductsPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [showModal, setShowModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<DigitalProduct | null>(null);
+  const [page, setPage] = useState(1);
+  const [lastPage, setLastPage] = useState(1);
 
   // Form state
   const [title, setTitle] = useState('');
@@ -56,9 +58,9 @@ export function DigitalProductsPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchProducts = useCallback(async () => {
-    const token = localStorage.getItem('auth_token');
+    const token = localStorage.getItem('murihspace-token') || localStorage.getItem('auth_token');
     try {
-      const res = await fetch(`${API_BASE}/store/products`, {
+      const res = await fetch(`${API_BASE}/store/products?page=${page}&per_page=20`, {
         headers: {
           Accept: 'application/json',
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -67,13 +69,14 @@ export function DigitalProductsPage() {
       if (res.ok) {
         const json = await res.json();
         setProducts(json.data?.data ?? []);
+        setLastPage(json.data?.last_page ?? 1);
       }
     } catch (e) {
       console.error('Failed to fetch products', e);
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [page]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -113,7 +116,7 @@ export function DigitalProductsPage() {
     setIsSubmitting(true);
     setError(null);
 
-    const token = localStorage.getItem('auth_token');
+    const token = localStorage.getItem('murihspace-token') || localStorage.getItem('auth_token');
     const formData = new FormData();
     formData.append('title', title);
     formData.append('description', description);
@@ -156,7 +159,7 @@ export function DigitalProductsPage() {
   };
 
   const handleTogglePublish = async (p: DigitalProduct) => {
-    const token = localStorage.getItem('auth_token');
+    const token = localStorage.getItem('murihspace-token') || localStorage.getItem('auth_token');
     const nextStatus = p.status === 'published' ? 'draft' : 'published';
 
     try {
@@ -180,7 +183,7 @@ export function DigitalProductsPage() {
 
   const handleDelete = async (id: number) => {
     if (!confirm('Are you sure you want to delete this digital product?')) return;
-    const token = localStorage.getItem('auth_token');
+    const token = localStorage.getItem('murihspace-token') || localStorage.getItem('auth_token');
 
     try {
       const res = await fetch(`${API_BASE}/store/products/${id}`, {
@@ -197,9 +200,21 @@ export function DigitalProductsPage() {
     } catch (e) { console.error('Failed to delete product', e); }
   };
 
-  const handleDownload = (id: number) => {
-    const token = localStorage.getItem('auth_token');
-    window.open(`${API_BASE}/products/${id}/download?token=${token}`, '_blank');
+  const handleDownload = async (id: number) => {
+    const token = localStorage.getItem('murihspace-token') || localStorage.getItem('auth_token');
+    try {
+      const res = await fetch(`${API_BASE}/products/${id}/download`, {
+        headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      });
+      if (!res.ok) return;
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = '';
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+    } catch { /* ignore */ }
   };
 
   const filteredProducts = products.filter((p) => {
@@ -572,6 +587,14 @@ export function DigitalProductsPage() {
             </form>
           </DialogContent>
         </Dialog>
+      )}
+
+      {lastPage > 1 && (
+        <div className="flex items-center justify-center gap-2 pt-4">
+          <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1} className="px-3 py-1.5 rounded-lg text-xs font-bold border border-border bg-card hover:bg-muted disabled:opacity-40">Previous</button>
+          <span className="text-xs text-muted-foreground">Page {page} of {lastPage}</span>
+          <button onClick={() => setPage(p => Math.min(lastPage, p + 1))} disabled={page >= lastPage} className="px-3 py-1.5 rounded-lg text-xs font-bold border border-border bg-card hover:bg-muted disabled:opacity-40">Next</button>
+        </div>
       )}
     </div>
   );

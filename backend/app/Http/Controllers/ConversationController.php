@@ -356,4 +356,54 @@ class ConversationController extends Controller
             abort(403, 'You are not a participant in this conversation.');
         }
     }
+
+    public function stats(Request $request): JsonResponse
+    {
+        $userId = $request->user()->id;
+
+        $unreadCount = Message::query()
+            ->where('user_id', '!=', $userId)
+            ->whereExists(function ($q) use ($userId) {
+                $q->selectRaw('1')
+                    ->from('conversation_participants')
+                    ->whereColumn('conversation_participants.conversation_id', 'messages.conversation_id')
+                    ->where('conversation_participants.user_id', $userId)
+                    ->where(function ($q) {
+                        $q->whereNull('conversation_participants.last_read_at')
+                            ->orWhereColumn('conversation_participants.last_read_at', '<', 'messages.created_at');
+                    });
+            })
+            ->count();
+
+        return response()->json([
+            'data' => [
+                'total_conversations' => Conversation::whereHas('participants', fn($q) => $q->where('user_id', $userId))->count(),
+                'unread_messages' => $unreadCount,
+                'total_messages_sent' => Message::where('user_id', $userId)->count(),
+            ],
+        ]);
+    }
+
+    public function recentActivity(Request $request): JsonResponse
+    {
+        $userId = $request->user()->id;
+
+        $messages = Message::where('user_id', $userId)
+            ->orWhereHas('conversation.participants', fn($q) => $q->where('user_id', $userId))
+            ->with(['conversation', 'user'])
+            ->latest()
+            ->take(10)
+            ->get()
+            ->map(fn($m) => [
+                'id' => $m->id,
+                'conversation_id' => $m->conversation_id,
+                'conversation_title' => $m->conversation?->title ?? 'Direct Message',
+                'content' => mb_substr($m->content, 0, 100),
+                'sender_name' => $m->user?->name,
+                'is_mine' => $m->user_id === $userId,
+                'created_at' => $m->created_at->toIso8601String(),
+            ]);
+
+        return response()->json(['data' => $messages]);
+    }
 }

@@ -2,6 +2,7 @@ export const RoutePaths = {
   HOME: "/",
   LOGIN: "/login",
   REGISTER: "/register",
+  SECUREGATE_LOGIN: "/securegate/login",
   APP: "/app",
   APP_DISCOVER: "/app/discover",
   APP_COMMUNITIES: "/app/communities",

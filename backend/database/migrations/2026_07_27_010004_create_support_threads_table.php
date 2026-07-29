@@ -1,0 +1,34 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('support_threads', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
+            $table->string('subject');
+            $table->string('status')->default('open'); // open, closed, resolved
+            $table->timestamps();
+        });
+
+        Schema::create('support_messages', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('thread_id')->constrained('support_threads')->cascadeOnDelete();
+            $table->foreignId('user_id')->nullable()->constrained('users')->nullOnDelete();
+            $table->text('content');
+            $table->boolean('from_admin')->default(false);
+            $table->timestamps();
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('support_messages');
+        Schema::dropIfExists('support_threads');
+    }
+};

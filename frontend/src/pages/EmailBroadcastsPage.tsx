@@ -26,15 +26,16 @@ export function EmailBroadcastsPage() {
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
   const [form, setForm] = useState({ title: '', subject: '', content: '' });
+  const [page, setPage] = useState(1);
+  const [lastPage, setLastPage] = useState(1);
 
   const fetchAll = useCallback(async () => {
-    setIsLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/email-broadcasts`, { headers: getAuthHeaders() });
-      if (res.ok) { const j = await res.json();         setBroadcasts(j.data?.data ?? []); }
+      const res = await fetch(`${API_BASE}/email-broadcasts?page=${page}&per_page=20`, { headers: getAuthHeaders() });
+      if (res.ok) { const j = await res.json(); setBroadcasts(j.data?.data ?? []); setLastPage(j.data?.last_page ?? 1); }
     } catch { /* ignore */ }
     finally { setIsLoading(false); }
-  }, []);
+  }, [page]);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
@@ -131,7 +132,7 @@ export function EmailBroadcastsPage() {
           <h2 className="text-xl font-semibold text-gray-700">No broadcasts yet</h2>
           <p className="text-gray-500">Create your first email broadcast to engage your audience.</p>
         </div>
-      ) : (
+      ) : (<>
         <div className="space-y-3">
           {broadcasts.map(b => (
             <div key={b.id} className="bg-white border rounded-xl p-4">
@@ -172,7 +173,14 @@ export function EmailBroadcastsPage() {
             </div>
           ))}
         </div>
-      )}
+        {lastPage > 1 && (
+          <div className="flex items-center justify-center gap-2 pt-4">
+            <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1} className="px-3 py-1.5 rounded-lg text-xs font-bold border border-border bg-card hover:bg-muted disabled:opacity-40">Previous</button>
+            <span className="text-xs text-muted-foreground">Page {page} of {lastPage}</span>
+            <button onClick={() => setPage(p => Math.min(lastPage, p + 1))} disabled={page >= lastPage} className="px-3 py-1.5 rounded-lg text-xs font-bold border border-border bg-card hover:bg-muted disabled:opacity-40">Next</button>
+          </div>
+        )}
+      </>)}
     </div>
   );
 }

@@ -1,50 +1,108 @@
 import React from "react";
-import { Link, Outlet } from "react-router";
+import { Link } from "react-router";
 import { ArrowLeft } from "lucide-react";
-import { Button } from "@/components/ui/button";
 
 interface AuthLayoutProps {
-  backHref?: string;
-  backLabel?: string;
+  children: React.ReactNode;
+  headlineText?: string;
+  accentText?: string;
+  subText?: string;
 }
 
 export const AuthLayout: React.FC<AuthLayoutProps> = ({
-  backHref = "/",
-  backLabel = "Back to home",
+  children,
+  headlineText = "Explore the things you",
+  accentText = "love.",
+  subText = "Connect with communities, sell digital & physical products, host live audio rooms, and grow your audience.",
 }) => {
   return (
-    <div className="relative flex min-h-screen w-full items-center justify-center overflow-hidden bg-background">
-      {/* Background gradient decoration */}
-      <div
-        className="pointer-events-none absolute inset-0 -z-10"
-        aria-hidden="true"
-      >
-        <div className="absolute left-1/4 top-1/4 h-[32rem] w-[32rem] -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/10 blur-[120px]" />
-        <div className="absolute right-1/4 bottom-1/4 h-[32rem] w-[32rem] translate-x-1/2 translate-y-1/2 rounded-full bg-secondary/10 blur-[120px]" />
-      </div>
+    <div className="min-h-screen w-full bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col justify-between selection:bg-[#2164b6]/20 selection:text-[#2164b6]">
+      {/* Top Header Bar */}
+      <header className="w-full px-6 py-4 flex items-center justify-between max-w-7xl mx-auto">
+        <Link
+          to="/"
+          id="auth-top-back-link"
+          className="inline-flex items-center gap-2 text-xs font-semibold text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors"
+        >
+          <ArrowLeft className="h-4 w-4" /> Back to home
+        </Link>
+        <Link to="/" className="flex items-center gap-2">
+          <img src="/logo_blue.png" alt="MurihSpace" className="h-7 w-auto object-contain dark:hidden" />
+          <img src="/logo_white.png" alt="MurihSpace" className="h-7 w-auto object-contain hidden dark:block" />
+        </Link>
+      </header>
 
-      {/* Back link */}
-      <div className="absolute left-6 top-6">
-        <Button asChild variant="ghost" size="sm" className="gap-2 text-muted-foreground">
-          <Link to={backHref} id="auth-back-link">
-            <ArrowLeft className="h-4 w-4" />
-            {backLabel}
+      {/* Main Two-Sided Section (Facebook Login Style) */}
+      <main className="w-full max-w-7xl mx-auto px-6 py-6 lg:py-10 grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 items-center flex-1">
+        {/* LEFT COLUMN: Brand Hero & Visual Showcase */}
+        <div className="lg:col-span-6 xl:col-span-7 flex flex-col justify-center space-y-6 lg:space-y-8 pr-0 lg:pr-4">
+          {/* Logo Brand Mark */}
+          <Link to="/" className="inline-block group w-fit">
+            <img
+              src="/logo_blue.png"
+              alt="MurihSpace"
+              className="h-10 sm:h-12 w-auto object-contain dark:hidden transition-transform group-hover:scale-105"
+            />
+            <img
+              src="/logo_white.png"
+              alt="MurihSpace"
+              className="h-10 sm:h-12 w-auto object-contain hidden dark:block transition-transform group-hover:scale-105"
+            />
           </Link>
-        </Button>
-      </div>
 
-      {/* Brand logo */}
-      <div className="absolute right-6 top-6 flex items-center gap-2">
-        <img src="/logo_blue.png" alt="MurihSpace" className="h-7 w-auto object-contain dark:hidden" />
-        <img src="/logo_white.png" alt="MurihSpace" className="h-7 w-auto object-contain hidden dark:block" />
-      </div>
+          {/* Facebook-style Impactful Headline */}
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight text-slate-900 dark:text-white leading-[1.1]">
+            {headlineText}{" "}
+            <span className="text-[#2164b6] relative inline-block">
+              {accentText}
+              <svg className="absolute -bottom-2 left-0 w-full h-3 text-[#2164b6]/30 fill-current" viewBox="0 0 100 20">
+                <path d="M0,15 Q50,5 100,15" stroke="currentColor" strokeWidth="4" fill="none" strokeLinecap="round" />
+              </svg>
+            </span>
+          </h1>
 
-      {/* Auth Card */}
-      <div className="relative w-full max-w-md px-4">
-        <div className="rounded-2xl border border-border bg-card/80 p-8 shadow-xl backdrop-blur-sm">
-          <Outlet />
+          {/* Hero Image Collage */}
+          <div className="relative mt-2 pt-2 flex items-center justify-center lg:justify-start">
+            <img
+              src="/creatorEve.png"
+              alt="MurihSpace Creator Ecosystem"
+              className="w-full max-w-lg h-auto object-contain drop-shadow-xl hover:scale-[1.02] transition-transform duration-300"
+            />
+          </div>
+
+          {/* Subtext under the image */}
+          <p className="text-base sm:text-lg text-slate-600 dark:text-slate-400 max-w-xl font-medium leading-relaxed">
+            {subText}
+          </p>
         </div>
-      </div>
+
+        {/* RIGHT COLUMN: Two-Sided Form Container */}
+        <div className="lg:col-span-6 xl:col-span-5 flex flex-col items-center lg:items-end justify-center">
+          <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-3xl p-6 sm:p-8 shadow-xl shadow-slate-200/60 dark:shadow-none transition-all">
+            {children}
+          </div>
+        </div>
+      </main>
+
+      {/* Facebook-style Footer */}
+      <footer className="w-full border-t border-slate-200 dark:border-slate-800 py-5 px-6 bg-white/50 dark:bg-slate-900/50 backdrop-blur-xs text-xs text-slate-500 dark:text-slate-400">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex flex-wrap items-center justify-center md:justify-start gap-x-4 gap-y-1">
+            <span className="text-slate-800 dark:text-slate-200 font-semibold">English (UK)</span>
+            <span className="hover:underline cursor-pointer">Hausa</span>
+            <span className="hover:underline cursor-pointer">Français</span>
+            <span className="hover:underline cursor-pointer">Português</span>
+            <span className="hover:underline cursor-pointer">Español</span>
+            <span className="hover:underline cursor-pointer">Bahasa Indonesia</span>
+          </div>
+
+          <div className="flex items-center gap-4 text-xs">
+            <Link to="/privacy" className="hover:underline">Privacy Policy</Link>
+            <Link to="/terms" className="hover:underline">Terms of Service</Link>
+            <span>© {new Date().getFullYear()} MurihSpace Ecosystem</span>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 };

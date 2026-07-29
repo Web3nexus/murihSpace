@@ -108,6 +108,65 @@ class CommunityController extends Controller
         return response()->json(['communities' => $communities]);
     }
 
+    public function update(Request $request, Community $community): JsonResponse
+    {
+        $this->authorize('update', $community);
+
+        $validated = $request->validate([
+            'name' => ['sometimes', 'string', 'max:100'],
+            'description' => ['nullable', 'string', 'max:1000'],
+            'category' => ['sometimes', 'string', 'max:50'],
+            'visibility' => ['sometimes', Rule::in(['public', 'private'])],
+            'pricing_type' => ['sometimes', Rule::in(['free', 'paid'])],
+            'price_amount' => ['nullable', 'numeric', 'min:0'],
+            'logo_url' => ['nullable', 'string', 'max:500'],
+            'cover_url' => ['nullable', 'string', 'max:500'],
+            'rules' => ['nullable', 'array'],
+            'rules.*' => ['string', 'max:255'],
+        ]);
+
+        if (isset($validated['name']) && $validated['name'] !== $community->name) {
+            $baseSlug = Str::slug($validated['name']);
+            $slug = $baseSlug;
+            $counter = 1;
+            while (Community::where('slug', $slug)->where('id', '!=', $community->id)->exists()) {
+                $slug = "{$baseSlug}-{$counter}";
+                $counter++;
+            }
+            $validated['slug'] = $slug;
+        }
+
+        $effectiveType = $validated['pricing_type'] ?? $community->pricing_type;
+        if (isset($validated['price_amount'])) {
+            $validated['price_amount'] = $validated['pricing_type'] === 'paid'
+                ? ($validated['price_amount'] ?? $community->price_amount ?? 0)
+                : null;
+        } elseif ($validated['pricing_type'] ?? null) {
+            $validated['price_amount'] = $validated['pricing_type'] === 'paid' ? ($community->price_amount ?? 0) : null;
+        }
+
+        $community->update($validated);
+
+        return response()->json([
+            'message' => 'Community updated.',
+            'community' => $community->fresh()->load('creator:id,name,username,avatar'),
+        ]);
+    }
+
+    public function destroy(Request $request, Community $community): JsonResponse
+    {
+        $this->authorize('delete', $community);
+
+        if ($community->trashed()) {
+            $community->memberships()->delete();
+            $community->forceDelete();
+        } else {
+            $community->delete();
+        }
+
+        return response()->json(['message' => 'Community deleted.']);
+    }
+
     // ── Admin endpoints ─────────────────────────────────────────────
 
     public function adminIndex(Request $request): JsonResponse

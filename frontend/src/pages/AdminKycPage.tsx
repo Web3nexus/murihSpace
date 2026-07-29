@@ -29,20 +29,25 @@ export function AdminKycPage() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [rejectId, setRejectId] = useState<number | null>(null);
   const [rejectReason, setRejectReason] = useState('');
+  const [page, setPage] = useState(1);
+  const [lastPage, setLastPage] = useState(1);
 
   const fetchKyc = useCallback(async () => {
     setLoading(true); setError(null);
     try {
-      const res = await apiClient.get(`/securegate/kyc?status=${status}`);
+      const res = await apiClient.get(`/securegate/kyc?status=${status}&page=${page}&per_page=20`);
       const d = res.data?.success ? res.data : res.data;
       setUsers(d?.data?.data ?? []);
       setCounts(d?.data?.counts ?? { pending: 0, verified: 0, rejected: 0 });
+      setLastPage(d?.data?.last_page ?? d?.last_page ?? 1);
     } catch {
       setError('Failed to load KYC submissions');
     } finally { setLoading(false); }
-  }, [status]);
+  }, [status, page]);
 
   useEffect(() => { fetchKyc(); }, [fetchKyc]);
+
+  useEffect(() => { setPage(1); }, [status]);
 
   const handleApprove = async (id: number) => {
     setProcessingId(id);
@@ -211,6 +216,14 @@ export function AdminKycPage() {
               ))}
             </div>
           </div>
+          </div>
+        )}
+
+        {lastPage > 1 && (
+          <div className="flex items-center justify-center gap-2 pt-4">
+            <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1} className="px-3 py-1.5 rounded-lg text-xs font-bold border border-border bg-card hover:bg-muted disabled:opacity-40">Previous</button>
+            <span className="text-xs text-muted-foreground">Page {page} of {lastPage}</span>
+            <button onClick={() => setPage(p => Math.min(lastPage, p + 1))} disabled={page >= lastPage} className="px-3 py-1.5 rounded-lg text-xs font-bold border border-border bg-card hover:bg-muted disabled:opacity-40">Next</button>
           </div>
         )}
       </div>

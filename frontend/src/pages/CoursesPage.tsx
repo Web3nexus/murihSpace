@@ -48,13 +48,14 @@ interface Course {
   id: number;
   title: string;
   description?: string;
-  cover_url?: string;
+  thumbnail_url?: string;
   price: number;
   currency: string;
   status: "draft" | "published";
   student_count?: number;
   modules?: Module[];
   created_at?: string;
+  lessons_count?: number;
 }
 
 export default function CoursesPage() {
@@ -64,10 +65,12 @@ export default function CoursesPage() {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Course | null>(null);
   const [expanded, setExpanded] = useState<number | null>(null);
+  const [page, setPage] = useState(1);
+  const [lastPage, setLastPage] = useState(1);
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [coverUrl, setCoverUrl] = useState("");
+  const [thumbnailUrl, setCoverUrl] = useState("");
   const [price, setPrice] = useState("29.99");
   const [currency, setCurrency] = useState("USD");
   const [status, setStatus] = useState<"draft" | "published">("draft");
@@ -76,17 +79,18 @@ export default function CoursesPage() {
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
   const fetchCourses = useCallback(async () => {
-    setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${API_BASE}/courses`, { headers: getAuthHeaders() });
+      const res = await fetch(`${API_BASE}/courses?page=${page}&per_page=20`, { headers: getAuthHeaders() });
       if (res.ok) {
         const j = await res.json();
-        setCourses(j.data?.data ?? j.data ?? []);
+        const paginator = j?.success ? j?.data : j;
+        setCourses(paginator?.data ?? paginator ?? []);
+        setLastPage(paginator?.last_page ?? 1);
       } else setError("Failed to load courses.");
     } catch { setError("Unable to connect."); }
     finally { setLoading(false); }
-  }, []);
+  }, [page]);
 
   useEffect(() => { fetchCourses(); }, [fetchCourses]);
 
@@ -99,8 +103,8 @@ export default function CoursesPage() {
   const openEdit = (course: Course) => {
     setTitle(course.title);
     setDescription(course.description || "");
-    setCoverUrl(course.cover_url || "");
-    setPrice((course.price / 100).toFixed(2));
+    setCoverUrl(course.thumbnail_url || "");
+    setPrice(course.price.toFixed(2));
     setCurrency(course.currency || "USD");
     setStatus(course.status);
     setModules(course.modules || []);
@@ -114,8 +118,8 @@ export default function CoursesPage() {
     setSaving(true);
     setMsg(null);
     const body = {
-      title, description, cover_url: coverUrl,
-      price: Math.round(parseFloat(price) * 100),
+      title, description, thumbnail_url: thumbnailUrl,
+      price: parseFloat(price),
       currency, status, modules,
     };
     try {
@@ -227,8 +231,8 @@ export default function CoursesPage() {
               <div className="flex items-center justify-between p-4 hover:bg-muted/20 transition-colors">
                 <div className="flex items-center gap-4 flex-1 min-w-0">
                   <div className="h-14 w-20 rounded-xl bg-muted shrink-0 overflow-hidden flex items-center justify-center">
-                    {course.cover_url ? (
-                      <img src={course.cover_url} alt="" className="h-full w-full object-cover" />
+                    {course.thumbnail_url ? (
+                      <img src={course.thumbnail_url} alt="" className="h-full w-full object-cover" />
                     ) : (
                       <Film className="h-6 w-6 text-muted-foreground/40" />
                     )}
@@ -245,7 +249,7 @@ export default function CoursesPage() {
                     <div className="flex items-center gap-3 mt-1 text-[10px] text-muted-foreground">
                       <span className="flex items-center gap-1"><Users className="h-3 w-3" />{course.student_count || 0} students</span>
                       <span className="flex items-center gap-1">
-                        <span>${(course.price / 100).toFixed(2)}</span>
+                        <span>${course.price.toFixed(2)}</span>
                       </span>
                     </div>
                   </div>
@@ -306,7 +310,7 @@ export default function CoursesPage() {
                 </div>
                 <div>
                   <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block mb-1">Cover Image URL</label>
-                  <input value={coverUrl} onChange={(e) => setCoverUrl(e.target.value)} placeholder="https://..." className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-xs text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-secondary/50 transition-colors" />
+                  <input value={thumbnailUrl} onChange={(e) => setCoverUrl(e.target.value)} placeholder="https://..." className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-xs text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-secondary/50 transition-colors" />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
@@ -372,6 +376,13 @@ export default function CoursesPage() {
               </div>
             </form>
           </div>
+        </div>
+      )}
+      {lastPage > 1 && (
+        <div className="flex items-center justify-center gap-2 pt-4">
+          <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1} className="px-3 py-1.5 rounded-lg text-xs font-bold border border-border bg-card hover:bg-muted disabled:opacity-40">Previous</button>
+          <span className="text-xs text-muted-foreground">Page {page} of {lastPage}</span>
+          <button onClick={() => setPage(p => Math.min(lastPage, p + 1))} disabled={page >= lastPage} className="px-3 py-1.5 rounded-lg text-xs font-bold border border-border bg-card hover:bg-muted disabled:opacity-40">Next</button>
         </div>
       )}
     </div>

@@ -47,6 +47,8 @@ export function PhysicalProductsPage() {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<PhysicalProduct | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [page, setPage] = useState(1);
+  const [lastPage, setLastPage] = useState(1);
 
   // Form state
   const [fTitle, setFTitle] = useState('');
@@ -73,18 +75,21 @@ export function PhysicalProductsPage() {
   const [adjReason, setAdjReason] = useState('');
 
   const fetchProducts = useCallback(async () => {
-    const token = localStorage.getItem('murihspace-token');
+    const token = localStorage.getItem('murihspace-token') || localStorage.getItem('auth_token');
     try {
-      const res = await fetch(`${API_BASE}/store/physical-products/my`, {
+      const params = new URLSearchParams({ page: String(page), per_page: '20' });
+      if (searchQuery) params.set('search', searchQuery);
+      const res = await fetch(`${API_BASE}/store/physical-products/my?${params}`, {
         headers: { Accept: 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
       });
       if (res.ok) {
         const json = await res.json();
         setProducts(json.data?.data ?? []);
+        setLastPage(json.data?.last_page ?? 1);
       }
     } catch { /* silent */ }
     setIsLoading(false);
-  }, []);
+  }, [page, searchQuery]);
 
   useEffect(() => { fetchProducts(); }, [fetchProducts]);
 
@@ -196,9 +201,7 @@ export function PhysicalProductsPage() {
     }
   };
 
-  const filtered = products.filter((p) =>
-    !searchQuery.trim() || p.title.toLowerCase().includes(searchQuery.toLowerCase()) || p.sku.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filtered = products;
 
   return (
     <div className="space-y-6 w-full max-w-7xl mx-auto p-6 lg:p-8">
@@ -303,9 +306,9 @@ export function PhysicalProductsPage() {
                       ) : (
                         <span className="text-[10px] font-bold text-foreground flex items-center gap-1"><Check className="h-3 w-3" /> {p.stock_quantity} in stock</span>
                       )
-                    ) : (
-                      <span className="text-[10px] text-muted-foreground">No tracking</span>
-                    )}
+                      ) : (
+                        <span className="text-[10px] text-muted-foreground">No tracking</span>
+                      )}
                   </div>
                   {p.weight && <span className="text-[10px] text-muted-foreground">{p.weight} {p.weight_unit}</span>}
                 </div>
@@ -329,6 +332,14 @@ export function PhysicalProductsPage() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {lastPage > 1 && (
+        <div className="flex items-center justify-center gap-2 pt-4">
+          <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1} className="px-3 py-1.5 rounded-lg text-xs font-bold border border-border bg-card hover:bg-muted disabled:opacity-40">Previous</button>
+          <span className="text-xs text-muted-foreground">Page {page} of {lastPage}</span>
+          <button onClick={() => setPage(p => Math.min(lastPage, p + 1))} disabled={page >= lastPage} className="px-3 py-1.5 rounded-lg text-xs font-bold border border-border bg-card hover:bg-muted disabled:opacity-40">Next</button>
         </div>
       )}
 

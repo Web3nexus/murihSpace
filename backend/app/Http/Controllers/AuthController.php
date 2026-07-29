@@ -26,6 +26,8 @@ class AuthController extends Controller
             'kyc_document' => ['nullable', 'string'],
         ]);
 
+        $trialDays = (int) \App\Models\AdminSetting::get('free_username_trial_days', 7);
+
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
@@ -38,6 +40,7 @@ class AuthController extends Controller
             'role' => $request->role,
             'kyc_status' => in_array($request->role, ['creator', 'vendor']) ? 'pending' : 'verified',
             'kyc_document' => $request->kyc_document,
+            'username_trial_ends_at' => now()->addDays($trialDays),
         ]);
 
         event(new Registered($user));
@@ -55,8 +58,29 @@ class AuthController extends Controller
                 'role' => $user->role,
                 'kyc_status' => $user->kyc_status,
                 'email_verified' => $user->hasVerifiedEmail(),
+                'link_in_bio_url' => $user->getLinkInBioUrl(),
+                'username_trial_ends_at' => $user->username_trial_ends_at?->toIso8601String(),
             ],
         ], 201);
+    }
+
+    public function checkUsername(string $username): JsonResponse
+    {
+        $valid = preg_match('/\A[a-zA-Z0-9_]+\z/', $username) && strlen($username) >= 3 && strlen($username) <= 50;
+
+        if (! $valid) {
+            return response()->json([
+                'available' => false,
+                'message' => 'Username must be 3-50 characters, letters, numbers, and underscores only.',
+            ]);
+        }
+
+        $exists = User::where('username', $username)->exists();
+
+        return response()->json([
+            'available' => ! $exists,
+            'message' => $exists ? 'Username is taken.' : 'Username is available!',
+        ]);
     }
 
     /**
@@ -90,13 +114,12 @@ class AuthController extends Controller
                 'role' => $user->role,
                 'kyc_status' => $user->kyc_status,
                 'email_verified' => $user->hasVerifiedEmail(),
+                'link_in_bio_url' => $user->getLinkInBioUrl(),
+                'username_trial_ends_at' => $user->username_trial_ends_at?->toIso8601String(),
             ],
         ]);
     }
 
-    /**
-     * Log the user out (revoke token).
-     */
     public function logout(Request $request): JsonResponse
     {
         $request->user()->currentAccessToken()->delete();
@@ -104,5 +127,53 @@ class AuthController extends Controller
         return response()->json([
             'message' => 'Logout successful.',
         ]);
+    }
+
+    public function updatePassword(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'current_password' => ['required', 'current_password'],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
+        ]);
+
+        $user = $request->user();
+        $user->update(['password' => Hash::make($data['password'])]);
+
+        // Revoke other sessions
+        $user->tokens()->where('id', '!=', $user->currentAccessToken()->id)->delete();
+
+        return response()->json(['message' => 'Password updated successfully.']);
+    }
+
+    public function enable2fa(Request $request): JsonResponse
+    {
+        return response()->json(['message' => '2FA is not available yet.'], 501);
+    }
+
+    public function disable2fa(Request $request): JsonResponse
+    {
+        return response()->json(['message' => '2FA is not available yet.'], 501);
+    }
+
+    public function sessions(Request $request): JsonResponse
+    {
+        $tokens = $request->user()->tokens()
+            ->orderBy('last_used_at', 'desc')
+            ->get(['id', 'name', 'ip', 'user_agent', 'last_used_at', 'created_at']);
+
+        return response()->json(['data' => $tokens]);
+    }
+
+    public function destroySession(Request $request, $id): JsonResponse
+    {
+        $token = $request->user()->tokens()->where('id', $id)->first();
+
+        if (! $token) {
+            abort(404, 'Session not found.');
+        }
+
+        $token->delete();
+
+        return response()->json(['message' => 'Session revoked.']);
     }
 }

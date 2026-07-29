@@ -12,6 +12,7 @@ class AuditLogController extends Controller
     {
         $validated = $request->validate([
             'action' => ['nullable', 'string'],
+            'search' => ['nullable', 'string', 'max:100'],
             'from' => ['nullable', 'date'],
             'to' => ['nullable', 'date'],
             'per_page' => ['nullable', 'integer', 'min:10', 'max:200'],
@@ -22,6 +23,13 @@ class AuditLogController extends Controller
 
         if (! empty($validated['action'])) {
             $query->where('action', $validated['action']);
+        }
+        if (! empty($validated['search'])) {
+            $s = $validated['search'];
+            $query->where(function ($q) use ($s) {
+                $q->where('action', 'like', "%{$s}%")
+                    ->orWhereHas('user', fn($uq) => $uq->where('name', 'like', "%{$s}%"));
+            });
         }
         if (! empty($validated['from'])) {
             $query->whereDate('created_at', '>=', $validated['from']);

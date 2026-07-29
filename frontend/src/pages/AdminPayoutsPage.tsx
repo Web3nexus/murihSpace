@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { DollarSign, Loader2, CheckCircle2, Clock, AlertTriangle } from 'lucide-react';
+import { DollarSign, Loader2, CheckCircle2, Clock, AlertTriangle, AlertCircle } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api/v1';
@@ -30,17 +30,25 @@ export function AdminPayoutsPage() {
   const [payouts, setPayouts] = useState<PayoutItem[]>([]);
   const [summary, setSummary] = useState<PayoutSummary | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [statusFilter, setStatusFilter] = useState('');
+  const [page, setPage] = useState(1);
+  const [lastPage, setLastPage] = useState(1);
 
   const fetchPayouts = useCallback(async () => {
+    setFetchError(null);
     try {
-      const params = statusFilter ? `?status=${statusFilter}` : '';
-      const res = await fetch(`${API_BASE}/securegate/payouts${params}`, { headers: getAuthHeaders() });
-      if (res.ok) { const j = await res.json(); setPayouts(j.data?.data ?? []); setSummary(j.data?.summary ?? null); }
-    } catch { /* ignore */ }
+      const params = new URLSearchParams();
+      if (statusFilter) params.set('status', statusFilter);
+      params.set('page', String(page));
+      params.set('per_page', '20');
+      const res = await fetch(`${API_BASE}/securegate/payouts?${params}`, { headers: getAuthHeaders() });
+      if (res.ok) { const j = await res.json(); const d = j?.success ? j?.data : j; setPayouts(d?.data?.data ?? d?.data ?? []); setSummary(d?.summary ?? null); setLastPage(d?.data?.last_page ?? d?.last_page ?? 1); }
+      else throw new Error(`HTTP ${res.status}`);
+    } catch (e) { setFetchError(e instanceof Error ? e.message : 'Failed to load payouts'); }
     finally { setIsLoading(false); }
-  }, [statusFilter]);
+  }, [statusFilter, page]);
 
   useEffect(() => { fetchPayouts(); }, [fetchPayouts]);
 
@@ -65,6 +73,13 @@ export function AdminPayoutsPage() {
           <p className="text-sm text-white/70 max-w-xl">Manage creator payouts for physical product orders.</p>
         </div>
       </div>
+
+      {fetchError && (
+        <div className="flex items-center gap-2 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-xs text-destructive">
+          <AlertCircle className="h-4 w-4 shrink-0" /> {fetchError}
+          <button onClick={() => { setIsLoading(true); fetchPayouts(); }} className="ml-auto text-muted-foreground hover:text-foreground font-bold">Retry</button>
+        </div>
+      )}
 
       {message && (
         <div className={`px-4 py-3 rounded-xl text-sm flex items-center gap-2 border ${
@@ -91,7 +106,7 @@ export function AdminPayoutsPage() {
 
       <div className="flex gap-1 border-b border-border pb-1">
         {['', 'pending', 'paid', 'failed'].map(s => (
-          <button key={s} onClick={() => setStatusFilter(s)}
+          <button key={s} onClick={() => { setStatusFilter(s); setPage(1); }}
             className={`px-3 py-1.5 rounded-t-lg text-xs font-bold transition-colors ${statusFilter === s ? 'bg-card text-foreground border-x border-t border-border' : 'text-muted-foreground hover:text-foreground'}`}
           >{s ? s.charAt(0).toUpperCase() + s.slice(1) : 'All'}</button>
         ))}
@@ -133,6 +148,14 @@ export function AdminPayoutsPage() {
               </div>
             ))}
           </div>
+      </div>
+    )}
+
+      {lastPage > 1 && (
+        <div className="flex items-center justify-center gap-2 pt-4">
+          <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1} className="px-3 py-1.5 rounded-lg text-xs font-bold border border-border bg-card hover:bg-muted disabled:opacity-40">Previous</button>
+          <span className="text-xs text-muted-foreground">Page {page} of {lastPage}</span>
+          <button onClick={() => setPage(p => Math.min(lastPage, p + 1))} disabled={page >= lastPage} className="px-3 py-1.5 rounded-lg text-xs font-bold border border-border bg-card hover:bg-muted disabled:opacity-40">Next</button>
         </div>
       )}
     </div>

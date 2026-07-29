@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Community;
 use App\Models\DigitalProduct;
+use App\Models\FulfilmentPayout;
 use App\Models\Order;
 use App\Models\PhysicalProduct;
 use App\Models\Subscription;
@@ -83,7 +84,7 @@ class AdminAnalyticsController extends Controller
 
     public function trends(Request $request): JsonResponse
     {
-        $days = min((int) $request->query('days', 30), 365);
+        $days = max(1, min((int) $request->query('days', 30), 365));
 
         $userGrowth = User::selectRaw('DATE(created_at) as date, COUNT(*) as count')
             ->where('created_at', '>=', now()->subDays($days))
@@ -146,6 +147,87 @@ class AdminAnalyticsController extends Controller
             'top_digital_products' => $topDigital,
             'top_communities' => $topCommunities,
             'top_creators' => $topCreators,
+        ]);
+    }
+
+    public function growth(Request $request): JsonResponse
+    {
+        $days = max(1, min((int) $request->query('days', 30), 365));
+
+        $totalUsers = User::count();
+        $newUsers30d = User::where('created_at', '>=', now()->subDays(30))->count();
+        $activeCreators = User::whereIn('role', ['creator', 'vendor'])->count();
+
+        $gmv30d = Order::where('status', 'completed')
+            ->where('created_at', '>=', now()->subDays(30))
+            ->sum('total');
+
+        $signupsByDay = User::selectRaw('DATE(created_at) as date, COUNT(*) as count')
+            ->where('created_at', '>=', now()->subDays($days))
+            ->groupBy('date')
+            ->orderBy('date')
+            ->get();
+
+        $roleBreakdown = User::selectRaw('role, COUNT(*) as count')
+            ->groupBy('role')
+            ->get();
+
+        $kycStats = [
+            'verified' => User::where('kyc_status', 'verified')->count(),
+            'pending' => User::where('kyc_status', 'pending')->count(),
+            'none' => User::whereNull('kyc_status')->orWhere('kyc_status', '')->count(),
+        ];
+
+        return response()->json([
+            'total_users' => $totalUsers,
+            'new_users_30d' => $newUsers30d,
+            'active_creators' => $activeCreators,
+            'gmv_30d' => (float) $gmv30d,
+            'signups_by_day' => $signupsByDay,
+            'role_breakdown' => $roleBreakdown,
+            'kyc_stats' => $kycStats,
+        ]);
+    }
+
+    public function revenue(Request $request): JsonResponse
+    {
+        $days = max(1, min((int) $request->query('days', 30), 365));
+
+        $digitalRevenue = Order::where('status', 'completed')->sum('total');
+        $digitalOrders = Order::where('status', 'completed')->count();
+
+        $mrr = Subscription::where('subscriptions.status', 'active')
+            ->where('subscriptions.current_period_end', '>', now())
+            ->join('subscription_plans', 'subscriptions.plan_id', '=', 'subscription_plans.id')
+            ->sum('subscription_plans.price');
+
+        $activeSubscriptions = Subscription::where('status', 'active')
+            ->where('current_period_end', '>', now())
+            ->count();
+
+        $platformFees = Order::where('status', 'completed')->sum('platform_fee');
+
+        $pendingPayouts = FulfilmentPayout::where('status', 'pending')->sum('net_amount');
+
+        $revenueTrend = Order::selectRaw("TO_CHAR(created_at, 'YYYY-MM') as month, SUM(total) as revenue, COUNT(*) as orders")
+            ->where('status', 'completed')
+            ->where('created_at', '>=', now()->subDays($days))
+            ->groupBy('month')
+            ->orderBy('month')
+            ->get();
+
+        return response()->json([
+            'digital_revenue' => (float) $digitalRevenue,
+            'digital_orders' => $digitalOrders,
+            'mrr' => (float) $mrr,
+            'active_subscriptions' => $activeSubscriptions,
+            'platform_fees' => (float) $platformFees,
+            'pending_payouts' => (float) $pendingPayouts,
+            'revenue_by_source' => [
+                'digital' => (float) $digitalRevenue,
+                'subscriptions' => (float) $mrr,
+            ],
+            'revenue_trend' => $revenueTrend,
         ]);
     }
 }

@@ -53,6 +53,7 @@ use App\Http\Controllers\ReconciliationController;
 use App\Http\Controllers\ReferralController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\ShippingProfileController;
+use App\Http\Controllers\SocialAuthController;
 use App\Http\Controllers\StorefrontController;
 use App\Http\Controllers\SubscriptionController;
 use App\Http\Controllers\SubscriptionPlanController;
@@ -92,10 +93,24 @@ Route::prefix('v1')->group(function () {
     Route::prefix('auth')->group(function () {
         Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:auth');
         Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:auth');
+        Route::get('/check-username/{username}', [AuthController::class, 'checkUsername'])->middleware('throttle:auth');
+
+        // Social Auth
+        Route::prefix('social')->group(function () {
+            Route::get('/{provider}/redirect', [SocialAuthController::class, 'redirect']);
+            Route::post('/{provider}/callback', [SocialAuthController::class, 'callback']);
+        });
 
         Route::middleware('auth:sanctum')->group(function () {
             Route::post('/logout', [AuthController::class, 'logout']);
             Route::post('/email/resend', [VerificationController::class, 'resend']);
+            Route::put('/password', [AuthController::class, 'updatePassword']);
+            Route::prefix('2fa')->group(function () {
+                Route::post('/enable', [AuthController::class, 'enable2fa']);
+                Route::post('/disable', [AuthController::class, 'disable2fa']);
+            });
+            Route::get('/sessions', [AuthController::class, 'sessions']);
+            Route::delete('/sessions/{id}', [AuthController::class, 'destroySession']);
         });
 
         Route::get('/email/verify/{id}/{hash}', [VerificationController::class, 'verify'])
@@ -103,7 +118,7 @@ Route::prefix('v1')->group(function () {
     });
 
     // Public Community, Membership & Feed Endpoints
-    Route::prefix('communities')->group(function () {
+    Route::prefix('communities')->middleware('cache.public:10')->group(function () {
         Route::get('/', [CommunityController::class, 'index']);
         Route::get('/{slug}', [CommunityController::class, 'show']);
         Route::get('/{id}/members', [MembershipController::class, 'members']);
@@ -111,10 +126,22 @@ Route::prefix('v1')->group(function () {
         Route::get('/{id}/posts', [PostController::class, 'index']);
     });
 
-    Route::get('/feed', [PostController::class, 'globalFeed']);
+    Route::get('/feed', [PostController::class, 'globalFeed'])->middleware('cache.public:5');
 
     // Public Storefront Profile Endpoint
-    Route::get('/stores/{shortCode}', [StorefrontController::class, 'show']);
+    Route::get('/stores/{shortCode}', [StorefrontController::class, 'show'])->middleware('cache.public:10');
+
+    // Public Link-in-Bio Page
+    Route::get('/l/{username}', [\App\Http\Controllers\LinkInBioController::class, 'publicPage'])->middleware('cache.public:10');
+
+    // Link in Bio Click Redirect (public)
+    Route::get('/l/click/{linkId}', [\App\Http\Controllers\LinkInBioController::class, 'redirectClick'])->middleware('throttle:60,1');
+
+    // Affiliate Product Click Redirect (public)
+    Route::get('/l/affiliate/{product}', [\App\Http\Controllers\AffiliateProductController::class, 'redirectClick'])->middleware('throttle:60,1');
+
+    // Short Link Redirect (public)
+    Route::get('/s/{code}', [\App\Http\Controllers\ShortLinkController::class, 'redirect'])->middleware('throttle:60,1');
     Route::get('/public/products/{slug}', [DigitalProductController::class, 'publicShow']);
 
     // Sprint 15: Public payment webhook (no auth — provider calls this)
@@ -216,6 +243,13 @@ Route::prefix('v1')->group(function () {
             ]);
         });
 
+        // ── File Uploads ────────────────────────────────────────────────
+        Route::prefix('upload')->group(function () {
+            Route::get('/', [\App\Http\Controllers\UploadController::class, 'index']);
+            Route::post('/', [\App\Http\Controllers\UploadController::class, 'store']);
+            Route::delete('/{media}', [\App\Http\Controllers\UploadController::class, 'destroy']);
+        });
+
         // Profile Management
         Route::prefix('profile')->group(function () {
             Route::get('/', [ProfileController::class, 'show']);
@@ -227,6 +261,8 @@ Route::prefix('v1')->group(function () {
         Route::prefix('my-communities')->group(function () {
             Route::get('/', [CommunityController::class, 'myCommunities']);
             Route::post('/', [CommunityController::class, 'store'])->middleware('creator');
+            Route::put('/{community}', [CommunityController::class, 'update']);
+            Route::delete('/{community}', [CommunityController::class, 'destroy']);
         });
 
         // Community Actions
@@ -241,6 +277,8 @@ Route::prefix('v1')->group(function () {
         // Posts, Comments & Reactions
         Route::prefix('posts')->group(function () {
             Route::post('/', [PostController::class, 'store']);
+            Route::put('/{id}', [PostController::class, 'update']);
+            Route::delete('/{id}', [PostController::class, 'destroy']);
             Route::post('/{id}/comments', [PostController::class, 'addComment']);
             Route::post('/{id}/reactions', [PostController::class, 'toggleReaction']);
         });
@@ -349,7 +387,42 @@ Route::prefix('v1')->group(function () {
             Route::post('/{id}/default', [AddressController::class, 'setDefault']);
         });
 
-        // ── Sprint 32: Fulfilment & Shipping ──────────────────────────────────
+        // ── Store Categories ──────────────────────────────────────────
+        Route::prefix('store/categories')->middleware('creator')->group(function () {
+            Route::get('/', [\App\Http\Controllers\StoreCategoryController::class, 'index']);
+            Route::post('/', [\App\Http\Controllers\StoreCategoryController::class, 'store']);
+            Route::patch('/{category}', [\App\Http\Controllers\StoreCategoryController::class, 'update']);
+            Route::delete('/{category}', [\App\Http\Controllers\StoreCategoryController::class, 'destroy']);
+        });
+
+        // ── Store Inventory ──────────────────────────────────────────
+        Route::prefix('store/inventory')->middleware('creator')->group(function () {
+            Route::get('/', [\App\Http\Controllers\StoreInventoryController::class, 'index']);
+            Route::patch('/{product}', [\App\Http\Controllers\StoreInventoryController::class, 'update']);
+        });
+
+        // ── Store Returns ────────────────────────────────────────────
+        Route::prefix('store/returns')->group(function () {
+            Route::get('/', [\App\Http\Controllers\StoreReturnController::class, 'index']);
+            Route::post('/', [\App\Http\Controllers\StoreReturnController::class, 'store']);
+            Route::put('/{return}', [\App\Http\Controllers\StoreReturnController::class, 'update']);
+        });
+
+        // ── Store Membership Plans ───────────────────────────────────
+        Route::prefix('store/memberships')->middleware('creator')->group(function () {
+            Route::get('/', [\App\Http\Controllers\StoreMembershipPlanController::class, 'index']);
+            Route::post('/', [\App\Http\Controllers\StoreMembershipPlanController::class, 'store']);
+            Route::patch('/{plan}', [\App\Http\Controllers\StoreMembershipPlanController::class, 'update']);
+            Route::delete('/{plan}', [\App\Http\Controllers\StoreMembershipPlanController::class, 'destroy']);
+        });
+
+        // ── Store Settings ──────────────────────────────────────────
+        Route::prefix('store/settings')->middleware('creator')->group(function () {
+            Route::get('/', [\App\Http\Controllers\StoreSettingsController::class, 'show']);
+            Route::put('/', [\App\Http\Controllers\StoreSettingsController::class, 'update']);
+        });
+
+        // ── Fulfilment & Shipping ────────────────────────────────────
         Route::prefix('store/fulfilment')->group(function () {
             Route::post('/checkout', [FulfilmentOrderController::class, 'checkout']);
             Route::get('/orders', [FulfilmentOrderController::class, 'myOrders']);
@@ -462,6 +535,120 @@ Route::prefix('v1')->group(function () {
             Route::put('/{sequenceId}/steps/{stepId}', [EmailSequenceController::class, 'updateStep']);
             Route::delete('/{sequenceId}/steps/{stepId}', [EmailSequenceController::class, 'deleteStep']);
         });
+
+        // ── Content Studio ──────────────────────────────────────────
+        Route::prefix('content')->middleware('creator')->group(function () {
+            Route::get('/', [\App\Http\Controllers\ContentItemController::class, 'index']);
+            Route::post('/', [\App\Http\Controllers\ContentItemController::class, 'store']);
+            Route::patch('/{item}', [\App\Http\Controllers\ContentItemController::class, 'update']);
+            Route::delete('/{item}', [\App\Http\Controllers\ContentItemController::class, 'destroy']);
+        });
+
+        // ── Support Threads ──────────────────────────────────────────
+        Route::prefix('support/threads')->group(function () {
+            Route::get('/', [\App\Http\Controllers\SupportController::class, 'index']);
+            Route::get('/{thread}/messages', [\App\Http\Controllers\SupportController::class, 'messages']);
+            Route::post('/{thread}/messages', [\App\Http\Controllers\SupportController::class, 'sendMessage']);
+        });
+
+        // ── Chat Rooms (alias for frontend) ──────────────────────────
+        Route::prefix('chat/rooms')->group(function () {
+            Route::get('/', [\App\Http\Controllers\ChatRoomController::class, 'rooms']);
+            Route::get('/{room}/messages', [\App\Http\Controllers\ChatRoomController::class, 'messages']);
+            Route::post('/{room}/messages', [\App\Http\Controllers\ChatRoomController::class, 'sendMessage']);
+        });
+
+        // ── Link in Bio ──────────────────────────────────────────────
+        Route::prefix('link-in-bio')->group(function () {
+            Route::get('/', [\App\Http\Controllers\LinkInBioController::class, 'index']);
+            Route::post('/', [\App\Http\Controllers\LinkInBioController::class, 'storeLink']);
+            Route::patch('/{link}', [\App\Http\Controllers\LinkInBioController::class, 'updateLink']);
+            Route::delete('/{link}', [\App\Http\Controllers\LinkInBioController::class, 'destroyLink']);
+            Route::put('/profile', [\App\Http\Controllers\LinkInBioController::class, 'saveProfile']);
+            Route::get('/design', [\App\Http\Controllers\LinkInBioController::class, 'showDesign']);
+            Route::put('/design', [\App\Http\Controllers\LinkInBioController::class, 'updateDesign']);
+            Route::post('/design/apply-theme', [\App\Http\Controllers\LinkInBioController::class, 'applyTheme']);
+            Route::put('/domain', [\App\Http\Controllers\LinkInBioController::class, 'updateDomain']);
+            Route::post('/domain/verify', [\App\Http\Controllers\LinkInBioController::class, 'verifyDomain']);
+            Route::post('/links/{link}/track-click', [\App\Http\Controllers\LinkInBioController::class, 'trackClick']);
+
+            // Social links
+            Route::get('/socials', [\App\Http\Controllers\LinkInBioController::class, 'indexSocials']);
+            Route::post('/socials', [\App\Http\Controllers\LinkInBioController::class, 'storeSocial']);
+            Route::patch('/socials/{social}', [\App\Http\Controllers\LinkInBioController::class, 'updateSocial']);
+            Route::delete('/socials/{social}', [\App\Http\Controllers\LinkInBioController::class, 'destroySocial']);
+
+            // Products
+            Route::get('/products', [\App\Http\Controllers\LinkInBioController::class, 'indexProducts']);
+            Route::post('/products', [\App\Http\Controllers\LinkInBioController::class, 'storeProduct']);
+            Route::patch('/products/{product}', [\App\Http\Controllers\LinkInBioController::class, 'updateProduct']);
+            Route::delete('/products/{product}', [\App\Http\Controllers\LinkInBioController::class, 'destroyProduct']);
+        });
+
+        // ── Marketing Campaigns ──────────────────────────────────────
+        Route::prefix('marketing/campaigns')->middleware('creator')->group(function () {
+            Route::get('/', [\App\Http\Controllers\MarketingCampaignController::class, 'index']);
+            Route::post('/', [\App\Http\Controllers\MarketingCampaignController::class, 'store']);
+            Route::get('/{campaign}', [\App\Http\Controllers\MarketingCampaignController::class, 'show']);
+            Route::put('/{campaign}', [\App\Http\Controllers\MarketingCampaignController::class, 'update']);
+            Route::delete('/{campaign}', [\App\Http\Controllers\MarketingCampaignController::class, 'destroy']);
+        });
+
+        // ── AI Chat ──────────────────────────────────────────────────
+        Route::post('/ai/chat', [\App\Http\Controllers\AiChatController::class, 'chat'])->middleware('throttle:30,1');
+
+        // ── Courses ──────────────────────────────────────────────────
+        Route::prefix('courses')->middleware('creator')->group(function () {
+            Route::get('/', [\App\Http\Controllers\CourseController::class, 'index']);
+            Route::post('/', [\App\Http\Controllers\CourseController::class, 'store']);
+            Route::get('/{course}', [\App\Http\Controllers\CourseController::class, 'show']);
+            Route::put('/{course}', [\App\Http\Controllers\CourseController::class, 'update']);
+            Route::delete('/{course}', [\App\Http\Controllers\CourseController::class, 'destroy']);
+        });
+
+        // ── Affiliate Products ──────────────────────────────────────
+        Route::prefix('affiliate/products')->middleware('creator')->group(function () {
+            Route::get('/', [\App\Http\Controllers\AffiliateProductController::class, 'index']);
+            Route::post('/', [\App\Http\Controllers\AffiliateProductController::class, 'store']);
+            Route::get('/{product}', [\App\Http\Controllers\AffiliateProductController::class, 'show']);
+            Route::put('/{product}', [\App\Http\Controllers\AffiliateProductController::class, 'update']);
+            Route::delete('/{product}', [\App\Http\Controllers\AffiliateProductController::class, 'destroy']);
+        });
+
+        // ── Short Links ──────────────────────────────────────────
+        Route::prefix('short-links')->group(function () {
+            Route::get('/', [\App\Http\Controllers\ShortLinkController::class, 'index']);
+            Route::post('/', [\App\Http\Controllers\ShortLinkController::class, 'store']);
+            Route::delete('/{shortLink}', [\App\Http\Controllers\ShortLinkController::class, 'destroy']);
+        });
+
+        // ── Account & Settings (apiClient) ───────────────────────────
+        Route::prefix('settings')->group(function () {
+            Route::put('/privacy', [\App\Http\Controllers\ProfileController::class, 'updatePrivacy']);
+        });
+
+        Route::prefix('account')->group(function () {
+            Route::post('/export', [\App\Http\Controllers\ProfileController::class, 'exportData']);
+            Route::delete('/', [\App\Http\Controllers\ProfileController::class, 'deleteAccount']);
+        });
+
+        // ── KYC (separate from profile/kyc for frontend compat) ─────
+        Route::prefix('kyc')->group(function () {
+            Route::get('/status', [\App\Http\Controllers\ProfileController::class, 'kycStatus']);
+            Route::post('/submit', [\App\Http\Controllers\ProfileController::class, 'submitKyc']);
+        });
+
+        // ── Analytics extras ────────────────────────────────────────
+        Route::prefix('analytics')->group(function () {
+            Route::get('/products', [\App\Http\Controllers\AnalyticsController::class, 'productPerformance']);
+            Route::get('/chat-channels', [\App\Http\Controllers\AnalyticsController::class, 'chatChannels']);
+            Route::get('/content-planner', [\App\Http\Controllers\AnalyticsController::class, 'contentPlanner']);
+            Route::get('/community-activity', [\App\Http\Controllers\AnalyticsController::class, 'communityActivity']);
+        });
+
+        Route::get('/conversations/stats', [\App\Http\Controllers\ConversationController::class, 'stats']);
+        Route::get('/messages/recent-activity', [\App\Http\Controllers\ConversationController::class, 'recentActivity']);
+        Route::get('/wallet/overview', [\App\Http\Controllers\WalletController::class, 'overview']);
 
         // ── Sprint 40: Analytics & AI Tools ────────────────────────────────────
         Route::prefix('analytics')->group(function () {
@@ -631,6 +818,7 @@ Route::prefix('v1')->group(function () {
             // Users
             Route::prefix('users')->group(function () {
                 Route::get('/', [AdminUserController::class, 'index']);
+                Route::get('/export', [AdminUserController::class, 'export']);
                 Route::get('/{id}', [AdminUserController::class, 'show']);
                 Route::post('/{id}/suspend', [AdminUserController::class, 'suspend']);
                 Route::post('/{id}/activate', [AdminUserController::class, 'activate']);
@@ -654,6 +842,7 @@ Route::prefix('v1')->group(function () {
             // Reports
             Route::prefix('reports')->group(function () {
                 Route::get('/', [ModerationController::class, 'index']);
+                Route::get('/pending-count', [ModerationController::class, 'pendingCount']);
                 Route::post('/{report}/action', [ModerationController::class, 'action']);
             });
 
@@ -682,6 +871,7 @@ Route::prefix('v1')->group(function () {
 
             // ── Sprint 19: Queue & System Monitoring ─────────────────────────
             Route::prefix('queue')->group(function () {
+                Route::get('/health', [\App\Http\Controllers\QueueMonitorController::class, 'health']);
                 Route::get('/stats', [\App\Http\Controllers\QueueMonitorController::class, 'stats']);
                 Route::get('/failed-jobs', [\App\Http\Controllers\QueueMonitorController::class, 'failedJobs']);
                 Route::post('/failed-jobs/{id}/retry', [\App\Http\Controllers\QueueMonitorController::class, 'retryFailed']);
@@ -761,6 +951,8 @@ Route::prefix('v1')->group(function () {
                 Route::get('/overview', [AdminAnalyticsController::class, 'overview']);
                 Route::get('/trends', [AdminAnalyticsController::class, 'trends']);
                 Route::get('/top-content', [AdminAnalyticsController::class, 'topContent']);
+                Route::get('/growth', [AdminAnalyticsController::class, 'growth']);
+                Route::get('/revenue', [AdminAnalyticsController::class, 'revenue']);
             });
 
             // ── Sprint 42: Plans & Fees Management ───────────────────────────
@@ -769,6 +961,32 @@ Route::prefix('v1')->group(function () {
                 Route::get('/{id}', [AdminPlansController::class, 'show']);
                 Route::post('/{id}/toggle', [AdminPlansController::class, 'toggleActive']);
             });
+
+            Route::prefix('fees')->group(function () {
+                Route::get('/', [\App\Http\Controllers\AdminFeeController::class, 'index']);
+                Route::get('/{id}', [\App\Http\Controllers\AdminFeeController::class, 'show']);
+                Route::put('/{id}', [\App\Http\Controllers\AdminFeeController::class, 'update']);
+            });
+
+            // ── System Health ────────────────────────────────────────────────
+            Route::get('/system-health', [\App\Http\Controllers\AdminSystemHealthController::class, 'index']);
+
+            // ── Moderation Logs ─────────────────────────────────────────────
+            Route::get('/moderation-logs', [\App\Http\Controllers\AdminModerationLogController::class, 'index']);
+
+            // ── Audit Trail ─────────────────────────────────────────────────
+            Route::prefix('audit-trail')->group(function () {
+                Route::get('/', [\App\Http\Controllers\AuditLogController::class, 'index']);
+            });
+
+            // ── Admin Settings ──────────────────────────────────────────────
+            Route::prefix('settings')->group(function () {
+                Route::get('/', [\App\Http\Controllers\AdminSettingsController::class, 'show']);
+                Route::put('/', [\App\Http\Controllers\AdminSettingsController::class, 'update']);
+            });
+
+            // ── Conversion Metrics ─────────────────────────────────────────
+            Route::get('/analytics/conversions', [\App\Http\Controllers\AdminConversionMetricsController::class, 'index']);
         });
     });
 });

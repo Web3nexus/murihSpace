@@ -17,6 +17,29 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Active Upload Disk
+    |--------------------------------------------------------------------------
+    |
+    | The disk used for user file uploads. Set via UPLOAD_DISK env var.
+    | Options: local_uploads, s3, wasabi, bunny
+    |
+    */
+
+    'upload_disk' => env('UPLOAD_DISK', 'local_uploads'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Uploads Folder
+    |--------------------------------------------------------------------------
+    |
+    | The folder/prefix within the upload disk where files are stored.
+    |
+    */
+
+    'upload_folder' => env('UPLOAD_FOLDER', 'uploads'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Filesystem Disks
     |--------------------------------------------------------------------------
     |
@@ -56,6 +79,56 @@ return [
             'url' => env('AWS_URL'),
             'endpoint' => env('AWS_ENDPOINT'),
             'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', false),
+            'throw' => false,
+            'report' => false,
+        ],
+
+        /*
+        |--------------------------------------------------------------------------
+        | Upload Disks
+        |--------------------------------------------------------------------------
+        |
+        | Storage backends for user-uploaded files. The active disk is selected
+        | via the UPLOAD_DISK env var (default: local_uploads).
+        |
+        | Supported providers:
+        |   local_uploads - Local VPS storage (public/ subfolder)
+        |   s3            - Amazon S3 or S3-compatible (Wasabi, DigitalOcean Spaces, etc.)
+        |   wasabi        - Wasabi hot storage (S3-compatible)
+        |   bunny         - Bunny.net CDN storage
+        |
+        */
+
+        'local_uploads' => [
+            'driver' => 'local',
+            'root' => storage_path('app/public/uploads'),
+            'url' => rtrim(env('APP_URL', 'http://localhost'), '/').'/storage/uploads',
+            'visibility' => 'public',
+            'throw' => false,
+        ],
+
+        'wasabi' => [
+            'driver' => 's3',
+            'key' => env('WASABI_ACCESS_KEY_ID'),
+            'secret' => env('WASABI_SECRET_ACCESS_KEY'),
+            'region' => env('WASABI_REGION', 'us-east-1'),
+            'bucket' => env('WASABI_BUCKET'),
+            'endpoint' => env('WASABI_ENDPOINT', 'https://s3.wasabisys.com'),
+            'url' => env('WASABI_URL'),
+            'use_path_style_endpoint' => false,
+            'throw' => false,
+            'report' => false,
+        ],
+
+        'bunny' => [
+            'driver' => 's3',
+            'key' => env('BUNNY_STORAGE_ZONE'),
+            'secret' => env('BUNNY_STORAGE_PASSWORD'),
+            'region' => env('BUNNY_REGION', 'de'),
+            'bucket' => env('BUNNY_STORAGE_ZONE'),
+            'endpoint' => env('BUNNY_ENDPOINT', 'https://de-s3.storage.bunnycdn.com'),
+            'url' => env('BUNNY_CDN_URL'),
+            'use_path_style_endpoint' => true,
             'throw' => false,
             'report' => false,
         ],

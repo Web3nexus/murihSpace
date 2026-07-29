@@ -39,7 +39,7 @@ export function StoreManagementPage() {
   const [links, setLinks] = useState<StorefrontLink[]>([]);
 
   const fetchStorefront = useCallback(async () => {
-    const token = localStorage.getItem('auth_token');
+    const token = localStorage.getItem('murihspace-token') || localStorage.getItem('auth_token');
     try {
       const res = await fetch(`${API_BASE}/storefront`, {
         headers: {
@@ -77,7 +77,7 @@ export function StoreManagementPage() {
     setError(null);
     setSaveSuccess(false);
 
-    const token = localStorage.getItem('auth_token');
+    const token = localStorage.getItem('murihspace-token') || localStorage.getItem('auth_token');
     try {
       const res = await fetch(`${API_BASE}/storefront`, {
         method: 'PUT',
@@ -114,7 +114,7 @@ export function StoreManagementPage() {
     if (!storefront) return;
     setIsTogglingPublish(true);
 
-    const token = localStorage.getItem('auth_token');
+    const token = localStorage.getItem('murihspace-token') || localStorage.getItem('auth_token');
     try {
       const res = await fetch(`${API_BASE}/storefront/publish`, {
         method: 'POST',

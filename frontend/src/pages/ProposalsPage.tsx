@@ -40,19 +40,20 @@ export function ProposalsPage() {
     brand_id: '', brand_name: '', brand_email: '',
     title: '', pitch: '', proposed_budget: '', currency: 'NGN', deliverables: '',
   });
+  const [page, setPage] = useState(1);
+  const [lastPage, setLastPage] = useState(1);
 
   const fetchAll = useCallback(async () => {
-    setIsLoading(true);
     try {
       const [pRes, bRes] = await Promise.all([
-        fetch(`${API_BASE}/brand-proposals`, { headers: getAuthHeaders() }),
+        fetch(`${API_BASE}/brand-proposals?page=${page}&per_page=20`, { headers: getAuthHeaders() }),
         fetch(`${API_BASE}/brands`, { headers: getAuthHeaders() }),
       ]);
-      if (pRes.ok) { const j = await pRes.json(); setProposals(j.data?.data ?? []); }
+      if (pRes.ok) { const j = await pRes.json(); setProposals(j.data?.data ?? []); setLastPage(j.data?.last_page ?? 1); }
       if (bRes.ok) { const j = await bRes.json(); setBrands(j.data?.data ?? []); }
     } catch { /* ignore */ }
     finally { setIsLoading(false); }
-  }, []);
+  }, [page]);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
@@ -192,7 +193,7 @@ export function ProposalsPage() {
           <h2 className="text-xl font-semibold text-gray-700">No proposals yet</h2>
           <p className="text-gray-500">Create a pitch proposal to reach out to brands.</p>
         </div>
-      ) : (
+      ) : (<>
         <div className="space-y-3">
           {proposals.map(p => (
             <div key={p.id} className="bg-white border rounded-xl p-4">
@@ -233,7 +234,14 @@ export function ProposalsPage() {
             </div>
           ))}
         </div>
-      )}
+        {lastPage > 1 && (
+          <div className="flex items-center justify-center gap-2 pt-4">
+            <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1} className="px-3 py-1.5 rounded-lg text-xs font-bold border border-border bg-card hover:bg-muted disabled:opacity-40">Previous</button>
+            <span className="text-xs text-muted-foreground">Page {page} of {lastPage}</span>
+            <button onClick={() => setPage(p => Math.min(lastPage, p + 1))} disabled={page >= lastPage} className="px-3 py-1.5 rounded-lg text-xs font-bold border border-border bg-card hover:bg-muted disabled:opacity-40">Next</button>
+          </div>
+        )}
+      </>)}
     </div>
   );
 }

@@ -1,413 +1,336 @@
-import React, { useState } from "react";
+import React, { useState, useCallback, useRef } from "react";
 import { Link, useNavigate } from "react-router";
 import { useAuth } from "@/hooks/useAuth";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Loader2, ArrowRight, ArrowLeft } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Loader2, ArrowRight, ArrowLeft, CheckCircle2, XCircle, Sparkles, Crown, Clock } from "lucide-react";
+
+import { AuthLayout } from "@/components/layout/AuthLayout";
+
+const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:8000/api/v1";
 
 type Step = 1 | 2 | 3 | 4 | 5;
 
+const SOCIAL_PROVIDERS = [
+  { id: "google", label: "Google", icon: "G" },
+  { id: "facebook", label: "Facebook", icon: "f" },
+  { id: "apple", label: "Apple", icon: "A" },
+];
+
 export function RegisterPage() {
   const navigate = useNavigate();
-  const { register, loading, error, fieldErrors } = useAuth();
+  const { register, loading, error } = useAuth();
 
-  // Wizard step state (1 to 5)
   const [step, setStep] = useState<Step>(1);
 
-  // Form Fields
+  // Step 1: Username
+  const [username, setUsername] = useState("");
+  const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null);
+  const [usernameChecking, setUsernameChecking] = useState(false);
+  const [trialDays, setTrialDays] = useState(7);
+
+  // Steps 2-5: Wizard fields
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [passwordConfirmation, setPasswordConfirmation] = useState("");
-  
   const [name, setName] = useState("");
-  const [username, setUsername] = useState("");
   const [mobileNumber, setMobileNumber] = useState("");
-  
   const [country, setCountry] = useState("United Kingdom");
   const [county, setCounty] = useState("");
-  const [state, setState] = useState("");
-  
+  const [state, _setState] = useState("");
   const [role, setRole] = useState<"member" | "creator" | "vendor">("member");
-  const [kycDocument, setKycDocument] = useState("");
+  const [kycDocument] = useState("");
 
-  // Navigation validation handlers
+  // Social login (step 1 also)
+  const [socialLoading, setSocialLoading] = useState<string | null>(null);
+
+  const checkSeqRef = useRef(0);
+
+  // Debounced username availability check
+  const checkUsername = useCallback(async (val: string) => {
+    if (val.length < 3 || !/^[a-zA-Z0-9_]+$/.test(val)) {
+      setUsernameAvailable(null);
+      return;
+    }
+    const seq = ++checkSeqRef.current;
+    setUsernameChecking(true);
+    try {
+      const res = await fetch(`${API_BASE}/auth/check-username/${encodeURIComponent(val)}`, { headers: { Accept: "application/json" } });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const j = await res.json();
+      const d = j?.success ? j?.data : j;
+      if (seq !== checkSeqRef.current) return;
+      setUsernameAvailable(d?.available ?? false);
+      if (d?.trial_days) setTrialDays(d.trial_days);
+    } catch {
+      if (seq === checkSeqRef.current) setUsernameAvailable(null);
+    } finally {
+      if (seq === checkSeqRef.current) setUsernameChecking(false);
+    }
+  }, []);
+
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const handleUsernameChange = (val: string) => {
+    setUsername(val);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => checkUsername(val), 400);
+  };
+
+  const handleSocialLogin = async (provider: string) => {
+    setSocialLoading(provider);
+    try {
+      const res = await fetch(`${API_BASE}/auth/social/${provider}/redirect`, { headers: { Accept: "application/json" } });
+      const j = await res.json();
+      const d = j?.success ? j?.data : j;
+      if (d?.redirect_url) {
+        window.location.assign(d.redirect_url);
+        return;
+      }
+      if (d?.manual_register) {
+        alert(`${provider} login is not configured yet. Please register with email.`);
+      }
+    } catch {
+      alert(`Failed to initiate ${provider} login.`);
+    }
+    setSocialLoading(null);
+  };
+
   const handleNextStep1 = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !email.includes("@")) return;
+    if (!usernameAvailable) return;
     setStep(2);
   };
 
   const handleNextStep2 = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!password || !passwordConfirmation) return;
-    if (password.length < 8) {
-      alert("Password must be at least 8 characters");
-      return;
-    }
-    if (password !== passwordConfirmation) {
-      alert("Passwords do not match");
-      return;
-    }
+    if (!email || !email.includes("@")) return;
     setStep(3);
   };
 
   const handleNextStep3 = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !username) return;
+    if (!password || !passwordConfirmation) return;
+    if (password.length < 8) { alert("Password must be at least 8 characters"); return; }
+    if (password !== passwordConfirmation) { alert("Passwords do not match"); return; }
     setStep(4);
   };
 
   const handleNextStep4 = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!country) return;
+    if (!name) return;
     setStep(5);
   };
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     const success = await register({
-      name,
-      email,
-      username,
-      role,
-      password,
-      passwordConfirmation,
-      country,
-      mobileNumber,
-      county,
-      state,
-      kycDocument: role !== "member" ? kycDocument : undefined,
+      name, email, username, role, password, passwordConfirmation,
+      country, mobileNumber, county, state, kycDocument,
     });
-    if (success) {
-      navigate("/app");
-    }
+    if (success) navigate("/app", { replace: true });
   };
 
+  const socialBtnClass = (prov: string) =>
+    `flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border text-xs font-bold transition-all ${
+      socialLoading === prov ? "opacity-50" : "hover:border-[#38A8D8]/50 hover:bg-muted/50"
+    } border-border bg-card text-foreground`;
+
   return (
-    <div className="flex min-h-svh flex-col items-center justify-center gap-6 bg-muted p-6 md:p-10">
-      <div className="flex w-full max-w-sm flex-col gap-6">
-        {/* Brand Header */}
-        <Link to="/" className="flex items-center gap-2 self-center font-medium">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground text-sm font-bold">
-            M
-          </div>
-          MurihSpace
-        </Link>
-
-        {/* Wizard Container */}
-          <div className="rounded-2xl bg-card text-card-foreground shadow-sm p-6 flex flex-col gap-5">
-          
-          {/* Pro Segmented Progress Bar Indicators at the top */}
-          <div className="grid grid-cols-5 gap-1.5 px-1 mb-2">
-            {[1, 2, 3, 4, 5].map((i) => (
-              <div
-                key={i}
-                className={cn(
-                  "h-1 rounded-full transition-all duration-300",
-                  step >= i ? "bg-primary" : "bg-muted"
-                )}
-              />
-            ))}
-          </div>
-
-          <div className="flex flex-col items-center gap-1.5 text-center">
-            <h1 className="text-xl font-semibold tracking-tight text-foreground">
-              {step === 1 && "Enter your email"}
-              {step === 2 && "Choose a password"}
-              {step === 3 && "Tell us about yourself"}
-              {step === 4 && "Enter your location"}
-              {step === 5 && "Select account type"}
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              {step === 1 && "Enter your email to start creating your account."}
-              {step === 2 && "Ensure your password is secure and easy to remember."}
-              {step === 3 && "Set up your name, username and contact number."}
-              {step === 4 && "Your country, county and region details."}
-              {step === 5 && "Select your account role — verification only applies to creators and vendors."}
-            </p>
-          </div>
-
-          {error && (
-            <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive text-center" id="register-wizard-error">
-              {error}
-            </div>
-          )}
-
-          {/* STEP 1: EMAIL ONLY */}
-          {step === 1 && (
-            <form onSubmit={handleNextStep1}>
-              <FieldGroup>
-                <Field>
-                  <FieldLabel htmlFor="reg-email">Email Address</FieldLabel>
-                  <Input
-                    id="reg-email"
-                    type="email"
-                    required
-                    value={email}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
-                    placeholder="name@example.com"
-                    className={cn(fieldErrors.email && "border-destructive")}
-                  />
-                  {fieldErrors.email && (
-                    <p className="text-xs text-destructive mt-1">{fieldErrors.email[0]}</p>
-                  )}
-                </Field>
-                <Field>
-                  <Button type="submit" className="w-full gap-2" disabled={!email || !email.includes("@")}>
-                    Continue <ArrowRight className="h-4 w-4" />
-                  </Button>
-                </Field>
-              </FieldGroup>
-            </form>
-          )}
-
-          {/* STEP 2: PASSWORD */}
-          {step === 2 && (
-            <form onSubmit={handleNextStep2}>
-              <FieldGroup>
-                <Field>
-                  <FieldLabel htmlFor="reg-password">Password</FieldLabel>
-                  <Input
-                    id="reg-password"
-                    type="password"
-                    required
-                    value={password}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className={cn(fieldErrors.password && "border-destructive")}
-                  />
-                  {fieldErrors.password && (
-                    <p className="text-xs text-destructive mt-1">{fieldErrors.password[0]}</p>
-                  )}
-                </Field>
-                <Field>
-                  <FieldLabel htmlFor="reg-confirm">Confirm Password</FieldLabel>
-                  <Input
-                    id="reg-confirm"
-                    type="password"
-                    required
-                    value={passwordConfirmation}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPasswordConfirmation(e.target.value)}
-                    placeholder="••••••••"
-                  />
-                </Field>
-                <div className="flex gap-4">
-                  <Button type="button" variant="outline" className="flex-1 gap-2" onClick={() => setStep(1)}>
-                    <ArrowLeft className="h-4 w-4" /> Back
-                  </Button>
-                  <Button type="submit" className="flex-1 gap-2" disabled={!password || !passwordConfirmation}>
-                    Continue <ArrowRight className="h-4 w-4" />
-                  </Button>
-                </div>
-              </FieldGroup>
-            </form>
-          )}
-
-          {/* STEP 3: NAME, USERNAME, MOBILE */}
-          {step === 3 && (
-            <form onSubmit={handleNextStep3}>
-              <FieldGroup>
-                <Field>
-                  <FieldLabel htmlFor="reg-name">Full Name</FieldLabel>
-                  <Input
-                    id="reg-name"
-                    required
-                    value={name}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
-                    placeholder="Vincent Paul"
-                    className={cn(fieldErrors.name && "border-destructive")}
-                  />
-                  {fieldErrors.name && (
-                    <p className="text-xs text-destructive mt-1">{fieldErrors.name[0]}</p>
-                  )}
-                </Field>
-                <Field>
-                  <FieldLabel htmlFor="reg-username">Username</FieldLabel>
-                  <Input
-                    id="reg-username"
-                    required
-                    value={username}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUsername(e.target.value)}
-                    placeholder="vincentpaul"
-                    className={cn(fieldErrors.username && "border-destructive")}
-                  />
-                  {fieldErrors.username && (
-                    <p className="text-xs text-destructive mt-1">{fieldErrors.username[0]}</p>
-                  )}
-                </Field>
-                <Field>
-                  <FieldLabel htmlFor="reg-mobile">Mobile Number</FieldLabel>
-                  <Input
-                    id="reg-mobile"
-                    type="tel"
-                    value={mobileNumber}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setMobileNumber(e.target.value)}
-                    placeholder="+44 7911 123456"
-                  />
-                </Field>
-                <div className="flex gap-4">
-                  <Button type="button" variant="outline" className="flex-1 gap-2" onClick={() => setStep(2)}>
-                    <ArrowLeft className="h-4 w-4" /> Back
-                  </Button>
-                  <Button type="submit" className="flex-1 gap-2" disabled={!name || !username}>
-                    Continue <ArrowRight className="h-4 w-4" />
-                  </Button>
-                </div>
-              </FieldGroup>
-            </form>
-          )}
-
-          {/* STEP 4: LOCATION */}
-          {step === 4 && (
-            <form onSubmit={handleNextStep4}>
-              <FieldGroup>
-                <Field>
-                  <FieldLabel htmlFor="reg-country">Country</FieldLabel>
-                  <Input
-                    id="reg-country"
-                    required
-                    value={country}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCountry(e.target.value)}
-                    placeholder="United Kingdom"
-                  />
-                </Field>
-                <div className="grid grid-cols-2 gap-4">
-                  <Field>
-                    <FieldLabel htmlFor="reg-county">County</FieldLabel>
-                    <Input
-                      id="reg-county"
-                      value={county}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCounty(e.target.value)}
-                      placeholder="Greater London"
-                    />
-                  </Field>
-                  <Field>
-                    <FieldLabel htmlFor="reg-state">State / Region</FieldLabel>
-                    <Input
-                      id="reg-state"
-                      value={state}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setState(e.target.value)}
-                      placeholder="England"
-                    />
-                  </Field>
-                </div>
-                <div className="flex gap-4">
-                  <Button type="button" variant="outline" className="flex-1 gap-2" onClick={() => setStep(3)}>
-                    <ArrowLeft className="h-4 w-4" /> Back
-                  </Button>
-                  <Button type="submit" className="flex-1 gap-2" disabled={!country}>
-                    Continue <ArrowRight className="h-4 w-4" />
-                  </Button>
-                </div>
-              </FieldGroup>
-            </form>
-          )}
-
-          {/* STEP 5: ROLE & KYC */}
-          {step === 5 && (
-            <form onSubmit={handleRegister}>
-              <FieldGroup>
-                <div className="space-y-3">
-                  <span className="block text-sm font-medium text-foreground">Select Account Role</span>
-                  
-                  {/* Premium cards for selecting user role */}
-                  <div className="grid grid-cols-3 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setRole("member")}
-                      className={cn(
-                        "flex flex-col items-center justify-center p-3 border rounded-lg text-center transition-all",
-                        role === "member" ? "border-primary bg-primary/5 ring-1 ring-primary" : "border-border hover:bg-muted"
-                      )}
-                    >
-                      <span className="font-semibold text-xs text-foreground block">User</span>
-                      <span className="text-[10px] text-muted-foreground mt-1">General</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setRole("creator")}
-                      className={cn(
-                        "flex flex-col items-center justify-center p-3 border rounded-lg text-center transition-all",
-                        role === "creator" ? "border-primary bg-primary/5 ring-1 ring-primary" : "border-border hover:bg-muted"
-                      )}
-                    >
-                      <span className="font-semibold text-xs text-foreground block">Creator</span>
-                      <span className="text-[10px] text-muted-foreground mt-1">Publish Art</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setRole("vendor")}
-                      className={cn(
-                        "flex flex-col items-center justify-center p-3 border rounded-lg text-center transition-all",
-                        role === "vendor" ? "border-primary bg-primary/5 ring-1 ring-primary" : "border-border hover:bg-muted"
-                      )}
-                    >
-                      <span className="font-semibold text-xs text-foreground block">Vendor</span>
-                      <span className="text-[10px] text-muted-foreground mt-1">Sell Prints</span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Conditional Verification for Creators and Vendors */}
-                {role !== "member" && (
-                  <div className="mt-4 p-4 rounded-lg border border-amber-500/25 bg-amber-500/5 space-y-3">
-                    <span className="block text-xs font-semibold text-amber-600 dark:text-amber-400">
-                      Identity Verification (KYC) Required
-                    </span>
-                    <p className="text-[11px] text-muted-foreground leading-relaxed">
-                      To list products or artwork for sale, please provide your Passport or national ID card number.
-                    </p>
-                    <Field>
-                      <FieldLabel htmlFor="reg-kyc" className="text-xs">ID / Passport Number</FieldLabel>
-                      <Input
-                        id="reg-kyc"
-                        required
-                        value={kycDocument}
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setKycDocument(e.target.value)}
-                        placeholder="Passport or ID Reference"
-                        className="text-xs h-8"
-                      />
-                    </Field>
-                  </div>
-                )}
-
-                {role === "member" && (
-                  <div className="mt-4 p-4 rounded-lg border border-border bg-muted/40 text-center text-xs text-muted-foreground leading-relaxed">
-                    No verification is needed to browse the site. You can transition to a Creator/Vendor profile at any time in your Settings.
-                  </div>
-                )}
-
-                <div className="flex gap-4 mt-6">
-                  <Button type="button" variant="outline" className="flex-1 gap-2" onClick={() => setStep(4)} disabled={loading}>
-                    <ArrowLeft className="h-4 w-4" /> Back
-                  </Button>
-                  <Button
-                    type="submit"
-                    className="flex-1 gap-2"
-                    disabled={loading || (role !== "member" && !kycDocument)}
-                    id="register-submit-btn"
-                  >
-                    {loading ? (
-                      <><Loader2 className="h-4.5 w-4.5 animate-spin" /> Completing...</>
-                    ) : "Complete"}
-                  </Button>
-                </div>
-              </FieldGroup>
-            </form>
-          )}
-
-          <p className="text-center text-xs text-muted-foreground mt-2">
-            Already have an account?{" "}
-            <Link to="/login" className="font-semibold text-primary hover:underline">
-              Sign In
-            </Link>
+    <AuthLayout>
+      <div className="w-full max-w-md mx-auto space-y-6">
+        <div className="text-center space-y-1.5">
+          <h1 className="text-xl font-black tracking-tight">
+            {step === 1 ? "Claim your space" : "Create your account"}
+          </h1>
+          <p className="text-xs text-muted-foreground">
+            {step === 1 ? "Choose your unique username to get started." : "Fill in your details to complete registration."}
           </p>
         </div>
+
+        {/* Step Progress */}
+        <div className="flex items-center justify-center gap-1.5">
+          {[1, 2, 3, 4, 5].map((s) => (
+            <div key={s} className={`h-1.5 w-8 rounded-full transition-colors ${s <= step ? 'bg-[#38A8D8]' : 'bg-muted'}`} />
+          ))}
+        </div>
+
+        {step === 1 && (
+          <form onSubmit={handleNextStep1} className="space-y-5">
+            {/* Username Field */}
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-muted-foreground">Choose your username</label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-muted-foreground">@</span>
+                <input
+                  value={username}
+                  onChange={(e) => handleUsernameChange(e.target.value)}
+                  placeholder="username"
+                  className="w-full rounded-xl border border-border bg-card pl-8 pr-10 py-2.5 text-sm font-medium text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-[#38A8D8]/50"
+                  autoFocus
+                />
+                {usernameChecking && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />}
+                {!usernameChecking && usernameAvailable === true && <CheckCircle2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-emerald-500" />}
+                {!usernameChecking && usernameAvailable === false && <XCircle className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-destructive" />}
+              </div>
+              {usernameAvailable === true && <p className="text-[10px] text-emerald-500 font-medium">Username is available!</p>}
+              {usernameAvailable === false && <p className="text-[10px] text-destructive font-medium">Username is taken. Try another.</p>}
+              {username.length > 0 && username.length < 3 && <p className="text-[10px] text-muted-foreground">Minimum 3 characters.</p>}
+              {username.length >= 3 && !/^[a-zA-Z0-9_]+$/.test(username) && (
+                <p className="text-[10px] text-destructive font-medium">Only letters, numbers and underscores allowed.</p>
+              )}
+              {username.length >= 3 && /^[a-zA-Z0-9_]+$/.test(username) && usernameAvailable === null && !usernameChecking && <p className="text-[10px] text-muted-foreground">Checking availability...</p>}
+            </div>
+
+            {/* Premium badge */}
+            <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-start gap-2.5">
+              <Crown className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-xs font-bold text-amber-500">Your link: <span className="font-mono">murihspace.com/@{username || 'username'}</span></p>
+                <p className="text-[10px] text-amber-500/70 mt-0.5">Free for {trialDays} days trial. Upgrade to Premium to keep it forever.</p>
+                <div className="flex items-center gap-1 mt-1 text-[10px] text-amber-500/70">
+                  <Clock className="h-3 w-3" /> Trial ends in {trialDays} days
+                </div>
+              </div>
+            </div>
+
+            <Button type="submit" disabled={!usernameAvailable || usernameChecking} className="w-full text-sm font-bold">
+              Claim Username <ArrowRight className="h-4 w-4 ml-1" />
+            </Button>
+
+            {/* Social signup */}
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-border" /></div>
+              <div className="relative flex justify-center"><span className="bg-card px-2 text-[10px] text-muted-foreground">or sign up with</span></div>
+            </div>
+            <div className="flex gap-2">
+              {SOCIAL_PROVIDERS.map((p) => (
+                <button key={p.id} type="button" onClick={() => handleSocialLogin(p.id)} disabled={socialLoading !== null} className={socialBtnClass(p.id)}>
+                  {socialLoading === p.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <span className="font-bold text-base">{p.icon}</span>}
+                  <span className="hidden sm:inline">{p.label}</span>
+                </button>
+              ))}
+            </div>
+
+            <p className="text-center text-[10px] text-muted-foreground">
+              Already have an account? <Link to="/login" className="text-[#38A8D8] font-bold hover:underline">Sign in</Link>
+            </p>
+          </form>
+        )}
+
+        {step >= 2 && (
+          <>
+            {/* Step 2: Email */}
+            {step === 2 && (
+              <form onSubmit={handleNextStep2} className="space-y-4">
+                <div className="p-3 rounded-xl bg-[#38A8D8]/10 border border-[#38A8D8]/20 flex items-center gap-2.5">
+                  <Sparkles className="h-4 w-4 text-[#38A8D8] shrink-0" />
+                  <p className="text-xs font-medium text-[#38A8D8]"><span className="font-bold">@{username}</span> is yours to claim</p>
+                </div>
+                <FieldGroup>
+                  <FieldLabel>Email address</FieldLabel>
+                  <Field>
+                    <Input type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
+                  </Field>
+                </FieldGroup>
+                <div className="flex gap-2">
+                  <Button type="button" variant="ghost" onClick={() => setStep(1)} className="text-sm"><ArrowLeft className="h-4 w-4 mr-1" /> Back</Button>
+                  <Button type="submit" disabled={!email || !email.includes("@")} className="flex-1 text-sm font-bold">
+                    Continue <ArrowRight className="h-4 w-4 ml-1" />
+                  </Button>
+                </div>
+              </form>
+            )}
+
+            {/* Step 3: Password */}
+            {step === 3 && (
+              <form onSubmit={handleNextStep3} className="space-y-4">
+                <FieldGroup>
+                  <FieldLabel>Password</FieldLabel>
+                  <Field>
+                    <Input type="password" placeholder="At least 8 characters" value={password} onChange={(e) => setPassword(e.target.value)} required />
+                  </Field>
+                </FieldGroup>
+                <FieldGroup>
+                  <FieldLabel>Confirm password</FieldLabel>
+                  <Field>
+                    <Input type="password" placeholder="Re-enter password" value={passwordConfirmation} onChange={(e) => setPasswordConfirmation(e.target.value)} required />
+                  </Field>
+                </FieldGroup>
+                <div className="flex gap-2">
+                  <Button type="button" variant="ghost" onClick={() => setStep(2)} className="text-sm"><ArrowLeft className="h-4 w-4 mr-1" /> Back</Button>
+                  <Button type="submit" disabled={!password || !passwordConfirmation} className="flex-1 text-sm font-bold">
+                    Continue <ArrowRight className="h-4 w-4 ml-1" />
+                  </Button>
+                </div>
+              </form>
+            )}
+
+            {/* Step 4: Name & Phone */}
+            {step === 4 && (
+              <form onSubmit={handleNextStep4} className="space-y-4">
+                <FieldGroup>
+                  <FieldLabel>Full name</FieldLabel>
+                  <Field>
+                    <Input placeholder="Your full name" value={name} onChange={(e) => setName(e.target.value)} required />
+                  </Field>
+                </FieldGroup>
+                <FieldGroup>
+                  <FieldLabel>Mobile number (optional)</FieldLabel>
+                  <Field>
+                    <Input type="tel" placeholder="+44..." value={mobileNumber} onChange={(e) => setMobileNumber(e.target.value)} />
+                  </Field>
+                </FieldGroup>
+                <div className="flex gap-2">
+                  <Button type="button" variant="ghost" onClick={() => setStep(3)} className="text-sm"><ArrowLeft className="h-4 w-4 mr-1" /> Back</Button>
+                  <Button type="submit" disabled={!name} className="flex-1 text-sm font-bold">
+                    Continue <ArrowRight className="h-4 w-4 ml-1" />
+                  </Button>
+                </div>
+              </form>
+            )}
+
+            {/* Step 5: Role & Location */}
+            {step === 5 && (
+              <form onSubmit={handleRegister} className="space-y-4">
+                <FieldGroup>
+                  <FieldLabel>I want to join as</FieldLabel>
+                  <div className="flex gap-2">
+                    {(["member", "creator", "vendor"] as const).map((r) => (
+                      <button key={r} type="button" onClick={() => setRole(r)}
+                        className={`flex-1 px-3 py-2.5 rounded-xl text-xs font-bold transition-colors border ${
+                          role === r ? "border-[#38A8D8] bg-[#38A8D8]/10 text-[#38A8D8]" : "border-border bg-card text-muted-foreground hover:text-foreground"
+                        }`}>
+                        {r === "member" ? "Member" : r === "creator" ? "Creator" : "Vendor"}
+                      </button>
+                    ))}
+                  </div>
+                </FieldGroup>
+                <FieldGroup>
+                  <FieldLabel>Country</FieldLabel>
+                  <Field>
+                    <Input value={country} onChange={(e) => setCountry(e.target.value)} />
+                  </Field>
+                </FieldGroup>
+                <FieldGroup>
+                  <FieldLabel>County / Region (optional)</FieldLabel>
+                  <Field>
+                    <Input value={county} onChange={(e) => setCounty(e.target.value)} />
+                  </Field>
+                </FieldGroup>
+                {error && <div className="p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-xs font-bold text-destructive">{error}</div>}
+                <div className="flex gap-2">
+                  <Button type="button" variant="ghost" onClick={() => setStep(4)} className="text-sm"><ArrowLeft className="h-4 w-4 mr-1" /> Back</Button>
+                  <Button type="submit" disabled={loading} className="flex-1 text-sm font-bold">
+                    {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                    Create Account
+                  </Button>
+                </div>
+              </form>
+            )}
+          </>
+        )}
       </div>
-    </div>
+    </AuthLayout>
   );
 }

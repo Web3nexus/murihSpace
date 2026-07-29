@@ -1,6 +1,7 @@
 import type { RouteObject } from "react-router";
 import { Navigate } from "react-router";
 import { LoginPage } from "@/pages/LoginPage";
+import { AdminLoginPage } from "@/pages/AdminLoginPage";
 import { RegisterPage } from "@/pages/RegisterPage";
 import { AppPage } from "@/pages/AppPage";
 import { ProfilePage } from "@/pages/ProfilePage";
@@ -68,25 +69,43 @@ import { AdminCommunitiesPage } from "@/pages/AdminCommunitiesPage";
 import { AdminEscrowPage } from "@/pages/AdminEscrowPage";
 import { AdminPayoutsPage } from "@/pages/AdminPayoutsPage";
 import { AdminCmsPage } from "@/pages/AdminCmsPage";
+import ContentStudioPage from "@/pages/ContentStudioPage";
+import LinkInBioPage from "@/pages/LinkInBioPage";
+
+import LinkInBioDomainPage from "@/pages/LinkInBioDomainPage";
+import StoreProductsPage from "@/pages/StoreProductsPage";
+import StoreMembershipsPage from "@/pages/StoreMembershipsPage";
+import SavedAddressesPage from "@/pages/SavedAddressesPage";
+import InventoryPage from "@/pages/InventoryPage";
+import CategoriesPage from "@/pages/CategoriesPage";
+import ReturnsPage from "@/pages/ReturnsPage";
+import SupportThreadsPage from "@/pages/SupportThreadsPage";
+import StoreSettingsPage from "@/pages/StoreSettingsPage";
+import ProductPerformancePage from "@/pages/ProductPerformancePage";
+import AdminDisputesPage from "@/pages/AdminDisputesPage";
+import AdminFulfilmentPayoutsPage from "@/pages/AdminFulfilmentPayoutsPage";
+import AdminModerationLogsPage from "@/pages/AdminModerationLogsPage";
+import AdminSystemHealthPage from "@/pages/AdminSystemHealthPage";
+import AdminAuditTrailPage from "@/pages/AdminAuditTrailPage";
+import AdminSettingsPage from "@/pages/AdminSettingsPage";
+import AdminConversionMetricsPage from "@/pages/AdminConversionMetricsPage";
+import FeedPage from "@/pages/FeedPage";
+import ChatPage from "@/pages/ChatPage";
+import AiAssistantPage from "@/pages/AiAssistantPage";
+import AffiliateProductsPage from "@/pages/AffiliateProductsPage";
+import MarketingPage from "@/pages/MarketingPage";
+import PublicLinkInBioPage from "@/pages/PublicLinkInBioPage";
 import {
-  EmptyState,
   NotFoundState,
 } from "@/components/common/UIStateComponents";
 import { RoutePaths } from "./route-paths";
 
-// Helper to produce sprint-labelled empty states consistently
-function sprint(title: string, description: string, sprintNum: number) {
-  return (
-    <EmptyState
-      title={title}
-      description={`${description} — available in Sprint ${sprintNum}.`}
-    />
-  );
-}
 
 export const routes: RouteObject[] = [
   // ── Public auth pages & Public Storefront ───
   { path: RoutePaths.LOGIN, element: <LoginPage /> },
+  { path: RoutePaths.SECUREGATE_LOGIN, element: <AdminLoginPage /> },
+  { path: "/securegate", element: <Navigate to={RoutePaths.SECUREGATE_LOGIN} replace /> },
   { path: RoutePaths.REGISTER, element: <RegisterPage /> },
   { path: "/store/:shortCode", element: <PublicStorefrontPage /> },
 
@@ -105,39 +124,35 @@ export const routes: RouteObject[] = [
       // ── Feed (member community feed) ─────────────
       {
         path: "feed",
-        element: sprint("Feed", "Your personalized community feed", 20),
+        element: <FeedPage />,
       },
 
       // ── Community Chat ──────────────────────────
       {
         path: "community-chat",
-        element: sprint("Community Chat", "Real-time community chat rooms", 20),
+        element: <ChatPage />,
       },
 
       // ── AI Assistant ────────────────────────────
       {
         path: "ai-assistant",
-        element: sprint("AI Assistant", "AI-powered content and community assistant", 20),
+        element: <AiAssistantPage />,
       },
 
       // ── Content Studio (Creator) ────────────────
       {
         path: "studio",
-        element: <ProtectedRoute requiredRole="creator"><>{sprint("Content Studio", "Create and manage your digital content", 18)}</></ProtectedRoute>,
+        element: <ProtectedRoute requiredRole="creator"><ContentStudioPage /></ProtectedRoute>,
       },
 
       // ── Link in Bio & Custom Sites ──────────────
       {
         path: "link-in-bio",
-        element: sprint("Link in Bio Builder", "Drag-and-drop link in bio page builder and custom bio store", 18),
-      },
-      {
-        path: "link-in-bio/design",
-        element: sprint("Themes & Customization", "Customize colors, fonts, layouts and background styles", 18),
+        element: <LinkInBioPage />,
       },
       {
         path: "link-in-bio/domain",
-        element: sprint("Custom Domain", "Connect your custom domain (e.g. yourname.com)", 18),
+        element: <LinkInBioDomainPage />,
       },
 
       // ── MurihStore (Digital, Courses, Coaching, Physical, Subscriptions) ─
@@ -147,15 +162,15 @@ export const routes: RouteObject[] = [
       },
       {
         path: "store/products",
-        element: sprint("Products", "Manage your digital and physical products", 18),
+        element: <StoreProductsPage />,
       },
       {
         path: "store/memberships",
-        element: sprint("Memberships", "Manage recurring membership plans", 18),
+        element: <StoreMembershipsPage />,
       },
       {
         path: "store/saved-addresses",
-        element: sprint("Saved Addresses", "Manage your shipping addresses", 18),
+        element: <SavedAddressesPage />,
       },
       {
         path: "store/physical-products",
@@ -163,15 +178,15 @@ export const routes: RouteObject[] = [
       },
       {
         path: "store/inventory",
-        element: <ProtectedRoute requiredRole="vendor">{sprint("Inventory Management", "Track and manage product stock levels", 16)}</ProtectedRoute>,
+        element: <ProtectedRoute requiredRole="vendor"><InventoryPage /></ProtectedRoute>,
       },
       {
         path: "store/categories",
-        element: <ProtectedRoute requiredRole="vendor">{sprint("Categories", "Organize products into categories", 16)}</ProtectedRoute>,
+        element: <ProtectedRoute requiredRole="vendor"><CategoriesPage /></ProtectedRoute>,
       },
       {
         path: "store/returns",
-        element: <ProtectedRoute requiredRole="vendor">{sprint("Returns Management", "Process customer returns and exchanges", 16)}</ProtectedRoute>,
+        element: <ProtectedRoute requiredRole="vendor"><ReturnsPage /></ProtectedRoute>,
       },
       {
         path: "store/digital",
@@ -214,6 +229,10 @@ export const routes: RouteObject[] = [
         element: <ProtectedRoute requiredRole="vendor"><ShippingProfilesPage /></ProtectedRoute>,
       },
       {
+        path: "store/orders",
+        element: <SalesOrdersPage />,
+      },
+      {
         path: "store/payouts",
         element: <PayoutsPage />,
       },
@@ -247,7 +266,7 @@ export const routes: RouteObject[] = [
       // ── Marketing & Automations ────────────────
       {
         path: "marketing",
-        element: <ProtectedRoute requiredRole="creator">{sprint("Marketing & Email Automations", "Email marketing campaigns, broadcasts, sequences and affiliate links", 38)}</ProtectedRoute>,
+        element: <ProtectedRoute requiredRole="creator"><MarketingPage /></ProtectedRoute>,
       },
       {
         path: "marketing/broadcasts",
@@ -259,7 +278,7 @@ export const routes: RouteObject[] = [
       },
       {
         path: "marketing/affiliates",
-        element: sprint("Affiliate Products", "Promote affiliate links and track referral commissions", 37),
+        element: <AffiliateProductsPage />,
       },
       {
         path: "marketing/referrals",
@@ -286,6 +305,10 @@ export const routes: RouteObject[] = [
       {
         path: "communities/events",
         element: <EventsPage />,
+      },
+      {
+        path: "events",
+        element: <MyEventsPage />,
       },
       {
         path: "audio-rooms",
@@ -325,7 +348,7 @@ export const routes: RouteObject[] = [
       },
       {
         path: "messages/support",
-        element: sprint("Support Threads", "Customer support ticket threads", 16),
+        element: <SupportThreadsPage />,
       },
 
       // ── MurihPay Wallet (Sprint 16) ────────────
@@ -385,11 +408,11 @@ export const routes: RouteObject[] = [
       },
       {
         path: "analytics/products",
-        element: <ProtectedRoute requiredRole="vendor">{sprint("Product Performance", "Analytics for your physical product performance", 16)}</ProtectedRoute>,
+        element: <ProtectedRoute requiredRole="vendor"><ProductPerformancePage /></ProtectedRoute>,
       },
       {
         path: "analytics/milestones",
-        element: sprint("Milestones & Badges", "Community goals, sales targets, unlockable badges and rewards", 36),
+        element: <MilestonesPage />,
       },
 
       // ── Settings (sidebar-13) ──────────────────
@@ -404,7 +427,7 @@ export const routes: RouteObject[] = [
           },
           {
             path: "store",
-            element: <ProtectedRoute requiredRole="vendor">{sprint("Store Settings", "Configure your store profile and preferences", 16)}</ProtectedRoute>,
+            element: <ProtectedRoute requiredRole="vendor"><StoreSettingsPage /></ProtectedRoute>,
           },
           {
             path: "kyc",
@@ -500,35 +523,43 @@ export const routes: RouteObject[] = [
       },
       {
         path: "securegate/disputes",
-        element: <ProtectedRoute requiredRole="admin">{sprint("Disputes Management", "Manage refund requests and disputes", 16)}</ProtectedRoute>,
+        element: <ProtectedRoute requiredRole="admin"><AdminDisputesPage /></ProtectedRoute>,
       },
       {
         path: "securegate/fulfilment-payouts",
-        element: <ProtectedRoute requiredRole="admin">{sprint("Fulfilment Payouts", "Manage vendor fulfilment payouts", 16)}</ProtectedRoute>,
+        element: <ProtectedRoute requiredRole="admin"><AdminFulfilmentPayoutsPage /></ProtectedRoute>,
       },
       {
         path: "securegate/moderation-logs",
-        element: <ProtectedRoute requiredRole="admin">{sprint("Moderation Logs", "View content moderation history", 16)}</ProtectedRoute>,
+        element: <ProtectedRoute requiredRole="admin"><AdminModerationLogsPage /></ProtectedRoute>,
       },
       {
         path: "securegate/system-health",
-        element: <ProtectedRoute requiredRole="admin">{sprint("System Health", "Monitor platform system health and uptime", 16)}</ProtectedRoute>,
+        element: <ProtectedRoute requiredRole="admin"><AdminSystemHealthPage /></ProtectedRoute>,
       },
       {
         path: "securegate/audit-trail",
-        element: <ProtectedRoute requiredRole="admin">{sprint("Audit Trail", "View platform audit logs", 16)}</ProtectedRoute>,
+        element: <ProtectedRoute requiredRole="admin"><AdminAuditTrailPage /></ProtectedRoute>,
       },
       {
         path: "securegate/settings",
-        element: <ProtectedRoute requiredRole="admin">{sprint("Admin Settings", "Platform configuration and settings", 16)}</ProtectedRoute>,
+        element: <ProtectedRoute requiredRole="admin"><AdminSettingsPage /></ProtectedRoute>,
       },
       {
         path: "securegate/analytics/growth",
-        element: <ProtectedRoute requiredRole="admin">{sprint("Ecosystem Growth", "Platform growth and user acquisition metrics", 16)}</ProtectedRoute>,
+        element: <ProtectedRoute requiredRole="admin"><AdminAnalyticsPage /></ProtectedRoute>,
+      },
+      {
+        path: "securegate/analytics/revenue",
+        element: <ProtectedRoute requiredRole="admin"><AdminAnalyticsPage /></ProtectedRoute>,
+      },
+      {
+        path: "securegate/analytics/content",
+        element: <ProtectedRoute requiredRole="admin"><AdminAnalyticsPage /></ProtectedRoute>,
       },
       {
         path: "securegate/analytics/conversions",
-        element: <ProtectedRoute requiredRole="admin">{sprint("Conversion Metrics", "Platform conversion funnel analytics", 16)}</ProtectedRoute>,
+        element: <ProtectedRoute requiredRole="admin"><AdminConversionMetricsPage /></ProtectedRoute>,
       },
 
       // Catch-all within /app
@@ -538,6 +569,9 @@ export const routes: RouteObject[] = [
 
   // ── Public home → redirect to app dashboard ────
   { path: RoutePaths.HOME, element: <Navigate to="/app" replace /> },
+
+  // ── Public link-in-bio pages ─────────────────────
+  { path: ":username", element: <PublicLinkInBioPage /> },
 
   // ── 404 ───────────────────────────────────────
   { path: "*", element: <NotFoundPage /> },

@@ -16,7 +16,7 @@ interface AuthContextValue {
   loading: boolean;
   error: string | null;
   fieldErrors: Record<string, string[]>;
-  login: (email: string, password: string) => Promise<boolean>;
+  login: (email: string, password: string) => Promise<UserProfile | null>;
   register: (data: RegisterData) => Promise<boolean>;
   logout: () => Promise<void>;
   isAuthenticated: boolean;
@@ -72,7 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
   }, []);
 
-  const login = useCallback(async (email: string, password: string): Promise<boolean> => {
+  const login = useCallback(async (email: string, password: string): Promise<UserProfile | null> => {
     setLoading(true);
     setError(null);
     setFieldErrors({});
@@ -81,15 +81,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const envelope = response.data;
       const responseData = envelope.success ? envelope.data : envelope;
       const token = responseData.token;
-      const userProfile = responseData.user;
+      const userProfile = responseData.user as UserProfile;
+      if (!token || !userProfile) {
+        setError("Invalid response: missing credentials.");
+        return null;
+      }
       localStorage.setItem("murihspace-token", token);
       setUser(userProfile);
-      return true;
+      return userProfile;
     } catch (err: unknown) {
-      const apiErr = err as ApiError;
+      const apiErr = err && typeof err === "object" ? (err as ApiError) : { message: "An unexpected error occurred.", errors: {} };
       setError(apiErr.message || "Login failed.");
       setFieldErrors(apiErr.errors || {});
-      return false;
+      return null;
     } finally {
       setLoading(false);
     }

@@ -6,6 +6,7 @@ import {
   Loader2,
   Receipt,
   ExternalLink,
+  AlertCircle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -38,12 +39,16 @@ function StatusBadge({ status }: { status: string }) {
 export function SalesOrdersPage() {
   const [sales, setSales] = useState<CreatorSaleRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [selectedReceipt, setSelectedReceipt] = useState<Order | null>(null);
+  const [page, setPage] = useState(1);
+  const [lastPage, setLastPage] = useState(1);
 
   const fetchSales = useCallback(async () => {
-    const token = localStorage.getItem('auth_token');
+    const token = localStorage.getItem('murihspace-token') || localStorage.getItem('auth_token');
+    setFetchError(null);
     try {
-      const res = await fetch(`${API_BASE}/orders/sales`, {
+      const res = await fetch(`${API_BASE}/orders/sales?page=${page}&per_page=20`, {
         headers: {
           Accept: 'application/json',
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -52,19 +57,22 @@ export function SalesOrdersPage() {
       if (res.ok) {
         const json = await res.json();
         setSales(json.data?.data ?? []);
+        setLastPage(json.data?.last_page ?? 1);
+      } else {
+        throw new Error(`HTTP ${res.status}`);
       }
     } catch (e) {
-      console.error('Failed to fetch sales', e);
+      setFetchError(e instanceof Error ? e.message : 'Failed to load sales');
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [page]);
 
   useEffect(() => { // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchSales(); }, [fetchSales]);
 
   const openReceipt = async (orderId: number) => {
-    const token = localStorage.getItem('auth_token');
+    const token = localStorage.getItem('murihspace-token') || localStorage.getItem('auth_token');
 
     try {
       const res = await fetch(`${API_BASE}/orders/${orderId}/receipt`, {
@@ -120,6 +128,13 @@ export function SalesOrdersPage() {
           </div>
         ))}
       </div>
+
+      {fetchError && (
+        <div className="flex items-center gap-2 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-xs text-destructive">
+          <AlertCircle className="h-4 w-4 shrink-0" /> {fetchError}
+          <button onClick={() => { setIsLoading(true); fetchSales(); }} className="ml-auto text-muted-foreground hover:text-foreground font-bold">Retry</button>
+        </div>
+      )}
 
       {/* Sales Table */}
       {isLoading ? (
@@ -190,6 +205,14 @@ export function SalesOrdersPage() {
               </tbody>
             </table>
           </div>
+        </div>
+      )}
+
+      {lastPage > 1 && (
+        <div className="flex items-center justify-center gap-2 pt-4">
+          <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1} className="px-3 py-1.5 rounded-lg text-xs font-bold border border-border bg-card hover:bg-muted disabled:opacity-40">Previous</button>
+          <span className="text-xs text-muted-foreground">Page {page} of {lastPage}</span>
+          <button onClick={() => setPage(p => Math.min(lastPage, p + 1))} disabled={page >= lastPage} className="px-3 py-1.5 rounded-lg text-xs font-bold border border-border bg-card hover:bg-muted disabled:opacity-40">Next</button>
         </div>
       )}
 

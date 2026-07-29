@@ -48,11 +48,10 @@ function isActiveRoute(item: NavItem, pathname: string, search: string): boolean
   if (item.url.includes("?") ? pathname + search === item.url : pathname === item.url) return true;
 
   if (item.children) {
-    return item.children.some((child) => isActiveRoute(child, pathname, search));
+    if (item.children.some((child) => isActiveRoute(child, pathname, search))) return true;
+    const basePath = item.url.split("?")[0];
+    if (basePath !== "/app" && pathname.startsWith(basePath + "/")) return true;
   }
-
-  const basePath = item.url.split("?")[0];
-  if (basePath !== "/app" && pathname.startsWith(basePath + "/")) return true;
 
   return false;
 }

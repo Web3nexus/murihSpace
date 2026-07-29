@@ -54,6 +54,8 @@ export function WalletPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [actionMessage, setActionMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [txnFilter, setTxnFilter] = useState('');
+  const [page, setPage] = useState(1);
+  const [lastPage, setLastPage] = useState(1);
 
   const fetchWallet = useCallback(async () => {
     try {
@@ -67,14 +69,18 @@ export function WalletPage() {
 
   const fetchTransactions = useCallback(async () => {
     try {
-      const params = txnFilter ? `?type=${txnFilter}` : '';
-      const res = await fetch(`${API_BASE}/wallet/transactions${params}`, { headers: getAuthHeaders() });
+      const params = new URLSearchParams();
+      params.set("page", String(page));
+      params.set("per_page", "20");
+      if (txnFilter) params.set("type", txnFilter);
+      const res = await fetch(`${API_BASE}/wallet/transactions?${params.toString()}`, { headers: getAuthHeaders() });
       if (res.ok) {
         const json = await res.json();
         setTransactions(json.data?.data ?? []);
+        setLastPage(json.data?.last_page ?? 1);
       }
     } catch (e) { console.error('Failed to fetch transactions', e); }
-  }, [txnFilter]);
+  }, [txnFilter, page]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -379,7 +385,7 @@ export function WalletPage() {
             {(['', 'payment', 'transfer', 'donation', 'withdrawal'] as const).map((f) => (
               <button
                 key={f}
-                onClick={() => setTxnFilter(f)}
+                onClick={() => { setTxnFilter(f); setPage(1); }}
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
                   txnFilter === f ? 'bg-secondary text-white' : 'bg-muted text-muted-foreground hover:text-foreground'
                 }`}
@@ -430,6 +436,14 @@ export function WalletPage() {
           </div>
         )}
       </div>
+
+      {lastPage > 1 && (
+        <div className="flex items-center justify-center gap-2 pt-4">
+          <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1} className="px-3 py-1.5 rounded-lg text-xs font-bold border border-border bg-card hover:bg-muted disabled:opacity-40">Previous</button>
+          <span className="text-xs text-muted-foreground">Page {page} of {lastPage}</span>
+          <button onClick={() => setPage(p => Math.min(lastPage, p + 1))} disabled={page >= lastPage} className="px-3 py-1.5 rounded-lg text-xs font-bold border border-border bg-card hover:bg-muted disabled:opacity-40">Next</button>
+        </div>
+      )}
     </div>
   );
 }

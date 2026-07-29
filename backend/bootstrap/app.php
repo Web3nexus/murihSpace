@@ -34,6 +34,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'admin' => IsAdmin::class,
             'creator' => \App\Http\Middleware\IsCreator::class,
+            'cache.public' => \App\Http\Middleware\CachePublicResponse::class,
         ]);
 
     })

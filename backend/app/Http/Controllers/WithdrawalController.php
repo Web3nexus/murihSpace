@@ -57,9 +57,20 @@ class WithdrawalController extends Controller
 
     public function adminIndex(Request $request): JsonResponse
     {
-        $requests = WithdrawalRequest::with(['user:id,name,username'])
-            ->latest()
-            ->paginate(20);
+        $query = WithdrawalRequest::with(['user:id,name,username']);
+
+        if ($search = $request->query('search')) {
+            $query->where(function ($q) use ($search) {
+                $q->where('id', (int) $search)
+                  ->orWhere('ledger_transaction_id', (int) $search)
+                  ->orWhere('user_id', (int) $search);
+                if (in_array(strtolower($search), ['pending', 'approved', 'processing', 'completed', 'rejected'], true)) {
+                    $q->orWhere('status', strtolower($search));
+                }
+            });
+        }
+
+        $requests = $query->latest()->paginate(20);
 
         return response()->json($requests);
     }

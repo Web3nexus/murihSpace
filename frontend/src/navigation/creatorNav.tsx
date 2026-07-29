@@ -48,7 +48,6 @@ export const creatorNav: NavGroup[] = [
         icon: <Link2 className="size-4" />,
         children: [
           { title: "Link in Bio Builder", url: "/app/link-in-bio" },
-          { title: "Themes & Design", url: "/app/link-in-bio/design" },
           { title: "Custom Domain & Site", url: "/app/link-in-bio/domain" },
         ],
       },

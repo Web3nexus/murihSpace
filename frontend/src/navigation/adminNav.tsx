@@ -2,10 +2,7 @@ import {
   ShieldAlert,
   UserCheck,
   UserX,
-  Ban,
   Users,
-  User,
-  Store,
   Building2,
   Flag,
   Star,
@@ -54,11 +51,6 @@ export const adminNav: NavGroup[] = [
         url: "/app/securegate/kyc?status=rejected",
         icon: <UserX className="size-4" />,
       },
-      {
-        title: "Banned Accounts",
-        url: "/app/securegate/users?status=banned",
-        icon: <Ban className="size-4" />,
-      },
     ],
   },
   {
@@ -68,21 +60,6 @@ export const adminNav: NavGroup[] = [
         title: "All Users",
         url: "/app/securegate/users",
         icon: <Users className="size-4" />,
-      },
-      {
-        title: "Members",
-        url: "/app/securegate/users?role=member",
-        icon: <User className="size-4" />,
-      },
-      {
-        title: "Creators",
-        url: "/app/securegate/users?role=creator",
-        icon: <User className="size-4" />,
-      },
-      {
-        title: "Vendors",
-        url: "/app/securegate/users?role=vendor",
-        icon: <Store className="size-4" />,
       },
     ],
   },
@@ -98,7 +75,6 @@ export const adminNav: NavGroup[] = [
         title: "Posts & Reports",
         url: "/app/securegate/reports",
         icon: <Flag className="size-4" />,
-        badge: 14,
       },
       {
         title: "Reviews",

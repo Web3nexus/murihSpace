@@ -57,6 +57,7 @@ export interface WithdrawalRequest {
   processed_by: number | null;
   processed_at: string | null;
   created_at: string;
+  user?: { id: number; name: string; username: string };
 }
 
 export interface Purchase {

@@ -43,19 +43,20 @@ export function BrandDealsPage() {
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
   const [form, setForm] = useState({ brand_id: '', title: '', deal_type: 'sponsored_post', budget: '', currency: 'NGN', description: '', deliverables: '', starts_at: '', ends_at: '' });
+  const [page, setPage] = useState(1);
+  const [lastPage, setLastPage] = useState(1);
 
   const fetchAll = useCallback(async () => {
-    setIsLoading(true);
     try {
       const [dRes, bRes] = await Promise.all([
-        fetch(`${API_BASE}/brand-deals`, { headers: getAuthHeaders() }),
+        fetch(`${API_BASE}/brand-deals?page=${page}&per_page=20`, { headers: getAuthHeaders() }),
         fetch(`${API_BASE}/brands`, { headers: getAuthHeaders() }),
       ]);
-      if (dRes.ok) { const j = await dRes.json(); setDeals(j.data?.data ?? []); }
+      if (dRes.ok) { const j = await dRes.json(); setDeals(j.data?.data ?? []); setLastPage(j.data?.last_page ?? 1); }
       if (bRes.ok) { const j = await bRes.json(); setBrands(j.data?.data ?? []); }
     } catch { /* ignore */ }
     finally { setIsLoading(false); }
-  }, []);
+  }, [page]);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
@@ -211,7 +212,7 @@ export function BrandDealsPage() {
           <h2 className="text-xl font-semibold text-gray-700">No brand deals yet</h2>
           <p className="text-gray-500">Create your first brand partnership deal to get started.</p>
         </div>
-      ) : (
+      ) : (<>
         <div className="space-y-3">
           {deals.map(d => (
             <div key={d.id} className="bg-white border rounded-xl p-4">
@@ -254,7 +255,14 @@ export function BrandDealsPage() {
             </div>
           ))}
         </div>
-      )}
+        {lastPage > 1 && (
+          <div className="flex items-center justify-center gap-2 pt-4">
+            <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1} className="px-3 py-1.5 rounded-lg text-xs font-bold border border-border bg-card hover:bg-muted disabled:opacity-40">Previous</button>
+            <span className="text-xs text-muted-foreground">Page {page} of {lastPage}</span>
+            <button onClick={() => setPage(p => Math.min(lastPage, p + 1))} disabled={page >= lastPage} className="px-3 py-1.5 rounded-lg text-xs font-bold border border-border bg-card hover:bg-muted disabled:opacity-40">Next</button>
+          </div>
+        )}
+      </>)}
     </div>
   );
 }

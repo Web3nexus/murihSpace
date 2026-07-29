@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Star, MessageSquare, Loader2, CheckCircle2, XCircle, Trash2 } from 'lucide-react';
+import { Star, MessageSquare, Loader2, CheckCircle2, XCircle, Trash2, AlertCircle } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api/v1';
@@ -30,16 +30,23 @@ function StarDisplay({ rating, size = 14 }: { rating: number; size?: number }) {
 export function AdminReviewsPage() {
   const [reviews, setReviews] = useState<AdminReview[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [filter, setFilter] = useState<'all' | 'pending' | 'approved'>('all');
+  const [page, setPage] = useState(1);
+  const [lastPage, setLastPage] = useState(1);
 
   const fetchReviews = useCallback(async () => {
+    setFetchError(null);
     try {
-      const res = await fetch(`${API_BASE}/securegate/reviews`, { headers: getAuthHeaders() });
-      if (res.ok) { const j = await res.json(); setReviews(j?.data?.data ?? j?.data ?? []); }
-    } catch { /* ignore */ }
+      const params = new URLSearchParams({ page: String(page), per_page: '20' });
+      if (filter !== 'all') params.set('status', filter);
+      const res = await fetch(`${API_BASE}/securegate/reviews?${params}`, { headers: getAuthHeaders() });
+      if (res.ok) { const j = await res.json(); setReviews(j?.data?.data ?? j?.data ?? []); setLastPage(j.data?.last_page ?? j.data?.data?.last_page ?? 1); }
+      else throw new Error(`HTTP ${res.status}`);
+    } catch (e) { setFetchError(e instanceof Error ? e.message : 'Failed to load reviews'); }
     finally { setIsLoading(false); }
-  }, []);
+  }, [page, filter]);
 
   useEffect(() => { fetchReviews(); }, [fetchReviews]);
 
@@ -60,15 +67,10 @@ export function AdminReviewsPage() {
     } catch { setMessage({ type: 'error', text: 'Network error.' }); }
   }
 
-  const filtered = reviews.filter(r => {
-    if (filter === 'pending') return !r.is_approved;
-    if (filter === 'approved') return r.is_approved;
-    return true;
-  });
-
   if (isLoading) return <div className="w-full flex items-center justify-center h-64"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>;
 
   const counts = { all: reviews.length, pending: reviews.filter(r => !r.is_approved).length, approved: reviews.filter(r => r.is_approved).length };
+  const filtered = reviews;
 
   return (
     <div className="w-full mx-auto max-w-[1400px] space-y-6 p-6 lg:p-10">
@@ -79,6 +81,13 @@ export function AdminReviewsPage() {
           <p className="text-sm text-white/70 max-w-xl">Approve, reject, or remove product reviews.</p>
         </div>
       </div>
+
+      {fetchError && (
+        <div className="flex items-center gap-2 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-xs text-destructive">
+          <AlertCircle className="h-4 w-4 shrink-0" /> {fetchError}
+          <button onClick={() => { setIsLoading(true); fetchReviews(); }} className="ml-auto text-muted-foreground hover:text-foreground font-bold">Retry</button>
+        </div>
+      )}
 
       {message && (
         <div className={`px-4 py-3 rounded-xl text-sm flex items-center gap-2 border ${
@@ -136,6 +145,14 @@ export function AdminReviewsPage() {
               <p className="text-xs text-muted-foreground/30 mt-2">{new Date(r.created_at).toLocaleDateString()}</p>
             </div>
           ))}
+        </div>
+      )}
+
+      {lastPage > 1 && (
+        <div className="flex items-center justify-center gap-2 pt-4">
+          <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1} className="px-3 py-1.5 rounded-lg text-xs font-bold border border-border bg-card hover:bg-muted disabled:opacity-40">Previous</button>
+          <span className="text-xs text-muted-foreground">Page {page} of {lastPage}</span>
+          <button onClick={() => setPage(p => Math.min(lastPage, p + 1))} disabled={page >= lastPage} className="px-3 py-1.5 rounded-lg text-xs font-bold border border-border bg-card hover:bg-muted disabled:opacity-40">Next</button>
         </div>
       )}
     </div>

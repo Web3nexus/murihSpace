@@ -94,4 +94,64 @@ class ProfileController extends Controller
             'kyc_document' => $user->kyc_document,
         ]);
     }
+
+    public function updatePrivacy(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'show_online_status' => 'boolean',
+            'show_last_seen' => 'boolean',
+            'show_email' => 'boolean',
+            'show_phone' => 'boolean',
+        ]);
+
+        $request->user()->update($data);
+
+        return response()->json(['message' => 'Privacy settings updated.', 'data' => $data]);
+    }
+
+    public function exportData(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        return response()->json([
+            'user' => $user->toArray(),
+            'wallet' => $user->wallet?->toArray(),
+            'profile' => $user->profile?->toArray(),
+        ]);
+    }
+
+    public function deleteAccount(Request $request): JsonResponse
+    {
+        $request->validate([
+            'password' => ['required', 'current_password'],
+        ]);
+
+        $user = $request->user();
+        $user->tokens()->delete();
+        $user->update([
+            'name' => 'Deleted User',
+            'email' => "deleted-{$user->id}@murihspace.local",
+            'username' => null,
+            'mobile_number' => null,
+            'kyc_document' => null,
+            'kyc_rejection_reason' => null,
+            'bio' => null,
+            'avatar' => null,
+            'provider_id' => null,
+        ]);
+        $user->delete();
+
+        return response()->json(['message' => 'Account deleted.']);
+    }
+
+    public function kycStatus(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        return response()->json([
+            'kyc_status' => $user->kyc_status ?? 'unsubmitted',
+            'kyc_document' => $user->kyc_document,
+            'kyc_rejection_reason' => $user->kyc_rejection_reason,
+        ]);
+    }
 }

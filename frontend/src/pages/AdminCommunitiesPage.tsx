@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Building2, Search, Loader2, Trash2, Eye, Globe, Lock } from 'lucide-react';
+import { Building2, Search, Loader2, Trash2, Eye, Globe, Lock, AlertCircle } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -22,6 +22,7 @@ export function AdminCommunitiesPage() {
   const [communities, setCommunities] = useState<CommunitySummary[]>([]);
   const [stats, setStats] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [visibility, setVisibility] = useState('');
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -29,13 +30,15 @@ export function AdminCommunitiesPage() {
   const [lastPage, setLastPage] = useState(1);
 
   const fetchCommunities = useCallback(async () => {
+    setFetchError(null);
     try {
       const params = new URLSearchParams({ page: String(page), per_page: '20' });
       if (search) params.set('search', search);
       if (visibility) params.set('visibility', visibility);
       const res = await fetch(`${API_BASE}/securegate/communities?${params}`, { headers: getAuthHeaders() });
       if (res.ok) { const j = await res.json(); setCommunities(j.data?.data?.data ?? []); setStats(j.data?.stats ?? null); setLastPage(j.data?.data?.last_page ?? 1); }
-    } catch { /* ignore */ }
+      else throw new Error(`HTTP ${res.status}`);
+    } catch (e) { setFetchError(e instanceof Error ? e.message : 'Failed to load communities'); }
     finally { setIsLoading(false); }
   }, [page, search, visibility]);
 
@@ -63,6 +66,13 @@ export function AdminCommunitiesPage() {
           <p className="text-sm text-white/70 max-w-xl">Manage all communities on the platform.</p>
         </div>
       </div>
+
+      {fetchError && (
+        <div className="flex items-center gap-2 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-xs text-destructive">
+          <AlertCircle className="h-4 w-4 shrink-0" /> {fetchError}
+          <button onClick={() => { setIsLoading(true); fetchCommunities(); }} className="ml-auto text-muted-foreground hover:text-foreground font-bold">Retry</button>
+        </div>
+      )}
 
       {message && (
         <div className={`px-4 py-3 rounded-xl text-sm flex items-center gap-2 border ${

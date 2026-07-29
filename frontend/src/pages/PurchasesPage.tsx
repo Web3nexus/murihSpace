@@ -45,18 +45,21 @@ export function PurchasesPage() {
   const [purchases, setPurchases] = useState<Purchase[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [downloadingId, setDownloadingId] = useState<number | null>(null);
+  const [page, setPage] = useState(1);
+  const [lastPage, setLastPage] = useState(1);
 
   const fetchPurchases = useCallback(async () => {
     try {
-      const res = await fetch(`${API_BASE}/wallet/purchases`, {
+      const res = await fetch(`${API_BASE}/wallet/purchases?page=${page}&per_page=20`, {
         headers: getAuthHeaders(),
       });
       if (res.ok) {
         const json = await res.json();
         setPurchases(json.data?.data ?? []);
+        setLastPage(json.data?.last_page ?? 1);
       }
     } catch (e) { console.error('Failed to fetch purchases', e); }
-  }, []);
+  }, [page]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -107,7 +110,7 @@ export function PurchasesPage() {
             Your purchased digital products will appear here once you complete a purchase.
           </p>
         </div>
-      ) : (
+      ) : (<>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {purchases.map((purchase) => (
             <div
@@ -171,7 +174,14 @@ export function PurchasesPage() {
             </div>
           ))}
         </div>
-      )}
+        {lastPage > 1 && (
+          <div className="flex items-center justify-center gap-2 pt-4">
+            <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1} className="px-3 py-1.5 rounded-lg text-xs font-bold border border-border bg-card hover:bg-muted disabled:opacity-40">Previous</button>
+            <span className="text-xs text-muted-foreground">Page {page} of {lastPage}</span>
+            <button onClick={() => setPage(p => Math.min(lastPage, p + 1))} disabled={page >= lastPage} className="px-3 py-1.5 rounded-lg text-xs font-bold border border-border bg-card hover:bg-muted disabled:opacity-40">Next</button>
+          </div>
+        )}
+      </>)}
     </div>
   );
 }

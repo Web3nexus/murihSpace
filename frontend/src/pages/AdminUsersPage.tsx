@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'react-router';
 import {
   Users, Search, Loader2, ShieldOff, ShieldCheck, Ban,
-  AlertCircle, CheckCircle2, LogIn,
+  AlertCircle, CheckCircle2, LogIn, ArrowUpDown, ArrowUp, ArrowDown, Download,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -30,21 +31,32 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export function AdminUsersPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const [roleFilter, setRoleFilter] = useState('');
+  const [search, setSearch] = useState(searchParams.get('search') ?? '');
+  const [roleFilter, setRoleFilter] = useState(searchParams.get('role') ?? '');
+  const [statusFilter, setStatusFilter] = useState(searchParams.get('status') ?? '');
+  const [sort, setSort] = useState(searchParams.get('sort') ?? 'created_at');
+  const [sortDir, setSortDir] = useState(searchParams.get('sort_dir') ?? 'desc');
   const [actionUser, setActionUser] = useState<AdminUser | null>(null);
   const [actionType, setActionType] = useState<'suspend' | 'activate' | 'ban' | null>(null);
   const [reason, setReason] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [msg, setMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [lastPage, setLastPage] = useState(1);
 
   const fetchUsers = useCallback(async () => {
     const params = new URLSearchParams();
     if (search) params.set('search', search);
     if (roleFilter) params.set('role', roleFilter);
+    if (statusFilter) params.set('status', statusFilter);
+    if (sort) params.set('sort', sort);
+    if (sortDir) params.set('sort_dir', sortDir);
+    params.set('page', String(page));
+    params.set('per_page', '20');
     setFetchError(null);
     try {
       const res = await fetch(`${API_BASE}/securegate/users?${params}`, { headers: authHeaders() });
@@ -57,13 +69,53 @@ export function AdminUsersPage() {
       const j = await res.json();
       const raw = j?.data?.data ?? j?.data ?? [];
       setUsers(Array.isArray(raw) ? raw : []);
+      setLastPage(j.data?.last_page ?? j.data?.data?.last_page ?? 1);
     } catch (e) {
       console.error('Users fetch error:', e);
       setFetchError('Network error loading users.');
     } finally { setLoading(false); }
-  }, [search, roleFilter]);
+  }, [search, roleFilter, statusFilter, sort, sortDir, page]);
 
   useEffect(() => { fetchUsers(); }, [fetchUsers]);
+
+  useEffect(() => { setPage(1); }, [search, roleFilter, statusFilter]);
+
+  useEffect(() => {
+    const next = new URLSearchParams();
+    if (roleFilter) next.set('role', roleFilter);
+    if (statusFilter) next.set('status', statusFilter);
+    if (search) next.set('search', search);
+    if (sort) next.set('sort', sort);
+    if (sortDir) next.set('sort_dir', sortDir);
+    setSearchParams(next, { replace: true });
+  }, [roleFilter, statusFilter, search, sort, sortDir, setSearchParams]);
+
+  const toggleSort = (col: string) => {
+    if (sort === col) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    else { setSort(col); setSortDir('asc'); }
+  };
+
+  const sortIcon = (col: string) => {
+    if (sort !== col) return <ArrowUpDown className="h-3 w-3 ml-1 opacity-30" />;
+    return sortDir === 'asc' ? <ArrowUp className="h-3 w-3 ml-1 text-[#38A8D8]" /> : <ArrowDown className="h-3 w-3 ml-1 text-[#38A8D8]" />;
+  };
+
+  const handleExport = async () => {
+    const params = new URLSearchParams();
+    if (search) params.set('search', search);
+    if (roleFilter) params.set('role', roleFilter);
+    if (statusFilter) params.set('status', statusFilter);
+    if (sort) params.set('sort', sort);
+    if (sortDir) params.set('sort_dir', sortDir);
+    try {
+      const res = await fetch(`${API_BASE}/securegate/users/export?${params}`, { headers: { ...authHeaders(), Accept: 'text/csv' } });
+      if (!res.ok) return;
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = `users-export-${Date.now()}.csv`; a.click();
+      URL.revokeObjectURL(url);
+    } catch {}
+  };
 
   const handleAction = async () => {
     if (!actionUser || !actionType) return;
@@ -116,8 +168,15 @@ export function AdminUsersPage() {
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input className="pl-8 text-sm" placeholder="Search by name, email, username..." value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
+        <Button size="sm" variant="outline" className="h-8 text-[10px] font-bold gap-1.5" onClick={handleExport} title="Export CSV">
+          <Download className="h-3.5 w-3.5" /> Export
+        </Button>
         {['', 'admin', 'creator', 'vendor', 'member'].map((r) => (
-          <button key={r} onClick={() => setRoleFilter(r)} className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-colors ${roleFilter === r ? 'bg-[#38A8D8] text-foreground' : 'bg-muted text-muted-foreground hover:text-foreground'}`}>{r || 'All'}</button>
+          <button key={r} onClick={() => setRoleFilter(r)} className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-colors ${roleFilter === r ? 'bg-[#38A8D8] text-foreground' : 'bg-muted text-muted-foreground hover:text-foreground'}`}>{r || 'All Roles'}</button>
+        ))}
+        <span className="w-px h-5 bg-border mx-1" />
+        {['', 'active', 'suspended', 'banned'].map((s) => (
+          <button key={s} onClick={() => setStatusFilter(s)} className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-colors ${statusFilter === s ? 'bg-[#38A8D8] text-foreground' : 'bg-muted text-muted-foreground hover:text-foreground'}`}>{s || 'All Status'}</button>
         ))}
       </div>
 
@@ -130,8 +189,12 @@ export function AdminUsersPage() {
               <table className="w-full text-xs">
                 <thead className="bg-muted/30 border-b border-border">
                   <tr className="text-left">
-                    {['Name', 'Email', 'Username', 'Role', 'Status', 'KYC', 'Joined', ''].map((h) => (
-                      <th key={h} className="px-4 py-3 text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider whitespace-nowrap">{h}</th>
+                    {[
+                      { label: 'Name', col: 'name' }, { label: 'Email', col: 'email' }, { label: 'Username', col: 'username' },
+                      { label: 'Role', col: 'role' }, { label: 'Status', col: 'status' },
+                      { label: 'KYC', col: 'kyc_status' }, { label: 'Joined', col: 'created_at' }, { label: '', col: null },
+                    ].map(({ label, col }) => (
+                      <th key={label || 'actions'} className={`px-4 py-3 text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider whitespace-nowrap ${col ? 'cursor-pointer select-none hover:text-foreground transition-colors' : ''}`} onClick={() => col && toggleSort(col)}>{label}{col && sortIcon(col)}</th>
                     ))}
                   </tr>
                 </thead>
@@ -163,6 +226,14 @@ export function AdminUsersPage() {
               </table>
             </div>
           </div>}
+
+      {lastPage > 1 && (
+        <div className="flex items-center justify-center gap-2 pt-4">
+          <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1} className="px-3 py-1.5 rounded-lg text-xs font-bold border border-border bg-card hover:bg-muted disabled:opacity-40">Previous</button>
+          <span className="text-xs text-muted-foreground">Page {page} of {lastPage}</span>
+          <button onClick={() => setPage(p => Math.min(lastPage, p + 1))} disabled={page >= lastPage} className="px-3 py-1.5 rounded-lg text-xs font-bold border border-border bg-card hover:bg-muted disabled:opacity-40">Next</button>
+        </div>
+      )}
 
       <Dialog open={actionType !== null} onOpenChange={() => { setActionType(null); setMsg(null); }}>
         <DialogContent className="sm:max-w-[400px] bg-card border-border rounded-2xl">

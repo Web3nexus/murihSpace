@@ -135,6 +135,21 @@ class WalletController extends Controller
         return response()->json($entries);
     }
 
+    public function overview(Request $request): JsonResponse
+    {
+        $wallet = $this->ledgerService->getOrCreateWallet($request->user()->id);
+
+        return response()->json([
+            'data' => [
+                'balance' => $wallet->balance,
+                'formatted' => $this->formatAmount($wallet->balance, $wallet->currency),
+                'currency' => $wallet->currency,
+                'status' => $wallet->status,
+                'has_pin' => $wallet->hasPin(),
+            ],
+        ]);
+    }
+
     private function formatAmount(int $amount, string $currency): string
     {
         $symbols = ['NGN' => '₦', 'USD' => '$', 'GBP' => '£', 'EUR' => '€'];

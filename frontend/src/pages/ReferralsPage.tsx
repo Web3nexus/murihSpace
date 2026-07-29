@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Link2, Plus, Loader2, Users, MousePointerClick, ShoppingBag, Copy, Check, ExternalLink, Power, PowerOff } from 'lucide-react';
+import { Link2, Plus, Loader2, Users, MousePointerClick, ShoppingBag, Copy, Check, ExternalLink, Power, PowerOff, Gift, RefreshCw } from 'lucide-react';
 
 const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api/v1';
 
@@ -42,6 +42,14 @@ interface ReferralRow {
   converted_at: string | null; created_at: string;
 }
 
+const TABS = ['overview', 'links', 'activity'] as const;
+
+const REWARD_TYPES = [
+  { value: 'percentage', label: 'Percentage (%)' },
+  { value: 'fixed', label: 'Fixed Amount' },
+  { value: 'credit', label: 'Credit' },
+];
+
 export function ReferralsPage() {
   const [tab, setTab] = useState<'overview' | 'links' | 'activity'>('overview');
   const [program, setProgram] = useState<ReferralProgram | null>(null);
@@ -52,6 +60,7 @@ export function ReferralsPage() {
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
   const [newCode, setNewCode] = useState('');
+  const [saving, setSaving] = useState(false);
 
   const fetchAll = useCallback(async () => {
     setIsLoading(true);
@@ -74,7 +83,7 @@ export function ReferralsPage() {
 
   async function saveProgram(e: React.FormEvent) {
     e.preventDefault();
-    setMessage(null);
+    setMessage(null); setSaving(true);
     try {
       const res = await fetch(`${API_BASE}/referrals/program`, {
         method: 'PUT', headers: getAuthHeaders(),
@@ -88,6 +97,7 @@ export function ReferralsPage() {
       if (res.ok) { await fetchAll(); setMessage({ type: 'success', text: 'Program updated.' }); }
       else { const j = await res.json(); setMessage({ type: 'error', text: j.message ?? 'Failed.' }); }
     } catch { setMessage({ type: 'error', text: 'Network error.' }); }
+    setSaving(false);
   }
 
   async function createLink() {
@@ -125,193 +135,182 @@ export function ReferralsPage() {
   }
 
   if (isLoading) {
-    return <div className="w-full flex items-center justify-center h-64"><Loader2 className="w-6 h-6 animate-spin text-gray-400" /></div>;
+    return <div className="flex justify-center py-24"><Loader2 className="h-8 w-8 animate-spin text-[#38A8D8]" /></div>;
   }
 
-  const tabStyle = (t: string) => `px-5 py-2 rounded-lg text-sm font-medium transition ${tab === t ? 'bg-white shadow-sm' : 'text-gray-600 hover:text-gray-900'}`;
+  const msgBg = message?.type === 'success' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-rose-500/10 border-rose-500/20 text-rose-400';
 
   return (
-    <div className="space-y-6 w-full max-w-7xl mx-auto p-6 lg:p-8">
-      <div className="flex items-center gap-3 mb-6">
-        <Link2 className="w-6 h-6" />
-        <h1 className="text-2xl font-bold">Referral & Affiliates</h1>
+    <div className="w-full mx-auto max-w-[1000px] space-y-6 p-6 lg:p-10">
+      <div>
+        <h1 className="text-2xl font-black tracking-tight flex items-center gap-2.5">
+          <Link2 className="h-6 w-6 text-[#38A8D8]" /> Referral & Affiliates
+        </h1>
+        <p className="text-xs text-muted-foreground mt-1">Create referral links, track commissions, and grow your audience.</p>
       </div>
 
-      <div className="flex gap-1 mb-6 bg-gray-100 p-1 rounded-xl w-fit">
-        <button onClick={() => setTab('overview')} className={tabStyle('overview')}>Overview</button>
-        <button onClick={() => setTab('links')} className={tabStyle('links')}>Referral Links</button>
-        <button onClick={() => setTab('activity')} className={tabStyle('activity')}>Activity</button>
+      {/* Tab bar */}
+      <div className="flex gap-1 bg-muted p-1 rounded-xl w-fit">
+        {TABS.map((t) => (
+          <button key={t} onClick={() => setTab(t)}
+            className={`px-5 py-2 rounded-lg text-xs font-bold transition capitalize ${
+              tab === t ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+            }`}>
+            {t}
+          </button>
+        ))}
       </div>
 
       {message && (
-        <div className={`mb-4 px-4 py-3 rounded-lg text-sm ${message.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
-          {message.text}
-        </div>
+        <div className={`p-3 rounded-xl border text-xs font-bold ${msgBg}`}>{message.text}</div>
       )}
 
-      {/* Tab: Overview */}
+      {/* ──────────── Overview Tab ──────────── */}
       {tab === 'overview' && (
-        <>
-          {/* Stats */}
-          <div className="grid grid-cols-3 sm:grid-cols-5 gap-3 mb-8">
-            <div className="bg-white border rounded-xl p-4 text-center">
-              <MousePointerClick className="w-5 h-5 mx-auto mb-1 text-blue-500" />
-              <p className="text-2xl font-bold">{stats?.total_clicks ?? 0}</p>
-              <p className="text-xs text-gray-500">Clicks</p>
-            </div>
-            <div className="bg-white border rounded-xl p-4 text-center">
-              <Users className="w-5 h-5 mx-auto mb-1 text-emerald-500" />
-              <p className="text-2xl font-bold">{stats?.total_signups ?? 0}</p>
-              <p className="text-xs text-gray-500">Signups</p>
-            </div>
-            <div className="bg-white border rounded-xl p-4 text-center">
-              <ShoppingBag className="w-5 h-5 mx-auto mb-1 text-purple-500" />
-              <p className="text-2xl font-bold">{stats?.total_purchases ?? 0}</p>
-              <p className="text-xs text-gray-500">Purchases</p>
-            </div>
-            <div className="bg-white border rounded-xl p-4 text-center">
-              <p className="text-2xl font-bold text-amber-600">{stats?.conversion_rate ?? 0}%</p>
-              <p className="text-xs text-gray-500">Conversion</p>
-            </div>
-            <div className="bg-white border rounded-xl p-4 text-center">
-              <p className="text-lg font-bold text-emerald-600">{formatPrice(stats?.pending_rewards ?? 0)}</p>
-              <p className="text-xs text-gray-500">Pending Rewards</p>
-            </div>
+        <div className="space-y-6">
+          {/* Stats Grid */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+            {[
+              { icon: MousePointerClick, label: 'Clicks', value: stats?.total_clicks ?? 0, color: '#38A8D8' },
+              { icon: Users, label: 'Signups', value: stats?.total_signups ?? 0, color: '#10b981' },
+              { icon: ShoppingBag, label: 'Purchases', value: stats?.total_purchases ?? 0, color: '#8b5cf6' },
+              { icon: RefreshCw, label: 'Conversion', value: `${stats?.conversion_rate ?? 0}%`, color: '#f59e0b' },
+              { icon: Gift, label: 'Pending Rewards', value: formatPrice(stats?.pending_rewards ?? 0), color: '#10b981' },
+            ].map((s) => (
+              <div key={s.label} className="rounded-xl border border-border bg-card p-4 text-center space-y-1">
+                <s.icon className="h-5 w-5 mx-auto" style={{ color: s.color }} />
+                <p className="text-lg font-black text-foreground">{s.value}</p>
+                <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">{s.label}</p>
+              </div>
+            ))}
           </div>
 
           {/* Program Settings */}
-          <div className="bg-white border rounded-xl p-6">
-            <h2 className="font-semibold mb-4">Program Settings</h2>
+          <div className="rounded-xl border border-border bg-card p-6 space-y-4">
+            <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Program Settings</h2>
             <form onSubmit={saveProgram} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm text-gray-600 mb-1">Reward Type</label>
-                  <select
-                    value={program?.reward_type ?? 'percentage'}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-muted-foreground">Reward Type</label>
+                  <select value={program?.reward_type ?? 'percentage'}
                     onChange={e => setProgram(p => p ? { ...p, reward_type: e.target.value } : null)}
-                    className="w-full border rounded-lg px-3 py-2 text-sm"
-                  >
-                    <option value="percentage">Percentage (%)</option>
-                    <option value="fixed">Fixed Amount</option>
-                    <option value="credit">Credit</option>
+                    className="w-full rounded-xl border border-border bg-card p-2.5 text-xs font-medium text-foreground">
+                    {REWARD_TYPES.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
                   </select>
                 </div>
-                <div>
-                  <label className="block text-sm text-gray-600 mb-1">Reward Value</label>
-                  <input
-                    type="number" min="1"
-                    value={program?.reward_value ?? 10}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-muted-foreground">Reward Value</label>
+                  <input type="number" min="1" value={program?.reward_value ?? 10}
                     onChange={e => setProgram(p => p ? { ...p, reward_value: Number(e.target.value) } : null)}
-                    className="w-full border rounded-lg px-3 py-2 text-sm"
-                  />
+                    className="w-full rounded-xl border border-border bg-card p-2.5 text-xs font-medium text-foreground" />
                 </div>
               </div>
-              <div>
-                <label className="block text-sm text-gray-600 mb-1">Description</label>
-                <textarea
-                  value={program?.description ?? ''}
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-muted-foreground">Description</label>
+                <textarea value={program?.description ?? ''}
                   onChange={e => setProgram(p => p ? { ...p, description: e.target.value } : null)}
-                  rows={2} className="w-full border rounded-lg px-3 py-2 text-sm"
-                />
+                  rows={2} className="w-full rounded-xl border border-border bg-card p-2.5 text-xs font-medium text-foreground resize-none placeholder:text-muted-foreground" placeholder="Describe your referral program..." />
               </div>
               <label className="flex items-center gap-2 cursor-pointer">
                 <input type="checkbox" checked={program?.is_active ?? true}
-                  onChange={e => setProgram(p => p ? { ...p, is_active: e.target.checked } : null)} />
-                <span className="text-sm">Program active</span>
+                  onChange={e => setProgram(p => p ? { ...p, is_active: e.target.checked } : null)}
+                  className="accent-[#38A8D8]" />
+                <span className="text-xs font-bold text-foreground">Program active</span>
               </label>
-              <button type="submit" className="px-6 py-2 bg-black text-white rounded-lg hover:bg-gray-800 text-sm">
-                Save Settings
+              <button type="submit" disabled={saving}
+                className="px-6 py-2 rounded-xl bg-[#38A8D8] text-white text-xs font-bold hover:bg-[#2e8ab8] transition-colors disabled:opacity-50">
+                {saving ? <Loader2 className="h-3 w-3 animate-spin inline mr-1" /> : null} Save Settings
               </button>
             </form>
           </div>
-        </>
+        </div>
       )}
 
-      {/* Tab: Links */}
+      {/* ──────────── Links Tab ──────────── */}
       {tab === 'links' && (
-        <>
+        <div className="space-y-4">
           {/* Create Link */}
-          <div className="flex gap-2 mb-6">
+          <div className="flex gap-2">
             <input value={newCode} onChange={e => setNewCode(e.target.value)}
               placeholder="Custom code (optional, e.g. 'summer2026')"
-              className="flex-1 border rounded-lg px-3 py-2 text-sm" />
+              className="flex-1 rounded-xl border border-border bg-card p-2.5 text-xs font-medium text-foreground placeholder:text-muted-foreground" />
             <button onClick={createLink}
-              className="flex items-center gap-2 px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 text-sm">
-              <Plus className="w-4 h-4" /> Create
+              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#38A8D8] text-white text-xs font-bold hover:bg-[#2e8ab8] transition-colors">
+              <Plus className="h-4 w-4" /> Create
             </button>
           </div>
 
           {links.length === 0 ? (
             <div className="flex flex-col items-center text-center gap-4 py-16">
-              <Link2 className="w-16 h-16 text-gray-300" />
-              <h2 className="text-xl font-semibold text-gray-700">No referral links</h2>
-              <p className="text-gray-500">Create a referral link to start tracking referrals.</p>
+              <Link2 className="h-16 w-16 text-muted-foreground/30" />
+              <h2 className="text-lg font-bold text-foreground">No referral links</h2>
+              <p className="text-xs text-muted-foreground">Create a referral link to start tracking referrals.</p>
             </div>
           ) : (
             <div className="space-y-3">
               {links.map(l => (
-                <div key={l.id} className="bg-white border rounded-xl p-4">
-                  <div className="flex items-center justify-between mb-2">
+                <div key={l.id} className="rounded-xl border border-border bg-card p-4 space-y-2">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
                     <div className="flex items-center gap-2">
-                      <span className="font-mono text-sm font-semibold">{l.code}</span>
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${l.is_active ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-500'}`}>
-                        {l.is_active ? 'Active' : 'Inactive'}
-                      </span>
+                      <span className="font-mono text-xs font-bold text-foreground">{l.code}</span>
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                        l.is_active ? 'bg-emerald-500/10 text-emerald-400' : 'bg-muted text-muted-foreground'
+                      }`}>{l.is_active ? 'Active' : 'Inactive'}</span>
                     </div>
                     <div className="flex items-center gap-1">
-                      <button onClick={() => copyUrl(l.url)} className="p-1.5 hover:bg-gray-100 rounded-lg" title="Copy link">
-                        {copied === l.url ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4 text-gray-500" />}
+                      <button onClick={() => copyUrl(l.url)} className="p-1.5 hover:bg-muted rounded-lg" title="Copy link">
+                        {copied === l.url ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5 text-muted-foreground" />}
                       </button>
-                      <button onClick={() => toggleLink(l.id)} className="p-1.5 hover:bg-gray-100 rounded-lg" title={l.is_active ? 'Deactivate' : 'Activate'}>
-                        {l.is_active ? <PowerOff className="w-4 h-4 text-amber-500" /> : <Power className="w-4 h-4 text-gray-400" />}
+                      <button onClick={() => toggleLink(l.id)} className="p-1.5 hover:bg-muted rounded-lg" title={l.is_active ? 'Deactivate' : 'Activate'}>
+                        {l.is_active ? <PowerOff className="h-3.5 w-3.5 text-amber-400" /> : <Power className="h-3.5 w-3.5 text-muted-foreground" />}
                       </button>
-                      <button onClick={() => window.open(l.url, '_blank')} className="p-1.5 hover:bg-gray-100 rounded-lg">
-                        <ExternalLink className="w-4 h-4 text-gray-500" />
+                      <button onClick={() => window.open(l.url, '_blank')} className="p-1.5 hover:bg-muted rounded-lg">
+                        <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
                       </button>
-                      <button onClick={() => deleteLink(l.id)} className="p-1.5 hover:bg-gray-100 rounded-lg">
-                        <span className="text-red-400 text-sm font-medium">X</span>
+                      <button onClick={() => deleteLink(l.id)} className="p-1.5 hover:bg-muted rounded-lg text-destructive text-sm font-bold">
+                        X
                       </button>
                     </div>
                   </div>
-                  <div className="flex items-center gap-4 text-xs text-gray-500">
+                  <div className="flex items-center gap-4 text-[10px] text-muted-foreground">
                     <span>{l.clicks} clicks</span>
                     <span>{l.referrals_count} referrals</span>
-                    <span>Created {new Date(l.created_at).toLocaleDateString()}</span>
+                    <span>{new Date(l.created_at).toLocaleDateString()}</span>
                   </div>
-                  <div className="mt-2 text-xs text-gray-400 font-mono truncate">{l.url}</div>
+                  <div className="text-[10px] text-muted-foreground/60 font-mono truncate">{l.url}</div>
                 </div>
               ))}
             </div>
           )}
-        </>
+        </div>
       )}
 
-      {/* Tab: Activity */}
+      {/* ──────────── Activity Tab ──────────── */}
       {tab === 'activity' && (
         referrals.length === 0 ? (
           <div className="flex flex-col items-center text-center gap-4 py-16">
-            <Users className="w-16 h-16 text-gray-300" />
-            <h2 className="text-xl font-semibold text-gray-700">No activity yet</h2>
-            <p className="text-gray-500">Referral activity will appear here.</p>
+            <Users className="h-16 w-16 text-muted-foreground/30" />
+            <h2 className="text-lg font-bold text-foreground">No activity yet</h2>
+            <p className="text-xs text-muted-foreground">Referral activity will appear here.</p>
           </div>
         ) : (
-          <div className="space-y-2">
+          <div className="rounded-xl border border-border bg-card divide-y divide-border overflow-hidden">
             {referrals.map(r => (
-              <div key={r.id} className="bg-white border rounded-xl px-4 py-3 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <span className={`px-2 py-0.5 rounded text-xs font-medium ${
-                    r.type === 'purchase' ? 'bg-purple-50 text-purple-700' :
-                    r.type === 'signup' ? 'bg-emerald-50 text-emerald-700' :
-                    'bg-gray-100 text-gray-600'
+              <div key={r.id} className="px-4 py-3 flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3 min-w-0">
+                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                    r.type === 'purchase' ? 'bg-purple-500/10 text-purple-400' :
+                    r.type === 'signup' ? 'bg-emerald-500/10 text-emerald-400' :
+                    'bg-muted text-muted-foreground'
                   }`}>{r.type}</span>
-                  <div>
-                    <span className="text-sm font-medium">{r.code}</span>
-                    {r.referred_user && <span className="text-sm text-gray-500 ml-2">→ @{r.referred_user.username}</span>}
+                  <div className="min-w-0 text-xs">
+                    <span className="font-bold text-foreground">{r.code}</span>
+                    {r.referred_user && <span className="text-muted-foreground ml-1">→ @{r.referred_user.username}</span>}
                   </div>
                 </div>
-                <div className="text-right text-sm">
-                  {r.reward_amount != null && <span className="font-medium">{formatPrice(r.reward_amount)}</span>}
-                  <p className="text-xs text-gray-400">{new Date(r.created_at).toLocaleDateString()}</p>
+                <div className="text-right shrink-0">
+                  {r.reward_amount != null && <span className="text-xs font-bold text-foreground">{formatPrice(r.reward_amount)}</span>}
+                  <p className="text-[10px] text-muted-foreground">{new Date(r.created_at).toLocaleDateString()}</p>
                 </div>
               </div>
             ))}

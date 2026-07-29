@@ -39,6 +39,10 @@ export function CommunitiesPage() {
   const [myCommunities, setMyCommunities] = React.useState<Community[]>([]);
   const [isLoading, setIsLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [page, setPage] = React.useState(1);
+  const [lastPage, setLastPage] = React.useState(1);
+  const [myPage, setMyPage] = React.useState(1);
+  const [myLastPage, setMyLastPage] = React.useState(1);
 
   // Fetch communities from API backend
   const fetchCommunities = React.useCallback(async () => {
@@ -46,6 +50,8 @@ export function CommunitiesPage() {
     setError(null);
     try {
       const params = new URLSearchParams();
+      params.set("page", String(page));
+      params.set("per_page", "20");
       if (selectedCategory !== "All") params.set("category", selectedCategory);
       if (searchQuery) params.set("search", searchQuery);
       const res = await fetch(`${API_BASE}/communities?${params.toString()}`);
@@ -53,6 +59,7 @@ export function CommunitiesPage() {
         const j = await res.json();
         const list = j?.success ? j?.data : j;
         setCommunities(list?.data ?? []);
+        setLastPage(list?.last_page ?? 1);
       } else {
         setError("Failed to load communities. Please try again.");
       }
@@ -62,13 +69,16 @@ export function CommunitiesPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [selectedCategory, searchQuery]);
+  }, [selectedCategory, searchQuery, page]);
 
   const fetchMyCommunities = React.useCallback(async () => {
-    const token = localStorage.getItem("murihspace-token");
+    const token = localStorage.getItem("murihspace-token") || localStorage.getItem("auth_token");
     if (!token) return;
+    const params = new URLSearchParams({ page: String(myPage), per_page: "20" });
+    if (selectedCategory !== "All") params.set("category", selectedCategory);
+    if (searchQuery) params.set("search", searchQuery);
     try {
-      const res = await fetch(`${API_BASE}/my-communities`, {
+      const res = await fetch(`${API_BASE}/my-communities?${params}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) {
@@ -77,15 +87,18 @@ export function CommunitiesPage() {
         if (list?.communities) {
           setMyCommunities(list.communities);
         }
+        setMyLastPage(list?.last_page ?? 1);
       }
     } catch (e) { console.error('Failed to fetch my communities', e); }
-  }, []);
+  }, [myPage]);
 
   React.useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchCommunities();
+  }, [fetchCommunities]);
+  React.useEffect(() => {
     fetchMyCommunities();
-  }, [fetchCommunities, fetchMyCommunities]);
+  }, [fetchMyCommunities]);
 
   const handleCreated = (newCommunity: Community) => {
     setCommunities((prev) => [newCommunity, ...prev]);
@@ -168,7 +181,7 @@ export function CommunitiesPage() {
             type="search"
             placeholder="Search communities by name or topic..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => { setSearchQuery(e.target.value); setPage(1); setMyPage(1); }}
             className="pl-10 h-10 rounded-xl bg-card border-border text-sm"
           />
         </div>
@@ -179,7 +192,7 @@ export function CommunitiesPage() {
         {CATEGORIES.map((cat) => (
           <button
             key={cat}
-            onClick={() => setSelectedCategory(cat)}
+            onClick={() => { setSelectedCategory(cat); setPage(1); setMyPage(1); }}
             className={`px-3.5 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all ${
               selectedCategory === cat
                 ? "bg-primary text-primary-foreground font-semibold shadow-xs"
@@ -298,6 +311,21 @@ export function CommunitiesPage() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {tab === 'discover' && lastPage > 1 && (
+        <div className="flex items-center justify-center gap-2 pt-4">
+          <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1} className="px-3 py-1.5 rounded-lg text-xs font-bold border border-border bg-card hover:bg-muted disabled:opacity-40">Previous</button>
+          <span className="text-xs text-muted-foreground">Page {page} of {lastPage}</span>
+          <button onClick={() => setPage(p => Math.min(lastPage, p + 1))} disabled={page >= lastPage} className="px-3 py-1.5 rounded-lg text-xs font-bold border border-border bg-card hover:bg-muted disabled:opacity-40">Next</button>
+        </div>
+      )}
+      {tab === 'my' && myLastPage > 1 && (
+        <div className="flex items-center justify-center gap-2 pt-4">
+          <button onClick={() => setMyPage(p => Math.max(1, p - 1))} disabled={myPage <= 1} className="px-3 py-1.5 rounded-lg text-xs font-bold border border-border bg-card hover:bg-muted disabled:opacity-40">Previous</button>
+          <span className="text-xs text-muted-foreground">Page {myPage} of {myLastPage}</span>
+          <button onClick={() => setMyPage(p => Math.min(myLastPage, p + 1))} disabled={myPage >= myLastPage} className="px-3 py-1.5 rounded-lg text-xs font-bold border border-border bg-card hover:bg-muted disabled:opacity-40">Next</button>
         </div>
       )}
 

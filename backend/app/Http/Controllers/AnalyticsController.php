@@ -231,4 +231,24 @@ class AnalyticsController extends Controller
             ],
         ]);
     }
+
+    public function productPerformance(Request $request): JsonResponse
+    {
+        return response()->json(['message' => 'Not implemented.'], 501);
+    }
+
+    public function chatChannels(Request $request): JsonResponse
+    {
+        return response()->json(['message' => 'Not implemented.'], 501);
+    }
+
+    public function contentPlanner(Request $request): JsonResponse
+    {
+        return response()->json(['message' => 'Not implemented.'], 501);
+    }
+
+    public function communityActivity(Request $request): JsonResponse
+    {
+        return response()->json(['message' => 'Not implemented.'], 501);
+    }
 }

@@ -240,50 +240,71 @@ export function CoachingPage() {
   // Shared state
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [browsePage, setBrowsePage] = useState(1);
+  const [browseLastPage, setBrowseLastPage] = useState(1);
+  const [servicesPage, setServicesPage] = useState(1);
+  const [servicesLastPage, setServicesLastPage] = useState(1);
+  const [bookingsPage, setBookingsPage] = useState(1);
+  const [bookingsLastPage, setBookingsLastPage] = useState(1);
+  const [sessionsPage, setSessionsPage] = useState(1);
+  const [sessionsLastPage, setSessionsLastPage] = useState(1);
+
+  // Reset pages when tab changes
+  useEffect(() => { setBrowsePage(1); }, []);
+  useEffect(() => { setServicesPage(1); }, []);
+  useEffect(() => { setBookingsPage(1); }, []);
+  useEffect(() => { setSessionsPage(1); }, []);
 
   // ── Data fetching ──────────────────────────────────────────────
 
   const fetchPublicServices = useCallback(async () => {
     try {
-      const res = await fetch(`${API_BASE}/coaching/services`, { headers: getAuthHeaders() });
+      const res = await fetch(`${API_BASE}/coaching/services?page=${browsePage}&per_page=20`, { headers: getAuthHeaders() });
       if (res.ok) {
         const json = await res.json();
         setServices(json.data?.data ?? []);
+        setBrowseLastPage(json.data?.last_page ?? 1);
       }
     } catch { /* silent */ }
-  }, []);
+  }, [browsePage]);
 
   const fetchMyServices = useCallback(async () => {
     try {
-      const res = await fetch(`${API_BASE}/coaching/my-services`, { headers: getAuthHeaders() });
+      const res = await fetch(`${API_BASE}/coaching/my-services?page=${servicesPage}&per_page=20`, { headers: getAuthHeaders() });
       if (res.ok) {
         const json = await res.json();
         setMyServices(json.data?.data ?? []);
+        setServicesLastPage(json.data?.last_page ?? 1);
       }
     } catch { /* silent */ }
-  }, []);
+  }, [servicesPage]);
 
   const fetchMyBookings = useCallback(async () => {
     try {
-      const res = await fetch(`${API_BASE}/coaching/my-bookings`, { headers: getAuthHeaders() });
+      const res = await fetch(`${API_BASE}/coaching/my-bookings?page=${bookingsPage}&per_page=20`, { headers: getAuthHeaders() });
       if (res.ok) {
         const json = await res.json();
         setMyBookings(json.data?.data ?? []);
+        setBookingsLastPage(json.data?.last_page ?? 1);
       }
     } catch { /* silent */ }
-  }, []);
+  }, [bookingsPage]);
 
   const fetchMySessions = useCallback(async () => {
     try {
-      const res = await fetch(`${API_BASE}/coaching/my-sessions`, { headers: getAuthHeaders() });
+      const res = await fetch(`${API_BASE}/coaching/my-sessions?page=${sessionsPage}&per_page=20`, { headers: getAuthHeaders() });
       if (res.ok) {
         const json = await res.json();
         setMySessions(json.data?.data ?? []);
+        setSessionsLastPage(json.data?.last_page ?? 1);
       }
     } catch { /* silent */ }
-  }, []);
+  }, [sessionsPage]);
 
-  useEffect(() => { fetchPublicServices(); fetchMyServices(); fetchMyBookings(); fetchMySessions(); setIsLoadingServices(false); }, [fetchPublicServices, fetchMyServices, fetchMyBookings, fetchMySessions]);
+  useEffect(() => { fetchPublicServices().finally(() => setIsLoadingServices(false)); }, [fetchPublicServices]);
+  useEffect(() => { fetchMyServices(); }, [fetchMyServices]);
+  useEffect(() => { fetchMyBookings(); }, [fetchMyBookings]);
+  useEffect(() => { fetchMySessions(); }, [fetchMySessions]);
 
   // ── Service CRUD ───────────────────────────────────────────────
 
@@ -535,6 +556,13 @@ export function CoachingPage() {
               ))}
             </div>
           )}
+          {browseLastPage > 1 && (
+            <div className="flex items-center justify-center gap-2 pt-2">
+              <button onClick={() => setBrowsePage(p => Math.max(1, p - 1))} disabled={browsePage <= 1} className="px-3 py-1.5 rounded-lg text-xs font-bold border border-border bg-card hover:bg-muted disabled:opacity-40">Previous</button>
+              <span className="text-xs text-muted-foreground">Page {browsePage} of {browseLastPage}</span>
+              <button onClick={() => setBrowsePage(p => Math.min(browseLastPage, p + 1))} disabled={browsePage >= browseLastPage} className="px-3 py-1.5 rounded-lg text-xs font-bold border border-border bg-card hover:bg-muted disabled:opacity-40">Next</button>
+            </div>
+          )}
         </div>
       )}
 
@@ -550,15 +578,24 @@ export function CoachingPage() {
               <p className="text-xs text-muted-foreground max-w-sm mx-auto">Create your first coaching service to start accepting bookings.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {myServices.map((s) => (
-                <ServiceCard
-                  key={s.id}
-                  service={s}
-                  onEdit={openEditService}
-                  onDelete={handleDeleteService}
-                />
-              ))}
+            <div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {myServices.map((s) => (
+                  <ServiceCard
+                    key={s.id}
+                    service={s}
+                    onEdit={openEditService}
+                    onDelete={handleDeleteService}
+                  />
+                ))}
+              </div>
+              {servicesLastPage > 1 && (
+                <div className="flex items-center justify-center gap-2 pt-4">
+                  <button onClick={() => setServicesPage(p => Math.max(1, p - 1))} disabled={servicesPage <= 1} className="px-3 py-1.5 rounded-lg text-xs font-bold border border-border bg-card hover:bg-muted disabled:opacity-40">Previous</button>
+                  <span className="text-xs text-muted-foreground">Page {servicesPage} of {servicesLastPage}</span>
+                  <button onClick={() => setServicesPage(p => Math.min(servicesLastPage, p + 1))} disabled={servicesPage >= servicesLastPage} className="px-3 py-1.5 rounded-lg text-xs font-bold border border-border bg-card hover:bg-muted disabled:opacity-40">Next</button>
+                </div>
+              )}
             </div>
           )}
 
@@ -642,6 +679,13 @@ export function CoachingPage() {
               <BookingRow key={b.id} booking={b} isCreator={false} onCancel={handleCancelBooking} onComplete={() => {}} />
             ))
           )}
+          {bookingsLastPage > 1 && (
+            <div className="flex items-center justify-center gap-2 pt-2">
+              <button onClick={() => setBookingsPage(p => Math.max(1, p - 1))} disabled={bookingsPage <= 1} className="px-3 py-1.5 rounded-lg text-xs font-bold border border-border bg-card hover:bg-muted disabled:opacity-40">Previous</button>
+              <span className="text-xs text-muted-foreground">Page {bookingsPage} of {bookingsLastPage}</span>
+              <button onClick={() => setBookingsPage(p => Math.min(bookingsLastPage, p + 1))} disabled={bookingsPage >= bookingsLastPage} className="px-3 py-1.5 rounded-lg text-xs font-bold border border-border bg-card hover:bg-muted disabled:opacity-40">Next</button>
+            </div>
+          )}
         </div>
       )}
 
@@ -660,6 +704,13 @@ export function CoachingPage() {
             mySessions.map((b) => (
               <BookingRow key={b.id} booking={b} isCreator={true} onCancel={handleCancelBooking} onComplete={handleCompleteSession} />
             ))
+          )}
+          {sessionsLastPage > 1 && (
+            <div className="flex items-center justify-center gap-2 pt-2">
+              <button onClick={() => setSessionsPage(p => Math.max(1, p - 1))} disabled={sessionsPage <= 1} className="px-3 py-1.5 rounded-lg text-xs font-bold border border-border bg-card hover:bg-muted disabled:opacity-40">Previous</button>
+              <span className="text-xs text-muted-foreground">Page {sessionsPage} of {sessionsLastPage}</span>
+              <button onClick={() => setSessionsPage(p => Math.min(sessionsLastPage, p + 1))} disabled={sessionsPage >= sessionsLastPage} className="px-3 py-1.5 rounded-lg text-xs font-bold border border-border bg-card hover:bg-muted disabled:opacity-40">Next</button>
+            </div>
           )}
         </div>
       )}

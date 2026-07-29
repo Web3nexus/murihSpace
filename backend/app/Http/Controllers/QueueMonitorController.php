@@ -85,6 +85,31 @@ class QueueMonitorController extends Controller
         return response()->json(['message' => 'Failed jobs table flushed.']);
     }
 
+    public function health(): JsonResponse
+    {
+        $pending = DB::table('jobs')->count();
+        $failed = DB::table('failed_jobs')->count();
+        $threshold = (int) config('queue.monitor_threshold', 50);
+
+        $alerts = [];
+        if ($pending > $threshold) {
+            $alerts[] = "Queue backlog: {$pending} pending jobs (threshold: {$threshold})";
+        }
+        if ($failed > 0) {
+            $alerts[] = "{$failed} failed job(s) in the queue";
+        }
+
+        $status = count($alerts) === 0 ? 'healthy' : 'degraded';
+
+        return response()->json(['data' => [
+            'status' => $status,
+            'pending' => $pending,
+            'failed' => $failed,
+            'threshold' => $threshold,
+            'alerts' => $alerts,
+        ]]);
+    }
+
     public function systemInfo(): JsonResponse
     {
         $queueConnection = config('queue.default');

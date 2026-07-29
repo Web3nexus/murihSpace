@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Activity, Database, Clock, AlertTriangle, RefreshCcw, Trash2, Server, Cpu, Shield, HardDrive } from 'lucide-react';
+import { Activity, Database, Clock, AlertTriangle, RefreshCcw, Trash2, Server, Cpu, Shield, HardDrive, AlertCircle } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api/v1';
@@ -30,10 +30,12 @@ export function QueueMonitorPage() {
   const [failedJobs, setFailedJobs] = useState<FailedJob[]>([]);
   const [sysInfo, setSysInfo] = useState<SystemInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [activeTab, setActiveTab] = useState<'overview' | 'failed' | 'system'>('overview');
 
   const fetchAll = useCallback(async () => {
+    setFetchError(null);
     try {
       const [statsRes, failedRes, sysRes] = await Promise.all([
         fetch(`${API_BASE}/securegate/queue/stats`, { headers: getAuthHeaders() }),
@@ -43,7 +45,10 @@ export function QueueMonitorPage() {
       if (statsRes.ok) { const j = await statsRes.json(); setStats(j.data?.data ?? j.data); }
       if (failedRes.ok) { const j = await failedRes.json(); setFailedJobs(j?.data?.data ?? j?.data ?? []); }
       if (sysRes.ok) { const j = await sysRes.json(); setSysInfo(j.data?.data ?? j.data); }
-    } catch { /* ignore */ }
+
+      const failed = [statsRes, failedRes, sysRes].filter(r => !r.ok);
+      if (failed.length > 0) setFetchError(`${failed.length} data source(s) failed to load.`);
+    } catch (e) { setFetchError(e instanceof Error ? e.message : 'Failed to load queue data'); }
     finally { setIsLoading(false); }
   }, []);
 
@@ -101,6 +106,13 @@ export function QueueMonitorPage() {
           <RefreshCcw className="h-4 w-4" /> Refresh
         </Button>
       </div>
+
+      {fetchError && (
+        <div className="flex items-center gap-2 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-xs text-destructive">
+          <AlertCircle className="h-4 w-4 shrink-0" /> {fetchError}
+          <button onClick={() => { setIsLoading(true); fetchAll(); }} className="ml-auto text-muted-foreground hover:text-foreground font-bold">Retry</button>
+        </div>
+      )}
 
       {message && (
         <div className={`px-4 py-3 rounded-xl text-sm flex items-center gap-2 border ${

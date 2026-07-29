@@ -43,28 +43,28 @@ export function DonationsPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [actionMessage, setActionMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [tab, setTab] = useState<'sent' | 'received'>('received');
+  const [recvPage, setRecvPage] = useState(1);
+  const [recvLastPage, setRecvLastPage] = useState(1);
+  const [sentPage, setSentPage] = useState(1);
+  const [sentLastPage, setSentLastPage] = useState(1);
 
-  const fetchDonations = useCallback(async () => {
+  const fetchSent = useCallback(async () => {
     try {
-      const [sentRes, recvRes] = await Promise.all([
-        fetch(`${API_BASE}/wallet/donations/sent`, { headers: getAuthHeaders() }),
-        fetch(`${API_BASE}/wallet/donations/received`, { headers: getAuthHeaders() }),
-      ]);
-      if (sentRes.ok) {
-        const json = await sentRes.json();
-        setSentDonations(json.data?.data ?? []);
-      }
-      if (recvRes.ok) {
-        const json = await recvRes.json();
-        setReceivedDonations(json.data?.data ?? []);
-      }
-    } catch (e) { console.error('Failed to fetch donations', e); }
-  }, []);
+      const res = await fetch(`${API_BASE}/wallet/donations/sent?page=${sentPage}&per_page=20`, { headers: getAuthHeaders() });
+      if (res.ok) { const json = await res.json(); setSentDonations(json.data?.data ?? []); setSentLastPage(json.data?.last_page ?? 1); }
+    } catch (e) { console.error('Failed to fetch sent donations', e); }
+  }, [sentPage]);
+
+  const fetchReceived = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_BASE}/wallet/donations/received?page=${recvPage}&per_page=20`, { headers: getAuthHeaders() });
+      if (res.ok) { const json = await res.json(); setReceivedDonations(json.data?.data ?? []); setRecvLastPage(json.data?.last_page ?? 1); }
+    } catch (e) { console.error('Failed to fetch received donations', e); }
+  }, [recvPage]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    fetchDonations().finally(() => setIsLoading(false));
-  }, [fetchDonations]);
+    Promise.all([fetchSent(), fetchReceived()]).finally(() => setIsLoading(false));
+  }, [fetchSent, fetchReceived]);
 
   const handleSendDonation = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -88,7 +88,7 @@ export function DonationsPage() {
       if (res.ok) {
         setActionMessage({ type: 'success', text: `Sent ${formatAmount(payload.amount)} tip to @${payload.recipient_username}!` });
         setShowSend(false);
-        fetchDonations();
+        fetchSent(); fetchReceived();
       } else {
         setActionMessage({ type: 'error', text: json.message || 'Donation failed.' });
       }
@@ -135,8 +135,8 @@ export function DonationsPage() {
       {/* Summary Metrics */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {[
-          { label: 'Total Received', value: formatAmount(stats.totalReceived), sub: `${stats.countReceived} tips`, icon: Heart, color: 'text-rose-600 bg-rose-100 dark:text-rose-400 dark:bg-rose-950' },
-          { label: 'Total Sent', value: formatAmount(stats.totalSent), sub: `${stats.countSent} tips`, icon: Gift, color: 'text-blue-600 bg-blue-100 dark:text-blue-400 dark:bg-blue-950' },
+          { label: 'Received (this page)', value: formatAmount(stats.totalReceived), sub: `${stats.countReceived} tips`, icon: Heart, color: 'text-rose-600 bg-rose-100 dark:text-rose-400 dark:bg-rose-950' },
+          { label: 'Sent (this page)', value: formatAmount(stats.totalSent), sub: `${stats.countSent} tips`, icon: Gift, color: 'text-blue-600 bg-blue-100 dark:text-blue-400 dark:bg-blue-950' },
         ].map((m) => (
           <div key={m.label} className="border border-border rounded-2xl bg-card p-4 shadow-sm flex items-center gap-4">
             <div className={`p-2.5 rounded-xl ${m.color} shrink-0`}>
@@ -207,6 +207,21 @@ export function DonationsPage() {
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {tab === 'received' && recvLastPage > 1 && (
+        <div className="flex items-center justify-center gap-2 pt-4">
+          <button onClick={() => setRecvPage(p => Math.max(1, p - 1))} disabled={recvPage <= 1} className="px-3 py-1.5 rounded-lg text-xs font-bold border border-border bg-card hover:bg-muted disabled:opacity-40">Previous</button>
+          <span className="text-xs text-muted-foreground">Page {recvPage} of {recvLastPage}</span>
+          <button onClick={() => setRecvPage(p => Math.min(recvLastPage, p + 1))} disabled={recvPage >= recvLastPage} className="px-3 py-1.5 rounded-lg text-xs font-bold border border-border bg-card hover:bg-muted disabled:opacity-40">Next</button>
+        </div>
+      )}
+      {tab === 'sent' && sentLastPage > 1 && (
+        <div className="flex items-center justify-center gap-2 pt-4">
+          <button onClick={() => setSentPage(p => Math.max(1, p - 1))} disabled={sentPage <= 1} className="px-3 py-1.5 rounded-lg text-xs font-bold border border-border bg-card hover:bg-muted disabled:opacity-40">Previous</button>
+          <span className="text-xs text-muted-foreground">Page {sentPage} of {sentLastPage}</span>
+          <button onClick={() => setSentPage(p => Math.min(sentLastPage, p + 1))} disabled={sentPage >= sentLastPage} className="px-3 py-1.5 rounded-lg text-xs font-bold border border-border bg-card hover:bg-muted disabled:opacity-40">Next</button>
         </div>
       )}
 
