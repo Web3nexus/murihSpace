@@ -13,6 +13,7 @@ import { Clock, ShieldCheck, Check, X } from "lucide-react";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api/v1';
 import type { JoinRequest } from "@/types/community";
+import { getAuthToken } from "@/lib/auth/token";
 
 interface JoinRequestsModalProps {
   open: boolean;
@@ -38,7 +39,7 @@ export function JoinRequestsModal({
     setIsLoading(true);
     setError(null);
     try {
-      const token = localStorage.getItem("murihspace-token");
+      const token = getAuthToken();
       const res = await fetch(`${API_BASE}/communities/${communityId}/requests`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -62,7 +63,7 @@ export function JoinRequestsModal({
   const handleAction = async (requestId: number, action: "approve" | "reject") => {
     setProcessingId(requestId);
     try {
-      const token = localStorage.getItem("murihspace-token");
+      const token = getAuthToken();
       await fetch(`${API_BASE}/memberships/${requestId}/${action}`, {
         method: "POST",
         headers: {
@@ -83,7 +84,7 @@ export function JoinRequestsModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md rounded-2xl p-6">
+      <DialogContent className="sm:max-w-xl md:max-w-2xl rounded-2xl p-6 sm:p-8">
         <DialogHeader>
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400">

@@ -1,10 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { ShieldCheck, ShieldAlert, Loader2, Check, X, AlertCircle, ChevronRight } from 'lucide-react';
+import { getAuthToken } from "@/lib/auth/token";
+import { env } from "@/config/env";
 
-const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api/v1';
+const API_BASE = env.VITE_API_URL;
 
 function getAuthHeaders() {
-  const token = localStorage.getItem('murihspace-token');
+  const token = getAuthToken();
   return {
     'Content-Type': 'application/json',
     Accept: 'application/json',

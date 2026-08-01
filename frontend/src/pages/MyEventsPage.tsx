@@ -7,11 +7,12 @@ import { EmptyState, LoadingState, ErrorState } from "@/components/common/UIStat
 import { CreateEventModal } from "@/components/events/CreateEventModal";
 import type { EventData } from "@/types/events";
 import { env } from "@/config/env";
+import { getAuthToken } from "@/lib/auth/token";
 
 const API = env.VITE_API_BASE_URL;
 
 function getAuthHeaders(): Record<string, string> {
-  const token = localStorage.getItem("murihspace-token");
+  const token = getAuthToken();
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
@@ -43,7 +44,7 @@ export function MyEventsPage() {
       const res = await fetch(`${API}/my-events`, { headers: getAuthHeaders() });
       if (!res.ok) throw new Error("Failed to load events");
       const body = await res.json();
-      setEvents(body.data?.data ?? []);
+      setEvents(Array.isArray(body.data) ? body.data : body.data?.data ?? []);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong");
     } finally {

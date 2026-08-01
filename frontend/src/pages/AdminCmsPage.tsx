@@ -6,10 +6,11 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from '@/components/ui/dialog';
 import type { PageSection } from '@/types/admin';
+import { getAuthToken } from "@/lib/auth/token";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api/v1';
 const authHeaders = () => {
-  const t = localStorage.getItem('auth_token') || localStorage.getItem('murihspace-token');
+  const t = getAuthToken();
   return { Accept: 'application/json', 'Content-Type': 'application/json', ...(t ? { Authorization: `Bearer ${t}` } : {}) };
 };
 
@@ -181,7 +182,7 @@ export function AdminCmsPage() {
 
       {/* Edit Content Dialog */}
       <Dialog open={!!editing} onOpenChange={() => { setEditing(null); setMsg(null); }}>
-        <DialogContent className="sm:max-w-[600px] bg-card border-border rounded-2xl">
+        <DialogContent className="sm:max-w-2xl md:max-w-3xl max-h-[90vh] overflow-y-auto bg-card border-border shadow-2xl rounded-2xl p-6 sm:p-8">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-base font-bold">
               <FileText className="h-5 w-5 text-[#38A8D8]" /> Edit: {editing?.label}
@@ -206,7 +207,7 @@ export function AdminCmsPage() {
 
       {/* Create Section Dialog */}
       <Dialog open={showCreate} onOpenChange={() => { setShowCreate(false); setMsg(null); }}>
-        <DialogContent className="sm:max-w-[400px] bg-card border-border rounded-2xl">
+        <DialogContent className="sm:max-w-lg md:max-w-xl bg-card border-border shadow-2xl rounded-2xl p-6 sm:p-8">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-base font-bold"><FileText className="h-5 w-5 text-[#38A8D8]" /> Add Section</DialogTitle>
             <DialogDescription className="text-xs">Add a new content section to the {selectedPage} page.</DialogDescription>

@@ -14,8 +14,9 @@ import { Badge } from "@/components/ui/badge";
 const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api/v1';
 import { ErrorState, EmptyState } from "@/components/common/UIStateComponents";
 import { RoleBadge } from "@/components/community/RoleBadge";
-import { Plus, Check, AlertCircle, Sparkles, Key, ShieldCheck } from "lucide-react";
+import { Plus, Check, AlertCircle, Key, ShieldCheck } from "lucide-react";
 import type { CommunityRole, PermissionDefinition } from "@/types/community";
+import { getAuthToken } from "@/lib/auth/token";
 
 interface RoleManagementModalProps {
   open: boolean;
@@ -96,7 +97,7 @@ export function RoleManagementModal({
     setIsLoadingRoles(true);
     setRolesError(null);
     try {
-      const token = localStorage.getItem("murihspace-token");
+      const token = getAuthToken();
       const res = await fetch(`${API_BASE}/communities/${communityId}/roles`, {
         headers: {
           Accept: "application/json",
@@ -137,7 +138,7 @@ export function RoleManagementModal({
     setIsSubmitting(true);
 
     try {
-      const token = localStorage.getItem("murihspace-token");
+      const token = getAuthToken();
       const res = await fetch(`${API_BASE}/communities/${communityId}/roles`, {
         method: "POST",
         headers: {
@@ -170,10 +171,10 @@ export function RoleManagementModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl p-6 sm:p-8">
+      <DialogContent className="sm:max-w-3xl md:max-w-4xl max-h-[90vh] overflow-y-auto rounded-2xl p-6 sm:p-8">
         <DialogHeader>
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary border border-primary/20 shrink-0">
               <Key className="h-5 w-5" />
             </div>
             <div>
@@ -378,7 +379,7 @@ export function RoleManagementModal({
                 disabled={isSubmitting}
                 className="bg-primary text-primary-foreground font-semibold gap-1.5"
               >
-                <Sparkles className="h-4 w-4" />
+                <ShieldCheck className="h-4 w-4" />
                 Save Custom Role
               </Button>
             </div>

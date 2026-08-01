@@ -6,19 +6,35 @@ import {
   ExternalLink,
   Users,
   CheckCircle2,
-  Sparkles,
+  UserPlus,
   ArrowLeft,
   Loader2,
   AlertTriangle,
+  MessageSquareText,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { PublicStorefront } from '@/types/storefront';
+
+interface StorePost {
+  id: number; content: string;
+  font_family: string; background_color: string; text_color: string; text_align: "left" | "center" | "right";
+  created_at: string;
+}
+
+const FONT_MAP: Record<string, string> = {
+  sans: "system-ui, -apple-system, sans-serif",
+  serif: "Georgia, 'Times New Roman', serif",
+  mono: "'Courier New', Courier, monospace",
+  display: "Impact, 'Arial Black', sans-serif",
+  handwriting: "'Segoe Script', 'Apple Chancery', cursive",
+};
 
 const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api/v1';
 
 export function PublicStorefrontPage() {
   const { shortCode } = useParams<{ shortCode: string }>();
   const [store, setStore] = useState<PublicStorefront | null>(null);
+  const [posts, setPosts] = useState<StorePost[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -30,17 +46,25 @@ export function PublicStorefrontPage() {
       setError(null);
 
       try {
-        const res = await fetch(`${API_BASE}/stores/${shortCode}`, {
-          headers: { Accept: 'application/json' },
-        });
+        const [storeRes, postsRes] = await Promise.allSettled([
+          fetch(`${API_BASE}/stores/${shortCode}`, { headers: { Accept: 'application/json' } }),
+          fetch(`${API_BASE}/stores/${shortCode}/posts`, { headers: { Accept: 'application/json' } }),
+        ]);
+        const storeResult = storeRes.status === "fulfilled" ? storeRes.value : null;
+        const postsResult = postsRes.status === "fulfilled" ? postsRes.value : null;
 
-        if (!res.ok) {
-          const json = await res.json().catch(() => ({}));
+        if (!storeResult?.ok) {
+          const json = storeResult ? await storeResult.json().catch(() => ({})) : {};
           throw new Error(json.message ?? 'Storefront not found or offline.');
         }
 
-        const json = await res.json();
-        setStore(json.data?.data ?? json.data);
+        const storeJson = await storeResult.json();
+        setStore(storeJson.data?.data ?? storeJson.data);
+
+        if (postsResult?.ok) {
+          const postsJson = await postsResult.json();
+          setPosts(postsJson.data?.data ?? postsJson.data ?? []);
+        }
       } catch (err: unknown) {
         setError(err instanceof Error ? err.message : 'Unable to display storefront.');
       } finally {
@@ -116,7 +140,7 @@ export function PublicStorefrontPage() {
 
               <div className="flex items-center gap-3 shrink-0">
                 <Button className="text-xs font-bold gap-2 bg-secondary hover:bg-secondary/90 text-secondary-foreground px-5 rounded-xl shadow-md">
-                  <Sparkles className="h-4 w-4" /> Follow Creator
+                  <UserPlus className="h-4 w-4" /> Follow Creator
                 </Button>
               </div>
             </div>
@@ -159,6 +183,36 @@ export function PublicStorefrontPage() {
             )}
           </div>
         </div>
+
+        {/* Store Posts Section */}
+        {posts.length > 0 && (
+          <div className="space-y-4">
+            <h2 className="text-base font-bold text-foreground flex items-center gap-2">
+              <MessageSquareText className="h-5 w-5 text-secondary" />
+              Posts
+            </h2>
+            <div className="space-y-4">
+              {posts.map((post) => {
+                const font = FONT_MAP[post.font_family] ?? "system-ui, -apple-system, sans-serif";
+                const textAlign = ["left", "center", "right"].includes(post.text_align) ? post.text_align : "left";
+                return (
+                  <div key={post.id} className="rounded-2xl border border-border overflow-hidden shadow-sm hover:shadow-md transition-all">
+                    <div className="p-6 sm:p-10" style={{ backgroundColor: post.background_color, fontFamily: font, textAlign }}>
+                      <p className="text-base sm:text-lg font-medium leading-relaxed whitespace-pre-wrap" style={{ color: post.text_color }}>
+                        {post.content}
+                      </p>
+                    </div>
+                    <div className="px-4 py-2 border-t border-border bg-muted/30 flex items-center justify-between">
+                      <span className="text-[10px] text-muted-foreground font-medium">
+                        {new Date(post.created_at).toLocaleDateString()}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Communities Section */}
         {store.communities && store.communities.length > 0 && (

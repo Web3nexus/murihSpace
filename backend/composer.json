@@ -7,12 +7,17 @@
     "license": "MIT",
     "require": {
         "php": "^8.3",
+        "anthropic-ai/sdk": "^0.7",
+        "firebase/php-jwt": "^7.1",
         "laravel/framework": "^13.8",
         "laravel/horizon": "^5.48",
         "laravel/reverb": "^1.0",
         "laravel/sanctum": "^4.0",
+        "laravel/scout": "^11.4",
         "laravel/tinker": "^3.0",
-        "league/csv": "^9.28"
+        "league/csv": "^9.28",
+        "league/flysystem-aws-s3-v3": "^3.35",
+        "stripe/stripe-php": "^21.0"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",

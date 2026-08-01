@@ -4,9 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Laravel\Scout\Searchable;
 
 class PhysicalProduct extends Model
 {
+    use Searchable;
     protected $fillable = [
         'creator_id', 'title', 'description', 'sku', 'price', 'currency',
         'category', 'images', 'stock_quantity', 'low_stock_threshold',
@@ -58,5 +60,14 @@ class PhysicalProduct extends Model
     {
         return $query->where('track_inventory', true)
             ->whereColumn('stock_quantity', '<=', 'low_stock_threshold');
+    }
+
+    public function toSearchableArray(): array
+    {
+        return [
+            'id' => $this->id,
+            'title' => $this->title,
+            'description' => $this->description,
+        ];
     }
 }

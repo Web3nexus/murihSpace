@@ -1,10 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { FileText, Loader2, Save, Eye, Globe, Users, BarChart3, Plus, Trash2 } from 'lucide-react';
+import { ImageUploader } from "@/components/upload/ImageUploader";
+import { getAuthToken } from "@/lib/auth/token";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api/v1';
 
 function getAuthHeaders() {
-  const token = localStorage.getItem('murihspace-token');
+  const token = getAuthToken();
   return {
     'Content-Type': 'application/json',
     Accept: 'application/json',
@@ -247,6 +249,16 @@ export function MediaKitPage() {
 
         {/* Sidebar */}
         <div className="space-y-6">
+          {/* Profile Image */}
+          <div className="bg-white border rounded-xl p-6">
+            <ImageUploader
+              value={kit.profile_image_url}
+              onChange={(v) => setKit({ ...kit, profile_image_url: v })}
+              folder="media-kit"
+              label="Profile Image"
+            />
+          </div>
+
           {/* Publish toggle */}
           <div className="bg-white border rounded-xl p-6">
             <label className="flex items-center gap-2 cursor-pointer">

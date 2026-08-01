@@ -17,6 +17,7 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import type { Donation, DonationPayload } from '@/types/wallet';
+import { getAuthToken } from "@/lib/auth/token";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api/v1';
 
@@ -27,7 +28,7 @@ function formatAmount(amount: number, currency = 'NGN'): string {
 }
 
 function getAuthHeaders() {
-  const token = localStorage.getItem('auth_token') || localStorage.getItem('murihspace-token');
+  const token = getAuthToken();
   return {
     'Content-Type': 'application/json',
     Accept: 'application/json',
@@ -227,7 +228,7 @@ export function DonationsPage() {
 
       {/* Send Donation Dialog */}
       <Dialog open={showSend} onOpenChange={() => { setShowSend(false); setActionMessage(null); }}>
-        <DialogContent className="sm:max-w-[400px] bg-card border-border shadow-2xl rounded-2xl">
+        <DialogContent className="sm:max-w-lg md:max-w-xl bg-card border-border shadow-2xl rounded-2xl p-6 sm:p-8">
           <DialogHeader>
             <DialogTitle className="text-base font-bold text-foreground flex items-center gap-2">
               <Gift className="h-5 w-5 text-rose-500" /> Send a Tip

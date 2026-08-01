@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AdminSetting;
 use App\Models\Community;
 use App\Models\DigitalProduct;
 use App\Models\FulfilmentPayout;
@@ -11,14 +12,50 @@ use App\Models\Subscription;
 use App\Models\SubscriptionPlan;
 use App\Models\User;
 use App\Models\Wallet;
+use App\Services\CurrencyConverter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class AdminAnalyticsController extends Controller
 {
-    public function overview(): JsonResponse
+    public function __construct(
+        private readonly CurrencyConverter $converter,
+    ) {}
+
+    private function resolveCurrency(Request $request): string
     {
+        $requested = strtoupper((string) $request->query('currency', ''));
+        if (in_array($requested, $this->converter->getSupportedCurrencies(), true)) {
+            return $requested;
+        }
+
+        $default = strtoupper((string) AdminSetting::get('default_currency', 'NGN'));
+        return in_array($default, $this->converter->getSupportedCurrencies(), true)
+            ? $default
+            : 'NGN';
+    }
+
+    /**
+     * Convert an NGN minor-unit amount into the target currency (minor units).
+     */
+    private function convertAmount(int|float $ngnMinorUnits, string $to): float
+    {
+        if ($to === 'NGN') {
+            return (float) round((float) $ngnMinorUnits, 2);
+        }
+
+        $rate = $this->converter->getRate('NGN', $to);
+        if ($rate === null) {
+            return (float) round((float) $ngnMinorUnits, 2);
+        }
+
+        return (float) round((float) $ngnMinorUnits * $rate, 2);
+    }
+
+    public function overview(Request $request): JsonResponse
+    {
+        $currency = $this->resolveCurrency($request);
         $totalUsers = User::count();
         $creators = User::whereIn('role', ['creator', 'vendor'])->count();
         $members = User::where('role', 'member')->count();
@@ -50,6 +87,7 @@ class AdminAnalyticsController extends Controller
         $totalWallets = Wallet::where('user_id', '!=', 1)->sum('balance');
 
         return response()->json([
+            'currency' => $currency,
             'users' => [
                 'total' => $totalUsers,
                 'creators' => $creators,
@@ -65,9 +103,9 @@ class AdminAnalyticsController extends Controller
                 'public_communities' => $publicCommunities,
             ],
             'revenue' => [
-                'digital_revenue' => (float) $digitalRevenue,
+                'digital_revenue' => $this->convertAmount($digitalRevenue, $currency),
                 'digital_orders' => $digitalOrders,
-                'mrr' => (float) $mrr,
+                'mrr' => $this->convertAmount($mrr, $currency),
                 'active_subscriptions' => $activeSubscriptions,
                 'total_subscriptions' => $totalSubscriptions,
             ],
@@ -76,14 +114,15 @@ class AdminAnalyticsController extends Controller
                 'active_plans' => $activePlans,
             ],
             'wallet' => [
-                'platform_balance' => $platformBalance,
-                'user_balances' => $totalWallets,
+                'platform_balance' => $this->convertAmount($platformBalance, $currency),
+                'user_balances' => $this->convertAmount($totalWallets, $currency),
             ],
         ]);
     }
 
     public function trends(Request $request): JsonResponse
     {
+        $currency = $this->resolveCurrency($request);
         $days = max(1, min((int) $request->query('days', 30), 365));
 
         $userGrowth = User::selectRaw('DATE(created_at) as date, COUNT(*) as count')
@@ -97,7 +136,12 @@ class AdminAnalyticsController extends Controller
             ->where('created_at', '>=', now()->subDays($days))
             ->groupBy('date')
             ->orderBy('date')
-            ->get();
+            ->get()
+            ->map(fn ($row) => [
+                'date' => $row->date,
+                'revenue' => $this->convertAmount((float) $row->revenue, $currency),
+                'orders' => (int) $row->orders,
+            ]);
 
         $subscriptionTrend = Subscription::selectRaw('DATE(created_at) as date, COUNT(*) as count')
             ->where('created_at', '>=', now()->subDays($days))
@@ -106,20 +150,31 @@ class AdminAnalyticsController extends Controller
             ->get();
 
         return response()->json([
+            'currency' => $currency,
             'user_growth' => $userGrowth,
             'revenue_trend' => $revenueTrend,
             'subscription_trend' => $subscriptionTrend,
         ]);
     }
 
-    public function topContent(): JsonResponse
+    public function topContent(Request $request): JsonResponse
     {
+        $currency = $this->resolveCurrency($request);
+
         $topDigital = DigitalProduct::select('id', 'title', 'price', 'currency', 'status')
             ->selectSub('SELECT COUNT(*) FROM orders WHERE orders.product_id = digital_products.id AND orders.status = \'completed\'', 'sales_count')
             ->where('status', 'published')
             ->orderByDesc('sales_count')
             ->take(10)
-            ->get();
+            ->get()
+            ->map(fn ($p) => [
+                'id' => $p->id,
+                'title' => $p->title,
+                'price' => $this->convertAmount((float) $p->price, $currency),
+                'currency' => $currency,
+                'status' => $p->status,
+                'sales_count' => (int) ($p->sales_count ?? 0),
+            ]);
 
         $topCommunities = Community::select('id', 'name', 'slug', 'members_count', 'category')
             ->orderByDesc('members_count')
@@ -144,6 +199,7 @@ class AdminAnalyticsController extends Controller
             ]);
 
         return response()->json([
+            'currency' => $currency,
             'top_digital_products' => $topDigital,
             'top_communities' => $topCommunities,
             'top_creators' => $topCreators,
@@ -152,6 +208,7 @@ class AdminAnalyticsController extends Controller
 
     public function growth(Request $request): JsonResponse
     {
+        $currency = $this->resolveCurrency($request);
         $days = max(1, min((int) $request->query('days', 30), 365));
 
         $totalUsers = User::count();
@@ -179,10 +236,11 @@ class AdminAnalyticsController extends Controller
         ];
 
         return response()->json([
+            'currency' => $currency,
             'total_users' => $totalUsers,
             'new_users_30d' => $newUsers30d,
             'active_creators' => $activeCreators,
-            'gmv_30d' => (float) $gmv30d,
+            'gmv_30d' => $this->convertAmount($gmv30d, $currency),
             'signups_by_day' => $signupsByDay,
             'role_breakdown' => $roleBreakdown,
             'kyc_stats' => $kycStats,
@@ -191,6 +249,7 @@ class AdminAnalyticsController extends Controller
 
     public function revenue(Request $request): JsonResponse
     {
+        $currency = $this->resolveCurrency($request);
         $days = max(1, min((int) $request->query('days', 30), 365));
 
         $digitalRevenue = Order::where('status', 'completed')->sum('total');
@@ -214,18 +273,24 @@ class AdminAnalyticsController extends Controller
             ->where('created_at', '>=', now()->subDays($days))
             ->groupBy('month')
             ->orderBy('month')
-            ->get();
+            ->get()
+            ->map(fn ($row) => [
+                'month' => $row->month,
+                'revenue' => $this->convertAmount((float) $row->revenue, $currency),
+                'orders' => (int) $row->orders,
+            ]);
 
         return response()->json([
-            'digital_revenue' => (float) $digitalRevenue,
+            'currency' => $currency,
+            'digital_revenue' => $this->convertAmount($digitalRevenue, $currency),
             'digital_orders' => $digitalOrders,
-            'mrr' => (float) $mrr,
+            'mrr' => $this->convertAmount($mrr, $currency),
             'active_subscriptions' => $activeSubscriptions,
-            'platform_fees' => (float) $platformFees,
-            'pending_payouts' => (float) $pendingPayouts,
+            'platform_fees' => $this->convertAmount($platformFees, $currency),
+            'pending_payouts' => $this->convertAmount($pendingPayouts, $currency),
             'revenue_by_source' => [
-                'digital' => (float) $digitalRevenue,
-                'subscriptions' => (float) $mrr,
+                'digital' => $this->convertAmount($digitalRevenue, $currency),
+                'subscriptions' => $this->convertAmount($mrr, $currency),
             ],
             'revenue_trend' => $revenueTrend,
         ]);

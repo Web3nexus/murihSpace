@@ -17,11 +17,17 @@ class Storefront extends Model
         'avatar_url',
         'short_code',
         'links',
+        'name',
+        'currency',
+        'tax_rate',
+        'shipping_policy',
+        'return_policy',
     ];
 
     protected $casts = [
         'is_published' => 'boolean',
         'links' => 'array',
+        'tax_rate' => 'decimal:2',
     ];
 
     public function user(): BelongsTo

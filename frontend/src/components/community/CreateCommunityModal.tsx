@@ -20,8 +20,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ShieldCheck, Lock, Globe, DollarSign, Plus, Trash2, Sparkles } from "lucide-react";
+import { ShieldCheck, Lock, Globe, DollarSign, Plus, Trash2, Users } from "lucide-react";
 import type { Community, CreateCommunityInput } from "@/types/community";
+import { ImageUploader } from "@/components/upload/ImageUploader";
+import { getAuthToken } from "@/lib/auth/token";
 
 interface CreateCommunityModalProps {
   open: boolean;
@@ -101,7 +103,7 @@ export function CreateCommunityModal({
     setIsSubmitting(true);
 
     try {
-      const token = localStorage.getItem("murihspace-token");
+      const token = getAuthToken();
       const res = await fetch(`${API_BASE}/my-communities`, {
         method: "POST",
         headers: {
@@ -145,11 +147,11 @@ export function CreateCommunityModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl p-6 sm:p-8">
+      <DialogContent className="sm:max-w-2xl md:max-w-3xl max-h-[90vh] overflow-y-auto rounded-2xl p-6 sm:p-8">
         <DialogHeader>
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-              <Sparkles className="h-5 w-5" />
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary border border-primary/20 shrink-0">
+              <Users className="h-5 w-5" />
             </div>
             <div>
               <DialogTitle className="text-xl font-bold">Create a New Community</DialogTitle>
@@ -314,27 +316,21 @@ export function CreateCommunityModal({
           {/* Logo & Cover image URLs */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <Label htmlFor="logo" className="text-xs font-semibold">
-                Logo URL (Optional)
-              </Label>
-              <Input
-                id="logo"
-                placeholder="https://example.com/logo.png"
-                value={formData.logo_url}
-                onChange={(e) => setFormData({ ...formData, logo_url: e.target.value })}
-                className="h-10 text-xs"
+              <Label className="text-xs font-semibold">Logo</Label>
+              <ImageUploader
+                value={formData.logo_url || ""}
+                onChange={(url) => setFormData({ ...formData, logo_url: url })}
+                folder="communities/logos"
+                label=""
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="cover" className="text-xs font-semibold">
-                Cover Image URL (Optional)
-              </Label>
-              <Input
-                id="cover"
-                placeholder="https://example.com/cover.jpg"
-                value={formData.cover_url}
-                onChange={(e) => setFormData({ ...formData, cover_url: e.target.value })}
-                className="h-10 text-xs"
+              <Label className="text-xs font-semibold">Cover Image</Label>
+              <ImageUploader
+                value={formData.cover_url || ""}
+                onChange={(url) => setFormData({ ...formData, cover_url: url })}
+                folder="communities/covers"
+                label=""
               />
             </div>
           </div>

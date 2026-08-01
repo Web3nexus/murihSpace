@@ -2,11 +2,12 @@ import { useState, useEffect, useCallback } from "react";
 import { Crown, Loader2, Users, DollarSign, ToggleLeft, ToggleRight, Search, Percent, Save, X, RefreshCw, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { getAuthToken } from "@/lib/auth/token";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:8000/api/v1";
 
 function getAuthHeaders() {
-  const token = localStorage.getItem("murihspace-token");
+  const token = getAuthToken();
   return { "Content-Type": "application/json", Accept: "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) };
 }
 
@@ -112,7 +113,7 @@ function PlansTab() {
   if (isLoading) return <div className="w-full flex items-center justify-center h-64"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 w-full mx-auto max-w-[1400px] p-6 lg:p-10">
       {fetchError && (
         <div className="flex items-center gap-2 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-xs text-destructive">
           <AlertCircle className="h-4 w-4 shrink-0" /> {fetchError}

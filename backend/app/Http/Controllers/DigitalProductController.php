@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\DigitalProduct;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use App\Services\StorageRouter;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -12,6 +13,10 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class DigitalProductController extends Controller
 {
+    public function __construct(
+        private readonly StorageRouter $router,
+    ) {}
+
     /**
      * List all digital products owned by the authenticated creator.
      */
@@ -54,7 +59,7 @@ class DigitalProductController extends Controller
 
         if ($request->hasFile('file')) {
             $uploadedFile = $request->file('file');
-            $filePath = $uploadedFile->store('digital_products/private', 'local');
+            $filePath = $uploadedFile->store('digital_products/private', $this->router->privateDisk());
             $fileOriginalName = $uploadedFile->getClientOriginalName();
             $fileMimeType = $uploadedFile->getClientMimeType();
             $fileSizeBytes = $uploadedFile->getSize();
@@ -122,7 +127,7 @@ class DigitalProductController extends Controller
 
         if ($request->hasFile('file')) {
             $uploadedFile = $request->file('file');
-            $newPath = $uploadedFile->store('digital_products/private', 'local');
+            $newPath = $uploadedFile->store('digital_products/private', $this->router->privateDisk());
             $oldPath = $product->file_path;
 
             $validated['file_path'] = $newPath;
@@ -132,8 +137,8 @@ class DigitalProductController extends Controller
 
             $product->update($validated);
 
-            if ($oldPath && Storage::disk('local')->exists($oldPath)) {
-                Storage::disk('local')->delete($oldPath);
+            if ($oldPath && Storage::disk($this->router->privateDisk())->exists($oldPath)) {
+                Storage::disk($this->router->privateDisk())->delete($oldPath);
             }
         } else {
             $product->update($validated);
@@ -177,8 +182,8 @@ class DigitalProductController extends Controller
 
         $this->authorize('delete', $product);
 
-        if ($product->file_path && Storage::disk('local')->exists($product->file_path)) {
-            Storage::disk('local')->delete($product->file_path);
+        if ($product->file_path && Storage::disk($this->router->privateDisk())->exists($product->file_path)) {
+            Storage::disk($this->router->privateDisk())->delete($product->file_path);
         }
 
         $product->delete();
@@ -230,14 +235,14 @@ class DigitalProductController extends Controller
             return response()->json(['message' => 'Unauthorized file download.'], 403);
         }
 
-        if (! $product->file_path || ! Storage::disk('local')->exists($product->file_path)) {
+        if (! $product->file_path || ! Storage::disk($this->router->privateDisk())->exists($product->file_path)) {
             return response()->json(['message' => 'Product file is missing or not uploaded yet.'], 404);
         }
 
         // Increment download counter
         $product->increment('download_count');
 
-        return Storage::disk('local')->download(
+        return Storage::disk($this->router->privateDisk())->download(
             $product->file_path,
             $product->file_original_name ?? "product-{$product->id}.bin"
         );

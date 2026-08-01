@@ -3,8 +3,9 @@ import { useProfile } from "@/hooks/useProfile";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
-import { Loader2, CheckCircle2, AlertCircle, ShieldAlert, Upload } from "lucide-react";
+import { Loader2, CheckCircle2, AlertCircle, ShieldAlert, Upload, BadgeCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ImageUploader } from "@/components/upload/ImageUploader";
 
 export function ProfilePage() {
   const { profile, loading, updating, error, fieldErrors, updateProfile, submitKyc } = useProfile();
@@ -19,6 +20,7 @@ export function ProfilePage() {
 
   const [kycDocInput, setKycDocInput] = useState("");
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [avatar, setAvatar] = useState("");
 
   useEffect(() => {
     if (profile) {
@@ -30,6 +32,7 @@ export function ProfilePage() {
       setCounty(profile.county || "");
       setState(profile.state || "");
       setMobileNumber(profile.mobile_number || "");
+      setAvatar(profile.avatar || "");
     }
   }, [profile]);
 
@@ -40,6 +43,7 @@ export function ProfilePage() {
       name,
       username,
       bio,
+      avatar: avatar || undefined,
       country,
       county,
       state,
@@ -70,7 +74,7 @@ export function ProfilePage() {
   }
 
   return (
-    <div className="max-w-3xl space-y-8">
+    <div className="w-full max-w-3xl mx-auto space-y-8">
       <div>
         <h2 className="text-xl font-bold tracking-tight">Public Profile</h2>
         <p className="text-sm text-muted-foreground">
@@ -106,6 +110,11 @@ export function ProfilePage() {
               <CheckCircle2 className="h-3.5 w-3.5" /> Verified
             </span>
           )}
+          {profile?.has_active_verification_badge && (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-500/10 text-sky-600 dark:text-sky-400 text-xs font-semibold">
+              <BadgeCheck className="h-3.5 w-3.5" /> Verified Badge
+            </span>
+          )}
           {profile?.kyc_status === "pending" && (
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 text-xs font-semibold">
               <Loader2 className="h-3.5 w-3.5 animate-spin" /> Pending Review
@@ -129,6 +138,14 @@ export function ProfilePage() {
       {/* Main Profile Form */}
       <form onSubmit={handleUpdate} className="space-y-6">
         <FieldGroup>
+          <div className="mb-4 max-w-xs">
+            <ImageUploader
+              value={avatar}
+              onChange={setAvatar}
+              folder="avatars"
+              label="Profile Avatar"
+            />
+          </div>
           <div className="grid grid-cols-2 gap-4">
             <Field>
               <FieldLabel htmlFor="profile-name">Full Name</FieldLabel>

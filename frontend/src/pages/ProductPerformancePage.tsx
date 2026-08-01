@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
 import { BarChart3, Loader2, TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { getAuthToken } from "@/lib/auth/token";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:8000/api/v1";
 
 function getAuthHeaders() {
-  const token = localStorage.getItem("murihspace-token") || localStorage.getItem("auth_token");
+  const token = getAuthToken();
   return { "Content-Type": "application/json", Accept: "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) };
 }
 
@@ -36,7 +37,7 @@ export default function ProductPerformancePage() {
   const totalSales = stats.reduce((sum, s) => sum + s.total_sales, 0);
 
   return (
-    <div className="w-full mx-auto max-w-[1000px] space-y-6 p-6 lg:p-10">
+    <div className="w-full max-w-7xl mx-auto space-y-6 p-6 lg:p-8">
       <div>
         <h1 className="text-2xl font-black tracking-tight flex items-center gap-2.5">
           <BarChart3 className="h-6 w-6 text-[#38A8D8]" /> Product Performance

@@ -14,6 +14,8 @@ class Order extends Model
         'product_id',
         'subtotal',
         'platform_fee',
+        'tax',
+        'tax_rate',
         'total',
         'currency',
         'status',
@@ -26,6 +28,8 @@ class Order extends Model
     protected $casts = [
         'subtotal' => 'decimal:2',
         'platform_fee' => 'decimal:2',
+        'tax' => 'decimal:2',
+        'tax_rate' => 'decimal:2',
         'total' => 'decimal:2',
         'paid_at' => 'datetime',
     ];

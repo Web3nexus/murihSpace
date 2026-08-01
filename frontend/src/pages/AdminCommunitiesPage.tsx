@@ -1,13 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Building2, Search, Loader2, Trash2, Eye, Globe, Lock, AlertCircle } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { getAuthToken } from "@/lib/auth/token";
 
 
 const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api/v1';
 
 function getAuthHeaders() {
-  const token = localStorage.getItem('murihspace-token');
+  const token = getAuthToken();
   return { 'Content-Type': 'application/json', Accept: 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
 }
 
@@ -48,9 +50,9 @@ export function AdminCommunitiesPage() {
     if (!confirm(`Delete "${name}"? This also removes all memberships. Cannot be undone.`)) return;
     try {
       const res = await fetch(`${API_BASE}/securegate/communities/${id}`, { method: 'DELETE', headers: getAuthHeaders() });
-      if (res.ok) { setMessage({ type: 'success', text: `"${name}" deleted.` }); fetchCommunities(); }
-      else { const j = await res.json(); setMessage({ type: 'error', text: j.message ?? 'Failed.' }); }
-    } catch { setMessage({ type: 'error', text: 'Network error.' }); }
+      if (res.ok) { setMessage({ type: 'success', text: `"${name}" deleted.` }); toast.success(`"${name}" deleted.`); fetchCommunities(); }
+      else { const j = await res.json(); const m = j.message ?? 'Failed.'; setMessage({ type: 'error', text: m }); toast.error(m); }
+    } catch { setMessage({ type: 'error', text: 'Network error.' }); toast.error('Network error while deleting community.'); }
   }
 
   if (isLoading) {

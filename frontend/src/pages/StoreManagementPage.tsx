@@ -13,8 +13,10 @@ import {
   Eye,
   Edit3,
 } from 'lucide-react';
+import { ImageUploader } from "@/components/upload/ImageUploader";
 import { Button } from '@/components/ui/button';
 import type { Storefront, StorefrontLink } from '@/types/storefront';
+import { getAuthToken } from "@/lib/auth/token";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api/v1';
 const SITE_BASE = window.location.origin;
@@ -39,7 +41,7 @@ export function StoreManagementPage() {
   const [links, setLinks] = useState<StorefrontLink[]>([]);
 
   const fetchStorefront = useCallback(async () => {
-    const token = localStorage.getItem('murihspace-token') || localStorage.getItem('auth_token');
+    const token = getAuthToken();
     try {
       const res = await fetch(`${API_BASE}/storefront`, {
         headers: {
@@ -77,7 +79,7 @@ export function StoreManagementPage() {
     setError(null);
     setSaveSuccess(false);
 
-    const token = localStorage.getItem('murihspace-token') || localStorage.getItem('auth_token');
+    const token = getAuthToken();
     try {
       const res = await fetch(`${API_BASE}/storefront`, {
         method: 'PUT',
@@ -114,7 +116,7 @@ export function StoreManagementPage() {
     if (!storefront) return;
     setIsTogglingPublish(true);
 
-    const token = localStorage.getItem('murihspace-token') || localStorage.getItem('auth_token');
+    const token = getAuthToken();
     try {
       const res = await fetch(`${API_BASE}/storefront/publish`, {
         method: 'POST',
@@ -303,34 +305,30 @@ export function StoreManagementPage() {
           <div className="border border-border rounded-2xl bg-card p-5 space-y-4 shadow-sm">
             <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
               <Globe className="h-4 w-4 text-secondary" />
-              Branding & Imagery URLs
+              Branding & Imagery
             </h3>
 
             <div className="space-y-1.5">
-              <label htmlFor="sm-cover-url" className="text-xs font-bold text-foreground uppercase tracking-wider">
-                Cover Image URL (1200x400 recommended)
+              <label className="text-xs font-bold text-foreground uppercase tracking-wider">
+                Cover Image (1200x400 recommended)
               </label>
-              <input
-                id="sm-cover-url"
-                type="url"
+              <ImageUploader
                 value={coverUrl}
-                onChange={(e) => setCoverUrl(e.target.value)}
-                placeholder="https://images.unsplash.com/photo-..."
-                className="w-full px-3.5 py-2 text-xs rounded-xl bg-muted border-0 outline-none focus:ring-1 focus:ring-secondary"
+                onChange={setCoverUrl}
+                folder="storefronts/covers"
+                label=""
               />
             </div>
 
             <div className="space-y-1.5">
-              <label htmlFor="sm-avatar-url" className="text-xs font-bold text-foreground uppercase tracking-wider">
-                Avatar Image URL (Optional override)
+              <label className="text-xs font-bold text-foreground uppercase tracking-wider">
+                Avatar Image (Optional override)
               </label>
-              <input
-                id="sm-avatar-url"
-                type="url"
+              <ImageUploader
                 value={avatarUrl}
-                onChange={(e) => setAvatarUrl(e.target.value)}
-                placeholder="https://images.unsplash.com/photo-..."
-                className="w-full px-3.5 py-2 text-xs rounded-xl bg-muted border-0 outline-none focus:ring-1 focus:ring-secondary"
+                onChange={setAvatarUrl}
+                folder="storefronts/avatars"
+                label=""
               />
             </div>
           </div>

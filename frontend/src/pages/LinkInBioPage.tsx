@@ -1,13 +1,17 @@
 import { useState, useEffect, useCallback } from "react";
-import { Link2, Loader2, GripVertical, Edit, Trash2, Globe, ExternalLink, Tag, ShoppingCart, Plus, X, Music, Camera, MessageCircle, Send, Hash, Film, Link as LinkIcon, Check, Crown, Palette, ChevronRight, ChevronLeft } from "lucide-react";
+import { Link2, Loader2, Edit, Trash2, Globe, Tag, ShoppingCart, Plus, X, Music, Camera, MessageCircle, Send, Hash, Film, Link as LinkIcon, Check, Crown, Palette, Sparkles, ChevronRight, ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ImageUploader } from "@/components/upload/ImageUploader";
+import { getAuthToken } from "@/lib/auth/token";
+import { TEMPLATES, templateBySlug } from "@/lib/linkBioTemplates";
+import TemplateRenderer from "@/components/linkbio/TemplateRenderer";
+import TemplateThumb from "@/components/linkbio/TemplateThumb";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:8000/api/v1";
 
 function getAuthHeaders() {
-  const token = localStorage.getItem("murihspace-token") || localStorage.getItem("auth_token");
+  const token = getAuthToken();
   return { "Content-Type": "application/json", Accept: "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) };
 }
 
@@ -40,7 +44,7 @@ const LAYOUT_OPTIONS = [
 ];
 
 const STEPS = [
-  { key: "theme", label: "Theme", icon: Palette },
+  { key: "template", label: "Template", icon: Sparkles },
   { key: "style", label: "Style", icon: Palette },
   { key: "profile", label: "Profile", icon: Globe },
   { key: "links", label: "Links", icon: Link2 },
@@ -94,6 +98,9 @@ export default function LinkInBioPage() {
   const [font, setFont] = useState("sans");
   const [buttonStyle, setButtonStyle] = useState("rounded");
   const [layout, setLayout] = useState("list");
+  const [template, setTemplate] = useState("minimal");
+  const [designBgType, setDesignBgType] = useState("solid");
+  const [designBgValue, setDesignBgValue] = useState<string | null>(null);
 
   // ── Fetch ─────────────────────────────────────────────────────
 
@@ -132,6 +139,9 @@ export default function LinkInBioPage() {
           setFont(unwrapped.font ?? font);
           setButtonStyle(unwrapped.button_style ?? buttonStyle);
           setLayout(unwrapped.layout ?? layout);
+          setTemplate(unwrapped.template ?? "minimal");
+          setDesignBgType(unwrapped.background_type ?? "solid");
+          setDesignBgValue(unwrapped.background_value ?? null);
         }
       }
     } catch { /* ignore */ }
@@ -153,14 +163,46 @@ export default function LinkInBioPage() {
       if (res.ok) {
         const d = j?.success ? j?.data : j;
         const unwrapped = d?.data ?? d;
-        setDesignBg(unwrapped.bg ?? theme.config.bg);
-        setDesignCardBg(unwrapped.card_bg ?? theme.config.card_bg);
-        setDesignText(unwrapped.text_color ?? theme.config.text_color);
-        setDesignAccent(unwrapped.accent ?? theme.config.accent);
-        setFont(unwrapped.font ?? theme.config.font);
-        setButtonStyle(unwrapped.button_style ?? theme.config.button_style);
-        setLayout(unwrapped.layout ?? theme.config.layout);
+        if (unwrapped) {
+          setDesignBg(unwrapped.bg ?? theme.config.bg);
+          setDesignCardBg(unwrapped.card_bg ?? theme.config.card_bg);
+          setDesignText(unwrapped.text_color ?? theme.config.text_color);
+          setDesignAccent(unwrapped.accent ?? theme.config.accent);
+          setFont(unwrapped.font ?? theme.config.font);
+          setButtonStyle(unwrapped.button_style ?? theme.config.button_style);
+          setLayout(unwrapped.layout ?? theme.config.layout);
+          setDesignBgType(unwrapped.background_type ?? theme.config.background_type);
+          setDesignBgValue(unwrapped.background_value ?? theme.config.background_value);
+        }
         setSelectedTheme(theme.id);
+      }
+    } catch { /* ignore */ }
+    setSaving(false);
+  };
+
+  const applyTemplate = async (slug: string) => {
+    const def = templateBySlug(slug);
+    if (!def) return;
+    setSaving(true);
+    try {
+      const res = await fetch(`${API_BASE}/link-in-bio/design/apply-template`, {
+        method: "POST", headers: getAuthHeaders(),
+        body: JSON.stringify({ template: def.slug, ...def.palette }),
+      });
+      const j = await res.json();
+      if (res.ok) {
+        const d = j?.success ? j?.data : j;
+        const unwrapped = d?.data ?? d;
+        setTemplate(def.slug);
+        setDesignBg(def.palette.bg);
+        setDesignCardBg(def.palette.card_bg);
+        setDesignText(def.palette.text_color);
+        setDesignAccent(def.palette.accent);
+        setFont(def.palette.font);
+        setButtonStyle(def.palette.button_style);
+        setDesignBgType(def.palette.background_type);
+        setDesignBgValue(def.palette.background_value);
+        setSelectedTheme(unwrapped.theme_id ?? null);
       }
     } catch { /* ignore */ }
     setSaving(false);
@@ -171,7 +213,7 @@ export default function LinkInBioPage() {
     try {
       await fetch(`${API_BASE}/link-in-bio/design`, {
         method: "PUT", headers: getAuthHeaders(),
-        body: JSON.stringify({ bg: designBg, card_bg: designCardBg, text_color: designText, accent: designAccent, font, button_style: buttonStyle, layout }),
+        body: JSON.stringify({ bg: designBg, card_bg: designCardBg, text_color: designText, accent: designAccent, font, button_style: buttonStyle, layout, template, background_type: designBgType, background_value: designBgValue }),
       });
       setSelectedTheme(null);
     } catch { /* ignore */ }
@@ -284,10 +326,8 @@ export default function LinkInBioPage() {
 
   const msgBg = msg ? (msg.ok ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" : "bg-rose-500/10 border-rose-500/20 text-rose-400") : "";
 
-  const btnRadius = buttonStyle === "pill" ? "rounded-full" : buttonStyle === "sharp" ? "rounded-none" : "rounded-xl";
-
   return (
-    <div className="w-full mx-auto max-w-[1200px] space-y-6 p-6 lg:p-10">
+    <div className="w-full max-w-7xl mx-auto space-y-6 p-6 lg:p-8">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-black tracking-tight flex items-center gap-2.5">
@@ -316,36 +356,69 @@ export default function LinkInBioPage() {
         {/* ──────────── Left Column: Step Content ──────────── */}
         <div className="space-y-4">
 
-          {/* Step 0: Theme */}
+          {/* Step 0: Template */}
           {step === 0 && (
-            <div className="border border-border rounded-2xl bg-card p-6">
-              <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-4">Choose a Theme</h2>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                {availableThemes.map((theme) => {
-                  const c = theme.config;
-                  const isActive = selectedTheme === theme.id;
-                  return (
-                    <button key={theme.id} onClick={() => applyTheme(theme)} disabled={saving}
-                      className={`relative p-3 rounded-xl border-2 transition-all text-left overflow-hidden ${
-                        isActive ? "border-[#38A8D8] shadow-md" : "border-border hover:border-[#38A8D8]/50"
-                      }`} style={{ background: c.bg, color: c.text_color }}>
-                      {theme.is_premium && <span className="absolute top-1 right-1"><Crown className="h-3 w-3 text-amber-400" /></span>}
-                      {isActive && <span className="absolute top-1 left-1 bg-[#38A8D8] text-white rounded-full p-0.5"><Check className="h-3 w-3" /></span>}
-                      <div className="flex gap-1 mb-2">
-                        <div className="w-4 h-4 rounded-full" style={{ background: c.bg, border: "1px solid rgba(0,0,0,0.1)" }} />
-                        <div className="w-4 h-4 rounded-full" style={{ background: c.card_bg, border: "1px solid rgba(0,0,0,0.1)" }} />
-                        <div className="w-4 h-4 rounded-full" style={{ background: c.accent }} />
-                      </div>
-                      <p className="text-xs font-bold truncate">{theme.name}</p>
-                    </button>
-                  );
-                })}
+            <div className="space-y-4">
+              <div className="border border-border rounded-2xl bg-card p-6">
+                <div className="flex items-center gap-2 mb-1">
+                  <Sparkles className="h-4 w-4 text-[#38A8D8]" />
+                  <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Choose a Template</h2>
+                </div>
+                <p className="text-[11px] text-muted-foreground mb-4">Full layouts with built-in colors — switch anytime. You can fine-tune in the Style step.</p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {TEMPLATES.map((t) => {
+                    const isActive = template === t.slug;
+                    return (
+                      <button key={t.slug} onClick={() => applyTemplate(t.slug)} disabled={saving}
+                        className={`relative rounded-xl border-2 transition-all overflow-hidden text-left ${
+                          isActive ? "border-[#38A8D8] shadow-md" : "border-border hover:border-[#38A8D8]/50"
+                        }`}>
+                        {isActive && <span className="absolute top-1.5 left-1.5 z-10 bg-[#38A8D8] text-white rounded-full p-0.5"><Check className="h-3 w-3" /></span>}
+                        <div className="p-2"><TemplateThumb template={t} /></div>
+                        <div className="px-2.5 pb-2.5">
+                          <p className="text-xs font-bold truncate text-foreground">{t.name}</p>
+                          <p className="text-[10px] text-muted-foreground truncate">{t.tagline}</p>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="flex justify-end mt-4">
+                  <Button size="sm" onClick={() => setStep(1)} className="text-xs font-bold">
+                    Customize <ChevronRight className="h-3 w-3 ml-1" />
+                  </Button>
+                </div>
               </div>
-              {availableThemes.length === 0 && <p className="text-xs text-muted-foreground text-center py-8">No themes available.</p>}
-              <div className="flex justify-end mt-4">
-                <Button size="sm" onClick={() => setStep(1)} className="text-xs font-bold">
-                  Customize <ChevronRight className="h-3 w-3 ml-1" />
-                </Button>
+
+              {/* Color presets */}
+              <div className="border border-border rounded-2xl bg-card p-6">
+                <div className="flex items-center gap-2 mb-1">
+                  <Palette className="h-4 w-4 text-[#38A8D8]" />
+                  <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Color Presets</h2>
+                </div>
+                <p className="text-[11px] text-muted-foreground mb-4">Apply a preset palette on top of your chosen template.</p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {availableThemes.map((theme) => {
+                    const c = theme.config;
+                    const isActive = selectedTheme === theme.id;
+                    return (
+                      <button key={theme.id} onClick={() => applyTheme(theme)} disabled={saving}
+                        className={`relative p-3 rounded-xl border-2 transition-all text-left overflow-hidden ${
+                          isActive ? "border-[#38A8D8] shadow-md" : "border-border hover:border-[#38A8D8]/50"
+                        }`} style={{ background: c.bg, color: c.text_color }}>
+                        {theme.is_premium && <span className="absolute top-1 right-1"><Crown className="h-3 w-3 text-amber-400" /></span>}
+                        {isActive && <span className="absolute top-1 left-1 bg-[#38A8D8] text-white rounded-full p-0.5"><Check className="h-3 w-3" /></span>}
+                        <div className="flex gap-1 mb-2">
+                          <div className="w-4 h-4 rounded-full" style={{ background: c.bg, border: "1px solid rgba(0,0,0,0.1)" }} />
+                          <div className="w-4 h-4 rounded-full" style={{ background: c.card_bg, border: "1px solid rgba(0,0,0,0.1)" }} />
+                          <div className="w-4 h-4 rounded-full" style={{ background: c.accent }} />
+                        </div>
+                        <p className="text-xs font-bold truncate">{theme.name}</p>
+                      </button>
+                    );
+                  })}
+                </div>
+                {availableThemes.length === 0 && <p className="text-xs text-muted-foreground text-center py-8">No presets available.</p>}
               </div>
             </div>
           )}
@@ -620,82 +693,29 @@ export default function LinkInBioPage() {
         {/* ──────────── Right Column: Preview ──────────── */}
         <div className="border border-border rounded-2xl bg-card p-6">
           <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-4">Preview</h2>
-          <div className="mx-auto max-w-[320px] rounded-2xl shadow-sm transition-all duration-300 overflow-hidden"
-            style={{ background: designBg, color: designText }}>
-            {/* Banner hero */}
-            <div className="h-36 relative" style={{ background: `${designAccent}15` }}>
-              {bannerUrl ? (
-                <img src={bannerUrl} alt="" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center">
-                  <Globe className="h-10 w-10" style={{ color: `${designAccent}30` }} />
-                </div>
-              )}
-            </div>
-            <div className="px-5 pb-5 -mt-10 relative z-10">
-              <div className="w-20 h-20 rounded-full mx-auto flex items-center justify-center overflow-hidden border-4 shadow-md"
-                style={{ borderColor: designBg, background: avatarUrl ? "transparent" : `${designAccent}20` }}>
-                {avatarUrl ? <img src={avatarUrl} alt="" className="w-full h-full object-cover" /> : <Globe className="h-8 w-8" style={{ color: designAccent }} />}
-              </div>
-              <div className="mt-2 text-center">
-                <h3 className="text-base font-black" style={{ color: designText }}>{profileName || "Your Name"}</h3>
-                {profileBio && <p className="text-xs mt-0.5" style={{ color: `${designText}99` }}>{profileBio}</p>}
-              </div>
-              {socials.length > 0 && (
-                <div className="flex justify-center gap-2 mt-3">
-                  {socials.map((s) => (
-                    <a key={s.id} href={s.url} target="_blank" rel="noopener noreferrer"
-                      className="w-7 h-7 rounded-full flex items-center justify-center transition-transform hover:scale-110"
-                      style={{ background: `${designAccent}20`, color: designAccent }}>
-                      {s.platform === "instagram" && <Camera className="h-3.5 w-3.5" />}
-                      {s.platform === "twitter" && <Hash className="h-3.5 w-3.5" />}
-                      {s.platform === "tiktok" && <Music className="h-3.5 w-3.5" />}
-                      {s.platform === "youtube" && <Film className="h-3.5 w-3.5" />}
-                      {s.platform === "facebook" && <MessageCircle className="h-3.5 w-3.5" />}
-                      {s.platform === "snapchat" && <Send className="h-3.5 w-3.5" />}
-                      {!["instagram","twitter","tiktok","youtube","facebook","snapchat"].includes(s.platform) && <LinkIcon className="h-3.5 w-3.5" />}
-                    </a>
-                  ))}
-                </div>
-              )}
-              <div className="space-y-2 mt-4">
-                {links.map((link) => (
-                  <div key={link.id} className={`flex items-center gap-3 p-3 transition-colors text-left ${btnRadius}`}
-                    style={{ background: designCardBg, color: designText, border: `1px solid ${designText}20` }}>
-                    <GripVertical className="h-4 w-4 shrink-0" style={{ color: `${designText}30` }} />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-bold truncate">{link.title}</p>
-                      <p className="text-[10px] truncate" style={{ color: `${designText}70` }}>{link.url}</p>
-                    </div>
-                    <ExternalLink className="h-3 w-3 shrink-0" style={{ color: `${designText}50` }} />
-                  </div>
-                ))}
-                {links.length === 0 && <p className="text-xs py-4 text-center" style={{ color: `${designText}50` }}>No links yet</p>}
-              </div>
-              {layout === "grid" && links.length > 0 && <p className="text-[10px] text-center mt-2" style={{ color: `${designText}50` }}>Grid layout</p>}
-              {products.length > 0 && (
-                <div className="mt-4">
-                  <h4 className="text-[10px] font-bold uppercase tracking-wider mb-2" style={{ color: `${designText}70` }}>Products</h4>
-                  <div className="space-y-2">
-                    {products.map((p) => (
-                      <div key={p.id} className={`flex items-center gap-3 p-2.5 text-left ${btnRadius}`}
-                        style={{ background: designCardBg, border: `1px solid ${designText}20` }}>
-                        {p.media_url ? <img src={p.media_url} alt="" className="w-10 h-10 rounded-lg object-cover shrink-0" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
-                          : <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0" style={{ background: `${designAccent}20` }}><Tag className="h-4 w-4" style={{ color: designAccent }} /></div>}
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-bold truncate" style={{ color: designText }}>{p.title}</p>
-                          <p className="text-[10px]" style={{ color: `${designText}70` }}>{p.currency} {p.price}</p>
-                        </div>
-                        <div className="text-[10px] font-bold px-2.5 py-1 rounded-lg whitespace-nowrap" style={{ background: designAccent, color: "#fff" }}>Buy</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-              <div className={`w-full py-2 text-xs font-bold mt-4 text-center ${btnRadius}`} style={{ background: designAccent, color: "#fff" }}>
-                @{profileName || "username"}
-              </div>
-            </div>
+          <div className="mx-auto max-w-[320px] rounded-2xl shadow-sm transition-all duration-300 overflow-hidden max-h-[620px] overflow-y-auto">
+            <TemplateRenderer
+              data={{
+                username: "preview",
+                profile_name: profileName || "Your Name",
+                profile_bio: profileBio || null,
+                avatar_url: avatarUrl || null,
+                banner_url: bannerUrl || null,
+                bg: designBg,
+                card_bg: designCardBg,
+                text_color: designText,
+                accent: designAccent,
+                font,
+                button_style: buttonStyle,
+                layout,
+                template,
+                background_type: designBgType,
+                background_value: designBgValue,
+                links: links.map((l) => ({ id: l.id, title: l.title, url: l.url, sort_order: l.sort_order })),
+                social_links: socials.map((s) => ({ id: s.id, platform: s.platform, url: s.url })),
+                products: products.map((p) => ({ id: p.id, title: p.title, description: p.description, price: p.price, currency: p.currency, type: p.type, media_url: p.media_url, checkout_url: p.checkout_url })),
+              }}
+            />
           </div>
           <p className="text-[10px] text-muted-foreground text-center mt-3">
             Changes update in real time

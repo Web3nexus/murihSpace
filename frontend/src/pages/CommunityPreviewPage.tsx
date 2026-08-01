@@ -2,7 +2,7 @@ import * as React from "react";
 import { useParams, Link } from "react-router";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ErrorState, NotFoundState, EmptyState } from "@/components/common/UIStateComponents";
+import { ErrorState, NotFoundState } from "@/components/common/UIStateComponents";
 import { JoinCommunityButton } from "@/components/community/JoinCommunityButton";
 import { JoinRequestsModal } from "@/components/community/JoinRequestsModal";
 import { RoleManagementModal } from "@/components/community/RoleManagementModal";
@@ -14,15 +14,27 @@ import {
   ShieldAlert,
   ArrowLeft,
   Share2,
-  Sparkles,
+  MessageSquare,
+  Info,
   DollarSign,
   Clock,
   Key,
   UserPlus,
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
 } from "lucide-react";
-import type { Community } from "@/types/community";
+import type { Community, CommunityMembership } from "@/types/community";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api/v1';
+
+const MEMBER_ROLE_STYLES: Record<string, string> = {
+  owner: "bg-amber-500/15 text-amber-500 border-amber-500/30",
+  admin: "bg-violet-500/15 text-violet-400 border-violet-500/30",
+  moderator: "bg-sky-500/15 text-sky-400 border-sky-500/30",
+  member: "bg-muted text-muted-foreground border-border",
+};
 
 export function CommunityPreviewPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -36,6 +48,14 @@ export function CommunityPreviewPage() {
   const [isRolesModalOpen, setIsRolesModalOpen] = React.useState(false);
   const [activeTab, setActiveTab] = React.useState<"about" | "members">("about");
 
+  // Members directory
+  const [members, setMembers] = React.useState<CommunityMembership[]>([]);
+  const [membersLoading, setMembersLoading] = React.useState(false);
+  const [membersError, setMembersError] = React.useState<string | null>(null);
+  const [membersPage, setMembersPage] = React.useState(1);
+  const [membersLastPage, setMembersLastPage] = React.useState(1);
+  const [membersTotal, setMembersTotal] = React.useState(0);
+
   const loadCommunity = React.useCallback(async () => {
     setIsLoading(true);
     setError(null);
@@ -45,7 +65,7 @@ export function CommunityPreviewPage() {
         const data = await res.json();
         if (data.data?.community) {
           setCommunity(data.data.community);
-          setMembersCount(data.data.community.members_count || 1);
+          setMembersCount(data.data.community.active_members_count ?? data.data.community.members_count ?? 1);
           return;
         }
       }
@@ -62,13 +82,42 @@ export function CommunityPreviewPage() {
     loadCommunity();
   }, [loadCommunity]);
 
+  const loadMembers = React.useCallback(async () => {
+    if (!community) return;
+    setMembersLoading(true);
+    setMembersError(null);
+    try {
+      const res = await fetch(`${API_BASE}/communities/${community.id}/members?page=${membersPage}`);
+      if (res.ok) {
+        const data = await res.json();
+        const paginator = data?.data ?? data;
+        setMembers(paginator?.data ?? []);
+        setMembersLastPage(paginator?.last_page ?? 1);
+        setMembersTotal(paginator?.total ?? 0);
+        return;
+      }
+      setMembersError("Failed to load members.");
+    } catch (e) {
+      console.error('Failed to load members', e);
+      setMembersError("Unable to load members.");
+    } finally {
+      setMembersLoading(false);
+    }
+  }, [community, membersPage]);
+
+  React.useEffect(() => {
+    if (activeTab === "members" && community) {
+      loadMembers();
+    }
+  }, [activeTab, community, loadMembers]);
+
   const handleStatusChange = (_newStatus: "active" | "pending" | "none", newCount: number) => {
     setMembersCount(newCount);
   };
 
   if (isLoading) {
     return (
-      <div className="max-w-5xl mx-auto space-y-6">
+      <div className="max-w-5xl mx-auto space-y-6 p-4 sm:p-6 lg:p-8">
         <div className="h-64 rounded-2xl bg-muted animate-pulse" />
         <div className="h-32 rounded-2xl bg-muted animate-pulse" />
       </div>
@@ -77,7 +126,7 @@ export function CommunityPreviewPage() {
 
   if (error) {
     return (
-      <div className="max-w-5xl mx-auto">
+      <div className="max-w-5xl mx-auto p-4 sm:p-6">
         <ErrorState
           title="Failed to load community"
           description={error}
@@ -89,7 +138,7 @@ export function CommunityPreviewPage() {
 
   if (!community) {
     return (
-      <div className="max-w-5xl mx-auto">
+      <div className="max-w-5xl mx-auto p-4 sm:p-6">
         <NotFoundState
           title="Community not found"
           description="The community you're looking for doesn't exist or may have been removed."
@@ -99,7 +148,7 @@ export function CommunityPreviewPage() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
+    <div className="max-w-5xl mx-auto space-y-6 p-4 sm:p-6 lg:p-8">
       {/* Back button & Creator Actions */}
       <div className="flex items-center justify-between">
         <Link
@@ -215,7 +264,7 @@ export function CommunityPreviewPage() {
               {/* Go to Feed */}
               <Link to={`/app/communities/${community.slug}/feed`}>
                 <Button size="sm" className="gap-2 h-11 px-4 text-xs font-semibold bg-secondary hover:bg-secondary/90 text-secondary-foreground">
-                  <Sparkles className="h-4 w-4" />
+                  <MessageSquare className="h-4 w-4" />
                   View Feed
                 </Button>
               </Link>
@@ -291,7 +340,7 @@ export function CommunityPreviewPage() {
           <div className="lg:col-span-2 space-y-6">
             <div className="rounded-2xl border border-border bg-card p-6 space-y-3 shadow-xs">
               <h3 className="text-base font-bold text-foreground flex items-center gap-2">
-                <Sparkles className="h-4 w-4 text-secondary" />
+                <Info className="h-4 w-4 text-secondary" />
                 About this Community
               </h3>
               <p className="text-sm text-muted-foreground leading-relaxed">
@@ -328,11 +377,93 @@ export function CommunityPreviewPage() {
         </div>
       ) : (
         /* Members Directory Tab */
-        <EmptyState
-          icon={UserPlus}
-          title="Members list coming soon"
-          description="The member directory will be available once the community members API is connected."
-        />
+        <div className="rounded-2xl border border-border bg-card overflow-hidden">
+          <div className="p-4 sm:p-5 border-b border-border flex items-center justify-between">
+            <div>
+              <h3 className="text-base font-bold text-foreground flex items-center gap-2">
+                <Users className="h-4 w-4 text-secondary" />
+                Active Members
+              </h3>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {membersTotal} member{membersTotal === 1 ? "" : "s"} in this community
+              </p>
+            </div>
+          </div>
+
+          {membersLoading ? (
+            <div className="flex items-center justify-center py-16">
+              <Loader2 className="h-6 w-6 animate-spin text-secondary" />
+            </div>
+          ) : membersError ? (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <p className="text-sm font-semibold text-muted-foreground">{membersError}</p>
+              <Button size="sm" variant="outline" className="mt-4" onClick={loadMembers}>Retry</Button>
+            </div>
+          ) : members.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted">
+                <UserPlus className="h-8 w-8 text-muted-foreground" aria-hidden="true" />
+              </div>
+              <p className="font-semibold text-base mt-4">No members yet</p>
+              <p className="mt-1 text-sm text-muted-foreground max-w-sm">
+                Members who join this community will appear here.
+              </p>
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 p-4 sm:p-5">
+                {members.map((m) => (
+                  <div
+                    key={m.id}
+                    className="flex items-center gap-3 rounded-xl border border-border bg-card p-3 hover:border-secondary/40 transition-colors"
+                  >
+                    <Avatar className="h-10 w-10 shrink-0">
+                      {m.user?.avatar ? (
+                        <AvatarImage src={m.user.avatar} alt={m.user?.name ?? "Member"} />
+                      ) : null}
+                      <AvatarFallback className="bg-secondary/15 text-secondary text-sm font-bold">
+                        {(m.user?.name ?? "?").charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-bold text-foreground truncate">{m.user?.name ?? "Unknown Member"}</p>
+                      <p className="text-xs text-muted-foreground truncate">@{m.user?.username ?? "unknown"}</p>
+                    </div>
+                    <span className={`shrink-0 px-2 py-0.5 rounded-full border text-[10px] font-bold capitalize ${MEMBER_ROLE_STYLES[m.role] ?? MEMBER_ROLE_STYLES.member}`}>
+                      {m.role}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              {membersLastPage > 1 && (
+                <div className="flex items-center justify-between px-4 sm:px-5 py-3 border-t border-border">
+                  <p className="text-xs text-muted-foreground">
+                    Page {membersPage} of {membersLastPage}
+                  </p>
+                  <div className="flex gap-1">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={membersPage <= 1}
+                      onClick={() => setMembersPage((p) => Math.max(1, p - 1))}
+                    >
+                      <ChevronLeft className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={membersPage >= membersLastPage}
+                      onClick={() => setMembersPage((p) => Math.min(membersLastPage, p + 1))}
+                    >
+                      <ChevronRight className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </div>
       )}
 
       {/* Creator Join Requests Modal */}

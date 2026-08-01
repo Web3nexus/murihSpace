@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router';
+import { toast } from 'sonner';
 import {
   Users, Search, Loader2, ShieldOff, ShieldCheck, Ban,
   AlertCircle, CheckCircle2, LogIn, ArrowUpDown, ArrowUp, ArrowDown, Download,
@@ -10,15 +11,15 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from '@/components/ui/dialog';
 import type { AdminUser } from '@/types/admin';
+import { getAuthToken, clearAuthTokens } from "@/lib/auth/token";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api/v1';
 const authHeaders = () => {
-  const t = localStorage.getItem('auth_token') || localStorage.getItem('murihspace-token');
+  const t = getAuthToken();
   return { Accept: 'application/json', 'Content-Type': 'application/json', ...(t ? { Authorization: `Bearer ${t}` } : {}) };
 };
 
 const ROLE_COLORS: Record<string, string> = {
-  admin: 'bg-purple-500/20 text-purple-400',
   creator: 'bg-blue-500/20 text-blue-400',
   vendor: 'bg-amber-500/20 text-amber-400',
   member: 'bg-muted text-muted-foreground',
@@ -60,6 +61,11 @@ export function AdminUsersPage() {
     setFetchError(null);
     try {
       const res = await fetch(`${API_BASE}/securegate/users?${params}`, { headers: authHeaders() });
+      if (res.status === 401) {
+        clearAuthTokens();
+        window.location.href = '/securegate/login';
+        return;
+      }
       if (!res.ok) {
         const errBody = await res.json().catch(() => ({}));
         console.error('Users fetch failed:', res.status, errBody);
@@ -129,10 +135,15 @@ export function AdminUsersPage() {
       const d = j?.success ? j?.data : j;
       if (res.ok) {
         setMsg({ type: 'success', text: j.message || d?.message || 'Action completed.' });
+        toast.success(j.message || d?.message || 'Action completed.');
         setActionUser(null); setActionType(null); setReason('');
         fetchUsers();
-      } else setMsg({ type: 'error', text: j.message || 'Action failed.' });
-    } catch { setMsg({ type: 'error', text: 'Network error.' }); }
+      } else {
+        const m = j.message || 'Action failed.';
+        setMsg({ type: 'error', text: m });
+        toast.error(m);
+      }
+    } catch { setMsg({ type: 'error', text: 'Network error.' }); toast.error('Network error. Please try again.'); }
     setSubmitting(false);
   };
 
@@ -145,12 +156,13 @@ export function AdminUsersPage() {
         setMsg({ type: 'error', text: data?.message || j?.message || 'Impersonation failed.' });
         return;
       }
-      const adminToken = localStorage.getItem('murihspace-token') || localStorage.getItem('auth_token');
-      if (adminToken) localStorage.setItem('admin_token', adminToken);
-      localStorage.setItem('murihspace-token', data.token);
-      localStorage.setItem('is_impersonating', 'true');
-      localStorage.setItem('impersonated_user', JSON.stringify(data.user));
-      window.location.assign('/app');
+      sessionStorage.setItem('impersonation_token', data.token);
+      sessionStorage.setItem('is_impersonating', 'true');
+      sessionStorage.setItem('impersonated_user', JSON.stringify(data.user));
+      window.open('/app', '_blank');
+      sessionStorage.removeItem('impersonation_token');
+      sessionStorage.removeItem('is_impersonating');
+      sessionStorage.removeItem('impersonated_user');
     } catch { setMsg({ type: 'error', text: 'Impersonation failed.' }); }
   };
 
@@ -171,7 +183,7 @@ export function AdminUsersPage() {
         <Button size="sm" variant="outline" className="h-8 text-[10px] font-bold gap-1.5" onClick={handleExport} title="Export CSV">
           <Download className="h-3.5 w-3.5" /> Export
         </Button>
-        {['', 'admin', 'creator', 'vendor', 'member'].map((r) => (
+        {['', 'creator', 'vendor', 'member'].map((r) => (
           <button key={r} onClick={() => setRoleFilter(r)} className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-colors ${roleFilter === r ? 'bg-[#38A8D8] text-foreground' : 'bg-muted text-muted-foreground hover:text-foreground'}`}>{r || 'All Roles'}</button>
         ))}
         <span className="w-px h-5 bg-border mx-1" />
@@ -236,7 +248,7 @@ export function AdminUsersPage() {
       )}
 
       <Dialog open={actionType !== null} onOpenChange={() => { setActionType(null); setMsg(null); }}>
-        <DialogContent className="sm:max-w-[400px] bg-card border-border rounded-2xl">
+        <DialogContent className="sm:max-w-lg md:max-w-xl bg-card border-border shadow-2xl rounded-2xl p-6 sm:p-8">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-base font-bold">
               {actionType === 'suspend' && <><ShieldOff className="h-5 w-5 text-amber-500" /> Suspend User</>}

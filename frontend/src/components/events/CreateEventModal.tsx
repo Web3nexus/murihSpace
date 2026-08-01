@@ -19,6 +19,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { env } from "@/config/env";
+import { ImageUploader } from "@/components/upload/ImageUploader";
+import { Calendar } from "lucide-react";
+import { getAuthToken } from "@/lib/auth/token";
 
 const API = env.VITE_API_BASE_URL;
 
@@ -28,7 +31,7 @@ interface Community {
 }
 
 function getAuthHeaders(): Record<string, string> {
-  const token = localStorage.getItem("murihspace-token");
+  const token = getAuthToken();
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
@@ -53,6 +56,7 @@ export function CreateEventModal({ open, onClose, onCreated }: CreateEventModalP
     location: "",
     meeting_url: "",
     capacity: "",
+    cover_url: "",
   });
 
   useEffect(() => {
@@ -81,6 +85,7 @@ export function CreateEventModal({ open, onClose, onCreated }: CreateEventModalP
       if (form.location) payload.location = form.location;
       if (form.meeting_url) payload.meeting_url = form.meeting_url;
       if (form.capacity) payload.capacity = Number(form.capacity);
+      if (form.cover_url) payload.cover_url = form.cover_url;
 
       const res = await fetch(`${API}/my-events`, {
         method: "POST",
@@ -99,7 +104,7 @@ export function CreateEventModal({ open, onClose, onCreated }: CreateEventModalP
       setForm({
         community_id: "", title: "", description: "", event_type: "online",
         start_date: "", end_date: "", timezone: "UTC",
-        location: "", meeting_url: "", capacity: "",
+        location: "", meeting_url: "", capacity: "", cover_url: "",
       });
     } catch {
       setError("Network error. Please try again.");
@@ -110,12 +115,19 @@ export function CreateEventModal({ open, onClose, onCreated }: CreateEventModalP
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-2xl md:max-w-3xl max-h-[90vh] overflow-y-auto rounded-2xl p-6 sm:p-8">
         <DialogHeader>
-          <DialogTitle>Create Event</DialogTitle>
-          <DialogDescription>
-            Schedule a new event for your community.
-          </DialogDescription>
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary border border-primary/20 shrink-0">
+              <Calendar className="h-5 w-5" />
+            </div>
+            <div>
+              <DialogTitle className="text-xl font-bold">Create Event</DialogTitle>
+              <DialogDescription className="text-sm text-muted-foreground">
+                Schedule a new event for your community.
+              </DialogDescription>
+            </div>
+          </div>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -246,6 +258,13 @@ export function CreateEventModal({ open, onClose, onCreated }: CreateEventModalP
               onChange={(e) => setForm((f) => ({ ...f, capacity: e.target.value }))}
             />
           </div>
+
+          <ImageUploader
+            value={form.cover_url}
+            onChange={(v) => setForm((f) => ({ ...f, cover_url: v }))}
+            folder="events/covers"
+            label="Event Cover Image"
+          />
 
           {error && (
             <div className="rounded-lg bg-destructive/10 text-destructive p-3 text-sm">

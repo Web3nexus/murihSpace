@@ -3,11 +3,12 @@ import { useSearchParams } from 'react-router';
 import { Shield, Loader2, AlertTriangle, AlertCircle } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { getAuthToken } from "@/lib/auth/token";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api/v1';
 
 function getAuthHeaders() {
-  const token = localStorage.getItem('murihspace-token');
+  const token = getAuthToken();
   return { 'Content-Type': 'application/json', Accept: 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
 }
 
@@ -206,7 +207,7 @@ export function AdminEscrowPage() {
       )}
 
       <Dialog open={showDisputeDialog} onOpenChange={setShowDisputeDialog}>
-        <DialogContent className="sm:max-w-[420px] bg-card border-border rounded-2xl">
+        <DialogContent className="sm:max-w-lg md:max-w-xl bg-card border-border shadow-2xl rounded-2xl p-6 sm:p-8">
           <DialogHeader>
             <DialogTitle className="text-base font-bold text-foreground flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-red-500" /> Resolve Dispute

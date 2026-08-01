@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   MessageSquare, Search, Send, Loader2, Bookmark, Users, ArrowLeft,
-  AlertCircle, RotateCcw, Sparkles, BellOff, Archive, MoreVertical,
+  AlertCircle, RotateCcw, BellOff, Archive, MoreVertical,
   Reply, Paperclip, CheckCheck,
 } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
@@ -9,11 +9,12 @@ import type { ConversationItem, ChatMessage, MessageStatus, MessageReaction } fr
 import { ReplyPreviewBar } from '@/components/chat/ReplyPreviewBar';
 import { MessageReactions } from '@/components/chat/MessageReactions';
 import { useRealtimeMessaging } from '@/hooks/useRealtimeMessaging';
+import { getAuthToken } from "@/lib/auth/token";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api/v1';
 
 function getToken(): string | null {
-  return localStorage.getItem('murihspace-token');
+  return getAuthToken();
 }
 
 function getUserData(): Record<string, unknown> {
@@ -165,7 +166,7 @@ export function ChatLayout() {
     if (!activeConv) return;
     setMessages((prev) => prev.map((m) => (m.client_uuid === msg.client_uuid ? { ...m, status: 'pending' } : m)));
     try {
-      const res = await apiFetch<{ data: ChatMessage }>(`/conversations/${activeConv.id}/messages`, {
+      const res = await apiFetch<{ data: ChatMessage } | ChatMessage>(`/conversations/${activeConv.id}/messages`, {
         method: 'POST',
         body: JSON.stringify({
           content: msg.content,
@@ -175,7 +176,7 @@ export function ChatLayout() {
           attachment_type: msg.attachment_type ?? null,
         }),
       });
-      const serverMsg = (res as { data: ChatMessage })?.data ?? res;
+      const serverMsg = 'data' in res ? res.data : res;
       setMessages((prev) => prev.map((m) => m.client_uuid === msg.client_uuid ? { ...serverMsg, status: 'sent', client_uuid: msg.client_uuid } : m));
       setConversations((prev) => prev.map((c) => c.id === activeConv.id ? { ...c, latest_message: serverMsg, updated_at: serverMsg.created_at } : c));
     } catch (e) {
@@ -293,7 +294,7 @@ export function ChatLayout() {
   });
 
   return (
-    <div className="-mx-6 -my-4 flex h-[calc(100svh-68px)] overflow-hidden bg-background">
+    <div className="flex flex-1 min-h-0 w-full overflow-hidden bg-background">
       {/* ── Sidebar ───────────────────────────────────────────────────────── */}
       <aside className={`${activeConv ? 'hidden md:flex' : 'flex'} w-full md:w-[340px] shrink-0 flex-col border-r border-border bg-card`}>
         <div className="flex items-center justify-between px-4 py-3.5 border-b border-border bg-muted/20">
@@ -396,7 +397,7 @@ export function ChatLayout() {
               {isLoadingMsgs ? (
                 <div className="py-20 text-center space-y-2"><Loader2 className="h-6 w-6 animate-spin text-secondary mx-auto" /><p className="text-xs text-muted-foreground">Loading message history…</p></div>
               ) : messages.length === 0 ? (
-                <div className="py-20 text-center space-y-2"><Sparkles className="h-8 w-8 text-secondary/40 mx-auto" /><p className="text-xs font-bold text-foreground">Start the conversation!</p></div>
+                <div className="py-20 text-center space-y-2"><MessageSquare className="h-8 w-8 text-secondary/40 mx-auto" /><p className="text-xs font-bold text-foreground">Start the conversation!</p></div>
               ) : messages.map((msg) => {
                 const isMine = msg.user_id === currentUserId;
                 const isPending = msg.status === 'pending';

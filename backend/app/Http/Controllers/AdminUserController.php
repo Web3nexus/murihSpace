@@ -4,12 +4,15 @@ namespace App\Http\Controllers;
 
 use App\Models\AuditLog;
 use App\Models\User;
+use App\Services\NotificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class AdminUserController extends Controller
 {
-    public function index(Request $request): JsonResponse
+    public function __construct(private readonly NotificationService $notifications)
+    {
+    }    public function index(Request $request): JsonResponse
     {
         $validated = $request->validate([
             'search' => ['nullable', 'string', 'max:100'],
@@ -24,7 +27,7 @@ class AdminUserController extends Controller
         $query = User::select([
             'id', 'name', 'email', 'username', 'role', 'status',
             'kyc_status', 'created_at', 'suspended_at',
-        ]);
+        ])->where('role', '!=', 'admin');
 
         if (! empty($validated['search'])) {
             $s = $validated['search'];
@@ -86,6 +89,17 @@ class AdminUserController extends Controller
             'metadata' => ['reason' => $validated['reason']],
         ]);
 
+        try {
+            $this->notifications->actionEmail(
+                user: $user,
+                title: 'Your account has been suspended',
+                bodyHtml: '<p>Your MurihSpace account has been <strong>suspended</strong> while we review your activity. During this time you will not be able to access your account.</p>',
+                footnote: 'If you believe this is a mistake, please contact support.',
+            );
+        } catch (\Throwable $e) {
+            report($e);
+        }
+
         return response()->json(['message' => 'User suspended.', 'data' => $user]);
     }
 
@@ -104,6 +118,18 @@ class AdminUserController extends Controller
             'resource_type' => 'user',
             'resource_id' => (string) $user->id,
         ]);
+
+        try {
+            $this->notifications->actionEmail(
+                user: $user,
+                title: 'Your account has been reactivated',
+                bodyHtml: '<p>Great news — your MurihSpace account has been <strong>reactivated</strong>. You can sign in and use the platform normally again.</p>',
+                actionLabel: 'Sign in',
+                actionUrl: NotificationService::link('login'),
+            );
+        } catch (\Throwable $e) {
+            report($e);
+        }
 
         return response()->json(['message' => 'User activated.', 'data' => $user]);
     }
@@ -160,7 +186,8 @@ class AdminUserController extends Controller
             'sort_dir' => ['nullable', 'string', 'in:asc,desc'],
         ]);
 
-        $query = User::select(['name', 'email', 'username', 'role', 'status', 'kyc_status', 'created_at']);
+        $query = User::select(['name', 'email', 'username', 'role', 'status', 'kyc_status', 'created_at'])
+            ->where('role', '!=', 'admin');
 
         if (! empty($validated['search'])) {
             $s = $validated['search'];
@@ -208,6 +235,17 @@ class AdminUserController extends Controller
             'resource_id' => (string) $user->id,
             'metadata' => ['reason' => $validated['reason']],
         ]);
+
+        try {
+            $this->notifications->actionEmail(
+                user: $user,
+                title: 'Your account has been banned',
+                bodyHtml: '<p>Your MurihSpace account has been <strong>banned</strong> due to a violation of our terms of service. This decision is final.</p>',
+                footnote: 'If you believe this decision is in error, you may contact our support team.',
+            );
+        } catch (\Throwable $e) {
+            report($e);
+        }
 
         return response()->json(['message' => 'User banned.', 'data' => $user]);
     }

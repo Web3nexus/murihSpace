@@ -68,6 +68,16 @@ class EscrowController extends Controller
             return response()->json(['message' => 'Only the seller or admin can release escrow.'], 403);
         }
 
+        if ($request->user()->role !== 'admin') {
+            $seller = $escrow->seller;
+            if (! $seller || ! $seller->hasVerifiedKyc()) {
+                return response()->json([
+                    'message' => 'The seller must complete KYC identity verification before escrow funds can be released.',
+                    'code' => 'KYC_REQUIRED',
+                ], 403);
+            }
+        }
+
         if (! $escrow->isReleaseable()) {
             return response()->json(['message' => 'Escrow is not in a releasable state.'], 400);
         }

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:8000/api/v1";
 
 function authHeaders() {
-  const t = localStorage.getItem("murihspace-token") || localStorage.getItem("auth_token");
+  const t = getAuthToken();
   return { Accept: "application/json", "Content-Type": "application/json", ...(t ? { Authorization: `Bearer ${t}` } : {}) };
 }
 
@@ -18,6 +18,7 @@ interface Dispute {
 const STATUS_COLORS: Record<string, string> = { open: "bg-amber-500/20 text-amber-400", resolved: "bg-emerald-500/20 text-emerald-400", refunded: "bg-rose-500/20 text-rose-400" };
 
 import { AlertCircle, Check } from "lucide-react";
+import { getAuthToken } from "@/lib/auth/token";
 
 export default function AdminDisputesPage() {
   const [disputes, setDisputes] = useState<Dispute[]>([]);

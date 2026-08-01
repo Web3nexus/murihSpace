@@ -60,7 +60,7 @@ export default function LanguagePage() {
   };
 
   return (
-    <div className="space-y-6 w-full max-w-3xl">
+    <div className="space-y-6 w-full max-w-3xl mx-auto">
       <div>
         <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
           <Globe className="h-5 w-5 text-secondary" />

@@ -35,4 +35,45 @@ return [
         ],
     ],
 
+    'anthropic' => [
+        'key' => env('ANTHROPIC_API_KEY'),
+        'model' => env('ANTHROPIC_MODEL', 'claude-sonnet-4-6'),
+        'max_tokens' => (int) env('ANTHROPIC_MAX_TOKENS', 1024),
+
+        // Platform-wide AI behavior defaults. Per-creator overrides live in the
+        // ai_settings table and are merged on top of these at request time.
+        'behavior' => [
+            'persona' => env('ANTHROPIC_PERSONA', 'Mera'),
+            'tone' => env('ANTHROPIC_TONE', 'Warm, friendly and practical. Encouraging without being generic.'),
+            // Explicit topic scope for the whole platform, e.g. 'creator business,
+            // content strategy, community building'. Empty => derive scope from
+            // each creator's own onboarding profile.
+            'focus_topics' => env('ANTHROPIC_FOCUS_TOPICS'),
+            // Redirect off-topic questions back to the creator's niche/business.
+            'keep_on_topic' => filter_var(env('ANTHROPIC_KEEP_ON_TOPIC', true), FILTER_VALIDATE_BOOLEAN),
+            // redirect | decline | flexible
+            'off_topic_mode' => env('ANTHROPIC_OFF_TOPIC_MODE', 'redirect'),
+        ],
+    ],
+
+    'openai' => [
+        'key' => env('OPENAI_API_KEY'),
+        'model' => env('OPENAI_MODEL', 'gpt-4o-mini'),
+        'endpoint' => env('OPENAI_ENDPOINT', 'https://api.openai.com/v1/chat/completions'),
+    ],
+
+    'gemini' => [
+        'key' => env('GEMINI_API_KEY'),
+        'model' => env('GEMINI_MODEL', 'gemini-2.5-flash'),
+        'endpoint' => env('GEMINI_ENDPOINT', 'https://generativelanguage.googleapis.com/v1beta/models'),
+    ],
+
+    'ai' => [
+        // Which provider the platform uses by default: anthropic | openai | gemini.
+        // The admin can change this at runtime from /securegate/ai-settings.
+        'default_provider' => env('AI_PROVIDER', 'anthropic'),
+        'max_tokens' => (int) env('AI_MAX_TOKENS', 1024),
+        'providers' => ['anthropic', 'openai', 'gemini'],
+    ],
+
 ];

@@ -26,6 +26,7 @@ export interface PostComment {
     name: string;
     username: string;
     avatar_url?: string;
+    has_active_verification_badge?: boolean;
   };
 }
 
@@ -50,6 +51,7 @@ export interface Post {
     name: string;
     username: string;
     avatar_url?: string;
+    has_active_verification_badge?: boolean;
   };
   community?: {
     id: number;

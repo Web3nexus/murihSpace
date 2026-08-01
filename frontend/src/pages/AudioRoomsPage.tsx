@@ -1,12 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Mic, Radio, Calendar, Clock, Users, Loader2, Plus, Play, StopCircle, LogIn, LogOut, Hand, MicOff, Speaker, Star, AlertCircle, X, Check, Trash2 } from 'lucide-react';
+import { Mic, Radio, Calendar, Clock, Users, Loader2, Plus, Play, StopCircle, LogIn, LogOut, Hand, MicOff, Speaker, Crown, Shield, AlertCircle, X, Check, Trash2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import AudioRoomPlayer from "@/components/audio/AudioRoomPlayer";
+import { ImageUploader } from "@/components/upload/ImageUploader";
+import { getAuthToken } from "@/lib/auth/token";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api/v1';
 
 function getAuthHeaders() {
-  const token = localStorage.getItem('murihspace-token');
+  const token = getAuthToken();
   return {
     'Content-Type': 'application/json',
     Accept: 'application/json',
@@ -59,7 +62,7 @@ const STATUS_BADGE: Record<string, { color: string; label: string }> = {
   cancelled: { color: 'bg-destructive/10 text-destructive border-destructive/20', label: 'Cancelled' },
 };
 
-function RoomCard({ room, onAction }: { room: AudioRoom; onAction: (action: string, room: AudioRoom) => void }) {
+function RoomCard({ room, onAction, currentUserId }: { room: AudioRoom; onAction: (action: string, room: AudioRoom) => void; currentUserId: number | null }) {
   const badge = STATUS_BADGE[room.status] ?? STATUS_BADGE.ended;
 
   return (
@@ -109,7 +112,7 @@ function RoomCard({ room, onAction }: { room: AudioRoom; onAction: (action: stri
             <Mic className="h-3.5 w-3.5" /> Join Live
           </Button>
         )}
-        {room.status === 'scheduled' && room.creator_id === 0 && (
+        {room.status === 'scheduled' && room.creator_id === currentUserId && (
           <Button onClick={() => onAction('start', room)} variant="ghost" size="sm" className="p-2">
             <Play className="h-4 w-4" />
           </Button>
@@ -272,7 +275,7 @@ export function AudioRoomsPage() {
 
   const currentUser = (() => {
     try {
-      const token = localStorage.getItem('murihspace-token');
+      const token = getAuthToken();
       if (!token) return null;
       const payload = JSON.parse(atob(token.split('.')[1]));
       return { id: payload.sub ?? payload.id ?? 0, name: payload.name ?? '' };
@@ -280,8 +283,8 @@ export function AudioRoomsPage() {
   })();
 
   const ROLE_ICONS: Record<string, React.ReactNode> = {
-    host: <Star className="h-3 w-3 text-secondary" />,
-    co_host: <Star className="h-3 w-3 text-primary" />,
+    host: <Crown className="h-3 w-3 text-amber-500" />,
+    co_host: <Shield className="h-3 w-3 text-primary" />,
     speaker: <Speaker className="h-3 w-3 text-secondary" />,
     listener: <Users className="h-3 w-3 text-muted-foreground" />,
   };
@@ -354,17 +357,17 @@ export function AudioRoomsPage() {
               ))}
             </div>
           ) : rooms.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-border p-12 text-center space-y-3 bg-card">
-              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
+            <div className="rounded-2xl border border-dashed border-border p-12 flex flex-col items-center justify-center gap-3 bg-card min-h-[200px]">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
                 <Radio className="h-6 w-6" />
               </div>
-              <h3 className="text-base font-semibold text-foreground">
+              <h3 className="text-base font-semibold text-foreground text-center">
                 {tab === 'live' ? 'No live rooms right now' :
                  tab === 'upcoming' ? 'No upcoming rooms' :
                  tab === 'past' ? 'No past rooms' :
                  'You haven\'t created any rooms yet'}
               </h3>
-              <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+              <p className="text-xs text-muted-foreground max-w-sm text-center">
                 {tab === 'my-rooms' ? 'Schedule your first audio room to connect with your community live.' :
                  tab === 'live' ? 'Check back later or browse upcoming scheduled rooms.' :
                  'Scheduled rooms will appear here.'}
@@ -373,7 +376,7 @@ export function AudioRoomsPage() {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {rooms.map((r) => (
-                <RoomCard key={r.id} room={r} onAction={(action, room) => {
+                <RoomCard key={r.id} room={r} currentUserId={currentUser?.id ?? null} onAction={(action, room) => {
                   if (action === 'join' && room.status === 'live') {
                     setSelectedRoom(room);
                     fetchRoomDetail(room.id);
@@ -438,6 +441,13 @@ export function AudioRoomsPage() {
 
               {selectedRoom.description && (
                 <p className="text-sm text-muted-foreground">{selectedRoom.description}</p>
+              )}
+
+              {selectedRoom.status === 'live' && (
+                <AudioRoomPlayer
+                  roomId={selectedRoom.id}
+                  onError={(msg) => setMessage({ type: 'error', text: msg })}
+                />
               )}
 
               <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
@@ -532,6 +542,15 @@ export function AudioRoomsPage() {
               <div className="space-y-1">
                 <label className="text-xs font-bold text-foreground uppercase tracking-wider">Description</label>
                 <textarea value={fDesc} onChange={(e) => setFDesc(e.target.value)} placeholder="What's this room about?" rows={3} className="w-full px-3 py-2 text-xs rounded-xl bg-muted border-0 outline-none focus:ring-1 focus:ring-secondary resize-none" />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-foreground uppercase tracking-wider">Cover Image</label>
+                <ImageUploader
+                  value={fCoverUrl}
+                  onChange={setFCoverUrl}
+                  folder="audio-rooms/covers"
+                  label="Cover Image"
+                />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">

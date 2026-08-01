@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { EmptyState, LoadingState, ErrorState } from "@/components/common/UIStateComponents";
 import type { EventData } from "@/types/events";
 import { env } from "@/config/env";
+import { getAuthToken } from "@/lib/auth/token";
 
 const API = env.VITE_API_BASE_URL;
 
@@ -33,7 +34,7 @@ function formatTime(dateStr: string) {
 }
 
 function getAuthHeaders(): Record<string, string> {
-  const token = localStorage.getItem("murihspace-token");
+  const token = getAuthToken();
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
@@ -50,7 +51,7 @@ export function EventsPage() {
       const res = await fetch(`${API}/events`, { headers: getAuthHeaders() });
       if (!res.ok) throw new Error("Failed to load events");
       const body = await res.json();
-      setEvents(body.data?.data ?? []);
+      setEvents(Array.isArray(body.data) ? body.data : body.data?.data ?? []);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong");
     } finally {

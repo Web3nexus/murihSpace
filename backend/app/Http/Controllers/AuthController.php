@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Services\TwoFactorAuthService;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -16,7 +17,7 @@ class AuthController extends Controller
         $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
+            'password' => ['required', 'string', 'min:8', 'confirmed', 'regex:/[A-Z]/', 'regex:/[a-z]/', 'regex:/[0-9]/', 'regex:/[@$!%*#?&^_-]/'],
             'username' => ['required', 'string', 'min:3', 'max:50', 'unique:users', 'regex:/\A[a-zA-Z0-9_]+\z/'],
             'country' => ['nullable', 'string', 'max:255'],
             'mobile_number' => ['nullable', 'string', 'max:255'],
@@ -45,7 +46,10 @@ class AuthController extends Controller
 
         event(new Registered($user));
 
-        $token = $user->createToken('auth-token')->plainTextToken;
+        $token = $user->createToken('auth-token', ['*'], now()->addMinutes((int) (config('sanctum.expiration') ?? 1440)))
+            ->plainTextToken;
+
+        $this->trackTokenMetadata($user, $request, $token);
 
         return response()->json([
             'message' => 'User registered successfully. Please verify your email.',
@@ -59,6 +63,7 @@ class AuthController extends Controller
                 'kyc_status' => $user->kyc_status,
                 'email_verified' => $user->hasVerifiedEmail(),
                 'link_in_bio_url' => $user->getLinkInBioUrl(),
+                'onboarding_completed' => $user->creatorProfile?->onboarding_completed_at !== null,
                 'username_trial_ends_at' => $user->username_trial_ends_at?->toIso8601String(),
             ],
         ], 201);
@@ -83,9 +88,6 @@ class AuthController extends Controller
         ]);
     }
 
-    /**
-     * Authenticate user and return token.
-     */
     public function login(Request $request): JsonResponse
     {
         $request->validate([
@@ -101,7 +103,20 @@ class AuthController extends Controller
             ]);
         }
 
-        $token = $user->createToken('auth-token')->plainTextToken;
+        $maxTokens = 5;
+        $excess = $user->tokens()
+            ->where('name', 'auth-token')
+            ->orderByRaw('COALESCE(last_used_at, created_at) asc')
+            ->get();
+
+        if ($excess->count() >= $maxTokens) {
+            $excess->take($excess->count() - $maxTokens + 1)->each->delete();
+        }
+
+        $token = $user->createToken('auth-token', ['*'], now()->addMinutes((int) (config('sanctum.expiration') ?? 1440)))
+            ->plainTextToken;
+
+        $this->trackTokenMetadata($user, $request, $token);
 
         return response()->json([
             'message' => 'Login successful.',
@@ -115,6 +130,7 @@ class AuthController extends Controller
                 'kyc_status' => $user->kyc_status,
                 'email_verified' => $user->hasVerifiedEmail(),
                 'link_in_bio_url' => $user->getLinkInBioUrl(),
+                'onboarding_completed' => $user->creatorProfile?->onboarding_completed_at !== null,
                 'username_trial_ends_at' => $user->username_trial_ends_at?->toIso8601String(),
             ],
         ]);
@@ -133,13 +149,12 @@ class AuthController extends Controller
     {
         $data = $request->validate([
             'current_password' => ['required', 'current_password'],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
+            'password' => ['required', 'string', 'min:8', 'confirmed', 'regex:/[A-Z]/', 'regex:/[a-z]/', 'regex:/[0-9]/', 'regex:/[@$!%*#?&^_-]/'],
         ]);
 
         $user = $request->user();
         $user->update(['password' => Hash::make($data['password'])]);
 
-        // Revoke other sessions
         $user->tokens()->where('id', '!=', $user->currentAccessToken()->id)->delete();
 
         return response()->json(['message' => 'Password updated successfully.']);
@@ -147,21 +162,131 @@ class AuthController extends Controller
 
     public function enable2fa(Request $request): JsonResponse
     {
-        return response()->json(['message' => '2FA is not available yet.'], 501);
+        $user = $request->user();
+        $service = app(TwoFactorAuthService::class);
+
+        $secret = $service->generateSecret();
+        $recoveryCodes = $service->generateRecoveryCodes();
+
+        $user->update([
+            'two_factor_secret' => $service->encryptSecret($secret),
+            'two_factor_recovery_codes' => json_encode($recoveryCodes),
+        ]);
+
+        $provisionUrl = $service->getProvisionUrl($secret, $user->email);
+
+        return response()->json([
+            'message' => 'Two-factor authentication enabled.',
+            'data' => [
+                'secret' => $secret,
+                'provision_url' => $provisionUrl,
+                'recovery_codes' => $recoveryCodes,
+            ],
+        ]);
     }
 
     public function disable2fa(Request $request): JsonResponse
     {
-        return response()->json(['message' => '2FA is not available yet.'], 501);
+        $request->validate([
+            'current_password' => ['required', 'current_password'],
+        ]);
+
+        $request->user()->update([
+            'two_factor_secret' => null,
+            'two_factor_recovery_codes' => null,
+            'two_factor_confirmed_at' => null,
+        ]);
+
+        return response()->json([
+            'message' => 'Two-factor authentication disabled.',
+        ]);
+    }
+
+    public function confirm2fa(Request $request): JsonResponse
+    {
+        $request->validate([
+            'code' => ['required', 'string', 'size:6'],
+        ]);
+
+        $user = $request->user();
+
+        if (! $user->two_factor_secret) {
+            throw ValidationException::withMessages([
+                'code' => ['Two-factor authentication is not set up.'],
+            ]);
+        }
+
+        $service = app(TwoFactorAuthService::class);
+        $secret = $service->decryptSecret($user->two_factor_secret);
+
+        if (! $service->verify($secret, $request->code)) {
+            throw ValidationException::withMessages([
+                'code' => ['Invalid verification code.'],
+            ]);
+        }
+
+        $user->update(['two_factor_confirmed_at' => now()]);
+
+        return response()->json([
+            'message' => 'Two-factor authentication confirmed.',
+        ]);
+    }
+
+    public function status2fa(Request $request): JsonResponse
+    {
+        return response()->json([
+            'enabled' => $request->user()->two_factor_confirmed_at !== null,
+        ]);
     }
 
     public function sessions(Request $request): JsonResponse
     {
+        $currentTokenId = $request->user()->currentAccessToken()->id;
+
         $tokens = $request->user()->tokens()
             ->orderBy('last_used_at', 'desc')
             ->get(['id', 'name', 'ip', 'user_agent', 'last_used_at', 'created_at']);
 
-        return response()->json(['data' => $tokens]);
+        $mapped = $tokens->map(function ($token) use ($currentTokenId) {
+            $device = 'Unknown device';
+            $browser = 'Unknown';
+
+            if ($token->user_agent) {
+                $ua = $token->user_agent;
+                if (preg_match('/Firefox\/(\S+)/', $ua)) {
+                    $browser = 'Firefox';
+                } elseif (preg_match('/Chrome\/(\S+)/', $ua)) {
+                    $browser = 'Chrome';
+                } elseif (preg_match('/Safari\/(\S+)/', $ua) && ! preg_match('/Chrome/', $ua)) {
+                    $browser = 'Safari';
+                } elseif (preg_match('/Edge\/(\S+)/', $ua)) {
+                    $browser = 'Edge';
+                }
+
+                if (preg_match('/iPhone|iPad/', $ua)) {
+                    $device = 'iOS Device';
+                } elseif (preg_match('/Android/', $ua)) {
+                    $device = 'Android Device';
+                } elseif (preg_match('/Mac OS/', $ua)) {
+                    $device = 'Mac';
+                } elseif (preg_match('/Windows/', $ua)) {
+                    $device = 'Windows';
+                } elseif (preg_match('/Linux/', $ua)) {
+                    $device = 'Linux';
+                }
+            }
+
+            return [
+                'id' => (string) $token->id,
+                'device' => $device,
+                'browser' => $browser,
+                'ip' => $token->ip ?? 'Unknown',
+                'last_active' => $token->last_used_at?->diffForHumans() ?? 'Never',
+                'is_current' => $token->id === $currentTokenId,
+            ];
+        });
+
+        return response()->json(['data' => $mapped]);
     }
 
     public function destroySession(Request $request, $id): JsonResponse
@@ -175,5 +300,17 @@ class AuthController extends Controller
         $token->delete();
 
         return response()->json(['message' => 'Session revoked.']);
+    }
+
+    private function trackTokenMetadata(User $user, Request $request, string $plainToken): void
+    {
+        $accessToken = $user->tokens()->where('token', hash('sha256', explode('|', $plainToken)[1] ?? $plainToken))->first();
+
+        if ($accessToken) {
+            $accessToken->update([
+                'ip' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+            ]);
+        }
     }
 }

@@ -10,11 +10,7 @@ class PostReaction extends Model
 {
     use HasFactory;
 
-    protected $fillable = [
-        'post_id',
-        'user_id',
-        'reaction_type',
-    ];
+    protected $fillable = ['post_id', 'user_id', 'reaction_type'];
 
     public function post(): BelongsTo
     {

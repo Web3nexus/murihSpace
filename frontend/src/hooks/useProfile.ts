@@ -16,6 +16,7 @@ export interface UserProfileData {
   kyc_status: "pending" | "verified" | "rejected";
   kyc_document?: string | null;
   kyc_rejection_reason?: string | null;
+  has_active_verification_badge?: boolean;
   email_verified: boolean;
   created_at?: string;
 }

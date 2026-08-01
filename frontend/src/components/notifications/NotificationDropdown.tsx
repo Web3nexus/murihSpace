@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import type { AppNotification } from '@/types/notification';
+import { getAuthToken } from "@/lib/auth/token";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api/v1';
 
@@ -20,7 +21,7 @@ export function NotificationDropdown() {
   const [unreadCount, setUnreadCount] = useState(0);
 
   const fetchNotifications = useCallback(async () => {
-    const token = localStorage.getItem('auth_token');
+    const token = getAuthToken();
     if (!token) return;
 
     try {
@@ -49,7 +50,7 @@ export function NotificationDropdown() {
   }, [fetchNotifications]);
 
   const handleMarkAllRead = async () => {
-    const token = localStorage.getItem('auth_token');
+    const token = getAuthToken();
     if (!token) return;
 
     try {
@@ -70,7 +71,7 @@ export function NotificationDropdown() {
   };
 
   const handleMarkRead = async (id: string) => {
-    const token = localStorage.getItem('auth_token');
+    const token = getAuthToken();
     if (!token) return;
 
     try {

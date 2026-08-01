@@ -14,6 +14,11 @@ use Illuminate\Http\Request;
 
 class LinkInBioController extends Controller
 {
+    public const TEMPLATES = [
+        'minimal', 'grid', 'cards', 'terminal', 'magazine',
+        'storefront', 'portal', 'social', 'compact', 'bold',
+    ];
+
     // ── Links CRUD ─────────────────────────────────────────────────
 
     public function index(Request $request): JsonResponse
@@ -238,6 +243,7 @@ class LinkInBioController extends Controller
                 'font' => $design->font,
                 'button_style' => $design->button_style,
                 'layout' => $design->layout,
+                'template' => $design->template ?? 'minimal',
                 'background_type' => $design->background_type,
                 'background_value' => $design->background_value,
                 'profile_name' => $design->profile_name,
@@ -288,11 +294,43 @@ class LinkInBioController extends Controller
             'font' => ['sometimes', 'string', 'in:sans,serif,mono'],
             'button_style' => ['sometimes', 'string', 'in:rounded,pill,sharp'],
             'layout' => ['sometimes', 'string', 'in:list,grid'],
+            'template' => ['sometimes', 'string', 'in:'.implode(',', self::TEMPLATES)],
             'background_type' => ['sometimes', 'string', 'in:solid,gradient,image'],
             'background_value' => ['nullable', 'string', 'max:500'],
         ]);
 
         $design->update($data);
+
+        return response()->json(['data' => $design->fresh()]);
+    }
+
+    public function applyTemplate(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'template' => ['required', 'string', 'in:'.implode(',', self::TEMPLATES)],
+            'bg' => ['sometimes', 'string', 'max:20'],
+            'card_bg' => ['sometimes', 'string', 'max:20'],
+            'text_color' => ['sometimes', 'string', 'max:20'],
+            'accent' => ['sometimes', 'string', 'max:20'],
+            'font' => ['sometimes', 'string', 'in:sans,serif,mono'],
+            'button_style' => ['sometimes', 'string', 'in:rounded,pill,sharp'],
+            'background_type' => ['sometimes', 'string', 'in:solid,gradient,image'],
+            'background_value' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $design = LinkInBioDesign::firstOrCreate(['user_id' => $request->user()->id]);
+
+        $design->update([
+            'template' => $data['template'],
+            'bg' => $data['bg'] ?? $design->bg,
+            'card_bg' => $data['card_bg'] ?? $design->card_bg,
+            'text_color' => $data['text_color'] ?? $design->text_color,
+            'accent' => $data['accent'] ?? $design->accent,
+            'font' => $data['font'] ?? $design->font,
+            'button_style' => $data['button_style'] ?? $design->button_style,
+            'background_type' => $data['background_type'] ?? $design->background_type,
+            'background_value' => $data['background_value'] ?? $design->background_value,
+        ]);
 
         return response()->json(['data' => $design->fresh()]);
     }
@@ -418,6 +456,7 @@ class LinkInBioController extends Controller
                 'font' => $design?->font ?? 'sans',
                 'button_style' => $design?->button_style ?? 'rounded',
                 'layout' => $design?->layout ?? 'list',
+                'template' => $design?->template ?? 'minimal',
                 'background_type' => $design?->background_type ?? 'solid',
                 'background_value' => $design?->background_value,
                 'links' => $links,

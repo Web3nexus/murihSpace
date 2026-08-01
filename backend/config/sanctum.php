@@ -65,7 +65,7 @@ return [
     |
     */
 
-    'token_prefix' => env('SANCTUM_TOKEN_PREFIX', ''),
+    'token_prefix' => env('SANCTUM_TOKEN_PREFIX', 'murih_space_'),
 
     /*
     |--------------------------------------------------------------------------

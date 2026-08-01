@@ -16,6 +16,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import type { CreatorSaleRow, Order } from '@/types/order';
+import { getAuthToken } from "@/lib/auth/token";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api/v1';
 
@@ -45,7 +46,7 @@ export function SalesOrdersPage() {
   const [lastPage, setLastPage] = useState(1);
 
   const fetchSales = useCallback(async () => {
-    const token = localStorage.getItem('murihspace-token') || localStorage.getItem('auth_token');
+    const token = getAuthToken();
     setFetchError(null);
     try {
       const res = await fetch(`${API_BASE}/orders/sales?page=${page}&per_page=20`, {
@@ -72,7 +73,7 @@ export function SalesOrdersPage() {
     fetchSales(); }, [fetchSales]);
 
   const openReceipt = async (orderId: number) => {
-    const token = localStorage.getItem('murihspace-token') || localStorage.getItem('auth_token');
+    const token = getAuthToken();
 
     try {
       const res = await fetch(`${API_BASE}/orders/${orderId}/receipt`, {
@@ -219,7 +220,7 @@ export function SalesOrdersPage() {
       {/* Receipt Modal */}
       {selectedReceipt !== null && (
         <Dialog open={!!selectedReceipt} onOpenChange={() => setSelectedReceipt(null)}>
-          <DialogContent className="sm:max-w-[420px] bg-card border-border shadow-2xl rounded-2xl">
+          <DialogContent className="sm:max-w-lg md:max-w-xl bg-card border-border shadow-2xl rounded-2xl p-6 sm:p-8">
             <DialogHeader>
               <DialogTitle className="text-base font-bold text-foreground flex items-center gap-2">
                 <Receipt className="h-5 w-5 text-secondary" />

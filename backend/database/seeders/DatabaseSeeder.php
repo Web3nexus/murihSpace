@@ -28,7 +28,7 @@ class DatabaseSeeder extends Seeder
                 'username' => 'admin',
                 'password' => bcrypt($seedPassword),
                 'role' => 'admin',
-                'kyc_status' => 'approved',
+                'kyc_status' => 'verified',
             ],
             [
                 'name' => 'Creator User',
@@ -36,7 +36,7 @@ class DatabaseSeeder extends Seeder
                 'username' => 'creator',
                 'password' => bcrypt($seedPassword),
                 'role' => 'creator',
-                'kyc_status' => 'approved',
+                'kyc_status' => 'verified',
             ],
             [
                 'name' => 'Vendor User',
@@ -44,7 +44,7 @@ class DatabaseSeeder extends Seeder
                 'username' => 'vendor',
                 'password' => bcrypt($seedPassword),
                 'role' => 'vendor',
-                'kyc_status' => 'approved',
+                'kyc_status' => 'verified',
             ],
             [
                 'name' => 'Member User',
@@ -52,12 +52,14 @@ class DatabaseSeeder extends Seeder
                 'username' => 'member',
                 'password' => bcrypt($seedPassword),
                 'role' => 'member',
-                'kyc_status' => 'approved',
+                'kyc_status' => 'verified',
             ],
         ];
 
         foreach ($users as $user) {
             User::factory()->create($user);
         }
+
+        $this->call(GiftsAndCoinPacksSeeder::class);
     }
 }

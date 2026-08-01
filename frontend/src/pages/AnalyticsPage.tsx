@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router";
-import { BarChart3, DollarSign, ShoppingBag, Users, Mail, TrendingUp, Lightbulb, Target, Zap, Sparkles, Loader2, AlertCircle } from "lucide-react";
+import { BarChart3, DollarSign, ShoppingBag, Users, Mail, TrendingUp, Lightbulb, Target, Zap, CheckCircle2, Loader2, AlertCircle, Sparkles } from "lucide-react";
 import { apiClient } from "@/lib/api/client";
 import { AnimatedPage } from "@/components/common/AnimatedPage";
 import { Button } from "@/components/ui/button";
@@ -58,6 +58,7 @@ export function AnalyticsPage() {
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [contentIdeas, setContentIdeas] = useState<ContentIdea[]>([]);
+  const [aiInsight, setAiInsight] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -86,6 +87,7 @@ export function AnalyticsPage() {
         const ai = aiRes.data?.data ?? aiRes.data;
         setSuggestions(ai?.suggestions ?? []);
         setContentIdeas(ai?.content_ideas ?? []);
+        setAiInsight(ai?.insight ?? null);
       }
     } catch {
       // AI suggestions are optional — don't block the page
@@ -281,13 +283,22 @@ export function AnalyticsPage() {
       {/* ── AI Insights Tab ── */}
       {tab === "ai" && (
         <div className="space-y-6">
+          {aiInsight && (
+            <div className="rounded-2xl border border-[#38A8D8]/30 bg-gradient-to-br from-[#38A8D8]/10 to-purple-500/10 p-5 shadow-2xs">
+              <div className="flex items-center gap-2 mb-2">
+                <Sparkles className="h-4 w-4 text-[#38A8D8]" />
+                <h3 className="font-bold text-foreground text-sm">Mera's take</h3>
+              </div>
+              <p className="text-xs sm:text-sm text-foreground/90 leading-relaxed">{aiInsight}</p>
+            </div>
+          )}
           <div>
             <h2 className="font-bold text-foreground text-sm mb-3 flex items-center gap-2">
               <Lightbulb className="h-4 w-4 text-amber-500" /> Smart Suggestions
             </h2>
             {suggestions.length === 0 ? (
               <div className="rounded-2xl border border-border bg-card p-8 text-center shadow-2xs">
-                <Sparkles className="h-10 w-10 mx-auto mb-3 text-emerald-400" />
+                <CheckCircle2 className="h-10 w-10 mx-auto mb-3 text-emerald-400" />
                 <p className="font-bold text-foreground text-sm">You're on a roll!</p>
                 <p className="text-xs text-muted-foreground mt-1">No suggestions right now — keep up the great work.</p>
               </div>
@@ -312,7 +323,7 @@ export function AnalyticsPage() {
 
           <div>
             <h2 className="font-bold text-foreground text-sm mb-3 flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-purple-500" /> AI Content Ideas
+              <Lightbulb className="h-4 w-4 text-purple-500" /> Content Strategy Ideas
             </h2>
             <div className="rounded-2xl border border-border bg-card shadow-2xs overflow-hidden">
               {contentIdeas.length === 0 ? (

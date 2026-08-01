@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\AudioRoom;
 use App\Models\AudioRoomParticipant;
+use App\Services\LiveKitService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -301,6 +302,41 @@ class AudioRoomController extends Controller
             'message' => $participant->is_muted ? 'User muted.' : 'User unmuted.',
             'is_muted' => $participant->is_muted,
         ]);
+    }
+
+    public function livekitToken(Request $request, int $id): JsonResponse
+    {
+        $room = AudioRoom::findOrFail($id);
+
+        $participant = AudioRoomParticipant::where('audio_room_id', $room->id)
+            ->where('user_id', $request->user()->id)
+            ->whereNull('left_at')
+           ->first();
+
+        if (! $participant) {
+            return response()->json(['message' => 'You must join the room first.'], 403);
+        }
+
+        try {
+            $service = app(LiveKitService::class);
+            $token = $service->generateToken(
+                identity: (string) $request->user()->id,
+                roomName: "audio-room-{$room->id}",
+                metadata: json_encode([
+                    'name' => $request->user()->name,
+                    'username' => $request->user()->username,
+                    'role' => $participant->role,
+                ]),
+            );
+
+            return response()->json([
+                'token' => $token,
+                'host' => config('livekit.host'),
+                'room' => "audio-room-{$room->id}",
+            ]);
+        } catch (\RuntimeException $e) {
+            return response()->json(['message' => $e->getMessage()], 503);
+        }
     }
 
     public function raiseHand(Request $request, int $id): JsonResponse

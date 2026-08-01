@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\CaptureRequestAndEnvelopeResponse;
+use App\Http\Middleware\EnsureEmailIsVerified;
 use App\Http\Middleware\IsAdmin;
 use App\Http\Middleware\SecurityHeaders;
 use App\Providers\AuthServiceProvider;
@@ -33,7 +34,9 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->alias([
             'admin' => IsAdmin::class,
+            'admin.permission' => \App\Http\Middleware\EnsureAdminPermission::class,
             'creator' => \App\Http\Middleware\IsCreator::class,
+            'verified' => EnsureEmailIsVerified::class,
             'cache.public' => \App\Http\Middleware\CachePublicResponse::class,
         ]);
 

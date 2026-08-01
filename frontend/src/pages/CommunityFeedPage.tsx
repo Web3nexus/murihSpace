@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button';
 import CreatePostComposer from '@/components/feed/CreatePostComposer';
 import PostCard from '@/components/feed/PostCard';
 import type { Post, PostComment, CreatePostPayload, ReactionType } from '@/types/post';
+import { getAuthToken } from "@/lib/auth/token";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api/v1';
 
@@ -33,7 +34,7 @@ interface Community {
 }
 
 async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
-  const token = localStorage.getItem('murihspace-token') || localStorage.getItem('auth_token');
+  const token = getAuthToken();
   const res = await fetch(`${API_BASE}${path}`, {
     ...options,
     headers: {
@@ -154,7 +155,21 @@ export default function CommunityFeedPage() {
     );
   };
 
-  const isCreator = community?.membership_role === 'owner' || community?.membership_role === 'admin';
+  const isCreator = community?.membership_role === 'owner' || community?.membership_role === 'admin' || community?.membership_role === 'moderator';
+
+  const handlePin = async (postId: number) => {
+    try {
+      await apiFetch(`/posts/${postId}/pin`, { method: 'POST' });
+      setPosts((prev) => prev.map((p) => p.id === postId ? { ...p, is_pinned: true } : p));
+    } catch { /* ignore */ }
+  };
+
+  const handleUnpin = async (postId: number) => {
+    try {
+      await apiFetch(`/posts/${postId}/unpin`, { method: 'POST' });
+      setPosts((prev) => prev.map((p) => p.id === postId ? { ...p, is_pinned: false } : p));
+    } catch { /* ignore */ }
+  };
 
   // ── Loading ──────────────────────────────────────────────────────────────────
   if (isLoading) {
@@ -280,6 +295,9 @@ export default function CommunityFeedPage() {
                   post={post}
                   onReact={handleReact}
                   onComment={handleComment}
+                  onPin={handlePin}
+                  onUnpin={handleUnpin}
+                  isModerator={isCreator}
                 />
               ))}
             </div>

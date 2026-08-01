@@ -30,6 +30,7 @@ class ProfileController extends Controller
             'kyc_status' => $user->kyc_status,
             'kyc_document' => $user->kyc_document,
             'kyc_rejection_reason' => $user->kyc_rejection_reason,
+            'has_active_verification_badge' => $user->hasActiveVerificationBadge(),
             'email_verified' => $user->hasVerifiedEmail(),
             'created_at' => $user->created_at?->toISOString(),
         ]);

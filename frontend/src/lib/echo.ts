@@ -1,10 +1,12 @@
 import Echo from 'laravel-echo';
 import Pusher from 'pusher-js';
 import { env } from '@/config/env';
+import { getAuthToken } from '@/lib/auth/token';
 
 type EchoInstance = Echo<'reverb'>;
 
 let echoInstance: EchoInstance | null = null;
+let echoToken: string | null = null;
 
 declare global {
   interface Window {
@@ -13,6 +15,15 @@ declare global {
 }
 
 export function getEcho(): EchoInstance {
+  const token = getAuthToken();
+
+  // Recreate the connection when the auth token changes
+  // (login, logout, token refresh) so channel auth uses fresh credentials.
+  if (echoInstance && token !== echoToken) {
+    echoInstance.disconnect();
+    echoInstance = null;
+  }
+
   if (echoInstance) return echoInstance;
 
   if (typeof window !== 'undefined') {
@@ -23,7 +34,7 @@ export function getEcho(): EchoInstance {
   const port = env.VITE_REVERB_PORT;  
   const scheme = env.VITE_REVERB_SCHEME;
 
-  const token = localStorage.getItem('murihspace-token');
+  echoToken = token;
 
   echoInstance = new Echo<'reverb'>({
     broadcaster: 'reverb',
@@ -50,5 +61,6 @@ export function disconnectEcho(): void {
   if (echoInstance) {
     echoInstance.disconnect();
     echoInstance = null;
+    echoToken = null;
   }
 }

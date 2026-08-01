@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
 use App\Models\WithdrawalRequest;
+use App\Services\NotificationService;
 use App\Services\Wallet\LedgerService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -11,10 +13,20 @@ class WithdrawalController extends Controller
 {
     public function __construct(
         private LedgerService $ledgerService,
+        private NotificationService $notifications,
     ) {}
 
     public function request(Request $request): JsonResponse
     {
+        $user = $request->user();
+
+        if (! $user->hasVerifiedKyc()) {
+            return response()->json([
+                'message' => 'Complete KYC identity verification before withdrawing. Even funds you deposited must be verified before withdrawal.',
+                'code' => 'KYC_REQUIRED',
+            ], 403);
+        }
+
         $validated = $request->validate([
             'amount' => ['required', 'integer', 'min:100'],
             'currency' => ['nullable', 'string', 'max:3'],
@@ -96,7 +108,27 @@ class WithdrawalController extends Controller
                 'processed_at' => now(),
             ]);
 
+            $user = User::find($withdrawal->user_id);
+            if (! $user) {
+                return response()->json(['message' => 'Withdrawal owner not found.', 'code' => 'USER_NOT_FOUND'], 404);
+            }
+            $this->notifications->actionEmail(
+                user: $user,
+                title: 'Your withdrawal request was declined',
+                bodyHtml: '<p>Your withdrawal request of <strong>'.e($withdrawal->currency).' '.number_format($withdrawal->amount, 2).'</strong> was not approved.</p><p><strong>Reason:</strong> '.e($validated['rejection_reason']).'</p>',
+                actionLabel: 'View wallet',
+                actionUrl: NotificationService::link('wallet'),
+            );
+
             return response()->json(['message' => 'Withdrawal rejected.', 'data' => $withdrawal]);
+        }
+
+        $user = User::find($withdrawal->user_id);
+        if (! $user || ! $user->hasVerifiedKyc()) {
+            return response()->json([
+                'message' => 'This user has not completed KYC identity verification. Withdrawals are blocked until KYC is verified.',
+                'code' => 'KYC_REQUIRED',
+            ], 403);
         }
 
         $wallet = $this->ledgerService->getOrCreateWallet($withdrawal->user_id);
@@ -119,6 +151,14 @@ class WithdrawalController extends Controller
             'processed_at' => now(),
             'ledger_transaction_id' => $ledgerTxn->id,
         ]);
+
+        $this->notifications->actionEmail(
+            user: $user,
+            title: 'Your withdrawal has been processed',
+            bodyHtml: '<p>Your withdrawal of <strong>'.e($withdrawal->currency).' '.number_format($withdrawal->amount, 2).'</strong> has been approved and is being sent to your account. Funds will appear shortly.</p>',
+            actionLabel: 'View wallet',
+            actionUrl: NotificationService::link('wallet'),
+        );
 
         return response()->json(['message' => 'Withdrawal approved and processed.', 'data' => $withdrawal->fresh()]);
     }

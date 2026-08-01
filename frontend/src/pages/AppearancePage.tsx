@@ -57,7 +57,7 @@ export default function AppearancePage() {
   ];
 
   return (
-    <div className="space-y-6 w-full max-w-3xl">
+    <div className="space-y-6 w-full max-w-3xl mx-auto">
       <div>
         <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
           <Paintbrush className="h-5 w-5 text-secondary" />

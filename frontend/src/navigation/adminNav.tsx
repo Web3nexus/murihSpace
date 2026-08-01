@@ -5,19 +5,24 @@ import {
   Users,
   Building2,
   Flag,
-  Star,
+  MessageCircle,
   ScrollText,
   ArrowLeftRight,
   Shield,
+  ShieldCheck,
   BadgeDollarSign,
   RotateCcw,
+  Gift,
   FileText,
   Activity,
   HeartPulse,
+  HardDrive,
+  Sparkles,
   TrendingUp,
   BarChart3,
   LineChart,
   Settings,
+  BookOpen,
 } from "lucide-react";
 import type { NavGroup } from "./navTypes";
 
@@ -61,6 +66,11 @@ export const adminNav: NavGroup[] = [
         url: "/app/securegate/users",
         icon: <Users className="size-4" />,
       },
+      {
+        title: "Admin Management",
+        url: "/app/securegate/admins",
+        icon: <ShieldCheck className="size-4" />,
+      },
     ],
   },
   {
@@ -79,12 +89,17 @@ export const adminNav: NavGroup[] = [
       {
         title: "Reviews",
         url: "/app/securegate/reviews",
-        icon: <Star className="size-4" />,
+        icon: <MessageCircle className="size-4" />,
       },
       {
         title: "Moderation Logs",
         url: "/app/securegate/moderation-logs",
         icon: <ScrollText className="size-4" />,
+      },
+      {
+        title: "Stories",
+        url: "/app/securegate/stories",
+        icon: <BookOpen className="size-4" />,
       },
     ],
   },
@@ -112,8 +127,13 @@ export const adminNav: NavGroup[] = [
         icon: <RotateCcw className="size-4" />,
       },
       {
-        title: "Fulfilment Payouts",
-        url: "/app/securegate/fulfilment-payouts",
+        title: "Gifts",
+        url: "/app/securegate/gifts",
+        icon: <Gift className="size-4" />,
+      },
+      {
+        title: "Coin Packs",
+        url: "/app/securegate/coin-packs",
         icon: <BadgeDollarSign className="size-4" />,
       },
     ],
@@ -180,6 +200,20 @@ export const adminNav: NavGroup[] = [
         title: "Admin Settings",
         url: "/app/securegate/settings",
         icon: <Settings className="size-4" />,
+      },
+      {
+        title: "AI Providers",
+        url: "/app/securegate/ai-settings",
+        icon: <Sparkles className="size-4" />,
+      },
+      {
+        title: "Storage",
+        url: "/app/securegate/storage",
+        icon: <HardDrive className="size-4" />,
+        children: [
+          { title: "Routing Rules", url: "/app/securegate/storage" },
+          { title: "Object Storage Providers", url: "/app/securegate/storage/providers" },
+        ],
       },
     ],
   },

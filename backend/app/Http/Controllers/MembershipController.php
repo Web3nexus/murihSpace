@@ -187,4 +187,72 @@ class MembershipController extends Controller
             'message' => 'Join request rejected.',
         ]);
     }
+
+    /**
+     * List the authenticated user's own community membership requests.
+     */
+    public function myRequests(Request $request): JsonResponse
+    {
+        $requests = CommunityMembership::with('community:id,name,slug,logo_url,members_count,visibility')
+            ->where('user_id', $request->user()->id)
+            ->whereIn('status', ['pending', 'active', 'rejected'])
+            ->latest()
+            ->get();
+
+        return response()->json([
+            'data' => $requests->map(fn ($m) => [
+                'id' => $m->id,
+                'community' => $m->community,
+                'status' => $m->status,
+                'role' => $m->role,
+                'created_at' => $m->created_at,
+            ]),
+        ]);
+    }
+
+    /**
+     * Cancel (delete) a pending join request from the current user.
+     */
+    public function cancelRequest(Request $request, int $membershipId): JsonResponse
+    {
+        $membership = CommunityMembership::where('id', $membershipId)
+            ->where('user_id', $request->user()->id)
+            ->where('status', 'pending')
+            ->first();
+
+        if (! $membership) {
+            return response()->json(['message' => 'Pending request not found.'], 404);
+        }
+
+        $membership->delete();
+
+        return response()->json(['message' => 'Join request cancelled.']);
+    }
+
+    /**
+     * List pending join requests across all communities the user owns
+     * (used by the dashboard sidebar to review requests).
+     */
+    public function incomingRequests(Request $request): JsonResponse
+    {
+        $requests = CommunityMembership::with('community:id,name,slug,logo_url,members_count,visibility')
+            ->with('user:id,name,username,avatar,bio')
+            ->whereHas('community', function ($q) use ($request) {
+                $q->where('user_id', $request->user()->id);
+            })
+            ->where('status', 'pending')
+            ->latest()
+            ->get();
+
+        return response()->json([
+            'data' => $requests->map(fn (CommunityMembership $m) => [
+                'id' => $m->id,
+                'community' => $m->community,
+                'user' => $m->user,
+                'role' => $m->role,
+                'status' => $m->status,
+                'created_at' => $m->created_at,
+            ]),
+        ]);
+    }
 }

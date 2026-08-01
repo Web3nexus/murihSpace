@@ -1,13 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
-import { MapPin, Plus, Edit, Trash2, Loader2, Star, StarOff } from 'lucide-react';
+import { MapPin, Plus, Edit, Trash2, Loader2, CheckCircle, Circle } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { getAuthToken } from "@/lib/auth/token";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api/v1';
 
 function getAuthHeaders() {
-  const token = localStorage.getItem('murihspace-token');
+  const token = getAuthToken();
   return {
     'Content-Type': 'application/json',
     Accept: 'application/json',
@@ -287,7 +288,7 @@ export function AddressesPage() {
                   <Badge variant="outline">{addr.type}</Badge>
                   {addr.is_default && (
                     <Badge variant="secondary" className="flex items-center gap-1">
-                      <Star className="w-3 h-3" /> Default
+                      <CheckCircle className="w-3 h-3 text-emerald-500" /> Default
                     </Badge>
                   )}
                 </div>
@@ -311,7 +312,7 @@ export function AddressesPage() {
 
               {!addr.is_default && (
                 <Button variant="link" size="sm" onClick={() => setDefault(addr.id)} className="mt-3 h-auto p-0 text-sm">
-                  <StarOff className="w-3.5 h-3.5" /> Set as default
+                  <Circle className="w-3.5 h-3.5" /> Set as default
                 </Button>
               )}
             </div>

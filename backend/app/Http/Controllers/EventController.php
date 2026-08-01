@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Services\Events\EventService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 use RuntimeException;
@@ -20,7 +21,32 @@ class EventController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $query = Event::published()->upcoming()->with('community:id,name,slug,logo_url', 'creator:id,name,username,avatar');
+        $cacheKey = 'events:index:' . md5(http_build_query($request->query()));
+
+        try {
+            $data = Cache::get($cacheKey);
+        } catch (\Exception $e) {
+            report($e);
+            $data = null;
+        }
+
+        if ($data === null) {
+            $data = $this->getEventsData($request);
+
+            try {
+                Cache::put($cacheKey, $data, 120);
+            } catch (\Exception $e) {
+                report($e);
+            }
+        }
+
+        return response()->json($data);
+    }
+
+    private function getEventsData(Request $request): array
+    {
+        $query = Event::published()->upcoming()
+            ->with('community:id,name,slug,logo_url', 'creator:id,name,username,avatar');
 
         if ($request->has('community_id')) {
             $query->byCommunity((int) $request->community_id);
@@ -28,14 +54,14 @@ class EventController extends Controller
 
         $events = $query->latest('start_date')->paginate(20);
 
-        return response()->json([
+        return [
             'data' => $events->items(),
             'meta' => [
                 'current_page' => $events->currentPage(),
                 'last_page' => $events->lastPage(),
                 'total' => $events->total(),
             ],
-        ]);
+        ];
     }
 
     public function show(int $id): JsonResponse

@@ -4,9 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Models\Community;
 use App\Models\CommunityMembership;
+use App\Models\CommunityMemberRestriction;
 use App\Models\Post;
 use App\Models\PostComment;
 use App\Models\PostReaction;
+use App\Models\SavedPost;
+use App\Models\PostReport;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -18,10 +22,10 @@ class PostController extends Controller
      */
     public function index(Request $request, int $communityId): JsonResponse
     {
-        $posts = Post::with(['author:id,name,username,avatar', 'community:id,name,slug,logo_url', 'reactions'])
+        $posts = Post::with(['author:id,name,username,avatar,verification_badge_status,verification_badge_expires_at', 'community:id,name,slug,logo_url', 'reactions'])
             ->where('community_id', $communityId)
             ->published()
-            ->latest()
+            ->pinnedFirst()
             ->paginate(15);
 
         return response()->json($posts);
@@ -32,9 +36,9 @@ class PostController extends Controller
      */
     public function globalFeed(Request $request): JsonResponse
     {
-        $posts = Post::with(['author:id,name,username,avatar', 'community:id,name,slug,logo_url', 'reactions'])
+        $posts = Post::with(['author:id,name,username,avatar,verification_badge_status,verification_badge_expires_at', 'community:id,name,slug,logo_url', 'reactions'])
             ->published()
-            ->latest()
+            ->pinnedFirst()
             ->paginate(20);
 
         return response()->json($posts);
@@ -51,12 +55,27 @@ class PostController extends Controller
 
         $validated = $request->validate([
             'community_id' => ['required', 'exists:communities,id'],
-            'type' => ['required', Rule::in(['post', 'status', 'announcement'])],
-            'content' => ['required', 'string', 'max:5000'],
+            'type' => ['required', Rule::in(['post', 'status', 'announcement', 'poll', 'media', 'event', 'product', 'service'])],
+            'content' => ['required', 'string', 'max:50000'],
             'media_urls' => ['nullable', 'array'],
             'media_urls.*' => ['string', 'url'],
             'link_url' => ['nullable', 'string', 'url'],
             'is_draft' => ['nullable', 'boolean'],
+            'hashtags' => ['nullable', 'array'],
+            'hashtags.*' => ['string', 'max:100'],
+            'mentions' => ['nullable', 'array'],
+            'mentions.*' => ['integer', 'exists:users,id'],
+            'location' => ['nullable', 'string', 'max:255'],
+            'privacy' => ['nullable', Rule::in(['public', 'followers', 'connections', 'selected', 'community', 'private'])],
+            'comments_disabled' => ['nullable', 'boolean'],
+            'accessibility_text' => ['nullable', 'string', 'max:1000'],
+            'poll_question' => ['nullable', 'string', 'max:500'],
+            'poll_options' => ['nullable', 'array', 'min:2', 'max:10'],
+            'poll_options.*' => ['string', 'max:255'],
+            'poll_ends_at' => ['nullable', 'date', 'after:now'],
+            'cta_text' => ['nullable', 'string', 'max:100'],
+            'cta_url' => ['nullable', 'string', 'url', 'max:500'],
+            'scheduled_at' => ['nullable', 'date', 'after:now'],
         ]);
 
         $community = Community::findOrFail($validated['community_id']);
@@ -112,12 +131,22 @@ class PostController extends Controller
             'content' => $validated['content'],
             'media_urls' => $validated['media_urls'] ?? [],
             'link_url' => $validated['link_url'] ?? null,
+            'hashtags' => $validated['hashtags'] ?? null,
+            'mentions' => $validated['mentions'] ?? null,
+            'location' => $validated['location'] ?? null,
             'is_draft' => $validated['is_draft'] ?? false,
-            'likes_count' => 0,
-            'comments_count' => 0,
+            'privacy' => $validated['privacy'] ?? 'public',
+            'comments_disabled' => $validated['comments_disabled'] ?? false,
+            'accessibility_text' => $validated['accessibility_text'] ?? null,
+            'poll_question' => $validated['poll_question'] ?? null,
+            'poll_options' => $validated['poll_options'] ?? null,
+            'poll_ends_at' => $validated['poll_ends_at'] ?? null,
+            'cta_text' => $validated['cta_text'] ?? null,
+            'cta_url' => $validated['cta_url'] ?? null,
+            'scheduled_at' => $validated['scheduled_at'] ?? null,
         ]);
 
-        $post->load(['author:id,name,username,avatar', 'community:id,name,slug,logo_url']);
+        $post->load(['author:id,name,username,avatar,verification_badge_status,verification_badge_expires_at', 'community:id,name,slug,logo_url']);
 
         return response()->json([
             'message' => 'Post published successfully.',
@@ -131,7 +160,7 @@ class PostController extends Controller
         $this->authorize('update', $post);
 
         $validated = $request->validate([
-            'content' => ['sometimes', 'string', 'max:5000'],
+            'content' => ['sometimes', 'string', 'max:50000'],
             'media_urls' => ['nullable', 'array'],
             'media_urls.*' => ['string', 'url'],
             'link_url' => ['nullable', 'string', 'url'],
@@ -144,7 +173,7 @@ class PostController extends Controller
 
         $post->update($validated);
 
-        $post->load(['author:id,name,username,avatar', 'community:id,name,slug,logo_url', 'reactions']);
+        $post->load(['author:id,name,username,avatar,verification_badge_status,verification_badge_expires_at', 'community:id,name,slug,logo_url', 'reactions']);
 
         return response()->json([
             'message' => 'Post updated.',
@@ -186,12 +215,61 @@ class PostController extends Controller
         ]);
 
         $post->increment('comments_count');
-        $comment->load('author:id,name,username,avatar');
+        $comment->load('author:id,name,username,avatar,verification_badge_status,verification_badge_expires_at');
 
         return response()->json([
             'message' => 'Comment added.',
             'comment' => $comment,
         ], 201);
+    }
+
+    public function pin(Request $request, int $id): JsonResponse
+    {
+        $post = Post::findOrFail($id);
+        $this->authorizePin($request->user(), $post);
+
+        $post->update([
+            'is_pinned' => true,
+            'pinned_at' => now(),
+        ]);
+
+        return response()->json([
+            'message' => 'Post pinned.',
+            'post' => $post->fresh()->load(['author:id,name,username,avatar,verification_badge_status,verification_badge_expires_at', 'community:id,name,slug,logo_url']),
+        ]);
+    }
+
+    public function unpin(Request $request, int $id): JsonResponse
+    {
+        $post = Post::findOrFail($id);
+        $this->authorizePin($request->user(), $post);
+
+        $post->update([
+            'is_pinned' => false,
+            'pinned_at' => null,
+        ]);
+
+        return response()->json([
+            'message' => 'Post unpinned.',
+            'post' => $post->fresh()->load(['author:id,name,username,avatar,verification_badge_status,verification_badge_expires_at', 'community:id,name,slug,logo_url']),
+        ]);
+    }
+
+    private function authorizePin(User $user, Post $post): void
+    {
+        if ($user->id === $post->user_id) {
+            return;
+        }
+
+        $isCommunityModerator = $post->community_id !== null
+            && CommunityMembership::where('community_id', $post->community_id)
+                ->where('user_id', $user->id)
+                ->whereIn('role', ['owner', 'admin', 'moderator'])
+                ->exists();
+
+        if (! $isCommunityModerator) {
+            abort(403, 'You do not have permission to pin posts in this community.');
+        }
     }
 
     /**
@@ -229,5 +307,87 @@ class PostController extends Controller
             'reacted' => $reacted,
             'likes_count' => max(0, $post->fresh()->likes_count),
         ]);
+    }
+
+    /**
+     * Get comments for a post.
+     */
+    public function getComments(Request $request, int $postId): JsonResponse
+    {
+        $post = Post::findOrFail($postId);
+        $comments = PostComment::with('author:id,name,username,avatar,verification_badge_status,verification_badge_expires_at')
+            ->where('post_id', $post->id)
+            ->latest()
+            ->paginate(20);
+
+        return response()->json($comments);
+    }
+
+    /**
+     * Share a post.
+     */
+    public function share(Request $request, int $postId): JsonResponse
+    {
+        $post = Post::findOrFail($postId);
+        $post->increment('shares_count');
+
+        return response()->json([
+            'message' => 'Post shared successfully.',
+            'shares_count' => $post->fresh()->shares_count,
+        ]);
+    }
+
+    /**
+     * Toggle save a post.
+     */
+    public function toggleSave(Request $request, int $postId): JsonResponse
+    {
+        $user = $request->user();
+        $post = Post::findOrFail($postId);
+
+        $existing = SavedPost::where('user_id', $user->id)
+            ->where('post_id', $post->id)
+            ->first();
+
+        if ($existing) {
+            $existing->delete();
+            $post->decrement('saves_count');
+            return response()->json(['saved' => false, 'saves_count' => max(0, $post->fresh()->saves_count)]);
+        }
+
+        SavedPost::create(['user_id' => $user->id, 'post_id' => $post->id]);
+        $post->increment('saves_count');
+        return response()->json(['saved' => true, 'saves_count' => $post->fresh()->saves_count]);
+    }
+
+    /**
+     * Report a post.
+     */
+    public function report(Request $request, int $postId): JsonResponse
+    {
+        $validated = $request->validate([
+            'reason' => ['required', Rule::in(PostReport::REASONS)],
+            'description' => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        $post = Post::findOrFail($postId);
+        $user = $request->user();
+
+        $exists = PostReport::where('post_id', $post->id)
+            ->where('user_id', $user->id)
+            ->exists();
+
+        if ($exists) {
+            return response()->json(['message' => 'You have already reported this post.'], 409);
+        }
+
+        PostReport::create([
+            'post_id' => $post->id,
+            'user_id' => $user->id,
+            'reason' => $validated['reason'],
+            'description' => $validated['description'] ?? null,
+        ]);
+
+        return response()->json(['message' => 'Post reported. Thank you for helping keep the community safe.'], 201);
     }
 }

@@ -34,6 +34,7 @@ class CommunityController extends Controller
     public function show(string $slug): JsonResponse
     {
         $community = Community::with('creator:id,name,username,avatar')
+            ->withCount(['memberships as active_members_count' => fn ($q) => $q->where('status', 'active')])
             ->where('slug', $slug)
             ->first();
 
@@ -101,11 +102,20 @@ class CommunityController extends Controller
 
     public function myCommunities(Request $request): JsonResponse
     {
-        $communities = Community::where('user_id', $request->user()->id)
+        $created = Community::where('user_id', $request->user()->id)
             ->latest()
             ->get();
 
-        return response()->json(['communities' => $communities]);
+        $joined = Community::whereIn('id', function ($q) use ($request) {
+            $q->select('community_id')
+                ->from('community_memberships')
+                ->where('user_id', $request->user()->id)
+                ->where('status', 'active');
+        })->latest()->get();
+
+        return response()->json([
+            'communities' => $created->merge($joined)->unique('id')->values()->sortByDesc('created_at')->values(),
+        ]);
     }
 
     public function update(Request $request, Community $community): JsonResponse

@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link2, Plus, Loader2, Users, MousePointerClick, ShoppingBag, Copy, Check, ExternalLink, Power, PowerOff, Gift, RefreshCw } from 'lucide-react';
+import { getAuthToken } from "@/lib/auth/token";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api/v1';
 
 function getAuthHeaders() {
-  const token = localStorage.getItem('murihspace-token');
+  const token = getAuthToken();
   return {
     'Content-Type': 'application/json',
     Accept: 'application/json',
@@ -141,7 +142,7 @@ export function ReferralsPage() {
   const msgBg = message?.type === 'success' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-rose-500/10 border-rose-500/20 text-rose-400';
 
   return (
-    <div className="w-full mx-auto max-w-[1000px] space-y-6 p-6 lg:p-10">
+    <div className="w-full max-w-7xl mx-auto space-y-6 p-6 lg:p-8">
       <div>
         <h1 className="text-2xl font-black tracking-tight flex items-center gap-2.5">
           <Link2 className="h-6 w-6 text-[#38A8D8]" /> Referral & Affiliates

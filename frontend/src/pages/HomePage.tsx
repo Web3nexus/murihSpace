@@ -5,7 +5,8 @@ import {
   Users,
   ShoppingBag,
   Wallet,
-  Sparkles,
+  Zap,
+  Trophy,
   ArrowRight,
   ShieldCheck,
 } from "lucide-react";
@@ -39,7 +40,7 @@ export function HomePage() {
       {/* Hero Section */}
       <section className="px-6 py-20 md:py-28 max-w-5xl mx-auto text-center space-y-8">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-secondary/30 bg-secondary/10 text-secondary text-xs font-semibold">
-          <Sparkles className="h-3.5 w-3.5" />
+          <Zap className="h-3.5 w-3.5" />
           <span>One Connected Creator Ecosystem</span>
         </div>
 
@@ -114,7 +115,7 @@ export function HomePage() {
             {/* Pillar 4 */}
             <div className="rounded-xl border border-border bg-card p-6 shadow-sm space-y-4">
               <div className="p-3 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 w-fit">
-                <Sparkles className="h-6 w-6" />
+                <Trophy className="h-6 w-6" />
               </div>
               <h3 className="font-bold text-lg text-foreground">MurihSpace Milestones</h3>
               <p className="text-xs text-muted-foreground leading-relaxed">

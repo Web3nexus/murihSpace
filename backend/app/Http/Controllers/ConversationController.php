@@ -3,12 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Events\MessageSent;
+use App\Events\MessageDeleted;
 use App\Events\TypingIndicator;
 use App\Models\Community;
 use App\Models\CommunityMembership;
 use App\Models\Conversation;
 use App\Models\ConversationParticipant;
 use App\Models\Message;
+use App\Models\MessageUserState;
 use App\Models\User;
 use App\Models\UserBlock;
 use App\Notifications\NewMessageNotification;
@@ -192,6 +194,8 @@ class ConversationController extends Controller
         $this->authorizeParticipant($request, $conversation);
 
         $messages = Message::where('conversation_id', $id)
+            ->visible()
+            ->notHiddenForUser($request->user()->id)
             ->with([
                 'user:id,name,username,avatar_url',
                 'replyTo:id,user_id,content,attachment_type',
@@ -218,6 +222,8 @@ class ConversationController extends Controller
             'reply_to_id' => ['nullable', 'integer', 'exists:messages,id'],
             'attachment_url' => ['nullable', 'string', 'max:2000'],
             'attachment_type' => ['nullable', 'string', 'in:image,file,voice'],
+            'media_id' => ['nullable', 'integer', 'exists:media,id'],
+            'media_status' => ['nullable', 'string', 'in:uploading,processing,ready,failed,rejected'],
         ]);
 
         $clientUuid = $validated['client_uuid'] ?? null;
@@ -236,16 +242,30 @@ class ConversationController extends Controller
             $attachmentType = $validated['attachment_type'] ?? null;
             $messageType = $attachmentType ?? 'text';
 
+            $mediaStatus = null;
+            $media = null;
+            if ($validated['media_id'] ?? null) {
+                $media = \App\Models\Media::find($validated['media_id']);
+                $mediaStatus = $media
+                    ? \App\Models\Message::MEDIA_STATUS_READY
+                    : \App\Models\Message::MEDIA_STATUS_FAILED;
+            }
+
             $msg = Message::create([
                 'conversation_id' => $conversation->id,
                 'user_id' => $request->user()->id,
                 'content' => trim($validated['content'] ?? ''),
                 'type' => $messageType,
+                'status' => Message::STATUS_SENT,
                 'client_uuid' => $clientUuid,
                 'reply_to_id' => $validated['reply_to_id'] ?? null,
                 'attachment_url' => $validated['attachment_url'] ?? null,
                 'attachment_type' => $attachmentType,
+                'media_id' => $validated['media_id'] ?? null,
+                'media_status' => $mediaStatus,
             ]);
+
+            $media?->incrementReferenceCount();
 
             // Update conversation updated_at for ordering
             $conversation->touch();
@@ -285,6 +305,134 @@ class ConversationController extends Controller
         return response()->json([
             'data' => $loadedMessage,
         ], 201);
+    }
+
+    /**
+     * Delete a message (for me or for everyone).
+     */
+    public function deleteMessage(Request $request, int $conversationId, int $messageId): JsonResponse
+    {
+        $conversation = Conversation::findOrFail($conversationId);
+        $this->authorizeParticipant($request, $conversation);
+
+        $message = Message::where('conversation_id', $conversationId)
+            ->findOrFail($messageId);
+
+        $mode = $request->input('mode', 'me');
+
+        if ($mode === 'everyone') {
+            if ($message->user_id !== $request->user()->id) {
+                $isMod = CommunityMembership::where('community_id', $conversation->community_id)
+                    ->where('user_id', $request->user()->id)
+                    ->whereIn('role', ['admin', 'moderator'])
+                    ->exists();
+                if (! $isMod) {
+                    return response()->json(['message' => 'Only the sender or a moderator can delete for everyone.'], 403);
+                }
+            }
+
+            DB::transaction(function () use ($message, $conversation) {
+                $message->update(['status' => Message::STATUS_DELETED, 'content' => null, 'attachment_url' => null]);
+                $message->delete();
+
+                if ($message->media_id) {
+                    $media = $message->media;
+                    if ($media) {
+                        $media->decrementReferenceCount();
+                    }
+                }
+            });
+
+            event(new MessageDeleted($message, $conversation->id));
+
+            return response()->json(['message' => 'Message deleted for everyone.']);
+        }
+
+        // Delete for me: hide via user state
+        MessageUserState::updateOrCreate(
+            ['message_id' => $message->id, 'user_id' => $request->user()->id],
+            ['is_hidden' => true],
+        );
+
+        return response()->json(['message' => 'Message hidden.']);
+    }
+
+    /**
+     * Forward a message (with media reuse) to another conversation.
+     */
+    public function forwardMessage(Request $request, int $messageId): JsonResponse
+    {
+        $original = Message::with('media')->findOrFail($messageId);
+
+        $validated = $request->validate([
+            'to_conversation_id' => ['required', 'integer', 'exists:conversations,id'],
+            'client_uuid' => ['nullable', 'string', 'max:64'],
+        ]);
+
+        $targetConv = Conversation::findOrFail($validated['to_conversation_id']);
+        $this->authorizeParticipant($request, $targetConv);
+
+        $this->authorizeParticipant($request, $original->conversation);
+
+        $clientUuid = $validated['client_uuid'] ?? null;
+        if ($clientUuid) {
+            $existing = Message::where('client_uuid', $clientUuid)->first();
+            if ($existing) {
+                return response()->json(['data' => $existing->load('user:id,name,username,avatar_url')]);
+            }
+        }
+
+        $message = DB::transaction(function () use ($request, $targetConv, $original, $clientUuid) {
+            $msg = Message::create([
+                'conversation_id' => $targetConv->id,
+                'user_id' => $request->user()->id,
+                'content' => $original->content,
+                'type' => $original->type,
+                'status' => Message::STATUS_SENT,
+                'client_uuid' => $clientUuid,
+                'forwarded_from_message_id' => $original->id,
+                'attachment_url' => $original->attachment_url,
+                'attachment_type' => $original->attachment_type,
+                'media_id' => $original->media_id,
+                'media_status' => $original->media_status,
+            ]);
+
+            if ($original->media_id) {
+                $original->media?->incrementReferenceCount();
+            }
+
+            $targetConv->touch();
+
+            ConversationParticipant::where('conversation_id', $targetConv->id)
+                ->where('user_id', $request->user()->id)
+                ->update(['last_read_at' => now()]);
+
+            return $msg;
+        });
+
+        $loadedMessage = $message->load([
+            'user:id,name,username,avatar_url',
+            'forwardedFrom:id,user_id,content',
+            'forwardedFrom.user:id,name,username',
+        ]);
+
+        event(new MessageSent($loadedMessage));
+
+        $targetConv->participants()
+            ->where('user_id', '!=', $request->user()->id)
+            ->with('user')
+            ->get()
+            ->each(function ($participant) use ($loadedMessage, $targetConv, $request) {
+                if ($participant->user) {
+                    $participant->user->notify(new NewMessageNotification(
+                        $loadedMessage,
+                        $targetConv,
+                        $request->user(),
+                    ));
+                }
+            });
+
+        return response()->json(['data' => $loadedMessage], 201);
     }
 
     /**

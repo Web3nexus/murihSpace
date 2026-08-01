@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Jobs\ProcessUploadedImage;
 use App\Models\Media;
+use App\Services\StorageRouter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -18,6 +20,10 @@ class UploadController extends Controller
     ];
 
     private const MAX_SIZE = 50 * 1024 * 1024; // 50MB
+
+    public function __construct(
+        private readonly StorageRouter $router,
+    ) {}
 
     public function index(Request $request): JsonResponse
     {
@@ -41,25 +47,19 @@ class UploadController extends Controller
         ]);
 
         $file = $request->file('file');
-        $folder = $request->input('folder', config('filesystems.upload_folder', 'uploads'));
-        $disk = config('filesystems.upload_disk', 'local_uploads');
-        $diskConfig = config("filesystems.disks.{$disk}");
+        $mime = $file->getMimeType();
 
+        $target = $this->router->resolve($mime, $request->input('folder'));
+        $disk = $target['disk'];
+        $folder = $target['folder'];
+
+        $diskConfig = config("filesystems.disks.{$disk}");
         if (! $diskConfig) {
-            return response()->json(['message' => 'Upload disk not configured.'], 500);
+            return response()->json(['message' => "Storage disk '{$disk}' not configured."], 500);
         }
 
         $filename = Str::random(32) . '.' . $file->getClientOriginalExtension();
         $path = ltrim($folder . '/' . $filename, '/');
-
-        // For local disk, ensure directory exists
-        if ($diskConfig['driver'] === 'local') {
-            $root = $diskConfig['root'] ?? public_path('storage/uploads');
-            $dir = dirname("{$root}/{$path}");
-            if (! is_dir($dir)) {
-                mkdir($dir, 0755, true);
-            }
-        }
 
         $stored = Storage::disk($disk)->put($path, file_get_contents($file->getRealPath()));
 
@@ -77,9 +77,13 @@ class UploadController extends Controller
             'original_name' => $file->getClientOriginalName(),
             'path' => $path,
             'url' => $url,
-            'mime_type' => $file->getMimeType(),
+            'mime_type' => $mime,
             'size_bytes' => $file->getSize(),
         ]);
+
+        if (str_starts_with($mime, 'image/')) {
+            dispatch(new ProcessUploadedImage($media));
+        }
 
         return response()->json(['data' => $media], 201);
     }
@@ -91,6 +95,23 @@ class UploadController extends Controller
         }
 
         Storage::disk($media->disk)->delete($media->path);
+
+        $thumbDir = dirname($media->path) . '/thumbnails';
+        $filename = pathinfo($media->filename, PATHINFO_FILENAME);
+        $ext = pathinfo($media->filename, PATHINFO_EXTENSION);
+
+        foreach (['320', '640'] as $size) {
+            $thumb = "{$thumbDir}/{$filename}_{$size}.{$ext}";
+            if (Storage::disk($media->disk)->exists($thumb)) {
+                Storage::disk($media->disk)->delete($thumb);
+            }
+        }
+
+        $webpPath = dirname($media->path) . '/' . $filename . '.webp';
+        if (Storage::disk($media->disk)->exists($webpPath)) {
+            Storage::disk($media->disk)->delete($webpPath);
+        }
+
         $media->delete();
 
         return response()->json(['message' => 'File deleted.']);

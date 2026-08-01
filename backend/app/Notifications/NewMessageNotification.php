@@ -20,7 +20,7 @@ class NewMessageNotification extends Notification
 
     public function via(object $notifiable): array
     {
-        return ['database'];
+        return ['database', 'broadcast'];
     }
 
     public function toDatabase(object $notifiable): array
@@ -38,7 +38,27 @@ class NewMessageNotification extends Notification
         ];
     }
 
+    public function toBroadcast(object $notifiable): array
+    {
+        return [
+            'type' => 'new_message',
+            'conversation_id' => $this->conversation->id,
+            'conversation_type' => $this->conversation->type,
+            'message_id' => $this->message->id,
+            'message_preview' => mb_substr($this->message->content ?? '(attachment)', 0, 120),
+            'sender_id' => $this->sender->id,
+            'sender_name' => $this->sender->name,
+            'sender_username' => $this->sender->username,
+            'sender_avatar' => $this->sender->avatar_url,
+        ];
+    }
+
     public function databaseType(object $notifiable): string
+    {
+        return 'new_message';
+    }
+
+    public function broadcastType(): string
     {
         return 'new_message';
     }

@@ -6,8 +6,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Sparkles, CheckCircle2, Clock, LogOut, ChevronDown, Lock } from "lucide-react";
+import { UserPlus, CheckCircle2, Clock, LogOut, ChevronDown, Lock } from "lucide-react";
 import type { Community } from "@/types/community";
+import { getAuthToken } from "@/lib/auth/token";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api/v1';
 
@@ -29,7 +30,7 @@ export function JoinCommunityButton({
   // Check initial membership status
   React.useEffect(() => {
     async function checkStatus() {
-      const token = localStorage.getItem("murihspace-token");
+      const token = getAuthToken();
       if (!token || !community.id) return;
       try {
         const res = await fetch(`${API_BASE}/communities/${community.id}/membership-status`, {
@@ -53,7 +54,7 @@ export function JoinCommunityButton({
     setError("");
 
     try {
-      const token = localStorage.getItem("murihspace-token");
+      const token = getAuthToken();
       if (!token) {
         window.location.href = "/login";
         return;
@@ -85,12 +86,6 @@ export function JoinCommunityButton({
       }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to join.");
-      // Fallback demo toggle if backend endpoint is unavailable
-      const fallbackStatus = community.visibility === "public" ? "active" : "pending";
-      setStatus(fallbackStatus);
-      if (onStatusChange) {
-        onStatusChange(fallbackStatus, community.members_count + (fallbackStatus === "active" ? 1 : 0));
-      }
     } finally {
       setIsLoading(false);
     }
@@ -101,7 +96,7 @@ export function JoinCommunityButton({
     setError("");
 
     try {
-      const token = localStorage.getItem("murihspace-token");
+      const token = getAuthToken();
       const res = await fetch(`${API_BASE}/communities/${community.id}/leave`, {
         method: "POST",
         headers: {
@@ -117,15 +112,14 @@ export function JoinCommunityButton({
       }
 
       setStatus("none");
-      const updatedCount = Math.max(1, community.members_count - 1);
       if (onStatusChange) {
-        onStatusChange("none", updatedCount);
+        onStatusChange("none", Math.max(0, community.members_count - 1));
       }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to leave.");
       setStatus("none");
       if (onStatusChange) {
-        onStatusChange("none", Math.max(1, community.members_count - 1));
+        onStatusChange("none", Math.max(0, community.members_count - 1));
       }
     } finally {
       setIsLoading(false);
@@ -192,7 +186,7 @@ export function JoinCommunityButton({
           </>
         ) : (
           <>
-            <Sparkles className="h-4 w-4" />
+            <UserPlus className="h-4 w-4" />
             {community.pricing_type === "paid"
               ? `Join for $${community.price_amount}`
               : "Join Community Free"}

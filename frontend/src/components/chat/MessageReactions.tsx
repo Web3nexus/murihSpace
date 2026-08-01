@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { MessageReaction } from '@/types/chat';
+import { getAuthToken } from "@/lib/auth/token";
 
 const QUICK_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🔥'];
 
@@ -15,7 +16,7 @@ export function MessageReactions({ messageId, reactions, onReactionToggle }: Mes
   const [showPicker, setShowPicker] = useState(false);
 
   const handleReact = async (emoji: string) => {
-    const token = localStorage.getItem('murihspace-token');
+    const token = getAuthToken();
     setShowPicker(false);
 
     try {

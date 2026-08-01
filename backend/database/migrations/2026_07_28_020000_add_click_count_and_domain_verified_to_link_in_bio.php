@@ -13,7 +13,7 @@ return new class extends Migration
         });
 
         Schema::table('users', function (Blueprint $table) {
-            $table->timestamp('domain_verified_at')->nullable()->after('link_in_bio_url');
+            $table->timestamp('domain_verified_at')->nullable()->after('username');
         });
     }
 

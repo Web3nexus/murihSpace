@@ -4,11 +4,12 @@ import {
   Users, Banknote, Calendar, Eye, EyeOff, AlertCircle,
 } from 'lucide-react';
 import type { SubscriptionPlan, SubscriptionStats, CreatePlanPayload } from '@/types/subscription';
+import { getAuthToken } from "@/lib/auth/token";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api/v1';
 
 function getAuthHeaders() {
-  const token = localStorage.getItem('murihspace-token');
+  const token = getAuthToken();
   return {
     'Content-Type': 'application/json',
     Accept: 'application/json',
@@ -148,7 +149,7 @@ export function SubscriptionManagementPage() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 w-full max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

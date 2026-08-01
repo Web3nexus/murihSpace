@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { formatDistanceToNow } from 'date-fns';
-import { MessageSquare, Link2, MoreHorizontal, Pin, Megaphone, Heart, Zap, ThumbsUp, HandMetal, ShieldAlert, UserX } from 'lucide-react';
+import { MessageSquare, Link2, MoreHorizontal, Pin, PinOff, Megaphone, Heart, Zap, ThumbsUp, HandMetal, ShieldAlert, UserX, BadgeCheck } from 'lucide-react';
 import type { Post, ReactionType } from '@/types/post';
 import { ReportModal } from '@/components/moderation/ReportModal';
 import type { ReportedType } from '@/types/moderation';
@@ -9,6 +9,9 @@ interface PostCardProps {
   post: Post;
   onReact?: (postId: number, type: ReactionType) => Promise<void>;
   onComment?: (postId: number, content: string) => Promise<void>;
+  onPin?: (postId: number) => Promise<void>;
+  onUnpin?: (postId: number) => Promise<void>;
+  isModerator?: boolean;
   showCommunity?: boolean;
 }
 
@@ -50,7 +53,7 @@ function Avatar({ name, src, size = 36 }: { name?: string; src?: string; size?: 
   );
 }
 
-export default function PostCard({ post, onReact, onComment, showCommunity = false }: PostCardProps) {
+export default function PostCard({ post, onReact, onComment, onPin, onUnpin, isModerator, showCommunity = false }: PostCardProps) {
   const [showCommentBox, setShowCommentBox] = useState(false);
   const [commentText, setCommentText] = useState('');
   const [isCommenting, setIsCommenting] = useState(false);
@@ -110,7 +113,12 @@ export default function PostCard({ post, onReact, onComment, showCommunity = fal
         <div className="post-card-header">
           <Avatar name={post.author?.name} src={post.author?.avatar_url} />
           <div className="post-card-meta">
-            <span className="post-card-author">{post.author?.name ?? 'Unknown'}</span>
+            <span className="post-card-author">
+              {post.author?.name ?? 'Unknown'}
+              {post.author?.has_active_verification_badge && (
+                <BadgeCheck size={14} className="inline-block ml-1 text-sky-500 -mt-0.5" aria-label="Verified" />
+              )}
+            </span>
             {post.author?.username && (
               <span className="post-card-username">@{post.author.username}</span>
             )}
@@ -134,6 +142,27 @@ export default function PostCard({ post, onReact, onComment, showCommunity = fal
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setShowMenu(false)} role="presentation" onKeyDown={(e) => e.key === 'Enter' && setShowMenu(false)} />
                 <div className="absolute right-0 mt-1 w-44 rounded-xl border border-border bg-card shadow-xl z-50 p-1 space-y-0.5 text-xs">
+                  {isModerator && (
+                    <>
+                      {post.is_pinned ? (
+                        <button
+                          onClick={() => { setShowMenu(false); onUnpin?.(post.id); }}
+                          className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-muted text-foreground font-medium flex items-center gap-2"
+                        >
+                          <PinOff size={14} />
+                          Unpin post
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => { setShowMenu(false); onPin?.(post.id); }}
+                          className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-muted text-foreground font-medium flex items-center gap-2"
+                        >
+                          <Pin size={14} />
+                          Pin post
+                        </button>
+                      )}
+                    </>
+                  )}
                   <button
                     onClick={() => {
                       setShowMenu(false);
@@ -273,7 +302,12 @@ export default function PostCard({ post, onReact, onComment, showCommunity = fal
               <div key={c.id} className="post-card-comment">
                 <Avatar name={c.user?.name} src={c.user?.avatar_url} size={28} />
                 <div className="post-card-comment-body">
-                  <span className="post-card-comment-author">{c.user?.name ?? 'User'}</span>
+                  <span className="post-card-comment-author">
+                    {c.user?.name ?? 'User'}
+                    {c.user?.has_active_verification_badge && (
+                      <BadgeCheck size={12} className="inline-block ml-0.5 text-sky-500 -mt-0.5" aria-label="Verified" />
+                    )}
+                  </span>
                   <span className="post-card-comment-text">{c.content}</span>
                 </div>
               </div>

@@ -9,3 +9,18 @@ Artisan::command('inspire', function () {
 
 // Scheduled queue monitoring heartbeat
 Schedule::command('horizon:snapshot')->everyFiveMinutes();
+
+// Publish posts that were scheduled for future dates
+Schedule::command('content:publish-scheduled')->everyMinute();
+
+// Clean up expired download links and orphaned files (daily at 3am)
+Schedule::command('downloads:clean --days=30')->dailyAt('03:00');
+
+// Revoke expired Sanctum tokens (twice daily)
+Schedule::command('tokens:clean-expired')->twiceDaily(2, 14);
+
+// Clean up orphaned media files (weekly at 4am Sunday)
+Schedule::command('media:cleanup-orphaned --days=7')->weeklyOn(0, '04:00');
+
+// Expire / auto-renew verification badges (hourly)
+Schedule::command('verification-badges:process')->hourly();

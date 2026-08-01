@@ -120,33 +120,51 @@ class AnalyticsController extends Controller
     {
         $userId = $request->user()->id;
 
-        $digital = DigitalProduct::where('creator_id', $userId)
-            ->get()
-            ->map(fn($p) => [
-                'name' => $p->title,
-                'type' => 'digital',
-                'orders' => Order::where('product_id', $p->id)->count(),
-                'revenue' => Order::where('product_id', $p->id)->where('status', 'completed')->sum('total'),
-            ])
-            ->filter(fn($p) => $p['orders'] > 0)
-            ->sortByDesc('orders')
-            ->values()
-            ->take(5);
+        return response()->json(['data' => $this->topProductsFor($userId, 5)]);
+    }
 
-        $physical = PhysicalProduct::where('creator_id', $userId)
+    private function topProductsFor(int $userId, ?int $limit = null): array
+    {
+        $digital = DigitalProduct::where('digital_products.creator_id', $userId)
+            ->leftJoin('orders', function ($join) {
+                $join->on('orders.product_id', '=', 'digital_products.id')
+                    ->where('orders.status', '=', 'completed');
+            })
+            ->selectRaw('digital_products.title as name')
+            ->selectRaw("'digital' as type")
+            ->selectRaw('COUNT(DISTINCT orders.id) as orders')
+            ->selectRaw('COALESCE(SUM(orders.total), 0) as revenue')
+            ->groupBy('digital_products.id')
+            ->havingRaw('COUNT(DISTINCT orders.id) > 0')
+            ->orderByDesc('orders')
             ->get()
-            ->map(fn($p) => [
-                'name' => $p->title,
-                'type' => 'physical',
-                'orders' => DB::table('fulfilment_order_items')->where('physical_product_id', $p->id)->count(),
-                'revenue' => DB::table('fulfilment_order_items')->where('physical_product_id', $p->id)->sum('unit_price'),
-            ])
-            ->filter(fn($p) => $p['orders'] > 0)
-            ->sortByDesc('orders')
-            ->values()
-            ->take(5);
+            ->map(fn ($p) => [
+                'name' => $p->name,
+                'type' => $p->type,
+                'orders' => (int) $p->orders,
+                'revenue' => (float) $p->revenue,
+            ]);
 
-        return response()->json(['data' => $digital->concat($physical)->sortByDesc('orders')->values()]);
+        $physical = PhysicalProduct::where('physical_products.creator_id', $userId)
+            ->leftJoin('fulfilment_order_items', 'fulfilment_order_items.physical_product_id', '=', 'physical_products.id')
+            ->selectRaw('physical_products.title as name')
+            ->selectRaw("'physical' as type")
+            ->selectRaw('COUNT(DISTINCT fulfilment_order_items.id) as orders')
+            ->selectRaw('COALESCE(SUM(fulfilment_order_items.unit_price), 0) as revenue')
+            ->groupBy('physical_products.id')
+            ->havingRaw('COUNT(DISTINCT fulfilment_order_items.id) > 0')
+            ->orderByDesc('orders')
+            ->get()
+            ->map(fn ($p) => [
+                'name' => $p->name,
+                'type' => $p->type,
+                'orders' => (int) $p->orders,
+                'revenue' => (float) $p->revenue,
+            ]);
+
+        $combined = $digital->concat($physical)->sortByDesc('orders')->values();
+
+        return $limit ? $combined->take($limit)->all() : $combined->all();
     }
 
     public function aiSuggestions(Request $request): JsonResponse
@@ -154,10 +172,10 @@ class AnalyticsController extends Controller
         $userId = $request->user()->id;
 
         $totalProducts = DigitalProduct::where('creator_id', $userId)->count();
-        $totalFollowers = DB::table('community_members')
-            ->join('communities', 'community_members.community_id', '=', 'communities.id')
+        $totalFollowers = DB::table('community_memberships')
+            ->join('communities', 'community_memberships.community_id', '=', 'communities.id')
             ->where('communities.user_id', $userId)
-            ->where('community_members.role', '!=', 'owner')
+            ->where('community_memberships.role', '!=', 'owner')
             ->count();
         $activeDeals = BrandDeal::where('creator_id', $userId)->where('status', 'active')->count();
         $hasBroadcasts = EmailBroadcast::where('creator_id', $userId)->exists();
@@ -204,51 +222,165 @@ class AnalyticsController extends Controller
             ];
         }
 
-        // Generate content ideas
-        $contentIdeas = [
-            [
-                'platform' => 'Social',
-                'idea' => 'Behind-the-scenes: Share how you created your latest product.',
+        // Fallback content ideas (used when real AI is not configured)
+        $fallbackIdeas = [
+            ['platform' => 'Social', 'idea' => 'Behind-the-scenes: Share how you created your latest product.'],
+            ['platform' => 'Email', 'idea' => 'Weekly tip: Share one actionable insight your audience can use today.'],
+            ['platform' => 'Community', 'idea' => 'Polls & Questions: Ask your audience what they want to learn next.'],
+            ['platform' => 'Store', 'idea' => 'Bundle offer: Combine two popular products at a discount.'],
+        ];
+
+        // Build a real dashboard snapshot so the AI can personalise its advice.
+        $digest = [
+            'products' => $this->productDigest($userId),
+            'orders' => [
+                'total' => Order::where('creator_id', $userId)->count(),
+                'completed' => Order::where('creator_id', $userId)->where('status', 'completed')->count(),
             ],
-            [
-                'platform' => 'Email',
-                'idea' => 'Weekly tip: Share one actionable insight your audience can use today.',
+            'revenue' => [
+                'total' => Order::where('creator_id', $userId)->where('status', 'completed')->sum('total'),
             ],
-            [
-                'platform' => 'Community',
-                'idea' => 'Polls & Questions: Ask your audience what they want to learn next.',
+            'audience' => [
+                'followers' => $totalFollowers,
+                'subscribers' => Subscription::where('creator_id', $userId)->where('status', 'active')->count(),
             ],
-            [
-                'platform' => 'Store',
-                'idea' => 'Bundle offer: Combine two popular products at a discount.',
+            'engagement' => [
+                'broadcasts' => EmailBroadcast::where('creator_id', $userId)->count(),
+                'emails_sent' => EmailBroadcast::where('creator_id', $userId)->where('status', 'sent')->sum('sent_count'),
+                'referral_clicks' => ReferralLink::where('creator_id', $userId)->sum('clicks'),
+                'active_deals' => $activeDeals,
             ],
         ];
 
+        try {
+            $ai = app(\App\Services\AiService::class)->analyticsInsights($request->user(), $digest);
+        } catch (\Throwable $e) {
+            report($e);
+            $ai = [];
+        }
+
         return response()->json([
             'data' => [
+                'insight' => $ai['insight'] ?? null,
                 'suggestions' => $suggestions,
-                'content_ideas' => $contentIdeas,
+                'content_ideas' => $ai['content_ideas'] ?? $fallbackIdeas,
             ],
         ]);
     }
 
+    private function productDigest(int $userId): array
+    {
+        return $this->topProductsFor($userId, 3);
+    }
+
     public function productPerformance(Request $request): JsonResponse
     {
-        return response()->json(['message' => 'Not implemented.'], 501);
+        $userId = $request->user()->id;
+        $perPage = max(1, min((int) $request->query('per_page', 15), 100));
+
+        $digital = DigitalProduct::where('digital_products.creator_id', $userId)
+            ->leftJoin('orders', function ($join) {
+                $join->on('orders.product_id', '=', 'digital_products.id')
+                    ->where('orders.status', '=', 'completed');
+            })
+            ->selectRaw('digital_products.id, digital_products.title, COUNT(DISTINCT orders.id) as orders, COALESCE(SUM(orders.total), 0) as revenue')
+            ->groupBy('digital_products.id')
+            ->orderByDesc('orders')
+            ->paginate($perPage);
+
+        $data = $digital->through(fn ($p) => [
+            'id' => $p->id,
+            'title' => $p->title,
+            'type' => 'digital',
+            'orders' => (int) $p->orders,
+            'revenue' => (float) $p->revenue,
+        ]);
+
+        return response()->json(['data' => $data]);
     }
 
     public function chatChannels(Request $request): JsonResponse
     {
-        return response()->json(['message' => 'Not implemented.'], 501);
+        $userId = $request->user()->id;
+
+        $conversations = \App\Models\Conversation::whereHas('participants', fn($q) => $q->where('user_id', $userId))
+            ->withCount('participants')
+            ->latest('updated_at')
+            ->take(5)
+            ->get();
+
+        if ($conversations->isEmpty()) {
+            return response()->json(['data' => []]);
+        }
+
+        $formatted = $conversations->map(function($c) {
+            return [
+                'name' => $c->title ?? 'Group Chat',
+                'description' => 'Active conversation',
+                'type' => $c->type ?? 'general',
+                'unread' => 0,
+                'new_since_last_visit' => 0,
+                'active_members' => $c->participants_count,
+                'ai_replies' => 0,
+                'ai_reply_percentage' => 0,
+                'human_follow_ups' => 0,
+                'priority' => 'low',
+            ];
+        });
+
+        return response()->json(['data' => $formatted]);
     }
 
     public function contentPlanner(Request $request): JsonResponse
     {
-        return response()->json(['message' => 'Not implemented.'], 501);
+        $userId = $request->user()->id;
+
+        $items = \App\Models\ContentItem::where('creator_id', $userId)
+            ->latest()
+            ->take(5)
+            ->get();
+
+        if ($items->isEmpty()) {
+            return response()->json(['data' => []]);
+        }
+
+        $formatted = $items->map(fn ($item) => [
+            'id' => $item->id,
+            'title' => $item->title,
+            'date' => $item->created_at?->toIso8601String(),
+            'status' => $item->status,
+        ]);
+
+        return response()->json(['data' => $formatted]);
     }
 
     public function communityActivity(Request $request): JsonResponse
     {
-        return response()->json(['message' => 'Not implemented.'], 501);
+        $userId = $request->user()->id;
+
+        $members = \App\Models\CommunityMembership::whereHas('community', fn($q) => $q->where('user_id', $userId))
+            ->with(['user', 'community'])
+            ->latest()
+            ->take(5)
+            ->get();
+
+        if ($members->isEmpty()) {
+            return response()->json(['data' => []]);
+        }
+
+        $formatted = $members->map(function($m) {
+            $name = $m->user ? $m->user->name : 'Community Member';
+            $words = preg_split('/\s+/', trim($name), -1, PREG_SPLIT_NO_EMPTY);
+            $initials = strtoupper(mb_substr($words[0] ?? 'M', 0, 1) . mb_substr($words[1] ?? '', 0, 1));
+            return [
+                'id' => $m->id,
+                'user_name' => $name,
+                'user_initials' => $initials,
+                'action' => 'Joined community ' . ($m->community->name ?? ''),
+                'timestamp' => $m->created_at->toIso8601String(),
+            ];
+        });
+
+        return response()->json(['data' => $formatted]);
     }
 }

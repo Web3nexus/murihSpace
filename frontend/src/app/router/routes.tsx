@@ -1,6 +1,8 @@
 import type { RouteObject } from "react-router";
 import { Navigate } from "react-router";
 import { LoginPage } from "@/pages/LoginPage";
+import { ForgotPasswordPage } from "@/pages/ForgotPasswordPage";
+import { ResetPasswordPage } from "@/pages/ResetPasswordPage";
 import { AdminLoginPage } from "@/pages/AdminLoginPage";
 import { RegisterPage } from "@/pages/RegisterPage";
 import { AppPage } from "@/pages/AppPage";
@@ -14,6 +16,7 @@ import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { CommunitiesPage } from "@/pages/CommunitiesPage";
 import { CommunityPreviewPage } from "@/pages/CommunityPreviewPage";
 import CommunityFeedPage from "@/pages/CommunityFeedPage";
+import SearchPage from "@/pages/SearchPage";
 import { EventsPage } from "@/pages/EventsPage";
 import { EventDetailPage } from "@/pages/EventDetailPage";
 import { MyEventsPage } from "@/pages/MyEventsPage";
@@ -57,6 +60,7 @@ import { EscrowPage } from "@/pages/EscrowPage";
 import { PurchasesPage } from "@/pages/PurchasesPage";
 import { SecuregateOverviewPage } from "@/pages/SecuregateOverviewPage";
 import { AdminUsersPage } from "@/pages/AdminUsersPage";
+import { AdminManagementPage } from "@/pages/AdminManagementPage";
 import { AdminTransactionsPage } from "@/pages/AdminTransactionsPage";
 import { AdminReconciliationPage } from "@/pages/AdminReconciliationPage";
 import { AdminReportsPage } from "@/pages/AdminReportsPage";
@@ -73,6 +77,7 @@ import ContentStudioPage from "@/pages/ContentStudioPage";
 import LinkInBioPage from "@/pages/LinkInBioPage";
 
 import LinkInBioDomainPage from "@/pages/LinkInBioDomainPage";
+import StorePostsPage from "@/pages/StorePostsPage";
 import StoreProductsPage from "@/pages/StoreProductsPage";
 import StoreMembershipsPage from "@/pages/StoreMembershipsPage";
 import SavedAddressesPage from "@/pages/SavedAddressesPage";
@@ -83,18 +88,34 @@ import SupportThreadsPage from "@/pages/SupportThreadsPage";
 import StoreSettingsPage from "@/pages/StoreSettingsPage";
 import ProductPerformancePage from "@/pages/ProductPerformancePage";
 import AdminDisputesPage from "@/pages/AdminDisputesPage";
-import AdminFulfilmentPayoutsPage from "@/pages/AdminFulfilmentPayoutsPage";
 import AdminModerationLogsPage from "@/pages/AdminModerationLogsPage";
 import AdminSystemHealthPage from "@/pages/AdminSystemHealthPage";
 import AdminAuditTrailPage from "@/pages/AdminAuditTrailPage";
 import AdminSettingsPage from "@/pages/AdminSettingsPage";
+import AdminAiSettingsPage from "@/pages/AdminAiSettingsPage";
+import AdminStoragePage from "@/pages/AdminStoragePage";
+import AdminObjectStorageProvidersPage from "@/pages/AdminObjectStorageProvidersPage";
 import AdminConversionMetricsPage from "@/pages/AdminConversionMetricsPage";
 import FeedPage from "@/pages/FeedPage";
 import ChatPage from "@/pages/ChatPage";
 import AiAssistantPage from "@/pages/AiAssistantPage";
+import AiSettingsPage from "@/pages/AiSettingsPage";
+import OnboardingPage from "@/pages/OnboardingPage";
+import RequestsPage from "@/pages/RequestsPage";
+import FriendsPage from "@/pages/FriendsPage";
 import AffiliateProductsPage from "@/pages/AffiliateProductsPage";
 import MarketingPage from "@/pages/MarketingPage";
 import PublicLinkInBioPage from "@/pages/PublicLinkInBioPage";
+import ActivityLogPage from "@/pages/ActivityLogPage";
+import ContentPlannerPage from "@/pages/ContentPlannerPage";
+import AdCampaignPage from "@/pages/AdCampaignPage";
+import GiftsPage from "@/pages/GiftsPage";
+import CreatorWalletPage from "@/pages/CreatorWalletPage";
+import AdminAdsPage from "@/pages/AdminAdsPage";
+import AdminGiftsPage from "@/pages/AdminGiftsPage";
+import AdminCoinPacksPage from "@/pages/AdminCoinPacksPage";
+import AdminStoriesPage from "@/pages/AdminStoriesPage";
+import AdminAlgorithmPage from "@/pages/AdminAlgorithmPage";
 import {
   NotFoundState,
 } from "@/components/common/UIStateComponents";
@@ -104,6 +125,8 @@ import { RoutePaths } from "./route-paths";
 export const routes: RouteObject[] = [
   // ── Public auth pages & Public Storefront ───
   { path: RoutePaths.LOGIN, element: <LoginPage /> },
+  { path: RoutePaths.FORGOT_PASSWORD, element: <ForgotPasswordPage /> },
+  { path: RoutePaths.RESET_PASSWORD, element: <ResetPasswordPage /> },
   { path: RoutePaths.SECUREGATE_LOGIN, element: <AdminLoginPage /> },
   { path: "/securegate", element: <Navigate to={RoutePaths.SECUREGATE_LOGIN} replace /> },
   { path: RoutePaths.REGISTER, element: <RegisterPage /> },
@@ -127,6 +150,24 @@ export const routes: RouteObject[] = [
         element: <FeedPage />,
       },
 
+      // ── Search ──────────────────────────────────
+      {
+        path: "search",
+        element: <SearchPage />,
+      },
+
+      // ── Activity Log ────────────────────────────
+      {
+        path: "activity",
+        element: <ActivityLogPage />,
+      },
+
+      // ── Identity Verification (KYC) ─────────────
+      {
+        path: "kyc",
+        element: <KycSettingsPage />,
+      },
+
       // ── Community Chat ──────────────────────────
       {
         path: "community-chat",
@@ -139,10 +180,34 @@ export const routes: RouteObject[] = [
         element: <AiAssistantPage />,
       },
 
+      // ── AI Behavior settings ────────────────────
+      {
+        path: "ai-settings",
+        element: <AiSettingsPage />,
+      },
+
+      // ── Requests (Friend & Community) ───────────
+      {
+        path: "requests",
+        element: <RequestsPage />,
+      },
+
+      // ── Friends (dedicated friends manager) ──────
+      {
+        path: "friends",
+        element: <FriendsPage />,
+      },
+
       // ── Content Studio (Creator) ────────────────
       {
         path: "studio",
         element: <ProtectedRoute requiredRole="creator"><ContentStudioPage /></ProtectedRoute>,
+      },
+
+      // ── AI Onboarding wizard ────────────────────────
+      {
+        path: "onboarding",
+        element: <OnboardingPage />,
       },
 
       // ── Link in Bio & Custom Sites ──────────────
@@ -173,20 +238,24 @@ export const routes: RouteObject[] = [
         element: <SavedAddressesPage />,
       },
       {
+        path: "store/posts",
+        element: <ProtectedRoute requiredRole="creator"><StorePostsPage /></ProtectedRoute>,
+      },
+      {
         path: "store/physical-products",
-        element: <ProtectedRoute requiredRole="vendor"><PhysicalProductsPage /></ProtectedRoute>,
+        element: <ProtectedRoute requiredRole="creator"><PhysicalProductsPage /></ProtectedRoute>,
       },
       {
         path: "store/inventory",
-        element: <ProtectedRoute requiredRole="vendor"><InventoryPage /></ProtectedRoute>,
+        element: <ProtectedRoute requiredRole="creator"><InventoryPage /></ProtectedRoute>,
       },
       {
         path: "store/categories",
-        element: <ProtectedRoute requiredRole="vendor"><CategoriesPage /></ProtectedRoute>,
+        element: <ProtectedRoute requiredRole="creator"><CategoriesPage /></ProtectedRoute>,
       },
       {
         path: "store/returns",
-        element: <ProtectedRoute requiredRole="vendor"><ReturnsPage /></ProtectedRoute>,
+        element: <ProtectedRoute requiredRole="creator"><ReturnsPage /></ProtectedRoute>,
       },
       {
         path: "store/digital",
@@ -194,7 +263,7 @@ export const routes: RouteObject[] = [
       },
       {
         path: "store/courses",
-        element: <ProtectedRoute requiredRole="creator"><CoursesPage /></ProtectedRoute>,
+        element: <CoursesPage />,
       },
       {
         path: "store/coaching",
@@ -202,7 +271,7 @@ export const routes: RouteObject[] = [
       },
       {
         path: "store/physical",
-        element: <ProtectedRoute requiredRole="vendor"><PhysicalProductsPage /></ProtectedRoute>,
+        element: <ProtectedRoute requiredRole="creator"><PhysicalProductsPage /></ProtectedRoute>,
       },
       {
         path: "store/cart",
@@ -263,6 +332,22 @@ export const routes: RouteObject[] = [
         element: <ProtectedRoute requiredRole="creator"><BrandInvoicingPage /></ProtectedRoute>,
       },
 
+      // ── Advertising ────────────────────────────
+      {
+        path: "ads",
+        element: <ProtectedRoute requiredRole="creator"><AdCampaignPage /></ProtectedRoute>,
+      },
+
+      // ── Gifts & Creator Wallet ─────────────────
+      {
+        path: "gifts",
+        element: <GiftsPage />,
+      },
+      {
+        path: "gifts/wallet",
+        element: <ProtectedRoute requiredRole="creator"><CreatorWalletPage /></ProtectedRoute>,
+      },
+
       // ── Marketing & Automations ────────────────
       {
         path: "marketing",
@@ -283,6 +368,10 @@ export const routes: RouteObject[] = [
       {
         path: "marketing/referrals",
         element: <ReferralsPage />,
+      },
+      {
+        path: "marketing/planner",
+        element: <ProtectedRoute requiredRole="creator"><ContentPlannerPage /></ProtectedRoute>,
       },
 
       // ── Community & Content ─────────────────────
@@ -470,6 +559,10 @@ export const routes: RouteObject[] = [
         element: <ProtectedRoute requiredRole="admin"><AdminUsersPage /></ProtectedRoute>,
       },
       {
+        path: "securegate/admins",
+        element: <ProtectedRoute requiredRole="admin"><AdminManagementPage /></ProtectedRoute>,
+      },
+      {
         path: "securegate/transactions",
         element: <ProtectedRoute requiredRole="admin"><AdminTransactionsPage /></ProtectedRoute>,
       },
@@ -526,10 +619,6 @@ export const routes: RouteObject[] = [
         element: <ProtectedRoute requiredRole="admin"><AdminDisputesPage /></ProtectedRoute>,
       },
       {
-        path: "securegate/fulfilment-payouts",
-        element: <ProtectedRoute requiredRole="admin"><AdminFulfilmentPayoutsPage /></ProtectedRoute>,
-      },
-      {
         path: "securegate/moderation-logs",
         element: <ProtectedRoute requiredRole="admin"><AdminModerationLogsPage /></ProtectedRoute>,
       },
@@ -546,6 +635,22 @@ export const routes: RouteObject[] = [
         element: <ProtectedRoute requiredRole="admin"><AdminSettingsPage /></ProtectedRoute>,
       },
       {
+        path: "securegate/ai-settings",
+        element: <ProtectedRoute requiredRole="admin"><AdminAiSettingsPage /></ProtectedRoute>,
+      },
+      {
+        path: "securegate/storage",
+        element: <ProtectedRoute requiredRole="admin"><AdminStoragePage /></ProtectedRoute>,
+      },
+      {
+        path: "securegate/storage/providers",
+        element: <ProtectedRoute requiredRole="admin"><AdminObjectStorageProvidersPage /></ProtectedRoute>,
+      },
+      {
+        path: "securegate/analytics/overview",
+        element: <ProtectedRoute requiredRole="admin"><AdminAnalyticsPage /></ProtectedRoute>,
+      },
+      {
         path: "securegate/analytics/growth",
         element: <ProtectedRoute requiredRole="admin"><AdminAnalyticsPage /></ProtectedRoute>,
       },
@@ -560,6 +665,26 @@ export const routes: RouteObject[] = [
       {
         path: "securegate/analytics/conversions",
         element: <ProtectedRoute requiredRole="admin"><AdminConversionMetricsPage /></ProtectedRoute>,
+      },
+      {
+        path: "securegate/ads",
+        element: <ProtectedRoute requiredRole="admin"><AdminAdsPage /></ProtectedRoute>,
+      },
+      {
+        path: "securegate/gifts",
+        element: <ProtectedRoute requiredRole="admin"><AdminGiftsPage /></ProtectedRoute>,
+      },
+      {
+        path: "securegate/coin-packs",
+        element: <ProtectedRoute requiredRole="admin"><AdminCoinPacksPage /></ProtectedRoute>,
+      },
+      {
+        path: "securegate/algorithm",
+        element: <ProtectedRoute requiredRole="admin"><AdminAlgorithmPage /></ProtectedRoute>,
+      },
+      {
+        path: "securegate/stories",
+        element: <ProtectedRoute requiredRole="admin"><AdminStoriesPage /></ProtectedRoute>,
       },
 
       // Catch-all within /app

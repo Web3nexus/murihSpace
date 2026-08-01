@@ -5,8 +5,10 @@ namespace App\Http\Controllers;
 use App\Models\DigitalProduct;
 use App\Models\Order;
 use App\Models\PaymentWebhook;
+use App\Models\Storefront;
 use App\Services\Payment\MockPaymentProvider;
 use App\Services\Payment\PaymentProviderInterface;
+use App\Services\Payment\StripePaymentProvider;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -73,11 +75,18 @@ class CheckoutController extends Controller
         // Server-calculated totals (never trust client-side price)
         $subtotal = round((float) $product->price, 2);
         $platformFee = round($subtotal * self::PLATFORM_FEE_RATE, 2);
-        $total = round($subtotal + $platformFee, 2);
+
+        $taxRate = 0;
+        $storefront = Storefront::where('user_id', $product->creator_id)->first();
+        if ($storefront && $storefront->tax_rate > 0) {
+            $taxRate = $storefront->tax_rate;
+        }
+        $tax = round($subtotal * ($taxRate / 100), 2);
+        $total = round($subtotal + $platformFee + $tax, 2);
 
         $provider = $this->resolveProvider($validated['payment_provider'] ?? 'mock');
 
-        $order = DB::transaction(function () use ($product, $request, $validated, $subtotal, $platformFee, $total, $provider) {
+        $order = DB::transaction(function () use ($product, $request, $validated, $subtotal, $platformFee, $tax, $taxRate, $total, $provider) {
             return Order::create([
                 'order_number' => $this->generateOrderNumber(),
                 'buyer_id' => $request->user()->id,
@@ -85,6 +94,8 @@ class CheckoutController extends Controller
                 'product_id' => $product->id,
                 'subtotal' => $subtotal,
                 'platform_fee' => $platformFee,
+                'tax' => $tax,
+                'tax_rate' => $taxRate,
                 'total' => $total,
                 'currency' => $product->currency,
                 'status' => 'pending',
@@ -105,6 +116,8 @@ class CheckoutController extends Controller
                 'breakdown' => [
                     'subtotal' => $subtotal,
                     'platform_fee' => $platformFee,
+                    'tax' => $tax,
+                    'tax_rate' => $taxRate,
                     'total' => $total,
                     'currency' => $product->currency,
                 ],
@@ -190,8 +203,8 @@ class CheckoutController extends Controller
     private function resolveProvider(string $name): PaymentProviderInterface
     {
         return match ($name) {
-            'mock' => new MockPaymentProvider,
-            default => new MockPaymentProvider, // Stripe integration added in future sprint
+            'stripe' => new StripePaymentProvider,
+            default => new MockPaymentProvider,
         };
     }
 

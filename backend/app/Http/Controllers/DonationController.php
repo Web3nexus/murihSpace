@@ -16,6 +16,15 @@ class DonationController extends Controller
 
     public function send(Request $request): JsonResponse
     {
+        $sender = $request->user();
+
+        if (! $sender->hasVerifiedKyc()) {
+            return response()->json([
+                'message' => 'Complete KYC identity verification before sending money.',
+                'code' => 'KYC_REQUIRED',
+            ], 403);
+        }
+
         $validated = $request->validate([
             'recipient_username' => ['required', 'string', 'max:255', 'exists:users,username'],
             'amount' => ['required', 'integer', 'min:1'],
@@ -25,7 +34,6 @@ class DonationController extends Controller
             'pin' => ['required', 'string', 'digits:4'],
         ]);
 
-        $sender = $request->user();
         $recipient = User::where('username', $validated['recipient_username'])->firstOrFail();
 
         if ($sender->id === $recipient->id) {

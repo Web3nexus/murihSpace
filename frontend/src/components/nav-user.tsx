@@ -1,4 +1,5 @@
 import { Link, useNavigate } from "react-router";
+import { useAuth } from "@/hooks/useAuth";
 import {
   Avatar,
   AvatarFallback,
@@ -48,10 +49,14 @@ function initials(name: string) {
 export function NavUser({ user }: NavUserProps) {
   const { isMobile } = useSidebar();
   const navigate = useNavigate();
+  const { logout } = useAuth();
 
-  const handleLogout = () => {
-    localStorage.removeItem("murihspace-token");
-    navigate("/login");
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } finally {
+      navigate("/login");
+    }
   };
 
   return (

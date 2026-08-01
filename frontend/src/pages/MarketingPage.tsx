@@ -2,11 +2,12 @@ import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router";
 import { Megaphone, Loader2, Mail, Plus, Eye, MousePointerClick, ListOrdered, Link2, Gift, TrendingUp, Target, ArrowRight, Check, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { getAuthToken } from "@/lib/auth/token";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:8000/api/v1";
 
 function getAuthHeaders() {
-  const token = localStorage.getItem("murihspace-token") || localStorage.getItem("auth_token");
+  const token = getAuthToken();
   return { "Content-Type": "application/json", Accept: "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) };
 }
 
@@ -85,7 +86,7 @@ export default function MarketingPage() {
   if (loading) return <div className="flex justify-center py-24"><Loader2 className="h-8 w-8 animate-spin text-[#38A8D8]" /></div>;
 
   return (
-    <div className="w-full mx-auto max-w-[1000px] space-y-8 p-6 lg:p-10">
+    <div className="w-full max-w-7xl mx-auto space-y-6 p-6 lg:p-8">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

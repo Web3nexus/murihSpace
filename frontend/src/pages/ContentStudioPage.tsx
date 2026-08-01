@@ -1,12 +1,14 @@
 import { useState, useEffect, useCallback } from "react";
 import { Film, Plus, Loader2, Edit, Trash2, Eye, EyeOff, FileText, Video, Music, Image } from "lucide-react";
+import { ImageUploader } from "@/components/upload/ImageUploader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { getAuthToken } from "@/lib/auth/token";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:8000/api/v1";
 
 function getAuthHeaders() {
-  const token = localStorage.getItem("murihspace-token") || localStorage.getItem("auth_token");
+  const token = getAuthToken();
   return {
     "Content-Type": "application/json",
     Accept: "application/json",
@@ -127,7 +129,7 @@ export default function ContentStudioPage() {
   if (loading) return <div className="flex justify-center py-24"><Loader2 className="h-8 w-8 animate-spin text-[#38A8D8]" /></div>;
 
   return (
-    <div className="w-full mx-auto max-w-[1200px] space-y-6 p-6 lg:p-10">
+    <div className="w-full max-w-7xl mx-auto space-y-6 p-6 lg:p-8">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-black tracking-tight flex items-center gap-2.5">
@@ -161,8 +163,12 @@ export default function ContentStudioPage() {
             </div>
           </div>
           <div className="space-y-2">
-            <label className="text-xs font-bold text-muted-foreground">Thumbnail URL</label>
-            <Input value={thumbnailUrl} onChange={(e) => setThumbnailUrl(e.target.value)} placeholder="https://..." />
+            <ImageUploader
+              value={thumbnailUrl}
+              onChange={setThumbnailUrl}
+              folder="content/thumbnails"
+              label="Thumbnail"
+            />
           </div>
           <div className="flex gap-2">
             <Button type="submit" disabled={saving || !title.trim()} className="text-sm font-bold">

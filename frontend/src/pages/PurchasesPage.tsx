@@ -11,11 +11,12 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { Purchase } from '@/types/wallet';
+import { getAuthToken } from "@/lib/auth/token";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api/v1';
 
 function getAuthHeaders() {
-  const token = localStorage.getItem('auth_token') || localStorage.getItem('murihspace-token');
+  const token = getAuthToken();
   return {
     'Content-Type': 'application/json',
     Accept: 'application/json',

@@ -30,7 +30,7 @@ import {
   LogOut,
   UserCircle,
   Bell,
-  Sparkles,
+  Globe,
   Wallet,
   ShieldCheck,
 } from "lucide-react";
@@ -43,6 +43,7 @@ import { ChevronRight } from "lucide-react";
 import { getSidebarNav } from "@/navigation/getSidebarNav";
 import { ROLE_LABELS } from "@/navigation/navTypes";
 import type { NavItem, NavGroup, UserRole } from "@/navigation/navTypes";
+import { useFeatureFlags } from "@/hooks/useFeatureFlags";
 
 function isActiveRoute(item: NavItem, pathname: string, search: string): boolean {
   if (item.url.includes("?") ? pathname + search === item.url : pathname === item.url) return true;
@@ -54,6 +55,25 @@ function isActiveRoute(item: NavItem, pathname: string, search: string): boolean
   }
 
   return false;
+}
+
+function filterByFlags(nav: NavGroup[], flags: Record<string, boolean>): NavGroup[] {
+  return nav
+    .map((group) => ({
+      ...group,
+      items: group.items
+        .map((item) => {
+          if (item.featureFlag && !flags[item.featureFlag]) return null;
+          if (item.children) {
+            const kept = item.children.filter((c) => !c.featureFlag || flags[c.featureFlag]);
+            if (kept.length === 0) return null;
+            return { ...item, children: kept };
+          }
+          return item;
+        })
+        .filter(Boolean) as NavItem[],
+    }))
+    .filter((g) => g.items.length > 0);
 }
 
 function injectBadges(nav: NavGroup[], unreadCount: number, pendingReportsCount: number): NavGroup[] {
@@ -91,7 +111,7 @@ function BrandLogo({ role }: { role: UserRole }) {
       ) : (
         <div className="flex flex-col gap-1">
           <img
-            src="/logo_white.png"
+            src="/logo_blue.png"
             alt="MurihSpace"
             className="h-7 w-auto object-contain shrink-0 transition-transform group-hover:scale-105"
           />
@@ -122,12 +142,12 @@ function NavRow({ item }: { item: NavItem }) {
           isActive={active}
           tooltip={item.title}
           className="relative group/item h-9 gap-3 rounded-lg px-3 text-[13.5px] font-medium
-            text-sidebar-foreground/80 transition-all duration-150
-            hover:bg-white/10 hover:text-white
-            data-[active=true]:bg-[#38A8D8]/20 data-[active=true]:text-white data-[active=true]:font-semibold"
+            text-[#65676B] transition-all duration-150
+            hover:bg-[#F0F2F5] hover:text-[#1a2e3b]
+            data-[active=true]:bg-[#38A8D8]/10 data-[active=true]:text-[#38A8D8] data-[active=true]:font-semibold"
         >
           <Link to={item.url}>
-            <span className="shrink-0 opacity-70 group-hover/item:opacity-100 data-[active=true]:opacity-100">
+            <span className="shrink-0 opacity-60 group-hover/item:opacity-90 data-[active=true]:opacity-100 data-[active=true]:text-[#38A8D8]">
               {item.icon}
             </span>
             <span className="flex-1 truncate">{item.title}</span>
@@ -137,7 +157,7 @@ function NavRow({ item }: { item: NavItem }) {
               </span>
             )}
             {active && (
-              <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-0.5 rounded-r bg-[#38A8D8]" />
+              <span className="absolute left-0 top-1/2 -translate-y-1/2 h-6 w-[3px] rounded-r-full bg-[#38A8D8]" />
             )}
           </Link>
         </SidebarMenuButton>
@@ -153,39 +173,39 @@ function NavRow({ item }: { item: NavItem }) {
             isActive={active}
             tooltip={item.title}
             className="relative group/item h-9 gap-3 rounded-lg px-3 text-[13.5px] font-medium
-              text-sidebar-foreground/80 transition-all duration-150
-              hover:bg-white/10 hover:text-white
-              data-[active=true]:bg-[#38A8D8]/20 data-[active=true]:text-white data-[active=true]:font-semibold"
+              text-[#65676B] transition-all duration-150
+              hover:bg-[#F0F2F5] hover:text-[#1a2e3b]
+              data-[active=true]:bg-[#38A8D8]/10 data-[active=true]:text-[#38A8D8] data-[active=true]:font-semibold"
           >
-            <span className="shrink-0 opacity-70 group-hover/item:opacity-100">{item.icon}</span>
+            <span className="shrink-0 opacity-60 group-hover/item:opacity-90">{item.icon}</span>
             <span className="flex-1 truncate">{item.title}</span>
             {item.badge != null && !collapsed && (
               <span className="flex h-4.5 min-w-[18px] items-center justify-center rounded-full bg-[#38A8D8] px-1.5 text-[10px] font-bold text-white shadow-xs">
                 {item.badge}
               </span>
             )}
-            <ChevronRight className="size-3.5 shrink-0 opacity-50 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+            <ChevronRight className="size-3.5 shrink-0 opacity-40 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
             {active && (
-              <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-0.5 rounded-r bg-[#38A8D8]" />
+              <span className="absolute left-0 top-1/2 -translate-y-1/2 h-6 w-[3px] rounded-r-full bg-[#38A8D8]" />
             )}
           </SidebarMenuButton>
         </CollapsibleTrigger>
 
         <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down">
-          <div className="ml-7 mt-0.5 mb-1 border-l border-white/10 pl-3 space-y-0.5">
+          <div className="ml-7 mt-0.5 mb-1 border-l border-[#38A8D8]/20 pl-3 space-y-0.5">
             {item.children!.map((child) => (
               <Link
                 key={child.title}
                 to={child.url}
                 className={`flex items-center justify-between rounded-md py-1.5 px-2 text-[12.5px] transition-colors duration-100 ${
                   childActive(child)
-                    ? "text-white font-semibold bg-white/8"
-                    : "text-sidebar-foreground/60 hover:text-white hover:bg-white/8"
+                    ? "text-[#38A8D8] font-semibold bg-[#38A8D8]/08"
+                    : "text-[#65676B] hover:text-[#1a2e3b] hover:bg-[#F0F2F5]"
                 }`}
               >
                 <span className="truncate">{child.title}</span>
                 {child.badge && (
-                  <span className="text-[9px] px-1 rounded bg-[#38A8D8]/30 text-[#38A8D8] font-bold uppercase">
+                  <span className="text-[9px] px-1 rounded bg-[#38A8D8]/20 text-[#38A8D8] font-bold uppercase">
                     {child.badge}
                   </span>
                 )}
@@ -230,10 +250,10 @@ function UserFooter({ role }: { role: UserRole }) {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" className="h-auto gap-2.5 rounded-xl px-2 py-2">
-              <div className="h-8 w-8 rounded-lg bg-white/10 animate-pulse" />
+              <div className="h-8 w-8 rounded-lg bg-[#38A8D8]/10 animate-pulse" />
               <div className="grid flex-1 gap-1">
-                <div className="h-3 w-24 rounded bg-white/10 animate-pulse" />
-                <div className="h-2.5 w-16 rounded bg-white/10 animate-pulse" />
+                <div className="h-3 w-24 rounded bg-[#38A8D8]/10 animate-pulse" />
+                <div className="h-2.5 w-16 rounded bg-[#38A8D8]/10 animate-pulse" />
               </div>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -250,7 +270,7 @@ function UserFooter({ role }: { role: UserRole }) {
             <DropdownMenuTrigger asChild>
               <SidebarMenuButton
                 size="lg"
-                className="h-auto gap-2.5 rounded-xl px-2 py-2 hover:bg-white/10 data-[state=open]:bg-white/10"
+                className="h-auto gap-2.5 rounded-xl px-2 py-2 hover:bg-[#F0F2F5] data-[state=open]:bg-[#F0F2F5]"
               >
                 <Avatar className="h-8 w-8 rounded-lg shrink-0">
                   <AvatarFallback className="rounded-lg bg-[#38A8D8] text-white text-xs font-bold">
@@ -258,12 +278,12 @@ function UserFooter({ role }: { role: UserRole }) {
                   </AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-left leading-tight">
-                  <span className="truncate text-[13px] font-semibold text-white">{user.name}</span>
-                  <span className="truncate text-[11px] text-white/50">
+                  <span className="truncate text-[13px] font-semibold text-[#1a2e3b]">{user.name}</span>
+                  <span className="truncate text-[11px] text-[#65676B]">
                     {roleSubtitle[role]}
                   </span>
                 </div>
-                <ChevronsUpDown className="size-3.5 shrink-0 text-white/40" />
+                <ChevronsUpDown className="size-3.5 shrink-0 text-[#65676B]" />
               </SidebarMenuButton>
             </DropdownMenuTrigger>
 
@@ -289,7 +309,7 @@ function UserFooter({ role }: { role: UserRole }) {
               <DropdownMenuSeparator />
               {role !== "admin" && (
                 <DropdownMenuItem asChild className="gap-2 cursor-pointer">
-                  <Link to="/app/link-in-bio"><Sparkles className="size-4" />My Link in Bio</Link>
+                  <Link to="/app/link-in-bio"><Globe className="size-4" />My Link in Bio</Link>
                 </DropdownMenuItem>
               )}
               <DropdownMenuItem asChild className="gap-2 cursor-pointer">
@@ -362,24 +382,25 @@ export function AppSidebar({ ...props }: SidebarProps) {
       .catch(() => {});
   }, [role]);
 
-  const nav = injectBadges(getSidebarNav(role), unreadCount, pendingReportsCount);
+  const flags = useFeatureFlags();
+  const nav = filterByFlags(injectBadges(getSidebarNav(role), unreadCount, pendingReportsCount), flags);
 
   return (
     <Sidebar
       collapsible="icon"
-      className="border-r-0 shadow-[2px_0_16px_rgba(16,40,64,0.18)]"
+      className="border-r border-sidebar-border shadow-[2px_0_20px_rgba(16,40,64,0.06)]"
       {...props}
     >
       <SidebarHeader className="px-3 pt-3 pb-2">
         <BrandLogo role={role} />
       </SidebarHeader>
 
-      <SidebarSeparator className="opacity-20 mx-3" />
+      <SidebarSeparator className="opacity-10 mx-3 bg-[#1a2e3b]" />
 
       <SidebarContent className="px-2 py-1.5 gap-0">
         {nav.map((group) => (
           <SidebarGroup key={group.title} className="p-0">
-            <SidebarGroupLabel className="px-3 py-2 text-[10.5px] font-semibold uppercase tracking-widest text-white/30">
+            <SidebarGroupLabel className="px-3 py-2 text-[10.5px] font-semibold uppercase tracking-widest text-[#65676B]/70">
               {group.title}
             </SidebarGroupLabel>
             <SidebarMenu className="gap-0.5">
@@ -391,7 +412,7 @@ export function AppSidebar({ ...props }: SidebarProps) {
         ))}
       </SidebarContent>
 
-      <SidebarSeparator className="opacity-20 mx-3" />
+      <SidebarSeparator className="opacity-10 mx-3 bg-[#1a2e3b]" />
 
       <SidebarFooter className="p-2 pb-3">
         <UserFooter role={role} />

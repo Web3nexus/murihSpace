@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { SendHorizonal, Plus, Loader2, Building2, Trash2, DollarSign } from 'lucide-react';
+import { getAuthToken } from "@/lib/auth/token";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api/v1';
 
 function getAuthHeaders() {
-  const token = localStorage.getItem('murihspace-token');
+  const token = getAuthToken();
   return {
     'Content-Type': 'application/json',
     Accept: 'application/json',

@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ShieldAlert, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import type { ReportReason, ReportedType } from '@/types/moderation';
+import { getAuthToken } from "@/lib/auth/token";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api/v1';
 
@@ -48,7 +49,7 @@ export function ReportModal({
     setIsSubmitting(true);
     setError(null);
 
-    const token = localStorage.getItem('auth_token');
+    const token = getAuthToken();
     try {
       const res = await fetch(`${API_BASE}/reports`, {
         method: 'POST',
@@ -87,7 +88,7 @@ export function ReportModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[480px] bg-card border-border shadow-2xl rounded-2xl">
+      <DialogContent className="sm:max-w-lg md:max-w-xl bg-card border-border shadow-2xl rounded-2xl p-6 sm:p-8">
         <DialogHeader>
           <div className="flex items-center gap-2.5 text-destructive">
             <ShieldAlert className="h-5 w-5" />

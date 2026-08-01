@@ -3,11 +3,15 @@
 namespace App\Http\Controllers;
 
 use App\Models\FulfilmentPayout;
+use App\Services\NotificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class FulfilmentPayoutController extends Controller
 {
+    public function __construct(private readonly NotificationService $notifications)
+    {
+    }
     public function myPayouts(Request $request): JsonResponse
     {
         $payouts = FulfilmentPayout::where('creator_id', $request->user()->id)
@@ -93,10 +97,26 @@ class FulfilmentPayoutController extends Controller
             return response()->json(['message' => 'Payout is not pending.'], 400);
         }
 
+        $creator = $payout->creator;
+        if (! $creator || ! $creator->hasVerifiedKyc()) {
+            return response()->json([
+                'message' => 'This creator has not completed KYC identity verification. Payouts are blocked until KYC is verified.',
+                'code' => 'KYC_REQUIRED',
+            ], 403);
+        }
+
         $payout->update([
             'status' => 'paid',
             'paid_at' => now(),
         ]);
+
+        $this->notifications->actionEmail(
+            user: $creator,
+            title: 'Your payout has been paid',
+            bodyHtml: '<p>Your MurihSpace payout of <strong>'.e($payout->currency ?? 'USD').' '.number_format((float) $payout->net_amount, 2).'</strong> has been <strong>paid</strong> and is on its way to your account.</p>',
+            actionLabel: 'View payouts',
+            actionUrl: NotificationService::link('settings/payouts'),
+        );
 
         return response()->json(['data' => $payout->fresh()->load('creator:id,name,username')]);
     }

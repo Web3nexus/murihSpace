@@ -1,22 +1,19 @@
 import { useNavigate } from 'react-router';
 import { LogOut, AlertTriangle } from 'lucide-react';
+import { clearImpersonationToken } from '@/lib/auth/token';
 
 export function ImpersonationBanner() {
   const navigate = useNavigate();
-  const isImpersonating = localStorage.getItem('is_impersonating') === 'true';
-  const userData = localStorage.getItem('impersonated_user');
+  const isImpersonating = sessionStorage.getItem('is_impersonating') === 'true';
+  const userData = sessionStorage.getItem('impersonated_user');
   const user = userData ? JSON.parse(userData) : null;
 
   if (!isImpersonating || !user) return null;
 
   const stopImpersonating = () => {
-    const adminToken = localStorage.getItem('admin_token');
-    if (adminToken) {
-      localStorage.setItem('murihspace-token', adminToken);
-    }
-    localStorage.removeItem('admin_token');
-    localStorage.removeItem('is_impersonating');
-    localStorage.removeItem('impersonated_user');
+    clearImpersonationToken();
+    sessionStorage.removeItem('is_impersonating');
+    sessionStorage.removeItem('impersonated_user');
     navigate('/app/securegate');
     window.location.reload();
   };

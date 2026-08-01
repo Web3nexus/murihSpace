@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Crown, Loader2, Check, CreditCard, AlertCircle, X } from 'lucide-react';
 import type { SubscriptionPlan } from '@/types/subscription';
+import { getAuthToken } from "@/lib/auth/token";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api/v1';
 
 function getAuthHeaders() {
-  const token = localStorage.getItem('murihspace-token');
+  const token = getAuthToken();
   return {
     'Content-Type': 'application/json',
     Accept: 'application/json',
@@ -65,7 +66,7 @@ export function BrowsePlansPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 w-full max-w-4xl mx-auto p-4 sm:p-6 lg:p-8">
       <div>
         <h1 className="text-xl font-extrabold text-foreground flex items-center gap-2">
           <Crown className="h-5 w-5 text-amber-500" />

@@ -1,13 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Star, MessageSquare, Plus, Loader2, Trash2, Edit, Clock } from 'lucide-react';
+import { Award, MessageSquare, Plus, Loader2, Trash2, Edit, Clock } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { getAuthToken } from "@/lib/auth/token";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api/v1';
 
 
 function getAuthHeaders() {
-  const token = localStorage.getItem('murihspace-token');
+  const token = getAuthToken();
   return {
     'Content-Type': 'application/json',
     Accept: 'application/json',
@@ -28,7 +29,7 @@ function StarDisplay({ rating, size = 16 }: { rating: number; size?: number }) {
   return (
     <div className="flex gap-0.5">
       {[1, 2, 3, 4, 5].map(s => (
-        <Star key={s} size={size} className={s <= rating ? 'text-amber-400 fill-amber-400' : 'text-muted-foreground'} />
+        <Award key={s} size={size} className={s <= rating ? 'text-amber-400 fill-amber-400' : 'text-muted-foreground'} />
       ))}
     </div>
   );
@@ -156,7 +157,7 @@ export function ReviewsPage() {
             <div className="flex gap-1">
               {[1, 2, 3, 4, 5].map(s => (
                 <button key={s} type="button" onClick={() => setFRating(s)}>
-                  <Star size={28} className={s <= fRating ? 'text-amber-400 fill-amber-400' : 'text-muted-foreground hover:text-amber-400'} />
+                  <Award size={28} className={s <= fRating ? 'text-amber-400 fill-amber-400' : 'text-muted-foreground hover:text-amber-400'} />
                 </button>
               ))}
               <span className="ml-2 text-sm text-muted-foreground self-center">{fRating}/5</span>

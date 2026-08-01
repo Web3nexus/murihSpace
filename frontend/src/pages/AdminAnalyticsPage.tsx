@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router";
 import {
   BarChart3, TrendingUp, DollarSign, Users, ShoppingBag, Globe, Crown, Wallet,
-  Loader2, Store, ShieldCheck, RefreshCw, CreditCard,
+  Loader2, Store, ShieldCheck, RefreshCw, CreditCard, Coins,
   ArrowUpRight, ArrowDownRight, Package, AlertCircle,
 } from "lucide-react";
 import {
@@ -14,9 +14,22 @@ import { Button } from "@/components/ui/button";
 
 const PIE_COLORS = ["#38A8D8", "#2164b6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"];
 
+const CURRENCY_SYMBOLS: Record<string, string> = {
+  NGN: "\u20A6",
+  USD: "$",
+  GBP: "\u00A3",
+  EUR: "\u20AC",
+  GHS: "GH\u20B5",
+  KES: "KSh",
+  ZAR: "R",
+  XOF: "CFA",
+};
+
+const SUPPORTED_CURRENCIES = ["NGN", "USD", "GBP", "EUR", "GHS", "KES", "ZAR", "XOF"];
+
 function formatAmount(cents: number, currency = "NGN"): string {
-  const symbols: Record<string, string> = { NGN: "\u20A6", USD: "$", GBP: "\u00A3", EUR: "\u20AC" };
-  return (symbols[currency] ?? currency + " ") + (cents / 100).toLocaleString(undefined, { minimumFractionDigits: 2 });
+  const sym = CURRENCY_SYMBOLS[currency] ?? currency + " ";
+  return (sym + (cents / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
 }
 
 function compact(n: number): string {
@@ -73,16 +86,19 @@ export function AdminAnalyticsPage() {
   const [revenue, setRevenue] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [currency, setCurrency] = useState<string>("NGN");
+  const [loadingCurrency, setLoadingCurrency] = useState(true);
 
-  const fetchAll = useCallback(async () => {
+  const fetchAll = useCallback(async (currencyCode: string) => {
     setIsLoading(true);
     setFetchError(null);
     try {
+      const q = `?currency=${encodeURIComponent(currencyCode)}`;
       const [ovRes, topRes, grRes, revRes] = await Promise.allSettled([
-        apiClient.get("/securegate/analytics/overview"),
-        apiClient.get("/securegate/analytics/top-content"),
-        apiClient.get("/securegate/analytics/growth"),
-        apiClient.get("/securegate/analytics/revenue"),
+        apiClient.get(`/securegate/analytics/overview${q}`),
+        apiClient.get(`/securegate/analytics/top-content${q}`),
+        apiClient.get(`/securegate/analytics/growth${q}`),
+        apiClient.get(`/securegate/analytics/revenue${q}`),
       ]);
       if (ovRes.status === "fulfilled") setOverview(ovRes.value.data?.data ?? ovRes.value.data);
       if (topRes.status === "fulfilled") setTopContent(topRes.value.data?.data ?? topRes.value.data);
@@ -96,9 +112,23 @@ export function AdminAnalyticsPage() {
     }
   }, []);
 
-  useEffect(() => { fetchAll(); }, [fetchAll]);
+  useEffect(() => {
+    apiClient.get("/securegate/settings")
+      .then((res) => {
+        const data = res.data?.data?.data ?? res.data?.data ?? res.data;
+        const def = (data as { default_currency?: string } | undefined)?.default_currency;
+        if (def && SUPPORTED_CURRENCIES.includes(def)) {
+          setCurrency(def);
+          return def;
+        }
+        return "NGN";
+      })
+      .catch(() => "NGN")
+      .then((def: string) => fetchAll(def))
+      .finally(() => setLoadingCurrency(false));
+  }, [fetchAll]);
 
-  if (isLoading) {
+  if (isLoading && loadingCurrency) {
     return (
       <div className="w-full flex items-center justify-center h-64">
         <Loader2 className="w-6 h-6 animate-spin text-[#38A8D8]" />
@@ -107,6 +137,10 @@ export function AdminAnalyticsPage() {
   }
 
   const setTab = (t: string) => navigate("/app/securegate/analytics/" + t, { replace: true });
+  const changeCurrency = (code: string) => {
+    setCurrency(code);
+    fetchAll(code);
+  };
 
   const tabs = [
     { key: "overview", label: "Overview", icon: <BarChart3 className="h-3.5 w-3.5" /> },
@@ -125,15 +159,31 @@ export function AdminAnalyticsPage() {
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">Platform Analytics</h1>
           <p className="text-sm text-white/70 max-w-xl">Platform-wide metrics, growth trends, and top content.</p>
         </div>
-        <Button onClick={fetchAll} variant="secondary" size="sm" className="gap-1.5 shrink-0">
-          <RefreshCw className="h-4 w-4" /> Refresh
-        </Button>
+        <div className="flex items-center gap-3">
+          <div className="relative">
+            <Coins className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-white/50 pointer-events-none" />
+            <select
+              value={currency}
+              onChange={(e) => changeCurrency(e.target.value)}
+              disabled={isLoading}
+              className="appearance-none h-9 pl-9 pr-8 rounded-xl bg-white/10 border border-white/20 text-white text-xs font-bold cursor-pointer hover:bg-white/15 transition-colors disabled:opacity-50 disabled:cursor-wait focus:outline-none"
+              aria-label="Analytics currency"
+            >
+              {SUPPORTED_CURRENCIES.map((c) => (
+                <option key={c} value={c} className="text-slate-900">{c} — {CURRENCY_SYMBOLS[c]}</option>
+              ))}
+            </select>
+          </div>
+          <Button onClick={() => fetchAll(currency)} variant="secondary" size="sm" className="gap-1.5 shrink-0">
+            <RefreshCw className="h-4 w-4" /> Refresh
+          </Button>
+        </div>
       </div>
 
       {fetchError && (
         <div className="flex items-center gap-2 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-xs text-destructive">
           <AlertCircle className="h-4 w-4 shrink-0" /> {fetchError}
-          <button onClick={() => fetchAll()} className="ml-auto text-muted-foreground hover:text-foreground font-bold">Retry</button>
+          <button onClick={() => fetchAll(currency)} className="ml-auto text-muted-foreground hover:text-foreground font-bold">Retry</button>
         </div>
       )}
 
@@ -146,24 +196,24 @@ export function AdminAnalyticsPage() {
       </div>
 
       {tab === "overview" && (
-        <OverviewTab overview={overview} topContent={topContent} />
+        <OverviewTab overview={overview} topContent={topContent} currency={currency} />
       )}
 
-      {tab === "growth" && <GrowthTab data={growth} />}
+      {tab === "growth" && <GrowthTab data={growth} currency={currency} />}
 
-      {tab === "revenue" && <RevenueTab data={revenue} />}
+      {tab === "revenue" && <RevenueTab data={revenue} currency={currency} />}
 
       {tab === "content" && <ContentTab data={topContent} />}
     </div>
   );
 }
 
-function OverviewTab({ overview, topContent }: { overview: any; topContent: any }) {
+function OverviewTab({ overview, topContent, currency }: { overview: any; topContent: any; currency: string }) {
   const stats = [
     { label: "Total Users", value: compact(overview?.users?.total ?? 0), sub: `${compact(overview?.users?.creators ?? 0)} creators \u00B7 ${compact(overview?.users?.members ?? 0)} members`, icon: <Users className="h-4 w-4" /> },
-    { label: "Digital Revenue", value: formatAmount(overview?.revenue?.digital_revenue ?? 0), sub: `${overview?.revenue?.digital_orders ?? 0} orders`, icon: <DollarSign className="h-4 w-4" /> },
-    { label: "Monthly Recurring", value: formatAmount(overview?.revenue?.mrr ?? 0), sub: `${overview?.revenue?.active_subscriptions ?? 0} active subs`, icon: <TrendingUp className="h-4 w-4" /> },
-    { label: "Platform Balance", value: formatAmount(overview?.wallet?.platform_balance ?? 0), sub: `${formatAmount(overview?.wallet?.user_balances ?? 0)} in user wallets`, icon: <Wallet className="h-4 w-4" /> },
+    { label: "Digital Revenue", value: formatAmount(overview?.revenue?.digital_revenue ?? 0, currency), sub: `${overview?.revenue?.digital_orders ?? 0} orders`, icon: <DollarSign className="h-4 w-4" /> },
+    { label: "Monthly Recurring", value: formatAmount(overview?.revenue?.mrr ?? 0, currency), sub: `${overview?.revenue?.active_subscriptions ?? 0} active subs`, icon: <TrendingUp className="h-4 w-4" /> },
+    { label: "Platform Balance", value: formatAmount(overview?.wallet?.platform_balance ?? 0, currency), sub: `${formatAmount(overview?.wallet?.user_balances ?? 0, currency)} in user wallets`, icon: <Wallet className="h-4 w-4" /> },
     { label: "Products", value: (overview?.content?.digital_products ?? 0) + (overview?.content?.physical_products ?? 0), sub: `${overview?.content?.published_products ?? 0} published digital \u00B7 ${overview?.content?.physical_products ?? 0} physical`, icon: <Package className="h-4 w-4" /> },
     { label: "Communities", value: overview?.content?.communities ?? 0, sub: `${overview?.content?.public_communities ?? 0} public`, icon: <Globe className="h-4 w-4" /> },
     { label: "KYC Verified", value: overview?.users?.verified_kyc ?? 0, sub: `${overview?.users?.pending_kyc ?? 0} pending`, icon: <ShieldCheck className="h-4 w-4" /> },
@@ -238,7 +288,7 @@ function OverviewTab({ overview, topContent }: { overview: any; topContent: any 
   );
 }
 
-function GrowthTab({ data }: { data: any }) {
+function GrowthTab({ data, currency }: { data: any; currency: string }) {
   if (!data) return <p className="text-sm text-muted-foreground">No growth data available.</p>;
 
   const signups = data.signups_by_day ?? [];
@@ -252,7 +302,7 @@ function GrowthTab({ data }: { data: any }) {
         <StatCard label="Total Users" value={compact(data.total_users ?? 0)} icon={<Users className="h-4 w-4" />} />
         <StatCard label="New Users (30d)" value={compact(data.new_users_30d ?? 0)} icon={<TrendingUp className="h-4 w-4" />} />
         <StatCard label="Active Creators" value={compact(data.active_creators ?? 0)} icon={<Store className="h-4 w-4" />} />
-        <StatCard label="GMV (30d)" value={formatAmount(data.gmv_30d ?? 0)} icon={<DollarSign className="h-4 w-4" />} />
+        <StatCard label="GMV (30d)" value={formatAmount(data.gmv_30d ?? 0, currency)} icon={<DollarSign className="h-4 w-4" />} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -337,7 +387,7 @@ function GrowthTab({ data }: { data: any }) {
   );
 }
 
-function RevenueTab({ data }: { data: any }) {
+function RevenueTab({ data, currency }: { data: any; currency: string }) {
   if (!data) return <p className="text-sm text-muted-foreground">No revenue data available.</p>;
 
   const trend = data.revenue_trend ?? [];
@@ -351,10 +401,10 @@ function RevenueTab({ data }: { data: any }) {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard label="Digital Revenue" value={formatAmount(data.digital_revenue ?? 0)} sub={`${data.digital_orders ?? 0} orders`} icon={<DollarSign className="h-4 w-4" />} />
-        <StatCard label="MRR" value={formatAmount(data.mrr ?? 0)} sub={`${data.active_subscriptions ?? 0} active subs`} icon={<TrendingUp className="h-4 w-4" />} />
-        <StatCard label="Platform Fees" value={formatAmount(data.platform_fees ?? 0)} icon={<CreditCard className="h-4 w-4" />} />
-        <StatCard label="Pending Payouts" value={formatAmount(data.pending_payouts ?? 0)} icon={<Wallet className="h-4 w-4" />} />
+        <StatCard label="Digital Revenue" value={formatAmount(data.digital_revenue ?? 0, currency)} sub={`${data.digital_orders ?? 0} orders`} icon={<DollarSign className="h-4 w-4" />} />
+        <StatCard label="MRR" value={formatAmount(data.mrr ?? 0, currency)} sub={`${data.active_subscriptions ?? 0} active subs`} icon={<TrendingUp className="h-4 w-4" />} />
+        <StatCard label="Platform Fees" value={formatAmount(data.platform_fees ?? 0, currency)} icon={<CreditCard className="h-4 w-4" />} />
+        <StatCard label="Pending Payouts" value={formatAmount(data.pending_payouts ?? 0, currency)} icon={<Wallet className="h-4 w-4" />} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -365,8 +415,8 @@ function RevenueTab({ data }: { data: any }) {
               <BarChart data={trend}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis dataKey="month" tick={{ fontSize: 10 }} tickLine={false} axisLine={false} />
-                <YAxis tick={{ fontSize: 10 }} tickLine={false} axisLine={false} tickFormatter={(v) => formatAmount(v * 100)} />
-                <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} formatter={(value: any) => [formatAmount(Number(value) * 100), "Revenue"]} />
+                <YAxis tick={{ fontSize: 10 }} tickLine={false} axisLine={false} tickFormatter={(v) => formatAmount(v * 100, currency)} />
+                <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} formatter={(value: any) => [formatAmount(Number(value) * 100, currency), "Revenue"]} />
                 <Bar dataKey="revenue" fill="#38A8D8" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
@@ -387,7 +437,7 @@ function RevenueTab({ data }: { data: any }) {
                         <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
                       ))}
                     </Pie>
-                    <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} formatter={(value: any) => [formatAmount(Number(value)), ""]} />
+                    <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} formatter={(value: any) => [formatAmount(Number(value), currency), ""]} />
                   </PieChart>
                 </ResponsiveContainer>
               </div>
@@ -396,7 +446,7 @@ function RevenueTab({ data }: { data: any }) {
                   <div key={s.name} className="flex items-center gap-2 text-xs">
                     <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }} />
                     <span className="text-muted-foreground">{s.name}</span>
-                    <span className="font-bold text-foreground ml-auto">{formatAmount(s.value)}</span>
+                    <span className="font-bold text-foreground ml-auto">{formatAmount(s.value, currency)}</span>
                   </div>
                 ))}
               </div>

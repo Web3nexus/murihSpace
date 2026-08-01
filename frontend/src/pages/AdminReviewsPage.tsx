@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Star, MessageSquare, Loader2, CheckCircle2, XCircle, Trash2, AlertCircle } from 'lucide-react';
+import { Award, MessageSquare, Loader2, CheckCircle2, XCircle, Trash2, AlertCircle } from 'lucide-react';
 import { Button } from "@/components/ui/button";
+import { getAuthToken } from "@/lib/auth/token";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api/v1';
 
 function getAuthHeaders() {
-  const token = localStorage.getItem('murihspace-token');
+  const token = getAuthToken();
   return { 'Content-Type': 'application/json', Accept: 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
 }
 
@@ -21,7 +22,7 @@ function StarDisplay({ rating, size = 14 }: { rating: number; size?: number }) {
   return (
     <div className="flex gap-0.5">
       {[1, 2, 3, 4, 5].map(s => (
-        <Star key={s} size={size} className={s <= rating ? 'text-amber-400 fill-amber-400' : 'text-muted-foreground'} />
+        <Award key={s} size={size} className={s <= rating ? 'text-amber-400 fill-amber-400' : 'text-muted-foreground'} />
       ))}
     </div>
   );

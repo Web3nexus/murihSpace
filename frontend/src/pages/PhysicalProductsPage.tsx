@@ -2,11 +2,13 @@ import { useState, useEffect, useCallback } from 'react';
 import { Package, Plus, Search, Edit, Trash2, Loader2, Check, AlertCircle, X, Eye, EyeOff } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { MultiImageUploader } from "@/components/upload/ImageUploader";
+import { getAuthToken } from "@/lib/auth/token";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api/v1';
 
 function getAuthHeaders() {
-  const token = localStorage.getItem('murihspace-token');
+  const token = getAuthToken();
   return {
     'Content-Type': 'application/json',
     Accept: 'application/json',
@@ -56,7 +58,7 @@ export function PhysicalProductsPage() {
   const [fSku, setFSku] = useState('');
   const [fPrice, setFPrice] = useState('0');
   const [fCurrency, setFCurrency] = useState('NGN');
-  const [fCategory, setFDategory] = useState('');
+  const [fCategory, setFCategory] = useState('');
   const [fStock, setFStock] = useState('0');
   const [fLowStock, setFLowStock] = useState('5');
   const [fTrackInv, setFTrackInv] = useState(true);
@@ -67,7 +69,7 @@ export function PhysicalProductsPage() {
   const [fWidth, setFWidth] = useState('');
   const [fHeight, setFHeight] = useState('');
   const [fOrigin, setFOrigin] = useState('');
-  const [fImages, setFImages] = useState('');
+  const [fImages, setFImages] = useState<string[]>([]);
 
   // Stock adjust
   const [adjustingId, setAdjustingId] = useState<number | null>(null);
@@ -75,7 +77,7 @@ export function PhysicalProductsPage() {
   const [adjReason, setAdjReason] = useState('');
 
   const fetchProducts = useCallback(async () => {
-    const token = localStorage.getItem('murihspace-token') || localStorage.getItem('auth_token');
+    const token = getAuthToken();
     try {
       const params = new URLSearchParams({ page: String(page), per_page: '20' });
       if (searchQuery) params.set('search', searchQuery);
@@ -84,8 +86,8 @@ export function PhysicalProductsPage() {
       });
       if (res.ok) {
         const json = await res.json();
-        setProducts(json.data?.data ?? []);
-        setLastPage(json.data?.last_page ?? 1);
+        setProducts(Array.isArray(json.data) ? json.data : json.data?.data ?? []);
+        setLastPage(json.last_page ?? json.data?.last_page ?? 1);
       }
     } catch { /* silent */ }
     setIsLoading(false);
@@ -95,20 +97,20 @@ export function PhysicalProductsPage() {
 
   const resetForm = () => {
     setFTitle(''); setFDesc(''); setFSku(''); setFPrice('0'); setFCurrency('NGN');
-    setFDategory(''); setFStock('0'); setFLowStock('5'); setFTrackInv(true); setFActive(true);
+    setFCategory(''); setFStock('0'); setFLowStock('5'); setFTrackInv(true); setFActive(true);
     setFWeight(''); setFWeightUnit('kg'); setFLength(''); setFWidth(''); setFHeight('');
-    setFOrigin(''); setFImages('');
+    setFOrigin(''); setFImages([]);
   };
 
   const openEdit = (p: PhysicalProduct) => {
     setFTitle(p.title); setFDesc(p.description ?? ''); setFSku(p.sku);
-    setFPrice(String(p.price)); setFCurrency(p.currency); setFDategory(p.category ?? '');
+    setFPrice(String(p.price)); setFCurrency(p.currency); setFCategory(p.category ?? '');
     setFStock(String(p.stock_quantity)); setFLowStock(String(p.low_stock_threshold));
     setFTrackInv(p.track_inventory); setFActive(p.is_active);
     setFWeight(p.weight ? String(p.weight) : ''); setFWeightUnit(p.weight_unit);
     setFLength(p.length ? String(p.length) : ''); setFWidth(p.width ? String(p.width) : '');
     setFHeight(p.height ? String(p.height) : ''); setFOrigin(p.origin_country ?? '');
-    setFImages(p.images?.join('\n') ?? '');
+    setFImages(p.images ?? []);
     setEditing(p);
     setShowForm(true);
   };
@@ -120,7 +122,7 @@ export function PhysicalProductsPage() {
 
     const body: Record<string, unknown> = {
       title: fTitle, description: fDesc || null, sku: fSku,
-      price: Math.round(parseFloat(fPrice) * 100), currency: fCurrency,
+      price: parseInt(fPrice, 10) || 0, currency: fCurrency,
       category: fCategory || null, stock_quantity: parseInt(fStock) || 0,
       low_stock_threshold: parseInt(fLowStock) || 5,
       track_inventory: fTrackInv, is_active: fActive,
@@ -129,7 +131,7 @@ export function PhysicalProductsPage() {
       width: fWidth ? parseFloat(fWidth) : null,
       height: fHeight ? parseFloat(fHeight) : null,
       origin_country: fOrigin || null,
-      images: fImages.trim() ? fImages.split('\n').map((s) => s.trim()).filter(Boolean) : null,
+      images: fImages.length > 0 ? fImages : null,
     };
 
     try {
@@ -176,7 +178,7 @@ export function PhysicalProductsPage() {
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.message ?? 'Failed.');
-      setProducts((prev) => prev.map((x) => x.id === p.id ? (json.data?.data ?? json.data) : x));
+      setProducts((prev) => prev.map((x) => x.id === p.id ? (json.data ?? json) : x));
     } catch (err: unknown) {
       setMessage({ type: 'error', text: err instanceof Error ? err.message : 'Failed.' });
     }
@@ -258,7 +260,7 @@ export function PhysicalProductsPage() {
             <Package className="h-6 w-6" />
           </div>
           <h3 className="text-base font-semibold text-foreground">{products.length === 0 ? 'No physical products yet' : 'No matching products'}</h3>
-          <p className="text-xs text-muted-foreground max-w-sm mx-auto">Add your first physical product to start selling merchandise.</p>
+          <p className="text-xs text-muted-foreground max-w-sm mx-auto text-center">Add your first physical product to start selling merchandise.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -368,7 +370,7 @@ export function PhysicalProductsPage() {
                 </div>
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-foreground uppercase tracking-wider">Category</label>
-                  <select value={fCategory} onChange={(e) => setFDategory(e.target.value)} className="w-full px-3 py-2 text-xs rounded-xl bg-muted border border-border outline-none focus-visible:ring-1 focus-visible:ring-secondary text-foreground">
+                  <select value={fCategory} onChange={(e) => setFCategory(e.target.value)} className="w-full px-3 py-2 text-xs rounded-xl bg-muted border border-border outline-none focus-visible:ring-1 focus-visible:ring-secondary text-foreground">
                     <option value="">None</option>
                     {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
                   </select>
@@ -432,10 +434,13 @@ export function PhysicalProductsPage() {
                 </div>
               </div>
 
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-foreground uppercase tracking-wider">Image URLs (one per line)</label>
-                <textarea value={fImages} onChange={(e) => setFImages(e.target.value)} placeholder="https://images.unsplash.com/photo-..." rows={3} className="w-full px-3 py-2 text-xs rounded-xl bg-muted border-0 outline-none focus:ring-1 focus:ring-secondary resize-none font-mono" />
-              </div>
+              <MultiImageUploader
+                values={fImages}
+                onChange={setFImages}
+                folder="physical-products/images"
+                label="Product Images"
+                maxImages={10}
+              />
 
               <div className="flex items-center justify-end gap-2 pt-2">
                 <Button type="button" variant="ghost" onClick={() => setShowForm(false)}>Cancel</Button>

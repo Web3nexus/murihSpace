@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Models\AudioRoom;
 use App\Models\AuditLog;
 use App\Models\Community;
 use App\Models\CommunityMembership;
@@ -9,6 +10,7 @@ use App\Models\CommunityRole;
 use App\Models\Conversation;
 use App\Models\DigitalProduct;
 use App\Models\Donation;
+use App\Models\Event;
 use App\Models\FeatureFlag;
 use App\Models\Message;
 use App\Models\Notification;
@@ -22,6 +24,7 @@ use App\Models\Transfer;
 use App\Models\User;
 use App\Models\Wallet;
 use App\Models\WithdrawalRequest;
+use App\Policies\AudioRoomPolicy;
 use App\Policies\AuditLogPolicy;
 use App\Policies\CommunityMembershipPolicy;
 use App\Policies\CommunityPolicy;
@@ -29,6 +32,7 @@ use App\Policies\CommunityRolePolicy;
 use App\Policies\ConversationPolicy;
 use App\Policies\DigitalProductPolicy;
 use App\Policies\DonationPolicy;
+use App\Policies\EventPolicy;
 use App\Policies\FeatureFlagPolicy;
 use App\Policies\MessagePolicy;
 use App\Policies\NotificationPolicy;
@@ -47,6 +51,7 @@ use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvid
 class AuthServiceProvider extends ServiceProvider
 {
     protected $policies = [
+        AudioRoom::class => AudioRoomPolicy::class,
         AuditLog::class => AuditLogPolicy::class,
         Community::class => CommunityPolicy::class,
         CommunityMembership::class => CommunityMembershipPolicy::class,
@@ -54,6 +59,7 @@ class AuthServiceProvider extends ServiceProvider
         Conversation::class => ConversationPolicy::class,
         DigitalProduct::class => DigitalProductPolicy::class,
         Donation::class => DonationPolicy::class,
+        Event::class => EventPolicy::class,
         FeatureFlag::class => FeatureFlagPolicy::class,
         Message::class => MessagePolicy::class,
         Notification::class => NotificationPolicy::class,

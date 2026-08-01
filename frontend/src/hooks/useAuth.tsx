@@ -1,5 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react";
+import { toast } from "sonner";
 import { apiClient, type ApiError } from "@/lib/api/client";
+import { getAuthToken, clearAuthTokens } from "@/lib/auth/token";
 
 export interface UserProfile {
   id: number;
@@ -8,6 +10,8 @@ export interface UserProfile {
   username?: string;
   role: "member" | "creator" | "vendor" | "admin";
   kyc_status?: string;
+  avatar?: string;
+  avatar_url?: string;
   email_verified: boolean;
 }
 
@@ -48,7 +52,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
 
   useEffect(() => {
-    const token = localStorage.getItem("murihspace-token");
+    const token = getAuthToken();
     if (!token) {
       setLoading(false);
       return;
@@ -64,7 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       })
       .catch(() => {
-        localStorage.removeItem("murihspace-token");
+        clearAuthTokens();
         setUser(null);
       })
       .finally(() => {
@@ -88,11 +92,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       localStorage.setItem("murihspace-token", token);
       setUser(userProfile);
+      toast.success(`Welcome back, ${userProfile.name}!`);
       return userProfile;
     } catch (err: unknown) {
       const apiErr = err && typeof err === "object" ? (err as ApiError) : { message: "An unexpected error occurred.", errors: {} };
       setError(apiErr.message || "Login failed.");
       setFieldErrors(apiErr.errors || {});
+      toast.error(apiErr.message || "Login failed.");
       return null;
     } finally {
       setLoading(false);
@@ -138,6 +144,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(true);
     try {
       await apiClient.post("/auth/logout");
+      toast.info("You have been signed out. See you soon!");
     } catch (err) {
       console.error("Logout request failed:", err);
     } finally {

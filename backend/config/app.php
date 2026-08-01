@@ -54,6 +54,10 @@ return [
 
     'url' => env('APP_URL', 'http://localhost'),
 
+    'frontend_url' => env('FRONTEND_URL', 'http://localhost:5173'),
+
+    'app_download_url' => env('APP_DOWNLOAD_URL', 'https://apps.apple.com/app/murihspace'),
+
     /*
     |--------------------------------------------------------------------------
     | Application Timezone

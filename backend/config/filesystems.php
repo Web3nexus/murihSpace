@@ -21,7 +21,7 @@ return [
     |--------------------------------------------------------------------------
     |
     | The disk used for user file uploads. Set via UPLOAD_DISK env var.
-    | Options: local_uploads, s3, wasabi, bunny
+    | Options: local_uploads, s3, wasabi, bunny, contabo
     |
     */
 
@@ -37,6 +37,18 @@ return [
     */
 
     'upload_folder' => env('UPLOAD_FOLDER', 'uploads'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Private Files Disk
+    |--------------------------------------------------------------------------
+    |
+    | The disk used for private file storage (digital products, downloads).
+    | Set via FILESYSTEM_PRIVATE_DISK env var (default: local).
+    |
+    */
+
+    'private_disk' => env('FILESYSTEM_PRIVATE_DISK', 'local'),
 
     /*
     |--------------------------------------------------------------------------
@@ -96,6 +108,7 @@ return [
         |   s3            - Amazon S3 or S3-compatible (Wasabi, DigitalOcean Spaces, etc.)
         |   wasabi        - Wasabi hot storage (S3-compatible)
         |   bunny         - Bunny.net CDN storage
+        |   contabo       - Contabo Object Storage (S3-compatible)
         |
         */
 
@@ -129,6 +142,19 @@ return [
             'endpoint' => env('BUNNY_ENDPOINT', 'https://de-s3.storage.bunnycdn.com'),
             'url' => env('BUNNY_CDN_URL'),
             'use_path_style_endpoint' => true,
+            'throw' => false,
+            'report' => false,
+        ],
+
+        'contabo' => [
+            'driver' => 's3',
+            'key' => env('CONTABO_ACCESS_KEY_ID'),
+            'secret' => env('CONTABO_SECRET_ACCESS_KEY'),
+            'region' => env('CONTABO_REGION', 'eu-central-1'),
+            'bucket' => env('CONTABO_BUCKET'),
+            'endpoint' => env('CONTABO_ENDPOINT', 'https://eu2.contabostorage.com'),
+            'url' => env('CONTABO_URL'),
+            'use_path_style_endpoint' => env('CONTABO_USE_PATH_STYLE_ENDPOINT', true),
             'throw' => false,
             'report' => false,
         ],

@@ -25,6 +25,7 @@ export interface Community {
   description?: string;
   category: CommunityCategory | string;
   visibility: "public" | "private";
+  privacy?: "public" | "private";
   pricing_type: "free" | "paid";
   price_amount?: number;
   logo_url?: string;
@@ -32,6 +33,7 @@ export interface Community {
   rules?: string[];
   members_count: number;
   creator?: CommunityCreator;
+  last_active_at?: string;
   created_at?: string;
   updated_at?: string;
 }

@@ -1,15 +1,29 @@
 import { useState, useEffect } from 'react';
 import {
-  TrendingUp, Users, Wallet,
-  UserCheck, AlertCircle, ArrowUpRight,
+  TrendingUp, Users, Wallet, Coins,
+  UserCheck, AlertCircle, ArrowUpRight, RefreshCw,
 } from 'lucide-react';
 import {
   LineChart, Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis,
   CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell,
 } from 'recharts';
 import { apiClient } from '@/lib/api/client';
+import { Button } from '@/components/ui/button';
 
 const COLORS = ['#38A8D8', '#F59E0B', '#10B981', '#8B5CF6', '#EF4444', '#EC4899'];
+
+const CURRENCY_SYMBOLS: Record<string, string> = {
+  NGN: '\u20A6',
+  USD: '$',
+  GBP: '\u00A3',
+  EUR: '\u20AC',
+  GHS: 'GH\u20B5',
+  KES: 'KSh',
+  ZAR: 'R',
+  XOF: 'CFA',
+};
+
+const SUPPORTED_CURRENCIES = ['NGN', 'USD', 'GBP', 'EUR', 'GHS', 'KES', 'ZAR', 'XOF'];
 
 interface OverviewData {
   users: { total: number; creators: number; members: number; verified_kyc: number; pending_kyc: number };
@@ -62,8 +76,9 @@ function MetricCard({ label, value, icon: Icon, trend, trendUp, color, sparkline
   );
 }
 
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount / 100);
+function formatCurrency(amount: number, currency = 'NGN'): string {
+  const sym = CURRENCY_SYMBOLS[currency] ?? currency + ' ';
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount / 100).replace('$', sym);
 }
 
 function formatNumber(n: number): string {
@@ -87,15 +102,17 @@ export function SecuregateOverviewPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'overview' | 'trends' | 'content'>('overview');
+  const [currency, setCurrency] = useState('NGN');
 
-  const fetchAll = async () => {
+  const fetchAll = async (currencyCode: string) => {
     setLoading(true);
     setError(null);
     try {
+      const q = `?currency=${encodeURIComponent(currencyCode)}`;
       const [oRes, tRes, cRes] = await Promise.all([
-        apiClient.get('/securegate/analytics/overview'),
-        apiClient.get('/securegate/analytics/trends?days=30'),
-        apiClient.get('/securegate/analytics/top-content'),
+        apiClient.get(`/securegate/analytics/overview${q}`),
+        apiClient.get(`/securegate/analytics/trends${q}&days=30`),
+        apiClient.get(`/securegate/analytics/top-content${q}`),
       ]);
       const extract = (res: { data: { success?: boolean; data?: unknown } }) => res.data?.success ? res.data.data : res.data;
       setOverview(extract(oRes) as OverviewData);
@@ -108,7 +125,19 @@ export function SecuregateOverviewPage() {
     }
   };
 
-  useEffect(() => { fetchAll(); }, []);
+  useEffect(() => {
+    apiClient.get('/securegate/settings')
+      .then((res) => {
+        const data = res.data?.data?.data ?? res.data?.data ?? res.data;
+        const def = (data as { default_currency?: string } | undefined)?.default_currency;
+        return def && SUPPORTED_CURRENCIES.includes(def) ? def : 'NGN';
+      })
+      .catch(() => 'NGN')
+      .then((def: string) => {
+        setCurrency(def);
+        fetchAll(def);
+      });
+  }, []);
 
   if (loading) {
     return (
@@ -127,7 +156,7 @@ export function SecuregateOverviewPage() {
         <div className="flex flex-col items-center gap-4 text-center max-w-md">
           <AlertCircle className="h-10 w-10 text-destructive" />
           <p className="text-sm text-muted-foreground">{error}</p>
-          <button onClick={fetchAll} className="rounded-lg bg-primary px-5 py-2 text-sm font-bold text-primary-foreground hover:bg-primary/90">Retry</button>
+          <button onClick={() => fetchAll(currency)} className="rounded-lg bg-primary px-5 py-2 text-sm font-bold text-primary-foreground hover:bg-primary/90">Retry</button>
         </div>
       </div>
     );
@@ -137,6 +166,11 @@ export function SecuregateOverviewPage() {
     { name: 'Creators', value: overview.users.creators },
     { name: 'Members', value: overview.users.members },
   ] : [];
+
+  const changeCurrency = (code: string) => {
+    setCurrency(code);
+    fetchAll(code);
+  };
 
   const tabs = [
     { id: 'overview' as const, label: 'Overview' },
@@ -155,18 +189,37 @@ export function SecuregateOverviewPage() {
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">Real-time platform intelligence</p>
           </div>
-          <div className="flex items-center gap-2 rounded-xl border border-border bg-card p-1">
-            {tabs.map((t) => (
-              <button
-                key={t.id}
-                onClick={() => setActiveTab(t.id)}
-                className={`rounded-lg px-4 py-2 text-xs font-bold transition-all duration-200 ${
-                  activeTab === t.id ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
-                }`}
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 rounded-xl border border-border bg-card p-1">
+              {tabs.map((t) => (
+                <button
+                  key={t.id}
+                  onClick={() => setActiveTab(t.id)}
+                  className={`rounded-lg px-4 py-2 text-xs font-bold transition-all duration-200 ${
+                    activeTab === t.id ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+            <div className="relative">
+              <Coins className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+              <select
+                value={currency}
+                onChange={(e) => changeCurrency(e.target.value)}
+                disabled={loading}
+                className="appearance-none h-9 pl-9 pr-8 rounded-xl border border-border bg-card text-sm font-bold cursor-pointer hover:border-primary/40 disabled:opacity-50 disabled:cursor-wait focus:outline-none"
+                aria-label="Analytics currency"
               >
-                {t.label}
-              </button>
-            ))}
+                {SUPPORTED_CURRENCIES.map((c) => (
+                  <option key={c} value={c}>{c} — {CURRENCY_SYMBOLS[c]}</option>
+                ))}
+              </select>
+            </div>
+            <Button onClick={() => fetchAll(currency)} variant="outline" size="sm" className="gap-1.5 shrink-0">
+              <RefreshCw className="h-4 w-4" /> Refresh
+            </Button>
           </div>
         </div>
 
@@ -174,9 +227,9 @@ export function SecuregateOverviewPage() {
           <>
             {/* Metric Cards */}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <MetricCard label="Total Revenue" value={formatCurrency(overview.revenue.digital_revenue)} trend={`${formatNumber(overview.revenue.digital_orders)} orders`} trendUp icon={TrendingUp} color="bg-[#38A8D8]/15 text-[#38A8D8]" sparklineColor="#10B981" />
-              <MetricCard label="Active Subscribers" value={formatNumber(overview.revenue.active_subscriptions)} trend={`${formatCurrency(overview.revenue.mrr)} MRR`} trendUp icon={Users} color="bg-purple-500/15 text-purple-500" sparklineColor="#8B5CF6" />
-              <MetricCard label="Platform Balance" value={formatCurrency(overview.wallet.platform_balance)} trend={`${formatCurrency(overview.wallet.user_balances)} in user wallets`} trendUp icon={Wallet} color="bg-amber-500/15 text-amber-500" sparklineColor="#F59E0B" />
+              <MetricCard label="Total Revenue" value={formatCurrency(overview.revenue.digital_revenue, currency)} trend={`${formatNumber(overview.revenue.digital_orders)} orders`} trendUp icon={TrendingUp} color="bg-[#38A8D8]/15 text-[#38A8D8]" sparklineColor="#10B981" />
+              <MetricCard label="Active Subscribers" value={formatNumber(overview.revenue.active_subscriptions)} trend={`${formatCurrency(overview.revenue.mrr, currency)} MRR`} trendUp icon={Users} color="bg-purple-500/15 text-purple-500" sparklineColor="#8B5CF6" />
+              <MetricCard label="Platform Balance" value={formatCurrency(overview.wallet.platform_balance, currency)} trend={`${formatCurrency(overview.wallet.user_balances, currency)} in user wallets`} trendUp icon={Wallet} color="bg-amber-500/15 text-amber-500" sparklineColor="#F59E0B" />
               <MetricCard label="Pending KYC" value={formatNumber(overview.users.pending_kyc)} trend={`${formatNumber(overview.users.total)} total users`} icon={UserCheck} color="bg-rose-500/15 text-rose-500" sparklineColor="#EF4444" />
             </div>
 
@@ -188,12 +241,12 @@ export function SecuregateOverviewPage() {
                 <div className="flex items-center gap-6 mb-6">
                   <div>
                     <p className="text-xs text-muted-foreground/70">Digital Revenue</p>
-                    <p className="text-2xl font-black text-foreground">{formatCurrency(overview.revenue.digital_revenue)}</p>
+                    <p className="text-2xl font-black text-foreground">{formatCurrency(overview.revenue.digital_revenue, currency)}</p>
                   </div>
                   <div className="h-8 w-px bg-border" />
                   <div>
                     <p className="text-xs text-muted-foreground/70">Monthly Recurring</p>
-                    <p className="text-2xl font-black text-foreground">{formatCurrency(overview.revenue.mrr)}</p>
+                    <p className="text-2xl font-black text-foreground">{formatCurrency(overview.revenue.mrr, currency)}</p>
                   </div>
                   <div className="h-8 w-px bg-border" />
                   <div>

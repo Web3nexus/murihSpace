@@ -16,11 +16,12 @@ import { Badge } from "@/components/ui/badge";
 import { LoadingState, ErrorState, NotFoundState } from "@/components/common/UIStateComponents";
 import type { EventData } from "@/types/events";
 import { env } from "@/config/env";
+import { getAuthToken } from "@/lib/auth/token";
 
 const API = env.VITE_API_BASE_URL;
 
 function getAuthHeaders(): Record<string, string> {
-  const token = localStorage.getItem("murihspace-token");
+  const token = getAuthToken();
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 

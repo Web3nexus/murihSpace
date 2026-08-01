@@ -10,7 +10,7 @@ class LinkInBioDesign extends Model
     protected $fillable = [
         'user_id', 'theme_id', 'profile_name', 'profile_bio', 'avatar_url', 'banner_url',
         'font', 'button_style', 'layout', 'background_type', 'background_value',
-        'bg', 'card_bg', 'text_color', 'accent',
+        'bg', 'card_bg', 'text_color', 'accent', 'template',
     ];
 
     public function user(): BelongsTo

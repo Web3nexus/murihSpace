@@ -1,30 +1,62 @@
-import { useState } from "react";
-import { Sparkles, Loader2, Send, Bot, User } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { useState, useRef, useEffect } from "react";
+import {
+  Bot, Send, Zap, RefreshCw, TrendingUp,
+  Users, FileText, MessageCircle, ShoppingBag, Wand2,
+} from "lucide-react";
+import { getAuthToken } from "@/lib/auth/token";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:8000/api/v1";
 
 function getAuthHeaders() {
-  const token = localStorage.getItem("murihspace-token") || localStorage.getItem("auth_token");
+  const token = getAuthToken();
   return { "Content-Type": "application/json", Accept: "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) };
 }
 
 interface ChatMessage {
   role: "user" | "assistant";
   content: string;
+  at: number;
+}
+
+const SUGGESTIONS = [
+  { icon: TrendingUp, label: "Content strategy ideas", query: "What content should I create to grow my audience this month?" },
+  { icon: Users, label: "Community tips", query: "How can I increase engagement in my community?" },
+  { icon: FileText, label: "Write a post", query: "Help me write an engaging post about my latest project" },
+  { icon: MessageCircle, label: "Message templates", query: "Give me a professional message template for reaching out to collaborators" },
+  { icon: ShoppingBag, label: "Pricing advice", query: "How should I price my digital products and memberships?" },
+  { icon: Wand2, label: "Brainstorm ideas", query: "Help me brainstorm creative ideas for my brand" },
+];
+
+function TypingDots() {
+  return (
+    <div className="flex gap-1.5 px-1 py-2">
+      {[0, 1, 2].map((i) => (
+        <div
+          key={i}
+          className="h-2 w-2 rounded-full bg-gradient-to-br from-[#38A8D8] to-[#1a6b9e] animate-bounce"
+          style={{ animationDelay: `${i * 150}ms`, animationDuration: "0.8s" }}
+        />
+      ))}
+    </div>
+  );
 }
 
 export default function AiAssistantPage() {
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    { role: "assistant", content: "Hi! I'm your AI assistant. Ask me anything about content creation, community management, or the platform." },
-  ]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(true);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const send = async () => {
-    if (!input.trim() || busy) return;
-    const userMsg: ChatMessage = { role: "user", content: input.trim() };
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  const send = async (text?: string) => {
+    const content = text ?? input;
+    if (!content.trim() || busy) return;
+    setShowSuggestions(false);
+    const userMsg: ChatMessage = { role: "user", content: content.trim(), at: Date.now() };
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
     setBusy(true);
@@ -36,44 +68,146 @@ export default function AiAssistantPage() {
       const j = await res.json();
       const data = j?.success ? j?.data : j;
       const reply = data?.reply ?? data?.message ?? "Sorry, I couldn't process that.";
-      setMessages((prev) => [...prev, { role: "assistant", content: reply }]);
+      setMessages((prev) => [...prev, { role: "assistant", content: reply, at: Date.now() }]);
     } catch {
-      setMessages((prev) => [...prev, { role: "assistant", content: "Something went wrong. Please try again." }]);
+      setMessages((prev) => [...prev, { role: "assistant", content: "Something went wrong. Please try again.", at: Date.now() }]);
     } finally { setBusy(false); }
   };
 
-  return (
-    <div className="w-full mx-auto max-w-[800px] space-y-6 p-6 lg:p-10">
-      <h1 className="text-2xl font-black tracking-tight flex items-center gap-2.5"><Sparkles className="h-6 w-6 text-[#38A8D8]" /> AI Assistant</h1>
-      <p className="text-xs text-muted-foreground -mt-4">AI-powered content and community assistant.</p>
+  const clearChat = () => {
+    setMessages([]);
+    setShowSuggestions(true);
+  };
 
-      <div className="rounded-xl border bg-card flex flex-col h-[580px]">
-        <div className="flex-1 overflow-y-auto p-5 space-y-4">
-          {messages.map((m, i) => (
-            <div key={i} className={`flex gap-3 ${m.role === "user" ? "flex-row-reverse" : ""}`}>
-              <div className={`h-8 w-8 rounded-full flex items-center justify-center flex-shrink-0 ${m.role === "assistant" ? "bg-[#38A8D8]/10" : "bg-muted"}`}>
-                {m.role === "assistant" ? <Bot className="h-4 w-4 text-[#38A8D8]" /> : <User className="h-4 w-4" />}
+  return (
+    <div className="flex h-[calc(100svh-112px)] overflow-hidden bg-gradient-to-br from-[#F8FAFB] via-white to-[#E8F8FF]/40 dark:from-[#0a1a2a] dark:via-[#0f1f30] dark:to-[#0a1a2a]">
+      <div className="flex flex-col w-full max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="shrink-0 px-6 pt-6 pb-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <div className="h-10 w-10 rounded-2xl bg-gradient-to-br from-[#38A8D8] to-[#1a6b9e] flex items-center justify-center shadow-md shadow-[#38A8D8]/20">
+                <Bot className="h-5 w-5 text-white" />
               </div>
-              <div className={`max-w-[75%] rounded-xl px-4 py-2.5 text-sm leading-relaxed ${m.role === "assistant" ? "bg-muted/50" : "bg-[#38A8D8] text-white"}`}>
-                {m.content}
+              <div className="absolute -top-0.5 -right-0.5 h-3 w-3 rounded-full bg-emerald-500 border-2 border-white dark:border-[#0f1f30]" />
+            </div>
+            <div>
+              <h1 className="text-lg font-black text-foreground tracking-tight">AI Assistant</h1>
+              <p className="text-[11px] text-muted-foreground/70 flex items-center gap-1">
+                <Zap className="h-3 w-3 text-[#38A8D8]" />
+                Powered by advanced intelligence
+              </p>
+            </div>
+          </div>
+          {messages.length > 0 && (
+            <button
+              onClick={clearChat}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-semibold text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-all border border-transparent hover:border-border"
+            >
+              <RefreshCw className="h-3.5 w-3.5" /> New chat
+            </button>
+          )}
+        </div>
+
+        {/* Messages */}
+        <div className="flex-1 overflow-y-auto px-6 space-y-5 pb-4 scrollbar-thin">
+          {messages.length === 0 && showSuggestions && (
+            <div className="pt-8 pb-4 text-center space-y-6">
+              <div className="space-y-2">
+                <div className="mx-auto w-16 h-16 rounded-3xl bg-gradient-to-br from-[#38A8D8]/15 to-purple-500/15 flex items-center justify-center border border-[#38A8D8]/10">
+                  <Zap className="h-7 w-7 text-[#38A8D8]" />
+                </div>
+                <h2 className="text-xl font-black text-foreground tracking-tight">How can I help you?</h2>
+                <p className="text-sm text-muted-foreground/60 max-w-md mx-auto">
+                  Ask me anything about content creation, community management, marketing, or growing your brand.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-w-2xl mx-auto">
+                {SUGGESTIONS.map((s) => (
+                  <button
+                    key={s.label}
+                    onClick={() => send(s.query)}
+                    className="flex items-center gap-3 px-4 py-3.5 rounded-2xl border border-border/60 bg-white dark:bg-[#102840]/60 hover:border-[#38A8D8]/30 hover:bg-[#38A8D8]/5 hover:shadow-sm hover:shadow-[#38A8D8]/5 transition-all duration-200 text-left group"
+                  >
+                    <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-[#38A8D8]/10 to-purple-500/10 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                      <s.icon className="h-4 w-4 text-[#38A8D8]" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold text-foreground truncate">{s.label}</p>
+                      <p className="text-[10px] text-muted-foreground/50 truncate">{s.query.length > 50 ? `${s.query.slice(0, 50)}...` : s.query}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {messages.map((m, i) => (
+            <div key={i} className={`flex gap-3 ${m.role === "user" ? "flex-row-reverse" : ""} ${m.role === "user" ? "animate-in slide-in-from-right-2 fade-in" : "animate-in slide-in-from-left-2 fade-in"} duration-200`}>
+              <div className={`h-8 w-8 rounded-xl flex items-center justify-center shrink-0 shadow-sm ${
+                m.role === "assistant"
+                  ? "bg-gradient-to-br from-[#38A8D8] to-[#1a6b9e] text-white"
+                  : "bg-gradient-to-br from-[#102840] to-[#1a2e4a] text-white"
+              }`}>
+                {m.role === "assistant" ? <Bot className="h-4 w-4" /> : <MessageCircle className="h-4 w-4" />}
+              </div>
+              <div className={`max-w-[75%] ${m.role === "user" ? "order-first" : ""}`}>
+                <div className={`px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap break-words ${
+                  m.role === "assistant"
+                    ? "bg-white dark:bg-[#102840] border border-border/50 text-foreground rounded-2xl rounded-tl-sm shadow-sm"
+                    : "bg-gradient-to-r from-[#38A8D8] to-[#2e8ab8] text-white rounded-2xl rounded-tr-sm shadow-sm shadow-[#38A8D8]/10"
+                }`}>
+                  {m.content}
+                </div>
+                <p className={`text-[10px] text-muted-foreground/40 mt-1 ${m.role === "user" ? "text-right" : ""}`}>
+                  {new Date(m.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                </p>
               </div>
             </div>
           ))}
+
           {busy && (
-            <div className="flex gap-3">
-              <div className="h-8 w-8 rounded-full bg-[#38A8D8]/10 flex items-center justify-center flex-shrink-0">
-                <Bot className="h-4 w-4 text-[#38A8D8]" />
+            <div className="flex gap-3 animate-in fade-in slide-in-from-left-2 duration-200">
+              <div className="h-8 w-8 rounded-xl bg-gradient-to-br from-[#38A8D8] to-[#1a6b9e] flex items-center justify-center shrink-0 shadow-sm">
+                <Bot className="h-4 w-4 text-white" />
               </div>
-              <div className="rounded-xl bg-muted/50 px-4 py-2.5"><Loader2 className="h-4 w-4 animate-spin" /></div>
+              <div className="bg-white dark:bg-[#102840] border border-border/50 rounded-2xl rounded-tl-sm px-4 py-2 shadow-sm">
+                <TypingDots />
+              </div>
             </div>
           )}
+
+          <div ref={messagesEndRef} />
         </div>
-        <div className="border-t p-3 flex items-center gap-2">
-          <Input placeholder="Ask me anything..." className="text-xs" value={input}
-            onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && send()} />
-          <Button size="sm" className="bg-[#38A8D8] hover:bg-[#2e8ab8] text-white px-3" onClick={send} disabled={busy}>
-            <Send className="h-4 w-4" />
-          </Button>
+
+        {/* Composer */}
+        <div className="shrink-0 px-6 pb-6 pt-2">
+          <div className="relative max-w-3xl mx-auto">
+            <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-[#38A8D8]/5 to-purple-500/5 blur-xl" />
+            <div className="relative flex items-center gap-2 bg-white dark:bg-[#102840] border border-border/60 rounded-2xl px-4 py-2.5 shadow-sm focus-within:border-[#38A8D8]/30 focus-within:shadow-md focus-within:shadow-[#38A8D8]/5 transition-all">
+              <input
+                type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
+                placeholder="Ask me anything..."
+                className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground/40 outline-none"
+              />
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => send()}
+                  disabled={!input.trim() || busy}
+                  className="p-2 rounded-xl bg-gradient-to-r from-[#38A8D8] to-[#2e8ab8] text-white hover:from-[#2e8ab8] hover:to-[#256e91] disabled:opacity-40 transition-all shrink-0 shadow-sm hover:shadow-md hover:shadow-[#38A8D8]/20 disabled:shadow-none"
+                >
+                  <Send className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+            <p className="text-[10px] text-center text-muted-foreground/30 mt-2">
+              AI responses are generated by machine learning. Verify important information.
+            </p>
+          </div>
         </div>
       </div>
     </div>

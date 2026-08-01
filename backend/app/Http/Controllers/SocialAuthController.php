@@ -89,7 +89,8 @@ class SocialAuthController extends Controller
             ]);
         }
 
-        $token = $user->createToken('auth-token')->plainTextToken;
+        $ttl = (int) (config('sanctum.expiration') ?? 1440);
+        $token = $user->createToken('auth-token', ['*'], now()->addMinutes($ttl))->plainTextToken;
 
         return response()->json([
             'token' => $token,

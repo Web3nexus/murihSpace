@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
 import { Shield, Loader2, AlertCircle } from "lucide-react";
+import { getAuthToken } from "@/lib/auth/token";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:8000/api/v1";
 
 function authHeaders() {
-  const t = localStorage.getItem("murihspace-token") || localStorage.getItem("auth_token");
+  const t = getAuthToken();
   return { Accept: "application/json", "Content-Type": "application/json", ...(t ? { Authorization: `Bearer ${t}` } : {}) };
 }
 

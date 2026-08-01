@@ -1,5 +1,6 @@
 import axios, { type AxiosError, type AxiosResponse, type InternalAxiosRequestConfig } from "axios";
 import { env } from "@/config/env";
+import { getAuthToken } from "@/lib/auth/token";
 
 export interface ApiError {
   message: string;
@@ -23,7 +24,7 @@ export const apiClient = axios.create({
 // Request interceptor
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    const token = localStorage.getItem("murihspace-token");
+    const token = getAuthToken();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }

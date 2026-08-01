@@ -6,6 +6,7 @@ export type NavItem = {
   icon?: React.ReactNode;
   badge?: string | number;
   children?: NavItem[];
+  featureFlag?: string;
 };
 
 export type NavGroup = {

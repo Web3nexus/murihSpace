@@ -1,5 +1,5 @@
 import { Badge } from "@/components/ui/badge";
-import { Crown, Shield, ShieldAlert, UserCheck, Sparkles } from "lucide-react";
+import { Crown, Shield, ShieldAlert, UserCheck, BadgeCheck } from "lucide-react";
 
 interface RoleBadgeProps {
   role?: string;
@@ -50,7 +50,7 @@ export function RoleBadge({ role = "member", isOwner = false, color, className =
         style={{ backgroundColor: `${color}20`, color: color, borderColor: `${color}40` }}
         className={`gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-md border ${className}`}
       >
-        <Sparkles className="h-3 w-3" />
+        <BadgeCheck className="h-3 w-3" />
         <span className="capitalize">{role}</span>
       </Badge>
     );

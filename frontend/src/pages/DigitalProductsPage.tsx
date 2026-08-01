@@ -10,6 +10,7 @@ import {
   Loader2,
   UploadCloud,
 } from 'lucide-react';
+import { ImageUploader } from '@/components/upload/ImageUploader';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -20,6 +21,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import type { DigitalProduct, ProductCategory, ProductStatus } from '@/types/digitalProduct';
+import { getAuthToken } from "@/lib/auth/token";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api/v1';
 
@@ -58,7 +60,7 @@ export function DigitalProductsPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchProducts = useCallback(async () => {
-    const token = localStorage.getItem('murihspace-token') || localStorage.getItem('auth_token');
+    const token = getAuthToken();
     try {
       const res = await fetch(`${API_BASE}/store/products?page=${page}&per_page=20`, {
         headers: {
@@ -116,7 +118,7 @@ export function DigitalProductsPage() {
     setIsSubmitting(true);
     setError(null);
 
-    const token = localStorage.getItem('murihspace-token') || localStorage.getItem('auth_token');
+    const token = getAuthToken();
     const formData = new FormData();
     formData.append('title', title);
     formData.append('description', description);
@@ -159,7 +161,7 @@ export function DigitalProductsPage() {
   };
 
   const handleTogglePublish = async (p: DigitalProduct) => {
-    const token = localStorage.getItem('murihspace-token') || localStorage.getItem('auth_token');
+    const token = getAuthToken();
     const nextStatus = p.status === 'published' ? 'draft' : 'published';
 
     try {
@@ -183,7 +185,7 @@ export function DigitalProductsPage() {
 
   const handleDelete = async (id: number) => {
     if (!confirm('Are you sure you want to delete this digital product?')) return;
-    const token = localStorage.getItem('murihspace-token') || localStorage.getItem('auth_token');
+    const token = getAuthToken();
 
     try {
       const res = await fetch(`${API_BASE}/store/products/${id}`, {
@@ -201,7 +203,7 @@ export function DigitalProductsPage() {
   };
 
   const handleDownload = async (id: number) => {
-    const token = localStorage.getItem('murihspace-token') || localStorage.getItem('auth_token');
+    const token = getAuthToken();
     try {
       const res = await fetch(`${API_BASE}/products/${id}/download`, {
         headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
@@ -401,7 +403,7 @@ export function DigitalProductsPage() {
       {/* Create / Edit Product Modal */}
       {showModal && (
         <Dialog open={showModal} onOpenChange={setShowModal}>
-          <DialogContent className="sm:max-w-[540px] bg-card border-border shadow-2xl rounded-2xl">
+          <DialogContent className="sm:max-w-2xl md:max-w-3xl max-h-[90vh] overflow-y-auto bg-card border-border shadow-2xl rounded-2xl p-6 sm:p-8">
             <DialogHeader>
               <DialogTitle className="text-lg font-bold text-foreground">
                 {editingProduct ? 'Edit Digital Product' : 'Add New Digital Product'}
@@ -514,16 +516,11 @@ export function DigitalProductsPage() {
               </div>
 
               <div className="space-y-1.5">
-                <label htmlFor="dp-cover-url" className="text-xs font-bold text-foreground uppercase tracking-wider">
-                  Cover Image URL
-                </label>
-                <input
-                  id="dp-cover-url"
-                  type="url"
+                <ImageUploader
                   value={coverUrl}
-                  onChange={(e) => setCoverUrl(e.target.value)}
-                  placeholder="https://images.unsplash.com/photo-..."
-                  className="w-full px-3.5 py-2 text-xs rounded-xl bg-muted border-0 outline-none focus:ring-1 focus:ring-secondary"
+                  onChange={setCoverUrl}
+                  folder="digital-products/covers"
+                  label="Cover Image"
                 />
               </div>
 

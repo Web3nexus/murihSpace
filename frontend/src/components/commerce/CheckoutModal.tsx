@@ -20,6 +20,7 @@ import {
 import { Button } from '@/components/ui/button';
 import type { DigitalProduct } from '@/types/digitalProduct';
 import type { CheckoutResult, PaymentProvider } from '@/types/order';
+import { getAuthToken } from "@/lib/auth/token";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api/v1';
 const PLATFORM_FEE_RATE = 0.10;
@@ -47,7 +48,7 @@ export function CheckoutModal({ product, open, onClose }: CheckoutModalProps) {
     setStep('processing');
     setErrorMsg(null);
 
-    const token = localStorage.getItem('auth_token');
+    const token = getAuthToken();
     const idempotencyKey = `${product.id}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
     try {
@@ -120,7 +121,7 @@ export function CheckoutModal({ product, open, onClose }: CheckoutModalProps) {
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[460px] bg-card border-border shadow-2xl rounded-2xl">
+      <DialogContent className="sm:max-w-xl md:max-w-2xl bg-card border-border shadow-2xl rounded-2xl p-6 sm:p-8">
         <DialogHeader>
           <DialogTitle className="text-base font-bold text-foreground flex items-center gap-2">
             <ShoppingCart className="h-5 w-5 text-secondary" />

@@ -3,8 +3,10 @@
 use App\Http\Controllers\AdminAnalyticsController;
 use App\Http\Controllers\AdminDashboardController;
 use App\Http\Controllers\AdminKycController;
+use App\Http\Controllers\AdminManagementController;
 use App\Http\Controllers\AdminPlansController;
 use App\Http\Controllers\AdminUserController;
+use App\Http\Controllers\AdminStorageController;
 use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\AudioRoomController;
 use App\Http\Controllers\AddressController;
@@ -18,6 +20,9 @@ use App\Http\Controllers\BadgeController;
 use App\Http\Controllers\BlockController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\CheckoutController;
+use App\Http\Controllers\ActivityLogController;
+use App\Http\Controllers\ContentPlannerController;
+use App\Http\Controllers\CurrencyController;
 use App\Http\Controllers\CoachingBookingController;
 use App\Http\Controllers\CoachingServiceController;
 use App\Http\Controllers\CommunityController;
@@ -30,9 +35,11 @@ use App\Http\Controllers\EmailSequenceController;
 use App\Http\Controllers\EscrowController;
 use App\Http\Controllers\EventController;
 use App\Http\Controllers\FeatureFlagController;
+use App\Http\Controllers\FriendRequestController;
 use App\Http\Controllers\FulfilmentDisputeController;
 use App\Http\Controllers\FulfilmentOrderController;
 use App\Http\Controllers\FulfilmentPayoutController;
+use App\Http\Controllers\KycController;
 use App\Http\Controllers\MediaKitController;
 use App\Http\Controllers\MembershipController;
 use App\Http\Controllers\MessageAttachmentController;
@@ -43,8 +50,15 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\NotificationPreferenceController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\PageSectionController;
+use App\Http\Controllers\PasswordResetController;
 use App\Http\Controllers\PhysicalProductController;
 use App\Http\Controllers\PostController;
+use App\Http\Controllers\ReactionController;
+use App\Http\Controllers\AdController;
+use App\Http\Controllers\AdminAdController;
+use App\Http\Controllers\GiftController;
+use App\Http\Controllers\CoinPackController;
+use App\Http\Controllers\FeedController;
 use App\Http\Controllers\ProductReviewController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PurchaseController;
@@ -52,9 +66,12 @@ use App\Http\Controllers\PushTokenController;
 use App\Http\Controllers\ReconciliationController;
 use App\Http\Controllers\ReferralController;
 use App\Http\Controllers\RoleController;
+use App\Http\Controllers\SearchController;
 use App\Http\Controllers\ShippingProfileController;
 use App\Http\Controllers\SocialAuthController;
+use App\Http\Controllers\StoryController;
 use App\Http\Controllers\StorefrontController;
+use App\Http\Controllers\StorePostController;
 use App\Http\Controllers\SubscriptionController;
 use App\Http\Controllers\SubscriptionPlanController;
 use App\Http\Controllers\TransferController;
@@ -89,11 +106,21 @@ Route::prefix('v1')->group(function () {
     // Master Permissions Matrix
     Route::get('/permissions-matrix', [RoleController::class, 'permissionsMatrix']);
 
+    // Sumsub KYC webhook (public, signature-verified)
+    Route::post('/webhooks/sumsub', [KycController::class, 'webhook'])->middleware('throttle:30,1');
+
+    // Public platform config (used by login/registration + app-lock screens)
+    Route::get('/platform', [\App\Http\Controllers\PlatformController::class, 'config'])->middleware('cache.public:30');
+
     // Authentication Routes
     Route::prefix('auth')->group(function () {
         Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:auth');
         Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:auth');
         Route::get('/check-username/{username}', [AuthController::class, 'checkUsername'])->middleware('throttle:auth');
+
+        // Password Reset
+        Route::post('/forgot-password', [PasswordResetController::class, 'forgotPassword'])->middleware('throttle:auth');
+        Route::post('/reset-password', [PasswordResetController::class, 'resetPassword'])->middleware('throttle:auth');
 
         // Social Auth
         Route::prefix('social')->group(function () {
@@ -108,6 +135,8 @@ Route::prefix('v1')->group(function () {
             Route::prefix('2fa')->group(function () {
                 Route::post('/enable', [AuthController::class, 'enable2fa']);
                 Route::post('/disable', [AuthController::class, 'disable2fa']);
+                Route::post('/confirm', [AuthController::class, 'confirm2fa']);
+                Route::get('/status', [AuthController::class, 'status2fa']);
             });
             Route::get('/sessions', [AuthController::class, 'sessions']);
             Route::delete('/sessions/{id}', [AuthController::class, 'destroySession']);
@@ -130,6 +159,7 @@ Route::prefix('v1')->group(function () {
 
     // Public Storefront Profile Endpoint
     Route::get('/stores/{shortCode}', [StorefrontController::class, 'show'])->middleware('cache.public:10');
+    Route::get('/stores/{shortCode}/posts', [StorePostController::class, 'publicPosts'])->middleware('cache.public:5');
 
     // Public Link-in-Bio Page
     Route::get('/l/{username}', [\App\Http\Controllers\LinkInBioController::class, 'publicPage'])->middleware('cache.public:10');
@@ -145,10 +175,10 @@ Route::prefix('v1')->group(function () {
     Route::get('/public/products/{slug}', [DigitalProductController::class, 'publicShow']);
 
     // Sprint 15: Public payment webhook (no auth — provider calls this)
-    Route::post('/checkout/webhooks/{provider}', [CheckoutController::class, 'handleWebhook']);
+    Route::post('/checkout/webhooks/{provider}', [CheckoutController::class, 'handleWebhook'])->middleware('throttle:30,1');
 
     // Sprint 20: Public Event Endpoints
-    Route::prefix('events')->group(function () {
+    Route::prefix('events')->middleware('throttle:60,1')->group(function () {
         Route::get('/', [EventController::class, 'index']);
         Route::get('/{id}', [EventController::class, 'show']);
     });
@@ -230,18 +260,31 @@ Route::prefix('v1')->group(function () {
     });
 
     // Authenticated Endpoints
-    Route::middleware('auth:sanctum')->group(function () {
+    Route::middleware('auth:sanctum', 'throttle:api')->group(function () {
+        // Search
+        Route::get('/search', [SearchController::class, 'search']);
+
         Route::get('/user', function (Request $request) {
+            $user = $request->user();
+
             return response()->json([
-                'id' => $request->user()->id,
-                'name' => $request->user()->name,
-                'email' => $request->user()->email,
-                'username' => $request->user()->username,
-                'role' => $request->user()->role,
-                'kyc_status' => $request->user()->kyc_status,
-                'email_verified' => $request->user()->hasVerifiedEmail(),
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'username' => $user->username,
+                'role' => $user->role,
+                'kyc_status' => $user->kyc_status,
+                'email_verified' => $user->hasVerifiedEmail(),
+                'verification_badge' => [
+                    'status' => $user->verification_badge_status,
+                    'active' => $user->hasActiveVerificationBadge(),
+                    'expires_at' => $user->verification_badge_expires_at?->toIso8601String(),
+                ],
             ]);
         });
+
+        // Feature flags (read-only for all authenticated users)
+        Route::get('/feature-flags', [FeatureFlagController::class, 'index']);
 
         // ── File Uploads ────────────────────────────────────────────────
         Route::prefix('upload')->group(function () {
@@ -279,8 +322,26 @@ Route::prefix('v1')->group(function () {
             Route::post('/', [PostController::class, 'store']);
             Route::put('/{id}', [PostController::class, 'update']);
             Route::delete('/{id}', [PostController::class, 'destroy']);
+            Route::post('/{id}/pin', [PostController::class, 'pin']);
+            Route::post('/{id}/unpin', [PostController::class, 'unpin']);
+            Route::get('/{id}/comments', [PostController::class, 'getComments']);
             Route::post('/{id}/comments', [PostController::class, 'addComment']);
-            Route::post('/{id}/reactions', [PostController::class, 'toggleReaction']);
+            Route::post('/{id}/reactions/toggle', [ReactionController::class, 'togglePostReaction']);
+            Route::post('/{id}/share', [PostController::class, 'share']);
+            Route::post('/{id}/save', [PostController::class, 'toggleSave']);
+            Route::post('/{id}/report', [PostController::class, 'report']);
+        });
+
+        // Comment reactions (like/dislike)
+        Route::prefix('comments')->group(function () {
+            Route::post('/{id}/reactions', [ReactionController::class, 'toggleCommentReaction']);
+        });
+
+        // Stories
+        Route::prefix('stories')->group(function () {
+            Route::get('/', [StoryController::class, 'index']);
+            Route::post('/', [StoryController::class, 'store']);
+            Route::delete('/{id}', [StoryController::class, 'destroy']);
         });
 
         // Membership Management
@@ -328,6 +389,8 @@ Route::prefix('v1')->group(function () {
             Route::post('/{id}/typing', [ConversationController::class, 'typing']);
             Route::get('/{id}/settings', [ConversationSettingsController::class, 'show']);
             Route::put('/{id}/settings', [ConversationSettingsController::class, 'update']);
+            // Message deletion
+            Route::delete('/{conversationId}/messages/{messageId}', [ConversationController::class, 'deleteMessage']);
         });
 
         // ── Sprint 11-12: Messages, Reactions, Attachments, Push Tokens ──
@@ -335,6 +398,12 @@ Route::prefix('v1')->group(function () {
             Route::post('/attachments', [MessageAttachmentController::class, 'upload']);
             Route::post('/{id}/reactions', [MessageReactionController::class, 'toggle']);
             Route::get('/{id}/reactions', [MessageReactionController::class, 'index']);
+            Route::post('/{id}/forward', [\App\Http\Controllers\ConversationController::class, 'forwardMessage']);
+        });
+
+        // Secure chat media access
+        Route::prefix('chat')->group(function () {
+            Route::get('/media/{media}', [\App\Http\Controllers\ChatMediaController::class, 'show']);
         });
 
         Route::prefix('push-tokens')->group(function () {
@@ -349,6 +418,13 @@ Route::prefix('v1')->group(function () {
             Route::post('/publish', [StorefrontController::class, 'publish']);
         });
 
+        Route::prefix('store/posts')->middleware('creator')->group(function () {
+            Route::get('/', [StorePostController::class, 'index']);
+            Route::post('/', [StorePostController::class, 'store']);
+            Route::put('/{id}', [StorePostController::class, 'update']);
+            Route::delete('/{id}', [StorePostController::class, 'destroy']);
+        });
+
         // ── Sprint 14: Digital Products ────────────────────────────────────
         Route::prefix('store/products')->middleware('creator')->group(function () {
             Route::get('/', [DigitalProductController::class, 'index']);
@@ -361,7 +437,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/products/{id}/download', [DigitalProductController::class, 'download']);
 
         // ── Sprint 30: Physical Products & Inventory ──────────────────────
-        Route::prefix('store/physical-products')->middleware('creator')->group(function () {
+        Route::prefix('store/physical-products')->group(function () {
             Route::get('/my', [PhysicalProductController::class, 'myProducts']);
             Route::post('/', [PhysicalProductController::class, 'store']);
             Route::get('/{id}', [PhysicalProductController::class, 'show']);
@@ -558,6 +634,46 @@ Route::prefix('v1')->group(function () {
             Route::post('/{room}/messages', [\App\Http\Controllers\ChatRoomController::class, 'sendMessage']);
         });
 
+        // ── Advertising Campaigns ────────────────────────────────────
+        Route::prefix('ads')->group(function () {
+            Route::get('/', [AdController::class, 'index']);
+            Route::post('/', [AdController::class, 'store']);
+            Route::get('/{id}', [AdController::class, 'show']);
+            Route::put('/{id}', [AdController::class, 'update']);
+            Route::delete('/{id}', [AdController::class, 'destroy']);
+            Route::post('/{id}/pause', [AdController::class, 'pause']);
+            Route::post('/{id}/resume', [AdController::class, 'resume']);
+            Route::post('/{id}/duplicate', [AdController::class, 'duplicate']);
+            Route::get('/{id}/preview', [AdController::class, 'preview']);
+            Route::post('/{id}/submit', [AdController::class, 'submit']);
+            Route::get('/{id}/analytics', [AdController::class, 'analytics']);
+        });
+
+        // ── Gifts & Creator Wallets ─────────────────────────────────
+        Route::prefix('gifts')->group(function () {
+            Route::get('/catalogue', [GiftController::class, 'catalogue']);
+            Route::post('/send', [GiftController::class, 'send'])->middleware('verified');
+            Route::get('/transactions', [GiftController::class, 'transactions']);
+        });
+
+        // ── Coin Packs (buy coins for wallet) ───────────────────────
+        Route::prefix('coins')->middleware('verified')->group(function () {
+            Route::get('/packs', [CoinPackController::class, 'catalogue']);
+            Route::post('/purchase', [CoinPackController::class, 'purchase']);
+            Route::get('/purchases', [CoinPackController::class, 'purchases']);
+        });
+
+        Route::prefix('creator-wallet')->middleware('creator')->group(function () {
+            Route::get('/', [GiftController::class, 'wallet']);
+            Route::post('/payouts', [GiftController::class, 'requestPayout']);
+            Route::get('/payouts', [GiftController::class, 'payouts']);
+        });
+
+        // ── Feed Algorithm ──────────────────────────────────────────
+        Route::prefix('feed')->group(function () {
+            Route::get('/ranked', [FeedController::class, 'rankedFeed']);
+        });
+
         // ── Link in Bio ──────────────────────────────────────────────
         Route::prefix('link-in-bio')->group(function () {
             Route::get('/', [\App\Http\Controllers\LinkInBioController::class, 'index']);
@@ -568,6 +684,7 @@ Route::prefix('v1')->group(function () {
             Route::get('/design', [\App\Http\Controllers\LinkInBioController::class, 'showDesign']);
             Route::put('/design', [\App\Http\Controllers\LinkInBioController::class, 'updateDesign']);
             Route::post('/design/apply-theme', [\App\Http\Controllers\LinkInBioController::class, 'applyTheme']);
+            Route::post('/design/apply-template', [\App\Http\Controllers\LinkInBioController::class, 'applyTemplate']);
             Route::put('/domain', [\App\Http\Controllers\LinkInBioController::class, 'updateDomain']);
             Route::post('/domain/verify', [\App\Http\Controllers\LinkInBioController::class, 'verifyDomain']);
             Route::post('/links/{link}/track-click', [\App\Http\Controllers\LinkInBioController::class, 'trackClick']);
@@ -597,6 +714,24 @@ Route::prefix('v1')->group(function () {
         // ── AI Chat ──────────────────────────────────────────────────
         Route::post('/ai/chat', [\App\Http\Controllers\AiChatController::class, 'chat'])->middleware('throttle:30,1');
 
+        // ── AI behavior settings (persona, tone, topic guardrails) ─────
+        Route::prefix('ai')->group(function () {
+            Route::get('/settings', [\App\Http\Controllers\AiSettingsController::class, 'show']);
+            Route::put('/settings', [\App\Http\Controllers\AiSettingsController::class, 'update']);
+        });
+
+        // ── AI Onboarding wizard ─────────────────────────────────────
+        Route::prefix('onboarding')->group(function () {
+            Route::get('/', [\App\Http\Controllers\OnboardingController::class, 'state']);
+            Route::post('/chat', [\App\Http\Controllers\OnboardingController::class, 'chat'])->middleware('throttle:30,1');
+            Route::post('/about', [\App\Http\Controllers\OnboardingController::class, 'saveAbout']);
+            Route::post('/interests', [\App\Http\Controllers\OnboardingController::class, 'saveInterests']);
+            Route::post('/socials', [\App\Http\Controllers\OnboardingController::class, 'saveSocials']);
+            Route::post('/draft-profile', [\App\Http\Controllers\OnboardingController::class, 'draftProfile']);
+            Route::post('/setup', [\App\Http\Controllers\OnboardingController::class, 'setup']);
+            Route::post('/complete', [\App\Http\Controllers\OnboardingController::class, 'complete']);
+        });
+
         // ── Courses ──────────────────────────────────────────────────
         Route::prefix('courses')->middleware('creator')->group(function () {
             Route::get('/', [\App\Http\Controllers\CourseController::class, 'index']);
@@ -622,6 +757,26 @@ Route::prefix('v1')->group(function () {
             Route::delete('/{shortLink}', [\App\Http\Controllers\ShortLinkController::class, 'destroy']);
         });
 
+        // ── Community Requests (user's own sent requests) ────────────
+        Route::prefix('community-requests')->group(function () {
+            Route::get('/', [MembershipController::class, 'myRequests']);
+            Route::get('/incoming', [MembershipController::class, 'incomingRequests']);
+            Route::post('/{id}/cancel', [MembershipController::class, 'cancelRequest']);
+        });
+
+        // ── Friends & Friend Requests ─────────────────────────────────
+        Route::prefix('friends')->group(function () {
+            Route::get('/', [FriendRequestController::class, 'friends']);
+            Route::get('/search', [FriendRequestController::class, 'search']);
+            Route::get('/requests', [FriendRequestController::class, 'index']);
+            Route::get('/requests/sent', [FriendRequestController::class, 'sent']);
+            Route::post('/requests', [FriendRequestController::class, 'send']);
+            Route::post('/requests/{id}/accept', [FriendRequestController::class, 'accept']);
+            Route::post('/requests/{id}/decline', [FriendRequestController::class, 'decline']);
+            Route::post('/requests/{id}/cancel', [FriendRequestController::class, 'cancel']);
+            Route::delete('/{userId}', [FriendRequestController::class, 'unfriend']);
+        });
+
         // ── Account & Settings (apiClient) ───────────────────────────
         Route::prefix('settings')->group(function () {
             Route::put('/privacy', [\App\Http\Controllers\ProfileController::class, 'updatePrivacy']);
@@ -634,8 +789,17 @@ Route::prefix('v1')->group(function () {
 
         // ── KYC (separate from profile/kyc for frontend compat) ─────
         Route::prefix('kyc')->group(function () {
-            Route::get('/status', [\App\Http\Controllers\ProfileController::class, 'kycStatus']);
+            Route::get('/status', [KycController::class, 'status']);
             Route::post('/submit', [\App\Http\Controllers\ProfileController::class, 'submitKyc']);
+            Route::post('/start', [KycController::class, 'start']);
+        });
+
+        // ── Verified badge (blue checkmark) ─────────────────────────
+        Route::prefix('verification-badge')->group(function () {
+            Route::get('/status', [\App\Http\Controllers\VerificationBadgeController::class, 'status']);
+            Route::post('/activate', [\App\Http\Controllers\VerificationBadgeController::class, 'activate']);
+            Route::post('/renew', [\App\Http\Controllers\VerificationBadgeController::class, 'renew']);
+            Route::post('/cancel-auto-renew', [\App\Http\Controllers\VerificationBadgeController::class, 'cancelAutoRenew']);
         });
 
         // ── Analytics extras ────────────────────────────────────────
@@ -644,6 +808,28 @@ Route::prefix('v1')->group(function () {
             Route::get('/chat-channels', [\App\Http\Controllers\AnalyticsController::class, 'chatChannels']);
             Route::get('/content-planner', [\App\Http\Controllers\AnalyticsController::class, 'contentPlanner']);
             Route::get('/community-activity', [\App\Http\Controllers\AnalyticsController::class, 'communityActivity']);
+        });
+
+        // ── Sprint G: Activity Log ──────────────────────────────────────────
+        Route::prefix('activity-logs')->group(function () {
+            Route::get('/', [ActivityLogController::class, 'index']);
+            Route::get('/latest', [ActivityLogController::class, 'latest']);
+            Route::get('/types', [ActivityLogController::class, 'types']);
+        });
+
+        // ── Sprint G: Content Planner ───────────────────────────────────────
+        Route::prefix('content-planner')->middleware('creator')->group(function () {
+            Route::get('/', [ContentPlannerController::class, 'index']);
+            Route::get('/upcoming', [ContentPlannerController::class, 'upcoming']);
+            Route::post('/schedule', [ContentPlannerController::class, 'schedule']);
+            Route::post('/{id}/unschedule', [ContentPlannerController::class, 'unschedule']);
+        });
+
+        // ── Sprint G: Currency Conversion ───────────────────────────────────
+        Route::prefix('currency')->group(function () {
+            Route::get('/rates', [CurrencyController::class, 'rates']);
+            Route::get('/supported', [CurrencyController::class, 'supported']);
+            Route::post('/convert', [CurrencyController::class, 'convert']);
         });
 
         Route::get('/conversations/stats', [\App\Http\Controllers\ConversationController::class, 'stats']);
@@ -674,7 +860,7 @@ Route::prefix('v1')->group(function () {
         });
 
         // ── Sprint 15: Checkout & Orders ───────────────────────────────────
-        Route::prefix('checkout')->group(function () {
+        Route::prefix('checkout')->middleware('verified')->group(function () {
             Route::post('/intent', [CheckoutController::class, 'createIntent']);
             Route::post('/complete-mock', [CheckoutController::class, 'completeMock']);
         });
@@ -686,7 +872,7 @@ Route::prefix('v1')->group(function () {
         });
 
         // ── Sprint 16: MurihPay Wallet ─────────────────────────────────────
-        Route::prefix('wallet')->group(function () {
+        Route::prefix('wallet')->middleware('verified')->group(function () {
             Route::get('/', [WalletController::class, 'show']);
             Route::post('/pin/setup', [WalletController::class, 'setupPin']);
             Route::post('/pin/update', [WalletController::class, 'updatePin']);
@@ -739,7 +925,7 @@ Route::prefix('v1')->group(function () {
 
             Route::get('/mine', [SubscriptionController::class, 'mySubscriptions']);
             Route::get('/subscribers', [SubscriptionController::class, 'mySubscribers']);
-            Route::post('/subscribe', [SubscriptionController::class, 'subscribe']);
+            Route::post('/subscribe', [SubscriptionController::class, 'subscribe'])->middleware('verified');
             Route::post('/{id}/cancel', [SubscriptionController::class, 'cancel']);
             Route::get('/stats', [SubscriptionController::class, 'creatorStats']);
         });
@@ -761,7 +947,7 @@ Route::prefix('v1')->group(function () {
                 Route::delete('/services/{id}/slots/{slotId}', [CoachingServiceController::class, 'deleteSlot']);
             });
 
-            Route::post('/book', [CoachingBookingController::class, 'book']);
+            Route::post('/book', [CoachingBookingController::class, 'book'])->middleware('verified');
             Route::get('/my-bookings', [CoachingBookingController::class, 'myBookings']);
             Route::get('/my-sessions', [CoachingBookingController::class, 'mySessions']);
             Route::post('/bookings/{id}/cancel', [CoachingBookingController::class, 'cancel']);
@@ -769,17 +955,20 @@ Route::prefix('v1')->group(function () {
         });
 
         // ── Sprint 20: Events ──────────────────────────────────────────────
-        Route::prefix('my-events')->middleware('creator')->group(function () {
+        Route::prefix('my-events')->group(function () {
             Route::get('/', [EventController::class, 'myEvents']);
-            Route::post('/', [EventController::class, 'store']);
             Route::get('/{id}', [EventController::class, 'show']);
+        });
+
+        Route::prefix('my-events')->middleware('creator')->group(function () {
+            Route::post('/', [EventController::class, 'store']);
             Route::put('/{id}', [EventController::class, 'update']);
             Route::post('/{id}/publish', [EventController::class, 'publish']);
             Route::delete('/{id}', [EventController::class, 'destroy']);
         });
 
         Route::prefix('events')->group(function () {
-            Route::post('/{eventId}/register', [EventController::class, 'register']);
+            Route::post('/{eventId}/register', [EventController::class, 'register'])->middleware('verified');
             Route::post('/{eventId}/cancel', [EventController::class, 'cancelRegistration']);
             Route::get('/{eventId}/registrations', [EventController::class, 'registrations']);
             Route::post('/{eventId}/check-in', [EventController::class, 'checkIn']);
@@ -797,6 +986,7 @@ Route::prefix('v1')->group(function () {
             Route::post('/{id}/join', [AudioRoomController::class, 'join']);
             Route::post('/{id}/leave', [AudioRoomController::class, 'leave']);
             Route::post('/{id}/raise-hand', [AudioRoomController::class, 'raiseHand']);
+            Route::get('/{id}/livekit-token', [AudioRoomController::class, 'livekitToken']);
 
             // Creator/admin actions
             Route::middleware('creator')->group(function () {
@@ -826,9 +1016,19 @@ Route::prefix('v1')->group(function () {
                 Route::post('/{id}/impersonate', [AdminUserController::class, 'impersonate']);
             });
 
+            // Admins (admin management — super admin only)
+            Route::prefix('admins')->group(function () {
+                Route::get('/roles', [AdminManagementController::class, 'roles'])->middleware('admin.permission:admins');
+                Route::get('/', [AdminManagementController::class, 'index'])->middleware('admin.permission:admins');
+                Route::post('/', [AdminManagementController::class, 'store'])->middleware('admin.permission:admins');
+                Route::put('/{id}', [AdminManagementController::class, 'update'])->middleware('admin.permission:admins');
+                Route::delete('/{id}', [AdminManagementController::class, 'destroy'])->middleware('admin.permission:admins');
+            });
+
             // KYC
             Route::prefix('kyc')->group(function () {
                 Route::get('/', [AdminKycController::class, 'index']);
+                Route::get('/{user}', [AdminKycController::class, 'show']);
                 Route::post('/{user}/approve', [AdminKycController::class, 'approve']);
                 Route::post('/{user}/reject', [AdminKycController::class, 'reject']);
             });
@@ -983,6 +1183,91 @@ Route::prefix('v1')->group(function () {
             Route::prefix('settings')->group(function () {
                 Route::get('/', [\App\Http\Controllers\AdminSettingsController::class, 'show']);
                 Route::put('/', [\App\Http\Controllers\AdminSettingsController::class, 'update']);
+            });
+
+            // ── AI Provider Selection ───────────────────────────────────────
+            Route::prefix('ai-settings')->group(function () {
+                Route::get('/', [\App\Http\Controllers\AdminAiSettingsController::class, 'show']);
+                Route::put('/', [\App\Http\Controllers\AdminAiSettingsController::class, 'update']);
+                Route::post('/test', [\App\Http\Controllers\AdminAiSettingsController::class, 'test']);
+            });
+
+            // ── Storage Configuration ───────────────────────────────────────
+            Route::prefix('storage')->group(function () {
+                Route::get('/', [AdminStorageController::class, 'show']);
+                Route::put('/', [AdminStorageController::class, 'update']);
+
+                Route::prefix('providers')->group(function () {
+                    Route::get('/', [\App\Http\Controllers\AdminObjectStorageProviderController::class, 'index']);
+                    Route::post('/', [\App\Http\Controllers\AdminObjectStorageProviderController::class, 'store']);
+                    Route::get('{provider}', [\App\Http\Controllers\AdminObjectStorageProviderController::class, 'show']);
+                    Route::put('{provider}', [\App\Http\Controllers\AdminObjectStorageProviderController::class, 'update']);
+                    Route::delete('{provider}', [\App\Http\Controllers\AdminObjectStorageProviderController::class, 'destroy']);
+                });
+            });
+
+            // ── Advertisements Management ──────────────────────────────────
+            Route::prefix('ads')->group(function () {
+                Route::get('/', [AdminAdController::class, 'index']);
+                Route::get('/stats', [AdminAdController::class, 'stats']);
+                Route::get('/revenue', [AdminAdController::class, 'revenue']);
+                Route::post('/{id}/approve', [AdminAdController::class, 'approve']);
+                Route::post('/{id}/reject', [AdminAdController::class, 'reject']);
+                Route::post('/{id}/suspend', [AdminAdController::class, 'suspend']);
+                Route::delete('/{id}', [AdminAdController::class, 'remove']);
+            });
+
+            // ── Gifts Management ──────────────────────────────────────────
+            Route::prefix('gifts')->group(function () {
+                Route::get('/', [GiftController::class, 'adminGifts']);
+                Route::post('/', [GiftController::class, 'adminStoreGift']);
+                Route::put('/{id}', [GiftController::class, 'adminUpdateGift']);
+                Route::delete('/{id}', [GiftController::class, 'adminDeleteGift']);
+                Route::post('/reorder', [GiftController::class, 'adminReorderGifts']);
+                Route::get('/stats', [GiftController::class, 'adminStats']);
+                Route::post('/users/{userId}/toggle-gifting', [GiftController::class, 'adminToggleGifting']);
+            });
+
+            // ── Gift Payouts Management ───────────────────────────────────
+            Route::prefix('gift-payouts')->group(function () {
+                Route::get('/', [GiftController::class, 'adminPayouts']);
+                Route::post('/{id}/approve', [GiftController::class, 'adminApprovePayout']);
+                Route::post('/{id}/reject', [GiftController::class, 'adminRejectPayout']);
+                Route::post('/{id}/mark-paid', [GiftController::class, 'adminMarkPaid']);
+            });
+
+            // ── Coin Packs Management ─────────────────────────────────────
+            Route::prefix('coin-packs')->group(function () {
+                Route::get('/', [CoinPackController::class, 'adminIndex']);
+                Route::post('/', [CoinPackController::class, 'adminStore']);
+                Route::put('/{id}', [CoinPackController::class, 'adminUpdate']);
+                Route::delete('/{id}', [CoinPackController::class, 'adminDelete']);
+                Route::post('/reorder', [CoinPackController::class, 'adminReorder']);
+            });
+
+            // ── Feed Algorithm Management ─────────────────────────────────
+            Route::prefix('feed-algorithm')->group(function () {
+                Route::get('/weights', [FeedController::class, 'weights']);
+                Route::put('/weights/{id}', [FeedController::class, 'updateWeight']);
+                Route::get('/configs', [FeedController::class, 'configs']);
+                Route::put('/configs/{id}', [FeedController::class, 'updateConfig']);
+                Route::post('/configs/{id}/promote', [FeedController::class, 'promoteToProduction']);
+                Route::post('/configs/{id}/rollback', [FeedController::class, 'rollback']);
+                Route::get('/boosts', [FeedController::class, 'boosts']);
+                Route::post('/boosts', [FeedController::class, 'storeBoost']);
+                Route::delete('/boosts/{id}', [FeedController::class, 'removeBoost']);
+                Route::get('/changes', [FeedController::class, 'changes']);
+                Route::post('/seed', [FeedController::class, 'seedDefaultWeights']);
+                Route::get('/ab-tests', [FeedController::class, 'abTests']);
+                Route::post('/ab-tests', [FeedController::class, 'storeAbTest']);
+                Route::post('/ab-tests/{id}/start', [FeedController::class, 'startAbTest']);
+                Route::post('/ab-tests/{id}/end', [FeedController::class, 'endAbTest']);
+            });
+
+            // ── Story Settings ─────────────────────────────────────────────
+            Route::prefix('stories')->group(function () {
+                Route::get('/settings', [\App\Http\Controllers\AdminStoryController::class, 'show']);
+                Route::put('/settings', [\App\Http\Controllers\AdminStoryController::class, 'update']);
             });
 
             // ── Conversion Metrics ─────────────────────────────────────────

@@ -14,25 +14,31 @@ class PhysicalProductController extends Controller
         $products = PhysicalProduct::with('creator:id,name,username')
             ->active()
             ->latest()
-            ->get()
-            ->makeHidden(['stock_quantity', 'low_stock_threshold']);
+            ->paginate(20)
+            ->through(fn ($p) => $p->makeHidden(['stock_quantity', 'low_stock_threshold']));
 
-        return response()->json(['data' => $products]);
+        return response()->json($products);
     }
 
     public function myProducts(Request $request): JsonResponse
     {
-        $products = PhysicalProduct::where('creator_id', $request->user()->id)
-            ->latest()
-            ->get();
+        $query = PhysicalProduct::where('creator_id', $request->user()->id);
 
-        return response()->json(['data' => $products]);
+        if ($search = $request->input('search')) {
+            $query->where(function ($q) use ($search) {
+                $q->where('title', 'ilike', "%{$search}%")
+                  ->orWhere('sku', 'ilike', "%{$search}%");
+            });
+        }
+
+        $products = $query->latest()->paginate(max(1, min((int) $request->input('per_page', 20), 100)));
+        return response()->json($products);
     }
 
     public function store(Request $request): JsonResponse
     {
-        if (! $request->user()->isCreatorOrAdmin()) {
-            abort(403);
+        if (!$request->user()->isCreatorOrAdmin() && !$request->user()->isVendor()) {
+            abort(403, 'Only creators, vendors, and admins can create products.');
         }
 
         $validated = $request->validate([
@@ -119,7 +125,6 @@ class PhysicalProductController extends Controller
         }
 
         $product->delete();
-
         return response()->json(['message' => 'Product deleted.']);
     }
 
