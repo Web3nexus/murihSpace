@@ -14,6 +14,13 @@ import {
 import { apiClient } from "@/lib/api/client";
 import { cn } from "@/lib/utils";
 
+function unwrapList<T>(data: unknown): T[] {
+  if (Array.isArray(data)) return data as T[];
+  const inner = (data as { data?: unknown } | null)?.data;
+  if (Array.isArray(inner)) return inner as T[];
+  return [];
+}
+
 type TabKey = "friends" | "requests" | "sent";
 
 interface FriendUser {
@@ -82,9 +89,9 @@ export default function FriendsPage() {
         apiClient.get("/friends/requests"),
         apiClient.get("/friends/requests/sent"),
       ]);
-      setFriends(fRes.data?.data ?? []);
-      setIncoming(rRes.data?.data ?? []);
-      setOutgoing(sRes.data?.data ?? []);
+      setFriends(unwrapList<FriendListItem>(fRes.data?.data));
+      setIncoming(unwrapList<FriendRequestItem>(rRes.data?.data));
+      setOutgoing(unwrapList<FriendRequestItem>(sRes.data?.data));
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load friends.");
     } finally {
@@ -108,7 +115,7 @@ export default function FriendsPage() {
     searchTimer.current = setTimeout(async () => {
       try {
         const res = await apiClient.get(`/friends/search?q=${encodeURIComponent(q)}`);
-        setSearchResults(res.data?.data ?? []);
+        setSearchResults(unwrapList<FriendUser>(res.data?.data));
       } catch {
         setSearchResults([]);
       } finally {
@@ -127,7 +134,7 @@ export default function FriendsPage() {
     setSearchLoading(true);
     apiClient
       .get(`/friends/search?q=${encodeURIComponent(q)}`)
-      .then((res) => setSearchResults(res.data?.data ?? []))
+      .then((res) => setSearchResults(unwrapList<FriendUser>(res.data?.data)))
       .catch(() => setSearchResults([]))
       .finally(() => setSearchLoading(false));
   };
