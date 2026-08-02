@@ -33,7 +33,7 @@ class Dispute extends Model
         return $this->belongsTo(User::class, 'admin_id');
     }
 
-    public function resolve(string $resolution, int $adminId, string $note = null): void
+    public function resolve(string $resolution, int $adminId, ?string $note = null): void
     {
         $this->update([
             'status' => $resolution,
