@@ -34,8 +34,6 @@ class AuthController extends Controller
             'kyc_document' => ['nullable', 'string'],
         ]);
 
-        $trialDays = (int) \App\Models\AdminSetting::get('free_username_trial_days', 7);
-
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
@@ -48,7 +46,6 @@ class AuthController extends Controller
             'role' => $request->role,
             'kyc_status' => in_array($request->role, ['creator', 'vendor']) ? 'pending' : 'verified',
             'kyc_document' => $request->kyc_document,
-            'username_trial_ends_at' => now()->addDays($trialDays),
         ]);
 
         event(new Registered($user));
@@ -86,7 +83,6 @@ class AuthController extends Controller
                 'email_verified' => $user->hasVerifiedEmail(),
                 'link_in_bio_url' => $user->getLinkInBioUrl(),
                 'onboarding_completed' => $user->creatorProfile?->onboarding_completed_at !== null,
-                'username_trial_ends_at' => $user->username_trial_ends_at?->toIso8601String(),
             ],
         ], 201);
     }

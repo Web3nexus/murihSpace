@@ -61,8 +61,8 @@ class User extends Authenticatable implements MustVerifyEmail
     public function hasActiveUsernameTrial(): bool
     {
         if ($this->is_premium) return true;
-        if (! $this->username_trial_ends_at) return false;
-        return $this->username_trial_ends_at->isFuture();
+        if ($this->username) return true;
+        return false;
     }
 
     public function getLinkInBioUrl(): string

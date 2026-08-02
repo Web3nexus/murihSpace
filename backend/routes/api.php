@@ -116,7 +116,7 @@ Route::prefix('v1')->group(function () {
     Route::prefix('auth')->group(function () {
         Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:auth');
         Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:auth');
-        Route::get('/check-username/{username}', [AuthController::class, 'checkUsername'])->middleware('throttle:auth');
+        Route::get('/check-username/{username}', [AuthController::class, 'checkUsername'])->middleware('throttle:60,1');
 
         // Password Reset
         Route::post('/forgot-password', [PasswordResetController::class, 'forgotPassword'])->middleware('throttle:auth');

@@ -6,7 +6,7 @@ import { AppDownloadQR } from "@/components/WebLockedPage";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Loader2, ArrowRight, ArrowLeft, CheckCircle2, XCircle, BadgeCheck, Crown, Clock, Smartphone, Download } from "lucide-react";
+import { Loader2, ArrowRight, ArrowLeft, CheckCircle2, XCircle, BadgeCheck, Crown, Smartphone, Download } from "lucide-react";
 
 import { AuthLayout } from "@/components/layout/AuthLayout";
 
@@ -31,7 +31,7 @@ export function RegisterPage() {
   const [username, setUsername] = useState("");
   const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null);
   const [usernameChecking, setUsernameChecking] = useState(false);
-  const [trialDays, setTrialDays] = useState(7);
+  const [usernameCheckError, setUsernameCheckError] = useState(false);
 
   // Steps 2-5: Wizard fields
   const [email, setEmail] = useState("");
@@ -58,6 +58,7 @@ export function RegisterPage() {
     }
     const seq = ++checkSeqRef.current;
     setUsernameChecking(true);
+    setUsernameCheckError(false);
     try {
       const res = await fetch(`${API_BASE}/auth/check-username/${encodeURIComponent(val)}`, { headers: { Accept: "application/json" } });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -65,9 +66,11 @@ export function RegisterPage() {
       const d = j?.success ? j?.data : j;
       if (seq !== checkSeqRef.current) return;
       setUsernameAvailable(d?.available ?? false);
-      if (d?.trial_days) setTrialDays(d.trial_days);
     } catch {
-      if (seq === checkSeqRef.current) setUsernameAvailable(null);
+      if (seq === checkSeqRef.current) {
+        setUsernameAvailable(null);
+        setUsernameCheckError(true);
+      }
     } finally {
       if (seq === checkSeqRef.current) setUsernameChecking(false);
     }
@@ -76,6 +79,7 @@ export function RegisterPage() {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const handleUsernameChange = (val: string) => {
     setUsername(val);
+    setUsernameCheckError(false);
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => checkUsername(val), 400);
   };
@@ -195,18 +199,20 @@ export function RegisterPage() {
               {username.length >= 3 && !/^[a-zA-Z0-9_]+$/.test(username) && (
                 <p className="text-[10px] text-destructive font-medium">Only letters, numbers and underscores allowed.</p>
               )}
-              {username.length >= 3 && /^[a-zA-Z0-9_]+$/.test(username) && usernameAvailable === null && !usernameChecking && <p className="text-[10px] text-muted-foreground">Checking availability...</p>}
+              {username.length >= 3 && /^[a-zA-Z0-9_]+$/.test(username) && usernameAvailable === null && !usernameChecking && !usernameCheckError && <p className="text-[10px] text-muted-foreground">Checking availability...</p>}
+              {usernameCheckError && (
+                <p className="text-[10px] text-destructive font-medium">
+                  Couldn't check availability. Please try again.
+                </p>
+              )}
             </div>
 
-            {/* Premium badge */}
-            <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-start gap-2.5">
-              <Crown className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+            {/* Your link */}
+            <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-start gap-2.5">
+              <Crown className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
               <div>
-                <p className="text-xs font-bold text-amber-500">Your link: <span className="font-mono">murihspace.com/@{username || 'username'}</span></p>
-                <p className="text-[10px] text-amber-500/70 mt-0.5">Free for {trialDays} days trial. Upgrade to Premium to keep it forever.</p>
-                <div className="flex items-center gap-1 mt-1 text-[10px] text-amber-500/70">
-                  <Clock className="h-3 w-3" /> Trial ends in {trialDays} days
-                </div>
+                <p className="text-xs font-bold text-emerald-500">Your link: <span className="font-mono">murihspace.com/@{username || 'username'}</span></p>
+                <p className="text-[10px] text-emerald-500/70 mt-0.5">Usernames are free — yours to keep.</p>
               </div>
             </div>
 
