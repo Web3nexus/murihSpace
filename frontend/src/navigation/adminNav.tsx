@@ -23,6 +23,9 @@ import {
   LineChart,
   Settings,
   BookOpen,
+  Mail,
+  MailOpen,
+  LinkIcon,
 } from "lucide-react";
 import type { NavGroup } from "./navTypes";
 
@@ -214,6 +217,26 @@ export const adminNav: NavGroup[] = [
           { title: "Routing Rules", url: "/app/securegate/storage" },
           { title: "Object Storage Providers", url: "/app/securegate/storage/providers" },
         ],
+      },
+    ],
+  },
+  {
+    title: "EMAIL",
+    items: [
+      {
+        title: "Mail Engine",
+        url: "/app/securegate/email-engine",
+        icon: <Mail className="size-4" />,
+      },
+      {
+        title: "Email Templates",
+        url: "/app/securegate/email-templates",
+        icon: <MailOpen className="size-4" />,
+      },
+      {
+        title: "Social Login",
+        url: "/app/securegate/social-login",
+        icon: <LinkIcon className="size-4" />,
       },
     ],
   },

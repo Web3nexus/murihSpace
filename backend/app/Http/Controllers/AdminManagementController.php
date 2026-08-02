@@ -136,6 +136,8 @@ class AdminManagementController extends Controller
             bodyHtml: '<p>You have been granted an <strong>admin role</strong> on the MurihSpace platform ('.e(self::ROLES[$validated['admin_role']] ?? $validated['admin_role']).'). You can now sign in through the Securegate admin portal.</p>',
             actionLabel: 'Open Securegate',
             actionUrl: NotificationService::link('securegate/login'),
+            template: 'admin_role_granted',
+            data: ['role' => e(self::ROLES[$validated['admin_role']] ?? $validated['admin_role'])],
         );
 
         return response()->json([
@@ -193,6 +195,7 @@ class AdminManagementController extends Controller
             bodyHtml: '<p>Your admin role and permissions on MurihSpace were recently updated by a super admin. If you did not expect this change, please contact a platform administrator.</p>',
             actionLabel: 'Open Securegate',
             actionUrl: NotificationService::link('securegate/login'),
+            template: 'admin_role_updated',
         );
 
         return response()->json([
@@ -236,6 +239,7 @@ class AdminManagementController extends Controller
             user: $user,
             title: 'Your admin access has been removed',
             bodyHtml: '<p>Your admin role on the MurihSpace platform has been <strong>removed</strong> by a super admin. You still have a regular member account and can continue using the platform.</p>',
+            template: 'admin_role_removed',
         );
 
         return response()->json(['message' => 'Admin removed.']);

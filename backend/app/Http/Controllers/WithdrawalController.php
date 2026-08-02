@@ -118,6 +118,12 @@ class WithdrawalController extends Controller
                 bodyHtml: '<p>Your withdrawal request of <strong>'.e($withdrawal->currency).' '.number_format($withdrawal->amount, 2).'</strong> was not approved.</p><p><strong>Reason:</strong> '.e($validated['rejection_reason']).'</p>',
                 actionLabel: 'View wallet',
                 actionUrl: NotificationService::link('wallet'),
+                template: 'withdrawal_rejected',
+                data: [
+                    'currency' => e($withdrawal->currency),
+                    'amount' => number_format($withdrawal->amount, 2),
+                    'reason' => e($validated['rejection_reason']),
+                ],
             );
 
             return response()->json(['message' => 'Withdrawal rejected.', 'data' => $withdrawal]);
@@ -158,6 +164,11 @@ class WithdrawalController extends Controller
             bodyHtml: '<p>Your withdrawal of <strong>'.e($withdrawal->currency).' '.number_format($withdrawal->amount, 2).'</strong> has been approved and is being sent to your account. Funds will appear shortly.</p>',
             actionLabel: 'View wallet',
             actionUrl: NotificationService::link('wallet'),
+            template: 'withdrawal_approved',
+            data: [
+                'currency' => e($withdrawal->currency),
+                'amount' => number_format($withdrawal->amount, 2),
+            ],
         );
 
         return response()->json(['message' => 'Withdrawal approved and processed.', 'data' => $withdrawal->fresh()]);

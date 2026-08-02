@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Services\EmailVerificationService;
+use App\Services\NotificationService;
 use App\Services\TwoFactorAuthService;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\JsonResponse;
@@ -12,6 +14,11 @@ use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
+    public function __construct(
+        private readonly NotificationService $notifications,
+        private readonly EmailVerificationService $emailVerification,
+    ) {}
+
     public function register(Request $request): JsonResponse
     {
         $request->validate([
@@ -50,6 +57,21 @@ class AuthController extends Controller
             ->plainTextToken;
 
         $this->trackTokenMetadata($user, $request, $token);
+
+        try {
+            $this->notifications->actionEmail(
+                user: $user,
+                title: 'Welcome to MurihSpace, '.e($user->name).'!',
+                bodyHtml: '<p>Welcome to MurihSpace, '.e($user->name).'! Your account is ready.</p><p>Create your profile, share posts, join communities, and connect with creators and members around the world.</p>',
+                actionLabel: 'Explore MurihSpace',
+                actionUrl: NotificationService::link('app'),
+                template: 'welcome',
+            );
+
+            $this->emailVerification->issue($user);
+        } catch (\Throwable $e) {
+            report($e);
+        }
 
         return response()->json([
             'message' => 'User registered successfully. Please verify your email.',

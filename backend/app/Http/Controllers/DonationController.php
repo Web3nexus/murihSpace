@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Donation;
 use App\Models\User;
+use App\Services\NotificationService;
 use App\Services\Wallet\LedgerService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -12,6 +13,7 @@ class DonationController extends Controller
 {
     public function __construct(
         private LedgerService $ledgerService,
+        private readonly NotificationService $notifications,
     ) {}
 
     public function send(Request $request): JsonResponse
@@ -68,6 +70,26 @@ class DonationController extends Controller
             'status' => 'completed',
             'ledger_transaction_id' => $ledgerTxn->id,
         ]);
+
+        try {
+            $donorName = $isAnonymous ? 'Anonymous' : $sender->name;
+            $this->notifications->actionEmail(
+                user: $recipient,
+                title: 'You received a donation of '.e($currency).' '.number_format((float) $validated['amount'], 2),
+                bodyHtml: '<p>You received a donation of <strong>'.e($currency).' '.number_format((float) $validated['amount'], 2).'</strong> from '.e($donorName).'.</p>'.(($validated['message'] ?? '') ? '<blockquote style="margin:0; padding:12px 16px; border-left:3px solid #10B981; background:#ECFDF5; border-radius:8px; color:#4B5563;">'.e($validated['message']).'</blockquote>' : ''),
+                actionLabel: 'View wallet',
+                actionUrl: NotificationService::link('app/wallet'),
+                template: 'donation_received',
+                data: [
+                    'from_name' => e($donorName),
+                    'currency' => e($currency),
+                    'amount' => number_format((float) $validated['amount'], 2),
+                    'message' => $validated['message'] ?? '',
+                ],
+            );
+        } catch (\Throwable $e) {
+            report($e);
+        }
 
         return response()->json([
             'message' => 'Donation sent successfully.',

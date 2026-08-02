@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\FriendRequest;
 use App\Models\User;
+use App\Services\NotificationService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -11,6 +12,10 @@ use Illuminate\Support\Facades\DB;
 
 class FriendRequestController extends Controller
 {
+    public function __construct(
+        private readonly NotificationService $notifications,
+    ) {}
+
     /**
      * Map a user to the shape the frontend expects.
      */
@@ -198,6 +203,23 @@ class FriendRequestController extends Controller
                 'status' => FriendRequest::STATUS_PENDING,
             ]);
 
+            try {
+                $receiver = User::find($receiverId);
+                if ($receiver) {
+                    $this->notifications->actionEmail(
+                        user: $receiver,
+                        title: $sender->name.' sent you a friend request',
+                        bodyHtml: '<p>Hi '.e($receiver->name).',</p><p><strong>'.e($sender->name).'</strong> sent you a friend request on MurihSpace. Open your friend requests to review it.</p>',
+                        actionLabel: 'View friend requests',
+                        actionUrl: NotificationService::link('app/friends'),
+                        template: 'friend_request_received',
+                        data: ['from_name' => e($sender->name)],
+                    );
+                }
+            } catch (\Throwable $e) {
+                report($e);
+            }
+
             return response()->json([
                 'message' => 'Friend request sent.',
                 'data' => $existing,
@@ -209,6 +231,23 @@ class FriendRequestController extends Controller
             'receiver_id' => $receiverId,
             'status' => FriendRequest::STATUS_PENDING,
         ]);
+
+        try {
+            $receiver = User::find($receiverId);
+            if ($receiver) {
+                $this->notifications->actionEmail(
+                    user: $receiver,
+                    title: $sender->name.' sent you a friend request',
+                    bodyHtml: '<p>Hi '.e($receiver->name).',</p><p><strong>'.e($sender->name).'</strong> sent you a friend request on MurihSpace. Open your friend requests to review it.</p>',
+                    actionLabel: 'View friend requests',
+                    actionUrl: NotificationService::link('app/friends'),
+                    template: 'friend_request_received',
+                    data: ['from_name' => e($sender->name)],
+                );
+            }
+        } catch (\Throwable $e) {
+            report($e);
+        }
 
         return response()->json([
             'message' => 'Friend request sent.',
@@ -227,6 +266,24 @@ class FriendRequestController extends Controller
             ->firstOrFail();
 
         $friendRequest->update(['status' => FriendRequest::STATUS_ACCEPTED]);
+
+        try {
+            $sender = User::find($friendRequest->sender_id);
+            $receiver = User::find($friendRequest->receiver_id);
+            if ($sender && $receiver) {
+                $this->notifications->actionEmail(
+                    user: $sender,
+                    title: $receiver->name.' accepted your friend request',
+                    bodyHtml: '<p>Great news — <strong>'.e($receiver->name).'</strong> accepted your friend request. You are now connected on MurihSpace.</p>',
+                    actionLabel: 'View friends',
+                    actionUrl: NotificationService::link('app/friends'),
+                    template: 'friend_request_accepted',
+                    data: ['from_name' => e($receiver->name)],
+                );
+            }
+        } catch (\Throwable $e) {
+            report($e);
+        }
 
         return response()->json([
             'message' => 'Friend request accepted.',

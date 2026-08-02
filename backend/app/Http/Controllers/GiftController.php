@@ -277,6 +277,8 @@ class GiftController extends Controller
             user: $user,
             title: 'Your payout request has been approved',
             bodyHtml: '<p>Your payout request of <strong>'.e('MSH').' '.number_format((float) $payout->amount, 2).'</strong> has been <strong>approved</strong>. It will be paid out shortly.</p>',
+            template: 'payout_approved',
+            data: ['amount' => number_format((float) $payout->amount, 2)],
         );
 
         return response()->json(['message' => 'Payout approved.', 'payout' => $payout]);
@@ -305,6 +307,8 @@ class GiftController extends Controller
             bodyHtml: '<p>Your payout request of <strong>'.e('MSH').' '.number_format((float) $payout->amount, 2).'</strong> was not approved and the amount has been returned to your wallet.</p>',
             actionLabel: 'View wallet',
             actionUrl: NotificationService::link('wallet'),
+            template: 'payout_rejected',
+            data: ['amount' => number_format((float) $payout->amount, 2)],
         );
 
         return response()->json(['message' => 'Payout rejected.']);
@@ -340,6 +344,8 @@ class GiftController extends Controller
             bodyHtml: '<p>Your payout of <strong>'.e('MSH').' '.number_format((float) $payout->amount, 2).'</strong> has been <strong>paid</strong> and is on its way to your account.</p>',
             actionLabel: 'View payout history',
             actionUrl: NotificationService::link('settings/payouts'),
+            template: 'payout_paid',
+            data: ['amount' => number_format((float) $payout->amount, 2)],
         );
 
         return response()->json(['message' => 'Payout marked as paid.']);

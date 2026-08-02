@@ -4,11 +4,16 @@ namespace App\Http\Controllers;
 
 use App\Models\Community;
 use App\Models\CommunityMembership;
+use App\Models\User;
+use App\Services\NotificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class MembershipController extends Controller
 {
+    public function __construct(
+        private readonly NotificationService $notifications,
+    ) {}
     /**
      * Join a community (instant for public, pending for private).
      */
@@ -52,6 +57,28 @@ class MembershipController extends Controller
         // Increment members count if active
         if ($status === 'active') {
             $community->increment('members_count');
+        }
+
+        if ($status === 'pending') {
+            try {
+                $creator = User::find($community->user_id);
+                if ($creator) {
+                    $this->notifications->actionEmail(
+                        user: $creator,
+                        title: $user->name.' wants to join '.$community->name,
+                        bodyHtml: '<p>Hi '.e($creator->name).',</p><p><strong>'.e($user->name).'</strong> has requested to join your community <strong>'.e($community->name).'</strong>. Review the request to approve or reject it.</p>',
+                        actionLabel: 'Review join requests',
+                        actionUrl: NotificationService::link('app/requests'),
+                        template: 'community_join_request',
+                        data: [
+                            'from_name' => e($user->name),
+                            'community' => e($community->name),
+                        ],
+                    );
+                }
+            } catch (\Throwable $e) {
+                report($e);
+            }
         }
 
         return response()->json([
@@ -164,6 +191,23 @@ class MembershipController extends Controller
         $membership->update(['status' => 'active']);
         $membership->community->increment('members_count');
 
+        try {
+            $member = User::find($membership->user_id);
+            if ($member) {
+                $this->notifications->actionEmail(
+                    user: $member,
+                    title: 'You have been accepted into '.$membership->community->name,
+                    bodyHtml: '<p>Your request to join <strong>'.e($membership->community->name).'</strong> has been <strong>approved</strong>. Welcome aboard!</p>',
+                    actionLabel: 'Visit community',
+                    actionUrl: NotificationService::link('app/communities/'.$membership->community->slug),
+                    template: 'community_join_approved',
+                    data: ['community' => e($membership->community->name)],
+                );
+            }
+        } catch (\Throwable $e) {
+            report($e);
+        }
+
         return response()->json([
             'message' => 'Join request approved successfully.',
             'membership' => $membership,
@@ -182,6 +226,21 @@ class MembershipController extends Controller
         }
 
         $membership->update(['status' => 'rejected']);
+
+        try {
+            $member = User::find($membership->user_id);
+            if ($member) {
+                $this->notifications->actionEmail(
+                    user: $member,
+                    title: 'Your request to join '.$membership->community->name.' was declined',
+                    bodyHtml: '<p>Thank you for your interest in <strong>'.e($membership->community->name).'</strong>. Unfortunately, your join request was <strong>not approved</strong> at this time.</p>',
+                    template: 'community_join_rejected',
+                    data: ['community' => e($membership->community->name)],
+                );
+            }
+        } catch (\Throwable $e) {
+            report($e);
+        }
 
         return response()->json([
             'message' => 'Join request rejected.',

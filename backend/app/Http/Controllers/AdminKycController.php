@@ -108,6 +108,7 @@ class AdminKycController extends Controller
                 bodyHtml: '<p>Great news — your identity (KYC) verification has been <strong>approved</strong>. You now have full access to payments, withdrawals, and all of your account capabilities.</p>',
                 actionLabel: 'View your account',
                 actionUrl: NotificationService::link('app'),
+                template: 'kyc_approved',
             );
         } catch (\Throwable $e) {
             report($e);
@@ -138,6 +139,8 @@ class AdminKycController extends Controller
                 bodyHtml: "<p>Thank you for submitting your identity (KYC) documents. Unfortunately, your verification could <strong>not be approved</strong> at this time.</p><p>Reason provided:</p><blockquote style=\"margin:0; padding:12px 16px; border-left:3px solid #EF4444; background:#FEF2F2; border-radius:8px; color:#4B5563;\">{$reason}</blockquote><p>You can review your details and submit again — we&rsquo;re happy to help if you have questions.</p>",
                 actionLabel: 'Resubmit verification',
                 actionUrl: NotificationService::link('app/settings/kyc'),
+                template: 'kyc_rejected',
+                data: ['reason' => $reason],
             );
         } catch (\Throwable $e) {
             report($e);

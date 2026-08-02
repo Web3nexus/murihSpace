@@ -95,6 +95,7 @@ class AdminUserController extends Controller
                 title: 'Your account has been suspended',
                 bodyHtml: '<p>Your MurihSpace account has been <strong>suspended</strong> while we review your activity. During this time you will not be able to access your account.</p>',
                 footnote: 'If you believe this is a mistake, please contact support.',
+                template: 'user_suspended',
             );
         } catch (\Throwable $e) {
             report($e);
@@ -126,6 +127,7 @@ class AdminUserController extends Controller
                 bodyHtml: '<p>Great news — your MurihSpace account has been <strong>reactivated</strong>. You can sign in and use the platform normally again.</p>',
                 actionLabel: 'Sign in',
                 actionUrl: NotificationService::link('login'),
+                template: 'user_reactivated',
             );
         } catch (\Throwable $e) {
             report($e);
@@ -242,6 +244,7 @@ class AdminUserController extends Controller
                 title: 'Your account has been banned',
                 bodyHtml: '<p>Your MurihSpace account has been <strong>banned</strong> due to a violation of our terms of service. This decision is final.</p>',
                 footnote: 'If you believe this decision is in error, you may contact our support team.',
+                template: 'user_banned',
             );
         } catch (\Throwable $e) {
             report($e);

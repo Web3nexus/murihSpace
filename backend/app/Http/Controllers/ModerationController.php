@@ -6,12 +6,17 @@ use App\Models\Post;
 use App\Models\PostComment;
 use App\Models\Report;
 use App\Models\User;
+use App\Services\NotificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
 class ModerationController extends Controller
 {
+    public function __construct(
+        private readonly NotificationService $notifications,
+    ) {}
+
     /**
      * Submit a report against a post, user, or comment.
      */
@@ -90,6 +95,14 @@ class ModerationController extends Controller
 
         $message = 'Report reviewed.';
 
+        $removedAuthor = null;
+        $removedContentType = null;
+
+        if ($validated['action'] === 'delete' && $target && in_array($report->reported_type, ['post', 'comment'], true)) {
+            $removedAuthor = $target->author()->first();
+            $removedContentType = $report->reported_type;
+        }
+
         match ($validated['action']) {
             'dismiss' => null,
             'delete' => match ($report->reported_type) {
@@ -105,6 +118,21 @@ class ModerationController extends Controller
 
         if ($validated['action'] === 'delete' && ! $target) {
             $message = 'Target content already deleted.';
+        }
+
+        if ($removedAuthor) {
+            try {
+                $this->notifications->actionEmail(
+                    user: $removedAuthor,
+                    title: 'Your '.$removedContentType.' was removed',
+                    bodyHtml: '<p>Your '.$removedContentType.' on MurihSpace was <strong>removed</strong> because it did not comply with our community guidelines.</p>',
+                    footnote: 'If you believe this is a mistake, you may contact support.',
+                    template: 'content_removed',
+                    data: ['content_type' => $removedContentType === 'post' ? 'post' : 'comment'],
+                );
+            } catch (\Throwable $e) {
+                report($e);
+            }
         }
 
         $report->update([

@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Notifications\ResetPasswordNotification;
+use App\Services\NotificationService;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -13,6 +13,10 @@ use Illuminate\Validation\ValidationException;
 
 class PasswordResetController extends Controller
 {
+    public function __construct(
+        private readonly NotificationService $notifications,
+    ) {}
+
     public function forgotPassword(Request $request): JsonResponse
     {
         $request->validate([
@@ -22,7 +26,17 @@ class PasswordResetController extends Controller
         $status = Password::sendResetLink(
             $request->only('email'),
             function ($user, $token) {
-                $user->notify(new ResetPasswordNotification($token, $user->getEmailForPasswordReset()));
+                $resetUrl = NotificationService::link('reset-password/'.$token.'?email='.urlencode((string) $user->getEmailForPasswordReset()));
+
+                $this->notifications->actionEmail(
+                    user: $user,
+                    title: 'Reset your MurihSpace password',
+                    bodyHtml: '<p>Hi '.e($user->name).',</p><p>We received a request to reset the password for your MurihSpace account. Click the button below to choose a new password. This link expires in 60 minutes.</p>',
+                    actionLabel: 'Reset Password',
+                    actionUrl: $resetUrl,
+                    footnote: 'If you did not request a password reset, no further action is required.',
+                    template: 'password_reset',
+                );
             }
         );
 

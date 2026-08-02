@@ -125,11 +125,13 @@ Route::prefix('v1')->group(function () {
         // Social Auth
         Route::prefix('social')->group(function () {
             Route::get('/{provider}/redirect', [SocialAuthController::class, 'redirect']);
-            Route::post('/{provider}/callback', [SocialAuthController::class, 'callback']);
+            Route::match(['get', 'post'], '/{provider}/callback', [SocialAuthController::class, 'callback']);
         });
 
         Route::middleware('auth:sanctum')->group(function () {
             Route::post('/logout', [AuthController::class, 'logout']);
+            Route::post('/email/send-code', [VerificationController::class, 'sendCode']);
+            Route::post('/email/verify-code', [VerificationController::class, 'verifyCode']);
             Route::post('/email/resend', [VerificationController::class, 'resend']);
             Route::put('/password', [AuthController::class, 'updatePassword']);
             Route::prefix('2fa')->group(function () {
@@ -1190,6 +1192,26 @@ Route::prefix('v1')->group(function () {
                 Route::get('/', [\App\Http\Controllers\AdminAiSettingsController::class, 'show']);
                 Route::put('/', [\App\Http\Controllers\AdminAiSettingsController::class, 'update']);
                 Route::post('/test', [\App\Http\Controllers\AdminAiSettingsController::class, 'test']);
+            });
+
+            // ── Mail Engine & Email Templates ───────────────────────────────
+            Route::prefix('mail-settings')->group(function () {
+                Route::get('/', [\App\Http\Controllers\AdminMailSettingsController::class, 'show']);
+                Route::put('/', [\App\Http\Controllers\AdminMailSettingsController::class, 'update']);
+                Route::post('/test', [\App\Http\Controllers\AdminMailSettingsController::class, 'test']);
+            });
+
+            // ── Social Login (OAuth) Providers ──────────────────────────────
+            Route::prefix('social-login')->group(function () {
+                Route::get('/', [\App\Http\Controllers\AdminSocialLoginController::class, 'show']);
+                Route::put('/', [\App\Http\Controllers\AdminSocialLoginController::class, 'update']);
+            });
+
+            Route::prefix('email-templates')->group(function () {
+                Route::get('/', [\App\Http\Controllers\AdminEmailTemplateController::class, 'index']);
+                Route::get('{key}', [\App\Http\Controllers\AdminEmailTemplateController::class, 'show']);
+                Route::put('{key}', [\App\Http\Controllers\AdminEmailTemplateController::class, 'update']);
+                Route::post('{key}/reset', [\App\Http\Controllers\AdminEmailTemplateController::class, 'reset']);
             });
 
             // ── Storage Configuration ───────────────────────────────────────

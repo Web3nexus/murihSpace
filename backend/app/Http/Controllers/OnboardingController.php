@@ -48,11 +48,20 @@ class OnboardingController extends Controller
 
     public function chat(Request $request): JsonResponse
     {
+        $user = $request->user();
+
+        if (! $user->hasVerifiedEmail()) {
+            return response()->json([
+                'message' => 'Please verify your email address to continue building your profile with Mera.',
+                'error' => 'EMAIL_NOT_VERIFIED',
+            ], 403);
+        }
+
         $data = $request->validate([
             'message' => ['required', 'string', 'max:5000'],
         ]);
 
-        $reply = $this->ai->chat($request->user(), $data['message'], AiService::SOURCE_ONBOARDING);
+        $reply = $this->ai->chat($user, $data['message'], AiService::SOURCE_ONBOARDING);
 
         return response()->json(['data' => ['reply' => $reply]]);
     }
@@ -155,9 +164,18 @@ class OnboardingController extends Controller
 
     public function draftProfile(Request $request): JsonResponse
     {
-        $draft = $this->ai->draftProfile($request->user());
+        $user = $request->user();
 
-        AiMemory::remember($request->user()->id, 'profile_draft', $draft);
+        if (! $user->hasVerifiedEmail()) {
+            return response()->json([
+                'message' => 'Please verify your email address to continue building your profile with Mera.',
+                'error' => 'EMAIL_NOT_VERIFIED',
+            ], 403);
+        }
+
+        $draft = $this->ai->draftProfile($user);
+
+        AiMemory::remember($user->id, 'profile_draft', $draft);
 
         return response()->json(['data' => $draft]);
     }

@@ -93,6 +93,9 @@ import AdminSystemHealthPage from "@/pages/AdminSystemHealthPage";
 import AdminAuditTrailPage from "@/pages/AdminAuditTrailPage";
 import AdminSettingsPage from "@/pages/AdminSettingsPage";
 import AdminAiSettingsPage from "@/pages/AdminAiSettingsPage";
+import AdminEmailEngineSettingsPage from "@/pages/AdminEmailEngineSettingsPage";
+import AdminEmailTemplatesPage from "@/pages/AdminEmailTemplatesPage";
+import AdminSocialLoginSettingsPage from "@/pages/AdminSocialLoginSettingsPage";
 import AdminStoragePage from "@/pages/AdminStoragePage";
 import AdminObjectStorageProvidersPage from "@/pages/AdminObjectStorageProvidersPage";
 import AdminConversionMetricsPage from "@/pages/AdminConversionMetricsPage";
@@ -120,6 +123,7 @@ import {
   NotFoundState,
 } from "@/components/common/UIStateComponents";
 import { RoutePaths } from "./route-paths";
+import { SocialAuthCallbackPage } from "@/pages/SocialAuthCallbackPage";
 
 
 export const routes: RouteObject[] = [
@@ -130,6 +134,7 @@ export const routes: RouteObject[] = [
   { path: RoutePaths.SECUREGATE_LOGIN, element: <AdminLoginPage /> },
   { path: "/securegate", element: <Navigate to={RoutePaths.SECUREGATE_LOGIN} replace /> },
   { path: RoutePaths.REGISTER, element: <RegisterPage /> },
+  { path: "/social/callback", element: <SocialAuthCallbackPage /> },
   { path: "/store/:shortCode", element: <PublicStorefrontPage /> },
 
   // ── Authenticated Dashboard (sidebar-07 shell) ─
@@ -637,6 +642,18 @@ export const routes: RouteObject[] = [
       {
         path: "securegate/ai-settings",
         element: <ProtectedRoute requiredRole="admin"><AdminAiSettingsPage /></ProtectedRoute>,
+      },
+      {
+        path: "securegate/email-engine",
+        element: <ProtectedRoute requiredRole="admin"><AdminEmailEngineSettingsPage /></ProtectedRoute>,
+      },
+      {
+        path: "securegate/email-templates",
+        element: <ProtectedRoute requiredRole="admin"><AdminEmailTemplatesPage /></ProtectedRoute>,
+      },
+      {
+        path: "securegate/social-login",
+        element: <ProtectedRoute requiredRole="admin"><AdminSocialLoginSettingsPage /></ProtectedRoute>,
       },
       {
         path: "securegate/storage",

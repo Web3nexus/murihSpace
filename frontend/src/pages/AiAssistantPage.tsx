@@ -1,9 +1,11 @@
 import { useState, useRef, useEffect } from "react";
 import {
   Bot, Send, Zap, RefreshCw, TrendingUp,
-  Users, FileText, MessageCircle, ShoppingBag, Wand2,
+  Users, FileText, MessageCircle, ShoppingBag, Wand2, MailCheck, Loader2,
 } from "lucide-react";
 import { getAuthToken } from "@/lib/auth/token";
+import { useAuth } from "@/hooks/useAuth";
+import { Link } from "react-router";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:8000/api/v1";
 
@@ -42,10 +44,15 @@ function TypingDots() {
 }
 
 export default function AiAssistantPage() {
+  const { user } = useAuth();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(true);
+  const [verifying, setVerifying] = useState(false);
+  const [code, setCode] = useState("");
+  const [verifyMsg, setVerifyMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [sent, setSent] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -78,6 +85,92 @@ export default function AiAssistantPage() {
     setMessages([]);
     setShowSuggestions(true);
   };
+
+  const sendCode = async () => {
+    setSent(true);
+    setVerifyMsg(null);
+    try {
+      const res = await fetch(`${API_BASE}/auth/email/send-code`, { method: "POST", headers: getAuthHeaders() });
+      const j = await res.json();
+      if (!res.ok) setVerifyMsg({ ok: false, text: j?.message ?? "Could not send code." });
+    } catch {
+      setVerifyMsg({ ok: false, text: "Could not send code. Please try again." });
+    }
+  };
+
+  const verify = async () => {
+    if (!/^\d{6}$/.test(code)) return;
+    setVerifying(true);
+    setVerifyMsg(null);
+    try {
+      const res = await fetch(`${API_BASE}/auth/email/verify-code`, {
+        method: "POST", headers: getAuthHeaders(),
+        body: JSON.stringify({ code }),
+      });
+      const j = await res.json();
+      if (!res.ok) {
+        setVerifyMsg({ ok: false, text: j?.message ?? "Invalid code." });
+        return;
+      }
+      window.location.reload();
+    } catch {
+      setVerifyMsg({ ok: false, text: "Could not verify. Please try again." });
+    } finally {
+      setVerifying(false);
+    }
+  };
+
+  if (user && user.email_verified === false) {
+    return (
+      <div className="flex min-h-[calc(100svh-112px)] items-center justify-center bg-gradient-to-br from-[#F8FAFB] via-white to-[#E8F8FF]/40 dark:from-[#0a1a2a] dark:via-[#0f1f30] dark:to-[#0a1a2a] p-6">
+        <div className="w-full max-w-md border border-border rounded-2xl bg-card p-8 space-y-5 shadow-lg">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-2xl bg-gradient-to-br from-[#38A8D8] to-[#1a6b9e] flex items-center justify-center shadow-md shadow-[#38A8D8]/20">
+              <MailCheck className="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <h1 className="text-base font-black text-foreground tracking-tight">Verify your email</h1>
+              <p className="text-[11px] text-muted-foreground">Unlock Mera to continue.</p>
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            We sent a 6-digit code to <span className="font-bold text-foreground">{user.email}</span>. Enter it below to
+            verify your account and start chatting with Mera.
+          </p>
+          <input
+            value={code}
+            onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+            onKeyDown={(e) => e.key === "Enter" && verify()}
+            placeholder="6-digit code"
+            inputMode="numeric"
+            className="w-full rounded-xl border border-border bg-background px-4 py-3 text-center text-2xl font-black tracking-[0.5em] text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-2 focus:ring-[#38A8D8]/20"
+          />
+          {verifyMsg && (
+            <p className={`text-[11px] font-semibold ${verifyMsg.ok ? "text-emerald-600" : "text-rose-500"}`}>{verifyMsg.text}</p>
+          )}
+          <button
+            onClick={verify}
+            disabled={verifying || !/^\d{6}$/.test(code)}
+            className="w-full py-3 rounded-xl bg-gradient-to-r from-[#38A8D8] to-[#2e8ab8] text-white text-sm font-bold hover:from-[#2e8ab8] hover:to-[#256e91] disabled:opacity-40 transition-all shadow-sm hover:shadow-md hover:shadow-[#38A8D8]/20"
+          >
+            {verifying ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : "Verify & unlock Mera"}
+          </button>
+          <button
+            onClick={sendCode}
+            className="w-full text-center text-[11px] font-bold text-[#38A8D8] hover:underline underline-offset-2"
+          >
+            {sent ? "Resend code" : "Send code"}
+          </button>
+          <p className="text-[10px] text-muted-foreground text-center">
+            Not sure?{" "}
+            <Link to="/app/onboarding" className="font-bold text-[#38A8D8] hover:underline underline-offset-2">
+              Verify during onboarding
+            </Link>
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-[calc(100svh-112px)] overflow-hidden bg-gradient-to-br from-[#F8FAFB] via-white to-[#E8F8FF]/40 dark:from-[#0a1a2a] dark:via-[#0f1f30] dark:to-[#0a1a2a]">

@@ -5,12 +5,17 @@ namespace App\Http\Controllers;
 use App\Models\Community;
 use App\Models\CommunityMembership;
 use App\Models\CommunityRole;
+use App\Services\NotificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
 class RoleController extends Controller
 {
+    public function __construct(
+        private readonly NotificationService $notifications,
+    ) {}
+
     /**
      * Return master list of all available community permissions.
      */
@@ -177,6 +182,26 @@ class RoleController extends Controller
             'role' => $validated['role'],
             'role_id' => $validated['role_id'] ?? null,
         ]);
+
+        try {
+            $member = $membership->user()->first();
+            if ($member) {
+                $this->notifications->actionEmail(
+                    user: $member,
+                    title: 'Your role in '.$community->name.' was updated',
+                    bodyHtml: '<p>Your role in the community <strong>'.e($community->name).'</strong> has been updated to <strong>'.e($validated['role']).'</strong> by the community owner.</p>',
+                    actionLabel: 'Visit community',
+                    actionUrl: NotificationService::link('app/communities/'.$community->slug),
+                    template: 'community_role_updated',
+                    data: [
+                        'community' => e($community->name),
+                        'role' => e($validated['role']),
+                    ],
+                );
+            }
+        } catch (\Throwable $e) {
+            report($e);
+        }
 
         return response()->json([
             'message' => 'Role assigned successfully.',

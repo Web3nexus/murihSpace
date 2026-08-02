@@ -116,6 +116,11 @@ class FulfilmentPayoutController extends Controller
             bodyHtml: '<p>Your MurihSpace payout of <strong>'.e($payout->currency ?? 'USD').' '.number_format((float) $payout->net_amount, 2).'</strong> has been <strong>paid</strong> and is on its way to your account.</p>',
             actionLabel: 'View payouts',
             actionUrl: NotificationService::link('settings/payouts'),
+            template: 'fulfilment_payout_paid',
+            data: [
+                'currency' => e($payout->currency ?? 'USD'),
+                'amount' => number_format((float) $payout->net_amount, 2),
+            ],
         );
 
         return response()->json(['data' => $payout->fresh()->load('creator:id,name,username')]);

@@ -24,6 +24,7 @@ use Laravel\Scout\Searchable;
     'verification_badge_status', 'verification_badge_expires_at',
     'verification_badge_purchased_at', 'verification_badge_auto_renew',
     'two_factor_secret', 'two_factor_recovery_codes', 'two_factor_confirmed_at',
+    'provider', 'provider_id', 'email_verify_code_hash', 'email_verify_code_expires_at',
 ])]
 #[Hidden(['password', 'remember_token', 'provider_id', 'kyc_document', 'kyc_rejection_reason', 'username_trial_ends_at', 'two_factor_secret', 'two_factor_recovery_codes'])]
 class User extends Authenticatable implements MustVerifyEmail
@@ -50,6 +51,7 @@ class User extends Authenticatable implements MustVerifyEmail
             'is_premium' => 'boolean',
             'admin_permissions' => 'array',
             'two_factor_confirmed_at' => 'datetime',
+            'email_verify_code_expires_at' => 'datetime',
             'verification_badge_expires_at' => 'datetime',
             'verification_badge_purchased_at' => 'datetime',
             'verification_badge_auto_renew' => 'boolean',
