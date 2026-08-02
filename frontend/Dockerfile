@@ -2,9 +2,9 @@ FROM node:24-bookworm-slim AS build
 
 WORKDIR /app
 
-COPY package.json package-lock.json ./
+COPY package.json ./
 
-RUN npm ci --include=optional
+RUN npm install --include=optional
 
 COPY . .
 
