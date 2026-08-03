@@ -171,4 +171,93 @@ class AdminSettingsController extends Controller
             }
         }
     }
+
+    // ─── Creator Qualification Settings ───────────────────────────────────────
+
+    private const QUALIFICATION_KEYS = [
+        'enabled', 'follower_threshold', 'delay_amount', 'delay_unit',
+        'enabled_providers', 'min_connected_accounts', 'combine_counts',
+        'email_enabled', 'email_subject', 'email_content',
+        'reminder_enabled', 'reminder_delay_hours', 'auto_expiry_hours',
+    ];
+
+    public function getCreatorQualification(): \Illuminate\Http\JsonResponse
+    {
+        $data = [];
+        foreach (self::QUALIFICATION_KEYS as $key) {
+            $data[$key] = \App\Models\AdminSetting::get("creator_qualification.{$key}");
+        }
+
+        // Decode JSON arrays
+        if (isset($data['enabled_providers']) && is_string($data['enabled_providers'])) {
+            $data['enabled_providers'] = json_decode($data['enabled_providers'], true) ?? [];
+        }
+
+        return response()->json(['data' => $data]);
+    }
+
+    public function updateCreatorQualification(\Illuminate\Http\Request $request): \Illuminate\Http\JsonResponse
+    {
+        $rules = [
+            'enabled'                  => ['boolean'],
+            'follower_threshold'       => ['integer', 'min:0'],
+            'delay_amount'             => ['integer', 'min:0'],
+            'delay_unit'               => ['string', 'in:hours,days'],
+            'enabled_providers'        => ['array'],
+            'enabled_providers.*'      => ['string'],
+            'min_connected_accounts'   => ['integer', 'min:1'],
+            'combine_counts'           => ['boolean'],
+            'email_enabled'            => ['boolean'],
+            'email_subject'            => ['string', 'max:255'],
+            'email_content'            => ['string', 'max:5000'],
+            'reminder_enabled'         => ['boolean'],
+            'reminder_delay_hours'     => ['integer', 'min:1'],
+            'auto_expiry_hours'        => ['integer', 'min:1'],
+        ];
+
+        $data = $request->validate($rules);
+
+        foreach ($data as $key => $value) {
+            $stored = is_array($value) ? json_encode($value) : (string) $value;
+            \App\Models\AdminSetting::set("creator_qualification.{$key}", $stored);
+        }
+
+        return response()->json(['message' => 'Creator qualification settings updated.']);
+    }
+
+    // ─── Admin: Qualification Events ─────────────────────────────────────────
+
+    public function listQualificationEvents(\Illuminate\Http\Request $request): \Illuminate\Http\JsonResponse
+    {
+        $events = \App\Models\CreatorQualificationEvent::with(['user:id,name,username,email', 'snapshot'])
+            ->when($request->input('status'), fn ($q, $s) => $q->where('status', $s))
+            ->orderByDesc('created_at')
+            ->paginate(20);
+
+        return response()->json($events);
+    }
+
+    public function notifyQualificationEvent(int $id): \Illuminate\Http\JsonResponse
+    {
+        $event = \App\Models\CreatorQualificationEvent::with(['user', 'snapshot'])->findOrFail($id);
+
+        if (! in_array($event->status, ['pending', 'notified'], true)) {
+            return response()->json(['message' => 'Event is not in a notifiable state.'], 422);
+        }
+
+        \App\Jobs\CheckCreatorQualification::dispatch($event->id)->delay(now()->addSeconds(5));
+
+        return response()->json(['message' => 'Notification job dispatched.']);
+    }
+
+    public function listSocialAccounts(\Illuminate\Http\Request $request): \Illuminate\Http\JsonResponse
+    {
+        $accounts = \App\Models\SocialAccount::with('user:id,name,username,email')
+            ->when($request->input('provider'), fn ($q, $p) => $q->where('provider', $p))
+            ->orderByDesc('follower_count')
+            ->paginate(25);
+
+        return response()->json($accounts);
+    }
 }
+

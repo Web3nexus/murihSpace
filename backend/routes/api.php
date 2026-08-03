@@ -749,6 +749,16 @@ Route::prefix('v1')->group(function () {
             Route::post('/complete', [\App\Http\Controllers\OnboardingController::class, 'complete']);
         });
 
+        // ── Connected Social Accounts & Follower Intelligence ────────────
+        Route::prefix('social-accounts')->group(function () {
+            Route::get('/', [\App\Http\Controllers\SocialAccountController::class, 'index']);
+            Route::get('/supported-providers', [\App\Http\Controllers\SocialAccountController::class, 'supportedProviders']);
+            Route::get('/follower-summary', [\App\Http\Controllers\SocialAccountController::class, 'followerSummary']);
+            Route::post('/manual', [\App\Http\Controllers\SocialAccountController::class, 'manualConnect']);
+            Route::patch('/{id}', [\App\Http\Controllers\SocialAccountController::class, 'update']);
+            Route::delete('/{id}', [\App\Http\Controllers\SocialAccountController::class, 'destroy']);
+        });
+
         // ── Courses ──────────────────────────────────────────────────
         Route::prefix('courses')->middleware('creator')->group(function () {
             Route::get('/', [\App\Http\Controllers\CourseController::class, 'index']);
@@ -1248,6 +1258,15 @@ Route::prefix('v1')->group(function () {
             Route::prefix('social-login')->group(function () {
                 Route::get('/', [\App\Http\Controllers\AdminSocialLoginController::class, 'show']);
                 Route::put('/', [\App\Http\Controllers\AdminSocialLoginController::class, 'update']);
+            });
+
+            // ── Creator Qualification Settings & Events ─────────────────────
+            Route::prefix('creator-qualification')->group(function () {
+                Route::get('/settings', [\App\Http\Controllers\AdminSettingsController::class, 'getCreatorQualification']);
+                Route::put('/settings', [\App\Http\Controllers\AdminSettingsController::class, 'updateCreatorQualification']);
+                Route::get('/events', [\App\Http\Controllers\AdminSettingsController::class, 'listQualificationEvents']);
+                Route::post('/events/{id}/notify', [\App\Http\Controllers\AdminSettingsController::class, 'notifyQualificationEvent']);
+                Route::get('/accounts', [\App\Http\Controllers\AdminSettingsController::class, 'listSocialAccounts']);
             });
 
             Route::prefix('email-templates')->group(function () {

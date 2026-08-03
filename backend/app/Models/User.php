@@ -246,6 +246,16 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasMany(LinkInBioSocialLink::class);
     }
 
+    public function socialAccounts(): HasMany
+    {
+        return $this->hasMany(SocialAccount::class);
+    }
+
+    public function qualificationEvents(): HasMany
+    {
+        return $this->hasMany(CreatorQualificationEvent::class);
+    }
+
     public function toSearchableArray(): array
     {
         return [

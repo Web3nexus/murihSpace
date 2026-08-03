@@ -101,6 +101,9 @@ import AdminEmailTemplatesPage from "@/pages/AdminEmailTemplatesPage";
 import AdminSocialLoginSettingsPage from "@/pages/AdminSocialLoginSettingsPage";
 import AdminStoragePage from "@/pages/AdminStoragePage";
 import AdminObjectStorageProvidersPage from "@/pages/AdminObjectStorageProvidersPage";
+import ConnectedAccountsPage from "@/pages/ConnectedAccountsPage";
+import AdminCreatorQualificationPage from "@/pages/AdminCreatorQualificationPage";
+import AdminQualificationEventsPage from "@/pages/AdminQualificationEventsPage";
 import AdminConversionMetricsPage from "@/pages/AdminConversionMetricsPage";
 import FeedPage from "@/pages/FeedPage";
 import ChatPage from "@/pages/ChatPage";
@@ -527,6 +530,10 @@ export const routes: RouteObject[] = [
             element: <UpgradeAccountPage />,
           },
           {
+            path: "connected-accounts",
+            element: <ConnectedAccountsPage />,
+          },
+          {
             path: "store",
             element: <ProtectedRoute requiredRole="vendor"><StoreSettingsPage /></ProtectedRoute>,
           },
@@ -669,6 +676,14 @@ export const routes: RouteObject[] = [
       {
         path: "securegate/social-login",
         element: <ProtectedRoute requiredRole="admin"><AdminSocialLoginSettingsPage /></ProtectedRoute>,
+      },
+      {
+        path: "securegate/creator-qualification",
+        element: <ProtectedRoute requiredRole="admin"><AdminCreatorQualificationPage /></ProtectedRoute>,
+      },
+      {
+        path: "securegate/creator-qualification/events",
+        element: <ProtectedRoute requiredRole="admin"><AdminQualificationEventsPage /></ProtectedRoute>,
       },
       {
         path: "securegate/storage",

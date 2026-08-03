@@ -78,6 +78,8 @@ class SocialAuthController extends Controller
             ], 409);
         }
 
+        app(\App\Services\SocialAccountService::class)->connect($user, $provider, $profile);
+
         $ttl = (int) (config('sanctum.expiration') ?? 1440);
         $token = $user->createToken('auth-token', ['*'], now()->addMinutes($ttl))->plainTextToken;
 

@@ -185,10 +185,12 @@ class OnboardingController extends Controller
 
         // Persist notification preferences
         if (! empty($data['notification_preferences'])) {
-            \App\Models\NotificationPreference::updateOrCreate(
-                ['user_id' => $user->id],
-                $data['notification_preferences'],
-            );
+            foreach ($data['notification_preferences'] as $type => $enabled) {
+                \App\Models\NotificationPreference::updateOrCreate(
+                    ['user_id' => $user->id, 'type' => (string) $type, 'channel' => 'in_app'],
+                    ['enabled' => (bool) $enabled]
+                );
+            }
         }
 
         return response()->json(['data' => $this->profilePayload($profile->fresh())]);

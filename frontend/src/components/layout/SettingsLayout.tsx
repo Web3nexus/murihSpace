@@ -17,17 +17,19 @@ import {
   LockIcon,
   UserIcon,
   ShieldIcon,
+  Share2Icon,
 } from "lucide-react";
 
 const NAV_ITEMS = [
-  { name: "Profile",       href: "/app/settings",               icon: UserIcon,       end: true },
-  { name: "Upgrade",       href: "/app/settings/upgrade",       icon: ShieldIcon,     end: false },
-  { name: "Security",      href: "/app/settings/security",      icon: ShieldIcon,     end: false },
-  { name: "Notifications", href: "/app/settings/notifications", icon: BellIcon,       end: false },
-  { name: "Appearance",    href: "/app/settings/preferences",   icon: PaintbrushIcon, end: false },
-  { name: "Privacy",       href: "/app/settings/privacy",       icon: LockIcon,       end: false },
-  { name: "Language",      href: "/app/settings/language",      icon: GlobeIcon,      end: false },
-  { name: "Accessibility", href: "/app/settings/accessibility", icon: KeyboardIcon,   end: false },
+  { name: "Profile",            href: "/app/settings",                    icon: UserIcon,       end: true },
+  { name: "Upgrade",            href: "/app/settings/upgrade",            icon: ShieldIcon,     end: false },
+  { name: "Connected Accounts", href: "/app/settings/connected-accounts", icon: Share2Icon,     end: false },
+  { name: "Security",           href: "/app/settings/security",           icon: ShieldIcon,     end: false },
+  { name: "Notifications",      href: "/app/settings/notifications",      icon: BellIcon,       end: false },
+  { name: "Appearance",         href: "/app/settings/preferences",        icon: PaintbrushIcon, end: false },
+  { name: "Privacy",            href: "/app/settings/privacy",            icon: LockIcon,       end: false },
+  { name: "Language",           href: "/app/settings/language",           icon: GlobeIcon,      end: false },
+  { name: "Accessibility",      href: "/app/settings/accessibility", icon: KeyboardIcon,   end: false },
 ];
 
 export function SettingsLayout() {
