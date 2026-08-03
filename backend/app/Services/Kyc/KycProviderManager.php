@@ -69,6 +69,7 @@ class KycProviderManager
 
     /**
      * The first enabled provider (used when no explicit choice is made).
+     * Automated providers are preferred over the manual fallback.
      */
     public function active(): KycProviderInterface
     {
@@ -79,6 +80,13 @@ class KycProviderManager
             return $this->manual;
         }
 
+        // Prefer an automated provider (didit/sumsub) over manual review.
+        foreach ($enabled as $name => $provider) {
+            if ($name !== 'manual') {
+                return $provider;
+            }
+        }
+
         return reset($enabled);
     }
 
@@ -86,7 +94,17 @@ class KycProviderManager
     {
         $enabled = $this->enabledProviders();
 
-        return $enabled === [] ? 'manual' : array_key_first($enabled);
+        if ($enabled === []) {
+            return 'manual';
+        }
+
+        foreach ($enabled as $name => $_provider) {
+            if ($name !== 'manual') {
+                return $name;
+            }
+        }
+
+        return array_key_first($enabled);
     }
 
     public function provider(?string $name = null): KycProviderInterface

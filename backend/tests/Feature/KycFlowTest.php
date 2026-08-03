@@ -28,7 +28,7 @@ class KycFlowTest extends TestCase
         Config::set('kyc.didit.api_key', 'test-api-key');
         Config::set('kyc.didit.workflow_id', 'workflow-1');
         Config::set('kyc.didit.webhook_secret', 'webhook-secret');
-        Config::set('kyc.sumsub.enabled', false);
+        Config::set('sumsub.enabled', false);
     }
 
     public function test_status_returns_defaults_for_unsubmitted_user(): void
@@ -460,6 +460,47 @@ class KycFlowTest extends TestCase
         ]);
 
         Queue::assertPushed(ProcessKycWebhook::class);
+    }
+
+    public function test_sumsub_final_reject_type_does_not_approve_user(): void
+    {
+        $user = User::factory()->create(['role' => 'creator', 'kyc_status' => 'pending', 'sumsub_applicant_id' => 'applicant-final']);
+        $verification = KycVerification::create([
+            'user_id' => $user->id,
+            'provider' => 'sumsub',
+            'status' => 'pending',
+            'provider_session_id' => 'applicant-final',
+            'started_at' => now(),
+        ]);
+
+        // FINAL is a reviewRejectType (permanent rejection), never an approval.
+        $event = KycWebhookEvent::create([
+            'provider' => 'sumsub',
+            'provider_event_id' => 'evt-final',
+            'provider_session_id' => 'applicant-final',
+            'type' => 'applicantReviewed',
+            'status' => 'rejected',
+            'processing_status' => 'pending',
+            'raw_payload' => [
+                'id' => 'evt-final',
+                'applicantId' => 'applicant-final',
+                'type' => 'applicantReviewed',
+                'reviewResult' => ['reviewAnswer' => 'RED', 'reviewRejectType' => 'FINAL'],
+            ],
+            'received_at' => now(),
+        ]);
+
+        (new ProcessKycWebhook($event))->handle(app(\App\Services\Kyc\KycService::class));
+
+        $this->assertDatabaseHas('kyc_verifications', [
+            'id' => $verification->id,
+            'status' => 'rejected',
+        ]);
+
+        $this->assertDatabaseHas('users', [
+            'id' => $user->id,
+            'kyc_status' => 'rejected',
+        ]);
     }
 
     public function test_start_rejects_disabled_provider_choice(): void

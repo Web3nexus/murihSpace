@@ -29,6 +29,9 @@ class KycService
     }
 
     /**
+     * Enabled automated providers (didit/sumsub) — manual review is the
+     * fallback UX and is intentionally excluded from this list.
+     *
      * @return array<string, bool>
      */
     public function enabledProviders(): array
@@ -36,6 +39,10 @@ class KycService
         $result = [];
 
         foreach ($this->providers->enabledProviders() as $name => $provider) {
+            if ($name === 'manual') {
+                continue;
+            }
+
             $result[$name] = $provider->isEnabled();
         }
 
@@ -137,16 +144,11 @@ class KycService
      */
     public function recordWebhook(string $provider, array $payload, array $headers, string $rawBody): void
     {
-        $eventId = (string) ($payload['event_id'] ?? $payload['eventId'] ?? $payload['id'] ?? '');
-        $sessionId = (string) ($payload['session_id'] ?? $payload['sessionId'] ?? $payload['object_id'] ?? $payload['applicantId'] ?? '');
-        $type = (string) ($payload['webhook_type'] ?? $payload['type'] ?? $payload['event_type'] ?? '');
-        $reviewAnswer = strtoupper((string) ($payload['reviewResult']['reviewAnswer'] ?? $payload['status'] ?? $payload['verification_status'] ?? ''));
-
-        $status = match (true) {
-            in_array($reviewAnswer, ['GREEN', 'FINAL'], true), in_array(strtolower($reviewAnswer), ['verified', 'approved', 'passed'], true) => 'approved',
-            in_array($reviewAnswer, ['RED'], true), in_array(strtolower($reviewAnswer), ['rejected', 'failed', 'declined'], true) => 'rejected',
-            default => (string) ($payload['status'] ?? $payload['verification_status'] ?? null),
-        };
+        $normalized = KycWebhookNormalizer::normalize($payload);
+        $eventId = $normalized['event_id'];
+        $sessionId = $normalized['session_id'];
+        $type = $normalized['type'];
+        $status = $normalized['status'];
 
         $event = KycWebhookEvent::where('provider', $provider)
             ->when($eventId !== '', fn ($q) => $q->where('provider_event_id', $eventId))

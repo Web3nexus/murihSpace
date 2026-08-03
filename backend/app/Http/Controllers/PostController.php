@@ -32,6 +32,20 @@ class PostController extends Controller
     }
 
     /**
+     * Display the authenticated user's saved posts.
+     */
+    public function savedPosts(Request $request): JsonResponse
+    {
+        $posts = Post::with(['author:id,name,username,avatar,verification_badge_status,verification_badge_expires_at', 'community:id,name,slug,logo_url', 'reactions'])
+            ->whereHas('saves', fn ($q) => $q->where('user_id', $request->user()->id))
+            ->published()
+            ->pinnedFirst()
+            ->paginate(20);
+
+        return response()->json($posts);
+    }
+
+    /**
      * Display aggregate global feed across all communities.
      */
     public function globalFeed(Request $request): JsonResponse

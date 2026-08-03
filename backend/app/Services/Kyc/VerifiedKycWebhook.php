@@ -17,7 +17,13 @@ final readonly class VerifiedKycWebhook
 
     public function isDecision(): bool
     {
-        return in_array($this->webhookType, ['session.decision', 'verification.decision', 'check.completed', 'decision'], true);
+        return in_array($this->webhookType, [
+            'session.decision',
+            'verification.decision',
+            'check.completed',
+            'decision',
+            'applicantReviewed',
+        ], true);
     }
 
     public function isApproved(): bool

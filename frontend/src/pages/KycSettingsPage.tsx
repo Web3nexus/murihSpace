@@ -48,6 +48,12 @@ const DOCUMENT_TYPES = [
 
 const SUMSUB_SDK_URL = "https://static.sumsub.com/idensic/static/sns-websdk-builder.js";
 
+const PROVIDER_LABELS: Record<string, string> = {
+  didit: "Didit",
+  sumsub: "Sumsub",
+  manual: "Manual review",
+};
+
 declare global {
   interface Window {
     snsWebSdk?: {
@@ -191,12 +197,22 @@ export default function KycSettingsPage() {
     }
   };
 
+  const availableProviders = (Object.entries(state?.providers ?? {}) as [string, boolean][])
+    .filter(([, enabled]) => enabled)
+    .map(([name]) => name)
+    .filter((name) => name !== "manual");
+  const multipleProviders = availableProviders.length > 1;
+  const preferred = state?.kyc_provider && availableProviders.includes(state.kyc_provider)
+    ? state.kyc_provider
+    : undefined;
+  const activeProvider = selectedProvider ?? preferred ?? availableProviders[0] ?? "sumsub";
+
   const launchSumsub = useCallback(async () => {
     setSdkError(null);
     setSdkToken(null);
     setStarting(true);
     try {
-      const res = await apiClient.post("/kyc/start", selectedProvider ? { provider: selectedProvider } : {});
+      const res = await apiClient.post("/kyc/start", { provider: activeProvider });
       const data = res.data?.data ?? res.data;
 
       // Hosted-session providers (e.g. Didit) return a session_url we open.
@@ -217,7 +233,7 @@ export default function KycSettingsPage() {
     } finally {
       setStarting(false);
     }
-  }, [selectedProvider]);
+  }, [activeProvider]);
 
   useEffect(() => {
     if (!sdkToken || !containerRef.current) return;
@@ -227,7 +243,7 @@ export default function KycSettingsPage() {
       .then(() => {
         if (disposed || !window.snsWebSdk || !containerRef.current) return;
 
-        const refreshToken = () => apiClient.post("/kyc/start").then((r) => {
+        const refreshToken = () => apiClient.post("/kyc/start", { provider: activeProvider }).then((r) => {
           const d = r.data?.data ?? r.data;
           if (!d?.access_token) throw new Error("Token refresh failed");
           return d.access_token as string;
@@ -251,7 +267,7 @@ export default function KycSettingsPage() {
       });
 
     return () => { disposed = true; };
-  }, [sdkToken]);
+  }, [sdkToken, activeProvider]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -289,12 +305,6 @@ export default function KycSettingsPage() {
 
   const status = state?.kyc_status ?? "unsubmitted";
   const providerEnabled = state?.provider_enabled ?? state?.sumsub_enabled ?? false;
-
-  const availableProviders = (Object.entries(state?.providers ?? {}) as [string, boolean][])
-    .filter(([, enabled]) => enabled)
-    .map(([name]) => name);
-  const multipleProviders = availableProviders.length > 1;
-  const activeProvider = selectedProvider ?? state?.kyc_provider ?? availableProviders[0] ?? "sumsub";
 
   return (
     <div className="space-y-6 w-full max-w-3xl mx-auto">
@@ -432,7 +442,7 @@ export default function KycSettingsPage() {
               </div>
               <div>
                 <h3 className="text-sm font-bold text-foreground">
-                  {activeProvider === "didit" ? "Verify with Didit" : "Verify with Sumsub"}
+                  Verify with {PROVIDER_LABELS[activeProvider] ?? activeProvider}
                 </h3>
                 <p className="text-[11px] text-muted-foreground">
                   Secure identity checks — passport, ID, or driver's license, plus a quick selfie.
@@ -453,7 +463,7 @@ export default function KycSettingsPage() {
                         : "bg-muted/30 border-border text-muted-foreground hover:border-muted-foreground/40"
                     }`}
                   >
-                    {name === "didit" ? "Didit" : "Sumsub"}
+                    {PROVIDER_LABELS[name] ?? name}
                   </button>
                 ))}
               </div>

@@ -187,10 +187,12 @@ export default function AdminSettingsPage() {
                 </div>
                 <button
                   onClick={() => setKycProviders((prev) => active ? prev.filter((x) => x !== p.name) : [...prev, p.name])}
+                  disabled={!configured}
                   role="switch"
                   aria-checked={active}
+                  aria-disabled={!configured}
                   aria-label={`Toggle ${p.label} KYC provider`}
-                  className={`w-10 h-5 rounded-full transition-colors shrink-0 ${active ? 'bg-emerald-500' : 'bg-muted'}`}
+                  className={`w-10 h-5 rounded-full transition-colors shrink-0 ${active ? 'bg-emerald-500' : 'bg-muted'} ${configured ? '' : 'opacity-40 cursor-not-allowed'}`}
                 >
                   <div className={`w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${active ? 'translate-x-5' : 'translate-x-0.5'}`} />
                 </button>

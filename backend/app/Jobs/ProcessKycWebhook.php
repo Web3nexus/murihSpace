@@ -7,6 +7,7 @@ use App\Models\KycVerification;
 use App\Models\KycWebhookEvent;
 use App\Models\User;
 use App\Services\Kyc\KycService;
+use App\Services\Kyc\KycWebhookNormalizer;
 use App\Services\Kyc\VerifiedKycWebhook;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -121,21 +122,11 @@ class ProcessKycWebhook implements ShouldQueue
 
     private function toWebhook(array $payload): ?VerifiedKycWebhook
     {
-        $eventId = (string) ($payload['event_id'] ?? $payload['eventId'] ?? $payload['id'] ?? '');
-        $sessionId = (string) ($payload['session_id'] ?? $payload['sessionId'] ?? $payload['object_id'] ?? $payload['applicantId'] ?? '');
-        $webhookType = (string) ($payload['webhook_type'] ?? $payload['type'] ?? $payload['event_type'] ?? '');
-
-        $rawStatus = strtoupper((string) ($payload['reviewResult']['reviewAnswer']
-            ?? $payload['status']
-            ?? $payload['verification_status']
-            ?? $payload['decision']
-            ?? ''));
-
-        $status = match (true) {
-            in_array($rawStatus, ['GREEN', 'FINAL'], true), in_array(strtolower($rawStatus), ['verified', 'approved', 'passed'], true) => 'approved',
-            in_array($rawStatus, ['RED'], true), in_array(strtolower($rawStatus), ['rejected', 'failed', 'declined'], true) => 'rejected',
-            default => $rawStatus,
-        };
+        $normalized = KycWebhookNormalizer::normalize($payload);
+        $eventId = $normalized['event_id'];
+        $sessionId = $normalized['session_id'];
+        $webhookType = $normalized['type'];
+        $status = $normalized['status'];
 
         if ($sessionId === '' || $webhookType === '') {
             return null;

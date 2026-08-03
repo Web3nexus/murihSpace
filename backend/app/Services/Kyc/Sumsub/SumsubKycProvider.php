@@ -76,8 +76,8 @@ class SumsubKycProvider implements KycProviderInterface
 
         $answer = strtoupper((string) ($status['reviewResult']['reviewAnswer'] ?? ''));
         $platformStatus = match ($answer) {
-            'GREEN', 'FINAL' => 'approved',
-            'RED' => 'rejected',
+            'GREEN' => 'approved',
+            'RED', 'FINAL' => 'rejected',
             default => 'pending',
         };
 
@@ -120,8 +120,8 @@ class SumsubKycProvider implements KycProviderInterface
 
         $status = match ($type) {
             'applicantReviewed' => match ($reviewAnswer) {
-                'GREEN', 'FINAL' => 'approved',
-                'RED' => 'rejected',
+                'GREEN' => 'approved',
+                'RED', 'FINAL' => 'rejected',
                 default => 'pending',
             },
             'applicantPending', 'applicantCreated' => 'pending',
