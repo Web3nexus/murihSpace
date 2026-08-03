@@ -325,6 +325,7 @@ Route::prefix('v1')->group(function () {
         // Posts, Comments & Reactions
         Route::prefix('posts')->group(function () {
             Route::post('/', [PostController::class, 'store']);
+            Route::get('/saved', [PostController::class, 'savedPosts']);
             Route::put('/{id}', [PostController::class, 'update']);
             Route::delete('/{id}', [PostController::class, 'destroy']);
             Route::post('/{id}/pin', [PostController::class, 'pin']);

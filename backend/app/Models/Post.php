@@ -61,6 +61,11 @@ class Post extends Model
         return $this->hasMany(PostReaction::class);
     }
 
+    public function saves(): HasMany
+    {
+        return $this->hasMany(SavedPost::class);
+    }
+
     public function scopePublished($query)
     {
         return $query->where('is_draft', false);
