@@ -9,6 +9,9 @@ import { Button } from "@/components/ui/button";
 import { Loader2, ArrowRight, ArrowLeft, CheckCircle2, XCircle, BadgeCheck, Crown, Smartphone, Download } from "lucide-react";
 
 import { AuthLayout } from "@/components/layout/AuthLayout";
+import { CountrySelect } from "@/components/forms/CountrySelect";
+import { PhoneInput } from "@/components/forms/PhoneInput";
+import { StateSelect } from "@/components/forms/StateSelect";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:8000/api/v1";
 
@@ -39,7 +42,7 @@ export function RegisterPage() {
   const [passwordConfirmation, setPasswordConfirmation] = useState("");
   const [name, setName] = useState("");
   const [mobileNumber, setMobileNumber] = useState("");
-  const [country, setCountry] = useState("United Kingdom");
+  const [country, setCountry] = useState("GB");
   const [county, setCounty] = useState("");
   const [state, _setState] = useState("");
   const [role, setRole] = useState<"member" | "creator" | "vendor">("member");
@@ -300,7 +303,7 @@ export function RegisterPage() {
                 <FieldGroup>
                   <FieldLabel>Mobile number (optional)</FieldLabel>
                   <Field>
-                    <Input type="tel" placeholder="+44..." value={mobileNumber} onChange={(e) => setMobileNumber(e.target.value)} />
+                    <PhoneInput countryIso2={country} value={mobileNumber} onChange={setMobileNumber} />
                   </Field>
                 </FieldGroup>
                 <div className="flex gap-2">
@@ -340,13 +343,13 @@ export function RegisterPage() {
                 <FieldGroup>
                   <FieldLabel>Country</FieldLabel>
                   <Field>
-                    <Input value={country} onChange={(e) => setCountry(e.target.value)} />
+                    <CountrySelect value={country} onChange={(iso2) => setCountry(iso2)} />
                   </Field>
                 </FieldGroup>
                 <FieldGroup>
-                  <FieldLabel>County / Region (optional)</FieldLabel>
+                  <FieldLabel>State / County (optional)</FieldLabel>
                   <Field>
-                    <Input value={county} onChange={(e) => setCounty(e.target.value)} />
+                    <StateSelect countryIso2={country} value={county} onChange={setCounty} />
                   </Field>
                 </FieldGroup>
                 {error && <div className="p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-xs font-bold text-destructive">{error}</div>}

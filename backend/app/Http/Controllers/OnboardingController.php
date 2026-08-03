@@ -6,6 +6,7 @@ use App\Models\AiMemory;
 use App\Models\CreatorProfile;
 use App\Models\LinkInBioDesign;
 use App\Models\LinkInBioSocialLink;
+use App\Models\Storefront;
 use App\Services\AiService;
 use App\Services\SocialProfileService;
 use Illuminate\Http\JsonResponse;
@@ -17,6 +18,148 @@ class OnboardingController extends Controller
         private readonly AiService $ai,
         private readonly SocialProfileService $socials,
     ) {
+    }
+
+    /**
+     * Get role-aware onboarding configuration & saved progress.
+     */
+    public function config(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $role = $user->role ?? 'member';
+        $isBusiness = in_array($role, ['creator', 'vendor'], true);
+
+        $profile = $user->creatorProfile;
+        $storefront = $user->storefront;
+
+        $savedProgress = AiMemory::recall($user->id, 'onboarding_progress') ?? [];
+
+        $steps = match ($role) {
+            'vendor' => [
+                ['key' => 'business', 'label' => 'Business Info'],
+                ['key' => 'products', 'label' => 'Products & Fulfilment'],
+                ['key' => 'target', 'label' => 'Target Market'],
+                ['key' => 'brand', 'label' => 'Brand & Socials'],
+                ['key' => 'setup', 'label' => 'Dashboard Setup'],
+            ],
+            'creator' => [
+                ['key' => 'ai', 'label' => 'Meet Mera'],
+                ['key' => 'socials', 'label' => 'Connect Socials'],
+                ['key' => 'interests', 'label' => 'Your Interests'],
+                ['key' => 'profile', 'label' => 'AI Profile'],
+                ['key' => 'template', 'label' => 'Pick Template'],
+            ],
+            default => [
+                ['key' => 'profile', 'label' => 'Profile Setup'],
+                ['key' => 'interests', 'label' => 'Community Interests'],
+                ['key' => 'preferences', 'label' => 'Preferences'],
+            ],
+        };
+
+        return response()->json([
+            'data' => [
+                'role' => $role,
+                'is_business' => $isBusiness,
+                'onboarding_completed' => $profile?->onboarding_completed_at !== null,
+                'steps' => $steps,
+                'saved_progress' => $savedProgress,
+                'profile' => [
+                    'name' => $user->name,
+                    'username' => $user->username,
+                    'about' => $profile?->about,
+                    'niche' => $profile?->niche,
+                    'community_interests' => $profile?->community_interests ?? [],
+                    'content_interests' => $profile?->content_interests ?? [],
+                ],
+                'storefront' => $storefront ? [
+                    'name' => $storefront->display_name ?? $storefront->name,
+                    'bio' => $storefront->bio,
+                    'tagline' => $storefront->tagline,
+                ] : null,
+            ],
+        ]);
+    }
+
+    /**
+     * Save onboarding progress to enable resuming after interruption.
+     */
+    public function saveProgress(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'step' => ['required', 'integer', 'min:0'],
+            'form_data' => ['nullable', 'array'],
+        ]);
+
+        AiMemory::remember($request->user()->id, 'onboarding_progress', [
+            'step' => $data['step'],
+            'form_data' => $data['form_data'] ?? [],
+            'saved_at' => now()->toIso8601String(),
+        ]);
+
+        return response()->json(['message' => 'Progress saved.']);
+    }
+
+    /**
+     * Vendor AI onboarding info save.
+     */
+    public function saveVendorInfo(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        if ($user->role !== 'vendor' && $user->role !== 'admin') {
+            return response()->json(['message' => 'Vendor onboarding is only available for vendor accounts.'], 403);
+        }
+
+        $data = $request->validate([
+            'business_name' => ['required', 'string', 'max:255'],
+            'business_category' => ['nullable', 'string', 'max:120'],
+            'fulfilment_model' => ['nullable', 'string', 'max:100'],
+            'shipping_areas' => ['nullable', 'array'],
+            'business_goals' => ['nullable', 'array'],
+            'bio' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $shortCode = \Illuminate\Support\Str::slug($data['business_name']) . '-' . strtolower(\Illuminate\Support\Str::random(5));
+
+        $storefront = Storefront::firstOrCreate(
+            ['user_id' => $user->id],
+            [
+                'display_name' => $data['business_name'],
+                'name' => $data['business_name'],
+                'short_code' => $shortCode,
+            ]
+        );
+        $storefront->update([
+            'display_name' => $data['business_name'],
+            'name' => $data['business_name'],
+            'tagline' => $data['business_category'] ?? null,
+            'bio' => $data['bio'] ?? null,
+        ]);
+
+        AiMemory::remember($user->id, 'vendor_business', $data);
+
+        return response()->json(['data' => $storefront->fresh()]);
+    }
+
+    /**
+     * Normal user lightweight setup save.
+     */
+    public function saveMemberSetup(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        $data = $request->validate([
+            'interests' => ['nullable', 'array'],
+            'notification_preferences' => ['nullable', 'array'],
+        ]);
+
+        $profile = CreatorProfile::firstOrCreate(['user_id' => $user->id]);
+        $profile->update([
+            'community_interests' => $data['interests'] ?? [],
+            'onboarding_completed_at' => now(),
+        ]);
+
+        return response()->json(['data' => $this->profilePayload($profile->fresh())]);
     }
 
     public function state(Request $request): JsonResponse

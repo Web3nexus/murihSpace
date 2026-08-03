@@ -11,6 +11,7 @@ use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\AudioRoomController;
 use App\Http\Controllers\AddressController;
 use App\Http\Controllers\BrandController;
+use App\Http\Controllers\CountryController;
 use App\Http\Controllers\BrandDealController;
 use App\Http\Controllers\BrandDealProposalController;
 use App\Http\Controllers\BrandInvoiceController;
@@ -151,6 +152,10 @@ Route::prefix('v1')->group(function () {
             ->middleware('signed')
             ->name('verification.verify');
     });
+
+    // Public Country & Location Endpoints
+    Route::get('/countries', [CountryController::class, 'index']);
+    Route::get('/countries/{iso2}/states', [CountryController::class, 'states']);
 
     // Public Community, Membership & Feed Endpoints
     Route::prefix('communities')->middleware('cache.public:10')->group(function () {
@@ -731,6 +736,10 @@ Route::prefix('v1')->group(function () {
         // ── AI Onboarding wizard ─────────────────────────────────────
         Route::prefix('onboarding')->group(function () {
             Route::get('/', [\App\Http\Controllers\OnboardingController::class, 'state']);
+            Route::get('/config', [\App\Http\Controllers\OnboardingController::class, 'config']);
+            Route::post('/progress', [\App\Http\Controllers\OnboardingController::class, 'saveProgress']);
+            Route::post('/vendor-info', [\App\Http\Controllers\OnboardingController::class, 'saveVendorInfo']);
+            Route::post('/member-setup', [\App\Http\Controllers\OnboardingController::class, 'saveMemberSetup']);
             Route::post('/chat', [\App\Http\Controllers\OnboardingController::class, 'chat'])->middleware('throttle:30,1');
             Route::post('/about', [\App\Http\Controllers\OnboardingController::class, 'saveAbout']);
             Route::post('/interests', [\App\Http\Controllers\OnboardingController::class, 'saveInterests']);

@@ -1,6 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router";
-import { Loader2, Sparkles, Send, Plus, X, Check, ChevronRight, ChevronLeft, Camera, Music, Hash, Film, MessageCircle, Link as LinkIcon, ShoppingCart, Palette, ArrowRight, Wand2, Smartphone, MailCheck, ShieldCheck } from "lucide-react";
+import {
+  Loader2, Wand2, Send, Plus, X, Check, ChevronRight, ChevronLeft,
+  Camera, Music, Hash, Film, MessageCircle, Link as LinkIcon, ShoppingCart,
+  Palette, ArrowRight, Smartphone, MailCheck, ShieldCheck, Store, User as UserIcon,
+  Package, Globe, Target, Sparkles
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { getAuthToken } from "@/lib/auth/token";
@@ -9,6 +14,7 @@ import { TEMPLATES, templateBySlug } from "@/lib/linkBioTemplates";
 import type { LinkBioPageData, LinkBioSocial } from "@/lib/linkBioTypes";
 import TemplateRenderer from "@/components/linkbio/TemplateRenderer";
 import TemplateThumb from "@/components/linkbio/TemplateThumb";
+import { CountrySelect } from "@/components/forms/CountrySelect";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:8000/api/v1";
 
@@ -55,6 +61,15 @@ const CONTENT_OPTIONS = [
   "Community events", "Exclusive content", "How-to guides",
 ];
 
+const FULFILMENT_MODELS = [
+  "Self-fulfilled (hand-shipped)", "Dropshipping", "Print-on-demand", "Digital / Instant download", "Local pickup only"
+];
+
+const BUSINESS_CATEGORIES = [
+  "Apparel & Fashion", "Beauty & Cosmetics", "Electronics & Tech", "Home & Living",
+  "Fitness & Sports", "Digital Downloads", "Art & Collectibles", "Food & Beverage", "Services & Consulting"
+];
+
 interface ChatMsg { role: "user" | "assistant"; content: string; }
 
 const QUICK_PROMPTS = [
@@ -72,43 +87,49 @@ function handleFromUrl(platform: string, url: string): string {
   return url.slice(idx + prefix.length).replace(/\/$/, "").replace(/^@/, "");
 }
 
-const STEPS = [
-  { key: "ai", label: "Meet Mera" },
-  { key: "socials", label: "Connect socials" },
-  { key: "interests", label: "Your interests" },
-  { key: "profile", label: "AI profile" },
-  { key: "template", label: "Pick a template" },
-];
-
 export default function OnboardingPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
+
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [role, setRole] = useState<string>("member");
+  const [steps, setSteps] = useState<{ key: string; label: string }[]>([]);
 
-  // Step 1: AI chat
+  // Member state
+  const [memberInterests, setMemberInterests] = useState<string[]>([]);
+  const [notifyFeed, setNotifyFeed] = useState(true);
+
+  // Vendor state
+  const [businessName, setBusinessName] = useState("");
+  const [businessCategory, setBusinessCategory] = useState("Apparel & Fashion");
+  const [fulfilmentModel, setFulfilmentModel] = useState("Self-fulfilled (hand-shipped)");
+  const [vendorCountry, setVendorCountry] = useState("GB");
+  const [vendorBio, setVendorBio] = useState("");
+
+  // Creator state
   const [messages, setMessages] = useState<ChatMsg[]>([]);
   const [chatInput, setChatInput] = useState("");
   const [chatSending, setChatSending] = useState(false);
   const [about, setAbout] = useState("");
   const [niche, setNiche] = useState("");
 
-  // Step 2: socials
+  // Socials
   const [socialRows, setSocialRows] = useState<{ platform: string; handle: string }[]>([]);
   const [socialPlatform, setSocialPlatform] = useState("instagram");
   const [socialHandle, setSocialHandle] = useState("");
 
-  // Step 3: interests
+  // Creator Interests
   const [communityInterests, setCommunityInterests] = useState<string[]>([]);
   const [contentInterests, setContentInterests] = useState<string[]>([]);
 
-  // Step 4: profile draft
+  // Profile Draft
   const [profileName, setProfileName] = useState("");
   const [profileBio, setProfileBio] = useState("");
   const [draftLoading, setDraftLoading] = useState(false);
 
-  // Step 5: template
+  // Template
   const [template, setTemplate] = useState("minimal");
 
   // Email verification gate
@@ -164,39 +185,53 @@ export default function OnboardingPage() {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const loadState = useCallback(async () => {
+  // Load config & saved progress
+  const loadConfig = useCallback(async () => {
     try {
-      const res = await fetch(`${API_BASE}/onboarding`, { headers: getAuthHeaders() });
+      const res = await fetch(`${API_BASE}/onboarding/config`, { headers: getAuthHeaders() });
       const j = await res.json();
-      const d = j?.success ? j?.data : j;
-      const unwrapped = d?.data ?? d;
-      if (unwrapped) {
-        const p = unwrapped.profile ?? {};
+      const d = j?.data ?? j;
+      if (d) {
+        setRole(d.role ?? user?.role ?? "member");
+        setSteps(d.steps ?? []);
+
+        // Restore saved progress if available
+        const saved = d.saved_progress;
+        if (saved && typeof saved.step === "number") {
+          setStep(saved.step);
+        }
+
+        const p = d.profile ?? {};
         setAbout(p.about ?? "");
         setNiche(p.niche ?? "");
         setCommunityInterests(p.community_interests ?? []);
         setContentInterests(p.content_interests ?? []);
-        const socials: { platform: string; handle: string }[] = (unwrapped.social_links ?? []).map((s: LinkBioSocial) => ({
-          platform: s.platform,
-          handle: handleFromUrl(s.platform, s.url),
-        }));
-        setSocialRows(socials);
-        if (unwrapped.template) setTemplate(unwrapped.template);
-        const draft = unwrapped.profile_draft;
-        if (draft) {
-          setProfileName(draft.profile_name ?? "");
-          setProfileBio(draft.profile_bio ?? "");
+
+        if (d.storefront) {
+          setBusinessName(d.storefront.name ?? "");
+          setVendorBio(d.storefront.bio ?? "");
+          if (d.storefront.tagline) setBusinessCategory(d.storefront.tagline);
         }
       }
     } catch { /* ignore */ }
     finally { setLoading(false); }
-  }, []);
+  }, [user]);
 
-  useEffect(() => { loadState(); }, [loadState]);
+  useEffect(() => { loadConfig(); }, [loadConfig]);
+
+  const saveProgress = async (newStep: number) => {
+    setStep(newStep);
+    try {
+      await fetch(`${API_BASE}/onboarding/progress`, {
+        method: "POST", headers: getAuthHeaders(),
+        body: JSON.stringify({ step: newStep, form_data: { role, niche, businessName } }),
+      });
+    } catch { /* ignore */ }
+  };
 
   const greeting: ChatMsg = {
     role: "assistant",
-    content: `Hey ${user?.name?.split(" ")[0] ?? "there"}! I'm Mera, your AI onboarding buddy. Tell me a little about you, your brand or what you create — I'll help you set up a standout link-in-bio in the next few minutes.`,
+    content: `Hey ${user?.name?.split(" ")[0] ?? "there"}! I'm Mera, your MurihSpace AI assistant. Tell me a little about what you create — I'll help you set up a standout presence in a few quick steps.`,
   };
 
   const sendChat = async (text?: string) => {
@@ -216,7 +251,7 @@ export default function OnboardingPage() {
       const reply = d?.reply ?? (d?.data?.reply ?? "Got it — tell me more!");
       setMessages((m) => [...m, { role: "assistant", content: reply }]);
     } catch {
-      setMessages((m) => [...m, { role: "assistant", content: "Let's keep going — tell me more about what you create." }]);
+      setMessages((m) => [...m, { role: "assistant", content: "Let me know what else you create or sell." }]);
     }
     setChatSending(false);
   };
@@ -261,7 +296,7 @@ export default function OnboardingPage() {
     setDraftLoading(false);
   };
 
-  const handleFinish = async () => {
+  const handleFinishCreator = async () => {
     setSaving(true);
     try {
       const def = templateBySlug(template);
@@ -275,16 +310,52 @@ export default function OnboardingPage() {
     setSaving(false);
   };
 
+  const handleFinishVendor = async () => {
+    setSaving(true);
+    try {
+      await fetch(`${API_BASE}/onboarding/vendor-info`, {
+        method: "POST", headers: getAuthHeaders(),
+        body: JSON.stringify({
+          business_name: businessName || user?.name || "My Store",
+          business_category: businessCategory,
+          fulfilment_model: fulfilmentModel,
+          bio: vendorBio,
+        }),
+      });
+      await fetch(`${API_BASE}/onboarding/complete`, { method: "POST", headers: getAuthHeaders() });
+      navigate("/app/storefront", { replace: true });
+    } catch { /* ignore */ }
+    setSaving(false);
+  };
+
+  const handleFinishMember = async () => {
+    setSaving(true);
+    try {
+      await fetch(`${API_BASE}/onboarding/member-setup`, {
+        method: "POST", headers: getAuthHeaders(),
+        body: JSON.stringify({
+          interests: memberInterests,
+          notification_preferences: { feed: notifyFeed },
+        }),
+      });
+      await fetch(`${API_BASE}/onboarding/complete`, { method: "POST", headers: getAuthHeaders() });
+      navigate("/app", { replace: true });
+    } catch { /* ignore */ }
+    setSaving(false);
+  };
+
   const toggle = (arr: string[], set: (v: string[]) => void, v: string) => {
     set(arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v]);
   };
 
   const goNext = async () => {
-    if (step === 0) await saveAbout();
-    if (step === 1) await saveSocials();
-    if (step === 2) await saveInterests();
-    if (step === 3 && (!profileName || !profileBio)) await generateDraft();
-    setStep((s) => Math.min(s + 1, 4));
+    if (role === "creator") {
+      if (step === 0) await saveAbout();
+      if (step === 1) await saveSocials();
+      if (step === 2) await saveInterests();
+      if (step === 3 && (!profileName || !profileBio)) await generateDraft();
+    }
+    saveProgress(Math.min(step + 1, steps.length - 1));
   };
 
   const addSocialRow = () => {
@@ -333,7 +404,7 @@ export default function OnboardingPage() {
             <h1 className="text-xl font-black tracking-tight flex items-center gap-2">
               Verify your email <ShieldCheck className="h-5 w-5 text-emerald-500" />
             </h1>
-            <p className="text-xs text-muted-foreground mt-0.5">One quick step before Mera takes over.</p>
+            <p className="text-xs text-muted-foreground mt-0.5">One quick step before AI setup takes over.</p>
           </div>
         </div>
 
@@ -341,7 +412,7 @@ export default function OnboardingPage() {
           <p className="text-sm text-foreground leading-relaxed">
             Welcome to MurihSpace! We've sent a <span className="font-black">6-digit code</span> to{" "}
             <span className="font-bold text-[#38A8D8]">{user.email}</span>. Enter it to verify your account and start
-            building your presence with Mera.
+            onboarding.
           </p>
 
           <div className="space-y-2">
@@ -355,7 +426,6 @@ export default function OnboardingPage() {
               autoComplete="one-time-code"
               className="h-14 text-center text-2xl font-black tracking-[0.6em] placeholder:text-muted-foreground/30"
             />
-            <p className="text-[10px] text-muted-foreground">Codes expire after 15 minutes. Check your spam folder if it hasn't arrived.</p>
           </div>
 
           {verifyMsg && (
@@ -373,10 +443,6 @@ export default function OnboardingPage() {
               Resend code
             </Button>
           </div>
-
-          <p className="text-[10px] text-muted-foreground text-center">
-            Using a shared device? Don't worry — your code is one-time and expires quickly.
-          </p>
         </div>
       </div>
     );
@@ -386,14 +452,21 @@ export default function OnboardingPage() {
     <div className="w-full max-w-7xl mx-auto space-y-6 p-6 lg:p-8">
       <div>
         <h1 className="text-2xl font-black tracking-tight flex items-center gap-2.5">
-          <Sparkles className="h-6 w-6 text-[#38A8D8]" /> AI Onboarding
+          <Wand2 className="h-6 w-6 text-[#38A8D8]" />
+          {role === "vendor" ? "Vendor AI Onboarding" : role === "creator" ? "Creator AI Onboarding" : "Account Setup"}
         </h1>
-        <p className="text-xs text-muted-foreground mt-1">Mera sets up your presence in 5 quick steps.</p>
+        <p className="text-xs text-muted-foreground mt-1">
+          {role === "vendor"
+            ? "Mera helps you set up your storefront and products."
+            : role === "creator"
+            ? "Mera sets up your link-in-bio and creator tools."
+            : "Quick account setup to get you started."}
+        </p>
       </div>
 
-      {/* Progress */}
-      <div className="flex items-center gap-1 bg-muted p-1 rounded-xl overflow-x-auto">
-        {STEPS.map((s, i) => (
+      {/* Progress steps */}
+      <div className="flex items-center gap-1 bg-muted p-1 rounded-xl overflow-x-auto scrollbar-none">
+        {steps.map((s, i) => (
           <div key={s.key} className={`flex-1 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold whitespace-nowrap ${i === step ? "bg-card text-foreground shadow-sm" : i < step ? "text-emerald-400" : "text-muted-foreground"}`}>
             <span className={`h-4 w-4 rounded-full flex items-center justify-center text-[9px] ${i < step ? "bg-emerald-500 text-white" : i === step ? "bg-[#38A8D8] text-white" : "bg-muted-foreground/20"}`}>{i < step ? <Check className="h-2.5 w-2.5" /> : i + 1}</span>
             {s.label}
@@ -401,202 +474,359 @@ export default function OnboardingPage() {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="space-y-4">
-          {/* ── Step 1: AI chat ── */}
+      {/* ── MEMBER ONBOARDING ── */}
+      {role === "member" && (
+        <div className="max-w-xl mx-auto border border-border rounded-2xl bg-card p-6 space-y-6">
           {step === 0 && (
-            <div className="border border-border rounded-2xl bg-card overflow-hidden flex flex-col">
-              <div className="px-5 py-4 border-b border-border flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#38A8D8] to-[#2164b6] flex items-center justify-center text-white"><Sparkles className="h-4 w-4" /></div>
-                <div>
-                  <p className="text-xs font-black">Mera — your AI buddy</p>
-                  <p className="text-[10px] text-muted-foreground">I'll remember what you tell me to build your profile.</p>
-                </div>
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <UserIcon className="h-5 w-5 text-[#38A8D8]" />
+                <h2 className="text-sm font-bold text-foreground">Welcome, @{user?.username}!</h2>
               </div>
-              <div className="p-4 h-72 overflow-y-auto space-y-3 bg-muted/30">
-                {[greeting, ...messages].map((m, i) => (
-                  <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
-                    <div className={`max-w-[85%] px-3.5 py-2.5 text-xs leading-relaxed ${m.role === "user" ? "bg-[#38A8D8] text-white rounded-2xl rounded-br-sm" : "bg-card border border-border text-foreground rounded-2xl rounded-bl-sm"}`}>
-                      {m.content}
-                    </div>
-                  </div>
-                ))}
-                {chatSending && <div className="flex justify-start"><div className="px-3.5 py-2.5 text-xs bg-card border border-border rounded-2xl rounded-bl-sm"><Loader2 className="h-3.5 w-3.5 animate-spin text-[#38A8D8]" /></div></div>}
-                <div ref={chatEndRef} />
-              </div>
-              <div className="p-3 border-t border-border space-y-2.5">
-                <div className="flex flex-wrap gap-1.5">
-                  {QUICK_PROMPTS.map((q) => (
-                    <button key={q} onClick={() => sendChat(q)} className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-muted text-muted-foreground hover:bg-[#38A8D8]/10 hover:text-[#38A8D8] transition-colors">{q}</button>
-                  ))}
-                </div>
-                <div className="flex gap-2">
-                  <Input value={chatInput} onChange={(e) => setChatInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && sendChat()} placeholder="Tell Mera about you..." className="flex-1" />
-                  <Button size="sm" onClick={() => sendChat()} disabled={chatSending || !chatInput.trim()} className="text-xs font-bold"><Send className="h-3.5 w-3.5" /></Button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* ── Step 1b: About (captures business info) ── */}
-          {step === 0 && (
-            <div className="border border-border rounded-2xl bg-card p-6 space-y-4">
-              <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">What do you do?</h2>
+              <p className="text-xs text-muted-foreground">Your account is ready. Let's customize your experience.</p>
               <div className="space-y-2">
-                <label className="text-xs font-bold text-muted-foreground">About you / your business</label>
-                <textarea value={about} onChange={(e) => setAbout(e.target.value)} rows={3} placeholder="e.g. I'm a fitness coach sharing workout plans and healthy recipes" className="w-full rounded-xl border border-border bg-card p-2.5 text-sm font-medium text-foreground placeholder:text-muted-foreground resize-none" />
-              </div>
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-muted-foreground">Niche (one word works)</label>
-                <Input value={niche} onChange={(e) => setNiche(e.target.value)} placeholder="e.g. fitness, art, gaming, food" />
+                <label className="text-xs font-bold text-muted-foreground">Display Name</label>
+                <Input value={user?.name ?? ""} disabled className="bg-muted/50" />
               </div>
               <div className="flex justify-end">
-                <Button size="sm" onClick={goNext} className="text-xs font-bold">Continue <ChevronRight className="h-3 w-3 ml-1" /></Button>
+                <Button size="sm" onClick={() => saveProgress(1)} className="text-xs font-bold">Continue <ChevronRight className="h-3 w-3 ml-1" /></Button>
               </div>
             </div>
           )}
 
-          {/* ── Step 2: Socials ── */}
           {step === 1 && (
-            <div className="border border-border rounded-2xl bg-card p-6 space-y-4">
-              <div className="flex items-center gap-2">
-                <Send className="h-4 w-4 text-[#38A8D8]" />
-                <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Connect your socials</h2>
+            <div className="space-y-4">
+              <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Select your interests</h2>
+              <div className="flex flex-wrap gap-1.5">
+                {COMMUNITY_OPTIONS.map((o) => (
+                  <button key={o} onClick={() => toggle(memberInterests, setMemberInterests, o)}
+                    className={`px-3 py-1.5 rounded-full text-xs font-bold transition-colors ${memberInterests.includes(o) ? "bg-[#38A8D8] text-white" : "bg-muted text-muted-foreground hover:text-foreground"}`}>{o}</button>
+                ))}
               </div>
-              <p className="text-[11px] text-muted-foreground">Add your handles — Mera will build canonical profile links and weave them into your page.</p>
-              <div className="flex gap-2">
-                <select value={socialPlatform} onChange={(e) => setSocialPlatform(e.target.value)}
-                  className="w-36 rounded-xl border border-border bg-card p-2.5 text-xs font-medium text-foreground">
-                  {SOCIAL_PLATFORMS.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
-                </select>
-                <Input value={socialHandle} onChange={(e) => setSocialHandle(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addSocialRow()} placeholder={SOCIAL_PLATFORMS.find((p) => p.value === socialPlatform)?.placeholder ?? "handle"} className="flex-1" />
-                <Button size="sm" variant="ghost" onClick={addSocialRow} disabled={!socialHandle.trim()} className="text-xs font-bold"><Plus className="h-3.5 w-3.5" /></Button>
-              </div>
-              {socialPlatform && socialHandle.trim() && (
-                <p className="text-[10px] text-muted-foreground font-mono">→ https://{URL_PREFIX[socialPlatform]}{socialHandle.trim().replace(/^@/, "")}</p>
-              )}
-              {socialRows.length > 0 && (
-                <div className="space-y-1.5">
-                  {socialRows.map((r) => (
-                    <div key={r.platform} className="flex items-center justify-between p-2 rounded-xl bg-muted/50">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span className="text-[#38A8D8]">{SOCIAL_PLATFORMS.find((p) => p.value === r.platform)?.icon}</span>
-                        <span className="text-xs font-bold text-muted-foreground capitalize shrink-0">{r.platform}</span>
-                        <span className="text-[10px] text-muted-foreground truncate">@{r.handle}</span>
-                      </div>
-                      <button onClick={() => setSocialRows((rows) => rows.filter((x) => x.platform !== r.platform))} className="p-1 text-rose-400"><X className="h-3 w-3" /></button>
-                    </div>
-                  ))}
-                </div>
-              )}
-              <div className="flex justify-between">
+              <div className="flex justify-between pt-2">
                 <Button size="sm" variant="ghost" onClick={() => setStep(0)} className="text-xs font-bold"><ChevronLeft className="h-3 w-3 mr-1" /> Back</Button>
-                <Button size="sm" onClick={goNext} className="text-xs font-bold">Continue <ChevronRight className="h-3 w-3 ml-1" /></Button>
+                <Button size="sm" onClick={() => saveProgress(2)} className="text-xs font-bold">Continue <ChevronRight className="h-3 w-3 ml-1" /></Button>
               </div>
             </div>
           )}
 
-          {/* ── Step 3: Interests ── */}
           {step === 2 && (
-            <div className="border border-border rounded-2xl bg-card p-6 space-y-5">
-              <div>
-                <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2"><ShoppingCart className="h-3 w-3" /> Community interests</h2>
-                <p className="text-[11px] text-muted-foreground mt-0.5 mb-3">Who do you want to attract?</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {COMMUNITY_OPTIONS.map((o) => (
-                    <button key={o} onClick={() => toggle(communityInterests, setCommunityInterests, o)}
-                      className={`px-2.5 py-1.5 rounded-full text-[10px] font-bold transition-colors ${communityInterests.includes(o) ? "bg-[#38A8D8] text-white" : "bg-muted text-muted-foreground hover:text-foreground"}`}>{o}</button>
-                  ))}
+            <div className="space-y-4">
+              <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Notification Preferences</h2>
+              <div className="p-3 rounded-xl border border-border flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-bold">Feed & Community Notifications</p>
+                  <p className="text-[10px] text-muted-foreground">Receive updates when posts or events are published.</p>
                 </div>
+                <input type="checkbox" checked={notifyFeed} onChange={(e) => setNotifyFeed(e.target.checked)} className="h-4 w-4 rounded accent-[#38A8D8]" />
               </div>
-              <div className="border-t border-border pt-5">
-                <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2"><Wand2 className="h-3 w-3" /> Content interests</h2>
-                <p className="text-[11px] text-muted-foreground mt-0.5 mb-3">What will you share?</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {CONTENT_OPTIONS.map((o) => (
-                    <button key={o} onClick={() => toggle(contentInterests, setContentInterests, o)}
-                      className={`px-2.5 py-1.5 rounded-full text-[10px] font-bold transition-colors ${contentInterests.includes(o) ? "bg-[#38A8D8] text-white" : "bg-muted text-muted-foreground hover:text-foreground"}`}>{o}</button>
-                  ))}
-                </div>
-              </div>
-              <div className="flex justify-between">
+              <div className="flex justify-between pt-2">
                 <Button size="sm" variant="ghost" onClick={() => setStep(1)} className="text-xs font-bold"><ChevronLeft className="h-3 w-3 mr-1" /> Back</Button>
-                <Button size="sm" onClick={goNext} className="text-xs font-bold">Continue <ChevronRight className="h-3 w-3 ml-1" /></Button>
-              </div>
-            </div>
-          )}
-
-          {/* ── Step 4: AI profile ── */}
-          {step === 3 && (
-            <div className="border border-border rounded-2xl bg-card p-6 space-y-4">
-              <div className="flex items-center gap-2">
-                <Wand2 className="h-4 w-4 text-[#38A8D8]" />
-                <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Your AI-drafted profile</h2>
-              </div>
-              <p className="text-[11px] text-muted-foreground">Mera drafted these from your socials and interests. Edit anything you like.</p>
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-muted-foreground">Display name</label>
-                <Input value={profileName} onChange={(e) => setProfileName(e.target.value)} placeholder="Your name" />
-              </div>
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-muted-foreground">Bio</label>
-                <textarea value={profileBio} onChange={(e) => setProfileBio(e.target.value)} rows={3} className="w-full rounded-xl border border-border bg-card p-2.5 text-sm font-medium text-foreground placeholder:text-muted-foreground resize-none" />
-              </div>
-              <Button variant="ghost" size="sm" onClick={generateDraft} disabled={draftLoading} className="text-xs font-bold text-[#38A8D8]">
-                {draftLoading ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Wand2 className="h-3 w-3 mr-1" />} Regenerate with AI
-              </Button>
-              <div className="flex justify-between">
-                <Button size="sm" variant="ghost" onClick={() => setStep(2)} className="text-xs font-bold"><ChevronLeft className="h-3 w-3 mr-1" /> Back</Button>
-                <Button size="sm" onClick={goNext} className="text-xs font-bold">Continue <ChevronRight className="h-3 w-3 ml-1" /></Button>
-              </div>
-            </div>
-          )}
-
-          {/* ── Step 5: Template ── */}
-          {step === 4 && (
-            <div className="border border-border rounded-2xl bg-card p-6 space-y-4">
-              <div className="flex items-center gap-2">
-                <Palette className="h-4 w-4 text-[#38A8D8]" />
-                <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Pick your template</h2>
-              </div>
-              <p className="text-[11px] text-muted-foreground">10 ready-made layouts — change anytime from the Link in Bio builder.</p>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                {TEMPLATES.map((t) => {
-                  const isActive = template === t.slug;
-                  return (
-                    <button key={t.slug} onClick={() => setTemplate(t.slug)}
-                      className={`relative rounded-xl border-2 transition-all overflow-hidden text-left ${isActive ? "border-[#38A8D8] shadow-md" : "border-border hover:border-[#38A8D8]/50"}`}>
-                      {isActive && <span className="absolute top-1.5 left-1.5 z-10 bg-[#38A8D8] text-white rounded-full p-0.5"><Check className="h-3 w-3" /></span>}
-                      <div className="p-2"><TemplateThumb template={t} /></div>
-                      <div className="px-2.5 pb-2.5">
-                        <p className="text-xs font-bold truncate text-foreground">{t.name}</p>
-                        <p className="text-[10px] text-muted-foreground truncate">{t.tagline}</p>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-              <div className="flex justify-between">
-                <Button size="sm" variant="ghost" onClick={() => setStep(3)} className="text-xs font-bold"><ChevronLeft className="h-3 w-3 mr-1" /> Back</Button>
-                <Button size="sm" onClick={handleFinish} disabled={saving} className="text-xs font-bold">
-                  {saving ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}Finish & open builder <ArrowRight className="h-3 w-3 ml-1" />
+                <Button size="sm" onClick={handleFinishMember} disabled={saving} className="text-xs font-bold">
+                  {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : null} Complete Setup <ArrowRight className="h-3.5 w-3.5 ml-1" />
                 </Button>
               </div>
             </div>
           )}
         </div>
+      )}
 
-        {/* ── Right: live preview ── */}
-        <div className="lg:sticky lg:top-6 space-y-3 self-start">
-          <div className="border border-border rounded-2xl bg-card p-6">
-            <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-4 flex items-center gap-2"><Smartphone className="h-3 w-3" /> Live preview</h2>
-            <div className="mx-auto max-w-[300px] rounded-[2rem] border-[6px] border-border overflow-hidden shadow-xl max-h-[560px] overflow-y-auto">
-              <TemplateRenderer data={previewData} />
+      {/* ── VENDOR ONBOARDING ── */}
+      {role === "vendor" && (
+        <div className="max-w-2xl mx-auto border border-border rounded-2xl bg-card p-6 space-y-6">
+          {step === 0 && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Store className="h-5 w-5 text-[#38A8D8]" />
+                <h2 className="text-sm font-bold text-foreground">Tell us about your business</h2>
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-muted-foreground">Store / Business Name *</label>
+                <Input value={businessName} onChange={(e) => setBusinessName(e.target.value)} placeholder="e.g. Acme Outfitters" required />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-muted-foreground">Business Category</label>
+                <select value={businessCategory} onChange={(e) => setBusinessCategory(e.target.value)} className="w-full rounded-xl border border-border bg-card p-2.5 text-xs font-medium text-foreground">
+                  {BUSINESS_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-muted-foreground">Short Bio / Tagline</label>
+                <textarea value={vendorBio} onChange={(e) => setVendorBio(e.target.value)} rows={3} placeholder="Describe your store in a few words..." className="w-full rounded-xl border border-border bg-card p-2.5 text-sm font-medium text-foreground resize-none" />
+              </div>
+              <div className="flex justify-end">
+                <Button size="sm" onClick={goNext} disabled={!businessName.trim()} className="text-xs font-bold">Continue <ChevronRight className="h-3 w-3 ml-1" /></Button>
+              </div>
             </div>
-            <p className="text-[10px] text-muted-foreground text-center mt-3">Your page at murihspace.com/@{user?.username ?? "you"}</p>
+          )}
+
+          {step === 1 && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Package className="h-5 w-5 text-[#38A8D8]" />
+                <h2 className="text-sm font-bold text-foreground">Fulfilment & Shipping</h2>
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-muted-foreground">Fulfilment Model</label>
+                <select value={fulfilmentModel} onChange={(e) => setFulfilmentModel(e.target.value)} className="w-full rounded-xl border border-border bg-card p-2.5 text-xs font-medium text-foreground">
+                  {FULFILMENT_MODELS.map((m) => <option key={m} value={m}>{m}</option>)}
+                </select>
+              </div>
+              <div className="flex justify-between pt-2">
+                <Button size="sm" variant="ghost" onClick={() => saveProgress(0)} className="text-xs font-bold"><ChevronLeft className="h-3 w-3 mr-1" /> Back</Button>
+                <Button size="sm" onClick={goNext} className="text-xs font-bold">Continue <ChevronRight className="h-3 w-3 ml-1" /></Button>
+              </div>
+            </div>
+          )}
+
+          {step === 2 && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Globe className="h-5 w-5 text-[#38A8D8]" />
+                <h2 className="text-sm font-bold text-foreground">Target Country</h2>
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-muted-foreground">Primary Sales Country</label>
+                <CountrySelect value={vendorCountry} onChange={(iso2) => setVendorCountry(iso2)} />
+              </div>
+              <div className="flex justify-between pt-2">
+                <Button size="sm" variant="ghost" onClick={() => saveProgress(1)} className="text-xs font-bold"><ChevronLeft className="h-3 w-3 mr-1" /> Back</Button>
+                <Button size="sm" onClick={goNext} className="text-xs font-bold">Continue <ChevronRight className="h-3 w-3 ml-1" /></Button>
+              </div>
+            </div>
+          )}
+
+          {step === 3 && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Target className="h-5 w-5 text-[#38A8D8]" />
+                <h2 className="text-sm font-bold text-foreground">Brand & Social Accounts</h2>
+              </div>
+              <div className="flex gap-2">
+                <select value={socialPlatform} onChange={(e) => setSocialPlatform(e.target.value)} className="w-36 rounded-xl border border-border bg-card p-2.5 text-xs font-medium text-foreground">
+                  {SOCIAL_PLATFORMS.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
+                </select>
+                <Input value={socialHandle} onChange={(e) => setSocialHandle(e.target.value)} placeholder="your_business_handle" className="flex-1" />
+                <Button size="sm" variant="ghost" onClick={addSocialRow} disabled={!socialHandle.trim()} className="text-xs font-bold"><Plus className="h-3.5 w-3.5" /></Button>
+              </div>
+              {socialRows.length > 0 && (
+                <div className="space-y-1.5">
+                  {socialRows.map((r) => (
+                    <div key={r.platform} className="flex items-center justify-between p-2 rounded-xl bg-muted/50">
+                      <span className="text-xs font-bold capitalize">{r.platform}: @{r.handle}</span>
+                      <button onClick={() => setSocialRows((rows) => rows.filter((x) => x.platform !== r.platform))} className="p-1 text-rose-400"><X className="h-3 w-3" /></button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div className="flex justify-between pt-2">
+                <Button size="sm" variant="ghost" onClick={() => saveProgress(2)} className="text-xs font-bold"><ChevronLeft className="h-3 w-3 mr-1" /> Back</Button>
+                <Button size="sm" onClick={goNext} className="text-xs font-bold">Continue <ChevronRight className="h-3 w-3 ml-1" /></Button>
+              </div>
+            </div>
+          )}
+
+          {step === 4 && (
+            <div className="space-y-4 text-center">
+              <div className="mx-auto h-12 w-12 rounded-2xl bg-[#38A8D8]/10 flex items-center justify-center text-[#38A8D8]">
+                <Store className="h-6 w-6" />
+              </div>
+              <h2 className="text-base font-black">Your Storefront is Ready</h2>
+              <p className="text-xs text-muted-foreground">Mera has configured your store settings for <span className="font-bold text-foreground">{businessName}</span>.</p>
+              <div className="pt-3 flex justify-center gap-2">
+                <Button size="sm" variant="ghost" onClick={() => saveProgress(3)} className="text-xs font-bold"><ChevronLeft className="h-3 w-3 mr-1" /> Back</Button>
+                <Button size="sm" onClick={handleFinishVendor} disabled={saving} className="text-xs font-bold">
+                  {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : null} Open Vendor Dashboard <ArrowRight className="h-3.5 w-3.5 ml-1" />
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── CREATOR ONBOARDING ── */}
+      {role === "creator" && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="space-y-4">
+            {/* Step 1: AI chat */}
+            {step === 0 && (
+              <div className="border border-border rounded-2xl bg-card overflow-hidden flex flex-col">
+                <div className="px-5 py-4 border-b border-border flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#38A8D8] to-[#2164b6] flex items-center justify-center text-white"><Wand2 className="h-4 w-4" /></div>
+                  <div>
+                    <p className="text-xs font-black">Mera — your AI assistant</p>
+                    <p className="text-[10px] text-muted-foreground">I'll remember what you tell me to build your profile.</p>
+                  </div>
+                </div>
+                <div className="p-4 h-72 overflow-y-auto space-y-3 bg-muted/30">
+                  {[greeting, ...messages].map((m, i) => (
+                    <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
+                      <div className={`max-w-[85%] px-3.5 py-2.5 text-xs leading-relaxed ${m.role === "user" ? "bg-[#38A8D8] text-white rounded-2xl rounded-br-sm" : "bg-card border border-border text-foreground rounded-2xl rounded-bl-sm"}`}>
+                        {m.content}
+                      </div>
+                    </div>
+                  ))}
+                  {chatSending && <div className="flex justify-start"><div className="px-3.5 py-2.5 text-xs bg-card border border-border rounded-2xl rounded-bl-sm"><Loader2 className="h-3.5 w-3.5 animate-spin text-[#38A8D8]" /></div></div>}
+                  <div ref={chatEndRef} />
+                </div>
+                <div className="p-3 border-t border-border space-y-2.5">
+                  <div className="flex flex-wrap gap-1.5">
+                    {QUICK_PROMPTS.map((q) => (
+                      <button key={q} onClick={() => sendChat(q)} className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-muted text-muted-foreground hover:bg-[#38A8D8]/10 hover:text-[#38A8D8] transition-colors">{q}</button>
+                    ))}
+                  </div>
+                  <div className="flex gap-2">
+                    <Input value={chatInput} onChange={(e) => setChatInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && sendChat()} placeholder="Tell Mera about you..." className="flex-1" />
+                    <Button size="sm" onClick={() => sendChat()} disabled={chatSending || !chatInput.trim()} className="text-xs font-bold"><Send className="h-3.5 w-3.5" /></Button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {step === 0 && (
+              <div className="border border-border rounded-2xl bg-card p-6 space-y-4">
+                <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">What do you create?</h2>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-muted-foreground">About your brand</label>
+                  <textarea value={about} onChange={(e) => setAbout(e.target.value)} rows={3} placeholder="e.g. I'm a fitness coach sharing workout plans and healthy recipes" className="w-full rounded-xl border border-border bg-card p-2.5 text-sm font-medium text-foreground placeholder:text-muted-foreground resize-none" />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-muted-foreground">Niche (one word works)</label>
+                  <Input value={niche} onChange={(e) => setNiche(e.target.value)} placeholder="e.g. fitness, art, gaming, food" />
+                </div>
+                <div className="flex justify-end">
+                  <Button size="sm" onClick={goNext} className="text-xs font-bold">Continue <ChevronRight className="h-3 w-3 ml-1" /></Button>
+                </div>
+              </div>
+            )}
+
+            {/* Step 2: Socials */}
+            {step === 1 && (
+              <div className="border border-border rounded-2xl bg-card p-6 space-y-4">
+                <div className="flex items-center gap-2">
+                  <Send className="h-4 w-4 text-[#38A8D8]" />
+                  <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Connect your socials</h2>
+                </div>
+                <div className="flex gap-2">
+                  <select value={socialPlatform} onChange={(e) => setSocialPlatform(e.target.value)} className="w-36 rounded-xl border border-border bg-card p-2.5 text-xs font-medium text-foreground">
+                    {SOCIAL_PLATFORMS.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
+                  </select>
+                  <Input value={socialHandle} onChange={(e) => setSocialHandle(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addSocialRow()} placeholder={SOCIAL_PLATFORMS.find((p) => p.value === socialPlatform)?.placeholder ?? "handle"} className="flex-1" />
+                  <Button size="sm" variant="ghost" onClick={addSocialRow} disabled={!socialHandle.trim()} className="text-xs font-bold"><Plus className="h-3.5 w-3.5" /></Button>
+                </div>
+                {socialRows.length > 0 && (
+                  <div className="space-y-1.5">
+                    {socialRows.map((r) => (
+                      <div key={r.platform} className="flex items-center justify-between p-2 rounded-xl bg-muted/50">
+                        <span className="text-xs font-bold capitalize">{r.platform}: @{r.handle}</span>
+                        <button onClick={() => setSocialRows((rows) => rows.filter((x) => x.platform !== r.platform))} className="p-1 text-rose-400"><X className="h-3 w-3" /></button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div className="flex justify-between">
+                  <Button size="sm" variant="ghost" onClick={() => saveProgress(0)} className="text-xs font-bold"><ChevronLeft className="h-3 w-3 mr-1" /> Back</Button>
+                  <Button size="sm" onClick={goNext} className="text-xs font-bold">Continue <ChevronRight className="h-3 w-3 ml-1" /></Button>
+                </div>
+              </div>
+            )}
+
+            {/* Step 3: Interests */}
+            {step === 2 && (
+              <div className="border border-border rounded-2xl bg-card p-6 space-y-5">
+                <div>
+                  <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2"><ShoppingCart className="h-3 w-3" /> Community interests</h2>
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    {COMMUNITY_OPTIONS.map((o) => (
+                      <button key={o} onClick={() => toggle(communityInterests, setCommunityInterests, o)}
+                        className={`px-2.5 py-1.5 rounded-full text-[10px] font-bold transition-colors ${communityInterests.includes(o) ? "bg-[#38A8D8] text-white" : "bg-muted text-muted-foreground hover:text-foreground"}`}>{o}</button>
+                    ))}
+                  </div>
+                </div>
+                <div className="border-t border-border pt-5">
+                  <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2"><Wand2 className="h-3 w-3" /> Content interests</h2>
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    {CONTENT_OPTIONS.map((o) => (
+                      <button key={o} onClick={() => toggle(contentInterests, setContentInterests, o)}
+                        className={`px-2.5 py-1.5 rounded-full text-[10px] font-bold transition-colors ${contentInterests.includes(o) ? "bg-[#38A8D8] text-white" : "bg-muted text-muted-foreground hover:text-foreground"}`}>{o}</button>
+                    ))}
+                  </div>
+                </div>
+                <div className="flex justify-between">
+                  <Button size="sm" variant="ghost" onClick={() => saveProgress(1)} className="text-xs font-bold"><ChevronLeft className="h-3 w-3 mr-1" /> Back</Button>
+                  <Button size="sm" onClick={goNext} className="text-xs font-bold">Continue <ChevronRight className="h-3 w-3 ml-1" /></Button>
+                </div>
+              </div>
+            )}
+
+            {/* Step 4: AI profile */}
+            {step === 3 && (
+              <div className="border border-border rounded-2xl bg-card p-6 space-y-4">
+                <div className="flex items-center gap-2">
+                  <Wand2 className="h-4 w-4 text-[#38A8D8]" />
+                  <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Your AI-drafted profile</h2>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-muted-foreground">Display name</label>
+                  <Input value={profileName} onChange={(e) => setProfileName(e.target.value)} placeholder="Your name" />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-muted-foreground">Bio</label>
+                  <textarea value={profileBio} onChange={(e) => setProfileBio(e.target.value)} rows={3} className="w-full rounded-xl border border-border bg-card p-2.5 text-sm font-medium text-foreground resize-none" />
+                </div>
+                <Button variant="ghost" size="sm" onClick={generateDraft} disabled={draftLoading} className="text-xs font-bold text-[#38A8D8]">
+                  {draftLoading ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Wand2 className="h-3 w-3 mr-1" />} Regenerate with AI
+                </Button>
+                <div className="flex justify-between">
+                  <Button size="sm" variant="ghost" onClick={() => saveProgress(2)} className="text-xs font-bold"><ChevronLeft className="h-3 w-3 mr-1" /> Back</Button>
+                  <Button size="sm" onClick={goNext} className="text-xs font-bold">Continue <ChevronRight className="h-3 w-3 ml-1" /></Button>
+                </div>
+              </div>
+            )}
+
+            {/* Step 5: Template */}
+            {step === 4 && (
+              <div className="border border-border rounded-2xl bg-card p-6 space-y-4">
+                <div className="flex items-center gap-2">
+                  <Palette className="h-4 w-4 text-[#38A8D8]" />
+                  <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Pick your template</h2>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {TEMPLATES.map((t) => {
+                    const isActive = template === t.slug;
+                    return (
+                      <button key={t.slug} onClick={() => setTemplate(t.slug)}
+                        className={`relative rounded-xl border-2 transition-all overflow-hidden text-left ${isActive ? "border-[#38A8D8] shadow-md" : "border-border hover:border-[#38A8D8]/50"}`}>
+                        {isActive && <span className="absolute top-1.5 left-1.5 z-10 bg-[#38A8D8] text-white rounded-full p-0.5"><Check className="h-3 w-3" /></span>}
+                        <div className="p-2"><TemplateThumb template={t} /></div>
+                        <div className="px-2.5 pb-2.5">
+                          <p className="text-xs font-bold truncate text-foreground">{t.name}</p>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="flex justify-between">
+                  <Button size="sm" variant="ghost" onClick={() => saveProgress(3)} className="text-xs font-bold"><ChevronLeft className="h-3 w-3 mr-1" /> Back</Button>
+                  <Button size="sm" onClick={handleFinishCreator} disabled={saving} className="text-xs font-bold">
+                    {saving ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}Finish & open builder <ArrowRight className="h-3 w-3 ml-1" />
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Right: live preview */}
+          <div className="lg:sticky lg:top-6 space-y-3 self-start">
+            <div className="border border-border rounded-2xl bg-card p-6">
+              <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-4 flex items-center gap-2"><Smartphone className="h-3 w-3" /> Live preview</h2>
+              <div className="mx-auto max-w-[300px] rounded-[2rem] border-[6px] border-border overflow-hidden shadow-xl max-h-[560px] overflow-y-auto">
+                <TemplateRenderer data={previewData} />
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

@@ -1,0 +1,2502 @@
+[
+    {
+        "iso2": "AF",
+        "iso3": "AFG",
+        "name": "Afghanistan",
+        "calling_code": "",
+        "flag": "🇦🇫",
+        "currency": "AFN",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "AX",
+        "iso3": "ALA",
+        "name": "Aland Islands",
+        "calling_code": "",
+        "flag": "🇦🇽",
+        "currency": "EUR",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "AL",
+        "iso3": "ALB",
+        "name": "Albania",
+        "calling_code": "",
+        "flag": "🇦🇱",
+        "currency": "ALL",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "DZ",
+        "iso3": "DZA",
+        "name": "Algeria",
+        "calling_code": "",
+        "flag": "🇩🇿",
+        "currency": "DZD",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "AS",
+        "iso3": "ASM",
+        "name": "American Samoa",
+        "calling_code": "",
+        "flag": "🇦🇸",
+        "currency": "USD",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "AD",
+        "iso3": "AND",
+        "name": "Andorra",
+        "calling_code": "",
+        "flag": "🇦🇩",
+        "currency": "EUR",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "AO",
+        "iso3": "AGO",
+        "name": "Angola",
+        "calling_code": "",
+        "flag": "🇦🇴",
+        "currency": "AOA",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "AI",
+        "iso3": "AIA",
+        "name": "Anguilla",
+        "calling_code": "",
+        "flag": "🇦🇮",
+        "currency": "XCD",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "AQ",
+        "iso3": "ATA",
+        "name": "Antarctica",
+        "calling_code": "",
+        "flag": "🇦🇶",
+        "currency": "AAD",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "AG",
+        "iso3": "ATG",
+        "name": "Antigua and Barbuda",
+        "calling_code": "",
+        "flag": "🇦🇬",
+        "currency": "XCD",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "AR",
+        "iso3": "ARG",
+        "name": "Argentina",
+        "calling_code": "",
+        "flag": "🇦🇷",
+        "currency": "ARS",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "AM",
+        "iso3": "ARM",
+        "name": "Armenia",
+        "calling_code": "",
+        "flag": "🇦🇲",
+        "currency": "AMD",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "AW",
+        "iso3": "ABW",
+        "name": "Aruba",
+        "calling_code": "",
+        "flag": "🇦🇼",
+        "currency": "AWG",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "AU",
+        "iso3": "AUS",
+        "name": "Australia",
+        "calling_code": "",
+        "flag": "🇦🇺",
+        "currency": "AUD",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "AT",
+        "iso3": "AUT",
+        "name": "Austria",
+        "calling_code": "",
+        "flag": "🇦🇹",
+        "currency": "EUR",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "AZ",
+        "iso3": "AZE",
+        "name": "Azerbaijan",
+        "calling_code": "",
+        "flag": "🇦🇿",
+        "currency": "AZN",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "BH",
+        "iso3": "BHR",
+        "name": "Bahrain",
+        "calling_code": "",
+        "flag": "🇧🇭",
+        "currency": "BHD",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "BD",
+        "iso3": "BGD",
+        "name": "Bangladesh",
+        "calling_code": "",
+        "flag": "🇧🇩",
+        "currency": "BDT",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "BB",
+        "iso3": "BRB",
+        "name": "Barbados",
+        "calling_code": "",
+        "flag": "🇧🇧",
+        "currency": "BBD",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "BY",
+        "iso3": "BLR",
+        "name": "Belarus",
+        "calling_code": "",
+        "flag": "🇧🇾",
+        "currency": "BYN",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "BE",
+        "iso3": "BEL",
+        "name": "Belgium",
+        "calling_code": "",
+        "flag": "🇧🇪",
+        "currency": "EUR",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "BZ",
+        "iso3": "BLZ",
+        "name": "Belize",
+        "calling_code": "",
+        "flag": "🇧🇿",
+        "currency": "BZD",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "BJ",
+        "iso3": "BEN",
+        "name": "Benin",
+        "calling_code": "",
+        "flag": "🇧🇯",
+        "currency": "XOF",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "BM",
+        "iso3": "BMU",
+        "name": "Bermuda",
+        "calling_code": "",
+        "flag": "🇧🇲",
+        "currency": "BMD",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "BT",
+        "iso3": "BTN",
+        "name": "Bhutan",
+        "calling_code": "",
+        "flag": "🇧🇹",
+        "currency": "BTN",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "BO",
+        "iso3": "BOL",
+        "name": "Bolivia",
+        "calling_code": "",
+        "flag": "🇧🇴",
+        "currency": "BOB",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "BQ",
+        "iso3": "BES",
+        "name": "Bonaire, Sint Eustatius and Saba",
+        "calling_code": "",
+        "flag": "🇧🇶",
+        "currency": "USD",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "BA",
+        "iso3": "BIH",
+        "name": "Bosnia and Herzegovina",
+        "calling_code": "",
+        "flag": "🇧🇦",
+        "currency": "BAM",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "BW",
+        "iso3": "BWA",
+        "name": "Botswana",
+        "calling_code": "",
+        "flag": "🇧🇼",
+        "currency": "BWP",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "BV",
+        "iso3": "BVT",
+        "name": "Bouvet Island",
+        "calling_code": "",
+        "flag": "🇧🇻",
+        "currency": "NOK",
+        "state_required": false,
+        "postal_code_required": false
+    },
+    {
+        "iso2": "BR",
+        "iso3": "BRA",
+        "name": "Brazil",
+        "calling_code": "",
+        "flag": "🇧🇷",
+        "currency": "BRL",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "IO",
+        "iso3": "IOT",
+        "name": "British Indian Ocean Territory",
+        "calling_code": "",
+        "flag": "🇮🇴",
+        "currency": "USD",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "BN",
+        "iso3": "BRN",
+        "name": "Brunei",
+        "calling_code": "",
+        "flag": "🇧🇳",
+        "currency": "BND",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "BG",
+        "iso3": "BGR",
+        "name": "Bulgaria",
+        "calling_code": "",
+        "flag": "🇧🇬",
+        "currency": "EUR",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "BF",
+        "iso3": "BFA",
+        "name": "Burkina Faso",
+        "calling_code": "",
+        "flag": "🇧🇫",
+        "currency": "XOF",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "BI",
+        "iso3": "BDI",
+        "name": "Burundi",
+        "calling_code": "",
+        "flag": "🇧🇮",
+        "currency": "BIF",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "KH",
+        "iso3": "KHM",
+        "name": "Cambodia",
+        "calling_code": "",
+        "flag": "🇰🇭",
+        "currency": "KHR",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "CM",
+        "iso3": "CMR",
+        "name": "Cameroon",
+        "calling_code": "",
+        "flag": "🇨🇲",
+        "currency": "XAF",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "CA",
+        "iso3": "CAN",
+        "name": "Canada",
+        "calling_code": "",
+        "flag": "🇨🇦",
+        "currency": "CAD",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "CV",
+        "iso3": "CPV",
+        "name": "Cape Verde",
+        "calling_code": "",
+        "flag": "🇨🇻",
+        "currency": "CVE",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "KY",
+        "iso3": "CYM",
+        "name": "Cayman Islands",
+        "calling_code": "",
+        "flag": "🇰🇾",
+        "currency": "KYD",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "CF",
+        "iso3": "CAF",
+        "name": "Central African Republic",
+        "calling_code": "",
+        "flag": "🇨🇫",
+        "currency": "XAF",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "TD",
+        "iso3": "TCD",
+        "name": "Chad",
+        "calling_code": "",
+        "flag": "🇹🇩",
+        "currency": "XAF",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "CL",
+        "iso3": "CHL",
+        "name": "Chile",
+        "calling_code": "",
+        "flag": "🇨🇱",
+        "currency": "CLP",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "CN",
+        "iso3": "CHN",
+        "name": "China",
+        "calling_code": "",
+        "flag": "🇨🇳",
+        "currency": "CNY",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "CX",
+        "iso3": "CXR",
+        "name": "Christmas Island",
+        "calling_code": "",
+        "flag": "🇨🇽",
+        "currency": "AUD",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "CC",
+        "iso3": "CCK",
+        "name": "Cocos (Keeling) Islands",
+        "calling_code": "",
+        "flag": "🇨🇨",
+        "currency": "AUD",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "CO",
+        "iso3": "COL",
+        "name": "Colombia",
+        "calling_code": "",
+        "flag": "🇨🇴",
+        "currency": "COP",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "KM",
+        "iso3": "COM",
+        "name": "Comoros",
+        "calling_code": "",
+        "flag": "🇰🇲",
+        "currency": "KMF",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "CG",
+        "iso3": "COG",
+        "name": "Congo",
+        "calling_code": "",
+        "flag": "🇨🇬",
+        "currency": "CDF",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "CK",
+        "iso3": "COK",
+        "name": "Cook Islands",
+        "calling_code": "",
+        "flag": "🇨🇰",
+        "currency": "NZD",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "CR",
+        "iso3": "CRI",
+        "name": "Costa Rica",
+        "calling_code": "",
+        "flag": "🇨🇷",
+        "currency": "CRC",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "HR",
+        "iso3": "HRV",
+        "name": "Croatia",
+        "calling_code": "",
+        "flag": "🇭🇷",
+        "currency": "EUR",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "CU",
+        "iso3": "CUB",
+        "name": "Cuba",
+        "calling_code": "",
+        "flag": "🇨🇺",
+        "currency": "CUP",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "CW",
+        "iso3": "CUW",
+        "name": "Curaçao",
+        "calling_code": "",
+        "flag": "🇨🇼",
+        "currency": "ANG",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "CY",
+        "iso3": "CYP",
+        "name": "Cyprus",
+        "calling_code": "",
+        "flag": "🇨🇾",
+        "currency": "EUR",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "CZ",
+        "iso3": "CZE",
+        "name": "Czech Republic",
+        "calling_code": "",
+        "flag": "🇨🇿",
+        "currency": "CZK",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "CD",
+        "iso3": "COD",
+        "name": "Democratic Republic of the Congo",
+        "calling_code": "",
+        "flag": "🇨🇩",
+        "currency": "CDF",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "DK",
+        "iso3": "DNK",
+        "name": "Denmark",
+        "calling_code": "",
+        "flag": "🇩🇰",
+        "currency": "DKK",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "DJ",
+        "iso3": "DJI",
+        "name": "Djibouti",
+        "calling_code": "",
+        "flag": "🇩🇯",
+        "currency": "DJF",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "DM",
+        "iso3": "DMA",
+        "name": "Dominica",
+        "calling_code": "",
+        "flag": "🇩🇲",
+        "currency": "XCD",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "DO",
+        "iso3": "DOM",
+        "name": "Dominican Republic",
+        "calling_code": "",
+        "flag": "🇩🇴",
+        "currency": "DOP",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "EC",
+        "iso3": "ECU",
+        "name": "Ecuador",
+        "calling_code": "",
+        "flag": "🇪🇨",
+        "currency": "USD",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "EG",
+        "iso3": "EGY",
+        "name": "Egypt",
+        "calling_code": "",
+        "flag": "🇪🇬",
+        "currency": "EGP",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "SV",
+        "iso3": "SLV",
+        "name": "El Salvador",
+        "calling_code": "",
+        "flag": "🇸🇻",
+        "currency": "USD",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "GQ",
+        "iso3": "GNQ",
+        "name": "Equatorial Guinea",
+        "calling_code": "",
+        "flag": "🇬🇶",
+        "currency": "XAF",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "ER",
+        "iso3": "ERI",
+        "name": "Eritrea",
+        "calling_code": "",
+        "flag": "🇪🇷",
+        "currency": "ERN",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "EE",
+        "iso3": "EST",
+        "name": "Estonia",
+        "calling_code": "",
+        "flag": "🇪🇪",
+        "currency": "EUR",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "SZ",
+        "iso3": "SWZ",
+        "name": "Eswatini",
+        "calling_code": "",
+        "flag": "🇸🇿",
+        "currency": "SZL",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "ET",
+        "iso3": "ETH",
+        "name": "Ethiopia",
+        "calling_code": "",
+        "flag": "🇪🇹",
+        "currency": "ETB",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "FK",
+        "iso3": "FLK",
+        "name": "Falkland Islands",
+        "calling_code": "",
+        "flag": "🇫🇰",
+        "currency": "FKP",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "FO",
+        "iso3": "FRO",
+        "name": "Faroe Islands",
+        "calling_code": "",
+        "flag": "🇫🇴",
+        "currency": "DKK",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "FJ",
+        "iso3": "FJI",
+        "name": "Fiji Islands",
+        "calling_code": "",
+        "flag": "🇫🇯",
+        "currency": "FJD",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "FI",
+        "iso3": "FIN",
+        "name": "Finland",
+        "calling_code": "",
+        "flag": "🇫🇮",
+        "currency": "EUR",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "FR",
+        "iso3": "FRA",
+        "name": "France",
+        "calling_code": "",
+        "flag": "🇫🇷",
+        "currency": "EUR",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "GF",
+        "iso3": "GUF",
+        "name": "French Guiana",
+        "calling_code": "",
+        "flag": "🇬🇫",
+        "currency": "EUR",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "PF",
+        "iso3": "PYF",
+        "name": "French Polynesia",
+        "calling_code": "",
+        "flag": "🇵🇫",
+        "currency": "XPF",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "TF",
+        "iso3": "ATF",
+        "name": "French Southern Territories",
+        "calling_code": "",
+        "flag": "🇹🇫",
+        "currency": "EUR",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "GA",
+        "iso3": "GAB",
+        "name": "Gabon",
+        "calling_code": "",
+        "flag": "🇬🇦",
+        "currency": "XAF",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "GE",
+        "iso3": "GEO",
+        "name": "Georgia",
+        "calling_code": "",
+        "flag": "🇬🇪",
+        "currency": "GEL",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "DE",
+        "iso3": "DEU",
+        "name": "Germany",
+        "calling_code": "",
+        "flag": "🇩🇪",
+        "currency": "EUR",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "GH",
+        "iso3": "GHA",
+        "name": "Ghana",
+        "calling_code": "",
+        "flag": "🇬🇭",
+        "currency": "GHS",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "GI",
+        "iso3": "GIB",
+        "name": "Gibraltar",
+        "calling_code": "",
+        "flag": "🇬🇮",
+        "currency": "GIP",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "GR",
+        "iso3": "GRC",
+        "name": "Greece",
+        "calling_code": "",
+        "flag": "🇬🇷",
+        "currency": "EUR",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "GL",
+        "iso3": "GRL",
+        "name": "Greenland",
+        "calling_code": "",
+        "flag": "🇬🇱",
+        "currency": "DKK",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "GD",
+        "iso3": "GRD",
+        "name": "Grenada",
+        "calling_code": "",
+        "flag": "🇬🇩",
+        "currency": "XCD",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "GP",
+        "iso3": "GLP",
+        "name": "Guadeloupe",
+        "calling_code": "",
+        "flag": "🇬🇵",
+        "currency": "EUR",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "GU",
+        "iso3": "GUM",
+        "name": "Guam",
+        "calling_code": "",
+        "flag": "🇬🇺",
+        "currency": "USD",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "GT",
+        "iso3": "GTM",
+        "name": "Guatemala",
+        "calling_code": "",
+        "flag": "🇬🇹",
+        "currency": "GTQ",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "GG",
+        "iso3": "GGY",
+        "name": "Guernsey",
+        "calling_code": "",
+        "flag": "🇬🇬",
+        "currency": "GBP",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "GN",
+        "iso3": "GIN",
+        "name": "Guinea",
+        "calling_code": "",
+        "flag": "🇬🇳",
+        "currency": "GNF",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "GW",
+        "iso3": "GNB",
+        "name": "Guinea-Bissau",
+        "calling_code": "",
+        "flag": "🇬🇼",
+        "currency": "XOF",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "GY",
+        "iso3": "GUY",
+        "name": "Guyana",
+        "calling_code": "",
+        "flag": "🇬🇾",
+        "currency": "GYD",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "HT",
+        "iso3": "HTI",
+        "name": "Haiti",
+        "calling_code": "",
+        "flag": "🇭🇹",
+        "currency": "HTG",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "HM",
+        "iso3": "HMD",
+        "name": "Heard Island and McDonald Islands",
+        "calling_code": "",
+        "flag": "🇭🇲",
+        "currency": "AUD",
+        "state_required": false,
+        "postal_code_required": false
+    },
+    {
+        "iso2": "HN",
+        "iso3": "HND",
+        "name": "Honduras",
+        "calling_code": "",
+        "flag": "🇭🇳",
+        "currency": "HNL",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "HK",
+        "iso3": "HKG",
+        "name": "Hong Kong S.A.R.",
+        "calling_code": "",
+        "flag": "🇭🇰",
+        "currency": "HKD",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "HU",
+        "iso3": "HUN",
+        "name": "Hungary",
+        "calling_code": "",
+        "flag": "🇭🇺",
+        "currency": "HUF",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "IS",
+        "iso3": "ISL",
+        "name": "Iceland",
+        "calling_code": "",
+        "flag": "🇮🇸",
+        "currency": "ISK",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "IN",
+        "iso3": "IND",
+        "name": "India",
+        "calling_code": "",
+        "flag": "🇮🇳",
+        "currency": "INR",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "ID",
+        "iso3": "IDN",
+        "name": "Indonesia",
+        "calling_code": "",
+        "flag": "🇮🇩",
+        "currency": "IDR",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "IR",
+        "iso3": "IRN",
+        "name": "Iran",
+        "calling_code": "",
+        "flag": "🇮🇷",
+        "currency": "IRR",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "IQ",
+        "iso3": "IRQ",
+        "name": "Iraq",
+        "calling_code": "",
+        "flag": "🇮🇶",
+        "currency": "IQD",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "IE",
+        "iso3": "IRL",
+        "name": "Ireland",
+        "calling_code": "",
+        "flag": "🇮🇪",
+        "currency": "EUR",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "IL",
+        "iso3": "ISR",
+        "name": "Israel",
+        "calling_code": "",
+        "flag": "🇮🇱",
+        "currency": "ILS",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "IT",
+        "iso3": "ITA",
+        "name": "Italy",
+        "calling_code": "",
+        "flag": "🇮🇹",
+        "currency": "EUR",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "CI",
+        "iso3": "CIV",
+        "name": "Ivory Coast",
+        "calling_code": "",
+        "flag": "🇨🇮",
+        "currency": "XOF",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "JM",
+        "iso3": "JAM",
+        "name": "Jamaica",
+        "calling_code": "",
+        "flag": "🇯🇲",
+        "currency": "JMD",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "JP",
+        "iso3": "JPN",
+        "name": "Japan",
+        "calling_code": "",
+        "flag": "🇯🇵",
+        "currency": "JPY",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "JE",
+        "iso3": "JEY",
+        "name": "Jersey",
+        "calling_code": "",
+        "flag": "🇯🇪",
+        "currency": "GBP",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "JO",
+        "iso3": "JOR",
+        "name": "Jordan",
+        "calling_code": "",
+        "flag": "🇯🇴",
+        "currency": "JOD",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "KZ",
+        "iso3": "KAZ",
+        "name": "Kazakhstan",
+        "calling_code": "",
+        "flag": "🇰🇿",
+        "currency": "KZT",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "KE",
+        "iso3": "KEN",
+        "name": "Kenya",
+        "calling_code": "",
+        "flag": "🇰🇪",
+        "currency": "KES",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "KI",
+        "iso3": "KIR",
+        "name": "Kiribati",
+        "calling_code": "",
+        "flag": "🇰🇮",
+        "currency": "AUD",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "XK",
+        "iso3": "XKX",
+        "name": "Kosovo",
+        "calling_code": "",
+        "flag": "🇽🇰",
+        "currency": "EUR",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "KW",
+        "iso3": "KWT",
+        "name": "Kuwait",
+        "calling_code": "",
+        "flag": "🇰🇼",
+        "currency": "KWD",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "KG",
+        "iso3": "KGZ",
+        "name": "Kyrgyzstan",
+        "calling_code": "",
+        "flag": "🇰🇬",
+        "currency": "KGS",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "LA",
+        "iso3": "LAO",
+        "name": "Laos",
+        "calling_code": "",
+        "flag": "🇱🇦",
+        "currency": "LAK",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "LV",
+        "iso3": "LVA",
+        "name": "Latvia",
+        "calling_code": "",
+        "flag": "🇱🇻",
+        "currency": "EUR",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "LB",
+        "iso3": "LBN",
+        "name": "Lebanon",
+        "calling_code": "",
+        "flag": "🇱🇧",
+        "currency": "LBP",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "LS",
+        "iso3": "LSO",
+        "name": "Lesotho",
+        "calling_code": "",
+        "flag": "🇱🇸",
+        "currency": "LSL",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "LR",
+        "iso3": "LBR",
+        "name": "Liberia",
+        "calling_code": "",
+        "flag": "🇱🇷",
+        "currency": "LRD",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "LY",
+        "iso3": "LBY",
+        "name": "Libya",
+        "calling_code": "",
+        "flag": "🇱🇾",
+        "currency": "LYD",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "LI",
+        "iso3": "LIE",
+        "name": "Liechtenstein",
+        "calling_code": "",
+        "flag": "🇱🇮",
+        "currency": "CHF",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "LT",
+        "iso3": "LTU",
+        "name": "Lithuania",
+        "calling_code": "",
+        "flag": "🇱🇹",
+        "currency": "EUR",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "LU",
+        "iso3": "LUX",
+        "name": "Luxembourg",
+        "calling_code": "",
+        "flag": "🇱🇺",
+        "currency": "EUR",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "MO",
+        "iso3": "MAC",
+        "name": "Macau S.A.R.",
+        "calling_code": "",
+        "flag": "🇲🇴",
+        "currency": "MOP",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "MG",
+        "iso3": "MDG",
+        "name": "Madagascar",
+        "calling_code": "",
+        "flag": "🇲🇬",
+        "currency": "MGA",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "MW",
+        "iso3": "MWI",
+        "name": "Malawi",
+        "calling_code": "",
+        "flag": "🇲🇼",
+        "currency": "MWK",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "MY",
+        "iso3": "MYS",
+        "name": "Malaysia",
+        "calling_code": "",
+        "flag": "🇲🇾",
+        "currency": "MYR",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "MV",
+        "iso3": "MDV",
+        "name": "Maldives",
+        "calling_code": "",
+        "flag": "🇲🇻",
+        "currency": "MVR",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "ML",
+        "iso3": "MLI",
+        "name": "Mali",
+        "calling_code": "",
+        "flag": "🇲🇱",
+        "currency": "XOF",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "MT",
+        "iso3": "MLT",
+        "name": "Malta",
+        "calling_code": "",
+        "flag": "🇲🇹",
+        "currency": "EUR",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "IM",
+        "iso3": "IMN",
+        "name": "Man (Isle of)",
+        "calling_code": "",
+        "flag": "🇮🇲",
+        "currency": "GBP",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "MH",
+        "iso3": "MHL",
+        "name": "Marshall Islands",
+        "calling_code": "",
+        "flag": "🇲🇭",
+        "currency": "USD",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "MQ",
+        "iso3": "MTQ",
+        "name": "Martinique",
+        "calling_code": "",
+        "flag": "🇲🇶",
+        "currency": "EUR",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "MR",
+        "iso3": "MRT",
+        "name": "Mauritania",
+        "calling_code": "",
+        "flag": "🇲🇷",
+        "currency": "MRU",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "MU",
+        "iso3": "MUS",
+        "name": "Mauritius",
+        "calling_code": "",
+        "flag": "🇲🇺",
+        "currency": "MUR",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "YT",
+        "iso3": "MYT",
+        "name": "Mayotte",
+        "calling_code": "",
+        "flag": "🇾🇹",
+        "currency": "EUR",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "MX",
+        "iso3": "MEX",
+        "name": "Mexico",
+        "calling_code": "",
+        "flag": "🇲🇽",
+        "currency": "MXN",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "FM",
+        "iso3": "FSM",
+        "name": "Micronesia",
+        "calling_code": "",
+        "flag": "🇫🇲",
+        "currency": "USD",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "MD",
+        "iso3": "MDA",
+        "name": "Moldova",
+        "calling_code": "",
+        "flag": "🇲🇩",
+        "currency": "MDL",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "MC",
+        "iso3": "MCO",
+        "name": "Monaco",
+        "calling_code": "",
+        "flag": "🇲🇨",
+        "currency": "EUR",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "MN",
+        "iso3": "MNG",
+        "name": "Mongolia",
+        "calling_code": "",
+        "flag": "🇲🇳",
+        "currency": "MNT",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "ME",
+        "iso3": "MNE",
+        "name": "Montenegro",
+        "calling_code": "",
+        "flag": "🇲🇪",
+        "currency": "EUR",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "MS",
+        "iso3": "MSR",
+        "name": "Montserrat",
+        "calling_code": "",
+        "flag": "🇲🇸",
+        "currency": "XCD",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "MA",
+        "iso3": "MAR",
+        "name": "Morocco",
+        "calling_code": "",
+        "flag": "🇲🇦",
+        "currency": "MAD",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "MZ",
+        "iso3": "MOZ",
+        "name": "Mozambique",
+        "calling_code": "",
+        "flag": "🇲🇿",
+        "currency": "MZN",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "MM",
+        "iso3": "MMR",
+        "name": "Myanmar",
+        "calling_code": "",
+        "flag": "🇲🇲",
+        "currency": "MMK",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "NA",
+        "iso3": "NAM",
+        "name": "Namibia",
+        "calling_code": "",
+        "flag": "🇳🇦",
+        "currency": "NAD",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "NR",
+        "iso3": "NRU",
+        "name": "Nauru",
+        "calling_code": "",
+        "flag": "🇳🇷",
+        "currency": "AUD",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "NP",
+        "iso3": "NPL",
+        "name": "Nepal",
+        "calling_code": "",
+        "flag": "🇳🇵",
+        "currency": "NPR",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "NL",
+        "iso3": "NLD",
+        "name": "Netherlands",
+        "calling_code": "",
+        "flag": "🇳🇱",
+        "currency": "EUR",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "NC",
+        "iso3": "NCL",
+        "name": "New Caledonia",
+        "calling_code": "",
+        "flag": "🇳🇨",
+        "currency": "XPF",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "NZ",
+        "iso3": "NZL",
+        "name": "New Zealand",
+        "calling_code": "",
+        "flag": "🇳🇿",
+        "currency": "NZD",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "NI",
+        "iso3": "NIC",
+        "name": "Nicaragua",
+        "calling_code": "",
+        "flag": "🇳🇮",
+        "currency": "NIO",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "NE",
+        "iso3": "NER",
+        "name": "Niger",
+        "calling_code": "",
+        "flag": "🇳🇪",
+        "currency": "XOF",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "NG",
+        "iso3": "NGA",
+        "name": "Nigeria",
+        "calling_code": "",
+        "flag": "🇳🇬",
+        "currency": "NGN",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "NU",
+        "iso3": "NIU",
+        "name": "Niue",
+        "calling_code": "",
+        "flag": "🇳🇺",
+        "currency": "NZD",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "NF",
+        "iso3": "NFK",
+        "name": "Norfolk Island",
+        "calling_code": "",
+        "flag": "🇳🇫",
+        "currency": "AUD",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "KP",
+        "iso3": "PRK",
+        "name": "North Korea",
+        "calling_code": "",
+        "flag": "🇰🇵",
+        "currency": "KPW",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "MK",
+        "iso3": "MKD",
+        "name": "North Macedonia",
+        "calling_code": "",
+        "flag": "🇲🇰",
+        "currency": "MKD",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "MP",
+        "iso3": "MNP",
+        "name": "Northern Mariana Islands",
+        "calling_code": "",
+        "flag": "🇲🇵",
+        "currency": "USD",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "NO",
+        "iso3": "NOR",
+        "name": "Norway",
+        "calling_code": "",
+        "flag": "🇳🇴",
+        "currency": "NOK",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "OM",
+        "iso3": "OMN",
+        "name": "Oman",
+        "calling_code": "",
+        "flag": "🇴🇲",
+        "currency": "OMR",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "PK",
+        "iso3": "PAK",
+        "name": "Pakistan",
+        "calling_code": "",
+        "flag": "🇵🇰",
+        "currency": "PKR",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "PW",
+        "iso3": "PLW",
+        "name": "Palau",
+        "calling_code": "",
+        "flag": "🇵🇼",
+        "currency": "USD",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "PS",
+        "iso3": "PSE",
+        "name": "Palestinian Territory Occupied",
+        "calling_code": "",
+        "flag": "🇵🇸",
+        "currency": "ILS",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "PA",
+        "iso3": "PAN",
+        "name": "Panama",
+        "calling_code": "",
+        "flag": "🇵🇦",
+        "currency": "PAB",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "PG",
+        "iso3": "PNG",
+        "name": "Papua New Guinea",
+        "calling_code": "",
+        "flag": "🇵🇬",
+        "currency": "PGK",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "PY",
+        "iso3": "PRY",
+        "name": "Paraguay",
+        "calling_code": "",
+        "flag": "🇵🇾",
+        "currency": "PYG",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "PE",
+        "iso3": "PER",
+        "name": "Peru",
+        "calling_code": "",
+        "flag": "🇵🇪",
+        "currency": "PEN",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "PH",
+        "iso3": "PHL",
+        "name": "Philippines",
+        "calling_code": "",
+        "flag": "🇵🇭",
+        "currency": "PHP",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "PN",
+        "iso3": "PCN",
+        "name": "Pitcairn Island",
+        "calling_code": "",
+        "flag": "🇵🇳",
+        "currency": "NZD",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "PL",
+        "iso3": "POL",
+        "name": "Poland",
+        "calling_code": "",
+        "flag": "🇵🇱",
+        "currency": "PLN",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "PT",
+        "iso3": "PRT",
+        "name": "Portugal",
+        "calling_code": "",
+        "flag": "🇵🇹",
+        "currency": "EUR",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "PR",
+        "iso3": "PRI",
+        "name": "Puerto Rico",
+        "calling_code": "",
+        "flag": "🇵🇷",
+        "currency": "USD",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "QA",
+        "iso3": "QAT",
+        "name": "Qatar",
+        "calling_code": "",
+        "flag": "🇶🇦",
+        "currency": "QAR",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "RE",
+        "iso3": "REU",
+        "name": "Reunion",
+        "calling_code": "",
+        "flag": "🇷🇪",
+        "currency": "EUR",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "RO",
+        "iso3": "ROU",
+        "name": "Romania",
+        "calling_code": "",
+        "flag": "🇷🇴",
+        "currency": "RON",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "RU",
+        "iso3": "RUS",
+        "name": "Russia",
+        "calling_code": "",
+        "flag": "🇷🇺",
+        "currency": "RUB",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "RW",
+        "iso3": "RWA",
+        "name": "Rwanda",
+        "calling_code": "",
+        "flag": "🇷🇼",
+        "currency": "RWF",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "SH",
+        "iso3": "SHN",
+        "name": "Saint Helena",
+        "calling_code": "",
+        "flag": "🇸🇭",
+        "currency": "SHP",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "KN",
+        "iso3": "KNA",
+        "name": "Saint Kitts and Nevis",
+        "calling_code": "",
+        "flag": "🇰🇳",
+        "currency": "XCD",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "LC",
+        "iso3": "LCA",
+        "name": "Saint Lucia",
+        "calling_code": "",
+        "flag": "🇱🇨",
+        "currency": "XCD",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "PM",
+        "iso3": "SPM",
+        "name": "Saint Pierre and Miquelon",
+        "calling_code": "",
+        "flag": "🇵🇲",
+        "currency": "EUR",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "VC",
+        "iso3": "VCT",
+        "name": "Saint Vincent and the Grenadines",
+        "calling_code": "",
+        "flag": "🇻🇨",
+        "currency": "XCD",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "BL",
+        "iso3": "BLM",
+        "name": "Saint-Barthelemy",
+        "calling_code": "",
+        "flag": "🇧🇱",
+        "currency": "EUR",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "MF",
+        "iso3": "MAF",
+        "name": "Saint-Martin (French part)",
+        "calling_code": "",
+        "flag": "🇲🇫",
+        "currency": "EUR",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "WS",
+        "iso3": "WSM",
+        "name": "Samoa",
+        "calling_code": "",
+        "flag": "🇼🇸",
+        "currency": "WST",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "SM",
+        "iso3": "SMR",
+        "name": "San Marino",
+        "calling_code": "",
+        "flag": "🇸🇲",
+        "currency": "EUR",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "ST",
+        "iso3": "STP",
+        "name": "Sao Tome and Principe",
+        "calling_code": "",
+        "flag": "🇸🇹",
+        "currency": "STN",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "SA",
+        "iso3": "SAU",
+        "name": "Saudi Arabia",
+        "calling_code": "",
+        "flag": "🇸🇦",
+        "currency": "SAR",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "SN",
+        "iso3": "SEN",
+        "name": "Senegal",
+        "calling_code": "",
+        "flag": "🇸🇳",
+        "currency": "XOF",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "RS",
+        "iso3": "SRB",
+        "name": "Serbia",
+        "calling_code": "",
+        "flag": "🇷🇸",
+        "currency": "RSD",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "SC",
+        "iso3": "SYC",
+        "name": "Seychelles",
+        "calling_code": "",
+        "flag": "🇸🇨",
+        "currency": "SCR",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "SL",
+        "iso3": "SLE",
+        "name": "Sierra Leone",
+        "calling_code": "",
+        "flag": "🇸🇱",
+        "currency": "SLL",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "SG",
+        "iso3": "SGP",
+        "name": "Singapore",
+        "calling_code": "",
+        "flag": "🇸🇬",
+        "currency": "SGD",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "SX",
+        "iso3": "SXM",
+        "name": "Sint Maarten (Dutch part)",
+        "calling_code": "",
+        "flag": "🇸🇽",
+        "currency": "ANG",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "SK",
+        "iso3": "SVK",
+        "name": "Slovakia",
+        "calling_code": "",
+        "flag": "🇸🇰",
+        "currency": "EUR",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "SI",
+        "iso3": "SVN",
+        "name": "Slovenia",
+        "calling_code": "",
+        "flag": "🇸🇮",
+        "currency": "EUR",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "SB",
+        "iso3": "SLB",
+        "name": "Solomon Islands",
+        "calling_code": "",
+        "flag": "🇸🇧",
+        "currency": "SBD",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "SO",
+        "iso3": "SOM",
+        "name": "Somalia",
+        "calling_code": "",
+        "flag": "🇸🇴",
+        "currency": "SOS",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "ZA",
+        "iso3": "ZAF",
+        "name": "South Africa",
+        "calling_code": "",
+        "flag": "🇿🇦",
+        "currency": "ZAR",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "GS",
+        "iso3": "SGS",
+        "name": "South Georgia",
+        "calling_code": "",
+        "flag": "🇬🇸",
+        "currency": "GBP",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "KR",
+        "iso3": "KOR",
+        "name": "South Korea",
+        "calling_code": "",
+        "flag": "🇰🇷",
+        "currency": "KRW",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "SS",
+        "iso3": "SSD",
+        "name": "South Sudan",
+        "calling_code": "",
+        "flag": "🇸🇸",
+        "currency": "SSP",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "ES",
+        "iso3": "ESP",
+        "name": "Spain",
+        "calling_code": "",
+        "flag": "🇪🇸",
+        "currency": "EUR",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "LK",
+        "iso3": "LKA",
+        "name": "Sri Lanka",
+        "calling_code": "",
+        "flag": "🇱🇰",
+        "currency": "LKR",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "SD",
+        "iso3": "SDN",
+        "name": "Sudan",
+        "calling_code": "",
+        "flag": "🇸🇩",
+        "currency": "SDG",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "SR",
+        "iso3": "SUR",
+        "name": "Suriname",
+        "calling_code": "",
+        "flag": "🇸🇷",
+        "currency": "SRD",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "SJ",
+        "iso3": "SJM",
+        "name": "Svalbard and Jan Mayen Islands",
+        "calling_code": "",
+        "flag": "🇸🇯",
+        "currency": "NOK",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "SE",
+        "iso3": "SWE",
+        "name": "Sweden",
+        "calling_code": "",
+        "flag": "🇸🇪",
+        "currency": "SEK",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "CH",
+        "iso3": "CHE",
+        "name": "Switzerland",
+        "calling_code": "",
+        "flag": "🇨🇭",
+        "currency": "CHF",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "SY",
+        "iso3": "SYR",
+        "name": "Syria",
+        "calling_code": "",
+        "flag": "🇸🇾",
+        "currency": "SYP",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "TW",
+        "iso3": "TWN",
+        "name": "Taiwan",
+        "calling_code": "",
+        "flag": "🇹🇼",
+        "currency": "TWD",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "TJ",
+        "iso3": "TJK",
+        "name": "Tajikistan",
+        "calling_code": "",
+        "flag": "🇹🇯",
+        "currency": "TJS",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "TZ",
+        "iso3": "TZA",
+        "name": "Tanzania",
+        "calling_code": "",
+        "flag": "🇹🇿",
+        "currency": "TZS",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "TH",
+        "iso3": "THA",
+        "name": "Thailand",
+        "calling_code": "",
+        "flag": "🇹🇭",
+        "currency": "THB",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "BS",
+        "iso3": "BHS",
+        "name": "The Bahamas",
+        "calling_code": "",
+        "flag": "🇧🇸",
+        "currency": "BSD",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "GM",
+        "iso3": "GMB",
+        "name": "The Gambia",
+        "calling_code": "",
+        "flag": "🇬🇲",
+        "currency": "GMD",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "TL",
+        "iso3": "TLS",
+        "name": "Timor-Leste",
+        "calling_code": "",
+        "flag": "🇹🇱",
+        "currency": "USD",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "TG",
+        "iso3": "TGO",
+        "name": "Togo",
+        "calling_code": "",
+        "flag": "🇹🇬",
+        "currency": "XOF",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "TK",
+        "iso3": "TKL",
+        "name": "Tokelau",
+        "calling_code": "",
+        "flag": "🇹🇰",
+        "currency": "NZD",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "TO",
+        "iso3": "TON",
+        "name": "Tonga",
+        "calling_code": "",
+        "flag": "🇹🇴",
+        "currency": "TOP",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "TT",
+        "iso3": "TTO",
+        "name": "Trinidad and Tobago",
+        "calling_code": "",
+        "flag": "🇹🇹",
+        "currency": "TTD",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "TN",
+        "iso3": "TUN",
+        "name": "Tunisia",
+        "calling_code": "",
+        "flag": "🇹🇳",
+        "currency": "TND",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "TR",
+        "iso3": "TUR",
+        "name": "Turkey",
+        "calling_code": "",
+        "flag": "🇹🇷",
+        "currency": "TRY",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "TM",
+        "iso3": "TKM",
+        "name": "Turkmenistan",
+        "calling_code": "",
+        "flag": "🇹🇲",
+        "currency": "TMT",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "TC",
+        "iso3": "TCA",
+        "name": "Turks and Caicos Islands",
+        "calling_code": "",
+        "flag": "🇹🇨",
+        "currency": "USD",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "TV",
+        "iso3": "TUV",
+        "name": "Tuvalu",
+        "calling_code": "",
+        "flag": "🇹🇻",
+        "currency": "AUD",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "UG",
+        "iso3": "UGA",
+        "name": "Uganda",
+        "calling_code": "",
+        "flag": "🇺🇬",
+        "currency": "UGX",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "UA",
+        "iso3": "UKR",
+        "name": "Ukraine",
+        "calling_code": "",
+        "flag": "🇺🇦",
+        "currency": "UAH",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "AE",
+        "iso3": "ARE",
+        "name": "United Arab Emirates",
+        "calling_code": "",
+        "flag": "🇦🇪",
+        "currency": "AED",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "GB",
+        "iso3": "GBR",
+        "name": "United Kingdom",
+        "calling_code": "",
+        "flag": "🇬🇧",
+        "currency": "GBP",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "US",
+        "iso3": "USA",
+        "name": "United States",
+        "calling_code": "",
+        "flag": "🇺🇸",
+        "currency": "USD",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "UM",
+        "iso3": "UMI",
+        "name": "United States Minor Outlying Islands",
+        "calling_code": "",
+        "flag": "🇺🇲",
+        "currency": "USD",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "UY",
+        "iso3": "URY",
+        "name": "Uruguay",
+        "calling_code": "",
+        "flag": "🇺🇾",
+        "currency": "UYU",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "UZ",
+        "iso3": "UZB",
+        "name": "Uzbekistan",
+        "calling_code": "",
+        "flag": "🇺🇿",
+        "currency": "UZS",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "VU",
+        "iso3": "VUT",
+        "name": "Vanuatu",
+        "calling_code": "",
+        "flag": "🇻🇺",
+        "currency": "VUV",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "VA",
+        "iso3": "VAT",
+        "name": "Vatican City State (Holy See)",
+        "calling_code": "",
+        "flag": "🇻🇦",
+        "currency": "EUR",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "VE",
+        "iso3": "VEN",
+        "name": "Venezuela",
+        "calling_code": "",
+        "flag": "🇻🇪",
+        "currency": "VES",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "VN",
+        "iso3": "VNM",
+        "name": "Vietnam",
+        "calling_code": "",
+        "flag": "🇻🇳",
+        "currency": "VND",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "VG",
+        "iso3": "VGB",
+        "name": "Virgin Islands (British)",
+        "calling_code": "",
+        "flag": "🇻🇬",
+        "currency": "USD",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "VI",
+        "iso3": "VIR",
+        "name": "Virgin Islands (US)",
+        "calling_code": "",
+        "flag": "🇻🇮",
+        "currency": "USD",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "WF",
+        "iso3": "WLF",
+        "name": "Wallis and Futuna Islands",
+        "calling_code": "",
+        "flag": "🇼🇫",
+        "currency": "XPF",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "EH",
+        "iso3": "ESH",
+        "name": "Western Sahara",
+        "calling_code": "",
+        "flag": "🇪🇭",
+        "currency": "MAD",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "YE",
+        "iso3": "YEM",
+        "name": "Yemen",
+        "calling_code": "",
+        "flag": "🇾🇪",
+        "currency": "YER",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "ZM",
+        "iso3": "ZMB",
+        "name": "Zambia",
+        "calling_code": "",
+        "flag": "🇿🇲",
+        "currency": "ZMW",
+        "state_required": false,
+        "postal_code_required": true
+    },
+    {
+        "iso2": "ZW",
+        "iso3": "ZWE",
+        "name": "Zimbabwe",
+        "calling_code": "",
+        "flag": "🇿🇼",
+        "currency": "ZWL",
+        "state_required": false,
+        "postal_code_required": true
+    }
+]

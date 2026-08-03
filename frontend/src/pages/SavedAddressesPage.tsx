@@ -3,6 +3,9 @@ import { MapPin, Plus, Loader2, Edit, Trash2, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { getAuthToken } from "@/lib/auth/token";
+import { CountrySelect } from "@/components/forms/CountrySelect";
+import { PhoneInput } from "@/components/forms/PhoneInput";
+import { StateSelect } from "@/components/forms/StateSelect";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:8000/api/v1";
 
@@ -15,10 +18,12 @@ interface Address {
   id: number;
   label: string;
   full_name: string;
-  street: string;
+  street_line1?: string;
+  street?: string;
   city: string;
   state: string;
   country: string;
+  postal_code?: string;
   zip?: string;
   phone?: string;
   is_default: boolean;
@@ -37,7 +42,7 @@ export default function SavedAddressesPage() {
   const [street, setStreet] = useState("");
   const [city, setCity] = useState("");
   const [state, setState] = useState("");
-  const [country, setCountry] = useState("");
+  const [country, setCountry] = useState("GB");
   const [zip, setZip] = useState("");
   const [phone, setPhone] = useState("");
 
@@ -55,7 +60,7 @@ export default function SavedAddressesPage() {
   useEffect(() => { fetchAddresses(); }, [fetchAddresses]);
 
   const resetForm = () => {
-    setLabel(""); setFullName(""); setStreet(""); setCity(""); setState(""); setCountry(""); setZip(""); setPhone("");
+    setLabel(""); setFullName(""); setStreet(""); setCity(""); setState(""); setCountry("GB"); setZip(""); setPhone("");
     setEditing(null); setShowForm(false); setMsg(null);
   };
 
@@ -65,12 +70,21 @@ export default function SavedAddressesPage() {
     setSaving(true);
     setMsg(null);
     try {
-      const body = { label: label.trim(), full_name: fullName.trim(), street: street.trim(), city: city.trim(), state: state.trim(), country: country.trim(), zip: zip.trim(), phone: phone.trim() };
+      const body = {
+        label: label.trim(),
+        full_name: fullName.trim(),
+        street_line1: street.trim(),
+        city: city.trim(),
+        state: state.trim(),
+        country: country.trim(),
+        postal_code: zip.trim(),
+        phone: phone.trim(),
+      };
       const res = editing
         ? await fetch(`${API_BASE}/addresses/${editing.id}`, { method: "PATCH", headers: getAuthHeaders(), body: JSON.stringify(body) })
         : await fetch(`${API_BASE}/addresses`, { method: "POST", headers: getAuthHeaders(), body: JSON.stringify(body) });
       const j = await res.json();
-      if (!res.ok) throw new Error(j?.message ?? "Save failed");
+      if (!res.ok) throw new Error(j?.message ?? j?.errors?.state?.[0] ?? "Save failed");
       resetForm();
       fetchAddresses();
       setMsg({ ok: true, text: editing ? "Address updated." : "Address saved." });
@@ -124,24 +138,24 @@ export default function SavedAddressesPage() {
               <Input value={street} onChange={(e) => setStreet(e.target.value)} required />
             </div>
             <div className="space-y-2">
-              <label className="text-xs font-bold text-muted-foreground">City</label>
-              <Input value={city} onChange={(e) => setCity(e.target.value)} required />
+              <label className="text-xs font-bold text-muted-foreground">Country</label>
+              <CountrySelect value={country} onChange={(iso2) => setCountry(iso2)} />
             </div>
             <div className="space-y-2">
               <label className="text-xs font-bold text-muted-foreground">State / Province</label>
-              <Input value={state} onChange={(e) => setState(e.target.value)} />
+              <StateSelect countryIso2={country} value={state} onChange={setState} />
             </div>
             <div className="space-y-2">
-              <label className="text-xs font-bold text-muted-foreground">Country</label>
-              <Input value={country} onChange={(e) => setCountry(e.target.value)} required />
+              <label className="text-xs font-bold text-muted-foreground">City</label>
+              <Input value={city} onChange={(e) => setCity(e.target.value)} required />
             </div>
             <div className="space-y-2">
               <label className="text-xs font-bold text-muted-foreground">ZIP / Postal Code</label>
               <Input value={zip} onChange={(e) => setZip(e.target.value)} />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 md:col-span-2">
               <label className="text-xs font-bold text-muted-foreground">Phone</label>
-              <Input value={phone} onChange={(e) => setPhone(e.target.value)} />
+              <PhoneInput countryIso2={country} value={phone} onChange={setPhone} />
             </div>
           </div>
           <div className="flex gap-2">
@@ -171,14 +185,26 @@ export default function SavedAddressesPage() {
               </div>
               <div className="text-xs text-muted-foreground space-y-0.5">
                 <p className="font-semibold text-foreground">{a.full_name}</p>
-                <p>{a.street}</p>
-                <p>{a.city}{a.state ? `, ${a.state}` : ''} {a.zip}</p>
+                <p>{a.street_line1 || a.street}</p>
+                <p>{a.city}{a.state ? `, ${a.state}` : ''} {a.postal_code || a.zip}</p>
                 <p>{a.country}</p>
                 {a.phone && <p>{a.phone}</p>}
               </div>
               <div className="flex gap-1 pt-2">
                 {!a.is_default && <Button size="sm" variant="outline" className="text-[10px] h-7" onClick={() => setDefault(a.id)}>Set Default</Button>}
-                <Button size="sm" variant="ghost" className="h-7 text-[10px]" onClick={() => { setEditing(a); setLabel(a.label); setFullName(a.full_name); setStreet(a.street); setCity(a.city); setState(a.state ?? ''); setCountry(a.country); setZip(a.zip ?? ''); setPhone(a.phone ?? ''); setShowForm(true); setMsg(null); }}><Edit className="h-3 w-3" /></Button>
+                <Button size="sm" variant="ghost" className="h-7 text-[10px]" onClick={() => {
+                  setEditing(a);
+                  setLabel(a.label);
+                  setFullName(a.full_name);
+                  setStreet(a.street_line1 || a.street || "");
+                  setCity(a.city);
+                  setState(a.state ?? "");
+                  setCountry(a.country || "GB");
+                  setZip(a.postal_code || a.zip || "");
+                  setPhone(a.phone || "");
+                  setShowForm(true);
+                  setMsg(null);
+                }}><Edit className="h-3 w-3" /></Button>
                 <Button size="sm" variant="ghost" className="h-7 text-[10px] text-destructive" onClick={() => handleDelete(a.id)}><Trash2 className="h-3 w-3" /></Button>
               </div>
             </div>
