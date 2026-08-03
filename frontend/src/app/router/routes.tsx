@@ -27,6 +27,9 @@ import PrivacyPage from "@/pages/PrivacyPage";
 import KycSettingsPage from "@/pages/KycSettingsPage";
 import LanguagePage from "@/pages/LanguagePage";
 import AccessibilityPage from "@/pages/AccessibilityPage";
+import { UpgradeAccountPage } from "@/pages/UpgradeAccountPage";
+import { AdminRoleApplicationsPage } from "@/pages/AdminRoleApplicationsPage";
+import { AdminVerificationBadgesPage } from "@/pages/AdminVerificationBadgesPage";
 import CoursesPage from "@/pages/CoursesPage";
 import { StoreManagementPage } from "@/pages/StoreManagementPage";
 import { PublicStorefrontPage } from "@/pages/PublicStorefrontPage";
@@ -520,6 +523,10 @@ export const routes: RouteObject[] = [
             element: <ProfilePage />,
           },
           {
+            path: "upgrade",
+            element: <UpgradeAccountPage />,
+          },
+          {
             path: "store",
             element: <ProtectedRoute requiredRole="vendor"><StoreSettingsPage /></ProtectedRoute>,
           },
@@ -598,6 +605,14 @@ export const routes: RouteObject[] = [
       {
         path: "securegate/kyc",
         element: <ProtectedRoute requiredRole="admin"><AdminKycPage /></ProtectedRoute>,
+      },
+      {
+        path: "securegate/role-applications",
+        element: <ProtectedRoute requiredRole="admin"><AdminRoleApplicationsPage /></ProtectedRoute>,
+      },
+      {
+        path: "securegate/verification-badges",
+        element: <ProtectedRoute requiredRole="admin"><AdminVerificationBadgesPage /></ProtectedRoute>,
       },
       {
         path: "securegate/queue",

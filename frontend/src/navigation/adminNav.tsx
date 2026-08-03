@@ -50,6 +50,11 @@ export const adminNav: NavGroup[] = [
         badge: "Pending",
       },
       {
+        title: "Verification Badges",
+        url: "/app/securegate/verification-badges",
+        icon: <ShieldCheck className="size-4" />,
+      },
+      {
         title: "Approved Accounts",
         url: "/app/securegate/kyc?status=verified",
         icon: <UserCheck className="size-4" />,
@@ -68,6 +73,11 @@ export const adminNav: NavGroup[] = [
         title: "All Users",
         url: "/app/securegate/users",
         icon: <Users className="size-4" />,
+      },
+      {
+        title: "Role Applications",
+        url: "/app/securegate/role-applications",
+        icon: <UserCheck className="size-4" />,
       },
       {
         title: "Admin Management",

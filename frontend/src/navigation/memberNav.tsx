@@ -153,6 +153,11 @@ export const memberNav: NavGroup[] = [
         icon: <UserCircle className="size-4" />,
       },
       {
+        title: "Upgrade Account",
+        url: "/app/settings/upgrade",
+        icon: <Crown className="size-4" />,
+      },
+      {
         title: "KYC Verification",
         url: "/app/kyc",
         icon: <ShieldCheck className="size-4" />,

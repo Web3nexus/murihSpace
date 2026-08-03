@@ -16,7 +16,13 @@ import {
 } from "lucide-react";
 import { apiClient } from "@/lib/api/client";
 
-type KycStatus = "unsubmitted" | "pending" | "verified" | "rejected" | "expired";
+type KycStatus = "not_required" | "not_started" | "unsubmitted" | "pending" | "in_review" | "verified" | "rejected" | "expired" | "resubmission_required";
+
+interface KycTrigger {
+  type: string;
+  title: string;
+  description: string;
+}
 
 interface KycState {
   kyc_status: KycStatus;
@@ -73,18 +79,22 @@ interface SumsubSdkBuilder {
 }
 
 function StatusBanner({ status, reason }: { status: KycStatus; reason?: string | null }) {
-  const config: Record<KycStatus, { icon: typeof ShieldCheck; bg: string; text: string; border: string; label: string; msg: string }> = {
-    verified: { icon: Check, bg: "bg-emerald-500/10", text: "text-emerald-600", border: "border-emerald-500/20", label: "Verified", msg: "Your identity has been verified. All features are unlocked." },
+  const config: Record<string, { icon: typeof ShieldCheck; bg: string; text: string; border: string; label: string; msg: string }> = {
+    verified: { icon: Check, bg: "bg-emerald-500/10", text: "text-emerald-600", border: "border-emerald-500/20", label: "Identity Verified", msg: "Your identity has been verified. Creator payouts, withdrawal tools, and trusted features are unlocked." },
     pending: { icon: Loader2, bg: "bg-amber-500/10", text: "text-amber-600", border: "border-amber-500/20", label: "In Review", msg: "Your verification is being processed by our provider. This usually takes a few minutes." },
+    in_review: { icon: Loader2, bg: "bg-amber-500/10", text: "text-amber-600", border: "border-amber-500/20", label: "Under Review", msg: "Your submission is undergoing compliance review." },
     rejected: { icon: X, bg: "bg-red-500/10", text: "text-red-600", border: "border-red-500/20", label: "Rejected", msg: reason || "Your submission was not approved. Please re-verify with valid documents." },
     expired: { icon: AlertCircle, bg: "bg-orange-500/10", text: "text-orange-600", border: "border-orange-500/20", label: "Expired", msg: "Your verification session expired. Please start a new one." },
-    unsubmitted: { icon: AlertCircle, bg: "bg-muted", text: "text-muted-foreground", border: "border-border", label: "Not Verified", msg: "Complete identity verification to unlock payouts, escrow, and full platform access." },
+    resubmission_required: { icon: AlertCircle, bg: "bg-orange-500/10", text: "text-orange-600", border: "border-orange-500/20", label: "Resubmission Required", msg: "Additional document details are required." },
+    not_required: { icon: ShieldCheck, bg: "bg-primary/10", text: "text-primary", border: "border-primary/20", label: "Not Required for Standard Account", msg: "Basic MurihSpace membership is free and does not require identity verification. KYC is triggered only when applying for trusted creator/vendor roles or requesting payouts." },
+    not_started: { icon: AlertCircle, bg: "bg-amber-500/10", text: "text-amber-600", border: "border-amber-500/20", label: "Action Required", msg: "You have triggered a feature requiring identity verification. Complete KYC to activate your request." },
+    unsubmitted: { icon: AlertCircle, bg: "bg-muted", text: "text-muted-foreground", border: "border-border", label: "Not Verified", msg: "Basic MurihSpace membership is free. Complete KYC when you want to unlock payouts or trusted roles." },
   };
-  const c = config[status];
+  const c = config[status] || config.unsubmitted;
   const Icon = c.icon;
   return (
     <div className={`flex items-start gap-3 p-4 rounded-xl border ${c.bg} ${c.border}`}>
-      <Icon className={`h-5 w-5 shrink-0 mt-0.5 ${status === "pending" ? "animate-spin" : ""} ${c.text}`} />
+      <Icon className={`h-5 w-5 shrink-0 mt-0.5 ${(status === "pending" || status === "in_review") ? "animate-spin" : ""} ${c.text}`} />
       <div>
         <p className={`text-xs font-bold ${c.text}`}>{c.label}</p>
         <p className="text-[11px] text-muted-foreground mt-0.5">{c.msg}</p>

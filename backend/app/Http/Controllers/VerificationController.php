@@ -61,4 +61,24 @@ class VerificationController extends Controller
     {
         return $this->sendCode($request);
     }
+
+    /**
+     * Legacy signed URL verification endpoint.
+     */
+    public function verify(Request $request, int $id, string $hash): JsonResponse
+    {
+        $user = \App\Models\User::findOrFail($id);
+
+        if (! hash_equals((string) $hash, sha1($user->getEmailForVerification()))) {
+            return response()->json(['message' => 'Invalid verification link.'], 403);
+        }
+
+        if ($user->hasVerifiedEmail()) {
+            return response()->json(['message' => 'Email address already verified.']);
+        }
+
+        $user->markEmailAsVerified();
+
+        return response()->json(['message' => 'Email verified successfully.']);
+    }
 }

@@ -17,6 +17,7 @@ use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\HasApiTokens;
 use Laravel\Scout\Searchable;
+use App\Services\PermissionService;
 
 #[Fillable([
     'uuid', 'name', 'email', 'password', 'username', 'country',
@@ -105,7 +106,39 @@ class User extends Authenticatable implements MustVerifyEmail
 
     public function isMember(): bool
     {
-        return $this->role === 'member';
+        // Support both 'member' and legacy 'user' role values
+        return in_array($this->role, ['member', 'user'], true);
+    }
+
+    /**
+     * Check if this user holds a platform permission.
+     * Admins hold all permissions.
+     */
+    public function can($abilities, $arguments = []): bool
+    {
+        if ($this->role === 'admin') {
+            return true;
+        }
+
+        if (is_string($abilities)) {
+            if (PermissionService::roleHas($this->role, $abilities)) {
+                return true;
+            }
+        }
+
+        return parent::can($abilities, $arguments);
+    }
+
+    /**
+     * Return all platform permissions held by this user.
+     */
+    public function permissions(): array
+    {
+        if ($this->role === 'admin') {
+            return array_keys(PermissionService::all());
+        }
+
+        return PermissionService::permissionsFor($this->role);
     }
 
     public function hasVerifiedKyc(): bool

@@ -148,6 +148,7 @@ Route::prefix('v1')->group(function () {
         });
 
         Route::get('/email/verify/{id}/{hash}', [VerificationController::class, 'verify'])
+            ->middleware('signed')
             ->name('verification.verify');
     });
 
@@ -273,16 +274,17 @@ Route::prefix('v1')->group(function () {
             $user = $request->user();
 
             return response()->json([
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-                'username' => $user->username,
-                'role' => $user->role,
-                'kyc_status' => $user->kyc_status,
+                'id'             => $user->id,
+                'name'           => $user->name,
+                'email'          => $user->email,
+                'username'       => $user->username,
+                'role'           => $user->role,
+                'permissions'    => $user->permissions(),
+                'kyc_status'     => $user->kyc_status,
                 'email_verified' => $user->hasVerifiedEmail(),
                 'verification_badge' => [
-                    'status' => $user->verification_badge_status,
-                    'active' => $user->hasActiveVerificationBadge(),
+                    'status'     => $user->verification_badge_status,
+                    'active'     => $user->hasActiveVerificationBadge(),
                     'expires_at' => $user->verification_badge_expires_at?->toIso8601String(),
                 ],
             ]);
@@ -793,9 +795,18 @@ Route::prefix('v1')->group(function () {
             Route::delete('/', [\App\Http\Controllers\ProfileController::class, 'deleteAccount']);
         });
 
+        // ── Sprint 1: Role Upgrade / Account Transition ──────────────────
+        Route::prefix('role')->group(function () {
+            Route::get('/application', [\App\Http\Controllers\RoleUpgradeController::class, 'myApplication']);
+            Route::get('/history', [\App\Http\Controllers\RoleUpgradeController::class, 'myHistory']);
+            Route::post('/apply', [\App\Http\Controllers\RoleUpgradeController::class, 'apply']);
+            Route::delete('/apply', [\App\Http\Controllers\RoleUpgradeController::class, 'cancel']);
+        });
+
         // ── KYC (separate from profile/kyc for frontend compat) ─────
         Route::prefix('kyc')->group(function () {
             Route::get('/status', [KycController::class, 'status']);
+            Route::get('/triggers', [KycController::class, 'triggers']);
             Route::post('/submit', [\App\Http\Controllers\ProfileController::class, 'submitKyc']);
             Route::post('/start', [KycController::class, 'start'])->middleware('throttle:kyc.session');
             Route::get('/history', [KycController::class, 'history']);
@@ -805,6 +816,7 @@ Route::prefix('v1')->group(function () {
         // ── Verified badge (blue checkmark) ─────────────────────────
         Route::prefix('verification-badge')->group(function () {
             Route::get('/status', [\App\Http\Controllers\VerificationBadgeController::class, 'status']);
+            Route::post('/apply', [\App\Http\Controllers\VerificationBadgeController::class, 'apply']);
             Route::post('/activate', [\App\Http\Controllers\VerificationBadgeController::class, 'activate']);
             Route::post('/renew', [\App\Http\Controllers\VerificationBadgeController::class, 'renew']);
             Route::post('/cancel-auto-renew', [\App\Http\Controllers\VerificationBadgeController::class, 'cancelAutoRenew']);
@@ -1040,6 +1052,21 @@ Route::prefix('v1')->group(function () {
                 Route::get('/{user}', [AdminKycController::class, 'show']);
                 Route::post('/{user}/approve', [AdminKycController::class, 'approve']);
                 Route::post('/{user}/reject', [AdminKycController::class, 'reject']);
+            });
+
+            // ── Sprint 1: Role Applications ──────────────────────────────
+            Route::prefix('role-applications')->group(function () {
+                Route::get('/', [\App\Http\Controllers\RoleUpgradeController::class, 'adminIndex']);
+                Route::get('/stats', [\App\Http\Controllers\RoleUpgradeController::class, 'stats']);
+                Route::get('/{id}', [\App\Http\Controllers\RoleUpgradeController::class, 'adminShow']);
+                Route::patch('/{id}/approve', [\App\Http\Controllers\RoleUpgradeController::class, 'approve']);
+                Route::patch('/{id}/reject', [\App\Http\Controllers\RoleUpgradeController::class, 'reject']);
+            });
+
+            // ── Sprint 2: Verification Badges ───────────────────────────
+            Route::prefix('verification-badges')->group(function () {
+                Route::get('/', [\App\Http\Controllers\VerificationBadgeController::class, 'adminIndex']);
+                Route::patch('/{userId}/status', [\App\Http\Controllers\VerificationBadgeController::class, 'adminUpdateStatus']);
             });
 
             // Withdrawals

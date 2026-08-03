@@ -31,12 +31,14 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
 
         $middleware->alias([
-            'admin' => IsAdmin::class,
+            'admin'            => IsAdmin::class,
             'admin.permission' => \App\Http\Middleware\EnsureAdminPermission::class,
-            'creator' => \App\Http\Middleware\IsCreator::class,
-            'kyc' => \App\Http\Middleware\RequiresKyc::class,
-            'verified' => EnsureEmailIsVerified::class,
-            'cache.public' => \App\Http\Middleware\CachePublicResponse::class,
+            'creator'          => \App\Http\Middleware\IsCreator::class,
+            'vendor'           => \App\Http\Middleware\IsVendor::class,
+            'permission'       => \App\Http\Middleware\RequiresPermission::class,
+            'kyc'              => \App\Http\Middleware\RequiresKyc::class,
+            'verified'         => EnsureEmailIsVerified::class,
+            'cache.public'     => \App\Http\Middleware\CachePublicResponse::class,
         ]);
 
     })

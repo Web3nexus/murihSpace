@@ -9,6 +9,7 @@ export interface UserProfile {
   email: string;
   username?: string;
   role: "member" | "creator" | "vendor" | "admin";
+  permissions?: string[];
   kyc_status?: string;
   avatar?: string;
   avatar_url?: string;
@@ -22,11 +23,13 @@ interface AuthContextValue {
   fieldErrors: Record<string, string[]>;
   login: (email: string, password: string) => Promise<UserProfile | null>;
   register: (data: RegisterData) => Promise<boolean>;
-  logout: () => Promise<void>;
+  logout: () => void;
   isAuthenticated: boolean;
   isAdmin: boolean;
   isCreator: boolean;
+  isVendor: boolean;
   isCreatorOrAdmin: boolean;
+  hasPermission: (permission: string) => boolean;
 }
 
 export interface RegisterData {
@@ -165,7 +168,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isAuthenticated: !!user,
     isAdmin: user?.role === "admin",
     isCreator: user?.role === "creator",
+    isVendor: user?.role === "vendor",
     isCreatorOrAdmin: user?.role === "admin" || user?.role === "creator",
+    hasPermission: (permission: string) => {
+      if (!user) return false;
+      if (user.role === "admin") return true;
+      return user.permissions?.includes(permission) ?? false;
+    },
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

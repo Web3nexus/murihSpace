@@ -34,6 +34,11 @@ class AuthController extends Controller
             'kyc_document' => ['nullable', 'string'],
         ]);
 
+        $requestedRole = $request->input('role', 'member');
+        // Initial user role is always member; creator/vendor upgrades go through role application + KYC workflow
+        $initialRole = 'member';
+        $kycStatus = $requestedRole !== 'member' ? 'not_started' : 'not_required';
+
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
@@ -43,10 +48,19 @@ class AuthController extends Controller
             'mobile_number' => $request->mobile_number,
             'county' => $request->county,
             'state' => $request->state,
-            'role' => $request->role,
-            'kyc_status' => in_array($request->role, ['creator', 'vendor']) ? 'pending' : 'verified',
+            'role' => $initialRole,
+            'kyc_status' => $kycStatus,
             'kyc_document' => $request->kyc_document,
         ]);
+
+        // If user expressed intent for creator or vendor role during registration, create pending role application
+        if (in_array($requestedRole, ['creator', 'vendor'], true)) {
+            try {
+                app(\App\Services\RoleTransitionService::class)->apply($user, $requestedRole);
+            } catch (\Throwable $e) {
+                report($e);
+            }
+        }
 
         event(new Registered($user));
 

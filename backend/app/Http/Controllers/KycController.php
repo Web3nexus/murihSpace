@@ -22,6 +22,54 @@ class KycController extends Controller
     }
 
     /**
+     * List all dynamic conditions/workflows currently triggering a KYC requirement for the user.
+     */
+    public function triggers(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $triggers = [];
+
+        // 1. Pending role application
+        $roleApp = \App\Models\AccountRoleHistory::where('user_id', $user->id)
+            ->where('status', 'pending')
+            ->first();
+        if ($roleApp) {
+            $triggers[] = [
+                'type' => 'role_application',
+                'title' => "Role Upgrade to {$roleApp->requested_role}",
+                'description' => "Identity verification is required before your {$roleApp->requested_role} role can be activated.",
+            ];
+        }
+
+        // 2. Pending withdrawal request
+        $withdrawal = \App\Models\WithdrawalRequest::where('user_id', $user->id)
+            ->where('status', 'pending')
+            ->first();
+        if ($withdrawal) {
+            $triggers[] = [
+                'type' => 'withdrawal',
+                'title' => 'Fund Withdrawal',
+                'description' => 'Identity verification is required for creator/vendor withdrawal processing.',
+            ];
+        }
+
+        // 3. Verification badge
+        if ($user->verification_badge_status === 'kyc_pending') {
+            $triggers[] = [
+                'type' => 'verification_badge',
+                'title' => 'Paid Verification Badge',
+                'description' => 'Identity verification is required to display the blue checkmark.',
+            ];
+        }
+
+        return response()->json([
+            'kyc_status' => $user->kyc_status ?? 'not_required',
+            'required' => ! empty($triggers) || in_array($user->role, ['creator', 'vendor'], true),
+            'triggers' => $triggers,
+        ]);
+    }
+
+    /**
      * Start a verification session with the active provider (or an explicitly requested one).
      */
     public function start(Request $request): JsonResponse

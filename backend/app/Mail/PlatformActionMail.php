@@ -19,12 +19,16 @@ class PlatformActionMail extends Mailable
         public ?string $actionLabel = null,
         public ?string $actionUrl = null,
         public ?string $footnote = null,
+        public ?array $details = null,
+        public ?string $supportEmail = null,
+        public ?string $logoUrl = null,
+        public ?string $subjectText = null,
     ) {}
 
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: $this->title,
+            subject: $this->subjectText ?? trim(html_entity_decode(strip_tags($this->title), ENT_QUOTES | ENT_HTML5, 'UTF-8')),
         );
     }
 
@@ -36,9 +40,13 @@ class PlatformActionMail extends Mailable
                 'name' => $this->recipientName,
                 'title' => $this->title,
                 'body' => $this->bodyHtml,
+                'bodyHtml' => $this->bodyHtml,
                 'actionLabel' => $this->actionLabel,
                 'actionUrl' => $this->actionUrl,
                 'footnote' => $this->footnote,
+                'details' => $this->details,
+                'supportEmail' => $this->supportEmail,
+                'logoUrl' => $this->logoUrl,
             ],
         );
     }

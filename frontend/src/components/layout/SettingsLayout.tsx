@@ -21,6 +21,7 @@ import {
 
 const NAV_ITEMS = [
   { name: "Profile",       href: "/app/settings",               icon: UserIcon,       end: true },
+  { name: "Upgrade",       href: "/app/settings/upgrade",       icon: ShieldIcon,     end: false },
   { name: "Security",      href: "/app/settings/security",      icon: ShieldIcon,     end: false },
   { name: "Notifications", href: "/app/settings/notifications", icon: BellIcon,       end: false },
   { name: "Appearance",    href: "/app/settings/preferences",   icon: PaintbrushIcon, end: false },
