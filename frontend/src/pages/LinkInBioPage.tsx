@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useConfirm } from "@/components/ui/DialogProvider";
 import { Link2, Loader2, Edit, Trash2, Globe, Tag, ShoppingCart, Plus, X, Music, Camera, MessageCircle, Send, Hash, Film, Link as LinkIcon, Check, Crown, Palette, Sparkles, ChevronRight, ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -53,6 +54,7 @@ const STEPS = [
 ];
 
 export default function LinkInBioPage() {
+  const confirm = useConfirm();
   const [step, setStep] = useState(0);
   const [links, setLinks] = useState<LinkItem[]>([]);
   const [socials, setSocials] = useState<SocialLink[]>([]);
@@ -242,7 +244,7 @@ export default function LinkInBioPage() {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm("Delete this link?")) return;
+    if (!await confirm({ title: 'Delete Link', message: 'Delete this link?', variant: 'destructive' })) return;
     try { await fetch(`${API_BASE}/link-in-bio/${id}`, { method: "DELETE", headers: getAuthHeaders() }); fetchAll(); } catch { /* ignore */ }
   };
 
@@ -282,7 +284,7 @@ export default function LinkInBioPage() {
   };
 
   const handleDeleteSocial = async (id: number) => {
-    if (!confirm("Remove this social link?")) return;
+    if (!await confirm({ title: 'Remove Social Link', message: 'Remove this social link?', variant: 'destructive' })) return;
     try { await fetch(`${API_BASE}/link-in-bio/socials/${id}`, { method: "DELETE", headers: getAuthHeaders() }); fetchAll(); } catch { /* ignore */ }
   };
 
@@ -312,7 +314,7 @@ export default function LinkInBioPage() {
   };
 
   const handleDeleteProduct = async (id: number) => {
-    if (!confirm("Delete this product?")) return;
+    if (!await confirm({ title: 'Delete Product', message: 'Delete this product?', variant: 'destructive' })) return;
     try { await fetch(`${API_BASE}/link-in-bio/products/${id}`, { method: "DELETE", headers: getAuthHeaders() }); fetchAll(); } catch { /* ignore */ }
   };
 

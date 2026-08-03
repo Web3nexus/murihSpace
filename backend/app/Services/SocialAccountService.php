@@ -19,21 +19,32 @@ class SocialAccountService
      */
     public function connect(User $user, string $provider, array $profile): SocialAccount
     {
+        $providerFollowerCount = $profile['followers_count'] ?? $profile['follower_count'] ?? null;
+        $hasFollowerCount = $providerFollowerCount !== null;
+
+        // Only overwrite follower_count when the provider actually returned a value.
+        // If omitted, preserve any previously stored count.
+        $updateData = [
+            'provider_user_id'       => $profile['id'] ?? null,
+            'username'               => $profile['username'] ?? $profile['name'] ?? null,
+            'profile_url'            => $profile['profile_url'] ?? $profile['link'] ?? null,
+            'following_count'        => $profile['following_count'] ?? null,
+            'verified_on_provider'   => (bool) ($profile['verified'] ?? false),
+            'count_is_self_reported' => ! $hasFollowerCount,
+            'connected_at'           => now(),
+            'last_synced_at'         => now(),
+            // Mark pending when no follower count supplied so a later sync is expected.
+            'sync_status'            => $hasFollowerCount ? 'synced' : 'pending',
+            'raw_metadata'           => $profile,
+        ];
+
+        if ($hasFollowerCount) {
+            $updateData['follower_count'] = $providerFollowerCount;
+        }
+
         $account = SocialAccount::updateOrCreate(
             ['user_id' => $user->id, 'provider' => $provider],
-            [
-                'provider_user_id'  => $profile['id'] ?? null,
-                'username'          => $profile['username'] ?? $profile['name'] ?? null,
-                'profile_url'       => $profile['profile_url'] ?? $profile['link'] ?? null,
-                'follower_count'    => $profile['followers_count'] ?? $profile['follower_count'] ?? null,
-                'following_count'   => $profile['following_count'] ?? null,
-                'verified_on_provider' => (bool) ($profile['verified'] ?? false),
-                'count_is_self_reported' => empty($profile['followers_count']) && empty($profile['follower_count']),
-                'connected_at'      => now(),
-                'last_synced_at'    => now(),
-                'sync_status'       => 'synced',
-                'raw_metadata'      => $profile,
-            ]
+            $updateData
         );
 
         // Recheck qualification threshold after every connect/sync.
@@ -199,14 +210,20 @@ class SocialAccountService
             return;
         }
 
-        $hasOpenEvent = CreatorQualificationEvent::where('user_id', $user->id)
-            ->whereIn('status', ['pending', 'notified'])
-            ->exists();
+        // Wrap in a transaction with a row-level lock to prevent race conditions
+        // where two simultaneous requests both pass the exists() check and create
+        // duplicate pending events.
+        \Illuminate\Support\Facades\DB::transaction(function () use ($user) {
+            $hasOpenEvent = CreatorQualificationEvent::where('user_id', $user->id)
+                ->whereIn('status', ['pending', 'notified'])
+                ->lockForUpdate()
+                ->exists();
 
-        if ($hasOpenEvent) {
-            return;
-        }
+            if ($hasOpenEvent) {
+                return;
+            }
 
-        $this->triggerQualificationWorkflow($user);
+            $this->triggerQualificationWorkflow($user);
+        });
     }
 }

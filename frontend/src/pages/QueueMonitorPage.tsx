@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useConfirm } from '@/components/ui/DialogProvider';
 import { Activity, Database, Clock, AlertTriangle, RefreshCcw, Trash2, Server, Cpu, Shield, HardDrive, AlertCircle } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { getAuthToken } from "@/lib/auth/token";
@@ -27,6 +28,7 @@ interface SystemInfo {
 }
 
 export function QueueMonitorPage() {
+  const confirm = useConfirm();
   const [stats, setStats] = useState<QueueStats | null>(null);
   const [failedJobs, setFailedJobs] = useState<FailedJob[]>([]);
   const [sysInfo, setSysInfo] = useState<SystemInfo | null>(null);
@@ -74,7 +76,7 @@ export function QueueMonitorPage() {
   }
 
   async function flushFailed() {
-    if (!confirm('Delete all failed job records? This cannot be undone.')) return;
+    if (!await confirm({ title: 'Delete Failed Jobs', message: 'Delete all failed job records? This cannot be undone.', variant: 'destructive' })) return;
     try {
       const res = await fetch(`${API_BASE}/securegate/queue/failed-jobs`, { method: 'DELETE', headers: getAuthHeaders() });
       if (res.ok) { setMessage({ type: 'success', text: 'Failed jobs flushed.' }); fetchAll(); }

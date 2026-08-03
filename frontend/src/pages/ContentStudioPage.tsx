@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useConfirm } from "@/components/ui/DialogProvider";
 import { Film, Plus, Loader2, Edit, Trash2, Eye, EyeOff, FileText, Video, Music, Image } from "lucide-react";
 import { ImageUploader } from "@/components/upload/ImageUploader";
 import { Button } from "@/components/ui/button";
@@ -35,6 +36,7 @@ const TYPE_COLORS: Record<string, string> = {
 };
 
 export default function ContentStudioPage() {
+  const confirm = useConfirm();
   const [items, setItems] = useState<ContentItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -97,7 +99,7 @@ export default function ContentStudioPage() {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm("Delete this content?")) return;
+    if (!await confirm({ title: 'Delete Content', message: 'Delete this content?', variant: 'destructive' })) return;
     try {
       const res = await fetch(`${API_BASE}/content/${id}`, { method: "DELETE", headers: getAuthHeaders() });
       if (!res.ok) throw new Error("Delete failed");

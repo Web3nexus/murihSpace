@@ -4,6 +4,7 @@ import { Shield, Loader2, AlertTriangle, AlertCircle } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { getAuthToken } from "@/lib/auth/token";
+import { useConfirm } from '@/components/ui/DialogProvider';
 
 const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api/v1';
 
@@ -63,8 +64,10 @@ export function AdminEscrowPage() {
     setPage(1);
   }
 
+  const confirm = useConfirm();
+
   async function releaseEscrow(id: number) {
-    if (!confirm('Release this escrow to the seller?')) return;
+    if (!await confirm({ title: "Release Escrow", message: "Release this escrow to the seller?" })) return;
     try {
       const res = await fetch(`${API_BASE}/securegate/escrow/${id}/release`, { method: 'POST', headers: getAuthHeaders() });
       const j = await res.json();
@@ -74,7 +77,7 @@ export function AdminEscrowPage() {
   }
 
   async function refundEscrow(id: number) {
-    if (!confirm('Refund this escrow to the buyer?')) return;
+    if (!await confirm({ title: "Refund Escrow", message: "Refund this escrow to the buyer?", variant: "warning" })) return;
     try {
       const res = await fetch(`${API_BASE}/securegate/escrow/${id}/refund`, { method: 'POST', headers: getAuthHeaders() });
       const j = await res.json();

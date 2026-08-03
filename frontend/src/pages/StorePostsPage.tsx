@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { MessageSquareText, Plus, Loader2, Trash2, Edit, Eye, EyeOff, Check, AlertCircle, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getAuthToken } from "@/lib/auth/token";
+import { useConfirm } from "@/components/ui/DialogProvider";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:8000/api/v1";
 
@@ -102,8 +103,10 @@ export default function StorePostsPage() {
     setSaving(false);
   };
 
+  const confirm = useConfirm();
+
   const handleDelete = async (id: number) => {
-    if (!confirm("Delete this post?")) return;
+    if (!await confirm({ title: "Delete Post", message: "Delete this post?", variant: "destructive" })) return;
     try {
       await fetch(`${API_BASE}/store/posts/${id}`, { method: "DELETE", headers: getAuthHeaders() });
       setPosts((prev) => prev.filter((p) => p.id !== id));

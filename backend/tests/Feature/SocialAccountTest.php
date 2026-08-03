@@ -17,7 +17,7 @@ class SocialAccountTest extends TestCase
 
     public function test_user_can_list_supported_providers(): void
     {
-        $user = User::factory()->create(['role' => 'user']);
+        $user = User::factory()->create(['role' => 'member']);
 
         $response = $this->actingAs($user)->getJson('/api/v1/social-accounts/supported-providers');
 
@@ -27,7 +27,7 @@ class SocialAccountTest extends TestCase
 
     public function test_user_can_manually_connect_social_account(): void
     {
-        $user = User::factory()->create(['role' => 'user']);
+        $user = User::factory()->create(['role' => 'member']);
 
         $response = $this->actingAs($user)->postJson('/api/v1/social-accounts/manual', [
             'provider'       => 'instagram',
@@ -49,7 +49,7 @@ class SocialAccountTest extends TestCase
 
     public function test_combined_followers_calculated_server_side(): void
     {
-        $user = User::factory()->create(['role' => 'user']);
+        $user = User::factory()->create(['role' => 'member']);
 
         SocialAccount::create([
             'user_id'        => $user->id,
@@ -82,7 +82,7 @@ class SocialAccountTest extends TestCase
         AdminSetting::set('creator_qualification.enabled', '1');
         AdminSetting::set('creator_qualification.follower_threshold', '10000');
 
-        $user = User::factory()->create(['role' => 'user']);
+        $user = User::factory()->create(['role' => 'member']);
 
         // Connecting accounts that cross threshold (5000 + 6000 = 11000 >= 10000)
         $this->actingAs($user)->postJson('/api/v1/social-accounts/manual', [
@@ -133,7 +133,7 @@ class SocialAccountTest extends TestCase
 
     public function test_user_can_disconnect_social_account(): void
     {
-        $user = User::factory()->create(['role' => 'user']);
+        $user = User::factory()->create(['role' => 'member']);
         $account = SocialAccount::create([
             'user_id'        => $user->id,
             'provider'       => 'tiktok',

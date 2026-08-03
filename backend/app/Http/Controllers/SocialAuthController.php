@@ -10,11 +10,14 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
+use App\Services\SocialAccountService;
+
 class SocialAuthController extends Controller
 {
     public function __construct(
         private readonly OAuthProviderService $oauth,
-        private readonly NotificationService $notifications,
+        private readonly NotificationService  $notifications,
+        private readonly SocialAccountService $socialAccounts,
     ) {}
 
     public function redirect(Request $request, string $provider)
@@ -78,7 +81,14 @@ class SocialAuthController extends Controller
             ], 409);
         }
 
-        app(\App\Services\SocialAccountService::class)->connect($user, $provider, $profile);
+        // Isolate the connect/qualification pipeline from the login path so any
+        // downstream failure (settings read, event creation, job dispatch) does not
+        // abort the OAuth login and leave the user unable to sign in.
+        try {
+            $this->socialAccounts->connect($user, $provider, $profile);
+        } catch (\Throwable $e) {
+            report($e);
+        }
 
         $ttl = (int) (config('sanctum.expiration') ?? 1440);
         $token = $user->createToken('auth-token', ['*'], now()->addMinutes($ttl))->plainTextToken;

@@ -3,6 +3,7 @@ import { Crown, Loader2, CheckCircle2, XCircle, Calendar, Ban, AlertCircle } fro
 import type { Subscription } from '@/types/subscription';
 import { formatDistanceToNow } from 'date-fns';
 import { getAuthToken } from "@/lib/auth/token";
+import { useConfirm } from '@/components/ui/DialogProvider';
 
 const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api/v1';
 
@@ -35,8 +36,10 @@ export function MySubscriptionsPage() {
       .finally(() => setIsLoading(false));
   }, []);
 
+  const confirm = useConfirm();
+
   const handleCancel = async (id: number) => {
-    if (!confirm('Cancel this subscription? You will keep access until the end of the billing period.')) return;
+    if (!await confirm({ title: "Cancel Subscription", message: "Cancel this subscription? You will keep access until the end of the billing period.", variant: "warning" })) return;
     setCancelling(id);
     setError(null);
     try {

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useConfirm } from "@/components/ui/DialogProvider";
 import { Crown, Plus, Loader2, Edit, Trash2, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,6 +24,7 @@ interface MembershipPlan {
 }
 
 export default function StoreMembershipsPage() {
+  const confirm = useConfirm();
   const [plans, setPlans] = useState<MembershipPlan[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -80,7 +82,7 @@ export default function StoreMembershipsPage() {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm("Delete this plan?")) return;
+    if (!await confirm({ title: 'Delete Plan', message: 'Delete this plan?', variant: 'destructive' })) return;
     await fetch(`${API_BASE}/store/memberships/${id}`, { method: "DELETE", headers: getAuthHeaders() });
     fetchPlans();
   };

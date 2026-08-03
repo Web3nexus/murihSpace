@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useConfirm } from '@/components/ui/DialogProvider';
 import {
   Package,
   Plus,
@@ -35,6 +36,7 @@ const CATEGORIES: { value: ProductCategory; label: string }[] = [
 ];
 
 export function DigitalProductsPage() {
+  const confirm = useConfirm();
   const [products, setProducts] = useState<DigitalProduct[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -184,7 +186,7 @@ export function DigitalProductsPage() {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Are you sure you want to delete this digital product?')) return;
+    if (!await confirm({ title: 'Delete Digital Product', message: 'Are you sure you want to delete this digital product?', variant: 'destructive' })) return;
     const token = getAuthToken();
 
     try {

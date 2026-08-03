@@ -3,6 +3,7 @@ import { Tags, Plus, Loader2, Edit, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { getAuthToken } from "@/lib/auth/token";
+import { useConfirm } from "@/components/ui/DialogProvider";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:8000/api/v1";
 
@@ -57,8 +58,10 @@ export default function CategoriesPage() {
     } finally { setSaving(false); }
   };
 
+  const confirm = useConfirm();
+
   const handleDelete = async (id: number) => {
-    if (!confirm("Delete this category?")) return;
+    if (!await confirm({ title: "Delete Category", message: "Delete this category?", variant: "destructive" })) return;
     await fetch(`${API_BASE}/store/categories/${id}`, { method: "DELETE", headers: getAuthHeaders() });
     fetchCategories();
   };

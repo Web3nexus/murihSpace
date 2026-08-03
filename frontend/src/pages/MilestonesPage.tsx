@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useConfirm } from '@/components/ui/DialogProvider';
 import { Trophy, Award, Plus, Loader2, Edit, Trash2, Target, TrendingUp, ShoppingBag, DollarSign, Heart } from 'lucide-react';
 import { getAuthToken } from "@/lib/auth/token";
 
@@ -48,6 +49,7 @@ const METRIC_ICONS: Record<string, typeof Target> = {
 };
 
 export function MilestonesPage() {
+  const confirm = useConfirm();
   const [tab, setTab] = useState<'manage' | 'progress' | 'badges'>('manage');
   const [milestones, setMilestones] = useState<Milestone[]>([]);
   const [progress, setProgress] = useState<MilestoneProgress[]>([]);
@@ -112,7 +114,7 @@ export function MilestonesPage() {
   }
 
   async function deleteMilestone(id: number) {
-    if (!confirm('Delete this milestone?')) return;
+    if (!await confirm({ title: 'Delete Milestone', message: 'Delete this milestone?', variant: 'destructive' })) return;
     try {
       const res = await fetch(`${API_BASE}/milestones/${id}`, { method: 'DELETE', headers: getAuthHeaders() });
       if (res.ok) { await fetchAll(); setMessage({ type: 'success', text: 'Milestone deleted.' }); }

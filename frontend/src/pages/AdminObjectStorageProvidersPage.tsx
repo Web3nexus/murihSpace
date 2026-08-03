@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useConfirm } from "@/components/ui/DialogProvider";
 import { HardDrive, Plus, Pencil, Trash2, Loader2, Save, X, Check, AlertCircle, CheckCircle2, Eye, EyeOff, ChevronRight, HelpCircle, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getAuthToken } from "@/lib/auth/token";
@@ -40,6 +41,7 @@ const emptyForm: Omit<Provider, "id" | "created_at"> = {
 };
 
 export default function AdminObjectStorageProvidersPage() {
+  const confirm = useConfirm();
   const [providers, setProviders] = useState<Provider[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -130,7 +132,7 @@ export default function AdminObjectStorageProvidersPage() {
   }
 
   async function remove(provider: Provider) {
-    if (!confirm(`Delete "${provider.label}"? This cannot be undone.`)) return;
+    if (!await confirm({ title: `Delete "${provider.label}"`, message: 'This cannot be undone.', variant: 'destructive' })) return;
     try {
       const res = await fetch(`${API_BASE}/securegate/storage/providers/${provider.id}`, {
         method: "DELETE",

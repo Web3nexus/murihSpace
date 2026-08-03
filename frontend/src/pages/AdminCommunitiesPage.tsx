@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useConfirm } from '@/components/ui/DialogProvider';
 import { Building2, Search, Loader2, Trash2, Eye, Globe, Lock, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from "@/components/ui/button";
@@ -21,6 +22,7 @@ interface CommunitySummary {
 }
 
 export function AdminCommunitiesPage() {
+  const confirm = useConfirm();
   const [communities, setCommunities] = useState<CommunitySummary[]>([]);
   const [stats, setStats] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -47,7 +49,7 @@ export function AdminCommunitiesPage() {
   useEffect(() => { fetchCommunities(); }, [fetchCommunities]);
 
   async function deleteCommunity(id: number, name: string) {
-    if (!confirm(`Delete "${name}"? This also removes all memberships. Cannot be undone.`)) return;
+    if (!await confirm({ title: `Delete "${name}"`, message: 'This also removes all memberships. Cannot be undone.', variant: 'destructive' })) return;
     try {
       const res = await fetch(`${API_BASE}/securegate/communities/${id}`, { method: 'DELETE', headers: getAuthHeaders() });
       if (res.ok) { setMessage({ type: 'success', text: `"${name}" deleted.` }); toast.success(`"${name}" deleted.`); fetchCommunities(); }

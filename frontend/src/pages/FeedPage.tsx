@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router";
 import { AnimatedPage } from "@/components/common/AnimatedPage";
 import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
 import { apiClient } from "@/lib/api/client";
 import { timeAgo, mapApiPost, mapApiComments } from "@/lib/feed";
 import {
@@ -294,7 +295,7 @@ export default function FeedPage() {
       setStories((prev) => [newCard, ...prev]);
     } catch (err) {
       console.error("Story creation failed:", err);
-      alert("Failed to create story. Please try again.");
+      toast.error("Failed to create story. Please try again.");
     } finally {
       setStoryUploading(false);
       URL.revokeObjectURL(objectUrl);

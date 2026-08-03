@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { getAuthToken } from "@/lib/auth/token";
+import { useConfirm } from '@/components/ui/DialogProvider';
 
 const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api/v1';
 
@@ -137,8 +138,10 @@ export function ShippingProfilesPage() {
     }
   }
 
+  const confirm = useConfirm();
+
   async function deleteProfile(id: number) {
-    if (!confirm('Delete this shipping profile?')) return;
+    if (!await confirm({ title: "Delete Shipping Profile", message: "Delete this shipping profile?", variant: "destructive" })) return;
     try {
       const res = await fetch(`${API_BASE}/store/shipping/profiles/${id}`, {
         method: 'DELETE', headers: getAuthHeaders(),

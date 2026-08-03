@@ -5,6 +5,8 @@ import {
 } from 'lucide-react';
 import type { SubscriptionPlan, SubscriptionStats, CreatePlanPayload } from '@/types/subscription';
 import { getAuthToken } from "@/lib/auth/token";
+import { useConfirm } from '@/components/ui/DialogProvider';
+import { toast } from 'sonner';
 
 const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api/v1';
 
@@ -117,14 +119,20 @@ export function SubscriptionManagementPage() {
     setSaving(false);
   };
 
+  const confirm = useConfirm();
+
   const handleDelete = async (id: number) => {
-    if (!confirm('Delete this plan? Active subscriptions will prevent deletion.')) return;
+    if (!await confirm({ title: "Delete Subscription Plan", message: "Delete this plan? Active subscriptions will prevent deletion.", variant: "destructive" })) return;
     try {
       const res = await fetch(`${API_BASE}/subscriptions/plans/${id}`, { method: 'DELETE', headers: getAuthHeaders() });
       const json = await res.json();
-      if (!res.ok) { alert(json.message); return; }
+      if (!res.ok) { toast.error(json.message || "Failed to delete plan."); return; }
+      toast.success("Plan deleted.");
       fetchData();
-    } catch (e) { console.error(e); }
+    } catch (e) {
+      console.error(e);
+      toast.error("Failed to delete plan.");
+    }
   };
 
   const toggleActive = async (plan: SubscriptionPlan) => {

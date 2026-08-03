@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { MapPin, Plus, Edit, Trash2, Loader2, CheckCircle, Circle } from 'lucide-react';
+import { Plus, MapPin, Trash2, CheckCircle, Loader2, Edit, Circle } from 'lucide-react';
+import { useConfirm } from '@/components/ui/DialogProvider';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -111,8 +112,10 @@ export function AddressesPage() {
     }
   }
 
+  const confirm = useConfirm();
+
   async function deleteAddress(id: number) {
-    if (!confirm('Delete this address?')) return;
+    if (!await confirm({ title: "Delete Address", message: "Delete this address?", variant: "destructive" })) return;
     try {
       const res = await fetch(`${API_BASE}/addresses/${id}`, {
         method: 'DELETE', headers: getAuthHeaders(),

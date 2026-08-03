@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { getAuthToken } from "@/lib/auth/token";
+import { useConfirm } from "@/components/ui/DialogProvider";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:8000/api/v1";
 
@@ -75,8 +76,10 @@ export default function AdminGiftsPage() {
     setEditing(gift); setShowForm(true);
   };
 
+  const confirm = useConfirm();
+
   const handleDelete = async (id: number) => {
-    if (!confirm("Delete this gift?")) return;
+    if (!await confirm({ title: "Delete Gift", message: "Delete this gift?", variant: "destructive" })) return;
     try {
       await fetch(`${API_BASE}/securegate/gifts/${id}`, { method: "DELETE", headers: getAuthHeaders() });
       fetchGifts();

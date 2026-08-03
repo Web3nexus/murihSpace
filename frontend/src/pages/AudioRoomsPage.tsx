@@ -1,8 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Mic, Radio, Calendar, Clock, Users, Loader2, Plus, Play, StopCircle, LogIn, LogOut, Hand, MicOff, Speaker, Crown, Shield, AlertCircle, X, Check, Trash2 } from 'lucide-react';
+import { useConfirm } from '@/components/ui/DialogProvider';
+import { Mic, Radio, Calendar, Clock, Users, Loader2, Plus, Play, StopCircle, LogIn, LogOut, Hand, MicOff, Speaker, Crown, Shield, AlertCircle, X, Check, Trash2, Video } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import AudioRoomPlayer from "@/components/audio/AudioRoomPlayer";
+import { LiveKitVideoConference } from "@/components/video/LiveKitVideoConference";
 import { ImageUploader } from "@/components/upload/ImageUploader";
 import { getAuthToken } from "@/lib/auth/token";
 
@@ -123,6 +125,7 @@ function RoomCard({ room, onAction, currentUserId }: { room: AudioRoom; onAction
 }
 
 export function AudioRoomsPage() {
+  const confirm = useConfirm();
   const [tab, setTab] = useState<Tab>('upcoming');
   const [rooms, setRooms] = useState<AudioRoom[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -138,7 +141,12 @@ export function AudioRoomsPage() {
 
   // Detail
   const [selectedRoom, setSelectedRoom] = useState<AudioRoom | null>(null);
+  const [isVideoMode, setIsVideoMode] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    setIsVideoMode(false);
+  }, [selectedRoom?.id]);
 
   const fetchRooms = useCallback(async (activeTab: Tab) => {
     setIsLoading(true);
@@ -205,7 +213,7 @@ export function AudioRoomsPage() {
       const act = actions[action];
       if (!act) return;
 
-      if (action === 'delete' && !confirm('Delete this room?')) return;
+      if (action === 'delete' && !await confirm({ title: 'Delete Room', message: 'Delete this room?', variant: 'destructive' })) return;
 
       const res = await fetch(act.url, { method: act.method, headers: getAuthHeaders() });
       const json = await res.json();
@@ -444,10 +452,41 @@ export function AudioRoomsPage() {
               )}
 
               {selectedRoom.status === 'live' && (
-                <AudioRoomPlayer
-                  roomId={selectedRoom.id}
-                  onError={(msg) => setMessage({ type: 'error', text: msg })}
-                />
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 p-1.5 bg-muted/40 rounded-xl w-fit">
+                    <Button
+                      variant={!isVideoMode ? 'default' : 'ghost'}
+                      size="sm"
+                      onClick={() => setIsVideoMode(false)}
+                      className="gap-1.5 h-8 text-xs font-semibold"
+                    >
+                      <Mic className="h-3.5 w-3.5" /> Audio Mode
+                    </Button>
+                    <Button
+                      variant={isVideoMode ? 'default' : 'ghost'}
+                      size="sm"
+                      onClick={() => setIsVideoMode(true)}
+                      className="gap-1.5 h-8 text-xs font-semibold"
+                    >
+                      <Video className="h-3.5 w-3.5" /> LiveKit Video Mode
+                    </Button>
+                  </div>
+
+                  {isVideoMode ? (
+                    <LiveKitVideoConference
+                      roomId={selectedRoom.id}
+                      roomTitle={selectedRoom.title}
+                      isHost={selectedRoom.creator_id === currentUser?.id}
+                      onLeave={() => setIsVideoMode(false)}
+                      onError={(msg) => setMessage({ type: 'error', text: msg })}
+                    />
+                  ) : (
+                    <AudioRoomPlayer
+                      roomId={selectedRoom.id}
+                      onError={(msg) => setMessage({ type: 'error', text: msg })}
+                    />
+                  )}
+                </div>
               )}
 
               <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">

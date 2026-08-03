@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useConfirm, usePrompt } from "@/components/ui/DialogProvider";
 import { AlertCircle, DollarSign, Loader2, Megaphone, Search, ThumbsUp, ThumbsDown, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -52,13 +53,16 @@ export default function AdminAdsPage() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
+  const confirm = useConfirm();
+  const prompt = usePrompt();
+
   const handleAction = async (id: number, action: string) => {
     let reason: string | null = null;
     if (action === "reject" || action === "suspend") {
-      reason = prompt(`Reason for ${action}ing:`);
+      reason = await prompt({ title: `${action === "reject" ? "Reject" : "Suspend"} Campaign`, message: `Reason for ${action}ing:` });
       if (!reason) return;
     }
-    if (action === "remove" && !confirm("Permanently remove this campaign?")) return;
+    if (action === "remove" && !await confirm({ title: "Remove Campaign", message: "Permanently remove this campaign?", variant: "destructive" })) return;
 
     try {
       const url = `${API_BASE}/securegate/ads/${id}/${action}`;

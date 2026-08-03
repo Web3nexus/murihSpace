@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { Link } from "react-router";
 import { toast } from "sonner";
+import { useConfirm } from "@/components/ui/DialogProvider";
 
 interface SocialAccount {
   id: number;
@@ -123,8 +124,10 @@ export default function ConnectedAccountsPage() {
     }
   };
 
+  const confirm = useConfirm();
+
   const handleDisconnect = async (id: number) => {
-    if (!confirm("Are you sure you want to disconnect this social account?")) return;
+    if (!await confirm({ title: "Disconnect Account", message: "Are you sure you want to disconnect this social account?", variant: "destructive" })) return;
 
     try {
       const res = await fetch(`/api/v1/social-accounts/${id}`, {

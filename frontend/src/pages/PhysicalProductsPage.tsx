@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useConfirm } from '@/components/ui/DialogProvider';
 import { Package, Plus, Search, Edit, Trash2, Loader2, Check, AlertCircle, X, Eye, EyeOff } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,6 +43,7 @@ const CATEGORIES = [
 ];
 
 export function PhysicalProductsPage() {
+  const confirm = useConfirm();
   const [products, setProducts] = useState<PhysicalProduct[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -156,7 +158,7 @@ export function PhysicalProductsPage() {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Delete this product?')) return;
+    if (!await confirm({ title: 'Delete Product', message: 'Delete this product?', variant: 'destructive' })) return;
     try {
       const res = await fetch(`${API_BASE}/store/physical-products/${id}`, {
         method: 'DELETE', headers: getAuthHeaders(),

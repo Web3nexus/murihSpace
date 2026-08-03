@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useConfirm } from '@/components/ui/DialogProvider';
 import { Link2, Plus, Loader2, Users, MousePointerClick, ShoppingBag, Copy, Check, ExternalLink, Power, PowerOff, Gift, RefreshCw } from 'lucide-react';
 import { getAuthToken } from "@/lib/auth/token";
 
@@ -52,6 +53,7 @@ const REWARD_TYPES = [
 ];
 
 export function ReferralsPage() {
+  const confirm = useConfirm();
   const [tab, setTab] = useState<'overview' | 'links' | 'activity'>('overview');
   const [program, setProgram] = useState<ReferralProgram | null>(null);
   const [links, setLinks] = useState<ReferralLink[]>([]);
@@ -121,7 +123,7 @@ export function ReferralsPage() {
   }
 
   async function deleteLink(id: number) {
-    if (!confirm('Delete this referral link?')) return;
+    if (!await confirm({ title: 'Delete Referral Link', message: 'Delete this referral link?', variant: 'destructive' })) return;
     try {
       await fetch(`${API_BASE}/referrals/links/${id}`, { method: 'DELETE', headers: getAuthHeaders() });
       await fetchAll();

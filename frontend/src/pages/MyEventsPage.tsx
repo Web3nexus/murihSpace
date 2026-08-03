@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useConfirm } from "@/components/ui/DialogProvider";
 import { Link } from "react-router";
 import { Plus, Calendar, Trash2, Users, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -32,6 +33,7 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export function MyEventsPage() {
+  const confirm = useConfirm();
   const [events, setEvents] = useState<EventData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -70,7 +72,7 @@ export function MyEventsPage() {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm("Delete this event?")) return;
+    if (!await confirm({ title: 'Delete Event', message: 'Delete this event?', variant: 'destructive' })) return;
     try {
       const res = await fetch(`${API}/my-events/${id}`, {
         method: "DELETE",

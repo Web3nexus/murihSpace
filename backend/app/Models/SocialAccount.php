@@ -34,7 +34,7 @@ class SocialAccount extends Model
         'raw_metadata'          => 'array',
     ];
 
-    protected $hidden = ['access_token_reference'];
+    protected $hidden = ['access_token_reference', 'raw_metadata'];
 
     public function user(): BelongsTo
     {

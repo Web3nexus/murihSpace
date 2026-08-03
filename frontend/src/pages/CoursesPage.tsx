@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { ImageUploader } from "@/components/upload/ImageUploader";
 import { getAuthToken } from "@/lib/auth/token";
+import { useConfirm } from "@/components/ui/DialogProvider";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:8000/api/v1";
 
@@ -143,8 +144,10 @@ export default function CoursesPage() {
     finally { setSaving(false); }
   };
 
+  const confirm = useConfirm();
+
   const handleDelete = async (id: number) => {
-    if (!confirm("Delete this course and all its modules?")) return;
+    if (!await confirm({ title: "Delete Course", message: "Delete this course and all its modules?", variant: "destructive" })) return;
     try {
       await fetch(`${API_BASE}/courses/${id}`, { method: "DELETE", headers: getAuthHeaders() });
       setCourses((prev) => prev.filter((c) => c.id !== id));

@@ -1,5 +1,6 @@
 import { Package, Truck, Loader2, Search, Eye, MapPin, Clock } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
+import { usePrompt } from '@/components/ui/DialogProvider';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { getAuthToken } from "@/lib/auth/token";
@@ -122,12 +123,14 @@ export function FulfilmentPage() {
     }
   }
 
+  const prompt = usePrompt();
+
   async function saveTracking(orderId: number) {
     const order = orders.find(o => o.id === orderId);
     if (!order) return;
-    const tn = prompt('Tracking number:', order.tracking_number ?? '');
+    const tn = await prompt({ title: "Tracking Number", message: "Enter tracking number:", defaultValue: order.tracking_number ?? '' });
     if (!tn) return;
-    const carrier = prompt('Carrier (e.g. DHL, FedEx, USPS):', order.carrier ?? '');
+    const carrier = await prompt({ title: "Carrier Name", message: "Enter carrier (e.g. DHL, FedEx, USPS):", defaultValue: order.carrier ?? '' });
     setMessage(null);
     try {
       const res = await fetch(`${API_BASE}/store/fulfilment/${orderId}/tracking`, {

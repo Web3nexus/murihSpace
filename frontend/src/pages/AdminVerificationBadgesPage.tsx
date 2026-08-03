@@ -54,14 +54,12 @@ export function AdminVerificationBadgesPage() {
 
       const res = await apiClient.get("/securegate/verification-badges", { params });
 
-      const data = res.data;
-      if (data?.data) {
-        setUsers(data.data);
-        setLastPage(data.last_page || 1);
-        setTotal(data.total || 0);
-      } else {
-        setUsers([]);
-      }
+      const envelope = res.data;
+      const paginator = envelope?.success ? envelope.data : envelope;
+      const items = Array.isArray(paginator?.data) ? paginator.data : [];
+      setUsers(items);
+      setLastPage(paginator?.last_page || 1);
+      setTotal(paginator?.total || 0);
     } catch (err) {
       console.error("Failed to load verification badges:", err);
       toast.error("Failed to load verification badges.");

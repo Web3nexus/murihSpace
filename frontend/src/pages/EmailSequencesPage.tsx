@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useConfirm } from '@/components/ui/DialogProvider';
 import { ListOrdered, Plus, Loader2, Power, PowerOff, Trash2, Clock } from 'lucide-react';
 import { getAuthToken } from "@/lib/auth/token";
 
@@ -27,6 +28,7 @@ interface Sequence {
 const TRIGGER_EVENTS = ['purchase', 'signup', 'subscription', 'follow', 'custom'];
 
 export function EmailSequencesPage() {
+  const confirm = useConfirm();
   const [sequences, setSequences] = useState<Sequence[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -70,7 +72,7 @@ export function EmailSequencesPage() {
   }
 
   async function deleteSequence(id: number) {
-    if (!confirm('Delete this sequence and all its steps?')) return;
+    if (!await confirm({ title: 'Delete Sequence', message: 'Delete this sequence and all its steps?', variant: 'destructive' })) return;
     try { await fetch(`${API_BASE}/email-sequences/${id}`, { method: 'DELETE', headers: getAuthHeaders() }); await fetchAll(); }
     catch { /* ignore */ }
   }

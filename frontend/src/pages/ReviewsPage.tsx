@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useConfirm } from '@/components/ui/DialogProvider';
 import { Award, MessageSquare, Plus, Loader2, Trash2, Edit, Clock } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -44,6 +45,7 @@ function formatTimeLeft(expiresAt: string): string {
 }
 
 export function ReviewsPage() {
+  const confirm = useConfirm();
   const [reviews, setReviews] = useState<Review[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -104,7 +106,7 @@ export function ReviewsPage() {
   }
 
   async function deleteReview(id: number) {
-    if (!confirm('Delete this review?')) return;
+    if (!await confirm({ title: 'Delete Review', message: 'Delete this review?', variant: 'destructive' })) return;
     try {
       const res = await fetch(`${API_BASE}/store/reviews/${id}`, { method: 'DELETE', headers: getAuthHeaders() });
       if (res.ok) { await fetchReviews(); setMessage({ type: 'success', text: 'Review deleted.' }); }

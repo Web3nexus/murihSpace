@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useConfirm } from '@/components/ui/DialogProvider';
 import { Calendar, Clock, Video, Loader2, Plus, Trash2, Check, AlertCircle, X, MapPin, CreditCard, ExternalLink, Edit, ChevronRight } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -201,6 +202,7 @@ function BookingRow({ booking, isCreator, onCancel, onComplete }: {
 }
 
 export function CoachingPage() {
+  const confirm = useConfirm();
   const [tab, setTab] = useState<Tab>('browse');
 
   // Services
@@ -362,7 +364,7 @@ export function CoachingPage() {
   };
 
   const handleDeleteService = async (id: number) => {
-    if (!confirm('Delete this service? This cannot be undone.')) return;
+    if (!await confirm({ title: 'Delete Service', message: 'Delete this service? This cannot be undone.', variant: 'destructive' })) return;
     try {
       const res = await fetch(`${API_BASE}/coaching/services/${id}`, { method: 'DELETE', headers: getAuthHeaders() });
       const json = await res.json();
@@ -444,7 +446,7 @@ export function CoachingPage() {
   };
 
   const handleCancelBooking = async (id: number) => {
-    if (!confirm('Cancel this booking? You will be refunded if paid.')) return;
+    if (!await confirm({ title: 'Cancel Booking', message: 'Cancel this booking? You will be refunded if paid.', variant: 'warning' })) return;
     try {
       const res = await fetch(`${API_BASE}/coaching/bookings/${id}/cancel`, { method: 'POST', headers: getAuthHeaders() });
       const json = await res.json();

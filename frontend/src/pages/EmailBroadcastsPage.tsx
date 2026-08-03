@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useConfirm } from '@/components/ui/DialogProvider';
 import { Mail, Plus, Loader2, Send, Edit2, Trash2, Eye, MousePointerClick } from 'lucide-react';
 import { getAuthToken } from "@/lib/auth/token";
 
@@ -21,6 +22,7 @@ interface Broadcast {
 }
 
 export function EmailBroadcastsPage() {
+  const confirm = useConfirm();
   const [broadcasts, setBroadcasts] = useState<Broadcast[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -55,7 +57,7 @@ export function EmailBroadcastsPage() {
   }
 
   async function sendBroadcast(id: number) {
-    if (!confirm('Send this broadcast to all subscribers?')) return;
+    if (!await confirm({ title: 'Send Broadcast', message: 'Send this broadcast to all subscribers?' })) return;
     try {
       const res = await fetch(`${API_BASE}/email-broadcasts/${id}/send`, { method: 'POST', headers: getAuthHeaders() });
       if (res.ok) { await fetchAll(); setMessage({ type: 'success', text: 'Broadcast sent!' }); }
@@ -64,7 +66,7 @@ export function EmailBroadcastsPage() {
   }
 
   async function deleteBroadcast(id: number) {
-    if (!confirm('Delete this broadcast?')) return;
+    if (!await confirm({ title: 'Delete Broadcast', message: 'Delete this broadcast?', variant: 'destructive' })) return;
     try { await fetch(`${API_BASE}/email-broadcasts/${id}`, { method: 'DELETE', headers: getAuthHeaders() }); await fetchAll(); }
     catch { /* ignore */ }
   }

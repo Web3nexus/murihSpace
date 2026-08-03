@@ -218,7 +218,11 @@ class AdminSettingsController extends Controller
         $data = $request->validate($rules);
 
         foreach ($data as $key => $value) {
-            $stored = is_array($value) ? json_encode($value) : (string) $value;
+            $stored = match (true) {
+                is_array($value)  => json_encode($value),
+                is_bool($value)   => $value ? '1' : '0',
+                default           => (string) $value,
+            };
             \App\Models\AdminSetting::set("creator_qualification.{$key}", $stored);
         }
 

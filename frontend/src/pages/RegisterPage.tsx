@@ -12,6 +12,8 @@ import { AuthLayout } from "@/components/layout/AuthLayout";
 import { CountrySelect } from "@/components/forms/CountrySelect";
 import { PhoneInput } from "@/components/forms/PhoneInput";
 import { StateSelect } from "@/components/forms/StateSelect";
+import { InlineFieldError } from "@/components/ui/InlineFieldError";
+import { toast } from "sonner";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:8000/api/v1";
 
@@ -87,6 +89,11 @@ export function RegisterPage() {
     debounceRef.current = setTimeout(() => checkUsername(val), 400);
   };
 
+  const [passwordFieldError, setPasswordFieldError] = useState("");
+  const [passwordConfirmError, setPasswordConfirmError] = useState("");
+  const passwordRef = useRef<HTMLInputElement>(null);
+  const passwordConfirmRef = useRef<HTMLInputElement>(null);
+
   const handleSocialLogin = async (provider: string) => {
     setSocialLoading(provider);
     try {
@@ -98,10 +105,10 @@ export function RegisterPage() {
         return;
       }
       if (d?.manual_register) {
-        alert(`${provider} login is not configured yet. Please register with email.`);
+        toast.error(`${provider} login is not configured yet. Please register with email.`);
       }
     } catch {
-      alert(`Failed to initiate ${provider} login.`);
+      toast.error(`Failed to initiate ${provider} login.`);
     }
     setSocialLoading(null);
   };
@@ -120,9 +127,20 @@ export function RegisterPage() {
 
   const handleNextStep3 = (e: React.FormEvent) => {
     e.preventDefault();
+    setPasswordFieldError("");
+    setPasswordConfirmError("");
     if (!password || !passwordConfirmation) return;
-    if (password.length < 8) { alert("Password must be at least 8 characters"); return; }
-    if (password !== passwordConfirmation) { alert("Passwords do not match"); return; }
+
+    if (password.length < 8) {
+      setPasswordFieldError("Password must be at least 8 characters");
+      passwordRef.current?.focus();
+      return;
+    }
+    if (password !== passwordConfirmation) {
+      setPasswordConfirmError("Passwords do not match");
+      passwordConfirmRef.current?.focus();
+      return;
+    }
     setStep(4);
   };
 
@@ -273,13 +291,35 @@ export function RegisterPage() {
                 <FieldGroup>
                   <FieldLabel>Password</FieldLabel>
                   <Field>
-                    <Input type="password" placeholder="At least 8 characters" value={password} onChange={(e) => setPassword(e.target.value)} required />
+                    <Input
+                      ref={passwordRef}
+                      type="password"
+                      placeholder="At least 8 characters"
+                      value={password}
+                      onChange={(e) => { setPassword(e.target.value); setPasswordFieldError(""); }}
+                      aria-invalid={Boolean(passwordFieldError)}
+                      aria-describedby={passwordFieldError ? "password-field-error" : undefined}
+                      className={passwordFieldError ? "border-rose-500 focus-visible:ring-rose-500" : ""}
+                      required
+                    />
+                    <InlineFieldError id="password-field-error" error={passwordFieldError} />
                   </Field>
                 </FieldGroup>
                 <FieldGroup>
                   <FieldLabel>Confirm password</FieldLabel>
                   <Field>
-                    <Input type="password" placeholder="Re-enter password" value={passwordConfirmation} onChange={(e) => setPasswordConfirmation(e.target.value)} required />
+                    <Input
+                      ref={passwordConfirmRef}
+                      type="password"
+                      placeholder="Re-enter password"
+                      value={passwordConfirmation}
+                      onChange={(e) => { setPasswordConfirmation(e.target.value); setPasswordConfirmError(""); }}
+                      aria-invalid={Boolean(passwordConfirmError)}
+                      aria-describedby={passwordConfirmError ? "password-confirm-error" : undefined}
+                      className={passwordConfirmError ? "border-rose-500 focus-visible:ring-rose-500" : ""}
+                      required
+                    />
+                    <InlineFieldError id="password-confirm-error" error={passwordConfirmError} />
                   </Field>
                 </FieldGroup>
                 <div className="flex gap-2">

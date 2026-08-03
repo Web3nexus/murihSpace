@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useConfirm } from '@/components/ui/DialogProvider';
 import { DollarSign, Loader2, CheckCircle2, Clock, AlertTriangle, AlertCircle } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { getAuthToken } from "@/lib/auth/token";
@@ -28,6 +29,7 @@ interface PayoutSummary {
 }
 
 export function AdminPayoutsPage() {
+  const confirm = useConfirm();
   const [payouts, setPayouts] = useState<PayoutItem[]>([]);
   const [summary, setSummary] = useState<PayoutSummary | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -54,7 +56,7 @@ export function AdminPayoutsPage() {
   useEffect(() => { fetchPayouts(); }, [fetchPayouts]);
 
   async function markPaid(id: number) {
-    if (!confirm('Mark this payout as paid?')) return;
+    if (!await confirm({ title: 'Mark as Paid', message: 'Mark this payout as paid?' })) return;
     try {
       const res = await fetch(`${API_BASE}/securegate/payouts/${id}/mark-paid`, { method: 'PUT', headers: getAuthHeaders() });
       const j = await res.json();

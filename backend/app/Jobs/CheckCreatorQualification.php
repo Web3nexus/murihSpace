@@ -95,9 +95,13 @@ class CheckCreatorQualification implements ShouldQueue
             'event_id' => $event->id,
         ]);
 
-        // Schedule reminder if enabled
+        // Schedule at most one reminder. Track in metadata to prevent infinite chains
+        // (the job would otherwise reschedule itself on every cycle while status is 'notified').
         $reminderEnabled = (bool) AdminSetting::get('creator_qualification.reminder_enabled', false);
-        if ($reminderEnabled) {
+        $metadata = $event->metadata ?? [];
+
+        if ($reminderEnabled && empty($metadata['reminder_scheduled'])) {
+            $event->update(['metadata' => array_merge($metadata, ['reminder_scheduled' => true])]);
             $reminderHours = (int) AdminSetting::get('creator_qualification.reminder_delay_hours', 48);
             self::dispatch($this->eventId)->delay(now()->addHours($reminderHours));
         }

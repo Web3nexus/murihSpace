@@ -6,8 +6,10 @@ import {
   MailIcon,
   CheckCircle2Icon,
   SlidersIcon,
+  ClockIcon,
 } from "lucide-react";
 import { toast } from "sonner";
+import { apiClient } from "@/lib/api/client";
 
 interface QualificationSettings {
   enabled: boolean;
@@ -47,32 +49,27 @@ export default function AdminCreatorQualificationPage() {
   const fetchSettings = async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/v1/securegate/creator-qualification/settings", {
-        headers: { Accept: "application/json" },
+      // Use the shared apiClient so Authorization header and base URL are set correctly.
+      const res = await apiClient.get("/securegate/creator-qualification/settings");
+      const d = res.data;
+      const raw = d.data?.data || d.data || {};
+      setSettings({
+        enabled:                raw.enabled === undefined ? true : Boolean(Number(raw.enabled)),
+        follower_threshold:     Number(raw.follower_threshold ?? 10000),
+        delay_amount:           Number(raw.delay_amount ?? 24),
+        delay_unit:             raw.delay_unit || "hours",
+        enabled_providers:      Array.isArray(raw.enabled_providers) ? raw.enabled_providers : ALL_PROVIDERS.map(p => p.id),
+        min_connected_accounts: Number(raw.min_connected_accounts ?? 1),
+        combine_counts:         raw.combine_counts === undefined ? true : Boolean(Number(raw.combine_counts)),
+        email_enabled:          raw.email_enabled === undefined ? true : Boolean(Number(raw.email_enabled)),
+        email_subject:          raw.email_subject || "You may qualify as a MurihSpace Creator!",
+        email_content:          raw.email_content || "Congratulations! Your combined social following has reached our creator threshold.",
+        reminder_enabled:       raw.reminder_enabled === undefined ? false : Boolean(Number(raw.reminder_enabled)),
+        reminder_delay_hours:   Number(raw.reminder_delay_hours ?? 48),
+        auto_expiry_hours:      Number(raw.auto_expiry_hours ?? 168),
       });
-      if (res.ok) {
-        const d = await res.json();
-        const raw = d.data?.data || d.data || {};
-        setSettings({
-          enabled: raw.enabled === undefined ? true : Boolean(Number(raw.enabled)),
-          follower_threshold: Number(raw.follower_threshold ?? 10000),
-          delay_amount: Number(raw.delay_amount ?? 24),
-          delay_unit: raw.delay_unit || "hours",
-          enabled_providers: Array.isArray(raw.enabled_providers) ? raw.enabled_providers : ALL_PROVIDERS.map(p => p.id),
-          min_connected_accounts: Number(raw.min_connected_accounts ?? 1),
-          combine_counts: raw.combine_counts === undefined ? true : Boolean(Number(raw.combine_counts)),
-          email_enabled: raw.email_enabled === undefined ? true : Boolean(Number(raw.email_enabled)),
-          email_subject: raw.email_subject || "You may qualify as a MurihSpace Creator!",
-          email_content: raw.email_content || "Congratulations! Your combined social following has reached our creator threshold.",
-          reminder_enabled: raw.reminder_enabled === undefined ? false : Boolean(Number(raw.reminder_enabled)),
-          reminder_delay_hours: Number(raw.reminder_delay_hours ?? 48),
-          auto_expiry_hours: Number(raw.auto_expiry_hours ?? 168),
-        });
-      } else {
-        toast.error("Failed to load qualification settings.");
-      }
-    } catch (e) {
-      toast.error("Network error loading settings.");
+    } catch {
+      toast.error("Failed to load qualification settings.");
     } finally {
       setLoading(false);
     }
@@ -84,21 +81,12 @@ export default function AdminCreatorQualificationPage() {
 
     setSaving(true);
     try {
-      const res = await fetch("/api/v1/securegate/creator-qualification/settings", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json", Accept: "application/json" },
-        body: JSON.stringify(settings),
-      });
-
-      if (res.ok) {
-        toast.success("Creator qualification settings updated!");
-        fetchSettings();
-      } else {
-        const err = await res.json();
-        toast.error(err.message || "Failed to save settings.");
-      }
-    } catch (e) {
-      toast.error("Error saving settings.");
+      await apiClient.put("/securegate/creator-qualification/settings", settings);
+      toast.success("Creator qualification settings updated!");
+      fetchSettings();
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      toast.error(msg || "Failed to save settings.");
     } finally {
       setSaving(false);
     }
@@ -110,9 +98,11 @@ export default function AdminCreatorQualificationPage() {
     const next = current.includes(providerId)
       ? current.filter((p) => p !== providerId)
       : [...current, providerId];
-
     setSettings({ ...settings, enabled_providers: next });
   };
+
+  // Guard against NaN when a number input is cleared.
+  const safeNum = (val: string, fallback = 0) => Number(val) || fallback;
 
   if (loading || !settings) {
     return (
@@ -123,7 +113,7 @@ export default function AdminCreatorQualificationPage() {
   }
 
   return (
-    <div className="space-y-6 max-w-4xl">
+    <div className="p-6 lg:p-8 space-y-6 max-w-4xl w-full">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Creator Qualification Settings</h1>
@@ -151,6 +141,7 @@ export default function AdminCreatorQualificationPage() {
             <label className="relative inline-flex items-center cursor-pointer">
               <input
                 type="checkbox"
+                aria-label="Enable qualification workflow"
                 checked={settings.enabled}
                 onChange={(e) => setSettings({ ...settings, enabled: e.target.checked })}
                 className="sr-only peer"
@@ -161,11 +152,12 @@ export default function AdminCreatorQualificationPage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-1">Follower Threshold</label>
+              <label htmlFor="follower_threshold" className="block text-sm font-medium mb-1">Follower Threshold</label>
               <input
+                id="follower_threshold"
                 type="number"
                 value={settings.follower_threshold}
-                onChange={(e) => setSettings({ ...settings, follower_threshold: Number(e.target.value) })}
+                onChange={(e) => setSettings({ ...settings, follower_threshold: safeNum(e.target.value) })}
                 className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
                 min="0"
               />
@@ -173,11 +165,12 @@ export default function AdminCreatorQualificationPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-1">Min Connected Accounts</label>
+              <label htmlFor="min_connected_accounts" className="block text-sm font-medium mb-1">Min Connected Accounts</label>
               <input
+                id="min_connected_accounts"
                 type="number"
                 value={settings.min_connected_accounts}
-                onChange={(e) => setSettings({ ...settings, min_connected_accounts: Number(e.target.value) })}
+                onChange={(e) => setSettings({ ...settings, min_connected_accounts: safeNum(e.target.value, 1) })}
                 className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
                 min="1"
               />
@@ -185,19 +178,21 @@ export default function AdminCreatorQualificationPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-1">Delay Amount</label>
+              <label htmlFor="delay_amount" className="block text-sm font-medium mb-1">Delay Amount</label>
               <input
+                id="delay_amount"
                 type="number"
                 value={settings.delay_amount}
-                onChange={(e) => setSettings({ ...settings, delay_amount: Number(e.target.value) })}
+                onChange={(e) => setSettings({ ...settings, delay_amount: safeNum(e.target.value) })}
                 className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
                 min="0"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-1">Delay Unit</label>
+              <label htmlFor="delay_unit" className="block text-sm font-medium mb-1">Delay Unit</label>
               <select
+                id="delay_unit"
                 value={settings.delay_unit}
                 onChange={(e) => setSettings({ ...settings, delay_unit: e.target.value })}
                 className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
@@ -209,7 +204,7 @@ export default function AdminCreatorQualificationPage() {
           </div>
         </div>
 
-        {/* Enabled Providers */}
+        {/* Eligible Platforms */}
         <div className="p-6 rounded-xl border border-border bg-card space-y-4">
           <div className="flex items-center gap-2 border-b pb-3">
             <SlidersIcon className="h-5 w-5 text-primary" />
@@ -239,6 +234,60 @@ export default function AdminCreatorQualificationPage() {
           </div>
         </div>
 
+        {/* Reminder & Expiry Settings */}
+        <div className="p-6 rounded-xl border border-border bg-card space-y-4">
+          <div className="flex items-center gap-2 border-b pb-3">
+            <ClockIcon className="h-5 w-5 text-primary" />
+            <h2 className="font-semibold text-foreground">Reminder & Expiry</h2>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-foreground">Send Reminder Notification</p>
+              <p className="text-xs text-muted-foreground">Re-notify users who haven't acted on their qualification.</p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                aria-label="Enable reminder notification"
+                checked={settings.reminder_enabled}
+                onChange={(e) => setSettings({ ...settings, reminder_enabled: e.target.checked })}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-muted peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+            </label>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="reminder_delay_hours" className="block text-sm font-medium mb-1">Reminder Delay (hours)</label>
+              <input
+                id="reminder_delay_hours"
+                type="number"
+                value={settings.reminder_delay_hours}
+                onChange={(e) => setSettings({ ...settings, reminder_delay_hours: safeNum(e.target.value, 48) })}
+                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                min="1"
+                disabled={!settings.reminder_enabled}
+              />
+              <p className="text-xs text-muted-foreground mt-1">Hours after initial notification to send reminder.</p>
+            </div>
+
+            <div>
+              <label htmlFor="auto_expiry_hours" className="block text-sm font-medium mb-1">Auto-Expiry (hours)</label>
+              <input
+                id="auto_expiry_hours"
+                type="number"
+                value={settings.auto_expiry_hours}
+                onChange={(e) => setSettings({ ...settings, auto_expiry_hours: safeNum(e.target.value, 168) })}
+                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                min="1"
+              />
+              <p className="text-xs text-muted-foreground mt-1">Hours until a pending event expires without action.</p>
+            </div>
+          </div>
+        </div>
+
         {/* Email Settings */}
         <div className="p-6 rounded-xl border border-border bg-card space-y-4">
           <div className="flex items-center justify-between border-b pb-3">
@@ -249,6 +298,7 @@ export default function AdminCreatorQualificationPage() {
             <label className="relative inline-flex items-center cursor-pointer">
               <input
                 type="checkbox"
+                aria-label="Enable automated outreach email"
                 checked={settings.email_enabled}
                 onChange={(e) => setSettings({ ...settings, email_enabled: e.target.checked })}
                 className="sr-only peer"
@@ -258,8 +308,9 @@ export default function AdminCreatorQualificationPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">Email Subject</label>
+            <label htmlFor="email_subject" className="block text-sm font-medium mb-1">Email Subject</label>
             <input
+              id="email_subject"
               type="text"
               value={settings.email_subject}
               onChange={(e) => setSettings({ ...settings, email_subject: e.target.value })}
@@ -268,8 +319,9 @@ export default function AdminCreatorQualificationPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">Email Content Body</label>
+            <label htmlFor="email_content" className="block text-sm font-medium mb-1">Email Content Body</label>
             <textarea
+              id="email_content"
               rows={4}
               value={settings.email_content}
               onChange={(e) => setSettings({ ...settings, email_content: e.target.value })}

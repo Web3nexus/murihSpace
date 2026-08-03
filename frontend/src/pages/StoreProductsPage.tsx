@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useConfirm } from "@/components/ui/DialogProvider";
 import { Package, Plus, Loader2, Edit, Trash2, Eye, EyeOff, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,6 +24,7 @@ interface StoreProduct {
 }
 
 export default function StoreProductsPage() {
+  const confirm = useConfirm();
   const [products, setProducts] = useState<StoreProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
@@ -83,7 +85,7 @@ export default function StoreProductsPage() {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm("Delete this product?")) return;
+    if (!await confirm({ title: 'Delete Product', message: 'Delete this product?', variant: 'destructive' })) return;
     await fetch(`${API_BASE}/store/products/${id}`, { method: "DELETE", headers: getAuthHeaders() });
     fetchProducts();
   };

@@ -3,6 +3,7 @@ import { Link2, Loader2, Plus, Copy, Check, ShoppingBag, Eye, Pencil, Trash2, X,
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { getAuthToken } from "@/lib/auth/token";
+import { useConfirm } from "@/components/ui/DialogProvider";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:8000/api/v1";
 
@@ -66,8 +67,10 @@ export default function AffiliateProductsPage() {
     } finally { setSaving(false); }
   };
 
+  const confirm = useConfirm();
+
   const handleDelete = async (id: number) => {
-    if (!confirm("Delete this affiliate product?")) return;
+    if (!await confirm({ title: "Delete Affiliate Product", message: "Delete this affiliate product?", variant: "destructive" })) return;
     try {
       await fetch(`${API_BASE}/affiliate/products/${id}`, { method: "DELETE", headers: getAuthHeaders() });
       fetchProducts();

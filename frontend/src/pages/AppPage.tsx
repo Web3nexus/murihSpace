@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
 import { Link } from "react-router";
 import { AnimatedPage } from "@/components/common/AnimatedPage";
 import { useAuth } from "@/hooks/useAuth";
@@ -283,7 +284,7 @@ export function AppPage() {
       setStoryComposerOpen(false);
     } catch (err) {
       console.error("Story creation failed:", err);
-      alert("Failed to create story. Please try again.");
+      toast.error("Failed to create story. Please try again.");
     } finally {
       setStoryUploading(false);
     }

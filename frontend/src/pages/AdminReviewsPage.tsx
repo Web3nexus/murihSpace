@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useConfirm } from '@/components/ui/DialogProvider';
 import { Award, MessageSquare, Loader2, CheckCircle2, XCircle, Trash2, AlertCircle } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { getAuthToken } from "@/lib/auth/token";
@@ -29,6 +30,7 @@ function StarDisplay({ rating, size = 14 }: { rating: number; size?: number }) {
 }
 
 export function AdminReviewsPage() {
+  const confirm = useConfirm();
   const [reviews, setReviews] = useState<AdminReview[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
@@ -61,7 +63,7 @@ export function AdminReviewsPage() {
   }
 
   async function deleteReview(id: number) {
-    if (!confirm('Delete this review permanently?')) return;
+    if (!await confirm({ title: 'Delete Review', message: 'Delete this review permanently?', variant: 'destructive' })) return;
     try {
       const res = await fetch(`${API_BASE}/securegate/reviews/${id}`, { method: 'DELETE', headers: getAuthHeaders() });
       if (res.ok) { setMessage({ type: 'success', text: 'Review deleted.' }); fetchReviews(); }

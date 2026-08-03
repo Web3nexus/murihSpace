@@ -87,7 +87,7 @@ export function DashboardLayout() {
         <OnboardingBanner />
         <main
           id="main-content"
-          className="flex flex-1 flex-col min-h-0 overflow-hidden"
+          className="flex flex-1 flex-col min-h-0 overflow-y-auto"
         >
           <Outlet />
         </main>

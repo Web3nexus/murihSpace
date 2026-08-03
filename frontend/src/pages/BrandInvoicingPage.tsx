@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { FileText, Plus, Loader2, CheckCircle, Send, Trash2, Building2 } from 'lucide-react';
 import { getAuthToken } from "@/lib/auth/token";
+import { useConfirm } from '@/components/ui/DialogProvider';
 
 const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api/v1';
 
@@ -93,8 +94,10 @@ export function BrandInvoicingPage() {
     } catch { setMessage({ type: 'error', text: 'Network error.' }); }
   }
 
+  const confirm = useConfirm();
+
   async function deleteInvoice(id: number) {
-    if (!confirm('Delete this invoice?')) return;
+    if (!await confirm({ title: "Delete Invoice", message: "Delete this invoice?", variant: "destructive" })) return;
     try {
       const res = await fetch(`${API_BASE}/brand-invoices/${id}`, { method: 'DELETE', headers: getAuthHeaders() });
       if (res.ok) { await fetchAll(); setMessage({ type: 'success', text: 'Invoice deleted.' }); }

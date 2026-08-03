@@ -37,14 +37,17 @@ class SocialAccountController extends Controller
         $user    = $request->user();
         $summary = $this->service->calculateCombinedFollowers($user);
 
-        $threshold = (int) \App\Models\AdminSetting::get('creator_qualification.follower_threshold', 10000);
-        $meetsThreshold = $summary['combined_followers'] >= $threshold && $summary['account_count'] >= 1;
+        $threshold   = (int) \App\Models\AdminSetting::get('creator_qualification.follower_threshold', 10000);
+        $minAccounts = (int) \App\Models\AdminSetting::get('creator_qualification.min_connected_accounts', 1);
+        // Delegate to the service so the check is consistent with maybeQueueQualification.
+        $meetsThreshold = $this->service->checkQualificationThreshold($user);
 
         return response()->json([
             'data' => [
                 ...$summary,
-                'threshold'      => $threshold,
-                'meets_threshold' => $meetsThreshold,
+                'threshold'           => $threshold,
+                'min_connected_accounts' => $minAccounts,
+                'meets_threshold'     => $meetsThreshold,
             ],
         ]);
     }
@@ -93,10 +96,15 @@ class SocialAccountController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        $account->update(array_merge(
-            $validator->validated(),
-            ['last_synced_at' => now(), 'count_is_self_reported' => true]
-        ));
+        $data = $validator->validated();
+        $data['last_synced_at'] = now();
+
+        // Only mark self-reported when the request actually changes follower_count.
+        if (array_key_exists('follower_count', $data)) {
+            $data['count_is_self_reported'] = true;
+        }
+
+        $account->update($data);
 
         // Recheck threshold after update
         $this->service->maybeQueueQualification($request->user());

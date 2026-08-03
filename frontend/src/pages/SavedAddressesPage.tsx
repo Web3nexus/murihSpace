@@ -4,8 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { getAuthToken } from "@/lib/auth/token";
 import { CountrySelect } from "@/components/forms/CountrySelect";
-import { PhoneInput } from "@/components/forms/PhoneInput";
 import { StateSelect } from "@/components/forms/StateSelect";
+import { PhoneInput } from "@/components/forms/PhoneInput";
+import { useConfirm } from "@/components/ui/DialogProvider";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:8000/api/v1";
 
@@ -99,8 +100,10 @@ export default function SavedAddressesPage() {
     fetchAddresses();
   };
 
+  const confirm = useConfirm();
+
   const handleDelete = async (id: number) => {
-    if (!confirm("Delete this address?")) return;
+    if (!await confirm({ title: "Delete Address", message: "Delete this address?", variant: "destructive" })) return;
     await fetch(`${API_BASE}/addresses/${id}`, { method: "DELETE", headers: getAuthHeaders() });
     fetchAddresses();
   };

@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
+import { useConfirm } from "@/components/ui/DialogProvider";
+import { toast } from "sonner";
 import { Megaphone, Loader2, Plus, Eye, MousePointerClick, DollarSign, BarChart3, Play, Pause, Copy, Trash2, AlertCircle, Check, Calendar, Globe, Users, Radio, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -116,8 +118,10 @@ export default function AdCampaignPage() {
     } catch { /* ignore */ }
   };
 
+  const confirm = useConfirm();
+
   const handleDelete = async (id: number) => {
-    if (!confirm("Cancel this campaign?")) return;
+    if (!await confirm({ title: "Cancel Campaign", message: "Cancel this campaign?", variant: "destructive" })) return;
     try {
       await fetch(`${API_BASE}/ads/${id}`, { method: "DELETE", headers: getAuthHeaders() });
       fetchCampaigns();
@@ -134,7 +138,10 @@ export default function AdCampaignPage() {
   const loadAnalytics = async (campaign: any) => {
     try {
       const res = await fetch(`${API_BASE}/ads/${campaign.id}/analytics`, { headers: getAuthHeaders() });
-      if (res.ok) { const j = await res.json(); alert(`CTR: ${j.ctr}%, CPC: $${j.cpc}, Spent: $${j.summary?.total_spent || 0}`); }
+      if (res.ok) {
+        const j = await res.json();
+        toast.info(`Analytics — CTR: ${j.ctr}%, CPC: $${j.cpc}, Spent: $${j.summary?.total_spent || 0}`);
+      }
     } catch { /* ignore */ }
   };
 

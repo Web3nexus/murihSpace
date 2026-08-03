@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { getAuthToken } from "@/lib/auth/token";
+import { useConfirm, usePrompt } from "@/components/ui/DialogProvider";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:8000/api/v1";
 
@@ -52,8 +53,11 @@ export default function AdminAlgorithmPage() {
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
+  const confirm = useConfirm();
+  const prompt = usePrompt();
+
   const handleUpdateWeight = async (id: number, field: string, value: any) => {
-    const reason = prompt("Reason for this change:");
+    const reason = await prompt({ title: "Reason Required", message: "Reason for this weight change:" });
     if (!reason) return;
     try {
       const body: any = { reason };
@@ -68,7 +72,7 @@ export default function AdminAlgorithmPage() {
   };
 
   const handlePromote = async (id: number) => {
-    const reason = prompt("Reason for promotion:");
+    const reason = await prompt({ title: "Promote Config", message: "Reason for promotion to production:" });
     if (!reason) return;
     try {
       await fetch(`${API_BASE}/securegate/feed-algorithm/configs/${id}/promote`, { method: "POST", headers: getAuthHeaders(), body: JSON.stringify({ reason }) });
@@ -77,7 +81,7 @@ export default function AdminAlgorithmPage() {
   };
 
   const handleRollback = async (id: number) => {
-    const reason = prompt("Reason for rollback:");
+    const reason = await prompt({ title: "Rollback Config", message: "Reason for rollback:" });
     if (!reason) return;
     try {
       await fetch(`${API_BASE}/securegate/feed-algorithm/configs/${id}/rollback`, { method: "POST", headers: getAuthHeaders(), body: JSON.stringify({ reason }) });
@@ -118,7 +122,7 @@ export default function AdminAlgorithmPage() {
   };
 
   const handleSeed = async () => {
-    if (!confirm("Seed default weights? This will not overwrite existing.")) return;
+    if (!await confirm({ title: "Seed Default Weights", message: "Seed default weights? This will not overwrite existing." })) return;
     try {
       await fetch(`${API_BASE}/securegate/feed-algorithm/seed`, { method: "POST", headers: getAuthHeaders() });
       setMsg({ ok: true, text: "Default weights seeded." }); fetchAll();
@@ -245,7 +249,7 @@ export default function AdminAlgorithmPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       <Badge className="bg-green-100 text-green-700">Active</Badge>
-                      <Button variant="ghost" size="sm" onClick={async () => { if (confirm("Remove boost?")) { await fetch(`${API_BASE}/securegate/feed-algorithm/boosts/${b.id}`, { method: "DELETE", headers: getAuthHeaders() }); fetchAll(); } }}><Trash2 className="w-4 h-4 text-red-500" /></Button>
+                      <Button variant="ghost" size="sm" onClick={async () => { if (await confirm({ title: "Remove Boost", message: "Remove boost?", variant: "destructive" })) { await fetch(`${API_BASE}/securegate/feed-algorithm/boosts/${b.id}`, { method: "DELETE", headers: getAuthHeaders() }); fetchAll(); } }}><Trash2 className="w-4 h-4 text-red-500" /></Button>
                     </div>
                   </div>
                 ))}

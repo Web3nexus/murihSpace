@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useConfirm } from '@/components/ui/DialogProvider';
 import { SendHorizonal, Plus, Loader2, Building2, Trash2, DollarSign } from 'lucide-react';
 import { getAuthToken } from "@/lib/auth/token";
 
@@ -32,6 +33,7 @@ interface Proposal {
 }
 
 export function ProposalsPage() {
+  const confirm = useConfirm();
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [brands, setBrands] = useState<Brand[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -91,7 +93,7 @@ export function ProposalsPage() {
   }
 
   async function deleteProposal(id: number) {
-    if (!confirm('Delete this proposal?')) return;
+    if (!await confirm({ title: 'Delete Proposal', message: 'Delete this proposal?', variant: 'destructive' })) return;
     try {
       const res = await fetch(`${API_BASE}/brand-proposals/${id}`, { method: 'DELETE', headers: getAuthHeaders() });
       if (res.ok) { await fetchAll(); setMessage({ type: 'success', text: 'Proposal deleted.' }); }

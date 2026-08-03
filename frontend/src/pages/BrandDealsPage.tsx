@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useConfirm } from '@/components/ui/DialogProvider';
 import { Briefcase, Plus, Loader2, Building2, DollarSign, Edit2, Trash2 } from 'lucide-react';
 import { getAuthToken } from "@/lib/auth/token";
 
@@ -37,6 +38,7 @@ const DEAL_TYPES = ['sponsored_post', 'affiliate', 'collaboration', 'event', 'ot
 
 
 export function BrandDealsPage() {
+  const confirm = useConfirm();
   const [deals, setDeals] = useState<BrandDeal[]>([]);
   const [brands, setBrands] = useState<Brand[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -99,7 +101,7 @@ export function BrandDealsPage() {
   }
 
   async function deleteDeal(id: number) {
-    if (!confirm('Delete this deal?')) return;
+    if (!await confirm({ title: 'Delete Deal', message: 'Delete this deal?', variant: 'destructive' })) return;
     try {
       const res = await fetch(`${API_BASE}/brand-deals/${id}`, { method: 'DELETE', headers: getAuthHeaders() });
       if (res.ok) { await fetchAll(); setMessage({ type: 'success', text: 'Deal deleted.' }); }

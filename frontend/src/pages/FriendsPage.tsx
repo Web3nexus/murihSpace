@@ -12,6 +12,7 @@ import {
   UserX,
 } from "lucide-react";
 import { apiClient } from "@/lib/api/client";
+import { useConfirm } from "@/components/ui/DialogProvider";
 import { cn } from "@/lib/utils";
 
 function unwrapList<T>(data: unknown): T[] {
@@ -176,8 +177,10 @@ export default function FriendsPage() {
     }
   };
 
+  const confirm = useConfirm();
+
   const handleUnfriend = async (userId: number) => {
-    if (!window.confirm("Remove this friend?")) return;
+    if (!await confirm({ title: "Remove Friend", message: "Remove this friend?", variant: "destructive" })) return;
     setActionId(userId);
     try {
       await apiClient.delete(`/friends/${userId}`);
