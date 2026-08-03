@@ -52,7 +52,7 @@ export default function AdminObjectStorageProvidersPage() {
     try {
       const res = await fetch(`${API_BASE}/securegate/storage/providers`, { headers: getAuthHeaders() });
       const j = await res.json();
-      const list = j?.data ?? j?.providers ?? [];
+      const list = j?.data?.data ?? j?.data ?? j?.providers ?? [];
       setProviders(Array.isArray(list) ? list : []);
     } catch {
       setMsg({ ok: false, text: "Failed to load providers" });
