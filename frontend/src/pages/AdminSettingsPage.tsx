@@ -81,7 +81,7 @@ export default function AdminSettingsPage() {
       const res = await fetch(`${API_BASE}/securegate/settings`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to load settings");
       const j = await res.json();
-      const d = j?.success ? j?.data?.data ?? j?.data : j;
+      const d = j?.data?.data ?? j?.data ?? j;
       if (d?.platform_name) setPlatformName(d.platform_name);
       if (d?.support_email) setSupportEmail(d.support_email);
       if (d?.maintenance_mode !== undefined) setMaintenanceMode(Boolean(d.maintenance_mode));
@@ -135,7 +135,7 @@ export default function AdminSettingsPage() {
       const j = await res.json();
       if (!res.ok) throw new Error(j?.message ?? "Save failed");
 
-      const d = j?.data;
+      const d = j?.data?.data ?? j?.data ?? j;
       if (d) {
         if (d?.kyc_credentials) setKycCredentialsStatus(d.kyc_credentials);
         if (Array.isArray(d?.kyc_providers_available)) {
