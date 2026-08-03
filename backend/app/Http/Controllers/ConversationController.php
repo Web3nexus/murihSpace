@@ -38,11 +38,19 @@ class ConversationController extends Controller
                     $q->where('user_id', $userId);
                 },
             ])
+            ->withCount(['participants as member_count'])
             ->withCount(['messages as unread_count' => function ($q) use ($userId) {
                 $q->where('user_id', '!=', $userId);
             }])
+            ->get();
+
+        $settings = ConversationUserSetting::where('user_id', $userId)
+            ->whereIn('conversation_id', $conversations->pluck('id'))
             ->get()
-            ->map(function ($conv) use ($userId) {
+            ->keyBy('conversation_id');
+
+        $conversations = $conversations
+            ->map(function ($conv) use ($userId, $settings) {
                 $participant = $conv->participants->first();
                 $lastReadAt = $participant ? $participant->last_read_at : null;
 
@@ -59,6 +67,8 @@ class ConversationController extends Controller
                     $otherUser = $conv->users->firstWhere('id', '!=', $userId);
                 }
 
+                $setting = $settings->get($conv->id);
+
                 return [
                     'id' => $conv->id,
                     'type' => $conv->type,
@@ -68,6 +78,9 @@ class ConversationController extends Controller
                     'latest_message' => $conv->latestMessage,
                     'unread_count' => $unreadCount,
                     'updated_at' => $conv->updated_at,
+                    'is_archived' => $setting?->is_archived ?? false,
+                    'is_muted' => $setting?->is_muted ?? false,
+                    'member_count' => $conv->type === 'community' ? $conv->member_count : null,
                 ];
             })
             ->sortByDesc('updated_at')
@@ -157,6 +170,8 @@ class ConversationController extends Controller
             'user_id' => $request->user()->id,
         ]);
 
+        $conv->load('community:id,name,slug,logo_url');
+
         return response()->json(['data' => $conv]);
     }
 
@@ -204,6 +219,25 @@ class ConversationController extends Controller
             ])
             ->orderBy('created_at', 'asc')
             ->paginate(50);
+
+        // Read receipts: a message I sent is "read" when another participant
+        // has a last_read_at at or after its creation time.
+        $otherLastReadAt = ConversationParticipant::where('conversation_id', $id)
+            ->where('user_id', '!=', $request->user()->id)
+            ->pluck('last_read_at')
+            ->filter()
+            ->map(fn ($ts) => \Illuminate\Support\Carbon::parse($ts));
+
+        $messages = $messages->through(function (Message $message) use ($request, $otherLastReadAt) {
+            $message->read = false;
+            if ($message->user_id === $request->user()->id && $otherLastReadAt->isNotEmpty()) {
+                $message->read = $otherLastReadAt->contains(
+                    fn ($readAt) => $message->created_at->lessThanOrEqualTo($readAt)
+                );
+            }
+
+            return $message;
+        });
 
         return response()->json($messages);
     }
