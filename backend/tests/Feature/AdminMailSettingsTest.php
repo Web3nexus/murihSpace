@@ -40,6 +40,30 @@ class AdminMailSettingsTest extends TestCase
         $this->assertEquals('notifications@murihspace.com', config('mail.from.address'));
     }
 
+    public function test_all_supported_transports_can_be_configured_and_applied(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        Sanctum::actingAs($admin);
+
+        /** @var MailEngineService $engine */
+        $engine = app(MailEngineService::class);
+
+        $transports = $engine->transports(); // smtp, log, postmark, ses, resend, sendmail, array
+
+        foreach ($transports as $transport) {
+            $response = $this->putJson('/api/v1/securegate/mail-settings', [
+                'transport' => $transport,
+                'postmark_key' => 'pm_test_key',
+                'resend_key' => 're_test_key',
+            ]);
+
+            $response->assertStatus(200);
+            $engine->apply();
+
+            $this->assertEquals($transport, config('mail.default'), "Failed configuring {$transport}");
+        }
+    }
+
     public function test_resend_transport_can_be_instantiated_without_missing_class_error(): void
     {
         Mail::fake();
