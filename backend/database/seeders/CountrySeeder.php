@@ -50,8 +50,8 @@ class CountrySeeder extends Seeder
                 Country::upsert($chunk, ['iso2'], ['iso3', 'name', 'calling_code', 'flag', 'currency', 'state_required', 'postal_code_required', 'updated_at']);
             }
 
-            // Clear old states
-            State::truncate();
+            // Clear old states (DELETE keeps this transactional; TRUNCATE causes an implicit commit on MySQL/MariaDB)
+            State::query()->delete();
 
             // Insert states in chunks (only for valid countries)
             $stateRecords = [];

@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { ChevronDown, Loader2 } from "lucide-react";
-import { CountryItem } from "./CountrySelect";
+import type { CountryItem } from "./CountrySelect";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:8000/api/v1";
 
@@ -45,7 +45,13 @@ export function PhoneInput({
         });
         if (!res.ok) throw new Error("Failed to load countries");
         const json = await res.json();
-        const list: CountryItem[] = json?.data ?? json ?? [];
+        const list: CountryItem[] = Array.isArray(json?.data) 
+          ? json.data 
+          : Array.isArray(json?.data?.data) 
+            ? json.data.data 
+            : Array.isArray(json) 
+              ? json 
+              : [];
         if (active) setCountries(list);
       } catch (e) {
         console.error("PhoneInput fetch error:", e);

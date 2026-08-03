@@ -4,14 +4,14 @@ import {
   Loader2, Wand2, Send, Plus, X, Check, ChevronRight, ChevronLeft,
   Camera, Music, Hash, Film, MessageCircle, Link as LinkIcon, ShoppingCart,
   Palette, ArrowRight, Smartphone, MailCheck, ShieldCheck, Store, User as UserIcon,
-  Package, Globe, Target, Sparkles
+  Package, Globe, Target
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { getAuthToken } from "@/lib/auth/token";
 import { useAuth } from "@/hooks/useAuth";
 import { TEMPLATES, templateBySlug } from "@/lib/linkBioTemplates";
-import type { LinkBioPageData, LinkBioSocial } from "@/lib/linkBioTypes";
+import type { LinkBioPageData } from "@/lib/linkBioTypes";
 import TemplateRenderer from "@/components/linkbio/TemplateRenderer";
 import TemplateThumb from "@/components/linkbio/TemplateThumb";
 import { CountrySelect } from "@/components/forms/CountrySelect";
@@ -36,18 +36,6 @@ const SOCIAL_PLATFORMS: { value: string; label: string; placeholder: string; ico
   { value: "twitch", label: "Twitch", placeholder: "your_channel", icon: <LinkIcon className="h-4 w-4" /> },
 ];
 
-const URL_PREFIX: Record<string, string> = {
-  instagram: "instagram.com/",
-  twitter: "x.com/",
-  tiktok: "tiktok.com/@",
-  youtube: "youtube.com/@",
-  facebook: "facebook.com/",
-  snapchat: "snapchat.com/add/",
-  linkedin: "linkedin.com/in/",
-  github: "github.com/",
-  pinterest: "pinterest.com/",
-  twitch: "twitch.tv/",
-};
 
 const COMMUNITY_OPTIONS = [
   "Creators", "Artists", "Musicians", "Fitness & Health", "Cooking & Food", "Parenting",
@@ -79,13 +67,7 @@ const QUICK_PROMPTS = [
   "Help me plan my first week",
 ];
 
-function handleFromUrl(platform: string, url: string): string {
-  const prefix = URL_PREFIX[platform];
-  if (!prefix) return url;
-  const idx = url.toLowerCase().indexOf(prefix.toLowerCase());
-  if (idx === -1) return url;
-  return url.slice(idx + prefix.length).replace(/\/$/, "").replace(/^@/, "");
-}
+
 
 export default function OnboardingPage() {
   const navigate = useNavigate();
@@ -213,7 +195,11 @@ export default function OnboardingPage() {
           if (d.storefront.tagline) setBusinessCategory(d.storefront.tagline);
         }
       }
-    } catch { /* ignore */ }
+    } catch {
+      // Fall back to the role from the auth user so the correct onboarding
+      // flow is shown even when the config request fails
+      setRole(user?.role ?? 'member');
+    }
     finally { setLoading(false); }
   }, [user]);
 
@@ -319,6 +305,7 @@ export default function OnboardingPage() {
           business_name: businessName || user?.name || "My Store",
           business_category: businessCategory,
           fulfilment_model: fulfilmentModel,
+          country: vendorCountry,
           bio: vendorBio,
         }),
       });

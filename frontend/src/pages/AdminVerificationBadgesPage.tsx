@@ -3,8 +3,6 @@ import { useSearchParams } from "react-router";
 import { toast } from "sonner";
 import {
   BadgeCheck,
-  CheckCircle2,
-  XCircle,
   AlertTriangle,
   Clock,
   Filter,
@@ -13,8 +11,6 @@ import {
   ChevronRight,
   Shield,
   ShieldCheck,
-  Search,
-  User,
 } from "lucide-react";
 import { apiClient, type ApiError } from "@/lib/api/client";
 

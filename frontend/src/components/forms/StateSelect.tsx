@@ -49,7 +49,13 @@ export function StateSelect({
         });
         if (!res.ok) throw new Error("Failed to load states");
         const json = await res.json();
-        const list: StateItem[] = json?.data ?? json ?? [];
+        const list: StateItem[] = Array.isArray(json?.data) 
+          ? json.data 
+          : Array.isArray(json?.data?.data) 
+            ? json.data.data 
+            : Array.isArray(json) 
+              ? json 
+              : [];
         if (active) {
           setStates(list);
         }

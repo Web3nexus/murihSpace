@@ -76,10 +76,15 @@ class AddressController extends Controller
             'is_default' => ['nullable', 'boolean'],
         ]);
 
-        $country = strtoupper($validated['country'] ?? $address->country);
+        $country = strtoupper($validated['country'] ?? $address->country ?? 'NG');
         $state = array_key_exists('state', $validated) ? $validated['state'] : $address->state;
 
         $this->validateStateForCountry($country, $state);
+
+        // Normalize the stored country to uppercase so it matches countries.iso2
+        if (array_key_exists('country', $validated)) {
+            $validated['country'] = $country;
+        }
 
         if ($validated['is_default'] ?? false) {
             Address::where('user_id', $request->user()->id)->where('id', '!=', $id)->update(['is_default' => false]);

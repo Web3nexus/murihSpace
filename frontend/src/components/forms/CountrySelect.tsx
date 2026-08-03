@@ -44,7 +44,13 @@ export function CountrySelect({
         });
         if (!res.ok) throw new Error("Failed to load countries");
         const json = await res.json();
-        const list: CountryItem[] = json?.data ?? json ?? [];
+        const list: CountryItem[] = Array.isArray(json?.data) 
+          ? json.data 
+          : Array.isArray(json?.data?.data) 
+            ? json.data.data 
+            : Array.isArray(json) 
+              ? json 
+              : [];
         if (active) {
           setCountries(list);
         }

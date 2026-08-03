@@ -111,30 +111,53 @@ class OnboardingController extends Controller
         }
 
         $data = $request->validate([
-            'business_name' => ['required', 'string', 'max:255'],
-            'business_category' => ['nullable', 'string', 'max:120'],
+            'business_name'    => ['required', 'string', 'max:255'],
+            'business_category'=> ['nullable', 'string', 'max:120'],
             'fulfilment_model' => ['nullable', 'string', 'max:100'],
-            'shipping_areas' => ['nullable', 'array'],
-            'business_goals' => ['nullable', 'array'],
-            'bio' => ['nullable', 'string', 'max:1000'],
+            'shipping_areas'   => ['nullable', 'array'],
+            'business_goals'   => ['nullable', 'array'],
+            'bio'              => ['nullable', 'string', 'max:1000'],
+            'country'          => ['nullable', 'string', 'size:2', 'exists:countries,iso2'],
         ]);
-
-        $shortCode = \Illuminate\Support\Str::slug($data['business_name']) . '-' . strtolower(\Illuminate\Support\Str::random(5));
 
         $storefront = Storefront::firstOrCreate(
             ['user_id' => $user->id],
-            [
-                'display_name' => $data['business_name'],
-                'name' => $data['business_name'],
-                'short_code' => $shortCode,
-            ]
+            function () use ($data) {
+                // Generate a unique short_code only when creating
+                $slug = \Illuminate\Support\Str::slug($data['business_name']);
+                $slug = $slug ?: 'store';
+
+                do {
+                    $shortCode = $slug . '-' . strtolower(\Illuminate\Support\Str::random(5));
+                } while (Storefront::where('short_code', $shortCode)->exists());
+
+                return [
+                    'display_name' => $data['business_name'],
+                    'name'         => $data['business_name'],
+                    'short_code'   => $shortCode,
+                ];
+            }
         );
-        $storefront->update([
+
+        // Build partial update — only write fields that were supplied
+        $attributes = [
             'display_name' => $data['business_name'],
-            'name' => $data['business_name'],
-            'tagline' => $data['business_category'] ?? null,
-            'bio' => $data['bio'] ?? null,
-        ]);
+            'name'         => $data['business_name'],
+        ];
+
+        if (array_key_exists('business_category', $data)) {
+            $attributes['tagline'] = $data['business_category'];
+        }
+
+        if (array_key_exists('bio', $data)) {
+            $attributes['bio'] = $data['bio'];
+        }
+
+        if (array_key_exists('country', $data) && $data['country']) {
+            $attributes['country'] = strtoupper($data['country']);
+        }
+
+        $storefront->update($attributes);
 
         AiMemory::remember($user->id, 'vendor_business', $data);
 
@@ -149,15 +172,24 @@ class OnboardingController extends Controller
         $user = $request->user();
 
         $data = $request->validate([
-            'interests' => ['nullable', 'array'],
-            'notification_preferences' => ['nullable', 'array'],
+            'interests'               => ['nullable', 'array', 'max:30'],
+            'interests.*'             => ['string', 'max:80'],
+            'notification_preferences'=> ['nullable', 'array'],
         ]);
 
         $profile = CreatorProfile::firstOrCreate(['user_id' => $user->id]);
         $profile->update([
-            'community_interests' => $data['interests'] ?? [],
+            'community_interests'  => $data['interests'] ?? [],
             'onboarding_completed_at' => now(),
         ]);
+
+        // Persist notification preferences
+        if (! empty($data['notification_preferences'])) {
+            \App\Models\NotificationPreference::updateOrCreate(
+                ['user_id' => $user->id],
+                $data['notification_preferences'],
+            );
+        }
 
         return response()->json(['data' => $this->profilePayload($profile->fresh())]);
     }

@@ -18,12 +18,6 @@ import { apiClient } from "@/lib/api/client";
 
 type KycStatus = "not_required" | "not_started" | "unsubmitted" | "pending" | "in_review" | "verified" | "rejected" | "expired" | "resubmission_required";
 
-interface KycTrigger {
-  type: string;
-  title: string;
-  description: string;
-}
-
 interface KycState {
   kyc_status: KycStatus;
   kyc_provider: string;
