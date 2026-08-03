@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Settings, Loader2, Save, AlertCircle, Coins, Smartphone } from "lucide-react";
+import { Settings, Loader2, Save, AlertCircle, Coins, Smartphone, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,18 @@ const WEB_ROLES = [
   { id: "creator", label: "Creator dashboard", desc: "Dashboard for creators (studio, store, brand deals…)" },
   { id: "vendor", label: "Vendor dashboard", desc: "Dashboard for vendors (fulfilment, shipping, orders…)" },
 ] as const;
+
+interface KycProviderInfo {
+  name: string;
+  label: string;
+  enabled: boolean;
+}
+
+const KYC_PROVIDERS: KycProviderInfo[] = [
+  { name: "didit", label: "Didit", enabled: false },
+  { name: "sumsub", label: "Sumsub", enabled: false },
+  { name: "manual", label: "Manual review", enabled: true },
+];
 
 const CURRENCY_SYMBOLS: Record<string, string> = {
   NGN: "\u20A6",
@@ -37,6 +49,8 @@ export default function AdminSettingsPage() {
   const [maintenanceMode, setMaintenanceMode] = useState(false);
   const [defaultCurrency, setDefaultCurrency] = useState("NGN");
   const [webDisabledRoles, setWebDisabledRoles] = useState<string[]>([]);
+  const [kycProviders, setKycProviders] = useState<string[]>(["manual"]);
+  const [kycProviderStatus, setKycProviderStatus] = useState<Record<string, boolean>>({});
   const [saving, setSaving] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
@@ -54,6 +68,12 @@ export default function AdminSettingsPage() {
       if (d?.maintenance_mode !== undefined) setMaintenanceMode(Boolean(d.maintenance_mode));
       if (d?.default_currency && SUPPORTED_CURRENCIES.includes(d.default_currency)) setDefaultCurrency(d.default_currency);
       if (Array.isArray(d?.web_disabled_roles)) setWebDisabledRoles(d.web_disabled_roles);
+      if (Array.isArray(d?.kyc_providers) && d.kyc_providers.length > 0) setKycProviders(d.kyc_providers);
+      if (Array.isArray(d?.kyc_providers_available)) {
+        const status: Record<string, boolean> = {};
+        d.kyc_providers_available.forEach((p: KycProviderInfo) => { status[p.name] = Boolean(p.enabled); });
+        setKycProviderStatus(status);
+      }
     } catch (e) { setFetchError(e instanceof Error ? e.message : "Failed to load settings"); }
     finally { setInitialLoading(false); }
   }, []);
@@ -63,7 +83,7 @@ export default function AdminSettingsPage() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const res = await fetch(`${API_BASE}/securegate/settings`, { method: "PUT", headers: authHeaders(), body: JSON.stringify({ platform_name: platformName, support_email: supportEmail, maintenance_mode: maintenanceMode, default_currency: defaultCurrency, web_disabled_roles: webDisabledRoles }) });
+      const res = await fetch(`${API_BASE}/securegate/settings`, { method: "PUT", headers: authHeaders(), body: JSON.stringify({ platform_name: platformName, support_email: supportEmail, maintenance_mode: maintenanceMode, default_currency: defaultCurrency, web_disabled_roles: webDisabledRoles, kyc_providers: kycProviders }) });
       const j = await res.json();
       if (!res.ok) throw new Error(j?.message ?? "Save failed");
       setMsg("Settings saved!");
@@ -144,6 +164,41 @@ export default function AdminSettingsPage() {
           })}
           {webDisabledRoles.length === 0 && (
             <p className="text-[10px] text-muted-foreground text-center py-1">All dashboards are available on the web.</p>
+          )}
+        </div>
+        <div className="rounded-xl border border-border p-3 space-y-2">
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="h-4 w-4 text-[#38A8D8]" />
+            <p className="text-xs font-bold text-foreground">Identity Verification (KYC) Providers</p>
+          </div>
+          <p className="text-[10px] text-muted-foreground">
+            Enable one or both automated providers (ID check + liveness). Users can pick between enabled providers. "Manual review" remains as a fallback.
+          </p>
+          {KYC_PROVIDERS.map((p) => {
+            const active = kycProviders.includes(p.name);
+            const configured = p.name === "manual" ? true : kycProviderStatus[p.name] === true;
+            return (
+              <div key={p.name} className="flex items-center justify-between p-2.5 rounded-lg bg-slate-50 dark:bg-muted/40 border border-border/50">
+                <div className="min-w-0">
+                  <p className="text-xs font-bold text-foreground">{p.label}</p>
+                  <p className={`text-[10px] ${configured ? "text-muted-foreground" : "text-amber-500"}`}>
+                    {configured ? (p.name === "manual" ? "Always available" : "Configured") : "Missing API credentials — configure in .env first"}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setKycProviders((prev) => active ? prev.filter((x) => x !== p.name) : [...prev, p.name])}
+                  role="switch"
+                  aria-checked={active}
+                  aria-label={`Toggle ${p.label} KYC provider`}
+                  className={`w-10 h-5 rounded-full transition-colors shrink-0 ${active ? 'bg-emerald-500' : 'bg-muted'}`}
+                >
+                  <div className={`w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${active ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                </button>
+              </div>
+            );
+          })}
+          {kycProviders.length === 0 && (
+            <p className="text-[10px] text-rose-400 text-center py-1">No providers selected — sellers will be blocked from payouts/escrow until one is enabled.</p>
           )}
         </div>
         {msg && <p className={`text-xs font-bold ${msg === 'Settings saved!' ? 'text-emerald-400' : 'text-rose-400'}`}>{msg}</p>}

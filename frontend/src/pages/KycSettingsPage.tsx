@@ -25,6 +25,7 @@ interface KycState {
   kyc_rejection_reason?: string | null;
   sumsub_enabled: boolean;
   provider_enabled: boolean;
+  providers?: Record<string, boolean>;
   verification_id?: number | null;
   required_for_sellers?: boolean;
 }
@@ -110,6 +111,7 @@ export default function KycSettingsPage() {
   const [starting, setStarting] = useState(false);
   const [sdkToken, setSdkToken] = useState<string | null>(null);
   const [sdkError, setSdkError] = useState<string | null>(null);
+  const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
   const [documentType, setDocumentType] = useState("passport");
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -191,9 +193,10 @@ export default function KycSettingsPage() {
 
   const launchSumsub = useCallback(async () => {
     setSdkError(null);
+    setSdkToken(null);
     setStarting(true);
     try {
-      const res = await apiClient.post("/kyc/start");
+      const res = await apiClient.post("/kyc/start", selectedProvider ? { provider: selectedProvider } : {});
       const data = res.data?.data ?? res.data;
 
       // Hosted-session providers (e.g. Didit) return a session_url we open.
@@ -214,7 +217,7 @@ export default function KycSettingsPage() {
     } finally {
       setStarting(false);
     }
-  }, []);
+  }, [selectedProvider]);
 
   useEffect(() => {
     if (!sdkToken || !containerRef.current) return;
@@ -286,6 +289,12 @@ export default function KycSettingsPage() {
 
   const status = state?.kyc_status ?? "unsubmitted";
   const providerEnabled = state?.provider_enabled ?? state?.sumsub_enabled ?? false;
+
+  const availableProviders = (Object.entries(state?.providers ?? {}) as [string, boolean][])
+    .filter(([, enabled]) => enabled)
+    .map(([name]) => name);
+  const multipleProviders = availableProviders.length > 1;
+  const activeProvider = selectedProvider ?? state?.kyc_provider ?? availableProviders[0] ?? "sumsub";
 
   return (
     <div className="space-y-6 w-full max-w-3xl mx-auto">
@@ -423,13 +432,32 @@ export default function KycSettingsPage() {
               </div>
               <div>
                 <h3 className="text-sm font-bold text-foreground">
-                  {state?.kyc_provider === "didit" ? "Verify with Didit" : "Verify with Sumsub"}
+                  {activeProvider === "didit" ? "Verify with Didit" : "Verify with Sumsub"}
                 </h3>
                 <p className="text-[11px] text-muted-foreground">
                   Secure identity checks — passport, ID, or driver's license, plus a quick selfie.
                 </p>
               </div>
             </div>
+
+            {multipleProviders && !sdkToken && (
+              <div className="flex flex-wrap gap-2">
+                {availableProviders.map((name) => (
+                  <button
+                    key={name}
+                    type="button"
+                    onClick={() => setSelectedProvider(name)}
+                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-all border ${
+                      activeProvider === name
+                        ? "bg-secondary/10 border-secondary text-secondary"
+                        : "bg-muted/30 border-border text-muted-foreground hover:border-muted-foreground/40"
+                    }`}
+                  >
+                    {name === "didit" ? "Didit" : "Sumsub"}
+                  </button>
+                ))}
+              </div>
+            )}
 
             {!sdkToken && !sdkError && (
               <button

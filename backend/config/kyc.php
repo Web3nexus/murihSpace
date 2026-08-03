@@ -3,11 +3,16 @@
 return [
     /*
     |--------------------------------------------------------------------------
-    | Active provider
+    | Active providers
     |--------------------------------------------------------------------------
-    | One of: didit | manual | sumsub
+    | Admin-selected providers (ordered). One or more of: didit | sumsub | manual.
+    | Defaults to KYC_PROVIDERS env (comma separated) or the legacy KYC_PROVIDER.
+    | The admin can enable any one or several together.
     */
-    'provider' => env('KYC_PROVIDER', 'manual'),
+    'providers' => array_filter(array_map(
+        fn ($v) => trim($v),
+        explode(',', (string) env('KYC_PROVIDERS', env('KYC_PROVIDER', 'manual'))),
+    )),
 
     /*
     |--------------------------------------------------------------------------
@@ -29,7 +34,7 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Didit provider
+    | Didit provider (ID check + liveness via hosted session)
     |--------------------------------------------------------------------------
     */
     'didit' => [
@@ -43,5 +48,20 @@ return [
         'callback_url' => env('DIDIT_CALLBACK_URL', ''),
         'sandbox' => (bool) env('DIDIT_SANDBOX', true),
         'timeout' => (int) env('DIDIT_TIMEOUT', 20),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Sumsub provider (ID check + liveness via WebSDK)
+    |--------------------------------------------------------------------------
+    */
+    'sumsub' => [
+        'enabled' => (bool) env('SUMSUB_ENABLED', false),
+        'base_url' => env('SUMSUB_BASE_URL', 'https://api.sumsub.com'),
+        'app_token' => env('SUMSUB_APP_TOKEN', ''),
+        'secret_key' => env('SUMSUB_SECRET_KEY', ''),
+        'webhook_secret' => env('SUMSUB_WEBHOOK_SECRET', ''),
+        'level_name' => env('SUMSUB_LEVEL_NAME', 'basic-kyc-level'),
+        'token_ttl' => (int) env('SUMSUB_TOKEN_TTL', 600),
     ],
 ];

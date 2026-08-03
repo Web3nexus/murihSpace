@@ -22,12 +22,13 @@ class KycFlowTest extends TestCase
     {
         parent::setUp();
 
-        Config::set('kyc.provider', 'didit');
+        Config::set('kyc.providers', ['didit']);
         Config::set('kyc.required_for_sellers', true);
         Config::set('kyc.didit.enabled', true);
         Config::set('kyc.didit.api_key', 'test-api-key');
         Config::set('kyc.didit.workflow_id', 'workflow-1');
         Config::set('kyc.didit.webhook_secret', 'webhook-secret');
+        Config::set('kyc.sumsub.enabled', false);
     }
 
     public function test_status_returns_defaults_for_unsubmitted_user(): void
@@ -350,5 +351,126 @@ class KycFlowTest extends TestCase
         $this->getJson('/api/v1/kyc/history')
             ->assertStatus(200)
             ->assertJsonCount(1, 'data.data');
+    }
+
+    public function test_status_lists_enabled_providers(): void
+    {
+        $user = User::factory()->create(['role' => 'member']);
+
+        Sanctum::actingAs($user);
+
+        $this->getJson('/api/v1/kyc/status')
+            ->assertStatus(200)
+            ->assertJson([
+                'data' => [
+                    'kyc_provider' => 'didit',
+                    'provider_enabled' => true,
+                    'providers' => ['didit' => true],
+                ],
+            ]);
+    }
+
+    public function test_admin_can_activate_both_providers_via_settings(): void
+    {
+        Config::set('sumsub.enabled', true);
+        Config::set('sumsub.app_token', 'app-token');
+        Config::set('sumsub.secret_key', 'secret-key');
+
+        $admin = User::factory()->create(['role' => 'admin', 'kyc_status' => 'verified']);
+
+        Sanctum::actingAs($admin);
+
+        $this->putJson('/api/v1/securegate/settings', [
+            'kyc_providers' => ['didit', 'sumsub'],
+        ])->assertStatus(200);
+
+        $this->assertDatabaseHas('admin_settings', [
+            'key' => 'kyc_providers',
+            'value' => '["didit","sumsub"]',
+        ]);
+    }
+
+    public function test_start_respects_explicit_provider_choice(): void
+    {
+        Config::set('sumsub.enabled', true);
+        Config::set('sumsub.app_token', 'app-token');
+        Config::set('sumsub.secret_key', 'secret-key');
+        Config::set('kyc.providers', ['didit', 'sumsub']);
+
+        Http::fake([
+            'api.sumsub.com/*/accessTokens*' => Http::response(['token' => 'sumsub-token'], 200),
+            'api.sumsub.com/*/applicants*' => Http::response([
+                'id' => 'applicant-1',
+                'reviewStatus' => 'init',
+            ], 200),
+            'verification.didit.me/*' => Http::response([
+                'id' => 'didit-session',
+                'url' => 'https://verify.didit.me/didit-session',
+            ], 200),
+        ]);
+
+        $user = User::factory()->create(['role' => 'creator']);
+
+        Sanctum::actingAs($user);
+
+        $this->postJson('/api/v1/kyc/start', ['provider' => 'sumsub'])
+            ->assertStatus(200)
+            ->assertJson([
+                'data' => [
+                    'provider' => 'sumsub',
+                    'session_id' => 'applicant-1',
+                ],
+            ]);
+
+        $this->assertDatabaseHas('kyc_verifications', [
+            'user_id' => $user->id,
+            'provider' => 'sumsub',
+            'provider_session_id' => 'applicant-1',
+        ]);
+    }
+
+    public function test_sumsub_webhook_verifies_signature_and_queues(): void
+    {
+        Config::set('sumsub.enabled', true);
+        Config::set('sumsub.webhook_secret', 'sumsub-secret');
+
+        Queue::fake();
+
+        $user = User::factory()->create(['role' => 'creator', 'kyc_status' => 'pending', 'sumsub_applicant_id' => 'applicant-1']);
+
+        $payload = [
+            'id' => 'evt-sumsub-1',
+            'applicantId' => 'applicant-1',
+            'type' => 'applicantReviewed',
+            'reviewResult' => ['reviewAnswer' => 'GREEN'],
+        ];
+
+        $digest = hash_hmac('sha256', json_encode($payload), 'sumsub-secret');
+
+        $this->postJson('/api/v1/webhooks/sumsub', $payload, [
+            'X-Payload-Digest' => $digest,
+            'X-Payload-Digest-Alg' => 'HMAC_SHA256_HEX',
+        ])->assertStatus(200);
+
+        $this->assertDatabaseHas('kyc_webhook_events', [
+            'provider' => 'sumsub',
+            'provider_event_id' => 'evt-sumsub-1',
+            'provider_session_id' => 'applicant-1',
+            'processing_status' => 'pending',
+        ]);
+
+        Queue::assertPushed(ProcessKycWebhook::class);
+    }
+
+    public function test_start_rejects_disabled_provider_choice(): void
+    {
+        Config::set('kyc.providers', ['didit']);
+
+        $user = User::factory()->create(['role' => 'creator']);
+
+        Sanctum::actingAs($user);
+
+        $this->postJson('/api/v1/kyc/start', ['provider' => 'sumsub'])
+            ->assertStatus(422);
     }
 }

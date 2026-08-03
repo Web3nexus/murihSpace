@@ -25,7 +25,21 @@ class KycService
 
     public function providerEnabled(): bool
     {
-        return $this->providers->active()->isEnabled();
+        return $this->providers->enabledProviders() !== [];
+    }
+
+    /**
+     * @return array<string, bool>
+     */
+    public function enabledProviders(): array
+    {
+        $result = [];
+
+        foreach ($this->providers->enabledProviders() as $name => $provider) {
+            $result[$name] = $provider->isEnabled();
+        }
+
+        return $result;
     }
 
     /**
@@ -41,19 +55,20 @@ class KycService
             'kyc_provider' => $verification?->provider ?? $user->kyc_provider ?? $this->providerName(),
             'verification_id' => $verification?->id,
             'kyc_rejection_reason' => $verification?->rejection_reason ?? $user->kyc_rejection_reason,
+            'providers' => $this->enabledProviders(),
             'provider_enabled' => $this->providerEnabled(),
             'required_for_sellers' => (bool) config('kyc.required_for_sellers', true),
         ];
     }
 
     /**
-     * Start a new verification session for a user via the active provider.
+     * Start a new verification session via a specific (or the active) provider.
      *
      * @return array{session: ?KycSessionResult, verification: ?KycVerification}
      */
-    public function startSession(User $user): array
+    public function startSession(User $user, ?string $providerName = null): array
     {
-        $provider = $this->providers->active();
+        $provider = $providerName !== null ? $this->providers->provider($providerName) : $this->providers->active();
 
         if (! $provider->isEnabled()) {
             return ['session' => new KycSessionResult(success: false, message: 'Automated verification is not configured.'), 'verification' => null];
@@ -122,9 +137,16 @@ class KycService
      */
     public function recordWebhook(string $provider, array $payload, array $headers, string $rawBody): void
     {
-        $eventId = (string) ($payload['event_id'] ?? $payload['eventId'] ?? '');
-        $sessionId = (string) ($payload['session_id'] ?? $payload['sessionId'] ?? $payload['object_id'] ?? '');
+        $eventId = (string) ($payload['event_id'] ?? $payload['eventId'] ?? $payload['id'] ?? '');
+        $sessionId = (string) ($payload['session_id'] ?? $payload['sessionId'] ?? $payload['object_id'] ?? $payload['applicantId'] ?? '');
         $type = (string) ($payload['webhook_type'] ?? $payload['type'] ?? $payload['event_type'] ?? '');
+        $reviewAnswer = strtoupper((string) ($payload['reviewResult']['reviewAnswer'] ?? $payload['status'] ?? $payload['verification_status'] ?? ''));
+
+        $status = match (true) {
+            in_array($reviewAnswer, ['GREEN', 'FINAL'], true), in_array(strtolower($reviewAnswer), ['verified', 'approved', 'passed'], true) => 'approved',
+            in_array($reviewAnswer, ['RED'], true), in_array(strtolower($reviewAnswer), ['rejected', 'failed', 'declined'], true) => 'rejected',
+            default => (string) ($payload['status'] ?? $payload['verification_status'] ?? null),
+        };
 
         $event = KycWebhookEvent::where('provider', $provider)
             ->when($eventId !== '', fn ($q) => $q->where('provider_event_id', $eventId))
@@ -145,7 +167,7 @@ class KycService
             'provider_event_id' => $eventId !== '' ? $eventId : null,
             'provider_session_id' => $sessionId !== '' ? $sessionId : null,
             'type' => $type !== '' ? $type : null,
-            'status' => (string) ($payload['status'] ?? $payload['verification_status'] ?? null),
+            'status' => $status !== '' ? $status : null,
             'processing_status' => 'pending',
             'raw_payload' => $payload,
             'received_at' => now(),

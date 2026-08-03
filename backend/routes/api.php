@@ -107,7 +107,7 @@ Route::prefix('v1')->group(function () {
     Route::get('/permissions-matrix', [RoleController::class, 'permissionsMatrix']);
 
     // Sumsub KYC webhook (public, signature-verified)
-    Route::post('/webhooks/sumsub', [\App\Http\Controllers\KycController::class, 'sumsubWebhook'])->middleware('throttle:30,1');
+    Route::post('/webhooks/sumsub', fn (\Illuminate\Http\Request $r) => app(\App\Http\Controllers\KycController::class)->webhook($r, app(\App\Services\Kyc\KycProviderManager::class), 'sumsub'))->middleware('throttle:30,1');
 
     // Didit KYC webhook (public, signature-verified)
     Route::post('/webhooks/didit', fn (\Illuminate\Http\Request $r) => app(\App\Http\Controllers\KycController::class)->webhook($r, app(\App\Services\Kyc\KycProviderManager::class), 'didit'))->middleware('throttle:30,1');

@@ -121,10 +121,21 @@ class ProcessKycWebhook implements ShouldQueue
 
     private function toWebhook(array $payload): ?VerifiedKycWebhook
     {
-        $eventId = (string) ($payload['event_id'] ?? $payload['eventId'] ?? '');
-        $sessionId = (string) ($payload['session_id'] ?? $payload['sessionId'] ?? $payload['object_id'] ?? '');
+        $eventId = (string) ($payload['event_id'] ?? $payload['eventId'] ?? $payload['id'] ?? '');
+        $sessionId = (string) ($payload['session_id'] ?? $payload['sessionId'] ?? $payload['object_id'] ?? $payload['applicantId'] ?? '');
         $webhookType = (string) ($payload['webhook_type'] ?? $payload['type'] ?? $payload['event_type'] ?? '');
-        $status = (string) ($payload['status'] ?? $payload['verification_status'] ?? $payload['decision'] ?? '');
+
+        $rawStatus = strtoupper((string) ($payload['reviewResult']['reviewAnswer']
+            ?? $payload['status']
+            ?? $payload['verification_status']
+            ?? $payload['decision']
+            ?? ''));
+
+        $status = match (true) {
+            in_array($rawStatus, ['GREEN', 'FINAL'], true), in_array(strtolower($rawStatus), ['verified', 'approved', 'passed'], true) => 'approved',
+            in_array($rawStatus, ['RED'], true), in_array(strtolower($rawStatus), ['rejected', 'failed', 'declined'], true) => 'rejected',
+            default => $rawStatus,
+        };
 
         if ($sessionId === '' || $webhookType === '') {
             return null;
@@ -150,8 +161,15 @@ class ProcessKycWebhook implements ShouldQueue
             }
         }
 
-        return KycVerification::where('provider_session_id', $webhook->sessionId)
+        $bySession = KycVerification::where('provider_session_id', $webhook->sessionId)
             ->first()?->user;
+
+        if ($bySession !== null) {
+            return $bySession;
+        }
+
+        // Legacy Sumsub applicants carry the applicant id directly on the user row.
+        return User::where('sumsub_applicant_id', $webhook->sessionId)->first();
     }
 
     private function extractReason(VerifiedKycWebhook $webhook): ?string
