@@ -112,8 +112,19 @@ export default function AdminSettingsPage() {
         kyc_providers: kycProviders,
       };
 
-      if (Object.keys(kycCredentialsInput).length > 0) {
-        payload.kyc_credentials = kycCredentialsInput;
+      // Strip empty strings so a cleared-then-not-retyped field is never
+      // submitted as an override (major data-integrity fix from CR review).
+      const nonEmptyCredentials: Record<string, Record<string, string>> = {};
+      for (const [provider, fields] of Object.entries(kycCredentialsInput)) {
+        const filtered = Object.fromEntries(
+          Object.entries(fields).filter(([, v]) => v !== "")
+        );
+        if (Object.keys(filtered).length > 0) {
+          nonEmptyCredentials[provider] = filtered;
+        }
+      }
+      if (Object.keys(nonEmptyCredentials).length > 0) {
+        payload.kyc_credentials = nonEmptyCredentials;
       }
 
       const res = await fetch(`${API_BASE}/securegate/settings`, {
@@ -293,13 +304,14 @@ export default function AdminSettingsPage() {
                         return (
                           <div key={f.key} className="space-y-1">
                             <div className="flex items-center justify-between">
-                              <label className="text-[11px] font-medium text-foreground">{f.label}</label>
+                              <label htmlFor={`kyc-cred-${p.name}-${f.key}`} className="text-[11px] font-medium text-foreground">{f.label}</label>
                               <span className={`text-[10px] ${keyIsSet ? "text-emerald-500 font-medium" : "text-muted-foreground"}`}>
                                 {keyIsSet ? "✓ Configured" : "Not set"}
                               </span>
                             </div>
                             <div className="relative">
                               <Input
+                                id={`kyc-cred-${p.name}-${f.key}`}
                                 type={f.type ?? "text"}
                                 value={currentValue}
                                 placeholder={keyIsSet ? "•••••••••••• (configured)" : f.placeholder}

@@ -4,6 +4,7 @@ namespace App\Services\Kyc;
 
 use App\Models\AdminSetting;
 use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Resolves provider credentials from admin_settings (encrypted) with a
@@ -22,34 +23,46 @@ class KycCredentials
 
     /**
      * Resolve a credential value: admin override first, then config/env.
+     *
+     * Uses a single DB query (->first()) instead of exists() + get() to
+     * avoid the double-query overhead on every cfg() call.
      */
     public static function resolve(string $provider, string $configKey, mixed $default = null): mixed
     {
         $settingKey = self::settingKey($provider, $configKey);
 
-        if (AdminSetting::where('key', $settingKey)->exists()) {
-            $raw = (string) AdminSetting::get($settingKey, '');
+        $setting = AdminSetting::where('key', $settingKey)->first();
 
-            if ($raw === '') {
-                return $default;
-            }
-
-            try {
-                return Crypt::decryptString($raw);
-            } catch (\Throwable $e) {
-                // Value may be stored plaintext (pre-encryption) — fall through.
-                return $raw;
-            }
+        if ($setting === null || (string) $setting->value === '') {
+            return $default;
         }
 
-        return $default;
+        $raw = (string) $setting->value;
+
+        try {
+            return Crypt::decryptString($raw);
+        } catch (\Throwable $e) {
+            // Value may be stored plaintext (pre-encryption migration) — fall through.
+            Log::warning('KycCredentials: failed to decrypt stored credential, using raw value', [
+                'setting_key' => $settingKey,
+            ]);
+
+            return $raw;
+        }
     }
 
     /**
      * Persist a credential from the admin UI, encrypted at rest.
+     *
+     * Empty values are a no-op (defence-in-depth — callers should filter
+     * before calling, but we never want to encrypt and store "").
      */
     public static function set(string $provider, string $configKey, string $value): void
     {
+        if ($value === '') {
+            return;
+        }
+
         AdminSetting::set(self::settingKey($provider, $configKey), Crypt::encryptString($value));
     }
 
