@@ -36,7 +36,7 @@ class DiditKycProvider implements KycProviderInterface
         }
 
         $session = $this->client->createSession([
-            'workflow_id' => (string) config('kyc.didit.workflow_id'),
+            'workflow_id' => $this->client->workflowId(),
             // vendor_data MUST be opaque — no PII, only an internal reference.
             'vendor_data' => 'murihspace_user_' . $user->uuid,
             'callback' => $this->callbackUrl(),

@@ -2,6 +2,7 @@
 
 namespace App\Services\Kyc\Didit;
 
+use App\Services\Kyc\KycCredentials;
 use App\Services\Kyc\VerifiedKycWebhook;
 use Illuminate\Support\Facades\Log;
 
@@ -15,7 +16,11 @@ class DiditWebhookSignatureVerifier
 
     private function cfg(string $key): mixed
     {
-        return $this->config[$key] ?? config("kyc.didit.{$key}");
+        if (array_key_exists($key, $this->config)) {
+            return $this->config[$key];
+        }
+
+        return KycCredentials::resolve('didit', $key, config("kyc.didit.{$key}"));
     }
 
     /**
@@ -62,7 +67,15 @@ class DiditWebhookSignatureVerifier
             return false;
         }
 
-        $get = fn (string $name): ?string => $headers[$name] ?? null;
+        $get = function (string $name) use ($headers): ?string {
+            foreach ($headers as $k => $v) {
+                if (strcasecmp((string) $k, $name) === 0) {
+                    return is_array($v) ? implode(', ', $v) : (string) $v;
+                }
+            }
+
+            return null;
+        };
 
         // 1) Timestamp replay protection (tolerated by Simple signature and v2/v1 headers).
         $timestamp = (int) ($data['timestamp'] ?? $data['created_at'] ?? 0);

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Settings, Loader2, Save, AlertCircle, Coins, Smartphone, ShieldCheck } from "lucide-react";
+import { Settings, Loader2, Save, AlertCircle, Coins, Smartphone, ShieldCheck, Key, ChevronDown, ChevronUp, Lock, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,6 +24,21 @@ const KYC_PROVIDERS: KycProviderInfo[] = [
   { name: "sumsub", label: "Sumsub", enabled: false },
   { name: "manual", label: "Manual review", enabled: true },
 ];
+
+const KYC_CREDENTIAL_FIELDS: Record<string, Array<{ key: string; label: string; placeholder: string; type?: string }>> = {
+  didit: [
+    { key: "api_key", label: "API Key", placeholder: "didit_api_...", type: "password" },
+    { key: "workflow_id", label: "Workflow ID", placeholder: "e.g. wf_123456" },
+    { key: "client_id", label: "Client ID", placeholder: "Optional Client ID" },
+    { key: "client_secret", label: "Client Secret", placeholder: "Optional Client Secret", type: "password" },
+    { key: "webhook_secret", label: "Webhook Secret", placeholder: "didit_whsec_...", type: "password" },
+  ],
+  sumsub: [
+    { key: "app_token", label: "App Token", placeholder: "sbx:... or prd:...", type: "password" },
+    { key: "secret_key", label: "Secret Key", placeholder: "Sumsub secret key", type: "password" },
+    { key: "webhook_secret", label: "Webhook Secret", placeholder: "Sumsub webhook secret", type: "password" },
+  ],
+};
 
 const CURRENCY_SYMBOLS: Record<string, string> = {
   NGN: "\u20A6",
@@ -51,6 +66,10 @@ export default function AdminSettingsPage() {
   const [webDisabledRoles, setWebDisabledRoles] = useState<string[]>([]);
   const [kycProviders, setKycProviders] = useState<string[]>(["manual"]);
   const [kycProviderStatus, setKycProviderStatus] = useState<Record<string, boolean>>({});
+  const [kycCredentialsStatus, setKycCredentialsStatus] = useState<Record<string, Record<string, boolean>>>({});
+  const [kycCredentialsInput, setKycCredentialsInput] = useState<Record<string, Record<string, string>>>({});
+  const [expandedProvider, setExpandedProvider] = useState<string | null>(null);
+
   const [saving, setSaving] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
@@ -69,6 +88,7 @@ export default function AdminSettingsPage() {
       if (d?.default_currency && SUPPORTED_CURRENCIES.includes(d.default_currency)) setDefaultCurrency(d.default_currency);
       if (Array.isArray(d?.web_disabled_roles)) setWebDisabledRoles(d.web_disabled_roles);
       if (Array.isArray(d?.kyc_providers) && d.kyc_providers.length > 0) setKycProviders(d.kyc_providers);
+      if (d?.kyc_credentials && typeof d.kyc_credentials === "object") setKycCredentialsStatus(d.kyc_credentials);
       if (Array.isArray(d?.kyc_providers_available)) {
         const status: Record<string, boolean> = {};
         d.kyc_providers_available.forEach((p: KycProviderInfo) => { status[p.name] = Boolean(p.enabled); });
@@ -83,9 +103,38 @@ export default function AdminSettingsPage() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const res = await fetch(`${API_BASE}/securegate/settings`, { method: "PUT", headers: authHeaders(), body: JSON.stringify({ platform_name: platformName, support_email: supportEmail, maintenance_mode: maintenanceMode, default_currency: defaultCurrency, web_disabled_roles: webDisabledRoles, kyc_providers: kycProviders }) });
+      const payload: Record<string, any> = {
+        platform_name: platformName,
+        support_email: supportEmail,
+        maintenance_mode: maintenanceMode,
+        default_currency: defaultCurrency,
+        web_disabled_roles: webDisabledRoles,
+        kyc_providers: kycProviders,
+      };
+
+      if (Object.keys(kycCredentialsInput).length > 0) {
+        payload.kyc_credentials = kycCredentialsInput;
+      }
+
+      const res = await fetch(`${API_BASE}/securegate/settings`, {
+        method: "PUT",
+        headers: authHeaders(),
+        body: JSON.stringify(payload),
+      });
       const j = await res.json();
       if (!res.ok) throw new Error(j?.message ?? "Save failed");
+
+      const d = j?.data;
+      if (d) {
+        if (d?.kyc_credentials) setKycCredentialsStatus(d.kyc_credentials);
+        if (Array.isArray(d?.kyc_providers_available)) {
+          const status: Record<string, boolean> = {};
+          d.kyc_providers_available.forEach((p: KycProviderInfo) => { status[p.name] = Boolean(p.enabled); });
+          setKycProviderStatus(status);
+        }
+      }
+
+      setKycCredentialsInput({});
       setMsg("Settings saved!");
       toast.success("Settings saved successfully.");
       setTimeout(() => setMsg(null), 2000);
@@ -166,36 +215,134 @@ export default function AdminSettingsPage() {
             <p className="text-[10px] text-muted-foreground text-center py-1">All dashboards are available on the web.</p>
           )}
         </div>
-        <div className="rounded-xl border border-border p-3 space-y-2">
+        <div className="rounded-xl border border-border p-3 space-y-3">
           <div className="flex items-center gap-2">
             <ShieldCheck className="h-4 w-4 text-[#38A8D8]" />
             <p className="text-xs font-bold text-foreground">Identity Verification (KYC) Providers</p>
           </div>
           <p className="text-[10px] text-muted-foreground">
-            Enable one or both automated providers (ID check + liveness). Users can pick between enabled providers. "Manual review" remains as a fallback.
+            Enable automated KYC providers (ID check + liveness) or use manual review. Configure provider credentials directly here or via environment variables.
           </p>
           {KYC_PROVIDERS.map((p) => {
             const active = kycProviders.includes(p.name);
             const configured = p.name === "manual" ? true : kycProviderStatus[p.name] === true;
+            const isExpanded = expandedProvider === p.name;
+            const fields = KYC_CREDENTIAL_FIELDS[p.name];
+
             return (
-              <div key={p.name} className="flex items-center justify-between p-2.5 rounded-lg bg-slate-50 dark:bg-muted/40 border border-border/50">
-                <div className="min-w-0">
-                  <p className="text-xs font-bold text-foreground">{p.label}</p>
-                  <p className={`text-[10px] ${configured ? "text-muted-foreground" : "text-amber-500"}`}>
-                    {configured ? (p.name === "manual" ? "Always available" : "Configured") : "Missing API credentials — configure in .env first"}
-                  </p>
+              <div key={p.name} className="rounded-xl bg-slate-50 dark:bg-muted/40 border border-border/50 overflow-hidden">
+                <div className="flex items-center justify-between p-3">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="text-xs font-bold text-foreground">{p.label}</p>
+                      {p.name !== "manual" && (
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${configured ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" : "bg-amber-500/10 text-amber-600 dark:text-amber-400"}`}>
+                          {configured ? "Configured" : "Credentials needed"}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">
+                      {p.name === "manual"
+                        ? "Always available fallback verification"
+                        : configured
+                        ? "Ready for live customer verification"
+                        : "Configure API credentials below to enable this provider"}
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    {fields && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setExpandedProvider(isExpanded ? null : p.name)}
+                        className="h-7 px-2 text-[11px] font-bold gap-1"
+                      >
+                        <Key className="h-3 w-3" />
+                        Credentials
+                        {isExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                      </Button>
+                    )}
+
+                    <button
+                      onClick={() => setKycProviders((prev) => active ? prev.filter((x) => x !== p.name) : [...prev, p.name])}
+                      disabled={!configured}
+                      role="switch"
+                      aria-checked={active}
+                      aria-disabled={!configured}
+                      aria-label={`Toggle ${p.label} KYC provider`}
+                      className={`w-10 h-5 rounded-full transition-colors shrink-0 ${active ? 'bg-emerald-500' : 'bg-muted'} ${configured ? '' : 'opacity-40 cursor-not-allowed'}`}
+                    >
+                      <div className={`w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${active ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                    </button>
+                  </div>
                 </div>
-                <button
-                  onClick={() => setKycProviders((prev) => active ? prev.filter((x) => x !== p.name) : [...prev, p.name])}
-                  disabled={!configured}
-                  role="switch"
-                  aria-checked={active}
-                  aria-disabled={!configured}
-                  aria-label={`Toggle ${p.label} KYC provider`}
-                  className={`w-10 h-5 rounded-full transition-colors shrink-0 ${active ? 'bg-emerald-500' : 'bg-muted'} ${configured ? '' : 'opacity-40 cursor-not-allowed'}`}
-                >
-                  <div className={`w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${active ? 'translate-x-5' : 'translate-x-0.5'}`} />
-                </button>
+
+                {fields && isExpanded && (
+                  <div className="border-t border-border/50 bg-background/50 p-3.5 space-y-3">
+                    <p className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1.5">
+                      <Lock className="h-3.5 w-3.5 text-[#38A8D8]" />
+                      API Credentials for {p.label} (Encrypted at rest)
+                    </p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {fields.map((f) => {
+                        const keyIsSet = kycCredentialsStatus[p.name]?.[f.key] ?? false;
+                        const currentValue = kycCredentialsInput[p.name]?.[f.key] ?? "";
+
+                        return (
+                          <div key={f.key} className="space-y-1">
+                            <div className="flex items-center justify-between">
+                              <label className="text-[11px] font-medium text-foreground">{f.label}</label>
+                              <span className={`text-[10px] ${keyIsSet ? "text-emerald-500 font-medium" : "text-muted-foreground"}`}>
+                                {keyIsSet ? "✓ Configured" : "Not set"}
+                              </span>
+                            </div>
+                            <div className="relative">
+                              <Input
+                                type={f.type ?? "text"}
+                                value={currentValue}
+                                placeholder={keyIsSet ? "•••••••••••• (configured)" : f.placeholder}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  setKycCredentialsInput((prev) => ({
+                                    ...prev,
+                                    [p.name]: {
+                                      ...(prev[p.name] ?? {}),
+                                      [f.key]: val,
+                                    },
+                                  }));
+                                }}
+                                className="text-xs h-8 pr-7"
+                              />
+                              {currentValue !== "" && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setKycCredentialsInput((prev) => ({
+                                      ...prev,
+                                      [p.name]: {
+                                        ...(prev[p.name] ?? {}),
+                                        [f.key]: "",
+                                      },
+                                    }));
+                                  }}
+                                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground text-[10px]"
+                                  title="Clear input"
+                                >
+                                  <X className="h-3 w-3" />
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <p className="text-[10px] text-muted-foreground italic">
+                      Note: Entering new values will encrypt & save overrides to admin settings. Empty inputs remain unchanged.
+                    </p>
+                  </div>
+                )}
               </div>
             );
           })}

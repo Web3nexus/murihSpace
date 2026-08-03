@@ -2,6 +2,7 @@
 
 namespace App\Services\Kyc\Didit;
 
+use App\Services\Kyc\KycCredentials;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Http;
@@ -15,14 +16,22 @@ class DiditApiClient
 
     private function cfg(string $key): mixed
     {
-        return $this->config[$key] ?? config("kyc.didit.{$key}");
+        if (array_key_exists($key, $this->config)) {
+            return $this->config[$key];
+        }
+
+        return KycCredentials::resolve('didit', $key, config("kyc.didit.{$key}"));
     }
 
     public function isEnabled(): bool
     {
-        return (bool) $this->cfg('enabled')
-            && $this->cfg('api_key') !== ''
-            && $this->cfg('workflow_id') !== '';
+        // Configured when credentials are present (env or admin settings).
+        return $this->cfg('api_key') !== '' && $this->cfg('workflow_id') !== '';
+    }
+
+    public function workflowId(): string
+    {
+        return (string) $this->cfg('workflow_id');
     }
 
     public function baseUrl(): string

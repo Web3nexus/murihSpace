@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Services\Kyc\KycCredentials;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Http;
 
@@ -14,14 +15,17 @@ class SumsubService
 
     private function cfg(string $key): mixed
     {
-        return $this->config[$key] ?? config("sumsub.{$key}");
+        if (array_key_exists($key, $this->config)) {
+            return $this->config[$key];
+        }
+
+        return KycCredentials::resolve('sumsub', $key, config("sumsub.{$key}"));
     }
 
     public function isEnabled(): bool
     {
-        return (bool) config('sumsub.enabled')
-            && config('sumsub.app_token') !== ''
-            && config('sumsub.secret_key') !== '';
+        // Configured when credentials are present (env or admin settings).
+        return $this->cfg('app_token') !== '' && $this->cfg('secret_key') !== '';
     }
 
     public function levelName(): string
@@ -143,7 +147,7 @@ class SumsubService
      */
     public function verifyWebhook(string $payload, ?string $digest, ?string $digestAlg = null): bool
     {
-        $secret = config('sumsub.webhook_secret');
+        $secret = (string) $this->cfg('webhook_secret');
         if ($secret === '' || $digest === null) {
             return false;
         }
