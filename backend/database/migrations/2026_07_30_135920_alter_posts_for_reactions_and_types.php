@@ -31,7 +31,9 @@ return new class extends Migration
             $table->dropUnique('post_reactions_post_id_user_id_reaction_type_unique');
         });
 
-        DB::statement("ALTER TABLE post_reactions ALTER COLUMN reaction_type TYPE VARCHAR(20)");
+        if (DB::getDriverName() === 'pgsql') {
+            DB::statement("ALTER TABLE post_reactions ALTER COLUMN reaction_type TYPE VARCHAR(20)");
+        }
 
         Schema::table('post_reactions', function (Blueprint $table) {
             $table->unique(['post_id', 'user_id']);
@@ -54,7 +56,9 @@ return new class extends Migration
             $table->dropUnique('post_reactions_post_id_user_id_unique');
         });
 
-        DB::statement("ALTER TABLE post_reactions ALTER COLUMN reaction_type TYPE VARCHAR(20)");
+        if (DB::getDriverName() === 'pgsql') {
+            DB::statement("ALTER TABLE post_reactions ALTER COLUMN reaction_type TYPE VARCHAR(20)");
+        }
 
         Schema::table('post_reactions', function (Blueprint $table) {
             $table->unique(['post_id', 'user_id', 'reaction_type']);

@@ -107,7 +107,10 @@ Route::prefix('v1')->group(function () {
     Route::get('/permissions-matrix', [RoleController::class, 'permissionsMatrix']);
 
     // Sumsub KYC webhook (public, signature-verified)
-    Route::post('/webhooks/sumsub', [KycController::class, 'webhook'])->middleware('throttle:30,1');
+    Route::post('/webhooks/sumsub', [\App\Http\Controllers\KycController::class, 'sumsubWebhook'])->middleware('throttle:30,1');
+
+    // Didit KYC webhook (public, signature-verified)
+    Route::post('/webhooks/didit', fn (\Illuminate\Http\Request $r) => app(\App\Http\Controllers\KycController::class)->webhook($r, app(\App\Services\Kyc\KycProviderManager::class), 'didit'))->middleware('throttle:30,1');
 
     // Public platform config (used by login/registration + app-lock screens)
     Route::get('/platform', [\App\Http\Controllers\PlatformController::class, 'config'])->middleware('cache.public:30');
@@ -417,7 +420,7 @@ Route::prefix('v1')->group(function () {
         Route::prefix('storefront')->middleware('creator')->group(function () {
             Route::get('/', [StorefrontController::class, 'mine']);
             Route::put('/', [StorefrontController::class, 'update']);
-            Route::post('/publish', [StorefrontController::class, 'publish']);
+            Route::post('/publish', [StorefrontController::class, 'publish'])->middleware('kyc');
         });
 
         Route::prefix('store/posts')->middleware('creator')->group(function () {
@@ -428,7 +431,7 @@ Route::prefix('v1')->group(function () {
         });
 
         // ── Sprint 14: Digital Products ────────────────────────────────────
-        Route::prefix('store/products')->middleware('creator')->group(function () {
+        Route::prefix('store/products')->middleware('creator', 'kyc')->group(function () {
             Route::get('/', [DigitalProductController::class, 'index']);
             Route::post('/', [DigitalProductController::class, 'store']);
             Route::get('/{id}', [DigitalProductController::class, 'show']);
@@ -439,7 +442,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/products/{id}/download', [DigitalProductController::class, 'download']);
 
         // ── Sprint 30: Physical Products & Inventory ──────────────────────
-        Route::prefix('store/physical-products')->group(function () {
+        Route::prefix('store/physical-products')->middleware('kyc')->group(function () {
             Route::get('/my', [PhysicalProductController::class, 'myProducts']);
             Route::post('/', [PhysicalProductController::class, 'store']);
             Route::get('/{id}', [PhysicalProductController::class, 'show']);
@@ -487,7 +490,7 @@ Route::prefix('v1')->group(function () {
         });
 
         // ── Store Membership Plans ───────────────────────────────────
-        Route::prefix('store/memberships')->middleware('creator')->group(function () {
+        Route::prefix('store/memberships')->middleware('creator', 'kyc')->group(function () {
             Route::get('/', [\App\Http\Controllers\StoreMembershipPlanController::class, 'index']);
             Route::post('/', [\App\Http\Controllers\StoreMembershipPlanController::class, 'store']);
             Route::patch('/{plan}', [\App\Http\Controllers\StoreMembershipPlanController::class, 'update']);
@@ -793,7 +796,9 @@ Route::prefix('v1')->group(function () {
         Route::prefix('kyc')->group(function () {
             Route::get('/status', [KycController::class, 'status']);
             Route::post('/submit', [\App\Http\Controllers\ProfileController::class, 'submitKyc']);
-            Route::post('/start', [KycController::class, 'start']);
+            Route::post('/start', [KycController::class, 'start'])->middleware('throttle:kyc.session');
+            Route::get('/history', [KycController::class, 'history']);
+            Route::get('/callback', [KycController::class, 'callback']);
         });
 
         // ── Verified badge (blue checkmark) ─────────────────────────
@@ -919,7 +924,7 @@ Route::prefix('v1')->group(function () {
             Route::get('/plans/{id}', [SubscriptionPlanController::class, 'show']);
 
             // Creator-only plan management
-            Route::middleware('creator')->group(function () {
+            Route::middleware('creator', 'kyc')->group(function () {
                 Route::post('/plans', [SubscriptionPlanController::class, 'store']);
                 Route::put('/plans/{id}', [SubscriptionPlanController::class, 'update']);
                 Route::delete('/plans/{id}', [SubscriptionPlanController::class, 'destroy']);
@@ -1030,6 +1035,7 @@ Route::prefix('v1')->group(function () {
             // KYC
             Route::prefix('kyc')->group(function () {
                 Route::get('/', [AdminKycController::class, 'index']);
+                Route::get('/verifications', [AdminKycController::class, 'verifications']);
                 Route::get('/{user}', [AdminKycController::class, 'show']);
                 Route::post('/{user}/approve', [AdminKycController::class, 'approve']);
                 Route::post('/{user}/reject', [AdminKycController::class, 'reject']);

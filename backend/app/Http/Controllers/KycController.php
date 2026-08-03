@@ -2,15 +2,14 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\User;
-use App\Services\SumsubService;
+use App\Services\Kyc\KycService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
 class KycController extends Controller
 {
-    public function __construct(private readonly SumsubService $sumsub)
+    public function __construct(private readonly KycService $kyc)
     {
     }
 
@@ -19,30 +18,22 @@ class KycController extends Controller
      */
     public function status(Request $request): JsonResponse
     {
-        $user = $request->user();
-
-        return response()->json([
-            'kyc_status' => $user->kyc_status ?? 'unsubmitted',
-            'kyc_provider' => $user->kyc_provider ?? 'manual',
-            'sumsub_applicant_id' => $user->sumsub_applicant_id,
-            'kyc_rejection_reason' => $user->kyc_rejection_reason,
-            'sumsub_enabled' => $this->sumsub->isEnabled(),
-        ]);
+        return response()->json($this->kyc->status($request->user()));
     }
 
     /**
-     * Start Sumsub verification: create/retrieve applicant and return an SDK access token.
+     * Start a verification session with the active provider.
      */
     public function start(Request $request): JsonResponse
     {
-        if (! $this->sumsub->isEnabled()) {
+        $user = $request->user();
+
+        if (! $this->kyc->providerEnabled()) {
             return response()->json([
-                'message' => 'Sumsub is not configured. Please contact support.',
-                'kyc_status' => $request->user()->kyc_status ?? 'unsubmitted',
+                'message' => 'Automated verification is not configured. Please contact support.',
+                'kyc_status' => $user->kyc_status ?? 'unsubmitted',
             ], 503);
         }
-
-        $user = $request->user();
 
         if ($user->kyc_status === 'verified') {
             return response()->json([
@@ -51,56 +42,93 @@ class KycController extends Controller
             ]);
         }
 
-        // Prefer a fresh applicant id when none exists yet.
-        $applicantId = $user->sumsub_applicant_id;
+        $result = $this->kyc->startSession($user);
+        $session = $result['session'];
 
-        if ($applicantId === null) {
-            $applicant = $this->sumsub->createApplicant((string) $user->id, [
-                'firstName' => $user->name,
-                'email' => $user->email,
-            ]);
-
-            if ($applicant === null || ! isset($applicant['id'])) {
-                Log::warning('Sumsub applicant creation failed', [
-                    'user_id' => $user->id,
-                    'response' => $applicant,
-                ]);
-
-                return response()->json(['message' => 'Failed to create verification session.'], 502);
-            }
-
-            $applicantId = $applicant['id'];
-            $user->update([
-                'sumsub_applicant_id' => $applicantId,
-                'kyc_provider' => 'sumsub',
-                'kyc_status' => 'pending',
-            ]);
-        }
-
-        $token = $this->sumsub->createAccessToken((string) $user->id);
-
-        if ($token === null || ! isset($token['token'])) {
-            return response()->json(['message' => 'Failed to obtain verification access token.'], 502);
+        if (! $session->success) {
+            return response()->json([
+                'message' => $session->message ?? 'Failed to create verification session.',
+                'kyc_status' => $user->fresh()->kyc_status ?? 'unsubmitted',
+            ], 502);
         }
 
         return response()->json([
-            'access_token' => $token['token'],
-            'level_name' => $this->sumsub->levelName(),
-            'applicant_id' => $applicantId,
-            'kyc_status' => $user->kyc_status,
+            'session_url' => $session->sessionUrl,
+            'session_id' => $session->sessionId,
+            'provider' => $this->kyc->providerName(),
+            'kyc_status' => $user->fresh()->kyc_status,
+            'verification_id' => $result['verification']?->id,
         ]);
     }
 
     /**
-     * Webhook receiver for Sumsub applicant events.
+     * KYC attempt history for the current user.
      */
-    public function webhook(Request $request): JsonResponse
+    public function history(Request $request): JsonResponse
+    {
+        return response()->json([
+            'data' => $this->kyc->history($request->user()),
+        ]);
+    }
+
+    /**
+     * Endpoint that the provider redirects the browser to after a session.
+     * Returns the current status so the frontend can re-render without polling.
+     */
+    public function callback(Request $request): JsonResponse
+    {
+        $request->validate([
+            'session_id' => ['sometimes', 'string', 'max:255'],
+        ]);
+
+        $user = $request->user();
+
+        Log::info('KYC callback hit', [
+            'user_id' => $user->id,
+            'session_id' => $request->input('session_id'),
+        ]);
+
+        return response()->json($this->kyc->status($user));
+    }
+
+    /**
+     * Public webhook receiver for a given provider.
+     * Signature is verified before any state is changed; heavy work is queued.
+     */
+    public function webhook(Request $request, \App\Services\Kyc\KycProviderManager $providers, string $providerName): JsonResponse
+    {
+        $payload = $request->getContent();
+        $normalized = [];
+
+        foreach ($request->headers->all() as $key => $values) {
+            $normalized[$key] = is_array($values) ? ($values[0] ?? '') : $values;
+        }
+
+        $provider = $providers->provider($providerName);
+        $event = $provider->verifyWebhook($payload, $normalized);
+
+        if ($event === null) {
+            return response()->json(['message' => 'Invalid signature.'], 401);
+        }
+
+        $decoded = json_decode($payload, true) ?? [];
+
+        $this->kyc->recordWebhook($provider->name(), $decoded, $normalized, $payload);
+
+        return response()->json(['message' => 'Accepted.']);
+    }
+
+    /**
+     * Legacy Sumsub webhook receiver. Kept for backward compatibility with
+     * the original Sumsub integration; verify + apply inline.
+     */
+    public function sumsubWebhook(Request $request, \App\Services\SumsubService $sumsub): JsonResponse
     {
         $payload = $request->getContent();
         $digest = $request->header('X-Payload-Digest');
         $digestAlg = $request->header('X-Payload-Digest-Alg');
 
-        if (! $this->sumsub->verifyWebhook($payload, $digest, $digestAlg)) {
+        if (! $sumsub->verifyWebhook($payload, $digest, $digestAlg)) {
             return response()->json(['message' => 'Invalid signature.'], 401);
         }
 
@@ -117,7 +145,7 @@ class KycController extends Controller
             return response()->json(['message' => 'Accepted.']);
         }
 
-        $user = User::where('sumsub_applicant_id', $applicantId)->first();
+        $user = \App\Models\User::where('sumsub_applicant_id', $applicantId)->first();
 
         if (! $user) {
             Log::warning('Sumsub webhook for unknown applicant', ['applicant_id' => $applicantId]);

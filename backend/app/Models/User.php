@@ -7,20 +7,23 @@ use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Str;
 use Laravel\Sanctum\HasApiTokens;
 use Laravel\Scout\Searchable;
 
 #[Fillable([
-    'name', 'email', 'password', 'username', 'country',
+    'uuid', 'name', 'email', 'password', 'username', 'country',
     'mobile_number', 'county', 'state', 'role', 'admin_role', 'admin_permissions', 'status',
     'bio', 'avatar', 'avatar_url',
     'kyc_status', 'kyc_document', 'kyc_rejection_reason', 'kyc_provider', 'sumsub_applicant_id',
+    'kyc_verification_id',
     'verification_badge_status', 'verification_badge_expires_at',
     'verification_badge_purchased_at', 'verification_badge_auto_renew',
     'two_factor_secret', 'two_factor_recovery_codes', 'two_factor_confirmed_at',
@@ -108,6 +111,25 @@ class User extends Authenticatable implements MustVerifyEmail
     public function hasVerifiedKyc(): bool
     {
         return $this->kyc_status === 'verified';
+    }
+
+    protected static function booted(): void
+    {
+        static::creating(function (User $user) {
+            if ($user->uuid === null) {
+                $user->uuid = (string) Str::uuid();
+            }
+        });
+    }
+
+    public function kycVerification(): BelongsTo
+    {
+        return $this->belongsTo(KycVerification::class);
+    }
+
+    public function kycVerifications(): HasMany
+    {
+        return $this->hasMany(KycVerification::class)->latest('id');
     }
 
     public function hasActiveVerificationBadge(): bool

@@ -247,7 +247,7 @@ export function SiteHeader() {
         )}
 
         {/* Notifications */}
-        <Link to="/app/notifications">
+        <Link to="/app/settings/notifications">
           <button className="relative h-9 w-9 rounded-full bg-[#F0F2F5] hover:bg-[#E4E6EB] flex items-center justify-center text-[#1a2e3b] transition-colors" title="Notifications">
             <Bell className="h-[18px] w-[18px]" />
             {notifCount > 0 && (

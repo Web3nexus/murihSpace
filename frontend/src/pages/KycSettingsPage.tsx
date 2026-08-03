@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { apiClient } from "@/lib/api/client";
 
-type KycStatus = "unsubmitted" | "pending" | "verified" | "rejected";
+type KycStatus = "unsubmitted" | "pending" | "verified" | "rejected" | "expired";
 
 interface KycState {
   kyc_status: KycStatus;
@@ -24,6 +24,9 @@ interface KycState {
   sumsub_applicant_id?: string | null;
   kyc_rejection_reason?: string | null;
   sumsub_enabled: boolean;
+  provider_enabled: boolean;
+  verification_id?: number | null;
+  required_for_sellers?: boolean;
 }
 
 interface BadgeState {
@@ -63,10 +66,11 @@ interface SumsubSdkBuilder {
 }
 
 function StatusBanner({ status, reason }: { status: KycStatus; reason?: string | null }) {
-  const config = {
+  const config: Record<KycStatus, { icon: typeof ShieldCheck; bg: string; text: string; border: string; label: string; msg: string }> = {
     verified: { icon: Check, bg: "bg-emerald-500/10", text: "text-emerald-600", border: "border-emerald-500/20", label: "Verified", msg: "Your identity has been verified. All features are unlocked." },
     pending: { icon: Loader2, bg: "bg-amber-500/10", text: "text-amber-600", border: "border-amber-500/20", label: "In Review", msg: "Your verification is being processed by our provider. This usually takes a few minutes." },
     rejected: { icon: X, bg: "bg-red-500/10", text: "text-red-600", border: "border-red-500/20", label: "Rejected", msg: reason || "Your submission was not approved. Please re-verify with valid documents." },
+    expired: { icon: AlertCircle, bg: "bg-orange-500/10", text: "text-orange-600", border: "border-orange-500/20", label: "Expired", msg: "Your verification session expired. Please start a new one." },
     unsubmitted: { icon: AlertCircle, bg: "bg-muted", text: "text-muted-foreground", border: "border-border", label: "Not Verified", msg: "Complete identity verification to unlock payouts, escrow, and full platform access." },
   };
   const c = config[status];
@@ -121,15 +125,22 @@ export default function KycSettingsPage() {
     try {
       const res = await apiClient.get("/kyc/status");
       const data = res.data?.data ?? res.data;
-      setState(data ?? { kyc_status: "unsubmitted", kyc_provider: "manual", sumsub_enabled: false });
+      setState(data ?? { kyc_status: "unsubmitted", kyc_provider: "manual", sumsub_enabled: false, provider_enabled: false });
     } catch {
-      setState({ kyc_status: "unsubmitted", kyc_provider: "manual", sumsub_enabled: false });
+      setState({ kyc_status: "unsubmitted", kyc_provider: "manual", sumsub_enabled: false, provider_enabled: false });
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => { fetchStatus(); }, [fetchStatus]);
+
+  // Poll while verification is in review (hosted session providers resolve via webhook).
+  useEffect(() => {
+    if (state?.kyc_status !== "pending") return;
+    const timer = window.setInterval(() => { fetchStatus(); }, 8000);
+    return () => window.clearInterval(timer);
+  }, [state?.kyc_status, fetchStatus]);
 
   const fetchBadge = useCallback(async () => {
     setBadgeLoading(true);
@@ -184,12 +195,19 @@ export default function KycSettingsPage() {
     try {
       const res = await apiClient.post("/kyc/start");
       const data = res.data?.data ?? res.data;
+
+      // Hosted-session providers (e.g. Didit) return a session_url we open.
+      if (data?.session_url) {
+        window.location.assign(data.session_url as string);
+        return;
+      }
+
       if (!data?.access_token) {
         setSdkError(data?.message || "Verification is unavailable right now.");
         setStarting(false);
         return;
       }
-      setState((prev) => ({ ...(prev ?? { kyc_status: "unsubmitted", kyc_provider: "manual", sumsub_enabled: true }), sumsub_enabled: true }));
+      setState((prev) => ({ ...(prev ?? { kyc_status: "unsubmitted", kyc_provider: "manual", sumsub_enabled: true, provider_enabled: true }), sumsub_enabled: true }));
       setSdkToken(data.access_token);
     } catch {
       setSdkError("Could not start verification. Please try again.");
@@ -248,7 +266,7 @@ export default function KycSettingsPage() {
         headers: { "Content-Type": "multipart/form-data" },
       });
       void res;
-      setState((prev) => ({ ...(prev ?? { kyc_status: "unsubmitted", kyc_provider: "manual", sumsub_enabled: false }), kyc_status: "pending" }));
+      setState((prev) => ({ ...(prev ?? { kyc_status: "unsubmitted", kyc_provider: "manual", sumsub_enabled: false, provider_enabled: false }), kyc_status: "pending" }));
       setUploadMsg({ ok: true, text: "Verification submitted successfully! We'll review it shortly." });
       setFile(null);
     } catch {
@@ -267,6 +285,7 @@ export default function KycSettingsPage() {
   }
 
   const status = state?.kyc_status ?? "unsubmitted";
+  const providerEnabled = state?.provider_enabled ?? state?.sumsub_enabled ?? false;
 
   return (
     <div className="space-y-6 w-full max-w-3xl mx-auto">
@@ -394,8 +413,8 @@ export default function KycSettingsPage() {
         </section>
       )}
 
-      {/* Sumsub-powered verification */}
-      {state?.sumsub_enabled ? (
+      {/* Provider-powered verification (Didit hosted session / Sumsub SDK) */}
+      {providerEnabled ? (
         status === "unsubmitted" || status === "rejected" || sdkToken ? (
           <div className="rounded-2xl border border-border bg-card p-6 shadow-2xs space-y-4">
             <div className="flex items-center gap-3">
@@ -403,7 +422,9 @@ export default function KycSettingsPage() {
                 <ShieldCheck className="h-5 w-5 text-[#00C0FF]" />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-foreground">Verify with Sumsub</h3>
+                <h3 className="text-sm font-bold text-foreground">
+                  {state?.kyc_provider === "didit" ? "Verify with Didit" : "Verify with Sumsub"}
+                </h3>
                 <p className="text-[11px] text-muted-foreground">
                   Secure identity checks — passport, ID, or driver's license, plus a quick selfie.
                 </p>
@@ -456,7 +477,7 @@ export default function KycSettingsPage() {
         </div>
       )}
 
-      {(status === "unsubmitted" || status === "rejected") && !state?.sumsub_enabled && (
+      {(status === "unsubmitted" || status === "rejected") && !providerEnabled && (
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Document Type */}
           <section className="rounded-2xl border border-border bg-card p-5 shadow-2xs space-y-4">

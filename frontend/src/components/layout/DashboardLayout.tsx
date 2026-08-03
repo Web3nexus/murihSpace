@@ -63,11 +63,9 @@ export function DashboardLayout() {
   const cfg = usePlatformConfig();
 
   const isAdmin = user?.role === "admin";
-  const isOnSecuregate = pathname.startsWith("/app/securegate");
-  const isCommunityPreview =
-    /^\/app\/communities\/[^/]+(\/feed)?$/.test(pathname);
+  const isAppHome = pathname === "/app" || pathname === "/app/";
 
-  if (isAdmin && !isOnSecuregate && !isCommunityPreview) {
+  if (isAdmin && isAppHome) {
     return <Navigate to="/app/securegate" replace />;
   }
 

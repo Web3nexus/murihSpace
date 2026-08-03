@@ -34,6 +34,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'admin' => IsAdmin::class,
             'admin.permission' => \App\Http\Middleware\EnsureAdminPermission::class,
             'creator' => \App\Http\Middleware\IsCreator::class,
+            'kyc' => \App\Http\Middleware\RequiresKyc::class,
             'verified' => EnsureEmailIsVerified::class,
             'cache.public' => \App\Http\Middleware\CachePublicResponse::class,
         ]);
