@@ -5,7 +5,7 @@
 
 export type UserRole = "member" | "creator" | "vendor" | "admin";
 
-interface RoleFeatures {
+export interface RoleFeatures {
   // Community & Social Features
   community: boolean;
   events: boolean;

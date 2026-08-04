@@ -14,7 +14,6 @@ import {
   Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
-import { useAuth } from "@/hooks/useAuth";
 import { apiClient, type ApiError } from "@/lib/api/client";
 import { WalletBalanceCard } from "@/components/wallet/WalletBalanceCard";
 import { InternalTransferModal } from "@/components/wallet/InternalTransferModal";
@@ -60,7 +59,6 @@ interface TransactionItem {
 }
 
 export function WalletPage() {
-  const { user } = useAuth();
   const [wallets, setWallets] = useState<WalletItem[]>([]);
   const [activeTab, setActiveTab] = useState<"system" | "creator" | "business">("system");
   const [transactions, setTransactions] = useState<TransactionItem[]>([]);

@@ -3,7 +3,6 @@ import { Link, useLocation, useNavigate } from "react-router";
 import { useAuth } from "@/hooks/useAuth";
 import { apiClient } from "@/lib/api/client";
 import { getLogo } from "@/lib/logoConfig";
-import type { UserRole } from "@/lib/logoConfig";
 import {
   Sidebar,
   SidebarContent,
