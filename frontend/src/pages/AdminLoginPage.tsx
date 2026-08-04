@@ -33,7 +33,7 @@ export function AdminLoginPage() {
     <div className="min-h-screen w-full bg-slate-950 flex flex-col">
       <header className="w-full px-6 py-4 flex items-center justify-between max-w-7xl mx-auto">
         <Link to="/" className="flex items-center gap-2">
-          <img src="/logo_white.png" alt="MurihSpace" className="h-7 w-auto object-contain" />
+          <img src="/logos/admin-logo-dark.png" alt="MurihSpace" className="h-7 w-auto object-contain" />
         </Link>
         <Link
           to="/login"

@@ -91,8 +91,8 @@ export function PublicCommunitiesPage() {
       <header className="sticky top-0 z-50 border-b border-border bg-background/90 backdrop-blur-md px-6 py-4">
         <div className="w-full max-w-7xl mx-auto flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
-            <img src="/logo_blue.png" alt="MurihSpace" className="h-8 w-auto object-contain dark:hidden" />
-            <img src="/logo_white.png" alt="MurihSpace" className="h-8 w-auto object-contain hidden dark:block" />
+            <img src="/logos/member-logo-light.png" alt="MurihSpace" className="h-8 w-auto object-contain dark:hidden" />
+            <img src="/logos/member-logo-dark.png" alt="MurihSpace" className="h-8 w-auto object-contain hidden dark:block" />
           </Link>
           <div className="flex items-center gap-4">
             <Link to="/login">

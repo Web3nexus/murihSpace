@@ -172,8 +172,8 @@ export default function HelpCenterPage() {
             <Menu className="h-5 w-5" />
           </button>
           <Link to="/" className="flex items-center gap-2 shrink-0">
-            <img src="/logo_blue.png" alt="MurihSpace" className="h-6 w-auto object-contain dark:hidden" />
-            <img src="/logo_white.png" alt="MurihSpace" className="h-6 w-auto object-contain hidden dark:block" />
+            <img src="/logos/member-logo-light.png" alt="MurihSpace" className="h-6 w-auto object-contain dark:hidden" />
+            <img src="/logos/member-logo-dark.png" alt="MurihSpace" className="h-6 w-auto object-contain hidden dark:block" />
             <span className="hidden sm:inline text-xs font-bold text-slate-400 dark:text-slate-500 ml-1">Help Center</span>
           </Link>
           <div className="flex-1" />

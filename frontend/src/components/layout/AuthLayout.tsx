@@ -23,12 +23,12 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
           {/* Logo Brand Mark */}
           <Link to="/" className="inline-block group w-fit">
             <img
-              src="/logo_blue.png"
+              src="/logos/member-logo-light.png"
               alt="MurihSpace"
               className="h-10 sm:h-12 w-auto object-contain dark:hidden transition-transform group-hover:scale-105"
             />
             <img
-              src="/logo_white.png"
+              src="/logos/member-logo-dark.png"
               alt="MurihSpace"
               className="h-10 sm:h-12 w-auto object-contain hidden dark:block transition-transform group-hover:scale-105"
             />

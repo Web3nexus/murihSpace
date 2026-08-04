@@ -442,8 +442,8 @@ export function LoginPage() {
         {/* Brand Watermark Footer */}
         <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-center gap-2 text-xs text-slate-400">
           <span>Powered by</span>
-          <img src="/logo_blue.png" alt="MurihSpace" className="h-4.5 w-auto object-contain dark:hidden" />
-          <img src="/logo_white.png" alt="MurihSpace" className="h-4.5 w-auto object-contain hidden dark:block" />
+          <img src="/logos/member-logo-light.png" alt="MurihSpace" className="h-4.5 w-auto object-contain dark:hidden" />
+          <img src="/logos/member-logo-dark.png" alt="MurihSpace" className="h-4.5 w-auto object-contain hidden dark:block" />
         </div>
       </div>
     </AuthLayout>
