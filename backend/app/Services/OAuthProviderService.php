@@ -9,14 +9,15 @@ use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Log;
 
 /**
- * OAuth token exchange + profile fetch for Google, Facebook and Apple.
+ * OAuth token exchange + profile fetch for Google and Apple.
  *
- * Client id / secret / redirect are stored in admin_settings (secrets encrypted),
- * with env() fallbacks from config/services.php.
+ * Facebook login has been permanently removed from the platform. Client id /
+ * secret / redirect are stored in admin_settings (secrets encrypted), with
+ * env() fallbacks from config/services.php.
  */
 class OAuthProviderService
 {
-    public const PROVIDERS = ['google', 'facebook', 'apple'];
+    public const PROVIDERS = ['google', 'apple'];
 
     private const STATE_TTL_MINUTES = 15;
 
@@ -200,13 +201,6 @@ class OAuthProviderService
 
         return match ($provider) {
             'google' => 'https://accounts.google.com/o/oauth2/v2/auth?'.$params,
-            'facebook' => 'https://www.facebook.com/v18.0/dialog/oauth?'.http_build_query([
-                'client_id' => $config['client_id'],
-                'redirect_uri' => $config['redirect'],
-                'response_type' => 'code',
-                'scope' => 'email,public_profile',
-                'state' => $state,
-            ]),
             'apple' => 'https://appleid.apple.com/auth/authorize?'.http_build_query([
                 'client_id' => $config['client_id'],
                 'redirect_uri' => $config['redirect'],
@@ -234,7 +228,6 @@ class OAuthProviderService
 
         return match ($provider) {
             'google' => $this->googleProfile($code),
-            'facebook' => $this->facebookProfile($code),
             'apple' => $this->appleProfile($code, $formPost),
             default => null,
         };
@@ -276,46 +269,6 @@ class OAuthProviderService
         }
 
         return $this->normalize('google', $user);
-    }
-
-    private function facebookProfile(string $code): ?array
-    {
-        $config = $this->config('facebook');
-
-        $tokenRes = $this->http->get('https://graph.facebook.com/v18.0/oauth/access_token', [
-            'query' => [
-                'client_id' => $config['client_id'],
-                'client_secret' => $config['client_secret'],
-                'redirect_uri' => $config['redirect'],
-                'code' => $code,
-            ],
-        ]);
-
-        $token = json_decode((string) $tokenRes->getBody(), true);
-        $accessToken = $token['access_token'] ?? null;
-
-        if ($tokenRes->getStatusCode() !== 200 || ! $accessToken) {
-            Log::warning('Facebook OAuth token exchange failed', ['status' => $tokenRes->getStatusCode(), 'body' => $token]);
-
-            return null;
-        }
-
-        $userRes = $this->http->get('https://graph.facebook.com/v18.0/me', [
-            'query' => [
-                'fields' => 'id,name,email,picture.type(large)',
-                'access_token' => $accessToken,
-            ],
-        ]);
-
-        $user = json_decode((string) $userRes->getBody(), true);
-
-        if ($userRes->getStatusCode() !== 200 || empty($user['id'])) {
-            Log::warning('Facebook OAuth profile failed', ['status' => $userRes->getStatusCode(), 'body' => $user]);
-
-            return null;
-        }
-
-        return $this->normalize('facebook', $user);
     }
 
     private function appleProfile(string $code, array $formPost = []): ?array
@@ -411,13 +364,6 @@ class OAuthProviderService
                 'name' => $user['name'] ?? null,
                 'avatar' => $user['picture'] ?? null,
                 'email_verified' => (bool) ($user['email_verified'] ?? false),
-            ],
-            'facebook' => [
-                'id' => (string) ($user['id'] ?? ''),
-                'email' => (string) ($user['email'] ?? ''),
-                'name' => $user['name'] ?? null,
-                'avatar' => $user['picture']['data']['url'] ?? ($user['picture'] ?? null),
-                'email_verified' => false,
             ],
             default => [],
         };

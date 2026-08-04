@@ -9,7 +9,13 @@ use Illuminate\Support\Str;
 class LedgerTransaction extends Model
 {
     protected $fillable = [
-        'ulid', 'type', 'description', 'metadata',
+        'ulid',
+        'idempotency_key',
+        'type',
+        'status',
+        'description',
+        'metadata',
+        'initiated_by',
     ];
 
     protected $casts = [
@@ -19,8 +25,11 @@ class LedgerTransaction extends Model
     public const TYPES = [
         'payment', 'receive', 'transfer_out', 'transfer_in',
         'donation_out', 'donation_in', 'withdrawal', 'fee', 'refund',
-        'escrow_hold', 'escrow_release', 'escrow_refund',
+        'escrow_hold', 'escrow_release', 'escrow_refund', 'internal_transfer',
+        'deposit', 'creator_gift_receipt', 'business_sale',
     ];
+
+    public const STATUSES = ['pending', 'completed', 'reversed'];
 
     protected static function booted(): void
     {
@@ -38,10 +47,11 @@ class LedgerTransaction extends Model
 
     public function isBalanced(): bool
     {
-        $sum = $this->entries()
-            ->selectRaw("SUM(CASE WHEN entry_type = 'credit' THEN amount ELSE -amount END) as net")
-            ->value('net');
+        $this->loadMissing('entries');
 
-        return $sum === 0 || $sum === null;
+        $debits  = (int) $this->entries->where('entry_type', 'debit')->sum('amount');
+        $credits = (int) $this->entries->where('entry_type', 'credit')->sum('amount');
+
+        return $debits === $credits;
     }
 }

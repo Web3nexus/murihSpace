@@ -87,8 +87,9 @@ class KycRedesignTest extends TestCase
         // Give user wallet balance
         Wallet::create([
             'user_id' => $user->id,
-            'balance' => 100,
-            'currency' => 'MSH',
+            'wallet_type' => 'system',
+            'available' => 100,
+            'currency' => 'NGN',
         ]);
 
         config(['murihspace.verification_badge_fee' => 10]);

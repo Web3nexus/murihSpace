@@ -93,6 +93,9 @@ class MessageAttachmentController extends Controller
             default => 'file',
         };
 
+        app(\App\Services\MediaRetentionService::class)
+            ->applyToUpload($media, $attachmentType, scanning: true);
+
         return response()->json([
             'data' => [
                 'media_id' => $media->id,

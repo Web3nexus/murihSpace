@@ -21,9 +21,26 @@ class AuthController extends Controller
 
     public function register(Request $request): JsonResponse
     {
+        $viaSession = $request->filled('registration_session_id');
+
+        if ($viaSession) {
+            if (! app(\App\Services\AuthMethodConfigService::class)->registrationEnabled('phone_otp')) {
+                throw ValidationException::withMessages([
+                    'phone' => ['Phone registration is currently disabled.'],
+                ]);
+            }
+        } elseif (! app(\App\Services\AuthMethodConfigService::class)->registrationEnabled('email_password')) {
+            throw ValidationException::withMessages([
+                'email' => ['Email registration is currently disabled.'],
+            ]);
+        }
+
         $request->validate([
+            'registration_session_id' => ['required_without:email', 'string', 'max:255'],
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
+            'email' => $viaSession
+                ? ['nullable', 'string', 'email', 'max:255', 'unique:users,email']
+                : ['required', 'string', 'email', 'max:255', 'unique:users'],
             'password' => ['required', 'string', 'min:8', 'confirmed', 'regex:/[A-Z]/', 'regex:/[a-z]/', 'regex:/[0-9]/', 'regex:/[@$!%*#?&^_-]/'],
             'username' => ['required', 'string', 'min:3', 'max:50', 'unique:users', 'regex:/\A[a-zA-Z0-9_]+\z/'],
             'country' => ['nullable', 'string', 'size:2', 'exists:countries,iso2'],
@@ -33,6 +50,26 @@ class AuthController extends Controller
             'role' => ['required', 'string', 'in:member,creator,vendor'],
             'kyc_document' => ['nullable', 'string'],
         ]);
+
+        // Phone-first path: identity (number + country) comes from the verified
+        // registration session and is never repeated in the registration wizard.
+        $registrationSession = null;
+        if ($viaSession) {
+            $registrationSession = \App\Models\RegistrationSession::where('token', $request->registration_session_id)->first();
+
+            if (! $registrationSession || ! $registrationSession->isValid()) {
+                throw ValidationException::withMessages([
+                    'registration_session_id' => ['The registration session is invalid or has expired. Please verify your number again.'],
+                ]);
+            }
+
+            $phoneExists = \App\Models\User::where('mobile_number', $registrationSession->phone_e164)->exists();
+            if ($phoneExists) {
+                throw ValidationException::withMessages([
+                    'phone' => ['An account already exists with this number. Sign in instead.'],
+                ]);
+            }
+        }
 
         $requestedRole = $request->input('role', 'member');
         // Initial user role is always member; creator/vendor upgrades go through role application + KYC workflow
@@ -44,14 +81,22 @@ class AuthController extends Controller
             'email' => $request->email,
             'password' => Hash::make($request->password),
             'username' => $request->username,
-            'country' => $request->country,
-            'mobile_number' => $request->mobile_number,
+            'country' => $registrationSession?->country_iso2 ?? $request->country,
+            'mobile_number' => $registrationSession?->phone_e164 ?? $request->mobile_number,
+            'phone_verified_at' => $registrationSession ? now() : null,
             'county' => $request->county,
             'state' => $request->state,
             'role' => $initialRole,
             'kyc_status' => $kycStatus,
             'kyc_document' => $request->kyc_document,
         ]);
+
+        if ($registrationSession) {
+            $registrationSession->update([
+                'verification_status' => 'consumed',
+                'completed_user_id' => $user->id,
+            ]);
+        }
 
         // If user expressed intent for creator or vendor role during registration, create pending role application
         if (in_array($requestedRole, ['creator', 'vendor'], true)) {
@@ -64,10 +109,7 @@ class AuthController extends Controller
 
         event(new Registered($user));
 
-        $token = $user->createToken('auth-token', ['*'], now()->addMinutes((int) (config('sanctum.expiration') ?? 1440)))
-            ->plainTextToken;
-
-        $this->trackTokenMetadata($user, $request, $token);
+        $token = app(\App\Services\AuthSessionService::class)->issue($user, $request)['token'];
 
         try {
             $this->notifications->actionEmail(
@@ -85,7 +127,7 @@ class AuthController extends Controller
         }
 
         return response()->json([
-            'message' => 'User registered successfully. Please verify your email.',
+            'message' => 'User registered successfully.',
             'token' => $token,
             'user' => [
                 'id' => $user->id,
@@ -95,6 +137,8 @@ class AuthController extends Controller
                 'role' => $user->role,
                 'kyc_status' => $user->kyc_status,
                 'email_verified' => $user->hasVerifiedEmail(),
+                'phone_verified' => $user->hasVerifiedPhone(),
+                'mobile_number' => $user->mobile_number,
                 'link_in_bio_url' => $user->getLinkInBioUrl(),
                 'onboarding_completed' => $user->creatorProfile?->onboarding_completed_at !== null,
             ],
@@ -122,6 +166,12 @@ class AuthController extends Controller
 
     public function login(Request $request): JsonResponse
     {
+        if (! app(\App\Services\AuthMethodConfigService::class)->loginEnabled('email_password')) {
+            throw ValidationException::withMessages([
+                'email' => ['Email and password login is currently disabled. Use your phone number instead.'],
+            ]);
+        }
+
         $request->validate([
             'email' => ['required', 'string', 'email'],
             'password' => ['required', 'string'],

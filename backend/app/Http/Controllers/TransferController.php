@@ -39,7 +39,8 @@ class TransferController extends Controller
             return response()->json(['message' => 'Cannot transfer to yourself.', 'code' => 'SELF_TRANSFER'], 422);
         }
 
-        $wallet = $this->ledgerService->getOrCreateWallet($sender->id);
+        $walletService = new \App\Services\Wallet\WalletService();
+        $wallet = $walletService->getOrCreateWallet($sender, 'system');
 
         if (! $wallet->verifyPin($validated['pin'])) {
             return response()->json(['message' => 'Incorrect transaction PIN.', 'code' => 'INVALID_TRANSACTION_PIN'], 403);

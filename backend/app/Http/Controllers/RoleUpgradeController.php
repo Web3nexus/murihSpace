@@ -106,7 +106,7 @@ class RoleUpgradeController extends Controller
      */
     public function adminIndex(Request $request): JsonResponse
     {
-        $query = AccountRoleHistory::with(['user:id,name,email,role,avatar_url', 'approvedBy:id,name'])
+        $query = AccountRoleHistory::with(['user:id,name,email,role,avatar', 'approvedBy:id,name'])
             ->latest();
 
         if ($request->has('status')) {

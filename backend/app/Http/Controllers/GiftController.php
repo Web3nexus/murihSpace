@@ -2,370 +2,240 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\GiftSentEvent;
+use App\Exceptions\InsufficientBalanceException;
 use App\Models\Gift;
 use App\Models\GiftTransaction;
-use App\Models\CreatorWallet;
-use App\Models\CreatorPayout;
+use App\Models\User;
 use App\Models\Wallet;
 use App\Services\NotificationService;
+use App\Services\Wallet\FeeCalculatorService;
+use App\Services\Wallet\LedgerService;
+use App\Services\Wallet\LedgerService;
+use App\Services\Wallet\WalletService;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 class GiftController extends Controller
 {
-    public function __construct(private readonly NotificationService $notifications)
-    {
-    }
+    public function __construct(
+        private readonly NotificationService $notifications,
+        private readonly LedgerService $ledgerService,
+        private readonly WalletService $walletService,
+        private readonly FeeCalculatorService $feeCalculator,
+    ) {}
 
     public function catalogue(Request $request): JsonResponse
     {
         $gifts = Gift::active()->get();
+
         return response()->json($gifts);
     }
 
     public function send(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'gift_id' => ['required', 'exists:gifts,id'],
-            'recipient_id' => ['required', 'exists:users,id', 'different:sender_id'],
-            'giftable_type' => ['required', 'string'],
-            'giftable_id' => ['required', 'integer'],
-            'is_anonymous' => ['nullable', 'boolean'],
+            'gift_id'             => ['required', 'exists:gifts,id'],
+            'recipient_id'        => ['required', 'exists:users,id'],
+            'giftable_type'       => ['nullable', 'string', 'required_with:giftable_id', Rule::in(array_keys(Relation::morphMap()))],
+            'giftable_id'         => ['nullable', 'integer', 'required_with:giftable_type'],
+            'session_id'          => ['nullable', 'string'],
+            'is_anonymous'        => ['nullable', 'boolean'],
             'sender_display_name' => ['nullable', 'string', 'max:100'],
-            'message' => ['nullable', 'string', 'max:500'],
-            'is_public' => ['nullable', 'boolean'],
-            'idempotency_key' => ['required', 'string', 'max:100', 'unique:gift_transactions,idempotency_key'],
+            'message'             => ['nullable', 'string', 'max:500'],
+            'is_public'           => ['nullable', 'boolean'],
+            'idempotency_key'     => ['nullable', 'string', 'max:100'],
+            'wallet_type'         => ['nullable', 'string', 'in:system,creator,business'],
         ]);
 
-        $user = $request->user();
-        $gift = Gift::findOrFail($validated['gift_id']);
-        $recipient = \App\Models\User::findOrFail($validated['recipient_id']);
+        $user      = $request->user();
+        $recipient = User::findOrFail($validated['recipient_id']);
 
-        if (!$recipient->isCreator()) {
-            return response()->json(['message' => 'Recipient is not eligible to receive gifts.'], 422);
+        if ($user->id === $recipient->id) {
+            return response()->json(['message' => 'Cannot send gifts to yourself.', 'code' => 'SELF_GIFT'], 422);
         }
 
-        $creatorWallet = CreatorWallet::firstOrCreate(
-            ['user_id' => $recipient->id],
-            [
-                'total_gifts_received' => 0, 'gross_earnings' => 0,
-                'platform_fees' => 0, 'net_earnings' => 0,
-                'pending_balance' => 0, 'available_balance' => 0,
-                'withdrawn_balance' => 0,
-            ]
-        );
+        $gift       = Gift::findOrFail($validated['gift_id']);
+        $walletType = $validated['wallet_type'] ?? 'system';
 
-        if (!$creatorWallet->gifting_enabled) {
-            return response()->json(['message' => 'This creator is not currently accepting gifts.'], 422);
+        // RULE: Senders CANNOT spend directly from Creator or Business wallets
+        if ($walletType !== 'system') {
+            return response()->json([
+                'message' => 'Gifts can only be sent using your System Wallet balance. Please transfer creator or business earnings to your System Wallet first.',
+                'code'    => 'SYSTEM_WALLET_REQUIRED',
+            ], 403);
         }
 
-        $senderWallet = Wallet::where('user_id', $user->id)->first();
-        if (!$senderWallet || $senderWallet->balance < $gift->coin_price) {
-            return response()->json(['message' => 'Insufficient balance.'], 422);
-        }
+        $senderWallet = $this->walletService->getOrCreateWallet($user, 'system');
+        $grossAmount  = (int) $gift->coin_price; // in minor units (kobo)
+        $idemKey      = $validated['idempotency_key'] ?? ('GIFT-' . Str::uuid());
+        $sessionId    = $validated['session_id'] ?? null;
 
-        $transaction = DB::transaction(function () use ($user, $recipient, $gift, $validated, $creatorWallet, $senderWallet) {
-            $senderWallet->decrement('balance', $gift->coin_price);
+        // Calculate receiving fee before the transaction so we can validate it
+        $feeRes   = $this->feeCalculator->calculate('GIFT_RECEIVING', $grossAmount, $senderWallet->currency);
+        $feeAmt   = $feeRes['fee_amount'];
+        $netEarns = $feeRes['net_amount'];
 
-            $creatorWallet->increment('total_gifts_received');
-            $creatorWallet->increment('gross_earnings', $gift->coin_price);
-            $creatorWallet->increment('platform_fees', $gift->platform_commission);
-            $creatorWallet->increment('net_earnings', $gift->creator_earns);
-            $creatorWallet->increment('pending_balance', $gift->creator_earns);
+        $isAnonymous = (bool) ($validated['is_anonymous'] ?? false);
+        $senderLabel = $isAnonymous
+            ? ($validated['sender_display_name'] ?: 'Someone')
+            : '@' . $user->username;
+
+        $isNew = false;
+        $transaction = DB::transaction(function () use ($user, $recipient, $gift, $validated, $senderWallet, $grossAmount, $feeAmt, $netEarns, $idemKey, $sessionId, &$isNew) {
+            // Idempotency check inside transaction with lock to prevent race conditions
+            $existing = GiftTransaction::where('sender_id', $user->id)
+                ->where('idempotency_key', $idemKey)
+                ->lockForUpdate()
+                ->first();
+            if ($existing) {
+                // Verify the stored transaction matches the current request — a reused key
+                // with a different payload must not be served as a successful duplicate.
+                if ((int) $existing->gift_id !== $gift->id
+                    || (int) $existing->recipient_id !== $recipient->id
+                    || (int) $existing->sender_id !== $user->id) {
+                    throw new \RuntimeException('Idempotency key was already used for a different gift.');
+                }
+                return $existing;
+            }
+            $isNew = true;
+
+            // Pessimistic balance check inside transaction using locked wallet row
+            $locked = Wallet::whereKey($senderWallet->id)->lockForUpdate()->firstOrFail();
+            if ($locked->available < $grossAmount) {
+                throw new InsufficientBalanceException('Insufficient System Wallet available balance.');
+            }
+
+            // Debit Sender System Wallet
+            $this->ledgerService->debit(
+                user: $user,
+                amount: $grossAmount,
+                currency: $senderWallet->currency,
+                walletType: 'system',
+                balanceCategory: 'available',
+                type: 'donation_out',
+                description: "Gift sent to @{$recipient->username}: {$gift->name}",
+                idempotencyKey: $idemKey . '-debit'
+            );
+
+            // Credit Recipient Creator Wallet
+            $this->ledgerService->credit(
+                user: $recipient,
+                amount: $netEarns,
+                currency: $senderWallet->currency,
+                walletType: 'creator',
+                balanceCategory: 'available',
+                type: 'creator_gift_receipt',
+                description: "Gift received from @{$user->username}: {$gift->name} (Net: {$netEarns}, Fee: {$feeAmt})",
+                idempotencyKey: $idemKey . '-credit',
+                metadata: ['sender_id' => $user->id, 'gift_id' => $gift->id, 'fee_amount' => $feeAmt]
+            );
+
+            // Credit the platform revenue account with the receiving fee so the ledger
+            // stays balanced: debit(gross) == credit(net) + credit(fee).
+            if ($feeAmt > 0) {
+                $this->ledgerService->creditPlatformRevenue(
+                    amount: $feeAmt,
+                    currency: $senderWallet->currency,
+                    description: "Gift receiving fee for gift #{$gift->id}",
+                    idempotencyKey: $idemKey . '-fee',
+                    metadata: ['sender_id' => $user->id, 'recipient_id' => $recipient->id, 'gift_id' => $gift->id]
+                );
+            }
 
             return GiftTransaction::create([
-                'sender_id' => $user->id,
-                'recipient_id' => $recipient->id,
-                'gift_id' => $gift->id,
-                'giftable_type' => $validated['giftable_type'],
-                'giftable_id' => $validated['giftable_id'],
-                'coin_price' => $gift->coin_price,
-                'creator_earns' => $gift->creator_earns,
-                'platform_commission' => $gift->platform_commission,
-                'status' => 'completed',
-                'is_anonymous' => $validated['is_anonymous'] ?? false,
-                'sender_display_name' => $validated['sender_display_name'] ?? $user->name,
-                'message' => $validated['message'] ?? null,
-                'is_public' => $validated['is_public'] ?? true,
-                'idempotency_key' => $validated['idempotency_key'],
+                'sender_id'           => $user->id,
+                'recipient_id'        => $recipient->id,
+                'gift_id'             => $gift->id,
+                'giftable_type'       => $validated['giftable_type'] ?? null,
+                'giftable_id'         => $validated['giftable_id'] ?? null,
+                'session_id'          => $sessionId,
+                'coin_price'          => $grossAmount,
+                'creator_earns'       => $netEarns,
+                'platform_commission' => $feeAmt,
+                'status'              => 'completed',
+                'is_anonymous'        => $validated['is_anonymous'] ?? false,
+                'sender_display_name' => (!empty($validated['is_anonymous']) && empty($validated['sender_display_name'])) ? 'Someone' : ($validated['sender_display_name'] ?? $user->name),
+                'message'             => $validated['message'] ?? null,
+                'is_public'           => $validated['is_public'] ?? true,
+                'idempotency_key'     => $idemKey,
             ]);
         });
 
-        $transaction->load(['gift', 'sender:id,name,username,avatar']);
-        return response()->json(['message' => 'Gift sent!', 'transaction' => $transaction], 201);
-    }
+        // Determine animation tier
+        $animationType = match (true) {
+            $grossAmount >= 500000 => 'full_screen', // ₦5,000+
+            $grossAmount >= 100000 => 'premium',     // ₦1,000+
+            $grossAmount >= 20000  => 'standard',    // ₦200+
+            default                => 'micro',
+        };
 
-    public function transactions(Request $request): JsonResponse
-    {
-        $query = GiftTransaction::with(['gift', 'sender:id,name,username,avatar', 'recipient:id,name,username,avatar']);
-        if ($request->user()->isAdmin()) {
-            $transactions = $query->latest()->paginate(15);
-        } else {
-            $transactions = $query->where('sender_id', $request->user()->id)
-                ->orWhere('recipient_id', $request->user()->id)
-                ->latest()
-                ->paginate(15);
+        // Broadcast real-time WebSocket event + notify recipient — only for newly created transactions
+        if ($isNew) {
+            event(new GiftSentEvent(
+                sender: $user,
+                recipient: $recipient,
+                gift: $gift,
+                amount: $grossAmount,
+                currency: $senderWallet->currency,
+                sessionId: $validated['session_id'] ?? null,
+                animationType: $animationType,
+                isAnonymous: $isAnonymous,
+                senderDisplayName: $validated['sender_display_name'] ?? null,
+            ));
+
+            $this->notifications->actionEmail(
+                user: $recipient,
+                title: 'Gift Received!',
+                bodyHtml: "<p>" . e($senderLabel) . " sent you a <strong>" . e($gift->name) . "</strong> gift!</p>",
+                template: 'gift_received'
+            );
         }
-        return response()->json($transactions);
+
+        $transaction->load(['gift', 'sender:id,name,username,avatar']);
+
+        return response()->json([
+            'message'        => 'Gift sent successfully!',
+            'transaction'    => $transaction,
+            'animation_type' => $animationType,
+        ], 201);
     }
 
-    public function wallet(Request $request): JsonResponse
+    public function leaderboard(Request $request, string $sessionId): JsonResponse
     {
-        $wallet = CreatorWallet::firstOrCreate(
-            ['user_id' => $request->user()->id],
-            [
-                'total_gifts_received' => 0, 'gross_earnings' => 0,
-                'platform_fees' => 0, 'net_earnings' => 0,
-                'pending_balance' => 0, 'available_balance' => 0,
-                'withdrawn_balance' => 0,
-            ]
-        );
-
-        $recentGifts = GiftTransaction::with(['gift', 'sender:id,name,username,avatar'])
-            ->where('recipient_id', $request->user()->id)
-            ->latest()
-            ->limit(20)
-            ->get();
-
-        $topGifts = GiftTransaction::where('recipient_id', $request->user()->id)
-            ->selectRaw('gift_id, COUNT(*) as count, SUM(coin_price) as total')
-            ->groupBy('gift_id')
-            ->with('gift')
-            ->orderByDesc('count')
+        // Filter on the stored session_id column directly.
+        // session_id is persisted on every GiftTransaction at creation time.
+        $topGifters = GiftTransaction::select('sender_id', DB::raw('SUM(coin_price) as total_sent'), DB::raw('COUNT(*) as total_gifts'))
+            ->where('session_id', $sessionId)
+            ->where('status', 'completed')
+            ->where('is_anonymous', false)
+            ->groupBy('sender_id')
+            ->orderBy('total_sent', 'desc')
+            ->with('sender:id,name,username,avatar')
             ->limit(10)
             ->get();
 
         return response()->json([
-            'wallet' => $wallet,
-            'recent_gifts' => $recentGifts,
-            'top_gifts' => $topGifts,
+            'data' => $topGifters,
         ]);
     }
 
-    public function requestPayout(Request $request): JsonResponse
-    {
-        $user = $request->user();
-
-        if (! $user->hasVerifiedKyc()) {
-            return response()->json([
-                'message' => 'Complete KYC identity verification before requesting a payout.',
-                'code' => 'KYC_REQUIRED',
-            ], 403);
-        }
-
-        $validated = $request->validate([
-            'amount' => ['required', 'numeric', 'min:0.01'],
-            'payment_method' => ['required', 'string', 'max:50'],
-            'payment_details' => ['required', 'string', 'max:500'],
-        ]);
-
-        $wallet = CreatorWallet::where('user_id', $request->user()->id)->firstOrFail();
-        $minPayout = config('murihspace.min_payout', 1000);
-
-        if ($validated['amount'] > $wallet->available_balance) {
-            return response()->json(['message' => 'Insufficient available balance.'], 422);
-        }
-        if ($validated['amount'] < $minPayout) {
-            return response()->json(['message' => "Minimum payout amount is {$minPayout}."], 422);
-        }
-
-        $payout = DB::transaction(function () use ($request, $validated, $wallet) {
-            $wallet->decrement('available_balance', $validated['amount']);
-            $wallet->increment('pending_balance', $validated['amount']);
-
-            return CreatorPayout::create([
-                'user_id' => $request->user()->id,
-                'amount' => $validated['amount'],
-                'platform_fee' => 0,
-                'net_amount' => $validated['amount'],
-                'payment_method' => $validated['payment_method'],
-                'payment_details' => $validated['payment_details'],
-                'status' => 'pending',
-            ]);
-        });
-
-        return response()->json(['message' => 'Payout requested.', 'payout' => $payout], 201);
-    }
-
-    public function payouts(Request $request): JsonResponse
-    {
-        $payouts = CreatorPayout::where('user_id', $request->user()->id)->latest()->paginate(15);
-        return response()->json($payouts);
-    }
-
-    public function adminGifts(Request $request): JsonResponse
-    {
-        return response()->json(Gift::orderBy('sort_order')->get());
-    }
-
-    public function adminStoreGift(Request $request): JsonResponse
+    public function transactions(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'icon_url' => ['nullable', 'string', 'url', 'max:500'],
-            'animation_url' => ['nullable', 'string', 'url', 'max:500'],
-            'coin_price' => ['required', 'integer', 'min:1'],
-            'creator_earns' => ['required', 'integer', 'min:0'],
-            'platform_commission' => ['required', 'integer', 'min:0'],
-            'category' => ['required', Rule::in(Gift::CATEGORIES)],
-            'sort_order' => ['nullable', 'integer', 'min:0'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ]);
 
-        $gift = Gift::create($validated);
-        return response()->json(['message' => 'Gift created.', 'gift' => $gift], 201);
-    }
+        $transactions = GiftTransaction::where('sender_id', $request->user()->id)
+            ->orWhere('recipient_id', $request->user()->id)
+            ->with(['gift', 'sender:id,name,username', 'recipient:id,name,username'])
+            ->latest()
+            ->paginate($validated['per_page'] ?? 20);
 
-    public function adminUpdateGift(Request $request, int $id): JsonResponse
-    {
-        $gift = Gift::findOrFail($id);
-        $validated = $request->validate([
-            'name' => ['sometimes', 'string', 'max:255'],
-            'icon_url' => ['nullable', 'string', 'url', 'max:500'],
-            'animation_url' => ['nullable', 'string', 'url', 'max:500'],
-            'coin_price' => ['sometimes', 'integer', 'min:1'],
-            'creator_earns' => ['sometimes', 'integer', 'min:0'],
-            'platform_commission' => ['sometimes', 'integer', 'min:0'],
-            'category' => ['sometimes', Rule::in(Gift::CATEGORIES)],
-            'is_active' => ['sometimes', 'boolean'],
-            'sort_order' => ['nullable', 'integer', 'min:0'],
-        ]);
-
-        $gift->update($validated);
-        return response()->json(['message' => 'Gift updated.', 'gift' => $gift]);
-    }
-
-    public function adminDeleteGift(Request $request, int $id): JsonResponse
-    {
-        Gift::findOrFail($id)->delete();
-        return response()->json(['message' => 'Gift removed.']);
-    }
-
-    public function adminReorderGifts(Request $request): JsonResponse
-    {
-        $validated = $request->validate([
-            'order' => ['required', 'array'],
-            'order.*.id' => ['required', 'exists:gifts,id'],
-            'order.*.sort_order' => ['required', 'integer', 'min:0'],
-        ]);
-
-        foreach ($validated['order'] as $item) {
-            Gift::where('id', $item['id'])->update(['sort_order' => $item['sort_order']]);
-        }
-
-        return response()->json(['message' => 'Gift order updated.']);
-    }
-
-    public function adminPayouts(Request $request): JsonResponse
-    {
-        $payouts = CreatorPayout::with('user:id,name,username')->latest()->paginate(20);
-        return response()->json($payouts);
-    }
-
-    public function adminApprovePayout(Request $request, int $id): JsonResponse
-    {
-        $payout = CreatorPayout::findOrFail($id);
-        $payout->update([
-            'status' => 'approved',
-            'approved_by' => $request->user()->id,
-            'approved_at' => now(),
-        ]);
-
-        $user = \App\Models\User::find($payout->user_id);
-        $this->notifications->actionEmail(
-            user: $user,
-            title: 'Your payout request has been approved',
-            bodyHtml: '<p>Your payout request of <strong>'.e('MSH').' '.number_format((float) $payout->amount, 2).'</strong> has been <strong>approved</strong>. It will be paid out shortly.</p>',
-            template: 'payout_approved',
-            data: ['amount' => number_format((float) $payout->amount, 2)],
-        );
-
-        return response()->json(['message' => 'Payout approved.', 'payout' => $payout]);
-    }
-
-    public function adminRejectPayout(Request $request, int $id): JsonResponse
-    {
-        $payout = CreatorPayout::findOrFail($id);
-        $wallet = CreatorWallet::where('user_id', $payout->user_id)->first();
-
-        DB::transaction(function () use ($payout, $wallet, $request) {
-            $payout->update([
-                'status' => 'rejected',
-                'admin_notes' => $request->input('reason'),
-            ]);
-            if ($wallet) {
-                $wallet->decrement('pending_balance', $payout->amount);
-                $wallet->increment('available_balance', $payout->amount);
-            }
-        });
-
-        $user = \App\Models\User::find($payout->user_id);
-        $this->notifications->actionEmail(
-            user: $user,
-            title: 'Your payout request was declined',
-            bodyHtml: '<p>Your payout request of <strong>'.e('MSH').' '.number_format((float) $payout->amount, 2).'</strong> was not approved and the amount has been returned to your wallet.</p>',
-            actionLabel: 'View wallet',
-            actionUrl: NotificationService::link('wallet'),
-            template: 'payout_rejected',
-            data: ['amount' => number_format((float) $payout->amount, 2)],
-        );
-
-        return response()->json(['message' => 'Payout rejected.']);
-    }
-
-    public function adminMarkPaid(Request $request, int $id): JsonResponse
-    {
-        $payout = CreatorPayout::findOrFail($id);
-        $wallet = CreatorWallet::where('user_id', $payout->user_id)->first();
-
-        $user = \App\Models\User::find($payout->user_id);
-        if ($user && ! $user->hasVerifiedKyc()) {
-            return response()->json([
-                'message' => 'This user has not completed KYC identity verification. Payouts are blocked until KYC is verified.',
-                'code' => 'KYC_REQUIRED',
-            ], 403);
-        }
-
-        DB::transaction(function () use ($payout, $wallet, $request) {
-            $payout->update([
-                'status' => 'paid',
-                'paid_at' => now(),
-            ]);
-            if ($wallet) {
-                $wallet->decrement('pending_balance', $payout->amount);
-                $wallet->increment('withdrawn_balance', $payout->amount);
-            }
-        });
-
-        $this->notifications->actionEmail(
-            user: $user,
-            title: 'Your payout has been paid',
-            bodyHtml: '<p>Your payout of <strong>'.e('MSH').' '.number_format((float) $payout->amount, 2).'</strong> has been <strong>paid</strong> and is on its way to your account.</p>',
-            actionLabel: 'View payout history',
-            actionUrl: NotificationService::link('settings/payouts'),
-            template: 'payout_paid',
-            data: ['amount' => number_format((float) $payout->amount, 2)],
-        );
-
-        return response()->json(['message' => 'Payout marked as paid.']);
-    }
-
-    public function adminStats(Request $request): JsonResponse
-    {
-        $stats = GiftTransaction::selectRaw('
-            COUNT(*) as total_transactions,
-            SUM(coin_price) as total_volume,
-            SUM(platform_commission) as total_commission
-        ')->first();
-
-        return response()->json($stats);
-    }
-
-    public function adminToggleGifting(Request $request, int $userId): JsonResponse
-    {
-        $wallet = CreatorWallet::where('user_id', $userId)->firstOrFail();
-        $wallet->update(['gifting_enabled' => !$wallet->gifting_enabled]);
-        return response()->json(['message' => 'Gifting toggled.', 'gifting_enabled' => $wallet->gifting_enabled]);
+        return response()->json($transactions);
     }
 }

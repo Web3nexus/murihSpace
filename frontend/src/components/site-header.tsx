@@ -35,25 +35,24 @@ export function SiteHeader() {
   const [msgCount, setMsgCount] = useState(0);
 
   useEffect(() => {
+    const countTotal = (res: { data?: unknown }): number => {
+      const body = (res.data as Record<string, unknown> | undefined)?.data ?? res.data;
+      const list = Array.isArray(body) ? body : (body as Record<string, unknown> | undefined)?.data;
+      const total = (body as Record<string, unknown> | undefined)?.total;
+      return Number(total) || (Array.isArray(list) ? list.length : 0);
+    };
+
     apiClient
       .get("/notifications?unread_only=true&per_page=1")
       .then((res) => {
-        const total =
-          res.data?.meta?.total ??
-          res.data?.total ??
-          (Array.isArray(res.data?.data) ? res.data.data.length : 0);
-        setNotifCount(Number(total) || 0);
+        setNotifCount(countTotal(res));
       })
       .catch(() => {});
 
     apiClient
       .get("/conversations?unread_only=true&per_page=1")
       .then((res) => {
-        const total =
-          res.data?.meta?.total ??
-          res.data?.total ??
-          (Array.isArray(res.data?.data) ? res.data.data.length : 0);
-        setMsgCount(Number(total) || 0);
+        setMsgCount(countTotal(res));
       })
       .catch(() => {});
   }, []);

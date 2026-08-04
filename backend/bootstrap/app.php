@@ -1,5 +1,6 @@
 <?php
 
+use App\Exceptions\InsufficientBalanceException;
 use App\Http\Middleware\CaptureRequestAndEnvelopeResponse;
 use App\Http\Middleware\EnsureEmailIsVerified;
 use App\Http\Middleware\IsAdmin;
@@ -30,6 +31,10 @@ return Application::configure(basePath: dirname(__DIR__))
             SecurityHeaders::class,
         ]);
 
+        $middleware->api(append: [
+            \App\Http\Middleware\ActivityLogMiddleware::class,
+        ]);
+
         $middleware->alias([
             'admin'            => IsAdmin::class,
             'admin.permission' => \App\Http\Middleware\EnsureAdminPermission::class,
@@ -55,6 +60,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 $status = 500;
                 $message = $e->getMessage() ?: 'Internal Server Error';
                 $errors = null;
+                $code = null;
 
                 if ($e instanceof HttpExceptionInterface) {
                     $status = $e->getStatusCode();
@@ -65,19 +71,28 @@ return Application::configure(basePath: dirname(__DIR__))
                 } elseif ($e instanceof AuthenticationException) {
                     $status = 401;
                     $message = $e->getMessage() ?: 'Unauthenticated';
+                } elseif ($e instanceof InsufficientBalanceException) {
+                    $status = 422;
+                    $code = InsufficientBalanceException::CODE;
                 }
 
                 $requestId = $request->header('X-Request-ID')
                     ?: $request->headers->get('X-Request-ID')
                     ?: (string) Str::uuid();
 
-                return response()->json([
+                $body = [
                     'success' => false,
                     'request_id' => $requestId,
                     'data' => null,
                     'message' => $message,
                     'errors' => $errors,
-                ], $status)->header('X-Request-ID', $requestId);
+                ];
+
+                if ($code !== null) {
+                    $body['code'] = $code;
+                }
+
+                return response()->json($body, $status)->header('X-Request-ID', $requestId);
             }
         });
     })->create();

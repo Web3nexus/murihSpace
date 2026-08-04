@@ -58,8 +58,13 @@ export function HomePage() {
               Launch Your Workspace <ArrowRight className="h-5 w-5" />
             </Button>
           </Link>
-          <Link to="/app">
+          <Link to="/communities">
             <Button size="lg" variant="outline" className="px-8 text-base font-semibold border-border">
+              Explore Communities
+            </Button>
+          </Link>
+          <Link to="/app">
+            <Button size="lg" variant="ghost" className="px-6 text-base font-semibold">
               Console Preview
             </Button>
           </Link>
@@ -156,8 +161,10 @@ export function HomePage() {
             <span>© 2026 MurihSpace Ecosystem. All rights reserved.</span>
           </div>
           <div className="flex items-center gap-6">
+            <Link to="/help" className="hover:text-foreground">Help Center</Link>
             <Link to="/privacy" className="hover:text-foreground">Privacy Policy</Link>
             <Link to="/terms" className="hover:text-foreground">Terms of Service</Link>
+            <Link to="/cookies" className="hover:text-foreground">Cookies</Link>
             <Link to="/app" className="hover:text-foreground font-semibold text-secondary">Ecosystem Console</Link>
           </div>
         </div>

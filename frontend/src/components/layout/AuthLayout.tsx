@@ -1,6 +1,5 @@
 import React from "react";
 import { Link } from "react-router";
-import { ArrowLeft } from "lucide-react";
 
 interface AuthLayoutProps {
   children: React.ReactNode;
@@ -11,27 +10,12 @@ interface AuthLayoutProps {
 
 export const AuthLayout: React.FC<AuthLayoutProps> = ({
   children,
-  headlineText = "Explore the things you",
-  accentText = "love.",
+  headlineText = "Better connection",
+  accentText = "with safety.",
   subText = "Connect with communities, sell digital & physical products, host live audio rooms, and grow your audience.",
 }) => {
   return (
     <div className="min-h-screen w-full bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col justify-between selection:bg-[#2164b6]/20 selection:text-[#2164b6]">
-      {/* Top Header Bar */}
-      <header className="w-full px-6 py-4 flex items-center justify-between max-w-7xl mx-auto">
-        <Link
-          to="/"
-          id="auth-top-back-link"
-          className="inline-flex items-center gap-2 text-xs font-semibold text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors"
-        >
-          <ArrowLeft className="h-4 w-4" /> Back to home
-        </Link>
-        <Link to="/" className="flex items-center gap-2">
-          <img src="/logo_blue.png" alt="MurihSpace" className="h-7 w-auto object-contain dark:hidden" />
-          <img src="/logo_white.png" alt="MurihSpace" className="h-7 w-auto object-contain hidden dark:block" />
-        </Link>
-      </header>
-
       {/* Main Two-Sided Section (Facebook Login Style) */}
       <main className="w-full max-w-7xl mx-auto px-6 py-6 lg:py-10 grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 items-center flex-1">
         {/* LEFT COLUMN: Brand Hero & Visual Showcase */}
@@ -89,16 +73,13 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex flex-wrap items-center justify-center md:justify-start gap-x-4 gap-y-1">
             <span className="text-slate-800 dark:text-slate-200 font-semibold">English (UK)</span>
-            <span className="hover:underline cursor-pointer">Hausa</span>
-            <span className="hover:underline cursor-pointer">Français</span>
-            <span className="hover:underline cursor-pointer">Português</span>
-            <span className="hover:underline cursor-pointer">Español</span>
-            <span className="hover:underline cursor-pointer">Bahasa Indonesia</span>
           </div>
 
           <div className="flex items-center gap-4 text-xs">
+            <Link to="/help" className="hover:underline">Help Center</Link>
             <Link to="/privacy" className="hover:underline">Privacy Policy</Link>
             <Link to="/terms" className="hover:underline">Terms of Service</Link>
+            <Link to="/cookies" className="hover:underline">Cookies</Link>
             <span>© {new Date().getFullYear()} MurihSpace Ecosystem</span>
           </div>
         </div>

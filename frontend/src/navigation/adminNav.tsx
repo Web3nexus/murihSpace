@@ -26,6 +26,9 @@ import {
   Mail,
   MailOpen,
   LinkIcon,
+  Receipt,
+  Wallet,
+  KeyRound,
 } from "lucide-react";
 import type { NavGroup } from "./navTypes";
 
@@ -149,6 +152,16 @@ export const adminNav: NavGroup[] = [
         url: "/app/securegate/coin-packs",
         icon: <BadgeDollarSign className="size-4" />,
       },
+      {
+        title: "Wallet Ledger",
+        url: "/app/securegate/wallets",
+        icon: <Wallet className="size-4" />,
+      },
+      {
+        title: "Platform Fees",
+        url: "/app/securegate/fees",
+        icon: <Receipt className="size-4" />,
+      },
     ],
   },
   {
@@ -218,6 +231,11 @@ export const adminNav: NavGroup[] = [
         title: "AI Providers",
         url: "/app/securegate/ai-settings",
         icon: <Sparkles className="size-4" />,
+      },
+      {
+        title: "Auth Methods",
+        url: "/app/securegate/auth-methods",
+        icon: <KeyRound className="size-4" />,
       },
       {
         title: "Storage",

@@ -82,11 +82,10 @@ return [
         'redirect' => env('GOOGLE_REDIRECT_URI'),
     ],
 
-    'facebook' => [
-        'client_id' => env('FACEBOOK_CLIENT_ID'),
-        'client_secret' => env('FACEBOOK_CLIENT_SECRET'),
-        'redirect' => env('FACEBOOK_REDIRECT_URI'),
-    ],
+    // Facebook login has been permanently removed from the platform. The
+    // account data of users who previously signed in with Facebook is
+    // preserved; only the provider link is cleared (see the
+    // migrate_facebook_accounts migration). No Facebook OAuth config exists.
 
     'apple' => [
         'client_id' => env('APPLE_CLIENT_ID'),
@@ -95,6 +94,40 @@ return [
         'team_id' => env('APPLE_TEAM_ID'),
         'key_id' => env('APPLE_KEY_ID'),
         'private_key' => env('APPLE_PRIVATE_KEY'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Phone OTP (Twilio Verify)
+    |--------------------------------------------------------------------------
+    |
+    | Phone verification is MurihSpace's default authentication method. Codes
+    | are never generated or stored locally for the Twilio driver: Twilio Verify
+    | starts the verification and checks the code on our behalf.
+    |
+    | OTP_DRIVER selects the driver:
+    |   - twilio  real Twilio Verify (production)
+    |   - log     local dev/test driver that writes the code to the log and a
+    |             temporary cache key (never used in production)
+    |
+    | All values below are runtime-only secrets; they are never exposed to the
+    | frontend.
+    */
+    'twilio' => [
+        'account_sid' => env('TWILIO_ACCOUNT_SID'),
+        'auth_token' => env('TWILIO_AUTH_TOKEN'),
+        'verify_service_sid' => env('TWILIO_VERIFY_SERVICE_SID'),
+        'default_country' => env('TWILIO_DEFAULT_COUNTRY', 'NG'),
+        'channel' => env('TWILIO_OTP_CHANNEL', 'sms'),
+        'otp_driver' => env('OTP_DRIVER', 'twilio'),
+        'code_ttl' => (int) env('OTP_CODE_TTL', 10),
+        'resend_cooldown' => (int) env('OTP_RESEND_COOLDOWN', 60),
+        'max_per_number_per_hour' => (int) env('OTP_MAX_PER_NUMBER_PER_HOUR', 5),
+        'max_per_ip_per_hour' => (int) env('OTP_MAX_PER_IP_PER_HOUR', 10),
+        'max_per_device_per_hour' => (int) env('OTP_MAX_PER_DEVICE_PER_HOUR', 10),
+        'max_daily_per_number' => (int) env('OTP_MAX_DAILY_PER_NUMBER', 10),
+        'max_verify_attempts' => (int) env('OTP_MAX_VERIFY_ATTEMPTS', 5),
+        'blocked_countries' => array_values(array_filter(array_map('trim', explode(',', (string) env('OTP_BLOCKED_COUNTRIES', ''))))),
     ],
 
 ];

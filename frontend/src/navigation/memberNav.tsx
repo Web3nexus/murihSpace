@@ -60,6 +60,10 @@ export const memberNav: NavGroup[] = [
         url: "/app/events",
         icon: <Calendar className="size-4" />,
         featureFlag: "events",
+        children: [
+          { title: "Events", url: "/app/communities/events" },
+          { title: "My Events", url: "/app/my-events" },
+        ],
       },
     ],
   },

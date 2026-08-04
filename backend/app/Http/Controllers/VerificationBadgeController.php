@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Services\Wallet\LedgerService;
+use App\Services\Wallet\WalletService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -12,6 +13,7 @@ class VerificationBadgeController extends Controller
 
     public function __construct(
         private LedgerService $ledgerService,
+        private WalletService $walletService,
     ) {}
 
     public function status(Request $request): JsonResponse
@@ -26,7 +28,7 @@ class VerificationBadgeController extends Controller
                 'auto_renew' => (bool) $user->verification_badge_auto_renew,
                 'kyc_verified' => $user->hasVerifiedKyc(),
                 'monthly_fee' => (int) config('murihspace.verification_badge_fee'),
-                'wallet_balance' => (int) ($user->wallet?->balance ?? 0),
+                'wallet_balance' => (int) ($this->walletService->getOrCreateWallet($user, 'system')->available),
             ],
         ]);
     }
@@ -63,9 +65,9 @@ class VerificationBadgeController extends Controller
 
         // 2. Check wallet balance
         $fee = (int) config('murihspace.verification_badge_fee');
-        $wallet = $this->ledgerService->getOrCreateWallet($user->id);
+        $wallet = $this->walletService->getOrCreateWallet($user, 'system');
 
-        if ($wallet->balance < $fee) {
+        if ($wallet->available < $fee) {
             $user->update(['verification_badge_status' => 'payment_pending']);
 
             return response()->json([
@@ -73,19 +75,21 @@ class VerificationBadgeController extends Controller
                 'code' => 'INSUFFICIENT_BALANCE',
                 'status' => 'payment_pending',
                 'fee' => $fee,
-                'wallet_balance' => (int) $wallet->balance,
+                'wallet_balance' => (int) $wallet->available,
             ], 422);
         }
 
         // 3. Debit fee and update status atomically
-        \DB::transaction(function () use ($user, $fee) {
+        \DB::transaction(function () use ($user, $fee, $wallet) {
             $this->ledgerService->debit(
-                $user->id,
-                $fee,
-                'MSH',
-                'verification_badge',
-                'Verified badge application (1 month)',
-                ['badge' => true],
+                user: $user,
+                amount: $fee,
+                currency: $wallet->currency,
+                walletType: 'system',
+                balanceCategory: 'available',
+                type: 'fee',
+                description: 'Verified badge application (1 month)',
+                metadata: ['badge' => true],
             );
 
             $now = now();
@@ -126,9 +130,9 @@ class VerificationBadgeController extends Controller
         }
 
         $fee = (int) config('murihspace.verification_badge_fee');
-        $wallet = $this->ledgerService->getOrCreateWallet($user->id);
+        $wallet = $this->walletService->getOrCreateWallet($user, 'system');
 
-        if ($wallet->balance < $fee) {
+        if ($wallet->available < $fee) {
             return response()->json([
                 'message' => "Insufficient wallet balance. Renewal costs {$fee} tokens per month.",
                 'code' => 'INSUFFICIENT_BALANCE',
@@ -136,12 +140,14 @@ class VerificationBadgeController extends Controller
         }
 
         $this->ledgerService->debit(
-            $user->id,
-            $fee,
-            'MSH',
-            'verification_badge_renewal',
-            'Verified badge renewal (1 month)',
-            ['badge' => true, 'renewal' => true],
+            user: $user,
+            amount: $fee,
+            currency: $wallet->currency,
+            walletType: 'system',
+            balanceCategory: 'available',
+            type: 'fee',
+            description: 'Verified badge renewal (1 month)',
+            metadata: ['badge' => true, 'renewal' => true],
         );
 
         $base = $user->verification_badge_expires_at && $user->verification_badge_expires_at->isFuture()

@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Models\WithdrawalRequest;
 use App\Services\NotificationService;
 use App\Services\Wallet\LedgerService;
+use App\Services\Wallet\WalletService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -13,6 +14,7 @@ class WithdrawalController extends Controller
 {
     public function __construct(
         private LedgerService $ledgerService,
+        private WalletService $walletService,
         private NotificationService $notifications,
     ) {}
 
@@ -28,19 +30,32 @@ class WithdrawalController extends Controller
         }
 
         $validated = $request->validate([
-            'amount' => ['required', 'integer', 'min:100'],
-            'currency' => ['nullable', 'string', 'max:3'],
-            'pin' => ['required', 'string', 'digits:4'],
+            'wallet_type' => ['nullable', 'string', 'in:system,creator,business'],
+            'amount'      => ['required', 'integer', 'min:100'],
+            'currency'    => ['nullable', 'string', 'max:3'],
+            'pin'         => ['required', 'string', 'digits:4'],
         ]);
 
-        $wallet = $this->ledgerService->getOrCreateWallet($request->user()->id);
+        $walletType = $validated['wallet_type'] ?? 'creator';
+
+        if ($walletType === 'system' && ! $user->isSuperAdmin()) {
+            return response()->json([
+                'message' => 'System wallet funds cannot be withdrawn directly. Creator and business earnings can be withdrawn from their respective wallets.',
+                'code'    => 'SYSTEM_WALLET_WITHDRAWAL_RESTRICTED',
+            ], 403);
+        }
+
+        $walletService = $this->walletService;
+        $wallet = $walletService->getOrCreateWallet($user, $walletType);
 
         if (! $wallet->verifyPin($validated['pin'])) {
             return response()->json(['message' => 'Incorrect transaction PIN.', 'code' => 'INVALID_TRANSACTION_PIN'], 403);
         }
 
-        if ($wallet->balance < $validated['amount']) {
-            return response()->json(['message' => 'Insufficient balance.', 'code' => 'INSUFFICIENT_BALANCE'], 422);
+        // `withdrawable` is the authoritative column for withdrawal eligibility.
+        // A zero withdrawable balance means no funds are eligible — do not fall back to `available`.
+        if ($wallet->withdrawable < $validated['amount']) {
+            return response()->json(['message' => 'Insufficient withdrawable balance.', 'code' => 'INSUFFICIENT_BALANCE'], 422);
         }
 
         $currency = $validated['currency'] ?? 'NGN';
@@ -137,18 +152,23 @@ class WithdrawalController extends Controller
             ], 403);
         }
 
-        $wallet = $this->ledgerService->getOrCreateWallet($withdrawal->user_id);
+        // Resolve wallet via WalletService (LedgerService no longer exposes getOrCreateWallet)
+        $walletType = $withdrawal->wallet_type ?? 'creator';
+        $wallet = $this->walletService->getOrCreateWallet($user, $walletType);
 
-        if ($wallet->balance < $withdrawal->amount) {
-            return response()->json(['message' => 'Insufficient balance for withdrawal.', 'code' => 'INSUFFICIENT_BALANCE'], 422);
+        if ($wallet->withdrawable < $withdrawal->amount) {
+            return response()->json(['message' => 'Insufficient withdrawable balance for withdrawal.', 'code' => 'INSUFFICIENT_BALANCE'], 422);
         }
 
         $ledgerTxn = $this->ledgerService->debit(
-            $withdrawal->user_id,
-            $withdrawal->amount,
-            $withdrawal->currency,
-            'withdrawal',
-            "Withdrawal request #{$withdrawal->id}",
+            user: $user,
+            amount: $withdrawal->amount,
+            currency: $withdrawal->currency,
+            walletType: $walletType,
+            balanceCategory: 'withdrawable',
+            type: 'withdrawal',
+            description: "Withdrawal request #{$withdrawal->id}",
+            idempotencyKey: "WDR-{$withdrawal->id}",
         );
 
         $withdrawal->update([

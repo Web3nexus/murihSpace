@@ -15,6 +15,7 @@ import { ChatLayout } from "@/components/layout/ChatLayout";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { CommunitiesPage } from "@/pages/CommunitiesPage";
 import { CommunityPreviewPage } from "@/pages/CommunityPreviewPage";
+import { PublicCommunitiesPage } from "@/pages/PublicCommunitiesPage";
 import CommunityFeedPage from "@/pages/CommunityFeedPage";
 import SearchPage from "@/pages/SearchPage";
 import { EventsPage } from "@/pages/EventsPage";
@@ -95,6 +96,7 @@ import AdminModerationLogsPage from "@/pages/AdminModerationLogsPage";
 import AdminSystemHealthPage from "@/pages/AdminSystemHealthPage";
 import AdminAuditTrailPage from "@/pages/AdminAuditTrailPage";
 import AdminSettingsPage from "@/pages/AdminSettingsPage";
+import AdminAuthMethodsPage from "@/pages/AdminAuthMethodsPage";
 import AdminAiSettingsPage from "@/pages/AdminAiSettingsPage";
 import AdminEmailEngineSettingsPage from "@/pages/AdminEmailEngineSettingsPage";
 import AdminEmailTemplatesPage from "@/pages/AdminEmailTemplatesPage";
@@ -120,6 +122,8 @@ import ContentPlannerPage from "@/pages/ContentPlannerPage";
 import AdCampaignPage from "@/pages/AdCampaignPage";
 import GiftsPage from "@/pages/GiftsPage";
 import CreatorWalletPage from "@/pages/CreatorWalletPage";
+import BusinessWalletPage from "@/pages/BusinessWalletPage";
+import { AdminFeeManagementPage } from "@/pages/AdminFeeManagementPage";
 import AdminAdsPage from "@/pages/AdminAdsPage";
 import AdminGiftsPage from "@/pages/AdminGiftsPage";
 import AdminCoinPacksPage from "@/pages/AdminCoinPacksPage";
@@ -130,6 +134,10 @@ import {
 } from "@/components/common/UIStateComponents";
 import { RoutePaths } from "./route-paths";
 import { SocialAuthCallbackPage } from "@/pages/SocialAuthCallbackPage";
+import PrivacyPolicyPage from "@/pages/PrivacyPolicyPage";
+import TermsOfServicePage from "@/pages/TermsOfServicePage";
+import CookiesPolicyPage from "@/pages/CookiesPolicyPage";
+import HelpCenterPage from "@/pages/HelpCenterPage";
 
 
 export const routes: RouteObject[] = [
@@ -142,6 +150,11 @@ export const routes: RouteObject[] = [
   { path: RoutePaths.REGISTER, element: <RegisterPage /> },
   { path: "/social/callback", element: <SocialAuthCallbackPage /> },
   { path: "/store/:shortCode", element: <PublicStorefrontPage /> },
+  { path: "/communities", element: <PublicCommunitiesPage /> },
+  { path: "/privacy", element: <PrivacyPolicyPage /> },
+  { path: "/terms", element: <TermsOfServicePage /> },
+  { path: "/cookies", element: <CookiesPolicyPage /> },
+  { path: "/help", element: <HelpCenterPage /> },
 
   // ── Authenticated Dashboard (sidebar-07 shell) ─
   {
@@ -457,6 +470,10 @@ export const routes: RouteObject[] = [
         element: <WalletPage />,
       },
       {
+        path: "wallet/business",
+        element: <ProtectedRoute requiredRole="creator"><BusinessWalletPage /></ProtectedRoute>,
+      },
+      {
         path: "wallet/sales",
         element: <SalesOrdersPage />,
       },
@@ -622,6 +639,10 @@ export const routes: RouteObject[] = [
         element: <ProtectedRoute requiredRole="admin"><AdminVerificationBadgesPage /></ProtectedRoute>,
       },
       {
+        path: "securegate/fees",
+        element: <ProtectedRoute requiredRole="admin"><AdminFeeManagementPage /></ProtectedRoute>,
+      },
+      {
         path: "securegate/queue",
         element: <ProtectedRoute requiredRole="admin"><QueueMonitorPage /></ProtectedRoute>,
       },
@@ -676,6 +697,10 @@ export const routes: RouteObject[] = [
       {
         path: "securegate/social-login",
         element: <ProtectedRoute requiredRole="admin"><AdminSocialLoginSettingsPage /></ProtectedRoute>,
+      },
+      {
+        path: "securegate/auth-methods",
+        element: <ProtectedRoute requiredRole="admin"><AdminAuthMethodsPage /></ProtectedRoute>,
       },
       {
         path: "securegate/creator-qualification",

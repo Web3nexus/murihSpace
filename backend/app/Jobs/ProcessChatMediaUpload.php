@@ -56,21 +56,25 @@ class ProcessChatMediaUpload implements ShouldQueue
 
             $this->cleanTemp($local);
 
-            $this->media->incrementReferenceCount();
-            $this->message->update([
-                'media_id' => $this->media->id,
-                'media_status' => Message::MEDIA_STATUS_READY,
-                'status' => Message::STATUS_SENT,
-                'attachment_url' => $this->media->url,
-            ]);
-
             $mediaType = $quota->classifyMimeType($this->media->mime_type);
 
-            $quota->addUsage('user', $this->message->user_id, $mediaType, $this->media->size_bytes);
+            \Illuminate\Support\Facades\DB::transaction(function () use ($quota, $mediaType) {
+                $this->media->incrementReferenceCount();
+                $this->message->update([
+                    'media_id' => $this->media->id,
+                    'media_status' => Message::MEDIA_STATUS_READY,
+                    'status' => Message::STATUS_SENT,
+                    'attachment_url' => $this->media->url,
+                ]);
 
-            if ($this->community) {
-                $quota->addUsage('community', $this->community->id, $mediaType, $this->media->size_bytes);
-            }
+                $quota->addUsage('user', $this->message->user_id, $mediaType, $this->media->size_bytes);
+
+                if ($this->community) {
+                    $quota->addUsage('community', $this->community->id, $mediaType, $this->media->size_bytes);
+                }
+
+                app(\App\Services\MediaRetentionService::class)->markAvailable($this->media);
+            });
         } catch (\Throwable $e) {
             $this->failWith('Processing failed: ' . $e->getMessage());
         }

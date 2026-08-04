@@ -31,6 +31,38 @@ class CommunityController extends Controller
         return response()->json($communities);
     }
 
+    /**
+     * Public community discovery — no authentication required.
+     * Only returns public communities for the marketing/landing page.
+     */
+    public function publicIndex(Request $request): JsonResponse
+    {
+        $search = $request->query('search');
+        $category = $request->query('category');
+
+        $query = Community::with('creator:id,name,username,avatar')
+            ->publicOnly()
+            ->withCount(['memberships as member_count' => fn ($q) => $q->where('status', 'active')]);
+
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('description', 'like', "%{$search}%");
+            });
+        }
+
+        if ($category) {
+            $query->where('category', $category);
+        }
+
+        $communities = $query->latest()->paginate(18);
+
+        return response()->json([
+            'success' => true,
+            'data' => $communities,
+        ]);
+    }
+
     public function show(string $slug): JsonResponse
     {
         $community = Community::with('creator:id,name,username,avatar')

@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
 import { useAuth } from "@/hooks/useAuth";
 import { apiClient } from "@/lib/api/client";
+import { getLogo } from "@/lib/logoConfig";
+import type { UserRole } from "@/lib/logoConfig";
 import {
   Sidebar,
   SidebarContent,
@@ -96,6 +98,10 @@ function BrandLogo({ role }: { role: UserRole }) {
   const isAdmin = role === "admin";
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
+  
+  const collapsedLogo = getLogo(role, "sidebar-collapsed", false);
+  const fullLogo = getLogo(role, "sidebar-full", false);
+  const roleLabel = ROLE_LABELS[role];
 
   return (
     <Link
@@ -104,19 +110,19 @@ function BrandLogo({ role }: { role: UserRole }) {
     >
       {collapsed ? (
         <img
-          src="/icon_white.png"
-          alt="MurihSpace"
+          src={collapsedLogo.url}
+          alt={collapsedLogo.alt}
           className="h-8 w-8 object-contain shrink-0 transition-transform group-hover:scale-105"
         />
       ) : (
         <div className="flex flex-col gap-1">
           <img
-            src="/logo_blue.png"
-            alt="MurihSpace"
+            src={fullLogo.url}
+            alt={fullLogo.alt}
             className="h-7 w-auto object-contain shrink-0 transition-transform group-hover:scale-105"
           />
           <span className="text-[9.5px] text-[#38A8D8] font-bold uppercase tracking-widest pl-0.5">
-            {ROLE_LABELS[role]}
+            {roleLabel}
           </span>
         </div>
       )}
@@ -353,14 +359,10 @@ export function AppSidebar({ ...props }: SidebarProps) {
     apiClient
       .get("/conversations?unread_only=true")
       .then((res) => {
-        const data = res.data;
-        if (Array.isArray(data)) {
-          setUnreadCount(data.length);
-        } else if (data?.data && Array.isArray(data.data)) {
-          setUnreadCount(data.data.length);
-        } else if (typeof data?.count === "number") {
-          setUnreadCount(data.count);
-        }
+        const body = (res.data as { data?: unknown } | undefined)?.data ?? res.data;
+        const list = Array.isArray(body) ? body : (body as { data?: unknown } | undefined)?.data;
+        const total = (res.data as { total?: unknown } | undefined)?.total ?? (body as { total?: unknown } | undefined)?.total;
+        setUnreadCount(Number(total) || (Array.isArray(list) ? list.length : 0));
       })
       .catch(() => {});
   }, []);

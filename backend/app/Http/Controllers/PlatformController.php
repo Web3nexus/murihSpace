@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\AdminSetting;
+use App\Services\AuthMethodConfigService;
 use App\Services\OAuthProviderService;
 use Illuminate\Http\JsonResponse;
 
@@ -10,6 +11,7 @@ class PlatformController extends Controller
 {
     public function __construct(
         private readonly OAuthProviderService $oauth,
+        private readonly AuthMethodConfigService $authMethods,
     ) {}
 
     /**
@@ -33,6 +35,7 @@ class PlatformController extends Controller
                 'app_download_url' => $downloadUrl,
                 'app_qr_content' => $downloadUrl,
                 'social_providers' => $socialProviders,
+                'auth_methods' => $this->authMethods->public(),
             ],
         ]);
     }

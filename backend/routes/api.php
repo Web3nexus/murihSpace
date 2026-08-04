@@ -6,6 +6,9 @@ use App\Http\Controllers\AdminKycController;
 use App\Http\Controllers\AdminManagementController;
 use App\Http\Controllers\AdminPlansController;
 use App\Http\Controllers\AdminUserController;
+use App\Http\Controllers\AdminWalletController;
+use App\Http\Controllers\AdminFeeController;
+use App\Http\Controllers\FeeController;
 use App\Http\Controllers\AdminStorageController;
 use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\AudioRoomController;
@@ -122,6 +125,16 @@ Route::prefix('v1')->group(function () {
         Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:auth');
         Route::get('/check-username/{username}', [AuthController::class, 'checkUsername'])->middleware('throttle:60,1');
 
+        // Public authentication-method config (no secrets) used to render login/registration.
+        Route::get('/methods', [\App\Http\Controllers\AuthMethodConfigController::class, 'publicConfig'])
+            ->middleware('cache.public:30');
+
+        // Phone OTP verification (Twilio Verify in production).
+        Route::prefix('otp')->group(function () {
+            Route::post('/request', [\App\Http\Controllers\PhoneOtpController::class, 'request'])->middleware('throttle:otp');
+            Route::post('/verify', [\App\Http\Controllers\PhoneOtpController::class, 'verify'])->middleware('throttle:otp');
+        });
+
         // Password Reset
         Route::post('/forgot-password', [PasswordResetController::class, 'forgotPassword'])->middleware('throttle:auth');
         Route::post('/reset-password', [PasswordResetController::class, 'resetPassword'])->middleware('throttle:auth');
@@ -209,6 +222,9 @@ Route::prefix('v1')->group(function () {
 
     // Sprint 37: Public referral click tracking
     Route::post('/ref/{code}/click', [ReferralController::class, 'trackClick']);
+
+    // Sprint B: Public community discovery (no auth required)
+    Route::get('/public/communities', [CommunityController::class, 'publicIndex']);
 
     // Sprint 38: Public brand listing & media kit
     Route::get('/brands', [BrandController::class, 'index']);
@@ -667,6 +683,7 @@ Route::prefix('v1')->group(function () {
             Route::get('/catalogue', [GiftController::class, 'catalogue']);
             Route::post('/send', [GiftController::class, 'send'])->middleware('verified');
             Route::get('/transactions', [GiftController::class, 'transactions']);
+            Route::get('/leaderboard/{sessionId}', [GiftController::class, 'leaderboard']);
         });
 
         // ── Coin Packs (buy coins for wallet) ───────────────────────
@@ -910,9 +927,14 @@ Route::prefix('v1')->group(function () {
             Route::get('/{id}/receipt', [OrderController::class, 'receipt']);
         });
 
-        // ── Sprint 16: MurihPay Wallet ─────────────────────────────────────
+        // ── Sprint 16 & 9: MurihPay Multi-Wallet System ─────────────────────
         Route::prefix('wallet')->middleware('verified')->group(function () {
-            Route::get('/', [WalletController::class, 'show']);
+            Route::get('/', [WalletController::class, 'index']);
+            Route::get('/list', [WalletController::class, 'index']);
+            Route::get('/type/{type}', [WalletController::class, 'showByType'])->whereIn('type', ['system', 'creator', 'business']);
+            Route::post('/deposit', [WalletController::class, 'deposit']);
+            Route::post('/internal-transfer', [WalletController::class, 'internalTransfer']);
+            Route::post('/fees/preview', [FeeController::class, 'preview']);
             Route::post('/pin/setup', [WalletController::class, 'setupPin']);
             Route::post('/pin/update', [WalletController::class, 'updatePin']);
             Route::post('/pin/verify', [WalletController::class, 'verifyPin']);
@@ -1062,6 +1084,22 @@ Route::prefix('v1')->group(function () {
                 Route::post('/', [AdminManagementController::class, 'store'])->middleware('admin.permission:admins');
                 Route::put('/{id}', [AdminManagementController::class, 'update'])->middleware('admin.permission:admins');
                 Route::delete('/{id}', [AdminManagementController::class, 'destroy'])->middleware('admin.permission:admins');
+            });
+
+            // Wallets & Double-Entry Ledger
+            Route::prefix('wallets')->middleware('admin.permission:wallets')->group(function () {
+                Route::get('/', [AdminWalletController::class, 'index']);
+                Route::get('/ledger', [AdminWalletController::class, 'ledger']);
+                Route::post('/{id}/adjust', [AdminWalletController::class, 'adjust']);
+            });
+
+            // Platform Fee Rules
+            Route::prefix('fees')->middleware('admin.permission:fees')->group(function () {
+                Route::get('/', [AdminFeeController::class, 'index']);
+                Route::post('/', [AdminFeeController::class, 'store']);
+                Route::put('/{id}', [AdminFeeController::class, 'update']);
+                Route::post('/{id}/toggle', [AdminFeeController::class, 'toggle']);
+                Route::delete('/{id}', [AdminFeeController::class, 'destroy']);
             });
 
             // KYC
@@ -1217,12 +1255,6 @@ Route::prefix('v1')->group(function () {
                 Route::post('/{id}/toggle', [AdminPlansController::class, 'toggleActive']);
             });
 
-            Route::prefix('fees')->group(function () {
-                Route::get('/', [\App\Http\Controllers\AdminFeeController::class, 'index']);
-                Route::get('/{id}', [\App\Http\Controllers\AdminFeeController::class, 'show']);
-                Route::put('/{id}', [\App\Http\Controllers\AdminFeeController::class, 'update']);
-            });
-
             // ── System Health ────────────────────────────────────────────────
             Route::get('/system-health', [\App\Http\Controllers\AdminSystemHealthController::class, 'index']);
 
@@ -1258,6 +1290,23 @@ Route::prefix('v1')->group(function () {
             Route::prefix('social-login')->group(function () {
                 Route::get('/', [\App\Http\Controllers\AdminSocialLoginController::class, 'show']);
                 Route::put('/', [\App\Http\Controllers\AdminSocialLoginController::class, 'update']);
+            });
+
+            // ── Authentication Methods ──────────────────────────────────────
+            Route::prefix('auth')->middleware('admin.permission:settings')->group(function () {
+                Route::get('/methods', [\App\Http\Controllers\AdminAuthMethodController::class, 'show']);
+                Route::put('/methods', [\App\Http\Controllers\AdminAuthMethodController::class, 'update']);
+            });
+
+            // ── Server Media Retention ─────────────────────────────────────
+            Route::prefix('messaging-retention')->middleware('admin.permission:settings')->group(function () {
+                Route::get('/', [\App\Http\Controllers\AdminMediaRetentionController::class, 'show']);
+                Route::put('/', [\App\Http\Controllers\AdminMediaRetentionController::class, 'update']);
+                Route::post('/run', [\App\Http\Controllers\AdminMediaRetentionController::class, 'runNow']);
+                Route::get('/holds', [\App\Http\Controllers\AdminMediaRetentionController::class, 'holds']);
+                Route::post('/holds', [\App\Http\Controllers\AdminMediaRetentionController::class, 'placeHold']);
+                Route::delete('/holds/{hold}', [\App\Http\Controllers\AdminMediaRetentionController::class, 'releaseHold']);
+                Route::get('/logs', [\App\Http\Controllers\AdminMediaRetentionController::class, 'logs']);
             });
 
             // ── Creator Qualification Settings & Events ─────────────────────

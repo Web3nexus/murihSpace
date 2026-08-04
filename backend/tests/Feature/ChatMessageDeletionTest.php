@@ -129,7 +129,7 @@ class ChatMessageDeletionTest extends TestCase
 
     public function test_moderator_can_delete_for_everyone_in_community(): void
     {
-        $community = Community::factory()->create(['creator_id' => $this->sender->id]);
+        $community = Community::factory()->create(['user_id' => $this->sender->id]);
         CommunityMembership::create([
             'community_id' => $community->id,
             'user_id' => $this->recipient->id,

@@ -31,6 +31,8 @@ class AdminManagementController extends Controller
         'analytics' => 'Analytics & reports',
         'settings' => 'Platform settings',
         'admins' => 'Admin management',
+        'wallets' => 'Wallet & ledger adjustment',
+        'fees' => 'Platform fee rules',
     ];
 
     public function roles(): JsonResponse

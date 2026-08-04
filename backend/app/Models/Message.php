@@ -85,7 +85,10 @@ class Message extends Model
 
     public function scopeVisible($query)
     {
-        return $query->whereNull('deleted_at')->where('status', '!=', self::STATUS_DELETED);
+        return $query->whereNull('deleted_at')
+            ->where(function ($q) {
+                $q->whereNull('status')->orWhere('status', '!=', self::STATUS_DELETED);
+            });
     }
 
     public function isDeletedForEveryone(): bool
@@ -99,6 +102,19 @@ class Message extends Model
             return false;
         }
         return true;
+    }
+
+    /**
+     * Public expiry / hold info for chat media so the UI can show the
+     * "Available for X more days" warning and the expired-media placeholder.
+     */
+    public function getMediaExpiryAttribute(): ?array
+    {
+        if (! $this->media_id || ! $this->media) {
+            return null;
+        }
+
+        return app(\App\Services\MediaRetentionService::class)->expirationInfo($this->media);
     }
 
     public function toSearchableArray(): array

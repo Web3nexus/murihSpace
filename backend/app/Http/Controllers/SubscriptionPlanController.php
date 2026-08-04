@@ -10,7 +10,7 @@ class SubscriptionPlanController extends Controller
 {
     public function indexPublic(Request $request): JsonResponse
     {
-        $plans = SubscriptionPlan::with('creator:id,name,username,avatar_url')
+        $plans = SubscriptionPlan::with('creator:id,name,username,avatar')
             ->active()
             ->public()
             ->orderBy('sort_order')
@@ -70,7 +70,7 @@ class SubscriptionPlanController extends Controller
 
     public function show(Request $request, int $id): JsonResponse
     {
-        $plan = SubscriptionPlan::with('creator:id,name,username,avatar_url')
+        $plan = SubscriptionPlan::with('creator:id,name,username,avatar')
             ->findOrFail($id);
 
         return response()->json(['data' => $plan]);

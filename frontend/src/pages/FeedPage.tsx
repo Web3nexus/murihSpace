@@ -11,6 +11,7 @@ import {
   MessageCircle,
   Share2,
   ChevronRight,
+  ChevronLeft,
   Play,
   BadgeCheck,
   Rss,
@@ -65,7 +66,26 @@ export default function FeedPage() {
   const [posts, setPosts] = useState<PostItem[]>([]);
   const [feedLoading, setFeedLoading] = useState(true);
 
-  const [stories, setStories] = useState<{ id: number; name: string; time?: string; avatar?: string; bg?: string }[]>([]);
+  interface StorySubItem {
+    id: number;
+    media_url?: string;
+    media_type: string;
+    caption?: string;
+    created_at: string;
+  }
+
+  interface StoryGroup {
+    id: number;
+    name: string;
+    avatar?: string;
+    bg?: string;
+    time?: string;
+    items: StorySubItem[];
+  }
+
+  const [stories, setStories] = useState<StoryGroup[]>([]);
+  const [activeStoryIndex, setActiveStoryIndex] = useState<number | null>(null);
+  const [activeSubIndex, setActiveSubIndex] = useState<number>(0);
   const storyFileRef = useRef<HTMLInputElement>(null);
   const storyScrollRef = useRef<HTMLDivElement>(null);
   const [storyUploading, setStoryUploading] = useState(false);
@@ -111,15 +131,18 @@ export default function FeedPage() {
       try {
         const res = await apiClient.get("/stories");
         const raw = res.data?.data ?? res.data ?? [];
-        const data = Array.isArray(raw)
-          ? raw.map((g: { user: { id: number; name: string; avatar?: string }; stories: { media_url: string; created_at: string }[] }) => ({
-              id: g.user.id,
-              name: g.user.name,
-              avatar: g.user.avatar,
-              bg: g.stories[0]?.media_url,
-              time: g.stories[0]?.created_at ? timeAgo(g.stories[0].created_at) : "",
-            }))
-              : [];
+        const data: StoryGroup[] = Array.isArray(raw)
+          ? raw
+              .filter((g: { user?: { id: number } }) => Boolean(g?.user?.id))
+              .map((g: { user: { id: number; name: string; avatar?: string }; stories?: StorySubItem[] }) => ({
+                id: g.user.id,
+                name: g.user.name,
+                avatar: g.user.avatar,
+                bg: g.stories?.[0]?.media_url,
+                time: g.stories?.[0]?.created_at ? timeAgo(g.stories[0].created_at) : "",
+                items: g.stories ?? [],
+              }))
+          : [];
         setStories(data);
       } catch {}
     }
@@ -209,6 +232,41 @@ export default function FeedPage() {
     return () => window.removeEventListener("keydown", onKey);
   }, [shareModalPost]);
 
+  useEffect(() => {
+    if (activeStoryIndex === null) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setActiveStoryIndex(null);
+        return;
+      }
+      if (e.key === "ArrowRight") {
+        e.preventDefault();
+        const curr = stories[activeStoryIndex];
+        if (!curr) return;
+        if (activeSubIndex < curr.items.length - 1) {
+          setActiveSubIndex((s) => s + 1);
+        } else if (activeStoryIndex < stories.length - 1) {
+          setActiveStoryIndex((g) => g! + 1);
+          setActiveSubIndex(0);
+        } else {
+          setActiveStoryIndex(null);
+        }
+      }
+      if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        if (activeSubIndex > 0) {
+          setActiveSubIndex((s) => s - 1);
+        } else if (activeStoryIndex > 0) {
+          const prev = stories[activeStoryIndex - 1];
+          setActiveStoryIndex((g) => g! - 1);
+          setActiveSubIndex(prev.items.length - 1);
+        }
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [activeStoryIndex, activeSubIndex, stories]);
+
   async function handleCreatePost() {
     if (!postText.trim() || !selectedCommunityId) return;
     setSubmittingPost(true);
@@ -285,14 +343,33 @@ export default function FeedPage() {
         media_type: isVideo ? "video" : "image",
       });
       const created = storyRes.data?.data ?? storyRes.data;
-      const newCard = {
+      const newItem: StorySubItem = {
         id: created?.id ?? Date.now(),
-        name: created?.user?.name ?? user?.name ?? "You",
-        avatar: created?.user?.avatar ?? user?.avatar,
-        bg: mediaUrl,
-        time: "Just now",
+        media_url: mediaUrl,
+        media_type: isVideo ? "video" : "image",
+        created_at: new Date().toISOString(),
       };
-      setStories((prev) => [newCard, ...prev]);
+      const groupId = created?.user?.id ?? user?.id ?? Date.now();
+      setStories((prev) => {
+        const existing = prev.find((g) => g.id === groupId);
+        if (existing) {
+          return [
+            { ...existing, bg: mediaUrl, time: "Just now", items: [...existing.items, newItem] },
+            ...prev.filter((g) => g.id !== groupId),
+          ];
+        }
+        return [
+          {
+            id: groupId,
+            name: created?.user?.name ?? user?.name ?? "You",
+            avatar: created?.user?.avatar ?? user?.avatar,
+            bg: mediaUrl,
+            time: "Just now",
+            items: [newItem],
+          },
+          ...prev,
+        ];
+      });
     } catch (err) {
       console.error("Story creation failed:", err);
       toast.error("Failed to create story. Please try again.");
@@ -437,8 +514,15 @@ export default function FeedPage() {
               <span className="text-xs font-bold text-center leading-tight">{storyUploading ? "Uploading…" : "Create Story"}</span>
             </button>
 
-            {stories.map((story) => (
-              <div key={story.id} className="relative shrink-0 w-28 sm:w-32 h-44 rounded-2xl overflow-hidden bg-slate-800 shadow-xs cursor-pointer group hover:scale-[1.02] transition-transform">
+            {stories.map((story, index) => (
+              <div
+                key={story.id}
+                onClick={() => {
+                  setActiveStoryIndex(index);
+                  setActiveSubIndex(0);
+                }}
+                className="relative shrink-0 w-28 sm:w-32 h-44 rounded-2xl overflow-hidden bg-slate-800 shadow-xs cursor-pointer group hover:scale-[1.02] transition-transform"
+              >
                 {story.bg && <img src={story.bg} alt="" className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />}
                 <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/80" />
                 <div className="absolute top-2.5 left-2.5 z-10">
@@ -740,6 +824,168 @@ export default function FeedPage() {
                 WhatsApp
               </a>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Story Viewer Modal ── */}
+      {activeStoryIndex !== null && stories[activeStoryIndex] && (
+        <div
+          className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4"
+          onClick={() => setActiveStoryIndex(null)}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label={`Story by ${stories[activeStoryIndex].name}`}
+            className="relative w-full max-w-sm h-[85vh] max-h-[640px] rounded-3xl overflow-hidden bg-slate-900 shadow-2xl flex flex-col justify-between"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Background Media */}
+            {stories[activeStoryIndex].items[activeSubIndex]?.media_url && stories[activeStoryIndex].items[activeSubIndex]?.media_type === "video" ? (
+              <video
+                src={stories[activeStoryIndex].items[activeSubIndex].media_url}
+                autoPlay
+                loop
+                muted
+                playsInline
+                className="absolute inset-0 w-full h-full object-cover"
+              />
+            ) : stories[activeStoryIndex].items[activeSubIndex]?.media_url || stories[activeStoryIndex].bg ? (
+              <img
+                src={stories[activeStoryIndex].items[activeSubIndex]?.media_url ?? stories[activeStoryIndex].bg}
+                alt=""
+                className="absolute inset-0 w-full h-full object-cover"
+              />
+            ) : (
+              <div className="absolute inset-0 bg-gradient-to-br from-[#38A8D8] to-purple-800 flex items-center justify-center p-6 text-center text-white font-bold text-lg">
+                {stories[activeStoryIndex].items[activeSubIndex]?.caption ?? stories[activeStoryIndex].name}
+              </div>
+            )}
+
+            {/* Gradient Overlays */}
+            <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-transparent to-black/80 pointer-events-none" />
+
+            {/* Top Bar: Progress Bars + User Info + Close */}
+            <div className="relative z-10 p-4 space-y-3">
+              {/* Segmented Progress bar */}
+              <div className="flex gap-1">
+                {stories[activeStoryIndex].items.map((_, i) => (
+                  <div key={i} className="h-1 flex-1 rounded-full bg-white/30 overflow-hidden">
+                    <div
+                      className={`h-full bg-white transition-all duration-300 ${
+                        i < activeSubIndex ? "w-full" : i === activeSubIndex ? "w-full animate-pulse" : "w-0"
+                      }`}
+                    />
+                  </div>
+                ))}
+              </div>
+
+              {/* User header */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="h-9 w-9 rounded-full bg-gradient-to-tr from-purple-500 via-pink-500 to-[#38A8D8] p-[2px]">
+                    {stories[activeStoryIndex].avatar ? (
+                      <img src={stories[activeStoryIndex].avatar} alt="" className="w-full h-full rounded-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full rounded-full bg-slate-700 flex items-center justify-center text-white font-bold text-xs">
+                        {stories[activeStoryIndex].name.charAt(0)}
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-white drop-shadow-sm">{stories[activeStoryIndex].name}</p>
+                    <p className="text-[10px] text-white/70">{stories[activeStoryIndex].time}</p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setActiveStoryIndex(null)}
+                  className="h-8 w-8 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center text-white hover:bg-black/60 transition-colors"
+                  aria-label="Close story"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Nav Tap Targets (Left/Right half click) */}
+            <div className="absolute inset-0 z-0 flex">
+              <div
+                className="w-1/2 h-full cursor-pointer"
+                onClick={() => {
+                  if (activeSubIndex > 0) {
+                    setActiveSubIndex((s) => s - 1);
+                  } else if (activeStoryIndex > 0) {
+                    const prevGroup = stories[activeStoryIndex - 1];
+                    setActiveStoryIndex((g) => g! - 1);
+                    setActiveSubIndex(prevGroup.items.length - 1);
+                  }
+                }}
+              />
+              <div
+                className="w-1/2 h-full cursor-pointer"
+                onClick={() => {
+                  const currGroup = stories[activeStoryIndex];
+                  if (activeSubIndex < currGroup.items.length - 1) {
+                    setActiveSubIndex((s) => s + 1);
+                  } else if (activeStoryIndex < stories.length - 1) {
+                    setActiveStoryIndex((g) => g! + 1);
+                    setActiveSubIndex(0);
+                  } else {
+                    setActiveStoryIndex(null);
+                  }
+                }}
+              />
+            </div>
+
+            {/* Navigation Arrow buttons */}
+            {activeStoryIndex > 0 || activeSubIndex > 0 ? (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (activeSubIndex > 0) {
+                    setActiveSubIndex((s) => s - 1);
+                  } else if (activeStoryIndex > 0) {
+                    const prevGroup = stories[activeStoryIndex - 1];
+                    setActiveStoryIndex((g) => g! - 1);
+                    setActiveSubIndex(prevGroup.items.length - 1);
+                  }
+                }}
+                aria-label="Previous story"
+                className="absolute left-3 top-1/2 -translate-y-1/2 z-20 h-9 w-9 rounded-full bg-black/40 backdrop-blur-md border border-white/20 flex items-center justify-center text-white hover:bg-black/60 transition-colors"
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </button>
+            ) : null}
+
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                const currGroup = stories[activeStoryIndex];
+                if (activeSubIndex < currGroup.items.length - 1) {
+                  setActiveSubIndex((s) => s + 1);
+                } else if (activeStoryIndex < stories.length - 1) {
+                  setActiveStoryIndex((g) => g! + 1);
+                  setActiveSubIndex(0);
+                } else {
+                  setActiveStoryIndex(null);
+                }
+              }}
+                aria-label="Next story"
+                className="absolute right-3 top-1/2 -translate-y-1/2 z-20 h-9 w-9 rounded-full bg-black/40 backdrop-blur-md border border-white/20 flex items-center justify-center text-white hover:bg-black/60 transition-colors"
+              >
+                <ChevronRight className="h-5 w-5" />
+              </button>
+
+            {/* Bottom Caption */}
+            {stories[activeStoryIndex].items[activeSubIndex]?.caption && (
+              <div className="relative z-10 p-4 pb-6 text-center">
+                <p className="text-xs font-semibold text-white/90 bg-black/50 backdrop-blur-md p-3 rounded-2xl border border-white/10 line-clamp-3">
+                  {stories[activeStoryIndex].items[activeSubIndex].caption}
+                </p>
+              </div>
+            )}
           </div>
         </div>
       )}

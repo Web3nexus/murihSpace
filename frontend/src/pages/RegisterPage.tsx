@@ -1,59 +1,139 @@
-import React, { useState, useCallback, useRef } from "react";
-import { Link, useNavigate } from "react-router";
+import React, { useState, useCallback, useRef, useEffect } from "react";
+import { Link, useNavigate, useLocation } from "react-router";
 import { useAuth } from "@/hooks/useAuth";
 import { usePlatformConfig } from "@/hooks/usePlatformConfig";
 import { AppDownloadQR } from "@/components/WebLockedPage";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Loader2, ArrowRight, ArrowLeft, CheckCircle2, XCircle, BadgeCheck, Crown, Smartphone, Download } from "lucide-react";
+import { Loader2, ArrowRight, ArrowLeft, CheckCircle2, XCircle, BadgeCheck, Crown, Smartphone, Download, ShieldCheck } from "lucide-react";
 
 import { AuthLayout } from "@/components/layout/AuthLayout";
-import { CountrySelect } from "@/components/forms/CountrySelect";
 import { PhoneInput } from "@/components/forms/PhoneInput";
-import { StateSelect } from "@/components/forms/StateSelect";
+import { OtpInput } from "@/components/forms/OtpInput";
 import { InlineFieldError } from "@/components/ui/InlineFieldError";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:8000/api/v1";
 
-type Step = 1 | 2 | 3 | 4 | 5 | 6;
+type Step = 1 | 2 | 3 | 4 | 5 | 6 | 7;
 
 const SOCIAL_PROVIDERS = [
   { id: "google", label: "Google", icon: "G" },
-  { id: "facebook", label: "Facebook", icon: "f" },
   { id: "apple", label: "Apple", icon: "A" },
 ];
 
+interface LocationState {
+  phoneE164?: string;
+  countryIso2?: string;
+}
+
 export function RegisterPage() {
   const navigate = useNavigate();
-  const { register, loading, error } = useAuth();
+  const location = useLocation();
+  const initialState = (location.state ?? {}) as LocationState;
+  const { register, requestOtp, verifyOtp, loading, error } = useAuth();
   const cfg = usePlatformConfig();
 
   const [step, setStep] = useState<Step>(1);
 
-  // Step 1: Username
+  // Step 1-2: Phone + OTP
+  const countryIso2 = initialState.countryIso2 || "NG";
+  const [phoneE164, setPhoneE164] = useState(initialState.phoneE164 || "");
+  const [maskedPhone, setMaskedPhone] = useState("");
+  const [code, setCode] = useState("");
+  const [otpError, setOtpError] = useState<string | null>(null);
+  const [registrationSessionId, setRegistrationSessionId] = useState("");
+  const [verifiedPhone, setVerifiedPhone] = useState("");
+  const [resendIn, setResendIn] = useState(0);
+  const resendTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Step 3: Username
   const [username, setUsername] = useState("");
   const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null);
   const [usernameChecking, setUsernameChecking] = useState(false);
   const [usernameCheckError, setUsernameCheckError] = useState(false);
 
-  // Steps 2-5: Wizard fields
-  const [email, setEmail] = useState("");
+  // Step 4: Name
+  const [name, setName] = useState("");
+
+  // Step 5: Password
   const [password, setPassword] = useState("");
   const [passwordConfirmation, setPasswordConfirmation] = useState("");
-  const [name, setName] = useState("");
-  const [mobileNumber, setMobileNumber] = useState("");
-  const [country, setCountry] = useState("GB");
-  const [county, setCounty] = useState("");
-  const [state, _setState] = useState("");
-  const [role, setRole] = useState<"member" | "creator" | "vendor">("member");
-  const [kycDocument] = useState("");
+  const [passwordFieldError, setPasswordFieldError] = useState("");
+  const [passwordConfirmError, setPasswordConfirmError] = useState("");
+  const passwordRef = useRef<HTMLInputElement>(null);
+  const passwordConfirmRef = useRef<HTMLInputElement>(null);
 
-  // Social login (step 1 also)
+  // Step 6: Role
+  const [role, setRole] = useState<"member" | "creator" | "vendor">("member");
+
+  // Social
   const [socialLoading, setSocialLoading] = useState<string | null>(null);
 
   const checkSeqRef = useRef(0);
+
+  useEffect(() => {
+    return () => {
+      if (resendTimerRef.current) clearInterval(resendTimerRef.current);
+    };
+  }, []);
+
+  const startResendCooldown = (seconds: number) => {
+    if (resendTimerRef.current) clearInterval(resendTimerRef.current);
+    setResendIn(Math.max(seconds, 0));
+    resendTimerRef.current = setInterval(() => {
+      setResendIn((prev) => {
+        if (prev <= 1 && resendTimerRef.current) {
+          clearInterval(resendTimerRef.current);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
+  const handleRequestOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setOtpError(null);
+    if (!phoneE164) return;
+    const result = await requestOtp({ intent: "register", phoneE164 });
+    if (!result) return;
+    setMaskedPhone(result.masked_phone);
+    setCode("");
+    setStep(2);
+    startResendCooldown(result.resend_after_seconds ?? 60);
+  };
+
+  const handleVerifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setOtpError(null);
+    if (code.length < 6) return;
+    const result = await verifyOtp({ intent: "register", phoneE164, code });
+    if (!result) return;
+    if (!result.registration_session_id) {
+      setOtpError("Unable to continue registration. Please try again.");
+      return;
+    }
+    setRegistrationSessionId(result.registration_session_id);
+    setVerifiedPhone(result.phone_e164 || phoneE164);
+    setStep(3);
+    toast.success("Phone number verified!");
+  };
+
+  const resend = async () => {
+    setCode("");
+    setOtpError(null);
+    if (!phoneE164) {
+      setStep(1);
+      return;
+    }
+    const result = await requestOtp({ intent: "register", phoneE164 });
+    if (!result) return;
+    setMaskedPhone(result.masked_phone);
+    startResendCooldown(result.resend_after_seconds ?? 60);
+  };
 
   // Debounced username availability check
   const checkUsername = useCallback(async (val: string) => {
@@ -89,10 +169,51 @@ export function RegisterPage() {
     debounceRef.current = setTimeout(() => checkUsername(val), 400);
   };
 
-  const [passwordFieldError, setPasswordFieldError] = useState("");
-  const [passwordConfirmError, setPasswordConfirmError] = useState("");
-  const passwordRef = useRef<HTMLInputElement>(null);
-  const passwordConfirmRef = useRef<HTMLInputElement>(null);
+  const handleNextUsername = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!usernameAvailable) return;
+    setStep(4);
+  };
+
+  const handleNextName = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name) return;
+    setStep(5);
+  };
+
+  const handleNextPassword = (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordFieldError("");
+    setPasswordConfirmError("");
+    if (!password || !passwordConfirmation) return;
+    if (password.length < 8) {
+      setPasswordFieldError("Password must be at least 8 characters");
+      passwordRef.current?.focus();
+      return;
+    }
+    if (password !== passwordConfirmation) {
+      setPasswordConfirmError("Passwords do not match");
+      passwordConfirmRef.current?.focus();
+      return;
+    }
+    setStep(6);
+  };
+
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const success = await register({
+      name, email: "", username, role, password, passwordConfirmation,
+      registrationSessionId,
+    });
+    if (success) {
+      const disabled = cfg.web_disabled_roles.includes(role as "member" | "creator" | "vendor");
+      if (disabled) {
+        setStep(7);
+      } else {
+        navigate("/app/onboarding", { replace: true });
+      }
+    }
+  };
 
   const handleSocialLogin = async (provider: string) => {
     setSocialLoading(provider);
@@ -113,97 +234,110 @@ export function RegisterPage() {
     setSocialLoading(null);
   };
 
-  const handleNextStep1 = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!usernameAvailable) return;
-    setStep(2);
-  };
-
-  const handleNextStep2 = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email || !email.includes("@")) return;
-    setStep(3);
-  };
-
-  const handleNextStep3 = (e: React.FormEvent) => {
-    e.preventDefault();
-    setPasswordFieldError("");
-    setPasswordConfirmError("");
-    if (!password || !passwordConfirmation) return;
-
-    if (password.length < 8) {
-      setPasswordFieldError("Password must be at least 8 characters");
-      passwordRef.current?.focus();
-      return;
-    }
-    if (password !== passwordConfirmation) {
-      setPasswordConfirmError("Passwords do not match");
-      passwordConfirmRef.current?.focus();
-      return;
-    }
-    setStep(4);
-  };
-
-  const handleNextStep4 = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name) return;
-    setStep(5);
-  };
-
-  const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const success = await register({
-      name, email, username, role, password, passwordConfirmation,
-      country, mobileNumber, county, state, kycDocument,
-    });
-    if (success) {
-      const disabled = cfg.web_disabled_roles.includes(role as "member" | "creator" | "vendor");
-      if (disabled) {
-        setStep(6);
-      } else {
-        navigate("/app/onboarding", { replace: true });
-      }
-    }
-  };
-
   const socialBtnClass = (prov: string) =>
     `flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border text-xs font-bold transition-all ${
       socialLoading === prov ? "opacity-50" : "hover:border-[#38A8D8]/50 hover:bg-muted/50"
     } border-border bg-card text-foreground`;
 
+  const title =
+    step === 1 ? "Verify your number"
+    : step === 2 ? "Enter the code"
+    : step === 3 ? "Claim your space"
+    : step === 7 ? "Welcome aboard"
+    : "Create your account";
+
+  const subtitle =
+    step === 1 ? "We'll text you a code to verify your number."
+    : step === 2 ? `We sent a 6-digit code to ${maskedPhone}.`
+    : step === 3 ? "Choose your unique username to get started."
+    : step === 7 ? "One last step — grab the app to unlock your dashboard."
+    : "Fill in your details to complete registration.";
+
   return (
     <AuthLayout>
       <div className="w-full max-w-md mx-auto space-y-6">
         <div className="text-center space-y-1.5">
-          <h1 className="text-xl font-black tracking-tight">
-            {step === 1 ? "Claim your space" : step === 6 ? "Welcome aboard" : "Create your account"}
-          </h1>
-          <p className="text-xs text-muted-foreground">
-            {step === 1
-              ? "Choose your unique username to get started."
-              : step === 6
-                ? "One last step — grab the app to unlock your dashboard."
-                : "Fill in your details to complete registration."}
-          </p>
+          <h1 className="text-xl font-black tracking-tight">{title}</h1>
+          <p className="text-xs text-muted-foreground">{subtitle}</p>
         </div>
 
         {/* Step Progress */}
-        {step !== 6 && (
-        <div className="flex items-center justify-center gap-1.5">
-          {[1, 2, 3, 4, 5].map((s) => (
-            <div key={s} className={`h-1.5 w-8 rounded-full transition-colors ${s <= step ? 'bg-[#38A8D8]' : 'bg-muted'}`} />
-          ))}
-        </div>
+        {step !== 7 && (
+          <div className="flex items-center justify-center gap-1.5">
+            {[1, 2, 3, 4, 5, 6].map((s) => (
+              <div key={s} className={`h-1.5 w-7 rounded-full transition-colors ${s <= step ? "bg-[#38A8D8]" : "bg-muted"}`} />
+            ))}
+          </div>
         )}
 
+        {/* Step 1: Phone */}
         {step === 1 && (
-          <form onSubmit={handleNextStep1} className="space-y-5">
-            {/* Username Field */}
+          <form onSubmit={handleRequestOtp} className="space-y-4">
+            <FieldGroup>
+              <FieldLabel>Mobile number</FieldLabel>
+              <Field>
+                <PhoneInput
+                  countryIso2={countryIso2}
+                  value={phoneE164}
+                  onChange={(e164) => {
+                    setPhoneE164(e164);
+                    setOtpError(null);
+                  }}
+                  placeholder="801 234 5678"
+                />
+              </Field>
+            </FieldGroup>
+            <p className="text-[10px] text-muted-foreground leading-relaxed">
+              By continuing you agree to receive an SMS verification code. Standard message and data rates may apply.
+            </p>
+            {otpError && <div className="p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-xs font-bold text-destructive">{otpError}</div>}
+            {error && !otpError && <div className="p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-xs font-bold text-destructive">{error}</div>}
+            <Button type="submit" disabled={loading || !phoneE164} className="w-full text-sm font-bold">
+              {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Send verification code <ArrowRight className="h-4 w-4 ml-1" />
+            </Button>
+            <p className="text-center text-[10px] text-muted-foreground">
+              Already have an account? <Link to="/login" className="text-[#38A8D8] font-bold hover:underline">Sign in</Link>
+            </p>
+          </form>
+        )}
+
+        {/* Step 2: OTP */}
+        {step === 2 && (
+          <form onSubmit={handleVerifyOtp} className="space-y-4">
+            <div className="p-3 rounded-xl bg-[#38A8D8]/10 border border-[#38A8D8]/20 flex items-center gap-2.5">
+              <ShieldCheck className="h-4 w-4 text-[#38A8D8] shrink-0" />
+              <p className="text-xs font-medium text-[#38A8D8]">Code sent to <span className="font-bold">{maskedPhone}</span></p>
+            </div>
+            <OtpInput value={code} onChange={(v) => { setCode(v); setOtpError(null); }} />
+            {(otpError || error) && (
+              <p className="text-xs text-destructive text-center font-medium">{otpError || error}</p>
+            )}
+            <div className="flex gap-2">
+              <Button type="button" variant="ghost" onClick={() => setStep(1)} disabled={loading} className="text-sm">
+                <ArrowLeft className="h-4 w-4 mr-1" /> Change number
+              </Button>
+              <Button type="button" variant="ghost" onClick={resend} disabled={loading || resendIn > 0} className="flex-1 text-sm text-[#38A8D8]">
+                <ArrowRight className="h-4 w-4 mr-1" />
+                {resendIn > 0 ? `Resend in ${resendIn}s` : "Resend code"}
+              </Button>
+            </div>
+            <Button type="submit" disabled={loading || code.length < 6} className="w-full text-sm font-bold">
+              {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Verify number
+            </Button>
+          </form>
+        )}
+
+        {/* Step 3: Username */}
+        {step === 3 && (
+          <form onSubmit={handleNextUsername} className="space-y-5">
             <div className="space-y-2">
-              <label className="text-xs font-bold text-muted-foreground">Choose your username</label>
+              <label htmlFor="reg-username" className="text-xs font-bold text-muted-foreground">Choose your username</label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-muted-foreground">@</span>
                 <input
+                  id="reg-username"
                   value={username}
                   onChange={(e) => handleUsernameChange(e.target.value)}
                   placeholder="username"
@@ -222,17 +356,14 @@ export function RegisterPage() {
               )}
               {username.length >= 3 && /^[a-zA-Z0-9_]+$/.test(username) && usernameAvailable === null && !usernameChecking && !usernameCheckError && <p className="text-[10px] text-muted-foreground">Checking availability...</p>}
               {usernameCheckError && (
-                <p className="text-[10px] text-destructive font-medium">
-                  Couldn't check availability. Please try again.
-                </p>
+                <p className="text-[10px] text-destructive font-medium">Couldn't check availability. Please try again.</p>
               )}
             </div>
 
-            {/* Your link */}
             <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-start gap-2.5">
               <Crown className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
               <div>
-                <p className="text-xs font-bold text-emerald-500">Your link: <span className="font-mono">murihspace.com/@{username || 'username'}</span></p>
+                <p className="text-xs font-bold text-emerald-500">Your link: <span className="font-mono">murihspace.com/@{username || "username"}</span></p>
                 <p className="text-[10px] text-emerald-500/70 mt-0.5">Usernames are free — yours to keep.</p>
               </div>
             </div>
@@ -241,207 +372,174 @@ export function RegisterPage() {
               Claim Username <ArrowRight className="h-4 w-4 ml-1" />
             </Button>
 
-            {/* Social signup */}
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-border" /></div>
-              <div className="relative flex justify-center"><span className="bg-card px-2 text-[10px] text-muted-foreground">or sign up with</span></div>
-            </div>
-            <div className="flex gap-2">
-              {SOCIAL_PROVIDERS.map((p) => (
-                <button key={p.id} type="button" onClick={() => handleSocialLogin(p.id)} disabled={socialLoading !== null} className={socialBtnClass(p.id)}>
-                  {socialLoading === p.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <span className="font-bold text-base">{p.icon}</span>}
-                  <span className="hidden sm:inline">{p.label}</span>
-                </button>
-              ))}
-            </div>
+            {SOCIAL_PROVIDERS.filter((p) => cfg.auth_methods?.methods?.[p.id as "google" | "apple"]?.registration).length > 0 && (
+              <>
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-border" /></div>
+                  <div className="relative flex justify-center"><span className="bg-card px-2 text-[10px] text-muted-foreground">or sign up with</span></div>
+                </div>
+                <div className="flex gap-2">
+                  {SOCIAL_PROVIDERS.filter(
+                    (p) => cfg.auth_methods.methods[p.id as "google" | "apple"].registration
+                  ).map((p) => (
+                    <button key={p.id} type="button" onClick={() => handleSocialLogin(p.id)} disabled={socialLoading !== null} className={socialBtnClass(p.id)}>
+                      {socialLoading === p.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <span className="font-bold text-base">{p.icon}</span>}
+                      <span className="hidden sm:inline">{p.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
 
-            <p className="text-center text-[10px] text-muted-foreground">
-              Already have an account? <Link to="/login" className="text-[#38A8D8] font-bold hover:underline">Sign in</Link>
-            </p>
+            <div className="flex gap-2">
+              <Button type="button" variant="ghost" onClick={() => setStep(2)} className="text-sm"><ArrowLeft className="h-4 w-4 mr-1" /> Back</Button>
+            </div>
           </form>
         )}
 
-        {step >= 2 && (
-          <>
-            {/* Step 2: Email */}
-            {step === 2 && (
-              <form onSubmit={handleNextStep2} className="space-y-4">
-                <div className="p-3 rounded-xl bg-[#38A8D8]/10 border border-[#38A8D8]/20 flex items-center gap-2.5">
-                  <BadgeCheck className="h-4 w-4 text-[#38A8D8] shrink-0" />
-                  <p className="text-xs font-medium text-[#38A8D8]"><span className="font-bold">@{username}</span> is yours to claim</p>
-                </div>
-                <FieldGroup>
-                  <FieldLabel>Email address</FieldLabel>
-                  <Field>
-                    <Input type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
-                  </Field>
-                </FieldGroup>
-                <div className="flex gap-2">
-                  <Button type="button" variant="ghost" onClick={() => setStep(1)} className="text-sm"><ArrowLeft className="h-4 w-4 mr-1" /> Back</Button>
-                  <Button type="submit" disabled={!email || !email.includes("@")} className="flex-1 text-sm font-bold">
-                    Continue <ArrowRight className="h-4 w-4 ml-1" />
-                  </Button>
-                </div>
-              </form>
-            )}
+        {/* Step 4: Name */}
+        {step === 4 && (
+          <form onSubmit={handleNextName} className="space-y-4">
+            <div className="p-3 rounded-xl bg-[#38A8D8]/10 border border-[#38A8D8]/20 flex items-center gap-2.5">
+              <BadgeCheck className="h-4 w-4 text-[#38A8D8] shrink-0" />
+              <p className="text-xs font-medium text-[#38A8D8]"><span className="font-bold">{verifiedPhone}</span> verified <span className="font-bold">✓</span></p>
+            </div>
+            <FieldGroup>
+              <FieldLabel>Full name</FieldLabel>
+              <Field>
+                <Input placeholder="Your full name" value={name} onChange={(e) => setName(e.target.value)} required />
+              </Field>
+            </FieldGroup>
+            <div className="flex gap-2">
+              <Button type="button" variant="ghost" onClick={() => setStep(3)} className="text-sm"><ArrowLeft className="h-4 w-4 mr-1" /> Back</Button>
+              <Button type="submit" disabled={!name} className="flex-1 text-sm font-bold">
+                Continue <ArrowRight className="h-4 w-4 ml-1" />
+              </Button>
+            </div>
+          </form>
+        )}
 
-            {/* Step 3: Password */}
-            {step === 3 && (
-              <form onSubmit={handleNextStep3} className="space-y-4">
-                <FieldGroup>
-                  <FieldLabel>Password</FieldLabel>
-                  <Field>
-                    <Input
-                      ref={passwordRef}
-                      type="password"
-                      placeholder="At least 8 characters"
-                      value={password}
-                      onChange={(e) => { setPassword(e.target.value); setPasswordFieldError(""); }}
-                      aria-invalid={Boolean(passwordFieldError)}
-                      aria-describedby={passwordFieldError ? "password-field-error" : undefined}
-                      className={passwordFieldError ? "border-rose-500 focus-visible:ring-rose-500" : ""}
-                      required
-                    />
-                    <InlineFieldError id="password-field-error" error={passwordFieldError} />
-                  </Field>
-                </FieldGroup>
-                <FieldGroup>
-                  <FieldLabel>Confirm password</FieldLabel>
-                  <Field>
-                    <Input
-                      ref={passwordConfirmRef}
-                      type="password"
-                      placeholder="Re-enter password"
-                      value={passwordConfirmation}
-                      onChange={(e) => { setPasswordConfirmation(e.target.value); setPasswordConfirmError(""); }}
-                      aria-invalid={Boolean(passwordConfirmError)}
-                      aria-describedby={passwordConfirmError ? "password-confirm-error" : undefined}
-                      className={passwordConfirmError ? "border-rose-500 focus-visible:ring-rose-500" : ""}
-                      required
-                    />
-                    <InlineFieldError id="password-confirm-error" error={passwordConfirmError} />
-                  </Field>
-                </FieldGroup>
-                <div className="flex gap-2">
-                  <Button type="button" variant="ghost" onClick={() => setStep(2)} className="text-sm"><ArrowLeft className="h-4 w-4 mr-1" /> Back</Button>
-                  <Button type="submit" disabled={!password || !passwordConfirmation} className="flex-1 text-sm font-bold">
-                    Continue <ArrowRight className="h-4 w-4 ml-1" />
-                  </Button>
-                </div>
-              </form>
-            )}
+        {/* Step 5: Password */}
+        {step === 5 && (
+          <form onSubmit={handleNextPassword} className="space-y-4">
+            <FieldGroup>
+              <FieldLabel>Password</FieldLabel>
+              <Field>
+                <Input
+                  ref={passwordRef}
+                  type="password"
+                  placeholder="At least 8 characters"
+                  value={password}
+                  onChange={(e) => { setPassword(e.target.value); setPasswordFieldError(""); }}
+                  aria-invalid={Boolean(passwordFieldError)}
+                  aria-describedby={passwordFieldError ? "password-field-error" : undefined}
+                  className={passwordFieldError ? "border-rose-500 focus-visible:ring-rose-500" : ""}
+                  required
+                />
+                <InlineFieldError id="password-field-error" error={passwordFieldError} />
+              </Field>
+            </FieldGroup>
+            <FieldGroup>
+              <FieldLabel>Confirm password</FieldLabel>
+              <Field>
+                <Input
+                  ref={passwordConfirmRef}
+                  type="password"
+                  placeholder="Re-enter password"
+                  value={passwordConfirmation}
+                  onChange={(e) => { setPasswordConfirmation(e.target.value); setPasswordConfirmError(""); }}
+                  aria-invalid={Boolean(passwordConfirmError)}
+                  aria-describedby={passwordConfirmError ? "password-confirm-error" : undefined}
+                  className={passwordConfirmError ? "border-rose-500 focus-visible:ring-rose-500" : ""}
+                  required
+                />
+                <InlineFieldError id="password-confirm-error" error={passwordConfirmError} />
+              </Field>
+            </FieldGroup>
+            <div className="flex gap-2">
+              <Button type="button" variant="ghost" onClick={() => setStep(4)} className="text-sm"><ArrowLeft className="h-4 w-4 mr-1" /> Back</Button>
+              <Button type="submit" disabled={!password || !passwordConfirmation} className="flex-1 text-sm font-bold">
+                Continue <ArrowRight className="h-4 w-4 ml-1" />
+              </Button>
+            </div>
+          </form>
+        )}
 
-            {/* Step 4: Name & Phone */}
-            {step === 4 && (
-              <form onSubmit={handleNextStep4} className="space-y-4">
-                <FieldGroup>
-                  <FieldLabel>Full name</FieldLabel>
-                  <Field>
-                    <Input placeholder="Your full name" value={name} onChange={(e) => setName(e.target.value)} required />
-                  </Field>
-                </FieldGroup>
-                <FieldGroup>
-                  <FieldLabel>Mobile number (optional)</FieldLabel>
-                  <Field>
-                    <PhoneInput countryIso2={country} value={mobileNumber} onChange={setMobileNumber} />
-                  </Field>
-                </FieldGroup>
-                <div className="flex gap-2">
-                  <Button type="button" variant="ghost" onClick={() => setStep(3)} className="text-sm"><ArrowLeft className="h-4 w-4 mr-1" /> Back</Button>
-                  <Button type="submit" disabled={!name} className="flex-1 text-sm font-bold">
-                    Continue <ArrowRight className="h-4 w-4 ml-1" />
-                  </Button>
-                </div>
-              </form>
-            )}
-
-            {/* Step 5: Role & Location */}
-            {step === 5 && (
-              <form onSubmit={handleRegister} className="space-y-4">
-                <FieldGroup>
-                  <FieldLabel>I want to join as</FieldLabel>
-                  <div className="flex gap-2">
-                    {(["member", "creator", "vendor"] as const).map((r) => {
-                      const locked = cfg.web_disabled_roles.includes(r);
-                      return (
-                        <button key={r} type="button" onClick={() => setRole(r)}
-                          className={`relative flex-1 px-3 py-2.5 rounded-xl text-xs font-bold transition-colors border ${
-                            role === r ? "border-[#38A8D8] bg-[#38A8D8]/10 text-[#38A8D8]" : "border-border bg-card text-muted-foreground hover:text-foreground"
-                          }`}>
-                          {r === "member" ? "Member" : r === "creator" ? "Creator" : "Vendor"}
-                          {locked && <span className="absolute -top-1.5 -right-1.5 px-1.5 py-0.5 rounded-full bg-rose-500 text-white text-[8px] font-black uppercase tracking-wide shadow-sm">App only</span>}
-                        </button>
-                      );
-                    })}
-                  </div>
-                  {role && cfg.web_disabled_roles.includes(role as "member" | "creator" | "vendor") && (
-                    <p className="text-[10px] text-rose-500 font-medium flex items-center gap-1">
-                      <Smartphone className="h-3 w-3" /> The {role} dashboard is app-only — you'll get a QR code to download the app after signing up.
-                    </p>
-                  )}
-                </FieldGroup>
-                <FieldGroup>
-                  <FieldLabel>Country</FieldLabel>
-                  <Field>
-                    <CountrySelect value={country} onChange={(iso2) => setCountry(iso2)} />
-                  </Field>
-                </FieldGroup>
-                <FieldGroup>
-                  <FieldLabel>State / County (optional)</FieldLabel>
-                  <Field>
-                    <StateSelect countryIso2={country} value={county} onChange={setCounty} />
-                  </Field>
-                </FieldGroup>
-                {error && <div className="p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-xs font-bold text-destructive">{error}</div>}
-                <div className="flex gap-2">
-                  <Button type="button" variant="ghost" onClick={() => setStep(4)} className="text-sm"><ArrowLeft className="h-4 w-4 mr-1" /> Back</Button>
-                  <Button type="submit" disabled={loading} className="flex-1 text-sm font-bold">
-                    {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                    Create Account
-                  </Button>
-                </div>
-              </form>
-            )}
-
-            {/* Step 6: Registered — role locked to app */}
-            {step === 6 && (
-              <div className="space-y-5 text-center">
-                <div className="mx-auto h-14 w-14 rounded-2xl bg-[#38A8D8]/10 flex items-center justify-center">
-                  <Smartphone className="h-7 w-7 text-[#38A8D8]" />
-                </div>
-                <div className="space-y-1.5">
-                  <h1 className="text-lg font-black tracking-tight text-foreground">You're in!</h1>
-                  <p className="text-xs text-muted-foreground leading-relaxed">
-                    <span className="font-bold text-foreground">@{username}</span> is yours.
-                    Your {role} dashboard is only available in the MurihSpace app. Scan the QR code to download the app and sign in.
-                  </p>
-                </div>
-                <div className="flex justify-center">
-                  <AppDownloadQR content={cfg.app_qr_content} size={192} />
-                </div>
-                <div className="space-y-2">
-                  <a
-                    href={cfg.app_download_url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-[#38A8D8] hover:bg-[#2e94c0] text-white text-xs font-bold transition-colors shadow-xs"
-                  >
-                    <Download className="h-4 w-4" /> Download the app
-                  </a>
-                  <p className="text-[10px] text-muted-foreground">
-                    Already have the app? Just sign in with your new account.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => navigate("/login", { replace: true })}
-                    className="text-xs font-bold text-[#38A8D8] hover:underline"
-                  >
-                    Sign in instead
-                  </button>
-                </div>
+        {/* Step 6: Role */}
+        {step === 6 && (
+          <form onSubmit={handleRegister} className="space-y-4">
+            <FieldGroup>
+              <FieldLabel>I want to join as</FieldLabel>
+              <div className="flex gap-2">
+                {(["member", "creator", "vendor"] as const).map((r) => {
+                  const locked = cfg.web_disabled_roles.includes(r);
+                  return (
+                    <button key={r} type="button" onClick={() => setRole(r)}
+                      className={`relative flex-1 px-3 py-2.5 rounded-xl text-xs font-bold transition-colors border ${
+                        role === r ? "border-[#38A8D8] bg-[#38A8D8]/10 text-[#38A8D8]" : "border-border bg-card text-muted-foreground hover:text-foreground"
+                      }`}>
+                      {r === "member" ? "Member" : r === "creator" ? "Creator" : "Vendor"}
+                      {locked && <span className="absolute -top-1.5 -right-1.5 px-1.5 py-0.5 rounded-full bg-rose-500 text-white text-[8px] font-black uppercase tracking-wide shadow-sm">App only</span>}
+                    </button>
+                  );
+                })}
               </div>
-            )}
-          </>
+              {role && cfg.web_disabled_roles.includes(role as "member" | "creator" | "vendor") && (
+                <p className="text-[10px] text-rose-500 font-medium flex items-center gap-1">
+                  <Smartphone className="h-3 w-3" /> The {role} dashboard is app-only — you'll get a QR code to download the app after signing up.
+                </p>
+              )}
+            </FieldGroup>
+            <div className={cn("p-3 rounded-xl border flex items-center gap-2.5", "bg-emerald-500/10 border-emerald-500/20")}>
+              <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+              <p className="text-xs font-medium text-emerald-500"><span className="font-bold">{verifiedPhone}</span> verified <span className="font-bold">✓</span></p>
+            </div>
+            {error && <div className="p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-xs font-bold text-destructive">{error}</div>}
+            <div className="flex gap-2">
+              <Button type="button" variant="ghost" onClick={() => setStep(5)} className="text-sm"><ArrowLeft className="h-4 w-4 mr-1" /> Back</Button>
+              <Button type="submit" disabled={loading} className="flex-1 text-sm font-bold">
+                {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                Create Account
+              </Button>
+            </div>
+          </form>
+        )}
+
+        {/* Step 7: Registered — role locked to app */}
+        {step === 7 && (
+          <div className="space-y-5 text-center">
+            <div className="mx-auto h-14 w-14 rounded-2xl bg-[#38A8D8]/10 flex items-center justify-center">
+              <Smartphone className="h-7 w-7 text-[#38A8D8]" />
+            </div>
+            <div className="space-y-1.5">
+              <h1 className="text-lg font-black tracking-tight text-foreground">You're in!</h1>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                <span className="font-bold text-foreground">@{username}</span> is yours.
+                Your {role} dashboard is only available in the MurihSpace app. Scan the QR code to download the app and sign in.
+              </p>
+            </div>
+            <div className="flex justify-center">
+              <AppDownloadQR content={cfg.app_qr_content} size={192} />
+            </div>
+            <div className="space-y-2">
+              <a
+                href={cfg.app_download_url}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-[#38A8D8] hover:bg-[#2e94c0] text-white text-xs font-bold transition-colors shadow-xs"
+              >
+                <Download className="h-4 w-4" /> Download the app
+              </a>
+              <p className="text-[10px] text-muted-foreground">Already have the app? Just sign in with your new account.</p>
+              <button
+                type="button"
+                onClick={() => navigate("/login", { replace: true })}
+                className="text-xs font-bold text-[#38A8D8] hover:underline"
+              >
+                Sign in instead
+              </button>
+            </div>
+          </div>
         )}
       </div>
     </AuthLayout>

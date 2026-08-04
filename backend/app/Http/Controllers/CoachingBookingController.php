@@ -16,7 +16,7 @@ class CoachingBookingController extends Controller
     {
         $bookings = CoachingBooking::with([
             'service:id,name,duration_minutes,location_type,meeting_url',
-            'service.creator:id,name,username,avatar_url',
+            'service.creator:id,name,username,avatar',
         ])
             ->forBooker($request->user()->id)
             ->orderBy('start_time', 'desc')
@@ -29,7 +29,7 @@ class CoachingBookingController extends Controller
     {
         $bookings = CoachingBooking::with([
             'service:id,name,duration_minutes,location_type,meeting_url',
-            'booker:id,name,username,avatar_url',
+            'booker:id,name,username,avatar',
         ])
             ->forCreator($request->user()->id)
             ->orderBy('start_time', 'desc')
@@ -114,7 +114,7 @@ class CoachingBookingController extends Controller
 
         $booking->load([
             'service:id,name,duration_minutes,location_type,meeting_url',
-            'service.creator:id,name,username,avatar_url',
+            'service.creator:id,name,username,avatar',
         ]);
 
         return response()->json(['data' => $booking], 201);

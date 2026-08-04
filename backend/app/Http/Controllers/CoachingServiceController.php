@@ -12,7 +12,7 @@ class CoachingServiceController extends Controller
 {
     public function indexPublic(): JsonResponse
     {
-        $services = CoachingService::with('creator:id,name,username,avatar_url')
+        $services = CoachingService::with('creator:id,name,username,avatar')
             ->active()
             ->latest()
             ->get();
@@ -62,7 +62,7 @@ class CoachingServiceController extends Controller
 
     public function show(Request $request, int $id): JsonResponse
     {
-        $service = CoachingService::with('creator:id,name,username,avatar_url')
+        $service = CoachingService::with('creator:id,name,username,avatar')
             ->findOrFail($id);
 
         $availableSlots = $service->upcomingSlots()->get();

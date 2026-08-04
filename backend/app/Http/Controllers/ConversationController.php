@@ -9,6 +9,7 @@ use App\Models\Community;
 use App\Models\CommunityMembership;
 use App\Models\Conversation;
 use App\Models\ConversationParticipant;
+use App\Models\ConversationUserSetting;
 use App\Models\Message;
 use App\Models\MessageUserState;
 use App\Models\User;
@@ -31,8 +32,8 @@ class ConversationController extends Controller
             $q->where('user_id', $userId);
         })
             ->with([
-                'latestMessage.user:id,name,username,avatar_url',
-                'users:id,name,username,avatar_url',
+                'latestMessage.user:id,name,username,avatar',
+                'users:id,name,username,avatar',
                 'community:id,name,slug,logo_url',
                 'participants' => function ($q) use ($userId) {
                     $q->where('user_id', $userId);
@@ -212,7 +213,7 @@ class ConversationController extends Controller
             ->visible()
             ->notHiddenForUser($request->user()->id)
             ->with([
-                'user:id,name,username,avatar_url',
+                'user:id,name,username,avatar',
                 'replyTo:id,user_id,content,attachment_type',
                 'replyTo.user:id,name,username',
                 'reactions',
@@ -267,7 +268,7 @@ class ConversationController extends Controller
             $existing = Message::where('client_uuid', $clientUuid)->first();
             if ($existing) {
                 return response()->json([
-                    'data' => $existing->load('user:id,name,username,avatar_url'),
+                    'data' => $existing->load('user:id,name,username,avatar'),
                 ]);
             }
         }
@@ -313,7 +314,7 @@ class ConversationController extends Controller
         });
 
         $loadedMessage = $message->load([
-            'user:id,name,username,avatar_url',
+            'user:id,name,username,avatar',
             'replyTo:id,user_id,content,attachment_type',
             'replyTo.user:id,name,username',
         ]);
@@ -366,7 +367,7 @@ class ConversationController extends Controller
             }
 
             DB::transaction(function () use ($message, $conversation) {
-                $message->update(['status' => Message::STATUS_DELETED, 'content' => null, 'attachment_url' => null]);
+                $message->update(['status' => Message::STATUS_DELETED, 'content' => '', 'attachment_url' => null]);
                 $message->delete();
 
                 if ($message->media_id) {
@@ -412,7 +413,7 @@ class ConversationController extends Controller
         if ($clientUuid) {
             $existing = Message::where('client_uuid', $clientUuid)->first();
             if ($existing) {
-                return response()->json(['data' => $existing->load('user:id,name,username,avatar_url')]);
+                return response()->json(['data' => $existing->load('user:id,name,username,avatar')]);
             }
         }
 
@@ -445,7 +446,7 @@ class ConversationController extends Controller
         });
 
         $loadedMessage = $message->load([
-            'user:id,name,username,avatar_url',
+            'user:id,name,username,avatar',
             'forwardedFrom:id,user_id,content',
             'forwardedFrom.user:id,name,username',
         ]);

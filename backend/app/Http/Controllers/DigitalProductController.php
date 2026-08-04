@@ -198,7 +198,7 @@ class DigitalProductController extends Controller
     {
         $product = DigitalProduct::where('slug', $slug)
             ->where('status', 'published')
-            ->with('creator:id,name,username,avatar_url')
+            ->with('creator:id,name,username,avatar')
             ->firstOrFail();
 
         return response()->json([

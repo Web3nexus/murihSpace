@@ -49,15 +49,19 @@ class ChatMediaAccessTest extends TestCase
             'user_id' => $member->id,
             'content' => 'Check image',
             'type' => 'image',
+            'status' => 'sent',
             'media_id' => $media->id,
             'attachment_url' => $media->url,
             'attachment_type' => 'image',
         ]);
 
+        \Illuminate\Support\Facades\Storage::fake('local_uploads');
+        \Illuminate\Support\Facades\Storage::disk('local_uploads')->put('message_attachments/test.jpg', 'dummy image content');
+
         Sanctum::actingAs($member);
         $response = $this->getJson("/api/v1/chat/media/{$media->id}");
         $response->assertOk();
-        $response->assertJsonStructure(['data' => ['url', 'original_name', 'mime_type', 'size_bytes']]);
+        $response->assertJsonPath('data.data.original_name', 'test.jpg');
     }
 
     public function test_non_member_cannot_access_community_chat_media(): void

@@ -6,6 +6,7 @@ use App\Models\Donation;
 use App\Models\User;
 use App\Services\NotificationService;
 use App\Services\Wallet\LedgerService;
+use App\Services\Wallet\WalletService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -13,6 +14,7 @@ class DonationController extends Controller
 {
     public function __construct(
         private LedgerService $ledgerService,
+        private WalletService $walletService,
         private readonly NotificationService $notifications,
     ) {}
 
@@ -42,7 +44,7 @@ class DonationController extends Controller
             return response()->json(['message' => 'Cannot donate to yourself.', 'code' => 'SELF_DONATION'], 422);
         }
 
-        $wallet = $this->ledgerService->getOrCreateWallet($sender->id);
+        $wallet = $this->walletService->getOrCreateWallet($sender, 'system');
 
         if (! $wallet->verifyPin($validated['pin'])) {
             return response()->json(['message' => 'Incorrect transaction PIN.', 'code' => 'INVALID_TRANSACTION_PIN'], 403);
@@ -52,12 +54,12 @@ class DonationController extends Controller
         $isAnonymous = $validated['is_anonymous'] ?? false;
 
         $ledgerTxn = $this->ledgerService->transfer(
-            $sender->id,
-            $recipient->id,
-            $validated['amount'],
-            $currency,
-            "Donation to @{$recipient->username}".(($validated['message'] ?? '') ? ": {$validated['message']}" : ''),
-            ['donation' => true, 'anonymous' => $isAnonymous],
+            fromUserId: $sender->id,
+            toUserId: $recipient->id,
+            amount: $validated['amount'],
+            currency: $currency,
+            description: "Donation to @{$recipient->username}".(($validated['message'] ?? '') ? ": {$validated['message']}" : ''),
+            metadata: ['donation' => true, 'anonymous' => $isAnonymous],
         );
 
         $donation = Donation::create([

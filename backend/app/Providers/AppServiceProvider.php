@@ -21,6 +21,12 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(5)->by($request->ip());
         });
 
+        RateLimiter::for('otp', function (Request $request) {
+            // Higher per-IP ceiling for OTP than plain auth; the service-level
+            // per-number/IP/device counters do the real enforcement.
+            return Limit::perMinute(20)->by($request->ip());
+        });
+
         RateLimiter::for('kyc.session', function (Request $request) {
             return Limit::perMinutes(
                 (int) config('kyc.session_rate_limit_minutes', 60),

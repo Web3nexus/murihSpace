@@ -49,7 +49,7 @@ class ChatMediaController extends Controller
                 ->whereIn('status', ['active', 'approved'])
                 ->exists();
 
-            $isOwner = $community->creator_id === $user->id;
+            $isOwner = $community->user_id === $user->id;
 
             if (! $isMember && ! $isOwner) {
                 return response()->json(['message' => 'You are not a member of this community.'], 403);

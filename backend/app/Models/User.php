@@ -29,6 +29,7 @@ use App\Services\PermissionService;
     'verification_badge_purchased_at', 'verification_badge_auto_renew',
     'two_factor_secret', 'two_factor_recovery_codes', 'two_factor_confirmed_at',
     'provider', 'provider_id', 'email_verify_code_hash', 'email_verify_code_expires_at',
+    'phone_verified_at',
 ])]
 #[Hidden(['password', 'remember_token', 'provider_id', 'kyc_document', 'kyc_rejection_reason', 'username_trial_ends_at', 'two_factor_secret', 'two_factor_recovery_codes'])]
 class User extends Authenticatable implements MustVerifyEmail
@@ -39,7 +40,7 @@ class User extends Authenticatable implements MustVerifyEmail
     /**
      * @var list<string>
      */
-    protected $appends = ['has_active_verification_badge'];
+    protected $appends = ['has_active_verification_badge', 'avatar_url'];
 
     /**
      * Get the attributes that should be cast.
@@ -56,6 +57,7 @@ class User extends Authenticatable implements MustVerifyEmail
             'admin_permissions' => 'array',
             'two_factor_confirmed_at' => 'datetime',
             'email_verify_code_expires_at' => 'datetime',
+            'phone_verified_at' => 'datetime',
             'verification_badge_expires_at' => 'datetime',
             'verification_badge_purchased_at' => 'datetime',
             'verification_badge_auto_renew' => 'boolean',
@@ -146,6 +148,11 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->kyc_status === 'verified';
     }
 
+    public function hasVerifiedPhone(): bool
+    {
+        return $this->phone_verified_at !== null;
+    }
+
     protected static function booted(): void
     {
         static::creating(function (User $user) {
@@ -179,6 +186,11 @@ class User extends Authenticatable implements MustVerifyEmail
     public function getHasActiveVerificationBadgeAttribute(): bool
     {
         return $this->hasActiveVerificationBadge();
+    }
+
+    public function getAvatarUrlAttribute(): ?string
+    {
+        return $this->attributes['avatar'] ?? null;
     }
 
     public function hasRole(string $role): bool

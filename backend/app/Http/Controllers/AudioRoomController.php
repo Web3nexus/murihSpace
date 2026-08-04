@@ -13,7 +13,7 @@ class AudioRoomController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $query = AudioRoom::with('creator:id,name,username,avatar_url')
+        $query = AudioRoom::with('creator:id,name,username,avatar')
             ->withCount('activeParticipants');
 
         if ($request->community_id) {
@@ -66,7 +66,7 @@ class AudioRoomController extends Controller
             'joined_at' => now(),
         ]);
 
-        $room->load('creator:id,name,username,avatar_url');
+        $room->load('creator:id,name,username,avatar');
         $room->loadCount('activeParticipants');
 
         return response()->json(['data' => $room], 201);
@@ -75,9 +75,9 @@ class AudioRoomController extends Controller
     public function show(Request $request, int $id): JsonResponse
     {
         $room = AudioRoom::with([
-            'creator:id,name,username,avatar_url',
+            'creator:id,name,username,avatar',
             'community:id,name,slug',
-            'participants' => fn ($q) => $q->whereNull('left_at')->with('user:id,name,username,avatar_url'),
+            'participants' => fn ($q) => $q->whereNull('left_at')->with('user:id,name,username,avatar'),
         ])
             ->withCount('activeParticipants')
             ->findOrFail($id);

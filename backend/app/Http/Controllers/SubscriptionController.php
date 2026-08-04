@@ -16,7 +16,7 @@ class SubscriptionController extends Controller
     {
         $subscriptions = Subscription::with([
             'plan:id,name,description,price,currency,billing_cycle,features',
-            'creator:id,name,username,avatar_url',
+            'creator:id,name,username,avatar',
         ])
             ->forSubscriber($request->user()->id)
             ->latest()
@@ -34,7 +34,7 @@ class SubscriptionController extends Controller
     {
         $subscriptions = Subscription::with([
             'plan:id,name,price,currency,billing_cycle',
-            'subscriber:id,name,username,avatar_url',
+            'subscriber:id,name,username,avatar',
         ])
             ->forCreator($request->user()->id)
             ->latest()
@@ -103,7 +103,7 @@ class SubscriptionController extends Controller
 
         $subscription->load([
             'plan:id,name,description,price,currency,billing_cycle,features',
-            'creator:id,name,username,avatar_url',
+            'creator:id,name,username,avatar',
         ]);
 
         return response()->json(['data' => $subscription], 201);
@@ -147,7 +147,7 @@ class SubscriptionController extends Controller
             ->sum('subscription_plans.price');
 
         $recentSubs = Subscription::forCreator($userId)
-            ->with(['subscriber:id,name,username,avatar_url', 'plan:id,name'])
+            ->with(['subscriber:id,name,username,avatar', 'plan:id,name'])
             ->latest()
             ->take(10)
             ->get();

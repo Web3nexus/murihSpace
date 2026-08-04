@@ -24,13 +24,6 @@ const PROVIDERS: { id: string; label: string; desc: string; color: string; callb
     callback: "https://accounts.google.com/o/oauth2/v2/auth",
   },
   {
-    id: "facebook",
-    label: "Facebook",
-    desc: "Facebook Login (OAuth 2.0) for Facebook accounts.",
-    color: "from-blue-500/20 to-indigo-600/20",
-    callback: "https://www.facebook.com/v18.0/dialog/oauth",
-  },
-  {
     id: "apple",
     label: "Apple",
     desc: "Sign in with Apple, using a signed ES256 JWT client secret.",
@@ -148,7 +141,7 @@ export default function AdminSocialLoginSettingsPage() {
           <LinkIcon className="h-6 w-6 text-[#38A8D8]" /> Social Login
         </h1>
         <p className="text-xs text-muted-foreground mt-1">
-          Configure OAuth credentials for Google, Facebook and Apple. Secrets are encrypted at rest. Sign-in buttons appear on the login and register screens once a provider is configured.
+          Configure OAuth credentials for Google and Apple. Secrets are encrypted at rest. Sign-in buttons appear on the login and register screens once a provider is configured.
         </p>
       </div>
 
