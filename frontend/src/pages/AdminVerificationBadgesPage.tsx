@@ -92,7 +92,7 @@ export function AdminVerificationBadgesPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="p-6 lg:p-8 space-y-6 w-full max-w-7xl mx-auto">
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">

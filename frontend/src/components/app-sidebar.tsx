@@ -403,7 +403,7 @@ export function AppSidebar({ ...props }: SidebarProps) {
 
       <SidebarSeparator className="opacity-10 mx-3 bg-[#1a2e3b]" />
 
-      <div className="relative">
+      <div className="relative flex flex-1 flex-col min-h-0">
         <SidebarContent
           {...(isSetupIncomplete ? { inert: true } : {})}
           className={`px-2 py-1.5 gap-0 transition-all duration-300 ${
