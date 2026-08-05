@@ -51,8 +51,8 @@ export function WebLockedPage({ role, embedded = false }: WebLockedPageProps) {
 
   const content = (
     <div className="w-full max-w-sm mx-auto text-center space-y-5">
-      <div className="mx-auto h-16 w-16 rounded-2xl bg-[#38A8D8]/10 flex items-center justify-center">
-        <Smartphone className="h-8 w-8 text-[#38A8D8]" />
+      <div className="mx-auto h-16 w-16 rounded-2xl bg-[#2164b6]/10 flex items-center justify-center">
+        <Smartphone className="h-8 w-8 text-[#2164b6] dark:text-[#7ab0ff]" />
       </div>
 
       <div className="space-y-1.5">
@@ -67,7 +67,7 @@ export function WebLockedPage({ role, embedded = false }: WebLockedPageProps) {
 
       {cfg.loading ? (
         <div className="flex justify-center py-8">
-          <Loader2 className="h-5 w-5 animate-spin text-[#38A8D8]" />
+          <Loader2 className="h-5 w-5 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" />
         </div>
       ) : (
         <div className="space-y-3">
@@ -78,7 +78,7 @@ export function WebLockedPage({ role, embedded = false }: WebLockedPageProps) {
             href={cfg.app_download_url}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-[#38A8D8] hover:bg-[#2e94c0] text-white text-xs font-bold transition-colors shadow-xs"
+            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-[#2164b6] hover:bg-[#1a5091] text-white text-xs font-bold transition-colors shadow-xs"
           >
             <Download className="h-4 w-4" /> Download the app
           </a>

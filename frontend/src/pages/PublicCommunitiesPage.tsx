@@ -108,7 +108,7 @@ export function PublicCommunitiesPage() {
       </header>
 
       {/* Hero Banner */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-[#38A8D8] via-[#2e94c0] to-[#1a5091] px-6 py-16 text-white text-center">
+      <section className="relative overflow-hidden bg-gradient-to-br from-[#2164b6] via-[#1a5091] to-[#1a5091] px-6 py-16 text-white text-center">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(255,255,255,0.08),transparent)] pointer-events-none" />
         <div className="relative max-w-2xl mx-auto space-y-4">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-white/20 bg-white/10 text-white/90 text-xs font-semibold backdrop-blur-sm">
@@ -134,7 +134,7 @@ export function PublicCommunitiesPage() {
             placeholder="Search communities by name or description…"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 h-11 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-[#38A8D8]/40 transition-shadow"
+            className="w-full pl-10 pr-4 h-11 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-[#2164b6]/40 transition-shadow"
           />
         </div>
       </div>
@@ -144,7 +144,7 @@ export function PublicCommunitiesPage() {
         <div className="max-w-7xl mx-auto">
           {isLoading ? (
             <div className="flex items-center justify-center py-24">
-              <Loader2 className="h-8 w-8 animate-spin text-[#38A8D8]" />
+              <Loader2 className="h-8 w-8 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" />
             </div>
           ) : communities.length === 0 ? (
             <div className="flex flex-col items-center justify-center min-h-[320px] px-6 text-center gap-4">
@@ -184,7 +184,7 @@ export function PublicCommunitiesPage() {
                       style={
                         community.banner_url
                           ? { backgroundImage: `url(${community.banner_url})`, backgroundSize: "cover", backgroundPosition: "center" }
-                          : { background: "linear-gradient(135deg, #38A8D8 0%, #7c3aed 100%)" }
+                          : { background: "linear-gradient(135deg, #2164b6 0%, #7c3aed 100%)" }
                       }
                     >
                       <div className="absolute inset-0 bg-black/20" />
@@ -198,7 +198,7 @@ export function PublicCommunitiesPage() {
                         </div>
                       )}
                       {!community.logo_url && (
-                        <div className="absolute -bottom-5 left-4 h-12 w-12 rounded-xl bg-white dark:bg-card border-2 border-white shadow-md flex items-center justify-center text-[#38A8D8] font-black text-xl">
+                        <div className="absolute -bottom-5 left-4 h-12 w-12 rounded-xl bg-white dark:bg-card border-2 border-white shadow-md flex items-center justify-center text-[#2164b6] dark:text-[#7ab0ff] font-black text-xl">
                           {community.name.charAt(0).toUpperCase()}
                         </div>
                       )}
@@ -207,7 +207,7 @@ export function PublicCommunitiesPage() {
                     {/* Content */}
                     <div className="p-4 pt-8">
                       <div className="flex items-start justify-between gap-2 mb-1">
-                        <h3 className="font-bold text-sm text-foreground group-hover:text-[#38A8D8] transition-colors line-clamp-1">
+                        <h3 className="font-bold text-sm text-foreground group-hover:text-[#2164b6] dark:text-[#7ab0ff] transition-colors line-clamp-1">
                           {community.name}
                         </h3>
                         {community.category && (
@@ -228,14 +228,14 @@ export function PublicCommunitiesPage() {
 
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                          <Globe className="h-3.5 w-3.5 text-[#38A8D8]" />
+                          <Globe className="h-3.5 w-3.5 text-[#2164b6] dark:text-[#7ab0ff]" />
                           <span className="flex items-center gap-1">
                             <Users className="h-3 w-3" />
                             <span className="font-semibold text-foreground">{community.member_count.toLocaleString()}</span> members
                           </span>
                         </div>
                         <Link to={`/login?redirect=/app/communities/${community.slug}`}>
-                          <button className="px-3 py-1.5 rounded-lg bg-[#38A8D8] hover:bg-[#2e94c0] text-white text-[11px] font-bold transition-colors flex items-center gap-1">
+                          <button className="px-3 py-1.5 rounded-lg bg-[#2164b6] hover:bg-[#1a5091] text-white text-[11px] font-bold transition-colors flex items-center gap-1">
                             Join <ArrowRight className="h-3 w-3" />
                           </button>
                         </Link>
@@ -281,14 +281,14 @@ export function PublicCommunitiesPage() {
       </main>
 
       {/* CTA Footer Banner */}
-      <section className="bg-gradient-to-r from-[#38A8D8] to-[#7c3aed] px-6 py-10 text-white text-center">
+      <section className="bg-gradient-to-r from-[#2164b6] to-[#7c3aed] px-6 py-10 text-white text-center">
         <div className="max-w-xl mx-auto space-y-4">
           <h2 className="text-xl font-bold">Ready to start your own community?</h2>
           <p className="text-sm text-white/80">
             Create public or private spaces, grow your audience, and monetize your expertise.
           </p>
           <Link to="/register">
-            <Button className="bg-white text-[#38A8D8] hover:bg-white/90 font-bold gap-2 mt-2">
+            <Button className="bg-white text-[#2164b6] dark:text-[#7ab0ff] hover:bg-white/90 font-bold gap-2 mt-2">
               Create a Community <ArrowRight className="h-4 w-4" />
             </Button>
           </Link>
@@ -302,7 +302,7 @@ export function PublicCommunitiesPage() {
           <div className="flex items-center gap-6">
             <Link to="/" className="hover:text-foreground">Home</Link>
             <Link to="/login" className="hover:text-foreground">Sign In</Link>
-            <Link to="/register" className="hover:text-foreground font-semibold text-[#38A8D8]">Get Started</Link>
+            <Link to="/register" className="hover:text-foreground font-semibold text-[#2164b6] dark:text-[#7ab0ff]">Get Started</Link>
           </div>
         </div>
       </footer>

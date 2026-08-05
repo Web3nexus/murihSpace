@@ -15,7 +15,7 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
   subText = "Connect with communities, sell digital & physical products, host live audio rooms, and grow your audience.",
 }) => {
   return (
-    <div className="min-h-screen w-full bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col justify-between selection:bg-[#2164b6]/20 selection:text-[#2164b6]">
+    <div className="min-h-screen w-full bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col justify-between selection:bg-[#2164b6]/20 selection:text-[#2164b6] dark:text-[#7ab0ff]">
       {/* Main Two-Sided Section (Facebook Login Style) */}
       <main className="w-full max-w-7xl mx-auto px-6 py-6 lg:py-10 grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 items-center flex-1">
         {/* LEFT COLUMN: Brand Hero & Visual Showcase */}
@@ -37,9 +37,9 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
           {/* Facebook-style Impactful Headline */}
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight text-slate-900 dark:text-white leading-[1.1]">
             {headlineText}{" "}
-            <span className="text-[#2164b6] relative inline-block">
+            <span className="text-[#2164b6] dark:text-[#7ab0ff] relative inline-block">
               {accentText}
-              <svg className="absolute -bottom-2 left-0 w-full h-3 text-[#2164b6]/30 fill-current" viewBox="0 0 100 20">
+              <svg className="absolute -bottom-2 left-0 w-full h-3 text-[#2164b6] dark:text-[#7ab0ff]/30 fill-current" viewBox="0 0 100 20">
                 <path d="M0,15 Q50,5 100,15" stroke="currentColor" strokeWidth="4" fill="none" strokeLinecap="round" />
               </svg>
             </span>

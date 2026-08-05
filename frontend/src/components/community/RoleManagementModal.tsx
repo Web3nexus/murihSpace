@@ -84,7 +84,7 @@ export function RoleManagementModal({
 
   // New role form state
   const [roleName, setRoleName] = React.useState("");
-  const [roleColor, setRoleColor] = React.useState("#38A8D8");
+  const [roleColor, setRoleColor] = React.useState("#2164b6");
   const [selectedPermissions, setSelectedPermissions] = React.useState<string[]>([
     "create_posts",
   ]);

@@ -378,13 +378,13 @@ export default function OnboardingPage() {
     products: [],
   };
 
-  if (loading) return <div className="flex justify-center py-24"><Loader2 className="h-8 w-8 animate-spin text-[#38A8D8]" /></div>;
+  if (loading) return <div className="flex justify-center py-24"><Loader2 className="h-8 w-8 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" /></div>;
 
   if (user && user.email_verified === false) {
     return (
       <div className="w-full max-w-2xl mx-auto space-y-6 p-6 lg:p-10">
         <div className="flex items-center gap-3">
-          <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-[#38A8D8] to-[#2164b6] flex items-center justify-center text-white shadow-md shadow-[#38A8D8]/20">
+          <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-[#2164b6] to-[#2164b6] flex items-center justify-center text-white shadow-md shadow-[#2164b6]/20">
             <MailCheck className="h-6 w-6" />
           </div>
           <div>
@@ -398,7 +398,7 @@ export default function OnboardingPage() {
         <div className="border border-border rounded-2xl bg-card p-8 space-y-5 shadow-sm">
           <p className="text-sm text-foreground leading-relaxed">
             Welcome to MurihSpace! We've sent a <span className="font-black">6-digit code</span> to{" "}
-            <span className="font-bold text-[#38A8D8]">{user.email}</span>. Enter it to verify your account and start
+            <span className="font-bold text-[#2164b6] dark:text-[#7ab0ff]">{user.email}</span>. Enter it to verify your account and start
             onboarding.
           </p>
 
@@ -426,7 +426,7 @@ export default function OnboardingPage() {
               {verifySending ? <Loader2 className="h-4 w-4 animate-spin" /> : <MailCheck className="h-4 w-4" />}
               Verify & start onboarding
             </Button>
-            <Button variant="ghost" onClick={resendCode} disabled={verifySending} className="text-sm font-bold text-[#38A8D8]">
+            <Button variant="ghost" onClick={resendCode} disabled={verifySending} className="text-sm font-bold text-[#2164b6] dark:text-[#7ab0ff]">
               Resend code
             </Button>
           </div>
@@ -439,7 +439,7 @@ export default function OnboardingPage() {
     <div className="w-full max-w-7xl mx-auto space-y-6 p-6 lg:p-8">
       <div>
         <h1 className="text-2xl font-black tracking-tight flex items-center gap-2.5">
-          <Wand2 className="h-6 w-6 text-[#38A8D8]" />
+          <Wand2 className="h-6 w-6 text-[#2164b6] dark:text-[#7ab0ff]" />
           {role === "vendor" ? "Vendor AI Onboarding" : role === "creator" ? "Creator AI Onboarding" : "Account Setup"}
         </h1>
         <p className="text-xs text-muted-foreground mt-1">
@@ -455,7 +455,7 @@ export default function OnboardingPage() {
       <div className="flex items-center gap-1 bg-muted p-1 rounded-xl overflow-x-auto scrollbar-none">
         {steps.map((s, i) => (
           <div key={s.key} className={`flex-1 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold whitespace-nowrap ${i === step ? "bg-card text-foreground shadow-sm" : i < step ? "text-emerald-400" : "text-muted-foreground"}`}>
-            <span className={`h-4 w-4 rounded-full flex items-center justify-center text-[9px] ${i < step ? "bg-emerald-500 text-white" : i === step ? "bg-[#38A8D8] text-white" : "bg-muted-foreground/20"}`}>{i < step ? <Check className="h-2.5 w-2.5" /> : i + 1}</span>
+            <span className={`h-4 w-4 rounded-full flex items-center justify-center text-[9px] ${i < step ? "bg-emerald-500 text-white" : i === step ? "bg-[#2164b6] text-white" : "bg-muted-foreground/20"}`}>{i < step ? <Check className="h-2.5 w-2.5" /> : i + 1}</span>
             {s.label}
           </div>
         ))}
@@ -467,7 +467,7 @@ export default function OnboardingPage() {
           {step === 0 && (
             <div className="space-y-4">
               <div className="flex items-center gap-2">
-                <UserIcon className="h-5 w-5 text-[#38A8D8]" />
+                <UserIcon className="h-5 w-5 text-[#2164b6] dark:text-[#7ab0ff]" />
                 <h2 className="text-sm font-bold text-foreground">Welcome, @{user?.username}!</h2>
               </div>
               <p className="text-xs text-muted-foreground">Your account is ready. Let's customize your experience.</p>
@@ -487,7 +487,7 @@ export default function OnboardingPage() {
               <div className="flex flex-wrap gap-1.5">
                 {COMMUNITY_OPTIONS.map((o) => (
                   <button key={o} onClick={() => toggle(memberInterests, setMemberInterests, o)}
-                    className={`px-3 py-1.5 rounded-full text-xs font-bold transition-colors ${memberInterests.includes(o) ? "bg-[#38A8D8] text-white" : "bg-muted text-muted-foreground hover:text-foreground"}`}>{o}</button>
+                    className={`px-3 py-1.5 rounded-full text-xs font-bold transition-colors ${memberInterests.includes(o) ? "bg-[#2164b6] text-white" : "bg-muted text-muted-foreground hover:text-foreground"}`}>{o}</button>
                 ))}
               </div>
               <div className="flex justify-between pt-2">
@@ -505,7 +505,7 @@ export default function OnboardingPage() {
                   <p className="text-xs font-bold">Feed & Community Notifications</p>
                   <p className="text-[10px] text-muted-foreground">Receive updates when posts or events are published.</p>
                 </div>
-                <input type="checkbox" checked={notifyFeed} onChange={(e) => setNotifyFeed(e.target.checked)} className="h-4 w-4 rounded accent-[#38A8D8]" />
+                <input type="checkbox" checked={notifyFeed} onChange={(e) => setNotifyFeed(e.target.checked)} className="h-4 w-4 rounded accent-[#2164b6]" />
               </div>
               <div className="flex justify-between pt-2">
                 <Button size="sm" variant="ghost" onClick={() => setStep(1)} className="text-xs font-bold"><ChevronLeft className="h-3 w-3 mr-1" /> Back</Button>
@@ -524,7 +524,7 @@ export default function OnboardingPage() {
           {step === 0 && (
             <div className="space-y-4">
               <div className="flex items-center gap-2">
-                <Store className="h-5 w-5 text-[#38A8D8]" />
+                <Store className="h-5 w-5 text-[#2164b6] dark:text-[#7ab0ff]" />
                 <h2 className="text-sm font-bold text-foreground">Tell us about your business</h2>
               </div>
               <div className="space-y-2">
@@ -550,7 +550,7 @@ export default function OnboardingPage() {
           {step === 1 && (
             <div className="space-y-4">
               <div className="flex items-center gap-2">
-                <Package className="h-5 w-5 text-[#38A8D8]" />
+                <Package className="h-5 w-5 text-[#2164b6] dark:text-[#7ab0ff]" />
                 <h2 className="text-sm font-bold text-foreground">Fulfilment & Shipping</h2>
               </div>
               <div className="space-y-2">
@@ -569,7 +569,7 @@ export default function OnboardingPage() {
           {step === 2 && (
             <div className="space-y-4">
               <div className="flex items-center gap-2">
-                <Globe className="h-5 w-5 text-[#38A8D8]" />
+                <Globe className="h-5 w-5 text-[#2164b6] dark:text-[#7ab0ff]" />
                 <h2 className="text-sm font-bold text-foreground">Target Country</h2>
               </div>
               <div className="space-y-2">
@@ -586,7 +586,7 @@ export default function OnboardingPage() {
           {step === 3 && (
             <div className="space-y-4">
               <div className="flex items-center gap-2">
-                <Target className="h-5 w-5 text-[#38A8D8]" />
+                <Target className="h-5 w-5 text-[#2164b6] dark:text-[#7ab0ff]" />
                 <h2 className="text-sm font-bold text-foreground">Brand & Social Accounts</h2>
               </div>
               <div className="flex gap-2">
@@ -615,7 +615,7 @@ export default function OnboardingPage() {
 
           {step === 4 && (
             <div className="space-y-4 text-center">
-              <div className="mx-auto h-12 w-12 rounded-2xl bg-[#38A8D8]/10 flex items-center justify-center text-[#38A8D8]">
+              <div className="mx-auto h-12 w-12 rounded-2xl bg-[#2164b6]/10 flex items-center justify-center text-[#2164b6] dark:text-[#7ab0ff]">
                 <Store className="h-6 w-6" />
               </div>
               <h2 className="text-base font-black">Your Storefront is Ready</h2>
@@ -639,7 +639,7 @@ export default function OnboardingPage() {
             {step === 0 && (
               <div className="border border-border rounded-2xl bg-card overflow-hidden flex flex-col">
                 <div className="px-5 py-4 border-b border-border flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#38A8D8] to-[#2164b6] flex items-center justify-center text-white"><Wand2 className="h-4 w-4" /></div>
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#2164b6] to-[#2164b6] flex items-center justify-center text-white"><Wand2 className="h-4 w-4" /></div>
                   <div>
                     <p className="text-xs font-black">Mera — your AI assistant</p>
                     <p className="text-[10px] text-muted-foreground">I'll remember what you tell me to build your profile.</p>
@@ -648,18 +648,18 @@ export default function OnboardingPage() {
                 <div className="p-4 h-72 overflow-y-auto space-y-3 bg-muted/30">
                   {[greeting, ...messages].map((m, i) => (
                     <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
-                      <div className={`max-w-[85%] px-3.5 py-2.5 text-xs leading-relaxed ${m.role === "user" ? "bg-[#38A8D8] text-white rounded-2xl rounded-br-sm" : "bg-card border border-border text-foreground rounded-2xl rounded-bl-sm"}`}>
+                      <div className={`max-w-[85%] px-3.5 py-2.5 text-xs leading-relaxed ${m.role === "user" ? "bg-[#2164b6] text-white rounded-2xl rounded-br-sm" : "bg-card border border-border text-foreground rounded-2xl rounded-bl-sm"}`}>
                         {m.content}
                       </div>
                     </div>
                   ))}
-                  {chatSending && <div className="flex justify-start"><div className="px-3.5 py-2.5 text-xs bg-card border border-border rounded-2xl rounded-bl-sm"><Loader2 className="h-3.5 w-3.5 animate-spin text-[#38A8D8]" /></div></div>}
+                  {chatSending && <div className="flex justify-start"><div className="px-3.5 py-2.5 text-xs bg-card border border-border rounded-2xl rounded-bl-sm"><Loader2 className="h-3.5 w-3.5 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" /></div></div>}
                   <div ref={chatEndRef} />
                 </div>
                 <div className="p-3 border-t border-border space-y-2.5">
                   <div className="flex flex-wrap gap-1.5">
                     {QUICK_PROMPTS.map((q) => (
-                      <button key={q} onClick={() => sendChat(q)} className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-muted text-muted-foreground hover:bg-[#38A8D8]/10 hover:text-[#38A8D8] transition-colors">{q}</button>
+                      <button key={q} onClick={() => sendChat(q)} className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-muted text-muted-foreground hover:bg-[#2164b6]/10 hover:text-[#2164b6] dark:text-[#7ab0ff] transition-colors">{q}</button>
                     ))}
                   </div>
                   <div className="flex gap-2">
@@ -691,7 +691,7 @@ export default function OnboardingPage() {
             {step === 1 && (
               <div className="border border-border rounded-2xl bg-card p-6 space-y-4">
                 <div className="flex items-center gap-2">
-                  <Send className="h-4 w-4 text-[#38A8D8]" />
+                  <Send className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" />
                   <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Connect your socials</h2>
                 </div>
                 <div className="flex gap-2">
@@ -726,7 +726,7 @@ export default function OnboardingPage() {
                   <div className="flex flex-wrap gap-1.5 mt-2">
                     {COMMUNITY_OPTIONS.map((o) => (
                       <button key={o} onClick={() => toggle(communityInterests, setCommunityInterests, o)}
-                        className={`px-2.5 py-1.5 rounded-full text-[10px] font-bold transition-colors ${communityInterests.includes(o) ? "bg-[#38A8D8] text-white" : "bg-muted text-muted-foreground hover:text-foreground"}`}>{o}</button>
+                        className={`px-2.5 py-1.5 rounded-full text-[10px] font-bold transition-colors ${communityInterests.includes(o) ? "bg-[#2164b6] text-white" : "bg-muted text-muted-foreground hover:text-foreground"}`}>{o}</button>
                     ))}
                   </div>
                 </div>
@@ -735,7 +735,7 @@ export default function OnboardingPage() {
                   <div className="flex flex-wrap gap-1.5 mt-2">
                     {CONTENT_OPTIONS.map((o) => (
                       <button key={o} onClick={() => toggle(contentInterests, setContentInterests, o)}
-                        className={`px-2.5 py-1.5 rounded-full text-[10px] font-bold transition-colors ${contentInterests.includes(o) ? "bg-[#38A8D8] text-white" : "bg-muted text-muted-foreground hover:text-foreground"}`}>{o}</button>
+                        className={`px-2.5 py-1.5 rounded-full text-[10px] font-bold transition-colors ${contentInterests.includes(o) ? "bg-[#2164b6] text-white" : "bg-muted text-muted-foreground hover:text-foreground"}`}>{o}</button>
                     ))}
                   </div>
                 </div>
@@ -750,7 +750,7 @@ export default function OnboardingPage() {
             {step === 3 && (
               <div className="border border-border rounded-2xl bg-card p-6 space-y-4">
                 <div className="flex items-center gap-2">
-                  <Wand2 className="h-4 w-4 text-[#38A8D8]" />
+                  <Wand2 className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" />
                   <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Your AI-drafted profile</h2>
                 </div>
                 <div className="space-y-2">
@@ -761,7 +761,7 @@ export default function OnboardingPage() {
                   <label className="text-xs font-bold text-muted-foreground">Bio</label>
                   <textarea value={profileBio} onChange={(e) => setProfileBio(e.target.value)} rows={3} className="w-full rounded-xl border border-border bg-card p-2.5 text-sm font-medium text-foreground resize-none" />
                 </div>
-                <Button variant="ghost" size="sm" onClick={generateDraft} disabled={draftLoading} className="text-xs font-bold text-[#38A8D8]">
+                <Button variant="ghost" size="sm" onClick={generateDraft} disabled={draftLoading} className="text-xs font-bold text-[#2164b6] dark:text-[#7ab0ff]">
                   {draftLoading ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Wand2 className="h-3 w-3 mr-1" />} Regenerate with AI
                 </Button>
                 <div className="flex justify-between">
@@ -775,7 +775,7 @@ export default function OnboardingPage() {
             {step === 4 && (
               <div className="border border-border rounded-2xl bg-card p-6 space-y-4">
                 <div className="flex items-center gap-2">
-                  <Palette className="h-4 w-4 text-[#38A8D8]" />
+                  <Palette className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" />
                   <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Pick your template</h2>
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -783,8 +783,8 @@ export default function OnboardingPage() {
                     const isActive = template === t.slug;
                     return (
                       <button key={t.slug} onClick={() => setTemplate(t.slug)}
-                        className={`relative rounded-xl border-2 transition-all overflow-hidden text-left ${isActive ? "border-[#38A8D8] shadow-md" : "border-border hover:border-[#38A8D8]/50"}`}>
-                        {isActive && <span className="absolute top-1.5 left-1.5 z-10 bg-[#38A8D8] text-white rounded-full p-0.5"><Check className="h-3 w-3" /></span>}
+                        className={`relative rounded-xl border-2 transition-all overflow-hidden text-left ${isActive ? "border-[#2164b6] shadow-md" : "border-border hover:border-[#2164b6]/50"}`}>
+                        {isActive && <span className="absolute top-1.5 left-1.5 z-10 bg-[#2164b6] text-white rounded-full p-0.5"><Check className="h-3 w-3" /></span>}
                         <div className="p-2"><TemplateThumb template={t} /></div>
                         <div className="px-2.5 pb-2.5">
                           <p className="text-xs font-bold truncate text-foreground">{t.name}</p>

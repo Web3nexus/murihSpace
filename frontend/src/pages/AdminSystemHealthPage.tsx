@@ -53,12 +53,12 @@ export default function AdminSystemHealthPage() {
   const total = checks.length;
   const healthy = checks.filter((c) => c.status === "healthy").length;
 
-  if (loading) return <div className="flex justify-center py-24"><Loader2 className="h-8 w-8 animate-spin text-[#38A8D8]" /></div>;
+  if (loading) return <div className="flex justify-center py-24"><Loader2 className="h-8 w-8 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" /></div>;
 
   return (
     <div className="w-full mx-auto max-w-[1400px] space-y-6 p-6 lg:p-10">
       <div className="flex items-center justify-between">
-        <div><h1 className="text-2xl font-black tracking-tight flex items-center gap-2.5"><Activity className="h-6 w-6 text-[#38A8D8]" /> System Health</h1><p className="text-xs text-muted-foreground mt-1">Monitor platform system health and uptime.</p></div>
+        <div><h1 className="text-2xl font-black tracking-tight flex items-center gap-2.5"><Activity className="h-6 w-6 text-[#2164b6] dark:text-[#7ab0ff]" /> System Health</h1><p className="text-xs text-muted-foreground mt-1">Monitor platform system health and uptime.</p></div>
         <button onClick={() => loadData(true)} className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 font-bold"><RefreshCw className={`h-3 w-3 ${refreshing ? 'animate-spin' : ''}`} /> Refresh</button>
       </div>
 

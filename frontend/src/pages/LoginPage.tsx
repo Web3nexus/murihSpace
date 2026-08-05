@@ -286,9 +286,9 @@ export function LoginPage() {
             ) : (
               <div className="space-y-4">
                 <div className="p-3 rounded-xl bg-[#2164b6]/10 border border-[#2164b6]/20 flex items-center gap-2.5">
-                  <CheckCircle2 className="h-4 w-4 text-[#2164b6] shrink-0" />
+                  <CheckCircle2 className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff] shrink-0" />
                   <p className="text-xs font-medium text-slate-700 dark:text-slate-300">
-                    We sent a 6-digit code to <span className="font-bold text-[#2164b6]">{maskedPhone}</span>.
+                    We sent a 6-digit code to <span className="font-bold text-[#2164b6] dark:text-[#7ab0ff]">{maskedPhone}</span>.
                   </p>
                 </div>
 
@@ -333,7 +333,7 @@ export function LoginPage() {
                       variant="ghost"
                       onClick={resend}
                       disabled={loading || resendIn > 0}
-                      className="flex-1 text-sm text-[#2164b6]"
+                      className="flex-1 text-sm text-[#2164b6] dark:text-[#7ab0ff]"
                     >
                       <RefreshCw className={cn("h-4 w-4 mr-1", resendIn > 0 && "opacity-50")} />
                       {resendIn > 0 ? `Resend in ${resendIn}s` : "Resend code"}
@@ -383,7 +383,7 @@ export function LoginPage() {
                   <FieldLabel htmlFor="login-password" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
                     Password
                   </FieldLabel>
-                  <Link to="/forgot-password" className="text-xs font-medium text-[#2164b6] hover:underline underline-offset-4">
+                  <Link to="/forgot-password" className="text-xs font-medium text-[#2164b6] dark:text-[#7ab0ff] hover:underline underline-offset-4">
                     Forgotten password?
                   </Link>
                 </div>
@@ -464,7 +464,7 @@ export function LoginPage() {
           <Link
             to="/register"
             id="login-create-account-btn"
-            className="w-full h-12 rounded-xl border-2 border-[#2164b6] text-[#2164b6] hover:bg-[#2164b6]/10 font-bold text-sm sm:text-base flex items-center justify-center transition-all duration-200 active:scale-[0.99]"
+            className="w-full h-12 rounded-xl border-2 border-[#2164b6] text-[#2164b6] dark:text-[#7ab0ff] hover:bg-[#2164b6]/10 font-bold text-sm sm:text-base flex items-center justify-center transition-all duration-200 active:scale-[0.99]"
           >
             Create new account
           </Link>

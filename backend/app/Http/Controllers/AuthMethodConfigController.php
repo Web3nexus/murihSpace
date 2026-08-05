@@ -10,8 +10,6 @@ class AuthMethodConfigController extends Controller
 {
     public function publicConfig(AuthMethodConfigService $methods): JsonResponse
     {
-        return response()->json([
-            'data' => $methods->public(),
-        ]);
+        return response()->json($methods->public());
     }
 }

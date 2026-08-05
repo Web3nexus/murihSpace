@@ -21,7 +21,7 @@ function TabButton({ active, onClick, children }: { active: boolean; onClick: ()
     <button
       onClick={onClick}
       className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${
-        active ? "bg-[#38A8D8]/10 text-[#38A8D8] shadow-xs" : "text-muted-foreground hover:text-foreground hover:bg-muted"
+        active ? "bg-[#2164b6]/10 text-[#2164b6] dark:text-[#7ab0ff] shadow-xs" : "text-muted-foreground hover:text-foreground hover:bg-muted"
       }`}
     >
       {children}
@@ -53,7 +53,7 @@ export function AdminPlansPage() {
     <div className="w-full mx-auto max-w-[1400px] space-y-6 p-6 lg:p-10">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 sm:p-8 rounded-2xl bg-gradient-to-br from-[#102840] via-[#173852] to-[#102840] text-white shadow-lg">
         <div className="space-y-1.5">
-          <span className="px-2.5 py-0.5 rounded-full bg-[#38A8D8]/20 text-[#38A8D8] text-xs font-semibold uppercase tracking-wider border border-[#38A8D8]/30">Admin</span>
+          <span className="px-2.5 py-0.5 rounded-full bg-[#2164b6]/20 text-[#2164b6] dark:text-[#7ab0ff] text-xs font-semibold uppercase tracking-wider border border-[#2164b6]/30">Admin</span>
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">Plans &amp; Platform Fees</h1>
           <p className="text-sm text-white/70 max-w-xl">Manage subscription plans and configure platform fee rates.</p>
         </div>
@@ -130,7 +130,7 @@ function PlansTab() {
       {summary && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
-            { label: "Total Plans", value: summary.total_plans, icon: Crown, color: "text-[#38A8D8]" },
+            { label: "Total Plans", value: summary.total_plans, icon: Crown, color: "text-[#2164b6] dark:text-[#7ab0ff]" },
             { label: "Active Plans", value: summary.active_plans, icon: ToggleRight, color: "text-emerald-500" },
             { label: "Active Subscribers", value: summary.total_subscribers, icon: Users, color: "text-blue-500" },
             { label: "MRR", value: formatAmount(summary.mrr), icon: DollarSign, color: "text-purple-500" },

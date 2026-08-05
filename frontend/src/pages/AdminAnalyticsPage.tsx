@@ -12,7 +12,7 @@ import {
 import { apiClient } from "@/lib/api/client";
 import { Button } from "@/components/ui/button";
 
-const PIE_COLORS = ["#38A8D8", "#2164b6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"];
+const PIE_COLORS = ["#2164b6", "#2164b6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"];
 
 const CURRENCY_SYMBOLS: Record<string, string> = {
   NGN: "\u20A6",
@@ -64,7 +64,7 @@ function TabButton({ active, onClick, children }: { active: boolean; onClick: ()
     <button
       onClick={onClick}
       className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${
-        active ? "bg-[#38A8D8]/10 text-[#38A8D8] shadow-xs" : "text-muted-foreground hover:text-foreground hover:bg-muted"
+        active ? "bg-[#2164b6]/10 text-[#2164b6] dark:text-[#7ab0ff] shadow-xs" : "text-muted-foreground hover:text-foreground hover:bg-muted"
       }`}
     >
       {children}
@@ -131,7 +131,7 @@ export function AdminAnalyticsPage() {
   if (isLoading && loadingCurrency) {
     return (
       <div className="w-full flex items-center justify-center h-64">
-        <Loader2 className="w-6 h-6 animate-spin text-[#38A8D8]" />
+        <Loader2 className="w-6 h-6 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" />
       </div>
     );
   }
@@ -153,7 +153,7 @@ export function AdminAnalyticsPage() {
     <div className="w-full mx-auto max-w-[1400px] space-y-6 p-6 lg:p-10">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 sm:p-8 rounded-2xl bg-gradient-to-br from-[#102840] via-[#173852] to-[#102840] text-white shadow-lg">
         <div className="space-y-1.5">
-          <span className="px-2.5 py-0.5 rounded-full bg-[#38A8D8]/20 text-[#38A8D8] text-xs font-semibold uppercase tracking-wider border border-[#38A8D8]/30">
+          <span className="px-2.5 py-0.5 rounded-full bg-[#2164b6]/20 text-[#2164b6] dark:text-[#7ab0ff] text-xs font-semibold uppercase tracking-wider border border-[#2164b6]/30">
             Admin
           </span>
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">Platform Analytics</h1>
@@ -230,7 +230,7 @@ function OverviewTab({ overview, topContent, currency }: { overview: any; topCon
         {Array.isArray(topContent?.top_digital_products) && topContent.top_digital_products.length > 0 && (
           <div className="rounded-2xl border border-border bg-card p-5">
             <h3 className="font-semibold text-sm text-foreground mb-3 flex items-center gap-2">
-              <ShoppingBag className="h-4 w-4 text-[#38A8D8]" /> Top Digital Products
+              <ShoppingBag className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" /> Top Digital Products
             </h3>
             <div className="space-y-2.5">
               {topContent.top_digital_products.slice(0, 5).map((p: any, i: number) => (
@@ -249,7 +249,7 @@ function OverviewTab({ overview, topContent, currency }: { overview: any; topCon
         {Array.isArray(topContent?.top_creators) && topContent.top_creators.length > 0 && (
           <div className="rounded-2xl border border-border bg-card p-5">
             <h3 className="font-semibold text-sm text-foreground mb-3 flex items-center gap-2">
-              <Crown className="h-4 w-4 text-[#38A8D8]" /> Top Creators
+              <Crown className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" /> Top Creators
             </h3>
             <div className="space-y-2.5">
               {topContent.top_creators.slice(0, 5).map((c: any, i: number) => (
@@ -268,7 +268,7 @@ function OverviewTab({ overview, topContent, currency }: { overview: any; topCon
         {Array.isArray(topContent?.top_communities) && topContent.top_communities.length > 0 && (
           <div className="rounded-2xl border border-border bg-card p-5">
             <h3 className="font-semibold text-sm text-foreground mb-3 flex items-center gap-2">
-              <Globe className="h-4 w-4 text-[#38A8D8]" /> Top Communities
+              <Globe className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" /> Top Communities
             </h3>
             <div className="space-y-2.5">
               {topContent.top_communities.slice(0, 5).map((c: any, i: number) => (
@@ -313,15 +313,15 @@ function GrowthTab({ data, currency }: { data: any; currency: string }) {
               <AreaChart data={signups}>
                 <defs>
                   <linearGradient id="signupGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#38A8D8" stopOpacity={0.3} />
-                    <stop offset="100%" stopColor="#38A8D8" stopOpacity={0} />
+                    <stop offset="0%" stopColor="#2164b6" stopOpacity={0.3} />
+                    <stop offset="100%" stopColor="#2164b6" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis dataKey="date" tick={{ fontSize: 10 }} tickLine={false} axisLine={false} tickFormatter={(v: string) => v.slice(5)} />
                 <YAxis tick={{ fontSize: 10 }} tickLine={false} axisLine={false} />
                 <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid hsl(var(--border))" }} />
-                <Area type="monotone" dataKey="count" stroke="#38A8D8" fill="url(#signupGradient)" strokeWidth={2} />
+                <Area type="monotone" dataKey="count" stroke="#2164b6" fill="url(#signupGradient)" strokeWidth={2} />
               </AreaChart>
             </ResponsiveContainer>
           ) : (
@@ -417,7 +417,7 @@ function RevenueTab({ data, currency }: { data: any; currency: string }) {
                 <XAxis dataKey="month" tick={{ fontSize: 10 }} tickLine={false} axisLine={false} />
                 <YAxis tick={{ fontSize: 10 }} tickLine={false} axisLine={false} tickFormatter={(v) => formatAmount(v * 100, currency)} />
                 <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} formatter={(value: any) => [formatAmount(Number(value) * 100, currency), "Revenue"]} />
-                <Bar dataKey="revenue" fill="#38A8D8" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="revenue" fill="#2164b6" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           ) : (
@@ -467,7 +467,7 @@ function ContentTab({ data }: { data: any }) {
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <div className="rounded-2xl border border-border bg-card p-5">
         <h3 className="font-semibold text-sm text-foreground mb-4 flex items-center gap-2">
-          <ShoppingBag className="h-4 w-4 text-[#38A8D8]" /> Top Digital Products
+          <ShoppingBag className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" /> Top Digital Products
         </h3>
         <div className="space-y-3">
           {Array.isArray(data.top_digital_products) && data.top_digital_products.length > 0 ? (
@@ -488,7 +488,7 @@ function ContentTab({ data }: { data: any }) {
 
       <div className="rounded-2xl border border-border bg-card p-5">
         <h3 className="font-semibold text-sm text-foreground mb-4 flex items-center gap-2">
-          <Crown className="h-4 w-4 text-[#38A8D8]" /> Top Creators
+          <Crown className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" /> Top Creators
         </h3>
         <div className="space-y-3">
           {Array.isArray(data.top_creators) && data.top_creators.length > 0 ? (
@@ -512,7 +512,7 @@ function ContentTab({ data }: { data: any }) {
 
       <div className="rounded-2xl border border-border bg-card p-5">
         <h3 className="font-semibold text-sm text-foreground mb-4 flex items-center gap-2">
-          <Globe className="h-4 w-4 text-[#38A8D8]" /> Top Communities
+          <Globe className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" /> Top Communities
         </h3>
         <div className="space-y-3">
           {Array.isArray(data.top_communities) && data.top_communities.length > 0 ? (

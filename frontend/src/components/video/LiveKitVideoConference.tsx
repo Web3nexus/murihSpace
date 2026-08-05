@@ -195,7 +195,7 @@ export function LiveKitVideoConference({ roomId, roomTitle = 'Video Conference',
             <h2 className="text-xl font-bold">{roomTitle}</h2>
             <p className="text-xs text-slate-400">LiveKit Native Video Conference</p>
           </div>
-          <Badge className="bg-[#38A8D8]/20 text-[#38A8D8] border-[#38A8D8]/30">LiveKit SFU</Badge>
+          <Badge className="bg-[#2164b6]/20 text-[#2164b6] dark:text-[#7ab0ff] border-[#2164b6]/30">LiveKit SFU</Badge>
         </div>
 
         <div className="relative aspect-video bg-slate-950 rounded-xl overflow-hidden flex items-center justify-center border border-slate-800">
@@ -232,7 +232,7 @@ export function LiveKitVideoConference({ roomId, roomTitle = 'Video Conference',
               Cancel
             </Button>
           )}
-          <Button onClick={joinConference} className="bg-[#38A8D8] hover:bg-[#38A8D8]/90 text-white px-8 font-semibold">
+          <Button onClick={joinConference} className="bg-[#2164b6] hover:bg-[#2164b6]/90 text-white px-8 font-semibold">
             Join Meeting Now
           </Button>
         </div>
@@ -244,7 +244,7 @@ export function LiveKitVideoConference({ roomId, roomTitle = 'Video Conference',
   if (stage === 'connecting') {
     return (
       <div className="w-full h-80 bg-slate-900 text-white rounded-2xl flex flex-col items-center justify-center space-y-3 border border-slate-800">
-        <Loader2 className="w-8 h-8 animate-spin text-[#38A8D8]" />
+        <Loader2 className="w-8 h-8 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" />
         <p className="text-sm font-medium">Connecting to LiveKit SFU Media Server...</p>
       </div>
     );
@@ -343,7 +343,7 @@ export function LiveKitVideoConference({ roomId, roomTitle = 'Video Conference',
           <Button
             variant={isScreenSharing ? 'default' : 'outline'}
             size="icon"
-            className={`rounded-full h-11 w-11 ${isScreenSharing ? 'bg-[#38A8D8] text-white' : 'border-slate-700 text-slate-300'}`}
+            className={`rounded-full h-11 w-11 ${isScreenSharing ? 'bg-[#2164b6] text-white' : 'border-slate-700 text-slate-300'}`}
             onClick={toggleScreenShare}
             title="Share Screen"
           >

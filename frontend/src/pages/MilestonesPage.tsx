@@ -280,8 +280,8 @@ export function MilestonesPage() {
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
             {badges.map(ub => (
               <div key={ub.badge_id} className="bg-white border rounded-xl p-5 text-center">
-                <div className="w-14 h-14 mx-auto rounded-full flex items-center justify-center mb-3" style={{ backgroundColor: (ub.badge?.color ?? '#38A8D8') + '20' }}>
-                  <Award className="w-7 h-7" style={{ color: ub.badge?.color ?? '#38A8D8' }} />
+                <div className="w-14 h-14 mx-auto rounded-full flex items-center justify-center mb-3" style={{ backgroundColor: (ub.badge?.color ?? '#2164b6') + '20' }}>
+                  <Award className="w-7 h-7" style={{ color: ub.badge?.color ?? '#2164b6' }} />
                 </div>
                 <h3 className="font-semibold text-sm">{ub.badge?.name}</h3>
                 <p className="text-xs text-gray-500 mt-1">{ub.badge?.description}</p>

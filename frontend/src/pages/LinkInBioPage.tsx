@@ -324,7 +324,7 @@ export default function LinkInBioPage() {
     setProdMediaUrl(p.media_url ?? ""); setProdCheckoutUrl(p.checkout_url ?? ""); setShowProductForm(true);
   };
 
-  if (loading) return <div className="flex justify-center py-24"><Loader2 className="h-8 w-8 animate-spin text-[#38A8D8]" /></div>;
+  if (loading) return <div className="flex justify-center py-24"><Loader2 className="h-8 w-8 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" /></div>;
 
   const msgBg = msg ? (msg.ok ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" : "bg-rose-500/10 border-rose-500/20 text-rose-400") : "";
 
@@ -333,7 +333,7 @@ export default function LinkInBioPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-black tracking-tight flex items-center gap-2.5">
-            <Link2 className="h-6 w-6 text-[#38A8D8]" /> Link in Bio Builder
+            <Link2 className="h-6 w-6 text-[#2164b6] dark:text-[#7ab0ff]" /> Link in Bio Builder
           </h1>
           <p className="text-xs text-muted-foreground mt-1">Set up your page in 6 easy steps.</p>
         </div>
@@ -363,7 +363,7 @@ export default function LinkInBioPage() {
             <div className="space-y-4">
               <div className="border border-border rounded-2xl bg-card p-6">
                 <div className="flex items-center gap-2 mb-1">
-                  <Sparkles className="h-4 w-4 text-[#38A8D8]" />
+                  <Sparkles className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" />
                   <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Choose a Template</h2>
                 </div>
                 <p className="text-[11px] text-muted-foreground mb-4">Full layouts with built-in colors — switch anytime. You can fine-tune in the Style step.</p>
@@ -373,9 +373,9 @@ export default function LinkInBioPage() {
                     return (
                       <button key={t.slug} onClick={() => applyTemplate(t.slug)} disabled={saving}
                         className={`relative rounded-xl border-2 transition-all overflow-hidden text-left ${
-                          isActive ? "border-[#38A8D8] shadow-md" : "border-border hover:border-[#38A8D8]/50"
+                          isActive ? "border-[#2164b6] shadow-md" : "border-border hover:border-[#2164b6]/50"
                         }`}>
-                        {isActive && <span className="absolute top-1.5 left-1.5 z-10 bg-[#38A8D8] text-white rounded-full p-0.5"><Check className="h-3 w-3" /></span>}
+                        {isActive && <span className="absolute top-1.5 left-1.5 z-10 bg-[#2164b6] text-white rounded-full p-0.5"><Check className="h-3 w-3" /></span>}
                         <div className="p-2"><TemplateThumb template={t} /></div>
                         <div className="px-2.5 pb-2.5">
                           <p className="text-xs font-bold truncate text-foreground">{t.name}</p>
@@ -395,7 +395,7 @@ export default function LinkInBioPage() {
               {/* Color presets */}
               <div className="border border-border rounded-2xl bg-card p-6">
                 <div className="flex items-center gap-2 mb-1">
-                  <Palette className="h-4 w-4 text-[#38A8D8]" />
+                  <Palette className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" />
                   <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Color Presets</h2>
                 </div>
                 <p className="text-[11px] text-muted-foreground mb-4">Apply a preset palette on top of your chosen template.</p>
@@ -406,10 +406,10 @@ export default function LinkInBioPage() {
                     return (
                       <button key={theme.id} onClick={() => applyTheme(theme)} disabled={saving}
                         className={`relative p-3 rounded-xl border-2 transition-all text-left overflow-hidden ${
-                          isActive ? "border-[#38A8D8] shadow-md" : "border-border hover:border-[#38A8D8]/50"
+                          isActive ? "border-[#2164b6] shadow-md" : "border-border hover:border-[#2164b6]/50"
                         }`} style={{ background: c.bg, color: c.text_color }}>
                         {theme.is_premium && <span className="absolute top-1 right-1"><Crown className="h-3 w-3 text-amber-400" /></span>}
-                        {isActive && <span className="absolute top-1 left-1 bg-[#38A8D8] text-white rounded-full p-0.5"><Check className="h-3 w-3" /></span>}
+                        {isActive && <span className="absolute top-1 left-1 bg-[#2164b6] text-white rounded-full p-0.5"><Check className="h-3 w-3" /></span>}
                         <div className="flex gap-1 mb-2">
                           <div className="w-4 h-4 rounded-full" style={{ background: c.bg, border: "1px solid rgba(0,0,0,0.1)" }} />
                           <div className="w-4 h-4 rounded-full" style={{ background: c.card_bg, border: "1px solid rgba(0,0,0,0.1)" }} />
@@ -448,7 +448,7 @@ export default function LinkInBioPage() {
                     <div className="flex gap-1">
                       {FONT_OPTIONS.map((f) => (
                         <button key={f.value} onClick={() => setFont(f.value)}
-                          className={`flex-1 px-2 py-1.5 rounded-lg text-[10px] font-bold transition-colors ${font === f.value ? "bg-[#38A8D8] text-white" : "bg-muted text-muted-foreground"}`}>{f.label}</button>
+                          className={`flex-1 px-2 py-1.5 rounded-lg text-[10px] font-bold transition-colors ${font === f.value ? "bg-[#2164b6] text-white" : "bg-muted text-muted-foreground"}`}>{f.label}</button>
                       ))}
                     </div>
                   </div>
@@ -457,7 +457,7 @@ export default function LinkInBioPage() {
                     <div className="flex gap-1">
                       {BUTTON_STYLES.map((b) => (
                         <button key={b.value} onClick={() => setButtonStyle(b.value)}
-                          className={`flex-1 px-2 py-1.5 rounded-lg text-[10px] font-bold transition-colors ${buttonStyle === b.value ? "bg-[#38A8D8] text-white" : "bg-muted text-muted-foreground"}`}>{b.label}</button>
+                          className={`flex-1 px-2 py-1.5 rounded-lg text-[10px] font-bold transition-colors ${buttonStyle === b.value ? "bg-[#2164b6] text-white" : "bg-muted text-muted-foreground"}`}>{b.label}</button>
                       ))}
                     </div>
                   </div>
@@ -466,7 +466,7 @@ export default function LinkInBioPage() {
                     <div className="flex gap-1">
                       {LAYOUT_OPTIONS.map((l) => (
                         <button key={l.value} onClick={() => setLayout(l.value)}
-                          className={`flex-1 px-2 py-1.5 rounded-lg text-[10px] font-bold transition-colors ${layout === l.value ? "bg-[#38A8D8] text-white" : "bg-muted text-muted-foreground"}`}>{l.label}</button>
+                          className={`flex-1 px-2 py-1.5 rounded-lg text-[10px] font-bold transition-colors ${layout === l.value ? "bg-[#2164b6] text-white" : "bg-muted text-muted-foreground"}`}>{l.label}</button>
                       ))}
                     </div>
                   </div>
@@ -484,7 +484,7 @@ export default function LinkInBioPage() {
           {/* Step 2: Profile */}
           {step === 2 && (
             <div className="border border-border rounded-2xl bg-card overflow-hidden">
-              <div className="h-32 sm:h-40 bg-gradient-to-br from-[#38A8D8]/20 to-[#2164b6]/20 relative">
+              <div className="h-32 sm:h-40 bg-gradient-to-br from-[#2164b6]/20 to-[#2164b6]/20 relative">
                 {bannerUrl && <img src={bannerUrl} alt="" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />}
                 <div className="absolute inset-0 flex items-end p-4">
                   <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-card bg-muted shadow-md">
@@ -647,8 +647,8 @@ export default function LinkInBioPage() {
                     <div>
                       <label className="text-[10px] font-bold text-muted-foreground">Type</label>
                       <div className="flex gap-1">
-                        <button type="button" onClick={() => setProdType("digital")} className={`flex-1 px-2 py-1.5 rounded-lg text-[10px] font-bold ${prodType === "digital" ? "bg-[#38A8D8] text-white" : "bg-muted text-muted-foreground"}`}>Digital</button>
-                        <button type="button" onClick={() => setProdType("physical")} className={`flex-1 px-2 py-1.5 rounded-lg text-[10px] font-bold ${prodType === "physical" ? "bg-[#38A8D8] text-white" : "bg-muted text-muted-foreground"}`}>Physical</button>
+                        <button type="button" onClick={() => setProdType("digital")} className={`flex-1 px-2 py-1.5 rounded-lg text-[10px] font-bold ${prodType === "digital" ? "bg-[#2164b6] text-white" : "bg-muted text-muted-foreground"}`}>Digital</button>
+                        <button type="button" onClick={() => setProdType("physical")} className={`flex-1 px-2 py-1.5 rounded-lg text-[10px] font-bold ${prodType === "physical" ? "bg-[#2164b6] text-white" : "bg-muted text-muted-foreground"}`}>Physical</button>
                       </div>
                     </div>
                     <div className="col-span-2">

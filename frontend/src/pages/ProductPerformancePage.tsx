@@ -31,7 +31,7 @@ export default function ProductPerformancePage() {
 
   useEffect(() => { fetchStats(); }, [fetchStats]);
 
-  if (loading) return <div className="flex justify-center py-24"><Loader2 className="h-8 w-8 animate-spin text-[#38A8D8]" /></div>;
+  if (loading) return <div className="flex justify-center py-24"><Loader2 className="h-8 w-8 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" /></div>;
 
   const totalRevenue = stats.reduce((sum, s) => sum + s.total_revenue, 0);
   const totalSales = stats.reduce((sum, s) => sum + s.total_sales, 0);
@@ -40,7 +40,7 @@ export default function ProductPerformancePage() {
     <div className="w-full max-w-7xl mx-auto space-y-6 p-6 lg:p-8">
       <div>
         <h1 className="text-2xl font-black tracking-tight flex items-center gap-2.5">
-          <BarChart3 className="h-6 w-6 text-[#38A8D8]" /> Product Performance
+          <BarChart3 className="h-6 w-6 text-[#2164b6] dark:text-[#7ab0ff]" /> Product Performance
         </h1>
         <p className="text-xs text-muted-foreground mt-1">Analytics for your product performance.</p>
       </div>

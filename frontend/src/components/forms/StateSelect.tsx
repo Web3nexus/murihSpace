@@ -109,7 +109,7 @@ export function StateSelect({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className={`w-full rounded-xl border border-border bg-card px-3 py-2.5 text-sm font-medium text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-[#38A8D8]/50 ${className}`}
+        className={`w-full rounded-xl border border-border bg-card px-3 py-2.5 text-sm font-medium text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-[#2164b6]/50 ${className}`}
       />
     );
   }
@@ -120,7 +120,7 @@ export function StateSelect({
         type="button"
         disabled={disabled || loading}
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl border border-border bg-card text-foreground text-sm font-medium focus:outline-none focus:border-[#38A8D8]/50 disabled:opacity-50 transition-colors"
+        className="w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl border border-border bg-card text-foreground text-sm font-medium focus:outline-none focus:border-[#2164b6]/50 disabled:opacity-50 transition-colors"
       >
         <span className="flex items-center gap-2 truncate">
           {loading ? (
@@ -166,7 +166,7 @@ export function StateSelect({
                     }}
                     className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-colors ${
                       isSelected
-                        ? "bg-[#38A8D8]/10 text-[#38A8D8] font-bold"
+                        ? "bg-[#2164b6]/10 text-[#2164b6] dark:text-[#7ab0ff] font-bold"
                         : "hover:bg-muted/50 text-foreground"
                     }`}
                   >

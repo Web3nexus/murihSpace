@@ -108,14 +108,14 @@ export default function SavedAddressesPage() {
     fetchAddresses();
   };
 
-  if (loading) return <div className="flex justify-center py-24"><Loader2 className="h-8 w-8 animate-spin text-[#38A8D8]" /></div>;
+  if (loading) return <div className="flex justify-center py-24"><Loader2 className="h-8 w-8 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" /></div>;
 
   return (
     <div className="w-full max-w-7xl mx-auto space-y-6 p-6 lg:p-8">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-black tracking-tight flex items-center gap-2.5">
-            <MapPin className="h-6 w-6 text-[#38A8D8]" /> Saved Addresses
+            <MapPin className="h-6 w-6 text-[#2164b6] dark:text-[#7ab0ff]" /> Saved Addresses
           </h1>
           <p className="text-xs text-muted-foreground mt-1">Manage your shipping and billing addresses.</p>
         </div>
@@ -182,7 +182,7 @@ export default function SavedAddressesPage() {
             <div key={a.id} className="border border-border rounded-2xl bg-card p-5 space-y-3 hover:shadow-md transition-shadow relative">
               {a.is_default && <span className="absolute top-3 right-3 text-emerald-400"><CheckCircle className="h-4 w-4" /></span>}
               <div className="flex items-center gap-2">
-                <MapPin className="h-4 w-4 text-[#38A8D8]" />
+                <MapPin className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" />
                 <span className="text-xs font-bold text-foreground">{a.label}</span>
                 {a.is_default && <span className="text-[10px] text-emerald-400 font-bold">Default</span>}
               </div>

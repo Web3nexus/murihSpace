@@ -64,7 +64,7 @@ export function AdminTransactionsPage() {
     <div className="w-full mx-auto max-w-[1400px] space-y-6 p-6 lg:p-10">
       <div>
         <h1 className="text-2xl font-black tracking-tight flex items-center gap-2.5">
-          <BadgeDollarSign className="h-6 w-6 text-[#38A8D8]" /> Transactions
+          <BadgeDollarSign className="h-6 w-6 text-[#2164b6] dark:text-[#7ab0ff]" /> Transactions
         </h1>
         <p className="text-xs text-muted-foreground mt-1">Review withdrawals, orders, and platform transactions.</p>
       </div>
@@ -89,7 +89,7 @@ export function AdminTransactionsPage() {
             <Input value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} placeholder="Search by ID, user, status..." className="pl-8 h-8 text-xs" />
           </div>
         </div>
-        {loading ? <div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-[#38A8D8]" /></div>
+        {loading ? <div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" /></div>
           : withdrawals.length === 0 ? <div className="p-12 text-center"><BadgeDollarSign className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" /><p className="text-xs text-muted-foreground">No withdrawal requests.</p></div>
           : <div className="divide-y divide-border/50">
               {withdrawals.map((w) => (

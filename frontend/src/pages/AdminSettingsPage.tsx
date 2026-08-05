@@ -156,11 +156,11 @@ export default function AdminSettingsPage() {
     } finally { setSaving(false); }
   };
 
-  if (initialLoading) return <div className="flex justify-center py-24"><Loader2 className="h-8 w-8 animate-spin text-[#38A8D8]" /></div>;
+  if (initialLoading) return <div className="flex justify-center py-24"><Loader2 className="h-8 w-8 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" /></div>;
 
   return (
     <div className="w-full mx-auto max-w-[800px] space-y-6 p-6 lg:p-10">
-      <div><h1 className="text-2xl font-black tracking-tight flex items-center gap-2.5"><Settings className="h-6 w-6 text-[#38A8D8]" /> Admin Settings</h1><p className="text-xs text-muted-foreground mt-1">Platform configuration and settings.</p></div>
+      <div><h1 className="text-2xl font-black tracking-tight flex items-center gap-2.5"><Settings className="h-6 w-6 text-[#2164b6] dark:text-[#7ab0ff]" /> Admin Settings</h1><p className="text-xs text-muted-foreground mt-1">Platform configuration and settings.</p></div>
 
       {fetchError && (
         <div className="flex items-center gap-2 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-xs text-destructive">
@@ -179,7 +179,7 @@ export default function AdminSettingsPage() {
             <select
               value={defaultCurrency}
               onChange={(e) => setDefaultCurrency(e.target.value)}
-              className="appearance-none w-full h-10 pl-9 pr-8 rounded-lg border border-border bg-background text-sm font-bold cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#38A8D8]/30"
+              className="appearance-none w-full h-10 pl-9 pr-8 rounded-lg border border-border bg-background text-sm font-bold cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#2164b6]/30"
             >
               {SUPPORTED_CURRENCIES.map((c) => (
                 <option key={c} value={c}>{c} — {CURRENCY_SYMBOLS[c]}</option>
@@ -196,7 +196,7 @@ export default function AdminSettingsPage() {
         </div>
         <div className="rounded-xl border border-border p-3 space-y-2">
           <div className="flex items-center gap-2">
-            <Smartphone className="h-4 w-4 text-[#38A8D8]" />
+            <Smartphone className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" />
             <p className="text-xs font-bold text-foreground">Web Dashboard Access</p>
           </div>
           <p className="text-[10px] text-muted-foreground">
@@ -228,7 +228,7 @@ export default function AdminSettingsPage() {
         </div>
         <div className="rounded-xl border border-border p-3 space-y-3">
           <div className="flex items-center gap-2">
-            <ShieldCheck className="h-4 w-4 text-[#38A8D8]" />
+            <ShieldCheck className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" />
             <p className="text-xs font-bold text-foreground">Identity Verification (KYC) Providers</p>
           </div>
           <p className="text-[10px] text-muted-foreground">
@@ -293,7 +293,7 @@ export default function AdminSettingsPage() {
                 {fields && isExpanded && (
                   <div className="border-t border-border/50 bg-background/50 p-3.5 space-y-3">
                     <p className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1.5">
-                      <Lock className="h-3.5 w-3.5 text-[#38A8D8]" />
+                      <Lock className="h-3.5 w-3.5 text-[#2164b6] dark:text-[#7ab0ff]" />
                       API Credentials for {p.label} (Encrypted at rest)
                     </p>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">

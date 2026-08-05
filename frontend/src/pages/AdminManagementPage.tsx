@@ -215,7 +215,7 @@ export function AdminManagementPage() {
     <div className="w-full mx-auto max-w-[1400px] space-y-6 p-6 lg:p-10">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 sm:p-8 rounded-2xl bg-gradient-to-br from-[#102840] via-[#173852] to-[#102840] text-white shadow-lg">
         <div className="space-y-1.5">
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#38A8D8]/20 text-[#38A8D8] text-xs font-semibold uppercase tracking-wider border border-[#38A8D8]/30">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#2164b6]/20 text-[#2164b6] dark:text-[#7ab0ff] text-xs font-semibold uppercase tracking-wider border border-[#2164b6]/30">
             <ShieldCheck className="h-3.5 w-3.5" /> Admin
           </span>
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">Admin Management</h1>
@@ -223,7 +223,7 @@ export function AdminManagementPage() {
         </div>
         <Button
           onClick={() => { setShowAdd(!showAdd); setEditing(null); setMsg(null); resetForm(); }}
-          className="bg-[#38A8D8] hover:bg-[#2d94c2] text-white font-bold"
+          className="bg-[#2164b6] hover:bg-[#2d94c2] text-white font-bold"
         >
           <UserPlus className="h-4 w-4 mr-2" />{showAdd ? "Cancel" : "Add Admin"}
         </Button>
@@ -246,7 +246,7 @@ export function AdminManagementPage() {
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
-          { label: "Total Admins", value: total, color: "text-[#38A8D8]" },
+          { label: "Total Admins", value: total, color: "text-[#2164b6] dark:text-[#7ab0ff]" },
           { label: "Super Admins", value: superAdminCount, color: "text-violet-400" },
           { label: "Section Admins", value: sectionAdminCount, color: "text-sky-400" },
           { label: "Suspended", value: suspendedCount, color: "text-rose-400" },
@@ -262,17 +262,17 @@ export function AdminManagementPage() {
         <form onSubmit={handleAdd} className="rounded-2xl border border-border bg-card p-6 space-y-5">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-lg font-extrabold flex items-center gap-2"><Shield className="h-5 w-5 text-[#38A8D8]" /> Add Admin</h2>
+              <h2 className="text-lg font-extrabold flex items-center gap-2"><Shield className="h-5 w-5 text-[#2164b6] dark:text-[#7ab0ff]" /> Add Admin</h2>
               <p className="text-xs text-muted-foreground">Grant a staff member admin access with a role and permissions.</p>
             </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <button type="button" onClick={() => setAddMode("existing")} className={`rounded-xl border p-3 text-left text-xs font-bold transition ${addMode === "existing" ? "border-[#38A8D8] bg-[#38A8D8]/10 text-[#38A8D8]" : "border-border bg-muted/30 text-muted-foreground hover:border-muted-foreground/40"}`}>
+            <button type="button" onClick={() => setAddMode("existing")} className={`rounded-xl border p-3 text-left text-xs font-bold transition ${addMode === "existing" ? "border-[#2164b6] bg-[#2164b6]/10 text-[#2164b6] dark:text-[#7ab0ff]" : "border-border bg-muted/30 text-muted-foreground hover:border-muted-foreground/40"}`}>
               Promote existing user
               <span className="block text-[10px] font-medium opacity-70 mt-0.5">Pick an account already on the platform</span>
             </button>
-            <button type="button" onClick={() => setAddMode("new")} className={`rounded-xl border p-3 text-left text-xs font-bold transition ${addMode === "new" ? "border-[#38A8D8] bg-[#38A8D8]/10 text-[#38A8D8]" : "border-border bg-muted/30 text-muted-foreground hover:border-muted-foreground/40"}`}>
+            <button type="button" onClick={() => setAddMode("new")} className={`rounded-xl border p-3 text-left text-xs font-bold transition ${addMode === "new" ? "border-[#2164b6] bg-[#2164b6]/10 text-[#2164b6] dark:text-[#7ab0ff]" : "border-border bg-muted/30 text-muted-foreground hover:border-muted-foreground/40"}`}>
               Create new admin
               <span className="block text-[10px] font-medium opacity-70 mt-0.5">Set up a fresh staff account with credentials</span>
             </button>
@@ -304,7 +304,7 @@ export function AdminManagementPage() {
                   key={key}
                   type="button"
                   onClick={() => setForm({ ...form, admin_role: key, permissions: key === "super_admin" ? [] : form.permissions })}
-                  className={`rounded-xl border px-3 py-2.5 text-left transition ${form.admin_role === key ? "border-[#38A8D8] bg-[#38A8D8]/10 text-[#38A8D8]" : "border-border bg-muted/30 text-foreground hover:border-muted-foreground/40"}`}
+                  className={`rounded-xl border px-3 py-2.5 text-left transition ${form.admin_role === key ? "border-[#2164b6] bg-[#2164b6]/10 text-[#2164b6] dark:text-[#7ab0ff]" : "border-border bg-muted/30 text-foreground hover:border-muted-foreground/40"}`}
                 >
                   <span className="text-xs font-bold block">{label as string}</span>
                   {key === "super_admin" && <span className="text-[9px] font-medium opacity-70">All permissions</span>}
@@ -322,7 +322,7 @@ export function AdminManagementPage() {
                     key={key}
                     type="button"
                     onClick={() => togglePerm(key, (p) => setForm({ ...form, permissions: p }), form.permissions)}
-                    className={`rounded-lg border px-3 py-2 text-[11px] font-semibold text-left transition ${form.permissions.includes(key) ? "border-[#38A8D8] bg-[#38A8D8]/10 text-[#38A8D8]" : "border-border bg-muted/30 text-muted-foreground hover:border-muted-foreground/40"}`}
+                    className={`rounded-lg border px-3 py-2 text-[11px] font-semibold text-left transition ${form.permissions.includes(key) ? "border-[#2164b6] bg-[#2164b6]/10 text-[#2164b6] dark:text-[#7ab0ff]" : "border-border bg-muted/30 text-muted-foreground hover:border-muted-foreground/40"}`}
                   >
                     {label as string}
                   </button>
@@ -332,7 +332,7 @@ export function AdminManagementPage() {
           )}
 
           <div className="flex items-center gap-2 pt-1">
-            <Button type="submit" disabled={saving} className="bg-[#38A8D8] hover:bg-[#2d94c2] text-white font-bold text-sm">
+            <Button type="submit" disabled={saving} className="bg-[#2164b6] hover:bg-[#2d94c2] text-white font-bold text-sm">
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />} Add Admin
             </Button>
             <Button type="button" variant="outline" onClick={() => { setShowAdd(false); resetForm(); }}>Cancel</Button>
@@ -354,7 +354,7 @@ export function AdminManagementPage() {
         </div>
 
         {loading ? (
-          <div className="flex items-center justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-[#38A8D8]" /></div>
+          <div className="flex items-center justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" /></div>
         ) : admins.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <Shield className="h-8 w-8 text-muted-foreground/40 mb-2" />
@@ -379,7 +379,7 @@ export function AdminManagementPage() {
                   <tr key={a.id} className="border-b border-border/60 last:border-0 hover:bg-muted/30 transition-colors">
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#38A8D8] to-purple-600 p-[2px] shrink-0">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#2164b6] to-purple-600 p-[2px] shrink-0">
                           <div className="w-full h-full rounded-full bg-card flex items-center justify-center text-xs font-black text-[#1a2e3b]">
                             {a.name?.charAt(0)?.toUpperCase() ?? "?"}
                           </div>
@@ -447,7 +447,7 @@ export function AdminManagementPage() {
       <Dialog open={!!editing} onOpenChange={(o) => { if (!o) { setEditing(null); setMsg(null); } }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2"><ShieldCheck className="h-5 w-5 text-[#38A8D8]" /> Edit Admin</DialogTitle>
+            <DialogTitle className="flex items-center gap-2"><ShieldCheck className="h-5 w-5 text-[#2164b6] dark:text-[#7ab0ff]" /> Edit Admin</DialogTitle>
             <DialogDescription>
               Update role and permissions for <span className="font-bold text-foreground">{editing?.name}</span>
             </DialogDescription>
@@ -462,7 +462,7 @@ export function AdminManagementPage() {
                       key={key}
                       type="button"
                       onClick={() => setEditForm({ ...editForm, admin_role: key, permissions: key === "super_admin" ? [] : editForm.permissions })}
-                      className={`rounded-xl border px-3 py-2.5 text-left transition ${editForm.admin_role === key ? "border-[#38A8D8] bg-[#38A8D8]/10 text-[#38A8D8]" : "border-border bg-muted/30 text-foreground hover:border-muted-foreground/40"}`}
+                      className={`rounded-xl border px-3 py-2.5 text-left transition ${editForm.admin_role === key ? "border-[#2164b6] bg-[#2164b6]/10 text-[#2164b6] dark:text-[#7ab0ff]" : "border-border bg-muted/30 text-foreground hover:border-muted-foreground/40"}`}
                     >
                       <span className="text-xs font-bold block">{label as string}</span>
                       {key === "super_admin" && <span className="text-[9px] font-medium opacity-70">All permissions</span>}
@@ -480,7 +480,7 @@ export function AdminManagementPage() {
                         key={key}
                         type="button"
                         onClick={() => togglePerm(key, (p) => setEditForm({ ...editForm, permissions: p }), editForm.permissions)}
-                        className={`rounded-lg border px-3 py-2 text-[11px] font-semibold text-left transition ${editForm.permissions.includes(key) ? "border-[#38A8D8] bg-[#38A8D8]/10 text-[#38A8D8]" : "border-border bg-muted/30 text-muted-foreground hover:border-muted-foreground/40"}`}
+                        className={`rounded-lg border px-3 py-2 text-[11px] font-semibold text-left transition ${editForm.permissions.includes(key) ? "border-[#2164b6] bg-[#2164b6]/10 text-[#2164b6] dark:text-[#7ab0ff]" : "border-border bg-muted/30 text-muted-foreground hover:border-muted-foreground/40"}`}
                       >
                         {label as string}
                       </button>
@@ -497,7 +497,7 @@ export function AdminManagementPage() {
                       key={s}
                       type="button"
                       onClick={() => setEditForm({ ...editForm, status: s })}
-                      className={`rounded-xl border px-3 py-2.5 text-xs font-bold text-left capitalize transition ${editForm.status === s ? "border-[#38A8D8] bg-[#38A8D8]/10 text-[#38A8D8]" : "border-border bg-muted/30 text-muted-foreground hover:border-muted-foreground/40"}`}
+                      className={`rounded-xl border px-3 py-2.5 text-xs font-bold text-left capitalize transition ${editForm.status === s ? "border-[#2164b6] bg-[#2164b6]/10 text-[#2164b6] dark:text-[#7ab0ff]" : "border-border bg-muted/30 text-muted-foreground hover:border-muted-foreground/40"}`}
                     >
                       {s}
                     </button>
@@ -506,7 +506,7 @@ export function AdminManagementPage() {
               </div>
 
               <div className="flex items-center gap-2 pt-1">
-                <Button type="submit" disabled={saving} className="bg-[#38A8D8] hover:bg-[#2d94c2] text-white font-bold text-sm">
+                <Button type="submit" disabled={saving} className="bg-[#2164b6] hover:bg-[#2d94c2] text-white font-bold text-sm">
                   {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />} Save Changes
                 </Button>
                 <Button type="button" variant="outline" onClick={() => setEditing(null)}>Cancel</Button>

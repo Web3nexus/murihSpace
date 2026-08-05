@@ -154,7 +154,7 @@ export function SiteHeader() {
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Search MurihSpace"
-            className="w-full h-9 pl-9 pr-8 text-[13px] rounded-full border border-border bg-[#F0F2F5] dark:bg-muted/40 placeholder:text-[#65676B] text-[#1a2e3b] focus:outline-none focus:ring-2 focus:ring-[#38A8D8]/30 focus:border-[#38A8D8] transition-all"
+            className="w-full h-9 pl-9 pr-8 text-[13px] rounded-full border border-border bg-[#F0F2F5] dark:bg-muted/40 placeholder:text-[#65676B] text-[#1a2e3b] focus:outline-none focus:ring-2 focus:ring-[#2164b6]/30 focus:border-[#2164b6] transition-all"
           />
           {searchQuery && (
             <button
@@ -214,16 +214,16 @@ export function SiteHeader() {
                 to={tab.to}
                 className={`relative flex flex-col items-center justify-center gap-0.5 px-4 sm:px-5 h-14 min-w-[68px] text-[12px] font-semibold transition-colors group ${
                   isActive
-                    ? "text-[#38A8D8]"
+                    ? "text-[#2164b6] dark:text-[#7ab0ff]"
                     : "text-[#65676B] hover:text-[#1a2e3b]"
                 }`}
               >
-                <span className={`transition-colors ${isActive ? "text-[#38A8D8]" : "text-[#65676B] group-hover:text-[#1a2e3b]"}`}>
+                <span className={`transition-colors ${isActive ? "text-[#2164b6] dark:text-[#7ab0ff]" : "text-[#65676B] group-hover:text-[#1a2e3b]"}`}>
                   {tab.icon}
                 </span>
                 <span>{tab.label}</span>
                 {isActive && (
-                  <div className="absolute bottom-0 left-2 right-2 h-[3px] bg-[#38A8D8] rounded-t-full" />
+                  <div className="absolute bottom-0 left-2 right-2 h-[3px] bg-[#2164b6] rounded-t-full" />
                 )}
               </Link>
             );
@@ -275,7 +275,7 @@ export function SiteHeader() {
 
         {/* User Avatar */}
         <Link to="/app/settings" className="ml-0.5 shrink-0">
-          <div className="h-9 w-9 rounded-full bg-gradient-to-tr from-[#38A8D8] to-purple-600 p-[2px] cursor-pointer hover:scale-105 transition-transform shadow-sm">
+          <div className="h-9 w-9 rounded-full bg-gradient-to-tr from-[#2164b6] to-purple-600 p-[2px] cursor-pointer hover:scale-105 transition-transform shadow-sm">
             <div className="w-full h-full rounded-full bg-[#F8F7F4] dark:bg-card overflow-hidden flex items-center justify-center text-[13px] font-black text-[#1a2e3b]">
               {(user as { avatar_url?: string; avatar?: string })?.avatar_url || (user as { avatar_url?: string; avatar?: string })?.avatar ? (
                 <img src={(user as { avatar_url?: string; avatar?: string })?.avatar_url || (user as { avatar_url?: string; avatar?: string })?.avatar} alt="" className="w-full h-full object-cover" />

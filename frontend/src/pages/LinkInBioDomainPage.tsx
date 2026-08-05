@@ -77,7 +77,7 @@ export default function LinkInBioDomainPage() {
     <div className="w-full max-w-7xl mx-auto space-y-6 p-6 lg:p-8">
       <div>
         <h1 className="text-2xl font-black tracking-tight flex items-center gap-2.5">
-          <Globe className="h-6 w-6 text-[#38A8D8]" /> Custom Domain
+          <Globe className="h-6 w-6 text-[#2164b6] dark:text-[#7ab0ff]" /> Custom Domain
         </h1>
         <p className="text-xs text-muted-foreground mt-1">Connect your own domain (e.g. yourname.com).</p>
       </div>
@@ -147,13 +147,13 @@ export default function LinkInBioDomainPage() {
               <tr className="border-b border-border/50">
                 <td className="py-2 font-mono font-bold text-foreground">CNAME</td>
                 <td className="py-2 font-mono text-muted-foreground">@</td>
-                <td className="py-2 font-mono text-[#38A8D8]">link.murihspace.com</td>
+                <td className="py-2 font-mono text-[#2164b6] dark:text-[#7ab0ff]">link.murihspace.com</td>
               </tr>
             </tbody>
           </table>
         </div>
         <div className="flex items-center justify-between">
-          <a href="https://docs.murihspace.com/custom-domains" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-[#38A8D8] font-bold hover:underline">
+          <a href="https://docs.murihspace.com/custom-domains" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-[#2164b6] dark:text-[#7ab0ff] font-bold hover:underline">
             <ExternalLink className="h-3 w-3" /> View full setup guide
           </a>
           <Button

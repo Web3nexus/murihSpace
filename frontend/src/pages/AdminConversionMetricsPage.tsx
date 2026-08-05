@@ -32,7 +32,7 @@ export default function AdminConversionMetricsPage() {
 
   useEffect(() => { loadData(); }, [loadData]);
 
-  if (loading) return <div className="flex justify-center py-24"><Loader2 className="h-8 w-8 animate-spin text-[#38A8D8]" /></div>;
+  if (loading) return <div className="flex justify-center py-24"><Loader2 className="h-8 w-8 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" /></div>;
 
   const steps = [
     { label: "Visitors", value: funnel?.visitors ?? 0, icon: Users, color: "bg-blue-500" },
@@ -53,7 +53,7 @@ export default function AdminConversionMetricsPage() {
 
   return (
     <div className="w-full mx-auto max-w-[1400px] space-y-6 p-6 lg:p-10">
-      <div><h1 className="text-2xl font-black tracking-tight flex items-center gap-2.5"><BarChart3 className="h-6 w-6 text-[#38A8D8]" /> Conversion Metrics</h1><p className="text-xs text-muted-foreground mt-1">Platform conversion funnel analytics.</p></div>
+      <div><h1 className="text-2xl font-black tracking-tight flex items-center gap-2.5"><BarChart3 className="h-6 w-6 text-[#2164b6] dark:text-[#7ab0ff]" /> Conversion Metrics</h1><p className="text-xs text-muted-foreground mt-1">Platform conversion funnel analytics.</p></div>
 
       {fetchError && (
         <div className="flex items-center gap-2 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-xs text-destructive">
@@ -95,7 +95,7 @@ export default function AdminConversionMetricsPage() {
           {rateCards.map(r => (
             <div key={r.label} className="border border-border rounded-2xl bg-card p-4 text-center">
               <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">{r.label}</p>
-              <p className="text-xl font-black text-[#38A8D8]">{r.value}</p>
+              <p className="text-xl font-black text-[#2164b6] dark:text-[#7ab0ff]">{r.value}</p>
             </div>
           ))}
         </div>

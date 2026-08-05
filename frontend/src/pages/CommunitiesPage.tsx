@@ -214,7 +214,7 @@ export function CommunitiesPage() {
               </p>
               <button
                 onClick={() => setPanel("discover")}
-                className="mt-4 px-4 py-2 rounded-lg bg-[#38A8D8] text-white text-sm font-bold hover:bg-[#2e94c0] transition-colors"
+                className="mt-4 px-4 py-2 rounded-lg bg-[#2164b6] text-white text-sm font-bold hover:bg-[#1a5091] transition-colors"
               >
                 Discover Communities
               </button>
@@ -230,7 +230,7 @@ export function CommunitiesPage() {
                         {post.community_avatar ? (
                           <img src={post.community_avatar} alt="" className="w-full h-full object-cover" />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center bg-[#38A8D8] text-white font-bold text-sm">
+                          <div className="w-full h-full flex items-center justify-center bg-[#2164b6] text-white font-bold text-sm">
                             {post.community_name.charAt(0)}
                           </div>
                         )}
@@ -257,7 +257,7 @@ export function CommunitiesPage() {
                       <p className="text-[12px] text-muted-foreground">
                         {post.author}
                         {post.badge && (
-                          <span className="ml-1.5 text-[#38A8D8] font-semibold">
+                          <span className="ml-1.5 text-[#2164b6] dark:text-[#7ab0ff] font-semibold">
                             · {post.badge}
                           </span>
                         )}
@@ -347,7 +347,7 @@ export function CommunitiesPage() {
                 onClick={() => { setSelectedCategory(cat); setDiscoverPage(1); }}
                 className={`px-3.5 py-1.5 rounded-full text-[12px] font-semibold whitespace-nowrap transition-all ${
                   selectedCategory === cat
-                    ? "bg-[#38A8D8] text-white"
+                    ? "bg-[#2164b6] text-white"
                     : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
                 }`}
               >
@@ -368,16 +368,16 @@ export function CommunitiesPage() {
               filteredDiscover.map((c) => {
                 const isJoined = myCommunities.some((m) => m.id === c.id);
                 return (
-                  <div key={c.id} className="bg-card border border-border rounded-2xl overflow-hidden shadow-xs hover:shadow-md hover:border-[#38A8D8]/40 transition-all group">
+                  <div key={c.id} className="bg-card border border-border rounded-2xl overflow-hidden shadow-xs hover:shadow-md hover:border-[#2164b6]/40 transition-all group">
                     {/* Cover */}
-                    <div className="h-24 w-full relative overflow-hidden bg-gradient-to-r from-[#38A8D8] to-blue-700">
+                    <div className="h-24 w-full relative overflow-hidden bg-gradient-to-r from-[#2164b6] to-blue-700">
                       {c.cover_url && (
                         <img src={c.cover_url} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                       )}
                     </div>
                     <div className="p-4 pt-0">
                       <div className="-mt-7 mb-3 flex items-end gap-3">
-                        <div className="h-12 w-12 rounded-xl border-2 border-card shadow-sm overflow-hidden bg-[#38A8D8] flex items-center justify-center text-white font-black text-base">
+                        <div className="h-12 w-12 rounded-xl border-2 border-card shadow-sm overflow-hidden bg-[#2164b6] flex items-center justify-center text-white font-black text-base">
                           {c.logo_url
                             ? <img src={c.logo_url} alt="" className="w-full h-full object-cover" />
                             : c.name.charAt(0).toUpperCase()
@@ -400,7 +400,7 @@ export function CommunitiesPage() {
                         className={`w-full py-2 rounded-lg text-[13px] font-bold transition-colors ${
                           isJoined
                             ? "bg-muted text-foreground hover:bg-muted/80"
-                            : "bg-[#38A8D8]/10 text-[#38A8D8] hover:bg-[#38A8D8]/20"
+                            : "bg-[#2164b6]/10 text-[#2164b6] dark:text-[#7ab0ff] hover:bg-[#2164b6]/20"
                         }`}
                       >
                         {isJoined ? "View Group" : "+ Join"}
@@ -449,7 +449,7 @@ export function CommunitiesPage() {
             <p className="text-sm text-muted-foreground mt-1">Create or join communities to see them here.</p>
             <button
               onClick={() => setIsModalOpen(true)}
-              className="mt-4 px-4 py-2 rounded-lg bg-[#38A8D8] text-white text-sm font-bold hover:bg-[#2e94c0] transition-colors"
+              className="mt-4 px-4 py-2 rounded-lg bg-[#2164b6] text-white text-sm font-bold hover:bg-[#1a5091] transition-colors"
             >
               + Create Community
             </button>
@@ -460,16 +460,16 @@ export function CommunitiesPage() {
               <Link
                 key={c.id}
                 to={`/app/communities/${c.slug}`}
-                className="flex items-center gap-3 p-3 bg-card border border-border rounded-xl hover:border-[#38A8D8]/40 hover:shadow-xs transition-all group"
+                className="flex items-center gap-3 p-3 bg-card border border-border rounded-xl hover:border-[#2164b6]/40 hover:shadow-xs transition-all group"
               >
-                <div className="h-12 w-12 rounded-xl overflow-hidden bg-[#38A8D8] flex items-center justify-center text-white font-black text-base shrink-0">
+                <div className="h-12 w-12 rounded-xl overflow-hidden bg-[#2164b6] flex items-center justify-center text-white font-black text-base shrink-0">
                   {c.logo_url
                     ? <img src={c.logo_url} alt="" className="w-full h-full object-cover" />
                     : c.name.charAt(0).toUpperCase()
                   }
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-bold text-[13.5px] text-foreground truncate group-hover:text-[#38A8D8] transition-colors">{c.name}</p>
+                  <p className="font-bold text-[13.5px] text-foreground truncate group-hover:text-[#2164b6] dark:text-[#7ab0ff] transition-colors">{c.name}</p>
                   <p className="text-[11px] text-muted-foreground flex items-center gap-1.5">
                     <Users className="h-3 w-3" />
                     {(c.members_count ?? 1).toLocaleString()} members
@@ -512,7 +512,7 @@ export function CommunitiesPage() {
                 value={searchQuery}
                 onChange={(e) => { setSearchQuery(e.target.value); setDiscoverPage(1); }}
                 placeholder="Search communities"
-                className="w-full h-9 pl-9 pr-3 text-[13px] rounded-full border border-border bg-[#F0F2F5] dark:bg-muted placeholder:text-[#65676B] text-[#1a2e3b] dark:text-foreground focus:outline-none focus:ring-2 focus:ring-[#38A8D8]/30 focus:border-[#38A8D8] transition-all"
+                className="w-full h-9 pl-9 pr-3 text-[13px] rounded-full border border-border bg-[#F0F2F5] dark:bg-muted placeholder:text-[#65676B] text-[#1a2e3b] dark:text-foreground focus:outline-none focus:ring-2 focus:ring-[#2164b6]/30 focus:border-[#2164b6] transition-all"
               />
             </div>
           </div>
@@ -529,11 +529,11 @@ export function CommunitiesPage() {
                 onClick={() => setPanel(item.id as "feed" | "discover" | "my")}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[14px] font-semibold transition-colors ${
                   panel === item.id
-                    ? "bg-[#38A8D8]/10 text-[#38A8D8]"
+                    ? "bg-[#2164b6]/10 text-[#2164b6] dark:text-[#7ab0ff]"
                     : "text-[#1a2e3b] hover:bg-[#F0F2F5]"
                 }`}
               >
-                <span className={`p-2 rounded-full ${panel === item.id ? "bg-[#38A8D8]/15" : "bg-[#F0F2F5]"}`}>
+                <span className={`p-2 rounded-full ${panel === item.id ? "bg-[#2164b6]/15" : "bg-[#F0F2F5]"}`}>
                   {item.icon}
                 </span>
                 {item.label}
@@ -545,7 +545,7 @@ export function CommunitiesPage() {
           <div className="px-4 py-4">
             <button
               onClick={() => setIsModalOpen(true)}
-              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 border-[#38A8D8]/30 text-[#38A8D8] text-[13px] font-bold hover:bg-[#38A8D8]/5 transition-colors"
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 border-[#2164b6]/30 text-[#2164b6] dark:text-[#7ab0ff] text-[13px] font-bold hover:bg-[#2164b6]/5 transition-colors"
             >
               <Plus className="h-4 w-4" />
               Create New Community
@@ -559,7 +559,7 @@ export function CommunitiesPage() {
             <h3 className="text-[13px] font-bold text-foreground">Communities you've joined</h3>
             <button
               onClick={() => setPanel("my")}
-              className="text-[12px] font-bold text-[#38A8D8] hover:underline"
+              className="text-[12px] font-bold text-[#2164b6] dark:text-[#7ab0ff] hover:underline"
             >
               See all
             </button>
@@ -589,14 +589,14 @@ export function CommunitiesPage() {
                   to={`/app/communities/${c.slug}`}
                   className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-[#F0F2F5] transition-colors group"
                 >
-                  <div className="h-10 w-10 rounded-xl overflow-hidden bg-[#38A8D8] flex items-center justify-center text-white font-bold text-sm shrink-0">
+                  <div className="h-10 w-10 rounded-xl overflow-hidden bg-[#2164b6] flex items-center justify-center text-white font-bold text-sm shrink-0">
                     {c.logo_url
                       ? <img src={c.logo_url} alt="" className="w-full h-full object-cover" />
                       : c.name.charAt(0).toUpperCase()
                     }
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-[13px] font-semibold text-foreground truncate group-hover:text-[#38A8D8] transition-colors">{c.name}</p>
+                    <p className="text-[13px] font-semibold text-foreground truncate group-hover:text-[#2164b6] dark:text-[#7ab0ff] transition-colors">{c.name}</p>
                     <p className="text-[11px] text-muted-foreground">
                       {c.last_active_at ? `Last active ${timeAgo(c.last_active_at)} ago` : `${(c.members_count ?? 1).toLocaleString()} members`}
                     </p>

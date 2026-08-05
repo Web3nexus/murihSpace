@@ -122,14 +122,14 @@ export default function AdminEmailTemplatesPage() {
   };
 
   if (loading) {
-    return <div className="flex justify-center py-24"><Loader2 className="h-8 w-8 animate-spin text-[#38A8D8]" /></div>;
+    return <div className="flex justify-center py-24"><Loader2 className="h-8 w-8 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" /></div>;
   }
 
   return (
     <div className="w-full mx-auto max-w-[980px] space-y-6 p-6 lg:p-10">
       <div>
         <h1 className="text-2xl font-black tracking-tight flex items-center gap-2.5">
-          <Mail className="h-6 w-6 text-[#38A8D8]" /> Email Templates
+          <Mail className="h-6 w-6 text-[#2164b6] dark:text-[#7ab0ff]" /> Email Templates
         </h1>
         <p className="text-xs text-muted-foreground mt-1">
           Customise the transactional emails sent to members. Placeholders like {"{{name}}"}, {"{{action_label}}"} and {"{{action_url}}"} are always available; others ({"{{currency}}"}, {"{{amount}}"}, {"{{reason}}"}, {"{{role}}"}) depend on the email type.
@@ -157,7 +157,7 @@ export default function AdminEmailTemplatesPage() {
                   onClick={() => setSelectedKey(t.key)}
                   className={cn(
                     "w-full text-left rounded-xl border px-3 py-2.5 transition-all",
-                    active ? "border-[#38A8D8] bg-[#38A8D8]/5 ring-1 ring-[#38A8D8]/20" : "border-border bg-card hover:border-[#38A8D8]/40"
+                    active ? "border-[#2164b6] bg-[#2164b6]/5 ring-1 ring-[#2164b6]/20" : "border-border bg-card hover:border-[#2164b6]/40"
                   )}
                 >
                   <div className="flex items-center justify-between gap-2">
@@ -185,7 +185,7 @@ export default function AdminEmailTemplatesPage() {
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="text-sm font-black text-foreground">{draft.name}</p>
-                <p className="text-[11px] font-mono text-[#38A8D8]">{draft.key}</p>
+                <p className="text-[11px] font-mono text-[#2164b6] dark:text-[#7ab0ff]">{draft.key}</p>
                 {draft.description && (
                   <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed">{draft.description}</p>
                 )}
@@ -219,7 +219,7 @@ export default function AdminEmailTemplatesPage() {
                 className="mt-1 font-mono text-[12px] leading-relaxed"
               />
               <p className="text-[10px] text-muted-foreground mt-1.5">
-                Available placeholders: <code className="text-[#38A8D8]">{"{{name}}"}</code>, <code className="text-[#38A8D8]">{"{{action_label}}"}</code>, <code className="text-[#38A8D8]">{"{{action_url}}"}</code>, <code className="text-[#38A8D8]">{"{{footnote}}"}</code> and type-specific ones (<code className="text-[#38A8D8]">{"{{currency}}"}</code>, <code className="text-[#38A8D8]">{"{{amount}}"}</code>, <code className="text-[#38A8D8]">{"{{reason}}"}</code>, <code className="text-[#38A8D8]">{"{{role}}"}</code>).
+                Available placeholders: <code className="text-[#2164b6] dark:text-[#7ab0ff]">{"{{name}}"}</code>, <code className="text-[#2164b6] dark:text-[#7ab0ff]">{"{{action_label}}"}</code>, <code className="text-[#2164b6] dark:text-[#7ab0ff]">{"{{action_url}}"}</code>, <code className="text-[#2164b6] dark:text-[#7ab0ff]">{"{{footnote}}"}</code> and type-specific ones (<code className="text-[#2164b6] dark:text-[#7ab0ff]">{"{{currency}}"}</code>, <code className="text-[#2164b6] dark:text-[#7ab0ff]">{"{{amount}}"}</code>, <code className="text-[#2164b6] dark:text-[#7ab0ff]">{"{{reason}}"}</code>, <code className="text-[#2164b6] dark:text-[#7ab0ff]">{"{{role}}"}</code>).
               </p>
             </div>
 

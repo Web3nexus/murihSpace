@@ -111,7 +111,7 @@ export default function AiSettingsPage() {
       <div className="max-w-5xl mx-auto px-6 py-8 space-y-6">
         {/* Header */}
         <div className="flex items-center gap-3">
-          <div className="h-11 w-11 rounded-2xl bg-gradient-to-br from-[#38A8D8] to-[#1a6b9e] flex items-center justify-center shadow-md shadow-[#38A8D8]/20">
+          <div className="h-11 w-11 rounded-2xl bg-gradient-to-br from-[#2164b6] to-[#1a6b9e] flex items-center justify-center shadow-md shadow-[#2164b6]/20">
             <Bot className="h-5 w-5 text-white" />
           </div>
           <div>
@@ -134,7 +134,7 @@ export default function AiSettingsPage() {
                 {/* Persona */}
                 <section className="rounded-2xl border border-border/60 bg-white dark:bg-[#102840]/60 p-5 shadow-sm space-y-4">
                   <div className="flex items-center gap-2">
-                    <Sparkles className="h-4 w-4 text-[#38A8D8]" />
+                    <Sparkles className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" />
                     <h2 className="text-sm font-bold text-foreground">Assistant identity</h2>
                   </div>
                   <div>
@@ -144,7 +144,7 @@ export default function AiSettingsPage() {
                       value={persona}
                       onChange={(e) => setPersona(e.target.value)}
                       maxLength={80}
-                      className="mt-1.5 w-full rounded-xl border border-border/60 bg-background px-3.5 py-2.5 text-sm outline-none focus:border-[#38A8D8]/40 focus:ring-2 focus:ring-[#38A8D8]/15"
+                      className="mt-1.5 w-full rounded-xl border border-border/60 bg-background px-3.5 py-2.5 text-sm outline-none focus:border-[#2164b6]/40 focus:ring-2 focus:ring-[#2164b6]/15"
                     />
                     <p className="text-[11px] text-muted-foreground/50 mt-1">
                       The persona the assistant speaks as across chat, onboarding, and analytics insights.
@@ -155,7 +155,7 @@ export default function AiSettingsPage() {
                     <select
                       value={tone}
                       onChange={(e) => setTone(e.target.value)}
-                      className="mt-1.5 w-full rounded-xl border border-border/60 bg-background px-3.5 py-2.5 text-sm outline-none focus:border-[#38A8D8]/40 focus:ring-2 focus:ring-[#38A8D8]/15"
+                      className="mt-1.5 w-full rounded-xl border border-border/60 bg-background px-3.5 py-2.5 text-sm outline-none focus:border-[#2164b6]/40 focus:ring-2 focus:ring-[#2164b6]/15"
                     >
                       {TONE_OPTIONS.map((t) => (
                         <option key={t.value} value={t.value}>
@@ -169,7 +169,7 @@ export default function AiSettingsPage() {
                 {/* Topic scope */}
                 <section className="rounded-2xl border border-border/60 bg-white dark:bg-[#102840]/60 p-5 shadow-sm space-y-4">
                   <div className="flex items-center gap-2">
-                    <BookOpen className="h-4 w-4 text-[#38A8D8]" />
+                    <BookOpen className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" />
                     <h2 className="text-sm font-bold text-foreground">Topic scope</h2>
                   </div>
                   <div>
@@ -181,14 +181,14 @@ export default function AiSettingsPage() {
                       onChange={(e) => setFocusTopicsText(e.target.value)}
                       rows={2}
                       placeholder="e.g. quick family recipes, meal prep, cooking videos"
-                      className="mt-1.5 w-full rounded-xl border border-border/60 bg-background px-3.5 py-2.5 text-sm outline-none focus:border-[#38A8D8]/40 focus:ring-2 focus:ring-[#38A8D8]/15 resize-none"
+                      className="mt-1.5 w-full rounded-xl border border-border/60 bg-background px-3.5 py-2.5 text-sm outline-none focus:border-[#2164b6]/40 focus:ring-2 focus:ring-[#2164b6]/15 resize-none"
                     />
                     <p className="text-[11px] text-muted-foreground/50 mt-1">
                       Leave empty to auto-derive the scope from your onboarding profile (niche, about, interests).
                     </p>
                   </div>
                   {profile && (
-                    <div className="rounded-xl bg-[#38A8D8]/5 border border-[#38A8D8]/15 px-3.5 py-3 text-xs text-muted-foreground space-y-1">
+                    <div className="rounded-xl bg-[#2164b6]/5 border border-[#2164b6]/15 px-3.5 py-3 text-xs text-muted-foreground space-y-1">
                       <p className="font-bold text-foreground/80">Derived from your profile</p>
                       {profile.niche && <p>Niche: {profile.niche}</p>}
                       {profile.about && <p>About: {profile.about}</p>}
@@ -205,7 +205,7 @@ export default function AiSettingsPage() {
                 {/* Guardrails */}
                 <section className="rounded-2xl border border-border/60 bg-white dark:bg-[#102840]/60 p-5 shadow-sm space-y-4">
                   <div className="flex items-center gap-2">
-                    <ShieldCheck className="h-4 w-4 text-[#38A8D8]" />
+                    <ShieldCheck className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" />
                     <h2 className="text-sm font-bold text-foreground">Stay on-topic</h2>
                   </div>
                   <label className="flex items-center justify-between gap-4 cursor-pointer">
@@ -220,7 +220,7 @@ export default function AiSettingsPage() {
                       role="switch"
                       aria-checked={keepOnTopic}
                       onClick={() => setKeepOnTopic((v) => !v)}
-                      className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${keepOnTopic ? "bg-[#38A8D8]" : "bg-muted"}`}
+                      className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${keepOnTopic ? "bg-[#2164b6]" : "bg-muted"}`}
                     >
                       <span
                         className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${keepOnTopic ? "left-[22px]" : "left-0.5"}`}
@@ -233,7 +233,7 @@ export default function AiSettingsPage() {
                         key={o.value}
                         className={`flex items-start gap-3 rounded-xl border px-3.5 py-3 cursor-pointer transition-all ${
                           offTopicMode === o.value
-                            ? "border-[#38A8D8]/40 bg-[#38A8D8]/5"
+                            ? "border-[#2164b6]/40 bg-[#2164b6]/5"
                             : "border-border/50 hover:border-border"
                         }`}
                       >
@@ -244,7 +244,7 @@ export default function AiSettingsPage() {
                           checked={offTopicMode === o.value}
                           onChange={() => setOffTopicMode(o.value)}
                           disabled={!keepOnTopic}
-                          className="mt-0.5 accent-[#38A8D8]"
+                          className="mt-0.5 accent-[#2164b6]"
                         />
                         <span>
                           <span className="block text-sm font-semibold text-foreground">{o.label}</span>
@@ -260,7 +260,7 @@ export default function AiSettingsPage() {
                   <button
                     onClick={save}
                     disabled={saving}
-                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#38A8D8] to-[#2e8ab8] text-white text-sm font-bold hover:from-[#2e8ab8] hover:to-[#256e91] disabled:opacity-50 transition-all shadow-sm hover:shadow-md hover:shadow-[#38A8D8]/20"
+                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#2164b6] to-[#1a5091] text-white text-sm font-bold hover:from-[#1a5091] hover:to-[#154074] disabled:opacity-50 transition-all shadow-sm hover:shadow-md hover:shadow-[#2164b6]/20"
                   >
                     {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                     Save behavior
@@ -280,23 +280,23 @@ export default function AiSettingsPage() {
 
               {/* Live summary */}
               <div className="space-y-6">
-                <div className="rounded-2xl border border-[#38A8D8]/30 bg-gradient-to-br from-[#38A8D8]/10 to-purple-500/10 p-5 shadow-sm">
+                <div className="rounded-2xl border border-[#2164b6]/30 bg-gradient-to-br from-[#2164b6]/10 to-purple-500/10 p-5 shadow-sm">
                   <div className="flex items-center gap-2 mb-3">
-                    <Sparkles className="h-4 w-4 text-[#38A8D8]" />
+                    <Sparkles className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" />
                     <h3 className="text-sm font-bold text-foreground">How Mera will behave</h3>
                   </div>
                   <ul className="space-y-3 text-xs text-foreground/85 leading-relaxed">
                     <li className="flex gap-2">
-                      <Bot className="h-3.5 w-3.5 text-[#38A8D8] shrink-0 mt-0.5" />
+                      <Bot className="h-3.5 w-3.5 text-[#2164b6] dark:text-[#7ab0ff] shrink-0 mt-0.5" />
                       Speaks as <span className="font-bold">{persona.trim() || "Mera"}</span> with a{" "}
                       <span className="font-bold">{TONE_OPTIONS.find((t) => t.value === tone)?.label.toLowerCase()}</span> tone.
                     </li>
                     <li className="flex gap-2">
-                      <ArrowLeftRight className="h-3.5 w-3.5 text-[#38A8D8] shrink-0 mt-0.5" />
+                      <ArrowLeftRight className="h-3.5 w-3.5 text-[#2164b6] dark:text-[#7ab0ff] shrink-0 mt-0.5" />
                       Focused on: <span className="font-semibold">{scope}</span>
                     </li>
                     <li className="flex gap-2">
-                      <CornerDownLeft className="h-3.5 w-3.5 text-[#38A8D8] shrink-0 mt-0.5" />
+                      <CornerDownLeft className="h-3.5 w-3.5 text-[#2164b6] dark:text-[#7ab0ff] shrink-0 mt-0.5" />
                       {boundary}
                     </li>
                   </ul>

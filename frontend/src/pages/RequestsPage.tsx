@@ -36,7 +36,7 @@ function Avatar({ name, url, size = 40 }: { name: string; url?: string; size?: n
   if (url) return <img src={url} alt={name} className="rounded-full object-cover shrink-0" style={{ width: size, height: size }} />;
   return (
     <div
-      className="rounded-full bg-gradient-to-br from-[#38A8D8] to-[#1a6b9e] text-white font-bold flex items-center justify-center shrink-0"
+      className="rounded-full bg-gradient-to-br from-[#2164b6] to-[#1a6b9e] text-white font-bold flex items-center justify-center shrink-0"
       style={{ width: size, height: size, fontSize: size * 0.4 }}
     >
       {initial}
@@ -116,7 +116,7 @@ export default function RequestsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-2xl bg-gradient-to-br from-[#38A8D8] to-[#1a6b9e] flex items-center justify-center shadow-sm">
+          <div className="h-10 w-10 rounded-2xl bg-gradient-to-br from-[#2164b6] to-[#1a6b9e] flex items-center justify-center shadow-sm">
             <UserPlus className="h-5 w-5 text-white" />
           </div>
           <div>
@@ -131,7 +131,7 @@ export default function RequestsPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search requests..."
-            className="w-full pl-9 pr-3 py-2 text-xs rounded-xl bg-muted/60 border border-border/50 outline-none focus:ring-1 focus:ring-[#38A8D8]/30 focus:border-[#38A8D8]/30 placeholder:text-muted-foreground/40 transition-all"
+            className="w-full pl-9 pr-3 py-2 text-xs rounded-xl bg-muted/60 border border-border/50 outline-none focus:ring-1 focus:ring-[#2164b6]/30 focus:border-[#2164b6]/30 placeholder:text-muted-foreground/40 transition-all"
           />
         </div>
       </div>
@@ -151,7 +151,7 @@ export default function RequestsPage() {
             <t.icon className="h-4 w-4" />
             <span className="hidden sm:inline">{t.label}</span>
             {t.count > 0 && (
-              <span className="h-4 min-w-[18px] px-1 rounded-full bg-[#38A8D8] text-white text-[9px] font-extrabold flex items-center justify-center">
+              <span className="h-4 min-w-[18px] px-1 rounded-full bg-[#2164b6] text-white text-[9px] font-extrabold flex items-center justify-center">
                 {t.count > 99 ? "99+" : t.count}
               </span>
             )}
@@ -162,13 +162,13 @@ export default function RequestsPage() {
       {/* Content */}
       {loading ? (
         <div className="flex h-64 items-center justify-center">
-          <Loader2 className="h-7 w-7 animate-spin text-[#38A8D8]" />
+          <Loader2 className="h-7 w-7 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" />
         </div>
       ) : tab === "friends" ? (
         filteredFriend.length === 0 ? (
           <div className="flex flex-col items-center gap-4 rounded-2xl border border-dashed border-border/60 bg-card p-12 text-center">
-            <div className="rounded-2xl bg-[#38A8D8]/10 p-4">
-              <UserCheck className="h-8 w-8 text-[#38A8D8]" />
+            <div className="rounded-2xl bg-[#2164b6]/10 p-4">
+              <UserCheck className="h-8 w-8 text-[#2164b6] dark:text-[#7ab0ff]" />
             </div>
             <div>
               <h3 className="text-sm font-bold text-foreground">No pending requests</h3>
@@ -178,7 +178,7 @@ export default function RequestsPage() {
         ) : (
           <div className="space-y-2">
             {filteredFriend.map((r) => (
-              <div key={r.id} className="flex items-center gap-4 rounded-2xl border border-border/60 bg-card p-4 hover:shadow-sm hover:border-[#38A8D8]/20 transition-all duration-200">
+              <div key={r.id} className="flex items-center gap-4 rounded-2xl border border-border/60 bg-card p-4 hover:shadow-sm hover:border-[#2164b6]/20 transition-all duration-200">
                 <Avatar name={r.sender.name} url={r.sender.avatar_url} size={48} />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-bold text-foreground truncate">{r.sender.name}</p>
@@ -193,7 +193,7 @@ export default function RequestsPage() {
                   <button
                     onClick={() => handleFriendAction(r.id, "accept")}
                     disabled={actionLoading === r.id}
-                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#38A8D8] text-white text-xs font-bold hover:bg-[#2e8ab8] transition-all shadow-xs hover:shadow-md hover:shadow-[#38A8D8]/20 disabled:opacity-50"
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#2164b6] text-white text-xs font-bold hover:bg-[#1a5091] transition-all shadow-xs hover:shadow-md hover:shadow-[#2164b6]/20 disabled:opacity-50"
                   >
                     {actionLoading === r.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
                     Confirm

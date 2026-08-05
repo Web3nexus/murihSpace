@@ -159,7 +159,7 @@ export default function AdminEmailEngineSettingsPage() {
   };
 
   if (loading) {
-    return <div className="flex justify-center py-24"><Loader2 className="h-8 w-8 animate-spin text-[#38A8D8]" /></div>;
+    return <div className="flex justify-center py-24"><Loader2 className="h-8 w-8 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" /></div>;
   }
 
   if (!settings) {
@@ -172,7 +172,7 @@ export default function AdminEmailEngineSettingsPage() {
     <div className="w-full mx-auto max-w-[880px] space-y-6 p-6 lg:p-10">
       <div>
         <h1 className="text-2xl font-black tracking-tight flex items-center gap-2.5">
-          <Mail className="h-6 w-6 text-[#38A8D8]" /> Mail Engine
+          <Mail className="h-6 w-6 text-[#2164b6] dark:text-[#7ab0ff]" /> Mail Engine
         </h1>
         <p className="text-xs text-muted-foreground mt-1">
           Choose the mail transport used for transactional email. Secrets are encrypted at rest and never exposed again; enter a new value to replace one.
@@ -188,14 +188,14 @@ export default function AdminEmailEngineSettingsPage() {
             <button
               key={t.id}
               onClick={() => patch(["transport"], t.id)}
-              className={`text-left rounded-2xl border p-4 transition-all ${active ? "border-[#38A8D8] ring-2 ring-[#38A8D8]/20 bg-[#38A8D8]/5" : "border-border bg-card hover:border-[#38A8D8]/40"}`}
+              className={`text-left rounded-2xl border p-4 transition-all ${active ? "border-[#2164b6] ring-2 ring-[#2164b6]/20 bg-[#2164b6]/5" : "border-border bg-card hover:border-[#2164b6]/40"}`}
             >
               <div className="flex items-center justify-between mb-2">
                 <div className={`h-9 w-9 rounded-xl bg-gradient-to-br ${t.color} flex items-center justify-center`}>
-                  <Icon className="h-4.5 w-4.5 text-[#38A8D8]" />
+                  <Icon className="h-4.5 w-4.5 text-[#2164b6] dark:text-[#7ab0ff]" />
                 </div>
                 {active && (
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#38A8D8]/15 text-[#38A8D8]">
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#2164b6]/15 text-[#2164b6] dark:text-[#7ab0ff]">
                     Active
                   </span>
                 )}
@@ -236,7 +236,7 @@ export default function AdminEmailEngineSettingsPage() {
       {s.transport === "smtp" && (
         <div className="border border-border rounded-2xl bg-card p-6 space-y-4">
           <p className="text-xs font-black text-foreground uppercase tracking-wide flex items-center gap-1.5">
-            <Server className="h-3.5 w-3.5 text-[#38A8D8]" /> SMTP settings
+            <Server className="h-3.5 w-3.5 text-[#2164b6] dark:text-[#7ab0ff]" /> SMTP settings
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
@@ -283,7 +283,7 @@ export default function AdminEmailEngineSettingsPage() {
       {s.transport === "postmark" && (
         <div className="border border-border rounded-2xl bg-card p-6 space-y-3">
           <p className="text-xs font-black text-foreground uppercase tracking-wide flex items-center gap-1.5">
-            <ShipWheel className="h-3.5 w-3.5 text-[#38A8D8]" /> Postmark
+            <ShipWheel className="h-3.5 w-3.5 text-[#2164b6] dark:text-[#7ab0ff]" /> Postmark
           </p>
           <div>
             <Label className="text-[11px] font-bold text-muted-foreground flex items-center gap-1">
@@ -309,10 +309,10 @@ export default function AdminEmailEngineSettingsPage() {
       {s.transport === "ses" && (
         <div className="border border-border rounded-2xl bg-card p-6">
           <p className="text-xs font-black text-foreground uppercase tracking-wide flex items-center gap-1.5">
-            <Cloud className="h-3.5 w-3.5 text-[#38A8D8]" /> Amazon SES
+            <Cloud className="h-3.5 w-3.5 text-[#2164b6] dark:text-[#7ab0ff]" /> Amazon SES
           </p>
           <p className="text-[11px] text-muted-foreground mt-2 leading-relaxed">
-            Amazon SES uses your IAM credentials from <code className="text-[#38A8D8]">AWS_ACCESS_KEY_ID</code> / <code className="text-[#38A8D8]">AWS_SECRET_ACCESS_KEY</code> and the region set in <code className="text-[#38A8D8]">AWS_DEFAULT_REGION</code>. Configure those via the server environment.
+            Amazon SES uses your IAM credentials from <code className="text-[#2164b6] dark:text-[#7ab0ff]">AWS_ACCESS_KEY_ID</code> / <code className="text-[#2164b6] dark:text-[#7ab0ff]">AWS_SECRET_ACCESS_KEY</code> and the region set in <code className="text-[#2164b6] dark:text-[#7ab0ff]">AWS_DEFAULT_REGION</code>. Configure those via the server environment.
           </p>
         </div>
       )}
@@ -320,7 +320,7 @@ export default function AdminEmailEngineSettingsPage() {
       {s.transport === "resend" && (
         <div className="border border-border rounded-2xl bg-card p-6 space-y-3">
           <p className="text-xs font-black text-foreground uppercase tracking-wide flex items-center gap-1.5">
-            <Paperclip className="h-3.5 w-3.5 text-[#38A8D8]" /> Resend
+            <Paperclip className="h-3.5 w-3.5 text-[#2164b6] dark:text-[#7ab0ff]" /> Resend
           </p>
           <div>
             <Label className="text-[11px] font-bold text-muted-foreground flex items-center gap-1">
@@ -346,7 +346,7 @@ export default function AdminEmailEngineSettingsPage() {
       {s.transport === "sendmail" && (
         <div className="border border-border rounded-2xl bg-card p-6 space-y-3">
           <p className="text-xs font-black text-foreground uppercase tracking-wide flex items-center gap-1.5">
-            <TerminalSquare className="h-3.5 w-3.5 text-[#38A8D8]" /> Sendmail
+            <TerminalSquare className="h-3.5 w-3.5 text-[#2164b6] dark:text-[#7ab0ff]" /> Sendmail
           </p>
           <div>
             <Label className="text-[11px] font-bold text-muted-foreground">Sendmail path</Label>

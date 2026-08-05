@@ -39,7 +39,7 @@ function TabButton({ active, onClick, children }: { active: boolean; onClick: ()
       onClick={onClick}
       className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${
         active
-          ? "bg-[#38A8D8]/10 text-[#38A8D8] shadow-xs"
+          ? "bg-[#2164b6]/10 text-[#2164b6] dark:text-[#7ab0ff] shadow-xs"
           : "text-muted-foreground hover:text-foreground hover:bg-muted"
       }`}
     >
@@ -102,7 +102,7 @@ export function AnalyticsPage() {
     return (
       <AnimatedPage className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center space-y-3">
-          <Loader2 className="h-8 w-8 animate-spin text-[#38A8D8] mx-auto" />
+          <Loader2 className="h-8 w-8 animate-spin text-[#2164b6] dark:text-[#7ab0ff] mx-auto" />
           <p className="text-sm text-muted-foreground font-medium">Loading analytics...</p>
         </div>
       </AnimatedPage>
@@ -141,7 +141,7 @@ export function AnalyticsPage() {
         <div className="space-y-6">
           <div>
             <h2 className="font-bold text-foreground text-sm mb-3 flex items-center gap-2">
-              <DollarSign className="h-4 w-4 text-[#38A8D8]" /> Revenue
+              <DollarSign className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" /> Revenue
             </h2>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <StatCard icon={<DollarSign className="h-4 w-4" />} label="Total Revenue" value={formatPrice(data.revenue.total)} />
@@ -154,7 +154,7 @@ export function AnalyticsPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="rounded-2xl border border-border bg-card p-5 shadow-2xs space-y-3">
               <h3 className="font-bold text-foreground text-xs flex items-center gap-2">
-                <ShoppingBag className="h-3.5 w-3.5 text-[#38A8D8]" /> Orders
+                <ShoppingBag className="h-3.5 w-3.5 text-[#2164b6] dark:text-[#7ab0ff]" /> Orders
               </h3>
               <div className="grid grid-cols-2 gap-3 text-sm">
                 {[
@@ -217,7 +217,7 @@ export function AnalyticsPage() {
 
           <div className="rounded-2xl border border-border bg-card p-6 shadow-2xs space-y-4">
             <h3 className="font-bold text-foreground text-sm flex items-center gap-2">
-              <TrendingUp className="h-4 w-4 text-[#38A8D8]" /> Traffic Sources
+              <TrendingUp className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" /> Traffic Sources
             </h3>
             <p className="text-xs text-muted-foreground">
               Detailed traffic analytics (link clicks, referral sources, channel breakdown) coming in a future update.
@@ -251,11 +251,11 @@ export function AnalyticsPage() {
 
           <div className="rounded-2xl border border-border bg-card p-6 shadow-2xs space-y-4">
             <h3 className="font-bold text-foreground text-sm flex items-center gap-2">
-              <BarChart3 className="h-4 w-4 text-[#38A8D8]" /> Revenue Breakdown
+              <BarChart3 className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" /> Revenue Breakdown
             </h3>
             <div className="space-y-3">
               {[
-                { label: "Digital Products", value: data.revenue.digital, color: "bg-[#38A8D8]" },
+                { label: "Digital Products", value: data.revenue.digital, color: "bg-[#2164b6]" },
                 { label: "Physical Products", value: data.revenue.physical, color: "bg-amber-500" },
                 { label: "Subscriptions", value: data.revenue.subscription, color: "bg-emerald-500" },
                 { label: "Brand Deals", value: data.revenue.deals, color: "bg-purple-500" },
@@ -284,9 +284,9 @@ export function AnalyticsPage() {
       {tab === "ai" && (
         <div className="space-y-6">
           {aiInsight && (
-            <div className="rounded-2xl border border-[#38A8D8]/30 bg-gradient-to-br from-[#38A8D8]/10 to-purple-500/10 p-5 shadow-2xs">
+            <div className="rounded-2xl border border-[#2164b6]/30 bg-gradient-to-br from-[#2164b6]/10 to-purple-500/10 p-5 shadow-2xs">
               <div className="flex items-center gap-2 mb-2">
-                <Sparkles className="h-4 w-4 text-[#38A8D8]" />
+                <Sparkles className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" />
                 <h3 className="font-bold text-foreground text-sm">Mera's take</h3>
               </div>
               <p className="text-xs sm:text-sm text-foreground/90 leading-relaxed">{aiInsight}</p>
@@ -306,14 +306,14 @@ export function AnalyticsPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {suggestions.map((s, i) => {
                   const borderColors: Record<string, string> = {
-                    product: "border-l-[#38A8D8]", audience: "border-l-emerald-500",
+                    product: "border-l-[#2164b6]", audience: "border-l-emerald-500",
                     brand: "border-l-purple-500", email: "border-l-amber-500",
                   };
                   return (
                     <div key={i} className={`rounded-2xl border border-l-4 ${borderColors[s.type] ?? "border-l-muted-foreground"} border-border bg-card p-5 shadow-2xs space-y-2`}>
                       <h3 className="font-bold text-foreground text-sm">{s.title}</h3>
                       <p className="text-xs text-muted-foreground">{s.description}</p>
-                      <a href={s.link} className="inline-block text-xs font-bold text-[#38A8D8] hover:underline">{s.action} &rarr;</a>
+                      <a href={s.link} className="inline-block text-xs font-bold text-[#2164b6] dark:text-[#7ab0ff] hover:underline">{s.action} &rarr;</a>
                     </div>
                   );
                 })}

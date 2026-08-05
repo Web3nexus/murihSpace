@@ -236,7 +236,7 @@ export function RegisterPage() {
 
   const socialBtnClass = (prov: string) =>
     `flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border text-xs font-bold transition-all ${
-      socialLoading === prov ? "opacity-50" : "hover:border-[#38A8D8]/50 hover:bg-muted/50"
+      socialLoading === prov ? "opacity-50" : "hover:border-[#2164b6]/50 hover:bg-muted/50"
     } border-border bg-card text-foreground`;
 
   const title =
@@ -265,7 +265,7 @@ export function RegisterPage() {
         {step !== 7 && (
           <div className="flex items-center justify-center gap-1.5">
             {[1, 2, 3, 4, 5, 6].map((s) => (
-              <div key={s} className={`h-1.5 w-7 rounded-full transition-colors ${s <= step ? "bg-[#38A8D8]" : "bg-muted"}`} />
+              <div key={s} className={`h-1.5 w-7 rounded-full transition-colors ${s <= step ? "bg-[#2164b6]" : "bg-muted"}`} />
             ))}
           </div>
         )}
@@ -297,7 +297,7 @@ export function RegisterPage() {
               Send verification code <ArrowRight className="h-4 w-4 ml-1" />
             </Button>
             <p className="text-center text-[10px] text-muted-foreground">
-              Already have an account? <Link to="/login" className="text-[#38A8D8] font-bold hover:underline">Sign in</Link>
+              Already have an account? <Link to="/login" className="text-[#2164b6] dark:text-[#7ab0ff] font-bold hover:underline">Sign in</Link>
             </p>
           </form>
         )}
@@ -305,9 +305,9 @@ export function RegisterPage() {
         {/* Step 2: OTP */}
         {step === 2 && (
           <form onSubmit={handleVerifyOtp} className="space-y-4">
-            <div className="p-3 rounded-xl bg-[#38A8D8]/10 border border-[#38A8D8]/20 flex items-center gap-2.5">
-              <ShieldCheck className="h-4 w-4 text-[#38A8D8] shrink-0" />
-              <p className="text-xs font-medium text-[#38A8D8]">Code sent to <span className="font-bold">{maskedPhone}</span></p>
+            <div className="p-3 rounded-xl bg-[#2164b6]/10 border border-[#2164b6]/20 flex items-center gap-2.5">
+              <ShieldCheck className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff] shrink-0" />
+              <p className="text-xs font-medium text-[#2164b6] dark:text-[#7ab0ff]">Code sent to <span className="font-bold">{maskedPhone}</span></p>
             </div>
             <OtpInput value={code} onChange={(v) => { setCode(v); setOtpError(null); }} />
             {(otpError || error) && (
@@ -317,7 +317,7 @@ export function RegisterPage() {
               <Button type="button" variant="ghost" onClick={() => setStep(1)} disabled={loading} className="text-sm">
                 <ArrowLeft className="h-4 w-4 mr-1" /> Change number
               </Button>
-              <Button type="button" variant="ghost" onClick={resend} disabled={loading || resendIn > 0} className="flex-1 text-sm text-[#38A8D8]">
+              <Button type="button" variant="ghost" onClick={resend} disabled={loading || resendIn > 0} className="flex-1 text-sm text-[#2164b6] dark:text-[#7ab0ff]">
                 <ArrowRight className="h-4 w-4 mr-1" />
                 {resendIn > 0 ? `Resend in ${resendIn}s` : "Resend code"}
               </Button>
@@ -341,7 +341,7 @@ export function RegisterPage() {
                   value={username}
                   onChange={(e) => handleUsernameChange(e.target.value)}
                   placeholder="username"
-                  className="w-full rounded-xl border border-border bg-card pl-8 pr-10 py-2.5 text-sm font-medium text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-[#38A8D8]/50"
+                  className="w-full rounded-xl border border-border bg-card pl-8 pr-10 py-2.5 text-sm font-medium text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-[#2164b6]/50"
                   autoFocus
                 />
                 {usernameChecking && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />}
@@ -400,9 +400,9 @@ export function RegisterPage() {
         {/* Step 4: Name */}
         {step === 4 && (
           <form onSubmit={handleNextName} className="space-y-4">
-            <div className="p-3 rounded-xl bg-[#38A8D8]/10 border border-[#38A8D8]/20 flex items-center gap-2.5">
-              <BadgeCheck className="h-4 w-4 text-[#38A8D8] shrink-0" />
-              <p className="text-xs font-medium text-[#38A8D8]"><span className="font-bold">{verifiedPhone}</span> verified <span className="font-bold">✓</span></p>
+            <div className="p-3 rounded-xl bg-[#2164b6]/10 border border-[#2164b6]/20 flex items-center gap-2.5">
+              <BadgeCheck className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff] shrink-0" />
+              <p className="text-xs font-medium text-[#2164b6] dark:text-[#7ab0ff]"><span className="font-bold">{verifiedPhone}</span> verified <span className="font-bold">✓</span></p>
             </div>
             <FieldGroup>
               <FieldLabel>Full name</FieldLabel>
@@ -476,7 +476,7 @@ export function RegisterPage() {
                   return (
                     <button key={r} type="button" onClick={() => setRole(r)}
                       className={`relative flex-1 px-3 py-2.5 rounded-xl text-xs font-bold transition-colors border ${
-                        role === r ? "border-[#38A8D8] bg-[#38A8D8]/10 text-[#38A8D8]" : "border-border bg-card text-muted-foreground hover:text-foreground"
+                        role === r ? "border-[#2164b6] bg-[#2164b6]/10 text-[#2164b6] dark:text-[#7ab0ff]" : "border-border bg-card text-muted-foreground hover:text-foreground"
                       }`}>
                       {r === "member" ? "Member" : r === "creator" ? "Creator" : "Vendor"}
                       {locked && <span className="absolute -top-1.5 -right-1.5 px-1.5 py-0.5 rounded-full bg-rose-500 text-white text-[8px] font-black uppercase tracking-wide shadow-sm">App only</span>}
@@ -508,8 +508,8 @@ export function RegisterPage() {
         {/* Step 7: Registered — role locked to app */}
         {step === 7 && (
           <div className="space-y-5 text-center">
-            <div className="mx-auto h-14 w-14 rounded-2xl bg-[#38A8D8]/10 flex items-center justify-center">
-              <Smartphone className="h-7 w-7 text-[#38A8D8]" />
+            <div className="mx-auto h-14 w-14 rounded-2xl bg-[#2164b6]/10 flex items-center justify-center">
+              <Smartphone className="h-7 w-7 text-[#2164b6] dark:text-[#7ab0ff]" />
             </div>
             <div className="space-y-1.5">
               <h1 className="text-lg font-black tracking-tight text-foreground">You're in!</h1>
@@ -526,7 +526,7 @@ export function RegisterPage() {
                 href={cfg.app_download_url}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-[#38A8D8] hover:bg-[#2e94c0] text-white text-xs font-bold transition-colors shadow-xs"
+                className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-[#2164b6] hover:bg-[#1a5091] text-white text-xs font-bold transition-colors shadow-xs"
               >
                 <Download className="h-4 w-4" /> Download the app
               </a>
@@ -534,7 +534,7 @@ export function RegisterPage() {
               <button
                 type="button"
                 onClick={() => navigate("/login", { replace: true })}
-                className="text-xs font-bold text-[#38A8D8] hover:underline"
+                className="text-xs font-bold text-[#2164b6] dark:text-[#7ab0ff] hover:underline"
               >
                 Sign in instead
               </button>

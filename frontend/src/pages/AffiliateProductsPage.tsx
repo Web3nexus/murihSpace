@@ -98,18 +98,18 @@ export default function AffiliateProductsPage() {
   const totalRevenue = products.reduce((s, p) => s + p.revenue, 0);
   const convRate = totalClicks > 0 ? ((totalConversions / totalClicks) * 100).toFixed(1) : "—";
 
-  if (loading) return <div className="flex justify-center py-24"><Loader2 className="h-8 w-8 animate-spin text-[#38A8D8]" /></div>;
+  if (loading) return <div className="flex justify-center py-24"><Loader2 className="h-8 w-8 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" /></div>;
 
   return (
     <div className="w-full max-w-7xl mx-auto space-y-6 p-6 lg:p-8">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-black tracking-tight flex items-center gap-2.5">
-            <Link2 className="h-6 w-6 text-[#38A8D8]" /> Affiliate Products
+            <Link2 className="h-6 w-6 text-[#2164b6] dark:text-[#7ab0ff]" /> Affiliate Products
           </h1>
           <p className="text-xs text-muted-foreground mt-1">Promote affiliate links and track referral commissions.</p>
         </div>
-        <Button size="sm" className="bg-[#38A8D8] hover:bg-[#2e8ab8] text-white text-xs font-bold"
+        <Button size="sm" className="bg-[#2164b6] hover:bg-[#1a5091] text-white text-xs font-bold"
           onClick={() => { resetForm(); setShowForm(!showForm); }}>
           <Plus className="h-4 w-4 mr-1" /> {showForm ? "Cancel" : "Add Product"}
         </Button>
@@ -168,7 +168,7 @@ export default function AffiliateProductsPage() {
             <Input type="number" value={rate} onChange={(e) => setRate(e.target.value)} placeholder="10" />
           </div>
           <div className="flex gap-2 pt-1">
-            <Button type="submit" size="sm" className="bg-[#38A8D8] hover:bg-[#2e8ab8] text-white text-xs font-bold" disabled={saving}>
+            <Button type="submit" size="sm" className="bg-[#2164b6] hover:bg-[#1a5091] text-white text-xs font-bold" disabled={saving}>
               {saving ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null} {editingId ? "Update" : "Save"}
             </Button>
             <Button type="button" variant="ghost" size="sm" onClick={resetForm} className="text-xs">Cancel</Button>

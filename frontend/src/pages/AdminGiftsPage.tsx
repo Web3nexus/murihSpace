@@ -111,7 +111,7 @@ export default function AdminGiftsPage() {
     <div className="w-full mx-auto max-w-[1400px] space-y-6 p-6 lg:p-10">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 sm:p-8 rounded-2xl bg-gradient-to-br from-[#102840] via-[#173852] to-[#102840] text-white shadow-lg">
         <div className="space-y-1.5">
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#38A8D8]/20 text-[#38A8D8] text-xs font-semibold uppercase tracking-wider border border-[#38A8D8]/30">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#2164b6]/20 text-[#2164b6] dark:text-[#7ab0ff] text-xs font-semibold uppercase tracking-wider border border-[#2164b6]/30">
             <Gift className="h-3.5 w-3.5" /> Admin
           </span>
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">Gift Management</h1>
@@ -119,7 +119,7 @@ export default function AdminGiftsPage() {
         </div>
         <Button
           onClick={() => { setShowForm(!showForm); setEditing(null); resetForm(); }}
-          className="bg-[#38A8D8] hover:bg-[#2d94c2] text-white font-bold"
+          className="bg-[#2164b6] hover:bg-[#2d94c2] text-white font-bold"
         >
           <Plus className="h-4 w-4 mr-2" />{showForm ? "Cancel" : "Add Gift"}
         </Button>
@@ -128,7 +128,7 @@ export default function AdminGiftsPage() {
       {stats && (
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           {[
-            { label: 'Total Gifts', value: gifts.length, color: 'text-[#38A8D8]' },
+            { label: 'Total Gifts', value: gifts.length, color: 'text-[#2164b6] dark:text-[#7ab0ff]' },
             { label: 'Total Transactions', value: stats?.total_transactions ?? 0, color: 'text-emerald-500' },
             { label: 'Platform Commission', value: stats?.total_commission ?? 0, color: 'text-amber-500' },
           ].map(s => (
@@ -169,7 +169,7 @@ export default function AdminGiftsPage() {
             <div><Label>Icon URL</Label><Input value={form.icon_url} onChange={e => setForm(f => ({ ...f, icon_url: e.target.value }))} /></div>
             <div><Label>Animation URL</Label><Input value={form.animation_url} onChange={e => setForm(f => ({ ...f, animation_url: e.target.value }))} /></div>
             <div className="md:col-span-3 flex gap-3">
-              <Button type="submit" disabled={saving} className="bg-[#38A8D8] hover:bg-[#2d94c2] text-white font-bold">
+              <Button type="submit" disabled={saving} className="bg-[#2164b6] hover:bg-[#2d94c2] text-white font-bold">
                 {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}{editing ? "Update" : "Create"}
               </Button>
               <Button type="button" variant="outline" onClick={() => { setShowForm(false); setEditing(null); }}>Cancel</Button>

@@ -126,7 +126,7 @@ export function AdminReportsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-black tracking-tight flex items-center gap-2.5">
-            <Flag className="h-6 w-6 text-[#38A8D8]" /> Posts & Reports
+            <Flag className="h-6 w-6 text-[#2164b6] dark:text-[#7ab0ff]" /> Posts & Reports
           </h1>
           <p className="text-xs text-muted-foreground mt-1">Review reported content and take action.</p>
         </div>
@@ -147,7 +147,7 @@ export function AdminReportsPage() {
             onClick={() => setStatusFilter(key)}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold transition-colors ${
               statusFilter === key
-                ? 'bg-[#38A8D8] text-foreground'
+                ? 'bg-[#2164b6] text-foreground'
                 : 'bg-muted text-muted-foreground hover:text-foreground'
             }`}
           >
@@ -164,7 +164,7 @@ export function AdminReportsPage() {
             key={t}
             onClick={() => setTypeFilter(t)}
             className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-colors flex items-center gap-1 ${
-              typeFilter === t ? 'bg-[#38A8D8] text-foreground' : 'bg-muted text-muted-foreground hover:text-foreground'
+              typeFilter === t ? 'bg-[#2164b6] text-foreground' : 'bg-muted text-muted-foreground hover:text-foreground'
             }`}
           >
             {t ? (t === 'post' ? 'Posts' : t === 'user' ? 'Users' : 'Comments') : 'All Types'}
@@ -173,7 +173,7 @@ export function AdminReportsPage() {
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-16"><Loader2 className="h-8 w-8 animate-spin text-[#38A8D8]" /></div>
+        <div className="flex justify-center py-16"><Loader2 className="h-8 w-8 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" /></div>
       ) : reports.length === 0 ? (
         <div className="p-16 text-center border border-dashed border-border rounded-3xl bg-card">
           <Flag className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />

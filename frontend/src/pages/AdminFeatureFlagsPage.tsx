@@ -205,7 +205,7 @@ export function AdminFeatureFlagsPage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-2xl bg-gradient-to-br from-[#38A8D8] to-[#1a6b9e] flex items-center justify-center shadow-sm">
+              <div className="h-10 w-10 rounded-2xl bg-gradient-to-br from-[#2164b6] to-[#1a6b9e] flex items-center justify-center shadow-sm">
                 <Settings2 className="h-5 w-5 text-white" />
               </div>
               <div>
@@ -221,7 +221,7 @@ export function AdminFeatureFlagsPage() {
             </div>
             <button
               onClick={() => { setShowCreate(true); setMsg(null); }}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#38A8D8] text-white text-xs font-bold hover:bg-[#2e8ab8] transition-all shadow-xs"
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#2164b6] text-white text-xs font-bold hover:bg-[#1a5091] transition-all shadow-xs"
             >
               <Plus className="h-3.5 w-3.5" /> Custom Flag
             </button>
@@ -245,7 +245,7 @@ export function AdminFeatureFlagsPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search features..."
-              className="w-full pl-10 pr-4 py-2.5 text-sm rounded-xl bg-muted/50 border border-border/50 outline-none focus:ring-1 focus:ring-[#38A8D8]/40 focus:border-[#38A8D8]/30 placeholder:text-muted-foreground/40 transition-all"
+              className="w-full pl-10 pr-4 py-2.5 text-sm rounded-xl bg-muted/50 border border-border/50 outline-none focus:ring-1 focus:ring-[#2164b6]/40 focus:border-[#2164b6]/30 placeholder:text-muted-foreground/40 transition-all"
             />
           </div>
           <div className="flex gap-1.5 flex-wrap">
@@ -268,7 +268,7 @@ export function AdminFeatureFlagsPage() {
         {/* Feature List */}
         {loading ? (
           <div className="flex h-64 items-center justify-center">
-            <Loader2 className="h-8 w-8 animate-spin text-[#38A8D8]" />
+            <Loader2 className="h-8 w-8 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" />
           </div>
         ) : (
           <div className="space-y-6">
@@ -292,14 +292,14 @@ export function AdminFeatureFlagsPage() {
                         key={f.key}
                         className={`group relative rounded-2xl border bg-card p-4 transition-all duration-200 hover:shadow-sm ${
                           f.enabled
-                            ? "border-[#38A8D8]/20 hover:border-[#38A8D8]/40"
+                            ? "border-[#2164b6]/20 hover:border-[#2164b6]/40"
                             : "border-border/60 hover:border-border"
                         }`}
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex items-center gap-3 min-w-0">
-                            <div className={`h-9 w-9 rounded-xl bg-gradient-to-br ${f.enabled ? "from-[#38A8D8]/15 to-[#1a6b9e]/10" : "from-muted to-muted/50"} flex items-center justify-center shrink-0 transition-all group-hover:scale-105`}>
-                              <f.icon className={`h-4 w-4 ${f.enabled ? "text-[#38A8D8]" : "text-muted-foreground/40"}`} />
+                            <div className={`h-9 w-9 rounded-xl bg-gradient-to-br ${f.enabled ? "from-[#2164b6]/15 to-[#1a6b9e]/10" : "from-muted to-muted/50"} flex items-center justify-center shrink-0 transition-all group-hover:scale-105`}>
+                              <f.icon className={`h-4 w-4 ${f.enabled ? "text-[#2164b6] dark:text-[#7ab0ff]" : "text-muted-foreground/40"}`} />
                             </div>
                             <div className="min-w-0">
                               <p className={`text-xs font-bold truncate ${f.enabled ? "text-foreground" : "text-muted-foreground/60"}`}>
@@ -323,7 +323,7 @@ export function AdminFeatureFlagsPage() {
                               onClick={() => toggleFeature(f, f.enabled)}
                               disabled={toggling === f.key}
                               className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                                f.enabled ? "bg-[#38A8D8]" : "bg-muted-foreground/20"
+                                f.enabled ? "bg-[#2164b6]" : "bg-muted-foreground/20"
                               } ${toggling === f.key ? "opacity-50" : ""}`}
                               role="switch"
                               aria-checked={f.enabled}
@@ -372,7 +372,7 @@ export function AdminFeatureFlagsPage() {
                         onClick={() => toggleFeature(f, f.enabled)}
                         disabled={toggling === f.key}
                         className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${
-                          f.enabled ? "bg-[#38A8D8]" : "bg-muted-foreground/20"
+                          f.enabled ? "bg-[#2164b6]" : "bg-muted-foreground/20"
                         } ${toggling === f.key ? "opacity-50" : ""}`}
                       >
                         <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ${
@@ -399,7 +399,7 @@ export function AdminFeatureFlagsPage() {
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2 text-base font-bold text-foreground">
-                <Flag className="h-5 w-5 text-[#38A8D8]" /> Custom Feature Flag
+                <Flag className="h-5 w-5 text-[#2164b6] dark:text-[#7ab0ff]" /> Custom Feature Flag
               </DialogTitle>
               <DialogDescription>Add a custom toggle for any platform feature.</DialogDescription>
             </DialogHeader>
@@ -417,23 +417,23 @@ export function AdminFeatureFlagsPage() {
               <div>
                 <label className="mb-1 block text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Key</label>
                 <input name="key" placeholder="e.g. new_checkout" required
-                  className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/50 outline-none transition-colors focus:border-[#38A8D8]/50 focus:ring-1 focus:ring-[#38A8D8]/20" />
+                  className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/50 outline-none transition-colors focus:border-[#2164b6]/50 focus:ring-1 focus:ring-[#2164b6]/20" />
               </div>
               <div>
                 <label className="mb-1 block text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Label</label>
                 <input name="label" placeholder="Display label" required
-                  className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/50 outline-none transition-colors focus:border-[#38A8D8]/50 focus:ring-1 focus:ring-[#38A8D8]/20" />
+                  className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/50 outline-none transition-colors focus:border-[#2164b6]/50 focus:ring-1 focus:ring-[#2164b6]/20" />
               </div>
               <div>
                 <label className="mb-1 block text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Description</label>
                 <input name="description" placeholder="What does this flag control?"
-                  className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/50 outline-none transition-colors focus:border-[#38A8D8]/50 focus:ring-1 focus:ring-[#38A8D8]/20" />
+                  className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/50 outline-none transition-colors focus:border-[#2164b6]/50 focus:ring-1 focus:ring-[#2164b6]/20" />
               </div>
               <DialogFooter className="-mx-4 -mb-4 mt-4 flex flex-col-reverse gap-2 rounded-b-xl border-t bg-muted/50 p-4 sm:flex-row sm:justify-end">
                 <button type="button" onClick={() => { setShowCreate(false); setMsg(null); }}
                   className="rounded-xl border border-border px-4 py-2.5 text-xs font-bold text-muted-foreground hover:text-foreground transition-colors">Cancel</button>
                 <button type="submit" disabled={submitting}
-                  className="rounded-xl bg-[#38A8D8] px-4 py-2.5 text-xs font-bold text-white hover:bg-[#2e8ab8] disabled:opacity-50 shadow-xs transition-all">
+                  className="rounded-xl bg-[#2164b6] px-4 py-2.5 text-xs font-bold text-white hover:bg-[#1a5091] disabled:opacity-50 shadow-xs transition-all">
                   {submitting ? <Loader2 className="mx-auto h-4 w-4 animate-spin" /> : "Create Flag"}
                 </button>
               </DialogFooter>

@@ -75,7 +75,7 @@ export function PayoutsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 sm:p-8 rounded-2xl bg-gradient-to-br from-[#102840] via-[#173852] to-[#102840] text-white shadow-lg">
         <div className="space-y-1.5">
           <div className="flex items-center gap-2">
-            <span className="px-2.5 py-0.5 rounded-full bg-[#38A8D8]/20 text-[#38A8D8] text-xs font-semibold uppercase tracking-wider border border-[#38A8D8]/30">
+            <span className="px-2.5 py-0.5 rounded-full bg-[#2164b6]/20 text-[#2164b6] dark:text-[#7ab0ff] text-xs font-semibold uppercase tracking-wider border border-[#2164b6]/30">
               Phase 9 — Payouts
             </span>
           </div>
@@ -93,7 +93,7 @@ export function PayoutsPage() {
           <p className="text-2xl font-bold text-foreground">{formatPrice(stats?.pending ?? 0)}</p>
         </div>
         <div className="rounded-2xl border border-border bg-card p-5 shadow-xs">
-          <div className="flex items-center gap-2 text-[#38A8D8] mb-2">
+          <div className="flex items-center gap-2 text-[#2164b6] dark:text-[#7ab0ff] mb-2">
             <CheckCircle className="w-5 h-5" />
             <span className="text-sm font-medium">Paid</span>
           </div>
@@ -153,7 +153,7 @@ export function PayoutsPage() {
               <p className="text-sm font-bold text-foreground">{formatPrice(p.net_amount)}</p>
               <Badge className={
                 p.status === 'paid'
-                  ? 'bg-[#38A8D8]/20 text-[#38A8D8] border-[#38A8D8]/30'
+                  ? 'bg-[#2164b6]/20 text-[#2164b6] dark:text-[#7ab0ff] border-[#2164b6]/30'
                   : 'bg-muted text-muted-foreground border-border'
               }>
                 {p.status === 'paid' ? 'Paid' : 'Pending'}

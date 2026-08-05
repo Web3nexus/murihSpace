@@ -94,7 +94,7 @@ export default function AdminStoriesPage() {
     <AnimatedPage className="p-6 max-w-3xl mx-auto space-y-6">
       <div>
         <h1 className="text-2xl font-black text-foreground flex items-center gap-2">
-          <BookOpen className="h-6 w-6 text-[#38A8D8]" /> Story Settings
+          <BookOpen className="h-6 w-6 text-[#2164b6] dark:text-[#7ab0ff]" /> Story Settings
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
           Control which story types users can create on the platform.
@@ -132,8 +132,8 @@ export default function AdminStoriesPage() {
               role="switch"
               aria-checked={settings?.[key] === "1"}
               onClick={() => toggle(key)}
-              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#38A8D8] focus-visible:ring-offset-2 ${
-                settings?.[key] === "1" ? "bg-[#38A8D8]" : "bg-muted"
+              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2164b6] focus-visible:ring-offset-2 ${
+                settings?.[key] === "1" ? "bg-[#2164b6]" : "bg-muted"
               }`}
             >
               <span
@@ -153,7 +153,7 @@ export default function AdminStoriesPage() {
         <button
           onClick={handleSave}
           disabled={saving}
-          className="px-5 py-2 rounded-xl bg-[#38A8D8] hover:bg-[#2e94c0] disabled:opacity-50 text-white font-bold text-xs transition-colors flex items-center gap-1.5 shadow-xs"
+          className="px-5 py-2 rounded-xl bg-[#2164b6] hover:bg-[#1a5091] disabled:opacity-50 text-white font-bold text-xs transition-colors flex items-center gap-1.5 shadow-xs"
         >
           {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
           Save Changes

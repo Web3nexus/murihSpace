@@ -63,12 +63,12 @@ export function AdminReconciliationPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-black tracking-tight flex items-center gap-2.5">
-            <BarChart3 className="h-6 w-6 text-[#38A8D8]" />
+            <BarChart3 className="h-6 w-6 text-[#2164b6] dark:text-[#7ab0ff]" />
             Reconciliation & Audit
           </h1>
           <p className="text-xs text-muted-foreground mt-1">Ledger audit, wallet discrepancy detection, and escrow summary for platform ops.</p>
         </div>
-        <button onClick={() => { fetchSummary(); fetchAudit(); }} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#38A8D8] text-foreground font-bold text-xs hover:bg-[#38A8D8]/80 transition-all shrink-0">
+        <button onClick={() => { fetchSummary(); fetchAudit(); }} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#2164b6] text-foreground font-bold text-xs hover:bg-[#2164b6]/80 transition-all shrink-0">
           <RefreshCw className="h-3.5 w-3.5" /> Refresh
         </button>
       </div>
@@ -84,11 +84,11 @@ export function AdminReconciliationPage() {
       {/* Ledger Summary */}
       <div>
         <h2 className="text-sm font-bold text-foreground flex items-center gap-2 mb-3">
-          <FileText className="h-4 w-4 text-[#38A8D8]" />
+          <FileText className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" />
           Ledger Summary
         </h2>
         {isLoadingSummary ? (
-          <div className="py-8 text-center"><Loader2 className="h-5 w-5 animate-spin text-[#38A8D8] mx-auto" /></div>
+          <div className="py-8 text-center"><Loader2 className="h-5 w-5 animate-spin text-[#2164b6] dark:text-[#7ab0ff] mx-auto" /></div>
         ) : summary ? (
           <div className="space-y-4">
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -146,11 +146,11 @@ export function AdminReconciliationPage() {
       {/* Wallet Audit */}
       <div>
         <h2 className="text-sm font-bold text-foreground flex items-center gap-2 mb-3">
-          <Wallet className="h-4 w-4 text-[#38A8D8]" />
+          <Wallet className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" />
           Wallet Balance Audit
         </h2>
         {isLoadingAudit ? (
-          <div className="py-8 text-center"><Loader2 className="h-5 w-5 animate-spin text-[#38A8D8] mx-auto" /></div>
+          <div className="py-8 text-center"><Loader2 className="h-5 w-5 animate-spin text-[#2164b6] dark:text-[#7ab0ff] mx-auto" /></div>
         ) : audit ? (
           <div className="space-y-3">
             <div className="grid grid-cols-3 gap-3">

@@ -200,7 +200,7 @@ export function ResetPasswordPage() {
         <div className="text-center">
           <Link
             to="/login"
-            className="inline-flex items-center gap-1.5 text-xs font-medium text-[#2164b6] hover:underline underline-offset-4"
+            className="inline-flex items-center gap-1.5 text-xs font-medium text-[#2164b6] dark:text-[#7ab0ff] hover:underline underline-offset-4"
           >
             Back to login
           </Link>

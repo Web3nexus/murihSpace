@@ -62,7 +62,7 @@ function UploadZone({
   if (uploading) {
     return (
       <div className="border-2 border-dashed border-border rounded-xl p-6 text-center">
-        <Loader2 className="h-6 w-6 animate-spin text-[#38A8D8] mx-auto" />
+        <Loader2 className="h-6 w-6 animate-spin text-[#2164b6] dark:text-[#7ab0ff] mx-auto" />
         <span className="text-xs text-muted-foreground mt-2 block">Uploading...</span>
       </div>
     );
@@ -70,7 +70,7 @@ function UploadZone({
   return (
     <div
       {...getRootProps()}
-      className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer hover:border-[#38A8D8]/50 hover:bg-muted/50 transition-all focus:outline-none focus:border-[#38A8D8] ${isDragActive ? "border-[#38A8D8] bg-[#38A8D8]/5" : "border-border"}`}
+      className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer hover:border-[#2164b6]/50 hover:bg-muted/50 transition-all focus:outline-none focus:border-[#2164b6] ${isDragActive ? "border-[#2164b6] bg-[#2164b6]/5" : "border-border"}`}
     >
       <input {...getInputProps()} accept={accept} />
       <ImageIcon className="h-8 w-8 text-muted-foreground/50 mx-auto" />
@@ -226,11 +226,11 @@ export function MultiImageUploader({ values, onChange, folder = "uploads", accep
           {values.length < maxImages && (
             <div
               {...getRootProps()}
-              className={`border-2 border-dashed rounded-lg aspect-square flex items-center justify-center cursor-pointer hover:border-[#38A8D8]/50 hover:bg-muted/50 transition-all ${isDragActive ? "border-[#38A8D8] bg-[#38A8D8]/5" : "border-border"}`}
+              className={`border-2 border-dashed rounded-lg aspect-square flex items-center justify-center cursor-pointer hover:border-[#2164b6]/50 hover:bg-muted/50 transition-all ${isDragActive ? "border-[#2164b6] bg-[#2164b6]/5" : "border-border"}`}
             >
               <div className="text-center">
                 {uploading ? (
-                  <Loader2 className="h-5 w-5 animate-spin text-[#38A8D8] mx-auto" />
+                  <Loader2 className="h-5 w-5 animate-spin text-[#2164b6] dark:text-[#7ab0ff] mx-auto" />
                 ) : (
                   <>
                     <ImageIcon className="h-5 w-5 text-muted-foreground/50 mx-auto" />

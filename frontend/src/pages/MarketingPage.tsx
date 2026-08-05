@@ -83,17 +83,17 @@ export default function MarketingPage() {
     finally { setCfSaving(false); }
   };
 
-  if (loading) return <div className="flex justify-center py-24"><Loader2 className="h-8 w-8 animate-spin text-[#38A8D8]" /></div>;
+  if (loading) return <div className="flex justify-center py-24"><Loader2 className="h-8 w-8 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" /></div>;
 
   return (
     <div className="w-full max-w-7xl mx-auto space-y-6 p-6 lg:p-8">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-black tracking-tight flex items-center gap-2.5"><Megaphone className="h-6 w-6 text-[#38A8D8]" /> Marketing & Automations</h1>
+          <h1 className="text-2xl font-black tracking-tight flex items-center gap-2.5"><Megaphone className="h-6 w-6 text-[#2164b6] dark:text-[#7ab0ff]" /> Marketing & Automations</h1>
           <p className="text-xs text-muted-foreground mt-1">Email campaigns, broadcasts, automated sequences and more.</p>
         </div>
-        <Button size="sm" className="bg-[#38A8D8] hover:bg-[#2e8ab8] text-white" onClick={() => { setCfMsg(null); setShowCampaignForm(true); }}>
+        <Button size="sm" className="bg-[#2164b6] hover:bg-[#1a5091] text-white" onClick={() => { setCfMsg(null); setShowCampaignForm(true); }}>
           <Plus className="h-4 w-4 mr-1" /> New Campaign
         </Button>
       </div>
@@ -121,7 +121,7 @@ export default function MarketingPage() {
       {/* Quick Actions */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <button onClick={() => navigate("/app/marketing/broadcasts")} className="rounded-xl border bg-card p-4 text-left hover:bg-muted/50 transition-all">
-          <Mail className="h-5 w-5 text-[#38A8D8] mb-2" />
+          <Mail className="h-5 w-5 text-[#2164b6] dark:text-[#7ab0ff] mb-2" />
           <p className="text-sm font-bold">Broadcasts</p>
           <p className="text-[11px] text-muted-foreground">{broadcasts.length} broadcasts</p>
         </button>
@@ -145,7 +145,7 @@ export default function MarketingPage() {
       {/* Performance Overview */}
       <div className="rounded-xl border bg-card">
         <div className="px-5 py-4 border-b flex items-center justify-between">
-          <div className="flex items-center gap-2"><TrendingUp className="h-5 w-5 text-[#38A8D8]" /><h2 className="text-sm font-bold">Performance Overview</h2></div>
+          <div className="flex items-center gap-2"><TrendingUp className="h-5 w-5 text-[#2164b6] dark:text-[#7ab0ff]" /><h2 className="text-sm font-bold">Performance Overview</h2></div>
         </div>
         <div className="grid grid-cols-3 gap-px bg-border">
           {[
@@ -165,7 +165,7 @@ export default function MarketingPage() {
       <div className="rounded-xl border bg-card">
         <div className="px-5 py-4 border-b flex items-center justify-between">
           <h2 className="text-sm font-bold">Recent Campaigns</h2>
-          <Button variant="ghost" size="sm" className="text-xs text-[#38A8D8]" onClick={() => { setCfMsg(null); setShowCampaignForm(true); }}>
+          <Button variant="ghost" size="sm" className="text-xs text-[#2164b6] dark:text-[#7ab0ff]" onClick={() => { setCfMsg(null); setShowCampaignForm(true); }}>
             <Plus className="h-3 w-3 mr-1" /> New
           </Button>
         </div>
@@ -209,7 +209,7 @@ export default function MarketingPage() {
         <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 overflow-y-auto py-8" onClick={() => { setShowCampaignForm(false); }}>
           <div className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-2xl mx-4" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-base font-bold flex items-center gap-2"><Megaphone className="h-5 w-5 text-[#38A8D8]" /> New Campaign</h2>
+              <h2 className="text-base font-bold flex items-center gap-2"><Megaphone className="h-5 w-5 text-[#2164b6] dark:text-[#7ab0ff]" /> New Campaign</h2>
               <button onClick={() => setShowCampaignForm(false)} className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted">&times;</button>
             </div>
 
@@ -237,7 +237,7 @@ export default function MarketingPage() {
               </div>
               <div className="flex gap-2 pt-2">
                 <button type="button" onClick={() => setShowCampaignForm(false)} className="flex-1 rounded-xl border border-border px-4 py-2.5 text-xs font-bold text-muted-foreground hover:text-foreground transition-colors">Cancel</button>
-                <button type="submit" disabled={cfSaving} className="flex-1 rounded-xl bg-[#38A8D8] text-white px-4 py-2.5 text-xs font-bold hover:bg-[#2e8ab8] disabled:opacity-50 shadow-xs transition-all">
+                <button type="submit" disabled={cfSaving} className="flex-1 rounded-xl bg-[#2164b6] text-white px-4 py-2.5 text-xs font-bold hover:bg-[#1a5091] disabled:opacity-50 shadow-xs transition-all">
                   {cfSaving ? <Loader2 className="mx-auto h-4 w-4 animate-spin" /> : "Create Campaign"}
                 </button>
               </div>

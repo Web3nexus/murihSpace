@@ -83,7 +83,7 @@ export function OtpInput({
           onKeyDown={(e) => handleKeyDown(index, e)}
           onPaste={handlePaste}
           aria-label={`Code digit ${index + 1}`}
-          className="h-14 w-full max-w-14 rounded-xl border border-border bg-card text-center text-xl font-bold text-foreground focus:outline-none focus:border-[#38A8D8]/60 focus:ring-2 focus:ring-[#38A8D8]/20 transition-all disabled:opacity-50"
+          className="h-14 w-full max-w-14 rounded-xl border border-border bg-card text-center text-xl font-bold text-foreground focus:outline-none focus:border-[#2164b6] focus:ring-2 focus:ring-[#2164b6] transition-all disabled:opacity-50"
         />
       ))}
     </div>

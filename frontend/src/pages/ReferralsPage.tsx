@@ -138,7 +138,7 @@ export function ReferralsPage() {
   }
 
   if (isLoading) {
-    return <div className="flex justify-center py-24"><Loader2 className="h-8 w-8 animate-spin text-[#38A8D8]" /></div>;
+    return <div className="flex justify-center py-24"><Loader2 className="h-8 w-8 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" /></div>;
   }
 
   const msgBg = message?.type === 'success' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-rose-500/10 border-rose-500/20 text-rose-400';
@@ -147,7 +147,7 @@ export function ReferralsPage() {
     <div className="w-full max-w-7xl mx-auto space-y-6 p-6 lg:p-8">
       <div>
         <h1 className="text-2xl font-black tracking-tight flex items-center gap-2.5">
-          <Link2 className="h-6 w-6 text-[#38A8D8]" /> Referral & Affiliates
+          <Link2 className="h-6 w-6 text-[#2164b6] dark:text-[#7ab0ff]" /> Referral & Affiliates
         </h1>
         <p className="text-xs text-muted-foreground mt-1">Create referral links, track commissions, and grow your audience.</p>
       </div>
@@ -174,7 +174,7 @@ export function ReferralsPage() {
           {/* Stats Grid */}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
             {[
-              { icon: MousePointerClick, label: 'Clicks', value: stats?.total_clicks ?? 0, color: '#38A8D8' },
+              { icon: MousePointerClick, label: 'Clicks', value: stats?.total_clicks ?? 0, color: '#2164b6' },
               { icon: Users, label: 'Signups', value: stats?.total_signups ?? 0, color: '#10b981' },
               { icon: ShoppingBag, label: 'Purchases', value: stats?.total_purchases ?? 0, color: '#8b5cf6' },
               { icon: RefreshCw, label: 'Conversion', value: `${stats?.conversion_rate ?? 0}%`, color: '#f59e0b' },
@@ -217,11 +217,11 @@ export function ReferralsPage() {
               <label className="flex items-center gap-2 cursor-pointer">
                 <input type="checkbox" checked={program?.is_active ?? true}
                   onChange={e => setProgram(p => p ? { ...p, is_active: e.target.checked } : null)}
-                  className="accent-[#38A8D8]" />
+                  className="accent-[#2164b6]" />
                 <span className="text-xs font-bold text-foreground">Program active</span>
               </label>
               <button type="submit" disabled={saving}
-                className="px-6 py-2 rounded-xl bg-[#38A8D8] text-white text-xs font-bold hover:bg-[#2e8ab8] transition-colors disabled:opacity-50">
+                className="px-6 py-2 rounded-xl bg-[#2164b6] text-white text-xs font-bold hover:bg-[#1a5091] transition-colors disabled:opacity-50">
                 {saving ? <Loader2 className="h-3 w-3 animate-spin inline mr-1" /> : null} Save Settings
               </button>
             </form>
@@ -238,7 +238,7 @@ export function ReferralsPage() {
               placeholder="Custom code (optional, e.g. 'summer2026')"
               className="flex-1 rounded-xl border border-border bg-card p-2.5 text-xs font-medium text-foreground placeholder:text-muted-foreground" />
             <button onClick={createLink}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#38A8D8] text-white text-xs font-bold hover:bg-[#2e8ab8] transition-colors">
+              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#2164b6] text-white text-xs font-bold hover:bg-[#1a5091] transition-colors">
               <Plus className="h-4 w-4" /> Create
             </button>
           </div>

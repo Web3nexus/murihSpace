@@ -54,7 +54,7 @@ function Avatar({ name, url, size = 40 }: { name: string; url?: string | null; s
   if (url) return <img src={url} alt={name} className="rounded-full object-cover shrink-0" style={{ width: size, height: size }} />;
   return (
     <div
-      className="rounded-full bg-gradient-to-br from-[#38A8D8] to-[#1a6b9e] text-white font-bold flex items-center justify-center shrink-0"
+      className="rounded-full bg-gradient-to-br from-[#2164b6] to-[#1a6b9e] text-white font-bold flex items-center justify-center shrink-0"
       style={{ width: size, height: size, fontSize: size * 0.4 }}
     >
       {initial}
@@ -203,7 +203,7 @@ export default function FriendsPage() {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-2xl bg-gradient-to-br from-[#38A8D8] to-[#1a6b9e] flex items-center justify-center shadow-sm">
+          <div className="h-10 w-10 rounded-2xl bg-gradient-to-br from-[#2164b6] to-[#1a6b9e] flex items-center justify-center shadow-sm">
             <Users className="h-5 w-5 text-white" />
           </div>
           <div>
@@ -219,7 +219,7 @@ export default function FriendsPage() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Find friends by name or username..."
-            className="w-full pl-9 pr-3 py-2 text-xs rounded-xl bg-muted/60 border border-border/50 outline-none focus:ring-1 focus:ring-[#38A8D8]/30 focus:border-[#38A8D8]/30 placeholder:text-muted-foreground/40 transition-all"
+            className="w-full pl-9 pr-3 py-2 text-xs rounded-xl bg-muted/60 border border-border/50 outline-none focus:ring-1 focus:ring-[#2164b6]/30 focus:border-[#2164b6]/30 placeholder:text-muted-foreground/40 transition-all"
           />
           {searchLoading && (
             <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 animate-spin text-muted-foreground/50" />
@@ -235,7 +235,7 @@ export default function FriendsPage() {
           </p>
           {searchLoading ? (
             <div className="flex items-center justify-center py-6">
-              <Loader2 className="h-5 w-5 animate-spin text-[#38A8D8]" />
+              <Loader2 className="h-5 w-5 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" />
             </div>
           ) : searchResults.length === 0 ? (
             <p className="text-xs text-muted-foreground/70 py-3 text-center">
@@ -253,7 +253,7 @@ export default function FriendsPage() {
                   <button
                     onClick={() => handleAddFriend(u.id)}
                     disabled={addingId === u.id}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#38A8D8] text-white text-[11px] font-bold hover:bg-[#2e8ab8] transition-all disabled:opacity-50"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#2164b6] text-white text-[11px] font-bold hover:bg-[#1a5091] transition-all disabled:opacity-50"
                   >
                     {addingId === u.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <UserPlus className="h-3 w-3" />}
                     Add Friend
@@ -281,7 +281,7 @@ export default function FriendsPage() {
             <t.icon className="h-4 w-4" />
             <span className="hidden sm:inline">{t.label}</span>
             {t.count > 0 && (
-              <span className="h-4 min-w-[18px] px-1 rounded-full bg-[#38A8D8] text-white text-[9px] font-extrabold flex items-center justify-center">
+              <span className="h-4 min-w-[18px] px-1 rounded-full bg-[#2164b6] text-white text-[9px] font-extrabold flex items-center justify-center">
                 {t.count > 99 ? "99+" : t.count}
               </span>
             )}
@@ -298,7 +298,7 @@ export default function FriendsPage() {
 
       {loading ? (
         <div className="flex h-64 items-center justify-center">
-          <Loader2 className="h-7 w-7 animate-spin text-[#38A8D8]" />
+          <Loader2 className="h-7 w-7 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" />
         </div>
       ) : tab === "friends" ? (
         friends.length === 0 ? (
@@ -310,7 +310,7 @@ export default function FriendsPage() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {friends.map((item) => (
-              <div key={item.id} className="rounded-2xl border border-border/60 bg-card p-4 flex flex-col gap-3 hover:shadow-sm hover:border-[#38A8D8]/20 transition-all duration-200">
+              <div key={item.id} className="rounded-2xl border border-border/60 bg-card p-4 flex flex-col gap-3 hover:shadow-sm hover:border-[#2164b6]/20 transition-all duration-200">
                 <div className="flex items-center gap-3">
                   <FriendAvatar user={item.friend} size={44} />
                   <div className="flex-1 min-w-0">
@@ -327,7 +327,7 @@ export default function FriendsPage() {
                 <div className="flex items-center gap-2 pt-1">
                   <a
                     href="/app/messages"
-                    className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-[#38A8D8]/10 text-[#38A8D8] text-[11px] font-bold hover:bg-[#38A8D8]/20 transition-colors"
+                    className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-[#2164b6]/10 text-[#2164b6] dark:text-[#7ab0ff] text-[11px] font-bold hover:bg-[#2164b6]/20 transition-colors"
                   >
                     <MessageSquare className="h-3 w-3" />
                     Message
@@ -371,7 +371,7 @@ export default function FriendsPage() {
                   <button
                     onClick={() => handleFriendAction(r.id, "accept")}
                     disabled={actionId === r.id}
-                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#38A8D8] text-white text-xs font-bold hover:bg-[#2e8ab8] transition-all shadow-xs disabled:opacity-50"
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#2164b6] text-white text-xs font-bold hover:bg-[#1a5091] transition-all shadow-xs disabled:opacity-50"
                   >
                     {actionId === r.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
                     Confirm
@@ -437,8 +437,8 @@ function EmptyState({
 }) {
   return (
     <div className="flex flex-col items-center gap-4 rounded-2xl border border-dashed border-border/60 bg-card p-12 text-center">
-      <div className="rounded-2xl bg-[#38A8D8]/10 p-4">
-        <Icon className="h-8 w-8 text-[#38A8D8]" />
+      <div className="rounded-2xl bg-[#2164b6]/10 p-4">
+        <Icon className="h-8 w-8 text-[#2164b6] dark:text-[#7ab0ff]" />
       </div>
       <div>
         <h3 className="text-sm font-bold text-foreground">{title}</h3>

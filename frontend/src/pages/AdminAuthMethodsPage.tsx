@@ -78,7 +78,7 @@ export default function AdminAuthMethodsPage() {
   }, []);
 
   if (loading || !config) {
-    return <div className="flex justify-center py-24"><Loader2 className="h-8 w-8 animate-spin text-[#38A8D8]" /></div>;
+    return <div className="flex justify-center py-24"><Loader2 className="h-8 w-8 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" /></div>;
   }
 
   const loginEnabledCount = METHOD_KEYS.filter((k) => config.methods[k].login).length;
@@ -136,7 +136,7 @@ export default function AdminAuthMethodsPage() {
     <div className="w-full mx-auto max-w-[860px] space-y-6 p-6 lg:p-10">
       <div>
         <h1 className="text-2xl font-black tracking-tight flex items-center gap-2.5">
-          <ShieldCheck className="h-6 w-6 text-[#38A8D8]" /> Authentication Methods
+          <ShieldCheck className="h-6 w-6 text-[#2164b6] dark:text-[#7ab0ff]" /> Authentication Methods
         </h1>
         <p className="text-xs text-muted-foreground mt-1">
           Choose which sign-in and registration methods are available. Changes apply instantly to the login and register screens. At least one core method (Phone OTP or Email &amp; password) must stay enabled to avoid locking users out.
@@ -172,14 +172,14 @@ export default function AdminAuthMethodsPage() {
           return (
             <div key={key} className={cn("flex items-center justify-between gap-4 px-5 py-4", i > 0 && "border-t border-border")}>
               <div className="flex items-center gap-3 min-w-0">
-                <div className="h-9 w-9 rounded-xl bg-muted/60 flex items-center justify-center text-[#38A8D8] shrink-0">
+                <div className="h-9 w-9 rounded-xl bg-muted/60 flex items-center justify-center text-[#2164b6] dark:text-[#7ab0ff] shrink-0">
                   {meta.icon}
                 </div>
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
                     <p className="text-sm font-bold text-foreground">{meta.label}</p>
                     {isPrimary && (
-                      <span className="text-[9px] font-black uppercase tracking-wide text-[#38A8D8] bg-[#38A8D8]/10 rounded-full px-2 py-0.5">
+                      <span className="text-[9px] font-black uppercase tracking-wide text-[#2164b6] dark:text-[#7ab0ff] bg-[#2164b6]/10 rounded-full px-2 py-0.5">
                         Primary
                       </span>
                     )}
@@ -194,7 +194,7 @@ export default function AdminAuthMethodsPage() {
                     type="checkbox"
                     checked={m.login}
                     onChange={() => toggle(key, "login")}
-                    className="h-4 w-4 rounded border-border accent-[#38A8D8]"
+                    className="h-4 w-4 rounded border-border accent-[#2164b6]"
                   />
                   <span className="text-[11px] font-bold text-muted-foreground">Login</span>
                 </label>
@@ -203,7 +203,7 @@ export default function AdminAuthMethodsPage() {
                     type="checkbox"
                     checked={m.registration}
                     onChange={() => toggle(key, "registration")}
-                    className="h-4 w-4 rounded border-border accent-[#38A8D8]"
+                    className="h-4 w-4 rounded border-border accent-[#2164b6]"
                   />
                   <span className="text-[11px] font-bold text-muted-foreground">Register</span>
                 </label>
@@ -214,9 +214,9 @@ export default function AdminAuthMethodsPage() {
                   className={cn(
                     "text-[10px] font-black uppercase tracking-wide rounded-lg px-3 py-1.5 border transition-colors",
                     isPrimary
-                      ? "border-[#38A8D8] bg-[#38A8D8]/10 text-[#38A8D8]"
+                      ? "border-[#2164b6] bg-[#2164b6]/10 text-[#2164b6] dark:text-[#7ab0ff]"
                       : m.login
-                        ? "border-border text-muted-foreground hover:text-[#38A8D8] hover:border-[#38A8D8]/50"
+                        ? "border-border text-muted-foreground hover:text-[#2164b6] dark:text-[#7ab0ff] hover:border-[#2164b6]/50"
                         : "border-border text-muted-foreground/40 cursor-not-allowed"
                   )}
                   title={m.login ? "Set as primary" : "Enable login to set as primary"}

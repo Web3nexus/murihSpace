@@ -26,7 +26,7 @@ export default function AdminEcosystemGrowthPage() {
 
   useEffect(() => { loadData(); }, [loadData]);
 
-  if (loading) return <div className="flex justify-center py-24"><Loader2 className="h-8 w-8 animate-spin text-[#38A8D8]" /></div>;
+  if (loading) return <div className="flex justify-center py-24"><Loader2 className="h-8 w-8 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" /></div>;
 
   const cards = [
     { label: "Total Users", value: metrics?.total_users ?? 0, icon: <Users className="h-5 w-5" />, color: "text-blue-400" },
@@ -37,7 +37,7 @@ export default function AdminEcosystemGrowthPage() {
 
   return (
     <div className="w-full mx-auto max-w-[1400px] space-y-6 p-6 lg:p-10">
-      <div><h1 className="text-2xl font-black tracking-tight flex items-center gap-2.5"><TrendingUp className="h-6 w-6 text-[#38A8D8]" /> Ecosystem Growth</h1><p className="text-xs text-muted-foreground mt-1">Platform growth and user acquisition metrics.</p></div>
+      <div><h1 className="text-2xl font-black tracking-tight flex items-center gap-2.5"><TrendingUp className="h-6 w-6 text-[#2164b6] dark:text-[#7ab0ff]" /> Ecosystem Growth</h1><p className="text-xs text-muted-foreground mt-1">Platform growth and user acquisition metrics.</p></div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {cards.map((c) => (
@@ -58,7 +58,7 @@ export default function AdminEcosystemGrowthPage() {
             {metrics.signups_by_day.map((d: any, i: number) => {
               const max = Math.max(...metrics.signups_by_day.map((x: any) => x.count));
               return <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                <div className="w-full rounded-sm bg-[#38A8D8]/30 hover:bg-[#38A8D8]/50 transition-colors" style={{ height: `${max ? (d.count / max) * 100 : 0}%` }} title={`${d.date}: ${d.count} signups`} />
+                <div className="w-full rounded-sm bg-[#2164b6]/30 hover:bg-[#2164b6]/50 transition-colors" style={{ height: `${max ? (d.count / max) * 100 : 0}%` }} title={`${d.date}: ${d.count} signups`} />
               </div>;
             })}
           </div>

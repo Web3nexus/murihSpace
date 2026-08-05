@@ -10,7 +10,7 @@ import {
 import { apiClient } from '@/lib/api/client';
 import { Button } from '@/components/ui/button';
 
-const COLORS = ['#38A8D8', '#F59E0B', '#10B981', '#8B5CF6', '#EF4444', '#EC4899'];
+const COLORS = ['#2164b6', '#F59E0B', '#10B981', '#8B5CF6', '#EF4444', '#EC4899'];
 
 const CURRENCY_SYMBOLS: Record<string, string> = {
   NGN: '\u20A6',
@@ -45,7 +45,7 @@ interface TopContent {
   top_creators: { id: number; name: string; username: string; product_count: number; plan_count: number; subscriber_count: number }[];
 }
 
-function MetricCard({ label, value, icon: Icon, trend, trendUp, color, sparklineColor = "#38A8D8" }: {
+function MetricCard({ label, value, icon: Icon, trend, trendUp, color, sparklineColor = "#2164b6" }: {
   label: string; value: string; icon: React.ElementType; trend?: string; trendUp?: boolean; color: string; sparklineColor?: string;
 }) {
   return (
@@ -185,7 +185,7 @@ export function SecuregateOverviewPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-black tracking-tight flex items-center gap-3">
-              <span className="bg-gradient-to-r from-[#38A8D8] to-[#102840] bg-clip-text text-transparent">Command Center</span>
+              <span className="bg-gradient-to-r from-[#2164b6] to-[#102840] bg-clip-text text-transparent">Command Center</span>
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">Real-time platform intelligence</p>
           </div>
@@ -227,7 +227,7 @@ export function SecuregateOverviewPage() {
           <>
             {/* Metric Cards */}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <MetricCard label="Total Revenue" value={formatCurrency(overview.revenue.digital_revenue, currency)} trend={`${formatNumber(overview.revenue.digital_orders)} orders`} trendUp icon={TrendingUp} color="bg-[#38A8D8]/15 text-[#38A8D8]" sparklineColor="#10B981" />
+              <MetricCard label="Total Revenue" value={formatCurrency(overview.revenue.digital_revenue, currency)} trend={`${formatNumber(overview.revenue.digital_orders)} orders`} trendUp icon={TrendingUp} color="bg-[#2164b6]/15 text-[#2164b6] dark:text-[#7ab0ff]" sparklineColor="#10B981" />
               <MetricCard label="Active Subscribers" value={formatNumber(overview.revenue.active_subscriptions)} trend={`${formatCurrency(overview.revenue.mrr, currency)} MRR`} trendUp icon={Users} color="bg-purple-500/15 text-purple-500" sparklineColor="#8B5CF6" />
               <MetricCard label="Platform Balance" value={formatCurrency(overview.wallet.platform_balance, currency)} trend={`${formatCurrency(overview.wallet.user_balances, currency)} in user wallets`} trendUp icon={Wallet} color="bg-amber-500/15 text-amber-500" sparklineColor="#F59E0B" />
               <MetricCard label="Pending KYC" value={formatNumber(overview.users.pending_kyc)} trend={`${formatNumber(overview.users.total)} total users`} icon={UserCheck} color="bg-rose-500/15 text-rose-500" sparklineColor="#EF4444" />
@@ -259,15 +259,15 @@ export function SecuregateOverviewPage() {
                     <AreaChart data={trends.revenue_trend}>
                       <defs>
                         <linearGradient id="revenueGrad" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#38A8D8" stopOpacity={0.3} />
-                          <stop offset="100%" stopColor="#38A8D8" stopOpacity={0} />
+                          <stop offset="0%" stopColor="#2164b6" stopOpacity={0.3} />
+                          <stop offset="100%" stopColor="#2164b6" stopOpacity={0} />
                         </linearGradient>
                       </defs>
                       <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                       <XAxis dataKey="date" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }} tickLine={false} axisLine={false} tickFormatter={(v) => new Date(v).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} />
                       <YAxis tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }} tickLine={false} axisLine={false} tickFormatter={(v) => `$${v}`} />
                       <Tooltip contentStyle={chartTooltipStyle} labelStyle={{ color: 'hsl(var(--muted-foreground))' }} />
-                      <Area type="monotone" dataKey="revenue" stroke="#38A8D8" strokeWidth={2} fill="url(#revenueGrad)" />
+                      <Area type="monotone" dataKey="revenue" stroke="#2164b6" strokeWidth={2} fill="url(#revenueGrad)" />
                     </AreaChart>
                   </ResponsiveContainer>
                 ) : (
@@ -335,7 +335,7 @@ export function SecuregateOverviewPage() {
                       <XAxis dataKey="date" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }} tickLine={false} axisLine={false} tickFormatter={(v) => new Date(v).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} />
                       <YAxis tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }} tickLine={false} axisLine={false} />
                       <Tooltip contentStyle={chartTooltipStyle} />
-                      <Bar dataKey="count" fill="#38A8D8" radius={[3, 3, 0, 0]} opacity={0.7} />
+                      <Bar dataKey="count" fill="#2164b6" radius={[3, 3, 0, 0]} opacity={0.7} />
                     </BarChart>
                   </ResponsiveContainer>
                 ) : (
@@ -358,7 +358,7 @@ export function SecuregateOverviewPage() {
                     <XAxis dataKey="date" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }} tickLine={false} axisLine={false} tickFormatter={(v) => new Date(v).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} />
                     <YAxis tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }} tickLine={false} axisLine={false} tickFormatter={(v) => `$${v}`} />
                     <Tooltip contentStyle={chartTooltipStyle} />
-                    <Line type="monotone" dataKey="revenue" stroke="#38A8D8" strokeWidth={2} dot={{ fill: '#38A8D8', r: 3 }} />
+                    <Line type="monotone" dataKey="revenue" stroke="#2164b6" strokeWidth={2} dot={{ fill: '#2164b6', r: 3 }} />
                   </LineChart>
                 </ResponsiveContainer>
               ) : (

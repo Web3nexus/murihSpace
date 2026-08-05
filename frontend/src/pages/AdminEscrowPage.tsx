@@ -111,7 +111,7 @@ export function AdminEscrowPage() {
     <div className="w-full mx-auto max-w-[1400px] space-y-6 p-6 lg:p-10">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 sm:p-8 rounded-2xl bg-gradient-to-br from-[#102840] via-[#173852] to-[#102840] text-white shadow-lg">
         <div className="space-y-1.5">
-          <span className="px-2.5 py-0.5 rounded-full bg-[#38A8D8]/20 text-[#38A8D8] text-xs font-semibold uppercase tracking-wider border border-[#38A8D8]/30">Admin</span>
+          <span className="px-2.5 py-0.5 rounded-full bg-[#2164b6]/20 text-[#2164b6] dark:text-[#7ab0ff] text-xs font-semibold uppercase tracking-wider border border-[#2164b6]/30">Admin</span>
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">Escrow Management</h1>
           <p className="text-sm text-white/70 max-w-xl">View, release, refund escrows and resolve disputes.</p>
         </div>
@@ -150,7 +150,7 @@ export function AdminEscrowPage() {
               <div key={e.id} className="px-4 py-3.5 hover:bg-muted/10 transition-colors">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3 min-w-0 flex-1">
-                    <div className="p-2 rounded-xl bg-[#38A8D8]/10 text-[#38A8D8] shrink-0"><Shield className="h-4 w-4" /></div>
+                    <div className="p-2 rounded-xl bg-[#2164b6]/10 text-[#2164b6] dark:text-[#7ab0ff] shrink-0"><Shield className="h-4 w-4" /></div>
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
                         <p className="text-sm font-bold text-foreground">{formatAmount(e.amount, e.currency)}</p>

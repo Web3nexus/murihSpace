@@ -591,7 +591,7 @@ export function AppPage() {
 
           <div className="bg-card border border-border shadow-xs rounded-2xl p-4 sm:p-5 space-y-4">
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-full bg-gradient-to-br from-[#38A8D8] to-purple-600 flex items-center justify-center text-white font-black text-sm shrink-0 overflow-hidden shadow-xs">
+              <div className="h-10 w-10 rounded-full bg-gradient-to-br from-[#2164b6] to-purple-600 flex items-center justify-center text-white font-black text-sm shrink-0 overflow-hidden shadow-xs">
                 {user?.avatar_url ? (
                   <img src={user.avatar_url} alt="" className="w-full h-full object-cover" />
                 ) : (
@@ -616,7 +616,7 @@ export function AppPage() {
                   value={postText}
                   onChange={(e) => setPostText(e.target.value)}
                   placeholder="Write your post here... Share thoughts, updates, or announcements."
-                  className="w-full h-28 p-3.5 text-xs sm:text-sm rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-[#38A8D8]/40 resize-none"
+                  className="w-full h-28 p-3.5 text-xs sm:text-sm rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-[#2164b6]/40 resize-none"
                   autoFocus
                 />
 
@@ -642,13 +642,13 @@ export function AppPage() {
                             setCommunityPickerOpen(false);
                           }}
                           className={`w-full text-left px-3 py-2 text-xs font-semibold hover:bg-muted transition-colors flex items-center gap-2 ${
-                            selectedCommunityId === c.id ? "text-[#38A8D8]" : "text-foreground"
+                            selectedCommunityId === c.id ? "text-[#2164b6] dark:text-[#7ab0ff]" : "text-foreground"
                           }`}
                         >
                           {c.logo_url ? (
                             <img src={c.logo_url} alt="" className="h-5 w-5 rounded-full object-cover" />
                           ) : (
-                            <div className="h-5 w-5 rounded-full bg-[#38A8D8]/10 text-[#38A8D8] flex items-center justify-center text-[9px] font-bold">
+                            <div className="h-5 w-5 rounded-full bg-[#2164b6]/10 text-[#2164b6] dark:text-[#7ab0ff] flex items-center justify-center text-[9px] font-bold">
                               {c.name.charAt(0)}
                             </div>
                           )}
@@ -660,7 +660,7 @@ export function AppPage() {
                   {communityPickerOpen && userCommunities.length === 0 && (
                     <div className="absolute top-full left-0 mt-1 w-56 bg-card border border-border rounded-xl shadow-lg z-30 py-3 px-3 text-xs text-muted-foreground text-center">
                       <p className="font-semibold mb-1">No communities yet</p>
-                      <Link to="/app/communities" className="text-[#38A8D8] hover:underline" onClick={() => setCommunityPickerOpen(false)}>
+                      <Link to="/app/communities" className="text-[#2164b6] dark:text-[#7ab0ff] hover:underline" onClick={() => setCommunityPickerOpen(false)}>
                         Create a community first
                       </Link>
                     </div>
@@ -677,7 +677,7 @@ export function AppPage() {
                   <button
                     onClick={handleCreatePost}
                     disabled={submittingPost || !postText.trim() || !selectedCommunityId}
-                    className="px-4 py-2 rounded-xl bg-[#38A8D8] hover:bg-[#2e94c0] disabled:opacity-50 text-white font-bold text-xs transition-colors flex items-center gap-1.5 shadow-xs"
+                    className="px-4 py-2 rounded-xl bg-[#2164b6] hover:bg-[#1a5091] disabled:opacity-50 text-white font-bold text-xs transition-colors flex items-center gap-1.5 shadow-xs"
                   >
                     {submittingPost ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
                     Publish Post
@@ -693,7 +693,7 @@ export function AppPage() {
 
             <div className="flex items-center justify-between gap-1 sm:gap-2 border-t border-border/60 pt-3 overflow-x-auto no-scrollbar">
               {[
-                { icon: <Plus className="h-4 w-4 text-[#38A8D8]" />, label: "Create Post", action: () => { setComposerOpen(true); setCommunityPickerOpen(false); } },
+                { icon: <Plus className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" />, label: "Create Post", action: () => { setComposerOpen(true); setCommunityPickerOpen(false); } },
                 { icon: <Package className="h-4 w-4 text-rose-500" />, label: "Add Product", to: "/app/store" },
                 { icon: <Video className="h-4 w-4 text-red-500" />, label: "Go Live", to: "/app/audio-rooms" },
                 { icon: <Calendar className="h-4 w-4 text-blue-500" />, label: "New Event", to: "/app/events" },
@@ -721,7 +721,7 @@ export function AppPage() {
               <button
                 onClick={() => setStoryComposerOpen(true)}
                 disabled={storyUploading}
-                className="relative shrink-0 w-28 sm:w-32 h-44 rounded-2xl overflow-hidden bg-gradient-to-b from-[#38A8D8] to-blue-600 shadow-xs cursor-pointer group hover:scale-[1.02] transition-transform flex flex-col items-center justify-center text-white p-3 disabled:opacity-70 disabled:cursor-not-allowed"
+                className="relative shrink-0 w-28 sm:w-32 h-44 rounded-2xl overflow-hidden bg-gradient-to-b from-[#2164b6] to-blue-600 shadow-xs cursor-pointer group hover:scale-[1.02] transition-transform flex flex-col items-center justify-center text-white p-3 disabled:opacity-70 disabled:cursor-not-allowed"
               >
                 <div className="h-10 w-10 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
                   {storyUploading
@@ -747,7 +747,7 @@ export function AppPage() {
                   )}
 
                   <div className="absolute top-2.5 left-2.5 z-10">
-                    <div className="h-9 w-9 rounded-full p-[2px] bg-gradient-to-tr from-purple-500 via-pink-500 to-[#38A8D8]">
+                    <div className="h-9 w-9 rounded-full p-[2px] bg-gradient-to-tr from-purple-500 via-pink-500 to-[#2164b6]">
                       {story.avatar
                         ? <img src={story.avatar} alt="" className="w-full h-full rounded-full object-cover border-2 border-white/40" />
                         : <div className="w-full h-full rounded-full bg-muted flex items-center justify-center text-xs font-bold text-white border-2 border-white/40">{story.name.charAt(0).toUpperCase()}</div>
@@ -770,7 +770,7 @@ export function AppPage() {
                   onChange={(e) => setStoryText(e.target.value)}
                   placeholder="Share an update with your audience…"
                   maxLength={500}
-                  className="w-full h-24 p-3.5 text-xs sm:text-sm rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-[#38A8D8]/40 resize-none"
+                  className="w-full h-24 p-3.5 text-xs sm:text-sm rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-[#2164b6]/40 resize-none"
                 />
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] text-muted-foreground">{storyText.length}/500</span>
@@ -784,7 +784,7 @@ export function AppPage() {
                     <button
                       onClick={handleCreateTextStory}
                       disabled={storyUploading || !storyText.trim()}
-                      className="px-4 py-1.5 rounded-xl bg-[#38A8D8] hover:bg-[#2e94c0] disabled:opacity-50 text-white font-bold text-xs transition-colors flex items-center gap-1.5 shadow-xs"
+                      className="px-4 py-1.5 rounded-xl bg-[#2164b6] hover:bg-[#1a5091] disabled:opacity-50 text-white font-bold text-xs transition-colors flex items-center gap-1.5 shadow-xs"
                     >
                       {storyUploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
                       Publish Story
@@ -810,7 +810,7 @@ export function AppPage() {
                 <p className="text-sm font-semibold">No posts in your feed yet</p>
                 <p className="text-xs">Follow communities and creators to see their posts here.</p>
                 <Link to="/app/communities">
-                  <button className="mt-2 px-4 py-2 rounded-xl bg-[#38A8D8] hover:bg-[#2e94c0] text-white font-bold text-xs transition-colors">
+                  <button className="mt-2 px-4 py-2 rounded-xl bg-[#2164b6] hover:bg-[#1a5091] text-white font-bold text-xs transition-colors">
                     Browse Communities
                   </button>
                 </Link>
@@ -824,7 +824,7 @@ export function AppPage() {
                 <div key={post.id} className="bg-card border border-border shadow-xs rounded-2xl p-4 sm:p-5 space-y-3">
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-full bg-gradient-to-tr from-[#38A8D8] to-purple-600 p-[2px]">
+                      <div className="h-10 w-10 rounded-full bg-gradient-to-tr from-[#2164b6] to-purple-600 p-[2px]">
                         {post.avatar ? (
                           <img src={post.avatar} alt="" className="w-full h-full rounded-full object-cover" />
                         ) : (
@@ -862,7 +862,7 @@ export function AppPage() {
                       </div>
                       <div className="p-3.5 flex flex-col justify-center bg-card flex-1 border-t sm:border-t-0 sm:border-l border-border">
                         <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider block mb-1">YOUTUBE.COM</span>
-                        <h4 className="text-xs sm:text-sm font-bold text-foreground leading-snug group-hover:text-[#38A8D8] transition-colors">
+                        <h4 className="text-xs sm:text-sm font-bold text-foreground leading-snug group-hover:text-[#2164b6] dark:text-[#7ab0ff] transition-colors">
                           {post.embedTitle}
                         </h4>
                         <p className="text-[11px] text-muted-foreground mt-1 line-clamp-2 leading-tight">
@@ -874,7 +874,7 @@ export function AppPage() {
 
                   {post.embedType === "product" && (
                     <div className="p-3.5 rounded-xl border border-border bg-slate-50/50 dark:bg-muted/30 flex items-center gap-4">
-                      <div className="h-20 w-16 rounded-lg bg-gradient-to-br from-[#38A8D8] to-blue-700 shrink-0 overflow-hidden shadow-xs flex items-center justify-center text-white p-2">
+                      <div className="h-20 w-16 rounded-lg bg-gradient-to-br from-[#2164b6] to-blue-700 shrink-0 overflow-hidden shadow-xs flex items-center justify-center text-white p-2">
                         <div className="text-center">
                           <p className="text-[8px] font-extrabold uppercase tracking-widest text-white/80">LINK</p>
                           <p className="text-[10px] font-black leading-tight mt-1">External</p>
@@ -888,7 +888,7 @@ export function AppPage() {
                         {post.price && <p className="text-xs font-black text-foreground mt-1.5">{post.price}</p>}
                       </div>
                       <Link to="/app/store">
-                        <button className="px-3.5 py-1.5 rounded-lg bg-[#38A8D8]/10 text-[#38A8D8] hover:bg-[#38A8D8]/20 font-bold text-xs transition-colors shrink-0">
+                        <button className="px-3.5 py-1.5 rounded-lg bg-[#2164b6]/10 text-[#2164b6] dark:text-[#7ab0ff] hover:bg-[#2164b6]/20 font-bold text-xs transition-colors shrink-0">
                           View Product
                         </button>
                       </Link>
@@ -910,10 +910,10 @@ export function AppPage() {
                       <span className="font-semibold text-foreground text-[11px] ml-1">{post.likes}</span>
                     </div>
                     <div className="flex items-center gap-3 text-[11px]">
-                      <button onClick={() => handleClickComment(post.id)} className="hover:text-[#38A8D8] transition-colors">
+                      <button onClick={() => handleClickComment(post.id)} className="hover:text-[#2164b6] dark:text-[#7ab0ff] transition-colors">
                         {post.comments} Comments
                       </button>
-                      <button onClick={() => handleShare(post)} className="hover:text-[#38A8D8] transition-colors">
+                      <button onClick={() => handleShare(post)} className="hover:text-[#2164b6] dark:text-[#7ab0ff] transition-colors">
                         {post.shares} Shares
                       </button>
                     </div>
@@ -923,15 +923,15 @@ export function AppPage() {
                     <button
                       onClick={() => toggleLike(post.id)}
                       className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
-                        post.isLiked ? "text-[#38A8D8] bg-[#38A8D8]/10" : "text-muted-foreground hover:bg-muted"
+                        post.isLiked ? "text-[#2164b6] dark:text-[#7ab0ff] bg-[#2164b6]/10" : "text-muted-foreground hover:bg-muted"
                       }`}
                     >
-                      <Heart className={`h-4 w-4 ${post.isLiked ? "fill-[#38A8D8]" : ""}`} /> Like
+                      <Heart className={`h-4 w-4 ${post.isLiked ? "fill-[#2164b6]" : ""}`} /> Like
                     </button>
                     <button
                       onClick={() => handleClickComment(post.id)}
                       className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
-                        isCommenting ? "text-[#38A8D8] bg-[#38A8D8]/10" : "text-muted-foreground hover:bg-muted"
+                        isCommenting ? "text-[#2164b6] dark:text-[#7ab0ff] bg-[#2164b6]/10" : "text-muted-foreground hover:bg-muted"
                       }`}
                     >
                       <MessageCircle className="h-4 w-4" /> Comment
@@ -956,7 +956,7 @@ export function AppPage() {
                         <div className="space-y-2.5">
                           {post.commentList.map((cmt) => (
                             <div key={cmt.id} className="flex items-start gap-2.5 text-xs p-2.5 rounded-xl bg-slate-50 dark:bg-muted/40">
-                              <div className="h-7 w-7 rounded-full bg-gradient-to-br from-[#38A8D8] to-purple-600 flex items-center justify-center text-white font-bold text-[10px] shrink-0">
+                              <div className="h-7 w-7 rounded-full bg-gradient-to-br from-[#2164b6] to-purple-600 flex items-center justify-center text-white font-bold text-[10px] shrink-0">
                                 {cmt.avatar_url ? <img src={cmt.avatar_url} alt="" className="w-full h-full rounded-full object-cover" /> : cmt.user_name.charAt(0)}
                               </div>
                               <div className="flex-1 min-w-0">
@@ -983,12 +983,12 @@ export function AppPage() {
                           onChange={(e) => setCommentInput(e.target.value)}
                           onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleAddComment(post.id); } }}
                           placeholder="Write a comment..."
-                          className="flex-1 h-9 px-3.5 text-xs rounded-full border border-border bg-background focus:outline-none focus:ring-2 focus:ring-[#38A8D8]/40"
+                          className="flex-1 h-9 px-3.5 text-xs rounded-full border border-border bg-background focus:outline-none focus:ring-2 focus:ring-[#2164b6]/40"
                         />
                         <button
                           onClick={() => handleAddComment(post.id)}
                           disabled={submittingComment || !commentInput.trim()}
-                          className="px-3.5 h-9 rounded-full bg-[#38A8D8] hover:bg-[#2e94c0] disabled:opacity-50 text-white font-bold text-xs transition-colors flex items-center gap-1 shrink-0"
+                          className="px-3.5 h-9 rounded-full bg-[#2164b6] hover:bg-[#1a5091] disabled:opacity-50 text-white font-bold text-xs transition-colors flex items-center gap-1 shrink-0"
                         >
                           {submittingComment ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
                         </button>
@@ -1008,20 +1008,20 @@ export function AppPage() {
           <div className="rounded-2xl border border-border bg-card p-4 shadow-xs space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="p-1.5 rounded-lg bg-[#38A8D8]/10 text-[#38A8D8]">
+                <div className="p-1.5 rounded-lg bg-[#2164b6]/10 text-[#2164b6] dark:text-[#7ab0ff]">
                   <Users className="h-3.5 w-3.5" />
                 </div>
                 <h3 className="font-bold text-foreground text-xs sm:text-sm">Requests</h3>
                 {totalRequests > 0 && (
-                  <span className="h-4 min-w-[18px] px-1 rounded-full bg-[#38A8D8] text-white text-[9px] font-extrabold flex items-center justify-center">
+                  <span className="h-4 min-w-[18px] px-1 rounded-full bg-[#2164b6] text-white text-[9px] font-extrabold flex items-center justify-center">
                     {totalRequests > 99 ? "99+" : totalRequests}
                   </span>
                 )}
               </div>
               <div className="flex items-center gap-1.5 text-[10px] font-bold">
-                <Link to="/app/friends" className="text-[#38A8D8] hover:underline">Friends</Link>
+                <Link to="/app/friends" className="text-[#2164b6] dark:text-[#7ab0ff] hover:underline">Friends</Link>
                 <span className="text-muted-foreground/40">·</span>
-                <Link to="/app/communities" className="text-[#38A8D8] hover:underline">Communities</Link>
+                <Link to="/app/communities" className="text-[#2164b6] dark:text-[#7ab0ff] hover:underline">Communities</Link>
               </div>
             </div>
 
@@ -1037,7 +1037,7 @@ export function AppPage() {
               <div className="space-y-2">
                 {requestItems.map((item) => (
                   <div key={`${item.kind}-${item.id}`} className="flex items-center gap-2.5 min-w-0">
-                    <div className="h-8 w-8 rounded-full shrink-0 overflow-hidden bg-gradient-to-br from-[#38A8D8] to-[#1a6b9e] flex items-center justify-center text-white font-bold text-xs">
+                    <div className="h-8 w-8 rounded-full shrink-0 overflow-hidden bg-gradient-to-br from-[#2164b6] to-[#1a6b9e] flex items-center justify-center text-white font-bold text-xs">
                       {item.avatarUrl
                         ? <img src={item.avatarUrl} alt="" className="w-full h-full object-cover" />
                         : item.initials}
@@ -1113,12 +1113,12 @@ export function AppPage() {
           <div className="rounded-2xl border border-border bg-card p-4 shadow-xs space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="p-1.5 rounded-lg bg-[#38A8D8]/10 text-[#38A8D8]">
+                <div className="p-1.5 rounded-lg bg-[#2164b6]/10 text-[#2164b6] dark:text-[#7ab0ff]">
                   <Inbox className="h-3.5 w-3.5" />
                 </div>
                 <h3 className="font-bold text-foreground text-xs sm:text-sm">MurihSpace Inbox</h3>
               </div>
-              <Link to="/app/messages" className="text-[10px] font-bold text-[#38A8D8] hover:underline">See all</Link>
+              <Link to="/app/messages" className="text-[10px] font-bold text-[#2164b6] dark:text-[#7ab0ff] hover:underline">See all</Link>
             </div>
 
             <div className="grid grid-cols-2 gap-2">
@@ -1135,7 +1135,7 @@ export function AppPage() {
               ))}
             </div>
 
-            <Link to="/app/messages" className="block text-center text-[11px] font-bold text-[#38A8D8] hover:underline border-t border-border/50 pt-2">
+            <Link to="/app/messages" className="block text-center text-[11px] font-bold text-[#2164b6] dark:text-[#7ab0ff] hover:underline border-t border-border/50 pt-2">
               Open Inbox &rarr;
             </Link>
           </div>
@@ -1143,19 +1143,19 @@ export function AppPage() {
           <div className="rounded-2xl border border-border bg-card p-4 shadow-xs space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="p-1.5 rounded-lg bg-[#38A8D8]/10 text-[#38A8D8]">
+                <div className="p-1.5 rounded-lg bg-[#2164b6]/10 text-[#2164b6] dark:text-[#7ab0ff]">
                   <MessageSquare className="h-3.5 w-3.5" />
                 </div>
                 <h3 className="font-bold text-foreground text-xs sm:text-sm">MurihSpace Chat Center</h3>
               </div>
-              <Link to="/app/messages" className="text-[10px] font-bold text-[#38A8D8] hover:underline">Go to Inbox &rarr;</Link>
+              <Link to="/app/messages" className="text-[10px] font-bold text-[#2164b6] dark:text-[#7ab0ff] hover:underline">Go to Inbox &rarr;</Link>
             </div>
             <p className="text-[10px] text-muted-foreground">All your community conversations in one place</p>
 
             <div className="grid grid-cols-2 gap-2">
               {analytics.channels.map((ch, idx) => (
                 <Link key={idx} to="/app/messages">
-                  <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-muted/40 border border-border/50 hover:border-[#38A8D8]/40 transition-all cursor-pointer">
+                  <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-muted/40 border border-border/50 hover:border-[#2164b6]/40 transition-all cursor-pointer">
                     <div className="flex items-center gap-1.5 mb-1">
                       <div className={`p-1 rounded-md ${ch.bg} ${ch.color}`}>
                         <MessageCircle className="h-3 w-3" />
@@ -1200,7 +1200,7 @@ export function AppPage() {
 
             <div className="h-8 w-full pt-1">
               <svg className="w-full h-full" viewBox="0 0 200 30" preserveAspectRatio="none">
-                <path d="M 0 25 Q 40 20, 80 15 T 140 10 T 200 5" fill="none" stroke="#38A8D8" strokeWidth="2" />
+                <path d="M 0 25 Q 40 20, 80 15 T 140 10 T 200 5" fill="none" stroke="#2164b6" strokeWidth="2" />
               </svg>
             </div>
           </div>
@@ -1213,7 +1213,7 @@ export function AppPage() {
               <h3 className="font-bold text-foreground text-xs sm:text-sm">Monetization Status</h3>
             </div>
             <p className="text-[11px] text-muted-foreground text-center py-2">Wallet data unavailable</p>
-            <Link to="/app/wallet" className="block text-center text-[10px] font-bold text-[#38A8D8] hover:underline">
+            <Link to="/app/wallet" className="block text-center text-[10px] font-bold text-[#2164b6] dark:text-[#7ab0ff] hover:underline">
               Go to Wallet
             </Link>
           </div>
@@ -1226,7 +1226,7 @@ export function AppPage() {
                 </div>
                 <h3 className="font-bold text-foreground text-xs sm:text-sm">Chat Activity</h3>
               </div>
-              <Link to="/app/messages" className="text-[10px] font-bold text-[#38A8D8] hover:underline">View All</Link>
+              <Link to="/app/messages" className="text-[10px] font-bold text-[#2164b6] dark:text-[#7ab0ff] hover:underline">View All</Link>
             </div>
             <p className="text-[11px] text-muted-foreground text-center py-2">No recent activity</p>
           </div>
@@ -1234,10 +1234,10 @@ export function AppPage() {
           <div className="grid grid-cols-2 gap-3">
             <div className="rounded-2xl border border-border bg-card p-3 shadow-xs space-y-2">
               <div className="flex items-center gap-1">
-                <Calendar className="h-3 w-3 text-[#38A8D8]" />
+                <Calendar className="h-3 w-3 text-[#2164b6] dark:text-[#7ab0ff]" />
                 <span className="text-[11px] font-bold text-foreground">Content Planner</span>
               </div>
-              <Link to="/app/marketing" className="text-[9px] font-bold text-[#38A8D8] hover:underline block">View Calendar</Link>
+              <Link to="/app/marketing" className="text-[9px] font-bold text-[#2164b6] dark:text-[#7ab0ff] hover:underline block">View Calendar</Link>
               <div className="text-[10px] text-muted-foreground">
                 <p className="font-semibold text-foreground">{analytics.contentPlanner[0]?.title ?? "No posts scheduled"}</p>
                 <p className="text-[9px]">{analytics.contentPlanner[0]?.date ?? ""}</p>
@@ -1249,9 +1249,9 @@ export function AppPage() {
                 <Package className="h-3 w-3 text-amber-500" />
                 <span className="text-[11px] font-bold text-foreground">Top Products</span>
               </div>
-              <Link to="/app/store" className="text-[9px] font-bold text-[#38A8D8] hover:underline block">View All</Link>
+              <Link to="/app/store" className="text-[9px] font-bold text-[#2164b6] dark:text-[#7ab0ff] hover:underline block">View All</Link>
               <div className="flex items-center gap-2">
-                <div className="h-7 w-6 rounded bg-[#38A8D8] shrink-0 text-[8px] text-white font-bold flex items-center justify-center">
+                <div className="h-7 w-6 rounded bg-[#2164b6] shrink-0 text-[8px] text-white font-bold flex items-center justify-center">
                   PDF
                 </div>
                 <div className="min-w-0">
@@ -1268,7 +1268,7 @@ export function AppPage() {
                 <Users className="h-3 w-3 text-purple-500" />
                 <span className="text-[11px] font-bold text-foreground">Community Activity</span>
               </div>
-              <Link to="/app/communities" className="text-[9px] font-bold text-[#38A8D8] hover:underline block">View All</Link>
+              <Link to="/app/communities" className="text-[9px] font-bold text-[#2164b6] dark:text-[#7ab0ff] hover:underline block">View All</Link>
               <div className="text-[10px]">
                 <p className="font-bold text-foreground">{analytics.communityMembers}</p>
                 <p className="text-[9px] text-emerald-500 font-semibold">{analytics.communityGrowth}</p>
@@ -1280,7 +1280,7 @@ export function AppPage() {
                 <Calendar className="h-3 w-3 text-rose-500" />
                 <span className="text-[11px] font-bold text-foreground">Upcoming Events</span>
               </div>
-              <Link to="/app/events" className="text-[9px] font-bold text-[#38A8D8] hover:underline block">See all</Link>
+              <Link to="/app/events" className="text-[9px] font-bold text-[#2164b6] dark:text-[#7ab0ff] hover:underline block">See all</Link>
               <div className="flex items-center gap-2">
                 <div className="h-8 w-8 rounded-lg bg-rose-500/10 text-rose-600 shrink-0 font-black text-center text-[9px] leading-tight flex flex-col items-center justify-center">
                   <span>{analytics.upcomingEvent.month}</span>
@@ -1303,7 +1303,7 @@ export function AppPage() {
           <div className="bg-card border border-border shadow-2xl rounded-2xl p-5 max-w-sm w-full space-y-4 animate-in fade-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between border-b border-border pb-3">
               <h3 className="font-bold text-foreground text-sm flex items-center gap-2">
-                <Share2 className="h-4 w-4 text-[#38A8D8]" /> Share Post
+                <Share2 className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" /> Share Post
               </h3>
               <button onClick={() => setShareModalPost(null)} className="text-muted-foreground hover:text-foreground">
                 <X className="h-4 w-4" />
@@ -1323,7 +1323,7 @@ export function AppPage() {
               />
               <button
                 onClick={handleCopyLink}
-                className="px-3 h-9 rounded-xl bg-[#38A8D8] hover:bg-[#2e94c0] text-white font-bold text-xs transition-colors flex items-center gap-1 shrink-0"
+                className="px-3 h-9 rounded-xl bg-[#2164b6] hover:bg-[#1a5091] text-white font-bold text-xs transition-colors flex items-center gap-1 shrink-0"
               >
                 {copiedLink ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
                 {copiedLink ? "Copied!" : "Copy"}

@@ -64,13 +64,13 @@ export default function SupportThreadsPage() {
     } finally { setSending(false); }
   };
 
-  if (loading) return <div className="flex justify-center py-24"><Loader2 className="h-8 w-8 animate-spin text-[#38A8D8]" /></div>;
+  if (loading) return <div className="flex justify-center py-24"><Loader2 className="h-8 w-8 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" /></div>;
 
   return (
     <div className="w-full max-w-7xl mx-auto space-y-6 p-6 lg:p-8">
       <div>
         <h1 className="text-2xl font-black tracking-tight flex items-center gap-2.5">
-          <MessageSquare className="h-6 w-6 text-[#38A8D8]" /> Support Threads
+          <MessageSquare className="h-6 w-6 text-[#2164b6] dark:text-[#7ab0ff]" /> Support Threads
         </h1>
         <p className="text-xs text-muted-foreground mt-1">Customer support ticket threads.</p>
       </div>
@@ -98,7 +98,7 @@ export default function SupportThreadsPage() {
                 <button key={t.id} onClick={() => openThread(t.id)} className={`w-full text-left px-3 py-2.5 hover:bg-muted/10 transition-colors flex items-center gap-2 ${selected === t.id ? 'bg-muted/20' : ''}`}>
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-bold text-foreground truncate flex items-center gap-1.5">
-                      {t.unread && <span className="w-1.5 h-1.5 rounded-full bg-[#38A8D8] shrink-0" />}
+                      {t.unread && <span className="w-1.5 h-1.5 rounded-full bg-[#2164b6] shrink-0" />}
                       {t.subject}
                     </p>
                     {t.last_message && <p className="text-[10px] text-muted-foreground truncate mt-0.5">{t.last_message}</p>}
@@ -126,7 +126,7 @@ export default function SupportThreadsPage() {
                 ) : (
                   messages.map((m) => (
                     <div key={m.id} className={`flex ${m.from_admin ? 'justify-start' : 'justify-end'}`}>
-                      <div className={`max-w-[80%] p-3 rounded-2xl text-xs ${m.from_admin ? 'bg-muted text-foreground' : 'bg-[#38A8D8]/20 text-foreground'}`}>
+                      <div className={`max-w-[80%] p-3 rounded-2xl text-xs ${m.from_admin ? 'bg-muted text-foreground' : 'bg-[#2164b6]/20 text-foreground'}`}>
                         <p>{m.content}</p>
                         <p className="text-[9px] text-muted-foreground mt-1">{new Date(m.created_at).toLocaleString()}</p>
                       </div>

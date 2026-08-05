@@ -40,15 +40,15 @@ function OnboardingBanner() {
   if (status !== "show" || dismissed || pathname.startsWith("/app/onboarding")) return null;
 
   return (
-    <div className="mx-4 mt-4 flex items-center justify-between gap-3 rounded-xl border border-[#38A8D8]/30 bg-[#38A8D8]/10 px-4 py-3">
+    <div className="mx-4 mt-4 flex items-center justify-between gap-3 rounded-xl border border-[#2164b6]/30 bg-[#2164b6]/10 px-4 py-3">
       <div className="flex items-center gap-3 min-w-0">
-        <Sparkles className="h-4 w-4 text-[#38A8D8] shrink-0" />
+        <Sparkles className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff] shrink-0" />
         <p className="text-xs font-medium text-foreground truncate">
-          Your space isn't set up yet — take the 5-minute <span className="font-bold text-[#38A8D8]">AI onboarding</span> and Mera will build your profile.
+          Your space isn't set up yet — take the 5-minute <span className="font-bold text-[#2164b6] dark:text-[#7ab0ff]">AI onboarding</span> and Mera will build your profile.
         </p>
       </div>
       <div className="flex items-center gap-1 shrink-0">
-        <Link to="/app/onboarding" className="text-xs font-bold bg-[#38A8D8] hover:bg-[#2e94c0] text-white px-3 py-1.5 rounded-lg transition-colors">
+        <Link to="/app/onboarding" className="text-xs font-bold bg-[#2164b6] hover:bg-[#1a5091] text-white px-3 py-1.5 rounded-lg transition-colors">
           Set up now
         </Link>
         <button onClick={() => setDismissed(true)} className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground"><X className="h-3.5 w-3.5" /></button>

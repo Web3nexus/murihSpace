@@ -21,7 +21,7 @@ interface CreatePostComposerProps {
 }
 
 const POST_TYPES: { value: PostType; label: string; icon: React.ReactNode; color: string }[] = [
-  { value: 'status', label: 'Status', icon: <MessageSquare size={14} />, color: '#38A8D8' },
+  { value: 'status', label: 'Status', icon: <MessageSquare size={14} />, color: '#2164b6' },
   { value: 'announcement', label: 'Announcement', icon: <Megaphone size={14} />, color: '#F59E0B' },
   { value: 'media', label: 'Media', icon: <ImageIcon size={14} />, color: '#8B5CF6' },
 ];

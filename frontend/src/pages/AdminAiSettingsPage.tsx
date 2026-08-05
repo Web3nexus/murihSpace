@@ -108,14 +108,14 @@ export default function AdminAiSettingsPage() {
   };
 
   if (loading) {
-    return <div className="flex justify-center py-24"><Loader2 className="h-8 w-8 animate-spin text-[#38A8D8]" /></div>;
+    return <div className="flex justify-center py-24"><Loader2 className="h-8 w-8 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" /></div>;
   }
 
   return (
     <div className="w-full mx-auto max-w-[860px] space-y-6 p-6 lg:p-10">
       <div>
         <h1 className="text-2xl font-black tracking-tight flex items-center gap-2.5">
-          <Sparkles className="h-6 w-6 text-[#38A8D8]" /> AI Providers
+          <Sparkles className="h-6 w-6 text-[#2164b6] dark:text-[#7ab0ff]" /> AI Providers
         </h1>
         <p className="text-xs text-muted-foreground mt-1">
           Choose which model provider powers Mera across the AI Assistant, onboarding, profile drafts, and AI Insights. Keys are encrypted at rest.
@@ -132,11 +132,11 @@ export default function AdminAiSettingsPage() {
             <button
               key={p.id}
               onClick={() => setProvider(p.id)}
-              className={`text-left rounded-2xl border p-4 transition-all ${active ? "border-[#38A8D8] ring-2 ring-[#38A8D8]/20 bg-[#38A8D8]/5" : "border-border bg-card hover:border-[#38A8D8]/40"}`}
+              className={`text-left rounded-2xl border p-4 transition-all ${active ? "border-[#2164b6] ring-2 ring-[#2164b6]/20 bg-[#2164b6]/5" : "border-border bg-card hover:border-[#2164b6]/40"}`}
             >
               <div className={`flex items-center justify-between mb-2`}>
                 <div className={`h-9 w-9 rounded-xl bg-gradient-to-br ${p.color} flex items-center justify-center`}>
-                  <Bot className="h-4.5 w-4.5 text-[#38A8D8]" />
+                  <Bot className="h-4.5 w-4.5 text-[#2164b6] dark:text-[#7ab0ff]" />
                 </div>
                 <span
                   className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
@@ -151,8 +151,8 @@ export default function AdminAiSettingsPage() {
               <p className="text-sm font-bold text-foreground">{p.label}</p>
               <p className="text-[11px] text-muted-foreground leading-relaxed mt-1">{p.desc}</p>
               {active && (
-                <p className="text-[10px] font-bold text-[#38A8D8] mt-2 flex items-center gap-1">
-                  <span className="h-1.5 w-1.5 rounded-full bg-[#38A8D8]" /> Active provider
+                <p className="text-[10px] font-bold text-[#2164b6] dark:text-[#7ab0ff] mt-2 flex items-center gap-1">
+                  <span className="h-1.5 w-1.5 rounded-full bg-[#2164b6]" /> Active provider
                 </p>
               )}
             </button>
@@ -171,7 +171,7 @@ export default function AdminAiSettingsPage() {
                 <button
                   onClick={() => test(p.id)}
                   disabled={testing === p.id}
-                  className="inline-flex items-center gap-1.5 text-[11px] font-bold text-muted-foreground hover:text-[#38A8D8] disabled:opacity-50 transition-colors"
+                  className="inline-flex items-center gap-1.5 text-[11px] font-bold text-muted-foreground hover:text-[#2164b6] dark:text-[#7ab0ff] disabled:opacity-50 transition-colors"
                 >
                   {testing === p.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <PlugZap className="h-3.5 w-3.5" />}
                   Test connection

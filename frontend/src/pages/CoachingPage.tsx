@@ -486,12 +486,12 @@ export function CoachingPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 sm:p-8 rounded-2xl bg-gradient-to-br from-[#102840] via-[#173852] to-[#102840] text-white shadow-lg">
         <div className="space-y-1.5">
           <div className="flex items-center gap-2">
-            <span className="px-2.5 py-0.5 rounded-full bg-[#38A8D8]/20 text-[#38A8D8] text-xs font-semibold uppercase tracking-wider border border-[#38A8D8]/30">
+            <span className="px-2.5 py-0.5 rounded-full bg-[#2164b6]/20 text-[#2164b6] dark:text-[#7ab0ff] text-xs font-semibold uppercase tracking-wider border border-[#2164b6]/30">
               Phase 7 — Services
             </span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight flex items-center gap-2.5">
-            <Calendar className="h-6 w-6 text-[#38A8D8]" />
+            <Calendar className="h-6 w-6 text-[#2164b6] dark:text-[#7ab0ff]" />
             1:1 Coaching & Bookings
           </h1>
           <p className="text-sm text-white/70 max-w-xl">
@@ -501,7 +501,7 @@ export function CoachingPage() {
         {tab === 'my-services' && (
           <Button
             onClick={() => { resetServiceForm(); setShowServiceForm(true); }}
-            className="bg-[#38A8D8] text-white hover:bg-[#2E96C5] font-semibold h-11 px-5 rounded-xl shadow-md gap-2 shrink-0 self-start sm:self-auto"
+            className="bg-[#2164b6] text-white hover:bg-[#1a5091] font-semibold h-11 px-5 rounded-xl shadow-md gap-2 shrink-0 self-start sm:self-auto"
           >
             <Plus className="h-5 w-5" />
             New Service

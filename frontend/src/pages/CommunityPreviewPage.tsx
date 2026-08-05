@@ -186,7 +186,7 @@ export function CommunityPreviewPage() {
       {/* Hero Banner */}
       <div className="relative rounded-3xl overflow-hidden border border-border bg-card shadow-md">
         {/* Cover Photo */}
-        <div className="h-64 sm:h-80 w-full relative bg-gradient-to-r from-[#102840] via-[#173852] to-[#38A8D8]/50">
+        <div className="h-64 sm:h-80 w-full relative bg-gradient-to-r from-[#102840] via-[#173852] to-[#2164b6]/50">
           {community.cover_url && (
             <img
               src={community.cover_url}
@@ -210,7 +210,7 @@ export function CommunityPreviewPage() {
               )}
             </Badge>
 
-            <Badge className="bg-[#38A8D8] text-white font-bold px-3 py-1 text-xs">
+            <Badge className="bg-[#2164b6] text-white font-bold px-3 py-1 text-xs">
               {community.pricing_type === "paid"
                 ? `$${community.price_amount}`
                 : "FREE ACCESS"}

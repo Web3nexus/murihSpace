@@ -121,7 +121,7 @@ export function AdminCmsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-black tracking-tight flex items-center gap-2.5">
-            <FileText className="h-6 w-6 text-[#38A8D8]" /> Website CMS
+            <FileText className="h-6 w-6 text-[#2164b6] dark:text-[#7ab0ff]" /> Website CMS
           </h1>
           <p className="text-xs text-muted-foreground mt-1">Manage landing page sections.</p>
         </div>
@@ -143,7 +143,7 @@ export function AdminCmsPage() {
         ))}
       </div>
 
-      {loading ? <div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-[#38A8D8]" /></div>
+      {loading ? <div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" /></div>
         : sections.length === 0 ? <div className="p-12 text-center border border-dashed border-border rounded-3xl bg-card"><FileText className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" /><h3 className="text-sm font-bold">No sections for this page</h3></div>
         : <div className="space-y-3">
             {sections.map((section, index) => (
@@ -185,7 +185,7 @@ export function AdminCmsPage() {
         <DialogContent className="sm:max-w-2xl md:max-w-3xl max-h-[90vh] overflow-y-auto bg-card border-border shadow-2xl rounded-2xl p-6 sm:p-8">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-base font-bold">
-              <FileText className="h-5 w-5 text-[#38A8D8]" /> Edit: {editing?.label}
+              <FileText className="h-5 w-5 text-[#2164b6] dark:text-[#7ab0ff]" /> Edit: {editing?.label}
             </DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground">Edit the JSON content for this section.</DialogDescription>
           </DialogHeader>
@@ -193,7 +193,7 @@ export function AdminCmsPage() {
           <textarea
             value={editContent}
             onChange={(e) => setEditContent(e.target.value)}
-            className="w-full h-64 rounded-xl border border-border bg-muted/30 p-4 text-xs font-mono resize-y focus:outline-none focus:ring-2 focus:ring-[#38A8D8]/30"
+            className="w-full h-64 rounded-xl border border-border bg-muted/30 p-4 text-xs font-mono resize-y focus:outline-none focus:ring-2 focus:ring-[#2164b6]/30"
           />
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => setEditing(null)} className="text-xs">Cancel</Button>
@@ -209,7 +209,7 @@ export function AdminCmsPage() {
       <Dialog open={showCreate} onOpenChange={() => { setShowCreate(false); setMsg(null); }}>
         <DialogContent className="sm:max-w-lg md:max-w-xl bg-card border-border shadow-2xl rounded-2xl p-6 sm:p-8">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-base font-bold"><FileText className="h-5 w-5 text-[#38A8D8]" /> Add Section</DialogTitle>
+            <DialogTitle className="flex items-center gap-2 text-base font-bold"><FileText className="h-5 w-5 text-[#2164b6] dark:text-[#7ab0ff]" /> Add Section</DialogTitle>
             <DialogDescription className="text-xs">Add a new content section to the {selectedPage} page.</DialogDescription>
           </DialogHeader>
           {msg && <div className={`p-3 rounded-xl text-xs font-bold flex items-center gap-2 ${msg.type === 'success' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}`}>{msg.type === 'success' ? <CheckCircle2 className="h-4 w-4 shrink-0" /> : <AlertCircle className="h-4 w-4 shrink-0" />}{msg.text}</div>}

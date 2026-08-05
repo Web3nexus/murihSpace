@@ -103,7 +103,7 @@ export function AdminUsersPage() {
 
   const sortIcon = (col: string) => {
     if (sort !== col) return <ArrowUpDown className="h-3 w-3 ml-1 opacity-30" />;
-    return sortDir === 'asc' ? <ArrowUp className="h-3 w-3 ml-1 text-[#38A8D8]" /> : <ArrowDown className="h-3 w-3 ml-1 text-[#38A8D8]" />;
+    return sortDir === 'asc' ? <ArrowUp className="h-3 w-3 ml-1 text-[#2164b6] dark:text-[#7ab0ff]" /> : <ArrowDown className="h-3 w-3 ml-1 text-[#2164b6] dark:text-[#7ab0ff]" />;
   };
 
   const handleExport = async () => {
@@ -170,7 +170,7 @@ export function AdminUsersPage() {
     <div className="w-full mx-auto max-w-[1400px] space-y-6 p-6 lg:p-10">
       <div>
         <h1 className="text-2xl font-black tracking-tight flex items-center gap-2.5">
-          <Users className="h-6 w-6 text-[#38A8D8]" /> Users & Creators
+          <Users className="h-6 w-6 text-[#2164b6] dark:text-[#7ab0ff]" /> Users & Creators
         </h1>
         <p className="text-xs text-muted-foreground mt-1">Manage all platform accounts.</p>
       </div>
@@ -184,17 +184,17 @@ export function AdminUsersPage() {
           <Download className="h-3.5 w-3.5" /> Export
         </Button>
         {['', 'creator', 'vendor', 'member'].map((r) => (
-          <button key={r} onClick={() => setRoleFilter(r)} className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-colors ${roleFilter === r ? 'bg-[#38A8D8] text-foreground' : 'bg-muted text-muted-foreground hover:text-foreground'}`}>{r || 'All Roles'}</button>
+          <button key={r} onClick={() => setRoleFilter(r)} className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-colors ${roleFilter === r ? 'bg-[#2164b6] text-foreground' : 'bg-muted text-muted-foreground hover:text-foreground'}`}>{r || 'All Roles'}</button>
         ))}
         <span className="w-px h-5 bg-border mx-1" />
         {['', 'active', 'suspended', 'banned'].map((s) => (
-          <button key={s} onClick={() => setStatusFilter(s)} className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-colors ${statusFilter === s ? 'bg-[#38A8D8] text-foreground' : 'bg-muted text-muted-foreground hover:text-foreground'}`}>{s || 'All Status'}</button>
+          <button key={s} onClick={() => setStatusFilter(s)} className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-colors ${statusFilter === s ? 'bg-[#2164b6] text-foreground' : 'bg-muted text-muted-foreground hover:text-foreground'}`}>{s || 'All Status'}</button>
         ))}
       </div>
 
       {fetchError && <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-start gap-3"><AlertCircle className="h-5 w-5 text-rose-400 shrink-0 mt-0.5" /><div><p className="text-xs font-bold text-rose-400">Error</p><p className="text-xs text-muted-foreground mt-1">{fetchError}</p></div></div>}
 
-      {loading ? <div className="flex justify-center py-16"><Loader2 className="h-8 w-8 animate-spin text-[#38A8D8]" /></div>
+      {loading ? <div className="flex justify-center py-16"><Loader2 className="h-8 w-8 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" /></div>
         : users.length === 0 ? <div className="p-12 text-center border border-dashed border-border rounded-3xl bg-card"><Users className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" /><h3 className="text-sm font-bold">No users found</h3></div>
         : <div className="border border-border rounded-2xl bg-card overflow-hidden shadow-sm">
             <div className="overflow-x-auto">
@@ -224,7 +224,7 @@ export function AdminUsersPage() {
                       <td className="px-4 py-3">
                         <div className="flex gap-1">
                           {u.role !== 'admin' && u.status === 'active' && (
-                            <Button size="sm" variant="ghost" className="h-7 text-[10px] text-[#38A8D8]" onClick={() => handleImpersonate(u)} title={`Sign in as ${u.name}`}>
+                            <Button size="sm" variant="ghost" className="h-7 text-[10px] text-[#2164b6] dark:text-[#7ab0ff]" onClick={() => handleImpersonate(u)} title={`Sign in as ${u.name}`}>
                               <LogIn className="h-3 w-3" />
                             </Button>
                           )}

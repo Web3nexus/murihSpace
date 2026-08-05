@@ -66,14 +66,14 @@ export default function CategoriesPage() {
     fetchCategories();
   };
 
-  if (loading) return <div className="flex justify-center py-24"><Loader2 className="h-8 w-8 animate-spin text-[#38A8D8]" /></div>;
+  if (loading) return <div className="flex justify-center py-24"><Loader2 className="h-8 w-8 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" /></div>;
 
   return (
     <div className="w-full max-w-7xl mx-auto space-y-6 p-6 lg:p-8">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-black tracking-tight flex items-center gap-2.5">
-            <Tags className="h-6 w-6 text-[#38A8D8]" /> Categories
+            <Tags className="h-6 w-6 text-[#2164b6] dark:text-[#7ab0ff]" /> Categories
           </h1>
           <p className="text-xs text-muted-foreground mt-1">Organize products into categories.</p>
         </div>

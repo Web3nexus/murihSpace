@@ -40,7 +40,7 @@ interface Dispute {
 const STATUS_CFG: Record<string, { label: string; className: string; icon: typeof Clock }> = {
   open:          { label: 'Open',          className: 'bg-muted text-muted-foreground',                   icon: ShieldAlert },
   under_review:  { label: 'Under Review',  className: 'bg-muted text-muted-foreground',                   icon: Clock },
-  resolved:      { label: 'Resolved',      className: 'bg-[#38A8D8]/20 text-[#38A8D8] border border-[#38A8D8]/30', icon: CheckCircle },
+  resolved:      { label: 'Resolved',      className: 'bg-[#2164b6]/20 text-[#2164b6] dark:text-[#7ab0ff] border border-[#2164b6]/30', icon: CheckCircle },
   dismissed:     { label: 'Dismissed',     className: 'bg-muted text-muted-foreground',                  icon: XCircle },
 };
 
@@ -196,7 +196,7 @@ export function DisputesPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 sm:p-8 rounded-2xl bg-gradient-to-br from-[#102840] via-[#173852] to-[#102840] text-white shadow-lg">
         <div className="space-y-1.5">
           <div className="flex items-center gap-2">
-            <span className="px-2.5 py-0.5 rounded-full bg-[#38A8D8]/20 text-[#38A8D8] text-xs font-semibold uppercase tracking-wider border border-[#38A8D8]/30">
+            <span className="px-2.5 py-0.5 rounded-full bg-[#2164b6]/20 text-[#2164b6] dark:text-[#7ab0ff] text-xs font-semibold uppercase tracking-wider border border-[#2164b6]/30">
               Phase 9 — Disputes
             </span>
           </div>
@@ -204,7 +204,7 @@ export function DisputesPage() {
           <p className="text-sm text-white/70 max-w-xl">Manage and resolve order disputes on the marketplace.</p>
         </div>
         <Button onClick={() => setShowForm(true)}
-          className="bg-[#38A8D8] text-white hover:bg-[#2E96C5] font-semibold h-11 px-5 rounded-xl shadow-md gap-2 shrink-0 self-start sm:self-auto">
+          className="bg-[#2164b6] text-white hover:bg-[#1a5091] font-semibold h-11 px-5 rounded-xl shadow-md gap-2 shrink-0 self-start sm:self-auto">
           <Plus className="h-5 w-5" />
           Open Dispute
         </Button>
@@ -212,7 +212,7 @@ export function DisputesPage() {
 
       {message && (
         <div className={`mb-4 px-4 py-3 rounded-xl text-sm flex items-center gap-2 ${
-          message.type === 'success' ? 'bg-[#38A8D8]/20 text-[#38A8D8]' : 'bg-muted text-muted-foreground'
+          message.type === 'success' ? 'bg-[#2164b6]/20 text-[#2164b6] dark:text-[#7ab0ff]' : 'bg-muted text-muted-foreground'
         }`}>
           {message.text}
         </div>
@@ -290,7 +290,7 @@ export function DisputesPage() {
                 </div>
                 <p className="text-sm text-foreground/80 mt-2 line-clamp-2">{d.description}</p>
                 {d.resolution && (
-                  <p className="text-xs text-[#38A8D8] mt-1">Resolution: {d.resolution}</p>
+                  <p className="text-xs text-[#2164b6] dark:text-[#7ab0ff] mt-1">Resolution: {d.resolution}</p>
                 )}
               </div>
             );

@@ -106,7 +106,7 @@ export function ForgotPasswordPage() {
         <div className="text-center">
           <Link
             to="/login"
-            className="inline-flex items-center gap-1.5 text-xs font-medium text-[#2164b6] hover:underline underline-offset-4"
+            className="inline-flex items-center gap-1.5 text-xs font-medium text-[#2164b6] dark:text-[#7ab0ff] hover:underline underline-offset-4"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
             Back to login

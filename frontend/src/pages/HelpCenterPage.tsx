@@ -196,7 +196,7 @@ export default function HelpCenterPage() {
       </header>
 
       {/* ── Hero search ── */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-[#2164b6] via-[#2a76cf] to-[#38A8D8] dark:from-[#12356b] dark:via-[#1a4d8f] dark:to-[#2a6a9e]">
+      <section className="relative overflow-hidden bg-gradient-to-br from-[#2164b6] via-[#2a76cf] to-[#2164b6] dark:from-[#12356b] dark:via-[#1a4d8f] dark:to-[#2a6a9e]">
         <div className="absolute inset-0 opacity-20 pointer-events-none" style={{ backgroundImage: "radial-gradient(circle at 20% 20%, white 1px, transparent 1px)", backgroundSize: "28px 28px" }} />
         <div className="relative max-w-[1400px] mx-auto px-4 sm:px-6 py-10 sm:py-14 text-center">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 text-white/90 text-[11px] font-semibold mb-4 backdrop-blur-sm">
@@ -298,7 +298,7 @@ export default function HelpCenterPage() {
           {query.trim().length >= 2 ? (
             <div className="space-y-3">
               <div className="flex items-center gap-2 text-sm font-black">
-                <Search className="h-4 w-4 text-[#2164b6]" />
+                <Search className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" />
                 Search results
                 <span className="text-xs font-semibold text-slate-400">({searchResults.length})</span>
               </div>
@@ -320,7 +320,7 @@ export default function HelpCenterPage() {
                       <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-wide text-[#2164b6] dark:text-[#7ab0ff]">
                         {categoryIcon(a.categoryId)} {cat?.label}
                       </div>
-                      <h3 className="mt-1.5 text-sm font-bold group-hover:text-[#2164b6] dark:group-hover:text-[#7ab0ff] transition-colors">
+                      <h3 className="mt-1.5 text-sm font-bold group-hover:text-[#2164b6] dark:text-[#7ab0ff] dark:group-hover:text-[#7ab0ff] transition-colors">
                         {a.title}
                       </h3>
                       <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 line-clamp-2">{a.excerpt}</p>
@@ -342,10 +342,10 @@ export default function HelpCenterPage() {
         <aside className="lg:sticky lg:top-[72px] lg:h-[calc(100vh-90px)]">
           <div className="flex flex-col h-[480px] sm:h-[560px] lg:h-full rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
             {/* AI header */}
-            <div className="shrink-0 px-4 py-3.5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-gradient-to-r from-[#2164b6]/5 to-[#38A8D8]/5">
+            <div className="shrink-0 px-4 py-3.5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-gradient-to-r from-[#2164b6]/5 to-[#2164b6]/5">
               <div className="flex items-center gap-2.5">
                 <div className="relative">
-                  <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-[#2164b6] to-[#38A8D8] flex items-center justify-center shadow-sm">
+                  <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-[#2164b6] to-[#2164b6] flex items-center justify-center shadow-sm">
                     <Bot className="h-4.5 w-4.5 text-white" />
                   </div>
                   <div className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-emerald-500 border-2 border-white dark:border-slate-900" />
@@ -370,7 +370,7 @@ export default function HelpCenterPage() {
               {messages.length === 0 ? (
                 <div className="h-full flex flex-col">
                   <div className="flex items-start gap-2.5">
-                    <div className="h-8 w-8 shrink-0 rounded-xl bg-gradient-to-br from-[#2164b6] to-[#38A8D8] flex items-center justify-center">
+                    <div className="h-8 w-8 shrink-0 rounded-xl bg-gradient-to-br from-[#2164b6] to-[#2164b6] flex items-center justify-center">
                       <Bot className="h-4 w-4 text-white" />
                     </div>
                     <div className="bg-slate-100 dark:bg-slate-800 rounded-2xl rounded-tl-sm px-3.5 py-2.5 text-xs leading-relaxed text-slate-600 dark:text-slate-300">
@@ -385,7 +385,7 @@ export default function HelpCenterPage() {
                           key={q}
                           onClick={() => send(q)}
                           disabled={busy}
-                          className="text-left text-[11px] font-semibold px-3 py-1.5 rounded-full border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-[#2164b6]/50 hover:text-[#2164b6] dark:hover:text-[#7ab0ff] transition-colors disabled:opacity-40"
+                          className="text-left text-[11px] font-semibold px-3 py-1.5 rounded-full border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-[#2164b6]/50 hover:text-[#2164b6] dark:text-[#7ab0ff] dark:hover:text-[#7ab0ff] transition-colors disabled:opacity-40"
                         >
                           {q}
                         </button>
@@ -411,7 +411,7 @@ export default function HelpCenterPage() {
                   <div key={i} className={`flex gap-2.5 ${m.role === "user" ? "flex-row-reverse" : ""}`}>
                     <div className={`h-8 w-8 shrink-0 rounded-xl flex items-center justify-center shadow-sm ${
                       m.role === "assistant"
-                        ? "bg-gradient-to-br from-[#2164b6] to-[#38A8D8] text-white"
+                        ? "bg-gradient-to-br from-[#2164b6] to-[#2164b6] text-white"
                         : "bg-slate-800 text-white"
                     }`}>
                       {m.role === "assistant" ? <Bot className="h-4 w-4" /> : <MessageCircle className="h-4 w-4" />}
@@ -447,7 +447,7 @@ export default function HelpCenterPage() {
               )}
               {busy && (
                 <div className="flex gap-2.5">
-                  <div className="h-8 w-8 shrink-0 rounded-xl bg-gradient-to-br from-[#2164b6] to-[#38A8D8] flex items-center justify-center">
+                  <div className="h-8 w-8 shrink-0 rounded-xl bg-gradient-to-br from-[#2164b6] to-[#2164b6] flex items-center justify-center">
                     <Bot className="h-4 w-4 text-white" />
                   </div>
                   <div className="bg-slate-100 dark:bg-slate-800 rounded-2xl rounded-tl-sm px-3 py-2">
@@ -516,7 +516,7 @@ function WelcomeView({
                 <p className="text-[11px] font-bold uppercase tracking-wide text-[#2164b6] dark:text-[#7ab0ff]">
                   {categoryById(a.categoryId)?.label}
                 </p>
-                <p className="mt-1 text-sm font-bold group-hover:text-[#2164b6] dark:group-hover:text-[#7ab0ff] transition-colors">
+                <p className="mt-1 text-sm font-bold group-hover:text-[#2164b6] dark:text-[#7ab0ff] dark:group-hover:text-[#7ab0ff] transition-colors">
                   {a.title}
                 </p>
               </button>
@@ -537,7 +537,7 @@ function WelcomeView({
               <div className="h-9 w-9 rounded-xl bg-[#2164b6]/10 text-[#2164b6] dark:text-[#7ab0ff] flex items-center justify-center group-hover:scale-105 transition-transform">
                 {categoryIcon(cat.id)}
               </div>
-              <p className="mt-2.5 text-sm font-bold group-hover:text-[#2164b6] dark:group-hover:text-[#7ab0ff] transition-colors">{cat.label}</p>
+              <p className="mt-2.5 text-sm font-bold group-hover:text-[#2164b6] dark:text-[#7ab0ff] dark:group-hover:text-[#7ab0ff] transition-colors">{cat.label}</p>
               <p className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400 line-clamp-2">{cat.blurb}</p>
             </button>
           ))}
@@ -573,7 +573,7 @@ function CategoryView({
             onClick={() => onOpenArticle(a.id)}
             className="w-full text-left rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 hover:border-[#2164b6]/40 hover:shadow-sm transition-all group"
           >
-            <p className="text-sm font-bold group-hover:text-[#2164b6] dark:group-hover:text-[#7ab0ff] transition-colors">{a.title}</p>
+            <p className="text-sm font-bold group-hover:text-[#2164b6] dark:text-[#7ab0ff] dark:group-hover:text-[#7ab0ff] transition-colors">{a.title}</p>
             <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 line-clamp-2">{a.excerpt}</p>
           </button>
         ))}
@@ -624,7 +624,7 @@ function ArticleView({
               <a
                 key={i}
                 href={`#${article.id}-${i}`}
-                className="block px-3 py-1.5 rounded-lg text-xs text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-[#2164b6] dark:hover:text-[#7ab0ff] transition-colors"
+                className="block px-3 py-1.5 rounded-lg text-xs text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-[#2164b6] dark:text-[#7ab0ff] dark:hover:text-[#7ab0ff] transition-colors"
               >
                 {s.heading}
               </a>
@@ -655,7 +655,7 @@ function ArticleView({
                   <button
                     key={rid}
                     onClick={() => onOpenArticle(rid)}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-slate-200 dark:border-slate-700 text-[11px] font-semibold text-slate-600 dark:text-slate-300 hover:border-[#2164b6]/50 hover:text-[#2164b6] dark:hover:text-[#7ab0ff] transition-colors"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-slate-200 dark:border-slate-700 text-[11px] font-semibold text-slate-600 dark:text-slate-300 hover:border-[#2164b6]/50 hover:text-[#2164b6] dark:text-[#7ab0ff] dark:hover:text-[#7ab0ff] transition-colors"
                   >
                     <ExternalLink className="h-3 w-3" /> {r.title}
                   </button>

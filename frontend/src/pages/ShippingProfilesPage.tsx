@@ -168,7 +168,7 @@ export function ShippingProfilesPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 sm:p-8 rounded-2xl bg-gradient-to-br from-[#102840] via-[#173852] to-[#102840] text-white shadow-lg">
         <div className="space-y-1.5">
           <div className="flex items-center gap-2">
-            <span className="px-2.5 py-0.5 rounded-full bg-[#38A8D8]/20 text-[#38A8D8] text-xs font-semibold uppercase tracking-wider border border-[#38A8D8]/30">
+            <span className="px-2.5 py-0.5 rounded-full bg-[#2164b6]/20 text-[#2164b6] dark:text-[#7ab0ff] text-xs font-semibold uppercase tracking-wider border border-[#2164b6]/30">
               Phase 9 — Shipping
             </span>
           </div>
@@ -176,7 +176,7 @@ export function ShippingProfilesPage() {
           <p className="text-sm text-white/70 max-w-xl">Configure shipping rates and delivery options for your products.</p>
         </div>
         <Button onClick={openNew}
-          className="bg-[#38A8D8] text-white hover:bg-[#2E96C5] font-semibold h-11 px-5 rounded-xl shadow-md gap-2 shrink-0 self-start sm:self-auto">
+          className="bg-[#2164b6] text-white hover:bg-[#1a5091] font-semibold h-11 px-5 rounded-xl shadow-md gap-2 shrink-0 self-start sm:self-auto">
           <Plus className="h-5 w-5" />
           New Profile
         </Button>
@@ -184,7 +184,7 @@ export function ShippingProfilesPage() {
 
       {message && (
         <div className={`px-4 py-3 rounded-xl text-sm flex items-center gap-2 ${
-          message.type === 'success' ? 'bg-[#38A8D8]/20 text-[#38A8D8]' : 'bg-muted text-muted-foreground'
+          message.type === 'success' ? 'bg-[#2164b6]/20 text-[#2164b6] dark:text-[#7ab0ff]' : 'bg-muted text-muted-foreground'
         }`}>
           {message.text}
         </div>
@@ -276,7 +276,7 @@ export function ShippingProfilesPage() {
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-2">
                   <h3 className="font-semibold">{p.name}</h3>
-                  <Badge className={p.is_active ? 'bg-[#38A8D8]/20 text-[#38A8D8] border-[#38A8D8]/30' : 'bg-muted text-muted-foreground border-border'}>
+                  <Badge className={p.is_active ? 'bg-[#2164b6]/20 text-[#2164b6] dark:text-[#7ab0ff] border-[#2164b6]/30' : 'bg-muted text-muted-foreground border-border'}>
                     {p.is_active ? 'Active' : 'Inactive'}
                   </Badge>
                 </div>

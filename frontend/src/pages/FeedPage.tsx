@@ -399,7 +399,7 @@ export default function FeedPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-xl sm:text-2xl font-black text-foreground flex items-center gap-2">
-              <Rss className="h-5 w-5 text-[#38A8D8]" /> Community Feed
+              <Rss className="h-5 w-5 text-[#2164b6] dark:text-[#7ab0ff]" /> Community Feed
             </h1>
             <p className="text-xs text-muted-foreground">Stay updated with content from creator communities you follow.</p>
           </div>
@@ -407,7 +407,7 @@ export default function FeedPage() {
 
         <div className="bg-card border border-border shadow-xs rounded-2xl p-4 sm:p-5 space-y-4">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-full bg-gradient-to-br from-[#38A8D8] to-purple-600 flex items-center justify-center text-white font-black text-sm shrink-0 overflow-hidden shadow-xs">
+            <div className="h-10 w-10 rounded-full bg-gradient-to-br from-[#2164b6] to-purple-600 flex items-center justify-center text-white font-black text-sm shrink-0 overflow-hidden shadow-xs">
               {user?.avatar_url ? (
                 <img src={user.avatar_url} alt="" className="w-full h-full object-cover" />
               ) : (
@@ -428,7 +428,7 @@ export default function FeedPage() {
                 value={postText}
                 onChange={(e) => setPostText(e.target.value)}
                 placeholder="Write your post here..."
-                className="w-full h-28 p-3.5 text-xs sm:text-sm rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-[#38A8D8]/40 resize-none"
+                className="w-full h-28 p-3.5 text-xs sm:text-sm rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-[#2164b6]/40 resize-none"
                 autoFocus
               />
               <div className="relative">
@@ -450,13 +450,13 @@ export default function FeedPage() {
                         type="button"
                         onClick={() => { setSelectedCommunityId(c.id); setCommunityPickerOpen(false); }}
                         className={`w-full text-left px-3 py-2 text-xs font-semibold hover:bg-muted transition-colors flex items-center gap-2 ${
-                          selectedCommunityId === c.id ? "text-[#38A8D8]" : "text-foreground"
+                          selectedCommunityId === c.id ? "text-[#2164b6] dark:text-[#7ab0ff]" : "text-foreground"
                         }`}
                       >
                         {c.logo_url ? (
                           <img src={c.logo_url} alt="" className="h-5 w-5 rounded-full object-cover" />
                         ) : (
-                          <div className="h-5 w-5 rounded-full bg-[#38A8D8]/10 text-[#38A8D8] flex items-center justify-center text-[9px] font-bold">
+                          <div className="h-5 w-5 rounded-full bg-[#2164b6]/10 text-[#2164b6] dark:text-[#7ab0ff] flex items-center justify-center text-[9px] font-bold">
                             {c.name.charAt(0)}
                           </div>
                         )}
@@ -468,7 +468,7 @@ export default function FeedPage() {
                 {communityPickerOpen && userCommunities.length === 0 && (
                   <div className="absolute top-full left-0 mt-1 w-56 bg-card border border-border rounded-xl shadow-lg z-30 py-3 px-3 text-xs text-muted-foreground text-center">
                     <p className="font-semibold mb-1">No communities yet</p>
-                    <Link to="/app/communities" className="text-[#38A8D8] hover:underline" onClick={() => setCommunityPickerOpen(false)}>
+                    <Link to="/app/communities" className="text-[#2164b6] dark:text-[#7ab0ff] hover:underline" onClick={() => setCommunityPickerOpen(false)}>
                       Create a community first
                     </Link>
                   </div>
@@ -484,7 +484,7 @@ export default function FeedPage() {
                 <button
                   onClick={handleCreatePost}
                   disabled={submittingPost || !postText.trim() || !selectedCommunityId}
-                  className="px-4 py-2 rounded-xl bg-[#38A8D8] hover:bg-[#2e94c0] disabled:opacity-50 text-white font-bold text-xs transition-colors flex items-center gap-1.5 shadow-xs"
+                  className="px-4 py-2 rounded-xl bg-[#2164b6] hover:bg-[#1a5091] disabled:opacity-50 text-white font-bold text-xs transition-colors flex items-center gap-1.5 shadow-xs"
                 >
                   {submittingPost ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
                   Publish
@@ -506,7 +506,7 @@ export default function FeedPage() {
             <button
               onClick={() => storyFileRef.current?.click()}
               disabled={storyUploading}
-              className="relative shrink-0 w-28 sm:w-32 h-44 rounded-2xl overflow-hidden bg-gradient-to-b from-[#38A8D8] to-blue-600 shadow-xs cursor-pointer group hover:scale-[1.02] transition-transform flex flex-col items-center justify-center text-white p-3 disabled:opacity-70 disabled:cursor-not-allowed"
+              className="relative shrink-0 w-28 sm:w-32 h-44 rounded-2xl overflow-hidden bg-gradient-to-b from-[#2164b6] to-blue-600 shadow-xs cursor-pointer group hover:scale-[1.02] transition-transform flex flex-col items-center justify-center text-white p-3 disabled:opacity-70 disabled:cursor-not-allowed"
             >
               <div className="h-10 w-10 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
                 {storyUploading ? <Loader2 className="h-6 w-6 text-white animate-spin" /> : <Plus className="h-6 w-6 text-white stroke-[2.5]" />}
@@ -526,7 +526,7 @@ export default function FeedPage() {
                 {story.bg && <img src={story.bg} alt="" className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />}
                 <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/80" />
                 <div className="absolute top-2.5 left-2.5 z-10">
-                  <div className="h-9 w-9 rounded-full p-[2px] bg-gradient-to-tr from-purple-500 via-pink-500 to-[#38A8D8]">
+                  <div className="h-9 w-9 rounded-full p-[2px] bg-gradient-to-tr from-purple-500 via-pink-500 to-[#2164b6]">
                     {story.avatar ? (
                       <img src={story.avatar} alt="" className="w-full h-full rounded-full object-cover border-2 border-white/40" />
                     ) : (
@@ -567,7 +567,7 @@ export default function FeedPage() {
               <p className="text-sm font-semibold">No posts in the feed yet</p>
               <p className="text-xs">Be the first to share something with the community.</p>
               <Link to="/app/communities">
-                <button className="mt-2 px-4 py-2 rounded-xl bg-[#38A8D8] hover:bg-[#2e94c0] text-white font-bold text-xs transition-colors">
+                <button className="mt-2 px-4 py-2 rounded-xl bg-[#2164b6] hover:bg-[#1a5091] text-white font-bold text-xs transition-colors">
                   Browse Communities
                 </button>
               </Link>
@@ -581,7 +581,7 @@ export default function FeedPage() {
               <div key={post.id} className="bg-card border border-border shadow-xs rounded-2xl p-4 sm:p-5 space-y-3">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-full bg-gradient-to-tr from-[#38A8D8] to-purple-600 p-[2px]">
+                    <div className="h-10 w-10 rounded-full bg-gradient-to-tr from-[#2164b6] to-purple-600 p-[2px]">
                       {post.avatar ? (
                         <img src={post.avatar} alt="" className="w-full h-full rounded-full object-cover" />
                       ) : (
@@ -616,7 +616,7 @@ export default function FeedPage() {
                     </div>
                     <div className="p-3.5 flex flex-col justify-center bg-card flex-1 border-t sm:border-t-0 sm:border-l border-border">
                       <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider block mb-1">YOUTUBE.COM</span>
-                      <h4 className="text-xs sm:text-sm font-bold text-foreground leading-snug group-hover:text-[#38A8D8] transition-colors">
+                      <h4 className="text-xs sm:text-sm font-bold text-foreground leading-snug group-hover:text-[#2164b6] dark:text-[#7ab0ff] transition-colors">
                         {post.embedTitle}
                       </h4>
                       <p className="text-[11px] text-muted-foreground mt-1 line-clamp-2 leading-tight">
@@ -628,7 +628,7 @@ export default function FeedPage() {
 
                 {post.embedType === "product" && (
                   <div className="p-3.5 rounded-xl border border-border bg-slate-50/50 dark:bg-muted/30 flex items-center gap-4">
-                    <div className="h-20 w-16 rounded-lg bg-gradient-to-br from-[#38A8D8] to-blue-700 shrink-0 overflow-hidden shadow-xs flex items-center justify-center text-white p-2">
+                    <div className="h-20 w-16 rounded-lg bg-gradient-to-br from-[#2164b6] to-blue-700 shrink-0 overflow-hidden shadow-xs flex items-center justify-center text-white p-2">
                       <div className="text-center">
                         <p className="text-[8px] font-extrabold uppercase tracking-widest text-white/80">LINK</p>
                         <p className="text-[10px] font-black leading-tight mt-1">External</p>
@@ -641,7 +641,7 @@ export default function FeedPage() {
                       </p>
                     </div>
                     <Link to="/app/store">
-                      <button className="px-3.5 py-1.5 rounded-lg bg-[#38A8D8]/10 text-[#38A8D8] hover:bg-[#38A8D8]/20 font-bold text-xs transition-colors shrink-0">
+                      <button className="px-3.5 py-1.5 rounded-lg bg-[#2164b6]/10 text-[#2164b6] dark:text-[#7ab0ff] hover:bg-[#2164b6]/20 font-bold text-xs transition-colors shrink-0">
                         View
                       </button>
                     </Link>
@@ -663,10 +663,10 @@ export default function FeedPage() {
                     <span className="font-semibold text-foreground text-[11px] ml-1">{post.likes}</span>
                   </div>
                   <div className="flex items-center gap-3 text-[11px]">
-                    <button onClick={() => handleClickComment(post.id)} className="hover:text-[#38A8D8] transition-colors">
+                    <button onClick={() => handleClickComment(post.id)} className="hover:text-[#2164b6] dark:text-[#7ab0ff] transition-colors">
                       {post.comments} Comments
                     </button>
-                    <button onClick={() => handleShare(post)} className="hover:text-[#38A8D8] transition-colors">
+                    <button onClick={() => handleShare(post)} className="hover:text-[#2164b6] dark:text-[#7ab0ff] transition-colors">
                       {post.shares} Shares
                     </button>
                   </div>
@@ -676,15 +676,15 @@ export default function FeedPage() {
                   <button
                     onClick={() => toggleLike(post.id)}
                     className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
-                      post.isLiked ? "text-[#38A8D8] bg-[#38A8D8]/10" : "text-muted-foreground hover:bg-muted"
+                      post.isLiked ? "text-[#2164b6] dark:text-[#7ab0ff] bg-[#2164b6]/10" : "text-muted-foreground hover:bg-muted"
                     }`}
                   >
-                    <Heart className={`h-4 w-4 ${post.isLiked ? "fill-[#38A8D8]" : ""}`} /> Like
+                    <Heart className={`h-4 w-4 ${post.isLiked ? "fill-[#2164b6]" : ""}`} /> Like
                   </button>
                   <button
                     onClick={() => handleClickComment(post.id)}
                     className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
-                      isCommenting ? "text-[#38A8D8] bg-[#38A8D8]/10" : "text-muted-foreground hover:bg-muted"
+                      isCommenting ? "text-[#2164b6] dark:text-[#7ab0ff] bg-[#2164b6]/10" : "text-muted-foreground hover:bg-muted"
                     }`}
                   >
                     <MessageCircle className="h-4 w-4" /> Comment
@@ -709,7 +709,7 @@ export default function FeedPage() {
                       <div className="space-y-2.5">
                         {post.commentList.map((cmt) => (
                           <div key={cmt.id} className="flex items-start gap-2.5 text-xs p-2.5 rounded-xl bg-slate-50 dark:bg-muted/40">
-                            <div className="h-7 w-7 rounded-full bg-gradient-to-br from-[#38A8D8] to-purple-600 flex items-center justify-center text-white font-bold text-[10px] shrink-0">
+                            <div className="h-7 w-7 rounded-full bg-gradient-to-br from-[#2164b6] to-purple-600 flex items-center justify-center text-white font-bold text-[10px] shrink-0">
                               {cmt.avatar_url ? <img src={cmt.avatar_url} alt="" className="w-full h-full rounded-full object-cover" /> : cmt.user_name.charAt(0)}
                             </div>
                             <div className="flex-1 min-w-0">
@@ -736,12 +736,12 @@ export default function FeedPage() {
                         onChange={(e) => setCommentInput(e.target.value)}
                         onKeyDown={(e) => { if (e.key === "Enter") handleAddComment(post.id); }}
                         placeholder="Write a comment..."
-                        className="flex-1 h-9 px-3.5 text-xs rounded-full border border-border bg-background focus:outline-none focus:ring-2 focus:ring-[#38A8D8]/40"
+                        className="flex-1 h-9 px-3.5 text-xs rounded-full border border-border bg-background focus:outline-none focus:ring-2 focus:ring-[#2164b6]/40"
                       />
                       <button
                         onClick={() => handleAddComment(post.id)}
                         disabled={submittingComment || !commentInput.trim()}
-                        className="px-3.5 h-9 rounded-full bg-[#38A8D8] hover:bg-[#2e94c0] disabled:opacity-50 text-white font-bold text-xs transition-colors flex items-center gap-1 shrink-0"
+                        className="px-3.5 h-9 rounded-full bg-[#2164b6] hover:bg-[#1a5091] disabled:opacity-50 text-white font-bold text-xs transition-colors flex items-center gap-1 shrink-0"
                       >
                         {submittingComment ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
                       </button>
@@ -767,7 +767,7 @@ export default function FeedPage() {
           >
             <div className="flex items-center justify-between border-b border-border pb-3">
               <h3 className="font-bold text-foreground text-sm flex items-center gap-2">
-                <Share2 className="h-4 w-4 text-[#38A8D8]" /> Share Post
+                <Share2 className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" /> Share Post
               </h3>
               <button onClick={() => setShareModalPost(null)} aria-label="Close share dialog" className="text-muted-foreground hover:text-foreground">
                 <X className="h-4 w-4" />
@@ -791,7 +791,7 @@ export default function FeedPage() {
                   setCopiedLink(true);
                   setTimeout(() => setCopiedLink(false), 3000);
                 }}
-                className="px-3 h-9 rounded-xl bg-[#38A8D8] hover:bg-[#2e94c0] text-white font-bold text-xs transition-colors flex items-center gap-1 shrink-0"
+                className="px-3 h-9 rounded-xl bg-[#2164b6] hover:bg-[#1a5091] text-white font-bold text-xs transition-colors flex items-center gap-1 shrink-0"
               >
                 {copiedLink ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
                 {copiedLink ? "Copied!" : "Copy"}
@@ -858,7 +858,7 @@ export default function FeedPage() {
                 className="absolute inset-0 w-full h-full object-cover"
               />
             ) : (
-              <div className="absolute inset-0 bg-gradient-to-br from-[#38A8D8] to-purple-800 flex items-center justify-center p-6 text-center text-white font-bold text-lg">
+              <div className="absolute inset-0 bg-gradient-to-br from-[#2164b6] to-purple-800 flex items-center justify-center p-6 text-center text-white font-bold text-lg">
                 {stories[activeStoryIndex].items[activeSubIndex]?.caption ?? stories[activeStoryIndex].name}
               </div>
             )}
@@ -884,7 +884,7 @@ export default function FeedPage() {
               {/* User header */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                  <div className="h-9 w-9 rounded-full bg-gradient-to-tr from-purple-500 via-pink-500 to-[#38A8D8] p-[2px]">
+                  <div className="h-9 w-9 rounded-full bg-gradient-to-tr from-purple-500 via-pink-500 to-[#2164b6] p-[2px]">
                     {stories[activeStoryIndex].avatar ? (
                       <img src={stories[activeStoryIndex].avatar} alt="" className="w-full h-full rounded-full object-cover" />
                     ) : (

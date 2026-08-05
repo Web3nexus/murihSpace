@@ -56,7 +56,7 @@ function CommunityAvatar({ name, logo_url }: { name: string; logo_url?: string }
     );
   }
   return (
-    <div className="h-9 w-9 rounded-xl flex items-center justify-center text-white font-bold text-sm shrink-0 shadow-xs bg-gradient-to-br from-[#38A8D8] to-[#2563eb]">
+    <div className="h-9 w-9 rounded-xl flex items-center justify-center text-white font-bold text-sm shrink-0 shadow-xs bg-gradient-to-br from-[#2164b6] to-[#2563eb]">
       {initial}
     </div>
   );
@@ -68,7 +68,7 @@ function UserAvatar({ name, size = 28 }: { name?: string; size?: number }) {
     : "?";
   return (
     <div
-      className="flex items-center justify-center rounded-full bg-gradient-to-br from-[#38A8D8] to-[#1a6b9e] text-white font-bold shrink-0 shadow-xs"
+      className="flex items-center justify-center rounded-full bg-gradient-to-br from-[#2164b6] to-[#1a6b9e] text-white font-bold shrink-0 shadow-xs"
       style={{ width: size, height: size, fontSize: size * 0.4 }}
     >
       {initials}
@@ -311,7 +311,7 @@ export default function CommunityChatPage() {
       <div className="flex h-[calc(100svh-112px)] items-center justify-center">
         <div className="text-center space-y-3">
           <div className="relative mx-auto h-12 w-12">
-            <Loader2 className="h-12 w-12 animate-spin text-[#38A8D8]" />
+            <Loader2 className="h-12 w-12 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" />
           </div>
           <p className="text-sm font-medium text-muted-foreground">Loading community chat...</p>
         </div>
@@ -330,7 +330,7 @@ export default function CommunityChatPage() {
           <p className="text-xs text-muted-foreground">{listError}</p>
           <button
             onClick={() => { setIsLoadingList(true); loadConversations(); }}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#38A8D8] hover:underline"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#2164b6] dark:text-[#7ab0ff] hover:underline"
           >
             <RotateCcw className="h-3.5 w-3.5" /> Try again
           </button>
@@ -343,8 +343,8 @@ export default function CommunityChatPage() {
     return (
       <div className="flex h-[calc(100svh-112px)] items-center justify-center p-6">
         <div className="max-w-sm text-center space-y-4">
-          <div className="mx-auto rounded-2xl bg-[#38A8D8]/10 p-4 w-fit">
-            <MessageCircle className="h-8 w-8 text-[#38A8D8]" />
+          <div className="mx-auto rounded-2xl bg-[#2164b6]/10 p-4 w-fit">
+            <MessageCircle className="h-8 w-8 text-[#2164b6] dark:text-[#7ab0ff]" />
           </div>
           <h3 className="text-base font-bold text-foreground">No Community Chats</h3>
           <p className="text-xs text-muted-foreground">
@@ -361,8 +361,8 @@ export default function CommunityChatPage() {
       <aside className={`${activeConv ? "hidden md:flex" : "flex"} w-full md:w-[320px] shrink-0 flex-col border-r border-border bg-card`}>
         <div className="flex items-center justify-between px-4 py-3.5 border-b border-border">
           <div className="flex items-center gap-2.5">
-            <div className="h-7 w-7 rounded-lg bg-[#38A8D8]/15 flex items-center justify-center">
-              <Hash className="h-3.5 w-3.5 text-[#38A8D8]" />
+            <div className="h-7 w-7 rounded-lg bg-[#2164b6]/15 flex items-center justify-center">
+              <Hash className="h-3.5 w-3.5 text-[#2164b6] dark:text-[#7ab0ff]" />
             </div>
             <h2 className="text-sm font-extrabold text-foreground tracking-tight">Community Chat</h2>
           </div>
@@ -379,7 +379,7 @@ export default function CommunityChatPage() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search channels..."
-              className="w-full pl-9 pr-3 py-1.5 text-xs rounded-lg bg-muted border-0 outline-none focus:ring-1 focus:ring-[#38A8D8] placeholder:text-muted-foreground"
+              className="w-full pl-9 pr-3 py-1.5 text-xs rounded-lg bg-muted border-0 outline-none focus:ring-1 focus:ring-[#2164b6] placeholder:text-muted-foreground"
             />
           </div>
         </div>
@@ -405,7 +405,7 @@ export default function CommunityChatPage() {
                 className={cn(
                   "w-full flex items-center gap-3 px-4 py-3 text-left transition-all duration-150",
                   isSelected
-                    ? "bg-[#38A8D8]/10 border-l-[3px] border-[#38A8D8]"
+                    ? "bg-[#2164b6]/10 border-l-[3px] border-[#2164b6]"
                     : "hover:bg-muted/40 border-l-[3px] border-transparent",
                 )}
               >
@@ -429,7 +429,7 @@ export default function CommunityChatPage() {
                   </p>
                 </div>
                 {c.unread_count > 0 && (
-                  <span className="h-4 min-w-[18px] px-1 rounded-full bg-[#38A8D8] text-white text-[10px] font-extrabold flex items-center justify-center shrink-0 shadow-xs">
+                  <span className="h-4 min-w-[18px] px-1 rounded-full bg-[#2164b6] text-white text-[10px] font-extrabold flex items-center justify-center shrink-0 shadow-xs">
                     {c.unread_count}
                   </span>
                 )}
@@ -496,13 +496,13 @@ export default function CommunityChatPage() {
             <div className="flex-1 overflow-y-auto px-4 py-4 space-y-1 bg-[#F8FAFB] dark:bg-[#0a1a2a]/60">
               {isLoadingMsgs ? (
                 <div className="py-20 text-center space-y-2">
-                  <Loader2 className="h-5 w-5 animate-spin text-[#38A8D8] mx-auto" />
+                  <Loader2 className="h-5 w-5 animate-spin text-[#2164b6] dark:text-[#7ab0ff] mx-auto" />
                   <p className="text-xs text-muted-foreground font-medium">Loading messages...</p>
                 </div>
               ) : messages.length === 0 ? (
                 <div className="py-20 text-center space-y-2">
-                  <div className="mx-auto w-10 h-10 rounded-xl bg-[#38A8D8]/10 flex items-center justify-center">
-                    <MessageCircle className="h-5 w-5 text-[#38A8D8]" />
+                  <div className="mx-auto w-10 h-10 rounded-xl bg-[#2164b6]/10 flex items-center justify-center">
+                    <MessageCircle className="h-5 w-5 text-[#2164b6] dark:text-[#7ab0ff]" />
                   </div>
                   <p className="text-sm font-bold text-foreground">Start the conversation</p>
                   <p className="text-xs text-muted-foreground max-w-[200px] mx-auto">
@@ -537,10 +537,10 @@ export default function CommunityChatPage() {
                       )}>
                         {msg.reply_to && (
                           <div className={cn(
-                            "px-2.5 py-1.5 rounded-xl text-[11px] border-l-[3px] border-[#38A8D8] bg-[#38A8D8]/8 text-muted-foreground",
+                            "px-2.5 py-1.5 rounded-xl text-[11px] border-l-[3px] border-[#2164b6] bg-[#2164b6]/8 text-muted-foreground",
                             isMine ? "ml-auto" : "",
                           )}>
-                            <span className="font-bold text-[#38A8D8] text-[10px]">
+                            <span className="font-bold text-[#2164b6] dark:text-[#7ab0ff] text-[10px]">
                               {msg.reply_to.user?.name ?? "User"}
                             </span>
                             <p className="truncate mt-0.5">{msg.reply_to.content?.slice(0, 60)}</p>
@@ -554,13 +554,13 @@ export default function CommunityChatPage() {
                               ? isFailed
                                 ? "bg-destructive/10 border border-destructive/30 text-foreground rounded-br-md"
                                 : isPending
-                                  ? "bg-[#38A8D8]/70 text-white rounded-br-md opacity-85"
-                                  : "bg-[#38A8D8] text-white rounded-br-md shadow-sm"
+                                  ? "bg-[#2164b6]/70 text-white rounded-br-md opacity-85"
+                                  : "bg-[#2164b6] text-white rounded-br-md shadow-sm"
                               : "bg-white dark:bg-[#102840] border border-border/60 text-foreground rounded-bl-md shadow-sm",
                           )}
                         >
                           {!isMine && msg.user?.name && showAvatar && (
-                            <span className="block text-[10px] font-bold text-[#38A8D8] mb-1">
+                            <span className="block text-[10px] font-bold text-[#2164b6] dark:text-[#7ab0ff] mb-1">
                               {msg.user.name}
                             </span>
                           )}
@@ -650,7 +650,7 @@ export default function CommunityChatPage() {
                     {[0, 1, 2].map((i) => (
                       <span
                         key={i}
-                        className="h-2 w-2 rounded-full bg-[#38A8D8] animate-bounce"
+                        className="h-2 w-2 rounded-full bg-[#2164b6] animate-bounce"
                         style={{ animationDelay: `${i * 200}ms` }}
                       />
                     ))}
@@ -701,13 +701,13 @@ export default function CommunityChatPage() {
                 onChange={(e) => { setInputContent(e.target.value); handleTypingDebounced(); }}
                 onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) handleSendMessage(); }}
                 placeholder={`Message #${activeConv.community?.name ?? activeConv.title}...`}
-                className="flex-1 px-4 py-2.5 text-sm rounded-xl bg-muted/60 border border-border/50 outline-none focus:ring-1 focus:ring-[#38A8D8]/40 focus:border-[#38A8D8] placeholder:text-muted-foreground/60 transition-all"
+                className="flex-1 px-4 py-2.5 text-sm rounded-xl bg-muted/60 border border-border/50 outline-none focus:ring-1 focus:ring-[#2164b6]/40 focus:border-[#2164b6] placeholder:text-muted-foreground/60 transition-all"
               />
 
               <button
                 type="submit"
                 disabled={!inputContent.trim() || uploading}
-                className="p-2.5 rounded-xl bg-[#38A8D8] text-white font-bold hover:bg-[#2e8ab8] disabled:opacity-40 transition-all shrink-0 shadow-xs"
+                className="p-2.5 rounded-xl bg-[#2164b6] text-white font-bold hover:bg-[#1a5091] disabled:opacity-40 transition-all shrink-0 shadow-xs"
               >
                 <Send className="h-4 w-4" />
               </button>
@@ -715,8 +715,8 @@ export default function CommunityChatPage() {
           </>
         ) : (
           <div className="flex flex-1 flex-col items-center justify-center gap-4 text-center px-6">
-            <div className="rounded-2xl bg-[#38A8D8]/10 p-5 border border-[#38A8D8]/20">
-              <Hash className="h-10 w-10 text-[#38A8D8]" />
+            <div className="rounded-2xl bg-[#2164b6]/10 p-5 border border-[#2164b6]/20">
+              <Hash className="h-10 w-10 text-[#2164b6] dark:text-[#7ab0ff]" />
             </div>
             <div className="space-y-1">
               <h3 className="text-base font-extrabold text-foreground">Community Chat</h3>

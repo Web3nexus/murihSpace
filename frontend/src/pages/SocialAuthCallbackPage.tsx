@@ -107,7 +107,7 @@ export function SocialAuthCallbackPage() {
       <div className="flex flex-col items-center gap-5 py-8 text-center">
         {status === "loading" && (
           <>
-            <Loader2 className="h-10 w-10 animate-spin text-[#2164b6]" />
+            <Loader2 className="h-10 w-10 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" />
             <p className="text-sm text-slate-500 dark:text-slate-400">Signing you in…</p>
           </>
         )}
@@ -119,7 +119,7 @@ export function SocialAuthCallbackPage() {
             </div>
             <Link
               to="/login"
-              className="text-xs font-bold text-[#2164b6] hover:underline underline-offset-2"
+              className="text-xs font-bold text-[#2164b6] dark:text-[#7ab0ff] hover:underline underline-offset-2"
             >
               Back to login
             </Link>

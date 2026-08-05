@@ -120,7 +120,7 @@ function BrandLogo({ role }: { role: UserRole }) {
             alt={fullLogo.alt}
             className="h-7 w-auto object-contain shrink-0 transition-transform group-hover:scale-105"
           />
-          <span className="text-[9.5px] text-[#38A8D8] font-bold uppercase tracking-widest pl-0.5">
+          <span className="text-[9.5px] text-[#2164b6] dark:text-[#7ab0ff] font-bold uppercase tracking-widest pl-0.5">
             {roleLabel}
           </span>
         </div>
@@ -149,20 +149,20 @@ function NavRow({ item }: { item: NavItem }) {
           className="relative group/item h-9 gap-3 rounded-lg px-3 text-[13.5px] font-medium
             text-[#65676B] transition-all duration-150
             hover:bg-[#F0F2F5] hover:text-[#1a2e3b]
-            data-[active=true]:bg-[#38A8D8]/10 data-[active=true]:text-[#38A8D8] data-[active=true]:font-semibold"
+            data-[active=true]:bg-[#2164b6]/10 data-[active=true]:text-[#2164b6] dark:text-[#7ab0ff] data-[active=true]:font-semibold"
         >
           <Link to={item.url}>
-            <span className="shrink-0 opacity-60 group-hover/item:opacity-90 data-[active=true]:opacity-100 data-[active=true]:text-[#38A8D8]">
+            <span className="shrink-0 opacity-60 group-hover/item:opacity-90 data-[active=true]:opacity-100 data-[active=true]:text-[#2164b6] dark:text-[#7ab0ff]">
               {item.icon}
             </span>
             <span className="flex-1 truncate">{item.title}</span>
             {item.badge != null && !collapsed && (
-              <span className="ml-auto flex h-4.5 min-w-[18px] items-center justify-center rounded-full bg-[#38A8D8] px-1.5 text-[10px] font-bold text-white shadow-xs">
+              <span className="ml-auto flex h-4.5 min-w-[18px] items-center justify-center rounded-full bg-[#2164b6] px-1.5 text-[10px] font-bold text-white shadow-xs">
                 {item.badge}
               </span>
             )}
             {active && (
-              <span className="absolute left-0 top-1/2 -translate-y-1/2 h-6 w-[3px] rounded-r-full bg-[#38A8D8]" />
+              <span className="absolute left-0 top-1/2 -translate-y-1/2 h-6 w-[3px] rounded-r-full bg-[#2164b6]" />
             )}
           </Link>
         </SidebarMenuButton>
@@ -180,37 +180,37 @@ function NavRow({ item }: { item: NavItem }) {
             className="relative group/item h-9 gap-3 rounded-lg px-3 text-[13.5px] font-medium
               text-[#65676B] transition-all duration-150
               hover:bg-[#F0F2F5] hover:text-[#1a2e3b]
-              data-[active=true]:bg-[#38A8D8]/10 data-[active=true]:text-[#38A8D8] data-[active=true]:font-semibold"
+              data-[active=true]:bg-[#2164b6]/10 data-[active=true]:text-[#2164b6] dark:text-[#7ab0ff] data-[active=true]:font-semibold"
           >
             <span className="shrink-0 opacity-60 group-hover/item:opacity-90">{item.icon}</span>
             <span className="flex-1 truncate">{item.title}</span>
             {item.badge != null && !collapsed && (
-              <span className="flex h-4.5 min-w-[18px] items-center justify-center rounded-full bg-[#38A8D8] px-1.5 text-[10px] font-bold text-white shadow-xs">
+              <span className="flex h-4.5 min-w-[18px] items-center justify-center rounded-full bg-[#2164b6] px-1.5 text-[10px] font-bold text-white shadow-xs">
                 {item.badge}
               </span>
             )}
             <ChevronRight className="size-3.5 shrink-0 opacity-40 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
             {active && (
-              <span className="absolute left-0 top-1/2 -translate-y-1/2 h-6 w-[3px] rounded-r-full bg-[#38A8D8]" />
+              <span className="absolute left-0 top-1/2 -translate-y-1/2 h-6 w-[3px] rounded-r-full bg-[#2164b6]" />
             )}
           </SidebarMenuButton>
         </CollapsibleTrigger>
 
         <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down">
-          <div className="ml-7 mt-0.5 mb-1 border-l border-[#38A8D8]/20 pl-3 space-y-0.5">
+          <div className="ml-7 mt-0.5 mb-1 border-l border-[#2164b6]/20 pl-3 space-y-0.5">
             {item.children!.map((child) => (
               <Link
                 key={child.title}
                 to={child.url}
                 className={`flex items-center justify-between rounded-md py-1.5 px-2 text-[12.5px] transition-colors duration-100 ${
                   childActive(child)
-                    ? "text-[#38A8D8] font-semibold bg-[#38A8D8]/08"
+                    ? "text-[#2164b6] dark:text-[#7ab0ff] font-semibold bg-[#2164b6]/08"
                     : "text-[#65676B] hover:text-[#1a2e3b] hover:bg-[#F0F2F5]"
                 }`}
               >
                 <span className="truncate">{child.title}</span>
                 {child.badge && (
-                  <span className="text-[9px] px-1 rounded bg-[#38A8D8]/20 text-[#38A8D8] font-bold uppercase">
+                  <span className="text-[9px] px-1 rounded bg-[#2164b6]/20 text-[#2164b6] dark:text-[#7ab0ff] font-bold uppercase">
                     {child.badge}
                   </span>
                 )}
@@ -255,10 +255,10 @@ function UserFooter({ role }: { role: UserRole }) {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" className="h-auto gap-2.5 rounded-xl px-2 py-2">
-              <div className="h-8 w-8 rounded-lg bg-[#38A8D8]/10 animate-pulse" />
+              <div className="h-8 w-8 rounded-lg bg-[#2164b6]/10 animate-pulse" />
               <div className="grid flex-1 gap-1">
-                <div className="h-3 w-24 rounded bg-[#38A8D8]/10 animate-pulse" />
-                <div className="h-2.5 w-16 rounded bg-[#38A8D8]/10 animate-pulse" />
+                <div className="h-3 w-24 rounded bg-[#2164b6]/10 animate-pulse" />
+                <div className="h-2.5 w-16 rounded bg-[#2164b6]/10 animate-pulse" />
               </div>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -278,7 +278,7 @@ function UserFooter({ role }: { role: UserRole }) {
                 className="h-auto gap-2.5 rounded-xl px-2 py-2 hover:bg-[#F0F2F5] data-[state=open]:bg-[#F0F2F5]"
               >
                 <Avatar className="h-8 w-8 rounded-lg shrink-0">
-                  <AvatarFallback className="rounded-lg bg-[#38A8D8] text-white text-xs font-bold">
+                  <AvatarFallback className="rounded-lg bg-[#2164b6] text-white text-xs font-bold">
                     {initials(user.name)}
                   </AvatarFallback>
                 </Avatar>
@@ -427,8 +427,8 @@ export function AppSidebar({ ...props }: SidebarProps) {
         {isSetupIncomplete && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 z-10 bg-white/60 dark:bg-[#081826]/60 backdrop-blur-[2px] rounded-lg mx-1">
             <div className="text-center px-4">
-              <div className="w-10 h-10 rounded-full bg-[#38A8D8]/15 flex items-center justify-center mx-auto mb-2">
-                <svg className="w-5 h-5 text-[#38A8D8]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-10 h-10 rounded-full bg-[#2164b6]/15 flex items-center justify-center mx-auto mb-2">
+                <svg className="w-5 h-5 text-[#2164b6] dark:text-[#7ab0ff]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                 </svg>
               </div>
@@ -437,7 +437,7 @@ export function AppSidebar({ ...props }: SidebarProps) {
               </p>
               <Link
                 to="/onboarding"
-                className="inline-flex items-center gap-1.5 bg-[#38A8D8] hover:bg-[#2a96c7] text-white text-[11px] font-bold px-3 py-1.5 rounded-lg transition-colors"
+                className="inline-flex items-center gap-1.5 bg-[#2164b6] hover:bg-[#2a96c7] text-white text-[11px] font-bold px-3 py-1.5 rounded-lg transition-colors"
               >
                 Start Setup Wizard
               </Link>

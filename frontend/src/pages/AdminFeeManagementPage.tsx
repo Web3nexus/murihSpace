@@ -54,6 +54,11 @@ export function AdminFeeManagementPage() {
   const [maximumFeeInput, setMaximumFeeInput] = useState("");
   const [transactionType, setTransactionType] = useState("deposit");
   const [priority, setPriority] = useState("10");
+  const [currency, setCurrency] = useState("NGN");
+  const [country, setCountry] = useState("");
+  const [role, setRole] = useState("");
+  const [walletType, setWalletType] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState("");
 
   const fetchRules = useCallback(async () => {
     setLoading(true);
@@ -84,6 +89,11 @@ export function AdminFeeManagementPage() {
     setMaximumFeeInput("");
     setTransactionType("deposit");
     setPriority("10");
+    setCurrency("NGN");
+    setCountry("");
+    setRole("");
+    setWalletType("");
+    setPaymentMethod("");
     setShowModal(true);
   };
 
@@ -99,6 +109,11 @@ export function AdminFeeManagementPage() {
     setMaximumFeeInput(rule.maximum_fee ? (rule.maximum_fee / 100).toString() : "");
     setTransactionType(rule.transaction_type || "deposit");
     setPriority(rule.priority.toString());
+    setCurrency(rule.currency || "NGN");
+    setCountry(rule.country || "");
+    setRole(rule.role || "");
+    setWalletType(rule.wallet_type || "");
+    setPaymentMethod(rule.payment_method || "");
     setShowModal(true);
   };
 
@@ -138,6 +153,11 @@ export function AdminFeeManagementPage() {
       maximum_fee: maximumFeeInput ? Math.round(parseFloat(maximumFeeInput) * 100) : null,
       transaction_type: transactionType,
       priority: parseInt(priority) || 0,
+      currency: currency || "NGN",
+      country: country || null,
+      role: role || null,
+      wallet_type: walletType || null,
+      payment_method: paymentMethod || null,
     };
 
     try {
@@ -230,15 +250,15 @@ export function AdminFeeManagementPage() {
                     </td>
 
                     <td className="px-4 py-3 text-xs font-semibold">
-                      {rule.fee_type === "fixed" && `₦${(rule.fixed_amount / 100).toFixed(2)} Fixed`}
+                      {rule.fee_type === "fixed" && `${rule.currency === "USD" ? "$" : "₦"}${(rule.fixed_amount / 100).toFixed(2)} Fixed`}
                       {rule.fee_type === "percentage" && `${rule.percentage}%`}
                       {rule.fee_type === "fixed_plus_percentage" &&
-                        `₦${(rule.fixed_amount / 100).toFixed(2)} + ${rule.percentage}%`}
+                        `${rule.currency === "USD" ? "$" : "₦"}${(rule.fixed_amount / 100).toFixed(2)} + ${rule.percentage}%`}
                     </td>
 
                     <td className="px-4 py-3 text-xs text-muted-foreground">
-                      <div>Min: ₦{(rule.minimum_fee / 100).toFixed(2)}</div>
-                      <div>Max: {rule.maximum_fee ? `₦${(rule.maximum_fee / 100).toFixed(2)}` : "None"}</div>
+                      <div>Min: {rule.currency === "USD" ? "$" : "₦"}{(rule.minimum_fee / 100).toFixed(2)}</div>
+                      <div>Max: {rule.maximum_fee ? `${rule.currency === "USD" ? "$" : "₦"}${(rule.maximum_fee / 100).toFixed(2)}` : "None"}</div>
                     </td>
 
                     <td className="px-4 py-3 text-xs capitalize text-muted-foreground">
@@ -333,7 +353,7 @@ export function AdminFeeManagementPage() {
                   className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                 >
                   <option value="percentage">Percentage (%)</option>
-                  <option value="fixed">Fixed Amount (₦)</option>
+                  <option value="fixed">Fixed Amount</option>
                   <option value="fixed_plus_percentage">Fixed + Percentage</option>
                 </select>
               </div>
@@ -352,7 +372,19 @@ export function AdminFeeManagementPage() {
                   <option value="withdrawal">Withdrawal</option>
                   <option value="creator_gift_receipt">Creator Gift Receipt</option>
                   <option value="product_sale">Product Sale</option>
+                  <option value="business_sale">Business Sale</option>
                   <option value="badge_purchase">Verification Badge</option>
+                  <option value="payment">Payment</option>
+                  <option value="receive">Receive</option>
+                  <option value="transfer_out">Transfer Out</option>
+                  <option value="transfer_in">Transfer In</option>
+                  <option value="donation_out">Donation Out</option>
+                  <option value="donation_in">Donation In</option>
+                  <option value="escrow_hold">Escrow Hold</option>
+                  <option value="escrow_release">Escrow Release</option>
+                  <option value="escrow_refund">Escrow Refund</option>
+                  <option value="fee">Fee</option>
+                  <option value="refund">Refund</option>
                 </select>
               </div>
             </div>
@@ -378,7 +410,7 @@ export function AdminFeeManagementPage() {
               {(feeType === "fixed" || feeType === "fixed_plus_percentage") && (
                 <div>
                   <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
-                    Fixed Amount (₦)
+                    Fixed Amount ({currency === "USD" ? "$" : "₦"})
                   </label>
                   <input
                     type="number"
@@ -395,7 +427,7 @@ export function AdminFeeManagementPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
-                  Minimum Fee (₦)
+                  Minimum Fee ({currency === "USD" ? "$" : "₦"})
                 </label>
                 <input
                   type="number"
@@ -409,7 +441,7 @@ export function AdminFeeManagementPage() {
 
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
-                  Maximum Fee Cap (₦)
+                  Maximum Fee Cap ({currency === "USD" ? "$" : "₦"})
                 </label>
                 <input
                   type="number"
@@ -418,6 +450,81 @@ export function AdminFeeManagementPage() {
                   placeholder="Unlimited"
                   value={maximumFeeInput}
                   onChange={(e) => setMaximumFeeInput(e.target.value)}
+                  className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
+                  Currency
+                </label>
+                <select
+                  value={currency}
+                  onChange={(e) => setCurrency(e.target.value)}
+                  className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                >
+                  <option value="NGN">NGN</option>
+                  <option value="USD">USD</option>
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
+                  Role (Optional)
+                </label>
+                <select
+                  value={role}
+                  onChange={(e) => setRole(e.target.value)}
+                  className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                >
+                  <option value="">Any</option>
+                  <option value="creator">Creator</option>
+                  <option value="vendor">Vendor</option>
+                  <option value="member">Member</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
+                  Wallet Type
+                </label>
+                <select
+                  value={walletType}
+                  onChange={(e) => setWalletType(e.target.value)}
+                  className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                >
+                  <option value="">Any</option>
+                  <option value="fiat">Fiat</option>
+                  <option value="coin">Coin</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
+                  Payment Method
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. card, transfer"
+                  value={paymentMethod}
+                  onChange={(e) => setPaymentMethod(e.target.value)}
+                  className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
+                  Country
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. NG, US"
+                  value={country}
+                  onChange={(e) => setCountry(e.target.value)}
                   className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>

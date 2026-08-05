@@ -98,7 +98,7 @@ export function QueueMonitorPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 sm:p-8 rounded-2xl bg-gradient-to-br from-[#102840] via-[#173852] to-[#102840] text-white shadow-lg">
         <div className="space-y-1.5">
           <div className="flex items-center gap-2">
-            <span className="px-2.5 py-0.5 rounded-full bg-[#38A8D8]/20 text-[#38A8D8] text-xs font-semibold uppercase tracking-wider border border-[#38A8D8]/30">
+            <span className="px-2.5 py-0.5 rounded-full bg-[#2164b6]/20 text-[#2164b6] dark:text-[#7ab0ff] text-xs font-semibold uppercase tracking-wider border border-[#2164b6]/30">
               System
             </span>
           </div>
@@ -191,7 +191,7 @@ export function QueueMonitorPage() {
             <h3 className="font-semibold text-sm text-foreground mb-3">Links</h3>
             <div className="space-y-2">
               <a href={stats.horizon_path} target="_blank" rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 text-sm text-[#38A8D8] hover:underline">
+                className="inline-flex items-center gap-2 text-sm text-[#2164b6] dark:text-[#7ab0ff] hover:underline">
                 <Activity className="h-4 w-4" /> Horizon Dashboard →
               </a>
             </div>

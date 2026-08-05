@@ -39,11 +39,11 @@ export default function AdminAuditTrailPage() {
 
   useEffect(() => { setPage(1); }, [search]);
 
-  if (loading) return <div className="flex justify-center py-24"><Loader2 className="h-8 w-8 animate-spin text-[#38A8D8]" /></div>;
+  if (loading) return <div className="flex justify-center py-24"><Loader2 className="h-8 w-8 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" /></div>;
 
   return (
     <div className="w-full mx-auto max-w-[1400px] space-y-6 p-6 lg:p-10">
-      <div><h1 className="text-2xl font-black tracking-tight flex items-center gap-2.5"><ClipboardList className="h-6 w-6 text-[#38A8D8]" /> Audit Trail</h1><p className="text-xs text-muted-foreground mt-1">View platform audit logs.</p></div>
+      <div><h1 className="text-2xl font-black tracking-tight flex items-center gap-2.5"><ClipboardList className="h-6 w-6 text-[#2164b6] dark:text-[#7ab0ff]" /> Audit Trail</h1><p className="text-xs text-muted-foreground mt-1">View platform audit logs.</p></div>
 
       <div className="relative max-w-xs">
         <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />

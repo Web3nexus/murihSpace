@@ -121,7 +121,7 @@ export function PhoneInput({
   };
 
   return (
-    <div className={`relative flex items-center rounded-xl border border-border bg-card text-foreground focus-within:border-[#38A8D8]/50 transition-colors ${className}`}>
+    <div className={`relative flex items-center rounded-xl border border-border bg-card text-foreground focus-within:border-[#2164b6]/50 transition-colors ${className}`}>
       {/* Country calling code picker */}
       <div ref={dropdownRef} className="relative shrink-0">
         <button
@@ -150,7 +150,7 @@ export function PhoneInput({
                 onClick={() => handleCountrySelect(c)}
                 className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-colors ${
                   selectedIso2.toLowerCase() === c.iso2.toLowerCase()
-                    ? "bg-[#38A8D8]/10 text-[#38A8D8] font-bold"
+                    ? "bg-[#2164b6]/10 text-[#2164b6] dark:text-[#7ab0ff] font-bold"
                     : "hover:bg-muted/50 text-foreground"
                 }`}
               >

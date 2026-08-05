@@ -35,7 +35,7 @@ function TypingDots() {
       {[0, 1, 2].map((i) => (
         <div
           key={i}
-          className="h-2 w-2 rounded-full bg-gradient-to-br from-[#38A8D8] to-[#1a6b9e] animate-bounce"
+          className="h-2 w-2 rounded-full bg-gradient-to-br from-[#2164b6] to-[#1a6b9e] animate-bounce"
           style={{ animationDelay: `${i * 150}ms`, animationDuration: "0.8s" }}
         />
       ))}
@@ -125,7 +125,7 @@ export default function AiAssistantPage() {
       <div className="flex min-h-[calc(100svh-112px)] items-center justify-center bg-gradient-to-br from-[#F8FAFB] via-white to-[#E8F8FF]/40 dark:from-[#0a1a2a] dark:via-[#0f1f30] dark:to-[#0a1a2a] p-6">
         <div className="w-full max-w-md border border-border rounded-2xl bg-card p-8 space-y-5 shadow-lg">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-2xl bg-gradient-to-br from-[#38A8D8] to-[#1a6b9e] flex items-center justify-center shadow-md shadow-[#38A8D8]/20">
+            <div className="h-10 w-10 rounded-2xl bg-gradient-to-br from-[#2164b6] to-[#1a6b9e] flex items-center justify-center shadow-md shadow-[#2164b6]/20">
               <MailCheck className="h-5 w-5 text-white" />
             </div>
             <div>
@@ -143,7 +143,7 @@ export default function AiAssistantPage() {
             onKeyDown={(e) => e.key === "Enter" && verify()}
             placeholder="6-digit code"
             inputMode="numeric"
-            className="w-full rounded-xl border border-border bg-background px-4 py-3 text-center text-2xl font-black tracking-[0.5em] text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-2 focus:ring-[#38A8D8]/20"
+            className="w-full rounded-xl border border-border bg-background px-4 py-3 text-center text-2xl font-black tracking-[0.5em] text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-2 focus:ring-[#2164b6]/20"
           />
           {verifyMsg && (
             <p className={`text-[11px] font-semibold ${verifyMsg.ok ? "text-emerald-600" : "text-rose-500"}`}>{verifyMsg.text}</p>
@@ -151,19 +151,19 @@ export default function AiAssistantPage() {
           <button
             onClick={verify}
             disabled={verifying || !/^\d{6}$/.test(code)}
-            className="w-full py-3 rounded-xl bg-gradient-to-r from-[#38A8D8] to-[#2e8ab8] text-white text-sm font-bold hover:from-[#2e8ab8] hover:to-[#256e91] disabled:opacity-40 transition-all shadow-sm hover:shadow-md hover:shadow-[#38A8D8]/20"
+            className="w-full py-3 rounded-xl bg-gradient-to-r from-[#2164b6] to-[#1a5091] text-white text-sm font-bold hover:from-[#1a5091] hover:to-[#154074] disabled:opacity-40 transition-all shadow-sm hover:shadow-md hover:shadow-[#2164b6]/20"
           >
             {verifying ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : "Verify & unlock Mera"}
           </button>
           <button
             onClick={sendCode}
-            className="w-full text-center text-[11px] font-bold text-[#38A8D8] hover:underline underline-offset-2"
+            className="w-full text-center text-[11px] font-bold text-[#2164b6] dark:text-[#7ab0ff] hover:underline underline-offset-2"
           >
             {sent ? "Resend code" : "Send code"}
           </button>
           <p className="text-[10px] text-muted-foreground text-center">
             Not sure?{" "}
-            <Link to="/app/onboarding" className="font-bold text-[#38A8D8] hover:underline underline-offset-2">
+            <Link to="/app/onboarding" className="font-bold text-[#2164b6] dark:text-[#7ab0ff] hover:underline underline-offset-2">
               Verify during onboarding
             </Link>
           </p>
@@ -179,7 +179,7 @@ export default function AiAssistantPage() {
         <div className="shrink-0 px-6 pt-6 pb-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="relative">
-              <div className="h-10 w-10 rounded-2xl bg-gradient-to-br from-[#38A8D8] to-[#1a6b9e] flex items-center justify-center shadow-md shadow-[#38A8D8]/20">
+              <div className="h-10 w-10 rounded-2xl bg-gradient-to-br from-[#2164b6] to-[#1a6b9e] flex items-center justify-center shadow-md shadow-[#2164b6]/20">
                 <Bot className="h-5 w-5 text-white" />
               </div>
               <div className="absolute -top-0.5 -right-0.5 h-3 w-3 rounded-full bg-emerald-500 border-2 border-white dark:border-[#0f1f30]" />
@@ -187,7 +187,7 @@ export default function AiAssistantPage() {
             <div>
               <h1 className="text-lg font-black text-foreground tracking-tight">AI Assistant</h1>
               <p className="text-[11px] text-muted-foreground/70 flex items-center gap-1">
-                <Zap className="h-3 w-3 text-[#38A8D8]" />
+                <Zap className="h-3 w-3 text-[#2164b6] dark:text-[#7ab0ff]" />
                 Powered by advanced intelligence
               </p>
             </div>
@@ -207,8 +207,8 @@ export default function AiAssistantPage() {
           {messages.length === 0 && showSuggestions && (
             <div className="pt-8 pb-4 text-center space-y-6">
               <div className="space-y-2">
-                <div className="mx-auto w-16 h-16 rounded-3xl bg-gradient-to-br from-[#38A8D8]/15 to-purple-500/15 flex items-center justify-center border border-[#38A8D8]/10">
-                  <Zap className="h-7 w-7 text-[#38A8D8]" />
+                <div className="mx-auto w-16 h-16 rounded-3xl bg-gradient-to-br from-[#2164b6]/15 to-purple-500/15 flex items-center justify-center border border-[#2164b6]/10">
+                  <Zap className="h-7 w-7 text-[#2164b6] dark:text-[#7ab0ff]" />
                 </div>
                 <h2 className="text-xl font-black text-foreground tracking-tight">How can I help you?</h2>
                 <p className="text-sm text-muted-foreground/60 max-w-md mx-auto">
@@ -221,10 +221,10 @@ export default function AiAssistantPage() {
                   <button
                     key={s.label}
                     onClick={() => send(s.query)}
-                    className="flex items-center gap-3 px-4 py-3.5 rounded-2xl border border-border/60 bg-white dark:bg-[#102840]/60 hover:border-[#38A8D8]/30 hover:bg-[#38A8D8]/5 hover:shadow-sm hover:shadow-[#38A8D8]/5 transition-all duration-200 text-left group"
+                    className="flex items-center gap-3 px-4 py-3.5 rounded-2xl border border-border/60 bg-white dark:bg-[#102840]/60 hover:border-[#2164b6]/30 hover:bg-[#2164b6]/5 hover:shadow-sm hover:shadow-[#2164b6]/5 transition-all duration-200 text-left group"
                   >
-                    <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-[#38A8D8]/10 to-purple-500/10 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                      <s.icon className="h-4 w-4 text-[#38A8D8]" />
+                    <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-[#2164b6]/10 to-purple-500/10 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                      <s.icon className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" />
                     </div>
                     <div className="min-w-0">
                       <p className="text-xs font-bold text-foreground truncate">{s.label}</p>
@@ -240,7 +240,7 @@ export default function AiAssistantPage() {
             <div key={i} className={`flex gap-3 ${m.role === "user" ? "flex-row-reverse" : ""} ${m.role === "user" ? "animate-in slide-in-from-right-2 fade-in" : "animate-in slide-in-from-left-2 fade-in"} duration-200`}>
               <div className={`h-8 w-8 rounded-xl flex items-center justify-center shrink-0 shadow-sm ${
                 m.role === "assistant"
-                  ? "bg-gradient-to-br from-[#38A8D8] to-[#1a6b9e] text-white"
+                  ? "bg-gradient-to-br from-[#2164b6] to-[#1a6b9e] text-white"
                   : "bg-gradient-to-br from-[#102840] to-[#1a2e4a] text-white"
               }`}>
                 {m.role === "assistant" ? <Bot className="h-4 w-4" /> : <MessageCircle className="h-4 w-4" />}
@@ -249,7 +249,7 @@ export default function AiAssistantPage() {
                 <div className={`px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap break-words ${
                   m.role === "assistant"
                     ? "bg-white dark:bg-[#102840] border border-border/50 text-foreground rounded-2xl rounded-tl-sm shadow-sm"
-                    : "bg-gradient-to-r from-[#38A8D8] to-[#2e8ab8] text-white rounded-2xl rounded-tr-sm shadow-sm shadow-[#38A8D8]/10"
+                    : "bg-gradient-to-r from-[#2164b6] to-[#1a5091] text-white rounded-2xl rounded-tr-sm shadow-sm shadow-[#2164b6]/10"
                 }`}>
                   {m.content}
                 </div>
@@ -262,7 +262,7 @@ export default function AiAssistantPage() {
 
           {busy && (
             <div className="flex gap-3 animate-in fade-in slide-in-from-left-2 duration-200">
-              <div className="h-8 w-8 rounded-xl bg-gradient-to-br from-[#38A8D8] to-[#1a6b9e] flex items-center justify-center shrink-0 shadow-sm">
+              <div className="h-8 w-8 rounded-xl bg-gradient-to-br from-[#2164b6] to-[#1a6b9e] flex items-center justify-center shrink-0 shadow-sm">
                 <Bot className="h-4 w-4 text-white" />
               </div>
               <div className="bg-white dark:bg-[#102840] border border-border/50 rounded-2xl rounded-tl-sm px-4 py-2 shadow-sm">
@@ -277,8 +277,8 @@ export default function AiAssistantPage() {
         {/* Composer */}
         <div className="shrink-0 px-6 pb-6 pt-2">
           <div className="relative max-w-3xl mx-auto">
-            <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-[#38A8D8]/5 to-purple-500/5 blur-xl" />
-            <div className="relative flex items-center gap-2 bg-white dark:bg-[#102840] border border-border/60 rounded-2xl px-4 py-2.5 shadow-sm focus-within:border-[#38A8D8]/30 focus-within:shadow-md focus-within:shadow-[#38A8D8]/5 transition-all">
+            <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-[#2164b6]/5 to-purple-500/5 blur-xl" />
+            <div className="relative flex items-center gap-2 bg-white dark:bg-[#102840] border border-border/60 rounded-2xl px-4 py-2.5 shadow-sm focus-within:border-[#2164b6]/30 focus-within:shadow-md focus-within:shadow-[#2164b6]/5 transition-all">
               <input
                 type="text"
                 value={input}
@@ -291,7 +291,7 @@ export default function AiAssistantPage() {
                 <button
                   onClick={() => send()}
                   disabled={!input.trim() || busy}
-                  className="p-2 rounded-xl bg-gradient-to-r from-[#38A8D8] to-[#2e8ab8] text-white hover:from-[#2e8ab8] hover:to-[#256e91] disabled:opacity-40 transition-all shrink-0 shadow-sm hover:shadow-md hover:shadow-[#38A8D8]/20 disabled:shadow-none"
+                  className="p-2 rounded-xl bg-gradient-to-r from-[#2164b6] to-[#1a5091] text-white hover:from-[#1a5091] hover:to-[#154074] disabled:opacity-40 transition-all shrink-0 shadow-sm hover:shadow-md hover:shadow-[#2164b6]/20 disabled:shadow-none"
                 >
                   <Send className="h-4 w-4" />
                 </button>

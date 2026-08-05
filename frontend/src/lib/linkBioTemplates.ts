@@ -67,7 +67,7 @@ export const TEMPLATES: TemplateDef[] = [
     tagline: "Big & friendly",
     description: "Large card-style buttons with generous spacing and rounded corners.",
     palette: {
-      bg: "#0a0a0a", card_bg: "#1a1a1a", text_color: "#f5f5f5", accent: "#38A8D8",
+      bg: "#0a0a0a", card_bg: "#1a1a1a", text_color: "#f5f5f5", accent: "#2164b6",
       font: "sans", button_style: "pill", background_type: "solid", background_value: null,
     },
     avatar_shape: "circle",
