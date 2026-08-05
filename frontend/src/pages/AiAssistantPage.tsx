@@ -7,7 +7,7 @@ import { getAuthToken } from "@/lib/auth/token";
 import { useAuth } from "@/hooks/useAuth";
 import { Link } from "react-router";
 
-const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:8000/api/v1";
+const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? "http://localhost:8000/api/v1";
 
 function getAuthHeaders() {
   const token = getAuthToken();

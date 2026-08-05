@@ -116,13 +116,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <div className="flex items-center gap-2 overflow-hidden">
           {collapsed ? (
             <>
-              <img src="/icon_blue.png" alt="MurihSpace" className="h-8 w-8 object-contain dark:hidden shrink-0" />
-              <img src="/icon_white.png" alt="MurihSpace" className="h-8 w-8 object-contain hidden dark:block shrink-0" />
+              <img src="/logos/member-icon-light.png" alt="MurihSpace" className="h-8 w-8 object-contain dark:hidden shrink-0" />
+              <img src="/logos/member-icon-dark.png" alt="MurihSpace" className="h-8 w-8 object-contain hidden dark:block shrink-0" />
             </>
           ) : (
             <>
-              <img src="/logo_blue.png" alt="MurihSpace" className="h-7 w-auto object-contain dark:hidden shrink-0" />
-              <img src="/logo_white.png" alt="MurihSpace" className="h-7 w-auto object-contain hidden dark:block shrink-0" />
+              <img src="/logos/member-logo-light.png" alt="MurihSpace" className="h-7 w-auto object-contain dark:hidden shrink-0" />
+              <img src="/logos/member-logo-dark.png" alt="MurihSpace" className="h-7 w-auto object-contain hidden dark:block shrink-0" />
             </>
           )}
         </div>

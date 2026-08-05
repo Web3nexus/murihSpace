@@ -4,7 +4,7 @@ import { HardDrive, Plus, Pencil, Trash2, Loader2, Save, X, Check, AlertCircle, 
 import { Button } from "@/components/ui/button";
 import { getAuthToken } from "@/lib/auth/token";
 
-const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:8000/api/v1";
+const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? "http://localhost:8000/api/v1";
 
 function getAuthHeaders() {
   const token = getAuthToken();

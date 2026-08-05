@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 
-const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api/v1';
+const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? 'http://localhost:8000/api/v1';
 import { ErrorState, EmptyState } from "@/components/common/UIStateComponents";
 import { RoleBadge } from "@/components/community/RoleBadge";
 import { Plus, Check, AlertCircle, Key, ShieldCheck } from "lucide-react";

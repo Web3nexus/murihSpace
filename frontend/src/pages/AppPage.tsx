@@ -1,14 +1,16 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { AnimatedPage } from "@/components/common/AnimatedPage";
 import { useAuth } from "@/hooks/useAuth";
 import { apiClient } from "@/lib/api/client";
 import { timeAgo, mapApiPost, mapApiComments } from "@/lib/feed";
+import { SkeletonFeed } from "@/components/ui/skeletons";
 import {
   TrendingUp,
   Users,
   Wallet,
+  Smartphone,
   Lightbulb,
   Plus,
   MessageSquare,
@@ -35,6 +37,7 @@ import {
   Rss,
   AlertCircle,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface CommentItem {
   id: number;
@@ -98,8 +101,62 @@ interface SidebarCommunityRequest {
   role: string;
 }
 
+/**
+ * Shown when a Member account authenticates on the web.
+ * Extracted as a standalone component so the main AppPage never violates
+ * React's rules of hooks with an early return before its own hook calls.
+ */
+function MemberWebBlockPage() {
+  const { logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleSwitchAccount = async () => {
+    await logout();
+    navigate("/login");
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 text-center">
+      <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 border border-slate-100 flex flex-col items-center">
+        <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mb-6">
+          <Smartphone className="w-8 h-8" />
+        </div>
+        <h1 className="text-2xl font-bold text-slate-900 mb-3">Download the App</h1>
+        <p className="text-slate-500 mb-8">
+          The web dashboard is exclusively designed for Creators and Vendors. Please use the MurihSpace mobile app to connect, chat, and interact with communities.
+        </p>
+        <div className="flex flex-col sm:flex-row gap-4 w-full">
+          <Button
+            variant="outline"
+            className="flex-1 h-12 rounded-xl"
+            onClick={() => window.open('https://play.google.com/store/apps/details?id=com.murihspace.app', '_blank')}
+          >
+            Google Play
+          </Button>
+          <Button
+            className="flex-1 h-12 rounded-xl bg-slate-900 text-white hover:bg-slate-800"
+            onClick={() => window.open('https://apps.apple.com/app/murihspace/id000000000', '_blank')}
+          >
+            App Store
+          </Button>
+        </div>
+        <div className="mt-8 pt-6 border-t border-slate-100 w-full">
+          <button
+            onClick={handleSwitchAccount}
+            className="text-sm font-medium text-blue-600 hover:text-blue-700 hover:underline"
+          >
+            Sign in with a different account
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function AppPage() {
   const { user } = useAuth();
+
+  // Member block early return has been moved to the bottom, after all hooks.
 
   const [composerOpen, setComposerOpen] = useState(false);
   const [postText, setPostText] = useState("");
@@ -108,7 +165,6 @@ export function AppPage() {
   const [selectedCommunityId, setSelectedCommunityId] = useState<number | null>(null);
   const [userCommunities, setUserCommunities] = useState<{ id: number; name: string; logo_url?: string }[]>([]);
   const [communityPickerOpen, setCommunityPickerOpen] = useState(false);
-
   const [activeCommentPostId, setActiveCommentPostId] = useState<number | null>(null);
   const [commentInput, setCommentInput] = useState("");
   const [submittingComment, setSubmittingComment] = useState(false);
@@ -307,7 +363,7 @@ export function AppPage() {
     });
   }
 
-  async function loadFeed() {
+  const loadFeed = useCallback(async () => {
     setFeedLoading(true);
     try {
       const feedRes = await apiClient.get("/feed?page=1&per_page=20");
@@ -317,9 +373,11 @@ export function AppPage() {
         const mapped = apiPosts.map((p: any) => mapApiPost(p, user?.id));
         setPosts(mapped);
       }
-    } catch {}
+    } catch (e) {
+      // ignore
+    }
     setFeedLoading(false);
-  }
+  }, [user?.id]);
 
   useEffect(() => {
     let active = true;
@@ -358,13 +416,15 @@ export function AppPage() {
             }));
           }
         }
-      } catch {}
+      } catch (e) {
+        // ignore
+      }
     }
 
     loadData();
     loadFeed();
     return () => { active = false; };
-  }, [user?.id]);
+  }, [user?.id, loadFeed]);
 
   async function handleCreatePost() {
     if (!postText.trim() || !selectedCommunityId || submittingPost) return;
@@ -518,6 +578,10 @@ export function AppPage() {
         .catch(() => {});
     }
   }, [composerOpen, userCommunities.length, selectedCommunityId]);
+
+  if (user?.role === 'member') {
+    return <MemberWebBlockPage />;
+  }
 
   return (
     <AnimatedPage className="w-full min-h-screen bg-slate-50/60 dark:bg-background">
@@ -737,10 +801,7 @@ export function AppPage() {
 
           <div className="space-y-4">
             {feedLoading && posts.length === 0 && (
-              <div className="flex items-center justify-center py-12 text-muted-foreground">
-                <Loader2 className="h-5 w-5 animate-spin mr-2" />
-                <span className="text-xs font-semibold">Loading feed…</span>
-              </div>
+              <SkeletonFeed count={3} />
             )}
 
             {!feedLoading && posts.length === 0 && (

@@ -20,8 +20,8 @@ export function PublicLayout() {
             id="nav-brand-logo"
             aria-label="MurihSpace home"
           >
-            <img src="/logo_blue.png" alt="MurihSpace" className="h-8 w-auto object-contain dark:hidden transition-transform group-hover:scale-105" />
-            <img src="/logo_white.png" alt="MurihSpace" className="h-8 w-auto object-contain hidden dark:block transition-transform group-hover:scale-105" />
+            <img src="/logos/member-logo-light.png" alt="MurihSpace" className="h-8 w-auto object-contain dark:hidden transition-transform group-hover:scale-105" />
+            <img src="/logos/member-logo-dark.png" alt="MurihSpace" className="h-8 w-auto object-contain hidden dark:block transition-transform group-hover:scale-105" />
           </Link>
 
           {/* Navigation Links */}
@@ -68,8 +68,8 @@ export function PublicLayout() {
         <div className="mx-auto max-w-7xl px-6">
           <div className="flex flex-col items-center justify-between gap-4 md:flex-row">
             <div className="flex items-center gap-2">
-              <img src="/logo_blue.png" alt="MurihSpace" className="h-6 w-auto object-contain dark:hidden" />
-              <img src="/logo_white.png" alt="MurihSpace" className="h-6 w-auto object-contain hidden dark:block" />
+              <img src="/logos/member-logo-light.png" alt="MurihSpace" className="h-6 w-auto object-contain dark:hidden" />
+              <img src="/logos/member-logo-dark.png" alt="MurihSpace" className="h-6 w-auto object-contain hidden dark:block" />
             </div>
             <p className="text-xs text-muted-foreground text-center">
               © {new Date().getFullYear()} MurihSpace. All rights reserved.

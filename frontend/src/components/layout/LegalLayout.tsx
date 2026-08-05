@@ -32,8 +32,8 @@ export const LegalLayout: React.FC<LegalLayoutProps> = ({
       <header className="sticky top-0 z-40 w-full border-b border-slate-200/80 dark:border-slate-800/80 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md">
         <div className="max-w-4xl mx-auto px-5 py-3 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2 group">
-            <img src="/logo_blue.png" alt="MurihSpace" className="h-6 w-auto object-contain dark:hidden" />
-            <img src="/logo_white.png" alt="MurihSpace" className="h-6 w-auto object-contain hidden dark:block" />
+            <img src="/logos/member-logo-light.png" alt="MurihSpace" className="h-6 w-auto object-contain dark:hidden" />
+            <img src="/logos/member-logo-dark.png" alt="MurihSpace" className="h-6 w-auto object-contain hidden dark:block" />
           </Link>
           <Link
             to="/"

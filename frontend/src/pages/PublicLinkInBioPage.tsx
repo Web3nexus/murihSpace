@@ -4,7 +4,7 @@ import { Loader2, AlertTriangle } from "lucide-react";
 import type { LinkBioPageData } from "@/lib/linkBioTypes";
 import TemplateRenderer from "@/components/linkbio/TemplateRenderer";
 
-const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:8000/api/v1";
+const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? "http://localhost:8000/api/v1";
 
 export default function PublicLinkInBioPage() {
   const { username } = useParams<{ username: string }>();

@@ -11,7 +11,7 @@ use Illuminate\Support\Str;
 
 trait HandlesImageUploads
 {
-    public function uploadImage(Request $request, string $folder = 'images'): JsonResponse
+    public function uploadImage(Request $request, string $folder = 'images', string $visibility = 'private'): JsonResponse
     {
         $request->validate([
             'file' => ['required', 'image', 'mimes:jpeg,png,gif,webp,avif', 'max:10240'],
@@ -31,7 +31,11 @@ trait HandlesImageUploads
             }
         }
 
-        Storage::disk($disk)->put($path, file_get_contents($file->getRealPath()));
+        Storage::disk($disk)->put($path, file_get_contents($file->getRealPath()), [
+            'visibility' => $visibility,
+            'ContentType' => $file->getMimeType(),
+            'CacheControl' => $visibility === 'public' ? 'public, max-age=86400' : 'private, max-age=3600',
+        ]);
         $url = Storage::disk($disk)->url($path);
 
         $media = Media::create([

@@ -13,7 +13,7 @@ import type { HelpArticle, HelpCategory } from "@/data/helpCenter";
 import { useAuth } from "@/hooks/useAuth";
 import { getAuthToken } from "@/lib/auth/token";
 
-const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:8000/api/v1";
+const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? "http://localhost:8000/api/v1";
 
 const CATEGORY_ICONS: Record<string, React.ReactNode> = {
   "getting-started": <Rocket className="h-4.5 w-4.5" />,

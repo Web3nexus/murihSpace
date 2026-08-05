@@ -59,7 +59,7 @@ export function AdminFeeManagementPage() {
     setLoading(true);
     try {
       const res = await apiClient.get("/securegate/fees");
-      const list = res.data?.data || [];
+      const list = Array.isArray(res.data?.data) ? res.data.data : Array.isArray(res.data?.data?.data) ? res.data.data.data : Array.isArray(res.data) ? res.data : [];
       setRules(list);
     } catch {
       toast.error("Failed to load platform fee rules.");

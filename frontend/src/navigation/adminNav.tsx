@@ -154,7 +154,7 @@ export const adminNav: NavGroup[] = [
       },
       {
         title: "Wallet Ledger",
-        url: "/app/securegate/wallets",
+        url: "/app/securegate/reconciliation",
         icon: <Wallet className="size-4" />,
       },
       {

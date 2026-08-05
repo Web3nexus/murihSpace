@@ -16,6 +16,7 @@ export interface UserProfile {
   email_verified: boolean;
   phone_verified?: boolean;
   mobile_number?: string;
+  onboarding_completed?: boolean;
 }
 
 export type OtpIntent = "login" | "register";

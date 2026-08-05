@@ -18,7 +18,7 @@ import {
 import type { CreatorSaleRow, Order } from '@/types/order';
 import { getAuthToken } from "@/lib/auth/token";
 
-const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api/v1';
+const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? 'http://localhost:8000/api/v1';
 
 const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
   completed:  { label: 'Completed',  color: 'bg-emerald-500/15 text-emerald-600 border-emerald-500/25' },

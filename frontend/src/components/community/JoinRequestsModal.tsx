@@ -11,7 +11,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ErrorState, EmptyState } from "@/components/common/UIStateComponents";
 import { Clock, ShieldCheck, Check, X } from "lucide-react";
 
-const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api/v1';
+const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? 'http://localhost:8000/api/v1';
 import type { JoinRequest } from "@/types/community";
 import { getAuthToken } from "@/lib/auth/token";
 

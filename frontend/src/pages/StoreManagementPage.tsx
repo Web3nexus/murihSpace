@@ -18,7 +18,7 @@ import { Button } from '@/components/ui/button';
 import type { Storefront, StorefrontLink } from '@/types/storefront';
 import { getAuthToken } from "@/lib/auth/token";
 
-const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api/v1';
+const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? 'http://localhost:8000/api/v1';
 const SITE_BASE = window.location.origin;
 
 export function StoreManagementPage() {

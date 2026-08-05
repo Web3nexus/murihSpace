@@ -227,7 +227,7 @@ function OverviewTab({ overview, topContent, currency }: { overview: any; topCon
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {topContent?.top_digital_products?.length > 0 && (
+        {Array.isArray(topContent?.top_digital_products) && topContent.top_digital_products.length > 0 && (
           <div className="rounded-2xl border border-border bg-card p-5">
             <h3 className="font-semibold text-sm text-foreground mb-3 flex items-center gap-2">
               <ShoppingBag className="h-4 w-4 text-[#38A8D8]" /> Top Digital Products
@@ -246,7 +246,7 @@ function OverviewTab({ overview, topContent, currency }: { overview: any; topCon
           </div>
         )}
 
-        {topContent?.top_creators?.length > 0 && (
+        {Array.isArray(topContent?.top_creators) && topContent.top_creators.length > 0 && (
           <div className="rounded-2xl border border-border bg-card p-5">
             <h3 className="font-semibold text-sm text-foreground mb-3 flex items-center gap-2">
               <Crown className="h-4 w-4 text-[#38A8D8]" /> Top Creators
@@ -265,7 +265,7 @@ function OverviewTab({ overview, topContent, currency }: { overview: any; topCon
           </div>
         )}
 
-        {topContent?.top_communities?.length > 0 && (
+        {Array.isArray(topContent?.top_communities) && topContent.top_communities.length > 0 && (
           <div className="rounded-2xl border border-border bg-card p-5">
             <h3 className="font-semibold text-sm text-foreground mb-3 flex items-center gap-2">
               <Globe className="h-4 w-4 text-[#38A8D8]" /> Top Communities
@@ -291,8 +291,8 @@ function OverviewTab({ overview, topContent, currency }: { overview: any; topCon
 function GrowthTab({ data, currency }: { data: any; currency: string }) {
   if (!data) return <p className="text-sm text-muted-foreground">No growth data available.</p>;
 
-  const signups = data.signups_by_day ?? [];
-  const roleData = (data.role_breakdown ?? []).map((r: any) => ({ name: r.role, value: parseInt(r.count) }));
+  const signups = Array.isArray(data.signups_by_day) ? data.signups_by_day : [];
+  const roleData = (Array.isArray(data.role_breakdown) ? data.role_breakdown : []).map((r: any) => ({ name: r.role, value: parseInt(r.count) }));
   const kyc = data.kyc_stats ?? {};
   const kycTotal = (kyc.verified ?? 0) + (kyc.pending ?? 0) + (kyc.none ?? 0);
 
@@ -390,7 +390,7 @@ function GrowthTab({ data, currency }: { data: any; currency: string }) {
 function RevenueTab({ data, currency }: { data: any; currency: string }) {
   if (!data) return <p className="text-sm text-muted-foreground">No revenue data available.</p>;
 
-  const trend = data.revenue_trend ?? [];
+  const trend = Array.isArray(data.revenue_trend) ? data.revenue_trend : [];
   const bySource = data.revenue_by_source ?? {};
 
   const sourceData = Object.entries(bySource).map(([k, v]) => ({
@@ -470,7 +470,7 @@ function ContentTab({ data }: { data: any }) {
           <ShoppingBag className="h-4 w-4 text-[#38A8D8]" /> Top Digital Products
         </h3>
         <div className="space-y-3">
-          {(data.top_digital_products ?? []).length > 0 ? (
+          {Array.isArray(data.top_digital_products) && data.top_digital_products.length > 0 ? (
             data.top_digital_products.map((p: any, i: number) => (
               <div key={p.id} className="flex items-center justify-between text-sm">
                 <div className="flex items-center gap-2 min-w-0">
@@ -491,7 +491,7 @@ function ContentTab({ data }: { data: any }) {
           <Crown className="h-4 w-4 text-[#38A8D8]" /> Top Creators
         </h3>
         <div className="space-y-3">
-          {(data.top_creators ?? []).length > 0 ? (
+          {Array.isArray(data.top_creators) && data.top_creators.length > 0 ? (
             data.top_creators.map((c: any, i: number) => (
               <div key={c.id} className="flex items-center justify-between text-sm">
                 <div className="flex items-center gap-2 min-w-0">
@@ -515,7 +515,7 @@ function ContentTab({ data }: { data: any }) {
           <Globe className="h-4 w-4 text-[#38A8D8]" /> Top Communities
         </h3>
         <div className="space-y-3">
-          {(data.top_communities ?? []).length > 0 ? (
+          {Array.isArray(data.top_communities) && data.top_communities.length > 0 ? (
             data.top_communities.map((c: any, i: number) => (
               <div key={c.id} className="flex items-center justify-between text-sm">
                 <div className="flex items-center gap-2 min-w-0">

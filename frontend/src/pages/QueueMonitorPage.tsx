@@ -4,7 +4,7 @@ import { Activity, Database, Clock, AlertTriangle, RefreshCcw, Trash2, Server, C
 import { Button } from "@/components/ui/button";
 import { getAuthToken } from "@/lib/auth/token";
 
-const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api/v1';
+const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? 'http://localhost:8000/api/v1';
 
 function getAuthHeaders() {
   const token = getAuthToken();
@@ -46,7 +46,7 @@ export function QueueMonitorPage() {
         fetch(`${API_BASE}/securegate/queue/system-info`, { headers: getAuthHeaders() }),
       ]);
       if (statsRes.ok) { const j = await statsRes.json(); setStats(j.data?.data ?? j.data); }
-      if (failedRes.ok) { const j = await failedRes.json(); setFailedJobs(j?.data?.data ?? j?.data ?? []); }
+      if (failedRes.ok) { const j = await failedRes.json(); const f = j?.data?.data ?? j?.data; setFailedJobs(Array.isArray(f) ? f : []); }
       if (sysRes.ok) { const j = await sysRes.json(); setSysInfo(j.data?.data ?? j.data); }
 
       const failed = [statsRes, failedRes, sysRes].filter(r => !r.ok);

@@ -3,7 +3,7 @@ import { Crown, Loader2, Check, CreditCard, AlertCircle, X } from 'lucide-react'
 import type { SubscriptionPlan } from '@/types/subscription';
 import { getAuthToken } from "@/lib/auth/token";
 
-const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api/v1';
+const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? 'http://localhost:8000/api/v1';
 
 function getAuthHeaders() {
   const token = getAuthToken();

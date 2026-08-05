@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { getAuthToken } from "@/lib/auth/token";
 import { cn } from "@/lib/utils";
 
-const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:8000/api/v1";
+const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? "http://localhost:8000/api/v1";
 
 type MethodKey = "phone_otp" | "email_password" | "google" | "apple" | "passkey";
 

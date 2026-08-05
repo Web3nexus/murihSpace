@@ -27,7 +27,7 @@ import {
 import type { Community, CommunityMembership } from "@/types/community";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
-const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api/v1';
+const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? 'http://localhost:8000/api/v1';
 
 const MEMBER_ROLE_STYLES: Record<string, string> = {
   owner: "bg-amber-500/15 text-amber-500 border-amber-500/30",

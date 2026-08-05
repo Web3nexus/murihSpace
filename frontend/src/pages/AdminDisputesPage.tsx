@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { ShieldAlert, Loader2, CheckCircle2, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:8000/api/v1";
+const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? "http://localhost:8000/api/v1";
 
 function authHeaders() {
   const t = getAuthToken();

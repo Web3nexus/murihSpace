@@ -3,7 +3,7 @@ import { FileText, Plus, Loader2, CheckCircle, Send, Trash2, Building2 } from 'l
 import { getAuthToken } from "@/lib/auth/token";
 import { useConfirm } from '@/components/ui/DialogProvider';
 
-const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api/v1';
+const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? 'http://localhost:8000/api/v1';
 
 function getAuthHeaders() {
   const token = getAuthToken();

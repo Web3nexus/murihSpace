@@ -165,6 +165,7 @@ export function HomePage() {
             <Link to="/privacy" className="hover:text-foreground">Privacy Policy</Link>
             <Link to="/terms" className="hover:text-foreground">Terms of Service</Link>
             <Link to="/cookies" className="hover:text-foreground">Cookies</Link>
+            <Link to="/gdpr" className="hover:text-foreground">GDPR Compliance</Link>
             <Link to="/app" className="hover:text-foreground font-semibold text-secondary">Ecosystem Console</Link>
           </div>
         </div>

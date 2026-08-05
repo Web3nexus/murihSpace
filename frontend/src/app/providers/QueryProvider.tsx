@@ -20,7 +20,9 @@ export function QueryProvider({ children }: QueryProviderProps) {
               }
               return failureCount < 2;
             },
-            staleTime: 1000 * 60 * 5, // 5 minutes
+            staleTime: 1000 * 60 * 5,   // 5 minutes — data stays "fresh" for 5 min
+            gcTime: 1000 * 60 * 15,      // 15 minutes — data kept in cache after component unmounts
+            refetchOnReconnect: "always", // Refetch on internet reconnect
           },
         },
       })

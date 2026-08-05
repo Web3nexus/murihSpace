@@ -29,7 +29,7 @@ const FONT_MAP: Record<string, string> = {
   handwriting: "'Segoe Script', 'Apple Chancery', cursive",
 };
 
-const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api/v1';
+const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? 'http://localhost:8000/api/v1';
 
 export function PublicStorefrontPage() {
   const { shortCode } = useParams<{ shortCode: string }>();

@@ -61,7 +61,11 @@ class UploadController extends Controller
         $filename = Str::random(32) . '.' . $file->getClientOriginalExtension();
         $path = ltrim($folder . '/' . $filename, '/');
 
-        $stored = Storage::disk($disk)->put($path, file_get_contents($file->getRealPath()));
+        $stored = Storage::disk($disk)->put($path, file_get_contents($file->getRealPath()), [
+            'visibility' => 'public',
+            'ContentType' => $mime,
+            'CacheControl' => 'public, max-age=86400',
+        ]);
 
         if (! $stored) {
             return response()->json(['message' => 'Failed to store file.'], 500);

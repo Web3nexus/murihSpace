@@ -14,8 +14,8 @@ self.addEventListener('push', (event) => {
     const title = data.title ?? 'MurihSpace';
     const options = {
       body: data.body ?? '',
-      icon: data.icon ?? '/logo_blue.png',
-      badge: '/logo_blue.png',
+      icon: data.icon ?? '/logos/member-icon-light.png',
+      badge: '/logos/member-icon-light.png',
       data: data.url ? { url: data.url } : {},
     };
 

@@ -48,7 +48,7 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
           {/* Hero Image Collage */}
           <div className="relative mt-2 pt-2 flex items-center justify-center lg:justify-start">
             <img
-              src="/creatorEve.png"
+              src="/creatorEve.webp"
               alt="MurihSpace Creator Ecosystem"
               className="w-full max-w-lg h-auto object-contain drop-shadow-xl hover:scale-[1.02] transition-transform duration-300"
             />
@@ -80,6 +80,7 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
             <Link to="/privacy" className="hover:underline">Privacy Policy</Link>
             <Link to="/terms" className="hover:underline">Terms of Service</Link>
             <Link to="/cookies" className="hover:underline">Cookies</Link>
+            <Link to="/gdpr" className="hover:underline">GDPR Compliance</Link>
             <span>© {new Date().getFullYear()} MurihSpace Ecosystem</span>
           </div>
         </div>

@@ -13,7 +13,7 @@ import { formatDistanceToNow } from 'date-fns';
 import type { AppNotification } from '@/types/notification';
 import { getAuthToken } from "@/lib/auth/token";
 
-const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api/v1';
+const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? 'http://localhost:8000/api/v1';
 
 export function NotificationDropdown() {
   const [isOpen, setIsOpen] = useState(false);

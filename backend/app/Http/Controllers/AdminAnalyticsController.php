@@ -83,8 +83,10 @@ class AdminAnalyticsController extends Controller
         $totalPlans = SubscriptionPlan::count();
         $activePlans = SubscriptionPlan::where('is_active', true)->count();
 
-        $platformBalance = Wallet::where('user_id', 1)->value('balance') ?? 0;
-        $totalWallets = Wallet::where('user_id', '!=', 1)->sum('balance');
+        $platformWallet = Wallet::where('user_id', 1)->first();
+        $platformBalance = $platformWallet ? $platformWallet->totalBalance() : 0;
+        $totalWallets = (int) Wallet::where('user_id', '!=', 1)
+            ->sum(DB::raw('available + pending + reserved + escrow + withdrawable + non_withdrawable + disputed'));
 
         return response()->json([
             'currency' => $currency,

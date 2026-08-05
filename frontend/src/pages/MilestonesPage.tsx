@@ -3,7 +3,7 @@ import { useConfirm } from '@/components/ui/DialogProvider';
 import { Trophy, Award, Plus, Loader2, Edit, Trash2, Target, TrendingUp, ShoppingBag, DollarSign, Heart } from 'lucide-react';
 import { getAuthToken } from "@/lib/auth/token";
 
-const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api/v1';
+const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? 'http://localhost:8000/api/v1';
 
 function getAuthHeaders() {
   const token = getAuthToken();

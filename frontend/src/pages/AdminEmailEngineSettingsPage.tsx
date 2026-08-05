@@ -22,7 +22,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { getAuthToken } from "@/lib/auth/token";
 
-const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:8000/api/v1";
+const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? "http://localhost:8000/api/v1";
 
 const TRANSPORTS: { id: string; label: string; desc: string; color: string; icon: typeof Server }[] = [
   { id: "smtp", label: "SMTP", desc: "Any SMTP relay or mailbox (Mailgun, SendGrid, Gmail, etc.).", color: "from-sky-500/20 to-indigo-500/20", icon: Server },

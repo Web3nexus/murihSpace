@@ -13,7 +13,7 @@ import {
 import type { AdminUser } from '@/types/admin';
 import { getAuthToken, clearAuthTokens } from "@/lib/auth/token";
 
-const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api/v1';
+const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? 'http://localhost:8000/api/v1';
 const authHeaders = () => {
   const t = getAuthToken();
   return { Accept: 'application/json', 'Content-Type': 'application/json', ...(t ? { Authorization: `Bearer ${t}` } : {}) };
@@ -203,7 +203,7 @@ export function AdminUsersPage() {
                   <tr className="text-left">
                     {[
                       { label: 'Name', col: 'name' }, { label: 'Email', col: 'email' }, { label: 'Username', col: 'username' },
-                      { label: 'Role', col: 'role' }, { label: 'Status', col: 'status' },
+                      { label: 'Role', col: 'role' }, { label: 'Country', col: 'country' }, { label: 'Status', col: 'status' },
                       { label: 'KYC', col: 'kyc_status' }, { label: 'Joined', col: 'created_at' }, { label: '', col: null },
                     ].map(({ label, col }) => (
                       <th key={label || 'actions'} className={`px-4 py-3 text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider whitespace-nowrap ${col ? 'cursor-pointer select-none hover:text-foreground transition-colors' : ''}`} onClick={() => col && toggleSort(col)}>{label}{col && sortIcon(col)}</th>
@@ -217,6 +217,7 @@ export function AdminUsersPage() {
                       <td className="px-4 py-3 text-muted-foreground">{u.email}</td>
                       <td className="px-4 py-3 text-muted-foreground">@{u.username}</td>
                       <td className="px-4 py-3"><span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${ROLE_COLORS[u.role] ?? ''}`}>{u.role}</span></td>
+                      <td className="px-4 py-3 text-muted-foreground uppercase font-bold text-[10px]">{u.country || '-'}</td>
                       <td className="px-4 py-3"><span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${STATUS_COLORS[u.status] ?? ''}`}>{u.status}</span></td>
                       <td className="px-4 py-3"><span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${u.kyc_status === 'verified' ? 'bg-emerald-500/20 text-emerald-400' : u.kyc_status === 'rejected' ? 'bg-rose-500/20 text-rose-400' : 'bg-amber-500/20 text-amber-400'}`}>{u.kyc_status}</span></td>
                       <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{new Date(u.created_at).toLocaleDateString()}</td>

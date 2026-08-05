@@ -15,7 +15,7 @@ import { InlineFieldError } from "@/components/ui/InlineFieldError";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:8000/api/v1";
+const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? "http://localhost:8000/api/v1";
 
 type Step = 1 | 2 | 3 | 4 | 5 | 6 | 7;
 
