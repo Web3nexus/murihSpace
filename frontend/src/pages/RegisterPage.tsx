@@ -6,7 +6,7 @@ import { AppDownloadQR } from "@/components/WebLockedPage";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Loader2, ArrowRight, ArrowLeft, CheckCircle2, XCircle, BadgeCheck, Crown, Smartphone, Download, ShieldCheck } from "lucide-react";
+import { Loader2, ArrowRight, ArrowLeft, CheckCircle2, XCircle, BadgeCheck, Crown, Smartphone, Download, ShieldCheck, Eye, EyeOff } from "lucide-react";
 
 import { AuthLayout } from "@/components/layout/AuthLayout";
 import { PhoneInput } from "@/components/forms/PhoneInput";
@@ -61,6 +61,8 @@ export function RegisterPage() {
   // Step 5: Password
   const [password, setPassword] = useState("");
   const [passwordConfirmation, setPasswordConfirmation] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
   const [passwordFieldError, setPasswordFieldError] = useState("");
   const [passwordConfirmError, setPasswordConfirmError] = useState("");
   const passwordRef = useRef<HTMLInputElement>(null);
@@ -425,34 +427,52 @@ export function RegisterPage() {
             <FieldGroup>
               <FieldLabel>Password</FieldLabel>
               <Field>
-                <Input
-                  ref={passwordRef}
-                  type="password"
-                  placeholder="At least 8 characters"
-                  value={password}
-                  onChange={(e) => { setPassword(e.target.value); setPasswordFieldError(""); }}
-                  aria-invalid={Boolean(passwordFieldError)}
-                  aria-describedby={passwordFieldError ? "password-field-error" : undefined}
-                  className={passwordFieldError ? "border-rose-500 focus-visible:ring-rose-500" : ""}
-                  required
-                />
+                <div className="relative">
+                  <Input
+                    ref={passwordRef}
+                    type={showPassword ? "text" : "password"}
+                    placeholder="At least 8 characters"
+                    value={password}
+                    onChange={(e) => { setPassword(e.target.value); setPasswordFieldError(""); }}
+                    aria-invalid={Boolean(passwordFieldError)}
+                    aria-describedby={passwordFieldError ? "password-field-error" : undefined}
+                    className={passwordFieldError ? "border-rose-500 focus-visible:ring-rose-500" : "focus-visible:border-[#2164b6] focus-visible:ring-[#2164b6]"}
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 focus:outline-none"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
                 <InlineFieldError id="password-field-error" error={passwordFieldError} />
               </Field>
             </FieldGroup>
             <FieldGroup>
               <FieldLabel>Confirm password</FieldLabel>
               <Field>
-                <Input
-                  ref={passwordConfirmRef}
-                  type="password"
-                  placeholder="Re-enter password"
-                  value={passwordConfirmation}
-                  onChange={(e) => { setPasswordConfirmation(e.target.value); setPasswordConfirmError(""); }}
-                  aria-invalid={Boolean(passwordConfirmError)}
-                  aria-describedby={passwordConfirmError ? "password-confirm-error" : undefined}
-                  className={passwordConfirmError ? "border-rose-500 focus-visible:ring-rose-500" : ""}
-                  required
-                />
+                <div className="relative">
+                  <Input
+                    ref={passwordConfirmRef}
+                    type={showPasswordConfirm ? "text" : "password"}
+                    placeholder="Re-enter password"
+                    value={passwordConfirmation}
+                    onChange={(e) => { setPasswordConfirmation(e.target.value); setPasswordConfirmError(""); }}
+                    aria-invalid={Boolean(passwordConfirmError)}
+                    aria-describedby={passwordConfirmError ? "password-confirm-error" : undefined}
+                    className={passwordConfirmError ? "border-rose-500 focus-visible:ring-rose-500" : "focus-visible:border-[#2164b6] focus-visible:ring-[#2164b6]"}
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPasswordConfirm(!showPasswordConfirm)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 focus:outline-none"
+                  >
+                    {showPasswordConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
                 <InlineFieldError id="password-confirm-error" error={passwordConfirmError} />
               </Field>
             </FieldGroup>

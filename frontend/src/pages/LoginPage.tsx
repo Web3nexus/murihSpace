@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { PhoneInput } from "@/components/forms/PhoneInput";
 import { OtpInput } from "@/components/forms/OtpInput";
-import { Loader2, ShieldAlert, ArrowLeft, RefreshCw, CheckCircle2, Smartphone } from "lucide-react";
+import { Loader2, ShieldAlert, ArrowLeft, RefreshCw, CheckCircle2, Smartphone, Eye, EyeOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AuthLayout } from "@/components/layout/AuthLayout";
 
@@ -48,6 +48,7 @@ export function LoginPage() {
   // Email flow
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   const [socialLoading, setSocialLoading] = useState<string | null>(null);
   const [socialError, setSocialError] = useState<string | null>(null);
@@ -387,20 +388,29 @@ export function LoginPage() {
                     Forgotten password?
                   </Link>
                 </div>
-                <Input
-                  id="login-password"
-                  type="password"
-                  placeholder="••••••••"
-                  required
-                  autoComplete="current-password"
-                  value={password}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
-                  disabled={loading}
-                  className={cn(
-                    "h-12 px-4 rounded-xl text-sm bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-800 focus:border-[#2164b6] focus:ring-2 focus:ring-[#2164b6]/20",
-                    fieldErrors.password && "border-rose-500 focus-visible:ring-rose-500"
-                  )}
-                />
+                <div className="relative">
+                  <Input
+                    id="login-password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="••••••••"
+                    required
+                    autoComplete="current-password"
+                    value={password}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
+                    disabled={loading}
+                    className={cn(
+                      "h-12 px-4 rounded-xl text-sm bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-800 focus:border-[#2164b6] focus:ring-2 focus:ring-[#2164b6]/20",
+                      fieldErrors.password && "border-rose-500 focus-visible:ring-rose-500"
+                    )}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 focus:outline-none"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
                 {fieldErrors.password && <p className="text-xs text-rose-500 mt-1">{fieldErrors.password[0]}</p>}
               </Field>
 
