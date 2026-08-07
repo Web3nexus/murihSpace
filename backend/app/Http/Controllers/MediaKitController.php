@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\MediaKit;
+use App\Models\ReferralLink;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -62,8 +63,17 @@ class MediaKitController extends Controller
 
         $user = $request->user()->loadCount(['communities', 'products', 'followers']);
 
+        $totalFollowers = $user->followers_count ?? 0;
+        $linkCount = max(ReferralLink::where('creator_id', $request->user()->id)->count(), 1);
+        $avgViews = ReferralLink::where('creator_id', $request->user()->id)->sum('clicks') / $linkCount;
+        $engagementRate = $totalFollowers > 0
+            ? round(min(($avgViews / $totalFollowers) * 100, 100), 2)
+            : 0;
+
         $suggested = [
-            'total_followers' => $user->followers_count ?? 0,
+            'total_followers' => $totalFollowers,
+            'avg_views' => $avgViews,
+            'engagement_rate' => $engagementRate,
             'total_products' => $user->products_count ?? 0,
             'total_communities' => $user->communities_count ?? 0,
             'member_since' => $user->created_at->format('Y-m-d'),

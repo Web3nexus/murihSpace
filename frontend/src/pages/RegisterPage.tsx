@@ -7,6 +7,7 @@ import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Loader2, ArrowRight, ArrowLeft, CheckCircle2, XCircle, BadgeCheck, Crown, Smartphone, Download, ShieldCheck, Eye, EyeOff } from "lucide-react";
+import { PASSWORD_RULES, validatePassword } from "@/lib/auth/passwordRules";
 
 import { AuthLayout } from "@/components/layout/AuthLayout";
 import { PhoneInput } from "@/components/forms/PhoneInput";
@@ -188,11 +189,15 @@ export function RegisterPage() {
     setPasswordFieldError("");
     setPasswordConfirmError("");
     if (!password || !passwordConfirmation) return;
-    if (password.length < 8) {
-      setPasswordFieldError("Password must be at least 8 characters");
+    
+    const isValid = validatePassword(password);
+
+    if (!isValid) {
+      setPasswordFieldError("Please ensure your password meets all requirements");
       passwordRef.current?.focus();
       return;
     }
+    
     if (password !== passwordConfirmation) {
       setPasswordConfirmError("Passwords do not match");
       passwordConfirmRef.current?.focus();
@@ -447,6 +452,15 @@ export function RegisterPage() {
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
+                <div className="mt-3 space-y-1.5 p-3 rounded-xl bg-muted/50 border border-border/50">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2">Password Requirements</p>
+                  {PASSWORD_RULES.map((rule, idx) => (
+                    <div key={idx} className="flex items-center gap-2 text-xs font-medium">
+                      {rule.check(password) ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> : <XCircle className="w-3.5 h-3.5 text-muted-foreground" />}
+                      <span className={rule.check(password) ? "text-foreground" : "text-muted-foreground"}>{rule.label}</span>
+                    </div>
+                  ))}
+                </div>
                 <InlineFieldError id="password-field-error" error={passwordFieldError} />
               </Field>
             </FieldGroup>
@@ -473,6 +487,18 @@ export function RegisterPage() {
                     {showPasswordConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
+                
+                {passwordConfirmation && (
+                  <div className="flex items-center gap-2 mt-3 pl-1">
+                    {password === passwordConfirmation
+                      ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                      : <XCircle className="w-3.5 h-3.5 text-muted-foreground" />}
+                    <span className={`text-[11px] font-medium ${password === passwordConfirmation ? 'text-emerald-500' : 'text-muted-foreground'}`}>
+                      Passwords match
+                    </span>
+                  </div>
+                )}
+
                 <InlineFieldError id="password-confirm-error" error={passwordConfirmError} />
               </Field>
             </FieldGroup>

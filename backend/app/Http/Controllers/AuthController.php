@@ -21,6 +21,10 @@ class AuthController extends Controller
 
     public function register(Request $request): JsonResponse
     {
+        if ($request->has('email')) {
+            $request->merge(['email' => strtolower($request->email)]);
+        }
+
         $viaSession = $request->filled('registration_session_id');
 
         if ($viaSession) {
@@ -41,7 +45,7 @@ class AuthController extends Controller
             'email' => $viaSession
                 ? ['nullable', 'string', 'email', 'max:255', 'unique:users,email']
                 : ['required', 'string', 'email', 'max:255', 'unique:users'],
-            'password' => ['required', 'string', 'min:8', 'confirmed', 'regex:/[A-Z]/', 'regex:/[a-z]/', 'regex:/[0-9]/', 'regex:/[@$!%*#?&^_-]/'],
+            'password' => ['required', 'string', 'min:8', 'confirmed', 'regex:/[A-Z]/', 'regex:/[a-z]/', 'regex:/[0-9]/'],
             'username' => ['required', 'string', 'min:3', 'max:50', 'unique:users', 'regex:/\A[a-zA-Z0-9_]+\z/'],
             'country' => ['nullable', 'string', 'size:2', 'exists:countries,iso2'],
             'mobile_number' => ['nullable', 'string', 'regex:/^\+?[1-9]\d{1,14}$/'],
@@ -72,8 +76,6 @@ class AuthController extends Controller
         }
 
         $requestedRole = $request->input('role', 'member');
-        // Initial user role is always member; creator/vendor upgrades go through role application + KYC workflow
-        $initialRole = 'member';
         $kycStatus = $requestedRole !== 'member' ? 'not_started' : 'not_required';
 
         $user = User::create([
@@ -86,7 +88,7 @@ class AuthController extends Controller
             'phone_verified_at' => $registrationSession ? now() : null,
             'county' => $request->county,
             'state' => $request->state,
-            'role' => $initialRole,
+            'role' => $requestedRole,
             'kyc_status' => $kycStatus,
             'kyc_document' => $request->kyc_document,
         ]);
@@ -96,15 +98,6 @@ class AuthController extends Controller
                 'verification_status' => 'consumed',
                 'completed_user_id' => $user->id,
             ]);
-        }
-
-        // If user expressed intent for creator or vendor role during registration, create pending role application
-        if (in_array($requestedRole, ['creator', 'vendor'], true)) {
-            try {
-                app(\App\Services\RoleTransitionService::class)->apply($user, $requestedRole);
-            } catch (\Throwable $e) {
-                report($e);
-            }
         }
 
         event(new Registered($user));
@@ -166,6 +159,10 @@ class AuthController extends Controller
 
     public function login(Request $request): JsonResponse
     {
+        if ($request->has('email')) {
+            $request->merge(['email' => strtolower($request->email)]);
+        }
+
         if (! app(\App\Services\AuthMethodConfigService::class)->loginEnabled('email_password')) {
             throw ValidationException::withMessages([
                 'email' => ['Email and password login is currently disabled. Use your phone number instead.'],
@@ -195,8 +192,10 @@ class AuthController extends Controller
             $excess->take($excess->count() - $maxTokens + 1)->each->delete();
         }
 
-        $token = $user->createToken('auth-token', ['*'], now()->addMinutes((int) (config('sanctum.expiration') ?? 1440)))
-            ->plainTextToken;
+        $expiration = config('sanctum.expiration');
+        $expiresAt = $expiration ? now()->addMinutes((int) $expiration) : now()->addYears(10);
+
+        $token = $user->createToken('auth-token', ['*'], $expiresAt)->plainTextToken;
 
         $this->trackTokenMetadata($user, $request, $token);
 

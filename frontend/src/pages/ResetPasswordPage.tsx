@@ -6,6 +6,7 @@ import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Loader2, Check, AlertCircle, Eye, EyeOff } from "lucide-react";
+import { PASSWORD_RULES, validatePassword } from "@/lib/auth/passwordRules";
 
 export function ResetPasswordPage() {
   const { token } = useParams<{ token: string }>();
@@ -27,8 +28,10 @@ export function ResetPasswordPage() {
       setError("Passwords do not match.");
       return;
     }
-    if (password.length < 8) {
-      setError("Password must be at least 8 characters.");
+    const isValid = validatePassword(password);
+
+    if (!isValid) {
+      setError("Please ensure your password meets all requirements.");
       return;
     }
     setLoading(true);
@@ -49,14 +52,6 @@ export function ResetPasswordPage() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const strengthColor = (pw: string) => {
-    if (!pw) return "";
-    const score = [pw.length >= 8, /[A-Z]/.test(pw), /[a-z]/.test(pw), /[0-9]/.test(pw), /[^A-Za-z0-9]/.test(pw)].filter(Boolean).length;
-    if (score <= 2) return "bg-red-500";
-    if (score <= 3) return "bg-amber-500";
-    return "bg-emerald-500";
   };
 
   return (
@@ -133,19 +128,17 @@ export function ResetPasswordPage() {
                     onChange={(e) => setPassword(e.target.value)}
                     disabled={loading}
                     className="h-12 px-4 rounded-xl text-sm bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-800 focus:border-[#2164b6] focus:ring-2 focus:ring-[#2164b6]/20 pr-10"
+                    aria-describedby="password-requirements"
                   />
                 </div>
                 {password && (
-                  <div className="mt-1.5 space-y-1">
-                    <div className="h-1 w-full rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
-                      <div
-                        className={`h-full rounded-full ${strengthColor(password)}`}
-                        style={{ width: `${([password.length >= 8, /[A-Z]/.test(password), /[a-z]/.test(password), /[0-9]/.test(password), /[^A-Za-z0-9]/.test(password)].filter(Boolean).length / 5) * 100}%` }}
-                      />
-                    </div>
-                    <p className="text-[10px] text-slate-400">
-                      {["Weak", "Moderate", "Strong"][Math.min(2, Math.floor(([password.length >= 8, /[A-Z]/.test(password), /[a-z]/.test(password), /[0-9]/.test(password), /[^A-Za-z0-9]/.test(password)].filter(Boolean).length - 1) / 1.5))]}
-                    </p>
+                  <div id="password-requirements" aria-live="polite" className="space-y-1.5 mt-2 pl-1">
+                    {PASSWORD_RULES.map((rule, idx) => (
+                      <div key={idx} className="flex items-center gap-2">
+                        {rule.check(password) ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <div className="w-3.5 h-3.5 rounded-full border border-slate-300 dark:border-slate-700" />}
+                        <span className={`text-[11px] font-medium ${rule.check(password) ? 'text-emerald-500' : 'text-slate-500 dark:text-slate-400'}`}>{rule.label}</span>
+                      </div>
+                    ))}
                   </div>
                 )}
               </Field>

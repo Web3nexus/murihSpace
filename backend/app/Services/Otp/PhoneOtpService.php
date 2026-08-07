@@ -328,7 +328,7 @@ class PhoneOtpService
     private function driver(): OtpDriverInterface
     {
         return match (config('services.twilio.otp_driver', 'log')) {
-            'twilio' => new TwilioOtpDriver,
+            'twilio' => app(TwilioOtpDriver::class),
             'log' => new LogOtpDriver,
             default => throw new OtpProviderException('Unknown OTP driver configured.'),
         };

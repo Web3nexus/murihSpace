@@ -1,6 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useConfirm } from '@/components/ui/DialogProvider';
-import { Briefcase, Plus, Loader2, Building2, DollarSign, Edit2, Trash2 } from 'lucide-react';
+import { Briefcase, Plus, Loader2, Building2, DollarSign, Edit2, Trash2, Check, AlertCircle, X } from 'lucide-react';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { getAuthToken } from "@/lib/auth/token";
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? 'http://localhost:8000/api/v1';
@@ -35,6 +42,22 @@ interface BrandDeal {
 }
 
 const DEAL_TYPES = ['sponsored_post', 'affiliate', 'collaboration', 'event', 'other'];
+
+const DEAL_STATUS_STYLES: Record<string, string> = {
+  pending: 'bg-amber-500/15 text-amber-600 border-amber-500/30',
+  negotiating: 'bg-blue-500/15 text-blue-600 border-blue-500/30',
+  active: 'bg-emerald-500/15 text-emerald-600 border-emerald-500/30',
+  completed: 'bg-muted text-muted-foreground border-border',
+  cancelled: 'bg-red-500/15 text-red-600 border-red-500/30',
+};
+
+function StatusBadge({ status }: { status: string }) {
+  return (
+    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border capitalize ${DEAL_STATUS_STYLES[status] ?? 'bg-muted text-muted-foreground border-border'}`}>
+      {status.replace('_', ' ')}
+    </span>
+  );
+}
 
 
 export function BrandDealsPage() {
@@ -108,161 +131,167 @@ export function BrandDealsPage() {
     } catch { setMessage({ type: 'error', text: 'Network error.' }); }
   }
 
-  const statusStyles: Record<string, string> = {
-    pending: 'bg-yellow-50 text-yellow-700', negotiating: 'bg-blue-50 text-blue-700',
-    active: 'bg-emerald-50 text-emerald-700', completed: 'bg-gray-100 text-gray-600',
-    cancelled: 'bg-red-50 text-red-600',
-  };
-
   if (isLoading) {
-    return <div className="w-full flex items-center justify-center h-64"><Loader2 className="w-6 h-6 animate-spin text-gray-400" /></div>;
+    return (
+      <div className="h-64 w-full flex items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-secondary" />
+      </div>
+    );
   }
 
   return (
     <div className="space-y-6 w-full max-w-7xl mx-auto p-6 lg:p-8">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <Briefcase className="w-6 h-6" />
-          <h1 className="text-2xl font-bold">Brand Deals Hub</h1>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-black text-foreground tracking-tight flex items-center gap-2.5">
+            <Briefcase className="h-6 w-6 text-secondary" />
+            Brand Deals Hub
+          </h1>
+          <p className="text-xs text-muted-foreground mt-1">
+            Manage your brand partnerships, budgets and deliverables in one place.
+          </p>
         </div>
-        <button onClick={() => { resetForm(); setShowForm(!showForm); }}
-          className="flex items-center gap-2 px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 text-sm">
-          <Plus className="w-4 h-4" /> {showForm ? 'Cancel' : 'New Deal'}
-        </button>
+        <Button onClick={() => { resetForm(); setShowForm(!showForm); }}
+          variant={showForm ? "outline" : "default"} className="shrink-0">
+          {showForm ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+          {showForm ? 'Cancel' : 'New Deal'}
+        </Button>
       </div>
 
       {message && (
-        <div className={`mb-4 px-4 py-3 rounded-lg text-sm ${message.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
-          {message.text}
+        <div className={`flex items-center gap-2 px-4 py-3 rounded-xl text-xs font-medium ${message.type === 'success' ? 'bg-green-500/10 text-green-600' : 'bg-destructive/10 text-destructive'}`}>
+          {message.type === 'success' ? <Check className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
+          <span className="flex-1">{message.text}</span>
+          <button onClick={() => setMessage(null)} className="p-0.5 hover:opacity-70"><X className="h-3.5 w-3.5" /></button>
         </div>
       )}
 
       {showForm && (
-        <form onSubmit={handleSubmit} className="bg-white border rounded-xl p-6 mb-8 space-y-4">
-          <h2 className="font-semibold">{editId ? 'Edit Deal' : 'New Brand Deal'}</h2>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm text-gray-600 mb-1">Brand *</label>
-              <select value={form.brand_id} onChange={e => setForm({ ...form, brand_id: e.target.value })} required
-                className="w-full border rounded-lg px-3 py-2 text-sm">
-                <option value="">Select brand</option>
-                {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-              </select>
+        <form onSubmit={handleSubmit} className="rounded-2xl border border-border bg-card p-6 space-y-5 shadow-xs">
+          <div>
+            <h2 className="text-base font-bold text-foreground">{editId ? 'Edit Deal' : 'New Brand Deal'}</h2>
+            <p className="text-xs text-muted-foreground mt-0.5">Set the terms of this brand partnership.</p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-foreground">Brand *</Label>
+              <Select value={form.brand_id} onValueChange={v => setForm({ ...form, brand_id: v })} required>
+                <SelectTrigger className="w-full"><SelectValue placeholder="Select a brand" /></SelectTrigger>
+                <SelectContent>
+                  {(brands ?? []).map(b => <SelectItem key={b.id} value={String(b.id)}>{b.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
-            <div>
-              <label className="block text-sm text-gray-600 mb-1">Deal Type</label>
-              <select value={form.deal_type} onChange={e => setForm({ ...form, deal_type: e.target.value })}
-                className="w-full border rounded-lg px-3 py-2 text-sm">
-                {DEAL_TYPES.map(d => <option key={d} value={d}>{d.replace('_', ' ')}</option>)}
-              </select>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-foreground">Deal Type</Label>
+              <Select value={form.deal_type} onValueChange={v => setForm({ ...form, deal_type: v })}>
+                <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {DEAL_TYPES.map(d => <SelectItem key={d} value={d}>{d.replace('_', ' ')}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
-            <div className="col-span-2">
-              <label className="block text-sm text-gray-600 mb-1">Title *</label>
-              <input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} required
-                className="w-full border rounded-lg px-3 py-2 text-sm" />
+            <div className="col-span-1 sm:col-span-2 space-y-1.5">
+              <Label className="text-xs font-semibold text-foreground">Title *</Label>
+              <Input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} required placeholder="e.g. Instagram Sponsored Post" />
             </div>
-            <div>
-              <label className="block text-sm text-gray-600 mb-1">Budget (in currency units)</label>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-foreground">Budget (in currency units)</Label>
               <div className="flex gap-2">
-                <input type="number" min="0" value={form.budget} onChange={e => setForm({ ...form, budget: e.target.value })}
-                  className="flex-1 border rounded-lg px-3 py-2 text-sm" />
-                <select value={form.currency} onChange={e => setForm({ ...form, currency: e.target.value })}
-                  className="w-20 border rounded-lg px-2 py-2 text-sm">
-                  <option value="NGN">NGN</option>
-                  <option value="USD">USD</option>
-                  <option value="GBP">GBP</option>
-                  <option value="EUR">EUR</option>
-                </select>
+                <Input type="number" min="0" value={form.budget} onChange={e => setForm({ ...form, budget: e.target.value })} className="flex-1" />
+                <Select value={form.currency} onValueChange={v => setForm({ ...form, currency: v })}>
+                  <SelectTrigger className="w-24"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="NGN">NGN</SelectItem>
+                    <SelectItem value="USD">USD</SelectItem>
+                    <SelectItem value="GBP">GBP</SelectItem>
+                    <SelectItem value="EUR">EUR</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
-            <div>
-              <label className="block text-sm text-gray-600 mb-1">Status</label>
-              <select value={editId ? '' : 'pending'} onChange={() => {}}
-                className="w-full border rounded-lg px-3 py-2 text-sm text-gray-400" disabled>
-                <option value="pending">Pending (set on create)</option>
-              </select>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-foreground">Status</Label>
+              <Input value="Pending" readOnly disabled className="text-muted-foreground" />
+              <p className="text-[11px] text-muted-foreground">New deals are created as pending.</p>
             </div>
-            <div className="col-span-2">
-              <label className="block text-sm text-gray-600 mb-1">Description</label>
-              <textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })}
-                rows={2} className="w-full border rounded-lg px-3 py-2 text-sm" />
+            <div className="col-span-2 space-y-1.5">
+              <Label className="text-xs font-semibold text-foreground">Description</Label>
+              <Textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} rows={2} />
             </div>
-            <div className="col-span-2">
-              <label className="block text-sm text-gray-600 mb-1">Deliverables</label>
-              <textarea value={form.deliverables} onChange={e => setForm({ ...form, deliverables: e.target.value })}
-                rows={2} className="w-full border rounded-lg px-3 py-2 text-sm" />
+            <div className="col-span-2 space-y-1.5">
+              <Label className="text-xs font-semibold text-foreground">Deliverables</Label>
+              <Textarea value={form.deliverables} onChange={e => setForm({ ...form, deliverables: e.target.value })} rows={2} />
             </div>
-            <div>
-              <label className="block text-sm text-gray-600 mb-1">Start Date</label>
-              <input type="date" value={form.starts_at} onChange={e => setForm({ ...form, starts_at: e.target.value })}
-                className="w-full border rounded-lg px-3 py-2 text-sm" />
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-foreground">Start Date</Label>
+              <Input type="date" value={form.starts_at} onChange={e => setForm({ ...form, starts_at: e.target.value })} />
             </div>
-            <div>
-              <label className="block text-sm text-gray-600 mb-1">End Date</label>
-              <input type="date" value={form.ends_at} onChange={e => setForm({ ...form, ends_at: e.target.value })}
-                className="w-full border rounded-lg px-3 py-2 text-sm" />
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-foreground">End Date</Label>
+              <Input type="date" value={form.ends_at} onChange={e => setForm({ ...form, ends_at: e.target.value })} />
             </div>
           </div>
-          <button type="submit" className="px-6 py-2 bg-black text-white rounded-lg hover:bg-gray-800 text-sm">
-            {editId ? 'Update Deal' : 'Create Deal'}
-          </button>
+          <Button type="submit" className="mt-2">{editId ? 'Update Deal' : 'Create Deal'}</Button>
         </form>
       )}
 
       {deals.length === 0 ? (
-        <div className="flex flex-col items-center text-center gap-4 py-16">
-          <Briefcase className="w-16 h-16 text-gray-300" />
-          <h2 className="text-xl font-semibold text-gray-700">No brand deals yet</h2>
-          <p className="text-gray-500">Create your first brand partnership deal to get started.</p>
+        <div className="rounded-3xl border border-dashed border-border bg-card p-12 text-center space-y-3">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-muted">
+            <Briefcase className="h-7 w-7 text-muted-foreground" />
+          </div>
+          <h3 className="text-sm font-bold text-foreground">No brand deals yet</h3>
+          <p className="text-xs text-muted-foreground max-w-sm mx-auto">Create your first brand partnership deal to get started earning from sponsorships.</p>
+          <Button size="sm" onClick={() => { resetForm(); setShowForm(true); }}><Plus className="h-4 w-4" /> New Deal</Button>
         </div>
       ) : (<>
         <div className="space-y-3">
-          {deals.map(d => (
-            <div key={d.id} className="bg-white border rounded-xl p-4">
-              <div className="flex items-start justify-between">
-                <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center shrink-0">
-                    {d.brand?.logo_url ? <img src={d.brand.logo_url} className="w-8 h-8 rounded" /> : <Building2 className="w-5 h-5 text-gray-400" />}
-                  </div>
-                  <div>
-                    <h3 className="font-semibold">{d.title}</h3>
-                    <div className="flex items-center gap-2 text-sm text-gray-500 mt-0.5">
-                      <span>{d.brand?.name}</span>
-                      <span>·</span>
-                      <span className="capitalize">{d.deal_type.replace('_', ' ')}</span>
-                      <span>·</span>
-                      <DollarSign className="w-3 h-3" />
-                      <span>{formatPrice(d.budget, d.currency)}</span>
-                    </div>
-                    {d.deliverables && <p className="text-sm text-gray-600 mt-1">{d.deliverables}</p>}
-                  </div>
+          {(deals ?? []).map(d => (
+            <div key={d.id} className="rounded-xl border border-border bg-card p-4 flex items-start justify-between gap-4">
+              <div className="flex items-start gap-3 min-w-0">
+                <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center shrink-0">
+                  {d.brand?.logo_url ? <img src={d.brand.logo_url} alt={d.brand.name} className="w-8 h-8 rounded-lg" /> : <Building2 className="w-5 h-5 text-muted-foreground" />}
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${statusStyles[d.status] ?? 'bg-gray-100'}`}>
-                    {d.status}
-                  </span>
-                  <button onClick={() => startEdit(d)} className="p-1.5 hover:bg-gray-100 rounded-lg">
-                    <Edit2 className="w-4 h-4 text-gray-400" />
-                  </button>
-                  <button onClick={() => deleteDeal(d.id)} className="p-1.5 hover:bg-gray-100 rounded-lg">
-                    <Trash2 className="w-4 h-4 text-red-400" />
-                  </button>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="text-sm font-bold text-foreground truncate">{d.title}</h3>
+                    <StatusBadge status={d.status ?? 'pending'} />
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1 flex-wrap">
+                    <span>{d.brand?.name ?? 'Unbranded'}</span>
+                    <span>·</span>
+                    <span className="capitalize">{d.deal_type.replace('_', ' ')}</span>
+                    <span>·</span>
+                    <span className="flex items-center gap-1 font-semibold text-foreground">
+                      <DollarSign className="w-3 h-3" />{formatPrice(d.budget, d.currency)}
+                    </span>
+                  </div>
+                  {d.deliverables && <p className="text-xs text-muted-foreground mt-1.5 line-clamp-2">{d.deliverables}</p>}
+                  {(d.starts_at || d.ends_at) && (
+                    <div className="flex items-center gap-4 mt-2 text-[11px] text-muted-foreground">
+                      {d.starts_at && <span>From {new Date(d.starts_at).toLocaleDateString()}</span>}
+                      {d.ends_at && <span>To {new Date(d.ends_at).toLocaleDateString()}</span>}
+                    </div>
+                  )}
                 </div>
               </div>
-              {(d.starts_at || d.ends_at) && (
-                <div className="flex items-center gap-4 mt-2 text-xs text-gray-400">
-                  {d.starts_at && <span>From {new Date(d.starts_at).toLocaleDateString()}</span>}
-                  {d.ends_at && <span>To {new Date(d.ends_at).toLocaleDateString()}</span>}
-                </div>
-              )}
+              <div className="flex items-center gap-1 shrink-0">
+                <Button variant="ghost" size="icon-sm" onClick={() => startEdit(d)} aria-label="Edit deal">
+                  <Edit2 className="h-4 w-4 text-muted-foreground" />
+                </Button>
+                <Button variant="ghost" size="icon-sm" onClick={() => deleteDeal(d.id)} aria-label="Delete deal">
+                  <Trash2 className="h-4 w-4 text-destructive" />
+                </Button>
+              </div>
             </div>
           ))}
         </div>
         {lastPage > 1 && (
           <div className="flex items-center justify-center gap-2 pt-4">
-            <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1} className="px-3 py-1.5 rounded-lg text-xs font-bold border border-border bg-card hover:bg-muted disabled:opacity-40">Previous</button>
+            <Button variant="outline" size="sm" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1}>Previous</Button>
             <span className="text-xs text-muted-foreground">Page {page} of {lastPage}</span>
-            <button onClick={() => setPage(p => Math.min(lastPage, p + 1))} disabled={page >= lastPage} className="px-3 py-1.5 rounded-lg text-xs font-bold border border-border bg-card hover:bg-muted disabled:opacity-40">Next</button>
+            <Button variant="outline" size="sm" onClick={() => setPage(p => Math.min(lastPage, p + 1))} disabled={page >= lastPage}>Next</Button>
           </div>
         )}
       </>)}

@@ -50,7 +50,7 @@ return [
     |
     */
 
-    'expiration' => env('SANCTUM_TOKEN_TTL', 60 * 24),
+    'expiration' => env('SANCTUM_TOKEN_TTL', null),
 
     /*
     |--------------------------------------------------------------------------

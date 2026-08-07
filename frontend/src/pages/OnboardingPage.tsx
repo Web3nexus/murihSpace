@@ -3,7 +3,7 @@ import { useNavigate } from "react-router";
 import {
   Loader2, Wand2, Send, Plus, X, Check, ChevronRight, ChevronLeft,
   Camera, Music, Hash, Film, MessageCircle, Link as LinkIcon, ShoppingCart,
-  Palette, ArrowRight, Smartphone, MailCheck, ShieldCheck, Store, User as UserIcon,
+  Palette, ArrowRight, Smartphone, Store, User as UserIcon,
   Package, Globe, Target
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -114,54 +114,7 @@ export default function OnboardingPage() {
   // Template
   const [template, setTemplate] = useState("minimal");
 
-  // Email verification gate
-  const [verifyCode, setVerifyCode] = useState("");
-  const [verifySending, setVerifySending] = useState(false);
-  const [verifyMsg, setVerifyMsg] = useState<{ ok: boolean; text: string } | null>(null);
-  const codeSentRef = useRef(false);
-
   const chatEndRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (user && user.email_verified === false && !codeSentRef.current) {
-      codeSentRef.current = true;
-      fetch(`${API_BASE}/auth/email/send-code`, { method: "POST", headers: getAuthHeaders() }).catch(() => {});
-    }
-  }, [user]);
-
-  const verifyEmail = async () => {
-    if (!/^\d{6}$/.test(verifyCode)) return;
-    setVerifySending(true);
-    setVerifyMsg(null);
-    try {
-      const res = await fetch(`${API_BASE}/auth/email/verify-code`, {
-        method: "POST", headers: getAuthHeaders(),
-        body: JSON.stringify({ code: verifyCode }),
-      });
-      const j = await res.json();
-      if (!res.ok) {
-        setVerifyMsg({ ok: false, text: j?.message ?? "Invalid code." });
-        return;
-      }
-      setVerifyMsg({ ok: true, text: "Email verified. Setting up your onboarding…" });
-      window.location.reload();
-    } catch {
-      setVerifyMsg({ ok: false, text: "Could not verify. Please try again." });
-    } finally {
-      setVerifySending(false);
-    }
-  };
-
-  const resendCode = async () => {
-    setVerifyMsg(null);
-    try {
-      const res = await fetch(`${API_BASE}/auth/email/send-code`, { method: "POST", headers: getAuthHeaders() });
-      const j = await res.json();
-      setVerifyMsg(res.ok ? { ok: true, text: "A new code is on its way." } : { ok: false, text: j?.message ?? "Could not resend code." });
-    } catch {
-      setVerifyMsg({ ok: false, text: "Could not resend code. Please try again." });
-    }
-  };
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -380,60 +333,7 @@ export default function OnboardingPage() {
 
   if (loading) return <div className="flex justify-center py-24"><Loader2 className="h-8 w-8 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" /></div>;
 
-  if (user && user.email_verified === false) {
-    return (
-      <div className="w-full max-w-2xl mx-auto space-y-6 p-6 lg:p-10">
-        <div className="flex items-center gap-3">
-          <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-[#2164b6] to-[#2164b6] flex items-center justify-center text-white shadow-md shadow-[#2164b6]/20">
-            <MailCheck className="h-6 w-6" />
-          </div>
-          <div>
-            <h1 className="text-xl font-black tracking-tight flex items-center gap-2">
-              Verify your email <ShieldCheck className="h-5 w-5 text-emerald-500" />
-            </h1>
-            <p className="text-xs text-muted-foreground mt-0.5">One quick step before AI setup takes over.</p>
-          </div>
-        </div>
 
-        <div className="border border-border rounded-2xl bg-card p-8 space-y-5 shadow-sm">
-          <p className="text-sm text-foreground leading-relaxed">
-            Welcome to MurihSpace! We've sent a <span className="font-black">6-digit code</span> to{" "}
-            <span className="font-bold text-[#2164b6] dark:text-[#7ab0ff]">{user.email}</span>. Enter it to verify your account and start
-            onboarding.
-          </p>
-
-          <div className="space-y-2">
-            <label className="text-xs font-bold text-muted-foreground">Verification code</label>
-            <Input
-              value={verifyCode}
-              onChange={(e) => setVerifyCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-              onKeyDown={(e) => e.key === "Enter" && verifyEmail()}
-              placeholder="000000"
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              className="h-14 text-center text-2xl font-black tracking-[0.6em] placeholder:text-muted-foreground/30"
-            />
-          </div>
-
-          {verifyMsg && (
-            <p className={`text-xs font-semibold ${verifyMsg.ok ? "text-emerald-600 dark:text-emerald-400" : "text-rose-500"}`}>
-              {verifyMsg.text}
-            </p>
-          )}
-
-          <div className="flex flex-col sm:flex-row gap-3">
-            <Button onClick={verifyEmail} disabled={verifySending || !/^\d{6}$/.test(verifyCode)} className="text-sm font-bold gap-1.5 flex-1">
-              {verifySending ? <Loader2 className="h-4 w-4 animate-spin" /> : <MailCheck className="h-4 w-4" />}
-              Verify & start onboarding
-            </Button>
-            <Button variant="ghost" onClick={resendCode} disabled={verifySending} className="text-sm font-bold text-[#2164b6] dark:text-[#7ab0ff]">
-              Resend code
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="w-full max-w-7xl mx-auto space-y-6 p-6 lg:p-8">

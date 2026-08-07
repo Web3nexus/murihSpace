@@ -26,7 +26,7 @@ class AdminUserController extends Controller
 
         $query = User::select([
             'id', 'name', 'email', 'username', 'role', 'status',
-            'kyc_status', 'created_at', 'suspended_at',
+            'kyc_status', 'created_at', 'suspended_at', 'mobile_number', 'country',
         ])->where('role', '!=', 'admin');
 
         if (! empty($validated['search'])) {
@@ -34,7 +34,8 @@ class AdminUserController extends Controller
             $query->where(function ($q) use ($s) {
                 $q->where('name', 'like', "%{$s}%")
                     ->orWhere('email', 'like', "%{$s}%")
-                    ->orWhere('username', 'like', "%{$s}%");
+                    ->orWhere('username', 'like', "%{$s}%")
+                    ->orWhere('mobile_number', 'like', "%{$s}%");
             });
         }
         if (! empty($validated['role'])) {

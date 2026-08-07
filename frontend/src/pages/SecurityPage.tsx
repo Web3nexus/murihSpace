@@ -1,18 +1,19 @@
 import { useState, useEffect } from "react";
 import {
-  Shield,
-  Smartphone,
-  LogOut,
-  Key,
   Eye,
   EyeOff,
-  Check,
+  Key,
+  Smartphone,
+  Shield,
   AlertCircle,
-  Loader2,
   Copy,
+  Loader2,
+  Check,
   CheckCheck,
+  LogOut,
 } from "lucide-react";
 import { apiClient } from "@/lib/api/client";
+import { PASSWORD_RULES } from "@/lib/auth/passwordRules";
 import { AppDownloadQR } from "@/components/WebLockedPage";
 
 interface Session {
@@ -70,8 +71,10 @@ export default function SecurityPage() {
       setPassMsg({ ok: false, text: "New passwords do not match." });
       return;
     }
-    if (newPassword.length < 8) {
-      setPassMsg({ ok: false, text: "Password must be at least 8 characters." });
+    const unmet = PASSWORD_RULES.filter(rule => !rule.check(newPassword)).map(r => r.label);
+
+    if (unmet.length > 0) {
+      setPassMsg({ ok: false, text: `Password must contain ${unmet.join(", ")}.` });
       return;
     }
     setPassSaving(true);
@@ -237,9 +240,15 @@ export default function SecurityPage() {
                 required
               />
               {newPassword && (
-                <div className="mt-1.5 space-y-1">
-                  <div className="h-1 w-full rounded-full bg-muted overflow-hidden">
-                    <div className={`h-full rounded-full ${strengthColor(newPassword)}`} style={{ width: `${([newPassword.length >= 8, /[A-Z]/.test(newPassword), /[a-z]/.test(newPassword), /[0-9]/.test(newPassword), /[^A-Za-z0-9]/.test(newPassword)].filter(Boolean).length / 5) * 100}%` }} />
+                <div className="mt-2 space-y-1.5 pl-1">
+                  {PASSWORD_RULES.map((rule, idx) => (
+                    <div key={idx} className="flex items-center gap-2">
+                      {rule.check(newPassword) ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <div className="w-3.5 h-3.5 rounded-full border border-slate-300 dark:border-slate-700" />}
+                      <span className={`text-[11px] font-medium ${rule.check(newPassword) ? 'text-emerald-500' : 'text-slate-500 dark:text-slate-400'}`}>{rule.label}</span>
+                    </div>
+                  ))}
+                  <div className="h-1 w-full rounded-full bg-muted overflow-hidden mt-2">
+                    <div className={`h-full rounded-full ${strengthColor(newPassword)}`} style={{ width: `${(PASSWORD_RULES.filter(r => r.check(newPassword)).length / PASSWORD_RULES.length) * 100}%` }} />
                   </div>
                   <p className="text-[10px] text-muted-foreground">{strengthLabel(newPassword)}</p>
                 </div>

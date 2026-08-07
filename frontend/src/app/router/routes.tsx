@@ -48,6 +48,7 @@ const AdminVerificationBadgesPage = lazy(() => import("@/pages/AdminVerification
 const CoursesPage = lazy(() => import("@/pages/CoursesPage"));
 const StoreManagementPage = lazy(() => import("@/pages/StoreManagementPage").then(module => ({ default: module.StoreManagementPage })));
 const PublicStorefrontPage = lazy(() => import("@/pages/PublicStorefrontPage").then(module => ({ default: module.PublicStorefrontPage })));
+const PublicMediaKitPage = lazy(() => import("@/pages/PublicMediaKitPage").then(module => ({ default: module.PublicMediaKitPage })));
 const DigitalProductsPage = lazy(() => import("@/pages/DigitalProductsPage").then(module => ({ default: module.DigitalProductsPage })));
 const SalesOrdersPage = lazy(() => import("@/pages/SalesOrdersPage").then(module => ({ default: module.SalesOrdersPage })));
 const AudioRoomsPage = lazy(() => import("@/pages/AudioRoomsPage").then(module => ({ default: module.AudioRoomsPage })));
@@ -112,6 +113,7 @@ const AdminSettingsPage = lazy(() => import("@/pages/AdminSettingsPage"));
 const AdminAuthMethodsPage = lazy(() => import("@/pages/AdminAuthMethodsPage"));
 const AdminAiSettingsPage = lazy(() => import("@/pages/AdminAiSettingsPage"));
 const AdminEmailEngineSettingsPage = lazy(() => import("@/pages/AdminEmailEngineSettingsPage"));
+const AdminSmsEngineSettingsPage = lazy(() => import("@/pages/AdminSmsEngineSettingsPage"));
 const AdminEmailTemplatesPage = lazy(() => import("@/pages/AdminEmailTemplatesPage"));
 const AdminSocialLoginSettingsPage = lazy(() => import("@/pages/AdminSocialLoginSettingsPage"));
 const AdminStoragePage = lazy(() => import("@/pages/AdminStoragePage"));
@@ -159,6 +161,7 @@ export const routes: RouteObject[] = [
   { path: RoutePaths.REGISTER, element: <Suspense fallback={<PageLoader />}><RegisterPage /></Suspense> },
   { path: "/social/callback", element: <Suspense fallback={<PageLoader />}><SocialAuthCallbackPage /></Suspense> },
   { path: "/store/:shortCode", element: <Suspense fallback={<PageLoader />}><PublicStorefrontPage /></Suspense> },
+  { path: "/media-kit/:creatorId", element: <Suspense fallback={<PageLoader />}><PublicMediaKitPage /></Suspense> },
   { path: "/communities", element: <Suspense fallback={<PageLoader />}><PublicCommunitiesPage /></Suspense> },
   { path: "/privacy", element: <Suspense fallback={<PageLoader />}><PrivacyPolicyPage /></Suspense> },
   { path: "/terms", element: <Suspense fallback={<PageLoader />}><TermsOfServicePage /></Suspense> },
@@ -699,6 +702,10 @@ export const routes: RouteObject[] = [
       {
         path: "securegate/email-engine",
         element: <ProtectedRoute requiredRole="admin"><Suspense fallback={<PageLoader />}><AdminEmailEngineSettingsPage /></Suspense></ProtectedRoute>,
+      },
+      {
+        path: "securegate/sms-engine",
+        element: <ProtectedRoute requiredRole="admin"><Suspense fallback={<PageLoader />}><AdminSmsEngineSettingsPage /></Suspense></ProtectedRoute>,
       },
       {
         path: "securegate/email-templates",

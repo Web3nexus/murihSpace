@@ -600,6 +600,7 @@ Route::prefix('v1')->group(function () {
                 Route::get('/', [BrandDealProposalController::class, 'index']);
                 Route::post('/', [BrandDealProposalController::class, 'store']);
                 Route::post('/{id}/send', [BrandDealProposalController::class, 'send']);
+                Route::put('/{id}', [BrandDealProposalController::class, 'update']);
                 Route::delete('/{id}', [BrandDealProposalController::class, 'destroy']);
             });
 
@@ -1284,6 +1285,13 @@ Route::prefix('v1')->group(function () {
                 Route::get('/', [\App\Http\Controllers\AdminMailSettingsController::class, 'show']);
                 Route::put('/', [\App\Http\Controllers\AdminMailSettingsController::class, 'update']);
                 Route::post('/test', [\App\Http\Controllers\AdminMailSettingsController::class, 'test']);
+            });
+
+            // ── SMS Engine ─────────────────────────────────────────────────
+            Route::prefix('sms-settings')->group(function () {
+                Route::get('/', [\App\Http\Controllers\AdminSmsSettingsController::class, 'show']);
+                Route::put('/', [\App\Http\Controllers\AdminSmsSettingsController::class, 'update']);
+                Route::post('/test', [\App\Http\Controllers\AdminSmsSettingsController::class, 'test']);
             });
 
             // ── Social Login (OAuth) Providers ──────────────────────────────

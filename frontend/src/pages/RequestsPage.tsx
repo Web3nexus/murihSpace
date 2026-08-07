@@ -14,6 +14,15 @@ function authHeaders() {
 
 type RequestTab = "friends" | "communities" | "sent";
 
+function asList(value: unknown): unknown[] {
+  if (Array.isArray(value)) return value;
+  if (value && typeof value === "object") {
+    const inner = (value as { data?: unknown }).data;
+    if (Array.isArray(inner)) return inner;
+  }
+  return [];
+}
+
 interface FriendRequest {
   id: number;
   sender: { id: number; name: string; username: string; avatar_url?: string };
@@ -61,9 +70,9 @@ export default function RequestsPage() {
         fetch(`${API_BASE}/community-requests`, { headers: authHeaders() }),
         fetch(`${API_BASE}/friends/requests/sent`, { headers: authHeaders() }),
       ]);
-      if (fRes.ok) { const j = await fRes.json(); setFriendReqs(j?.data ?? []); }
-      if (cRes.ok) { const j = await cRes.json(); setCommunityReqs(j?.data ?? []); }
-      if (sRes.ok) { const j = await sRes.json(); setSentReqs(j?.data ?? []); }
+      if (fRes.ok) { const j = await fRes.json(); setFriendReqs(asList(j?.data) as FriendRequest[]); }
+      if (cRes.ok) { const j = await cRes.json(); setCommunityReqs(asList(j?.data) as CommunityRequest[]); }
+      if (sRes.ok) { const j = await sRes.json(); setSentReqs(asList(j?.data) as FriendRequest[]); }
     } catch { /* ignore */ }
     finally { setLoading(false); }
   }, []);

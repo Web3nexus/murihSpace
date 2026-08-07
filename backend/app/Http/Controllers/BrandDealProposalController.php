@@ -69,6 +69,45 @@ class BrandDealProposalController extends Controller
         return response()->json(['data' => $proposal->fresh()->load('brand:id,name,slug,logo_url,industry')]);
     }
 
+    public function update(Request $request, int $id): JsonResponse
+    {
+        $proposal = BrandDealProposal::where('creator_id', $request->user()->id)->findOrFail($id);
+
+        $rules = [];
+        if ($request->has('status')) {
+            // Creators can only transition draft -> sent manually, or maybe cancel/mark lost. But we restrict viewed/accepted.
+            // Wait, actually, let's just allow them to update draft/sent if it's in their control.
+            // If the UI has a kanban board, maybe they want to track it offline.
+            // Let's enforce that if it's not draft, they can't edit CONTENT.
+            $rules['status'] = ['sometimes', 'string', 'in:draft,sent,declined'];
+        }
+
+        if ($proposal->status === 'draft') {
+            $rules = array_merge($rules, [
+                'brand_id' => ['nullable', 'exists:brands,id'],
+                'brand_name' => ['nullable', 'string', 'max:255'],
+                'brand_email' => ['nullable', 'email', 'max:255'],
+                'title' => ['sometimes', 'string', 'max:255'],
+                'pitch' => ['sometimes', 'string', 'max:10000'],
+                'proposed_budget' => ['nullable', 'integer', 'min:0'],
+                'currency' => ['sometimes', 'string', 'max:3'],
+                'deliverables' => ['nullable', 'string', 'max:5000'],
+            ]);
+        } elseif ($request->except('status')) {
+            return response()->json(['message' => 'Cannot edit proposal content after it has been sent.'], 403);
+        }
+
+        $validated = $request->validate($rules);
+
+        if (isset($validated['status']) && $validated['status'] === 'sent' && $proposal->status !== 'sent') {
+            $validated['sent_at'] = now();
+        }
+
+        $proposal->update($validated);
+
+        return response()->json(['data' => $proposal->fresh()->load('brand:id,name,slug,logo_url,industry')]);
+    }
+
     public function destroy(Request $request, int $id): JsonResponse
     {
         $proposal = BrandDealProposal::where('creator_id', $request->user()->id)->findOrFail($id);

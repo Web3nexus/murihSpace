@@ -25,6 +25,7 @@ import {
   BookOpen,
   Mail,
   MailOpen,
+  MessageSquareText,
   LinkIcon,
   Receipt,
   Wallet,
@@ -260,6 +261,11 @@ export const adminNav: NavGroup[] = [
         title: "Email Templates",
         url: "/app/securegate/email-templates",
         icon: <MailOpen className="size-4" />,
+      },
+      {
+        title: "SMS Engine",
+        url: "/app/securegate/sms-engine",
+        icon: <MessageSquareText className="size-4" />,
       },
       {
         title: "Social Login",

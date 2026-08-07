@@ -148,6 +148,11 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->kyc_status === 'verified';
     }
 
+    public function hasVerifiedEmail()
+    {
+        return ! is_null($this->email_verified_at) || ! is_null($this->phone_verified_at);
+    }
+
     public function hasVerifiedPhone(): bool
     {
         return $this->phone_verified_at !== null;

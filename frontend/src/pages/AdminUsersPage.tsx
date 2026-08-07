@@ -202,7 +202,7 @@ export function AdminUsersPage() {
                 <thead className="bg-muted/30 border-b border-border">
                   <tr className="text-left">
                     {[
-                      { label: 'Name', col: 'name' }, { label: 'Email', col: 'email' }, { label: 'Username', col: 'username' },
+                      { label: 'Name', col: 'name' }, { label: 'Email', col: 'email' }, { label: 'Mobile', col: 'mobile_number' }, { label: 'Username', col: 'username' },
                       { label: 'Role', col: 'role' }, { label: 'Country', col: 'country' }, { label: 'Status', col: 'status' },
                       { label: 'KYC', col: 'kyc_status' }, { label: 'Joined', col: 'created_at' }, { label: '', col: null },
                     ].map(({ label, col }) => (
@@ -214,7 +214,8 @@ export function AdminUsersPage() {
                   {users.map((u) => (
                     <tr key={u.id} className="hover:bg-muted/10 transition-colors">
                       <td className="px-4 py-3 font-semibold text-foreground whitespace-nowrap">{u.name}</td>
-                      <td className="px-4 py-3 text-muted-foreground">{u.email}</td>
+                      <td className="px-4 py-3 text-muted-foreground">{u.email || '-'}</td>
+                      <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{u.mobile_number || '-'}</td>
                       <td className="px-4 py-3 text-muted-foreground">@{u.username}</td>
                       <td className="px-4 py-3"><span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${ROLE_COLORS[u.role] ?? ''}`}>{u.role}</span></td>
                       <td className="px-4 py-3 text-muted-foreground uppercase font-bold text-[10px]">{u.country || '-'}</td>
