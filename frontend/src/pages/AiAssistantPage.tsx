@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect } from "react";
 import {
-  Bot, Send, Zap, RefreshCw, TrendingUp,
+  Send, Zap, RefreshCw, TrendingUp,
   Users, FileText, MessageCircle, ShoppingBag, Wand2, MailCheck, Loader2,
 } from "lucide-react";
+import { MeraIcon } from "@/components/brand/MeraIcon";
 import { getAuthToken } from "@/lib/auth/token";
 import { useAuth } from "@/hooks/useAuth";
 import { Link } from "react-router";
@@ -180,7 +181,7 @@ export default function AiAssistantPage() {
           <div className="flex items-center gap-3">
             <div className="relative">
               <div className="h-10 w-10 rounded-2xl bg-gradient-to-br from-[#2164b6] to-[#1a6b9e] flex items-center justify-center shadow-md shadow-[#2164b6]/20">
-                <Bot className="h-5 w-5 text-white" />
+                <MeraIcon className="h-5 w-5" />
               </div>
               <div className="absolute -top-0.5 -right-0.5 h-3 w-3 rounded-full bg-emerald-500 border-2 border-white dark:border-[#0f1f30]" />
             </div>
@@ -243,7 +244,7 @@ export default function AiAssistantPage() {
                   ? "bg-gradient-to-br from-[#2164b6] to-[#1a6b9e] text-white"
                   : "bg-gradient-to-br from-[#102840] to-[#1a2e4a] text-white"
               }`}>
-                {m.role === "assistant" ? <Bot className="h-4 w-4" /> : <MessageCircle className="h-4 w-4" />}
+                {m.role === "assistant" ? <MeraIcon className="h-4 w-4" /> : <MessageCircle className="h-4 w-4" />}
               </div>
               <div className={`max-w-[75%] ${m.role === "user" ? "order-first" : ""}`}>
                 <div className={`px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap break-words ${
@@ -263,7 +264,7 @@ export default function AiAssistantPage() {
           {busy && (
             <div className="flex gap-3 animate-in fade-in slide-in-from-left-2 duration-200">
               <div className="h-8 w-8 rounded-xl bg-gradient-to-br from-[#2164b6] to-[#1a6b9e] flex items-center justify-center shrink-0 shadow-sm">
-                <Bot className="h-4 w-4 text-white" />
+                <MeraIcon className="h-4 w-4" />
               </div>
               <div className="bg-white dark:bg-[#102840] border border-border/50 rounded-2xl rounded-tl-sm px-4 py-2 shadow-sm">
                 <TypingDots />

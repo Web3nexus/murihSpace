@@ -1247,6 +1247,7 @@ Route::prefix('v1')->group(function () {
                 Route::get('/top-content', [AdminAnalyticsController::class, 'topContent']);
                 Route::get('/growth', [AdminAnalyticsController::class, 'growth']);
                 Route::get('/revenue', [AdminAnalyticsController::class, 'revenue']);
+                Route::get('/pending-counts', [AdminAnalyticsController::class, 'pendingCounts']);
             });
 
             // ── Sprint 42: Plans & Fees Management ───────────────────────────

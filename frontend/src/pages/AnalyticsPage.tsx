@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router";
-import { BarChart3, DollarSign, ShoppingBag, Users, Mail, TrendingUp, Lightbulb, Target, Zap, CheckCircle2, Loader2, AlertCircle, Sparkles } from "lucide-react";
+import { BarChart3, DollarSign, ShoppingBag, Users, Mail, TrendingUp, Lightbulb, Target, Zap, CheckCircle2, Loader2, AlertCircle } from "lucide-react";
+import { MeraIcon } from "@/components/brand/MeraIcon";
 import { apiClient } from "@/lib/api/client";
 import { AnimatedPage } from "@/components/common/AnimatedPage";
 import { Button } from "@/components/ui/button";
@@ -286,7 +287,7 @@ export function AnalyticsPage() {
           {aiInsight && (
             <div className="rounded-2xl border border-[#2164b6]/30 bg-gradient-to-br from-[#2164b6]/10 to-purple-500/10 p-5 shadow-2xs">
               <div className="flex items-center gap-2 mb-2">
-                <Sparkles className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" />
+                <MeraIcon className="h-4 w-4" />
                 <h3 className="font-bold text-foreground text-sm">Mera's take</h3>
               </div>
               <p className="text-xs sm:text-sm text-foreground/90 leading-relaxed">{aiInsight}</p>

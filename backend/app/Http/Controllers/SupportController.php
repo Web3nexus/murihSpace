@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\SupportThread;
 use App\Models\SupportMessage;
+use App\Services\AdminAlertService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -35,6 +36,21 @@ class SupportController extends Controller
             'content' => $validated['content'],
             'from_admin' => $request->user()->role === 'admin',
         ]);
+
+        if (!$message->from_admin) {
+            app(AdminAlertService::class)->dispatch([
+                'event_type' => 'support_message',
+                'severity' => 'warning',
+                'title' => 'New Support Message',
+                'description' => "New support message in thread #{$thread->id}.",
+                'metadata' => [
+                    'thread_id' => $thread->id,
+                    'message_id' => $message->id,
+                ],
+                'reference' => env('APP_URL') . '/app/securegate/support/' . $thread->id,
+                'channels' => ['email', 'telegram']
+            ]);
+        }
 
         return response()->json(['data' => $message->load('user')], 201);
     }

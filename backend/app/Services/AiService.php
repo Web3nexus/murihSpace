@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\AiConversation;
 use App\Models\AiMemory;
 use App\Models\AiSetting;
+use App\Models\AdminSetting;
 use App\Models\User;
 use App\Services\AiProviders\AiProviderContract;
 use Exception;
@@ -132,20 +133,28 @@ class AiService
     }
 
     /**
-     * Effective AI behavior for a user: platform defaults overridden by the
-     * creator's ai_settings row (if any).
+     * Effective AI behavior for a user.
+     *
+     * Creators may only customise how Mera speaks (persona + tone). The on-topic
+     * guardrails (keep_on_topic, off_topic_mode, focus_topics) are admin-locked:
+     * they come exclusively from the platform-wide default (AdminSetting override,
+     * falling back to config/env) and can never be changed per user.
      */
     public function behavior(User $user): array
     {
         $defaults = config('services.anthropic.behavior', []);
         $s = $user->aiSetting;
 
+        $keep = AdminSetting::get('ai_guardrail_keep_on_topic');
+        $offTopic = AdminSetting::get('ai_guardrail_off_topic_mode');
+        $focus = AdminSetting::get('ai_guardrail_focus_topics');
+
         return [
-            'persona' => $s?->persona ?: ($defaults['persona'] ?? 'Mera'),
-            'tone' => $s?->tone ?: ($defaults['tone'] ?? 'Warm, friendly and practical. Encouraging without being generic.'),
-            'keep_on_topic' => $s ? (bool) $s->keep_on_topic : (bool) ($defaults['keep_on_topic'] ?? true),
-            'off_topic_mode' => $s?->off_topic_mode ?: ($defaults['off_topic_mode'] ?? AiSetting::OFF_TOPIC_REDIRECT),
-            'focus_topics' => $s?->focus_topics ?: ($defaults['focus_topics'] ?? null),
+            'persona' => $s?->persona ?: (AdminSetting::get('ai_guardrail_persona') ?: ($defaults['persona'] ?? 'Mera')),
+            'tone' => $s?->tone ?: (AdminSetting::get('ai_guardrail_tone') ?: ($defaults['tone'] ?? 'Warm, friendly and practical. Encouraging without being generic.')),
+            'keep_on_topic' => $keep !== null ? (bool) $keep : (bool) ($defaults['keep_on_topic'] ?? true),
+            'off_topic_mode' => $offTopic ?: ($defaults['off_topic_mode'] ?? AiSetting::OFF_TOPIC_REDIRECT),
+            'focus_topics' => $focus ? json_decode((string) $focus, true) : ($defaults['focus_topics'] ?? null),
         ];
     }
 

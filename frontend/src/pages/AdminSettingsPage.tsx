@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Settings, Loader2, Save, AlertCircle, Coins, Smartphone, ShieldCheck, Key, ChevronDown, ChevronUp, Lock, X } from "lucide-react";
+import { Settings, Loader2, Save, AlertCircle, Coins, Smartphone, ShieldCheck, Key, ChevronDown, ChevronUp, Lock, X, Mail } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -64,6 +64,10 @@ export default function AdminSettingsPage() {
   const [maintenanceMode, setMaintenanceMode] = useState(false);
   const [defaultCurrency, setDefaultCurrency] = useState("NGN");
   const [webDisabledRoles, setWebDisabledRoles] = useState<string[]>([]);
+  const [adminNotifyEmail, setAdminNotifyEmail] = useState("");
+  const [adminNotifyTelegramBotToken, setAdminNotifyTelegramBotToken] = useState("");
+  const [telegramBotConfigured, setTelegramBotConfigured] = useState(false);
+  const [adminNotifyTelegramChatId, setAdminNotifyTelegramChatId] = useState("");
   const [kycProviders, setKycProviders] = useState<string[]>(["manual"]);
   const [kycProviderStatus, setKycProviderStatus] = useState<Record<string, boolean>>({});
   const [kycCredentialsStatus, setKycCredentialsStatus] = useState<Record<string, Record<string, boolean>>>({});
@@ -87,6 +91,9 @@ export default function AdminSettingsPage() {
       if (d?.maintenance_mode !== undefined) setMaintenanceMode(Boolean(d.maintenance_mode));
       if (d?.default_currency && SUPPORTED_CURRENCIES.includes(d.default_currency)) setDefaultCurrency(d.default_currency);
       if (Array.isArray(d?.web_disabled_roles)) setWebDisabledRoles(d.web_disabled_roles);
+      if (d?.admin_notify_email !== undefined) setAdminNotifyEmail(d.admin_notify_email);
+      if (d?.telegram_bot_configured !== undefined) setTelegramBotConfigured(d.telegram_bot_configured);
+      if (d?.admin_notify_telegram_chat_id !== undefined) setAdminNotifyTelegramChatId(d.admin_notify_telegram_chat_id);
       if (Array.isArray(d?.kyc_providers) && d.kyc_providers.length > 0) setKycProviders(d.kyc_providers);
       if (d?.kyc_credentials && typeof d.kyc_credentials === "object") setKycCredentialsStatus(d.kyc_credentials);
       if (Array.isArray(d?.kyc_providers_available)) {
@@ -110,7 +117,14 @@ export default function AdminSettingsPage() {
         default_currency: defaultCurrency,
         web_disabled_roles: webDisabledRoles,
         kyc_providers: kycProviders,
+        admin_notify_email: adminNotifyEmail,
       };
+
+      if (adminNotifyTelegramBotToken !== "") {
+        payload.admin_notify_telegram_bot_token = adminNotifyTelegramBotToken;
+      }
+
+      payload.admin_notify_telegram_chat_id = adminNotifyTelegramChatId;
 
       // Strip empty strings so a cleared-then-not-retyped field is never
       // submitted as an override (major data-integrity fix from CR review).
@@ -147,8 +161,9 @@ export default function AdminSettingsPage() {
 
       setKycCredentialsInput({});
       setMsg("Settings saved!");
+      setAdminNotifyTelegramBotToken(""); // Clear after save
       toast.success("Settings saved successfully.");
-      setTimeout(() => setMsg(null), 2000);
+      setTimeout(() => setMsg(null), 3000);
     } catch (e) {
       const m = e instanceof Error ? e.message : "Save failed";
       setMsg(m);
@@ -362,6 +377,49 @@ export default function AdminSettingsPage() {
             <p className="text-[10px] text-rose-400 text-center py-1">No providers selected — sellers will be blocked from payouts/escrow until one is enabled.</p>
           )}
         </div>
+
+        <div className="rounded-xl border border-border p-3 space-y-3">
+          <div className="flex items-center gap-2">
+            <Mail className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" />
+            <p className="text-xs font-bold text-foreground">Admin Notifications & Alerts</p>
+          </div>
+          <p className="text-[10px] text-muted-foreground">
+            Configure where admin alerts (e.g., new KYC submissions, role upgrades, support tickets) should be sent.
+          </p>
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <label className="text-[11px] font-bold text-muted-foreground">Notification Email</label>
+              <Input
+                type="email"
+                placeholder="admin@murihspace.com"
+                value={adminNotifyEmail}
+                onChange={(e) => setAdminNotifyEmail(e.target.value)}
+                className="text-sm"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-[11px] font-bold text-muted-foreground">Telegram Bot Token {telegramBotConfigured ? "(Configured)" : "(Optional)"}</label>
+              <Input
+                type="password"
+                placeholder={telegramBotConfigured ? "Enter new token to replace" : "123456789:ABCdefGHIjklMNO..."}
+                value={adminNotifyTelegramBotToken}
+                onChange={(e) => setAdminNotifyTelegramBotToken(e.target.value)}
+                className="text-sm"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-[11px] font-bold text-muted-foreground">Telegram Chat ID (Optional)</label>
+              <Input
+                type="text"
+                placeholder="-1001234567890"
+                value={adminNotifyTelegramChatId}
+                onChange={(e) => setAdminNotifyTelegramChatId(e.target.value)}
+                className="text-sm"
+              />
+            </div>
+          </div>
+        </div>
+
         {msg && <p className={`text-xs font-bold ${msg === 'Settings saved!' ? 'text-emerald-400' : 'text-rose-400'}`}>{msg}</p>}
         <Button onClick={handleSave} disabled={saving} className="text-sm font-bold gap-1.5">{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Save Settings</Button>
       </div>

@@ -45,6 +45,9 @@ class AdminSettingsController extends Controller
                 'kyc_providers_available' => $this->getAvailableProviders(),
                 'max_upload_size_mb' => 100,
                 'web_disabled_roles' => json_decode((string) AdminSetting::get('web_disabled_roles', '[]'), true),
+                'admin_notify_email' => AdminSetting::get('admin_notify_email', ''),
+                'telegram_bot_configured' => AdminSetting::get('admin_notify_telegram_bot_token', '') !== '',
+                'admin_notify_telegram_chat_id' => AdminSetting::get('admin_notify_telegram_chat_id', ''),
             ],
         ]);
     }
@@ -60,6 +63,9 @@ class AdminSettingsController extends Controller
             'kyc_providers' => ['sometimes', 'array'],
             'kyc_providers.*' => ['string', Rule::in(['didit', 'sumsub', 'manual'])],
             'kyc_credentials' => ['sometimes', 'array'],
+            'admin_notify_email' => ['nullable', 'email'],
+            'admin_notify_telegram_bot_token' => ['nullable', 'string'],
+            'admin_notify_telegram_chat_id' => ['nullable', 'string'],
         ]);
 
         if (isset($validated['maintenance_mode'])) {
@@ -86,6 +92,18 @@ class AdminSettingsController extends Controller
             $this->persistCredentials($validated['kyc_credentials']);
         }
 
+        if (array_key_exists('admin_notify_email', $validated)) {
+            AdminSetting::set('admin_notify_email', $validated['admin_notify_email'] ?? '');
+        }
+
+        if (array_key_exists('admin_notify_telegram_bot_token', $validated)) {
+            AdminSetting::set('admin_notify_telegram_bot_token', $validated['admin_notify_telegram_bot_token'] ?? '');
+        }
+
+        if (array_key_exists('admin_notify_telegram_chat_id', $validated)) {
+            AdminSetting::set('admin_notify_telegram_chat_id', $validated['admin_notify_telegram_chat_id'] ?? '');
+        }
+
         return response()->json([
             'message' => 'Settings updated.',
             'data' => [
@@ -96,6 +114,9 @@ class AdminSettingsController extends Controller
                 'kyc_providers' => json_decode((string) AdminSetting::get('kyc_providers', '[]'), true),
                 'kyc_credentials' => $this->getCredentialsStatus(),
                 'kyc_providers_available' => $this->getAvailableProviders(),
+                'admin_notify_email' => AdminSetting::get('admin_notify_email', ''),
+                'admin_notify_telegram_bot_token' => AdminSetting::get('admin_notify_telegram_bot_token', ''),
+                'admin_notify_telegram_chat_id' => AdminSetting::get('admin_notify_telegram_chat_id', ''),
             ],
         ]);
     }

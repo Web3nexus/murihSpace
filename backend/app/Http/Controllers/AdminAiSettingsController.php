@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AdminSetting;
 use App\Services\AiProviderManager;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -15,12 +16,25 @@ class AdminAiSettingsController extends Controller
 
     public function show(): JsonResponse
     {
+        $defaults = config('services.anthropic.behavior', []);
+
         return response()->json([
             'data' => [
                 'provider' => $this->manager->selected(),
                 'default_provider' => config('services.ai.default_provider', 'anthropic'),
                 'max_tokens' => (int) config('services.ai.max_tokens', 1024),
                 'providers' => $this->manager->metadata(),
+                'guardrails' => [
+                    'persona' => AdminSetting::get('ai_guardrail_persona') ?: ($defaults['persona'] ?? 'Mera'),
+                    'tone' => AdminSetting::get('ai_guardrail_tone') ?: ($defaults['tone'] ?? 'Warm, friendly and practical. Encouraging without being generic.'),
+                    'keep_on_topic' => AdminSetting::get('ai_guardrail_keep_on_topic') !== null
+                        ? (bool) AdminSetting::get('ai_guardrail_keep_on_topic')
+                        : (bool) ($defaults['keep_on_topic'] ?? true),
+                    'off_topic_mode' => AdminSetting::get('ai_guardrail_off_topic_mode') ?: ($defaults['off_topic_mode'] ?? 'redirect'),
+                    'focus_topics' => ($stored = AdminSetting::get('ai_guardrail_focus_topics'))
+                        ? json_decode((string) $stored, true)
+                        : ($defaults['focus_topics'] ?? []),
+                ],
             ],
         ]);
     }
@@ -35,6 +49,13 @@ class AdminAiSettingsController extends Controller
             'openai_model' => ['sometimes', 'nullable', 'string', 'max:80'],
             'gemini_key' => ['sometimes', 'nullable', 'string'],
             'gemini_model' => ['sometimes', 'nullable', 'string', 'max:80'],
+            // Admin-locked on-topic guardrails applied platform-wide
+            'persona' => ['sometimes', 'nullable', 'string', 'max:80'],
+            'tone' => ['sometimes', 'nullable', 'string', 'max:200'],
+            'keep_on_topic' => ['sometimes', 'boolean'],
+            'off_topic_mode' => ['sometimes', 'string', Rule::in(['redirect', 'decline', 'flexible'])],
+            'focus_topics' => ['sometimes', 'array', 'max:20'],
+            'focus_topics.*' => ['string', 'max:80'],
         ]);
 
         if (isset($validated['provider'])) {
@@ -49,6 +70,8 @@ class AdminAiSettingsController extends Controller
             );
         }
 
+        $this->storeGuardrails($validated);
+
         return response()->json([
             'message' => 'AI provider configuration updated.',
             'data' => [
@@ -56,6 +79,25 @@ class AdminAiSettingsController extends Controller
                 'providers' => $this->manager->metadata(),
             ],
         ]);
+    }
+
+    private function storeGuardrails(array $data): void
+    {
+        if (array_key_exists('persona', $data)) {
+            AdminSetting::set('ai_guardrail_persona', trim((string) $data['persona']));
+        }
+        if (array_key_exists('tone', $data)) {
+            AdminSetting::set('ai_guardrail_tone', trim((string) $data['tone']));
+        }
+        if (array_key_exists('keep_on_topic', $data)) {
+            AdminSetting::set('ai_guardrail_keep_on_topic', $data['keep_on_topic'] ? '1' : '0');
+        }
+        if (array_key_exists('off_topic_mode', $data)) {
+            AdminSetting::set('ai_guardrail_off_topic_mode', $data['off_topic_mode']);
+        }
+        if (array_key_exists('focus_topics', $data)) {
+            AdminSetting::set('ai_guardrail_focus_topics', json_encode(array_values(array_filter(array_map('trim', $data['focus_topics'])))));
+        }
     }
 
     public function test(Request $request): JsonResponse

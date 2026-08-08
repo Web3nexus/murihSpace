@@ -8,6 +8,7 @@ use App\Models\KycVerification;
 use App\Models\KycWebhookEvent;
 use App\Models\User;
 use App\Services\NotificationService;
+use App\Services\AdminAlertService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -102,6 +103,15 @@ class KycService
             'kyc_status' => KycStatus::Pending->value,
             'kyc_rejection_reason' => null,
             'kyc_verification_id' => $verification->id,
+        ]);
+
+        app(AdminAlertService::class)->dispatch([
+            'event_type' => 'kyc_submission',
+            'severity' => 'warning',
+            'title' => 'New KYC Submission',
+            'description' => "User {$user->name} has started a new identity verification via {$provider->name()}.",
+            'reference' => env('APP_URL') . '/app/securegate/kyc?status=pending',
+            'channels' => ['email', 'telegram']
         ]);
 
         return ['session' => $result, 'verification' => $verification];

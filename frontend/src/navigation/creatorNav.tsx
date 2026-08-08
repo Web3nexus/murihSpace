@@ -8,7 +8,6 @@ import {
   Briefcase,
   BarChart3,
   MessageSquare,
-  Bot,
   Wallet,
   BadgeDollarSign,
   Shield,
@@ -19,9 +18,9 @@ import {
   Bell,
   UserPlus,
   Film,
-  Sparkles,
 } from "lucide-react";
 import type { NavGroup } from "./navTypes";
+import { MeraIcon } from "@/components/brand/MeraIcon";
 
 export const creatorNav: NavGroup[] = [
   {
@@ -163,13 +162,13 @@ export const creatorNav: NavGroup[] = [
       {
         title: "AI Assistant",
         url: "/app/ai-assistant",
-        icon: <Bot className="size-4" />,
+        icon: <MeraIcon className="size-4" />,
         featureFlag: "ai_assistant",
       },
       {
         title: "Mera's Behavior",
         url: "/app/ai-settings",
-        icon: <Sparkles className="size-4" />,
+        icon: <MeraIcon className="size-4" />,
       },
     ],
   },

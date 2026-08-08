@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useMemo } from "react";
 import { Link } from "react-router";
 import {
   Rocket, UserCircle, Sparkles, Gift, Wallet, Users, ShoppingBag, Crown, ShieldCheck,
-  Search, Bot, Send, Loader2, ChevronLeft, ChevronRight, Menu, X, MessageCircle,
+  Search, Send, Loader2, ChevronLeft, ChevronRight, Menu, X, MessageCircle,
   BookOpen, ArrowUpRight, ChevronDown, RefreshCw, ExternalLink, HelpCircle,
 } from "lucide-react";
 import {
@@ -12,6 +12,7 @@ import {
 import type { HelpArticle, HelpCategory } from "@/data/helpCenter";
 import { useAuth } from "@/hooks/useAuth";
 import { getAuthToken } from "@/lib/auth/token";
+import { MeraIcon } from "@/components/brand/MeraIcon";
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? "http://localhost:8000/api/v1";
 
@@ -346,7 +347,7 @@ export default function HelpCenterPage() {
               <div className="flex items-center gap-2.5">
                 <div className="relative">
                   <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-[#2164b6] to-[#2164b6] flex items-center justify-center shadow-sm">
-                    <Bot className="h-4.5 w-4.5 text-white" />
+                    <MeraIcon className="h-5 w-5" />
                   </div>
                   <div className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-emerald-500 border-2 border-white dark:border-slate-900" />
                 </div>
@@ -371,7 +372,7 @@ export default function HelpCenterPage() {
                 <div className="h-full flex flex-col">
                   <div className="flex items-start gap-2.5">
                     <div className="h-8 w-8 shrink-0 rounded-xl bg-gradient-to-br from-[#2164b6] to-[#2164b6] flex items-center justify-center">
-                      <Bot className="h-4 w-4 text-white" />
+                      <MeraIcon className="h-4 w-4" />
                     </div>
                     <div className="bg-slate-100 dark:bg-slate-800 rounded-2xl rounded-tl-sm px-3.5 py-2.5 text-xs leading-relaxed text-slate-600 dark:text-slate-300">
                       Hi! I'm here to help with MurihSpace. Ask me anything about accounts, gifting, wallets, communities or creating.
@@ -414,7 +415,7 @@ export default function HelpCenterPage() {
                         ? "bg-gradient-to-br from-[#2164b6] to-[#2164b6] text-white"
                         : "bg-slate-800 text-white"
                     }`}>
-                      {m.role === "assistant" ? <Bot className="h-4 w-4" /> : <MessageCircle className="h-4 w-4" />}
+                      {m.role === "assistant" ? <MeraIcon className="h-4 w-4" /> : <MessageCircle className="h-4 w-4" />}
                     </div>
                     <div className={`max-w-[80%] ${m.role === "user" ? "order-first" : ""}`}>
                       <div className={`px-3.5 py-2.5 text-xs leading-relaxed whitespace-pre-wrap break-words ${
@@ -448,7 +449,7 @@ export default function HelpCenterPage() {
               {busy && (
                 <div className="flex gap-2.5">
                   <div className="h-8 w-8 shrink-0 rounded-xl bg-gradient-to-br from-[#2164b6] to-[#2164b6] flex items-center justify-center">
-                    <Bot className="h-4 w-4 text-white" />
+                    <MeraIcon className="h-4 w-4" />
                   </div>
                   <div className="bg-slate-100 dark:bg-slate-800 rounded-2xl rounded-tl-sm px-3 py-2">
                     <TypingDots />

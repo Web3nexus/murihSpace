@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { MeraIcon } from "@/components/brand/MeraIcon";
 import { getAuthToken } from "@/lib/auth/token";
 import { useAuth } from "@/hooks/useAuth";
 import { TEMPLATES, templateBySlug } from "@/lib/linkBioTemplates";
@@ -539,7 +540,7 @@ export default function OnboardingPage() {
             {step === 0 && (
               <div className="border border-border rounded-2xl bg-card overflow-hidden flex flex-col">
                 <div className="px-5 py-4 border-b border-border flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#2164b6] to-[#2164b6] flex items-center justify-center text-white"><Wand2 className="h-4 w-4" /></div>
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#2164b6] to-[#2164b6] flex items-center justify-center text-white"><MeraIcon className="h-4 w-4" /></div>
                   <div>
                     <p className="text-xs font-black">Mera — your AI assistant</p>
                     <p className="text-[10px] text-muted-foreground">I'll remember what you tell me to build your profile.</p>

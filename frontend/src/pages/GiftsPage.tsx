@@ -112,22 +112,22 @@ export default function GiftsPage() {
   );
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-6">
-      <div className="flex items-center justify-between mb-6">
+    <div className="p-6 lg:p-8 space-y-6 max-w-7xl mx-auto w-full">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-2">
         <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2"><Gift className="w-6 h-6 text-pink-500" /> Gifts</h1>
-          <p className="text-sm text-gray-500 mt-1">Send virtual gifts to your favourite creators</p>
+          <h1 className="text-2xl font-bold flex items-center gap-2 text-foreground"><Gift className="w-6 h-6 text-pink-500" /> Gifts</h1>
+          <p className="text-sm text-muted-foreground mt-1">Send virtual gifts to your favourite creators</p>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg px-3 py-1.5 flex items-center gap-2 text-sm">
-            <Coins className="w-4 h-4 text-yellow-600" />
-            <span className="font-semibold text-yellow-700">{balance.toLocaleString()} MSH</span>
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-1.5 flex items-center gap-2 text-sm">
+            <Coins className="w-4 h-4 text-amber-500" />
+            <span className="font-semibold text-amber-600 dark:text-amber-400">{balance.toLocaleString()} MSH</span>
           </div>
-          <Button variant="secondary" size="sm" onClick={() => setShowCoinShop(true)}>
-            <Plus className="w-4 h-4 mr-1" /> Buy Coins
+          <Button variant="secondary" size="sm" onClick={() => setShowCoinShop(true)} className="gap-1.5 font-semibold">
+            <Plus className="w-4 h-4" /> Buy Coins
           </Button>
-          <Button variant={tab === "shop" ? "default" : "outline"} size="sm" onClick={() => setTab("shop")}>Shop</Button>
-          <Button variant={tab === "history" ? "default" : "outline"} size="sm" onClick={() => setTab("history")}>History</Button>
+          <Button variant={tab === "shop" ? "default" : "outline"} size="sm" onClick={() => setTab("shop")} className="font-semibold">Shop</Button>
+          <Button variant={tab === "history" ? "default" : "outline"} size="sm" onClick={() => setTab("history")} className="font-semibold">History</Button>
         </div>
       </div>
 
@@ -151,35 +151,38 @@ export default function GiftsPage() {
             ))}
           </div>
 
-          <div className="relative mb-4">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input type="text" placeholder="Search gifts..." value={search} onChange={e => setSearch(e.target.value)} className="w-full pl-10 pr-4 py-2 border rounded-lg text-sm" />
+          <div className="relative mb-6">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <input type="text" placeholder="Search gifts..." value={search} onChange={e => setSearch(e.target.value)} className="w-full pl-10 pr-4 py-2 bg-card border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all shadow-sm" />
           </div>
 
           {loading ? (
-            <div className="flex items-center justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-gray-400" /></div>
+            <div className="flex items-center justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>
           ) : (
-            <div className="bg-white border rounded-2xl shadow-sm overflow-hidden">
-              <div className="px-4 py-3 border-b bg-gray-50 flex items-center justify-between">
-                <h2 className="font-semibold text-sm">Gift Tray</h2>
-                <span className="text-xs text-gray-500">Tap a gift to send it</span>
+            <div className="bg-card border border-border rounded-2xl shadow-sm overflow-hidden">
+              <div className="px-5 py-4 border-b border-border bg-muted/30 flex items-center justify-between">
+                <h2 className="font-bold text-foreground">Gift Tray</h2>
+                <span className="text-xs text-muted-foreground font-medium">Tap a gift to send it</span>
               </div>
-              <div className="flex gap-3 overflow-x-auto no-scrollbar p-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 p-5">
                 {filtered.map(gift => (
                   <button
                     key={gift.id}
                     onClick={() => setSelectedGift(gift)}
-                    className={`relative shrink-0 w-24 border rounded-xl p-3 text-center transition-all hover:shadow-md hover:border-pink-300 ${selectedGift?.id === gift.id ? "border-pink-500 ring-2 ring-pink-200 bg-pink-50" : "border-gray-200 bg-white"}`}
+                    className={`relative w-full border rounded-2xl p-4 text-center transition-all hover:-translate-y-1 hover:shadow-md ${selectedGift?.id === gift.id ? "border-pink-500 ring-2 ring-pink-500/20 bg-pink-50 dark:bg-pink-500/10" : "border-border bg-background hover:border-pink-300 dark:hover:border-pink-500/50"}`}
                   >
-                    <div className="w-11 h-11 mx-auto mb-2 bg-gradient-to-br from-pink-100 to-purple-100 rounded-full flex items-center justify-center">
-                      {gift.icon_url ? <img src={gift.icon_url} alt={gift.name} className="w-7 h-7 object-contain" /> : <Gift className="w-5 h-5 text-pink-500" />}
+                    <div className="w-14 h-14 mx-auto mb-3 bg-gradient-to-br from-pink-100 to-purple-100 dark:from-pink-900/40 dark:to-purple-900/40 rounded-full flex items-center justify-center shadow-inner">
+                      {gift.icon_url ? <img src={gift.icon_url} alt={gift.name} className="w-8 h-8 object-contain" /> : <Gift className="w-6 h-6 text-pink-500" />}
                     </div>
-                    <p className="text-xs font-medium truncate">{gift.name}</p>
-                    <p className="text-[11px] text-yellow-600 font-semibold mt-0.5">{gift.coin_price} coins</p>
+                    <p className="text-sm font-bold text-foreground truncate">{gift.name}</p>
+                    <p className="text-xs text-amber-600 dark:text-amber-400 font-bold mt-1">{gift.coin_price} coins</p>
                   </button>
                 ))}
                 {filtered.length === 0 && (
-                  <p className="text-sm text-gray-400 py-8 text-center w-full">No gifts found.</p>
+                  <div className="col-span-full flex flex-col items-center justify-center py-12 text-muted-foreground space-y-3">
+                    <Gift className="w-10 h-10 opacity-20" />
+                    <p className="text-sm font-medium">No gifts found.</p>
+                  </div>
                 )}
               </div>
             </div>
@@ -224,22 +227,22 @@ export default function GiftsPage() {
       )}
 
       {tab === "history" && (
-        <div className="bg-white border rounded-xl shadow-sm overflow-hidden">
-          <div className="p-4 border-b bg-gray-50"><h2 className="font-semibold">Gift History</h2></div>
+        <div className="bg-card border border-border rounded-2xl shadow-sm overflow-hidden">
+          <div className="px-5 py-4 border-b border-border bg-muted/30"><h2 className="font-bold text-foreground">Gift History</h2></div>
           {transactions.length === 0 ? (
-            <div className="text-center py-12 text-gray-400">
-              <Gift className="w-12 h-12 mx-auto mb-3 opacity-40" />
-              <p>No gift transactions yet.</p>
+            <div className="text-center py-12 text-muted-foreground flex flex-col items-center justify-center space-y-3">
+              <Gift className="w-12 h-12 opacity-20" />
+              <p className="font-medium text-sm">No gift transactions yet.</p>
             </div>
           ) : (
-            <div className="divide-y">
+            <div className="divide-y divide-border">
               {transactions.map((t: any) => (
-                <div key={t.id} className="p-4 flex items-center justify-between text-sm">
+                <div key={t.id} className="p-5 flex items-center justify-between text-sm hover:bg-muted/10 transition-colors">
                   <div>
-                    <p className="font-medium">{t.gift?.name || "Gift"} &rarr; {t.recipient?.name || `User #${t.recipient_id}`}</p>
-                    <p className="text-gray-500 text-xs">{t.message && `"${t.message}"`} {new Date(t.created_at).toLocaleString()}</p>
+                    <p className="font-bold text-foreground">{t.gift?.name || "Gift"} <span className="text-muted-foreground font-medium mx-1">&rarr;</span> {t.recipient?.name || `User #${t.recipient_id}`}</p>
+                    <p className="text-muted-foreground text-xs mt-1">{t.message && <span className="italic mr-2">"{t.message}"</span>} {new Date(t.created_at).toLocaleString()}</p>
                   </div>
-                  <span className="font-semibold text-yellow-600">{t.coin_price} coins</span>
+                  <span className="font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-3 py-1 rounded-full">{t.coin_price} coins</span>
                 </div>
               ))}
             </div>

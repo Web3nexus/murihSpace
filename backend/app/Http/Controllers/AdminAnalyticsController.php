@@ -12,6 +12,10 @@ use App\Models\Subscription;
 use App\Models\SubscriptionPlan;
 use App\Models\User;
 use App\Models\Wallet;
+use App\Models\KycVerification;
+use App\Models\AccountRoleHistory;
+use App\Models\PostReport;
+use App\Models\SupportThread;
 use App\Services\CurrencyConverter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -22,6 +26,16 @@ class AdminAnalyticsController extends Controller
     public function __construct(
         private readonly CurrencyConverter $converter,
     ) {}
+
+    public function pendingCounts(Request $request): JsonResponse
+    {
+        return response()->json([
+            'pending_kyc' => KycVerification::where('status', 'pending')->count(),
+            'pending_role_applications' => AccountRoleHistory::where('status', 'pending')->count(),
+            'pending_reports' => PostReport::where('status', 'pending')->count(),
+            'open_tickets' => SupportThread::where('status', 'open')->count(),
+        ]);
+    }
 
     private function resolveCurrency(Request $request): string
     {

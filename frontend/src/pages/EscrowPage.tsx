@@ -146,7 +146,7 @@ export function EscrowPage() {
       {isLoading ? (
         <div className="py-20 text-center"><Loader2 className="h-6 w-6 animate-spin text-secondary mx-auto" /></div>
       ) : !selectedEscrow && escrows.length === 0 ? (
-        <div className="p-12 text-center border border-dashed border-border rounded-3xl bg-card space-y-3">
+        <div className="flex flex-col items-center justify-center p-12 text-center border border-dashed border-border rounded-3xl bg-card space-y-3">
           <ShieldCheck className="h-10 w-10 text-muted-foreground/30 mx-auto" />
           <h3 className="text-sm font-bold text-foreground">No escrows yet</h3>
           <p className="text-xs text-muted-foreground max-w-sm mx-auto">Escrows are created when a physical product is purchased. They will appear here.</p>

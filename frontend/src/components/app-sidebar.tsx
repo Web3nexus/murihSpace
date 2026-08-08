@@ -77,16 +77,29 @@ function filterByFlags(nav: NavGroup[], flags: Record<string, boolean>): NavGrou
     .filter((g) => g.items.length > 0);
 }
 
-function injectBadges(nav: NavGroup[], unreadCount: number, pendingReportsCount: number): NavGroup[] {
-  if (!unreadCount && !pendingReportsCount) return nav;
+interface AdminCounts {
+  pending_kyc: number;
+  pending_role_applications: number;
+  pending_reports: number;
+  open_tickets: number;
+}
+
+function injectBadges(nav: NavGroup[], unreadCount: number, adminCounts: AdminCounts): NavGroup[] {
+  if (!unreadCount && (!adminCounts || Object.values(adminCounts).every(v => v === 0))) return nav;
   return nav.map((group) => ({
     ...group,
     items: group.items.map((item) => {
       if (item.title === "MurihSpace Inbox" && unreadCount > 0) {
         return { ...item, badge: unreadCount };
       }
-      if (item.title === "Posts & Reports" && pendingReportsCount > 0) {
-        return { ...item, badge: pendingReportsCount };
+      if (item.title === "KYC Queue" && adminCounts?.pending_kyc > 0) {
+        return { ...item, badge: adminCounts.pending_kyc };
+      }
+      if (item.title === "Role Applications" && adminCounts?.pending_role_applications > 0) {
+        return { ...item, badge: adminCounts.pending_role_applications };
+      }
+      if (item.title === "Posts & Reports" && adminCounts?.pending_reports > 0) {
+        return { ...item, badge: adminCounts.pending_reports };
       }
       return item;
     }),
@@ -157,7 +170,7 @@ function NavRow({ item }: { item: NavItem }) {
             </span>
             <span className="flex-1 truncate">{item.title}</span>
             {item.badge != null && !collapsed && (
-              <span className="ml-auto flex h-4.5 min-w-[18px] items-center justify-center rounded-full bg-[#2164b6] px-1.5 text-[10px] font-bold text-white shadow-xs">
+              <span className="ml-auto flex h-4.5 min-w-[18px] items-center justify-center rounded-full bg-rose-500 px-1.5 text-[10px] font-bold text-white shadow-xs">
                 {item.badge}
               </span>
             )}
@@ -185,7 +198,7 @@ function NavRow({ item }: { item: NavItem }) {
             <span className="shrink-0 opacity-60 group-hover/item:opacity-90">{item.icon}</span>
             <span className="flex-1 truncate">{item.title}</span>
             {item.badge != null && !collapsed && (
-              <span className="flex h-4.5 min-w-[18px] items-center justify-center rounded-full bg-[#2164b6] px-1.5 text-[10px] font-bold text-white shadow-xs">
+              <span className="flex h-4.5 min-w-[18px] items-center justify-center rounded-full bg-rose-500 px-1.5 text-[10px] font-bold text-white shadow-xs">
                 {item.badge}
               </span>
             )}
@@ -352,7 +365,12 @@ export function AppSidebar({ ...props }: SidebarProps) {
   const role: UserRole = user?.role ?? "member";
 
   const [unreadCount, setUnreadCount] = useState<number>(0);
-  const [pendingReportsCount, setPendingReportsCount] = useState<number>(0);
+  const [adminCounts, setAdminCounts] = useState<AdminCounts>({
+    pending_kyc: 0,
+    pending_role_applications: 0,
+    pending_reports: 0,
+    open_tickets: 0,
+  });
 
   useEffect(() => {
     apiClient
@@ -368,23 +386,40 @@ export function AppSidebar({ ...props }: SidebarProps) {
 
   useEffect(() => {
     if (role !== "admin") return;
-    apiClient
-      .get("/securegate/reports?status=pending")
-      .then((res) => {
-        const data = res.data;
-        if (Array.isArray(data)) {
-          setPendingReportsCount(data.length);
-        } else if (data?.data && Array.isArray(data.data)) {
-          setPendingReportsCount(data.data.length);
-        } else if (typeof data?.count === "number") {
-          setPendingReportsCount(data.count);
-        }
-      })
-      .catch(() => {});
+    let mounted = true;
+
+    const load = () => {
+      apiClient
+        .get("/securegate/analytics/pending-counts")
+        .then((res) => {
+          if (!mounted) return;
+          const body = (res.data as { data?: unknown } | undefined)?.data ?? res.data;
+          const counts = (body ?? {}) as {
+            pending_kyc?: number;
+            pending_role_applications?: number;
+            pending_reports?: number;
+            open_tickets?: number;
+          };
+          setAdminCounts((prev) => ({
+            pending_kyc: counts.pending_kyc ?? prev.pending_kyc,
+            pending_role_applications: counts.pending_role_applications ?? prev.pending_role_applications,
+            pending_reports: counts.pending_reports ?? prev.pending_reports,
+            open_tickets: counts.open_tickets ?? prev.open_tickets,
+          }));
+        })
+        .catch(() => {});
+    };
+
+    load();
+    const interval = setInterval(load, 45000);
+    return () => {
+      mounted = false;
+      clearInterval(interval);
+    };
   }, [role]);
 
   const flags = useFeatureFlags();
-  const nav = filterByFlags(injectBadges(getSidebarNav(role), unreadCount, pendingReportsCount), flags);
+  const nav = filterByFlags(injectBadges(getSidebarNav(role), unreadCount, adminCounts), flags);
 
   // Blur the sidebar for creators/vendors who haven't finished the setup wizard
   const isSetupIncomplete =

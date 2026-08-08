@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\AccountRoleHistory;
 use App\Services\RoleTransitionService;
+use App\Services\AdminAlertService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -59,6 +60,15 @@ class RoleUpgradeController extends Controller
                 user: $request->user(),
                 requestedRole: $validated['requested_role'],
             );
+
+            app(AdminAlertService::class)->dispatch([
+                'event_type' => 'role_application',
+                'severity' => 'warning', // warning routes to email and telegram based on the AdminAlertService
+                'title' => 'New Role Application',
+                'description' => "User {$request->user()->name} has applied for the {$validated['requested_role']} role.",
+                'reference' => env('APP_URL') . '/app/securegate/role-applications',
+                'channels' => ['email', 'telegram']
+            ]);
 
             return response()->json([
                 'success'     => true,

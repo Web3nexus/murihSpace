@@ -17,7 +17,6 @@ import {
   Activity,
   HeartPulse,
   HardDrive,
-  Sparkles,
   TrendingUp,
   BarChart3,
   LineChart,
@@ -32,6 +31,7 @@ import {
   KeyRound,
 } from "lucide-react";
 import type { NavGroup } from "./navTypes";
+import { MeraIcon } from "@/components/brand/MeraIcon";
 
 export const adminNav: NavGroup[] = [
   {
@@ -51,7 +51,6 @@ export const adminNav: NavGroup[] = [
         title: "KYC Queue",
         url: "/app/securegate/kyc?status=pending",
         icon: <UserCheck className="size-4" />,
-        badge: "Pending",
       },
       {
         title: "Verification Badges",
@@ -231,7 +230,7 @@ export const adminNav: NavGroup[] = [
       {
         title: "AI Providers",
         url: "/app/securegate/ai-settings",
-        icon: <Sparkles className="size-4" />,
+        icon: <MeraIcon className="size-4" />,
       },
       {
         title: "Auth Methods",

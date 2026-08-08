@@ -47,13 +47,12 @@ class AiSettingsController extends Controller
     {
         $user = $request->user();
 
+        // Users may only customise how Mera speaks (name + tone). On-topic
+        // guardrails (keep_on_topic, off_topic_mode, focus_topics) are locked to
+        // admins and are applied platform-wide; they are never editable here.
         $validator = Validator::make($request->all(), [
             'persona' => ['nullable', 'string', 'max:80'],
             'tone' => ['nullable', 'string', 'max:200'],
-            'keep_on_topic' => ['sometimes', 'boolean'],
-            'off_topic_mode' => ['sometimes', 'string', 'in:redirect,decline,flexible'],
-            'focus_topics' => ['nullable', 'array', 'max:20'],
-            'focus_topics.*' => ['string', 'max:80'],
         ]);
 
         if ($validator->fails()) {
@@ -69,7 +68,6 @@ class AiSettingsController extends Controller
         $data['user_id'] = $user->id;
         $data['persona'] = isset($data['persona']) && $data['persona'] !== '' ? $data['persona'] : null;
         $data['tone'] = isset($data['tone']) && $data['tone'] !== '' ? $data['tone'] : null;
-        $data['focus_topics'] = isset($data['focus_topics']) && $data['focus_topics'] ? $data['focus_topics'] : null;
 
         $user->aiSetting()->updateOrCreate(['user_id' => $user->id], $data);
 

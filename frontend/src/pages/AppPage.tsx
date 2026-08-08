@@ -4,6 +4,7 @@ import { Link, useNavigate } from "react-router";
 import { AnimatedPage } from "@/components/common/AnimatedPage";
 import { useAuth } from "@/hooks/useAuth";
 import { apiClient } from "@/lib/api/client";
+import { MeraIcon } from "@/components/brand/MeraIcon";
 import { timeAgo, mapApiPost, mapApiComments } from "@/lib/feed";
 import { SkeletonFeed } from "@/components/ui/skeletons";
 import {
@@ -16,7 +17,6 @@ import {
   MessageSquare,
   Package,
   Calendar,
-  Bot,
   MessageCircle,
   Inbox,
   Activity,
@@ -1084,7 +1084,7 @@ export function AppPage() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className="p-1.5 rounded-xl bg-purple-500/10 text-purple-600">
-                  <Bot className="h-4 w-4" />
+                  <MeraIcon className="h-4 w-4" />
                 </div>
                 <h3 className="font-bold text-foreground text-xs sm:text-sm">AI Assistant</h3>
               </div>

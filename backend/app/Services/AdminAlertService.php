@@ -3,9 +3,12 @@
 namespace App\Services;
 
 use App\Models\AdminAlert;
+use App\Models\AdminSetting;
 use App\Models\User;
+use App\Notifications\AdminAlertNotification;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Notification;
 
 class AdminAlertService
 {
@@ -25,7 +28,35 @@ class AdminAlertService
             'status' => 'new',
         ]);
 
+        $this->sendNotifications($alert);
+
         return $alert;
+    }
+
+    protected function sendNotifications(AdminAlert $alert): void
+    {
+        $email = AdminSetting::get('admin_notify_email');
+        $chatId = AdminSetting::get('admin_notify_telegram_chat_id');
+
+        $route = Notification::route('mail', $email ?? '');
+        $hasChannel = false;
+
+        if ($email && in_array('email', $alert->channels)) {
+            $hasChannel = true;
+        }
+
+        if ($chatId && in_array('telegram', $alert->channels)) {
+            $route->route('telegram', $chatId);
+            $hasChannel = true;
+        }
+
+        if ($hasChannel) {
+            $route->notify(new AdminAlertNotification(
+                $alert->title,
+                $alert->description,
+                $alert->reference
+            ));
+        }
     }
 
     public function acknowledge(AdminAlert $alert, User $actor, ?string $note = null): AdminAlert
