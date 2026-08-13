@@ -4,16 +4,13 @@ import {
   Users, FileText, MessageCircle, ShoppingBag, Wand2, MailCheck, Loader2,
 } from "lucide-react";
 import { MeraIcon } from "@/components/brand/MeraIcon";
-import { getAuthToken } from "@/lib/auth/token";
+import { authFetch } from "@/lib/api/authFetch";
 import { useAuth } from "@/hooks/useAuth";
 import { Link } from "react-router";
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? "http://localhost:8000/api/v1";
 
-function getAuthHeaders() {
-  const token = getAuthToken();
-  return { "Content-Type": "application/json", Accept: "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) };
-}
+
+
 
 interface ChatMessage {
   role: "user" | "assistant";
@@ -69,8 +66,8 @@ export default function AiAssistantPage() {
     setInput("");
     setBusy(true);
     try {
-      const res = await fetch(`${API_BASE}/ai/chat`, {
-        method: "POST", headers: getAuthHeaders(),
+      const res = await authFetch(`/ai/chat`, {
+        method: "POST", 
         body: JSON.stringify({ message: userMsg.content }),
       });
       const j = await res.json();
@@ -91,7 +88,7 @@ export default function AiAssistantPage() {
     setSent(true);
     setVerifyMsg(null);
     try {
-      const res = await fetch(`${API_BASE}/auth/email/send-code`, { method: "POST", headers: getAuthHeaders() });
+      const res = await authFetch(`/auth/email/send-code`, { method: "POST",  });
       const j = await res.json();
       if (!res.ok) setVerifyMsg({ ok: false, text: j?.message ?? "Could not send code." });
     } catch {
@@ -104,8 +101,8 @@ export default function AiAssistantPage() {
     setVerifying(true);
     setVerifyMsg(null);
     try {
-      const res = await fetch(`${API_BASE}/auth/email/verify-code`, {
-        method: "POST", headers: getAuthHeaders(),
+      const res = await authFetch(`/auth/email/verify-code`, {
+        method: "POST", 
         body: JSON.stringify({ code }),
       });
       const j = await res.json();

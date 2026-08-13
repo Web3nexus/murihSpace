@@ -1,18 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useConfirm } from '@/components/ui/DialogProvider';
 import { Trophy, Award, Plus, Loader2, Edit, Trash2, Target, TrendingUp, ShoppingBag, DollarSign, Heart } from 'lucide-react';
-import { getAuthToken } from "@/lib/auth/token";
+import { authFetch } from "@/lib/api/authFetch";
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? 'http://localhost:8000/api/v1';
 
-function getAuthHeaders() {
-  const token = getAuthToken();
-  return {
-    'Content-Type': 'application/json',
-    Accept: 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
-}
+
+
 
 interface Milestone {
   id: number; title: string; description: string | null;
@@ -71,9 +64,9 @@ export function MilestonesPage() {
     setIsLoading(true);
     try {
       const [mRes, pRes, bRes] = await Promise.all([
-        fetch(`${API_BASE}/milestones`, { headers: getAuthHeaders() }),
-        fetch(`${API_BASE}/milestones/my-progress`, { headers: getAuthHeaders() }),
-        fetch(`${API_BASE}/badges/my`, { headers: getAuthHeaders() }),
+        authFetch(`/milestones`, {  }),
+        authFetch(`/milestones/my-progress`, {  }),
+        authFetch(`/badges/my`, {  }),
       ]);
       if (mRes.ok) { const j = await mRes.json(); setMilestones(j.data?.data ?? []); }
       if (pRes.ok) { const j = await pRes.json(); setProgress(j.data?.data ?? []); }
@@ -102,10 +95,10 @@ export function MilestonesPage() {
       metric_type: fMetric, target_value: Number(fTarget),
       reward_type: fReward || null, is_active: fActive,
     };
-    const url = editing ? `${API_BASE}/milestones/${editing.id}` : `${API_BASE}/milestones`;
+    const url = editing ? `/milestones/${editing.id}` : `/milestones`;
     const method = editing ? 'PUT' : 'POST';
     try {
-      const res = await fetch(url, { method, headers: getAuthHeaders(), body: JSON.stringify(body) });
+      const res = await authFetch(url, { method,  body: JSON.stringify(body) });
       const json = await res.json();
       if (res.ok) { await fetchAll(); setShowForm(false); setEditing(null); setMessage({ type: 'success', text: editing ? 'Milestone updated.' : 'Milestone created.' }); }
       else { setMessage({ type: 'error', text: json.message ?? 'Failed.' }); }
@@ -116,7 +109,7 @@ export function MilestonesPage() {
   async function deleteMilestone(id: number) {
     if (!await confirm({ title: 'Delete Milestone', message: 'Delete this milestone?', variant: 'destructive' })) return;
     try {
-      const res = await fetch(`${API_BASE}/milestones/${id}`, { method: 'DELETE', headers: getAuthHeaders() });
+      const res = await authFetch(`/milestones/${id}`, { method: 'DELETE',  });
       if (res.ok) { await fetchAll(); setMessage({ type: 'success', text: 'Milestone deleted.' }); }
     } catch { setMessage({ type: 'error', text: 'Network error.' }); }
   }

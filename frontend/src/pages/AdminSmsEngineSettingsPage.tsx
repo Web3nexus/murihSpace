@@ -1,3 +1,4 @@
+import { getAuthToken } from "@/lib/auth/token";
 import { useEffect, useState } from "react";
 import {
   MessageSquareText,
@@ -15,9 +16,9 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { getAuthToken } from "@/lib/auth/token";
+import { authFetch } from "@/lib/api/authFetch";
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? "http://localhost:8000/api/v1";
+
 
 const TRANSPORTS: { id: string; label: string; desc: string; color: string; icon: typeof Archive }[] = [
   {
@@ -64,7 +65,7 @@ export default function AdminSmsEngineSettingsPage() {
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch(`${API_BASE}/securegate/sms-settings`, { headers: authHeaders() });
+        const res = await authFetch(`/securegate/sms-settings`, { headers: authHeaders() });
         if (!res.ok) throw new Error("Failed to load SMS engine settings");
         const j = await res.json();
         const d = j?.success ? j?.data?.data ?? j?.data : j;
@@ -100,7 +101,7 @@ export default function AdminSmsEngineSettingsPage() {
         from_number: settings.twilio.from_number,
         auth_token: authToken || undefined,
       };
-      const res = await fetch(`${API_BASE}/securegate/sms-settings`, {
+      const res = await authFetch(`/securegate/sms-settings`, {
         method: "PUT",
         headers: authHeaders(),
         body: JSON.stringify(body),
@@ -128,7 +129,7 @@ export default function AdminSmsEngineSettingsPage() {
     setTesting(true);
     setTestResult(null);
     try {
-      const res = await fetch(`${API_BASE}/securegate/sms-settings/test`, {
+      const res = await authFetch(`/securegate/sms-settings/test`, {
         method: "POST",
         headers: authHeaders(),
         body: JSON.stringify({ to }),

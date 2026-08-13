@@ -1,11 +1,12 @@
+import { getAuthToken } from "@/lib/auth/token";
 import { useEffect, useState } from "react";
 import { Loader2, Save, LinkIcon, Eye, EyeOff, Lock, CheckCircle2, AlertCircle, Globe, KeyRound, ShieldQuestion } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { getAuthToken } from "@/lib/auth/token";
+import { authFetch } from "@/lib/api/authFetch";
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? "http://localhost:8000/api/v1";
+
 
 interface ProviderMeta {
   configured: boolean;
@@ -50,7 +51,7 @@ function authHeaders() {
 
 const defaultRedirect = (id: string) =>
   id === "apple"
-    ? `${API_BASE}/auth/social/apple/callback`
+    ? `${window.location.origin}/auth/social/apple/callback`
     : `${window.location.origin}/social/callback?provider=${id}`;
 
 export default function AdminSocialLoginSettingsPage() {
@@ -63,7 +64,7 @@ export default function AdminSocialLoginSettingsPage() {
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch(`${API_BASE}/securegate/social-login`, { headers: authHeaders() });
+        const res = await authFetch(`/securegate/social-login`, { headers: authHeaders() });
         if (!res.ok) throw new Error("Failed to load social login settings");
         const j = await res.json();
         const d = j?.success ? j?.data?.data ?? j?.data : j;
@@ -110,7 +111,7 @@ export default function AdminSocialLoginSettingsPage() {
         }
         (body.providers as Record<string, unknown>)[p.id] = entry;
       }
-      const res = await fetch(`${API_BASE}/securegate/social-login`, { method: "PUT", headers: authHeaders(), body: JSON.stringify(body) });
+      const res = await authFetch(`/securegate/social-login`, { method: "PUT", headers: authHeaders(), body: JSON.stringify(body) });
       const j = await res.json();
       if (!res.ok) throw new Error(j?.message ?? "Save failed");
       const d = j?.success ? j?.data?.data ?? j?.data : j;

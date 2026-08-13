@@ -2,19 +2,14 @@ import { useState, useEffect } from 'react';
 import { Crown, Loader2, CheckCircle2, XCircle, Calendar, Ban, AlertCircle } from 'lucide-react';
 import type { Subscription } from '@/types/subscription';
 import { formatDistanceToNow } from 'date-fns';
-import { getAuthToken } from "@/lib/auth/token";
+import { authFetch } from "@/lib/api/authFetch";
 import { useConfirm } from '@/components/ui/DialogProvider';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { FormErrorSummary } from '@/components/ui/FormErrorSummary';
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? 'http://localhost:8000/api/v1';
 
-function getAuthHeaders() {
-  const token = getAuthToken();
-  return {
-    'Content-Type': 'application/json',
-    Accept: 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
-}
+
+
 
 function formatPrice(cents: number, currency = 'NGN'): string {
   const symbols: Record<string, string> = { NGN: '₦', USD: '$', GBP: '£', EUR: '€' };
@@ -29,7 +24,7 @@ export function MySubscriptionsPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch(`${API_BASE}/subscriptions/mine`, { headers: getAuthHeaders() })
+    authFetch(`/subscriptions/mine`, {  })
       .then((r) => r.json())
       .then((json) => setSubscriptions(json.data?.data ?? []))
       .catch(console.error)
@@ -43,7 +38,7 @@ export function MySubscriptionsPage() {
     setCancelling(id);
     setError(null);
     try {
-      const res = await fetch(`${API_BASE}/subscriptions/${id}/cancel`, { method: 'POST', headers: getAuthHeaders() });
+      const res = await authFetch(`/subscriptions/${id}/cancel`, { method: 'POST',  });
       const json = await res.json();
       if (res.ok) {
         setSubscriptions((prev) => prev.map((s) => s.id === id ? { ...s, ...(json.data?.data ?? json.data), is_active: false, status: 'canceled' } : s));
@@ -64,18 +59,14 @@ export function MySubscriptionsPage() {
 
   return (
     <div className="space-y-6 w-full max-w-4xl mx-auto p-4 sm:p-6 lg:p-8">
-      <div>
-        <h1 className="text-xl font-extrabold text-foreground flex items-center gap-2">
-          <Crown className="h-5 w-5 text-amber-500" />
-          My Subscriptions
-        </h1>
-        <p className="text-xs text-muted-foreground mt-1">Manage your active memberships.</p>
-      </div>
+      <PageHeader 
+        title="My Subscriptions"
+        description="Manage your active memberships."
+        icon={<Crown className="h-5 w-5 text-amber-500" />}
+      />
 
       {error && (
-        <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-destructive/10 text-destructive text-xs font-medium">
-          <AlertCircle className="h-4 w-4" /> {error}
-        </div>
+        <FormErrorSummary errors={[error]} />
       )}
 
       {subscriptions.length === 0 ? (

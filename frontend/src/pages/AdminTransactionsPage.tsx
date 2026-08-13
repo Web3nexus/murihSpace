@@ -1,11 +1,12 @@
+import { getAuthToken } from "@/lib/auth/token";
 import { useState, useEffect, useCallback } from 'react';
 import { BadgeDollarSign, Loader2, CheckCircle2, Clock, XCircle, AlertCircle, Check, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import type { WithdrawalRequest } from '@/types/wallet';
-import { getAuthToken } from "@/lib/auth/token";
+import { authFetch } from "@/lib/api/authFetch";
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? 'http://localhost:8000/api/v1';
+
 const authHeaders = () => {
   const t = getAuthToken();
   return { Accept: 'application/json', 'Content-Type': 'application/json', ...(t ? { Authorization: `Bearer ${t}` } : {}) };
@@ -29,7 +30,7 @@ export function AdminTransactionsPage() {
     try {
       const params = new URLSearchParams({ page: String(page), per_page: '20' });
       if (search) params.set('search', search);
-      const res = await fetch(`${API_BASE}/securegate/withdrawals?${params}`, { headers: authHeaders() });
+      const res = await authFetch(`/securegate/withdrawals?${params}`, { headers: authHeaders() });
       if (id !== requestId.current) return;
       if (res.ok) { const j = await res.json(); setWithdrawals(j?.data?.data ?? j?.data ?? []); setLastPage(j.data?.last_page ?? j.data?.data?.last_page ?? 1); }
       else setError('Failed to load withdrawals.');
@@ -43,7 +44,7 @@ export function AdminTransactionsPage() {
     setProcessing(id);
     setMsg(null);
     try {
-      const res = await fetch(`${API_BASE}/securegate/withdrawals/${id}/process`, {
+      const res = await authFetch(`/securegate/withdrawals/${id}/process`, {
         method: 'POST', headers: authHeaders(),
         body: JSON.stringify({ action, rejection_reason: action === 'reject' ? 'Rejected by admin' : null }),
       });

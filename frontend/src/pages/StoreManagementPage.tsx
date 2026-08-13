@@ -1,3 +1,4 @@
+import { getAuthToken } from "@/lib/auth/token";
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Store,
@@ -16,9 +17,9 @@ import {
 import { ImageUploader } from "@/components/upload/ImageUploader";
 import { Button } from '@/components/ui/button';
 import type { Storefront, StorefrontLink } from '@/types/storefront';
-import { getAuthToken } from "@/lib/auth/token";
+import { authFetch } from "@/lib/api/authFetch";
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? 'http://localhost:8000/api/v1';
+
 const SITE_BASE = window.location.origin;
 
 export function StoreManagementPage() {
@@ -43,7 +44,7 @@ export function StoreManagementPage() {
   const fetchStorefront = useCallback(async () => {
     const token = getAuthToken();
     try {
-      const res = await fetch(`${API_BASE}/storefront`, {
+      const res = await authFetch(`/storefront`, {
         headers: {
           Accept: 'application/json',
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -81,7 +82,7 @@ export function StoreManagementPage() {
 
     const token = getAuthToken();
     try {
-      const res = await fetch(`${API_BASE}/storefront`, {
+      const res = await authFetch(`/storefront`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -118,7 +119,7 @@ export function StoreManagementPage() {
 
     const token = getAuthToken();
     try {
-      const res = await fetch(`${API_BASE}/storefront/publish`, {
+      const res = await authFetch(`/storefront/publish`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

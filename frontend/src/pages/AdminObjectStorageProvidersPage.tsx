@@ -2,14 +2,11 @@ import { useState, useEffect, useCallback } from "react";
 import { useConfirm } from "@/components/ui/DialogProvider";
 import { HardDrive, Plus, Pencil, Trash2, Loader2, Save, X, Check, AlertCircle, CheckCircle2, Eye, EyeOff, ChevronRight, HelpCircle, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { getAuthToken } from "@/lib/auth/token";
+import { authFetch } from "@/lib/api/authFetch";
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? "http://localhost:8000/api/v1";
 
-function getAuthHeaders() {
-  const token = getAuthToken();
-  return { "Content-Type": "application/json", Accept: "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) };
-}
+
+
 
 interface Provider {
   id: number;
@@ -52,7 +49,7 @@ export default function AdminObjectStorageProvidersPage() {
   const loadProviders = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/securegate/storage/providers`, { headers: getAuthHeaders() });
+      const res = await authFetch(`/securegate/storage/providers`, {  });
       const j = await res.json();
       const list = j?.data?.data ?? j?.data ?? j?.providers ?? [];
       setProviders(Array.isArray(list) ? list : []);
@@ -110,11 +107,11 @@ export default function AdminObjectStorageProvidersPage() {
     try {
       const isEdit = "id" in editing && editing.id;
       const url = isEdit
-        ? `${API_BASE}/securegate/storage/providers/${editing.id}`
-        : `${API_BASE}/securegate/storage/providers`;
+        ? `/securegate/storage/providers/${editing.id}`
+        : `/securegate/storage/providers`;
       const method = isEdit ? "PUT" : "POST";
 
-      const res = await fetch(url, { method, headers: getAuthHeaders(), body: JSON.stringify(body) });
+      const res = await authFetch(url, { method,  body: JSON.stringify(body) });
       const j = await res.json();
 
       if (!res.ok) {
@@ -134,9 +131,9 @@ export default function AdminObjectStorageProvidersPage() {
   async function remove(provider: Provider) {
     if (!await confirm({ title: `Delete "${provider.label}"`, message: 'This cannot be undone.', variant: 'destructive' })) return;
     try {
-      const res = await fetch(`${API_BASE}/securegate/storage/providers/${provider.id}`, {
+      const res = await authFetch(`/securegate/storage/providers/${provider.id}`, {
         method: "DELETE",
-        headers: getAuthHeaders(),
+        
       });
       if (res.ok) {
         setMsg({ ok: true, text: "Provider deleted." });
@@ -151,9 +148,9 @@ export default function AdminObjectStorageProvidersPage() {
 
   async function toggleActive(provider: Provider) {
     try {
-      const res = await fetch(`${API_BASE}/securegate/storage/providers/${provider.id}`, {
+      const res = await authFetch(`/securegate/storage/providers/${provider.id}`, {
         method: "PUT",
-        headers: getAuthHeaders(),
+        
         body: JSON.stringify({ is_active: !provider.is_active }),
       });
       if (res.ok) {

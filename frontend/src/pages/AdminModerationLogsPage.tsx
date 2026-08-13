@@ -1,8 +1,9 @@
+import { getAuthToken } from "@/lib/auth/token";
 import { useState, useEffect, useCallback } from "react";
 import { Shield, Loader2, AlertCircle } from "lucide-react";
-import { getAuthToken } from "@/lib/auth/token";
+import { authFetch } from "@/lib/api/authFetch";
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? "http://localhost:8000/api/v1";
+
 
 function authHeaders() {
   const t = getAuthToken();
@@ -25,7 +26,7 @@ export default function AdminModerationLogsPage() {
   const loadData = useCallback(async () => {
     setFetchError(null);
     try {
-      const res = await fetch(`${API_BASE}/securegate/moderation-logs?page=${page}&per_page=20`, { headers: authHeaders() });
+      const res = await authFetch(`/securegate/moderation-logs?page=${page}&per_page=20`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to load moderation logs");
       const j = await res.json();
       const list = j?.success ? j?.data : j;

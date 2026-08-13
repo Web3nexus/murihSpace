@@ -4,17 +4,14 @@ import { Link2, Loader2, Edit, Trash2, Globe, Tag, ShoppingCart, Plus, X, Music,
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ImageUploader } from "@/components/upload/ImageUploader";
-import { getAuthToken } from "@/lib/auth/token";
+import { authFetch } from "@/lib/api/authFetch";
 import { TEMPLATES, templateBySlug } from "@/lib/linkBioTemplates";
 import TemplateRenderer from "@/components/linkbio/TemplateRenderer";
 import TemplateThumb from "@/components/linkbio/TemplateThumb";
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? "http://localhost:8000/api/v1";
 
-function getAuthHeaders() {
-  const token = getAuthToken();
-  return { "Content-Type": "application/json", Accept: "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) };
-}
+
+
 
 interface LinkItem { id: number; title: string; url: string; sort_order: number; is_active: boolean; click_count?: number; }
 interface SocialLink { id: number; platform: string; url: string; sort_order: number; }
@@ -110,8 +107,8 @@ export default function LinkInBioPage() {
     setLoading(true);
     try {
       const [bioRes, desRes] = await Promise.all([
-        fetch(`${API_BASE}/link-in-bio`, { headers: getAuthHeaders() }),
-        fetch(`${API_BASE}/link-in-bio/design`, { headers: getAuthHeaders() }),
+        authFetch(`/link-in-bio`, {  }),
+        authFetch(`/link-in-bio/design`, {  }),
       ]);
       if (bioRes.ok) {
         const j = await bioRes.json();
@@ -157,8 +154,8 @@ export default function LinkInBioPage() {
   const applyTheme = async (theme: Theme) => {
     setSaving(true);
     try {
-      const res = await fetch(`${API_BASE}/link-in-bio/design/apply-theme`, {
-        method: "POST", headers: getAuthHeaders(),
+      const res = await authFetch(`/link-in-bio/design/apply-theme`, {
+        method: "POST", 
         body: JSON.stringify({ theme_id: theme.id }),
       });
       const j = await res.json();
@@ -187,8 +184,8 @@ export default function LinkInBioPage() {
     if (!def) return;
     setSaving(true);
     try {
-      const res = await fetch(`${API_BASE}/link-in-bio/design/apply-template`, {
-        method: "POST", headers: getAuthHeaders(),
+      const res = await authFetch(`/link-in-bio/design/apply-template`, {
+        method: "POST", 
         body: JSON.stringify({ template: def.slug, ...def.palette }),
       });
       const j = await res.json();
@@ -213,8 +210,8 @@ export default function LinkInBioPage() {
   const saveCustomDesign = async () => {
     setSaving(true);
     try {
-      await fetch(`${API_BASE}/link-in-bio/design`, {
-        method: "PUT", headers: getAuthHeaders(),
+      await authFetch(`/link-in-bio/design`, {
+        method: "PUT", 
         body: JSON.stringify({ bg: designBg, card_bg: designCardBg, text_color: designText, accent: designAccent, font, button_style: buttonStyle, layout, template, background_type: designBgType, background_value: designBgValue }),
       });
       setSelectedTheme(null);
@@ -233,8 +230,8 @@ export default function LinkInBioPage() {
     try {
       const body = { title: title.trim(), url: url.trim(), sort_order: editing ? editing.sort_order : links.length };
       const res = editing
-        ? await fetch(`${API_BASE}/link-in-bio/${editing.id}`, { method: "PATCH", headers: getAuthHeaders(), body: JSON.stringify(body) })
-        : await fetch(`${API_BASE}/link-in-bio`, { method: "POST", headers: getAuthHeaders(), body: JSON.stringify(body) });
+        ? await authFetch(`/link-in-bio/${editing.id}`, { method: "PATCH",  body: JSON.stringify(body) })
+        : await authFetch(`/link-in-bio`, { method: "POST",  body: JSON.stringify(body) });
       const j = await res.json();
       if (!res.ok) throw new Error(j?.message ?? "Save failed");
       setMsg({ ok: true, text: editing ? "Link updated." : "Link added." });
@@ -245,7 +242,7 @@ export default function LinkInBioPage() {
 
   const handleDelete = async (id: number) => {
     if (!await confirm({ title: 'Delete Link', message: 'Delete this link?', variant: 'destructive' })) return;
-    try { await fetch(`${API_BASE}/link-in-bio/${id}`, { method: "DELETE", headers: getAuthHeaders() }); fetchAll(); } catch { /* ignore */ }
+    try { await authFetch(`/link-in-bio/${id}`, { method: "DELETE",  }); fetchAll(); } catch { /* ignore */ }
   };
 
   const startEdit = (link: LinkItem) => { setEditing(link); setTitle(link.title); setUrl(link.url); setMsg(null); };
@@ -255,8 +252,8 @@ export default function LinkInBioPage() {
   const saveProfile = async () => {
     setSaving(true);
     try {
-      const res = await fetch(`${API_BASE}/link-in-bio/profile`, {
-        method: "PUT", headers: getAuthHeaders(),
+      const res = await authFetch(`/link-in-bio/profile`, {
+        method: "PUT", 
         body: JSON.stringify({ profile_name: profileName, profile_bio: profileBio, avatar_url: avatarUrl || null, banner_url: bannerUrl || null }),
       });
       if (res.ok) setMsg({ ok: true, text: "Profile saved!" }); else setMsg({ ok: false, text: "Save failed" });
@@ -276,8 +273,8 @@ export default function LinkInBioPage() {
     try {
       const body = { platform: socialPlatform, url: socialUrl.trim(), sort_order: editingSocial ? editingSocial.sort_order : socials.length };
       const res = editingSocial
-        ? await fetch(`${API_BASE}/link-in-bio/socials/${editingSocial.id}`, { method: "PATCH", headers: getAuthHeaders(), body: JSON.stringify(body) })
-        : await fetch(`${API_BASE}/link-in-bio/socials`, { method: "POST", headers: getAuthHeaders(), body: JSON.stringify(body) });
+        ? await authFetch(`/link-in-bio/socials/${editingSocial.id}`, { method: "PATCH",  body: JSON.stringify(body) })
+        : await authFetch(`/link-in-bio/socials`, { method: "POST",  body: JSON.stringify(body) });
       if (res.ok) { resetSocialForm(); fetchAll(); } else setMsg({ ok: false, text: "Save social failed" });
     } catch { setMsg({ ok: false, text: "Save social failed" }); }
     setSaving(false);
@@ -285,7 +282,7 @@ export default function LinkInBioPage() {
 
   const handleDeleteSocial = async (id: number) => {
     if (!await confirm({ title: 'Remove Social Link', message: 'Remove this social link?', variant: 'destructive' })) return;
-    try { await fetch(`${API_BASE}/link-in-bio/socials/${id}`, { method: "DELETE", headers: getAuthHeaders() }); fetchAll(); } catch { /* ignore */ }
+    try { await authFetch(`/link-in-bio/socials/${id}`, { method: "DELETE",  }); fetchAll(); } catch { /* ignore */ }
   };
 
   // ── Products CRUD ────────────────────────────────────────────
@@ -306,8 +303,8 @@ export default function LinkInBioPage() {
         sort_order: editingProd ? editingProd.sort_order : products.length,
       };
       const res = editingProd
-        ? await fetch(`${API_BASE}/link-in-bio/products/${editingProd.id}`, { method: "PATCH", headers: getAuthHeaders(), body: JSON.stringify(body) })
-        : await fetch(`${API_BASE}/link-in-bio/products`, { method: "POST", headers: getAuthHeaders(), body: JSON.stringify(body) });
+        ? await authFetch(`/link-in-bio/products/${editingProd.id}`, { method: "PATCH",  body: JSON.stringify(body) })
+        : await authFetch(`/link-in-bio/products`, { method: "POST",  body: JSON.stringify(body) });
       if (res.ok) { resetProductForm(); fetchAll(); } else setMsg({ ok: false, text: "Save product failed" });
     } catch { setMsg({ ok: false, text: "Save product failed" }); }
     setSaving(false);
@@ -315,7 +312,7 @@ export default function LinkInBioPage() {
 
   const handleDeleteProduct = async (id: number) => {
     if (!await confirm({ title: 'Delete Product', message: 'Delete this product?', variant: 'destructive' })) return;
-    try { await fetch(`${API_BASE}/link-in-bio/products/${id}`, { method: "DELETE", headers: getAuthHeaders() }); fetchAll(); } catch { /* ignore */ }
+    try { await authFetch(`/link-in-bio/products/${id}`, { method: "DELETE",  }); fetchAll(); } catch { /* ignore */ }
   };
 
   const startEditProduct = (p: ProductItem) => {

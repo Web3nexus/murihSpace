@@ -1,3 +1,4 @@
+import { authFetch } from "@/lib/api/authFetch";
 import React, { useState, useCallback, useRef, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router";
 import { useAuth } from "@/hooks/useAuth";
@@ -16,7 +17,7 @@ import { InlineFieldError } from "@/components/ui/InlineFieldError";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? "http://localhost:8000/api/v1";
+
 
 type Step = 1 | 2 | 3 | 4 | 5 | 6 | 7;
 
@@ -148,7 +149,7 @@ export function RegisterPage() {
     setUsernameChecking(true);
     setUsernameCheckError(false);
     try {
-      const res = await fetch(`${API_BASE}/auth/check-username/${encodeURIComponent(val)}`, { headers: { Accept: "application/json" } });
+      const res = await authFetch(`/auth/check-username/${encodeURIComponent(val)}`, { headers: { Accept: "application/json" } });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const j = await res.json();
       const d = j?.success ? j?.data : j;
@@ -225,7 +226,7 @@ export function RegisterPage() {
   const handleSocialLogin = async (provider: string) => {
     setSocialLoading(provider);
     try {
-      const res = await fetch(`${API_BASE}/auth/social/${provider}/redirect`, { headers: { Accept: "application/json" } });
+      const res = await authFetch(`/auth/social/${provider}/redirect`, { headers: { Accept: "application/json" } });
       const j = await res.json();
       const d = j?.success ? j?.data : j;
       if (d?.redirect_url) {

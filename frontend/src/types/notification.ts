@@ -5,7 +5,13 @@ export type NotificationType =
   | 'new_comment'
   | 'moderation_action'
   | 'join_request'
-  | 'join_approved';
+  | 'join_approved'
+  | 'ticket_created'
+  | 'ticket_reply'
+  | 'ticket_status_changed'
+  | 'ticket_info_requested'
+  | 'ticket_resolved'
+  | 'ticket_reopened';
 
 export type NotificationChannel = 'in_app' | 'email' | 'push';
 

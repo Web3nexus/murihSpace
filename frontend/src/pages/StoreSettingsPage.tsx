@@ -2,14 +2,11 @@ import { useState, useEffect, useCallback } from "react";
 import { Store, Loader2, Save, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { getAuthToken } from "@/lib/auth/token";
+import { authFetch } from "@/lib/api/authFetch";
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? "http://localhost:8000/api/v1";
 
-function getAuthHeaders() {
-  const token = getAuthToken();
-  return { "Content-Type": "application/json", Accept: "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) };
-}
+
+
 
 export default function StoreSettingsPage() {
   const [name, setName] = useState("");
@@ -23,7 +20,7 @@ export default function StoreSettingsPage() {
   const fetchSettings = useCallback(async () => {
     setLoadError(null);
     try {
-      const res = await fetch(`${API_BASE}/store/settings`, { headers: getAuthHeaders() });
+      const res = await authFetch(`/store/settings`, {  });
       if (res.ok) {
         const j = await res.json();
         const d = j?.success ? j?.data : j;
@@ -41,8 +38,8 @@ export default function StoreSettingsPage() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const res = await fetch(`${API_BASE}/store/settings`, {
-        method: "PUT", headers: getAuthHeaders(),
+      const res = await authFetch(`/store/settings`, {
+        method: "PUT", 
         body: JSON.stringify({ name, description, default_currency: currency }),
       });
       const j = await res.json();

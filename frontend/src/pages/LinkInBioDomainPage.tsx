@@ -2,14 +2,11 @@ import { useState, useEffect, useCallback } from "react";
 import { Globe, Loader2, ExternalLink, CheckCircle2, XCircle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { getAuthToken } from "@/lib/auth/token";
+import { authFetch } from "@/lib/api/authFetch";
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? "http://localhost:8000/api/v1";
 
-function getAuthHeaders() {
-  const token = getAuthToken();
-  return { "Content-Type": "application/json", Accept: "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) };
-}
+
+
 
 export default function LinkInBioDomainPage() {
   const [domain, setDomain] = useState("");
@@ -22,7 +19,7 @@ export default function LinkInBioDomainPage() {
 
   const loadStatus = useCallback(async () => {
     try {
-      await fetch(`${API_BASE}/link-in-bio/design`, { headers: getAuthHeaders() });
+      await authFetch(`/link-in-bio/design`, {  });
     } catch { /* ignore */ }
   }, []);
 
@@ -35,8 +32,8 @@ export default function LinkInBioDomainPage() {
     setMsg(null);
     setVerified(null);
     try {
-      const res = await fetch(`${API_BASE}/link-in-bio/domain`, {
-        method: "PUT", headers: getAuthHeaders(),
+      const res = await authFetch(`/link-in-bio/domain`, {
+        method: "PUT", 
         body: JSON.stringify({ domain: domain.trim() }),
       });
       const j = await res.json();
@@ -52,8 +49,8 @@ export default function LinkInBioDomainPage() {
     setVerifying(true);
     setMsg(null);
     try {
-      const res = await fetch(`${API_BASE}/link-in-bio/domain/verify`, {
-        method: "POST", headers: getAuthHeaders(),
+      const res = await authFetch(`/link-in-bio/domain/verify`, {
+        method: "POST", 
       });
       const j = await res.json();
       const d = j?.success ? j?.data : j;

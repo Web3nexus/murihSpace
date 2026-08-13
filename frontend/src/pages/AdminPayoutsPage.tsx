@@ -2,14 +2,11 @@ import { useState, useEffect, useCallback } from 'react';
 import { useConfirm } from '@/components/ui/DialogProvider';
 import { DollarSign, Loader2, CheckCircle2, Clock, AlertTriangle, AlertCircle } from 'lucide-react';
 import { Button } from "@/components/ui/button";
-import { getAuthToken } from "@/lib/auth/token";
+import { authFetch } from "@/lib/api/authFetch";
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? 'http://localhost:8000/api/v1';
 
-function getAuthHeaders() {
-  const token = getAuthToken();
-  return { 'Content-Type': 'application/json', Accept: 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
-}
+
+
 
 function formatAmount(amount: number, currency = 'NGN'): string {
   const symbols: Record<string, string> = { NGN: '₦', USD: '$', GBP: '£', EUR: '€' };
@@ -46,7 +43,7 @@ export function AdminPayoutsPage() {
       if (statusFilter) params.set('status', statusFilter);
       params.set('page', String(page));
       params.set('per_page', '20');
-      const res = await fetch(`${API_BASE}/securegate/payouts?${params}`, { headers: getAuthHeaders() });
+      const res = await authFetch(`/securegate/payouts?${params}`, {  });
       if (res.ok) { const j = await res.json(); const d = j?.success ? j?.data : j; setPayouts(d?.data?.data ?? d?.data ?? []); setSummary(d?.summary ?? null); setLastPage(d?.data?.last_page ?? d?.last_page ?? 1); }
       else throw new Error(`HTTP ${res.status}`);
     } catch (e) { setFetchError(e instanceof Error ? e.message : 'Failed to load payouts'); }
@@ -58,7 +55,7 @@ export function AdminPayoutsPage() {
   async function markPaid(id: number) {
     if (!await confirm({ title: 'Mark as Paid', message: 'Mark this payout as paid?' })) return;
     try {
-      const res = await fetch(`${API_BASE}/securegate/payouts/${id}/mark-paid`, { method: 'PUT', headers: getAuthHeaders() });
+      const res = await authFetch(`/securegate/payouts/${id}/mark-paid`, { method: 'PUT',  });
       const j = await res.json();
       if (res.ok) { setMessage({ type: 'success', text: 'Payout marked as paid.' }); fetchPayouts(); }
       else { setMessage({ type: 'error', text: j.message ?? 'Failed.' }); }

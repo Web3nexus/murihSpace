@@ -2,18 +2,15 @@ import { useState, useEffect, useCallback } from "react";
 import { MapPin, Plus, Loader2, Edit, Trash2, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { getAuthToken } from "@/lib/auth/token";
+import { authFetch } from "@/lib/api/authFetch";
 import { CountrySelect } from "@/components/forms/CountrySelect";
 import { StateSelect } from "@/components/forms/StateSelect";
 import { PhoneInput } from "@/components/forms/PhoneInput";
 import { useConfirm } from "@/components/ui/DialogProvider";
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? "http://localhost:8000/api/v1";
 
-function getAuthHeaders() {
-  const token = getAuthToken();
-  return { "Content-Type": "application/json", Accept: "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) };
-}
+
+
 
 interface Address {
   id: number;
@@ -49,7 +46,7 @@ export default function SavedAddressesPage() {
 
   const fetchAddresses = useCallback(async () => {
     try {
-      const res = await fetch(`${API_BASE}/addresses`, { headers: getAuthHeaders() });
+      const res = await authFetch(`/addresses`, {  });
       if (!res.ok) throw new Error("Failed to load");
       const j = await res.json();
       const list = j?.success ? j?.data : j;
@@ -82,8 +79,8 @@ export default function SavedAddressesPage() {
         phone: phone.trim(),
       };
       const res = editing
-        ? await fetch(`${API_BASE}/addresses/${editing.id}`, { method: "PATCH", headers: getAuthHeaders(), body: JSON.stringify(body) })
-        : await fetch(`${API_BASE}/addresses`, { method: "POST", headers: getAuthHeaders(), body: JSON.stringify(body) });
+        ? await authFetch(`/addresses/${editing.id}`, { method: "PATCH",  body: JSON.stringify(body) })
+        : await authFetch(`/addresses`, { method: "POST",  body: JSON.stringify(body) });
       const j = await res.json();
       if (!res.ok) throw new Error(j?.message ?? j?.errors?.state?.[0] ?? "Save failed");
       resetForm();
@@ -96,7 +93,7 @@ export default function SavedAddressesPage() {
   };
 
   const setDefault = async (id: number) => {
-    await fetch(`${API_BASE}/addresses/${id}/default`, { method: "PATCH", headers: getAuthHeaders() });
+    await authFetch(`/addresses/${id}/default`, { method: "PATCH",  });
     fetchAddresses();
   };
 
@@ -104,7 +101,7 @@ export default function SavedAddressesPage() {
 
   const handleDelete = async (id: number) => {
     if (!await confirm({ title: "Delete Address", message: "Delete this address?", variant: "destructive" })) return;
-    await fetch(`${API_BASE}/addresses/${id}`, { method: "DELETE", headers: getAuthHeaders() });
+    await authFetch(`/addresses/${id}`, { method: "DELETE",  });
     fetchAddresses();
   };
 

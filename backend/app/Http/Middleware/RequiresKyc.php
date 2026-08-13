@@ -22,6 +22,10 @@ class RequiresKyc
             return $next($request);
         }
 
+        if (! (bool) \App\Models\AdminSetting::get('kyc_enabled', true)) {
+            return $next($request);
+        }
+
         if (! (bool) config('kyc.required_for_sellers', true)) {
             return $next($request);
         }

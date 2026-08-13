@@ -3,14 +3,12 @@ import { useConfirm, usePrompt } from "@/components/ui/DialogProvider";
 import { AlertCircle, DollarSign, Loader2, Megaphone, Search, ThumbsUp, ThumbsDown, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { getAuthToken } from "@/lib/auth/token";
+import { authFetch } from "@/lib/api/authFetch";
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? "http://localhost:8000/api/v1";
+// Use the Ads backend for moderation routes
+const ADS_API_BASE = import.meta.env.VITE_ADS_API_URL || "http://127.0.0.1:8002/api";
 
-function getAuthHeaders() {
-  const token = getAuthToken();
-  return { "Content-Type": "application/json", Accept: "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) };
-}
+
 
 const STATUS_COLORS: Record<string, string> = {
   draft: "bg-gray-100 text-gray-700",
@@ -40,9 +38,9 @@ export default function AdminAdsPage() {
     setLoading(true);
     try {
       const [cRes, sRes, rRes] = await Promise.all([
-        fetch(`${API_BASE}/securegate/ads`, { headers: getAuthHeaders() }),
-        fetch(`${API_BASE}/securegate/ads/stats`, { headers: getAuthHeaders() }),
-        fetch(`${API_BASE}/securegate/ads/revenue`, { headers: getAuthHeaders() }),
+        authFetch(`${ADS_API_BASE}/admin/ads`, {  }),
+        authFetch(`${ADS_API_BASE}/admin/ads/stats`, {  }),
+        authFetch(`${ADS_API_BASE}/admin/ads/revenue`, {  }),
       ]);
       if (cRes.ok) { const j = await cRes.json(); setCampaigns(j?.data ?? j); }
       if (sRes.ok) setStats(await sRes.json());
@@ -65,10 +63,10 @@ export default function AdminAdsPage() {
     if (action === "remove" && !await confirm({ title: "Remove Campaign", message: "Permanently remove this campaign?", variant: "destructive" })) return;
 
     try {
-      const url = `${API_BASE}/securegate/ads/${id}/${action}`;
-      const opts: RequestInit = { method: action === "remove" ? "DELETE" : "POST", headers: getAuthHeaders() };
+      const url = `${ADS_API_BASE}/admin/ads/${id}/${action}`;
+      const opts: RequestInit = { method: action === "remove" ? "DELETE" : "POST",  };
       if (reason) opts.body = JSON.stringify({ reason });
-      const res = await fetch(url, opts);
+      const res = await authFetch(url, opts);
       if (res.ok) fetchData();
     } catch { /* ignore */ }
   };

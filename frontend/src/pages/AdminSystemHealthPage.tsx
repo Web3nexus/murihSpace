@@ -1,8 +1,9 @@
+import { getAuthToken } from "@/lib/auth/token";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Activity, Loader2, CheckCircle2, AlertTriangle, XCircle, RefreshCw, AlertCircle } from "lucide-react";
-import { getAuthToken } from "@/lib/auth/token";
+import { authFetch } from "@/lib/api/authFetch";
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? "http://localhost:8000/api/v1";
+
 
 function authHeaders() {
   const t = getAuthToken();
@@ -24,7 +25,7 @@ export default function AdminSystemHealthPage() {
     setFetchError(null);
     if (showSpinner) setRefreshing(true);
     try {
-      const res = await fetch(`${API_BASE}/securegate/system-health`, { headers: authHeaders() });
+      const res = await authFetch(`/securegate/system-health`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to load health data");
       const j = await res.json();
       const d = j?.success ? j?.data : j;

@@ -1,3 +1,4 @@
+import { authFetch } from "@/lib/api/authFetch";
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router";
 import { useAuth } from "@/hooks/useAuth";
@@ -11,7 +12,7 @@ import { Loader2, ShieldAlert, ArrowLeft, RefreshCw, CheckCircle2, Smartphone, E
 import { cn } from "@/lib/utils";
 import { AuthLayout } from "@/components/layout/AuthLayout";
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? "http://localhost:8000/api/v1";
+
 const DEFAULT_COUNTRY = "NG";
 
 type Tab = "phone" | "email";
@@ -134,7 +135,7 @@ export function LoginPage() {
     setSocialLoading(provider);
     setSocialError(null);
     try {
-      const res = await fetch(`${API_BASE}/auth/social/${provider}/redirect`, { headers: { Accept: "application/json" } });
+      const res = await authFetch(`/auth/social/${provider}/redirect`, { headers: { Accept: "application/json" } });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const j = await res.json();
       const d = j?.success ? j?.data : j;

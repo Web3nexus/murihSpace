@@ -1,10 +1,11 @@
+import { authFetch } from "@/lib/api/authFetch";
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router";
 import {
   Loader2, Users, Eye, BarChart3, Globe, ShieldCheck, Sparkles,
 } from "lucide-react";
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? "http://localhost:8000/api/v1";
+
 
 interface RateCardItem {
   type: string; price: string; description?: string;
@@ -40,7 +41,7 @@ export function PublicMediaKitPage() {
     if (!creatorId) { setNotFound(true); setLoading(false); return; }
     (async () => {
       try {
-        const res = await fetch(`${API_BASE}/media-kit/${encodeURIComponent(creatorId)}`, { headers: { Accept: "application/json" } });
+        const res = await authFetch(`/media-kit/${encodeURIComponent(creatorId)}`, { headers: { Accept: "application/json" } });
         if (!res.ok) { setNotFound(true); return; }
         const j = await res.json();
         const d = j?.success ? j?.data : j.data;

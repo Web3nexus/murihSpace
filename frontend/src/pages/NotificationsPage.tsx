@@ -1,3 +1,4 @@
+import { getAuthToken } from "@/lib/auth/token";
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Bell,
@@ -11,6 +12,7 @@ import {
   Loader2,
   RefreshCw,
   ExternalLink,
+  LifeBuoy,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { formatDistanceToNow } from 'date-fns';
@@ -21,9 +23,9 @@ import type {
   NotificationType,
   NotificationChannel,
 } from '@/types/notification';
-import { getAuthToken } from "@/lib/auth/token";
+import { authFetch } from "@/lib/api/authFetch";
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? 'http://localhost:8000/api/v1';
+
 
 const TYPE_CONFIG: Record<
   NotificationType,
@@ -64,6 +66,36 @@ const TYPE_CONFIG: Record<
     description: 'Notifications regarding content reports, warnings, or moderation actions.',
     icon: <ShieldAlert className="h-4 w-4 text-destructive" />,
   },
+  ticket_created: {
+    label: 'Ticket Created',
+    description: 'When a support ticket you opened is created.',
+    icon: <LifeBuoy className="h-4 w-4 text-blue-500" />,
+  },
+  ticket_reply: {
+    label: 'Support Replies',
+    description: 'When a support agent replies to your ticket.',
+    icon: <LifeBuoy className="h-4 w-4 text-emerald-500" />,
+  },
+  ticket_status_changed: {
+    label: 'Ticket Status Changes',
+    description: 'When the status of your support ticket changes.',
+    icon: <RefreshCw className="h-4 w-4 text-blue-500" />,
+  },
+  ticket_info_requested: {
+    label: 'More Information Requested',
+    description: 'When support asks you for more information on a ticket.',
+    icon: <MessageSquare className="h-4 w-4 text-amber-500" />,
+  },
+  ticket_resolved: {
+    label: 'Ticket Resolved',
+    description: 'When your support ticket is marked resolved.',
+    icon: <Check className="h-4 w-4 text-emerald-500" />,
+  },
+  ticket_reopened: {
+    label: 'Ticket Reopened',
+    description: 'When your support ticket is reopened.',
+    icon: <RefreshCw className="h-4 w-4 text-amber-500" />,
+  },
 };
 
 export default function NotificationsPage() {
@@ -88,7 +120,7 @@ export default function NotificationsPage() {
 
     const token = getAuthToken();
     try {
-      const res = await fetch(`${API_BASE}/notifications`, {
+      const res = await authFetch(`/notifications`, {
         headers: {
           Accept: 'application/json',
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -111,7 +143,7 @@ export default function NotificationsPage() {
     setPrefsLoadError(false);
     const token = getAuthToken();
     try {
-      const res = await fetch(`${API_BASE}/notification-preferences`, {
+      const res = await authFetch(`/notification-preferences`, {
         headers: {
           Accept: 'application/json',
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -145,7 +177,7 @@ export default function NotificationsPage() {
   const handleMarkAllRead = async () => {
     const token = getAuthToken();
     try {
-      await fetch(`${API_BASE}/notifications/read-all`, {
+      await authFetch(`/notifications/read-all`, {
         method: 'POST',
         headers: {
           Accept: 'application/json',
@@ -190,7 +222,7 @@ export default function NotificationsPage() {
     });
 
     try {
-      const res = await fetch(`${API_BASE}/notification-preferences`, {
+      const res = await authFetch(`/notification-preferences`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

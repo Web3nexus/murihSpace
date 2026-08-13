@@ -1,3 +1,4 @@
+import { getAuthToken } from "@/lib/auth/token";
 import { useState, useEffect, useCallback } from "react";
 import {
   Settings2, Film, Link2, Users, Radio, Package, ShoppingCart, Crown,
@@ -5,11 +6,11 @@ import {
   Shield, Globe, BookOpen, Calendar, Store, Heart, ShieldCheck,
   Flag, Loader2, AlertCircle, CheckCircle2, Search, Plus, Trash2, X,
 } from "lucide-react";
-import { getAuthToken } from "@/lib/auth/token";
+import { authFetch } from "@/lib/api/authFetch";
 import { refreshFeatureFlags } from "@/hooks/useFeatureFlags";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? "http://localhost:8000/api/v1";
+
 
 function authHeaders() {
   const t = getAuthToken();
@@ -92,7 +93,7 @@ export function AdminFeatureFlagsPage() {
   const fetchFlags = useCallback(async () => {
     setLoading(true); setError(null);
     try {
-      const res = await fetch(`${API_BASE}/securegate/feature-flags`, { headers: authHeaders() });
+      const res = await authFetch(`/securegate/feature-flags`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to load");
       const j = await res.json();
       const d = j?.success ? j.data : j;
@@ -117,7 +118,7 @@ export function AdminFeatureFlagsPage() {
     try {
       const existing = flags.find((f) => f.key === feature.key);
       if (existing) {
-        const res = await fetch(`${API_BASE}/securegate/feature-flags/${existing.id}`, {
+        const res = await authFetch(`/securegate/feature-flags/${existing.id}`, {
           method: "PUT", headers: authHeaders(),
           body: JSON.stringify({ enabled: !currentEnabled }),
         });
@@ -132,7 +133,7 @@ export function AdminFeatureFlagsPage() {
           setError((d?.message as string) || `Failed to toggle ${feature.label} (${res.status}).`);
         }
       } else {
-        const res = await fetch(`${API_BASE}/securegate/feature-flags`, {
+        const res = await authFetch(`/securegate/feature-flags`, {
           method: "POST", headers: authHeaders(),
           body: JSON.stringify({ key: feature.key, label: feature.label, description: feature.description, enabled: true }),
         });
@@ -150,7 +151,7 @@ export function AdminFeatureFlagsPage() {
   const deleteFlag = async (id: number) => {
     setDeleting(id);
     try {
-      const res = await fetch(`${API_BASE}/securegate/feature-flags/${id}`, { method: "DELETE", headers: authHeaders() });
+      const res = await authFetch(`/securegate/feature-flags/${id}`, { method: "DELETE", headers: authHeaders() });
       if (!res.ok) {
         const j = await res.json().catch(() => null);
         const d = j?.success ? j.data : j;
@@ -167,7 +168,7 @@ export function AdminFeatureFlagsPage() {
     e.preventDefault(); setSubmitting(true); setMsg(null);
     const form = new FormData(e.currentTarget);
     try {
-      const res = await fetch(`${API_BASE}/securegate/feature-flags`, {
+      const res = await authFetch(`/securegate/feature-flags`, {
         method: "POST", headers: authHeaders(),
         body: JSON.stringify({ key: form.get("key"), label: form.get("label"), description: form.get("description") }),
       });

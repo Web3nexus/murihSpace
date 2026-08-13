@@ -1,17 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { ShoppingCart, Trash2, Plus, Minus, Loader2, ShoppingBag } from 'lucide-react';
-import { getAuthToken } from "@/lib/auth/token";
+import { authFetch } from "@/lib/api/authFetch";
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? 'http://localhost:8000/api/v1';
 
-function getAuthHeaders() {
-  const token = getAuthToken();
-  return {
-    'Content-Type': 'application/json',
-    Accept: 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
-}
+
+
 
 function formatPrice(cents: number, currency = 'NGN'): string {
   const symbols: Record<string, string> = { NGN: '₦', USD: '$', GBP: '£', EUR: '€' };
@@ -48,7 +41,7 @@ export function CartPage() {
 
   const fetchCart = useCallback(async () => {
     try {
-      const res = await fetch(`${API_BASE}/store/cart`, { headers: getAuthHeaders() });
+      const res = await authFetch(`/store/cart`, {  });
       if (res.ok) {
         const json = await res.json();
         setCart(json.data?.data ?? null);
@@ -66,9 +59,9 @@ export function CartPage() {
     setUpdating(itemId);
     setMessage(null);
     try {
-      const res = await fetch(`${API_BASE}/store/cart/items/${itemId}`, {
+      const res = await authFetch(`/store/cart/items/${itemId}`, {
         method: 'PUT',
-        headers: getAuthHeaders(),
+        
         body: JSON.stringify({ quantity }),
       });
       const json = await res.json();
@@ -88,9 +81,9 @@ export function CartPage() {
     setUpdating(itemId);
     setMessage(null);
     try {
-      const res = await fetch(`${API_BASE}/store/cart/items/${itemId}`, {
+      const res = await authFetch(`/store/cart/items/${itemId}`, {
         method: 'DELETE',
-        headers: getAuthHeaders(),
+        
       });
       if (res.ok) {
         await fetchCart();
@@ -107,9 +100,9 @@ export function CartPage() {
   async function clearCart() {
     setMessage(null);
     try {
-      const res = await fetch(`${API_BASE}/store/cart`, {
+      const res = await authFetch(`/store/cart`, {
         method: 'DELETE',
-        headers: getAuthHeaders(),
+        
       });
       if (res.ok) {
         await fetchCart();

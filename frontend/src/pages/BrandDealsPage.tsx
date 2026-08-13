@@ -8,18 +8,11 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { getAuthToken } from "@/lib/auth/token";
+import { authFetch } from "@/lib/api/authFetch";
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? 'http://localhost:8000/api/v1';
 
-function getAuthHeaders() {
-  const token = getAuthToken();
-  return {
-    'Content-Type': 'application/json',
-    Accept: 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
-}
+
+
 
 function formatPrice(cents: number, currency = 'NGN'): string {
   const symbols: Record<string, string> = { NGN: '₦', USD: '$', GBP: '£', EUR: '€' };
@@ -75,8 +68,8 @@ export function BrandDealsPage() {
   const fetchAll = useCallback(async () => {
     try {
       const [dRes, bRes] = await Promise.all([
-        fetch(`${API_BASE}/brand-deals?page=${page}&per_page=20`, { headers: getAuthHeaders() }),
-        fetch(`${API_BASE}/brands`, { headers: getAuthHeaders() }),
+        authFetch(`/brand-deals?page=${page}&per_page=20`, {  }),
+        authFetch(`/brands`, {  }),
       ]);
       if (dRes.ok) { const j = await dRes.json(); setDeals(j.data?.data ?? []); setLastPage(j.data?.last_page ?? 1); }
       if (bRes.ok) { const j = await bRes.json(); setBrands(j.data?.data ?? []); }
@@ -96,10 +89,10 @@ export function BrandDealsPage() {
     e.preventDefault();
     setMessage(null);
     const method = editId ? 'PUT' : 'POST';
-    const url = editId ? `${API_BASE}/brand-deals/${editId}` : `${API_BASE}/brand-deals`;
+    const url = editId ? `/brand-deals/${editId}` : `/brand-deals`;
     try {
-      const res = await fetch(url, {
-        method, headers: getAuthHeaders(),
+      const res = await authFetch(url, {
+        method, 
         body: JSON.stringify({ ...form, brand_id: Number(form.brand_id), budget: form.budget ? Number(form.budget) * 100 : 0 }),
       });
       if (res.ok) { await fetchAll(); resetForm(); setMessage({ type: 'success', text: editId ? 'Deal updated.' : 'Deal created.' }); }
@@ -126,7 +119,7 @@ export function BrandDealsPage() {
   async function deleteDeal(id: number) {
     if (!await confirm({ title: 'Delete Deal', message: 'Delete this deal?', variant: 'destructive' })) return;
     try {
-      const res = await fetch(`${API_BASE}/brand-deals/${id}`, { method: 'DELETE', headers: getAuthHeaders() });
+      const res = await authFetch(`/brand-deals/${id}`, { method: 'DELETE',  });
       if (res.ok) { await fetchAll(); setMessage({ type: 'success', text: 'Deal deleted.' }); }
     } catch { setMessage({ type: 'error', text: 'Network error.' }); }
   }

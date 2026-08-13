@@ -1,18 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Crown, Loader2, Check, CreditCard, AlertCircle, X } from 'lucide-react';
 import type { SubscriptionPlan } from '@/types/subscription';
-import { getAuthToken } from "@/lib/auth/token";
+import { authFetch } from "@/lib/api/authFetch";
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? 'http://localhost:8000/api/v1';
 
-function getAuthHeaders() {
-  const token = getAuthToken();
-  return {
-    'Content-Type': 'application/json',
-    Accept: 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
-}
+
+
 
 function formatPrice(cents: number, currency = 'NGN'): string {
   const symbols: Record<string, string> = { NGN: '₦', USD: '$', GBP: '£', EUR: '€' };
@@ -27,7 +20,7 @@ export function BrowsePlansPage() {
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   useEffect(() => {
-    fetch(`${API_BASE}/subscriptions/plans/public`, { headers: getAuthHeaders() })
+    authFetch(`/subscriptions/plans/public`, {  })
       .then((r) => r.json())
       .then((json) => setPlans(json.data?.data ?? []))
       .catch(console.error)
@@ -38,9 +31,9 @@ export function BrowsePlansPage() {
     setSubscribing(planId);
     setMessage(null);
     try {
-      const res = await fetch(`${API_BASE}/subscriptions/subscribe`, {
+      const res = await authFetch(`/subscriptions/subscribe`, {
         method: 'POST',
-        headers: getAuthHeaders(),
+        
         body: JSON.stringify({ plan_id: planId }),
       });
       const json = await res.json();

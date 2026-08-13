@@ -1,3 +1,4 @@
+import { getAuthToken } from "@/lib/auth/token";
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useConfirm } from '@/components/ui/DialogProvider';
 import {
@@ -22,9 +23,11 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import type { DigitalProduct, ProductCategory, ProductStatus } from '@/types/digitalProduct';
-import { getAuthToken } from "@/lib/auth/token";
+import { authFetch } from "@/lib/api/authFetch";
+import { FormErrorSummary } from '@/components/ui/FormErrorSummary';
+import { PageHeader } from '@/components/ui/PageHeader';
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? 'http://localhost:8000/api/v1';
+
 
 const CATEGORIES: { value: ProductCategory; label: string }[] = [
   { value: 'ebook', label: 'E-Book' },
@@ -64,7 +67,7 @@ export function DigitalProductsPage() {
   const fetchProducts = useCallback(async () => {
     const token = getAuthToken();
     try {
-      const res = await fetch(`${API_BASE}/store/products?page=${page}&per_page=20`, {
+      const res = await authFetch(`/store/products?page=${page}&per_page=20`, {
         headers: {
           Accept: 'application/json',
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -132,8 +135,8 @@ export function DigitalProductsPage() {
     if (selectedFile) formData.append('file', selectedFile);
 
     const endpoint = editingProduct
-      ? `${API_BASE}/store/products/${editingProduct.id}`
-      : `${API_BASE}/store/products`;
+      ? `/store/products/${editingProduct.id}`
+      : `/store/products`;
 
     // For Laravel PUT with FormData, use POST + _method=PUT
     if (editingProduct) {
@@ -141,7 +144,7 @@ export function DigitalProductsPage() {
     }
 
     try {
-      const res = await fetch(endpoint, {
+      const res = await authFetch(endpoint, {
         method: 'POST',
         headers: {
           Accept: 'application/json',
@@ -167,7 +170,7 @@ export function DigitalProductsPage() {
     const nextStatus = p.status === 'published' ? 'draft' : 'published';
 
     try {
-      const res = await fetch(`${API_BASE}/store/products/${p.id}/publish`, {
+      const res = await authFetch(`/store/products/${p.id}/publish`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -190,7 +193,7 @@ export function DigitalProductsPage() {
     const token = getAuthToken();
 
     try {
-      const res = await fetch(`${API_BASE}/store/products/${id}`, {
+      const res = await authFetch(`/store/products/${id}`, {
         method: 'DELETE',
         headers: {
           Accept: 'application/json',
@@ -207,7 +210,7 @@ export function DigitalProductsPage() {
   const handleDownload = async (id: number) => {
     const token = getAuthToken();
     try {
-      const res = await fetch(`${API_BASE}/products/${id}/download`, {
+      const res = await authFetch(`/products/${id}/download`, {
         headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
       });
       if (!res.ok) return;
@@ -233,24 +236,20 @@ export function DigitalProductsPage() {
   return (
     <div className="space-y-6 w-full max-w-7xl mx-auto p-6 lg:p-8">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-black text-foreground tracking-tight flex items-center gap-2.5">
-            <Package className="h-6 w-6 text-secondary" />
-            Digital Products Catalog
-          </h1>
-          <p className="text-xs text-muted-foreground mt-1">
-            Create, publish, and manage secure downloadable assets (E-books, templates, audio, design assets).
-          </p>
-        </div>
-
-        <Button
-          onClick={openCreateModal}
-          className="text-xs font-bold gap-2 bg-secondary hover:bg-secondary/90 text-secondary-foreground px-5 rounded-xl shadow-md shrink-0"
-        >
-          <Plus className="h-4 w-4" /> Add Digital Product
-        </Button>
-      </div>
+      <PageHeader 
+        title="Digital Products Catalog"
+        description="Create, publish, and manage secure downloadable assets (E-books, templates, audio, design assets)."
+        icon={<Package className="h-6 w-6 text-secondary" />}
+        action={
+          <Button
+            onClick={openCreateModal}
+            className="shrink-0 bg-secondary hover:bg-secondary/90 text-secondary-foreground"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Add New Product
+          </Button>
+        }
+      />
 
       {/* Filter & Search Bar */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
@@ -416,9 +415,7 @@ export function DigitalProductsPage() {
             </DialogHeader>
 
             {error && (
-              <div className="p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-xs">
-                {error}
-              </div>
+              <FormErrorSummary errors={[error]} className="mb-4" />
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4 py-2">

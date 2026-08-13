@@ -4,20 +4,13 @@ import {
   Users, Banknote, Calendar, Eye, EyeOff, AlertCircle,
 } from 'lucide-react';
 import type { SubscriptionPlan, SubscriptionStats, CreatePlanPayload } from '@/types/subscription';
-import { getAuthToken } from "@/lib/auth/token";
+import { authFetch } from "@/lib/api/authFetch";
 import { useConfirm } from '@/components/ui/DialogProvider';
 import { toast } from 'sonner';
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? 'http://localhost:8000/api/v1';
 
-function getAuthHeaders() {
-  const token = getAuthToken();
-  return {
-    'Content-Type': 'application/json',
-    Accept: 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
-}
+
+
 
 function formatPrice(cents: number, currency = 'NGN'): string {
   const symbols: Record<string, string> = { NGN: '₦', USD: '$', GBP: '£', EUR: '€' };
@@ -42,8 +35,8 @@ export function SubscriptionManagementPage() {
     setIsLoading(true);
     try {
       const [plansRes, statsRes] = await Promise.all([
-        fetch(`${API_BASE}/subscriptions/plans/my`, { headers: getAuthHeaders() }),
-        fetch(`${API_BASE}/subscriptions/stats`, { headers: getAuthHeaders() }),
+        authFetch(`/subscriptions/plans/my`, {  }),
+        authFetch(`/subscriptions/stats`, {  }),
       ]);
       if (plansRes.ok) {
         const json = await plansRes.json();
@@ -101,10 +94,10 @@ export function SubscriptionManagementPage() {
     setError(null);
     try {
       const url = editingId
-        ? `${API_BASE}/subscriptions/plans/${editingId}`
-        : `${API_BASE}/subscriptions/plans`;
+        ? `/subscriptions/plans/${editingId}`
+        : `/subscriptions/plans`;
       const method = editingId ? 'PUT' : 'POST';
-      const res = await fetch(url, { method, headers: getAuthHeaders(), body: JSON.stringify(form) });
+      const res = await authFetch(url, { method,  body: JSON.stringify(form) });
       const json = await res.json();
       if (!res.ok) {
         setError(json.message ?? 'Failed to save plan');
@@ -124,7 +117,7 @@ export function SubscriptionManagementPage() {
   const handleDelete = async (id: number) => {
     if (!await confirm({ title: "Delete Subscription Plan", message: "Delete this plan? Active subscriptions will prevent deletion.", variant: "destructive" })) return;
     try {
-      const res = await fetch(`${API_BASE}/subscriptions/plans/${id}`, { method: 'DELETE', headers: getAuthHeaders() });
+      const res = await authFetch(`/subscriptions/plans/${id}`, { method: 'DELETE',  });
       const json = await res.json();
       if (!res.ok) { toast.error(json.message || "Failed to delete plan."); return; }
       toast.success("Plan deleted.");
@@ -137,9 +130,9 @@ export function SubscriptionManagementPage() {
 
   const toggleActive = async (plan: SubscriptionPlan) => {
     try {
-      await fetch(`${API_BASE}/subscriptions/plans/${plan.id}`, {
+      await authFetch(`/subscriptions/plans/${plan.id}`, {
         method: 'PUT',
-        headers: getAuthHeaders(),
+        
         body: JSON.stringify({ is_active: !plan.is_active }),
       });
       fetchData();

@@ -7,14 +7,11 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { getAuthToken } from "@/lib/auth/token";
+import { authFetch } from "@/lib/api/authFetch";
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? "http://localhost:8000/api/v1";
 
-function getAuthHeaders() {
-  const token = getAuthToken();
-  return { "Content-Type": "application/json", Accept: "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) };
-}
+
+
 
 const OBJECTIVES = [
   { value: "post_engagement", label: "Post Engagement", icon: MousePointerClick },
@@ -76,7 +73,7 @@ export default function AdCampaignPage() {
   const fetchCampaigns = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/ads`, { headers: getAuthHeaders() });
+      const res = await authFetch(`/ads`, {  });
       if (res.ok) { const j = await res.json(); setCampaigns(j?.data ?? j); }
     } catch { /* ignore */ }
     finally { setLoading(false); }
@@ -95,8 +92,8 @@ export default function AdCampaignPage() {
       if (form.total_budget) body.total_budget = parseFloat(form.total_budget);
       if (!form.placements.length) delete body.placements;
 
-      const res = await fetch(`${API_BASE}/ads`, {
-        method: "POST", headers: getAuthHeaders(),
+      const res = await authFetch(`/ads`, {
+        method: "POST", 
         body: JSON.stringify(body),
       });
       if (res.ok) {
@@ -113,7 +110,7 @@ export default function AdCampaignPage() {
 
   const handleAction = async (id: number, action: string) => {
     try {
-      const res = await fetch(`${API_BASE}/ads/${id}/${action}`, { method: "POST", headers: getAuthHeaders() });
+      const res = await authFetch(`/ads/${id}/${action}`, { method: "POST",  });
       if (res.ok) fetchCampaigns();
     } catch { /* ignore */ }
   };
@@ -123,21 +120,21 @@ export default function AdCampaignPage() {
   const handleDelete = async (id: number) => {
     if (!await confirm({ title: "Cancel Campaign", message: "Cancel this campaign?", variant: "destructive" })) return;
     try {
-      await fetch(`${API_BASE}/ads/${id}`, { method: "DELETE", headers: getAuthHeaders() });
+      await authFetch(`/ads/${id}`, { method: "DELETE",  });
       fetchCampaigns();
     } catch { /* ignore */ }
   };
 
   const handleDuplicate = async (id: number) => {
     try {
-      await fetch(`${API_BASE}/ads/${id}/duplicate`, { method: "POST", headers: getAuthHeaders() });
+      await authFetch(`/ads/${id}/duplicate`, { method: "POST",  });
       fetchCampaigns();
     } catch { /* ignore */ }
   };
 
   const loadAnalytics = async (campaign: any) => {
     try {
-      const res = await fetch(`${API_BASE}/ads/${campaign.id}/analytics`, { headers: getAuthHeaders() });
+      const res = await authFetch(`/ads/${campaign.id}/analytics`, {  });
       if (res.ok) {
         const j = await res.json();
         toast.info(`Analytics — CTR: ${j.ctr}%, CPC: $${j.cpc}, Spent: $${j.summary?.total_spent || 0}`);

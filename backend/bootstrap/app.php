@@ -1,18 +1,26 @@
 <?php
 
 use App\Exceptions\InsufficientBalanceException;
+use App\Http\Middleware\ActivityLogMiddleware;
+use App\Http\Middleware\CachePublicResponse;
 use App\Http\Middleware\CaptureRequestAndEnvelopeResponse;
+use App\Http\Middleware\EnsureAdminPermission;
 use App\Http\Middleware\EnsureEmailIsVerified;
+use App\Http\Middleware\EnsureInternalRequest;
 use App\Http\Middleware\IsAdmin;
+use App\Http\Middleware\IsCreator;
+use App\Http\Middleware\IsVendor;
+use App\Http\Middleware\RequiresKyc;
+use App\Http\Middleware\RequiresPermission;
 use App\Http\Middleware\SecurityHeaders;
 use App\Providers\AuthServiceProvider;
 use Illuminate\Auth\AuthenticationException;
-use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Routing\Middleware\SubstituteBindings;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
@@ -24,6 +32,13 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__.'/../routes/console.php',
         channels: __DIR__.'/../routes/channels.php',
         health: '/up',
+        then: function () {
+            Route::middleware([
+                'internal',
+                SubstituteBindings::class,
+            ])->prefix('internal')
+                ->group(__DIR__.'/../routes/internal.php');
+        },
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->api(prepend: [
@@ -32,18 +47,19 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
 
         $middleware->api(append: [
-            \App\Http\Middleware\ActivityLogMiddleware::class,
+            ActivityLogMiddleware::class,
         ]);
 
         $middleware->alias([
-            'admin'            => IsAdmin::class,
-            'admin.permission' => \App\Http\Middleware\EnsureAdminPermission::class,
-            'creator'          => \App\Http\Middleware\IsCreator::class,
-            'vendor'           => \App\Http\Middleware\IsVendor::class,
-            'permission'       => \App\Http\Middleware\RequiresPermission::class,
-            'kyc'              => \App\Http\Middleware\RequiresKyc::class,
-            'verified'         => EnsureEmailIsVerified::class,
-            'cache.public'     => \App\Http\Middleware\CachePublicResponse::class,
+            'admin' => IsAdmin::class,
+            'admin.permission' => EnsureAdminPermission::class,
+            'creator' => IsCreator::class,
+            'vendor' => IsVendor::class,
+            'permission' => RequiresPermission::class,
+            'kyc' => RequiresKyc::class,
+            'verified' => EnsureEmailIsVerified::class,
+            'cache.public' => CachePublicResponse::class,
+            'internal' => EnsureInternalRequest::class,
         ]);
 
     })
@@ -52,18 +68,19 @@ return Application::configure(basePath: dirname(__DIR__))
     ])
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
-            fn (Request $request) => $request->is('api/*'),
+            fn (Request $request) => $request->is('api/*') || $request->is('internal/*'),
         );
 
         $exceptions->render(function (Throwable $e, Request $request) {
-            if ($request->is('api/*')) {
+            if ($request->is('api/*') || $request->is('internal/*')) {
                 $status = 500;
-                $message = $e->getMessage() ?: 'Internal Server Error';
+                $message = 'Internal Server Error';
                 $errors = null;
                 $code = null;
 
                 if ($e instanceof HttpExceptionInterface) {
                     $status = $e->getStatusCode();
+                    $message = $e->getMessage() ?: 'Internal Server Error';
                 } elseif ($e instanceof ValidationException) {
                     $status = 422;
                     $message = $e->getMessage();

@@ -1,13 +1,10 @@
 import { useState, useEffect, useCallback } from "react";
 import { BarChart3, Loader2, TrendingUp, TrendingDown, Minus } from "lucide-react";
-import { getAuthToken } from "@/lib/auth/token";
+import { authFetch } from "@/lib/api/authFetch";
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? "http://localhost:8000/api/v1";
 
-function getAuthHeaders() {
-  const token = getAuthToken();
-  return { "Content-Type": "application/json", Accept: "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) };
-}
+
+
 
 interface ProductStats {
   product_id: number; product_name: string; total_sales: number;
@@ -20,7 +17,7 @@ export default function ProductPerformancePage() {
 
   const fetchStats = useCallback(async () => {
     try {
-      const res = await fetch(`${API_BASE}/analytics/products`, { headers: getAuthHeaders() });
+      const res = await authFetch(`/analytics/products`, {  });
       if (!res.ok) throw new Error();
       const j = await res.json();
       const list = j?.success ? j?.data : j;

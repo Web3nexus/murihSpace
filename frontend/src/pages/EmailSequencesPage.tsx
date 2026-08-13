@@ -1,18 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useConfirm } from '@/components/ui/DialogProvider';
 import { ListOrdered, Plus, Loader2, Power, PowerOff, Trash2, Clock, Check, X, Settings2, Play, Sparkles, Send, MoveDown } from 'lucide-react';
-import { getAuthToken } from "@/lib/auth/token";
+import { authFetch } from "@/lib/api/authFetch";
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? 'http://localhost:8000/api/v1';
 
-function getAuthHeaders() {
-  const token = getAuthToken();
-  return {
-    'Content-Type': 'application/json',
-    Accept: 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
-}
+
+
 
 interface Step {
   id: number; subject: string; delay_days: number; order: number; content?: string;
@@ -53,7 +46,7 @@ export function EmailSequencesPage() {
 
   const fetchAll = useCallback(async () => {
     try {
-      const res = await fetch(`${API_BASE}/email-sequences?page=${page}&per_page=20`, { headers: getAuthHeaders() });
+      const res = await authFetch(`/email-sequences?page=${page}&per_page=20`, {  });
       if (res.ok) { const j = await res.json(); setSequences(j.data?.data ?? []); setLastPage(j.data?.last_page ?? 1); }
     } catch { /* ignore */ }
     finally { setIsLoading(false); }
@@ -75,9 +68,9 @@ export function EmailSequencesPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const method = editId ? 'PUT' : 'POST';
-    const url = editId ? `${API_BASE}/email-sequences/${editId}` : `${API_BASE}/email-sequences`;
+    const url = editId ? `/email-sequences/${editId}` : `/email-sequences`;
     try {
-      const res = await fetch(url, { method, headers: getAuthHeaders(), body: JSON.stringify(form) });
+      const res = await authFetch(url, { method,  body: JSON.stringify(form) });
       if (res.ok) { await fetchAll(); resetForm(); showMsg('success', editId ? 'Sequence updated.' : 'Sequence created.'); }
       else { const j = await res.json(); showMsg('error', j.message ?? 'Failed to save sequence.'); }
     } catch { showMsg('error', 'Network error.'); }
@@ -85,7 +78,7 @@ export function EmailSequencesPage() {
 
   async function toggleSequence(id: number) {
     try {
-      await fetch(`${API_BASE}/email-sequences/${id}/toggle`, { method: 'POST', headers: getAuthHeaders() });
+      await authFetch(`/email-sequences/${id}/toggle`, { method: 'POST',  });
       await fetchAll();
     } catch { /* ignore */ }
   }
@@ -93,7 +86,7 @@ export function EmailSequencesPage() {
   async function deleteSequence(id: number) {
     if (!await confirm({ title: 'Delete Sequence', message: 'Delete this sequence and all its steps? This action cannot be undone.', variant: 'destructive' })) return;
     try { 
-      const res = await fetch(`${API_BASE}/email-sequences/${id}`, { method: 'DELETE', headers: getAuthHeaders() }); 
+      const res = await authFetch(`/email-sequences/${id}`, { method: 'DELETE',  }); 
       await fetchAll(); 
       if (res.ok) showMsg('success', 'Sequence deleted.');
       else showMsg('error', 'Failed to delete sequence.');
@@ -118,8 +111,8 @@ export function EmailSequencesPage() {
       return;
     }
     try {
-      const res = await fetch(`${API_BASE}/email-sequences/${sequenceId}/steps`, {
-        method: 'POST', headers: getAuthHeaders(),
+      const res = await authFetch(`/email-sequences/${sequenceId}/steps`, {
+        method: 'POST', 
         body: JSON.stringify({ 
           subject: data.subject, 
           content: data.content, 
@@ -140,7 +133,7 @@ export function EmailSequencesPage() {
   async function deleteStep(sequenceId: number, stepId: number) {
     if (!await confirm({ title: 'Delete Step', message: 'Remove this email from the sequence?', variant: 'destructive' })) return;
     try {
-      const res = await fetch(`${API_BASE}/email-sequences/${sequenceId}/steps/${stepId}`, { method: 'DELETE', headers: getAuthHeaders() });
+      const res = await authFetch(`/email-sequences/${sequenceId}/steps/${stepId}`, { method: 'DELETE',  });
       await fetchAll();
       if (res.ok) showMsg('success', 'Step deleted.');
       else showMsg('error', 'Failed to delete step.');

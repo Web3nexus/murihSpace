@@ -3,14 +3,11 @@ import { useConfirm } from "@/components/ui/DialogProvider";
 import { Package, Plus, Loader2, Edit, Trash2, Eye, EyeOff, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { getAuthToken } from "@/lib/auth/token";
+import { authFetch } from "@/lib/api/authFetch";
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? "http://localhost:8000/api/v1";
 
-function getAuthHeaders() {
-  const token = getAuthToken();
-  return { "Content-Type": "application/json", Accept: "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) };
-}
+
+
 
 interface StoreProduct {
   id: number;
@@ -43,7 +40,7 @@ export default function StoreProductsPage() {
   const fetchProducts = useCallback(async () => {
     setFetchError(null);
     try {
-      const res = await fetch(`${API_BASE}/store/products?page=${page}&per_page=20`, { headers: getAuthHeaders() });
+      const res = await authFetch(`/store/products?page=${page}&per_page=20`, {  });
       if (!res.ok) throw new Error("Failed to load products");
       const j = await res.json();
       const list = j?.success ? j?.data : j;
@@ -66,8 +63,8 @@ export default function StoreProductsPage() {
     try {
       const body = { title: title.trim(), price: Math.round(parseFloat(price) * 100), currency, type: productType };
       const res = editing
-        ? await fetch(`${API_BASE}/store/products/${editing.id}`, { method: "PATCH", headers: getAuthHeaders(), body: JSON.stringify(body) })
-        : await fetch(`${API_BASE}/store/products`, { method: "POST", headers: getAuthHeaders(), body: JSON.stringify(body) });
+        ? await authFetch(`/store/products/${editing.id}`, { method: "PATCH",  body: JSON.stringify(body) })
+        : await authFetch(`/store/products`, { method: "POST",  body: JSON.stringify(body) });
       const j = await res.json();
       if (!res.ok) throw new Error(j?.message ?? "Save failed");
       resetForm();
@@ -80,13 +77,13 @@ export default function StoreProductsPage() {
   };
 
   const togglePublish = async (p: StoreProduct) => {
-    await fetch(`${API_BASE}/store/products/${p.id}`, { method: "PATCH", headers: getAuthHeaders(), body: JSON.stringify({ status: p.status === "published" ? "draft" : "published" }) });
+    await authFetch(`/store/products/${p.id}`, { method: "PATCH",  body: JSON.stringify({ status: p.status === "published" ? "draft" : "published" }) });
     fetchProducts();
   };
 
   const handleDelete = async (id: number) => {
     if (!await confirm({ title: 'Delete Product', message: 'Delete this product?', variant: 'destructive' })) return;
-    await fetch(`${API_BASE}/store/products/${id}`, { method: "DELETE", headers: getAuthHeaders() });
+    await authFetch(`/store/products/${id}`, { method: "DELETE",  });
     fetchProducts();
   };
 

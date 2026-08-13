@@ -1,3 +1,4 @@
+import { getAuthToken } from "@/lib/auth/token";
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router';
 import {
@@ -16,9 +17,9 @@ import { Button } from '@/components/ui/button';
 import CreatePostComposer from '@/components/feed/CreatePostComposer';
 import PostCard from '@/components/feed/PostCard';
 import type { Post, PostComment, CreatePostPayload, ReactionType } from '@/types/post';
-import { getAuthToken } from "@/lib/auth/token";
+import { authFetch } from "@/lib/api/authFetch";
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? 'http://localhost:8000/api/v1';
+
 
 interface Community {
   id: number;
@@ -35,7 +36,7 @@ interface Community {
 
 async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
   const token = getAuthToken();
-  const res = await fetch(`${API_BASE}${path}`, {
+  const res = await authFetch(`${path}`, {
     ...options,
     headers: {
       'Content-Type': 'application/json',

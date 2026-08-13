@@ -3,15 +3,12 @@ import { BarChart3, Loader2, TrendingUp, ToggleLeft, ToggleRight, RotateCcw, Pla
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { getAuthToken } from "@/lib/auth/token";
+import { authFetch } from "@/lib/api/authFetch";
 import { useConfirm, usePrompt } from "@/components/ui/DialogProvider";
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? "http://localhost:8000/api/v1";
 
-function getAuthHeaders() {
-  const token = getAuthToken();
-  return { "Content-Type": "application/json", Accept: "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) };
-}
+
+
 
 const FEED_TYPES = ["home", "following", "trending", "community", "recommended"];
 
@@ -36,11 +33,11 @@ export default function AdminAlgorithmPage() {
     setLoading(true);
     try {
       const [wRes, cRes, bRes, aRes, chRes] = await Promise.all([
-        fetch(`${API_BASE}/securegate/feed-algorithm/weights?feed_type=${feedType}`, { headers: getAuthHeaders() }),
-        fetch(`${API_BASE}/securegate/feed-algorithm/configs`, { headers: getAuthHeaders() }),
-        fetch(`${API_BASE}/securegate/feed-algorithm/boosts`, { headers: getAuthHeaders() }),
-        fetch(`${API_BASE}/securegate/feed-algorithm/ab-tests`, { headers: getAuthHeaders() }),
-        fetch(`${API_BASE}/securegate/feed-algorithm/changes`, { headers: getAuthHeaders() }),
+        authFetch(`/securegate/feed-algorithm/weights?feed_type=${feedType}`, {  }),
+        authFetch(`/securegate/feed-algorithm/configs`, {  }),
+        authFetch(`/securegate/feed-algorithm/boosts`, {  }),
+        authFetch(`/securegate/feed-algorithm/ab-tests`, {  }),
+        authFetch(`/securegate/feed-algorithm/changes`, {  }),
       ]);
       if (wRes.ok) setWeights(await wRes.json());
       if (cRes.ok) setConfigs(await cRes.json());
@@ -62,8 +59,8 @@ export default function AdminAlgorithmPage() {
     try {
       const body: any = { reason };
       body[field] = value;
-      const res = await fetch(`${API_BASE}/securegate/feed-algorithm/weights/${id}`, {
-        method: "PUT", headers: getAuthHeaders(),
+      const res = await authFetch(`/securegate/feed-algorithm/weights/${id}`, {
+        method: "PUT", 
         body: JSON.stringify(body),
       });
       if (res.ok) { setMsg({ ok: true, text: "Weight updated." }); fetchAll(); }
@@ -75,7 +72,7 @@ export default function AdminAlgorithmPage() {
     const reason = await prompt({ title: "Promote Config", message: "Reason for promotion to production:" });
     if (!reason) return;
     try {
-      await fetch(`${API_BASE}/securegate/feed-algorithm/configs/${id}/promote`, { method: "POST", headers: getAuthHeaders(), body: JSON.stringify({ reason }) });
+      await authFetch(`/securegate/feed-algorithm/configs/${id}/promote`, { method: "POST",  body: JSON.stringify({ reason }) });
       setMsg({ ok: true, text: "Promoted to production." }); fetchAll();
     } catch { /* ignore */ }
   };
@@ -84,7 +81,7 @@ export default function AdminAlgorithmPage() {
     const reason = await prompt({ title: "Rollback Config", message: "Reason for rollback:" });
     if (!reason) return;
     try {
-      await fetch(`${API_BASE}/securegate/feed-algorithm/configs/${id}/rollback`, { method: "POST", headers: getAuthHeaders(), body: JSON.stringify({ reason }) });
+      await authFetch(`/securegate/feed-algorithm/configs/${id}/rollback`, { method: "POST",  body: JSON.stringify({ reason }) });
       fetchAll();
     } catch { /* ignore */ }
   };
@@ -92,8 +89,8 @@ export default function AdminAlgorithmPage() {
   const handleCreateBoost = async (e: React.FormEvent) => {
     e.preventDefault(); setSaving(true);
     try {
-      const res = await fetch(`${API_BASE}/securegate/feed-algorithm/boosts`, {
-        method: "POST", headers: getAuthHeaders(),
+      const res = await authFetch(`/securegate/feed-algorithm/boosts`, {
+        method: "POST", 
         body: JSON.stringify({ ...boostForm, boost_factor: parseFloat(boostForm.boost_factor), traffic_percentage: undefined }),
       });
       if (res.ok) { setMsg({ ok: true, text: "Boost created." }); setShowBoostForm(false); setBoostForm({ boostable_type: "", boostable_id: "", boost_factor: "2", reason: "", ends_at: "" }); fetchAll(); }
@@ -111,8 +108,8 @@ export default function AdminAlgorithmPage() {
         variant_config: JSON.parse(abForm.variant_config),
         traffic_percentage: parseInt(abForm.traffic_percentage),
       };
-      const res = await fetch(`${API_BASE}/securegate/feed-algorithm/ab-tests`, {
-        method: "POST", headers: getAuthHeaders(),
+      const res = await authFetch(`/securegate/feed-algorithm/ab-tests`, {
+        method: "POST", 
         body: JSON.stringify(body),
       });
       if (res.ok) { setMsg({ ok: true, text: "A/B test created." }); setShowAbForm(false); setAbForm({ name: "", feed_type: "home", control_config: "{}", variant_config: "{}", traffic_percentage: "50" }); fetchAll(); }
@@ -124,7 +121,7 @@ export default function AdminAlgorithmPage() {
   const handleSeed = async () => {
     if (!await confirm({ title: "Seed Default Weights", message: "Seed default weights? This will not overwrite existing." })) return;
     try {
-      await fetch(`${API_BASE}/securegate/feed-algorithm/seed`, { method: "POST", headers: getAuthHeaders() });
+      await authFetch(`/securegate/feed-algorithm/seed`, { method: "POST",  });
       setMsg({ ok: true, text: "Default weights seeded." }); fetchAll();
     } catch { /* ignore */ }
   };
@@ -249,7 +246,7 @@ export default function AdminAlgorithmPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       <Badge className="bg-green-100 text-green-700">Active</Badge>
-                      <Button variant="ghost" size="sm" onClick={async () => { if (await confirm({ title: "Remove Boost", message: "Remove boost?", variant: "destructive" })) { await fetch(`${API_BASE}/securegate/feed-algorithm/boosts/${b.id}`, { method: "DELETE", headers: getAuthHeaders() }); fetchAll(); } }}><Trash2 className="w-4 h-4 text-red-500" /></Button>
+                      <Button variant="ghost" size="sm" onClick={async () => { if (await confirm({ title: "Remove Boost", message: "Remove boost?", variant: "destructive" })) { await authFetch(`/securegate/feed-algorithm/boosts/${b.id}`, { method: "DELETE",  }); fetchAll(); } }}><Trash2 className="w-4 h-4 text-red-500" /></Button>
                     </div>
                   </div>
                 ))}
@@ -295,8 +292,8 @@ export default function AdminAlgorithmPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       <Badge className={t.status === "running" ? "bg-green-100 text-green-700" : t.status === "draft" ? "bg-gray-100 text-gray-600" : "bg-blue-100 text-blue-700"}>{t.status}</Badge>
-                      {t.status === "draft" && <Button variant="outline" size="sm" onClick={async () => { await fetch(`${API_BASE}/securegate/feed-algorithm/ab-tests/${t.id}/start`, { method: "POST", headers: getAuthHeaders() }); fetchAll(); }}><Play className="w-3 h-3 mr-1" />Start</Button>}
-                      {t.status === "running" && <Button variant="outline" size="sm" onClick={async () => { await fetch(`${API_BASE}/securegate/feed-algorithm/ab-tests/${t.id}/end`, { method: "POST", headers: getAuthHeaders() }); fetchAll(); }}><Square className="w-3 h-3 mr-1" />End</Button>}
+                      {t.status === "draft" && <Button variant="outline" size="sm" onClick={async () => { await authFetch(`/securegate/feed-algorithm/ab-tests/${t.id}/start`, { method: "POST",  }); fetchAll(); }}><Play className="w-3 h-3 mr-1" />Start</Button>}
+                      {t.status === "running" && <Button variant="outline" size="sm" onClick={async () => { await authFetch(`/securegate/feed-algorithm/ab-tests/${t.id}/end`, { method: "POST",  }); fetchAll(); }}><Square className="w-3 h-3 mr-1" />End</Button>}
                     </div>
                   </div>
                 ))}

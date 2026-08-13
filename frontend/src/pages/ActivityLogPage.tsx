@@ -1,13 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { History, Loader2, RefreshCw, FileText, Users, ShoppingCart, Wallet, Gift, Calendar, CreditCard } from "lucide-react";
-import { getAuthToken } from "@/lib/auth/token";
+import { authFetch } from "@/lib/api/authFetch";
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? "http://localhost:8000/api/v1";
-
-function getAuthHeaders() {
-  const token = getAuthToken();
-  return { "Content-Type": "application/json", Accept: "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) };
-}
 
 interface ActivityItem {
   id: number;
@@ -49,7 +43,7 @@ export default function ActivityLogPage() {
   const loadActivities = useCallback(async (p: number) => {
     setLoading(true);
     try {
-      const res = await window.fetch(`${API_BASE}/activity-logs?page=${p}&per_page=25`, { headers: getAuthHeaders() });
+      const res = await authFetch(`/activity-logs?page=${p}&per_page=25`);
       if (!res.ok) { setError("Failed to load activity"); return; }
       const json = await res.json();
       setActivities(json.data ?? json.data?.data ?? []);

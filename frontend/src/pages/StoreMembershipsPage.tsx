@@ -3,14 +3,11 @@ import { useConfirm } from "@/components/ui/DialogProvider";
 import { Crown, Plus, Loader2, Edit, Trash2, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { getAuthToken } from "@/lib/auth/token";
+import { authFetch } from "@/lib/api/authFetch";
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? "http://localhost:8000/api/v1";
 
-function getAuthHeaders() {
-  const token = getAuthToken();
-  return { "Content-Type": "application/json", Accept: "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) };
-}
+
+
 
 interface MembershipPlan {
   id: number;
@@ -41,7 +38,7 @@ export default function StoreMembershipsPage() {
 
   const fetchPlans = useCallback(async () => {
     try {
-      const res = await fetch(`${API_BASE}/store/memberships?page=${page}&per_page=20`, { headers: getAuthHeaders() });
+      const res = await authFetch(`/store/memberships?page=${page}&per_page=20`, {  });
       if (!res.ok) throw new Error("Failed to load");
       const j = await res.json();
       const list = j?.success ? j?.data : j;
@@ -63,8 +60,8 @@ export default function StoreMembershipsPage() {
     try {
       const body = { name: name.trim(), price: Math.round(parseFloat(price) * 100), currency, interval };
       const res = editing
-        ? await fetch(`${API_BASE}/store/memberships/${editing.id}`, { method: "PATCH", headers: getAuthHeaders(), body: JSON.stringify(body) })
-        : await fetch(`${API_BASE}/store/memberships`, { method: "POST", headers: getAuthHeaders(), body: JSON.stringify(body) });
+        ? await authFetch(`/store/memberships/${editing.id}`, { method: "PATCH",  body: JSON.stringify(body) })
+        : await authFetch(`/store/memberships`, { method: "POST",  body: JSON.stringify(body) });
       const j = await res.json();
       if (!res.ok) throw new Error(j?.message ?? "Save failed");
       resetForm();
@@ -77,13 +74,13 @@ export default function StoreMembershipsPage() {
   };
 
   const toggleStatus = async (p: MembershipPlan) => {
-    await fetch(`${API_BASE}/store/memberships/${p.id}`, { method: "PATCH", headers: getAuthHeaders(), body: JSON.stringify({ status: p.status === "active" ? "inactive" : "active" }) });
+    await authFetch(`/store/memberships/${p.id}`, { method: "PATCH",  body: JSON.stringify({ status: p.status === "active" ? "inactive" : "active" }) });
     fetchPlans();
   };
 
   const handleDelete = async (id: number) => {
     if (!await confirm({ title: 'Delete Plan', message: 'Delete this plan?', variant: 'destructive' })) return;
-    await fetch(`${API_BASE}/store/memberships/${id}`, { method: "DELETE", headers: getAuthHeaders() });
+    await authFetch(`/store/memberships/${id}`, { method: "DELETE",  });
     fetchPlans();
   };
 

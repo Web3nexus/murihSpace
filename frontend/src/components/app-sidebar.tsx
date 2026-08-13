@@ -85,20 +85,19 @@ interface AdminCounts {
 }
 
 function injectBadges(nav: NavGroup[], unreadCount: number, adminCounts: AdminCounts): NavGroup[] {
-  if (!unreadCount && (!adminCounts || Object.values(adminCounts).every(v => v === 0))) return nav;
   return nav.map((group) => ({
     ...group,
     items: group.items.map((item) => {
       if (item.title === "MurihSpace Inbox" && unreadCount > 0) {
         return { ...item, badge: unreadCount };
       }
-      if (item.title === "KYC Queue" && adminCounts?.pending_kyc > 0) {
+      if (item.title === "KYC Queue") {
         return { ...item, badge: adminCounts.pending_kyc };
       }
-      if (item.title === "Role Applications" && adminCounts?.pending_role_applications > 0) {
+      if (item.title === "Role Applications") {
         return { ...item, badge: adminCounts.pending_role_applications };
       }
-      if (item.title === "Posts & Reports" && adminCounts?.pending_reports > 0) {
+      if (item.title === "Posts & Reports") {
         return { ...item, badge: adminCounts.pending_reports };
       }
       return item;

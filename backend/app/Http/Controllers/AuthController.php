@@ -2,9 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\RegistrationSession;
 use App\Models\User;
+use App\Services\AuthMethodConfigService;
+use App\Services\AuthSessionService;
 use App\Services\EmailVerificationService;
 use App\Services\NotificationService;
+use App\Services\SupportEventPublisher;
 use App\Services\TwoFactorAuthService;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\JsonResponse;
@@ -28,12 +32,12 @@ class AuthController extends Controller
         $viaSession = $request->filled('registration_session_id');
 
         if ($viaSession) {
-            if (! app(\App\Services\AuthMethodConfigService::class)->registrationEnabled('phone_otp')) {
+            if (! app(AuthMethodConfigService::class)->registrationEnabled('phone_otp')) {
                 throw ValidationException::withMessages([
                     'phone' => ['Phone registration is currently disabled.'],
                 ]);
             }
-        } elseif (! app(\App\Services\AuthMethodConfigService::class)->registrationEnabled('email_password')) {
+        } elseif (! app(AuthMethodConfigService::class)->registrationEnabled('email_password')) {
             throw ValidationException::withMessages([
                 'email' => ['Email registration is currently disabled.'],
             ]);
@@ -59,7 +63,7 @@ class AuthController extends Controller
         // registration session and is never repeated in the registration wizard.
         $registrationSession = null;
         if ($viaSession) {
-            $registrationSession = \App\Models\RegistrationSession::where('token', $request->registration_session_id)->first();
+            $registrationSession = RegistrationSession::where('token', $request->registration_session_id)->first();
 
             if (! $registrationSession || ! $registrationSession->isValid()) {
                 throw ValidationException::withMessages([
@@ -67,7 +71,7 @@ class AuthController extends Controller
                 ]);
             }
 
-            $phoneExists = \App\Models\User::where('mobile_number', $registrationSession->phone_e164)->exists();
+            $phoneExists = User::where('mobile_number', $registrationSession->phone_e164)->exists();
             if ($phoneExists) {
                 throw ValidationException::withMessages([
                     'phone' => ['An account already exists with this number. Sign in instead.'],
@@ -102,7 +106,22 @@ class AuthController extends Controller
 
         event(new Registered($user));
 
-        $token = app(\App\Services\AuthSessionService::class)->issue($user, $request)['token'];
+        try {
+            SupportEventPublisher::push(
+                'user.created',
+                payload: [
+                    'user' => $user->only(['id', 'username', 'role']),
+                    'role' => $requestedRole,
+                ],
+                actorType: 'user',
+                actorReference: (string) $user->id,
+                user: $user,
+            );
+        } catch (\Throwable $e) {
+            report($e);
+        }
+
+        $token = app(AuthSessionService::class)->issue($user, $request)['token'];
 
         try {
             $this->notifications->actionEmail(
@@ -163,7 +182,7 @@ class AuthController extends Controller
             $request->merge(['email' => strtolower($request->email)]);
         }
 
-        if (! app(\App\Services\AuthMethodConfigService::class)->loginEnabled('email_password')) {
+        if (! app(AuthMethodConfigService::class)->loginEnabled('email_password')) {
             throw ValidationException::withMessages([
                 'email' => ['Email and password login is currently disabled. Use your phone number instead.'],
             ]);

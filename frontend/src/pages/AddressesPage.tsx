@@ -4,18 +4,11 @@ import { useConfirm } from '@/components/ui/DialogProvider';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { getAuthToken } from "@/lib/auth/token";
+import { authFetch } from "@/lib/api/authFetch";
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? 'http://localhost:8000/api/v1';
 
-function getAuthHeaders() {
-  const token = getAuthToken();
-  return {
-    'Content-Type': 'application/json',
-    Accept: 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
-}
+
+
 
 interface Address {
   id: number;
@@ -52,7 +45,7 @@ export function AddressesPage() {
 
   const fetchAddresses = useCallback(async () => {
     try {
-      const res = await fetch(`${API_BASE}/addresses`, { headers: getAuthHeaders() });
+      const res = await authFetch(`/addresses`, {  });
       if (res.ok) {
         const json = await res.json();
         setAddresses(json.data?.data ?? []);
@@ -90,12 +83,12 @@ export function AddressesPage() {
     setMessage(null);
 
     const url = editing
-      ? `${API_BASE}/addresses/${editing.id}`
-      : `${API_BASE}/addresses`;
+      ? `/addresses/${editing.id}`
+      : `/addresses`;
     const method = editing ? 'PUT' : 'POST';
 
     try {
-      const res = await fetch(url, { method, headers: getAuthHeaders(), body: JSON.stringify(form) });
+      const res = await authFetch(url, { method,  body: JSON.stringify(form) });
       const json = await res.json();
       if (res.ok) {
         await fetchAddresses();
@@ -117,8 +110,8 @@ export function AddressesPage() {
   async function deleteAddress(id: number) {
     if (!await confirm({ title: "Delete Address", message: "Delete this address?", variant: "destructive" })) return;
     try {
-      const res = await fetch(`${API_BASE}/addresses/${id}`, {
-        method: 'DELETE', headers: getAuthHeaders(),
+      const res = await authFetch(`/addresses/${id}`, {
+        method: 'DELETE', 
       });
       if (res.ok) {
         await fetchAddresses();
@@ -131,8 +124,8 @@ export function AddressesPage() {
 
   async function setDefault(id: number) {
     try {
-      const res = await fetch(`${API_BASE}/addresses/${id}/default`, {
-        method: 'POST', headers: getAuthHeaders(),
+      const res = await authFetch(`/addresses/${id}/default`, {
+        method: 'POST', 
       });
       if (res.ok) {
         await fetchAddresses();

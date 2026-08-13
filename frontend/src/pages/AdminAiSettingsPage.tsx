@@ -1,13 +1,14 @@
+import { getAuthToken } from "@/lib/auth/token";
 import { useEffect, useState } from "react";
 import { Loader2, Save, AlertCircle, CheckCircle2, Eye, EyeOff, PlugZap, Lock } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { getAuthToken } from "@/lib/auth/token";
+import { authFetch } from "@/lib/api/authFetch";
 import { MeraIcon } from "@/components/brand/MeraIcon";
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? "http://localhost:8000/api/v1";
+
 
 const TONE_OPTIONS = [
   { value: "Warm, friendly and practical. Encouraging without being generic.", label: "Warm & friendly" },
@@ -73,7 +74,7 @@ export default function AdminAiSettingsPage() {
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch(`${API_BASE}/securegate/ai-settings`, { headers: authHeaders() });
+        const res = await authFetch(`/securegate/ai-settings`, { headers: authHeaders() });
         if (!res.ok) throw new Error("Failed to load AI provider settings");
         const j = await res.json();
         const d = j?.success ? j?.data?.data ?? j?.data : j;
@@ -127,7 +128,7 @@ export default function AdminAiSettingsPage() {
         if (keys[p.id]?.trim()) body[`${p.id}_key`] = keys[p.id].trim();
         if (models[p.id]?.trim()) body[`${p.id}_model`] = models[p.id].trim();
       }
-      const res = await fetch(`${API_BASE}/securegate/ai-settings`, { method: "PUT", headers: authHeaders(), body: JSON.stringify(body) });
+      const res = await authFetch(`/securegate/ai-settings`, { method: "PUT", headers: authHeaders(), body: JSON.stringify(body) });
       const j = await res.json();
       if (!res.ok) throw new Error(j?.message ?? "Save failed");
       const d = j?.success ? j?.data?.data ?? j?.data : j;
@@ -157,7 +158,7 @@ export default function AdminAiSettingsPage() {
     setTesting(id);
     setTestResult((prev) => ({ ...prev, [id]: { ok: false, text: "Testing…" } }));
     try {
-      const res = await fetch(`${API_BASE}/securegate/ai-settings/test`, {
+      const res = await authFetch(`/securegate/ai-settings/test`, {
         method: "POST",
         headers: authHeaders(),
         body: JSON.stringify({ provider: id }),

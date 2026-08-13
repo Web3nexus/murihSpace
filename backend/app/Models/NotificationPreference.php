@@ -20,6 +20,12 @@ class NotificationPreference extends Model
         'moderation_action',
         'join_request',
         'join_approved',
+        'ticket_created',
+        'ticket_reply',
+        'ticket_status_changed',
+        'ticket_info_requested',
+        'ticket_resolved',
+        'ticket_reopened',
     ];
 
     public const CHANNELS = ['in_app', 'email', 'push'];

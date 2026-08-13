@@ -4,18 +4,11 @@ import { Film, Plus, Loader2, Edit, Trash2, Eye, EyeOff, FileText, Video, Music,
 import { ImageUploader } from "@/components/upload/ImageUploader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { getAuthToken } from "@/lib/auth/token";
+import { authFetch } from "@/lib/api/authFetch";
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? "http://localhost:8000/api/v1";
 
-function getAuthHeaders() {
-  const token = getAuthToken();
-  return {
-    "Content-Type": "application/json",
-    Accept: "application/json",
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
-}
+
+
 
 interface ContentItem {
   id: number;
@@ -53,7 +46,7 @@ export default function ContentStudioPage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${API_BASE}/content?limit=50`, { headers: getAuthHeaders() });
+      const res = await authFetch(`/content?limit=50`, {  });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const j = await res.json();
       const list = j?.success ? j?.data : j;
@@ -83,9 +76,9 @@ export default function ContentStudioPage() {
     setMsg(null);
     try {
       const body = { title: title.trim(), type: contentType, thumbnail_url: thumbnailUrl || null };
-      const url = editing ? `${API_BASE}/content/${editing.id}` : `${API_BASE}/content`;
+      const url = editing ? `/content/${editing.id}` : `/content`;
       const method = editing ? "PATCH" : "POST";
-      const res = await fetch(url, { method, headers: getAuthHeaders(), body: JSON.stringify(body) });
+      const res = await authFetch(url, { method,  body: JSON.stringify(body) });
       const j = await res.json();
       if (!res.ok) throw new Error(j?.message ?? "Save failed");
       setMsg({ ok: true, text: editing ? "Content updated." : "Content created." });
@@ -101,7 +94,7 @@ export default function ContentStudioPage() {
   const handleDelete = async (id: number) => {
     if (!await confirm({ title: 'Delete Content', message: 'Delete this content?', variant: 'destructive' })) return;
     try {
-      const res = await fetch(`${API_BASE}/content/${id}`, { method: "DELETE", headers: getAuthHeaders() });
+      const res = await authFetch(`/content/${id}`, { method: "DELETE",  });
       if (!res.ok) throw new Error("Delete failed");
       fetchItems();
     } catch { /* ignore */ }
@@ -110,9 +103,9 @@ export default function ContentStudioPage() {
   const togglePublish = async (item: ContentItem) => {
     const newStatus = item.status === "published" ? "draft" : "published";
     try {
-      await fetch(`${API_BASE}/content/${item.id}`, {
+      await authFetch(`/content/${item.id}`, {
         method: "PATCH",
-        headers: getAuthHeaders(),
+        
         body: JSON.stringify({ status: newStatus }),
       });
       fetchItems();

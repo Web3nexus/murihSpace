@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Services\Kyc\KycService;
 use App\Services\Kyc\KycWebhookNormalizer;
 use App\Services\Kyc\VerifiedKycWebhook;
+use App\Services\SupportEventPublisher;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -88,14 +89,11 @@ class ProcessKycWebhook implements ShouldQueue
             return;
         }
 
-        $this->event->update([
-            'status' => $webhook->status,
-            'processed_at' => now(),
-            'processing_status' => 'processed',
-        ]);
+
 
         if ($webhook->isApproved()) {
             $kyc->applyDecision($verification, KycStatus::Verified->value);
+            $eventKey = 'kyc.verified';
         } elseif ($webhook->isRejected()) {
             $kyc->applyDecision(
                 $verification,
@@ -104,13 +102,33 @@ class ProcessKycWebhook implements ShouldQueue
                 code: $this->extractCode($webhook),
                 metadata: ['webhook_status' => $webhook->status],
             );
+            $eventKey = 'kyc.rejected';
         } else {
             $kyc->applyDecision(
                 $verification,
                 KycStatus::Pending->value,
                 metadata: ['webhook_status' => $webhook->status],
             );
+            $eventKey = 'kyc.pending';
         }
+
+        SupportEventPublisher::push(
+            $eventKey,
+            payload: [
+                'user' => $user->only(['id', 'name', 'email']),
+                'provider' => $verification->provider,
+                'reason' => $eventKey === 'kyc.rejected' ? $this->extractReason($webhook) : null,
+            ],
+            actorType: 'kyc',
+            actorReference: (string) $verification->id,
+            user: $user,
+        );
+
+        $this->event->update([
+            'status' => $webhook->status,
+            'processed_at' => now(),
+            'processing_status' => 'processed',
+        ]);
 
         Log::info('KYC webhook processed', [
             'webhook_event_id' => $this->event->id,

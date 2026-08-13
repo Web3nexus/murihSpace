@@ -1,13 +1,10 @@
 import { useState, useEffect, useCallback } from "react";
 import { Calendar, Clock, FileText, Loader2, Trash2, RefreshCw } from "lucide-react";
-import { getAuthToken } from "@/lib/auth/token";
+import { authFetch } from "@/lib/api/authFetch";
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? "http://localhost:8000/api/v1";
 
-function getAuthHeaders() {
-  const token = getAuthToken();
-  return { "Content-Type": "application/json", Accept: "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) };
-}
+
+
 
 interface ScheduledItem {
   id: number;
@@ -28,7 +25,7 @@ export default function ContentPlannerPage() {
   const loadPlan = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/content-planner/upcoming`, { headers: getAuthHeaders() });
+      const res = await authFetch(`/content-planner/upcoming`, {  });
       if (!res.ok) { setError("Failed to load content plan"); return; }
       const json = await res.json();
       setScheduled(json.data ?? []);
@@ -40,9 +37,9 @@ export default function ContentPlannerPage() {
 
   const handleUnschedule = async (id: number) => {
     try {
-      const res = await fetch(`${API_BASE}/content-planner/${id}/unschedule`, {
+      const res = await authFetch(`/content-planner/${id}/unschedule`, {
         method: "POST",
-        headers: getAuthHeaders(),
+        
       });
       if (!res.ok) return;
       setScheduled((prev) => prev.filter((s) => s.id !== id));

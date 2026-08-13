@@ -5,18 +5,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { getAuthToken } from "@/lib/auth/token";
+import { authFetch } from "@/lib/api/authFetch";
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? 'http://localhost:8000/api/v1';
 
-function getAuthHeaders() {
-  const token = getAuthToken();
-  return {
-    'Content-Type': 'application/json',
-    Accept: 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
-}
+
+
 
 function formatPrice(cents: number, currency = 'NGN'): string {
   const symbols: Record<string, string> = { NGN: '₦', USD: '$', GBP: '£', EUR: '€' };
@@ -64,8 +57,8 @@ export function ProposalsPage() {
     try {
       const [pRes, bRes] = await Promise.all([
         // Fetch all proposals for Kanban
-        fetch(`${API_BASE}/brand-proposals?page=1&per_page=100`, { headers: getAuthHeaders() }),
-        fetch(`${API_BASE}/brands`, { headers: getAuthHeaders() }),
+        authFetch(`/brand-proposals?page=1&per_page=100`, {  }),
+        authFetch(`/brands`, {  }),
       ]);
       if (pRes.ok) { const j = await pRes.json(); setProposals(j.data?.data ?? []); }
       if (bRes.ok) { const j = await bRes.json(); setBrands(j.data?.data ?? []); }
@@ -96,8 +89,8 @@ export function ProposalsPage() {
       if (form.brand_id) { body.brand_id = Number(form.brand_id); }
       else { body.brand_name = form.brand_name; body.brand_email = form.brand_email || null; }
 
-      const res = await fetch(`${API_BASE}/brand-proposals`, {
-        method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(body),
+      const res = await authFetch(`/brand-proposals`, {
+        method: 'POST',  body: JSON.stringify(body),
       });
       if (res.ok) { await fetchAll(); resetForm(); showMsg('success', 'Pitch created successfully!'); }
       else { const j = await res.json(); showMsg('error', j.message ?? 'Failed to create pitch.'); }
@@ -108,7 +101,7 @@ export function ProposalsPage() {
     if (e) e.stopPropagation();
     if (!await confirm({ title: 'Delete Proposal', message: 'Delete this proposal?', variant: 'destructive' })) return;
     try {
-      const res = await fetch(`${API_BASE}/brand-proposals/${id}`, { method: 'DELETE', headers: getAuthHeaders() });
+      const res = await authFetch(`/brand-proposals/${id}`, { method: 'DELETE',  });
       if (res.ok) { await fetchAll(); showMsg('success', 'Proposal deleted.'); }
     } catch { showMsg('error', 'Network error.'); }
   }
@@ -127,14 +120,14 @@ export function ProposalsPage() {
     setProposals(prev => prev.map(p => p.id === proposalId ? { ...p, status: statusId } : p));
     
     try {
-      const res = await fetch(`${API_BASE}/brand-proposals/${proposalId}`, {
+      const res = await authFetch(`/brand-proposals/${proposalId}`, {
         method: 'PUT',
-        headers: getAuthHeaders(),
+        
         body: JSON.stringify({ status: statusId }),
       });
       if (!res.ok) {
         if (statusId === 'sent' && proposal.status === 'draft') {
-            await fetch(`${API_BASE}/brand-proposals/${proposalId}/send`, { method: 'POST', headers: getAuthHeaders() });
+            await authFetch(`/brand-proposals/${proposalId}/send`, { method: 'POST',  });
         } else {
             const j = await res.json();
             showMsg('error', j.message ?? 'Failed to update status.');

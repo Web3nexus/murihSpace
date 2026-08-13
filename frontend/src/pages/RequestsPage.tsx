@@ -1,11 +1,12 @@
+import { getAuthToken } from "@/lib/auth/token";
 import { useState, useEffect, useCallback } from "react";
 import {
   UserPlus, Users, Clock, Check, X, Search, Loader2,
   UserCheck, Ban, LogIn,
 } from "lucide-react";
-import { getAuthToken } from "@/lib/auth/token";
+import { authFetch } from "@/lib/api/authFetch";
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? "http://localhost:8000/api/v1";
+
 
 function authHeaders() {
   const t = getAuthToken();
@@ -66,9 +67,9 @@ export default function RequestsPage() {
     setLoading(true);
     try {
       const [fRes, cRes, sRes] = await Promise.all([
-        fetch(`${API_BASE}/friends/requests`, { headers: authHeaders() }),
-        fetch(`${API_BASE}/community-requests`, { headers: authHeaders() }),
-        fetch(`${API_BASE}/friends/requests/sent`, { headers: authHeaders() }),
+        authFetch(`/friends/requests`, { headers: authHeaders() }),
+        authFetch(`/community-requests`, { headers: authHeaders() }),
+        authFetch(`/friends/requests/sent`, { headers: authHeaders() }),
       ]);
       if (fRes.ok) { const j = await fRes.json(); setFriendReqs(asList(j?.data) as FriendRequest[]); }
       if (cRes.ok) { const j = await cRes.json(); setCommunityReqs(asList(j?.data) as CommunityRequest[]); }
@@ -82,7 +83,7 @@ export default function RequestsPage() {
   const handleFriendAction = async (id: number, action: "accept" | "decline") => {
     setActionLoading(id);
     try {
-      const res = await fetch(`${API_BASE}/friends/requests/${id}/${action}`, {
+      const res = await authFetch(`/friends/requests/${id}/${action}`, {
         method: "POST", headers: authHeaders(),
       });
       if (res.ok) setFriendReqs((prev) => prev.filter((r) => r.id !== id));
@@ -93,7 +94,7 @@ export default function RequestsPage() {
   const handleCancelRequest = async (id: number) => {
     setActionLoading(id);
     try {
-      const res = await fetch(`${API_BASE}/community-requests/${id}/cancel`, {
+      const res = await authFetch(`/community-requests/${id}/cancel`, {
         method: "POST", headers: authHeaders(),
       });
       if (res.ok) setCommunityReqs((prev) => prev.filter((r) => r.id !== id));

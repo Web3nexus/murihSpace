@@ -3,19 +3,12 @@ import { useConfirm } from '@/components/ui/DialogProvider';
 import { Award, MessageSquare, Plus, Loader2, Trash2, Edit, Clock } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { getAuthToken } from "@/lib/auth/token";
-
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? 'http://localhost:8000/api/v1';
+import { authFetch } from "@/lib/api/authFetch";
 
 
-function getAuthHeaders() {
-  const token = getAuthToken();
-  return {
-    'Content-Type': 'application/json',
-    Accept: 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
-}
+
+
+
 
 interface Review {
   id: number; physical_product_id: number; rating: number;
@@ -65,7 +58,7 @@ export function ReviewsPage() {
 
   const fetchReviews = useCallback(async () => {
     try {
-      const res = await fetch(`${API_BASE}/store/reviews/my`, { headers: getAuthHeaders() });
+      const res = await authFetch(`/store/reviews/my`, {  });
       if (res.ok) { const json = await res.json();         setReviews(json.data?.data ?? []); }
     } catch { /* ignore */ }
     finally { setIsLoading(false); }
@@ -86,14 +79,14 @@ export function ReviewsPage() {
     e.preventDefault();
     setIsSubmitting(true); setMessage(null);
 
-    const url = editing ? `${API_BASE}/store/reviews/${editing.id}` : `${API_BASE}/store/reviews`;
+    const url = editing ? `/store/reviews/${editing.id}` : `/store/reviews`;
     const method = editing ? 'PUT' : 'POST';
     const body = editing
       ? JSON.stringify({ rating: fRating, title: fTitle, body: fBody })
       : JSON.stringify({ physical_product_id: Number(fProductId), rating: fRating, title: fTitle, body: fBody });
 
     try {
-      const res = await fetch(url, { method, headers: getAuthHeaders(), body });
+      const res = await authFetch(url, { method,  body });
       const json = await res.json();
       if (res.ok) {
         await fetchReviews(); setShowForm(false); setEditing(null);
@@ -108,7 +101,7 @@ export function ReviewsPage() {
   async function deleteReview(id: number) {
     if (!await confirm({ title: 'Delete Review', message: 'Delete this review?', variant: 'destructive' })) return;
     try {
-      const res = await fetch(`${API_BASE}/store/reviews/${id}`, { method: 'DELETE', headers: getAuthHeaders() });
+      const res = await authFetch(`/store/reviews/${id}`, { method: 'DELETE',  });
       if (res.ok) { await fetchReviews(); setMessage({ type: 'success', text: 'Review deleted.' }); }
     } catch { setMessage({ type: 'error', text: 'Network error.' }); }
   }

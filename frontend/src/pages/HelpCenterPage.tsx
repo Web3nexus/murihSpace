@@ -11,10 +11,10 @@ import {
 } from "@/data/helpCenter";
 import type { HelpArticle, HelpCategory } from "@/data/helpCenter";
 import { useAuth } from "@/hooks/useAuth";
-import { getAuthToken } from "@/lib/auth/token";
+import { authFetch } from "@/lib/api/authFetch";
 import { MeraIcon } from "@/components/brand/MeraIcon";
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? "http://localhost:8000/api/v1";
+
 
 const CATEGORY_ICONS: Record<string, React.ReactNode> = {
   "getting-started": <Rocket className="h-4.5 w-4.5" />,
@@ -32,10 +32,7 @@ function categoryIcon(id: string) {
   return CATEGORY_ICONS[id] ?? <HelpCircle className="h-4.5 w-4.5" />;
 }
 
-function getAuthHeaders() {
-  const token = getAuthToken();
-  return { "Content-Type": "application/json", Accept: "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) };
-}
+
 
 interface ChatMessage {
   role: "user" | "assistant";
@@ -132,9 +129,9 @@ export default function HelpCenterPage() {
     }
 
     try {
-      const res = await fetch(`${API_BASE}/ai/chat`, {
+      const res = await authFetch(`/ai/chat`, {
         method: "POST",
-        headers: getAuthHeaders(),
+        
         body: JSON.stringify({ message: content + guard }),
       });
       const j = await res.json();

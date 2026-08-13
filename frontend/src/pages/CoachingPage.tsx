@@ -1,20 +1,16 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useConfirm } from '@/components/ui/DialogProvider';
-import { Calendar, Clock, Video, Loader2, Plus, Trash2, Check, AlertCircle, X, MapPin, CreditCard, ExternalLink, Edit, ChevronRight } from 'lucide-react';
+import { Calendar, Clock, Video, Loader2, Plus, Trash2, Check, X, MapPin, CreditCard, ExternalLink, Edit, ChevronRight } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { getAuthToken } from "@/lib/auth/token";
+import { authFetch } from "@/lib/api/authFetch";
+import { SuccessBanner } from '@/components/ui/SuccessBanner';
+import { FormErrorSummary } from '@/components/ui/FormErrorSummary';
+import { PageHeader } from '@/components/ui/PageHeader';
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? 'http://localhost:8000/api/v1';
 
-function getAuthHeaders() {
-  const token = getAuthToken();
-  return {
-    'Content-Type': 'application/json',
-    Accept: 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
-}
+
+
 
 function formatPrice(cents: number, currency = 'NGN'): string {
   const symbols: Record<string, string> = { NGN: '₦', USD: '$', GBP: '£', EUR: '€' };
@@ -262,7 +258,7 @@ export function CoachingPage() {
 
   const fetchPublicServices = useCallback(async () => {
     try {
-      const res = await fetch(`${API_BASE}/coaching/services?page=${browsePage}&per_page=20`, { headers: getAuthHeaders() });
+      const res = await authFetch(`/coaching/services?page=${browsePage}&per_page=20`, {  });
       if (res.ok) {
         const json = await res.json();
         setServices(json.data?.data ?? []);
@@ -273,7 +269,7 @@ export function CoachingPage() {
 
   const fetchMyServices = useCallback(async () => {
     try {
-      const res = await fetch(`${API_BASE}/coaching/my-services?page=${servicesPage}&per_page=20`, { headers: getAuthHeaders() });
+      const res = await authFetch(`/coaching/my-services?page=${servicesPage}&per_page=20`, {  });
       if (res.ok) {
         const json = await res.json();
         setMyServices(json.data?.data ?? []);
@@ -284,7 +280,7 @@ export function CoachingPage() {
 
   const fetchMyBookings = useCallback(async () => {
     try {
-      const res = await fetch(`${API_BASE}/coaching/my-bookings?page=${bookingsPage}&per_page=20`, { headers: getAuthHeaders() });
+      const res = await authFetch(`/coaching/my-bookings?page=${bookingsPage}&per_page=20`, {  });
       if (res.ok) {
         const json = await res.json();
         setMyBookings(json.data?.data ?? []);
@@ -295,7 +291,7 @@ export function CoachingPage() {
 
   const fetchMySessions = useCallback(async () => {
     try {
-      const res = await fetch(`${API_BASE}/coaching/my-sessions?page=${sessionsPage}&per_page=20`, { headers: getAuthHeaders() });
+      const res = await authFetch(`/coaching/my-sessions?page=${sessionsPage}&per_page=20`, {  });
       if (res.ok) {
         const json = await res.json();
         setMySessions(json.data?.data ?? []);
@@ -343,11 +339,11 @@ export function CoachingPage() {
 
     try {
       const endpoint = editingService
-        ? `${API_BASE}/coaching/services/${editingService.id}`
-        : `${API_BASE}/coaching/services`;
-      const res = await fetch(endpoint, {
+        ? `/coaching/services/${editingService.id}`
+        : `/coaching/services`;
+      const res = await authFetch(endpoint, {
         method: editingService ? 'PUT' : 'POST',
-        headers: getAuthHeaders(),
+        
         body: JSON.stringify(body),
       });
       const json = await res.json();
@@ -366,7 +362,7 @@ export function CoachingPage() {
   const handleDeleteService = async (id: number) => {
     if (!await confirm({ title: 'Delete Service', message: 'Delete this service? This cannot be undone.', variant: 'destructive' })) return;
     try {
-      const res = await fetch(`${API_BASE}/coaching/services/${id}`, { method: 'DELETE', headers: getAuthHeaders() });
+      const res = await authFetch(`/coaching/services/${id}`, { method: 'DELETE',  });
       const json = await res.json();
       if (!res.ok) throw new Error(json.message ?? 'Delete failed.');
       setMyServices((prev) => prev.filter((s) => s.id !== id));
@@ -387,9 +383,9 @@ export function CoachingPage() {
     const dates = slotDates.split('\n').map((d) => d.trim()).filter(Boolean);
 
     try {
-      const res = await fetch(`${API_BASE}/coaching/services/${selectedServiceForSlots.id}/slots/generate`, {
+      const res = await authFetch(`/coaching/services/${selectedServiceForSlots.id}/slots/generate`, {
         method: 'POST',
-        headers: getAuthHeaders(),
+        
         body: JSON.stringify({ dates, start_time: slotStartTime, end_time: slotEndTime }),
       });
       const json = await res.json();
@@ -410,7 +406,7 @@ export function CoachingPage() {
     setBookingNotes('');
     setShowBookingModal(true);
     try {
-      const res = await fetch(`${API_BASE}/coaching/services/${service.id}`, { headers: getAuthHeaders() });
+      const res = await authFetch(`/coaching/services/${service.id}`, {  });
       if (res.ok) {
         const json = await res.json();
         setAvailableSlots((json.data?.data ?? json.data)?.available_slots ?? []);
@@ -424,9 +420,9 @@ export function CoachingPage() {
     setMessage(null);
 
     try {
-      const res = await fetch(`${API_BASE}/coaching/book`, {
+      const res = await authFetch(`/coaching/book`, {
         method: 'POST',
-        headers: getAuthHeaders(),
+        
         body: JSON.stringify({ service_id: selectedServiceForBooking.id, slot_id: selectedSlotId, notes: bookingNotes || null }),
       });
       const json = await res.json();
@@ -448,7 +444,7 @@ export function CoachingPage() {
   const handleCancelBooking = async (id: number) => {
     if (!await confirm({ title: 'Cancel Booking', message: 'Cancel this booking? You will be refunded if paid.', variant: 'warning' })) return;
     try {
-      const res = await fetch(`${API_BASE}/coaching/bookings/${id}/cancel`, { method: 'POST', headers: getAuthHeaders() });
+      const res = await authFetch(`/coaching/bookings/${id}/cancel`, { method: 'POST',  });
       const json = await res.json();
       if (!res.ok) throw new Error(json.message ?? 'Cancellation failed.');
       setMessage({ type: 'success', text: json.message });
@@ -461,7 +457,7 @@ export function CoachingPage() {
 
   const handleCompleteSession = async (id: number) => {
     try {
-      const res = await fetch(`${API_BASE}/coaching/bookings/${id}/complete`, { method: 'POST', headers: getAuthHeaders() });
+      const res = await authFetch(`/coaching/bookings/${id}/complete`, { method: 'POST',  });
       const json = await res.json();
       if (!res.ok) throw new Error(json.message ?? 'Failed to complete session.');
       setMessage({ type: 'success', text: json.message });
@@ -482,40 +478,34 @@ export function CoachingPage() {
 
   return (
     <div className="space-y-6 w-full max-w-7xl mx-auto p-6 lg:p-8">
-      {/* Gradient Header Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 sm:p-8 rounded-2xl bg-gradient-to-br from-[#102840] via-[#173852] to-[#102840] text-white shadow-lg">
-        <div className="space-y-1.5">
-          <div className="flex items-center gap-2">
-            <span className="px-2.5 py-0.5 rounded-full bg-[#2164b6]/20 text-[#2164b6] dark:text-[#7ab0ff] text-xs font-semibold uppercase tracking-wider border border-[#2164b6]/30">
-              Phase 7 — Services
-            </span>
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight flex items-center gap-2.5">
-            <Calendar className="h-6 w-6 text-[#2164b6] dark:text-[#7ab0ff]" />
-            1:1 Coaching & Bookings
-          </h1>
-          <p className="text-sm text-white/70 max-w-xl">
-            Offer paid 1-on-1 coaching, consultations, and advice sessions.
-          </p>
-        </div>
-        {tab === 'my-services' && (
-          <Button
-            onClick={() => { resetServiceForm(); setShowServiceForm(true); }}
-            className="bg-[#2164b6] text-white hover:bg-[#1a5091] font-semibold h-11 px-5 rounded-xl shadow-md gap-2 shrink-0 self-start sm:self-auto"
-          >
-            <Plus className="h-5 w-5" />
-            New Service
-          </Button>
-        )}
-      </div>
+      <PageHeader 
+        title="1:1 Coaching & Bookings"
+        description="Offer paid 1-on-1 coaching, consultations, and advice sessions."
+        icon={<Calendar className="h-6 w-6 text-[#2164b6] dark:text-[#7ab0ff]" />}
+        badge={
+          <span className="px-2.5 py-0.5 rounded-full bg-[#2164b6]/10 text-[#2164b6] dark:text-[#7ab0ff] text-xs font-semibold uppercase tracking-wider border border-[#2164b6]/20">
+            Phase 7 — Services
+          </span>
+        }
+        action={
+          tab === 'my-services' && (
+            <Button
+              onClick={() => { resetServiceForm(); setShowServiceForm(true); }}
+              className="bg-[#2164b6] text-white hover:bg-[#1a5091] font-semibold h-11 px-5 rounded-xl shadow-md gap-2"
+            >
+              <Plus className="h-5 w-5" />
+              New Service
+            </Button>
+          )
+        }
+      />
 
       {/* Message banner */}
-      {message && (
-        <div className={`flex items-center gap-2 px-4 py-3 rounded-xl text-xs font-medium ${message.type === 'success' ? 'bg-secondary/10 text-secondary' : 'bg-destructive/10 text-destructive'}`}>
-          {message.type === 'success' ? <Check className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
-          <span className="flex-1">{message.text}</span>
-          <button onClick={() => setMessage(null)} className="p-0.5 hover:opacity-70"><X className="h-3.5 w-3.5" /></button>
-        </div>
+      {message && message.type === 'success' && (
+        <SuccessBanner message={message.text} onClose={() => setMessage(null)} className="mb-4" />
+      )}
+      {message && message.type === 'error' && (
+        <FormErrorSummary errors={[message.text]} className="mb-4" />
       )}
 
       {/* Pill Tabs */}

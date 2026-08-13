@@ -1,3 +1,4 @@
+import { getAuthToken } from "@/lib/auth/token";
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router';
 import {
@@ -5,9 +6,9 @@ import {
   XCircle, Trash2, Ban, MessageCircle, User as UserIcon,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { getAuthToken } from "@/lib/auth/token";
+import { authFetch } from "@/lib/api/authFetch";
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? 'http://localhost:8000/api/v1';
+
 const authHeaders = () => {
   const t = getAuthToken();
   return { Accept: 'application/json', 'Content-Type': 'application/json', ...(t ? { Authorization: `Bearer ${t}` } : {}) };
@@ -72,7 +73,7 @@ export function AdminReportsPage() {
     params.set('page', String(page));
     params.set('per_page', '20');
     try {
-      const res = await fetch(`${API_BASE}/securegate/reports?${params}`, { headers: authHeaders() });
+      const res = await authFetch(`/securegate/reports?${params}`, { headers: authHeaders() });
       const j = await res.json();
       if (res.ok) {
         const list = j?.success ? j?.data : j;
@@ -98,7 +99,7 @@ export function AdminReportsPage() {
     if (!actionModal) return;
     setProcessing(true);
     try {
-      const res = await fetch(`${API_BASE}/securegate/reports/${actionModal.report.id}/action`, {
+      const res = await authFetch(`/securegate/reports/${actionModal.report.id}/action`, {
         method: 'POST',
         headers: authHeaders(),
         body: JSON.stringify({ action: actionModal.action, review_note: reviewNote || undefined }),

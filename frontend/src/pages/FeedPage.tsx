@@ -50,6 +50,11 @@ interface PostItem {
   embedBg?: string;
   price?: string;
   commentList: CommentItem[];
+  isSponsored?: boolean;
+  ctaText?: string;
+  ctaUrl?: string;
+  impressionUrl?: string;
+  clickUrl?: string;
 }
 
 export default function FeedPage() {
@@ -121,7 +126,45 @@ export default function FeedPage() {
         const feedRes = await apiClient.get("/feed?page=1&per_page=20");
         const feedData = feedRes.data?.data ?? feedRes.data;
         const apiPosts = feedData?.data ?? (Array.isArray(feedData) ? feedData : []);
-        const mapped = apiPosts.map((p: any) => mapApiPost(p, user?.id));
+        const mapped: PostItem[] = apiPosts.map((p: any) => mapApiPost(p, user?.id));
+
+        try {
+          const adRes = await fetch(`http://localhost:8002/api/delivery/ad?placement=feed&user_id=${user?.id || 1}`);
+          const adData = await adRes.json();
+          
+          if (adData.status === 'success' && adData.data) {
+            const payload = adData.data;
+            const sponsoredPost: PostItem = {
+              id: Date.now() + Math.floor(Math.random() * 1000), // unique id
+              author: "Sponsored",
+              authorVerified: true,
+              avatar: "", 
+              badge: "Ad",
+              time: "Sponsored",
+              content: payload.creative?.body || "Check out this amazing offer!",
+              likes: Math.floor(Math.random() * 100) + 10,
+              comments: 0,
+              shares: 0,
+              isLiked: false,
+              embedType: "media",
+              embedBg: payload.creative?.image_url || "https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=800&q=80",
+              commentList: [],
+              isSponsored: true,
+              ctaText: payload.cta_type || "Learn More",
+              ctaUrl: payload.cta_url,
+              impressionUrl: payload.tracking?.impression_url,
+              clickUrl: payload.tracking?.click_url,
+            };
+            if (mapped.length >= 2) {
+              mapped.splice(2, 0, sponsoredPost);
+            } else {
+              mapped.push(sponsoredPost);
+            }
+          }
+        } catch (adErr) {
+          console.error("Failed to load sponsored ad", adErr);
+        }
+
         setPosts(mapped);
       } catch {}
       setFeedLoading(false);
@@ -578,7 +621,10 @@ export default function FeedPage() {
             const isCommenting = activeCommentPostId === post.id;
 
             return (
-              <div key={post.id} className="bg-card border border-border shadow-xs rounded-2xl p-4 sm:p-5 space-y-3">
+              <div key={post.id} className="bg-card border border-border shadow-xs rounded-2xl p-4 sm:p-5 space-y-3 relative">
+                {post.isSponsored && post.impressionUrl && (
+                  <img src={post.impressionUrl} alt="" className="hidden w-0 h-0 absolute" />
+                )}
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
                     <div className="h-10 w-10 rounded-full bg-gradient-to-tr from-[#2164b6] to-purple-600 p-[2px]">
@@ -651,6 +697,22 @@ export default function FeedPage() {
                 {post.embedType === "media" && post.embedBg && (
                   <div className="rounded-xl overflow-hidden border border-border bg-slate-800">
                     <img src={post.embedBg} alt="" className="w-full max-h-80 object-cover" />
+                  </div>
+                )}
+
+                {post.isSponsored && post.ctaUrl && (
+                  <div className="pt-2">
+                    <a 
+                      href={post.ctaUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={() => {
+                        if (post.clickUrl) fetch(post.clickUrl).catch(() => {});
+                      }}
+                      className="block w-full text-center px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-[#2164b6] dark:text-[#7ab0ff] font-bold text-xs transition-colors"
+                    >
+                      {post.ctaText} <ChevronRight className="inline-block h-4 w-4 ml-1 -mt-0.5" />
+                    </a>
                   </div>
                 )}
 

@@ -3,18 +3,11 @@ import { ShieldAlert, Plus, Loader2, Eye, Clock, CheckCircle, XCircle } from 'lu
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { getAuthToken } from "@/lib/auth/token";
+import { authFetch } from "@/lib/api/authFetch";
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? 'http://localhost:8000/api/v1';
 
-function getAuthHeaders() {
-  const token = getAuthToken();
-  return {
-    'Content-Type': 'application/json',
-    Accept: 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
-}
+
+
 
 interface DisputeOrderItem {
   product_id: number; title: string | null; quantity: number; images: string[] | null;
@@ -66,7 +59,7 @@ export function DisputesPage() {
 
   const fetchDisputes = useCallback(async () => {
     try {
-      const res = await fetch(`${API_BASE}/store/disputes`, { headers: getAuthHeaders() });
+      const res = await authFetch(`/store/disputes`, {  });
       if (res.ok) {
         const json = await res.json();
         setDisputes(json.data?.data ?? []);
@@ -85,9 +78,9 @@ export function DisputesPage() {
     setIsSubmitting(true);
     setMessage(null);
     try {
-      const res = await fetch(`${API_BASE}/store/disputes`, {
+      const res = await authFetch(`/store/disputes`, {
         method: 'POST',
-        headers: getAuthHeaders(),
+        
         body: JSON.stringify({
           fulfilment_order_id: Number(fOrderId),
           subject: fSubject,

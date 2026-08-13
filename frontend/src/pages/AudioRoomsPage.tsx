@@ -1,3 +1,4 @@
+import { getAuthToken } from "@/lib/auth/token";
 import { useState, useEffect, useCallback } from 'react';
 import { useConfirm } from '@/components/ui/DialogProvider';
 import { Mic, Radio, Calendar, Clock, Users, Loader2, Plus, Play, StopCircle, LogIn, LogOut, Hand, MicOff, Speaker, Crown, Shield, AlertCircle, X, Check, Trash2, Video } from 'lucide-react';
@@ -6,18 +7,11 @@ import { Input } from "@/components/ui/input";
 import AudioRoomPlayer from "@/components/audio/AudioRoomPlayer";
 import { LiveKitVideoConference } from "@/components/video/LiveKitVideoConference";
 import { ImageUploader } from "@/components/upload/ImageUploader";
-import { getAuthToken } from "@/lib/auth/token";
+import { authFetch } from "@/lib/api/authFetch";
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? 'http://localhost:8000/api/v1';
 
-function getAuthHeaders() {
-  const token = getAuthToken();
-  return {
-    'Content-Type': 'application/json',
-    Accept: 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
-}
+
+
 
 function formatDateTime(iso: string | null) {
   if (!iso) return '';
@@ -151,14 +145,14 @@ export function AudioRoomsPage() {
   const fetchRooms = useCallback(async (activeTab: Tab) => {
     setIsLoading(true);
     try {
-      let url = `${API_BASE}/audio-rooms`;
+      let url = `/audio-rooms`;
       if (activeTab === 'my-rooms') {
-        url = `${API_BASE}/audio-rooms/my-rooms`;
+        url = `/audio-rooms/my-rooms`;
       } else {
         const statusMap: Record<string, string> = { upcoming: 'scheduled', live: 'live', past: 'ended' };
         url += `?status=${statusMap[activeTab] ?? 'scheduled'}`;
       }
-      const res = await fetch(url, { headers: getAuthHeaders() });
+      const res = await authFetch(url, {  });
       if (res.ok) {
         const json = await res.json();
         setRooms(json.data?.data ?? []);
@@ -178,8 +172,8 @@ export function AudioRoomsPage() {
     setIsSubmitting(true);
     setMessage(null);
     try {
-      const res = await fetch(`${API_BASE}/audio-rooms`, {
-        method: 'POST', headers: getAuthHeaders(),
+      const res = await authFetch(`/audio-rooms`, {
+        method: 'POST', 
         body: JSON.stringify({
           title: fTitle,
           description: fDesc || null,
@@ -204,18 +198,18 @@ export function AudioRoomsPage() {
     setMessage(null);
     try {
       const actions: Record<string, { url: string; method: string }> = {
-        start: { url: `${API_BASE}/audio-rooms/${room.id}/start`, method: 'POST' },
-        end: { url: `${API_BASE}/audio-rooms/${room.id}/end`, method: 'POST' },
-        join: { url: `${API_BASE}/audio-rooms/${room.id}/join`, method: 'POST' },
-        leave: { url: `${API_BASE}/audio-rooms/${room.id}/leave`, method: 'POST' },
-        delete: { url: `${API_BASE}/audio-rooms/${room.id}`, method: 'DELETE' },
+        start: { url: `/audio-rooms/${room.id}/start`, method: 'POST' },
+        end: { url: `/audio-rooms/${room.id}/end`, method: 'POST' },
+        join: { url: `/audio-rooms/${room.id}/join`, method: 'POST' },
+        leave: { url: `/audio-rooms/${room.id}/leave`, method: 'POST' },
+        delete: { url: `/audio-rooms/${room.id}`, method: 'DELETE' },
       };
       const act = actions[action];
       if (!act) return;
 
       if (action === 'delete' && !await confirm({ title: 'Delete Room', message: 'Delete this room?', variant: 'destructive' })) return;
 
-      const res = await fetch(act.url, { method: act.method, headers: getAuthHeaders() });
+      const res = await authFetch(act.url, { method: act.method,  });
       const json = await res.json();
       if (!res.ok) throw new Error(json.message ?? 'Action failed.');
       setMessage({ type: 'success', text: json.message ?? 'Done.' });
@@ -231,7 +225,7 @@ export function AudioRoomsPage() {
 
   const fetchRoomDetail = async (id: number) => {
     try {
-      const res = await fetch(`${API_BASE}/audio-rooms/${id}`, { headers: getAuthHeaders() });
+      const res = await authFetch(`/audio-rooms/${id}`, {  });
       if (res.ok) {
         const json = await res.json();
         setSelectedRoom(json.data?.data ?? json.data);
@@ -241,8 +235,8 @@ export function AudioRoomsPage() {
 
   const handleRoleChange = async (roomId: number, userId: number, role: string) => {
     try {
-      const res = await fetch(`${API_BASE}/audio-rooms/${roomId}/users/${userId}/role`, {
-        method: 'POST', headers: getAuthHeaders(),
+      const res = await authFetch(`/audio-rooms/${roomId}/users/${userId}/role`, {
+        method: 'POST', 
         body: JSON.stringify({ role }),
       });
       const json = await res.json();
@@ -256,8 +250,8 @@ export function AudioRoomsPage() {
 
   const handleMuteToggle = async (roomId: number, userId: number) => {
     try {
-      const res = await fetch(`${API_BASE}/audio-rooms/${roomId}/users/${userId}/mute`, {
-        method: 'POST', headers: getAuthHeaders(),
+      const res = await authFetch(`/audio-rooms/${roomId}/users/${userId}/mute`, {
+        method: 'POST', 
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.message ?? 'Failed.');
@@ -270,8 +264,8 @@ export function AudioRoomsPage() {
 
   const handleRaiseHand = async (roomId: number) => {
     try {
-      const res = await fetch(`${API_BASE}/audio-rooms/${roomId}/raise-hand`, {
-        method: 'POST', headers: getAuthHeaders(),
+      const res = await authFetch(`/audio-rooms/${roomId}/raise-hand`, {
+        method: 'POST', 
       });
       const json = await res.json();
       setMessage({ type: 'success', text: json.message });

@@ -2,14 +2,11 @@ import { useState, useEffect, useCallback } from "react";
 import { Crown, Loader2, Users, DollarSign, ToggleLeft, ToggleRight, Search, Percent, Save, X, RefreshCw, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { getAuthToken } from "@/lib/auth/token";
+import { authFetch } from "@/lib/api/authFetch";
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? "http://localhost:8000/api/v1";
 
-function getAuthHeaders() {
-  const token = getAuthToken();
-  return { "Content-Type": "application/json", Accept: "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) };
-}
+
+
 
 function formatAmount(amount: number, currency = "NGN"): string {
   const symbols: Record<string, string> = { NGN: "\u20A6", USD: "$", GBP: "\u00A3", EUR: "\u20AC" };
@@ -89,7 +86,7 @@ function PlansTab() {
     try {
       const params = new URLSearchParams({ page: String(page), per_page: "50" });
       if (search) params.set("search", search);
-      const res = await fetch(`${API_BASE}/securegate/plans?${params}`, { headers: getAuthHeaders() });
+      const res = await authFetch(`/securegate/plans?${params}`, {  });
       if (!res.ok) throw new Error("Failed to load plans");
       const j = await res.json();
       setPlans(j.data?.data?.data ?? j.data?.data ?? []);
@@ -103,7 +100,7 @@ function PlansTab() {
 
   async function toggleActive(id: number) {
     try {
-      const res = await fetch(`${API_BASE}/securegate/plans/${id}/toggle`, { method: "POST", headers: getAuthHeaders() });
+      const res = await authFetch(`/securegate/plans/${id}/toggle`, { method: "POST",  });
       const j = await res.json();
       if (res.ok) { setMessage({ type: "success", text: "Plan toggled." }); fetchPlans(); }
       else { setMessage({ type: "error", text: j.message ?? "Failed." }); }
@@ -214,7 +211,7 @@ function FeesTab() {
   const fetchFees = useCallback(async () => {
     setFetchError(null);
     try {
-      const res = await fetch(`${API_BASE}/securegate/fees`, { headers: getAuthHeaders() });
+      const res = await authFetch(`/securegate/fees`, {  });
       if (!res.ok) throw new Error("Failed to load fees");
       const j = await res.json();
       const d = j.success ? j.data : j;
@@ -242,9 +239,9 @@ function FeesTab() {
       return;
     }
     try {
-      const res = await fetch(`${API_BASE}/securegate/fees/${id}`, {
+      const res = await authFetch(`/securegate/fees/${id}`, {
         method: "PUT",
-        headers: getAuthHeaders(),
+        
         body: JSON.stringify({
           percentage: pct,
           flat_fee: Math.round(flat * 100),
@@ -265,9 +262,9 @@ function FeesTab() {
 
   async function toggleFee(id: number, current: boolean) {
     try {
-      const res = await fetch(`${API_BASE}/securegate/fees/${id}`, {
+      const res = await authFetch(`/securegate/fees/${id}`, {
         method: "PUT",
-        headers: getAuthHeaders(),
+        
         body: JSON.stringify({ is_active: !current }),
       });
       if (res.ok) {

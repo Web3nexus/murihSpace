@@ -3,15 +3,12 @@ import { Coins, Loader2, Plus, Edit, Trash2, Check, AlertCircle, MoveVertical, T
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { getAuthToken } from "@/lib/auth/token";
+import { authFetch } from "@/lib/api/authFetch";
 import { useConfirm } from "@/components/ui/DialogProvider";
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? "http://localhost:8000/api/v1";
 
-function getAuthHeaders() {
-  const token = getAuthToken();
-  return { "Content-Type": "application/json", Accept: "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) };
-}
+
+
 
 export default function AdminCoinPacksPage() {
   const [packs, setPacks] = useState<any[]>([]);
@@ -26,7 +23,7 @@ export default function AdminCoinPacksPage() {
   const fetchPacks = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/securegate/coin-packs`, { headers: getAuthHeaders() });
+      const res = await authFetch(`/securegate/coin-packs`, {  });
       if (res.ok) { const j = await res.json(); setPacks(j?.data ?? j ?? []); }
     } catch { /* ignore */ }
     finally { setLoading(false); }
@@ -49,9 +46,9 @@ export default function AdminCoinPacksPage() {
     };
 
     try {
-      const url = editing ? `${API_BASE}/securegate/coin-packs/${editing.id}` : `${API_BASE}/securegate/coin-packs`;
-      const res = await fetch(url, {
-        method: editing ? "PUT" : "POST", headers: getAuthHeaders(),
+      const url = editing ? `/securegate/coin-packs/${editing.id}` : `/securegate/coin-packs`;
+      const res = await authFetch(url, {
+        method: editing ? "PUT" : "POST", 
         body: JSON.stringify(body),
       });
       if (res.ok) {
@@ -75,15 +72,15 @@ export default function AdminCoinPacksPage() {
   const handleDelete = async (id: number) => {
     if (!await confirm({ title: "Delete Coin Pack", message: "Delete this coin pack?", variant: "destructive" })) return;
     try {
-      await fetch(`${API_BASE}/securegate/coin-packs/${id}`, { method: "DELETE", headers: getAuthHeaders() });
+      await authFetch(`/securegate/coin-packs/${id}`, { method: "DELETE",  });
       fetchPacks();
     } catch { /* ignore */ }
   };
 
   const handleToggle = async (pack: any) => {
     try {
-      await fetch(`${API_BASE}/securegate/coin-packs/${pack.id}`, {
-        method: "PUT", headers: getAuthHeaders(),
+      await authFetch(`/securegate/coin-packs/${pack.id}`, {
+        method: "PUT", 
         body: JSON.stringify({ is_active: !pack.is_active }),
       });
       fetchPacks();
@@ -93,8 +90,8 @@ export default function AdminCoinPacksPage() {
   const handleReorder = async () => {
     const order = packs.map((p, i) => ({ id: p.id, sort_order: i }));
     try {
-      await fetch(`${API_BASE}/securegate/coin-packs/reorder`, {
-        method: "POST", headers: getAuthHeaders(),
+      await authFetch(`/securegate/coin-packs/reorder`, {
+        method: "POST", 
         body: JSON.stringify({ order }),
       });
       setMsg({ ok: true, text: "Order updated." });

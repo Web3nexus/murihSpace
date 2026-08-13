@@ -1,3 +1,4 @@
+import { getAuthToken } from "@/lib/auth/token";
 import { useState, useEffect, useCallback } from 'react';
 import {
   DollarSign,
@@ -16,9 +17,9 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import type { CreatorSaleRow, Order } from '@/types/order';
-import { getAuthToken } from "@/lib/auth/token";
+import { authFetch } from "@/lib/api/authFetch";
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? 'http://localhost:8000/api/v1';
+
 
 const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
   completed:  { label: 'Completed',  color: 'bg-emerald-500/15 text-emerald-600 border-emerald-500/25' },
@@ -49,7 +50,7 @@ export function SalesOrdersPage() {
     const token = getAuthToken();
     setFetchError(null);
     try {
-      const res = await fetch(`${API_BASE}/orders/sales?page=${page}&per_page=20`, {
+      const res = await authFetch(`/orders/sales?page=${page}&per_page=20`, {
         headers: {
           Accept: 'application/json',
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -76,7 +77,7 @@ export function SalesOrdersPage() {
     const token = getAuthToken();
 
     try {
-      const res = await fetch(`${API_BASE}/orders/${orderId}/receipt`, {
+      const res = await authFetch(`/orders/${orderId}/receipt`, {
         headers: {
           Accept: 'application/json',
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -251,7 +252,7 @@ export function SalesOrdersPage() {
                 <StatusBadge status={selectedReceipt.status} />
                 {selectedReceipt.download_url && (
                   <a
-                    href={`${API_BASE}/products/${selectedReceipt.product_id}/download`}
+                    href={`/products/${selectedReceipt.product_id}/download`}
                     target="_blank"
                     rel="noreferrer"
                     className="inline-flex items-center gap-1.5 text-xs font-bold text-secondary hover:underline"

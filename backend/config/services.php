@@ -35,6 +35,34 @@ return [
         ],
     ],
 
+    // MurihSpace's ticket/support service (web/marketing-backend). The main
+    // application proxies customer-facing ticket endpoints to this service and
+    // authenticates machine-to-machine calls with a shared secret.
+    'ticket_service' => [
+        'base_url' => rtrim((string) env('TICKET_SERVICE_BASE_URL', 'http://127.0.0.1:8123'), '/'),
+        'internal_token' => env('TICKET_SERVICE_INTERNAL_TOKEN', env('INTERNAL_API_SECRET', '')),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Support event synchronization (web/marketing-backend)
+    |--------------------------------------------------------------------------
+    |
+    | The platform pushes domain events (user.created, kyc.rejected,
+    | order.failed, payment.failed, ...) to the support system's webhook. The
+    | support system persists them idempotently and may auto-raise tickets.
+    | This is intentionally event/webhook based so the two applications stay
+    | decoupled; delivery is queued on our side.
+    |
+    */
+
+    'support_events' => [
+        'base_url' => rtrim((string) (env('SUPPORT_EVENTS_BASE_URL') ?: env('TICKET_SERVICE_BASE_URL', 'http://127.0.0.1:8123')), '/'),
+        'token' => env('SUPPORT_EVENTS_INTERNAL_TOKEN') ?: env('TICKET_SERVICE_INTERNAL_TOKEN', env('INTERNAL_API_SECRET', '')),
+        'endpoint' => '/api/internal/events',
+        'enabled' => filter_var(env('SUPPORT_EVENTS_ENABLED', true), FILTER_VALIDATE_BOOLEAN),
+    ],
+
     'anthropic' => [
         'key' => env('ANTHROPIC_API_KEY'),
         'model' => env('ANTHROPIC_MODEL', 'claude-sonnet-4-6'),

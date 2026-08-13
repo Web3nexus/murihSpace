@@ -1,14 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
 import { HardDrive, Loader2, Plus, Trash2, Save, AlertCircle, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { getAuthToken } from "@/lib/auth/token";
+import { authFetch } from "@/lib/api/authFetch";
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? "http://localhost:8000/api/v1";
 
-function getAuthHeaders() {
-  const token = getAuthToken();
-  return { "Content-Type": "application/json", Accept: "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) };
-}
+
+
 
 interface DiskOption {
   name: string;
@@ -40,7 +37,7 @@ export default function AdminStoragePage() {
   const loadConfig = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/securegate/storage`, { headers: getAuthHeaders() });
+      const res = await authFetch(`/securegate/storage`, {  });
       const j = await res.json();
       const d = j?.data?.data ?? j?.data ?? j;
       setConfig(d.config ?? d);
@@ -56,9 +53,9 @@ export default function AdminStoragePage() {
     setSaving(true);
     setMsg(null);
     try {
-      const res = await fetch(`${API_BASE}/securegate/storage`, {
+      const res = await authFetch(`/securegate/storage`, {
         method: "PUT",
-        headers: getAuthHeaders(),
+        
         body: JSON.stringify(config),
       });
       const j = await res.json();

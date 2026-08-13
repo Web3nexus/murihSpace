@@ -3,15 +3,12 @@ import { useSearchParams } from 'react-router';
 import { Shield, Loader2, AlertTriangle, AlertCircle } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { getAuthToken } from "@/lib/auth/token";
+import { authFetch } from "@/lib/api/authFetch";
 import { useConfirm } from '@/components/ui/DialogProvider';
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? 'http://localhost:8000/api/v1';
 
-function getAuthHeaders() {
-  const token = getAuthToken();
-  return { 'Content-Type': 'application/json', Accept: 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
-}
+
+
 
 function formatAmount(amount: number, currency = 'NGN'): string {
   const symbols: Record<string, string> = { NGN: '₦', USD: '$', GBP: '£', EUR: '€' };
@@ -50,7 +47,7 @@ export function AdminEscrowPage() {
       if (statusFilter) params.set('status', statusFilter);
       params.set('page', String(page));
       params.set('per_page', '20');
-      const res = await fetch(`${API_BASE}/securegate/escrow?${params}`, { headers: getAuthHeaders() });
+      const res = await authFetch(`/securegate/escrow?${params}`, {  });
       if (res.ok) { const j = await res.json(); setEscrows(j?.data?.data ?? j?.data ?? []); setLastPage(j.data?.last_page ?? j.data?.data?.last_page ?? 1); }
       else throw new Error(`HTTP ${res.status}`);
     } catch (e) { setFetchError(e instanceof Error ? e.message : 'Failed to load escrows'); }
@@ -69,7 +66,7 @@ export function AdminEscrowPage() {
   async function releaseEscrow(id: number) {
     if (!await confirm({ title: "Release Escrow", message: "Release this escrow to the seller?" })) return;
     try {
-      const res = await fetch(`${API_BASE}/securegate/escrow/${id}/release`, { method: 'POST', headers: getAuthHeaders() });
+      const res = await authFetch(`/securegate/escrow/${id}/release`, { method: 'POST',  });
       const j = await res.json();
       if (res.ok) { setMessage({ type: 'success', text: j.message ?? 'Released.' }); fetchEscrows(); }
       else { setMessage({ type: 'error', text: j.message ?? 'Failed.' }); }
@@ -79,7 +76,7 @@ export function AdminEscrowPage() {
   async function refundEscrow(id: number) {
     if (!await confirm({ title: "Refund Escrow", message: "Refund this escrow to the buyer?", variant: "warning" })) return;
     try {
-      const res = await fetch(`${API_BASE}/securegate/escrow/${id}/refund`, { method: 'POST', headers: getAuthHeaders() });
+      const res = await authFetch(`/securegate/escrow/${id}/refund`, { method: 'POST',  });
       const j = await res.json();
       if (res.ok) { setMessage({ type: 'success', text: j.message ?? 'Refunded.' }); fetchEscrows(); }
       else { setMessage({ type: 'error', text: j.message ?? 'Failed.' }); }
@@ -92,8 +89,8 @@ export function AdminEscrowPage() {
     try {
       const disputeId = selectedEscrow.disputes?.[0]?.id;
       if (!disputeId) { setMessage({ type: 'error', text: 'No active dispute found.' }); setSubmitting(false); return; }
-      const res = await fetch(`${API_BASE}/securegate/escrow/disputes/${disputeId}/resolve`, {
-        method: 'PUT', headers: getAuthHeaders(),
+      const res = await authFetch(`/securegate/escrow/disputes/${disputeId}/resolve`, {
+        method: 'PUT', 
         body: JSON.stringify({ resolution: disputeResolution, resolution_note: disputeNote || null }),
       });
       const j = await res.json();

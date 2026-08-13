@@ -2,14 +2,11 @@ import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router";
 import { Megaphone, Loader2, Mail, Plus, Eye, MousePointerClick, ListOrdered, Link2, Gift, TrendingUp, Target, ArrowRight, Check, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { getAuthToken } from "@/lib/auth/token";
+import { authFetch } from "@/lib/api/authFetch";
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? "http://localhost:8000/api/v1";
 
-function getAuthHeaders() {
-  const token = getAuthToken();
-  return { "Content-Type": "application/json", Accept: "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) };
-}
+
+
 
 interface Campaign {
   id: number; name: string; type: string; status: string;
@@ -45,9 +42,9 @@ export default function MarketingPage() {
     setLoading(true);
     try {
       const [cRes, bRes, sRes] = await Promise.all([
-        fetch(`${API_BASE}/marketing/campaigns`, { headers: getAuthHeaders() }),
-        fetch(`${API_BASE}/email-broadcasts`, { headers: getAuthHeaders() }),
-        fetch(`${API_BASE}/email-sequences`, { headers: getAuthHeaders() }),
+        authFetch(`/marketing/campaigns`, {  }),
+        authFetch(`/email-broadcasts`, {  }),
+        authFetch(`/email-sequences`, {  }),
       ]);
       if (cRes.ok) { const j = await cRes.json(); setCampaigns(j?.success ? j?.data?.data ?? j?.data : j?.data ?? j); }
       if (bRes.ok) { const j = await bRes.json(); setBroadcasts(j?.data?.data ?? j?.data ?? []); }
@@ -67,8 +64,8 @@ export default function MarketingPage() {
     setCfSaving(true);
     setCfMsg(null);
     try {
-      const res = await fetch(`${API_BASE}/marketing/campaigns`, {
-        method: "POST", headers: getAuthHeaders(),
+      const res = await authFetch(`/marketing/campaigns`, {
+        method: "POST", 
         body: JSON.stringify({ name: cfName, type: cfType }),
       });
       if (res.ok) {

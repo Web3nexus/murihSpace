@@ -9,7 +9,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MeraIcon } from "@/components/brand/MeraIcon";
-import { getAuthToken } from "@/lib/auth/token";
+import { authFetch } from "@/lib/api/authFetch";
 import { useAuth } from "@/hooks/useAuth";
 import { TEMPLATES, templateBySlug } from "@/lib/linkBioTemplates";
 import type { LinkBioPageData } from "@/lib/linkBioTypes";
@@ -17,12 +17,9 @@ import TemplateRenderer from "@/components/linkbio/TemplateRenderer";
 import TemplateThumb from "@/components/linkbio/TemplateThumb";
 import { CountrySelect } from "@/components/forms/CountrySelect";
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? "http://localhost:8000/api/v1";
 
-function getAuthHeaders() {
-  const token = getAuthToken();
-  return { "Content-Type": "application/json", Accept: "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) };
-}
+
+
 
 const SOCIAL_PLATFORMS: { value: string; label: string; placeholder: string; icon: React.ReactNode }[] = [
   { value: "instagram", label: "Instagram", placeholder: "your_handle", icon: <Camera className="h-4 w-4" /> },
@@ -124,7 +121,7 @@ export default function OnboardingPage() {
   // Load config & saved progress
   const loadConfig = useCallback(async () => {
     try {
-      const res = await fetch(`${API_BASE}/onboarding/config`, { headers: getAuthHeaders() });
+      const res = await authFetch(`/onboarding/config`, {  });
       const j = await res.json();
       const d = j?.data ?? j;
       if (d) {
@@ -162,8 +159,8 @@ export default function OnboardingPage() {
   const saveProgress = async (newStep: number) => {
     setStep(newStep);
     try {
-      await fetch(`${API_BASE}/onboarding/progress`, {
-        method: "POST", headers: getAuthHeaders(),
+      await authFetch(`/onboarding/progress`, {
+        method: "POST", 
         body: JSON.stringify({ step: newStep, form_data: { role, niche, businessName } }),
       });
     } catch { /* ignore */ }
@@ -182,8 +179,8 @@ export default function OnboardingPage() {
     setMessages(next);
     setChatSending(true);
     try {
-      const res = await fetch(`${API_BASE}/onboarding/chat`, {
-        method: "POST", headers: getAuthHeaders(),
+      const res = await authFetch(`/onboarding/chat`, {
+        method: "POST", 
         body: JSON.stringify({ message: body }),
       });
       const j = await res.json();
@@ -197,8 +194,8 @@ export default function OnboardingPage() {
   };
 
   const saveAbout = async () => {
-    await fetch(`${API_BASE}/onboarding/about`, {
-      method: "POST", headers: getAuthHeaders(),
+    await authFetch(`/onboarding/about`, {
+      method: "POST", 
       body: JSON.stringify({ about: about || null, niche: niche || null }),
     });
   };
@@ -206,15 +203,15 @@ export default function OnboardingPage() {
   const saveSocials = async () => {
     const valid = socialRows.filter((r) => r.handle.trim());
     if (valid.length === 0) return;
-    await fetch(`${API_BASE}/onboarding/socials`, {
-      method: "POST", headers: getAuthHeaders(),
+    await authFetch(`/onboarding/socials`, {
+      method: "POST", 
       body: JSON.stringify({ socials: valid.map((r) => ({ platform: r.platform, handle: r.handle })) }),
     });
   };
 
   const saveInterests = async () => {
-    await fetch(`${API_BASE}/onboarding/interests`, {
-      method: "POST", headers: getAuthHeaders(),
+    await authFetch(`/onboarding/interests`, {
+      method: "POST", 
       body: JSON.stringify({ community_interests: communityInterests, content_interests: contentInterests }),
     });
   };
@@ -222,8 +219,8 @@ export default function OnboardingPage() {
   const generateDraft = async () => {
     setDraftLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/onboarding/draft-profile`, {
-        method: "POST", headers: getAuthHeaders(),
+      const res = await authFetch(`/onboarding/draft-profile`, {
+        method: "POST", 
       });
       const j = await res.json();
       const d = j?.success ? j?.data : j;
@@ -240,11 +237,11 @@ export default function OnboardingPage() {
     setSaving(true);
     try {
       const def = templateBySlug(template);
-      await fetch(`${API_BASE}/onboarding/setup`, {
-        method: "POST", headers: getAuthHeaders(),
+      await authFetch(`/onboarding/setup`, {
+        method: "POST", 
         body: JSON.stringify({ template: def.slug, ...def.palette, profile_name: profileName, profile_bio: profileBio }),
       });
-      await fetch(`${API_BASE}/onboarding/complete`, { method: "POST", headers: getAuthHeaders() });
+      await authFetch(`/onboarding/complete`, { method: "POST",  });
       navigate("/app/link-in-bio", { replace: true });
     } catch { /* ignore */ }
     setSaving(false);
@@ -253,8 +250,8 @@ export default function OnboardingPage() {
   const handleFinishVendor = async () => {
     setSaving(true);
     try {
-      await fetch(`${API_BASE}/onboarding/vendor-info`, {
-        method: "POST", headers: getAuthHeaders(),
+      await authFetch(`/onboarding/vendor-info`, {
+        method: "POST", 
         body: JSON.stringify({
           business_name: businessName || user?.name || "My Store",
           business_category: businessCategory,
@@ -263,7 +260,7 @@ export default function OnboardingPage() {
           bio: vendorBio,
         }),
       });
-      await fetch(`${API_BASE}/onboarding/complete`, { method: "POST", headers: getAuthHeaders() });
+      await authFetch(`/onboarding/complete`, { method: "POST",  });
       navigate("/app/storefront", { replace: true });
     } catch { /* ignore */ }
     setSaving(false);
@@ -272,14 +269,14 @@ export default function OnboardingPage() {
   const handleFinishMember = async () => {
     setSaving(true);
     try {
-      await fetch(`${API_BASE}/onboarding/member-setup`, {
-        method: "POST", headers: getAuthHeaders(),
+      await authFetch(`/onboarding/member-setup`, {
+        method: "POST", 
         body: JSON.stringify({
           interests: memberInterests,
           notification_preferences: { feed: notifyFeed },
         }),
       });
-      await fetch(`${API_BASE}/onboarding/complete`, { method: "POST", headers: getAuthHeaders() });
+      await authFetch(`/onboarding/complete`, { method: "POST",  });
       navigate("/app", { replace: true });
     } catch { /* ignore */ }
     setSaving(false);

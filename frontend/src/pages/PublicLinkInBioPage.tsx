@@ -1,10 +1,11 @@
+import { authFetch } from "@/lib/api/authFetch";
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router";
 import { Loader2, AlertTriangle } from "lucide-react";
 import type { LinkBioPageData } from "@/lib/linkBioTypes";
 import TemplateRenderer from "@/components/linkbio/TemplateRenderer";
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? "http://localhost:8000/api/v1";
+
 
 export default function PublicLinkInBioPage() {
   const { username } = useParams<{ username: string }>();
@@ -17,7 +18,7 @@ export default function PublicLinkInBioPage() {
     if (!cleanUsername) return;
     (async () => {
       try {
-        const res = await fetch(`${API_BASE}/l/${encodeURIComponent(cleanUsername)}`, { headers: { Accept: "application/json" } });
+        const res = await authFetch(`/l/${encodeURIComponent(cleanUsername)}`, { headers: { Accept: "application/json" } });
         if (res.status === 404) { setNotFound(true); return; }
         if (!res.ok) { setNotFound(true); return; }
         const j = await res.json();
@@ -50,7 +51,7 @@ export default function PublicLinkInBioPage() {
   return (
     <TemplateRenderer
       data={data}
-      linkHref={(link) => `${API_BASE}/l/click/${link.id}`}
+      linkHref={(link) => `/l/click/${link.id}`}
       productHref={(p) => p.checkout_url ?? "#"}
     />
   );

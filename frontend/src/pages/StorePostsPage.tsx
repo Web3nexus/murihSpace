@@ -1,15 +1,12 @@
 import { useState, useEffect, useCallback } from "react";
 import { MessageSquareText, Plus, Loader2, Trash2, Edit, Eye, EyeOff, Check, AlertCircle, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { getAuthToken } from "@/lib/auth/token";
+import { authFetch } from "@/lib/api/authFetch";
 import { useConfirm } from "@/components/ui/DialogProvider";
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? "http://localhost:8000/api/v1";
 
-function getAuthHeaders() {
-  const token = getAuthToken();
-  return { "Content-Type": "application/json", Accept: "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) };
-}
+
+
 
 type TextAlign = "left" | "center" | "right";
 
@@ -62,7 +59,7 @@ export default function StorePostsPage() {
   const fetchPosts = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/store/posts`, { headers: getAuthHeaders() });
+      const res = await authFetch(`/store/posts`, {  });
       if (res.ok) {
         const json = await res.json();
         setPosts(json.data?.data ?? []);
@@ -90,9 +87,9 @@ export default function StorePostsPage() {
     setSaving(true); setMsg(null);
     const body = { content: content.trim(), font_family: fontFamily, background_color: bgColor, text_color: textColor, text_align: textAlign, is_published: isPublished };
     try {
-      const url = editing ? `${API_BASE}/store/posts/${editing.id}` : `${API_BASE}/store/posts`;
+      const url = editing ? `/store/posts/${editing.id}` : `/store/posts`;
       const method = editing ? "PUT" : "POST";
-      const res = await fetch(url, { method, headers: getAuthHeaders(), body: JSON.stringify(body) });
+      const res = await authFetch(url, { method,  body: JSON.stringify(body) });
       if (res.ok) {
         setMsg({ ok: true, text: editing ? "Post updated." : "Post created!" });
         resetForm(); fetchPosts();
@@ -108,15 +105,15 @@ export default function StorePostsPage() {
   const handleDelete = async (id: number) => {
     if (!await confirm({ title: "Delete Post", message: "Delete this post?", variant: "destructive" })) return;
     try {
-      await fetch(`${API_BASE}/store/posts/${id}`, { method: "DELETE", headers: getAuthHeaders() });
+      await authFetch(`/store/posts/${id}`, { method: "DELETE",  });
       setPosts((prev) => prev.filter((p) => p.id !== id));
     } catch { /* ignore */ }
   };
 
   const togglePublish = async (post: StorePost) => {
     try {
-      await fetch(`${API_BASE}/store/posts/${post.id}`, {
-        method: "PUT", headers: getAuthHeaders(),
+      await authFetch(`/store/posts/${post.id}`, {
+        method: "PUT", 
         body: JSON.stringify({ is_published: !post.is_published }),
       });
       fetchPosts();

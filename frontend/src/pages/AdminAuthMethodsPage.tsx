@@ -1,11 +1,12 @@
+import { getAuthToken } from "@/lib/auth/token";
 import { useEffect, useState } from "react";
 import { Loader2, Save, ShieldCheck, AlertCircle, CheckCircle2, Smartphone, Mail, Fingerprint, Globe, Apple as AppleIcon } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { getAuthToken } from "@/lib/auth/token";
+import { authFetch } from "@/lib/api/authFetch";
 import { cn } from "@/lib/utils";
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? "http://localhost:8000/api/v1";
+
 
 type MethodKey = "phone_otp" | "email_password" | "google" | "apple" | "passkey";
 
@@ -64,7 +65,7 @@ export default function AdminAuthMethodsPage() {
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch(`${API_BASE}/securegate/auth/methods`, { headers: authHeaders() });
+        const res = await authFetch(`/securegate/auth/methods`, { headers: authHeaders() });
         if (!res.ok) throw new Error("Failed to load auth methods");
         const j = await res.json();
         const d = j?.success ? j?.data?.data ?? j?.data : j;
@@ -113,7 +114,7 @@ export default function AdminAuthMethodsPage() {
           display_order: config.methods[k].display_order,
         };
       }
-      const res = await fetch(`${API_BASE}/securegate/auth/methods`, { method: "PUT", headers: authHeaders(), body: JSON.stringify(body) });
+      const res = await authFetch(`/securegate/auth/methods`, { method: "PUT", headers: authHeaders(), body: JSON.stringify(body) });
       const j = await res.json();
       if (!res.ok) {
         const errors = j?.errors;

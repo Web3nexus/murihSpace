@@ -595,6 +595,10 @@ export const routes: RouteObject[] = [
             path: "accessibility",
             element: <Suspense fallback={<PageLoader />}><AccessibilityPage /></Suspense>,
           },
+          {
+            path: "help",
+            element: <Suspense fallback={<PageLoader />}><SupportThreadsPage /></Suspense>,
+          },
         ],
       },
 

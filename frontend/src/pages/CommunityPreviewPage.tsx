@@ -1,3 +1,4 @@
+import { authFetch } from "@/lib/api/authFetch";
 import * as React from "react";
 import { useParams, Link } from "react-router";
 import { Button } from "@/components/ui/button";
@@ -27,7 +28,7 @@ import {
 import type { Community, CommunityMembership } from "@/types/community";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? 'http://localhost:8000/api/v1';
+
 
 const MEMBER_ROLE_STYLES: Record<string, string> = {
   owner: "bg-amber-500/15 text-amber-500 border-amber-500/30",
@@ -60,7 +61,7 @@ export function CommunityPreviewPage() {
     setIsLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${API_BASE}/communities/${slug}`);
+      const res = await authFetch(`/communities/${slug}`);
       if (res.ok) {
         const data = await res.json();
         if (data.data?.community) {
@@ -87,7 +88,7 @@ export function CommunityPreviewPage() {
     setMembersLoading(true);
     setMembersError(null);
     try {
-      const res = await fetch(`${API_BASE}/communities/${community.id}/members?page=${membersPage}`);
+      const res = await authFetch(`/communities/${community.id}/members?page=${membersPage}`);
       if (res.ok) {
         const data = await res.json();
         const paginator = data?.data ?? data;

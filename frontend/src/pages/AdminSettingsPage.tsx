@@ -1,11 +1,12 @@
+import { getAuthToken } from "@/lib/auth/token";
 import { useState, useEffect, useCallback } from "react";
 import { Settings, Loader2, Save, AlertCircle, Coins, Smartphone, ShieldCheck, Key, ChevronDown, ChevronUp, Lock, X, Mail } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { getAuthToken } from "@/lib/auth/token";
+import { authFetch } from "@/lib/api/authFetch";
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? "http://localhost:8000/api/v1";
+
 
 const WEB_ROLES = [
   { id: "member", label: "Member dashboard", desc: "Standard user dashboard for members" },
@@ -68,6 +69,7 @@ export default function AdminSettingsPage() {
   const [adminNotifyTelegramBotToken, setAdminNotifyTelegramBotToken] = useState("");
   const [telegramBotConfigured, setTelegramBotConfigured] = useState(false);
   const [adminNotifyTelegramChatId, setAdminNotifyTelegramChatId] = useState("");
+  const [kycEnabled, setKycEnabled] = useState(true);
   const [kycProviders, setKycProviders] = useState<string[]>(["manual"]);
   const [kycProviderStatus, setKycProviderStatus] = useState<Record<string, boolean>>({});
   const [kycCredentialsStatus, setKycCredentialsStatus] = useState<Record<string, Record<string, boolean>>>({});
@@ -82,7 +84,7 @@ export default function AdminSettingsPage() {
   const fetchSettings = useCallback(async () => {
     setFetchError(null);
     try {
-      const res = await fetch(`${API_BASE}/securegate/settings`, { headers: authHeaders() });
+      const res = await authFetch(`/securegate/settings`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to load settings");
       const j = await res.json();
       const d = j?.data?.data ?? j?.data ?? j;
@@ -94,6 +96,7 @@ export default function AdminSettingsPage() {
       if (d?.admin_notify_email !== undefined) setAdminNotifyEmail(d.admin_notify_email);
       if (d?.telegram_bot_configured !== undefined) setTelegramBotConfigured(d.telegram_bot_configured);
       if (d?.admin_notify_telegram_chat_id !== undefined) setAdminNotifyTelegramChatId(d.admin_notify_telegram_chat_id);
+      if (d?.kyc_enabled !== undefined) setKycEnabled(Boolean(d.kyc_enabled));
       if (Array.isArray(d?.kyc_providers) && d.kyc_providers.length > 0) setKycProviders(d.kyc_providers);
       if (d?.kyc_credentials && typeof d.kyc_credentials === "object") setKycCredentialsStatus(d.kyc_credentials);
       if (Array.isArray(d?.kyc_providers_available)) {
@@ -116,6 +119,7 @@ export default function AdminSettingsPage() {
         maintenance_mode: maintenanceMode,
         default_currency: defaultCurrency,
         web_disabled_roles: webDisabledRoles,
+        kyc_enabled: kycEnabled,
         kyc_providers: kycProviders,
         admin_notify_email: adminNotifyEmail,
       };
@@ -141,7 +145,7 @@ export default function AdminSettingsPage() {
         payload.kyc_credentials = nonEmptyCredentials;
       }
 
-      const res = await fetch(`${API_BASE}/securegate/settings`, {
+      const res = await authFetch(`/securegate/settings`, {
         method: "PUT",
         headers: authHeaders(),
         body: JSON.stringify(payload),
@@ -242,13 +246,26 @@ export default function AdminSettingsPage() {
           )}
         </div>
         <div className="rounded-xl border border-border p-3 space-y-3">
-          <div className="flex items-center gap-2">
-            <ShieldCheck className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" />
-            <p className="text-xs font-bold text-foreground">Identity Verification (KYC) Providers</p>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <ShieldCheck className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" />
+              <p className="text-xs font-bold text-foreground">Identity Verification (KYC) Providers</p>
+            </div>
+            <button
+              onClick={() => setKycEnabled(!kycEnabled)}
+              role="switch"
+              aria-checked={kycEnabled}
+              aria-label="Toggle KYC Requirement"
+              className={`w-10 h-5 rounded-full transition-colors shrink-0 ${kycEnabled ? 'bg-emerald-500' : 'bg-muted'}`}
+            >
+              <div className={`w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${kycEnabled ? 'translate-x-5' : 'translate-x-0.5'}`} />
+            </button>
           </div>
           <p className="text-[10px] text-muted-foreground">
-            Enable automated KYC providers (ID check + liveness) or use manual review. Configure provider credentials directly here or via environment variables.
+            Enable automated KYC providers (ID check + liveness) or use manual review. Configure provider credentials directly here or via environment variables. When disabled, users will bypass KYC checks entirely.
           </p>
+          
+          <fieldset disabled={!kycEnabled} className={`space-y-3 transition-opacity ${kycEnabled ? 'opacity-100' : 'opacity-50 pointer-events-none'}`}>
           {KYC_PROVIDERS.map((p) => {
             const active = kycProviders.includes(p.name);
             const configured = p.name === "manual" ? true : kycProviderStatus[p.name] === true;
@@ -376,6 +393,7 @@ export default function AdminSettingsPage() {
           {kycProviders.length === 0 && (
             <p className="text-[10px] text-rose-400 text-center py-1">No providers selected — sellers will be blocked from payouts/escrow until one is enabled.</p>
           )}
+          </fieldset>
         </div>
 
         <div className="rounded-xl border border-border p-3 space-y-3">

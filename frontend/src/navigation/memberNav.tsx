@@ -16,6 +16,7 @@ import {
   ShieldCheck,
   Lock,
   Bell,
+  LifeBuoy,
 } from "lucide-react";
 import type { NavGroup } from "./navTypes";
 
@@ -176,6 +177,11 @@ export const memberNav: NavGroup[] = [
         title: "Notifications",
         url: "/app/settings/notifications",
         icon: <Bell className="size-4" />,
+      },
+      {
+        title: "Help & Support",
+        url: "/app/settings/help",
+        icon: <LifeBuoy className="size-4" />,
       },
     ],
   },

@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router';
 import { toast } from 'sonner';
@@ -12,8 +13,8 @@ import {
 } from '@/components/ui/dialog';
 import type { AdminUser } from '@/types/admin';
 import { getAuthToken, clearAuthTokens } from "@/lib/auth/token";
+import { authFetch } from "@/lib/api/authFetch";
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? 'http://localhost:8000/api/v1';
 const authHeaders = () => {
   const t = getAuthToken();
   return { Accept: 'application/json', 'Content-Type': 'application/json', ...(t ? { Authorization: `Bearer ${t}` } : {}) };
@@ -60,7 +61,7 @@ export function AdminUsersPage() {
     params.set('per_page', '20');
     setFetchError(null);
     try {
-      const res = await fetch(`${API_BASE}/securegate/users?${params}`, { headers: authHeaders() });
+      const res = await authFetch(`/securegate/users?${params}`, { headers: authHeaders() });
       if (res.status === 401) {
         clearAuthTokens();
         window.location.href = '/securegate/login';
@@ -114,7 +115,7 @@ export function AdminUsersPage() {
     if (sort) params.set('sort', sort);
     if (sortDir) params.set('sort_dir', sortDir);
     try {
-      const res = await fetch(`${API_BASE}/securegate/users/export?${params}`, { headers: { ...authHeaders(), Accept: 'text/csv' } });
+      const res = await authFetch(`/securegate/users/export?${params}`, { headers: { ...authHeaders(), Accept: 'text/csv' } });
       if (!res.ok) return;
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
@@ -128,7 +129,7 @@ export function AdminUsersPage() {
     setSubmitting(true); setMsg(null);
     const body = actionType === 'activate' ? {} : { reason };
     try {
-      const res = await fetch(`${API_BASE}/securegate/users/${actionUser.id}/${actionType}`, {
+      const res = await authFetch(`/securegate/users/${actionUser.id}/${actionType}`, {
         method: 'POST', headers: authHeaders(), body: JSON.stringify(body),
       });
       const j = await res.json();
@@ -149,7 +150,7 @@ export function AdminUsersPage() {
 
   const handleImpersonate = async (u: AdminUser) => {
     try {
-      const res = await fetch(`${API_BASE}/securegate/users/${u.id}/impersonate`, { method: 'POST', headers: authHeaders() });
+      const res = await authFetch(`/securegate/users/${u.id}/impersonate`, { method: 'POST', headers: authHeaders() });
       const j = await res.json();
       const data = j?.success ? j?.data : j;
       if (!res.ok || !data?.token) {

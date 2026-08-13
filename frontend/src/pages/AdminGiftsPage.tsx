@@ -3,15 +3,12 @@ import { Gift, Loader2, Plus, Edit, Trash2, Check, AlertCircle, MoveVertical, To
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { getAuthToken } from "@/lib/auth/token";
+import { authFetch } from "@/lib/api/authFetch";
 import { useConfirm } from "@/components/ui/DialogProvider";
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? "http://localhost:8000/api/v1";
 
-function getAuthHeaders() {
-  const token = getAuthToken();
-  return { "Content-Type": "application/json", Accept: "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) };
-}
+
+
 
 const CATEGORIES = ["standard", "premium", "limited", "exclusive"];
 
@@ -30,8 +27,8 @@ export default function AdminGiftsPage() {
     setLoading(true);
     try {
       const [gRes, sRes] = await Promise.all([
-        fetch(`${API_BASE}/securegate/gifts`, { headers: getAuthHeaders() }),
-        fetch(`${API_BASE}/securegate/gifts/stats`, { headers: getAuthHeaders() }),
+        authFetch(`/securegate/gifts`, {  }),
+        authFetch(`/securegate/gifts/stats`, {  }),
       ]);
       if (gRes.ok) {
         const j = await gRes.json();
@@ -55,9 +52,9 @@ export default function AdminGiftsPage() {
     const body = { ...form, coin_price: parseInt(form.coin_price), creator_earns: parseInt(form.creator_earns), platform_commission: parseInt(form.platform_commission), sort_order: form.sort_order ? parseInt(form.sort_order) : 0 };
 
     try {
-      const url = editing ? `${API_BASE}/securegate/gifts/${editing.id}` : `${API_BASE}/securegate/gifts`;
-      const res = await fetch(url, {
-        method: editing ? "PUT" : "POST", headers: getAuthHeaders(),
+      const url = editing ? `/securegate/gifts/${editing.id}` : `/securegate/gifts`;
+      const res = await authFetch(url, {
+        method: editing ? "PUT" : "POST", 
         body: JSON.stringify(body),
       });
       if (res.ok) {
@@ -81,15 +78,15 @@ export default function AdminGiftsPage() {
   const handleDelete = async (id: number) => {
     if (!await confirm({ title: "Delete Gift", message: "Delete this gift?", variant: "destructive" })) return;
     try {
-      await fetch(`${API_BASE}/securegate/gifts/${id}`, { method: "DELETE", headers: getAuthHeaders() });
+      await authFetch(`/securegate/gifts/${id}`, { method: "DELETE",  });
       fetchGifts();
     } catch { /* ignore */ }
   };
 
   const handleToggle = async (gift: any) => {
     try {
-      await fetch(`${API_BASE}/securegate/gifts/${gift.id}`, {
-        method: "PUT", headers: getAuthHeaders(),
+      await authFetch(`/securegate/gifts/${gift.id}`, {
+        method: "PUT", 
         body: JSON.stringify({ is_active: !gift.is_active }),
       });
       fetchGifts();
@@ -99,8 +96,8 @@ export default function AdminGiftsPage() {
   const handleReorder = async () => {
     const order = gifts.map((g, i) => ({ id: g.id, sort_order: i }));
     try {
-      await fetch(`${API_BASE}/securegate/gifts/reorder`, {
-        method: "POST", headers: getAuthHeaders(),
+      await authFetch(`/securegate/gifts/reorder`, {
+        method: "POST", 
         body: JSON.stringify({ order }),
       });
       setMsg({ ok: true, text: "Order updated." });

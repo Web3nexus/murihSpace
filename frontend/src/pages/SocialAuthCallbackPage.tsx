@@ -1,10 +1,11 @@
+import { authFetch } from "@/lib/api/authFetch";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { Loader2, ShieldAlert } from "lucide-react";
 import { AuthLayout } from "@/components/layout/AuthLayout";
 import { Link } from "react-router";
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? "http://localhost:8000/api/v1";
+
 
 interface CallbackUser {
   id: number;
@@ -76,7 +77,7 @@ export function SocialAuthCallbackPage() {
       }
 
       try {
-        const res = await fetch(`${API_BASE}/auth/social/${provider}/callback?code=${encodeURIComponent(code)}`, {
+        const res = await authFetch(`/auth/social/${provider}/callback?code=${encodeURIComponent(code)}`, {
           method: "POST",
           headers: { Accept: "application/json", "Content-Type": "application/json" },
           body: JSON.stringify({ code, state: params.get("state") }),

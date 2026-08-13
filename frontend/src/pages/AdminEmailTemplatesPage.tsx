@@ -1,3 +1,4 @@
+import { getAuthToken } from "@/lib/auth/token";
 import { useEffect, useMemo, useState } from "react";
 import { Mail, Loader2, Save, RotateCcw, CheckCircle2, AlertCircle, Search } from "lucide-react";
 import { toast } from "sonner";
@@ -6,9 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
-import { getAuthToken } from "@/lib/auth/token";
+import { authFetch } from "@/lib/api/authFetch";
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? "http://localhost:8000/api/v1";
+
 
 interface EmailTemplate {
   id: number;
@@ -45,7 +46,7 @@ export default function AdminEmailTemplatesPage() {
 
   const load = async () => {
     try {
-      const res = await fetch(`${API_BASE}/securegate/email-templates`, { headers: authHeaders() });
+      const res = await authFetch(`/securegate/email-templates`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to load email templates");
       const j = await res.json();
       const list = unwrap<EmailTemplate[]>(j);
@@ -79,7 +80,7 @@ export default function AdminEmailTemplatesPage() {
     if (!draft || !selectedKey) return;
     setSaving(true);
     try {
-      const res = await fetch(`${API_BASE}/securegate/email-templates/${selectedKey}`, {
+      const res = await authFetch(`/securegate/email-templates/${selectedKey}`, {
         method: "PUT",
         headers: authHeaders(),
         body: JSON.stringify({
@@ -105,7 +106,7 @@ export default function AdminEmailTemplatesPage() {
   const reset = async (key: string) => {
     setResetting(key);
     try {
-      const res = await fetch(`${API_BASE}/securegate/email-templates/${key}/reset`, {
+      const res = await authFetch(`/securegate/email-templates/${key}/reset`, {
         method: "POST",
         headers: authHeaders(),
       });

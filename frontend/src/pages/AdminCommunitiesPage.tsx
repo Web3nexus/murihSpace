@@ -4,15 +4,12 @@ import { Building2, Search, Loader2, Trash2, Eye, Globe, Lock, AlertCircle } fro
 import { toast } from 'sonner';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { getAuthToken } from "@/lib/auth/token";
+import { authFetch } from "@/lib/api/authFetch";
 
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? 'http://localhost:8000/api/v1';
 
-function getAuthHeaders() {
-  const token = getAuthToken();
-  return { 'Content-Type': 'application/json', Accept: 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
-}
+
+
 
 interface CommunitySummary {
   id: number; name: string; slug: string; category: string;
@@ -39,7 +36,7 @@ export function AdminCommunitiesPage() {
       const params = new URLSearchParams({ page: String(page), per_page: '20' });
       if (search) params.set('search', search);
       if (visibility) params.set('visibility', visibility);
-      const res = await fetch(`${API_BASE}/securegate/communities?${params}`, { headers: getAuthHeaders() });
+      const res = await authFetch(`/securegate/communities?${params}`, {  });
       if (res.ok) { const j = await res.json(); setCommunities(j.data?.data?.data ?? []); setStats(j.data?.stats ?? null); setLastPage(j.data?.data?.last_page ?? 1); }
       else throw new Error(`HTTP ${res.status}`);
     } catch (e) { setFetchError(e instanceof Error ? e.message : 'Failed to load communities'); }
@@ -51,7 +48,7 @@ export function AdminCommunitiesPage() {
   async function deleteCommunity(id: number, name: string) {
     if (!await confirm({ title: `Delete "${name}"`, message: 'This also removes all memberships. Cannot be undone.', variant: 'destructive' })) return;
     try {
-      const res = await fetch(`${API_BASE}/securegate/communities/${id}`, { method: 'DELETE', headers: getAuthHeaders() });
+      const res = await authFetch(`/securegate/communities/${id}`, { method: 'DELETE',  });
       if (res.ok) { setMessage({ type: 'success', text: `"${name}" deleted.` }); toast.success(`"${name}" deleted.`); fetchCommunities(); }
       else { const j = await res.json(); const m = j.message ?? 'Failed.'; setMessage({ type: 'error', text: m }); toast.error(m); }
     } catch { setMessage({ type: 'error', text: 'Network error.' }); toast.error('Network error while deleting community.'); }

@@ -1,14 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
 import { RotateCcw, Loader2, CheckCircle2, XCircle, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { getAuthToken } from "@/lib/auth/token";
+import { authFetch } from "@/lib/api/authFetch";
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? "http://localhost:8000/api/v1";
 
-function getAuthHeaders() {
-  const token = getAuthToken();
-  return { "Content-Type": "application/json", Accept: "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) };
-}
+
+
 
 interface ReturnRequest {
   id: number; order_id: number; product_name: string; reason: string;
@@ -29,7 +26,7 @@ export default function ReturnsPage() {
 
   const fetchReturns = useCallback(async () => {
     try {
-      const res = await fetch(`${API_BASE}/store/returns`, { headers: getAuthHeaders() });
+      const res = await authFetch(`/store/returns`, {  });
       if (!res.ok) throw new Error();
       const j = await res.json();
       const list = j?.success ? j?.data : j;
@@ -43,8 +40,8 @@ export default function ReturnsPage() {
   const handleAction = async (id: number, action: "approve" | "reject") => {
     setProcessing(id);
     try {
-      await fetch(`${API_BASE}/store/returns/${id}`, {
-        method: "PATCH", headers: getAuthHeaders(),
+      await authFetch(`/store/returns/${id}`, {
+        method: "PATCH", 
         body: JSON.stringify({ status: action === "approve" ? "approved" : "rejected" }),
       });
       fetchReturns();

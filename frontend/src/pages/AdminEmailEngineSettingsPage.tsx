@@ -1,3 +1,4 @@
+import { getAuthToken } from "@/lib/auth/token";
 import { useEffect, useState } from "react";
 import {
   Mail,
@@ -20,9 +21,9 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { getAuthToken } from "@/lib/auth/token";
+import { authFetch } from "@/lib/api/authFetch";
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? "http://localhost:8000/api/v1";
+
 
 const TRANSPORTS: { id: string; label: string; desc: string; color: string; icon: typeof Server }[] = [
   { id: "smtp", label: "SMTP", desc: "Any SMTP relay or mailbox (Mailgun, SendGrid, Gmail, etc.).", color: "from-sky-500/20 to-indigo-500/20", icon: Server },
@@ -70,7 +71,7 @@ export default function AdminEmailEngineSettingsPage() {
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch(`${API_BASE}/securegate/mail-settings`, { headers: authHeaders() });
+        const res = await authFetch(`/securegate/mail-settings`, { headers: authHeaders() });
         if (!res.ok) throw new Error("Failed to load mail engine settings");
         const j = await res.json();
         const d = j?.success ? j?.data?.data ?? j?.data : j;
@@ -116,7 +117,7 @@ export default function AdminEmailEngineSettingsPage() {
         resend_key: secrets.resend_key,
         sendmail_path: settings.sendmail.path,
       };
-      const res = await fetch(`${API_BASE}/securegate/mail-settings`, { method: "PUT", headers: authHeaders(), body: JSON.stringify(body) });
+      const res = await authFetch(`/securegate/mail-settings`, { method: "PUT", headers: authHeaders(), body: JSON.stringify(body) });
       const j = await res.json();
       if (!res.ok) throw new Error(j?.message ?? "Save failed");
       const d = j?.success ? j?.data?.data ?? j?.data : j;
@@ -140,7 +141,7 @@ export default function AdminEmailEngineSettingsPage() {
     setTesting(true);
     setTestResult(null);
     try {
-      const res = await fetch(`${API_BASE}/securegate/mail-settings/test`, {
+      const res = await authFetch(`/securegate/mail-settings/test`, {
         method: "POST",
         headers: authHeaders(),
         body: JSON.stringify({ to }),

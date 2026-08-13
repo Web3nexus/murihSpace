@@ -2,8 +2,9 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { ChevronDown, Loader2 } from "lucide-react";
 import type { CountryItem } from "./CountrySelect";
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? "http://localhost:8000/api/v1";
+import { env } from "@/config/env";
 
+const API_BASE = env.VITE_API_BASE_URL;
 interface PhoneInputProps {
   value?: string;
   countryIso2?: string;

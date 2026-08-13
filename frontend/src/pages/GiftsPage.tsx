@@ -3,14 +3,11 @@ import { Gift, Loader2, Search, Send, Coins, AlertCircle, Check, Plus } from "lu
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { getAuthToken } from "@/lib/auth/token";
+import { authFetch } from "@/lib/api/authFetch";
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? "http://localhost:8000/api/v1";
 
-function getAuthHeaders() {
-  const token = getAuthToken();
-  return { "Content-Type": "application/json", Accept: "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) };
-}
+
+
 
 interface GiftItem { id: number; name: string; icon_url: string | null; coin_price: number; creator_earns: number; category: string; is_active: boolean; sort_order: number; }
 interface CoinPack { id: number; name: string; coins: number; bonus_coins: number; price: number; currency: string; badge: string | null; is_active: boolean; sort_order: number; }
@@ -42,10 +39,10 @@ export default function GiftsPage() {
     setLoading(true);
     try {
       const [gRes, tRes, wRes, pRes] = await Promise.all([
-        fetch(`${API_BASE}/gifts/catalogue`, { headers: getAuthHeaders() }),
-        fetch(`${API_BASE}/gifts/transactions`, { headers: getAuthHeaders() }),
-        fetch(`${API_BASE}/wallet`, { headers: getAuthHeaders() }),
-        fetch(`${API_BASE}/coins/packs`, { headers: getAuthHeaders() }),
+        authFetch(`/gifts/catalogue`, {  }),
+        authFetch(`/gifts/transactions`, {  }),
+        authFetch(`/wallet`, {  }),
+        authFetch(`/coins/packs`, {  }),
       ]);
       if (gRes.ok) { const j = await gRes.json(); setGifts(j?.data ?? j ?? []); }
       if (tRes.ok) { const j = await tRes.json(); setTransactions(j?.data?.data ?? j?.data ?? j ?? []); }
@@ -60,14 +57,14 @@ export default function GiftsPage() {
   const buyPack = async (pack: CoinPack) => {
     setBuying(pack.id); setMsg(null);
     try {
-      const res = await fetch(`${API_BASE}/coins/purchase`, {
-        method: "POST", headers: getAuthHeaders(),
+      const res = await authFetch(`/coins/purchase`, {
+        method: "POST", 
         body: JSON.stringify({ coin_pack_id: pack.id, reference: crypto.randomUUID() }),
       });
       if (res.ok) {
         setMsg({ ok: true, text: `Added ${pack.coins + (pack.bonus_coins || 0)} coins to your wallet!` });
         setShowCoinShop(false);
-        const wRes = await fetch(`${API_BASE}/wallet`, { headers: getAuthHeaders() });
+        const wRes = await authFetch(`/wallet`, {  });
         if (wRes.ok) { const j = await wRes.json(); setBalance(j?.data?.balance ?? j?.data?.data?.balance ?? j?.balance ?? 0); }
       } else {
         const j = await res.json().catch(() => ({}));
@@ -81,8 +78,8 @@ export default function GiftsPage() {
     if (!selectedGift || !recipient) return;
     setSending(true); setMsg(null);
     try {
-      const res = await fetch(`${API_BASE}/gifts/send`, {
-        method: "POST", headers: getAuthHeaders(),
+      const res = await authFetch(`/gifts/send`, {
+        method: "POST", 
         body: JSON.stringify({
           gift_id: selectedGift.id,
           recipient_id: parseInt(recipient),

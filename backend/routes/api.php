@@ -444,7 +444,7 @@ Route::prefix('v1')->group(function () {
         Route::prefix('storefront')->middleware('creator')->group(function () {
             Route::get('/', [StorefrontController::class, 'mine']);
             Route::put('/', [StorefrontController::class, 'update']);
-            Route::post('/publish', [StorefrontController::class, 'publish'])->middleware('kyc');
+            Route::post('/publish', [StorefrontController::class, 'publish']);
         });
 
         Route::prefix('store/posts')->middleware('creator')->group(function () {
@@ -514,7 +514,7 @@ Route::prefix('v1')->group(function () {
         });
 
         // ── Store Membership Plans ───────────────────────────────────
-        Route::prefix('store/memberships')->middleware('creator', 'kyc')->group(function () {
+        Route::prefix('store/memberships')->middleware('creator')->group(function () {
             Route::get('/', [\App\Http\Controllers\StoreMembershipPlanController::class, 'index']);
             Route::post('/', [\App\Http\Controllers\StoreMembershipPlanController::class, 'store']);
             Route::patch('/{plan}', [\App\Http\Controllers\StoreMembershipPlanController::class, 'update']);
@@ -655,6 +655,17 @@ Route::prefix('v1')->group(function () {
             Route::get('/', [\App\Http\Controllers\SupportController::class, 'index']);
             Route::get('/{thread}/messages', [\App\Http\Controllers\SupportController::class, 'messages']);
             Route::post('/{thread}/messages', [\App\Http\Controllers\SupportController::class, 'sendMessage']);
+        });
+
+        // ── My Tickets (proxied to the ticket service) ───────────────
+        Route::prefix('tickets')->group(function () {
+            Route::get('/categories', [\App\Http\Controllers\TicketProxyController::class, 'categories']);
+            Route::get('/', [\App\Http\Controllers\TicketProxyController::class, 'index']);
+            Route::post('/', [\App\Http\Controllers\TicketProxyController::class, 'store']);
+            Route::get('/{ticket}', [\App\Http\Controllers\TicketProxyController::class, 'show']);
+            Route::post('/{ticket}/reply', [\App\Http\Controllers\TicketProxyController::class, 'reply']);
+            Route::post('/{ticket}/status', [\App\Http\Controllers\TicketProxyController::class, 'status']);
+            Route::post('/{ticket}/rate', [\App\Http\Controllers\TicketProxyController::class, 'rate']);
         });
 
         // ── Chat Rooms (alias for frontend) ──────────────────────────
@@ -853,7 +864,7 @@ Route::prefix('v1')->group(function () {
         // ── Verified badge (blue checkmark) ─────────────────────────
         Route::prefix('verification-badge')->group(function () {
             Route::get('/status', [\App\Http\Controllers\VerificationBadgeController::class, 'status']);
-            Route::post('/apply', [\App\Http\Controllers\VerificationBadgeController::class, 'apply']);
+            Route::post('/apply', [\App\Http\Controllers\VerificationBadgeController::class, 'apply'])->middleware('kyc');
             Route::post('/activate', [\App\Http\Controllers\VerificationBadgeController::class, 'activate']);
             Route::post('/renew', [\App\Http\Controllers\VerificationBadgeController::class, 'renew']);
             Route::post('/cancel-auto-renew', [\App\Http\Controllers\VerificationBadgeController::class, 'cancelAutoRenew']);
@@ -956,7 +967,7 @@ Route::prefix('v1')->group(function () {
             Route::post('/purchases/{id}/download', [PurchaseController::class, 'download']);
 
             // Withdrawals
-            Route::post('/withdrawals', [WithdrawalController::class, 'request']);
+            Route::post('/withdrawals', [WithdrawalController::class, 'request'])->middleware('kyc');
             Route::get('/withdrawals', [WithdrawalController::class, 'myRequests']);
 
             // Escrow (Sprint 29)
@@ -979,7 +990,7 @@ Route::prefix('v1')->group(function () {
             Route::get('/plans/{id}', [SubscriptionPlanController::class, 'show']);
 
             // Creator-only plan management
-            Route::middleware('creator', 'kyc')->group(function () {
+            Route::middleware('creator')->group(function () {
                 Route::post('/plans', [SubscriptionPlanController::class, 'store']);
                 Route::put('/plans/{id}', [SubscriptionPlanController::class, 'update']);
                 Route::delete('/plans/{id}', [SubscriptionPlanController::class, 'destroy']);

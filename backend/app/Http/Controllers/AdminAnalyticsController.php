@@ -12,9 +12,8 @@ use App\Models\Subscription;
 use App\Models\SubscriptionPlan;
 use App\Models\User;
 use App\Models\Wallet;
-use App\Models\KycVerification;
 use App\Models\AccountRoleHistory;
-use App\Models\PostReport;
+use App\Models\Report;
 use App\Models\SupportThread;
 use App\Services\CurrencyConverter;
 use Illuminate\Http\JsonResponse;
@@ -30,9 +29,9 @@ class AdminAnalyticsController extends Controller
     public function pendingCounts(Request $request): JsonResponse
     {
         return response()->json([
-            'pending_kyc' => KycVerification::where('status', 'pending')->count(),
+            'pending_kyc' => User::where('kyc_status', 'pending')->count(),
             'pending_role_applications' => AccountRoleHistory::where('status', 'pending')->count(),
-            'pending_reports' => PostReport::where('status', 'pending')->count(),
+            'pending_reports' => Report::where('status', 'pending')->count(),
             'open_tickets' => SupportThread::where('status', 'open')->count(),
         ]);
     }

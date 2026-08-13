@@ -17,19 +17,12 @@ import {
   Users,
 } from "lucide-react";
 import { ImageUploader } from "@/components/upload/ImageUploader";
-import { getAuthToken } from "@/lib/auth/token";
+import { authFetch } from "@/lib/api/authFetch";
 import { useConfirm } from "@/components/ui/DialogProvider";
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? "http://localhost:8000/api/v1";
 
-function getAuthHeaders() {
-  const token = getAuthToken();
-  return {
-    "Content-Type": "application/json",
-    Accept: "application/json",
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
-}
+
+
 
 interface Module {
   id?: number;
@@ -84,7 +77,7 @@ export default function CoursesPage() {
   const fetchCourses = useCallback(async () => {
     setError(null);
     try {
-      const res = await fetch(`${API_BASE}/courses?page=${page}&per_page=20`, { headers: getAuthHeaders() });
+      const res = await authFetch(`/courses?page=${page}&per_page=20`, {  });
       if (res.ok) {
         const j = await res.json();
         const paginator = j?.success ? j?.data : j;
@@ -127,10 +120,10 @@ export default function CoursesPage() {
     };
     try {
       const url = editing
-        ? `${API_BASE}/courses/${editing.id}`
-        : `${API_BASE}/courses`;
+        ? `/courses/${editing.id}`
+        : `/courses`;
       const method = editing ? "PUT" : "POST";
-      const res = await fetch(url, { method, headers: getAuthHeaders(), body: JSON.stringify(body) });
+      const res = await authFetch(url, { method,  body: JSON.stringify(body) });
       if (res.ok) {
         setMsg({ ok: true, text: editing ? "Course updated." : "Course created!" });
         setShowForm(false);
@@ -149,7 +142,7 @@ export default function CoursesPage() {
   const handleDelete = async (id: number) => {
     if (!await confirm({ title: "Delete Course", message: "Delete this course and all its modules?", variant: "destructive" })) return;
     try {
-      await fetch(`${API_BASE}/courses/${id}`, { method: "DELETE", headers: getAuthHeaders() });
+      await authFetch(`/courses/${id}`, { method: "DELETE",  });
       setCourses((prev) => prev.filter((c) => c.id !== id));
     } catch { setError("Failed to delete."); }
   };
@@ -157,8 +150,8 @@ export default function CoursesPage() {
   const handleToggleStatus = async (course: Course) => {
     const newStatus = course.status === "published" ? "draft" : "published";
     try {
-      const res = await fetch(`${API_BASE}/courses/${course.id}`, {
-        method: "PUT", headers: getAuthHeaders(),
+      const res = await authFetch(`/courses/${course.id}`, {
+        method: "PUT", 
         body: JSON.stringify({ status: newStatus }),
       });
       if (res.ok) setCourses((prev) => prev.map((c) => c.id === course.id ? { ...c, status: newStatus } : c));

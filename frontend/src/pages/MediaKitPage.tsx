@@ -1,19 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Loader2, Save, Eye, Globe, Users, BarChart3, Plus, Trash2, Check, ExternalLink, Sparkles, Image as ImageIcon, Briefcase, FileText, DollarSign } from 'lucide-react';
 import { ImageUploader } from "@/components/upload/ImageUploader";
-import { getAuthToken } from "@/lib/auth/token";
+import { authFetch } from "@/lib/api/authFetch";
 import { StatCard } from "@/components/ui/StatCard";
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? 'http://localhost:8000/api/v1';
 
-function getAuthHeaders() {
-  const token = getAuthToken();
-  return {
-    'Content-Type': 'application/json',
-    Accept: 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
-}
+
+
 
 interface RateCardItem {
   type: string; price: string; description?: string;
@@ -74,7 +67,7 @@ export function MediaKitPage() {
   const fetchKit = useCallback(async () => {
     setIsLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/media-kit/preview`, { headers: getAuthHeaders() });
+      const res = await authFetch(`/media-kit/preview`, {  });
       if (res.ok) {
         const j = await res.json();
         if (j.data) {
@@ -108,8 +101,8 @@ export function MediaKitPage() {
   async function saveKit() {
     setSaving(true);
     try {
-      const res = await fetch(`${API_BASE}/media-kit`, {
-        method: 'PUT', headers: getAuthHeaders(), body: JSON.stringify(kit),
+      const res = await authFetch(`/media-kit`, {
+        method: 'PUT',  body: JSON.stringify(kit),
       });
       if (res.ok) { showMsg('success', 'Media kit saved successfully!'); }
       else { const j = await res.json(); showMsg('error', j.message ?? 'Failed to save.'); }

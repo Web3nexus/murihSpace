@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import { useSearchParams, Link } from "react-router";
 import { Search, Loader2, Users, MessageSquare, FileText, Package, User } from "lucide-react";
-import { getAuthToken } from "@/lib/auth/token";
+import { authFetch } from "@/lib/api/authFetch";
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? "http://localhost:8000/api/v1";
+
 
 const TABS = [
   { key: "all", label: "All" },
@@ -16,10 +16,7 @@ const TABS = [
 
 type TabType = (typeof TABS)[number]["key"];
 
-function getAuthHeaders() {
-  const token = getAuthToken();
-  return { "Content-Type": "application/json", Accept: "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) };
-}
+
 
 interface SearchResults {
   users?: { id: number; name: string; username: string; avatar?: string; bio?: string }[];
@@ -44,8 +41,8 @@ export default function SearchPage() {
     if (!query.trim()) return;
     setLoading(true);
     const typeParam = tab === "all" ? "" : `&type=${tab}`;
-    fetch(`${API_BASE}/search?q=${encodeURIComponent(query)}${typeParam}&per_page=20`, {
-      headers: getAuthHeaders(),
+    authFetch(`/search?q=${encodeURIComponent(query)}${typeParam}&per_page=20`, {
+      
     })
       .then((r) => r.json())
       .then((json) => setResults(json.results ?? {}))

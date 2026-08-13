@@ -1,3 +1,4 @@
+import { getAuthToken } from "@/lib/auth/token";
 import { useState, useEffect, useCallback } from "react";
 import {
   ShieldCheck, UserPlus, Loader2, Search, Pencil, Trash2, AlertCircle,
@@ -9,9 +10,9 @@ import { Label } from "@/components/ui/label";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
-import { getAuthToken } from "@/lib/auth/token";
+import { authFetch } from "@/lib/api/authFetch";
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? "http://localhost:8000/api/v1";
+
 
 function authHeaders() {
   const t = getAuthToken();
@@ -88,7 +89,7 @@ export function AdminManagementPage() {
 
   const fetchMeta = useCallback(async () => {
     try {
-      const res = await fetch(`${API_BASE}/securegate/admins/roles`, { headers: authHeaders() });
+      const res = await authFetch(`/securegate/admins/roles`, { headers: authHeaders() });
       if (!res.ok) return;
       const j = await res.json();
       setMeta(j?.data?.data ?? j?.data ?? null);
@@ -103,7 +104,7 @@ export function AdminManagementPage() {
       if (search.trim()) params.set("search", search.trim());
       params.set("page", String(page));
       params.set("per_page", "20");
-      const res = await fetch(`${API_BASE}/securegate/admins?${params}`, { headers: authHeaders() });
+      const res = await authFetch(`/securegate/admins?${params}`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to load admins");
       const j = await res.json();
       const d = j?.success ? j?.data : j;
@@ -147,7 +148,7 @@ export function AdminManagementPage() {
     }
 
     try {
-      const res = await fetch(`${API_BASE}/securegate/admins`, {
+      const res = await authFetch(`/securegate/admins`, {
         method: "POST", headers: authHeaders(), body: JSON.stringify(body),
       });
       const j = await res.json().catch(() => ({}));
@@ -179,7 +180,7 @@ export function AdminManagementPage() {
     if (perms.length > 0) body.permissions = perms;
 
     try {
-      const res = await fetch(`${API_BASE}/securegate/admins/${editing.id}`, {
+      const res = await authFetch(`/securegate/admins/${editing.id}`, {
         method: "PUT", headers: authHeaders(), body: JSON.stringify(body),
       });
       const j = await res.json().catch(() => ({}));
@@ -194,7 +195,7 @@ export function AdminManagementPage() {
     if (!removing) return;
     setSubmittingRemove(true); setMsg(null);
     try {
-      const res = await fetch(`${API_BASE}/securegate/admins/${removing.id}`, {
+      const res = await authFetch(`/securegate/admins/${removing.id}`, {
         method: "DELETE", headers: authHeaders(),
       });
       const j = await res.json().catch(() => ({}));

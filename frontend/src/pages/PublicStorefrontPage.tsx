@@ -1,3 +1,4 @@
+import { authFetch } from "@/lib/api/authFetch";
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router';
 import {
@@ -29,7 +30,7 @@ const FONT_MAP: Record<string, string> = {
   handwriting: "'Segoe Script', 'Apple Chancery', cursive",
 };
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? 'http://localhost:8000/api/v1';
+
 
 export function PublicStorefrontPage() {
   const { shortCode } = useParams<{ shortCode: string }>();
@@ -47,8 +48,8 @@ export function PublicStorefrontPage() {
 
       try {
         const [storeRes, postsRes] = await Promise.allSettled([
-          fetch(`${API_BASE}/stores/${shortCode}`, { headers: { Accept: 'application/json' } }),
-          fetch(`${API_BASE}/stores/${shortCode}/posts`, { headers: { Accept: 'application/json' } }),
+          authFetch(`/stores/${shortCode}`, { headers: { Accept: 'application/json' } }),
+          authFetch(`/stores/${shortCode}/posts`, { headers: { Accept: 'application/json' } }),
         ]);
         const storeResult = storeRes.status === "fulfilled" ? storeRes.value : null;
         const postsResult = postsRes.status === "fulfilled" ? postsRes.value : null;

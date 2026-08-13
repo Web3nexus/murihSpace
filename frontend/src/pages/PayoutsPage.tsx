@@ -1,18 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { DollarSign, Loader2, TrendingUp, CheckCircle, Clock } from 'lucide-react';
 import { Badge } from "@/components/ui/badge";
-import { getAuthToken } from "@/lib/auth/token";
+import { authFetch } from "@/lib/api/authFetch";
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? 'http://localhost:8000/api/v1';
 
-function getAuthHeaders() {
-  const token = getAuthToken();
-  return {
-    'Content-Type': 'application/json',
-    Accept: 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
-}
+
+
 
 function formatPrice(cents: number, currency = 'NGN'): string {
   const symbols: Record<string, string> = { NGN: '₦', USD: '$', GBP: '£', EUR: '€' };
@@ -41,8 +34,8 @@ export function PayoutsPage() {
   const fetchPayouts = useCallback(async () => {
     try {
       const [payoutsRes, statsRes] = await Promise.all([
-        fetch(`${API_BASE}/store/payouts`, { headers: getAuthHeaders() }),
-        fetch(`${API_BASE}/store/payouts/stats`, { headers: getAuthHeaders() }),
+        authFetch(`/store/payouts`, {  }),
+        authFetch(`/store/payouts/stats`, {  }),
       ]);
       if (payoutsRes.ok) {
         const json = await payoutsRes.json();

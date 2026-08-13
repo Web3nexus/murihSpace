@@ -1,15 +1,12 @@
 import { useState, useEffect, useCallback } from "react";
 import { Link2, Loader2, Plus, Copy, Check, ShoppingBag, Eye, Pencil, Trash2, X, DollarSign, MousePointerClick, ToggleLeft, ToggleRight, BarChart3, Sparkles, ExternalLink } from "lucide-react";
-import { getAuthToken } from "@/lib/auth/token";
+import { authFetch } from "@/lib/api/authFetch";
 import { useConfirm } from "@/components/ui/DialogProvider";
 import { StatCard } from "@/components/ui/StatCard";
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? "http://localhost:8000/api/v1";
 
-function getAuthHeaders() {
-  const token = getAuthToken();
-  return { "Content-Type": "application/json", Accept: "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) };
-}
+
+
 
 interface AffiliateProduct {
   id: number; name: string; url: string; commission_rate: number;
@@ -35,7 +32,7 @@ export default function AffiliateProductsPage() {
 
   const fetchProducts = useCallback(async () => {
     try {
-      const res = await fetch(`${API_BASE}/affiliate/products?page=${page}&per_page=20`, { headers: getAuthHeaders() });
+      const res = await authFetch(`/affiliate/products?page=${page}&per_page=20`, {  });
       if (!res.ok) throw new Error();
       const j = await res.json();
       const list = j?.success ? j?.data : j;
@@ -66,8 +63,8 @@ export default function AffiliateProductsPage() {
     setSaving(true);
     try {
       const isEdit = editingId !== null;
-      const res = await fetch(`${API_BASE}/affiliate/products${isEdit ? `/${editingId}` : ""}`, {
-        method: isEdit ? "PUT" : "POST", headers: getAuthHeaders(),
+      const res = await authFetch(`/affiliate/products${isEdit ? `/${editingId}` : ""}`, {
+        method: isEdit ? "PUT" : "POST", 
         body: JSON.stringify({ 
           name: name.trim(), 
           url: url.trim(), 
@@ -91,7 +88,7 @@ export default function AffiliateProductsPage() {
   const handleDelete = async (id: number) => {
     if (!await confirm({ title: "Delete Affiliate Product", message: "Are you sure you want to delete this product? Analytics data will be lost.", variant: "destructive" })) return;
     try {
-      const res = await fetch(`${API_BASE}/affiliate/products/${id}`, { method: "DELETE", headers: getAuthHeaders() });
+      const res = await authFetch(`/affiliate/products/${id}`, { method: "DELETE",  });
       if (res.ok) {
         showMsg('success', 'Product deleted.');
         fetchProducts();
@@ -103,8 +100,8 @@ export default function AffiliateProductsPage() {
 
   const handleToggleStatus = async (p: AffiliateProduct) => {
     try {
-      const res = await fetch(`${API_BASE}/affiliate/products/${p.id}`, {
-        method: "PUT", headers: getAuthHeaders(),
+      const res = await authFetch(`/affiliate/products/${p.id}`, {
+        method: "PUT", 
         body: JSON.stringify({ is_active: !p.is_active }),
       });
       if (res.ok) fetchProducts();

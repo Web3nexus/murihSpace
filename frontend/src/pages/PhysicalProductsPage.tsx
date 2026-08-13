@@ -1,21 +1,18 @@
+import { getAuthToken } from "@/lib/auth/token";
 import { useState, useEffect, useCallback } from 'react';
 import { useConfirm } from '@/components/ui/DialogProvider';
 import { Package, Plus, Search, Edit, Trash2, Loader2, Check, AlertCircle, X, Eye, EyeOff } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MultiImageUploader } from "@/components/upload/ImageUploader";
-import { getAuthToken } from "@/lib/auth/token";
+import { authFetch } from "@/lib/api/authFetch";
+import { PageHeader } from '@/components/ui/PageHeader';
+import { SuccessBanner } from '@/components/ui/SuccessBanner';
+import { FormErrorSummary } from '@/components/ui/FormErrorSummary';
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? 'http://localhost:8000/api/v1';
 
-function getAuthHeaders() {
-  const token = getAuthToken();
-  return {
-    'Content-Type': 'application/json',
-    Accept: 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
-}
+
+
 
 function formatPrice(cents: number, currency = 'NGN'): string {
   const symbols: Record<string, string> = { NGN: '₦', USD: '$', GBP: '£', EUR: '€' };
@@ -83,7 +80,7 @@ export function PhysicalProductsPage() {
     try {
       const params = new URLSearchParams({ page: String(page), per_page: '20' });
       if (searchQuery) params.set('search', searchQuery);
-      const res = await fetch(`${API_BASE}/store/physical-products/my?${params}`, {
+      const res = await authFetch(`/store/physical-products/my?${params}`, {
         headers: { Accept: 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
       });
       if (res.ok) {
@@ -138,10 +135,10 @@ export function PhysicalProductsPage() {
 
     try {
       const endpoint = editing
-        ? `${API_BASE}/store/physical-products/${editing.id}`
-        : `${API_BASE}/store/physical-products`;
-      const res = await fetch(endpoint, {
-        method: editing ? 'PUT' : 'POST', headers: getAuthHeaders(),
+        ? `/store/physical-products/${editing.id}`
+        : `/store/physical-products`;
+      const res = await authFetch(endpoint, {
+        method: editing ? 'PUT' : 'POST', 
         body: JSON.stringify(body),
       });
       const json = await res.json();
@@ -160,8 +157,8 @@ export function PhysicalProductsPage() {
   const handleDelete = async (id: number) => {
     if (!await confirm({ title: 'Delete Product', message: 'Delete this product?', variant: 'destructive' })) return;
     try {
-      const res = await fetch(`${API_BASE}/store/physical-products/${id}`, {
-        method: 'DELETE', headers: getAuthHeaders(),
+      const res = await authFetch(`/store/physical-products/${id}`, {
+        method: 'DELETE', 
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.message ?? 'Delete failed.');
@@ -174,8 +171,8 @@ export function PhysicalProductsPage() {
 
   const handleToggleActive = async (p: PhysicalProduct) => {
     try {
-      const res = await fetch(`${API_BASE}/store/physical-products/${p.id}`, {
-        method: 'PUT', headers: getAuthHeaders(),
+      const res = await authFetch(`/store/physical-products/${p.id}`, {
+        method: 'PUT', 
         body: JSON.stringify({ is_active: !p.is_active }),
       });
       const json = await res.json();
@@ -189,8 +186,8 @@ export function PhysicalProductsPage() {
   const handleAdjustStock = async () => {
     if (!adjustingId || !adjQty) return;
     try {
-      const res = await fetch(`${API_BASE}/store/physical-products/${adjustingId}/stock`, {
-        method: 'POST', headers: getAuthHeaders(),
+      const res = await authFetch(`/store/physical-products/${adjustingId}/stock`, {
+        method: 'POST', 
         body: JSON.stringify({ quantity: parseInt(adjQty), reason: adjReason || null }),
       });
       const json = await res.json();
@@ -209,35 +206,32 @@ export function PhysicalProductsPage() {
 
   return (
     <div className="space-y-6 w-full max-w-7xl mx-auto p-6 lg:p-8">
-      {/* Gradient Header Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 sm:p-8 rounded-2xl bg-gradient-to-br from-[#102840] via-[#173852] to-[#102840] text-white shadow-lg">
-        <div className="space-y-1.5">
-          <div className="flex items-center gap-2">
-            <span className="px-2.5 py-0.5 rounded-full bg-[#2164b6]/20 text-[#2164b6] dark:text-[#7ab0ff] text-xs font-semibold uppercase tracking-wider border border-[#2164b6]/30">
-              Phase 9 — Physical Products
-            </span>
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight flex items-center gap-2.5">
-            <Package className="h-6 w-6 text-[#2164b6] dark:text-[#7ab0ff]" />
-            Physical Products & Inventory
-          </h1>
-          <p className="text-sm text-white/70 max-w-xl">Manage your physical merchandise, track stock levels, and fulfill orders.</p>
-        </div>
-        <Button
-          onClick={() => { resetForm(); setEditing(null); setShowForm(true); }}
-          className="bg-[#2164b6] text-white hover:bg-[#1a5091] font-semibold h-11 px-5 rounded-xl shadow-md gap-2 shrink-0 self-start sm:self-auto"
-        >
-          <Plus className="h-5 w-5" /> Add Product
-        </Button>
-      </div>
+      {/* Header Section */}
+      <PageHeader 
+        title="Physical Products & Inventory"
+        description="Manage your physical merchandise, track stock levels, and fulfill orders."
+        icon={<Package className="h-6 w-6" />}
+        badge={
+          <span className="px-2.5 py-0.5 rounded-full bg-[#2164b6]/10 text-[#2164b6] dark:text-[#7ab0ff] text-xs font-semibold uppercase tracking-wider border border-[#2164b6]/20">
+            Phase 9 — Physical Products
+          </span>
+        }
+        action={
+          <Button
+            onClick={() => { resetForm(); setEditing(null); setShowForm(true); }}
+            className="bg-[#2164b6] text-white hover:bg-[#1a5091] font-semibold h-11 px-5 rounded-xl shadow-md gap-2"
+          >
+            <Plus className="h-5 w-5" /> Add Product
+          </Button>
+        }
+      />
 
       {/* Message */}
-      {message && (
-        <div className={`flex items-center gap-2 px-4 py-3 rounded-xl text-xs font-medium ${message.type === 'success' ? 'bg-secondary/10 text-secondary' : 'bg-destructive/10 text-destructive'}`}>
-          {message.type === 'success' ? <Check className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
-          <span className="flex-1">{message.text}</span>
-          <button onClick={() => setMessage(null)} className="p-0.5 hover:opacity-70"><X className="h-3.5 w-3.5" /></button>
-        </div>
+      {message?.type === 'success' && (
+        <SuccessBanner message={message.text} onClose={() => setMessage(null)} className="mb-2" />
+      )}
+      {message?.type === 'error' && (
+        <FormErrorSummary errors={[message.text]} className="mb-2" />
       )}
 
       {/* Search */}

@@ -11,18 +11,11 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { Purchase } from '@/types/wallet';
-import { getAuthToken } from "@/lib/auth/token";
+import { authFetch } from "@/lib/api/authFetch";
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? 'http://localhost:8000/api/v1';
 
-function getAuthHeaders() {
-  const token = getAuthToken();
-  return {
-    'Content-Type': 'application/json',
-    Accept: 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
-}
+
+
 
 function formatFileSize(bytes?: number): string {
   if (!bytes) return '';
@@ -51,8 +44,8 @@ export function PurchasesPage() {
 
   const fetchPurchases = useCallback(async () => {
     try {
-      const res = await fetch(`${API_BASE}/wallet/purchases?page=${page}&per_page=20`, {
-        headers: getAuthHeaders(),
+      const res = await authFetch(`/wallet/purchases?page=${page}&per_page=20`, {
+        
       });
       if (res.ok) {
         const json = await res.json();
@@ -70,9 +63,9 @@ export function PurchasesPage() {
   const handleDownload = async (purchaseId: number) => {
     setDownloadingId(purchaseId);
     try {
-      const res = await fetch(`${API_BASE}/wallet/purchases/${purchaseId}/download`, {
+      const res = await authFetch(`/wallet/purchases/${purchaseId}/download`, {
         method: 'POST',
-        headers: getAuthHeaders(),
+        
       });
       if (res.ok) {
         const json = await res.json();

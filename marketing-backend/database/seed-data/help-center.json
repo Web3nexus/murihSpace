@@ -1,0 +1,755 @@
+{
+  "categories": [
+    {
+      "id": "getting-started",
+      "label": "Getting Started",
+      "blurb": "Create an account, verify your email and get around MurihSpace."
+    },
+    {
+      "id": "account",
+      "label": "Account & Profile",
+      "blurb": "Update your profile, security settings and account preferences."
+    },
+    {
+      "id": "creators",
+      "label": "For Creators",
+      "blurb": "Grow your audience with storefronts, memberships and brand deals."
+    },
+    {
+      "id": "gifting",
+      "label": "Gifting",
+      "blurb": "Send and receive gifts, earn and understand gifting fees."
+    },
+    {
+      "id": "murihpay",
+      "label": "MurihPay Wallet",
+      "blurb": "Manage your system, creator and business wallets, deposits and payouts."
+    },
+    {
+      "id": "communities",
+      "label": "Communities & Events",
+      "blurb": "Create communities, host audio rooms and manage events."
+    },
+    {
+      "id": "store",
+      "label": "Stores & Products",
+      "blurb": "Sell digital and physical products, manage orders and fulfilment."
+    },
+    {
+      "id": "subscriptions",
+      "label": "Subscriptions",
+      "blurb": "Offer membership plans and recurring content."
+    },
+    {
+      "id": "security",
+      "label": "Security & Privacy",
+      "blurb": "Keep your account safe and control your privacy."
+    }
+  ],
+  "articles": [
+    {
+      "id": "create-account",
+      "categoryId": "getting-started",
+      "title": "How to create a MurihSpace account",
+      "excerpt": "Sign up as a member, creator or vendor in a few simple steps.",
+      "keywords": [
+        "sign up",
+        "register",
+        "account",
+        "create",
+        "join",
+        "onboarding",
+        "username"
+      ],
+      "sections": [
+        {
+          "heading": "Choose your account type",
+          "body": "During sign-up you can register as a Member, Creator or Vendor. Creators get storefronts and subscription tools, Vendors can sell products, and Members can join communities and buy. You can upgrade your role later from Settings."
+        },
+        {
+          "heading": "Pick a unique username",
+          "body": "Your username is your public handle (@you). We check availability instantly while you type, so pick something short and memorable."
+        },
+        {
+          "heading": "Verify your email",
+          "body": "After registering we send a 6-digit code to your inbox. Enter it on the verification screen to unlock the full app — including the AI assistant. Didn't receive it? Tap \"Send code\" to resend."
+        }
+      ],
+      "related": [
+        "verify-email",
+        "upgrade-role"
+      ]
+    },
+    {
+      "id": "verify-email",
+      "categoryId": "getting-started",
+      "title": "Verifying your email address",
+      "excerpt": "Email verification unlocks Mera and keeps your account secure.",
+      "keywords": [
+        "verify",
+        "email",
+        "code",
+        "unlock",
+        "6 digit",
+        "verification"
+      ],
+      "sections": [
+        {
+          "heading": "Why verify?",
+          "body": "Verification confirms you own the email on your account and is required before you can use the AI assistant or receive important notifications."
+        },
+        {
+          "heading": "Where to enter the code",
+          "body": "Go to the AI Assistant page (or follow the verification prompt after sign-up) and enter the 6-digit code we sent. The code expires after a short time — request a new one if it doesn't work."
+        },
+        {
+          "heading": "Resend the code",
+          "body": "If the email doesn't arrive, check your spam folder. You can resend the code from the verification screen, or ask for help in the Help Center."
+        }
+      ],
+      "related": [
+        "create-account"
+      ]
+    },
+    {
+      "id": "log-in",
+      "categoryId": "getting-started",
+      "title": "Logging in and troubleshooting",
+      "excerpt": "Having trouble signing in? Here's what to check.",
+      "keywords": [
+        "login",
+        "log in",
+        "sign in",
+        "password",
+        "forgot",
+        "reset",
+        "two factor"
+      ],
+      "sections": [
+        {
+          "heading": "Standard login",
+          "body": "Use the email address or mobile number and password you registered with. Social logins with Google, Facebook or Apple also work if you linked them."
+        },
+        {
+          "heading": "Forgotten password",
+          "body": "Use \"Forgotten password?\" on the login page. We'll email you a secure reset link. Choose a strong password you haven't used before."
+        },
+        {
+          "heading": "Admins",
+          "body": "Administrators sign in through the dedicated admin portal at /securegate/login rather than the member login page."
+        }
+      ],
+      "related": [
+        "create-account",
+        "security"
+      ]
+    },
+    {
+      "id": "profile",
+      "categoryId": "account",
+      "title": "Editing your profile and identity",
+      "excerpt": "Set your photo, bio, cover and public details.",
+      "keywords": [
+        "profile",
+        "photo",
+        "avatar",
+        "bio",
+        "cover",
+        "username",
+        "identity"
+      ],
+      "sections": [
+        {
+          "heading": "Profile photo and cover",
+          "body": "Upload a profile picture and cover image from Profile & Identity in Settings. Use a clear photo so people recognise you."
+        },
+        {
+          "heading": "Bio and links",
+          "body": "Write a short bio and add your link-in-bio socials. The AI assistant can even draft a bio for you based on your niche."
+        },
+        {
+          "heading": "Verification badge",
+          "body": "Creators can apply for a verified badge. It's reviewed by our team and helps your audience trust your account."
+        }
+      ],
+      "related": [
+        "upgrade-role",
+        "verification-badge"
+      ]
+    },
+    {
+      "id": "upgrade-role",
+      "categoryId": "account",
+      "title": "Upgrading to a Creator or Vendor account",
+      "excerpt": "Unlock storefronts, subscriptions and more.",
+      "keywords": [
+        "upgrade",
+        "creator",
+        "vendor",
+        "role",
+        "apply",
+        "pro"
+      ],
+      "sections": [
+        {
+          "heading": "Where to upgrade",
+          "body": "Go to Settings → Upgrade Account. You can apply to become a Creator or Vendor depending on what you want to do."
+        },
+        {
+          "heading": "What changes",
+          "body": "Creators can create a storefront, sell memberships, host live rooms and run brand deals. Vendors get product listings, inventory and fulfilment tools."
+        },
+        {
+          "heading": "Review process",
+          "body": "Some upgrades are instant, others are reviewed by the team. Check your application status in Settings."
+        }
+      ],
+      "related": [
+        "storefront",
+        "verification-badge"
+      ]
+    },
+    {
+      "id": "verification-badge",
+      "categoryId": "account",
+      "title": "Getting a verified badge",
+      "excerpt": "Earn the blue checkmark to build trust.",
+      "keywords": [
+        "verified",
+        "badge",
+        "checkmark",
+        "blue tick",
+        "identity",
+        "apply"
+      ],
+      "sections": [
+        {
+          "heading": "Apply",
+          "body": "Submit a verification request from your profile. You'll need to confirm your identity and provide links to your public presence."
+        },
+        {
+          "heading": "Review",
+          "body": "Our team reviews each application. Approval is based on authenticity, notability and activity."
+        },
+        {
+          "heading": "Renewal",
+          "body": "Badges are reviewed periodically. Keep your account active and your information up to date."
+        }
+      ],
+      "related": [
+        "profile",
+        "upgrade-role"
+      ]
+    },
+    {
+      "id": "storefront",
+      "categoryId": "creators",
+      "title": "Building your creator storefront",
+      "excerpt": "Set up a beautiful storefront and share it anywhere.",
+      "keywords": [
+        "storefront",
+        "link in bio",
+        "creator",
+        "page",
+        "design",
+        "template"
+      ],
+      "sections": [
+        {
+          "heading": "Create your storefront",
+          "body": "Creators get a public storefront where you can show your bio, products, posts and links. Choose from ready-made templates and switch anytime."
+        },
+        {
+          "heading": "Add products and content",
+          "body": "Attach digital products, membership plans, events and social links. Every item appears as a tappable card on your page."
+        },
+        {
+          "heading": "Share your link",
+          "body": "Your storefront gets a short link (murih.space/you) you can put in your bio on other platforms."
+        }
+      ],
+      "related": [
+        "memberships",
+        "digital-products"
+      ]
+    },
+    {
+      "id": "memberships",
+      "categoryId": "creators",
+      "title": "Memberships and subscription plans",
+      "excerpt": "Charge a monthly fee for exclusive content and perks.",
+      "keywords": [
+        "membership",
+        "subscription",
+        "plan",
+        "recurring",
+        "monthly",
+        "patreon"
+      ],
+      "sections": [
+        {
+          "heading": "Create a plan",
+          "body": "In Subscriptions, build a monthly plan with a price, description and member perks like exclusive posts or early access."
+        },
+        {
+          "heading": "Members get perks",
+          "body": "Subscribers unlock gated content you publish to your plan. You control exactly what each tier can see."
+        },
+        {
+          "heading": "Getting paid",
+          "body": "Subscription earnings land in your Creator Wallet and can be transferred to your System Wallet or withdrawn once KYC is complete."
+        }
+      ],
+      "related": [
+        "storefront",
+        "payouts"
+      ]
+    },
+    {
+      "id": "brand-deals",
+      "categoryId": "creators",
+      "title": "Brand deals and collaborations",
+      "excerpt": "Find sponsors and manage proposals end to end.",
+      "keywords": [
+        "brand",
+        "deal",
+        "sponsor",
+        "collaboration",
+        "proposal",
+        "invoice",
+        "creator"
+      ],
+      "sections": [
+        {
+          "heading": "Browse brand deals",
+          "body": "Creators can browse available brand campaigns and send proposals. Brands review and accept offers through the platform."
+        },
+        {
+          "heading": "Invoicing",
+          "body": "Once a deal is accepted, raise a brand invoice. Payment is tracked and credited to your Creator Wallet."
+        },
+        {
+          "heading": "Milestones",
+          "body": "Complete agreed deliverables and mark milestones so both sides stay aligned."
+        }
+      ],
+      "related": [
+        "storefront",
+        "payouts"
+      ]
+    },
+    {
+      "id": "send-gift",
+      "categoryId": "gifting",
+      "title": "How to send a gift",
+      "excerpt": "Show love to your favourite creators with coins.",
+      "keywords": [
+        "gift",
+        "send",
+        "coin",
+        "give",
+        "donate",
+        "tip"
+      ],
+      "sections": [
+        {
+          "heading": "Pick a gift",
+          "body": "Choose a gift from the catalogue. Each gift has a coin price — the cost is debited from your System Wallet."
+        },
+        {
+          "heading": "Pay from your System Wallet",
+          "body": "Gifts can only be sent from your System Wallet. If your balance is low, top it up or transfer earnings from your Creator or Business wallet first."
+        },
+        {
+          "heading": "Go anonymous",
+          "body": "You can send a gift anonymously and choose a display name. The recipient will not see your identity."
+        }
+      ],
+      "related": [
+        "receive-gift",
+        "gift-balance"
+      ]
+    },
+    {
+      "id": "receive-gift",
+      "categoryId": "gifting",
+      "title": "Receiving gifts and what you earn",
+      "excerpt": "Gifts you receive are credited to your Creator Wallet.",
+      "keywords": [
+        "receive",
+        "gift",
+        "earn",
+        "credit",
+        "creator wallet",
+        "net"
+      ],
+      "sections": [
+        {
+          "heading": "Where gifts go",
+          "body": "When someone sends you a gift, the net amount (after the platform receiving fee) is credited to your Creator Wallet as available balance."
+        },
+        {
+          "heading": "Fees",
+          "body": "A small receiving fee applies to each gift. You can see the exact fee breakdown on the gift and in your wallet history."
+        },
+        {
+          "heading": "Withdraw your earnings",
+          "body": "Transfer your Creator Wallet balance to your System Wallet to spend, or withdraw once your identity (KYC) is verified."
+        }
+      ],
+      "related": [
+        "send-gift",
+        "payouts"
+      ]
+    },
+    {
+      "id": "gift-balance",
+      "categoryId": "gifting",
+      "title": "Gift balance and top-up",
+      "excerpt": "Run out of coins? Here's how to top up.",
+      "keywords": [
+        "balance",
+        "top up",
+        "coins",
+        "insufficient",
+        "low balance",
+        "buy coins"
+      ],
+      "sections": [
+        {
+          "heading": "Check your balance",
+          "body": "Your System Wallet shows your spendable balance. Gifts are priced in coins (minor units)."
+        },
+        {
+          "heading": "Top up",
+          "body": "Buy coins or deposit funds into your System Wallet from the wallet page. If you see an \"Insufficient balance\" error, top up or transfer funds first."
+        },
+        {
+          "heading": "Transfer between wallets",
+          "body": "Move creator or business earnings into your System Wallet whenever you want to spend them on gifts, tips or purchases."
+        }
+      ],
+      "related": [
+        "send-gift",
+        "wallet-types"
+      ]
+    },
+    {
+      "id": "wallet-types",
+      "categoryId": "murihpay",
+      "title": "Understanding your MurihPay wallets",
+      "excerpt": "System, Creator and Business wallets explained.",
+      "keywords": [
+        "wallet",
+        "system",
+        "creator",
+        "business",
+        "balance",
+        "murihpay"
+      ],
+      "sections": [
+        {
+          "heading": "System Wallet",
+          "body": "Your everyday wallet for spending — buying coins, sending gifts and tips, and making purchases. Top it up to use it."
+        },
+        {
+          "heading": "Creator Wallet",
+          "body": "Where you earn money from gifts, subscriptions and brand deals. Transfer earnings to your System Wallet to spend them."
+        },
+        {
+          "heading": "Business Wallet",
+          "body": "Holds earnings from product sales and store activity. Business funds are managed separately and can also be transferred to your System Wallet."
+        }
+      ],
+      "related": [
+        "deposit",
+        "payouts"
+      ]
+    },
+    {
+      "id": "deposit",
+      "categoryId": "murihpay",
+      "title": "Depositing money into your wallet",
+      "excerpt": "Add funds securely via card or payment gateway.",
+      "keywords": [
+        "deposit",
+        "fund",
+        "card",
+        "payment",
+        "add money",
+        "top up"
+      ],
+      "sections": [
+        {
+          "heading": "How to deposit",
+          "body": "From the wallet page choose an amount and a payment method. You'll be taken through a secure checkout with our payment providers."
+        },
+        {
+          "heading": "Currencies",
+          "body": "Your wallet uses a default currency. Deposits are converted and shown in minor units in your transaction history."
+        },
+        {
+          "heading": "Idempotency",
+          "body": "Deposits are idempotent — retrying a request never charges you twice for the same order."
+        }
+      ],
+      "related": [
+        "wallet-types"
+      ]
+    },
+    {
+      "id": "payouts",
+      "categoryId": "murihpay",
+      "title": "Withdrawing and payouts",
+      "excerpt": "Move your earnings out of MurihSpace safely.",
+      "keywords": [
+        "payout",
+        "withdraw",
+        "withdrawal",
+        "cash out",
+        "bank",
+        "kyc"
+      ],
+      "sections": [
+        {
+          "heading": "Before you withdraw",
+          "body": "You must complete KYC identity verification before requesting a payout. This is a security requirement."
+        },
+        {
+          "heading": "Minimum amount",
+          "body": "Payouts have a minimum amount. If your balance is below it, keep earning or transfer to your System Wallet to spend instead."
+        },
+        {
+          "heading": "Review process",
+          "body": "Payout requests are reviewed by the finance team and marked approved or rejected. Approved payouts are paid out to your provided details."
+        }
+      ],
+      "related": [
+        "wallet-types",
+        "kyc"
+      ]
+    },
+    {
+      "id": "create-community",
+      "categoryId": "communities",
+      "title": "Creating and managing a community",
+      "excerpt": "Start a space for your audience.",
+      "keywords": [
+        "community",
+        "create",
+        "group",
+        "manage",
+        "members",
+        "moderator"
+      ],
+      "sections": [
+        {
+          "heading": "Create a community",
+          "body": "From the Communities page choose a name, category and privacy setting. Communities can be public or private."
+        },
+        {
+          "heading": "Grow your members",
+          "body": "Share your community link and approve join requests. Members can post, comment and interact once they've joined."
+        },
+        {
+          "heading": "Moderation",
+          "body": "Set posting rules, appoint moderators and pin important posts to keep your community healthy."
+        }
+      ],
+      "related": [
+        "events"
+      ]
+    },
+    {
+      "id": "events",
+      "categoryId": "communities",
+      "title": "Events and audio rooms",
+      "excerpt": "Host live audio rooms and events.",
+      "keywords": [
+        "event",
+        "audio room",
+        "live",
+        "room",
+        "host",
+        "schedule"
+      ],
+      "sections": [
+        {
+          "heading": "Schedule an event",
+          "body": "Create events from the Events page with a title, time and description. Attendees can RSVP."
+        },
+        {
+          "heading": "Live audio rooms",
+          "body": "Host a live audio room from your community. Members join to listen and speak."
+        },
+        {
+          "heading": "My Events",
+          "body": "Track events you've scheduled or RSVP'd to under \"My Events\"."
+        }
+      ],
+      "related": [
+        "create-community"
+      ]
+    },
+    {
+      "id": "digital-products",
+      "categoryId": "store",
+      "title": "Selling digital products",
+      "excerpt": "Ebooks, courses, templates and more.",
+      "keywords": [
+        "digital",
+        "product",
+        "ebook",
+        "course",
+        "template",
+        "sell",
+        "download"
+      ],
+      "sections": [
+        {
+          "heading": "List a product",
+          "body": "Add a digital product with a title, description and price. Files are delivered automatically after purchase."
+        },
+        {
+          "heading": "Pricing",
+          "body": "Set your price in your preferred currency. You keep the sale price minus the platform fee."
+        },
+        {
+          "heading": "Deliverables",
+          "body": "Buyers access purchases from their Purchase Library immediately."
+        }
+      ],
+      "related": [
+        "physical-products",
+        "storefront"
+      ]
+    },
+    {
+      "id": "physical-products",
+      "categoryId": "store",
+      "title": "Selling physical products",
+      "excerpt": "Manage inventory, shipping and fulfilment.",
+      "keywords": [
+        "physical",
+        "product",
+        "shipping",
+        "inventory",
+        "order",
+        "fulfilment",
+        "store"
+      ],
+      "sections": [
+        {
+          "heading": "Add a product",
+          "body": "Sellers can list physical products with images, variants and inventory levels."
+        },
+        {
+          "heading": "Shipping profiles",
+          "body": "Configure shipping profiles per country or region so buyers see accurate delivery options."
+        },
+        {
+          "heading": "Fulfilment",
+          "body": "Track orders, mark them shipped and handle returns and disputes from the store dashboard."
+        }
+      ],
+      "related": [
+        "digital-products"
+      ]
+    },
+    {
+      "id": "security",
+      "categoryId": "security",
+      "title": "Keeping your account secure",
+      "excerpt": "Passwords, 2FA and how we protect you.",
+      "keywords": [
+        "security",
+        "password",
+        "2fa",
+        "two factor",
+        "hack",
+        "safe",
+        "authenticator"
+      ],
+      "sections": [
+        {
+          "heading": "Use a strong password",
+          "body": "Use a long, unique password you haven't used elsewhere. Change it regularly from Settings → Security."
+        },
+        {
+          "heading": "Two-factor authentication",
+          "body": "Enable 2FA from the Security settings to add an extra layer of protection to your logins."
+        },
+        {
+          "heading": "Unusual activity",
+          "body": "We monitor logins and can suspend accounts showing suspicious behaviour. Contact support if you believe your account was compromised."
+        }
+      ],
+      "related": [
+        "privacy"
+      ]
+    },
+    {
+      "id": "privacy",
+      "categoryId": "security",
+      "title": "Managing your privacy",
+      "excerpt": "Control who sees what on MurihSpace.",
+      "keywords": [
+        "privacy",
+        "private",
+        "visibility",
+        "data",
+        "settings",
+        "public"
+      ],
+      "sections": [
+        {
+          "heading": "Profile visibility",
+          "body": "Choose whether your profile and activity are public. Adjust these options under Settings → Privacy."
+        },
+        {
+          "heading": "Communities",
+          "body": "Join public or private communities. Your posts inherit the community's visibility."
+        },
+        {
+          "heading": "Your data",
+          "body": "See what data we hold and how it's used in the Privacy Policy. You can request deletion through support."
+        }
+      ],
+      "related": [
+        "security"
+      ]
+    },
+    {
+      "id": "kyc",
+      "categoryId": "security",
+      "title": "KYC verification",
+      "excerpt": "Verify your identity to unlock payouts.",
+      "keywords": [
+        "kyc",
+        "identity",
+        "verification",
+        "document",
+        "payout",
+        "payouts"
+      ],
+      "sections": [
+        {
+          "heading": "What is KYC?",
+          "body": "Know-Your-Customer verification confirms your identity so we can safely process payouts and prevent fraud."
+        },
+        {
+          "heading": "How to complete it",
+          "body": "Go to KYC Verification in Settings, upload your documents and submit. Review usually takes a short time."
+        },
+        {
+          "heading": "Why it matters",
+          "body": "Payouts, some creator features and certain purchases are blocked until your identity is verified."
+        }
+      ],
+      "related": [
+        "payouts",
+        "security"
+      ]
+    }
+  ]
+}

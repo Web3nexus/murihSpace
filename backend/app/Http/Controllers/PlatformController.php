@@ -22,6 +22,10 @@ class PlatformController extends Controller
     {
         $disabledRoles = json_decode((string) AdminSetting::get('web_disabled_roles', '[]'), true);
         $downloadUrl = (string) config('app.app_download_url');
+        $kycEnabled = (bool) AdminSetting::get('kyc_enabled', true);
+        
+        $kycProviders = json_decode((string) AdminSetting::get('kyc_providers', '["didit"]'), true);
+        $activeKycProvider = is_array($kycProviders) && count($kycProviders) > 0 ? $kycProviders[0] : 'didit';
 
         $socialProviders = [];
         foreach ($this->oauth->providers() as $provider) {
@@ -29,14 +33,14 @@ class PlatformController extends Controller
         }
 
         return response()->json([
-            'data' => [
-                'platform_name' => config('app.name'),
-                'web_disabled_roles' => array_values(array_unique(is_array($disabledRoles) ? $disabledRoles : [])),
-                'app_download_url' => $downloadUrl,
-                'app_qr_content' => $downloadUrl,
-                'social_providers' => $socialProviders,
-                'auth_methods' => $this->authMethods->public(),
-            ],
+            'platform_name' => config('app.name'),
+            'web_disabled_roles' => array_values(array_unique(is_array($disabledRoles) ? $disabledRoles : [])),
+            'app_download_url' => $downloadUrl,
+            'app_qr_content' => $downloadUrl,
+            'kyc_enabled' => $kycEnabled,
+            'kyc_provider' => $activeKycProvider,
+            'social_providers' => $socialProviders,
+            'auth_methods' => $this->authMethods->public(),
         ]);
     }
 }

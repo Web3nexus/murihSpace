@@ -18,6 +18,7 @@ import {
   UserIcon,
   ShieldIcon,
   Share2Icon,
+  LifeBuoyIcon,
 } from "lucide-react";
 
 const NAV_ITEMS = [
@@ -30,6 +31,7 @@ const NAV_ITEMS = [
   { name: "Privacy",            href: "/app/settings/privacy",            icon: LockIcon,       end: false },
   { name: "Language",           href: "/app/settings/language",           icon: GlobeIcon,      end: false },
   { name: "Accessibility",      href: "/app/settings/accessibility", icon: KeyboardIcon,   end: false },
+  { name: "Help & Support",     href: "/app/settings/help",               icon: LifeBuoyIcon,   end: false },
 ];
 
 export function SettingsLayout() {

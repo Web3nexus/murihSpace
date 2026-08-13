@@ -1,18 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useConfirm } from '@/components/ui/DialogProvider';
 import { Link2, Plus, Loader2, Users, MousePointerClick, ShoppingBag, Copy, Check, ExternalLink, Power, PowerOff, Gift, RefreshCw, Sparkles } from 'lucide-react';
-import { getAuthToken } from "@/lib/auth/token";
+import { authFetch } from "@/lib/api/authFetch";
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? 'http://localhost:8000/api/v1';
 
-function getAuthHeaders() {
-  const token = getAuthToken();
-  return {
-    'Content-Type': 'application/json',
-    Accept: 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
-}
+
+
 
 function formatPrice(cents: number, currency = 'NGN'): string {
   const symbols: Record<string, string> = { NGN: '₦', USD: '$', GBP: '£', EUR: '€' };
@@ -69,10 +62,10 @@ export function ReferralsPage() {
     setIsLoading(true);
     try {
       const [pgRes, lkRes, stRes, rfRes] = await Promise.all([
-        fetch(`${API_BASE}/referrals/program`, { headers: getAuthHeaders() }),
-        fetch(`${API_BASE}/referrals/links`, { headers: getAuthHeaders() }),
-        fetch(`${API_BASE}/referrals/stats`, { headers: getAuthHeaders() }),
-        fetch(`${API_BASE}/referrals`, { headers: getAuthHeaders() }),
+        authFetch(`/referrals/program`, {  }),
+        authFetch(`/referrals/links`, {  }),
+        authFetch(`/referrals/stats`, {  }),
+        authFetch(`/referrals`, {  }),
       ]);
       if (pgRes.ok) { 
         const j = await pgRes.json(); 
@@ -91,8 +84,8 @@ export function ReferralsPage() {
     e.preventDefault();
     setMessage(null); setSaving(true);
     try {
-      const res = await fetch(`${API_BASE}/referrals/program`, {
-        method: 'PUT', headers: getAuthHeaders(),
+      const res = await authFetch(`/referrals/program`, {
+        method: 'PUT', 
         body: JSON.stringify({
           is_active: program?.is_active ?? true,
           reward_type: program?.reward_type ?? 'percentage',
@@ -111,8 +104,8 @@ export function ReferralsPage() {
     setMessage(null);
     try {
       const body = newCode.trim() ? { code: newCode.trim() } : {};
-      const res = await fetch(`${API_BASE}/referrals/links`, {
-        method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(body),
+      const res = await authFetch(`/referrals/links`, {
+        method: 'POST',  body: JSON.stringify(body),
       });
       if (res.ok) { await fetchAll(); setNewCode(''); setMessage({ type: 'success', text: 'Link created successfully!' }); }
       else { const j = await res.json(); setMessage({ type: 'error', text: j.message ?? 'Failed to create link.' }); }
@@ -122,7 +115,7 @@ export function ReferralsPage() {
 
   async function toggleLink(id: number) {
     try {
-      const res = await fetch(`${API_BASE}/referrals/links/${id}/toggle`, { method: 'POST', headers: getAuthHeaders() });
+      const res = await authFetch(`/referrals/links/${id}/toggle`, { method: 'POST',  });
       await fetchAll();
       if (!res.ok) setMessage({ type: 'error', text: 'Failed to toggle link.' });
     } catch { setMessage({ type: 'error', text: 'Network error.' }); }
@@ -132,7 +125,7 @@ export function ReferralsPage() {
   async function deleteLink(id: number) {
     if (!await confirm({ title: 'Delete Referral Link', message: 'Are you sure you want to delete this referral link? This action cannot be undone.', variant: 'destructive' })) return;
     try {
-      const res = await fetch(`${API_BASE}/referrals/links/${id}`, { method: 'DELETE', headers: getAuthHeaders() });
+      const res = await authFetch(`/referrals/links/${id}`, { method: 'DELETE',  });
       await fetchAll();
       if (res.ok) setMessage({ type: 'success', text: 'Link deleted successfully!' });
       else setMessage({ type: 'error', text: 'Failed to delete link.' });

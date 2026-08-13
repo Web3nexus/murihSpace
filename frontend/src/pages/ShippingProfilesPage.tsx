@@ -3,19 +3,15 @@ import { Truck, Plus, Loader2, Edit, Trash2, Globe } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { getAuthToken } from "@/lib/auth/token";
+import { authFetch } from "@/lib/api/authFetch";
 import { useConfirm } from '@/components/ui/DialogProvider';
+import { SuccessBanner } from '@/components/ui/SuccessBanner';
+import { FormErrorSummary } from '@/components/ui/FormErrorSummary';
+import { PageHeader } from '@/components/ui/PageHeader';
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? 'http://localhost:8000/api/v1';
 
-function getAuthHeaders() {
-  const token = getAuthToken();
-  return {
-    'Content-Type': 'application/json',
-    Accept: 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
-}
+
+
 
 function formatPrice(cents: number, currency = 'NGN'): string {
   const symbols: Record<string, string> = { NGN: '₦', USD: '$', GBP: '£', EUR: '€' };
@@ -56,7 +52,7 @@ export function ShippingProfilesPage() {
 
   const fetchProfiles = useCallback(async () => {
     try {
-      const res = await fetch(`${API_BASE}/store/shipping/profiles`, { headers: getAuthHeaders() });
+      const res = await authFetch(`/store/shipping/profiles`, {  });
       if (res.ok) {
         const json = await res.json();
         setProfiles(json.data?.data ?? []);
@@ -116,12 +112,12 @@ export function ShippingProfilesPage() {
     };
 
     const url = editing
-      ? `${API_BASE}/store/shipping/profiles/${editing.id}`
-      : `${API_BASE}/store/shipping/profiles`;
+      ? `/store/shipping/profiles/${editing.id}`
+      : `/store/shipping/profiles`;
     const method = editing ? 'PUT' : 'POST';
 
     try {
-      const res = await fetch(url, { method, headers: getAuthHeaders(), body: JSON.stringify(body) });
+      const res = await authFetch(url, { method,  body: JSON.stringify(body) });
       const json = await res.json();
       if (res.ok) {
         await fetchProfiles();
@@ -143,8 +139,8 @@ export function ShippingProfilesPage() {
   async function deleteProfile(id: number) {
     if (!await confirm({ title: "Delete Shipping Profile", message: "Delete this shipping profile?", variant: "destructive" })) return;
     try {
-      const res = await fetch(`${API_BASE}/store/shipping/profiles/${id}`, {
-        method: 'DELETE', headers: getAuthHeaders(),
+      const res = await authFetch(`/store/shipping/profiles/${id}`, {
+        method: 'DELETE', 
       });
       if (res.ok) {
         await fetchProfiles();
@@ -165,29 +161,28 @@ export function ShippingProfilesPage() {
 
   return (
     <div className="space-y-6 w-full max-w-7xl mx-auto p-6 lg:p-8">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 sm:p-8 rounded-2xl bg-gradient-to-br from-[#102840] via-[#173852] to-[#102840] text-white shadow-lg">
-        <div className="space-y-1.5">
-          <div className="flex items-center gap-2">
-            <span className="px-2.5 py-0.5 rounded-full bg-[#2164b6]/20 text-[#2164b6] dark:text-[#7ab0ff] text-xs font-semibold uppercase tracking-wider border border-[#2164b6]/30">
-              Phase 9 — Shipping
-            </span>
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">Shipping Profiles</h1>
-          <p className="text-sm text-white/70 max-w-xl">Configure shipping rates and delivery options for your products.</p>
-        </div>
-        <Button onClick={openNew}
-          className="bg-[#2164b6] text-white hover:bg-[#1a5091] font-semibold h-11 px-5 rounded-xl shadow-md gap-2 shrink-0 self-start sm:self-auto">
-          <Plus className="h-5 w-5" />
-          New Profile
-        </Button>
-      </div>
+      <PageHeader 
+        title="Shipping Profiles"
+        description="Configure shipping rates and delivery options for your products."
+        badge={
+          <span className="px-2.5 py-0.5 rounded-full bg-[#2164b6]/10 text-[#2164b6] dark:text-[#7ab0ff] text-xs font-semibold uppercase tracking-wider border border-[#2164b6]/20">
+            Phase 9 — Shipping
+          </span>
+        }
+        action={
+          <Button onClick={openNew}
+            className="bg-[#2164b6] text-white hover:bg-[#1a5091] font-semibold h-11 px-5 rounded-xl shadow-md gap-2"
+          >
+            <Plus className="h-5 w-5" /> New Profile
+          </Button>
+        }
+      />
 
-      {message && (
-        <div className={`px-4 py-3 rounded-xl text-sm flex items-center gap-2 ${
-          message.type === 'success' ? 'bg-[#2164b6]/20 text-[#2164b6] dark:text-[#7ab0ff]' : 'bg-muted text-muted-foreground'
-        }`}>
-          {message.text}
-        </div>
+      {message && message.type === 'success' && (
+        <SuccessBanner message={message.text} onClose={() => setMessage(null)} className="mb-2" />
+      )}
+      {message && message.type === 'error' && (
+        <FormErrorSummary errors={[message.text]} className="mb-2" />
       )}
 
       {showForm && (

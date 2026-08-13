@@ -3,18 +3,11 @@ import { useState, useEffect, useCallback } from 'react';
 import { usePrompt } from '@/components/ui/DialogProvider';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { getAuthToken } from "@/lib/auth/token";
+import { authFetch } from "@/lib/api/authFetch";
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? 'http://localhost:8000/api/v1';
 
-function getAuthHeaders() {
-  const token = getAuthToken();
-  return {
-    'Content-Type': 'application/json',
-    Accept: 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
-}
+
+
 
 function formatPrice(cents: number, currency = 'NGN'): string {
   const symbols: Record<string, string> = { NGN: '₦', USD: '$', GBP: '£', EUR: '€' };
@@ -88,8 +81,8 @@ export function FulfilmentPage() {
   const fetchOrders = useCallback(async () => {
     setIsLoading(true);
     try {
-      const endpoint = tab === 'sales' ? `${API_BASE}/store/fulfilment/sales` : `${API_BASE}/store/fulfilment/orders`;
-      const res = await fetch(endpoint, { headers: getAuthHeaders() });
+      const endpoint = tab === 'sales' ? `/store/fulfilment/sales` : `/store/fulfilment/orders`;
+      const res = await authFetch(endpoint, {  });
       if (res.ok) {
         const json = await res.json();
         setOrders(json.data?.data ?? []);
@@ -106,9 +99,9 @@ export function FulfilmentPage() {
   async function updateStatus(orderId: number, status: string) {
     setMessage(null);
     try {
-      const res = await fetch(`${API_BASE}/store/fulfilment/${orderId}/status`, {
+      const res = await authFetch(`/store/fulfilment/${orderId}/status`, {
         method: 'PUT',
-        headers: getAuthHeaders(),
+        
         body: JSON.stringify({ status }),
       });
       const json = await res.json();
@@ -133,9 +126,9 @@ export function FulfilmentPage() {
     const carrier = await prompt({ title: "Carrier Name", message: "Enter carrier (e.g. DHL, FedEx, USPS):", defaultValue: order.carrier ?? '' });
     setMessage(null);
     try {
-      const res = await fetch(`${API_BASE}/store/fulfilment/${orderId}/tracking`, {
+      const res = await authFetch(`/store/fulfilment/${orderId}/tracking`, {
         method: 'PUT',
-        headers: getAuthHeaders(),
+        
         body: JSON.stringify({ tracking_number: tn, carrier: carrier ?? '' }),
       });
       const json = await res.json();
@@ -159,7 +152,7 @@ export function FulfilmentPage() {
     setSelected(order);
     setLoadingEvents(true);
     try {
-      const res = await fetch(`${API_BASE}/store/fulfilment/${order.id}/tracking`, { headers: getAuthHeaders() });
+      const res = await authFetch(`/store/fulfilment/${order.id}/tracking`, {  });
       if (res.ok) {
         const json = await res.json();
         setTrackingEvents(json.data?.data ?? []);

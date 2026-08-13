@@ -17,9 +17,9 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import type { Donation, DonationPayload } from '@/types/wallet';
-import { getAuthToken } from "@/lib/auth/token";
+import { authFetch } from "@/lib/api/authFetch";
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? 'http://localhost:8000/api/v1';
+
 
 function formatAmount(amount: number, currency = 'NGN'): string {
   const symbols: Record<string, string> = { NGN: '₦', USD: '$', GBP: '£', EUR: '€' };
@@ -27,14 +27,7 @@ function formatAmount(amount: number, currency = 'NGN'): string {
   return sym + (amount / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-function getAuthHeaders() {
-  const token = getAuthToken();
-  return {
-    'Content-Type': 'application/json',
-    Accept: 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
-}
+
 
 export function DonationsPage() {
   const [sentDonations, setSentDonations] = useState<Donation[]>([]);
@@ -51,14 +44,14 @@ export function DonationsPage() {
 
   const fetchSent = useCallback(async () => {
     try {
-      const res = await fetch(`${API_BASE}/wallet/donations/sent?page=${sentPage}&per_page=20`, { headers: getAuthHeaders() });
+      const res = await authFetch(`/wallet/donations/sent?page=${sentPage}&per_page=20`, {  });
       if (res.ok) { const json = await res.json(); setSentDonations(json.data?.data ?? []); setSentLastPage(json.data?.last_page ?? 1); }
     } catch (e) { console.error('Failed to fetch sent donations', e); }
   }, [sentPage]);
 
   const fetchReceived = useCallback(async () => {
     try {
-      const res = await fetch(`${API_BASE}/wallet/donations/received?page=${recvPage}&per_page=20`, { headers: getAuthHeaders() });
+      const res = await authFetch(`/wallet/donations/received?page=${recvPage}&per_page=20`, {  });
       if (res.ok) { const json = await res.json(); setReceivedDonations(json.data?.data ?? []); setRecvLastPage(json.data?.last_page ?? 1); }
     } catch (e) { console.error('Failed to fetch received donations', e); }
   }, [recvPage]);
@@ -80,9 +73,9 @@ export function DonationsPage() {
       pin: form.get('pin') as string,
     };
     try {
-      const res = await fetch(`${API_BASE}/wallet/donations/send`, {
+      const res = await authFetch(`/wallet/donations/send`, {
         method: 'POST',
-        headers: getAuthHeaders(),
+        
         body: JSON.stringify(payload),
       });
       const json = await res.json();

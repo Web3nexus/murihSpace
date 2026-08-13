@@ -1,3 +1,4 @@
+import { getAuthToken } from "@/lib/auth/token";
 import { useState, useEffect, useCallback } from 'react';
 import { FileText, Plus, Loader2, EyeOff, Eye, Trash2, AlertCircle, CheckCircle2, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -6,9 +7,9 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from '@/components/ui/dialog';
 import type { PageSection } from '@/types/admin';
-import { getAuthToken } from "@/lib/auth/token";
+import { authFetch } from "@/lib/api/authFetch";
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? 'http://localhost:8000/api/v1';
+
 const authHeaders = () => {
   const t = getAuthToken();
   return { Accept: 'application/json', 'Content-Type': 'application/json', ...(t ? { Authorization: `Bearer ${t}` } : {}) };
@@ -28,7 +29,7 @@ export function AdminCmsPage() {
 
   const fetchSections = useCallback(async () => {
     try {
-      const res = await fetch(`${API_BASE}/securegate/cms?page=${selectedPage}`, { headers: authHeaders() });
+      const res = await authFetch(`/securegate/cms?page=${selectedPage}`, { headers: authHeaders() });
       if (res.ok) { const j = await res.json(); setSections(j?.data?.data ?? j?.data ?? []); }
     } finally { setLoading(false); }
   }, [selectedPage]);
@@ -36,7 +37,7 @@ export function AdminCmsPage() {
   useEffect(() => { fetchSections(); }, [fetchSections]);
 
   const toggleActive = async (section: PageSection) => {
-    const res = await fetch(`${API_BASE}/securegate/cms/${section.id}`, {
+    const res = await authFetch(`/securegate/cms/${section.id}`, {
       method: 'PUT', headers: authHeaders(),
       body: JSON.stringify({ is_active: !section.is_active }),
     });
@@ -44,7 +45,7 @@ export function AdminCmsPage() {
   };
 
   const deleteSection = async (id: number) => {
-    await fetch(`${API_BASE}/securegate/cms/${id}`, { method: 'DELETE', headers: authHeaders() });
+    await authFetch(`/securegate/cms/${id}`, { method: 'DELETE', headers: authHeaders() });
     fetchSections();
   };
 
@@ -59,7 +60,7 @@ export function AdminCmsPage() {
     setSubmitting(true); setMsg(null);
     try {
       const content = JSON.parse(editContent);
-      const res = await fetch(`${API_BASE}/securegate/cms/${editing.id}`, {
+      const res = await authFetch(`/securegate/cms/${editing.id}`, {
         method: 'PUT', headers: authHeaders(),
         body: JSON.stringify({ content }),
       });
@@ -76,7 +77,7 @@ export function AdminCmsPage() {
     [next[index - 1], next[index]] = [next[index], next[index - 1]];
     const reordered = next.map((s, i) => ({ id: s.id, sort_order: i }));
     setSections(next);
-    fetch(`${API_BASE}/securegate/cms/reorder`, {
+    authFetch(`/securegate/cms/reorder`, {
       method: 'POST', headers: authHeaders(),
       body: JSON.stringify({ sections: reordered }),
     });
@@ -88,7 +89,7 @@ export function AdminCmsPage() {
     [next[index], next[index + 1]] = [next[index + 1], next[index]];
     const reordered = next.map((s, i) => ({ id: s.id, sort_order: i }));
     setSections(next);
-    fetch(`${API_BASE}/securegate/cms/reorder`, {
+    authFetch(`/securegate/cms/reorder`, {
       method: 'POST', headers: authHeaders(),
       body: JSON.stringify({ sections: reordered }),
     });
@@ -106,7 +107,7 @@ export function AdminCmsPage() {
       content: {},
     };
     try {
-      const res = await fetch(`${API_BASE}/securegate/cms`, {
+      const res = await authFetch(`/securegate/cms`, {
         method: 'POST', headers: authHeaders(), body: JSON.stringify(body),
       });
       const j = await res.json();

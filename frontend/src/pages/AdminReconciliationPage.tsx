@@ -1,17 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { BarChart3, Loader2, Check, AlertCircle, X, RefreshCw, Wallet, FileText, ShieldCheck } from 'lucide-react';
-import { getAuthToken } from "@/lib/auth/token";
+import { authFetch } from "@/lib/api/authFetch";
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? 'http://localhost:8000/api/v1';
 
-function getAuthHeaders() {
-  const token = getAuthToken();
-  return {
-    'Content-Type': 'application/json',
-    Accept: 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
-}
+
+
 
 function formatPrice(cents: number, currency = 'NGN'): string {
   const symbols: Record<string, string> = { NGN: '₦', USD: '$', GBP: '£', EUR: '€' };
@@ -28,7 +21,7 @@ export function AdminReconciliationPage() {
   const fetchSummary = useCallback(async () => {
     setIsLoadingSummary(true);
     try {
-      const res = await fetch(`${API_BASE}/securegate/reconciliation/ledger-summary`, { headers: getAuthHeaders() });
+      const res = await authFetch(`/securegate/reconciliation/ledger-summary`, {  });
       if (res.ok) {
         const json = await res.json();
         setSummary(json.data?.data ?? json.data);
@@ -40,7 +33,7 @@ export function AdminReconciliationPage() {
   const fetchAudit = useCallback(async () => {
     setIsLoadingAudit(true);
     try {
-      const res = await fetch(`${API_BASE}/securegate/reconciliation/audit`, { headers: getAuthHeaders() });
+      const res = await authFetch(`/securegate/reconciliation/audit`, {  });
       if (res.ok) {
         const json = await res.json();
         setAudit(json.data?.data ?? json.data);

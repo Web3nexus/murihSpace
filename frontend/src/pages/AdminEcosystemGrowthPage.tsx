@@ -1,8 +1,9 @@
+import { getAuthToken } from "@/lib/auth/token";
 import { useState, useEffect, useCallback } from "react";
 import { TrendingUp, Loader2, Users, Store, DollarSign } from "lucide-react";
-import { getAuthToken } from "@/lib/auth/token";
+import { authFetch } from "@/lib/api/authFetch";
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? "http://localhost:8000/api/v1";
+
 
 function authHeaders() {
   const t = getAuthToken();
@@ -15,7 +16,7 @@ export default function AdminEcosystemGrowthPage() {
 
   const loadData = useCallback(async () => {
     try {
-      const res = await fetch(`${API_BASE}/securegate/analytics/growth`, { headers: authHeaders() });
+      const res = await authFetch(`/securegate/analytics/growth`, { headers: authHeaders() });
       if (!res.ok) throw new Error();
       const j = await res.json();
       const d = j?.success ? j?.data : j;

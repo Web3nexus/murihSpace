@@ -1,8 +1,9 @@
+import { getAuthToken } from "@/lib/auth/token";
 import { useState, useEffect, useCallback } from "react";
 import { ShieldAlert, Loader2, CheckCircle2, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? "http://localhost:8000/api/v1";
+
 
 function authHeaders() {
   const t = getAuthToken();
@@ -18,7 +19,7 @@ interface Dispute {
 const STATUS_COLORS: Record<string, string> = { open: "bg-amber-500/20 text-amber-400", resolved: "bg-emerald-500/20 text-emerald-400", refunded: "bg-rose-500/20 text-rose-400" };
 
 import { AlertCircle, Check } from "lucide-react";
-import { getAuthToken } from "@/lib/auth/token";
+import { authFetch } from "@/lib/api/authFetch";
 
 export default function AdminDisputesPage() {
   const [disputes, setDisputes] = useState<Dispute[]>([]);
@@ -33,7 +34,7 @@ export default function AdminDisputesPage() {
   const loadData = useCallback(async () => {
     setError(null);
     try {
-      const res = await fetch(`${API_BASE}/securegate/disputes?page=${page}&per_page=20`, { headers: authHeaders() });
+      const res = await authFetch(`/securegate/disputes?page=${page}&per_page=20`, { headers: authHeaders() });
       if (!res.ok) throw new Error();
       const j = await res.json();
       const list = j?.success ? j?.data : j;
@@ -49,7 +50,7 @@ export default function AdminDisputesPage() {
     setProcessing(id);
     setMsg(null);
     try {
-      const res = await fetch(`${API_BASE}/securegate/disputes/${id}`, { method: "PATCH", headers: authHeaders(), body: JSON.stringify({ status: action === "resolve" ? "resolved" : "refunded" }) });
+      const res = await authFetch(`/securegate/disputes/${id}`, { method: "PATCH", headers: authHeaders(), body: JSON.stringify({ status: action === "resolve" ? "resolved" : "refunded" }) });
       if (res.ok) { setMsg({ ok: true, text: `Dispute ${action === "resolve" ? "resolved" : "refunded"}.` }); loadData(); }
       else { const j = await res.json().catch(() => ({})); setMsg({ ok: false, text: j.message || "Action failed." }); }
     } catch { setMsg({ ok: false, text: "Network error." }); }

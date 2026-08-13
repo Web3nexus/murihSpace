@@ -2,15 +2,12 @@ import { useState, useEffect, useCallback } from "react";
 import { Tags, Plus, Loader2, Edit, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { getAuthToken } from "@/lib/auth/token";
+import { authFetch } from "@/lib/api/authFetch";
 import { useConfirm } from "@/components/ui/DialogProvider";
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? "http://localhost:8000/api/v1";
 
-function getAuthHeaders() {
-  const token = getAuthToken();
-  return { "Content-Type": "application/json", Accept: "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) };
-}
+
+
 
 interface Category {
   id: number; name: string; slug: string; product_count?: number;
@@ -27,7 +24,7 @@ export default function CategoriesPage() {
 
   const fetchCategories = useCallback(async () => {
     try {
-      const res = await fetch(`${API_BASE}/store/categories`, { headers: getAuthHeaders() });
+      const res = await authFetch(`/store/categories`, {  });
       if (!res.ok) throw new Error();
       const j = await res.json();
       const list = j?.success ? j?.data : j;
@@ -47,8 +44,8 @@ export default function CategoriesPage() {
     setMsg(null);
     try {
       const res = editing
-        ? await fetch(`${API_BASE}/store/categories/${editing.id}`, { method: "PATCH", headers: getAuthHeaders(), body: JSON.stringify({ name: name.trim() }) })
-        : await fetch(`${API_BASE}/store/categories`, { method: "POST", headers: getAuthHeaders(), body: JSON.stringify({ name: name.trim() }) });
+        ? await authFetch(`/store/categories/${editing.id}`, { method: "PATCH",  body: JSON.stringify({ name: name.trim() }) })
+        : await authFetch(`/store/categories`, { method: "POST",  body: JSON.stringify({ name: name.trim() }) });
       const j = await res.json();
       if (!res.ok) throw new Error(j?.message ?? "Save failed");
       resetForm();
@@ -62,7 +59,7 @@ export default function CategoriesPage() {
 
   const handleDelete = async (id: number) => {
     if (!await confirm({ title: "Delete Category", message: "Delete this category?", variant: "destructive" })) return;
-    await fetch(`${API_BASE}/store/categories/${id}`, { method: "DELETE", headers: getAuthHeaders() });
+    await authFetch(`/store/categories/${id}`, { method: "DELETE",  });
     fetchCategories();
   };
 

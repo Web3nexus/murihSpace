@@ -2,14 +2,11 @@ import { useState, useEffect, useCallback } from 'react';
 import { useConfirm } from '@/components/ui/DialogProvider';
 import { Award, MessageSquare, Loader2, CheckCircle2, XCircle, Trash2, AlertCircle } from 'lucide-react';
 import { Button } from "@/components/ui/button";
-import { getAuthToken } from "@/lib/auth/token";
+import { authFetch } from "@/lib/api/authFetch";
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? 'http://localhost:8000/api/v1';
 
-function getAuthHeaders() {
-  const token = getAuthToken();
-  return { 'Content-Type': 'application/json', Accept: 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
-}
+
+
 
 interface AdminReview {
   id: number; physical_product_id: number; rating: number;
@@ -44,7 +41,7 @@ export function AdminReviewsPage() {
     try {
       const params = new URLSearchParams({ page: String(page), per_page: '20' });
       if (filter !== 'all') params.set('status', filter);
-      const res = await fetch(`${API_BASE}/securegate/reviews?${params}`, { headers: getAuthHeaders() });
+      const res = await authFetch(`/securegate/reviews?${params}`, {  });
       if (res.ok) { const j = await res.json(); setReviews(j?.data?.data ?? j?.data ?? []); setLastPage(j.data?.last_page ?? j.data?.data?.last_page ?? 1); }
       else throw new Error(`HTTP ${res.status}`);
     } catch (e) { setFetchError(e instanceof Error ? e.message : 'Failed to load reviews'); }
@@ -55,7 +52,7 @@ export function AdminReviewsPage() {
 
   async function toggleApprove(id: number) {
     try {
-      const res = await fetch(`${API_BASE}/securegate/reviews/${id}/approve`, { method: 'POST', headers: getAuthHeaders() });
+      const res = await authFetch(`/securegate/reviews/${id}/approve`, { method: 'POST',  });
       const j = await res.json();
       if (res.ok) { setMessage({ type: 'success', text: j.data?.is_approved ? 'Review approved.' : 'Review unapproved.' }); fetchReviews(); }
       else { setMessage({ type: 'error', text: j.message ?? 'Failed.' }); }
@@ -65,7 +62,7 @@ export function AdminReviewsPage() {
   async function deleteReview(id: number) {
     if (!await confirm({ title: 'Delete Review', message: 'Delete this review permanently?', variant: 'destructive' })) return;
     try {
-      const res = await fetch(`${API_BASE}/securegate/reviews/${id}`, { method: 'DELETE', headers: getAuthHeaders() });
+      const res = await authFetch(`/securegate/reviews/${id}`, { method: 'DELETE',  });
       if (res.ok) { setMessage({ type: 'success', text: 'Review deleted.' }); fetchReviews(); }
     } catch { setMessage({ type: 'error', text: 'Network error.' }); }
   }

@@ -1,19 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
 import { FileText, Plus, Loader2, CheckCircle, Send, Trash2, Building2, Check, AlertCircle, X, Download, FileSpreadsheet, Sparkles, DollarSign } from 'lucide-react';
-import { getAuthToken } from "@/lib/auth/token";
+import { authFetch } from "@/lib/api/authFetch";
 import { useConfirm } from '@/components/ui/DialogProvider';
 import { StatCard } from '@/components/ui/StatCard';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { SuccessBanner } from '@/components/ui/SuccessBanner';
+import { FormErrorSummary } from '@/components/ui/FormErrorSummary';
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? 'http://localhost:8000/api/v1';
 
-function getAuthHeaders() {
-  const token = getAuthToken();
-  return {
-    'Content-Type': 'application/json',
-    Accept: 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
-}
+
+
 
 function formatPrice(cents: number, currency = 'NGN'): string {
   const symbols: Record<string, string> = { NGN: '₦', USD: '$', GBP: '£', EUR: '€' };
@@ -57,8 +53,8 @@ export function BrandInvoicingPage() {
     setIsLoading(true);
     try {
       const [iRes, dRes] = await Promise.all([
-        fetch(`${API_BASE}/brand-invoices`, { headers: getAuthHeaders() }),
-        fetch(`${API_BASE}/brand-deals`, { headers: getAuthHeaders() }),
+        authFetch(`/brand-invoices`, {  }),
+        authFetch(`/brand-deals`, {  }),
       ]);
       if (iRes.ok) { const j = await iRes.json(); setInvoices(j.data?.data ?? []); }
       if (dRes.ok) { const j = await dRes.json(); setDeals(j.data?.data?.map((d: any) => ({ id: d.id, title: d.title })) ?? []); }
@@ -94,8 +90,8 @@ export function BrandInvoicingPage() {
       };
       if (form.brand_deal_id) body.brand_deal_id = Number(form.brand_deal_id);
 
-      const res = await fetch(`${API_BASE}/brand-invoices`, {
-        method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(body),
+      const res = await authFetch(`/brand-invoices`, {
+        method: 'POST',  body: JSON.stringify(body),
       });
       if (res.ok) { 
         await fetchAll(); 
@@ -111,14 +107,14 @@ export function BrandInvoicingPage() {
 
   async function markSent(id: number) {
     try {
-      const res = await fetch(`${API_BASE}/brand-invoices/${id}/mark-sent`, { method: 'POST', headers: getAuthHeaders() });
+      const res = await authFetch(`/brand-invoices/${id}/mark-sent`, { method: 'POST',  });
       if (res.ok) { await fetchAll(); showMsg('success', 'Invoice marked as sent.'); }
     } catch { showMsg('error', 'Network error.'); }
   }
 
   async function markPaid(id: number) {
     try {
-      const res = await fetch(`${API_BASE}/brand-invoices/${id}/mark-paid`, { method: 'POST', headers: getAuthHeaders() });
+      const res = await authFetch(`/brand-invoices/${id}/mark-paid`, { method: 'POST',  });
       if (res.ok) { await fetchAll(); showMsg('success', 'Payment recorded!'); }
     } catch { showMsg('error', 'Network error.'); }
   }
@@ -128,7 +124,7 @@ export function BrandInvoicingPage() {
   async function deleteInvoice(id: number) {
     if (!await confirm({ title: "Delete Invoice", message: "Are you sure you want to delete this invoice? This cannot be undone.", variant: "destructive" })) return;
     try {
-      const res = await fetch(`${API_BASE}/brand-invoices/${id}`, { method: 'DELETE', headers: getAuthHeaders() });
+      const res = await authFetch(`/brand-invoices/${id}`, { method: 'DELETE',  });
       if (res.ok) { await fetchAll(); showMsg('success', 'Invoice deleted.'); }
     } catch { showMsg('error', 'Network error.'); }
   }
@@ -158,40 +154,35 @@ export function BrandInvoicingPage() {
   return (
     <div className="w-full max-w-7xl mx-auto space-y-8 p-6 lg:p-8 animate-in fade-in duration-500 pb-24">
       {/* Header Section */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-20">
-        <div className="space-y-2">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#2164b6]/10 text-[#2164b6] dark:text-[#7ab0ff] text-xs font-bold mb-2">
+      <PageHeader 
+        title="Invoicing & Payments"
+        description="Generate professional invoices for your brand deals, track sent invoices, and monitor your earnings."
+        badge={
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#2164b6]/10 text-[#2164b6] dark:text-[#7ab0ff] text-xs font-bold">
             <Sparkles className="w-3.5 h-3.5" />
             Brand Partnerships
           </div>
-          <h1 className="text-3xl md:text-4xl font-black tracking-tight text-foreground flex items-center gap-3">
-            Invoicing & Payments
-          </h1>
-          <p className="text-sm text-muted-foreground max-w-xl">
-            Generate professional invoices for your brand deals, track sent invoices, and monitor your earnings.
-          </p>
-        </div>
-        
-        <button 
-          onClick={() => { if(showForm) resetForm(); else setShowForm(true); }}
-          className={`flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-sm font-bold shadow-lg transition-all duration-300 ${
-            showForm 
-              ? 'bg-muted text-foreground hover:bg-muted/80 shadow-none' 
-              : 'bg-gradient-to-r from-[#2164b6] to-[#1a5091] text-white hover:-translate-y-0.5 hover:shadow-[#2164b6]/25'
-          }`}
-        >
-          {showForm ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-          {showForm ? 'Cancel Creation' : 'Generate Invoice'}
-        </button>
-      </div>
+        }
+        action={
+          <button 
+            onClick={() => { if(showForm) resetForm(); else setShowForm(true); }}
+            className={`flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-sm font-bold shadow-lg transition-all duration-300 ${
+              showForm 
+                ? 'bg-muted text-foreground hover:bg-muted/80 shadow-none' 
+                : 'bg-gradient-to-r from-[#2164b6] to-[#1a5091] text-white hover:-translate-y-0.5 hover:shadow-[#2164b6]/25'
+            }`}
+          >
+            {showForm ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+            {showForm ? 'Cancel Creation' : 'Generate Invoice'}
+          </button>
+        }
+      />
 
-      {message && (
-        <div className={`p-4 rounded-xl border text-sm font-bold flex items-center gap-2 animate-in slide-in-from-top-2 ${
-          message.type === 'success' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500' : 'bg-rose-500/10 border-rose-500/20 text-rose-500'
-        }`}>
-          {message.type === 'success' ? <Check className="w-4 h-4" /> : null}
-          {message.text}
-        </div>
+      {message?.type === 'success' && (
+        <SuccessBanner message={message.text} onClose={() => setMessage(null)} className="animate-in slide-in-from-top-2" />
+      )}
+      {message?.type === 'error' && (
+        <FormErrorSummary errors={[message.text]} className="animate-in slide-in-from-top-2" />
       )}
 
       {/* Summary Cards */}

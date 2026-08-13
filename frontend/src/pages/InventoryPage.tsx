@@ -2,14 +2,11 @@ import { useState, useEffect, useCallback } from "react";
 import { Package, Loader2, Edit, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { getAuthToken } from "@/lib/auth/token";
+import { authFetch } from "@/lib/api/authFetch";
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? "http://localhost:8000/api/v1";
 
-function getAuthHeaders() {
-  const token = getAuthToken();
-  return { "Content-Type": "application/json", Accept: "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) };
-}
+
+
 
 interface InventoryItem {
   id: number; product_id: number; product_name: string; sku: string;
@@ -25,7 +22,7 @@ export default function InventoryPage() {
 
   const fetchItems = useCallback(async () => {
     try {
-      const res = await fetch(`${API_BASE}/store/inventory`, { headers: getAuthHeaders() });
+      const res = await authFetch(`/store/inventory`, {  });
       if (!res.ok) throw new Error();
       const j = await res.json();
       const list = j?.success ? j?.data : j;
@@ -39,8 +36,8 @@ export default function InventoryPage() {
   const handleUpdate = async (id: number) => {
     setSaving(true);
     try {
-      await fetch(`${API_BASE}/store/inventory/${id}`, {
-        method: "PATCH", headers: getAuthHeaders(),
+      await authFetch(`/store/inventory/${id}`, {
+        method: "PATCH", 
         body: JSON.stringify({ quantity: parseInt(editQty) }),
       });
       setEditing(null);

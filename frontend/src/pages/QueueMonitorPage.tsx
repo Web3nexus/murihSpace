@@ -2,14 +2,11 @@ import { useState, useEffect, useCallback } from 'react';
 import { useConfirm } from '@/components/ui/DialogProvider';
 import { Activity, Database, Clock, AlertTriangle, RefreshCcw, Trash2, Server, Cpu, Shield, HardDrive, AlertCircle } from 'lucide-react';
 import { Button } from "@/components/ui/button";
-import { getAuthToken } from "@/lib/auth/token";
+import { authFetch } from "@/lib/api/authFetch";
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? 'http://localhost:8000/api/v1';
 
-function getAuthHeaders() {
-  const token = getAuthToken();
-  return { 'Content-Type': 'application/json', Accept: 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
-}
+
+
 
 interface QueueStats {
   pending: number; failed: number; failed_last_hour: number;
@@ -41,9 +38,9 @@ export function QueueMonitorPage() {
     setFetchError(null);
     try {
       const [statsRes, failedRes, sysRes] = await Promise.all([
-        fetch(`${API_BASE}/securegate/queue/stats`, { headers: getAuthHeaders() }),
-        fetch(`${API_BASE}/securegate/queue/failed-jobs?per_page=50`, { headers: getAuthHeaders() }),
-        fetch(`${API_BASE}/securegate/queue/system-info`, { headers: getAuthHeaders() }),
+        authFetch(`/securegate/queue/stats`, {  }),
+        authFetch(`/securegate/queue/failed-jobs?per_page=50`, {  }),
+        authFetch(`/securegate/queue/system-info`, {  }),
       ]);
       if (statsRes.ok) { const j = await statsRes.json(); setStats(j.data?.data ?? j.data); }
       if (failedRes.ok) { const j = await failedRes.json(); const f = j?.data?.data ?? j?.data; setFailedJobs(Array.isArray(f) ? f : []); }
@@ -59,7 +56,7 @@ export function QueueMonitorPage() {
 
   async function retryJob(id: number) {
     try {
-      const res = await fetch(`${API_BASE}/securegate/queue/failed-jobs/${id}/retry`, { method: 'POST', headers: getAuthHeaders() });
+      const res = await authFetch(`/securegate/queue/failed-jobs/${id}/retry`, { method: 'POST',  });
       const json = await res.json();
       if (res.ok) { setMessage({ type: 'success', text: 'Job requeued.' }); fetchAll(); }
       else { setMessage({ type: 'error', text: json.message ?? 'Failed.' }); }
@@ -68,7 +65,7 @@ export function QueueMonitorPage() {
 
   async function retryAll() {
     try {
-      const res = await fetch(`${API_BASE}/securegate/queue/failed-jobs/retry-all`, { method: 'POST', headers: getAuthHeaders() });
+      const res = await authFetch(`/securegate/queue/failed-jobs/retry-all`, { method: 'POST',  });
       const json = await res.json();
       if (res.ok) { setMessage({ type: 'success', text: 'All failed jobs requeued.' }); fetchAll(); }
       else { setMessage({ type: 'error', text: json.message ?? 'Failed.' }); }
@@ -78,7 +75,7 @@ export function QueueMonitorPage() {
   async function flushFailed() {
     if (!await confirm({ title: 'Delete Failed Jobs', message: 'Delete all failed job records? This cannot be undone.', variant: 'destructive' })) return;
     try {
-      const res = await fetch(`${API_BASE}/securegate/queue/failed-jobs`, { method: 'DELETE', headers: getAuthHeaders() });
+      const res = await authFetch(`/securegate/queue/failed-jobs`, { method: 'DELETE',  });
       if (res.ok) { setMessage({ type: 'success', text: 'Failed jobs flushed.' }); fetchAll(); }
     } catch { setMessage({ type: 'error', text: 'Network error.' }); }
   }

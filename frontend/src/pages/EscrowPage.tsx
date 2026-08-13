@@ -1,18 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { ShieldCheck, ShieldAlert, Loader2, Check, X, AlertCircle, ChevronRight } from 'lucide-react';
-import { getAuthToken } from "@/lib/auth/token";
-import { env } from "@/config/env";
+import { authFetch } from "@/lib/api/authFetch";
 
-const API_BASE = env.VITE_API_URL;
 
-function getAuthHeaders() {
-  const token = getAuthToken();
-  return {
-    'Content-Type': 'application/json',
-    Accept: 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
-}
+
+
 
 function formatPrice(cents: number, currency = 'NGN'): string {
   const symbols: Record<string, string> = { NGN: '₦', USD: '$', GBP: '£', EUR: '€' };
@@ -70,7 +62,7 @@ export function EscrowPage() {
 
   const fetchEscrows = useCallback(async () => {
     try {
-      const res = await fetch(`${API_BASE}/wallet/escrow?page=${page}&per_page=20`, { headers: getAuthHeaders() });
+      const res = await authFetch(`/wallet/escrow?page=${page}&per_page=20`, {  });
       if (res.ok) {
         const json = await res.json();
         setEscrows(json.data?.data ?? []);
@@ -86,10 +78,10 @@ export function EscrowPage() {
     setMessage(null);
     try {
       const endpoints: Record<string, string> = {
-        release: `${API_BASE}/wallet/escrow/${id}/release`,
-        refund: `${API_BASE}/wallet/escrow/${id}/refund`,
+        release: `/wallet/escrow/${id}/release`,
+        refund: `/wallet/escrow/${id}/refund`,
       };
-      const res = await fetch(endpoints[action], { method: 'POST', headers: getAuthHeaders() });
+      const res = await authFetch(endpoints[action], { method: 'POST',  });
       const json = await res.json();
       if (!res.ok) throw new Error(json.message ?? 'Action failed.');
       setMessage({ type: 'success', text: json.message ?? 'Done.' });
@@ -106,8 +98,8 @@ export function EscrowPage() {
     }
     setMessage(null);
     try {
-      const res = await fetch(`${API_BASE}/wallet/escrow/${escrowId}/dispute`, {
-        method: 'POST', headers: getAuthHeaders(),
+      const res = await authFetch(`/wallet/escrow/${escrowId}/dispute`, {
+        method: 'POST', 
         body: JSON.stringify({ reason: disputeReason }),
       });
       const json = await res.json();

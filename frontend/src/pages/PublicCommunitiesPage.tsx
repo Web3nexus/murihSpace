@@ -1,3 +1,4 @@
+import { authFetch } from "@/lib/api/authFetch";
 import { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router";
 import { AnimatedPage } from "@/components/common/AnimatedPage";
@@ -11,7 +12,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? "http://localhost:8000/api/v1";
+
 
 interface PublicCommunity {
   id: number;
@@ -56,7 +57,7 @@ export function PublicCommunitiesPage() {
     try {
       const params = new URLSearchParams({ page: String(page) });
       if (debouncedSearch) params.set("search", debouncedSearch);
-      const res = await fetch(`${API_BASE}/public/communities?${params}`, {
+      const res = await authFetch(`/public/communities?${params}`, {
         headers: { Accept: "application/json" },
       });
       const json = await res.json();
