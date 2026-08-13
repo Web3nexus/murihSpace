@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Crown, Loader2, CheckCircle2, XCircle, Calendar, Ban, AlertCircle } from 'lucide-react';
+import { Crown, Loader2, CheckCircle2, XCircle, Calendar, Ban } from 'lucide-react';
 import type { Subscription } from '@/types/subscription';
 import { formatDistanceToNow } from 'date-fns';
 import { authFetch } from "@/lib/api/authFetch";

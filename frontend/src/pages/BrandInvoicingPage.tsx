@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { FileText, Plus, Loader2, CheckCircle, Send, Trash2, Building2, Check, AlertCircle, X, Download, FileSpreadsheet, Sparkles, DollarSign } from 'lucide-react';
+import { FileText, Plus, Loader2, CheckCircle, Send, Trash2, Building2, AlertCircle, X, Download, FileSpreadsheet, Sparkles, DollarSign } from 'lucide-react';
 import { authFetch } from "@/lib/api/authFetch";
 import { useConfirm } from '@/components/ui/DialogProvider';
 import { StatCard } from '@/components/ui/StatCard';
