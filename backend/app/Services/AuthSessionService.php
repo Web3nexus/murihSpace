@@ -35,7 +35,10 @@ class AuthSessionService
             ->get()
             ->contains(fn ($token) => hash('sha256', ($token->ip ?? '').'|'.($token->user_agent ?? '')) === $deviceKey);
 
-        $token = $user->createToken('auth-token', ['*'], now()->addMinutes((int) (config('sanctum.expiration') ?? 1440)))
+        $expiration = (int) config('sanctum.expiration', 43200);
+        $expiresAt  = now()->addMinutes($expiration > 0 ? $expiration : 43200);
+
+        $token = $user->createToken('auth-token', ['*'], $expiresAt)
             ->plainTextToken;
 
         $accessToken = $user->tokens()

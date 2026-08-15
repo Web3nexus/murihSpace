@@ -11,15 +11,23 @@ use App\Http\Controllers\Api\AdminController;
 use App\Http\Controllers\Api\TrackingController;
 use App\Http\Controllers\Api\AnalyticsController;
 
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/user', function (Request $request) {
         return $request->user();
     });
 
     // Core Ads Manager Resources
+    Route::apiResource('creatives', \App\Http\Controllers\Api\CreativeController::class);
     Route::apiResource('campaigns', CampaignController::class);
     Route::apiResource('ad-groups', AdGroupController::class);
     Route::apiResource('ads', AdController::class);
+    Route::apiResource('audiences', \App\Http\Controllers\Api\AudienceController::class);
+    Route::post('audiences/{id}/users', [\App\Http\Controllers\Api\AudienceController::class, 'uploadUsers']);
+    Route::apiResource('pixels', \App\Http\Controllers\Api\PixelController::class);
+    Route::get('pixels/{id}/events', [\App\Http\Controllers\Api\PixelController::class, 'events']);
+    Route::apiResource('catalogs', \App\Http\Controllers\Api\ProductCatalogController::class);
+    Route::post('catalogs/{catalog}/sync', [\App\Http\Controllers\Api\ProductCatalogController::class, 'sync']);
+    Route::apiResource('catalogs.products', \App\Http\Controllers\Api\ProductController::class);
 
     // Wallet & Billing Routes
     Route::prefix('wallet')->group(function () {
@@ -57,6 +65,7 @@ Route::prefix('delivery')->group(function () {
 
 // Analytics & Tracking Routes
 Route::prefix('tracking')->group(function () {
+    Route::post('/pixel', [TrackingController::class, 'pixel'])->middleware('throttle:120,1');
     Route::get('/impression', [TrackingController::class, 'impression']);
     Route::get('/click', [TrackingController::class, 'click']);
     Route::post('/conversion', [TrackingController::class, 'conversion']);

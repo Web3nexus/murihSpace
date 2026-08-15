@@ -95,7 +95,7 @@ export const creatorNav: NavGroup[] = [
         featureFlag: "online_courses",
         children: [
           { title: "My Courses", url: "/app/store/courses" },
-          { title: "Course Analytics", url: "/app/store/courses/analytics", featureFlag: "analytics" },
+          { title: "Course Analytics", url: "/app/analytics", featureFlag: "analytics" },
         ],
       },
       {

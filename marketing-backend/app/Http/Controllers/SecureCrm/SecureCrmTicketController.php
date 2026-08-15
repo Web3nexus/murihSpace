@@ -3,11 +3,13 @@
 namespace App\Http\Controllers\SecureCrm;
 
 use App\Http\Controllers\Controller;
+use App\Models\AuditLog;
 use App\Models\Macro;
 use App\Models\StaffUser;
 use App\Models\SupportTeam;
 use App\Models\Ticket;
 use App\Models\TicketCategory;
+use App\Services\AuditLogService;
 use App\Services\MacroService;
 use App\Services\SlaService;
 use App\Services\TicketAutomationEngine;
@@ -114,6 +116,12 @@ class SecureCrmTicketController extends Controller
             'messages.attachments', 'messages.staffUser',
             'events.staffUser', 'attachments', 'tags',
         ]);
+
+        app(AuditLogService::class)->record(
+            AuditLog::TICKET_VIEW,
+            subject: $ticket,
+            subject_reference: $ticket->ticket_number,
+        );
 
         return view('securecrm.tickets.show', [
             'ticket' => $ticket,

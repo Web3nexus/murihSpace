@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\SecureCrm;
 
 use App\Http\Controllers\Controller;
+use App\Models\AuditLog;
+use App\Services\AuditLogService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -63,6 +65,12 @@ class SecureCrmLoginController extends Controller
             'last_login_ip' => $request->ip(),
         ])->save();
 
+        app(AuditLogService::class)->record(
+            AuditLog::LOGIN,
+            subject_reference: $staff->email,
+            after: ['ip' => $request->ip()],
+        );
+
         $request->session()->regenerate();
 
         return redirect()->intended(route('securecrm.overview'));
@@ -70,9 +78,17 @@ class SecureCrmLoginController extends Controller
 
     public function logout(Request $request): RedirectResponse
     {
+        $staff = $request->user('staff');
+
         Auth::guard('staff')->logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
+
+        app(AuditLogService::class)->record(
+            AuditLog::LOGOUT,
+            actor: $staff,
+            subject_reference: $staff?->email,
+        );
 
         return redirect()->route('securecrm.login');
     }

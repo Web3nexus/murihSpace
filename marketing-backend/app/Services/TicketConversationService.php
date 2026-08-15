@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\AuditLog;
 use App\Models\StaffUser;
 use App\Models\Ticket;
 use App\Models\TicketEvent;
@@ -109,8 +110,6 @@ class TicketConversationService
             );
         });
 
-
-
         if ($oldStatus !== $newStatus) {
             app(TicketNotifier::class)->statusChanged($ticket, $oldStatus, $newStatus);
         }
@@ -127,16 +126,32 @@ class TicketConversationService
         ?StaffUser $actor = null,
     ): TicketEvent {
         $event = DB::transaction(function () use ($ticket, $agent, $actor) {
-            $oldValue = $ticket->assigned_agent_id ? (string) $ticket->assigned_agent_id : null;
-            $newValue = $agent?->id ? (string) $agent->id : null;
+            $oldAgentId = $ticket->assigned_agent_id;
+            $newAgentId = $agent?->id;
 
-            $ticket->forceFill(['assigned_agent_id' => $agent?->id])->save();
+            $ticket->forceFill(['assigned_agent_id' => $newAgentId])->save();
 
             if ($ticket->status === 'new') {
                 $ticket->forceFill(['status' => 'open'])->save();
             }
 
-            return $this->recordEvent($ticket, 'assigned', $actor, $oldValue, $newValue);
+            app(AuditLogService::class)->record(
+                AuditLog::TICKET_ASSIGN,
+                actor: $actor,
+                subject: $ticket,
+                subject_reference: $ticket->ticket_number,
+                before: ['assigned_agent_id' => $oldAgentId],
+                after: ['assigned_agent_id' => $newAgentId],
+                reason: $agent ? "Ticket assigned to {$agent->name}" : 'Ticket unassigned',
+            );
+
+            return $this->recordEvent(
+                $ticket,
+                'assigned',
+                $actor,
+                $oldAgentId === null ? null : (string) $oldAgentId,
+                $newAgentId === null ? null : (string) $newAgentId,
+            );
         });
 
         app(TicketNotifier::class)->assigned($ticket, $agent);
@@ -150,8 +165,8 @@ class TicketConversationService
     public function assignTeam(Ticket $ticket, ?int $teamId, ?StaffUser $actor = null): TicketEvent
     {
         return DB::transaction(function () use ($ticket, $teamId, $actor) {
-            $oldValue = $ticket->assigned_team_id ? (string) $ticket->assigned_team_id : null;
-            $newValue = $teamId ? (string) $teamId : null;
+            $oldTeamId = $ticket->assigned_team_id;
+            $newTeamId = $teamId;
 
             $ticket->forceFill(['assigned_team_id' => $teamId])->save();
 
@@ -159,7 +174,22 @@ class TicketConversationService
                 $ticket->forceFill(['status' => 'open'])->save();
             }
 
-            return $this->recordEvent($ticket, 'team_assigned', $actor, $oldValue, $newValue);
+            app(AuditLogService::class)->record(
+                AuditLog::TICKET_TEAM_ASSIGN,
+                actor: $actor,
+                subject: $ticket,
+                subject_reference: $ticket->ticket_number,
+                before: ['assigned_team_id' => $oldTeamId],
+                after: ['assigned_team_id' => $newTeamId],
+            );
+
+            return $this->recordEvent(
+                $ticket,
+                'team_assigned',
+                $actor,
+                $oldTeamId === null ? null : (string) $oldTeamId,
+                $newTeamId === null ? null : (string) $newTeamId,
+            );
         });
     }
 

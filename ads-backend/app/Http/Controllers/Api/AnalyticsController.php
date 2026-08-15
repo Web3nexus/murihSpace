@@ -14,22 +14,27 @@ class AnalyticsController extends Controller
      */
     public function report(Request $request)
     {
-        $advertiserId = $request->query('advertiser_id');
+        $advertiserId = $request->header('X-Advertiser-ID');
 
         if (!$advertiserId) {
-            return response()->json(['error' => 'advertiser_id is required'], 400);
+            return response()->json(['error' => 'Missing X-Advertiser-ID header'], 400);
+        }
+
+        $user = $request->user();
+        if (!$user) {
+            return response()->json(['error' => 'Unauthenticated'], 401);
         }
 
         $isMember = \App\Models\AdAccountMember::where('ad_account_id', $advertiserId)
-            ->where('murihspace_user_id', $request->user()->id)
+            ->where('murihspace_user_id', $user->id)
             ->exists();
-            
+
         if (!$isMember) {
             return response()->json(['error' => 'Unauthorized access to this ad account'], 403);
         }
 
         // Fetch total metrics for this advertiser
-        $campaigns = Campaign::where('advertiser_id', $advertiserId)->pluck('id');
+        $campaigns = Campaign::where('ad_account_id', $advertiserId)->pluck('id');
 
         $metrics = DB::table('ad_metrics')
             ->join('ads', 'ad_metrics.ad_id', '=', 'ads.id')

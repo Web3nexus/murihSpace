@@ -19,14 +19,26 @@ export default function AnalyticsDashboard() {
   const [chartData, setChartData] = useState<any[]>([]);
 
   useEffect(() => {
-    fetch(`${import.meta.env.VITE_ADS_API_URL}/api/analytics/report?advertiser_id=1`)
+    const advertiserId = typeof window !== 'undefined' ? (localStorage.getItem('active_advertiser_id') || '1') : '1';
+    fetch(`${import.meta.env.VITE_ADS_API_URL}/api/analytics/report`, {
+      headers: {
+        'Accept': 'application/json',
+        'X-Advertiser-ID': advertiserId
+      }
+    })
       .then(res => {
         if (!res.ok) throw new Error("API Error");
         return res.json();
       })
       .then(result => {
         if(result && result.summary) {
-          setData({ summary: result.summary });
+          setData({ summary: {
+            spend_usd: result.summary.spend_usd || 0,
+            impressions: result.summary.impressions || 0,
+            clicks: result.summary.clicks || 0,
+            ctr: result.summary.ctr || 0,
+            roas: result.summary.roas || 0,
+          } });
           setChartData(result.chart_data || []);
         }
         setLoading(false);

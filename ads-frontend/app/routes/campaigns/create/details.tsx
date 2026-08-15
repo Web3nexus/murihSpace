@@ -83,9 +83,7 @@ export default function CreateCampaignDetails() {
       </div>
       
       <div className="flex justify-between mt-4">
-        <Button variant="outline" asChild>
-          <Link to={`/campaigns/create/object?objective=${encodeURIComponent(objective)}`}>Back</Link>
-        </Button>
+        <Button variant="outline" render={<Link to={`/campaigns/create/object?objective=${encodeURIComponent(objective)}`} />}>Back</Button>
         <Button type="submit">
           Publish Campaign
         </Button>

@@ -90,8 +90,9 @@ class SocialAuthController extends Controller
             report($e);
         }
 
-        $ttl = (int) (config('sanctum.expiration') ?? 1440);
-        $token = $user->createToken('auth-token', ['*'], now()->addMinutes($ttl))->plainTextToken;
+        $expiration = (int) config('sanctum.expiration', 43200);
+        $expiresAt  = now()->addMinutes($expiration > 0 ? $expiration : 43200);
+        $token      = $user->createToken('auth-token', ['*'], $expiresAt)->plainTextToken;
 
         $payload = [
             'token' => $token,

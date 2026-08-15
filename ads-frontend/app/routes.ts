@@ -14,6 +14,11 @@ export default [
     // Remaining Sections
     route("creative", "routes/creative/index.tsx"),
     route("audiences", "routes/audiences/index.tsx"),
+    route("audiences/create", "routes/audiences/create.tsx"),
+    route("events-manager", "routes/events-manager/index.tsx"),
+    route("events-manager/:id", "routes/events-manager/details.tsx"),
+    route("catalogs", "routes/catalogs/index.tsx"),
+    route("catalogs/:id/products", "routes/catalogs/products.tsx"),
     route("analytics", "routes/analytics/index.tsx"),
     route("billing", "routes/billing/index.tsx"),
     route("business", "routes/business/index.tsx"),

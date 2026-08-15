@@ -27,6 +27,12 @@ class SupportController extends Controller
 
     public function sendMessage(Request $request, SupportThread $thread): JsonResponse
     {
+        if (! config('services.legacy_support_threads.enabled')) {
+            return response()->json([
+                'message' => 'Legacy support threads are disabled. Please create a ticket instead.',
+            ], 410);
+        }
+
         $validated = $request->validate([
             'content' => ['required', 'string', 'max:10000'],
         ]);

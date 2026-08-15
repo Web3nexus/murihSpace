@@ -35,9 +35,7 @@ export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) 
     return <Navigate to="/app" replace />;
   }
 
-  if (requiredRole === "member" && user?.role !== "member") {
-    return <Navigate to="/app" replace />;
-  }
+  // All authenticated user roles (member, creator, vendor, admin) have access to base member routes
 
   return <>{children}</>;
 }

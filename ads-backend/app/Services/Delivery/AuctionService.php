@@ -36,14 +36,28 @@ class AuctionService
         $advertiserIds = $candidates->pluck('adGroup.campaign.advertiser_id')->filter()->unique();
         $wallets = \App\Models\AdWallet::whereIn('advertiser_id', $advertiserIds)->get()->keyBy('advertiser_id');
 
+        // Pre-fetch requesting user's audience IDs to prevent N+1 queries in filter loop
+        $userAudienceIds = \App\Models\AudienceUser::where('user_identifier', (string) $userId)
+            ->pluck('audience_id')
+            ->toArray();
+
         // Step 2: Filtering
-        $eligibleAds = $candidates->filter(function (Ad $ad) use ($userId, $placement, $wallets) {
+        $eligibleAds = $candidates->filter(function (Ad $ad) use ($userId, $placement, $wallets, $userAudienceIds) {
             $adGroup = $ad->adGroup;
 
             // Placement check (simplified: assume JSON placements array exists)
             $placements = $adGroup->placements ?? [];
             if (!empty($placements) && !in_array($placement, $placements)) {
                 return false;
+            }
+
+            // Audience check
+            $audienceTargeting = $adGroup->audience_targeting ?? [];
+            if (!empty($audienceTargeting['custom_audience_ids'])) {
+                $audienceIds = $audienceTargeting['custom_audience_ids'];
+                if (empty(array_intersect($audienceIds, $userAudienceIds))) {
+                    return false;
+                }
             }
 
             // Budget check (simulate reserving 1 cent to see if wallet has funds)

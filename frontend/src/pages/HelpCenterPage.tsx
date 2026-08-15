@@ -6,10 +6,10 @@ import {
   BookOpen, ArrowUpRight, ChevronDown, RefreshCw, ExternalLink, HelpCircle,
 } from "lucide-react";
 import {
-  HELP_CATEGORIES, HELP_ARTICLES, articlesInCategory, categoryById,
-  articleBodyText, searchHelp,
+  HELP_CATEGORIES, HELP_ARTICLES, articleBodyText,
 } from "@/data/helpCenter";
 import type { HelpArticle, HelpCategory } from "@/data/helpCenter";
+import { HELP_API_URL, loadHelpContent, searchArticles } from "@/lib/helpApi";
 import { useAuth } from "@/hooks/useAuth";
 import { authFetch } from "@/lib/api/authFetch";
 import { MeraIcon } from "@/components/brand/MeraIcon";
@@ -67,6 +67,39 @@ function TypingDots() {
 export default function HelpCenterPage() {
   const { isAuthenticated } = useAuth();
 
+  const [catalog, setCatalog] = useState<{ categories: HelpCategory[]; articles: HelpArticle[] }>({
+    categories: HELP_CATEGORIES,
+    articles: HELP_ARTICLES,
+  });
+
+  useEffect(() => {
+    if (!HELP_API_URL) return;
+    let cancelled = false;
+    loadHelpContent()
+      .then((content) => {
+        if (!cancelled && content.articles.length > 0) {
+          setSelectedCategory((id) =>
+            id && !content.categories.some((category) => category.id === id) ? null : id,
+          );
+          setSelectedArticle((id) =>
+            id && !content.articles.some((article) => article.id === id) ? null : id,
+          );
+          setCatalog(content);
+        }
+      })
+      .catch(() => {
+        // Keep the bundled static snapshot as the rollback fallback.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const categories = catalog.categories;
+  const articles = catalog.articles;
+  const categoryById = (id: string) => categories.find((c) => c.id === id);
+  const articlesInCategory = (id: string) => articles.filter((a) => a.categoryId === id);
+
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedArticle, setSelectedArticle] = useState<string | null>(null);
   const [query, setQuery] = useState("");
@@ -80,11 +113,11 @@ export default function HelpCenterPage() {
   const searchResults = useMemo(() => {
     const q = query.trim();
     if (q.length < 2) return [];
-    return searchHelp(q, 8);
-  }, [query]);
+    return searchArticles(articles, q, 8);
+  }, [query, articles]);
 
   const activeArticle: HelpArticle | undefined =
-    HELP_ARTICLES.find((a) => a.id === selectedArticle);
+    articles.find((a) => a.id === selectedArticle);
 
   useEffect(() => {
     if (messages.length === 0) return;
@@ -92,7 +125,7 @@ export default function HelpCenterPage() {
   }, [messages.length]);
 
   function openArticle(id: string) {
-    const a = HELP_ARTICLES.find((x) => x.id === id);
+    const a = articles.find((x) => x.id === id);
     if (a) setSelectedCategory(a.categoryId);
     setSelectedArticle(id);
     setQuery("");
@@ -112,7 +145,7 @@ export default function HelpCenterPage() {
     setBusy(true);
 
     // RAG guard-rail: retrieve the most relevant help docs and inject them
-    const docs = searchHelp(content, 4);
+    const docs = searchArticles(articles, content, 4);
     const sources = docs.map((d) => d.id);
 
     let guard = "";
@@ -248,7 +281,7 @@ export default function HelpCenterPage() {
             <BookOpen className="h-4.5 w-4.5" /> All topics
           </button>
           <div className="mt-2 space-y-1">
-            {HELP_CATEGORIES.map((cat) => {
+            {categories.map((cat) => {
               const active = selectedCategory === cat.id || (activeArticle?.categoryId === cat.id);
               return (
                 <div key={cat.id} className="rounded-xl">
@@ -328,11 +361,11 @@ export default function HelpCenterPage() {
               )}
             </div>
           ) : activeArticle ? (
-            <ArticleView article={activeArticle} onBack={goBackToList} onOpenArticle={openArticle} />
+            <ArticleView article={activeArticle} categories={categories} articles={articles} onBack={goBackToList} onOpenArticle={openArticle} />
           ) : selectedCategory ? (
-            <CategoryView category={categoryById(selectedCategory)!} onOpenArticle={openArticle} />
+            <CategoryView category={categoryById(selectedCategory)!} articles={articles} onOpenArticle={openArticle} />
           ) : (
-            <WelcomeView onOpenArticle={openArticle} onSelectCategory={(id) => setSelectedCategory(id)} />
+            <WelcomeView categories={categories} articles={articles} onOpenArticle={openArticle} onSelectCategory={(id) => setSelectedCategory(id)} />
           )}
         </main>
 
@@ -425,7 +458,7 @@ export default function HelpCenterPage() {
                       {m.sources && m.sources.length > 0 && (
                         <div className="mt-1.5 flex flex-wrap gap-1">
                           {m.sources.map((sid) => {
-                            const a = HELP_ARTICLES.find((x) => x.id === sid);
+                            const a = articles.find((x) => x.id === sid);
                             if (!a) return null;
                             return (
                               <button
@@ -490,9 +523,13 @@ export default function HelpCenterPage() {
 /* ── Sub-views ─────────────────────────────────────────── */
 
 function WelcomeView({
+  categories,
+  articles,
   onOpenArticle,
   onSelectCategory,
 }: {
+  categories: HelpCategory[];
+  articles: HelpArticle[];
   onOpenArticle: (id: string) => void;
   onSelectCategory: (id: string) => void;
 }) {
@@ -503,7 +540,7 @@ function WelcomeView({
         <h2 className="text-lg font-black tracking-tight">Popular topics</h2>
         <div className="mt-3 grid sm:grid-cols-2 gap-2.5">
           {popular.map((id) => {
-            const a = HELP_ARTICLES.find((x) => x.id === id);
+            const a = articles.find((x) => x.id === id);
             if (!a) return null;
             return (
               <button
@@ -512,7 +549,7 @@ function WelcomeView({
                 className="text-left rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 hover:border-[#2164b6]/40 hover:shadow-sm transition-all group"
               >
                 <p className="text-[11px] font-bold uppercase tracking-wide text-[#2164b6] dark:text-[#7ab0ff]">
-                  {categoryById(a.categoryId)?.label}
+                  {categories.find((c) => c.id === a.categoryId)?.label}
                 </p>
                 <p className="mt-1 text-sm font-bold group-hover:text-[#2164b6] dark:text-[#7ab0ff] dark:group-hover:text-[#7ab0ff] transition-colors">
                   {a.title}
@@ -526,7 +563,7 @@ function WelcomeView({
       <div>
         <h2 className="text-lg font-black tracking-tight">Browse by topic</h2>
         <div className="mt-3 grid sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
-          {HELP_CATEGORIES.map((cat) => (
+          {categories.map((cat) => (
             <button
               key={cat.id}
               onClick={() => onSelectCategory(cat.id)}
@@ -547,12 +584,14 @@ function WelcomeView({
 
 function CategoryView({
   category,
+  articles,
   onOpenArticle,
 }: {
   category: HelpCategory;
+  articles: HelpArticle[];
   onOpenArticle: (id: string) => void;
 }) {
-  const articles = articlesInCategory(category.id);
+  const list = articles.filter((a) => a.categoryId === category.id);
   return (
     <div>
       <div className="flex items-center gap-3">
@@ -565,7 +604,7 @@ function CategoryView({
         </div>
       </div>
       <div className="mt-4 space-y-2">
-        {articles.map((a) => (
+        {list.map((a) => (
           <button
             key={a.id}
             onClick={() => onOpenArticle(a.id)}
@@ -582,14 +621,18 @@ function CategoryView({
 
 function ArticleView({
   article,
+  categories,
+  articles,
   onBack,
   onOpenArticle,
 }: {
   article: HelpArticle;
+  categories: HelpCategory[];
+  articles: HelpArticle[];
   onBack: () => void;
   onOpenArticle: (id: string) => void;
 }) {
-  const cat = categoryById(article.categoryId);
+  const cat = categories.find((c) => c.id === article.categoryId);
   const [tocOpen, setTocOpen] = useState(false);
   return (
     <div className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden">
@@ -647,7 +690,7 @@ function ArticleView({
             <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Related articles</p>
             <div className="mt-2.5 flex flex-wrap gap-2">
               {article.related.map((rid) => {
-                const r = HELP_ARTICLES.find((x) => x.id === rid);
+                const r = articles.find((x) => x.id === rid);
                 if (!r) return null;
                 return (
                   <button

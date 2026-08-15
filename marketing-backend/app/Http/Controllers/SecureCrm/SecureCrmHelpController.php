@@ -3,10 +3,12 @@
 namespace App\Http\Controllers\SecureCrm;
 
 use App\Http\Controllers\Controller;
+use App\Models\AuditLog;
 use App\Models\HelpArticle;
 use App\Models\HelpArticleRevision;
 use App\Models\HelpAttachment;
 use App\Models\HelpCategory;
+use App\Services\AuditLogService;
 use App\Services\HelpContentService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -124,12 +126,28 @@ class SecureCrmHelpController extends Controller
 
         $this->content->transition($article, 'published');
 
+        app(AuditLogService::class)->record(
+            AuditLog::HELP_PUBLISH,
+            subject: $article,
+            subject_reference: $article->title,
+            before: ['state' => $article->state],
+            after: ['state' => 'published'],
+        );
+
         return back()->with('status', "Help article \"{$article->title}\" published.");
     }
 
     public function unpublish(Request $request, HelpArticle $article): RedirectResponse
     {
         $this->content->transition($article, 'draft');
+
+        app(AuditLogService::class)->record(
+            AuditLog::HELP_UNPUBLISH,
+            subject: $article,
+            subject_reference: $article->title,
+            before: ['state' => $article->state],
+            after: ['state' => 'draft'],
+        );
 
         return back()->with('status', "Help article \"{$article->title}\" unpublished.");
     }
@@ -149,12 +167,28 @@ class SecureCrmHelpController extends Controller
     {
         $this->content->transition($article, 'archived');
 
+        app(AuditLogService::class)->record(
+            AuditLog::HELP_ARCHIVE,
+            subject: $article,
+            subject_reference: $article->title,
+            before: ['state' => $article->state],
+            after: ['state' => 'archived'],
+        );
+
         return back()->with('status', "Help article \"{$article->title}\" archived.");
     }
 
     public function restore(Request $request, HelpArticle $article): RedirectResponse
     {
         $this->content->transition($article, 'draft');
+
+        app(AuditLogService::class)->record(
+            AuditLog::HELP_RESTORE,
+            subject: $article,
+            subject_reference: $article->title,
+            before: ['state' => $article->state],
+            after: ['state' => 'draft'],
+        );
 
         return back()->with('status', "Help article \"{$article->title}\" restored as draft.");
     }

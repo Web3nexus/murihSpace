@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useNavigate } from 'react-router';
 import {
   MessageSquare, Search, Send, Loader2, Bookmark, Users, ArrowLeft,
   AlertCircle, RotateCcw, BellOff, Archive, MoreVertical,
@@ -8,8 +9,12 @@ import { formatDistanceToNow, format } from 'date-fns';
 import type { ConversationItem, ChatMessage, MessageStatus, MessageReaction } from '@/types/chat';
 import { ReplyPreviewBar } from '@/components/chat/ReplyPreviewBar';
 import { MessageReactions } from '@/components/chat/MessageReactions';
+import { StoriesCarousel } from '@/components/chat/StoriesCarousel';
+import { NewChatModal } from '@/components/chat/NewChatModal';
+import { CallOverlayModal, type CallMode } from '@/components/video/CallOverlayModal';
 import { useRealtimeMessaging } from '@/hooks/useRealtimeMessaging';
 import { getAuthToken } from "@/lib/auth/token";
+import { Plus, Video } from 'lucide-react';
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? 'http://localhost:8000/api/v1';
 
@@ -54,6 +59,7 @@ function Avatar({ name, src, size = 36 }: { name?: string; src?: string; size?: 
 }
 
 export function ChatLayout() {
+  const navigate = useNavigate();
   const [conversations, setConversations] = useState<ConversationItem[]>([]);
   const [activeConv, setActiveConv] = useState<ConversationItem | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -68,6 +74,9 @@ export function ChatLayout() {
   const [isMuted, setIsMuted] = useState(false);
   const [isArchived, setIsArchived] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [isNewModalOpen, setIsNewModalOpen] = useState(false);
+  const [isCallModalOpen, setIsCallModalOpen] = useState(false);
+  const [callMode, setCallMode] = useState<CallMode>('video');
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -296,17 +305,13 @@ export function ChatLayout() {
   return (
     <div className="flex flex-1 min-h-0 w-full overflow-hidden bg-background">
       {/* ── Sidebar ───────────────────────────────────────────────────────── */}
-      <aside className={`${activeConv ? 'hidden md:flex' : 'flex'} w-full md:w-[340px] shrink-0 flex-col border-r border-border bg-card`}>
-        <div className="flex items-center justify-between px-4 py-3.5 border-b border-border bg-muted/20">
-          <div className="flex items-center gap-2">
-            <MessageSquare className="h-5 w-5 text-secondary" />
-            <h2 className="text-base font-bold text-foreground">Messages</h2>
-          </div>
-          <button onClick={openSavedMessages} className="p-1.5 rounded-xl hover:bg-muted text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5 text-xs font-semibold" title="Saved Messages">
-            <Bookmark className="h-4 w-4 text-amber-500" />
-            <span className="hidden sm:inline">Saved</span>
-          </button>
-        </div>
+      <aside className={`${activeConv ? 'hidden md:flex' : 'flex'} w-full md:w-[360px] shrink-0 flex-col border-r border-border bg-card relative`}>
+        {/* Stories Carousel */}
+        <StoriesCarousel
+          currentUserName={(currentUserData?.name as string) ?? 'User'}
+          unreadMessagesCount={conversations.reduce((acc, c) => acc + (c.unread_count || 0), 0)}
+          onAddStory={() => navigate('/app/studio')}
+        />
 
         <div className="px-3 py-2.5 border-b border-border">
           <div className="relative">
@@ -321,7 +326,7 @@ export function ChatLayout() {
           ))}
         </div>
 
-        <div className="flex-1 overflow-y-auto divide-y divide-border/40">
+        <div className="flex-1 overflow-y-auto divide-y divide-border/40 pb-16">
           {isLoadingList ? (
             <div className="py-12 text-center space-y-2"><Loader2 className="h-6 w-6 animate-spin text-secondary mx-auto" /><p className="text-xs text-muted-foreground font-medium">Loading conversations…</p></div>
           ) : filteredConversations.length === 0 ? (
@@ -349,6 +354,18 @@ export function ChatLayout() {
             );
           })}
         </div>
+
+        {/* Floating "+ New" Action Pill Button (Image 1) */}
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20">
+          <button
+            type="button"
+            onClick={() => setIsNewModalOpen(true)}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-extrabold text-xs shadow-xl hover:scale-105 transition-all"
+          >
+            <Plus className="h-4 w-4" />
+            <span>New</span>
+          </button>
+        </div>
       </aside>
 
       {/* ── Main Chat Area ─────────────────────────────────────────────────── */}
@@ -374,21 +391,31 @@ export function ChatLayout() {
               </div>
 
               {/* Header action menu */}
-              <div className="relative">
-                <button onClick={() => setShowHeaderMenu((v) => !v)} className="p-1.5 rounded-xl hover:bg-muted text-muted-foreground transition-colors"><MoreVertical className="h-4 w-4" /></button>
-                {showHeaderMenu && (
-                  <>
-                    <div className="fixed inset-0 z-40" onClick={() => setShowHeaderMenu(false)} role="presentation" onKeyDown={(e) => e.key === 'Enter' && setShowHeaderMenu(false)} />
-                    <div className="absolute right-0 top-8 z-50 w-44 rounded-xl border border-border bg-card shadow-xl p-1 text-xs space-y-0.5">
-                      <button onClick={() => handleToggleSetting('is_muted')} className="w-full flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-muted text-foreground font-medium">
-                        <BellOff className="h-3.5 w-3.5 text-muted-foreground" /> {isMuted ? 'Unmute' : 'Mute'} conversation
-                      </button>
-                      <button onClick={() => handleToggleSetting('is_archived')} className="w-full flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-muted text-foreground font-medium">
-                        <Archive className="h-3.5 w-3.5 text-muted-foreground" /> {isArchived ? 'Unarchive' : 'Archive'}
-                      </button>
-                    </div>
-                  </>
-                )}
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => { setCallMode('video'); setIsCallModalOpen(true); }}
+                  className="p-2 rounded-xl hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                  title="Start Video Call"
+                >
+                  <Video className="h-4.5 w-4.5 text-secondary" />
+                </button>
+                <div className="relative">
+                  <button onClick={() => setShowHeaderMenu((v) => !v)} className="p-1.5 rounded-xl hover:bg-muted text-muted-foreground transition-colors"><MoreVertical className="h-4 w-4" /></button>
+                  {showHeaderMenu && (
+                    <>
+                      <div className="fixed inset-0 z-40" onClick={() => setShowHeaderMenu(false)} role="presentation" onKeyDown={(e) => e.key === 'Enter' && setShowHeaderMenu(false)} />
+                      <div className="absolute right-0 top-8 z-50 w-44 rounded-xl border border-border bg-card shadow-xl p-1 text-xs space-y-0.5">
+                        <button onClick={() => handleToggleSetting('is_muted')} className="w-full flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-muted text-foreground font-medium">
+                          <BellOff className="h-3.5 w-3.5 text-muted-foreground" /> {isMuted ? 'Unmute' : 'Mute'} conversation
+                        </button>
+                        <button onClick={() => handleToggleSetting('is_archived')} className="w-full flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-muted text-foreground font-medium">
+                          <Archive className="h-3.5 w-3.5 text-muted-foreground" /> {isArchived ? 'Unarchive' : 'Archive'}
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -519,6 +546,30 @@ export function ChatLayout() {
           </div>
         )}
       </main>
+
+      {/* ── Modals & Overlays ─────────────────────────────────────────────── */}
+      <NewChatModal
+        isOpen={isNewModalOpen}
+        onClose={() => setIsNewModalOpen(false)}
+        onSelectAction={(act) => {
+          if (act === 'chat') {
+            openSavedMessages();
+          } else if (act === 'community') {
+            navigate('/app/communities');
+          } else {
+            navigate('/app/friends');
+          }
+        }}
+      />
+
+      <CallOverlayModal
+        isOpen={isCallModalOpen}
+        callMode={callMode}
+        callerName={activeConv?.title ?? 'Unknown contact'}
+        callerAvatar={activeConv?.other_user?.avatar_url}
+        onClose={() => setIsCallModalOpen(false)}
+        onOpenChat={() => setIsCallModalOpen(false)}
+      />
     </div>
   );
 }

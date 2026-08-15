@@ -12,6 +12,9 @@ const navItems = [
   { title: "Dashboard", url: "/" },
   { title: "Campaign", url: "/campaigns" },
   { title: "Assets", url: "/creative" }, 
+  { title: "Audiences", url: "/audiences" },
+  { title: "Events Manager", url: "/events-manager" },
+  { title: "Catalogs", url: "/catalogs" },
   { title: "Reporting", url: "/analytics" },
 ];
 

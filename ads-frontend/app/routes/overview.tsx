@@ -17,7 +17,12 @@ export default function Overview() {
   const [trendData, setTrendData] = useState<any[]>([]);
 
   useEffect(() => {
-    fetch(`${import.meta.env.VITE_ADS_API_URL}/api/analytics/report?advertiser_id=1`)
+    fetch(`${import.meta.env.VITE_ADS_API_URL}/api/analytics/report`, {
+      headers: {
+        'Accept': 'application/json',
+        'X-Advertiser-ID': '1'
+      }
+    })
       .then(res => res.json())
       .then(data => {
         if(data && data.summary) {

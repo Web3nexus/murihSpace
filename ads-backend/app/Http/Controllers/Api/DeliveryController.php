@@ -62,6 +62,30 @@ class DeliveryController extends Controller
             ]
         ];
 
+        // DPA (Dynamic Product Ads) logic
+        if ($winningAd->creative && $winningAd->creative->type === 'dynamic_product') {
+            $pixels = \App\Models\Pixel::where('advertiser_id', $winningAd->adGroup->campaign->advertiser_id)->pluck('pixel_uuid');
+            $recentProducts = \App\Models\PixelEvent::whereIn('pixel_uuid', $pixels)
+                ->where('user_identifier', (string) $userId)
+                ->where('event_type', 'ViewContent')
+                ->latest()
+                ->take(5)
+                ->get()
+                ->map(function($event) {
+                    return $event->event_data['product_id'] ?? null;
+                })
+                ->filter()
+                ->unique();
+
+            if ($recentProducts->isNotEmpty()) {
+                $catalogs = \App\Models\ProductCatalog::where('advertiser_id', $winningAd->adGroup->campaign->advertiser_id)->pluck('id');
+                $products = \App\Models\Product::whereIn('product_catalog_id', $catalogs)
+                    ->whereIn('retailer_product_id', $recentProducts)
+                    ->get();
+                $payload['dynamic_products'] = $products;
+            }
+        }
+
         return response()->json([
             'status' => 'success',
             'data' => $payload

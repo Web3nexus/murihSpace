@@ -950,6 +950,7 @@ Route::prefix('v1')->group(function () {
             Route::post('/pin/setup', [WalletController::class, 'setupPin']);
             Route::post('/pin/update', [WalletController::class, 'updatePin']);
             Route::post('/pin/verify', [WalletController::class, 'verifyPin']);
+            Route::get('/pin/status', [WalletController::class, 'pinStatus']);
             Route::get('/transactions', [WalletController::class, 'transactions']);
 
             // Transfers

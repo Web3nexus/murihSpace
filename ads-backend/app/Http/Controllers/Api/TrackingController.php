@@ -10,6 +10,10 @@ use App\Models\AdWallet;
 use App\Models\AdConversion;
 use App\Services\Billing\LedgerService;
 
+use App\Models\PixelEvent;
+use App\Models\Audience;
+use App\Models\AudienceUser;
+
 class TrackingController extends Controller
 {
     protected LedgerService $ledger;
@@ -18,6 +22,52 @@ class TrackingController extends Controller
     {
         $this->ledger = $ledger;
     }
+
+    /**
+     * Log a pixel event.
+     */
+    public function pixel(Request $request)
+    {
+        $validated = $request->validate([
+            'pixel_uuid' => 'required|exists:pixels,pixel_uuid',
+            'event_type' => 'required|string',
+            'user_identifier' => 'nullable|string',
+            'event_data' => 'nullable|array'
+        ]);
+
+        $pixelEvent = PixelEvent::create($validated);
+
+        // Process website_traffic audiences dynamically
+        if ($validated['user_identifier']) {
+            $this->processDynamicAudiences($validated['pixel_uuid'], $validated['user_identifier'], $validated['event_type']);
+        }
+
+        return response()->json(['status' => 'success']);
+    }
+
+    private function processDynamicAudiences($pixelUuid, $userIdentifier, $eventType)
+    {
+        // Find audiences that are website_traffic and match the rules
+        $audiences = Audience::where('type', 'website_traffic')
+            ->where('status', 'ready')
+            ->get();
+
+        foreach ($audiences as $audience) {
+            $rules = $audience->rules ?? [];
+            $targetPixelUuid = $rules['pixel_uuid'] ?? null;
+            $targetEventType = $rules['event_type'] ?? null;
+
+            if ($targetPixelUuid === $pixelUuid && (!$targetEventType || $targetEventType === $eventType)) {
+                AudienceUser::insertOrIgnore([
+                    'audience_id' => $audience->id,
+                    'user_identifier' => $userIdentifier,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+        }
+    }
+
 
     /**
      * Log an ad impression.

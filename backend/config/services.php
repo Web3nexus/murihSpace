@@ -45,6 +45,24 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Legacy support threads
+    |--------------------------------------------------------------------------
+    |
+    | The pre-ticket `support_threads` system is being retired by the help
+    | migration (Sprint 27). No current client uses it — the app reads/writes
+    | through /api/v1/tickets/*. The write endpoint (POST a message) stays
+    | enabled by default for rollback safety and is switched off once the new
+    | ticket flow is verified in production (LEGACY_SUPPORT_THREADS_ENABLED=false).
+    | Read endpoints (index/messages) remain available regardless.
+    |
+    */
+
+    'legacy_support_threads' => [
+        'enabled' => filter_var(env('LEGACY_SUPPORT_THREADS_ENABLED', true), FILTER_VALIDATE_BOOLEAN),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Support event synchronization (web/marketing-backend)
     |--------------------------------------------------------------------------
     |

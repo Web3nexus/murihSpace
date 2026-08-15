@@ -1,0 +1,24 @@
+{
+  "categories": [
+    {
+      "id": "getting-started",
+      "label": "Getting Started",
+      "blurb": "Create an account, verify your email and get around MurihSpace."
+    }
+  ],
+  "articles": [
+    {
+      "id": "create-account",
+      "categoryId": "getting-started",
+      "title": "How to create a MurihSpace account",
+      "excerpt": "Sign up as a member, creator or vendor in a few simple steps.",
+      "keywords": ["sign up", "register", "account", "create", "join", "onboarding", "username"],
+      "sections": [
+        { "heading": "Choose your account type", "body": "During sign-up you can register as a Member, Creator or Vendor. Creators get storefronts and subscription tools, Vendors can sell products, and Members can join communities and buy. You can upgrade your role later from Settings." },
+        { "heading": "Pick a unique username", "body": "Your username is your public handle (@you). We check availability instantly while you type, so pick something short and memorable." },
+        { "heading": "Verify your email", "body": "After registering we send a 6-digit code to your inbox. Enter it on the verification screen to unlock the full app — including the AI assistant. Didn't receive it? Tap \"Send code\" to resend." }
+      ],
+      "related": ["verify-email"]
+    }
+  ]
+}

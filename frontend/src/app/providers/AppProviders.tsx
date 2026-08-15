@@ -14,7 +14,7 @@ export function AppProviders({ children }: AppProvidersProps) {
   return (
     <QueryProvider>
       <AuthProvider>
-        <ThemeProvider defaultTheme="light">
+        <ThemeProvider defaultTheme="system">
           <TooltipProvider>
             <MotionProvider>
               <DialogProvider>

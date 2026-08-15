@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\SecureCrm;
 
 use App\Http\Controllers\Controller;
+use App\Models\AuditLog;
 use App\Models\SlaPolicy;
 use App\Models\Ticket;
+use App\Services\AuditLogService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -33,7 +35,18 @@ class SecureCrmSlaController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
-        $policy = SlaPolicy::create($this->payload($request, createdBy: $request->user('staff')->id));
+        $policy = \Illuminate\Support\Facades\DB::transaction(function () use ($request) {
+            $policy = SlaPolicy::create($this->payload($request, createdBy: $request->user('staff')->id));
+
+            app(AuditLogService::class)->record(
+                AuditLog::SLA_CREATE,
+                subject: $policy,
+                subject_reference: $policy->name,
+                after: ['priority' => $policy->priority, 'enabled' => $policy->enabled],
+            );
+
+            return $policy;
+        });
 
         return redirect()->route('securecrm.slas')
             ->with('status', "SLA policy \"{$policy->name}\" saved.");
@@ -41,7 +54,19 @@ class SecureCrmSlaController extends Controller
 
     public function update(Request $request, SlaPolicy $policy): RedirectResponse
     {
-        $policy->update($this->payload($request));
+        \Illuminate\Support\Facades\DB::transaction(function () use ($request, $policy) {
+            $before = ['priority' => $policy->priority, 'enabled' => $policy->enabled];
+
+            $policy->update($this->payload($request));
+
+            app(AuditLogService::class)->record(
+                AuditLog::SLA_UPDATE,
+                subject: $policy,
+                subject_reference: $policy->name,
+                before: $before,
+                after: ['priority' => $policy->priority, 'enabled' => $policy->enabled],
+            );
+        });
 
         return redirect()->route('securecrm.slas')
             ->with('status', "SLA policy \"{$policy->name}\" updated.");
@@ -49,7 +74,16 @@ class SecureCrmSlaController extends Controller
 
     public function toggle(Request $request, SlaPolicy $policy): RedirectResponse
     {
-        $policy->update(['enabled' => ! $policy->enabled]);
+        \Illuminate\Support\Facades\DB::transaction(function () use ($policy) {
+            $policy->update(['enabled' => ! $policy->enabled]);
+
+            app(AuditLogService::class)->record(
+                AuditLog::SLA_TOGGLE,
+                subject: $policy,
+                subject_reference: $policy->name,
+                after: ['enabled' => $policy->enabled],
+            );
+        });
 
         return back()->with(
             'status',
@@ -60,7 +94,17 @@ class SecureCrmSlaController extends Controller
     public function destroy(Request $request, SlaPolicy $policy): RedirectResponse
     {
         $name = $policy->name;
-        $policy->delete();
+
+        \Illuminate\Support\Facades\DB::transaction(function () use ($policy, $name) {
+            app(AuditLogService::class)->record(
+                AuditLog::SLA_DELETE,
+                subject: $policy,
+                subject_reference: $name,
+                before: ['enabled' => $policy->enabled],
+            );
+
+            $policy->delete();
+        });
 
         return redirect()->route('securecrm.slas')
             ->with('status', "SLA policy \"{$name}\" deleted.");

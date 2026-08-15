@@ -215,8 +215,6 @@ class SecureCrmAutomationController extends Controller
         }
     }
 
-
-
     protected function assertNonEmpty(mixed $value, string $label): void
     {
         if (trim((string) $value) === '') {

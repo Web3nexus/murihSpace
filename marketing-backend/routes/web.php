@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\SecureCrm\SecureCrmAnnouncementController;
+use App\Http\Controllers\SecureCrm\SecureCrmAuditController;
 use App\Http\Controllers\SecureCrm\SecureCrmAutomationController;
 use App\Http\Controllers\SecureCrm\SecureCrmCmsController;
 use App\Http\Controllers\SecureCrm\SecureCrmCustomerController;
@@ -43,6 +44,10 @@ Route::prefix('securecrm')->middleware('staff')->group(function () {
     Route::get('/reports', SecureCrmReportsController::class)
         ->middleware('staff.permission:report.view')
         ->name('securecrm.reports');
+
+    Route::get('/audit', [SecureCrmAuditController::class, 'index'])
+        ->middleware('staff.permission:audit.view')
+        ->name('securecrm.audit');
 
     Route::get('/notifications', [SecureCrmNotificationController::class, 'index'])->name('securecrm.notifications');
     Route::post('/notifications/{notification}/read', [SecureCrmNotificationController::class, 'markRead'])->name('securecrm.notifications.read');
@@ -221,7 +226,7 @@ Route::prefix('securecrm')->middleware('staff')->group(function () {
     $sections = [
         'crm',
         'knowledge', 'agents',
-        'integrations', 'audit', 'settings',
+        'integrations', 'settings',
     ];
 
     foreach ($sections as $section) {

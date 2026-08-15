@@ -2,13 +2,12 @@
 
 namespace Tests\Feature;
 
+use App\Models\HelpArticle;
+use App\Models\HelpArticleFeedback;
 use App\Models\SlaPolicy;
 use App\Models\StaffUser;
 use App\Models\Ticket;
 use App\Models\TicketCategory;
-use App\Models\TicketEvent;
-use App\Models\HelpArticle;
-use App\Models\HelpArticleFeedback;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 

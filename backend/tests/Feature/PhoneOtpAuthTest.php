@@ -270,7 +270,7 @@ class PhoneOtpAuthTest extends TestCase
         $res = $this->getJson('/api/v1/auth/methods');
         $res->assertOk();
 
-        $data = $res->json('data.data');
+        $data = $res->json('data') ?? $res->json();
         $this->assertSame('phone_otp', $data['primary']);
         $this->assertArrayHasKey('phone_otp', $data['methods']);
         $this->assertArrayHasKey('email_password', $data['methods']);

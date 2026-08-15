@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\SecureCrm;
 
 use App\Http\Controllers\Controller;
+use App\Models\AuditLog;
 use App\Models\SupportNote;
 use App\Models\Ticket;
+use App\Services\AuditLogService;
 use App\Services\MainBackendService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -63,6 +65,25 @@ class SecureCrmCustomerController extends Controller
         $wallet = $userId !== null ? $this->backend->userWalletSummary((int) $userId) : null;
         $kyc = $userId !== null ? $this->backend->userKycSummary((int) $userId) : null;
         $transactions = $userId !== null ? $this->backend->userTransactions((int) $userId) : null;
+
+        $audit = app(AuditLogService::class);
+        $audit->record(AuditLog::CUSTOMER_PROFILE_VIEW, subject_reference: $email);
+
+        if ($userId !== null) {
+            $audit->record(
+                AuditLog::CUSTOMER_INTERNAL_LOOKUP,
+                subject_reference: $email,
+                after: ['user_id' => $userId],
+            );
+        }
+
+        if ($userId !== null && $kyc['data'] !== null) {
+            $audit->record(
+                AuditLog::KYC_VIEW,
+                subject_reference: $email,
+                after: ['user_id' => $userId],
+            );
+        }
 
         $tickets = Ticket::query()
             ->forEmail($email)

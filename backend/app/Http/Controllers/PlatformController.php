@@ -41,6 +41,16 @@ class PlatformController extends Controller
             'kyc_provider' => $activeKycProvider,
             'social_providers' => $socialProviders,
             'auth_methods' => $this->authMethods->public(),
+            'security_policy' => [
+                'persistent_session'      => true, // WhatsApp style persistent auth
+                'app_lock_required'       => true,
+                'app_lock_mode'           => 'daily_or_launch',
+                'transaction_pin_enabled' => true,
+                'pin_setup_url'           => '/api/v1/wallet/pin/setup',
+                'pin_update_url'          => '/api/v1/wallet/pin/update',
+                'pin_verify_url'          => '/api/v1/wallet/pin/verify',
+                'pin_status_url'          => '/api/v1/wallet/pin/status',
+            ],
         ]);
     }
 }

@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\SecureCrm;
 
 use App\Http\Controllers\Controller;
+use App\Models\AuditLog;
 use App\Models\CmsContent;
 use App\Models\CmsContentRevision;
+use App\Services\AuditLogService;
 use App\Services\CmsContentService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -123,12 +125,28 @@ class SecureCrmCmsController extends Controller
 
         $this->content->transition($cms, 'published');
 
+        app(AuditLogService::class)->record(
+            AuditLog::CMS_PUBLISH,
+            subject: $cms,
+            subject_reference: $cms->slug ?: $cms->title,
+            before: ['state' => $cms->state],
+            after: ['state' => 'published'],
+        );
+
         return back()->with('status', 'Content published.');
     }
 
     public function unpublish(Request $request, CmsContent $cms): RedirectResponse
     {
         $this->content->transition($cms, 'draft');
+
+        app(AuditLogService::class)->record(
+            AuditLog::CMS_UNPUBLISH,
+            subject: $cms,
+            subject_reference: $cms->slug ?: $cms->title,
+            before: ['state' => $cms->state],
+            after: ['state' => 'draft'],
+        );
 
         return back()->with('status', 'Content unpublished.');
     }
@@ -148,12 +166,28 @@ class SecureCrmCmsController extends Controller
     {
         $this->content->transition($cms, 'archived');
 
+        app(AuditLogService::class)->record(
+            AuditLog::CMS_ARCHIVE,
+            subject: $cms,
+            subject_reference: $cms->slug ?: $cms->title,
+            before: ['state' => $cms->state],
+            after: ['state' => 'archived'],
+        );
+
         return back()->with('status', 'Content archived.');
     }
 
     public function restore(Request $request, CmsContent $cms): RedirectResponse
     {
         $this->content->transition($cms, 'draft');
+
+        app(AuditLogService::class)->record(
+            AuditLog::CMS_RESTORE,
+            subject: $cms,
+            subject_reference: $cms->slug ?: $cms->title,
+            before: ['state' => $cms->state],
+            after: ['state' => 'draft'],
+        );
 
         return back()->with('status', 'Content restored as draft.');
     }

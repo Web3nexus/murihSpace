@@ -289,6 +289,18 @@ class WalletController extends Controller
         return response()->json(['message' => 'PIN verified successfully.']);
     }
 
+    public function pinStatus(Request $request): JsonResponse
+    {
+        $wallet = $this->walletService->getOrCreateWallet($request->user(), 'system');
+
+        return response()->json([
+            'data' => [
+                'has_pin'    => $wallet->hasPin(),
+                'pin_set_at' => $wallet->pin_set_at?->toIso8601String(),
+            ],
+        ]);
+    }
+
     public function transactions(Request $request): JsonResponse
     {
         $validated = $request->validate([

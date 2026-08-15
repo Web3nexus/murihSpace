@@ -211,8 +211,8 @@ class AuthController extends Controller
             $excess->take($excess->count() - $maxTokens + 1)->each->delete();
         }
 
-        $expiration = config('sanctum.expiration');
-        $expiresAt = $expiration ? now()->addMinutes((int) $expiration) : now()->addYears(10);
+        $expiration = (int) config('sanctum.expiration', 43200);
+        $expiresAt  = now()->addMinutes($expiration > 0 ? $expiration : 43200);
 
         $token = $user->createToken('auth-token', ['*'], $expiresAt)->plainTextToken;
 
