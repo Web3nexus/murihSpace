@@ -25,8 +25,10 @@ class AuthController extends Controller
 
     public function register(Request $request): JsonResponse
     {
-        if ($request->has('email')) {
-            $request->merge(['email' => strtolower($request->email)]);
+        if ($request->filled('email')) {
+            $request->merge(['email' => strtolower(trim($request->email))]);
+        } else {
+            $request->merge(['email' => null]);
         }
 
         $viaSession = $request->filled('registration_session_id');
@@ -124,16 +126,18 @@ class AuthController extends Controller
         $token = app(AuthSessionService::class)->issue($user, $request)['token'];
 
         try {
-            $this->notifications->actionEmail(
-                user: $user,
-                title: 'Welcome to MurihSpace, '.e($user->name).'!',
-                bodyHtml: '<p>Welcome to MurihSpace, '.e($user->name).'! Your account is ready.</p><p>Create your profile, share posts, join communities, and connect with creators and members around the world.</p>',
-                actionLabel: 'Explore MurihSpace',
-                actionUrl: NotificationService::link('app'),
-                template: 'welcome',
-            );
+            if ($user->email) {
+                $this->notifications->actionEmail(
+                    user: $user,
+                    title: 'Welcome to MurihSpace, '.e($user->name).'!',
+                    bodyHtml: '<p>Welcome to MurihSpace, '.e($user->name).'! Your account is ready.</p><p>Create your profile, share posts, join communities, and connect with creators and members around the world.</p>',
+                    actionLabel: 'Explore MurihSpace',
+                    actionUrl: NotificationService::link('app'),
+                    template: 'welcome',
+                );
 
-            $this->emailVerification->issue($user);
+                $this->emailVerification->issue($user);
+            }
         } catch (\Throwable $e) {
             report($e);
         }
@@ -178,8 +182,8 @@ class AuthController extends Controller
 
     public function login(Request $request): JsonResponse
     {
-        if ($request->has('email')) {
-            $request->merge(['email' => strtolower($request->email)]);
+        if ($request->filled('email')) {
+            $request->merge(['email' => strtolower(trim($request->email))]);
         }
 
         if (! app(AuthMethodConfigService::class)->loginEnabled('email_password')) {

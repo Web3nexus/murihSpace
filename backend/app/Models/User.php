@@ -64,6 +64,15 @@ class User extends Authenticatable implements MustVerifyEmail
         ];
     }
 
+    /**
+     * Set the user's email attribute, converting empty strings to null.
+     */
+    protected function setEmailAttribute(?string $value): void
+    {
+        $value = is_string($value) ? trim($value) : null;
+        $this->attributes['email'] = ($value !== null && $value !== '') ? strtolower($value) : null;
+    }
+
     public function hasActiveUsernameTrial(): bool
     {
         if ($this->is_premium) return true;

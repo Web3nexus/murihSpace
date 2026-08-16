@@ -1,0 +1,20 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Support\Facades\DB;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        DB::table('users')
+            ->where('email', '')
+            ->orWhereRaw("TRIM(email) = ''")
+            ->update(['email' => null]);
+    }
+
+    public function down(): void
+    {
+        // No-op: nullable email values that are null should remain null.
+    }
+};

@@ -17,7 +17,7 @@ class EmailVerificationService
      */
     public function issue(User $user): void
     {
-        if ($user->hasVerifiedEmail()) {
+        if (! $user->email || $user->hasVerifiedEmail()) {
             return;
         }
 

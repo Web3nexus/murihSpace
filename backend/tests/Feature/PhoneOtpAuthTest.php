@@ -106,6 +106,50 @@ class PhoneOtpAuthTest extends TestCase
         ]);
     }
 
+    public function test_multiple_registrations_without_email_or_with_empty_email_store_null(): void
+    {
+        // 1st User: empty string email
+        $this->requestOtp('register', ['country_iso2' => 'NG', 'mobile_number' => '8123456789'])->assertOk();
+        $code1 = $this->otpCode(self::NG_NUMBER);
+        $v1 = $this->postJson('/api/v1/auth/otp/verify', ['intent' => 'register', 'phone_e164' => self::NG_NUMBER, 'code' => $code1]);
+        $s1 = $v1->json('data.registration_session_id');
+
+        $reg1 = $this->postJson('/api/v1/auth/register', [
+            'registration_session_id' => $s1,
+            'name' => 'User One',
+            'username' => 'user_one',
+            'email' => '',
+            'password' => 'Str0ng#Pass1',
+            'password_confirmation' => 'Str0ng#Pass1',
+            'role' => 'member',
+        ]);
+        $reg1->assertStatus(201);
+
+        $u1 = User::where('username', 'user_one')->firstOrFail();
+        $this->assertNull($u1->email);
+
+        // 2nd User: null email with different phone
+        $phone2 = '+2348099998888';
+        $this->postJson('/api/v1/auth/otp/request', ['intent' => 'register', 'phone_e164' => $phone2, 'country_iso2' => 'NG', 'mobile_number' => '8099998888'])->assertOk();
+        $code2 = $this->otpCode($phone2);
+        $v2 = $this->postJson('/api/v1/auth/otp/verify', ['intent' => 'register', 'phone_e164' => $phone2, 'code' => $code2]);
+        $s2 = $v2->json('data.registration_session_id');
+
+        $reg2 = $this->postJson('/api/v1/auth/register', [
+            'registration_session_id' => $s2,
+            'name' => 'User Two',
+            'username' => 'user_two',
+            'email' => null,
+            'password' => 'Str0ng#Pass1',
+            'password_confirmation' => 'Str0ng#Pass1',
+            'role' => 'member',
+        ]);
+        $reg2->assertStatus(201);
+
+        $u2 = User::where('username', 'user_two')->firstOrFail();
+        $this->assertNull($u2->email);
+    }
+
     public function test_registration_requires_verified_session(): void
     {
         $register = $this->postJson('/api/v1/auth/register', [
