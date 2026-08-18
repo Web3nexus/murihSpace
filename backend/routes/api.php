@@ -16,6 +16,7 @@ use App\Http\Controllers\AddressController;
 use App\Http\Controllers\BrandController;
 use App\Http\Controllers\CountryController;
 use App\Http\Controllers\BrandDealController;
+use App\Http\Controllers\BrandDealMilestoneController;
 use App\Http\Controllers\BrandDealProposalController;
 use App\Http\Controllers\BrandInvoiceController;
 use App\Http\Controllers\AuditLogController;
@@ -594,6 +595,11 @@ Route::prefix('v1')->group(function () {
                 Route::post('/', [BrandDealController::class, 'store']);
                 Route::put('/{id}', [BrandDealController::class, 'update']);
                 Route::delete('/{id}', [BrandDealController::class, 'destroy']);
+                Route::get('/{dealId}/milestones', [BrandDealMilestoneController::class, 'index']);
+                Route::post('/{dealId}/milestones', [BrandDealMilestoneController::class, 'store']);
+                Route::post('/milestones/{milestoneId}/submit', [BrandDealMilestoneController::class, 'submit']);
+                Route::post('/milestones/{milestoneId}/approve', [BrandDealMilestoneController::class, 'approve']);
+                Route::post('/milestones/{milestoneId}/dispute', [BrandDealMilestoneController::class, 'dispute']);
             });
 
             Route::prefix('brand-proposals')->group(function () {
@@ -1205,6 +1211,8 @@ Route::prefix('v1')->group(function () {
             Route::prefix('disputes')->group(function () {
                 Route::get('/', [FulfilmentDisputeController::class, 'adminIndex']);
                 Route::put('/{id}/resolve', [FulfilmentDisputeController::class, 'adminResolve']);
+                Route::get('/brand-deals', [BrandDealMilestoneController::class, 'adminDisputesIndex']);
+                Route::post('/brand-deals/{milestoneId}/resolve', [BrandDealMilestoneController::class, 'adminResolveDispute']);
             });
 
             // ── Sprint 35: Payouts Management ─────────────────────────────────

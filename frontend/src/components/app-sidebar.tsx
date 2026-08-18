@@ -470,7 +470,7 @@ export function AppSidebar({ ...props }: SidebarProps) {
                 Complete your setup to unlock the dashboard
               </p>
               <Link
-                to="/onboarding"
+                to="/app/onboarding"
                 className="inline-flex items-center gap-1.5 bg-[#2164b6] hover:bg-[#2a96c7] text-white text-[11px] font-bold px-3 py-1.5 rounded-lg transition-colors"
               >
                 Start Setup Wizard
