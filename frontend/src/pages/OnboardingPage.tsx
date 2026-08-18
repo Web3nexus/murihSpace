@@ -335,18 +335,29 @@ export default function OnboardingPage() {
 
   return (
     <div className="w-full max-w-7xl mx-auto space-y-6 p-6 lg:p-8">
-      <div>
-        <h1 className="text-2xl font-black tracking-tight flex items-center gap-2.5">
-          <Wand2 className="h-6 w-6 text-[#2164b6] dark:text-[#7ab0ff]" />
-          {role === "vendor" ? "Vendor AI Onboarding" : role === "creator" ? "Creator AI Onboarding" : "Account Setup"}
-        </h1>
-        <p className="text-xs text-muted-foreground mt-1">
-          {role === "vendor"
-            ? "Mera helps you set up your storefront and products."
-            : role === "creator"
-            ? "Mera sets up your link-in-bio and creator tools."
-            : "Quick account setup to get you started."}
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-black tracking-tight flex items-center gap-2.5">
+            <Wand2 className="h-6 w-6 text-[#2164b6] dark:text-[#7ab0ff]" />
+            {role === "vendor" ? "Vendor AI Onboarding" : role === "creator" ? "Creator AI Onboarding" : "Account Setup"}
+          </h1>
+          <p className="text-xs text-muted-foreground mt-1">
+            {role === "vendor"
+              ? "Mera helps you set up your storefront and products. Fill in details or skip anytime."
+              : role === "creator"
+              ? "Mera sets up your link-in-bio and creator tools. Use AI assistance or enter details manually."
+              : "Quick account setup to get you started."}
+          </p>
+        </div>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={role === "creator" ? handleFinishCreator : role === "vendor" ? handleFinishVendor : handleFinishMember}
+          disabled={saving}
+          className="text-xs font-bold gap-1.5 border-[#2164b6] text-[#2164b6] hover:bg-[#2164b6] hover:text-white transition-all shrink-0"
+        >
+          {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />} Skip & Complete Setup
+        </Button>
       </div>
 
       {/* Progress steps */}

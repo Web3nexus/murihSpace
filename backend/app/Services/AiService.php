@@ -6,6 +6,7 @@ use App\Models\AiConversation;
 use App\Models\AiMemory;
 use App\Models\AiSetting;
 use App\Models\AdminSetting;
+use App\Models\CreatorProfile;
 use App\Models\User;
 use App\Services\AiProviders\AiProviderContract;
 use Exception;
@@ -430,26 +431,43 @@ class AiService
     {
         $lower = Str::lower($message);
 
-        if (Str::contains($lower, ['content', 'post', 'create'])) {
-            return 'Love that energy! Tell me what you create and who it is for — I can help you shape a plan and pick the right link-in-bio setup.';
+        // Auto-extract and remember user's profession or niche
+        try {
+            $profile = CreatorProfile::firstOrCreate(['user_id' => $user->id]);
+            if (! $profile->about || Str::length($profile->about) < 10) {
+                $profile->update([
+                    'about' => $message,
+                    'niche' => $profile->niche ?: Str::limit($message, 40),
+                ]);
+            }
+        } catch (\Throwable $e) {
+            // ignore
         }
 
-        if (Str::contains($lower, ['community', 'audience', 'grow'])) {
-            return 'Great focus! Growing a community starts with a clear niche. What kind of people do you want to attract?';
+        if (Str::contains($lower, ['developer', 'coding', 'web', 'software', 'tech', 'engineer', 'code', 'program'])) {
+            return "Awesome! I've noted that you're in tech/development and saved it to your brand profile. We can showcase your portfolio, Github links, and services. Click 'Continue' below to add your socials!";
         }
 
-        if (Str::contains($lower, ['social', 'instagram', 'tiktok', 'twitter', 'youtube', 'handle'])) {
-            return 'Nice — connecting your socials lets me build a richer profile for you. Head to the social step and add your handles, and I will draft a bio for you.';
+        if (Str::contains($lower, ['coach', 'fitness', 'health', 'consultant', 'trainer'])) {
+            return "Fantastic! Coaching is a high-impact niche. I've noted this in your profile — click 'Continue' below to connect your socials and select a template!";
+        }
+
+        if (Str::contains($lower, ['content', 'post', 'create', 'video', 'media', 'podcast'])) {
+            return "Love that energy! I have saved your content goals to your space. Click 'Continue' below to add your handles and customize your profile.";
+        }
+
+        if (Str::contains($lower, ['community', 'audience', 'grow', 'member', 'followers'])) {
+            return 'Great focus! Building a strong community starts with a clear offer. Click "Continue" below whenever you are ready for the next step.';
+        }
+
+        if (Str::contains($lower, ['social', 'instagram', 'tiktok', 'twitter', 'youtube', 'handle', 'github', 'linkedin'])) {
+            return 'Nice — connecting your socials lets us build a richer profile for you. Head to Step 2 below to add your handles!';
         }
 
         if (Str::contains($lower, ['template', 'design', 'look', 'theme'])) {
-            return 'We have 10 ready-made templates to pick from — minimal, magazine, terminal, storefront and more. You can switch anytime in the Link in Bio builder.';
+            return 'We have 10 ready-made templates to pick from — minimal, magazine, terminal, storefront and more. You can switch anytime!';
         }
 
-        if (Str::contains($lower, ['analytics', 'stats', 'insight'])) {
-            return 'Your Analytics dashboard is the best place for revenue, engagement and audience insight. I can help you interpret specific numbers if you share them.';
-        }
-
-        return "I'm here to help you build your MurihSpace presence. Tell me a little about what you do or what you'd like help with — for example \"I'm a fitness coach\" or \"I want more members\".";
+        return "Got it, @{$user->username}! I've saved that description to your brand profile. You can continue typing details or click 'Continue' below to advance to the next step.";
     }
 }

@@ -95,10 +95,12 @@ export function WalletPage() {
   const fetchWallets = useCallback(async () => {
     try {
       const res = await apiClient.get("/wallet");
-      const list = res.data?.data || [];
+      const raw = res.data?.data ?? res.data ?? [];
+      const list = Array.isArray(raw) ? raw : (raw && typeof raw === "object" && raw.id ? [raw] : []);
       setWallets(list);
     } catch {
       toast.error("Failed to load wallets.");
+      setWallets([]);
     }
   }, []);
 
@@ -122,8 +124,9 @@ export function WalletPage() {
     Promise.all([fetchWallets(), fetchTransactions(activeTab)]).finally(() => setLoading(false));
   }, [fetchWallets, fetchTransactions, activeTab]);
 
-  const activeWallet = wallets.find((w) => w.wallet_type === activeTab);
-  const systemWallet = wallets.find((w) => w.wallet_type === "system");
+  const safeWallets = Array.isArray(wallets) ? wallets : [];
+  const activeWallet = safeWallets.find((w) => w?.wallet_type === activeTab) ?? safeWallets[0] ?? null;
+  const systemWallet = safeWallets.find((w) => w?.wallet_type === "system") ?? safeWallets[0] ?? null;
 
   // Live fee preview for deposit
   const fetchDepositFeePreview = useCallback(async (amountStr: string, gateway: string) => {

@@ -5,16 +5,21 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { authFetch } from "@/lib/api/authFetch";
 
-
-
-
-
 interface GiftItem { id: number; name: string; icon_url: string | null; coin_price: number; creator_earns: number; category: string; is_active: boolean; sort_order: number; }
 interface CoinPack { id: number; name: string; coins: number; bonus_coins: number; price: number; currency: string; badge: string | null; is_active: boolean; sort_order: number; }
 
 function formatPrice(p: CoinPack) {
   const syms: Record<string, string> = { NGN: "₦", USD: "$", GBP: "£", EUR: "€" };
-  return (syms[p.currency] ?? p.currency + " ") + (p.price / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return (syms[p.currency] ?? p.currency + " ") + ((p.price || 0) / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function safeArray<T = any>(val: any): T[] {
+  if (Array.isArray(val)) return val;
+  if (Array.isArray(val?.data)) return val.data;
+  if (Array.isArray(val?.data?.data)) return val.data.data;
+  if (Array.isArray(val?.gifts)) return val.gifts;
+  if (Array.isArray(val?.packs)) return val.packs;
+  return [];
 }
 
 export default function GiftsPage() {
@@ -39,15 +44,15 @@ export default function GiftsPage() {
     setLoading(true);
     try {
       const [gRes, tRes, wRes, pRes] = await Promise.all([
-        authFetch(`/gifts/catalogue`, {  }),
-        authFetch(`/gifts/transactions`, {  }),
-        authFetch(`/wallet`, {  }),
-        authFetch(`/coins/packs`, {  }),
+        authFetch(`/gifts/catalogue`, {}),
+        authFetch(`/gifts/transactions`, {}),
+        authFetch(`/wallet`, {}),
+        authFetch(`/coins/packs`, {}),
       ]);
-      if (gRes.ok) { const j = await gRes.json(); setGifts(j?.data ?? j ?? []); }
-      if (tRes.ok) { const j = await tRes.json(); setTransactions(j?.data?.data ?? j?.data ?? j ?? []); }
+      if (gRes.ok) { const j = await gRes.json(); setGifts(safeArray(j)); }
+      if (tRes.ok) { const j = await tRes.json(); setTransactions(safeArray(j)); }
       if (wRes.ok) { const j = await wRes.json(); setBalance(j?.data?.balance ?? j?.data?.data?.balance ?? j?.balance ?? 0); }
-      if (pRes.ok) { const j = await pRes.json(); setPacks(j?.data ?? j ?? []); }
+      if (pRes.ok) { const j = await pRes.json(); setPacks(safeArray(j)); }
     } catch { /* ignore */ }
     finally { setLoading(false); }
   }, []);
@@ -64,7 +69,7 @@ export default function GiftsPage() {
       if (res.ok) {
         setMsg({ ok: true, text: `Added ${pack.coins + (pack.bonus_coins || 0)} coins to your wallet!` });
         setShowCoinShop(false);
-        const wRes = await authFetch(`/wallet`, {  });
+        const wRes = await authFetch(`/wallet`, {});
         if (wRes.ok) { const j = await wRes.json(); setBalance(j?.data?.balance ?? j?.data?.data?.balance ?? j?.balance ?? 0); }
       } else {
         const j = await res.json().catch(() => ({}));
@@ -102,9 +107,13 @@ export default function GiftsPage() {
     finally { setSending(false); }
   };
 
-  const categories = ["all", ...Array.from(new Set(gifts.map(g => g.category)))];
-  const filtered = gifts.filter(g =>
-    g.name.toLowerCase().includes(search.toLowerCase()) &&
+  const safeGiftsList = safeArray<GiftItem>(gifts);
+  const safePacksList = safeArray<CoinPack>(packs);
+  const safeTxList = safeArray<any>(transactions);
+
+  const categories = ["all", ...Array.from(new Set(safeGiftsList.map(g => g.category).filter(Boolean)))];
+  const filtered = safeGiftsList.filter(g =>
+    (g.name || "").toLowerCase().includes(search.toLowerCase()) &&
     (category === "all" || g.category === category)
   );
 
@@ -226,14 +235,14 @@ export default function GiftsPage() {
       {tab === "history" && (
         <div className="bg-card border border-border rounded-2xl shadow-sm overflow-hidden">
           <div className="px-5 py-4 border-b border-border bg-muted/30"><h2 className="font-bold text-foreground">Gift History</h2></div>
-          {transactions.length === 0 ? (
+          {safeTxList.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground flex flex-col items-center justify-center space-y-3">
               <Gift className="w-12 h-12 opacity-20" />
               <p className="font-medium text-sm">No gift transactions yet.</p>
             </div>
           ) : (
             <div className="divide-y divide-border">
-              {transactions.map((t: any) => (
+              {safeTxList.map((t: any) => (
                 <div key={t.id} className="p-5 flex items-center justify-between text-sm hover:bg-muted/10 transition-colors">
                   <div>
                     <p className="font-bold text-foreground">{t.gift?.name || "Gift"} <span className="text-muted-foreground font-medium mx-1">&rarr;</span> {t.recipient?.name || `User #${t.recipient_id}`}</p>
@@ -256,15 +265,15 @@ export default function GiftsPage() {
             </div>
             <p className="text-sm text-gray-500 mb-4">Buy coins to send gifts to creators. You currently have <span className="font-semibold text-yellow-600">{balance.toLocaleString()} MSH</span>.</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {packs.map(pack => (
+              {safePacksList.map(pack => (
                 <div key={pack.id} className={`relative border rounded-xl p-4 flex flex-col ${pack.badge ? "border-yellow-300 ring-1 ring-yellow-200" : "border-gray-200"} hover:shadow-md transition-shadow`}>
                   {pack.badge && (
                     <span className="absolute -top-2.5 right-3 bg-yellow-400 text-yellow-900 text-[10px] font-bold px-2 py-0.5 rounded-full">{pack.badge}</span>
                   )}
                   <div className="flex items-center gap-2 mb-1">
                     <Coins className="w-4 h-4 text-yellow-500" />
-                    <span className="font-bold text-lg">{pack.coins.toLocaleString()}</span>
-                    {pack.bonus_coins > 0 && <span className="text-green-600 text-xs font-semibold">+{pack.bonus_coins} bonus</span>}
+                    <span className="font-bold text-lg">{(pack.coins || 0).toLocaleString()}</span>
+                    {(pack.bonus_coins || 0) > 0 && <span className="text-green-600 text-xs font-semibold">+{pack.bonus_coins} bonus</span>}
                   </div>
                   <p className="text-xs text-gray-400 mb-3">{formatPrice(pack)}</p>
                   <Button size="sm" onClick={() => buyPack(pack)} disabled={buying !== null} className="w-full">
@@ -274,7 +283,7 @@ export default function GiftsPage() {
                 </div>
               ))}
             </div>
-            {packs.length === 0 && <p className="text-sm text-gray-400 text-center py-6">No coin packs available right now.</p>}
+            {safePacksList.length === 0 && <p className="text-sm text-gray-400 text-center py-6">No coin packs available right now.</p>}
           </div>
         </div>
       )}

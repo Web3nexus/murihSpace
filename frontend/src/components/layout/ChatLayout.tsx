@@ -9,7 +9,8 @@ import { formatDistanceToNow, format } from 'date-fns';
 import type { ConversationItem, ChatMessage, MessageStatus, MessageReaction } from '@/types/chat';
 import { ReplyPreviewBar } from '@/components/chat/ReplyPreviewBar';
 import { MessageReactions } from '@/components/chat/MessageReactions';
-import { StoriesCarousel } from '@/components/chat/StoriesCarousel';
+import { StoriesCarousel } from '../chat/StoriesCarousel';
+import { StoryCreateModal } from '../story/StoryCreateModal';
 import { NewChatModal } from '@/components/chat/NewChatModal';
 import { CallOverlayModal, type CallMode } from '@/components/video/CallOverlayModal';
 import { useRealtimeMessaging } from '@/hooks/useRealtimeMessaging';
@@ -77,6 +78,7 @@ export function ChatLayout() {
   const [isNewModalOpen, setIsNewModalOpen] = useState(false);
   const [isCallModalOpen, setIsCallModalOpen] = useState(false);
   const [callMode, setCallMode] = useState<CallMode>('video');
+  const [isCreateStoryOpen, setIsCreateStoryOpen] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -310,7 +312,7 @@ export function ChatLayout() {
         <StoriesCarousel
           currentUserName={(currentUserData?.name as string) ?? 'User'}
           unreadMessagesCount={conversations.reduce((acc, c) => acc + (c.unread_count || 0), 0)}
-          onAddStory={() => navigate('/app/studio')}
+          onAddStory={() => setIsCreateStoryOpen(true)}
         />
 
         <div className="px-3 py-2.5 border-b border-border">
@@ -569,6 +571,11 @@ export function ChatLayout() {
         callerAvatar={activeConv?.other_user?.avatar_url}
         onClose={() => setIsCallModalOpen(false)}
         onOpenChat={() => setIsCallModalOpen(false)}
+      />
+
+      <StoryCreateModal
+        isOpen={isCreateStoryOpen}
+        onClose={() => setIsCreateStoryOpen(false)}
       />
     </div>
   );
