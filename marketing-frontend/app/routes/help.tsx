@@ -13,7 +13,7 @@ export async function loader() {
 
 export function meta() {
   return [
-    { title: "Help Center — MurihSpace" },
+    { title: "Help Center | MurihSpace" },
     {
       name: "description",
       content:

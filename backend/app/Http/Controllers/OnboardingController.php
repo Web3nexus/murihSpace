@@ -60,7 +60,7 @@ class OnboardingController extends Controller
             'data' => [
                 'role' => $role,
                 'is_business' => $isBusiness,
-                'onboarding_completed' => $profile?->onboarding_completed_at !== null,
+                'onboarding_completed' => $role === 'admin' || $profile?->onboarding_completed_at !== null,
                 'steps' => $steps,
                 'saved_progress' => $savedProgress,
                 'profile' => [
@@ -85,18 +85,27 @@ class OnboardingController extends Controller
      */
     public function saveProgress(Request $request): JsonResponse
     {
-        $data = $request->validate([
-            'step' => ['required', 'integer', 'min:0'],
+        $validated = $request->validate([
+            'step' => ['nullable', 'numeric', 'min:0'],
             'form_data' => ['nullable', 'array'],
         ]);
 
+        $step = max(0, (int) ($validated['step'] ?? $request->input('step', 0)));
+        $formData = $validated['form_data'] ?? $request->input('form_data', []);
+
         AiMemory::remember($request->user()->id, 'onboarding_progress', [
-            'step' => $data['step'],
-            'form_data' => $data['form_data'] ?? [],
+            'step' => $step,
+            'form_data' => is_array($formData) ? $formData : [],
             'saved_at' => now()->toIso8601String(),
         ]);
 
-        return response()->json(['message' => 'Progress saved.']);
+        return response()->json([
+            'message' => 'Progress saved.',
+            'step' => $step,
+            'data' => [
+                'step' => $step,
+            ],
+        ]);
     }
 
     /**
@@ -209,7 +218,7 @@ class OnboardingController extends Controller
 
         return response()->json([
             'data' => [
-                'onboarding_completed' => $profile?->onboarding_completed_at !== null,
+                'onboarding_completed' => $user->role === 'admin' || $profile?->onboarding_completed_at !== null,
                 'profile' => [
                     'about' => $profile?->about,
                     'niche' => $profile?->niche,

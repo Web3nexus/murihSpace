@@ -533,12 +533,12 @@ export function CoachingPage() {
               ))}
             </div>
           ) : services.filter((s) => s.is_active).length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-border p-12 text-center space-y-3 bg-card">
+            <div className="rounded-2xl border border-dashed border-border p-12 text-center space-y-3 bg-card flex flex-col items-center justify-center">
               <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
                 <Calendar className="h-6 w-6" />
               </div>
-              <h3 className="text-base font-semibold text-foreground">No coaching services available</h3>
-              <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+              <h3 className="text-base font-semibold text-foreground text-center">No coaching services available</h3>
+              <p className="text-xs text-muted-foreground max-w-sm mx-auto text-center">
                 Creators haven't published any coaching services yet. Check back later!
               </p>
             </div>
@@ -563,12 +563,12 @@ export function CoachingPage() {
       {tab === 'my-services' && (
         <div className="space-y-4">
           {myServices.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-border p-12 text-center space-y-3 bg-card">
+            <div className="rounded-2xl border border-dashed border-border p-12 text-center space-y-3 bg-card flex flex-col items-center justify-center">
               <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
                 <Calendar className="h-6 w-6" />
               </div>
-              <h3 className="text-base font-semibold text-foreground">No services yet</h3>
-              <p className="text-xs text-muted-foreground max-w-sm mx-auto">Create your first coaching service to start accepting bookings.</p>
+              <h3 className="text-base font-semibold text-foreground text-center">No services yet</h3>
+              <p className="text-xs text-muted-foreground max-w-sm mx-auto text-center">Create your first coaching service to start accepting bookings.</p>
             </div>
           ) : (
             <div>
@@ -660,12 +660,12 @@ export function CoachingPage() {
       {tab === 'my-bookings' && (
         <div className="space-y-3">
           {myBookings.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-border p-12 text-center space-y-3 bg-card">
+            <div className="rounded-2xl border border-dashed border-border p-12 text-center space-y-3 bg-card flex flex-col items-center justify-center">
               <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
                 <Calendar className="h-6 w-6" />
               </div>
-              <h3 className="text-base font-semibold text-foreground">No bookings yet</h3>
-              <p className="text-xs text-muted-foreground max-w-sm mx-auto">Browse services and book a session with a creator.</p>
+              <h3 className="text-base font-semibold text-foreground text-center">No bookings yet</h3>
+              <p className="text-xs text-muted-foreground max-w-sm mx-auto text-center">Browse services and book a session with a creator.</p>
             </div>
           ) : (
             myBookings.map((b) => (
@@ -686,12 +686,12 @@ export function CoachingPage() {
       {tab === 'my-sessions' && (
         <div className="space-y-3">
           {mySessions.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-border p-12 text-center space-y-3 bg-card">
+            <div className="rounded-2xl border border-dashed border-border p-12 text-center space-y-3 bg-card flex flex-col items-center justify-center">
               <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
                 <Calendar className="h-6 w-6" />
               </div>
-              <h3 className="text-base font-semibold text-foreground">No upcoming sessions</h3>
-              <p className="text-xs text-muted-foreground max-w-sm mx-auto">Sessions booked by members will appear here.</p>
+              <h3 className="text-base font-semibold text-foreground text-center">No upcoming sessions</h3>
+              <p className="text-xs text-muted-foreground max-w-sm mx-auto text-center">Sessions booked by members will appear here.</p>
             </div>
           ) : (
             mySessions.map((b) => (

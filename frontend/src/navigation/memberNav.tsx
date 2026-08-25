@@ -3,7 +3,7 @@ import {
   Compass,
   Users,
   Rss,
-  Calendar,
+  Video,
   Crown,
   BookOpen,
   MapPin,
@@ -47,7 +47,7 @@ export const memberNav: NavGroup[] = [
         children: [
           { title: "All Communities", url: "/app/communities" },
           { title: "Feed", url: "/app/feed", featureFlag: "community_feed" },
-          { title: "Events & Audio Rooms", url: "/app/events", featureFlag: "events" },
+          { title: "Live Video & Events", url: "/app/events", featureFlag: "events" },
         ],
       },
       {
@@ -57,11 +57,12 @@ export const memberNav: NavGroup[] = [
         featureFlag: "community_feed",
       },
       {
-        title: "Events & Audio Rooms",
+        title: "Live Video & Events",
         url: "/app/events",
-        icon: <Calendar className="size-4" />,
+        icon: <Video className="size-4" />,
         featureFlag: "events",
         children: [
+          { title: "Live Video Studio", url: "/app/audio-rooms", featureFlag: "audio_rooms" },
           { title: "Events", url: "/app/communities/events" },
           { title: "My Events", url: "/app/my-events" },
         ],

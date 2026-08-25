@@ -61,5 +61,6 @@ class DatabaseSeeder extends Seeder
         }
 
         $this->call(GiftsAndCoinPacksSeeder::class);
+        $this->call(FeatureFlagSeeder::class);
     }
 }

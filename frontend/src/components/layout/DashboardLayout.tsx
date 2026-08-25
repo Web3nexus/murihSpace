@@ -70,6 +70,15 @@ export function DashboardLayout() {
   }
 
   if (
+    user &&
+    user.role !== "admin" &&
+    user.onboarding_completed === false &&
+    !pathname.startsWith("/app/onboarding")
+  ) {
+    return <Navigate to="/app/onboarding" replace />;
+  }
+
+  if (
     !isAdmin &&
     user &&
     !cfg.loading &&

@@ -4,7 +4,7 @@ import { HeroSection } from "../components/sections/HeroSection";
 
 export function meta() {
   return [
-    { title: "Features — MurihSpace" },
+    { title: "Features | MurihSpace" },
     { name: "description", content: "Everything you need to build, grow, and monetise your creator business." },
   ];
 }

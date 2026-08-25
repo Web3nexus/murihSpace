@@ -118,11 +118,11 @@ export function PublicStorefrontPage() {
         {/* Cover & Avatar Header Card */}
         <div className="border border-border rounded-3xl bg-card overflow-hidden shadow-xl">
           {/* Cover image */}
-          <div className="h-48 sm:h-64 bg-gradient-to-r from-primary to-secondary relative overflow-hidden">
+          <div className="h-48 sm:h-64 bg-[#1877f2]/15 dark:bg-[#242526] border-b border-border relative overflow-hidden">
             {store.cover_url ? (
               <img src={store.cover_url} alt={store.display_name} className="w-full h-full object-cover" />
             ) : (
-              <div className="w-full h-full flex items-center justify-center text-white/20">
+              <div className="w-full h-full flex items-center justify-center text-muted-foreground/30">
                 <Store className="h-16 w-16" />
               </div>
             )}

@@ -57,7 +57,7 @@ class AuthController extends Controller
             'mobile_number' => ['nullable', 'string', 'regex:/^\+?[1-9]\d{1,14}$/'],
             'county' => ['nullable', 'string', 'max:255'],
             'state' => ['nullable', 'string', 'max:255'],
-            'role' => ['required', 'string', 'in:member,creator,vendor'],
+            'role' => ['nullable', 'string', 'in:member,creator,vendor,user'],
             'kyc_document' => ['nullable', 'string'],
         ]);
 
@@ -81,7 +81,10 @@ class AuthController extends Controller
             }
         }
 
-        $requestedRole = $request->input('role', 'member');
+        $requestedRole = $request->input('role', 'member') ?: 'member';
+        if ($requestedRole === 'user') {
+            $requestedRole = 'member';
+        }
         $kycStatus = $requestedRole !== 'member' ? 'not_started' : 'not_required';
 
         $user = User::create([
@@ -156,7 +159,7 @@ class AuthController extends Controller
                 'phone_verified' => $user->hasVerifiedPhone(),
                 'mobile_number' => $user->mobile_number,
                 'link_in_bio_url' => $user->getLinkInBioUrl(),
-                'onboarding_completed' => $user->creatorProfile?->onboarding_completed_at !== null,
+                'onboarding_completed' => $user->role === 'admin' || $user->creatorProfile?->onboarding_completed_at !== null,
             ],
         ], 201);
     }
@@ -234,7 +237,7 @@ class AuthController extends Controller
                 'kyc_status' => $user->kyc_status,
                 'email_verified' => $user->hasVerifiedEmail(),
                 'link_in_bio_url' => $user->getLinkInBioUrl(),
-                'onboarding_completed' => $user->creatorProfile?->onboarding_completed_at !== null,
+                'onboarding_completed' => $user->role === 'admin' || $user->creatorProfile?->onboarding_completed_at !== null,
                 'username_trial_ends_at' => $user->username_trial_ends_at?->toIso8601String(),
             ],
         ]);

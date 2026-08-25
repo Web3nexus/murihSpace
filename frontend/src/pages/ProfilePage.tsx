@@ -75,10 +75,78 @@ export function ProfilePage() {
 
   return (
     <div className="w-full max-w-3xl mx-auto space-y-8">
+      {/* ── PROFILE HEADER CARD ── */}
+      <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+        <div className="h-32 w-full bg-[#1877f2]/15 dark:bg-[#242526] border-b border-border relative overflow-hidden">
+          {profile?.banner_url ? (
+            <img src={profile.banner_url} alt="" className="w-full h-full object-cover" />
+          ) : (
+            <div className="absolute inset-0 bg-gradient-to-r from-[#1877f2]/20 to-transparent" />
+          )}
+        </div>
+        <div className="px-6 pb-6 pt-0 relative">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between -mt-12 mb-4 gap-4">
+            <div className="flex items-end gap-4">
+              <div className="w-24 h-24 rounded-full border-4 border-card bg-muted flex items-center justify-center overflow-hidden text-2xl font-black text-foreground shadow-md shrink-0">
+                {avatar ? (
+                  <img src={avatar} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  (name || "U").charAt(0).toUpperCase()
+                )}
+              </div>
+              <div className="pb-1">
+                <div className="flex items-center gap-2">
+                  <h2 className="text-xl font-extrabold text-foreground">{name || "Your Name"}</h2>
+                  {(profile?.has_active_verification_badge || profile?.kyc_status === "verified") && (
+                    <BadgeCheck className="h-5 w-5 text-[#2164b6] fill-[#2164b6]/10" />
+                  )}
+                </div>
+                <p className="text-xs font-medium text-muted-foreground">@{username || "username"}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 pb-1">
+              <span className="px-3 py-1 rounded-full bg-[#2164b6]/10 text-[#2164b6] dark:text-[#7ab0ff] text-xs font-bold capitalize">
+                {profile?.role || "Member"} Mode
+              </span>
+            </div>
+          </div>
+
+          {bio && (
+            <p className="text-xs text-muted-foreground mb-6 leading-relaxed max-w-xl">
+              {bio}
+            </p>
+          )}
+
+          {/* Stats Bar */}
+          <div className="grid grid-cols-5 gap-2 py-3 px-4 rounded-xl bg-muted/40 border border-border text-center text-xs">
+            <div>
+              <span className="font-extrabold text-foreground block text-sm">{profile?.posts_count ?? 0}</span>
+              <span className="text-[10px] text-muted-foreground uppercase font-semibold">Posts</span>
+            </div>
+            <div>
+              <span className="font-extrabold text-foreground block text-sm">{profile?.followers_count ?? 0}</span>
+              <span className="text-[10px] text-muted-foreground uppercase font-semibold">Followers</span>
+            </div>
+            <div>
+              <span className="font-extrabold text-foreground block text-sm">{profile?.following_count ?? 0}</span>
+              <span className="text-[10px] text-muted-foreground uppercase font-semibold">Following</span>
+            </div>
+            <div>
+              <span className="font-extrabold text-foreground block text-sm">{profile?.communities_count ?? 0}</span>
+              <span className="text-[10px] text-muted-foreground uppercase font-semibold">Communities</span>
+            </div>
+            <div>
+              <span className="font-extrabold text-emerald-600 dark:text-emerald-400 block text-sm">${profile?.coins ?? 0}</span>
+              <span className="text-[10px] text-muted-foreground uppercase font-semibold">Coins</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div>
-        <h2 className="text-xl font-bold tracking-tight">Public Profile</h2>
-        <p className="text-sm text-muted-foreground">
-          Manage your account profile details and verification status.
+        <h2 className="text-lg font-bold tracking-tight">Profile Details & Settings</h2>
+        <p className="text-xs text-muted-foreground">
+          Manage your account profile details, avatar, and verification status.
         </p>
       </div>
 
