@@ -409,28 +409,28 @@ export function StoreManagementPage() {
         <div className="lg:col-span-5 space-y-4">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-              <Eye className="h-3.5 w-3.5 text-[#2164b6] dark:text-[#7ab0ff]" />
+              <Eye className="h-3.5 w-3.5 text-secondary" />
               Live Storefront Preview
             </span>
             <a
               href={publicUrl}
               target="_blank"
               rel="noreferrer"
-              className="text-xs font-bold text-[#2164b6] dark:text-[#7ab0ff] hover:bg-[#2164b6]/10 px-3 py-1 rounded-lg border border-[#2164b6]/30 transition-all flex items-center gap-1.5 shadow-xs"
+              className="text-xs font-semibold text-secondary hover:underline flex items-center gap-1"
             >
-              Open Public Page <ExternalLink className="h-3.5 w-3.5" />
+              Open Public Page <ExternalLink className="h-3 w-3" />
             </a>
           </div>
 
           {/* Card Mockup */}
           <div className="border border-border rounded-2xl bg-card overflow-hidden shadow-lg transition-all">
             {/* Cover */}
-            <div className="h-32 bg-[#1877f2]/15 dark:bg-[#242526] border-b border-border relative overflow-hidden">
+            <div className="h-32 bg-gradient-to-r from-primary to-secondary relative overflow-hidden">
               {coverUrl ? (
                 <img src={coverUrl} alt="Cover" className="w-full h-full object-cover" />
               ) : (
-                <div className="w-full h-full flex items-center justify-center text-muted-foreground/30">
-                  <Store className="h-10 w-10" />
+                <div className="w-full h-full flex items-center justify-center text-white/20">
+                  <Store className="h-12 w-12" />
                 </div>
               )}
             </div>
@@ -438,7 +438,7 @@ export function StoreManagementPage() {
             {/* Avatar & Content Body */}
             <div className="p-5 pt-0 relative space-y-3">
               <div className="flex items-end justify-between -mt-10 mb-2">
-                <div className="h-16 w-16 rounded-full border-4 border-card bg-[#2164b6] text-white font-bold flex items-center justify-center text-xl shadow-md overflow-hidden shrink-0">
+                <div className="h-16 w-16 rounded-full border-4 border-card bg-primary text-primary-foreground font-bold flex items-center justify-center text-xl shadow-md overflow-hidden">
                   {avatarUrl ? (
                     <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
                   ) : (
@@ -446,14 +446,14 @@ export function StoreManagementPage() {
                   )}
                 </div>
 
-                <span className="text-xs font-bold px-3 py-1 rounded-full bg-[#2164b6]/15 text-[#2164b6] dark:text-[#7ab0ff] border border-[#2164b6]/30 shadow-xs">
+                <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-secondary/20 text-secondary border border-secondary/30">
                   @{shortCode || 'handle'}
                 </span>
               </div>
 
               <div>
                 <h3 className="text-lg font-black text-foreground">{displayName || 'Store Title'}</h3>
-                <p className="text-xs font-medium text-muted-foreground mt-0.5">{tagline || 'Tagline goes here'}</p>
+                <p className="text-xs font-semibold text-secondary mt-0.5">{tagline || 'Tagline goes here'}</p>
               </div>
 
               <p className="text-xs text-muted-foreground leading-relaxed line-clamp-3">

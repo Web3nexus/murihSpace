@@ -129,8 +129,7 @@ export default function FeedPage() {
         const mapped: PostItem[] = apiPosts.map((p: any) => mapApiPost(p, user?.id));
 
         try {
-          const adsApiBase = (import.meta.env.VITE_ADS_API_URL || 'https://ads.murihspace.com/api').replace(/\/+$/, '');
-          const adRes = await fetch(`${adsApiBase}/delivery/ad?placement=feed&user_id=${user?.id || 1}`);
+          const adRes = await fetch(`http://localhost:8002/api/delivery/ad?placement=feed&user_id=${user?.id || 1}`);
           const adData = await adRes.json();
           
           if (adData.status === 'success' && adData.data) {
@@ -143,7 +142,7 @@ export default function FeedPage() {
               badge: "Ad",
               time: "Sponsored",
               content: payload.creative?.body || "Check out this amazing offer!",
-              likes: payload.creative?.likes_count ?? 0,
+              likes: Math.floor(Math.random() * 100) + 10,
               comments: 0,
               shares: 0,
               isLiked: false,
@@ -451,7 +450,7 @@ export default function FeedPage() {
 
         <div className="bg-card border border-border shadow-xs rounded-2xl p-4 sm:p-5 space-y-4">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-full bg-[#1877f2] flex items-center justify-center text-white font-black text-sm shrink-0 overflow-hidden shadow-xs">
+            <div className="h-10 w-10 rounded-full bg-gradient-to-br from-[#2164b6] to-purple-600 flex items-center justify-center text-white font-black text-sm shrink-0 overflow-hidden shadow-xs">
               {user?.avatar_url ? (
                 <img src={user.avatar_url} alt="" className="w-full h-full object-cover" />
               ) : (
@@ -570,7 +569,7 @@ export default function FeedPage() {
                 {story.bg && <img src={story.bg} alt="" className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />}
                 <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/80" />
                 <div className="absolute top-2.5 left-2.5 z-10">
-                  <div className="h-9 w-9 rounded-full p-[2px] bg-[#1877f2]">
+                  <div className="h-9 w-9 rounded-full p-[2px] bg-gradient-to-tr from-purple-500 via-pink-500 to-[#2164b6]">
                     {story.avatar ? (
                       <img src={story.avatar} alt="" className="w-full h-full rounded-full object-cover border-2 border-white/40" />
                     ) : (
@@ -628,7 +627,7 @@ export default function FeedPage() {
                 )}
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-full bg-[#1877f2] p-[2px]">
+                    <div className="h-10 w-10 rounded-full bg-gradient-to-tr from-[#2164b6] to-purple-600 p-[2px]">
                       {post.avatar ? (
                         <img src={post.avatar} alt="" className="w-full h-full rounded-full object-cover" />
                       ) : (
@@ -772,7 +771,7 @@ export default function FeedPage() {
                       <div className="space-y-2.5">
                         {post.commentList.map((cmt) => (
                           <div key={cmt.id} className="flex items-start gap-2.5 text-xs p-2.5 rounded-xl bg-slate-50 dark:bg-muted/40">
-                            <div className="h-7 w-7 rounded-full bg-[#1877f2] flex items-center justify-center text-white font-bold text-[10px] shrink-0">
+                            <div className="h-7 w-7 rounded-full bg-gradient-to-br from-[#2164b6] to-purple-600 flex items-center justify-center text-white font-bold text-[10px] shrink-0">
                               {cmt.avatar_url ? <img src={cmt.avatar_url} alt="" className="w-full h-full rounded-full object-cover" /> : cmt.user_name.charAt(0)}
                             </div>
                             <div className="flex-1 min-w-0">
@@ -921,7 +920,7 @@ export default function FeedPage() {
                 className="absolute inset-0 w-full h-full object-cover"
               />
             ) : (
-              <div className="absolute inset-0 bg-[#1877f2] flex items-center justify-center p-6 text-center text-white font-bold text-lg">
+              <div className="absolute inset-0 bg-gradient-to-br from-[#2164b6] to-purple-800 flex items-center justify-center p-6 text-center text-white font-bold text-lg">
                 {stories[activeStoryIndex].items[activeSubIndex]?.caption ?? stories[activeStoryIndex].name}
               </div>
             )}
@@ -947,7 +946,7 @@ export default function FeedPage() {
               {/* User header */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                  <div className="h-9 w-9 rounded-full bg-[#1877f2] p-[2px]">
+                  <div className="h-9 w-9 rounded-full bg-gradient-to-tr from-purple-500 via-pink-500 to-[#2164b6] p-[2px]">
                     {stories[activeStoryIndex].avatar ? (
                       <img src={stories[activeStoryIndex].avatar} alt="" className="w-full h-full rounded-full object-cover" />
                     ) : (

@@ -3,10 +3,11 @@ import React, { useState, useCallback, useRef, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router";
 import { useAuth } from "@/hooks/useAuth";
 import { usePlatformConfig } from "@/hooks/usePlatformConfig";
+import { AppDownloadQR } from "@/components/WebLockedPage";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Loader2, ArrowRight, ArrowLeft, CheckCircle2, XCircle, BadgeCheck, Crown, ShieldCheck, Eye, EyeOff } from "lucide-react";
+import { Loader2, ArrowRight, ArrowLeft, CheckCircle2, XCircle, BadgeCheck, Crown, Smartphone, Download, ShieldCheck, Eye, EyeOff } from "lucide-react";
 import { PASSWORD_RULES, validatePassword } from "@/lib/auth/passwordRules";
 
 import { AuthLayout } from "@/components/layout/AuthLayout";
@@ -14,6 +15,7 @@ import { PhoneInput } from "@/components/forms/PhoneInput";
 import { OtpInput } from "@/components/forms/OtpInput";
 import { InlineFieldError } from "@/components/ui/InlineFieldError";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 
 
@@ -69,7 +71,7 @@ export function RegisterPage() {
   const passwordConfirmRef = useRef<HTMLInputElement>(null);
 
   // Step 6: Role
-  const [_role, _setRole] = useState<"member" | "creator" | "vendor">("member");
+  const [role, setRole] = useState<"member" | "creator" | "vendor">("member");
 
   // Social
   const [socialLoading, setSocialLoading] = useState<string | null>(null);
@@ -183,7 +185,7 @@ export function RegisterPage() {
     setStep(5);
   };
 
-  const handleNextPassword = async (e: React.FormEvent) => {
+  const handleNextPassword = (e: React.FormEvent) => {
     e.preventDefault();
     setPasswordFieldError("");
     setPasswordConfirmError("");
@@ -202,16 +204,22 @@ export function RegisterPage() {
       passwordConfirmRef.current?.focus();
       return;
     }
-    await handleRegister();
+    setStep(6);
   };
 
-  const handleRegister = async () => {
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
     const success = await register({
-      name, email: "", username, role: "member", password, passwordConfirmation,
+      name, email: "", username, role, password, passwordConfirmation,
       registrationSessionId,
     });
     if (success) {
-      navigate("/app/onboarding", { replace: true });
+      const disabled = cfg.web_disabled_roles.includes(role as "member" | "creator" | "vendor");
+      if (disabled) {
+        setStep(7);
+      } else {
+        navigate("/app/onboarding", { replace: true });
+      }
     }
   };
 
@@ -262,11 +270,13 @@ export function RegisterPage() {
         </div>
 
         {/* Step Progress */}
-        <div className="flex items-center justify-center gap-1.5">
-          {[1, 2, 3, 4, 5].map((s) => (
-            <div key={s} className={`h-1.5 w-7 rounded-full transition-colors ${s <= step ? "bg-[#2164b6]" : "bg-muted"}`} />
-          ))}
-        </div>
+        {step !== 7 && (
+          <div className="flex items-center justify-center gap-1.5">
+            {[1, 2, 3, 4, 5, 6].map((s) => (
+              <div key={s} className={`h-1.5 w-7 rounded-full transition-colors ${s <= step ? "bg-[#2164b6]" : "bg-muted"}`} />
+            ))}
+          </div>
+        )}
 
         {/* Step 1: Phone */}
         {step === 1 && (
@@ -493,15 +503,90 @@ export function RegisterPage() {
                 <InlineFieldError id="password-confirm-error" error={passwordConfirmError} />
               </Field>
             </FieldGroup>
-            {error && <div className="p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-xs font-bold text-destructive">{error}</div>}
             <div className="flex gap-2">
               <Button type="button" variant="ghost" onClick={() => setStep(4)} className="text-sm"><ArrowLeft className="h-4 w-4 mr-1" /> Back</Button>
-              <Button type="submit" disabled={loading || !password || !passwordConfirmation} className="flex-1 text-sm font-bold">
+              <Button type="submit" disabled={!password || !passwordConfirmation} className="flex-1 text-sm font-bold">
+                Continue <ArrowRight className="h-4 w-4 ml-1" />
+              </Button>
+            </div>
+          </form>
+        )}
+
+        {/* Step 6: Role */}
+        {step === 6 && (
+          <form onSubmit={handleRegister} className="space-y-4">
+            <FieldGroup>
+              <FieldLabel>I want to join as</FieldLabel>
+              <div className="flex gap-2">
+                {(["member", "creator", "vendor"] as const).map((r) => {
+                  const locked = cfg.web_disabled_roles.includes(r);
+                  return (
+                    <button key={r} type="button" onClick={() => setRole(r)}
+                      className={`relative flex-1 px-3 py-2.5 rounded-xl text-xs font-bold transition-colors border ${
+                        role === r ? "border-[#2164b6] bg-[#2164b6]/10 text-[#2164b6] dark:text-[#7ab0ff]" : "border-border bg-card text-muted-foreground hover:text-foreground"
+                      }`}>
+                      {r === "member" ? "Member" : r === "creator" ? "Creator" : "Vendor"}
+                      {locked && <span className="absolute -top-1.5 -right-1.5 px-1.5 py-0.5 rounded-full bg-rose-500 text-white text-[8px] font-black uppercase tracking-wide shadow-sm">App only</span>}
+                    </button>
+                  );
+                })}
+              </div>
+              {role && cfg.web_disabled_roles.includes(role as "member" | "creator" | "vendor") && (
+                <p className="text-[10px] text-rose-500 font-medium flex items-center gap-1">
+                  <Smartphone className="h-3 w-3" /> The {role} dashboard is app-only — you'll get a QR code to download the app after signing up.
+                </p>
+              )}
+            </FieldGroup>
+            <div className={cn("p-3 rounded-xl border flex items-center gap-2.5", "bg-emerald-500/10 border-emerald-500/20")}>
+              <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+              <p className="text-xs font-medium text-emerald-500"><span className="font-bold">{verifiedPhone}</span> verified <span className="font-bold">✓</span></p>
+            </div>
+            {error && <div className="p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-xs font-bold text-destructive">{error}</div>}
+            <div className="flex gap-2">
+              <Button type="button" variant="ghost" onClick={() => setStep(5)} className="text-sm"><ArrowLeft className="h-4 w-4 mr-1" /> Back</Button>
+              <Button type="submit" disabled={loading} className="flex-1 text-sm font-bold">
                 {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                 Create Account
               </Button>
             </div>
           </form>
+        )}
+
+        {/* Step 7: Registered — role locked to app */}
+        {step === 7 && (
+          <div className="space-y-5 text-center">
+            <div className="mx-auto h-14 w-14 rounded-2xl bg-[#2164b6]/10 flex items-center justify-center">
+              <Smartphone className="h-7 w-7 text-[#2164b6] dark:text-[#7ab0ff]" />
+            </div>
+            <div className="space-y-1.5">
+              <h1 className="text-lg font-black tracking-tight text-foreground">You're in!</h1>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                <span className="font-bold text-foreground">@{username}</span> is yours.
+                Your {role} dashboard is only available in the MurihSpace app. Scan the QR code to download the app and sign in.
+              </p>
+            </div>
+            <div className="flex justify-center">
+              <AppDownloadQR content={cfg.app_qr_content} size={192} />
+            </div>
+            <div className="space-y-2">
+              <a
+                href={cfg.app_download_url}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-[#2164b6] hover:bg-[#1a5091] text-white text-xs font-bold transition-colors shadow-xs"
+              >
+                <Download className="h-4 w-4" /> Download the app
+              </a>
+              <p className="text-[10px] text-muted-foreground">Already have the app? Just sign in with your new account.</p>
+              <button
+                type="button"
+                onClick={() => navigate("/login", { replace: true })}
+                className="text-xs font-bold text-[#2164b6] dark:text-[#7ab0ff] hover:underline"
+              >
+                Sign in instead
+              </button>
+            </div>
+          </div>
         )}
       </div>
     </AuthLayout>

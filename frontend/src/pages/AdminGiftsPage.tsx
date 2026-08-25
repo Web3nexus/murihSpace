@@ -12,24 +12,6 @@ import { useConfirm } from "@/components/ui/DialogProvider";
 
 const CATEGORIES = ["standard", "premium", "limited", "exclusive"];
 
-function getAssetUrl(path: string | null | undefined): string {
-  if (!path) return "";
-  if (path.startsWith("http://") || path.startsWith("https://") || path.startsWith("data:")) {
-    return path;
-  }
-  const apiBase = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? "http://localhost:8000/api/v1";
-  const backendHost = apiBase.replace(/\/api\/v1\/?$/, "");
-  return `${backendHost}${path.startsWith('/') ? '' : '/'}${path}`;
-}
-
-function safeArray<T = any>(val: any): T[] {
-  if (Array.isArray(val)) return val;
-  if (Array.isArray(val?.data)) return val.data;
-  if (Array.isArray(val?.data?.data)) return val.data.data;
-  if (Array.isArray(val?.gifts)) return val.gifts;
-  return [];
-}
-
 export default function AdminGiftsPage() {
   const [gifts, setGifts] = useState<any[]>([]);
   const [stats, setStats] = useState<any>(null);
@@ -50,7 +32,7 @@ export default function AdminGiftsPage() {
       ]);
       if (gRes.ok) {
         const j = await gRes.json();
-        setGifts(safeArray(j));
+        setGifts(j?.data ?? []);
       }
       if (sRes.ok) {
         const j = await sRes.json();
@@ -202,7 +184,7 @@ export default function AdminGiftsPage() {
         </div>
         {loading ? (
           <div className="flex items-center justify-center py-16"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
-        ) : safeArray(gifts).length === 0 ? (
+        ) : gifts.length === 0 ? (
           <div className="flex flex-col items-center gap-3 p-16 text-center">
             <Gift className="h-10 w-10 text-muted-foreground/30" />
             <h3 className="text-sm font-bold text-muted-foreground">No gifts yet</h3>
@@ -210,12 +192,12 @@ export default function AdminGiftsPage() {
           </div>
         ) : (
           <div className="divide-y divide-border/50">
-            {safeArray(gifts).map((gift: any, idx: number) => (
+            {gifts.map((gift: any, idx: number) => (
               <div key={gift.id} className="flex items-center justify-between px-5 py-4 hover:bg-muted/10 transition-colors">
                 <div className="flex items-center gap-3 min-w-0 flex-1">
                   <span className="text-xs text-muted-foreground/50 w-6 shrink-0">{idx + 1}.</span>
-                  <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-pink-500/10 to-purple-500/10 border border-pink-500/20 flex items-center justify-center shrink-0 p-1.5">
-                    {getAssetUrl(gift.icon_url) ? <img src={getAssetUrl(gift.icon_url)} className="w-full h-full object-contain" /> : <Gift className="w-5 h-5 text-pink-500" />}
+                  <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-pink-100 to-purple-50 border border-pink-200/60 flex items-center justify-center shrink-0">
+                    {gift.icon_url ? <img src={gift.icon_url} className="w-6 h-6 object-contain" /> : <Gift className="w-5 h-5 text-pink-500" />}
                   </div>
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">

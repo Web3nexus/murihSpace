@@ -32,7 +32,7 @@ export async function loader({ params }: Route.LoaderArgs) {
 export function meta({ loaderData }: Route.MetaArgs) {
   const article: HelpArticle | undefined = loaderData?.article;
   return [
-    { title: article?.seo_title || `${article?.title ?? "Help article"} | MurihSpace` },
+    { title: article?.seo_title || `${article?.title ?? "Help article"} — MurihSpace` },
     { name: "description", content: article?.seo_description || article?.excerpt || "MurihSpace help article." },
     {
       tagName: "link",

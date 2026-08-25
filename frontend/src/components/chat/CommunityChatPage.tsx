@@ -2,15 +2,13 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import {
   MessageCircle, Search, Send, Loader2, ArrowLeft,
   AlertCircle, RotateCcw, Reply, Paperclip, CheckCheck, BellOff, MoreVertical, Hash,
-  FileText, Volume2, Gift, Video, Phone, X,
+  FileText, Volume2,
 } from "lucide-react";
 import { formatDistanceToNow, format } from "date-fns";
 import type { ConversationItem, ChatMessage, MessageStatus, MessageReaction } from "@/types/chat";
 import { ReplyPreviewBar } from "@/components/chat/ReplyPreviewBar";
 import { MessageReactions } from "@/components/chat/MessageReactions";
-import { IOSTypingBubble } from "@/components/chat/iOSTypingBubble";
 import { useRealtimeMessaging } from "@/hooks/useRealtimeMessaging";
-import { LiveKitVideoConference } from "@/components/video/LiveKitVideoConference";
 import { cn } from "@/lib/utils";
 import { getAuthToken } from "@/lib/auth/token";
 
@@ -92,7 +90,6 @@ export default function CommunityChatPage() {
   const [uploading, setUploading] = useState(false);
   const [showHeaderMenu, setShowHeaderMenu] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
-  const [activeCallMode, setActiveCallMode] = useState<'video' | 'audio' | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -466,80 +463,34 @@ export default function CommunityChatPage() {
                   </h3>
                   <p className="text-[10px] text-muted-foreground/70 flex items-center gap-1">
                     <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                    {activeConv.community?.name ? `${(activeConv.community as any).members_count ?? 0} members` : "Community channel"}
+                    {activeConv.community?.name ? `${Math.floor(Math.random() * 15 + 1)} online` : "Community channel"}
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-1">
-                {/* Audio Call button */}
+              <div className="relative">
                 <button
-                  onClick={() => setActiveCallMode("audio")}
-                  className="p-2 rounded-xl hover:bg-muted/70 text-muted-foreground hover:text-[#1877f2] transition-colors"
-                  title="Start Audio Call"
+                  onClick={() => setShowHeaderMenu((v) => !v)}
+                  className="p-1.5 rounded-lg hover:bg-muted/70 text-muted-foreground transition-colors"
                 >
-                  <Phone className="h-4 w-4" />
+                  <MoreVertical className="h-4 w-4" />
                 </button>
-
-                {/* Video Call button */}
-                <button
-                  onClick={() => setActiveCallMode("video")}
-                  className="p-2 rounded-xl hover:bg-muted/70 text-muted-foreground hover:text-emerald-500 transition-colors"
-                  title="Start Video Call"
-                >
-                  <Video className="h-4 w-4" />
-                </button>
-
-                <div className="relative">
-                  <button
-                    onClick={() => setShowHeaderMenu((v) => !v)}
-                    className="p-2 rounded-xl hover:bg-muted/70 text-muted-foreground transition-colors"
-                  >
-                    <MoreVertical className="h-4 w-4" />
-                  </button>
-                  {showHeaderMenu && (
-                    <>
-                      <div className="fixed inset-0 z-40" onClick={() => setShowHeaderMenu(false)} />
-                      <div className="absolute right-0 top-8 z-50 w-44 rounded-xl border border-border bg-card shadow-xl p-1 text-xs space-y-0.5">
-                        <button
-                          onClick={handleToggleMute}
-                          className="w-full flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-muted text-foreground font-medium"
-                        >
-                          <BellOff className="h-3.5 w-3.5 text-muted-foreground" />
-                          {isMuted ? "Unmute channel" : "Mute channel"}
-                        </button>
-                      </div>
-                    </>
-                  )}
-                </div>
+                {showHeaderMenu && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setShowHeaderMenu(false)} />
+                    <div className="absolute right-0 top-8 z-50 w-44 rounded-xl border border-border bg-card shadow-xl p-1 text-xs space-y-0.5">
+                      <button
+                        onClick={handleToggleMute}
+                        className="w-full flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-muted text-foreground font-medium"
+                      >
+                        <BellOff className="h-3.5 w-3.5 text-muted-foreground" />
+                        {isMuted ? "Unmute channel" : "Mute channel"}
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
-
-            {/* Active Call Overlay Modal */}
-            {activeCallMode && activeConv && (
-              <div className="p-4 bg-slate-950 border-b border-border space-y-3 relative z-30 animate-in slide-in-from-top duration-200">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-ping" />
-                    <h4 className="text-xs font-bold text-white">
-                      {activeCallMode === "video" ? "Video Call" : "Audio Call"} — {activeConv.community?.name ?? activeConv.title}
-                    </h4>
-                  </div>
-                  <button
-                    onClick={() => setActiveCallMode(null)}
-                    className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white text-xs font-bold flex items-center gap-1"
-                  >
-                    <X className="h-4 w-4" /> End Call
-                  </button>
-                </div>
-                <LiveKitVideoConference
-                  roomId={activeConv.id}
-                  roomTitle={`${activeConv.community?.name ?? activeConv.title} Call`}
-                  isHost={true}
-                  onLeave={() => setActiveCallMode(null)}
-                />
-              </div>
-            )}
 
             {/* Message Stream */}
             <div className="flex-1 overflow-y-auto px-4 py-4 space-y-1 bg-[#F8FAFB] dark:bg-[#0a1a2a]/60">
@@ -694,7 +645,20 @@ export default function CommunityChatPage() {
               )}
 
               {typingUsers.length > 0 && (
-                <IOSTypingBubble names={typingUsers} />
+                <div className="flex items-center gap-2.5 px-3 py-1">
+                  <div className="flex gap-1">
+                    {[0, 1, 2].map((i) => (
+                      <span
+                        key={i}
+                        className="h-2 w-2 rounded-full bg-[#2164b6] animate-bounce"
+                        style={{ animationDelay: `${i * 200}ms` }}
+                      />
+                    ))}
+                  </div>
+                  <span className="text-[11px] text-muted-foreground italic">
+                    {typingUsers.join(", ")} {typingUsers.length === 1 ? "is" : "are"} typing...
+                  </span>
+                </div>
               )}
               <div ref={messagesEndRef} />
             </div>
@@ -714,7 +678,7 @@ export default function CommunityChatPage() {
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploading}
-                className="p-2 rounded-xl hover:bg-muted text-muted-foreground hover:text-[#2164b6] transition-colors shrink-0 disabled:opacity-50"
+                className="p-2 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors shrink-0 disabled:opacity-50"
                 title="Attach file"
               >
                 {uploading ? (
@@ -723,16 +687,6 @@ export default function CommunityChatPage() {
                   <Paperclip className="h-4 w-4" />
                 )}
               </button>
-
-              <button
-                type="button"
-                onClick={() => window.location.href = "/gifts"}
-                className="p-2 rounded-xl hover:bg-pink-500/10 text-muted-foreground hover:text-pink-500 transition-colors shrink-0"
-                title="Send Gift"
-              >
-                <Gift className="h-4 w-4 text-pink-500" />
-              </button>
-
               <input
                 ref={fileInputRef}
                 type="file"
@@ -747,13 +701,13 @@ export default function CommunityChatPage() {
                 onChange={(e) => { setInputContent(e.target.value); handleTypingDebounced(); }}
                 onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) handleSendMessage(); }}
                 placeholder={`Message #${activeConv.community?.name ?? activeConv.title}...`}
-                className="flex-1 px-4 py-2 text-sm rounded-2xl bg-muted/60 border border-border/50 outline-none focus:ring-1 focus:ring-[#2164b6]/40 focus:border-[#2164b6] placeholder:text-muted-foreground/60 transition-all"
+                className="flex-1 px-4 py-2.5 text-sm rounded-xl bg-muted/60 border border-border/50 outline-none focus:ring-1 focus:ring-[#2164b6]/40 focus:border-[#2164b6] placeholder:text-muted-foreground/60 transition-all"
               />
 
               <button
                 type="submit"
                 disabled={!inputContent.trim() || uploading}
-                className="p-2.5 rounded-full bg-[#2164b6] text-white font-bold hover:bg-[#1a5091] disabled:opacity-40 transition-all shrink-0 shadow-xs flex items-center justify-center w-9 h-9"
+                className="p-2.5 rounded-xl bg-[#2164b6] text-white font-bold hover:bg-[#1a5091] disabled:opacity-40 transition-all shrink-0 shadow-xs"
               >
                 <Send className="h-4 w-4" />
               </button>

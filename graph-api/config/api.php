@@ -4,9 +4,9 @@ return [
     // -----------------------------------------------------------------------
     // Downstream service base URLs
     // -----------------------------------------------------------------------
-    'main_base_url'       => env('MAIN_API_BASE_URL',       'https://api.murihspace.com/api'),
-    'ads_base_url'        => env('ADS_API_BASE_URL',        'https://ads.murihspace.com/api'),
-    'marketing_base_url'  => env('MARKETING_API_BASE_URL',  'https://murihspace.com/api'),
+    'main_base_url'       => env('MAIN_API_BASE_URL',       'http://127.0.0.1:8000/api'),
+    'ads_base_url'        => env('ADS_API_BASE_URL',        'http://127.0.0.1:8001/api'),
+    'marketing_base_url'  => env('MARKETING_API_BASE_URL',  'http://127.0.0.1:8002/api'),
 
     // -----------------------------------------------------------------------
     // Service-to-service tokens (short-lived JWTs or static secrets per env)
@@ -28,7 +28,7 @@ return [
     // CORS — never use '*' for authenticated APIs
     // -----------------------------------------------------------------------
     'allowed_origins' => array_filter(
-        explode(',', env('GRAPH_API_ALLOWED_ORIGINS', 'https://web.murihspace.com,https://murihspace.com,https://ads.murihspace.com,http://localhost:3000,http://localhost:5173'))
+        explode(',', env('GRAPH_API_ALLOWED_ORIGINS', 'http://localhost:3000'))
     ),
 ];
 

@@ -591,7 +591,7 @@ export function AppPage() {
 
           <div className="bg-card border border-border shadow-xs rounded-2xl p-4 sm:p-5 space-y-4">
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-full bg-[#1877f2] flex items-center justify-center text-white font-black text-sm shrink-0 overflow-hidden shadow-xs">
+              <div className="h-10 w-10 rounded-full bg-gradient-to-br from-[#2164b6] to-purple-600 flex items-center justify-center text-white font-black text-sm shrink-0 overflow-hidden shadow-xs">
                 {user?.avatar_url ? (
                   <img src={user.avatar_url} alt="" className="w-full h-full object-cover" />
                 ) : (
@@ -747,7 +747,7 @@ export function AppPage() {
                   )}
 
                   <div className="absolute top-2.5 left-2.5 z-10">
-                    <div className="h-9 w-9 rounded-full p-[2px] bg-[#1877f2]">
+                    <div className="h-9 w-9 rounded-full p-[2px] bg-gradient-to-tr from-purple-500 via-pink-500 to-[#2164b6]">
                       {story.avatar
                         ? <img src={story.avatar} alt="" className="w-full h-full rounded-full object-cover border-2 border-white/40" />
                         : <div className="w-full h-full rounded-full bg-muted flex items-center justify-center text-xs font-bold text-white border-2 border-white/40">{story.name.charAt(0).toUpperCase()}</div>
@@ -824,7 +824,7 @@ export function AppPage() {
                 <div key={post.id} className="bg-card border border-border shadow-xs rounded-2xl p-4 sm:p-5 space-y-3">
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-full bg-[#1877f2] p-[2px]">
+                      <div className="h-10 w-10 rounded-full bg-gradient-to-tr from-[#2164b6] to-purple-600 p-[2px]">
                         {post.avatar ? (
                           <img src={post.avatar} alt="" className="w-full h-full rounded-full object-cover" />
                         ) : (
@@ -956,7 +956,7 @@ export function AppPage() {
                         <div className="space-y-2.5">
                           {post.commentList.map((cmt) => (
                             <div key={cmt.id} className="flex items-start gap-2.5 text-xs p-2.5 rounded-xl bg-slate-50 dark:bg-muted/40">
-                              <div className="h-7 w-7 rounded-full bg-[#1877f2] flex items-center justify-center text-white font-bold text-[10px] shrink-0">
+                              <div className="h-7 w-7 rounded-full bg-gradient-to-br from-[#2164b6] to-purple-600 flex items-center justify-center text-white font-bold text-[10px] shrink-0">
                                 {cmt.avatar_url ? <img src={cmt.avatar_url} alt="" className="w-full h-full rounded-full object-cover" /> : cmt.user_name.charAt(0)}
                               </div>
                               <div className="flex-1 min-w-0">
@@ -1080,32 +1080,32 @@ export function AppPage() {
             )}
           </div>
 
-          <div className="rounded-2xl border border-border bg-card p-4.5 shadow-xs space-y-3">
+          <div className="rounded-2xl border border-purple-200/80 dark:border-purple-900/50 bg-gradient-to-br from-purple-50/70 via-purple-50/20 to-card p-4.5 shadow-xs space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="p-1.5 rounded-xl bg-[#1877f2]/10 text-[#1877f2]">
+                <div className="p-1.5 rounded-xl bg-purple-500/10 text-purple-600">
                   <MeraIcon className="h-4 w-4" />
                 </div>
                 <h3 className="font-bold text-foreground text-xs sm:text-sm">AI Assistant</h3>
               </div>
-              <span className="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase bg-[#1877f2]/10 text-[#1877f2] border border-[#1877f2]/20">BETA</span>
+              <span className="px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase bg-purple-500/15 text-purple-600">BETA</span>
             </div>
             <p className="text-[11px] text-muted-foreground leading-tight">Your MurihSpace AI, built to help you grow faster.</p>
 
             <div className="space-y-2 pt-1">
               {[
-                { icon: <BarChart2 className="h-3.5 w-3.5 text-[#1877f2]" />, text: "Create a poll to engage your community" },
-                { icon: <Lightbulb className="h-3.5 w-3.5 text-emerald-500" />, text: "Suggest content ideas based on your audience" },
-                { icon: <MessageSquare className="h-3.5 w-3.5 text-blue-500" />, text: "Summarize top conversations this week" },
+                { icon: <BarChart2 className="h-3.5 w-3.5 text-purple-600" />, text: "Create a poll to engage your community" },
+                { icon: <Lightbulb className="h-3.5 w-3.5 text-emerald-600" />, text: "Suggest content ideas based on your audience" },
+                { icon: <MessageSquare className="h-3.5 w-3.5 text-blue-600" />, text: "Summarize top conversations this week" },
               ].map((p, idx) => (
-                <button key={idx} className="w-full flex items-center gap-2.5 p-2.5 rounded-xl bg-muted/40 hover:bg-muted/80 border border-border transition-colors text-left">
-                  <div className="p-1 rounded-md bg-background border border-border shrink-0">{p.icon}</div>
-                  <span className="text-[11px] font-bold text-foreground leading-tight">{p.text}</span>
+                <button key={idx} className="w-full flex items-center gap-2.5 p-2.5 rounded-xl bg-white dark:bg-card border border-purple-100/80 dark:border-purple-950 hover:border-purple-300 transition-colors text-left shadow-2xs">
+                  <div className="p-1 rounded-md bg-purple-50 dark:bg-purple-950 shrink-0">{p.icon}</div>
+                  <span className="text-[11px] font-medium text-foreground leading-tight">{p.text}</span>
                 </button>
               ))}
             </div>
 
-            <Link to="/app/ai-assistant" className="block text-center text-[11px] font-bold text-[#1877f2] hover:underline pt-1">
+            <Link to="/app/ai-assistant" className="block text-center text-[11px] font-bold text-purple-600 hover:underline pt-1">
               Go to AI Assistant &rarr;
             </Link>
           </div>

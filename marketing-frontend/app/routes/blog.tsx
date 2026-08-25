@@ -13,7 +13,7 @@ const defaultPosts: BlogPost[] = [];
 
 export function meta() {
   return [
-    { title: "Blog | MurihSpace" },
+    { title: "Blog — MurihSpace" },
     { name: "description", content: "Tips, guides, and stories from the MurihSpace team." },
   ];
 }

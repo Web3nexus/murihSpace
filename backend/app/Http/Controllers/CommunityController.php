@@ -28,11 +28,7 @@ class CommunityController extends Controller
 
         $communities = $query->latest()->paginate(12);
 
-        return response()->json([
-            'success' => true,
-            'data' => $communities,
-            'communities' => $communities->items(),
-        ]);
+        return response()->json($communities);
     }
 
     /**
@@ -138,28 +134,19 @@ class CommunityController extends Controller
 
     public function myCommunities(Request $request): JsonResponse
     {
-        $user = $request->user();
-        if (! $user) {
-            return response()->json(['success' => true, 'communities' => [], 'data' => []]);
-        }
-
-        $created = Community::where('user_id', $user->id)
+        $created = Community::where('user_id', $request->user()->id)
             ->latest()
             ->get();
 
-        $joined = Community::whereIn('id', function ($q) use ($user) {
+        $joined = Community::whereIn('id', function ($q) use ($request) {
             $q->select('community_id')
                 ->from('community_memberships')
-                ->where('user_id', $user->id)
+                ->where('user_id', $request->user()->id)
                 ->where('status', 'active');
         })->latest()->get();
 
-        $all = $created->merge($joined)->unique('id')->values()->sortByDesc('created_at')->values();
-
         return response()->json([
-            'success' => true,
-            'communities' => $all,
-            'data' => $all,
+            'communities' => $created->merge($joined)->unique('id')->values()->sortByDesc('created_at')->values(),
         ]);
     }
 

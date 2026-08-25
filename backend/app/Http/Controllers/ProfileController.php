@@ -23,7 +23,6 @@ class ProfileController extends Controller
             'role' => $user->role,
             'bio' => $user->bio,
             'avatar' => $user->avatar,
-            'banner_url' => $user->banner_url ?? null,
             'country' => $user->country,
             'county' => $user->county,
             'state' => $user->state,
@@ -33,11 +32,6 @@ class ProfileController extends Controller
             'kyc_rejection_reason' => $user->kyc_rejection_reason,
             'has_active_verification_badge' => $user->hasActiveVerificationBadge(),
             'email_verified' => $user->hasVerifiedEmail(),
-            'posts_count' => $user->posts()->count(),
-            'followers_count' => $user->followers()->count(),
-            'following_count' => $user->follows()->count(),
-            'communities_count' => $user->communities()->count(),
-            'coins' => $user->wallet?->coin_balance ?? 0,
             'created_at' => $user->created_at?->toISOString(),
         ]);
     }
@@ -160,49 +154,5 @@ class ProfileController extends Controller
             'kyc_document' => $user->kyc_document,
             'kyc_rejection_reason' => $user->kyc_rejection_reason,
         ]);
-    }
-
-    /**
-     * Switch active profile mode (member, creator, vendor).
-     */
-    public function switchRole(Request $request): JsonResponse
-    {
-        $user = $request->user();
-
-        $validated = $request->validate([
-            'role' => ['required', 'string', 'in:member,creator,vendor,admin'],
-        ]);
-
-        $targetRole = $validated['role'];
-
-        // Admin can switch to any mode
-        if ($user->role === 'admin' || $user->admin_role) {
-            $user->update(['role' => $targetRole]);
-            return response()->json([
-                'message' => "Switched active mode to {$targetRole}.",
-                'role' => $user->role,
-            ]);
-        }
-
-        // Check if user has approved history or holds unlocked roles
-        $hasApprovedRole = \App\Models\AccountRoleHistory::where('user_id', $user->id)
-            ->where(function ($q) use ($targetRole) {
-                $q->where('requested_role', $targetRole)
-                  ->orWhere('previous_role', $targetRole)
-                  ->orWhere('status', 'approved');
-            })
-            ->exists();
-
-        if ($targetRole === 'member' || $hasApprovedRole || $user->role === $targetRole || in_array($targetRole, ['creator', 'vendor'], true)) {
-            $user->update(['role' => $targetRole]);
-            return response()->json([
-                'message' => "Switched active mode to {$targetRole}.",
-                'role' => $user->role,
-            ]);
-        }
-
-        return response()->json([
-            'message' => "You must apply and upgrade to {$targetRole} before switching to this mode.",
-        ], 403);
     }
 }

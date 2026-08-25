@@ -109,7 +109,7 @@ export function PublicCommunitiesPage() {
       </header>
 
       {/* Hero Banner */}
-      <section className="relative overflow-hidden bg-[#1877f2] px-6 py-16 text-white text-center">
+      <section className="relative overflow-hidden bg-gradient-to-br from-[#2164b6] via-[#1a5091] to-[#1a5091] px-6 py-16 text-white text-center">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(255,255,255,0.08),transparent)] pointer-events-none" />
         <div className="relative max-w-2xl mx-auto space-y-4">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-white/20 bg-white/10 text-white/90 text-xs font-semibold backdrop-blur-sm">

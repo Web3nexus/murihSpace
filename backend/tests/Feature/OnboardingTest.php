@@ -63,17 +63,6 @@ class OnboardingTest extends TestCase
             ->assertJsonPath('data.data.saved_progress.step', 2);
     }
 
-    public function test_saving_onboarding_progress_handles_missing_or_optional_step_gracefully(): void
-    {
-        $user = User::factory()->create(['role' => 'member']);
-
-        // Empty body / missing step should default to step 0 instead of returning 422
-        $response = $this->actingAs($user)->postJson('/api/v1/onboarding/progress', []);
-
-        $response->assertStatus(200)
-            ->assertJsonPath('data.step', 0);
-    }
-
     public function test_vendor_can_save_vendor_business_info(): void
     {
         $vendor = User::factory()->create(['role' => 'vendor']);

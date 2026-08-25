@@ -1,6 +1,6 @@
 export function meta() {
   return [
-    { title: "Creator Stories | MurihSpace" },
+    { title: "Creator Stories — MurihSpace" },
     { name: "description", content: "Hear from creators who built their businesses on MurihSpace." },
   ];
 }

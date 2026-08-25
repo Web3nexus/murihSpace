@@ -242,11 +242,6 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasMany(AdCampaign::class);
     }
 
-    public function posts(): HasMany
-    {
-        return $this->hasMany(Post::class);
-    }
-
     public function wallet(): HasOne
     {
         return $this->hasOne(Wallet::class);

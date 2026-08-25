@@ -3,7 +3,7 @@ import { CTASection } from "../components/sections/CTASection";
 
 export function meta() {
   return [
-    { title: "Pricing | MurihSpace" },
+    { title: "Pricing — MurihSpace" },
     { name: "description", content: "Simple, transparent pricing for creators of all sizes." },
   ];
 }

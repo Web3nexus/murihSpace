@@ -58,8 +58,6 @@ interface AuthContextValue {
   isVendor: boolean;
   isCreatorOrAdmin: boolean;
   hasPermission: (permission: string) => boolean;
-  refreshUser: () => Promise<void>;
-  markOnboardingCompleted: () => void;
 }
 
 export interface RegisterData {
@@ -266,22 +264,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const refreshUser = useCallback(async () => {
-    try {
-      const res = await apiClient.get("/user");
-      const responseData = res.data;
-      if (responseData && responseData.success) {
-        setUser(responseData.data);
-      } else if (responseData) {
-        setUser(responseData);
-      }
-    } catch { /* ignore */ }
-  }, []);
-
-  const markOnboardingCompleted = useCallback(() => {
-    setUser((prev) => (prev ? { ...prev, onboarding_completed: true } : prev));
-  }, []);
-
   const value: AuthContextValue = {
     user,
     loading,
@@ -302,8 +284,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (user.role === "admin") return true;
       return user.permissions?.includes(permission) ?? false;
     },
-    refreshUser,
-    markOnboardingCompleted,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

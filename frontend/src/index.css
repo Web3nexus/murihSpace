@@ -73,53 +73,53 @@
 }
 
 .dark {
-  /* Meta (FB / IG) Dark Theme Specification */
-  --text: #ffffff;
-  --text-h: #ffffff;
-  --bg: #18191a;
-  --border: #3a3b3c;
-  --code-bg: #242526;
-  --accent: #242526;
-  --accent-bg: rgba(24, 119, 242, 0.15);
-  --accent-border: rgba(24, 119, 242, 0.4);
-  --social-bg: #242526;
-  --shadow: 0px 4px 16px rgba(0, 0, 0, 0.5);
+  /* MurihSpace Dark Theme Tokens (from docs/Design.md & docs/selected-frames-agent-prompt.md) */
+  --text: #F7FAFC;
+  --text-h: #F7FAFC;
+  --bg: #081827;
+  --border: #294C65;
+  --code-bg: #173852;
+  --accent: #173852;
+  --accent-bg: rgba(56, 168, 216, 0.15);
+  --accent-border: rgba(56, 168, 216, 0.5);
+  --social-bg: rgba(23, 56, 82, 0.5);
+  --shadow: 0px 4px 12px rgba(0, 0, 0, 0.4);
 
-  --background: #18191a;
-  --foreground: #ffffff;
+  --background: #081827;
+  --foreground: #F7FAFC;
 
-  --card: #242526;
-  --card-foreground: #ffffff;
+  --card: #102840;
+  --card-foreground: #F7FAFC;
 
-  --popover: #242526;
-  --popover-foreground: #ffffff;
+  --popover: #102840;
+  --popover-foreground: #F7FAFC;
 
-  --primary: #1877f2;
-  --primary-foreground: #ffffff;
+  --primary: #2164b6;
+  --primary-foreground: #FFFFFF;
 
-  --secondary: #3a3b3c;
-  --secondary-foreground: #ffffff;
+  --secondary: #173852;
+  --secondary-foreground: #F7FAFC;
 
-  --muted: #3a3b3c;
-  --muted-foreground: #c4c7ce;
+  --muted: #173852;
+  --muted-foreground: #B7C6D1;
 
-  --accent-foreground: #ffffff;
+  --accent-foreground: #F7FAFC;
 
-  --destructive: #ef4444;
-  --destructive-foreground: #ffffff;
+  --destructive: #EF4444;
+  --destructive-foreground: #FFFFFF;
 
-  --input: #3a3b3c;
-  --ring: #1877f2;
+  --input: #294C65;
+  --ring: #2164b6;
 
-  /* Sidebar — Meta FB/IG dark mode canvas & surface */
-  --sidebar: #18191a;
-  --sidebar-foreground: #ffffff;
-  --sidebar-primary: #1877f2;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #242526;
-  --sidebar-accent-foreground: #ffffff;
-  --sidebar-border: #2e2e2e;
-  --sidebar-ring: #1877f2;
+  /* Sidebar — deeper navy for dark mode */
+  --sidebar: #081827;
+  --sidebar-foreground: rgba(247, 250, 252, 0.90);
+  --sidebar-primary: #2164b6;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: rgba(56, 168, 216, 0.12);
+  --sidebar-accent-foreground: #FFFFFF;
+  --sidebar-border: rgba(255, 255, 255, 0.06);
+  --sidebar-ring: #2164b6;
 }
 
 #root {

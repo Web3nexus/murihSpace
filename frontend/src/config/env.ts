@@ -15,7 +15,6 @@ export const env = {
   VITE_API_URL: getEnv("VITE_API_URL", "http://localhost:8000/api/v1"),
   VITE_GRAPH_API_URL: getEnv("VITE_GRAPH_API_URL", "http://localhost:8090/v1"),
   VITE_MARKETING_URL: getEnv("VITE_MARKETING_URL", "http://localhost:3000"),
-  VITE_ADS_API_URL: getEnv("VITE_ADS_API_URL", "https://ads.murihspace.com/api"),
   VITE_REVERB_APP_KEY: getEnv("VITE_REVERB_APP_KEY", ""),
   VITE_REVERB_HOST: getEnv("VITE_REVERB_HOST", "127.0.0.1"),
   VITE_REVERB_PORT: getEnvNum("VITE_REVERB_PORT", 8080),

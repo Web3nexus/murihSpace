@@ -3,6 +3,8 @@ import { NavLink, Outlet } from "react-router";
 import {
   User,
   Wallet,
+  Bookmark,
+  Phone,
   Smartphone,
   Folder,
   Bell,
@@ -13,15 +15,8 @@ import {
   Star,
   Store,
   HelpCircle,
+  FileQuestion,
   ChevronRight,
-  ShieldCheck,
-  BadgeCheck,
-  DollarSign,
-  Activity,
-  Link2,
-  Package,
-  Truck,
-  RotateCcw,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useTheme } from "@/hooks/useTheme";
@@ -68,22 +63,18 @@ export function SettingsLayout() {
         <h1 className="text-2xl font-black tracking-tight text-foreground">
           Settings & Account
         </h1>
-        <p className="text-xs font-medium text-muted-foreground mt-0.5">
-          Manage your role preferences, security, wallet, and account settings.
+        <p className="text-xs text-muted-foreground mt-0.5">
+          Manage your identity, security, wallet, and platform preferences.
         </p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* ── Left Sidebar (4 Cols) ───────────────────── */}
+        {/* ── Left Telegram iOS Inset Sidebar (4 Cols) ───────────────────── */}
         <aside className="lg:col-span-4 space-y-4">
           {/* Card 0: Profile Header Card */}
           <div className="p-4 rounded-3xl bg-card border border-border/80 shadow-xs flex items-center gap-3">
-            <div className="h-14 w-14 rounded-full bg-[#2164b6] text-white font-black text-lg flex items-center justify-center shrink-0 shadow-md overflow-hidden">
-              {user?.avatar_url || user?.avatar ? (
-                <img src={user.avatar_url || user.avatar || ''} alt="" className="w-full h-full object-cover" />
-              ) : (
-                user?.name ? user.name.slice(0, 2).toUpperCase() : "US"
-              )}
+            <div className="h-14 w-14 rounded-full bg-gradient-to-tr from-secondary to-primary text-white font-black text-lg flex items-center justify-center shrink-0 shadow-md">
+              {user?.name ? user.name.slice(0, 2).toUpperCase() : "US"}
             </div>
             <div className="flex-1 min-w-0">
               <h3 className="text-sm font-extrabold text-foreground truncate">
@@ -100,164 +91,6 @@ export function SettingsLayout() {
             </div>
           </div>
 
-          {/* ── ROLE-SPECIFIC CONTROL SECTION ──────────────────────── */}
-          {user?.role === "admin" && (
-            <div className="space-y-1">
-              <p className="text-[10px] font-extrabold uppercase tracking-wider text-purple-500 px-3 py-1">
-                Admin Control Panel
-              </p>
-              <div className="rounded-3xl bg-card border border-purple-500/30 shadow-xs overflow-hidden divide-y divide-border/40">
-                <NavLink
-                  to="/app/admin/users"
-                  className="w-full flex items-center justify-between p-3.5 hover:bg-muted/50 transition-colors text-xs font-bold text-foreground"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-xl bg-purple-600 text-white shrink-0">
-                      <ShieldCheck className="h-4 w-4" />
-                    </div>
-                    <span>User Management</span>
-                  </div>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                </NavLink>
-
-                <NavLink
-                  to="/app/admin/kyc"
-                  className="w-full flex items-center justify-between p-3.5 hover:bg-muted/50 transition-colors text-xs font-bold text-foreground"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-xl bg-indigo-600 text-white shrink-0">
-                      <BadgeCheck className="h-4 w-4" />
-                    </div>
-                    <span>KYC &amp; Identity Verification</span>
-                  </div>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                </NavLink>
-
-                <NavLink
-                  to="/app/admin/fees"
-                  className="w-full flex items-center justify-between p-3.5 hover:bg-muted/50 transition-colors text-xs font-bold text-foreground"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-xl bg-emerald-600 text-white shrink-0">
-                      <DollarSign className="h-4 w-4" />
-                    </div>
-                    <span>Platform Fee Management</span>
-                  </div>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                </NavLink>
-
-                <NavLink
-                  to="/app/admin/system-health"
-                  className="w-full flex items-center justify-between p-3.5 hover:bg-muted/50 transition-colors text-xs font-bold text-foreground"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-xl bg-rose-600 text-white shrink-0">
-                      <Activity className="h-4 w-4" />
-                    </div>
-                    <span>System Health &amp; Logs</span>
-                  </div>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                </NavLink>
-              </div>
-            </div>
-          )}
-
-          {user?.role === "creator" && (
-            <div className="space-y-1">
-              <p className="text-[10px] font-extrabold uppercase tracking-wider text-amber-500 px-3 py-1">
-                Creator Management
-              </p>
-              <div className="rounded-3xl bg-card border border-amber-500/30 shadow-xs overflow-hidden divide-y divide-border/40">
-                <NavLink
-                  to="/app/store"
-                  className="w-full flex items-center justify-between p-3.5 hover:bg-muted/50 transition-colors text-xs font-bold text-foreground"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-xl bg-amber-500 text-white shrink-0">
-                      <Store className="h-4 w-4" />
-                    </div>
-                    <span>Storefront &amp; Handle</span>
-                  </div>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                </NavLink>
-
-                <NavLink
-                  to="/app/link-in-bio"
-                  className="w-full flex items-center justify-between p-3.5 hover:bg-muted/50 transition-colors text-xs font-bold text-foreground"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-xl bg-indigo-500 text-white shrink-0">
-                      <Link2 className="h-4 w-4" />
-                    </div>
-                    <span>Link in Bio &amp; Theme</span>
-                  </div>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                </NavLink>
-
-                <NavLink
-                  to="/app/kyc"
-                  className="w-full flex items-center justify-between p-3.5 hover:bg-muted/50 transition-colors text-xs font-bold text-foreground"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-xl bg-emerald-600 text-white shrink-0">
-                      <BadgeCheck className="h-4 w-4" />
-                    </div>
-                    <span>KYC &amp; Verification Badge</span>
-                  </div>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                </NavLink>
-              </div>
-            </div>
-          )}
-
-          {user?.role === "vendor" && (
-            <div className="space-y-1">
-              <p className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-500 px-3 py-1">
-                Vendor Store Management
-              </p>
-              <div className="rounded-3xl bg-card border border-emerald-500/30 shadow-xs overflow-hidden divide-y divide-border/40">
-                <NavLink
-                  to="/app/store/physical"
-                  className="w-full flex items-center justify-between p-3.5 hover:bg-muted/50 transition-colors text-xs font-bold text-foreground"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-xl bg-emerald-600 text-white shrink-0">
-                      <Package className="h-4 w-4" />
-                    </div>
-                    <span>Physical Merchandise</span>
-                  </div>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                </NavLink>
-
-                <NavLink
-                  to="/app/store/fulfilment"
-                  className="w-full flex items-center justify-between p-3.5 hover:bg-muted/50 transition-colors text-xs font-bold text-foreground"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-xl bg-blue-600 text-white shrink-0">
-                      <Truck className="h-4 w-4" />
-                    </div>
-                    <span>Order Fulfilment</span>
-                  </div>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                </NavLink>
-
-                <NavLink
-                  to="/app/store/returns"
-                  className="w-full flex items-center justify-between p-3.5 hover:bg-muted/50 transition-colors text-xs font-bold text-foreground"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-xl bg-[#2164b6] text-white shrink-0">
-                      <RotateCcw className="h-4 w-4" />
-                    </div>
-                    <span>Returns &amp; Refund Policy</span>
-                  </div>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                </NavLink>
-              </div>
-            </div>
-          )}
-
           {/* Group 1: Identity & Wallet */}
           <div className="rounded-3xl bg-card border border-border/80 shadow-xs overflow-hidden divide-y divide-border/40">
             <NavLink
@@ -266,7 +99,7 @@ export function SettingsLayout() {
               className={({ isActive }) =>
                 `w-full flex items-center justify-between p-3.5 transition-colors text-xs font-bold ${
                   isActive
-                    ? "bg-[#2164b6]/15 text-[#2164b6] dark:text-[#7ab0ff]"
+                    ? "bg-secondary/15 text-secondary"
                     : "text-foreground hover:bg-muted/50"
                 }`
               }
@@ -285,7 +118,7 @@ export function SettingsLayout() {
               className={({ isActive }) =>
                 `w-full flex items-center justify-between p-3.5 transition-colors text-xs font-bold ${
                   isActive
-                    ? "bg-[#2164b6]/15 text-[#2164b6] dark:text-[#7ab0ff]"
+                    ? "bg-secondary/15 text-secondary"
                     : "text-foreground hover:bg-muted/50"
                 }`
               }
@@ -294,22 +127,48 @@ export function SettingsLayout() {
                 <div className="p-2 rounded-xl bg-blue-500 text-white shrink-0">
                   <Wallet className="h-4 w-4" />
                 </div>
-                <span>Wallet &amp; Balance</span>
+                <span>Wallet</span>
               </div>
-              <span className="px-2 py-0.5 rounded-full bg-[#2164b6] text-white text-[9px] font-black uppercase tracking-wider shadow-xs">
-                ACTIVE
+              <span className="px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground text-[9px] font-black uppercase tracking-wider shadow-xs">
+                NEW
               </span>
             </NavLink>
           </div>
 
-          {/* Group 2: Messages & Security */}
+          {/* Group 2: Messages & Devices */}
           <div className="rounded-3xl bg-card border border-border/80 shadow-xs overflow-hidden divide-y divide-border/40">
+            <NavLink
+              to="/app/messages"
+              className="w-full flex items-center justify-between p-3.5 hover:bg-muted/50 transition-colors text-xs font-bold text-foreground"
+            >
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-xl bg-sky-500 text-white shrink-0">
+                  <Bookmark className="h-4 w-4" />
+                </div>
+                <span>Saved Messages</span>
+              </div>
+              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            </NavLink>
+
+            <NavLink
+              to="/app/events"
+              className="w-full flex items-center justify-between p-3.5 hover:bg-muted/50 transition-colors text-xs font-bold text-foreground"
+            >
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-xl bg-emerald-500 text-white shrink-0">
+                  <Phone className="h-4 w-4" />
+                </div>
+                <span>Recent Calls</span>
+              </div>
+              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            </NavLink>
+
             <NavLink
               to="/app/settings/security"
               className={({ isActive }) =>
                 `w-full flex items-center justify-between p-3.5 transition-colors text-xs font-bold ${
                   isActive
-                    ? "bg-[#2164b6]/15 text-[#2164b6] dark:text-[#7ab0ff]"
+                    ? "bg-secondary/15 text-secondary"
                     : "text-foreground hover:bg-muted/50"
                 }`
               }
@@ -318,7 +177,7 @@ export function SettingsLayout() {
                 <div className="p-2 rounded-xl bg-amber-500 text-white shrink-0">
                   <Smartphone className="h-4 w-4" />
                 </div>
-                <span>Active Sessions &amp; Devices</span>
+                <span>Devices</span>
               </div>
               {sessionCount !== null && (
                 <span className="text-[11px] font-bold text-muted-foreground">{sessionCount} &gt;</span>
@@ -333,7 +192,7 @@ export function SettingsLayout() {
                 <div className="p-2 rounded-xl bg-indigo-500 text-white shrink-0">
                   <Folder className="h-4 w-4" />
                 </div>
-                <span>Community Chat Channels</span>
+                <span>Chat Folders</span>
               </div>
               <ChevronRight className="h-4 w-4 text-muted-foreground" />
             </NavLink>
@@ -346,7 +205,7 @@ export function SettingsLayout() {
               className={({ isActive }) =>
                 `w-full flex items-center justify-between p-3.5 transition-colors text-xs font-bold ${
                   isActive
-                    ? "bg-[#2164b6]/15 text-[#2164b6] dark:text-[#7ab0ff]"
+                    ? "bg-secondary/15 text-secondary"
                     : "text-foreground hover:bg-muted/50"
                 }`
               }
@@ -355,7 +214,7 @@ export function SettingsLayout() {
                 <div className="p-2 rounded-xl bg-rose-500 text-white shrink-0">
                   <Bell className="h-4 w-4" />
                 </div>
-                <span>Notifications &amp; Sounds</span>
+                <span>Notifications and Sounds</span>
               </div>
               <ChevronRight className="h-4 w-4 text-muted-foreground" />
             </NavLink>
@@ -365,7 +224,7 @@ export function SettingsLayout() {
               className={({ isActive }) =>
                 `w-full flex items-center justify-between p-3.5 transition-colors text-xs font-bold ${
                   isActive
-                    ? "bg-[#2164b6]/15 text-[#2164b6] dark:text-[#7ab0ff]"
+                    ? "bg-secondary/15 text-secondary"
                     : "text-foreground hover:bg-muted/50"
                 }`
               }
@@ -374,7 +233,7 @@ export function SettingsLayout() {
                 <div className="p-2 rounded-xl bg-slate-700 text-white shrink-0">
                   <Lock className="h-4 w-4" />
                 </div>
-                <span>Privacy &amp; Security</span>
+                <span>Privacy and Security</span>
               </div>
               <ChevronRight className="h-4 w-4 text-muted-foreground" />
             </NavLink>
@@ -384,7 +243,7 @@ export function SettingsLayout() {
               className={({ isActive }) =>
                 `w-full flex items-center justify-between p-3.5 transition-colors text-xs font-bold ${
                   isActive
-                    ? "bg-[#2164b6]/15 text-[#2164b6] dark:text-[#7ab0ff]"
+                    ? "bg-secondary/15 text-secondary"
                     : "text-foreground hover:bg-muted/50"
                 }`
               }
@@ -393,7 +252,7 @@ export function SettingsLayout() {
                 <div className="p-2 rounded-xl bg-teal-500 text-white shrink-0">
                   <SunMoon className="h-4 w-4" />
                 </div>
-                <span>Appearance &amp; Theme</span>
+                <span>Appearance</span>
               </div>
               <span className="text-[11px] font-medium text-muted-foreground">{themeLabel} &gt;</span>
             </NavLink>
@@ -403,7 +262,7 @@ export function SettingsLayout() {
               className={({ isActive }) =>
                 `w-full flex items-center justify-between p-3.5 transition-colors text-xs font-bold ${
                   isActive
-                    ? "bg-[#2164b6]/15 text-[#2164b6] dark:text-[#7ab0ff]"
+                    ? "bg-secondary/15 text-secondary"
                     : "text-foreground hover:bg-muted/50"
                 }`
               }
@@ -412,28 +271,26 @@ export function SettingsLayout() {
                 <div className="p-2 rounded-xl bg-violet-600 text-white shrink-0">
                   <Globe className="h-4 w-4" />
                 </div>
-                <span>Language &amp; Region</span>
+                <span>Language</span>
               </div>
               <ChevronRight className="h-4 w-4 text-muted-foreground" />
             </NavLink>
           </div>
 
-          {/* Group 4: Account Tier & Help */}
+          {/* Group 4: Extensions & Roles */}
           <div className="rounded-3xl bg-card border border-border/80 shadow-xs overflow-hidden divide-y divide-border/40">
-            {user?.role === "member" && (
-              <NavLink
-                to="/app/settings/upgrade"
-                className="w-full flex items-center justify-between p-3.5 hover:bg-muted/50 transition-colors text-xs font-bold text-foreground"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-xl bg-[#2164b6] text-white shrink-0">
-                    <Sparkles className="h-4 w-4" />
-                  </div>
-                  <span>Become a Creator or Vendor</span>
+            <NavLink
+              to="/app/settings/upgrade"
+              className="w-full flex items-center justify-between p-3.5 hover:bg-muted/50 transition-colors text-xs font-bold text-foreground"
+            >
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 text-white shrink-0">
+                  <Sparkles className="h-4 w-4" />
                 </div>
-                <ChevronRight className="h-4 w-4 text-muted-foreground" />
-              </NavLink>
-            )}
+                <span>MurihSpace Premium</span>
+              </div>
+              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            </NavLink>
 
             <NavLink
               to="/app/gifts"
@@ -448,12 +305,30 @@ export function SettingsLayout() {
               <ChevronRight className="h-4 w-4 text-muted-foreground" />
             </NavLink>
 
+            {user?.role === "vendor" && (
+              <NavLink
+                to="/app/store"
+                className="w-full flex items-center justify-between p-3.5 hover:bg-muted/50 transition-colors text-xs font-bold text-foreground"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-xl bg-pink-500 text-white shrink-0">
+                    <Store className="h-4 w-4" />
+                  </div>
+                  <span>MurihSpace Business</span>
+                </div>
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              </NavLink>
+            )}
+          </div>
+
+          {/* Group 5: Help */}
+          <div className="rounded-3xl bg-card border border-border/80 shadow-xs overflow-hidden divide-y divide-border/40">
             <NavLink
               to="/app/settings/help"
               className={({ isActive }) =>
                 `w-full flex items-center justify-between p-3.5 transition-colors text-xs font-bold ${
                   isActive
-                    ? "bg-[#2164b6]/15 text-[#2164b6] dark:text-[#7ab0ff]"
+                    ? "bg-secondary/15 text-secondary"
                     : "text-foreground hover:bg-muted/50"
                 }`
               }
@@ -462,15 +337,30 @@ export function SettingsLayout() {
                 <div className="p-2 rounded-xl bg-amber-600 text-white shrink-0">
                   <HelpCircle className="h-4 w-4" />
                 </div>
-                <span>Support &amp; Help Desk</span>
+                <span>Ask a Question</span>
               </div>
               <ChevronRight className="h-4 w-4 text-muted-foreground" />
             </NavLink>
+
+            <a
+              href="/help"
+              target="_blank"
+              rel="noreferrer"
+              className="w-full flex items-center justify-between p-3.5 hover:bg-muted/50 transition-colors text-xs font-bold text-foreground"
+            >
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-xl bg-sky-600 text-white shrink-0">
+                  <FileQuestion className="h-4 w-4" />
+                </div>
+                <span>MurihSpace FAQ &amp; Guides</span>
+              </div>
+              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            </a>
           </div>
         </aside>
 
-        {/* ── Right Sub-view Content Area (8 Cols) ────────────────── */}
-        <main className="lg:col-span-8">
+        {/* ── Right Content Panel (8 Cols) ───────────────────────────────── */}
+        <main className="lg:col-span-8 p-6 rounded-3xl bg-card border border-border/80 shadow-xs min-h-[500px]">
           <Outlet />
         </main>
       </div>

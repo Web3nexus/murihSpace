@@ -82,23 +82,4 @@ class FeatureFlagController extends Controller
 
         return response()->json(['message' => 'Feature flag deleted.']);
     }
-
-    public function toggle(Request $request, int $id): JsonResponse
-    {
-        $flag = FeatureFlag::findOrFail($id);
-        $flag->update(['enabled' => ! $flag->enabled]);
-
-        AuditLog::create([
-            'user_id' => $request->user()->id,
-            'action' => 'feature_flag.toggled',
-            'resource_type' => 'feature_flag',
-            'resource_id' => (string) $flag->id,
-            'metadata' => ['key' => $flag->key, 'enabled' => $flag->enabled],
-        ]);
-
-        return response()->json([
-            'message' => "Feature '{$flag->label}' " . ($flag->enabled ? 'enabled' : 'disabled') . '.',
-            'data' => $flag,
-        ]);
-    }
 }

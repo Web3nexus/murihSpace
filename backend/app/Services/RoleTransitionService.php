@@ -30,8 +30,8 @@ class RoleTransitionService
     /** Roles that may request an upgrade/change. */
     private const ALLOWED_TRANSITIONS = [
         'member'  => ['creator', 'vendor'],
-        'vendor'  => ['creator', 'member'],
-        'creator' => ['vendor', 'member'],
+        'vendor'  => ['creator'],
+        'creator' => ['vendor'],
     ];
 
     /**
@@ -43,12 +43,8 @@ class RoleTransitionService
     {
         $currentRole = $user->role;
 
-        if ($currentRole === $requestedRole) {
-            throw new \Exception("Your profile is already active as {$requestedRole}.");
-        }
-
         // Validate the transition is allowed
-        $allowed = self::ALLOWED_TRANSITIONS[$currentRole] ?? ['creator', 'vendor', 'member'];
+        $allowed = self::ALLOWED_TRANSITIONS[$currentRole] ?? [];
         if (! in_array($requestedRole, $allowed, true)) {
             throw new \Exception("Role change from '{$currentRole}' to '{$requestedRole}' is not supported.");
         }
