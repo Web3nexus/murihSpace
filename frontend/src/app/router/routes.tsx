@@ -199,6 +199,12 @@ export const routes: RouteObject[] = [
         element: <Suspense fallback={<PageLoader />}><ActivityLogPage /></Suspense>,
       },
 
+      // ── 1:1 Coaching & Bookings ─────────────────
+      {
+        path: "coaching",
+        element: <Suspense fallback={<PageLoader />}><CoachingPage /></Suspense>,
+      },
+
       // ── Identity Verification (KYC) ─────────────
       {
         path: "kyc",

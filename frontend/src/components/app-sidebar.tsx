@@ -14,7 +14,6 @@ import {
   SidebarMenuItem,
   SidebarGroup,
   SidebarGroupLabel,
-  SidebarSeparator,
   useSidebar,
 } from "@/components/ui/sidebar";
 import {
@@ -31,16 +30,15 @@ import {
   LogOut,
   UserCircle,
   Bell,
-  Globe,
   Wallet,
   ShieldCheck,
+  ChevronRight,
 } from "lucide-react";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { ChevronRight } from "lucide-react";
 import { getSidebarNav } from "@/navigation/getSidebarNav";
 import { ROLE_LABELS } from "@/navigation/navTypes";
 import type { NavItem, NavGroup, UserRole } from "@/navigation/navTypes";
@@ -117,7 +115,7 @@ function BrandLogo({ role }: { role: UserRole }) {
   return (
     <Link
       to={isAdmin ? "/app/securegate" : "/app"}
-      className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg group transition-all"
+      className="flex items-center gap-2.5 px-2 py-1.5 rounded-xl group transition-all"
     >
       {collapsed ? (
         <img
@@ -126,18 +124,46 @@ function BrandLogo({ role }: { role: UserRole }) {
           className="h-8 w-8 object-contain shrink-0 transition-transform group-hover:scale-105"
         />
       ) : (
-        <div className="flex flex-col gap-1">
+        <div className="flex flex-col gap-0.5">
           <img
             src={fullLogo.url}
             alt={fullLogo.alt}
             className="h-7 w-auto object-contain shrink-0 transition-transform group-hover:scale-105"
           />
-          <span className="text-[9.5px] text-[#2164b6] dark:text-[#7ab0ff] font-bold uppercase tracking-widest pl-0.5">
+          <span className="text-[9px] text-[#1877f2] dark:text-[#4599ff] font-bold uppercase tracking-widest pl-0.5">
             {roleLabel}
           </span>
         </div>
       )}
     </Link>
+  );
+}
+
+function getIconBadgeColor(title: string): string {
+  const t = title.toLowerCase();
+  if (t.includes("dashboard") || t.includes("securegate")) return "bg-gradient-to-tr from-[#1877f2] to-[#0d5cb6] text-white shadow-xs";
+  if (t.includes("request") || t.includes("friend") || t.includes("user")) return "bg-gradient-to-tr from-cyan-500 to-blue-600 text-white shadow-xs";
+  if (t.includes("link") || t.includes("bio") || t.includes("content")) return "bg-gradient-to-tr from-pink-500 to-rose-600 text-white shadow-xs";
+  if (t.includes("community") || t.includes("feed") || t.includes("group")) return "bg-gradient-to-tr from-teal-400 to-emerald-600 text-white shadow-xs";
+  if (t.includes("event") || t.includes("audio") || t.includes("room")) return "bg-gradient-to-tr from-amber-500 to-orange-600 text-white shadow-xs";
+  if (t.includes("course") || t.includes("learn") || t.includes("package")) return "bg-gradient-to-tr from-emerald-500 to-green-600 text-white shadow-xs";
+  if (t.includes("coach") || t.includes("brand") || t.includes("proposal")) return "bg-gradient-to-tr from-indigo-500 to-violet-600 text-white shadow-xs";
+  if (t.includes("market") || t.includes("broadcast") || t.includes("sequence")) return "bg-gradient-to-tr from-rose-500 to-red-600 text-white shadow-xs";
+  if (t.includes("inbox") || t.includes("message") || t.includes("chat")) return "bg-gradient-to-tr from-sky-400 to-blue-600 text-white shadow-xs";
+  if (t.includes("ai assistant") || t.includes("mera")) return "bg-gradient-to-tr from-[#1877f2] to-indigo-600 text-white shadow-xs";
+  if (t.includes("wallet") || t.includes("payout") || t.includes("earning")) return "bg-gradient-to-tr from-emerald-400 to-teal-600 text-white shadow-xs";
+  if (t.includes("escrow") || t.includes("kyc") || t.includes("security")) return "bg-gradient-to-tr from-amber-400 to-yellow-600 text-white shadow-xs";
+  if (t.includes("gift")) return "bg-gradient-to-tr from-pink-400 to-rose-500 text-white shadow-xs";
+  if (t.includes("badge") || t.includes("verifi")) return "bg-gradient-to-tr from-[#1877f2] to-cyan-500 text-white shadow-xs";
+  return "bg-gradient-to-tr from-slate-600 to-slate-800 text-white shadow-xs";
+}
+
+function NavIconBadge({ title, icon }: { title: string; icon: React.ReactNode }) {
+  const badgeStyle = getIconBadgeColor(title);
+  return (
+    <span className={`inline-flex h-7 w-7 items-center justify-center rounded-xl p-1.5 transition-transform group-hover/item:scale-105 shrink-0 ${badgeStyle}`}>
+      {icon}
+    </span>
   );
 }
 
@@ -158,15 +184,13 @@ function NavRow({ item }: { item: NavItem }) {
           asChild
           isActive={active}
           tooltip={item.title}
-          className="relative group/item h-9 gap-3 rounded-lg px-3 text-[13.5px] font-medium
-            text-[#65676B] transition-all duration-150
-            hover:bg-[#F0F2F5] hover:text-[#1a2e3b]
-            data-[active=true]:bg-[#2164b6]/10 data-[active=true]:text-[#2164b6] dark:text-[#7ab0ff] data-[active=true]:font-semibold"
+          className="relative group/item h-10 gap-3 rounded-xl px-2.5 text-[13px] font-medium
+            text-muted-foreground transition-all duration-150
+            hover:bg-muted/70 hover:text-foreground
+            data-[active=true]:bg-[#1877f2]/10 data-[active=true]:text-[#1877f2] dark:data-[active=true]:text-[#4599ff] data-[active=true]:font-bold"
         >
           <Link to={item.url}>
-            <span className="shrink-0 opacity-60 group-hover/item:opacity-90 data-[active=true]:opacity-100 data-[active=true]:text-[#2164b6] dark:text-[#7ab0ff]">
-              {item.icon}
-            </span>
+            <NavIconBadge title={item.title} icon={item.icon} />
             <span className="flex-1 truncate">{item.title}</span>
             {item.badge != null && !collapsed && (
               <span className="ml-auto flex h-4.5 min-w-[18px] items-center justify-center rounded-full bg-rose-500 px-1.5 text-[10px] font-bold text-white shadow-xs">
@@ -174,7 +198,7 @@ function NavRow({ item }: { item: NavItem }) {
               </span>
             )}
             {active && (
-              <span className="absolute left-0 top-1/2 -translate-y-1/2 h-6 w-[3px] rounded-r-full bg-[#2164b6]" />
+              <span className="absolute left-0 top-1/2 -translate-y-1/2 h-6 w-[3px] rounded-r-full bg-[#1877f2]" />
             )}
           </Link>
         </SidebarMenuButton>
@@ -189,40 +213,40 @@ function NavRow({ item }: { item: NavItem }) {
           <SidebarMenuButton
             isActive={active}
             tooltip={item.title}
-            className="relative group/item h-9 gap-3 rounded-lg px-3 text-[13.5px] font-medium
-              text-[#65676B] transition-all duration-150
-              hover:bg-[#F0F2F5] hover:text-[#1a2e3b]
-              data-[active=true]:bg-[#2164b6]/10 data-[active=true]:text-[#2164b6] dark:text-[#7ab0ff] data-[active=true]:font-semibold"
+            className="relative group/item h-10 gap-3 rounded-xl px-2.5 text-[13px] font-medium
+              text-muted-foreground transition-all duration-150
+              hover:bg-muted/70 hover:text-foreground
+              data-[active=true]:bg-[#1877f2]/10 data-[active=true]:text-[#1877f2] dark:data-[active=true]:text-[#4599ff] data-[active=true]:font-bold"
           >
-            <span className="shrink-0 opacity-60 group-hover/item:opacity-90">{item.icon}</span>
+            <NavIconBadge title={item.title} icon={item.icon} />
             <span className="flex-1 truncate">{item.title}</span>
             {item.badge != null && !collapsed && (
               <span className="flex h-4.5 min-w-[18px] items-center justify-center rounded-full bg-rose-500 px-1.5 text-[10px] font-bold text-white shadow-xs">
                 {item.badge}
               </span>
             )}
-            <ChevronRight className="size-3.5 shrink-0 opacity-40 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+            <ChevronRight className="size-3.5 shrink-0 opacity-50 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
             {active && (
-              <span className="absolute left-0 top-1/2 -translate-y-1/2 h-6 w-[3px] rounded-r-full bg-[#2164b6]" />
+              <span className="absolute left-0 top-1/2 -translate-y-1/2 h-6 w-[3px] rounded-r-full bg-[#1877f2]" />
             )}
           </SidebarMenuButton>
         </CollapsibleTrigger>
 
         <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down">
-          <div className="ml-7 mt-0.5 mb-1 border-l border-[#2164b6]/20 pl-3 space-y-0.5">
+          <div className="ml-8 mt-1 mb-1 border-l border-border/80 pl-3 space-y-1">
             {item.children!.map((child) => (
               <Link
                 key={child.title}
                 to={child.url}
-                className={`flex items-center justify-between rounded-md py-1.5 px-2 text-[12.5px] transition-colors duration-100 ${
+                className={`flex items-center justify-between rounded-lg py-1.5 px-2.5 text-[12px] transition-colors duration-100 ${
                   childActive(child)
-                    ? "text-[#2164b6] dark:text-[#7ab0ff] font-semibold bg-[#2164b6]/08"
-                    : "text-[#65676B] hover:text-[#1a2e3b] hover:bg-[#F0F2F5]"
+                    ? "text-[#1877f2] dark:text-[#4599ff] font-bold bg-[#1877f2]/10"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                 }`}
               >
                 <span className="truncate">{child.title}</span>
                 {child.badge && (
-                  <span className="text-[9px] px-1 rounded bg-[#2164b6]/20 text-[#2164b6] dark:text-[#7ab0ff] font-bold uppercase">
+                  <span className="text-[9px] px-1.5 rounded bg-[#1877f2]/15 text-[#1877f2] dark:text-[#4599ff] font-bold uppercase">
                     {child.badge}
                   </span>
                 )}
@@ -249,121 +273,118 @@ function UserFooter({ role }: { role: UserRole }) {
   const { isMobile } = useSidebar();
   const { user, logout, loading } = useAuth();
 
-  const handleLogout = async () => {
-    await logout();
-    navigate("/login");
-  };
-
-  const roleSubtitle: Record<UserRole, string> = {
-    member: "Member",
-    creator: "Creator",
-    vendor: "Vendor",
-    admin: "Platform Administrator",
-  };
-
   if (loading || !user) {
     return (
-      <div className="space-y-2 px-1">
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton size="lg" className="h-auto gap-2.5 rounded-xl px-2 py-2">
-              <div className="h-8 w-8 rounded-lg bg-[#2164b6]/10 animate-pulse" />
-              <div className="grid flex-1 gap-1">
-                <div className="h-3 w-24 rounded bg-[#2164b6]/10 animate-pulse" />
-                <div className="h-2.5 w-16 rounded bg-[#2164b6]/10 animate-pulse" />
-              </div>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
+      <div className="flex items-center gap-3 p-2 text-xs text-muted-foreground">
+        <div className="h-8 w-8 rounded-full bg-muted animate-pulse" />
+        <div className="flex-1 space-y-1">
+          <div className="h-3 w-20 bg-muted rounded animate-pulse" />
+          <div className="h-2 w-12 bg-muted rounded animate-pulse" />
+        </div>
       </div>
     );
   }
 
+  const roleLabel = ROLE_LABELS[role];
+  const userInitials = user.name ? initials(user.name) : "U";
+
   return (
-    <div className="space-y-2 px-1">
-      <SidebarMenu>
-        <SidebarMenuItem>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <SidebarMenuButton
-                size="lg"
-                className="h-auto gap-2.5 rounded-xl px-2 py-2 hover:bg-[#F0F2F5] data-[state=open]:bg-[#F0F2F5]"
-              >
-                <Avatar className="h-8 w-8 rounded-lg shrink-0">
-                  <AvatarFallback className="rounded-lg bg-[#2164b6] text-white text-xs font-bold">
-                    {initials(user.name)}
+    <SidebarMenu>
+      <SidebarMenuItem>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <SidebarMenuButton
+              size="lg"
+              className="data-[state=open]:bg-muted data-[state=open]:text-foreground rounded-xl"
+            >
+              <Avatar className="h-8 w-8 rounded-full bg-[#1877f2] text-white">
+                <AvatarFallback className="text-xs font-bold bg-[#1877f2] text-white">
+                  {userInitials}
+                </AvatarFallback>
+              </Avatar>
+              <div className="grid flex-1 text-left text-xs leading-tight">
+                <span className="truncate font-bold text-foreground">{user.name}</span>
+                <span className="truncate text-[10px] text-muted-foreground capitalize">{roleLabel}</span>
+              </div>
+              <ChevronsUpDown className="ml-auto size-4 text-muted-foreground" />
+            </SidebarMenuButton>
+          </DropdownMenuTrigger>
+
+          <DropdownMenuContent
+            className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-xl border border-border bg-card shadow-lg"
+            side={isMobile ? "bottom" : "right"}
+            align="end"
+            sideOffset={4}
+          >
+            <DropdownMenuLabel className="p-0 font-normal">
+              <div className="flex items-center gap-2 px-3 py-2 text-left text-xs">
+                <Avatar className="h-8 w-8 rounded-full bg-[#1877f2] text-white">
+                  <AvatarFallback className="text-xs font-bold bg-[#1877f2] text-white">
+                    {userInitials}
                   </AvatarFallback>
                 </Avatar>
-                <div className="grid flex-1 text-left leading-tight">
-                  <span className="truncate text-[13px] font-semibold text-[#1a2e3b]">{user.name}</span>
-                  <span className="truncate text-[11px] text-[#65676B]">
-                    {roleSubtitle[role]}
-                  </span>
+                <div className="grid flex-1 text-left text-xs leading-tight">
+                  <span className="truncate font-bold text-foreground">{user.name}</span>
+                  <span className="truncate text-[10px] text-muted-foreground">{user.email}</span>
                 </div>
-                <ChevronsUpDown className="size-3.5 shrink-0 text-[#65676B]" />
-              </SidebarMenuButton>
-            </DropdownMenuTrigger>
-
-            <DropdownMenuContent
-              className="w-56 rounded-xl"
-              side={isMobile ? "bottom" : "right"}
-              align="end"
-              sideOffset={6}
+              </div>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator className="bg-border" />
+            <DropdownMenuItem
+              onClick={() => navigate("/app/settings/profile")}
+              className="cursor-pointer text-xs"
             >
-              <DropdownMenuLabel className="p-0 font-normal">
-                <div className="flex items-center gap-2.5 px-2 py-2">
-                  <Avatar className="h-8 w-8 rounded-lg">
-                    <AvatarFallback className="rounded-lg bg-primary text-primary-foreground text-xs font-bold">
-                      {initials(user.name)}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="grid leading-tight">
-                    <span className="text-[13px] font-semibold">{user.name}</span>
-                    <span className="text-xs text-muted-foreground truncate">{user.email}</span>
-                  </div>
-                </div>
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              {role !== "admin" && (
-                <DropdownMenuItem asChild className="gap-2 cursor-pointer">
-                  <Link to="/app/link-in-bio"><Globe className="size-4" />My Link in Bio</Link>
+              <UserCircle className="mr-2 h-4 w-4 text-muted-foreground" />
+              Profile Settings
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => navigate("/app/settings/notifications")}
+              className="cursor-pointer text-xs"
+            >
+              <Bell className="mr-2 h-4 w-4 text-muted-foreground" />
+              Notifications
+            </DropdownMenuItem>
+
+            {role !== "admin" && (
+              <>
+                <DropdownMenuItem
+                  onClick={() => navigate("/app/wallet")}
+                  className="cursor-pointer text-xs"
+                >
+                  <Wallet className="mr-2 h-4 w-4 text-muted-foreground" />
+                  MurihPay Wallet
                 </DropdownMenuItem>
-              )}
-              <DropdownMenuItem asChild className="gap-2 cursor-pointer">
-                <Link to="/app/settings/profile"><UserCircle className="size-4" />Profile & Identity</Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild className="gap-2 cursor-pointer">
-                <Link to="/app/settings/kyc"><ShieldCheck className="size-4" />KYC Verification</Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild className="gap-2 cursor-pointer">
-                <Link to="/app/wallet"><Wallet className="size-4" />MurihPay Wallet</Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild className="gap-2 cursor-pointer">
-                <Link to="/app/settings/notifications"><Bell className="size-4" />Notifications</Link>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                className="gap-2 cursor-pointer text-destructive focus:text-destructive"
-                onClick={handleLogout}
-              >
-                <LogOut className="size-4" />
-                Sign Out
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </SidebarMenuItem>
-      </SidebarMenu>
-    </div>
+                <DropdownMenuItem
+                  onClick={() => navigate("/app/kyc")}
+                  className="cursor-pointer text-xs"
+                >
+                  <ShieldCheck className="mr-2 h-4 w-4 text-muted-foreground" />
+                  KYC Verification
+                </DropdownMenuItem>
+              </>
+            )}
+
+            <DropdownMenuSeparator className="bg-border" />
+            <DropdownMenuItem
+              onClick={() => logout()}
+              className="cursor-pointer text-xs text-destructive focus:text-destructive"
+            >
+              <LogOut className="mr-2 h-4 w-4 text-destructive" />
+              Sign out
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </SidebarMenuItem>
+    </SidebarMenu>
   );
 }
 
-type SidebarProps = Omit<React.ComponentProps<typeof Sidebar>, "variant">;
-
-export function AppSidebar({ ...props }: SidebarProps) {
+export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { user } = useAuth();
-  const role: UserRole = user?.role ?? "member";
+  const role: UserRole = (user?.role as UserRole) ?? "member";
+  const flags = useFeatureFlags();
 
-  const [unreadCount, setUnreadCount] = useState<number>(0);
+  const [unreadCount, setUnreadCount] = useState(0);
   const [adminCounts, setAdminCounts] = useState<AdminCounts>({
     pending_kyc: 0,
     pending_role_applications: 0,
@@ -372,117 +393,58 @@ export function AppSidebar({ ...props }: SidebarProps) {
   });
 
   useEffect(() => {
-    apiClient
-      .get("/conversations?unread_only=true")
-      .then((res) => {
-        const body = (res.data as { data?: unknown } | undefined)?.data ?? res.data;
-        const list = Array.isArray(body) ? body : (body as { data?: unknown } | undefined)?.data;
-        const total = (res.data as { total?: unknown } | undefined)?.total ?? (body as { total?: unknown } | undefined)?.total;
-        setUnreadCount(Number(total) || (Array.isArray(list) ? list.length : 0));
-      })
-      .catch(() => {});
-  }, []);
+    let unmounted = false;
 
-  useEffect(() => {
-    if (role !== "admin") return;
-    let mounted = true;
+    async function fetchCounts() {
+      try {
+        const res = await apiClient.get("/messages/unread-count");
+        if (!unmounted && res.data?.success) {
+          setUnreadCount(res.data.data?.unread_count ?? 0);
+        }
+      } catch { /* ignore */ }
 
-    const load = () => {
-      apiClient
-        .get("/securegate/analytics/pending-counts")
-        .then((res) => {
-          if (!mounted) return;
-          const body = (res.data as { data?: unknown } | undefined)?.data ?? res.data;
-          const counts = (body ?? {}) as {
-            pending_kyc?: number;
-            pending_role_applications?: number;
-            pending_reports?: number;
-            open_tickets?: number;
-          };
-          setAdminCounts((prev) => ({
-            pending_kyc: counts.pending_kyc ?? prev.pending_kyc,
-            pending_role_applications: counts.pending_role_applications ?? prev.pending_role_applications,
-            pending_reports: counts.pending_reports ?? prev.pending_reports,
-            open_tickets: counts.open_tickets ?? prev.open_tickets,
-          }));
-        })
-        .catch(() => {});
-    };
+      if (role === "admin") {
+        try {
+          const res = await apiClient.get("/securegate/pending-counts");
+          if (!unmounted && res.data?.success) {
+            setAdminCounts(res.data.data);
+          }
+        } catch { /* ignore */ }
+      }
+    }
 
-    load();
-    const interval = setInterval(load, 45000);
-    return () => {
-      mounted = false;
-      clearInterval(interval);
-    };
+    fetchCounts();
+    return () => { unmounted = true; };
   }, [role]);
 
-  const flags = useFeatureFlags();
-  const nav = filterByFlags(injectBadges(getSidebarNav(role), unreadCount, adminCounts), flags);
-
-  // Blur the sidebar for creators/vendors who haven't finished the setup wizard
-  const isSetupIncomplete =
-    (role === "creator" || role === "vendor") &&
-    user?.onboarding_completed === false;
+  const rawNav = getSidebarNav(role);
+  const filtered = filterByFlags(rawNav, flags);
+  const navGroups = injectBadges(filtered, unreadCount, adminCounts);
 
   return (
-    <Sidebar
-      collapsible="icon"
-      className="border-r border-sidebar-border shadow-[2px_0_20px_rgba(16,40,64,0.06)]"
-      {...props}
-    >
-      <SidebarHeader className="px-3 pt-3 pb-2">
+    <Sidebar collapsible="icon" className="border-r border-border bg-card" {...props}>
+      <SidebarHeader className="h-14 flex items-center justify-center border-b border-border/80 px-4">
         <BrandLogo role={role} />
       </SidebarHeader>
 
-      <SidebarSeparator className="opacity-10 mx-3 bg-[#1a2e3b]" />
-
-      <div className="relative flex flex-1 flex-col min-h-0">
-        <SidebarContent
-          {...(isSetupIncomplete ? { inert: true } : {})}
-          className={`px-2 py-1.5 gap-0 transition-all duration-300 ${
-            isSetupIncomplete ? "blur-sm pointer-events-none select-none" : ""
-          }`}
-        >
-          {nav.map((group) => (
-            <SidebarGroup key={group.title} className="p-0">
-              <SidebarGroupLabel className="px-3 py-2 text-[10.5px] font-semibold uppercase tracking-widest text-[#65676B]/70">
+      <SidebarContent className="px-2 py-3 space-y-4">
+        {navGroups.map((group, idx) => (
+          <SidebarGroup key={group.title ?? idx} className="py-0">
+            {group.title && (
+              <SidebarGroupLabel className="text-[10px] font-bold tracking-widest text-muted-foreground/80 uppercase px-2.5 mb-1">
                 {group.title}
               </SidebarGroupLabel>
-              <SidebarMenu className="gap-0.5">
-                {group.items.map((item) => (
-                  <NavRow key={item.title} item={item} />
-                ))}
-              </SidebarMenu>
-            </SidebarGroup>
-          ))}
-        </SidebarContent>
+            )}
+            <SidebarMenu className="space-y-0.5">
+              {group.items.map((item) => (
+                <NavRow key={item.title} item={item} />
+              ))}
+            </SidebarMenu>
+          </SidebarGroup>
+        ))}
+      </SidebarContent>
 
-        {isSetupIncomplete && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 z-10 bg-white/60 dark:bg-[#081826]/60 backdrop-blur-[2px] rounded-lg mx-1">
-            <div className="text-center px-4">
-              <div className="w-10 h-10 rounded-full bg-[#2164b6]/15 flex items-center justify-center mx-auto mb-2">
-                <svg className="w-5 h-5 text-[#2164b6] dark:text-[#7ab0ff]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                </svg>
-              </div>
-              <p className="text-[11px] font-semibold text-[#1a2e3b] dark:text-white leading-tight mb-3">
-                Complete your setup to unlock the dashboard
-              </p>
-              <Link
-                to="/app/onboarding"
-                className="inline-flex items-center gap-1.5 bg-[#2164b6] hover:bg-[#2a96c7] text-white text-[11px] font-bold px-3 py-1.5 rounded-lg transition-colors"
-              >
-                Start Setup Wizard
-              </Link>
-            </div>
-          </div>
-        )}
-      </div>
-
-      <SidebarSeparator className="opacity-10 mx-3 bg-[#1a2e3b]" />
-
-      <SidebarFooter className="p-2 pb-3">
+      <SidebarFooter className="border-t border-border/80 p-2">
         <UserFooter role={role} />
       </SidebarFooter>
 

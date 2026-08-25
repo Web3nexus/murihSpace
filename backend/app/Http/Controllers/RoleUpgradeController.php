@@ -61,18 +61,22 @@ class RoleUpgradeController extends Controller
                 requestedRole: $validated['requested_role'],
             );
 
-            app(AdminAlertService::class)->dispatch([
-                'event_type' => 'role_application',
-                'severity' => 'warning', // warning routes to email and telegram based on the AdminAlertService
-                'title' => 'New Role Application',
-                'description' => "User {$request->user()->name} has applied for the {$validated['requested_role']} role.",
-                'reference' => env('APP_URL') . '/app/securegate/role-applications',
-                'channels' => ['email', 'telegram']
-            ]);
+            try {
+                app(AdminAlertService::class)->dispatch([
+                    'event_type' => 'role_application',
+                    'severity' => 'warning',
+                    'title' => 'New Role Application',
+                    'description' => "User {$request->user()->name} has applied for the {$validated['requested_role']} role.",
+                    'reference' => env('APP_URL') . '/app/securegate/role-applications',
+                    'channels' => ['email', 'telegram']
+                ]);
+            } catch (\Throwable $e) {
+                \Log::warning("Role upgrade admin alert dispatch failed: {$e->getMessage()}");
+            }
 
             return response()->json([
                 'success'     => true,
-                'message'     => 'Your role application has been submitted and is under review.',
+                'message'     => 'Your role application has been submitted successfully and is pending review.',
                 'application' => $application,
             ], 201);
         } catch (\Exception $e) {
@@ -119,17 +123,20 @@ class RoleUpgradeController extends Controller
         $query = AccountRoleHistory::with(['user:id,name,email,role,avatar', 'approvedBy:id,name'])
             ->latest();
 
-        if ($request->has('status')) {
+        if ($request->filled('status') && $request->input('status') !== 'all') {
             $query->where('status', $request->input('status'));
         }
 
-        if ($request->has('role')) {
+        if ($request->filled('role') && $request->input('role') !== 'all') {
             $query->where('requested_role', $request->input('role'));
         }
 
         $applications = $query->paginate(25);
 
-        return response()->json($applications);
+        return response()->json([
+            'success' => true,
+            'data' => $applications,
+        ]);
     }
 
     /**

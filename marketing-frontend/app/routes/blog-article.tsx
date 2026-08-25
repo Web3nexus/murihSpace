@@ -10,7 +10,7 @@ export async function loader({ params }: Route.LoaderArgs) {
 
 export function meta({ loaderData }: Route.MetaArgs) {
   return [
-    { title: loaderData?.post?.title ?? "Blog — MurihSpace" },
+    { title: loaderData?.post?.title ?? "Blog | MurihSpace" },
     { name: "description", content: loaderData?.post?.excerpt ?? undefined },
   ];
 }

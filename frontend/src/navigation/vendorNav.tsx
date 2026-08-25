@@ -44,9 +44,8 @@ export const vendorNav: NavGroup[] = [
         url: "/app/store/physical-products",
         icon: <Package className="size-4" />,
         children: [
-          { title: "All Products", url: "/app/store/physical-products", featureFlag: "physical_products" },
-          { title: "Digital Products", url: "/app/store/digital", featureFlag: "digital_products" },
-          { title: "Online Courses", url: "/app/store/courses", featureFlag: "online_courses" },
+          { title: "Physical Merchandise", url: "/app/store/physical-products", featureFlag: "physical_products" },
+          { title: "Inventory & Stock", url: "/app/store/inventory", featureFlag: "physical_products" },
         ],
       },
       {

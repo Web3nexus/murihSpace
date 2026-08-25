@@ -25,6 +25,7 @@ export function SiteHeader() {
   const navigate = useNavigate();
 
   const [searchQuery, setSearchQuery] = useState("");
+  const [showQuickMenu, setShowQuickMenu] = useState(false);
   const [suggestions, setSuggestions] = useState<
     { id: number; name: string; username?: string; type: string; avatar?: string; slug?: string; communitySlug?: string }[]
   >([]);
@@ -235,14 +236,47 @@ export function SiteHeader() {
       <div className="flex items-center gap-1.5 w-[240px] justify-end shrink-0 ml-auto">
 
         {!isAdmin && (
-          <>
-            {/* Plus / Create */}
-            <Link to="/app/communities">
-              <button className="h-9 w-9 rounded-full bg-[#F0F2F5] hover:bg-[#E4E6EB] flex items-center justify-center text-[#1a2e3b] transition-colors" title="Create">
-                <Plus className="h-4 w-4" />
-              </button>
-            </Link>
-          </>
+          <div className="relative">
+            <button
+              onClick={() => setShowQuickMenu((prev) => !prev)}
+              className="h-9 w-9 rounded-full bg-[#F0F2F5] hover:bg-[#E4E6EB] dark:bg-muted dark:hover:bg-muted/80 flex items-center justify-center text-[#1a2e3b] dark:text-foreground transition-colors"
+              title="Quick Create"
+            >
+              <Plus className="h-4 w-4" />
+            </button>
+
+            {showQuickMenu && (
+              <div className="absolute right-0 top-11 w-56 bg-card border border-border rounded-xl shadow-xl z-50 p-1.5 space-y-1 text-xs">
+                <div className="px-3 py-1.5 font-bold text-[11px] text-muted-foreground uppercase tracking-wider border-b border-border mb-1">
+                  Quick Create
+                </div>
+                <Link
+                  to="/app/feed"
+                  onClick={() => setShowQuickMenu(false)}
+                  className="flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-muted transition-colors font-medium text-foreground"
+                >
+                  <FileText className="h-4 w-4 text-[#2164b6]" />
+                  <span>Create Post</span>
+                </Link>
+                <Link
+                  to="/app/communities"
+                  onClick={() => setShowQuickMenu(false)}
+                  className="flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-muted transition-colors font-medium text-foreground"
+                >
+                  <Users className="h-4 w-4 text-emerald-500" />
+                  <span>Create Community</span>
+                </Link>
+                <Link
+                  to="/app/audio-rooms"
+                  onClick={() => setShowQuickMenu(false)}
+                  className="flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-muted transition-colors font-medium text-foreground"
+                >
+                  <Plus className="h-4 w-4 text-amber-500" />
+                  <span>Host Audio Room</span>
+                </Link>
+              </div>
+            )}
+          </div>
         )}
 
         {/* Notifications */}

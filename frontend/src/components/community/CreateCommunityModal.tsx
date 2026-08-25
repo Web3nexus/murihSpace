@@ -185,7 +185,7 @@ export function CreateCommunityModal({
             />
             {formData.name && (
               <p className="text-xs text-muted-foreground font-mono">
-                URL Preview: <span className="text-secondary font-semibold">app.murihspace.com/communities/{handleSlugPreview(formData.name)}</span>
+                URL Preview: <span className="text-secondary font-semibold">web.murihspace.com/communities/{handleSlugPreview(formData.name)}</span>
               </p>
             )}
           </div>

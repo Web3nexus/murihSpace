@@ -327,6 +327,7 @@ Route::prefix('v1')->group(function () {
             Route::get('/', [ProfileController::class, 'show']);
             Route::put('/', [ProfileController::class, 'update']);
             Route::post('/kyc', [ProfileController::class, 'submitKyc']);
+            Route::post('/switch-role', [ProfileController::class, 'switchRole']);
         });
 
         // My Communities
@@ -1178,6 +1179,7 @@ Route::prefix('v1')->group(function () {
                 Route::get('/', [FeatureFlagController::class, 'index']);
                 Route::post('/', [FeatureFlagController::class, 'store']);
                 Route::put('/{id}', [FeatureFlagController::class, 'update']);
+                Route::post('/{id}/toggle', [FeatureFlagController::class, 'toggle']);
                 Route::delete('/{id}', [FeatureFlagController::class, 'destroy']);
             });
 

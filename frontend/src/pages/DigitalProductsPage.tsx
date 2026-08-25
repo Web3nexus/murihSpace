@@ -1,6 +1,8 @@
 import { getAuthToken } from "@/lib/auth/token";
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useConfirm } from '@/components/ui/DialogProvider';
+import { useAuth } from '@/hooks/useAuth';
+import { Link } from 'react-router';
 import {
   Package,
   Plus,
@@ -11,6 +13,11 @@ import {
   FileText,
   Loader2,
   UploadCloud,
+  AlertCircle,
+  RotateCcw,
+  Sparkles,
+  Truck,
+  ShieldCheck,
 } from 'lucide-react';
 import { ImageUploader } from '@/components/upload/ImageUploader';
 import { Button } from '@/components/ui/button';
@@ -26,8 +33,7 @@ import type { DigitalProduct, ProductCategory, ProductStatus } from '@/types/dig
 import { authFetch } from "@/lib/api/authFetch";
 import { FormErrorSummary } from '@/components/ui/FormErrorSummary';
 import { PageHeader } from '@/components/ui/PageHeader';
-
-
+import { ActionTooltip } from '@/components/ui/action-tooltip';
 
 const CATEGORIES: { value: ProductCategory; label: string }[] = [
   { value: 'ebook', label: 'E-Book' },
@@ -38,10 +44,26 @@ const CATEGORIES: { value: ProductCategory; label: string }[] = [
   { value: 'other', label: 'Other Asset' },
 ];
 
+function safeArray<T = any>(val: any): T[] {
+  if (Array.isArray(val)) return val;
+  if (Array.isArray(val?.data)) return val.data;
+  if (Array.isArray(val?.data?.data)) return val.data.data;
+  if (Array.isArray(val?.products)) return val.products;
+  return [];
+}
+
 export function DigitalProductsPage() {
   const confirm = useConfirm();
+  const { user } = useAuth();
+  const role = user?.role ?? 'creator';
+  const isKycVerified = user?.kyc_status === 'verified';
+
   const [products, setProducts] = useState<DigitalProduct[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [isKycError, setIsKycError] = useState(false);
+
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [showModal, setShowModal] = useState(false);
@@ -65,6 +87,10 @@ export function DigitalProductsPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchProducts = useCallback(async () => {
+    setIsLoading(true);
+    setHasError(false);
+    setErrorMessage('');
+    setIsKycError(false);
     const token = getAuthToken();
     try {
       const res = await authFetch(`/store/products?page=${page}&per_page=20`, {
@@ -75,22 +101,40 @@ export function DigitalProductsPage() {
       });
       if (res.ok) {
         const json = await res.json();
-        setProducts(json.data?.data ?? []);
-        setLastPage(json.data?.last_page ?? 1);
+        const items = safeArray<DigitalProduct>(json);
+        setProducts(items);
+        setLastPage(json.data?.last_page ?? json.last_page ?? 1);
+      } else {
+        const errJson = await res.json().catch(() => ({}));
+        const msg = errJson.message ?? 'Failed to load digital products from server.';
+        setHasError(true);
+        setErrorMessage(msg);
+
+        // Check if error is KYC or authorization related
+        if (
+          res.status === 403 ||
+          msg.toLowerCase().includes('kyc') ||
+          msg.toLowerCase().includes('identity') ||
+          msg.toLowerCase().includes('verification')
+        ) {
+          setIsKycError(true);
+        }
       }
     } catch (e) {
       console.error('Failed to fetch products', e);
+      setHasError(true);
+      setErrorMessage('Network failure while fetching products.');
     } finally {
       setIsLoading(false);
     }
   }, [page]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchProducts();
   }, [fetchProducts]);
 
   const openCreateModal = () => {
+    if (!isKycVerified) return;
     setEditingProduct(null);
     setTitle('');
     setDescription('');
@@ -138,7 +182,6 @@ export function DigitalProductsPage() {
       ? `/store/products/${editingProduct.id}`
       : `/store/products`;
 
-    // For Laravel PUT with FormData, use POST + _method=PUT
     if (editingProduct) {
       formData.append('_method', 'PUT');
     }
@@ -182,7 +225,7 @@ export function DigitalProductsPage() {
 
       if (res.ok) {
         setProducts((prev) =>
-          prev.map((item) => (item.id === p.id ? { ...item, status: nextStatus } : item))
+          safeArray(prev).map((item) => (item.id === p.id ? { ...item, status: nextStatus } : item))
         );
       }
     } catch (e) { console.error('Failed to toggle publish', e); }
@@ -202,7 +245,7 @@ export function DigitalProductsPage() {
       });
 
       if (res.ok) {
-        setProducts((prev) => prev.filter((p) => p.id !== id));
+        setProducts((prev) => safeArray(prev).filter((p) => p.id !== id));
       }
     } catch (e) { console.error('Failed to delete product', e); }
   };
@@ -224,7 +267,9 @@ export function DigitalProductsPage() {
     } catch { /* ignore */ }
   };
 
-  const filteredProducts = products.filter((p) => {
+  const safeProductsList = safeArray<DigitalProduct>(products);
+
+  const filteredProducts = safeProductsList.filter((p) => {
     if (selectedCategory !== 'all' && p.category !== selectedCategory) return false;
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
@@ -234,22 +279,53 @@ export function DigitalProductsPage() {
   });
 
   return (
-    <div className="space-y-6 w-full max-w-7xl mx-auto p-6 lg:p-8">
+    <div className="space-y-6 w-full max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
       {/* Header */}
       <PageHeader 
         title="Digital Products Catalog"
-        description="Create, publish, and manage secure downloadable assets (E-books, templates, audio, design assets)."
-        icon={<Package className="h-6 w-6 text-secondary" />}
+        description="Create, publish, and manage downloadable assets (E-books, templates, audio, course materials)."
+        icon={<Package className="h-6 w-6 text-[#1877f2]" />}
         action={
-          <Button
-            onClick={openCreateModal}
-            className="shrink-0 bg-secondary hover:bg-secondary/90 text-secondary-foreground"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Add New Product
-          </Button>
+          <ActionTooltip content={!isKycVerified ? "Complete identity verification (KYC) to add products" : "Create new digital product"}>
+            <Button
+              onClick={openCreateModal}
+              disabled={!isKycVerified}
+              className="shrink-0 bg-[#1877f2] hover:bg-[#166fe5] text-white font-bold h-10 px-4 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Add Digital Product
+            </Button>
+          </ActionTooltip>
         }
       />
+
+      {/* Role Guidance Banner if Vendor */}
+      {role === 'vendor' && (
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-500 text-xs">
+          <div className="flex items-center gap-2.5">
+            <Truck className="h-4 w-4 shrink-0 text-amber-500" />
+            <span>
+              <strong>Vendor Note:</strong> As a Vendor, physical merchandise and shipping inventory are managed in your Physical Products portal.
+            </span>
+          </div>
+          <Link
+            to="/app/store/physical-products"
+            className="inline-flex items-center gap-1 font-bold underline hover:opacity-80 shrink-0"
+          >
+            Go to Physical Products &rarr;
+          </Link>
+        </div>
+      )}
+
+      {/* Role Guidance Banner if Creator */}
+      {role === 'creator' && (
+        <div className="flex items-center gap-2.5 p-3.5 rounded-2xl bg-[#1877f2]/10 border border-[#1877f2]/20 text-[#1877f2] text-xs font-medium">
+          <Sparkles className="h-4 w-4 shrink-0 text-[#1877f2]" />
+          <span>
+            <strong>Creator Store:</strong> Publish digital products, eBooks, downloadable templates, and course files for instant download by your audience.
+          </span>
+        </div>
+      )}
 
       {/* Filter & Search Bar */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
@@ -259,11 +335,11 @@ export function DigitalProductsPage() {
             onClick={() => setSelectedCategory('all')}
             className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
               selectedCategory === 'all'
-                ? 'bg-secondary text-secondary-foreground shadow-sm'
+                ? 'bg-[#1877f2] text-white shadow-xs'
                 : 'bg-card border border-border text-muted-foreground hover:text-foreground'
             }`}
           >
-            All Products ({products.length})
+            All Products ({safeProductsList.length})
           </button>
           {CATEGORIES.map((c) => (
             <button
@@ -271,7 +347,7 @@ export function DigitalProductsPage() {
               onClick={() => setSelectedCategory(c.value)}
               className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
                 selectedCategory === c.value
-                  ? 'bg-secondary text-secondary-foreground shadow-sm'
+                  ? 'bg-[#1877f2] text-white shadow-xs'
                   : 'bg-card border border-border text-muted-foreground hover:text-foreground'
               }`}
             >
@@ -288,22 +364,48 @@ export function DigitalProductsPage() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search products…"
-            className="w-full pl-9 pr-3 py-1.5 text-xs rounded-xl bg-card border border-border outline-none focus:ring-1 focus:ring-secondary"
+            className="w-full pl-9 pr-3 py-2 text-xs rounded-xl bg-card border border-border outline-none focus:ring-1 focus:ring-[#1877f2]"
           />
         </div>
       </div>
 
-      {/* Products Grid */}
+      {/* Products Grid / Error Retry / Skeleton */}
       {isLoading ? (
         <div className="py-20 text-center space-y-2">
-          <Loader2 className="h-8 w-8 animate-spin text-secondary mx-auto" />
+          <Loader2 className="h-8 w-8 animate-spin text-[#1877f2] mx-auto" />
           <p className="text-xs text-muted-foreground font-medium">Loading products catalog…</p>
         </div>
+      ) : hasError ? (
+        <div className="p-12 text-center border border-destructive/20 rounded-3xl bg-destructive/5 space-y-4 max-w-lg mx-auto">
+          <AlertCircle className="h-10 w-10 text-destructive mx-auto" />
+          <div>
+            <h3 className="text-sm font-bold text-foreground">
+              {isKycError ? 'Identity Verification Required' : 'Failed to load digital products'}
+            </h3>
+            <p className="text-xs text-muted-foreground mt-1 font-medium">
+              {errorMessage || 'An unexpected error occurred while communicating with the store.'}
+            </p>
+          </div>
+          {isKycError || !isKycVerified ? (
+            <Link to="/app/kyc">
+              <Button className="bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs h-9 px-5 rounded-xl inline-flex items-center gap-2">
+                <ShieldCheck className="h-4 w-4" /> Verify KYC Now
+              </Button>
+            </Link>
+          ) : (
+            <Button
+              onClick={fetchProducts}
+              className="bg-[#1877f2] hover:bg-[#166fe5] text-white font-bold text-xs h-9 px-5 rounded-xl inline-flex items-center gap-2"
+            >
+              <RotateCcw className="h-3.5 w-3.5" /> Retry
+            </Button>
+          )}
+        </div>
       ) : filteredProducts.length === 0 ? (
-        <div className="p-12 text-center border border-dashed border-border rounded-3xl bg-card space-y-3">
+        <div className="p-12 text-center border border-dashed border-border rounded-3xl bg-card space-y-3 flex flex-col items-center justify-center">
           <Package className="h-10 w-10 text-muted-foreground/30 mx-auto" />
-          <h3 className="text-sm font-bold text-foreground">No digital products found</h3>
-          <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+          <h3 className="text-sm font-bold text-foreground text-center">No digital products found</h3>
+          <p className="text-xs text-muted-foreground max-w-sm mx-auto text-center">
             Click "Add Digital Product" to create your first e-book, template, or downloadable asset.
           </p>
         </div>
@@ -312,7 +414,7 @@ export function DigitalProductsPage() {
           {filteredProducts.map((p) => (
             <div
               key={p.id}
-              className="border border-border rounded-2xl bg-card overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col justify-between"
+              className="border border-border rounded-2xl bg-card overflow-hidden shadow-xs hover:shadow-md transition-all flex flex-col justify-between"
             >
               {/* Cover Preview */}
               <div className="h-36 bg-muted relative overflow-hidden">
@@ -325,14 +427,14 @@ export function DigitalProductsPage() {
                 )}
 
                 {/* Price Pill */}
-                <div className="absolute top-2.5 left-2.5 px-2.5 py-1 rounded-lg bg-card/90 backdrop-blur-md border border-border text-xs font-black text-foreground shadow-sm">
+                <div className="absolute top-2.5 left-2.5 px-2.5 py-1 rounded-lg bg-card/90 backdrop-blur-md border border-border text-xs font-black text-foreground shadow-xs">
                   {p.is_free ? 'FREE' : `$${Number(p.price).toFixed(2)}`}
                 </div>
 
                 {/* Status Toggle Badge */}
                 <button
                   onClick={() => handleTogglePublish(p)}
-                  className={`absolute top-2.5 right-2.5 px-2.5 py-1 rounded-lg text-[10px] font-extrabold uppercase tracking-wider shadow-sm transition-transform active:scale-95 ${
+                  className={`absolute top-2.5 right-2.5 px-2.5 py-1 rounded-lg text-[10px] font-extrabold uppercase tracking-wider shadow-xs transition-transform active:scale-95 ${
                     p.status === 'published'
                       ? 'bg-emerald-500 text-white'
                       : 'bg-amber-500 text-white'
@@ -345,11 +447,11 @@ export function DigitalProductsPage() {
               {/* Product Info */}
               <div className="p-4 space-y-2 flex-1">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-[10px] font-bold text-secondary uppercase tracking-wider">
+                  <span className="text-[10px] font-bold text-[#1877f2] uppercase tracking-wider">
                     {CATEGORIES.find((c) => c.value === p.category)?.label ?? p.category}
                   </span>
                   <span className="text-[10px] font-medium text-muted-foreground flex items-center gap-1">
-                    <Download className="h-3 w-3 text-secondary" /> {p.download_count} downloads
+                    <Download className="h-3 w-3 text-[#1877f2]" /> {p.download_count} downloads
                   </span>
                 </div>
 
@@ -368,20 +470,22 @@ export function DigitalProductsPage() {
               {/* Action Buttons */}
               <div className="p-3 bg-muted/20 border-t border-border flex items-center justify-between gap-2">
                 <div className="flex items-center gap-1">
-                  <button
-                    onClick={() => openEditModal(p)}
-                    className="p-2 rounded-xl hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-                    title="Edit Product"
-                  >
-                    <Edit className="h-4 w-4" />
-                  </button>
-                  <button
-                    onClick={() => handleDelete(p.id)}
-                    className="p-2 rounded-xl hover:bg-destructive/10 text-destructive transition-colors"
-                    title="Delete Product"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
+                  <ActionTooltip content="Edit product">
+                    <button
+                      onClick={() => openEditModal(p)}
+                      className="p-2 rounded-xl hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      <Edit className="h-4 w-4" />
+                    </button>
+                  </ActionTooltip>
+                  <ActionTooltip content="Delete product">
+                    <button
+                      onClick={() => handleDelete(p.id)}
+                      className="p-2 rounded-xl hover:bg-destructive/10 text-destructive transition-colors"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </ActionTooltip>
                 </div>
 
                 {p.file_original_name && (
@@ -391,7 +495,7 @@ export function DigitalProductsPage() {
                     onClick={() => handleDownload(p.id)}
                     className="h-8 text-xs font-semibold gap-1.5 rounded-xl"
                   >
-                    <Download className="h-3.5 w-3.5 text-secondary" />
+                    <Download className="h-3.5 w-3.5 text-[#1877f2]" />
                     Download File
                   </Button>
                 )}
@@ -430,7 +534,7 @@ export function DigitalProductsPage() {
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="e.g. Creator Growth Playbook 2026"
                   required
-                  className="w-full px-3.5 py-2 text-xs rounded-xl bg-muted border-0 outline-none focus:ring-1 focus:ring-secondary"
+                  className="w-full px-3.5 py-2 text-xs rounded-xl bg-muted border-0 outline-none focus:ring-1 focus:ring-[#1877f2]"
                 />
               </div>
 
@@ -443,7 +547,7 @@ export function DigitalProductsPage() {
                     id="dp-category"
                     value={category}
                     onChange={(e) => setCategory(e.target.value as ProductCategory)}
-                    className="w-full px-3.5 py-2 text-xs rounded-xl bg-muted border-0 outline-none focus:ring-1 focus:ring-secondary capitalize"
+                    className="w-full px-3.5 py-2 text-xs rounded-xl bg-muted border-0 outline-none focus:ring-1 focus:ring-[#1877f2] capitalize"
                   >
                     {CATEGORIES.map((c) => (
                       <option key={c.value} value={c.value}>
@@ -461,7 +565,7 @@ export function DigitalProductsPage() {
                     id="dp-status"
                     value={status}
                     onChange={(e) => setStatus(e.target.value as ProductStatus)}
-                    className="w-full px-3.5 py-2 text-xs rounded-xl bg-muted border-0 outline-none focus:ring-1 focus:ring-secondary capitalize"
+                    className="w-full px-3.5 py-2 text-xs rounded-xl bg-muted border-0 outline-none focus:ring-1 focus:ring-[#1877f2] capitalize"
                   >
                     <option value="published">Published (Live)</option>
                     <option value="draft">Draft (Hidden)</option>
@@ -477,7 +581,7 @@ export function DigitalProductsPage() {
                     type="checkbox"
                     checked={isFree}
                     onChange={(e) => setIsFree(e.target.checked)}
-                    className="h-4 w-4 accent-secondary rounded"
+                    className="h-4 w-4 accent-[#1877f2] rounded"
                   />
                 </div>
 
@@ -494,7 +598,7 @@ export function DigitalProductsPage() {
                       value={price}
                       onChange={(e) => setPrice(e.target.value)}
                       placeholder="9.99"
-                      className="w-full px-3.5 py-2 text-xs rounded-xl bg-card border border-border outline-none focus:ring-1 focus:ring-secondary font-mono"
+                      className="w-full px-3.5 py-2 text-xs rounded-xl bg-card border border-border outline-none focus:ring-1 focus:ring-[#1877f2] font-mono"
                     />
                   </div>
                 )}
@@ -510,7 +614,7 @@ export function DigitalProductsPage() {
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="What is included in this digital product?"
                   rows={3}
-                  className="w-full px-3.5 py-2 text-xs rounded-xl bg-muted border-0 outline-none focus:ring-1 focus:ring-secondary resize-none"
+                  className="w-full px-3.5 py-2 text-xs rounded-xl bg-muted border-0 outline-none focus:ring-1 focus:ring-[#1877f2] resize-none"
                 />
               </div>
 
@@ -542,9 +646,9 @@ export function DigitalProductsPage() {
                   onKeyDown={(e) => e.key === 'Enter' && fileInputRef.current?.click()}
                   role="button"
                   tabIndex={0}
-                  className="p-4 border-2 border-dashed border-border hover:border-secondary rounded-2xl bg-muted/20 text-center cursor-pointer transition-colors space-y-1"
+                  className="p-4 border-2 border-dashed border-border hover:border-[#1877f2] rounded-2xl bg-muted/20 text-center cursor-pointer transition-colors space-y-1"
                 >
-                  <UploadCloud className="h-6 w-6 text-secondary mx-auto" />
+                  <UploadCloud className="h-6 w-6 text-[#1877f2] mx-auto" />
                   <p className="text-xs font-semibold text-foreground">
                     {selectedFile ? selectedFile.name : editingProduct?.file_original_name ?? 'Click to select private file'}
                   </p>
@@ -567,7 +671,7 @@ export function DigitalProductsPage() {
                 <Button
                   type="submit"
                   disabled={isSubmitting}
-                  className="text-xs font-bold bg-secondary hover:bg-secondary/90 text-secondary-foreground gap-2"
+                  className="text-xs font-bold bg-[#1877f2] hover:bg-[#166fe5] text-white gap-2"
                 >
                   {isSubmitting ? (
                     <>
@@ -595,3 +699,4 @@ export function DigitalProductsPage() {
     </div>
   );
 }
+export default DigitalProductsPage;

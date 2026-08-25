@@ -69,7 +69,7 @@ const QUICK_PROMPTS = [
 
 export default function OnboardingPage() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, markOnboardingCompleted, refreshUser } = useAuth();
 
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -120,11 +120,24 @@ export default function OnboardingPage() {
 
   // Load config & saved progress
   const loadConfig = useCallback(async () => {
+    const userRole = (user?.role as string) ?? "member";
+    if (userRole === "admin" || user?.onboarding_completed) {
+      markOnboardingCompleted();
+      navigate(userRole === "admin" ? "/app/securegate" : "/app", { replace: true });
+      return;
+    }
+
     try {
       const res = await authFetch(`/onboarding/config`, {  });
       const j = await res.json();
       const d = j?.data ?? j;
       if (d) {
+        if (d.onboarding_completed) {
+          markOnboardingCompleted();
+          navigate(userRole === "admin" ? "/app/securegate" : userRole === "vendor" ? "/app/storefront" : userRole === "creator" ? "/app/link-in-bio" : "/app", { replace: true });
+          return;
+        }
+
         setRole(d.role ?? user?.role ?? "member");
         setSteps(d.steps ?? []);
 
@@ -152,16 +165,17 @@ export default function OnboardingPage() {
       setRole(user?.role ?? 'member');
     }
     finally { setLoading(false); }
-  }, [user]);
+  }, [user, markOnboardingCompleted, navigate]);
 
   useEffect(() => { loadConfig(); }, [loadConfig]);
 
   const saveProgress = async (newStep: number) => {
-    setStep(newStep);
+    const validStep = typeof newStep === 'number' && !isNaN(newStep) ? Math.max(0, Math.floor(newStep)) : 0;
+    setStep(validStep);
     try {
       await authFetch(`/onboarding/progress`, {
         method: "POST", 
-        body: JSON.stringify({ step: newStep, form_data: { role, niche, businessName } }),
+        body: JSON.stringify({ step: validStep, form_data: { role, niche, businessName } }),
       });
     } catch { /* ignore */ }
   };
@@ -242,6 +256,8 @@ export default function OnboardingPage() {
         body: JSON.stringify({ template: def.slug, ...def.palette, profile_name: profileName, profile_bio: profileBio }),
       });
       await authFetch(`/onboarding/complete`, { method: "POST",  });
+      markOnboardingCompleted();
+      refreshUser();
       navigate("/app/link-in-bio", { replace: true });
     } catch { /* ignore */ }
     setSaving(false);
@@ -261,6 +277,8 @@ export default function OnboardingPage() {
         }),
       });
       await authFetch(`/onboarding/complete`, { method: "POST",  });
+      markOnboardingCompleted();
+      refreshUser();
       navigate("/app/storefront", { replace: true });
     } catch { /* ignore */ }
     setSaving(false);
@@ -277,6 +295,8 @@ export default function OnboardingPage() {
         }),
       });
       await authFetch(`/onboarding/complete`, { method: "POST",  });
+      markOnboardingCompleted();
+      refreshUser();
       navigate("/app", { replace: true });
     } catch { /* ignore */ }
     setSaving(false);
@@ -371,7 +391,7 @@ export default function OnboardingPage() {
       </div>
 
       {/* ── MEMBER ONBOARDING ── */}
-      {role === "member" && (
+      {(role === "member" || !["creator", "vendor"].includes(role)) && (
         <div className="max-w-xl mx-auto border border-border rounded-2xl bg-card p-6 space-y-6">
           {step === 0 && (
             <div className="space-y-4">

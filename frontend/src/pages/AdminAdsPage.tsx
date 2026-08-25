@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { authFetch } from "@/lib/api/authFetch";
 
 // Use the Ads backend for moderation routes
-const ADS_API_BASE = import.meta.env.VITE_ADS_API_URL || "http://127.0.0.1:8002/api";
+const ADS_API_BASE = import.meta.env.VITE_ADS_API_URL || "https://ads.murihspace.com/api";
 
 
 

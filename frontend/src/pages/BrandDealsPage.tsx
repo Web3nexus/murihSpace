@@ -230,13 +230,19 @@ export function BrandDealsPage() {
       )}
 
       {deals.length === 0 ? (
-        <div className="rounded-3xl border border-dashed border-border bg-card p-12 text-center space-y-3">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-muted">
-            <Briefcase className="h-7 w-7 text-muted-foreground" />
+        <div className="rounded-3xl border border-dashed border-border bg-card p-12 flex flex-col items-center justify-center text-center space-y-3.5 w-full min-h-[240px]">
+          <div className="w-14 h-14 rounded-2xl bg-[#2164b6]/10 flex items-center justify-center">
+            <Briefcase className="h-7 w-7 text-[#2164b6] dark:text-[#7ab0ff]" />
           </div>
-          <h3 className="text-sm font-bold text-foreground">No brand deals yet</h3>
-          <p className="text-xs text-muted-foreground max-w-sm mx-auto">Create your first brand partnership deal to get started earning from sponsorships.</p>
-          <Button size="sm" onClick={() => { resetForm(); setShowForm(true); }}><Plus className="h-4 w-4" /> New Deal</Button>
+          <div className="space-y-1 max-w-md mx-auto text-center">
+            <h3 className="text-base font-extrabold text-foreground">No brand deals yet</h3>
+            <p className="text-xs font-medium text-muted-foreground leading-relaxed text-center">
+              Create your first brand partnership deal to get started earning from sponsorships.
+            </p>
+          </div>
+          <Button size="sm" className="bg-[#2164b6] hover:bg-[#1a5091] text-white font-bold text-xs shadow-xs mx-auto flex items-center gap-1.5" onClick={() => { resetForm(); setShowForm(true); }}>
+            <Plus className="h-4 w-4" /> New Deal
+          </Button>
         </div>
       ) : (<>
         <div className="space-y-3">
