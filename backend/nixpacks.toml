@@ -1,7 +1,8 @@
 providers = ['php']
 
 [phases.setup]
-nixPkgs = ['ffmpeg']
+nixPkgs = ['php84', 'php84Packages.composer', 'ffmpeg']
+aptPkgs = ['ffmpeg']
 
 [variables]
 NIXPACKS_PHP_VERSION = '8.4'
