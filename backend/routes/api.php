@@ -315,11 +315,21 @@ Route::prefix('v1')->group(function () {
         // Feature flags (read-only for all authenticated users)
         Route::get('/feature-flags', [FeatureFlagController::class, 'index']);
 
-        // ── File Uploads ────────────────────────────────────────────────
+        // ── File Uploads & Central Media Processing ──────────────────────
         Route::prefix('upload')->group(function () {
             Route::get('/', [\App\Http\Controllers\UploadController::class, 'index']);
             Route::post('/', [\App\Http\Controllers\UploadController::class, 'store']);
             Route::delete('/{media}', [\App\Http\Controllers\UploadController::class, 'destroy']);
+        });
+
+        Route::prefix('media')->group(function () {
+            Route::get('/', [\App\Http\Controllers\UploadController::class, 'index']);
+            Route::post('/signed-upload-url', [\App\Http\Controllers\UploadController::class, 'createSignedUploadUrl']);
+            Route::post('/complete', [\App\Http\Controllers\UploadController::class, 'completeUpload']);
+            Route::get('/{uuid}', [\App\Http\Controllers\UploadController::class, 'showByUuid']);
+            Route::get('/{uuid}/status', [\App\Http\Controllers\UploadController::class, 'statusByUuid']);
+            Route::post('/{uuid}/retry', [\App\Http\Controllers\UploadController::class, 'retryProcessing']);
+            Route::delete('/{uuid}', [\App\Http\Controllers\UploadController::class, 'destroy']);
         });
 
         // Profile Management
@@ -1166,6 +1176,14 @@ Route::prefix('v1')->group(function () {
             Route::prefix('audit-logs')->group(function () {
                 Route::get('/', [AuditLogController::class, 'index']);
                 Route::get('/{id}', [AuditLogController::class, 'show']);
+            });
+
+            // Central Media Management
+            Route::prefix('media')->group(function () {
+                Route::get('/', [\App\Http\Controllers\AdminMediaController::class, 'index']);
+                Route::get('/stats', [\App\Http\Controllers\AdminMediaController::class, 'stats']);
+                Route::post('/{uuid}/retry', [\App\Http\Controllers\AdminMediaController::class, 'retry']);
+                Route::delete('/{uuid}', [\App\Http\Controllers\AdminMediaController::class, 'destroy']);
             });
 
             // Reconciliation (Sprint 29)

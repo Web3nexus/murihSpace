@@ -144,6 +144,7 @@ const AdminGiftsPage = lazy(() => import("@/pages/AdminGiftsPage"));
 const AdminCoinPacksPage = lazy(() => import("@/pages/AdminCoinPacksPage"));
 const AdminStoriesPage = lazy(() => import("@/pages/AdminStoriesPage"));
 const AdminAlgorithmPage = lazy(() => import("@/pages/AdminAlgorithmPage"));
+const AdminMediaManagerPage = lazy(() => import("@/pages/AdminMediaManagerPage"));
 const SocialAuthCallbackPage = lazy(() => import("@/pages/SocialAuthCallbackPage").then(module => ({ default: module.SocialAuthCallbackPage })));
 const PrivacyPolicyPage = lazy(() => import("@/pages/PrivacyPolicyPage"));
 const TermsOfServicePage = lazy(() => import("@/pages/TermsOfServicePage"));
@@ -740,6 +741,10 @@ export const routes: RouteObject[] = [
       {
         path: "securegate/storage",
         element: <ProtectedRoute requiredRole="admin"><Suspense fallback={<PageLoader />}><AdminStoragePage /></Suspense></ProtectedRoute>,
+      },
+      {
+        path: "securegate/media",
+        element: <ProtectedRoute requiredRole="admin"><Suspense fallback={<PageLoader />}><AdminMediaManagerPage /></Suspense></ProtectedRoute>,
       },
       {
         path: "securegate/storage/providers",

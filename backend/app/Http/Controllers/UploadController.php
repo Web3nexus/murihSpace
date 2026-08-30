@@ -2,8 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use App\Jobs\ProcessUploadedImage;
 use App\Models\Media;
+use App\Services\DirectStorageUploadService;
+use App\Services\MediaProcessingService;
 use App\Services\StorageRouter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -12,26 +13,112 @@ use Illuminate\Support\Str;
 
 class UploadController extends Controller
 {
-    private const ALLOWED_MIMES = [
-        'image/jpeg', 'image/png', 'image/gif', 'image/webp',
-        'image/svg+xml', 'image/avif',
-        'application/pdf',
-        'video/mp4', 'video/webm',
-    ];
-
-    private const MAX_SIZE = 50 * 1024 * 1024; // 50MB
-
     public function __construct(
         private readonly StorageRouter $router,
+        private readonly DirectStorageUploadService $directUploadService,
+        private readonly MediaProcessingService $processingService,
     ) {}
 
     public function index(Request $request): JsonResponse
     {
-        $media = Media::where('user_id', $request->user()->id)
-            ->orderBy('created_at', 'desc')
-            ->get(['id', 'url', 'original_name', 'mime_type', 'size_bytes', 'created_at']);
+        $query = Media::where('user_id', $request->user()->id);
 
-        return response()->json(['data' => $media]);
+        if ($request->has('type')) {
+            $query->where('media_type', $request->input('type'));
+        }
+
+        $media = $query->orderBy('created_at', 'desc')
+            ->paginate(20);
+
+        return response()->json($media);
+    }
+
+    public function createSignedUploadUrl(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'filename' => ['required', 'string', 'max:255'],
+            'mime_type' => ['required', 'string', 'max:127'],
+            'size_bytes' => ['required', 'integer', 'min:1'],
+            'folder' => ['nullable', 'string', 'max:100'],
+            'owner_type' => ['nullable', 'string', 'max:100'],
+            'owner_id' => ['nullable', 'integer'],
+        ]);
+
+        try {
+            $res = $this->directUploadService->createPresignedUpload(
+                user: $request->user(),
+                filename: $validated['filename'],
+                mimeType: $validated['mime_type'],
+                sizeBytes: $validated['size_bytes'],
+                folder: $validated['folder'] ?? 'uploads',
+                ownerType: $validated['owner_type'] ?? null,
+                ownerId: $validated['owner_id'] ?? null,
+            );
+
+            return response()->json($res);
+        } catch (\InvalidArgumentException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        } catch (\Throwable $e) {
+            return response()->json(['message' => 'Failed to generate signed upload URL: ' . $e->getMessage()], 500);
+        }
+    }
+
+    public function completeUpload(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'media_uuid' => ['required', 'string'],
+        ]);
+
+        $media = Media::where('uuid', $validated['media_uuid'])
+            ->where('user_id', $request->user()->id)
+            ->firstOrFail();
+
+        $updated = $this->processingService->markUploadComplete($media);
+
+        return response()->json($updated);
+    }
+
+    public function showByUuid(Request $request, string $uuid): JsonResponse
+    {
+        $media = Media::where('uuid', $uuid)->firstOrFail();
+
+        if ($media->user_id !== $request->user()->id && ! $request->user()->isAdmin()) {
+            abort(403);
+        }
+
+        return response()->json($media);
+    }
+
+    public function statusByUuid(Request $request, string $uuid): JsonResponse
+    {
+        $media = Media::where('uuid', $uuid)->firstOrFail();
+
+        if ($media->user_id !== $request->user()->id && ! $request->user()->isAdmin()) {
+            abort(403);
+        }
+
+        return response()->json([
+            'uuid' => $media->uuid,
+            'processing_status' => $media->processing_status,
+            'processing_error' => $media->processing_error,
+            'stream_url' => $media->stream_url,
+            'thumbnail_url' => $media->thumbnail_url,
+            'url' => $media->url,
+            'is_ready' => $media->isCompleted(),
+        ]);
+    }
+
+    public function retryProcessing(Request $request, string $uuid): JsonResponse
+    {
+        $media = Media::where('uuid', $uuid)->firstOrFail();
+
+        if ($media->user_id !== $request->user()->id && ! $request->user()->isAdmin()) {
+            abort(403);
+        }
+
+        $media = $this->processingService->retryProcessing($media);
+
+        return response()->json($media);
     }
 
     public function store(Request $request): JsonResponse
@@ -55,10 +142,10 @@ class UploadController extends Controller
 
         $diskConfig = config("filesystems.disks.{$disk}");
         if (! $diskConfig) {
-            return response()->json(['message' => "Storage disk '{$disk}' not configured."], 500);
+            $disk = 'contabo';
         }
 
-        $filename = Str::random(32) . '.' . $file->getClientOriginalExtension();
+        $filename = Str::random(32) . '.' . ($file->getClientOriginalExtension() ?: 'bin');
         $path = ltrim($folder . '/' . $filename, '/');
 
         $stored = Storage::disk($disk)->put($path, file_get_contents($file->getRealPath()), [
@@ -83,40 +170,21 @@ class UploadController extends Controller
             'url' => $url,
             'mime_type' => $mime,
             'size_bytes' => $file->getSize(),
+            'processing_status' => Media::STATUS_QUEUED,
         ]);
 
-        if (str_starts_with($mime, 'image/')) {
-            dispatch(new ProcessUploadedImage($media));
-        }
+        $this->processingService->dispatchProcessingJob($media);
 
-        return response()->json(['data' => $media], 201);
+        return response()->json($media, 201);
     }
 
     public function destroy(Request $request, Media $media): JsonResponse
     {
-        if ($media->user_id !== $request->user()->id) {
+        if ($media->user_id !== $request->user()->id && ! $request->user()->isAdmin()) {
             abort(403);
         }
 
-        Storage::disk($media->disk)->delete($media->path);
-
-        $thumbDir = dirname($media->path) . '/thumbnails';
-        $filename = pathinfo($media->filename, PATHINFO_FILENAME);
-        $ext = pathinfo($media->filename, PATHINFO_EXTENSION);
-
-        foreach (['320', '640'] as $size) {
-            $thumb = "{$thumbDir}/{$filename}_{$size}.{$ext}";
-            if (Storage::disk($media->disk)->exists($thumb)) {
-                Storage::disk($media->disk)->delete($thumb);
-            }
-        }
-
-        $webpPath = dirname($media->path) . '/' . $filename . '.webp';
-        if (Storage::disk($media->disk)->exists($webpPath)) {
-            Storage::disk($media->disk)->delete($webpPath);
-        }
-
-        $media->delete();
+        $this->processingService->deleteMedia($media);
 
         return response()->json(['message' => 'File deleted.']);
     }
