@@ -288,9 +288,10 @@ class MediaRetentionTest extends TestCase
     public function test_message_exposes_media_expiry_info(): void
     {
         $media = $this->makeMedia(['delete_after' => now()->addDays(7), 'lifecycle_status' => 'available']);
+        $conversation = \App\Models\Conversation::create(['type' => 'direct']);
 
         $message = \App\Models\Message::create([
-            'conversation_id' => 1,
+            'conversation_id' => $conversation->id,
             'user_id' => $media->user_id,
             'content' => 'See attached',
             'type' => 'image',

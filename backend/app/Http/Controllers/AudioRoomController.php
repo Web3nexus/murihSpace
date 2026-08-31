@@ -53,7 +53,8 @@ class AudioRoomController extends Controller
         ]);
 
         $validated['creator_id'] = $request->user()->id;
-        $validated['status'] = $validated['scheduled_at'] ? 'scheduled' : 'scheduled';
+        $validated['scheduled_at'] = $validated['scheduled_at'] ?? null;
+        $validated['status'] = !empty($validated['scheduled_at']) ? 'scheduled' : 'scheduled';
         $validated['is_recorded'] ??= false;
 
         $room = AudioRoom::create($validated);

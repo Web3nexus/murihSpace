@@ -156,7 +156,7 @@ class ConversationController extends Controller
             ->whereIn('status', ['active', 'approved'])
             ->exists();
 
-        if (! $isMember && $community->creator_id !== $request->user()->id) {
+        if (! $isMember && $community->user_id !== $request->user()->id) {
             return response()->json(['message' => 'Must be a community member to access general chat.'], 403);
         }
 
@@ -521,7 +521,7 @@ class ConversationController extends Controller
                 ->exists();
 
             $isOwner = Community::where('id', $conversation->community_id)
-                ->where('creator_id', $userId)
+                ->where('user_id', $userId)
                 ->exists();
 
             if (! $isMember && ! $isOwner) {

@@ -85,85 +85,89 @@ class GiftController extends Controller
             : '@' . $user->username;
 
         $isNew = false;
-        $transaction = DB::transaction(function () use ($user, $recipient, $gift, $validated, $senderWallet, $grossAmount, $feeAmt, $netEarns, $idemKey, $sessionId, &$isNew) {
-            // Idempotency check inside transaction with lock to prevent race conditions
-            $existing = GiftTransaction::where('sender_id', $user->id)
-                ->where('idempotency_key', $idemKey)
-                ->lockForUpdate()
-                ->first();
-            if ($existing) {
-                // Verify the stored transaction matches the current request — a reused key
-                // with a different payload must not be served as a successful duplicate.
-                if ((int) $existing->gift_id !== $gift->id
-                    || (int) $existing->recipient_id !== $recipient->id
-                    || (int) $existing->sender_id !== $user->id) {
-                    throw new \RuntimeException('Idempotency key was already used for a different gift.');
+        try {
+            $transaction = DB::transaction(function () use ($user, $recipient, $gift, $validated, $senderWallet, $grossAmount, $feeAmt, $netEarns, $idemKey, $sessionId, &$isNew) {
+                // Idempotency check inside transaction with lock to prevent race conditions
+                $existing = GiftTransaction::where('sender_id', $user->id)
+                    ->where('idempotency_key', $idemKey)
+                    ->lockForUpdate()
+                    ->first();
+                if ($existing) {
+                    // Verify the stored transaction matches the current request — a reused key
+                    // with a different payload must not be served as a successful duplicate.
+                    if ((int) $existing->gift_id !== $gift->id
+                        || (int) $existing->recipient_id !== $recipient->id
+                        || (int) $existing->sender_id !== $user->id) {
+                        throw new \RuntimeException('Idempotency key was already used for a different gift.');
+                    }
+                    return $existing;
                 }
-                return $existing;
-            }
-            $isNew = true;
+                $isNew = true;
 
-            // Pessimistic balance check inside transaction using locked wallet row
-            $locked = Wallet::whereKey($senderWallet->id)->lockForUpdate()->firstOrFail();
-            if ($locked->available < $grossAmount) {
-                throw new InsufficientBalanceException('Insufficient System Wallet available balance.');
-            }
+                // Pessimistic balance check inside transaction using locked wallet row
+                $locked = Wallet::whereKey($senderWallet->id)->lockForUpdate()->firstOrFail();
+                if ($locked->available < $grossAmount) {
+                    throw new InsufficientBalanceException('Insufficient System Wallet available balance.');
+                }
 
-            // Debit Sender System Wallet
-            $this->ledgerService->debit(
-                user: $user,
-                amount: $grossAmount,
-                currency: $senderWallet->currency,
-                walletType: 'system',
-                balanceCategory: 'available',
-                type: 'donation_out',
-                description: "Gift sent to @{$recipient->username}: {$gift->name}",
-                idempotencyKey: $idemKey . '-debit'
-            );
-
-            // Credit Recipient Creator Wallet
-            $this->ledgerService->credit(
-                user: $recipient,
-                amount: $netEarns,
-                currency: $senderWallet->currency,
-                walletType: 'creator',
-                balanceCategory: 'available',
-                type: 'creator_gift_receipt',
-                description: "Gift received from @{$user->username}: {$gift->name} (Net: {$netEarns}, Fee: {$feeAmt})",
-                idempotencyKey: $idemKey . '-credit',
-                metadata: ['sender_id' => $user->id, 'gift_id' => $gift->id, 'fee_amount' => $feeAmt]
-            );
-
-            // Credit the platform revenue account with the receiving fee so the ledger
-            // stays balanced: debit(gross) == credit(net) + credit(fee).
-            if ($feeAmt > 0) {
-                $this->ledgerService->creditPlatformRevenue(
-                    amount: $feeAmt,
+                // Debit Sender System Wallet
+                $this->ledgerService->debit(
+                    user: $user,
+                    amount: $grossAmount,
                     currency: $senderWallet->currency,
-                    description: "Gift receiving fee for gift #{$gift->id}",
-                    idempotencyKey: $idemKey . '-fee',
-                    metadata: ['sender_id' => $user->id, 'recipient_id' => $recipient->id, 'gift_id' => $gift->id]
+                    walletType: 'system',
+                    balanceCategory: 'available',
+                    type: 'donation_out',
+                    description: "Gift sent to @{$recipient->username}: {$gift->name}",
+                    idempotencyKey: $idemKey . '-debit'
                 );
-            }
 
-            return GiftTransaction::create([
-                'sender_id'           => $user->id,
-                'recipient_id'        => $recipient->id,
-                'gift_id'             => $gift->id,
-                'giftable_type'       => $validated['giftable_type'] ?? null,
-                'giftable_id'         => $validated['giftable_id'] ?? null,
-                'session_id'          => $sessionId,
-                'coin_price'          => $grossAmount,
-                'creator_earns'       => $netEarns,
-                'platform_commission' => $feeAmt,
-                'status'              => 'completed',
-                'is_anonymous'        => $validated['is_anonymous'] ?? false,
-                'sender_display_name' => (!empty($validated['is_anonymous']) && empty($validated['sender_display_name'])) ? 'Someone' : ($validated['sender_display_name'] ?? $user->name),
-                'message'             => $validated['message'] ?? null,
-                'is_public'           => $validated['is_public'] ?? true,
-                'idempotency_key'     => $idemKey,
-            ]);
-        });
+                // Credit Recipient Creator Wallet
+                $this->ledgerService->credit(
+                    user: $recipient,
+                    amount: $netEarns,
+                    currency: $senderWallet->currency,
+                    walletType: 'creator',
+                    balanceCategory: 'available',
+                    type: 'creator_gift_receipt',
+                    description: "Gift received from @{$user->username}: {$gift->name} (Net: {$netEarns}, Fee: {$feeAmt})",
+                    idempotencyKey: $idemKey . '-credit',
+                    metadata: ['sender_id' => $user->id, 'gift_id' => $gift->id, 'fee_amount' => $feeAmt]
+                );
+
+                // Credit the platform revenue account with the receiving fee so the ledger
+                // stays balanced: debit(gross) == credit(net) + credit(fee).
+                if ($feeAmt > 0) {
+                    $this->ledgerService->creditPlatformRevenue(
+                        amount: $feeAmt,
+                        currency: $senderWallet->currency,
+                        description: "Gift receiving fee for gift #{$gift->id}",
+                        idempotencyKey: $idemKey . '-fee',
+                        metadata: ['sender_id' => $user->id, 'recipient_id' => $recipient->id, 'gift_id' => $gift->id]
+                    );
+                }
+
+                return GiftTransaction::create([
+                    'sender_id'           => $user->id,
+                    'recipient_id'        => $recipient->id,
+                    'gift_id'             => $gift->id,
+                    'giftable_type'       => $validated['giftable_type'] ?? null,
+                    'giftable_id'         => $validated['giftable_id'] ?? null,
+                    'session_id'          => $sessionId,
+                    'coin_price'          => $grossAmount,
+                    'creator_earns'       => $netEarns,
+                    'platform_commission' => $feeAmt,
+                    'status'              => 'completed',
+                    'is_anonymous'        => $validated['is_anonymous'] ?? false,
+                    'sender_display_name' => (!empty($validated['is_anonymous']) && empty($validated['sender_display_name'])) ? 'Someone' : ($validated['sender_display_name'] ?? $user->name),
+                    'message'             => $validated['message'] ?? null,
+                    'is_public'           => $validated['is_public'] ?? true,
+                    'idempotency_key'     => $idemKey,
+                ]);
+            });
+        } catch (\RuntimeException $e) {
+            return response()->json(['message' => $e->getMessage()], 500);
+        }
 
         // Determine animation tier
         $animationType = match (true) {

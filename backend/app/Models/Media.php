@@ -129,6 +129,38 @@ class Media extends Model
         return $this->processing_status === self::STATUS_FAILED;
     }
 
+    public function messages(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Message::class);
+    }
+
+    public function incrementReferenceCount(): void
+    {
+        $this->increment('reference_count');
+        $this->update(['last_referenced_at' => now()]);
+    }
+
+    public function decrementReferenceCount(): void
+    {
+        if ($this->reference_count > 0) {
+            $this->decrement('reference_count');
+        }
+    }
+
+    public function scopeEligibleForDeletion($query)
+    {
+        return $query->whereIn('lifecycle_status', [self::LIFECYCLE_AVAILABLE, self::LIFECYCLE_SCHEDULED])
+            ->where('delete_after', '<=', now())
+            ->whereNull('retention_hold');
+    }
+
+    public function scopeExpiringWithin($query, int $days)
+    {
+        return $query->whereIn('lifecycle_status', [self::LIFECYCLE_AVAILABLE, self::LIFECYCLE_SCHEDULED])
+            ->whereNull('retention_hold')
+            ->whereBetween('delete_after', [now(), now()->addDays($days)]);
+    }
+
     public function scopeCompleted($query)
     {
         return $query->where('processing_status', self::STATUS_COMPLETED);
