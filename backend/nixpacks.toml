@@ -7,3 +7,4 @@ aptPkgs = ['ffmpeg']
 [variables]
 NIXPACKS_PHP_VERSION = '8.4'
 NIXPACKS_PHP_ROOT_DIR = '/app/public'
+IS_LARAVEL = 'no'
