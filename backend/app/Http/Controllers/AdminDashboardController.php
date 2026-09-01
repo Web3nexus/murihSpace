@@ -30,8 +30,8 @@ class AdminDashboardController extends Controller
         $pendingWithdrawals = WithdrawalRequest::where('status', 'pending')->count();
         $pendingReports = Report::where('status', 'pending')->count();
 
-        $platformBalance = Wallet::where('user_id', 1)->value('balance') ?? 0;
-        $totalWallets = Wallet::where('user_id', '!=', 1)->sum('balance');
+        $platformBalance = Wallet::where('user_id', 1)->value('available') ?? 0;
+        $totalWallets = Wallet::where('user_id', '!=', 1)->sum('available');
 
         $recentLogs = AuditLog::with('user:id,name')
             ->latest()
@@ -41,7 +41,7 @@ class AdminDashboardController extends Controller
                 'id' => $l->id,
                 'action' => $l->action,
                 'user_name' => $l->user?->name,
-                'created_at' => $l->created_at->diffForHumans(),
+                'created_at' => $l->created_at?->diffForHumans() ?? 'Just now',
             ]);
 
         return response()->json([
