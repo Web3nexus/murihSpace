@@ -326,6 +326,82 @@ class FriendRequestController extends Controller
     }
 
     /**
+     * Get suggested users to add as friends.
+     */
+    public function suggestions(Request $request): JsonResponse
+    {
+        $userId = $request->user()->id;
+
+        $excludedUserIds = FriendRequest::where(fn (Builder $query) => $query
+            ->where('sender_id', $userId)
+            ->orWhere('receiver_id', $userId))
+            ->pluck('sender_id')
+            ->merge(FriendRequest::where(fn (Builder $query) => $query
+                ->where('sender_id', $userId)
+                ->orWhere('receiver_id', $userId))
+                ->pluck('receiver_id'))
+            ->push($userId)
+            ->unique();
+
+        $suggestions = User::whereNotIn('id', $excludedUserIds)
+            ->whereNull('deleted_at')
+            ->where('status', 'active')
+            ->limit(20)
+            ->get()
+            ->map(function (User $u) use ($userId) {
+                $payload = $this->userPayload($u);
+                $payload['mutual_friends'] = $this->mutualFriendsCount($userId, $u->id);
+                return $payload;
+            });
+
+        return response()->json(['data' => $suggestions]);
+    }
+
+    /**
+     * Get friendship status between authenticated user and target user.
+     */
+    public function status(Request $request, int $userId): JsonResponse
+    {
+        $me = $request->user()->id;
+
+        if ($me === $userId) {
+            return response()->json([
+                'status' => 'self',
+                'is_friend' => false,
+                'request_id' => null,
+                'mutual_friends' => 0,
+            ]);
+        }
+
+        $friendRequest = FriendRequest::where(function (Builder $q) use ($me, $userId) {
+            $q->where('sender_id', $me)->where('receiver_id', $userId);
+        })->orWhere(function (Builder $q) use ($me, $userId) {
+            $q->where('sender_id', $userId)->where('receiver_id', $me);
+        })->first();
+
+        $status = 'none';
+        $requestId = null;
+        $isFriend = false;
+
+        if ($friendRequest) {
+            $requestId = $friendRequest->id;
+            if ($friendRequest->status === FriendRequest::STATUS_ACCEPTED) {
+                $status = 'accepted';
+                $isFriend = true;
+            } elseif ($friendRequest->status === FriendRequest::STATUS_PENDING) {
+                $status = $friendRequest->sender_id === $me ? 'pending_sent' : 'pending_received';
+            }
+        }
+
+        return response()->json([
+            'status' => $status,
+            'is_friend' => $isFriend,
+            'request_id' => $requestId,
+            'mutual_friends' => $this->mutualFriendsCount($me, $userId),
+        ]);
+    }
+
+    /**
      * Unfriend / remove an accepted friendship.
      */
     public function unfriend(Request $request, int $userId): JsonResponse

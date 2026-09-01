@@ -858,9 +858,11 @@ Route::prefix('v1')->group(function () {
         // ── Friends & Friend Requests ─────────────────────────────────
         Route::prefix('friends')->group(function () {
             Route::get('/', [FriendRequestController::class, 'friends']);
+            Route::get('/suggestions', [FriendRequestController::class, 'suggestions']);
             Route::get('/search', [FriendRequestController::class, 'search']);
             Route::get('/requests', [FriendRequestController::class, 'index']);
             Route::get('/requests/sent', [FriendRequestController::class, 'sent']);
+            Route::get('/{userId}/status', [FriendRequestController::class, 'status']);
             Route::post('/requests', [FriendRequestController::class, 'send']);
             Route::post('/requests/{id}/accept', [FriendRequestController::class, 'accept']);
             Route::post('/requests/{id}/decline', [FriendRequestController::class, 'decline']);
