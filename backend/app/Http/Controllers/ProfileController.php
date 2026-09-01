@@ -129,26 +129,63 @@ class ProfileController extends Controller
 
     public function deleteAccount(Request $request): JsonResponse
     {
-        $request->validate([
-            'password' => ['required', 'current_password'],
-        ]);
-
         $user = $request->user();
+
+        // If user has a password set, require password or explicit DELETE confirmation
+        if ($user->password) {
+            if ($request->filled('password')) {
+                $request->validate([
+                    'password' => ['required', 'current_password'],
+                ]);
+            } else {
+                $request->validate([
+                    'confirmation' => ['required', 'string', 'in:DELETE,delete'],
+                ]);
+            }
+        } else {
+            // Passwordless (phone OTP / OAuth) users confirm via confirmation keyword
+            $request->validate([
+                'confirmation' => ['required', 'string', 'in:DELETE,delete'],
+            ]);
+        }
+
+        // 1. Revoke API tokens
         $user->tokens()->delete();
+
+        // 2. Delete push notification device tokens
+        \App\Models\PushToken::where('user_id', $user->id)->delete();
+
+        // 3. Mark user as deleted and free up username, while keeping user_id for financial compliance audit
+        $originalUsername = $user->username;
         $user->update([
-            'name' => 'Deleted User',
-            'email' => "deleted-{$user->id}@murihspace.local",
-            'username' => null,
-            'mobile_number' => null,
-            'kyc_document' => null,
-            'kyc_rejection_reason' => null,
+            'status' => 'deleted',
+            'username' => null, // Free username for future reuse
             'bio' => null,
             'avatar' => null,
-            'provider_id' => null,
+            'avatar_url' => null,
         ]);
+
+        // 4. Soft delete user (preserves all ledger transactions, orders, and financial history)
         $user->delete();
 
-        return response()->json(['message' => 'Account deleted.']);
+        // 5. Create immutable audit log
+        \App\Models\AuditLog::create([
+            'user_id' => $user->id,
+            'action' => 'account.deleted',
+            'details' => json_encode([
+                'reason' => $request->input('reason', 'User initiated account deletion'),
+                'previous_username' => $originalUsername,
+                'email' => $user->email,
+                'mobile_number' => $user->mobile_number,
+                'ip' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+            ]),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Your account has been deleted successfully. Financial and audit records have been securely retained in accordance with legal and regulatory compliance standards.',
+        ]);
     }
 
     public function kycStatus(Request $request): JsonResponse

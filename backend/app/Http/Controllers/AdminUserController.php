@@ -12,21 +12,23 @@ class AdminUserController extends Controller
 {
     public function __construct(private readonly NotificationService $notifications)
     {
-    }    public function index(Request $request): JsonResponse
+    }
+
+    public function index(Request $request): JsonResponse
     {
         $validated = $request->validate([
             'search' => ['nullable', 'string', 'max:100'],
             'role' => ['nullable', 'string', 'in:member,creator,vendor,admin'],
-            'status' => ['nullable', 'string', 'in:active,suspended,banned'],
+            'status' => ['nullable', 'string', 'in:active,suspended,banned,deleted'],
             'kyc' => ['nullable', 'string', 'in:pending,verified,rejected'],
-            'sort' => ['nullable', 'string', 'in:name,email,username,role,status,kyc_status,created_at'],
+            'sort' => ['nullable', 'string', 'in:name,email,username,role,status,kyc_status,created_at,deleted_at'],
             'sort_dir' => ['nullable', 'string', 'in:asc,desc'],
             'per_page' => ['nullable', 'integer', 'min:10', 'max:100'],
         ]);
 
-        $query = User::select([
+        $query = User::withTrashed()->select([
             'id', 'name', 'email', 'username', 'role', 'status',
-            'kyc_status', 'created_at', 'suspended_at', 'mobile_number', 'country',
+            'kyc_status', 'created_at', 'suspended_at', 'deleted_at', 'mobile_number', 'country',
         ])->where('role', '!=', 'admin');
 
         if (! empty($validated['search'])) {
@@ -42,7 +44,13 @@ class AdminUserController extends Controller
             $query->where('role', $validated['role']);
         }
         if (! empty($validated['status'])) {
-            $query->where('status', $validated['status']);
+            if ($validated['status'] === 'deleted') {
+                $query->where(function ($q) {
+                    $q->whereNotNull('deleted_at')->orWhere('status', 'deleted');
+                });
+            } else {
+                $query->whereNull('deleted_at')->where('status', $validated['status']);
+            }
         }
         if (! empty($validated['kyc'])) {
             $query->where('kyc_status', $validated['kyc']);
@@ -59,14 +67,30 @@ class AdminUserController extends Controller
 
     public function show(int $id): JsonResponse
     {
-        $user = User::select([
+        $user = User::withTrashed()->select([
             'id', 'name', 'email', 'username', 'role', 'status',
             'kyc_status', 'kyc_rejection_reason', 'country', 'mobile_number',
-            'created_at', 'suspended_at', 'suspension_reason',
+            'created_at', 'suspended_at', 'suspension_reason', 'deleted_at',
             'email_verified_at',
         ])->findOrFail($id);
 
-        return response()->json(['data' => $user]);
+        // Fetch financial and compliance tracking record for legal & regulatory audits
+        $wallets = \App\Models\Wallet::where('user_id', $id)->get();
+        $ordersCount = \App\Models\Order::where('buyer_id', $id)->orWhere('seller_id', $id)->count();
+        $ledgerCount = \App\Models\LedgerTransaction::where('user_id', $id)->count();
+        $disputesCount = \App\Models\Dispute::where('buyer_id', $id)->orWhere('seller_id', $id)->count();
+        $kycRecord = \App\Models\KycVerification::where('user_id', $id)->latest()->first();
+
+        return response()->json([
+            'data' => $user,
+            'financial_summary' => [
+                'wallets' => $wallets,
+                'orders_count' => $ordersCount,
+                'ledger_count' => $ledgerCount,
+                'disputes_count' => $disputesCount,
+            ],
+            'kyc_record' => $kycRecord,
+        ]);
     }
 
     public function suspend(Request $request, int $id): JsonResponse
@@ -75,7 +99,7 @@ class AdminUserController extends Controller
             'reason' => ['required', 'string', 'max:500'],
         ]);
 
-        $user = User::findOrFail($id);
+        $user = User::withTrashed()->findOrFail($id);
         $user->update([
             'status' => 'suspended',
             'suspended_at' => now(),
@@ -107,7 +131,7 @@ class AdminUserController extends Controller
 
     public function activate(Request $request, int $id): JsonResponse
     {
-        $user = User::findOrFail($id);
+        $user = User::withTrashed()->findOrFail($id);
         $user->update([
             'status' => 'active',
             'suspended_at' => null,
@@ -147,7 +171,7 @@ class AdminUserController extends Controller
         }
 
         if ($target->status !== 'active') {
-            return response()->json(['message' => 'Cannot impersonate a suspended or banned user.'], 403);
+            return response()->json(['message' => 'Cannot impersonate a suspended, banned, or deleted user.'], 403);
         }
 
         $target->tokens()->where('name', 'impersonation-token')->delete();
@@ -183,13 +207,13 @@ class AdminUserController extends Controller
         $validated = $request->validate([
             'search' => ['nullable', 'string', 'max:100'],
             'role' => ['nullable', 'string', 'in:member,creator,vendor,admin'],
-            'status' => ['nullable', 'string', 'in:active,suspended,banned'],
+            'status' => ['nullable', 'string', 'in:active,suspended,banned,deleted'],
             'kyc' => ['nullable', 'string', 'in:pending,verified,rejected'],
-            'sort' => ['nullable', 'string', 'in:name,email,username,role,status,kyc_status,created_at'],
+            'sort' => ['nullable', 'string', 'in:name,email,username,role,status,kyc_status,created_at,deleted_at'],
             'sort_dir' => ['nullable', 'string', 'in:asc,desc'],
         ]);
 
-        $query = User::select(['name', 'email', 'username', 'role', 'status', 'kyc_status', 'created_at'])
+        $query = User::withTrashed()->select(['name', 'email', 'username', 'role', 'status', 'kyc_status', 'created_at', 'deleted_at'])
             ->where('role', '!=', 'admin');
 
         if (! empty($validated['search'])) {
@@ -199,7 +223,15 @@ class AdminUserController extends Controller
                 ->orWhere('username', 'like', "%{$s}%"));
         }
         if (! empty($validated['role'])) $query->where('role', $validated['role']);
-        if (! empty($validated['status'])) $query->where('status', $validated['status']);
+        if (! empty($validated['status'])) {
+            if ($validated['status'] === 'deleted') {
+                $query->where(function ($q) {
+                    $q->whereNotNull('deleted_at')->orWhere('status', 'deleted');
+                });
+            } else {
+                $query->whereNull('deleted_at')->where('status', $validated['status']);
+            }
+        }
         if (! empty($validated['kyc'])) $query->where('kyc_status', $validated['kyc']);
 
         $sortField = $validated['sort'] ?? 'created_at';
@@ -207,9 +239,9 @@ class AdminUserController extends Controller
         $query->orderBy($sortField, $sortDir);
 
         $csv = \League\Csv\Writer::createFromString('');
-        $csv->insertOne(['Name', 'Email', 'Username', 'Role', 'Status', 'KYC Status', 'Joined']);
+        $csv->insertOne(['Name', 'Email', 'Username', 'Role', 'Status', 'KYC Status', 'Joined', 'Deleted At']);
         $csv->insertAll($query->cursor()->map(fn($u) => [
-            $u->name, $u->email, $u->username, $u->role, $u->status, $u->kyc_status, $u->created_at?->toDateString(),
+            $u->name, $u->email, $u->username, $u->role, $u->trashed() ? 'deleted' : $u->status, $u->kyc_status, $u->created_at?->toDateString(), $u->deleted_at?->toDateTimeString(),
         ])->toArray());
 
         return response($csv->toString(), 200, [
@@ -224,7 +256,7 @@ class AdminUserController extends Controller
             'reason' => ['required', 'string', 'max:500'],
         ]);
 
-        $user = User::findOrFail($id);
+        $user = User::withTrashed()->findOrFail($id);
         $user->update([
             'status' => 'banned',
             'suspended_at' => now(),
@@ -252,5 +284,33 @@ class AdminUserController extends Controller
         }
 
         return response()->json(['message' => 'User banned.', 'data' => $user]);
+    }
+
+    public function restore(Request $request, int $id): JsonResponse
+    {
+        $user = User::withTrashed()->findOrFail($id);
+
+        if (! $user->trashed()) {
+            return response()->json(['message' => 'Account is not deleted.'], 400);
+        }
+
+        $user->restore();
+        $user->update([
+            'status' => 'active',
+            'suspended_at' => null,
+            'suspension_reason' => null,
+        ]);
+
+        AuditLog::create([
+            'user_id' => $request->user()->id,
+            'action' => 'user.restored',
+            'resource_type' => 'user',
+            'resource_id' => (string) $user->id,
+        ]);
+
+        return response()->json([
+            'message' => 'User account restored successfully.',
+            'data' => $user,
+        ]);
     }
 }

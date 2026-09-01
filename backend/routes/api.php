@@ -1104,6 +1104,7 @@ Route::prefix('v1')->group(function () {
                 Route::post('/{id}/suspend', [AdminUserController::class, 'suspend']);
                 Route::post('/{id}/activate', [AdminUserController::class, 'activate']);
                 Route::post('/{id}/ban', [AdminUserController::class, 'ban']);
+                Route::post('/{id}/restore', [AdminUserController::class, 'restore']);
                 Route::post('/{id}/impersonate', [AdminUserController::class, 'impersonate']);
             });
 

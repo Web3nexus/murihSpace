@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router';
 import { toast } from 'sonner';
 import {
-  Users, Search, Loader2, ShieldOff, ShieldCheck, Ban,
+  Users, Search, Loader2, ShieldOff, ShieldCheck, Ban, RotateCcw,
   AlertCircle, CheckCircle2, LogIn, ArrowUpDown, ArrowUp, ArrowDown, Download,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -30,6 +30,7 @@ const STATUS_COLORS: Record<string, string> = {
   active: 'bg-emerald-500/20 text-emerald-400',
   suspended: 'bg-amber-500/20 text-amber-400',
   banned: 'bg-rose-500/20 text-rose-400',
+  deleted: 'bg-slate-500/20 text-slate-400',
 };
 
 export function AdminUsersPage() {
@@ -42,7 +43,7 @@ export function AdminUsersPage() {
   const [sort, setSort] = useState(searchParams.get('sort') ?? 'created_at');
   const [sortDir, setSortDir] = useState(searchParams.get('sort_dir') ?? 'desc');
   const [actionUser, setActionUser] = useState<AdminUser | null>(null);
-  const [actionType, setActionType] = useState<'suspend' | 'activate' | 'ban' | null>(null);
+  const [actionType, setActionType] = useState<'suspend' | 'activate' | 'ban' | 'restore' | null>(null);
   const [reason, setReason] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [msg, setMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -188,8 +189,8 @@ export function AdminUsersPage() {
           <button key={r} onClick={() => setRoleFilter(r)} className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-colors ${roleFilter === r ? 'bg-[#2164b6] text-foreground' : 'bg-muted text-muted-foreground hover:text-foreground'}`}>{r || 'All Roles'}</button>
         ))}
         <span className="w-px h-5 bg-border mx-1" />
-        {['', 'active', 'suspended', 'banned'].map((s) => (
-          <button key={s} onClick={() => setStatusFilter(s)} className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-colors ${statusFilter === s ? 'bg-[#2164b6] text-foreground' : 'bg-muted text-muted-foreground hover:text-foreground'}`}>{s || 'All Status'}</button>
+        {['', 'active', 'suspended', 'banned', 'deleted'].map((s) => (
+          <button key={s} onClick={() => setStatusFilter(s)} className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-colors ${statusFilter === s ? 'bg-[#2164b6] text-foreground' : 'bg-muted text-muted-foreground hover:text-foreground'}`}>{s ? s.charAt(0).toUpperCase() + s.slice(1) : 'All Status'}</button>
         ))}
       </div>
 
@@ -217,7 +218,7 @@ export function AdminUsersPage() {
                       <td className="px-4 py-3 font-semibold text-foreground whitespace-nowrap">{u.name}</td>
                       <td className="px-4 py-3 text-muted-foreground">{u.email || '-'}</td>
                       <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{u.mobile_number || '-'}</td>
-                      <td className="px-4 py-3 text-muted-foreground">@{u.username}</td>
+                      <td className="px-4 py-3 text-muted-foreground">{u.username ? `@${u.username}` : <span className="italic text-muted-foreground/60">(deleted)</span>}</td>
                       <td className="px-4 py-3"><span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${ROLE_COLORS[u.role] ?? ''}`}>{u.role}</span></td>
                       <td className="px-4 py-3 text-muted-foreground uppercase font-bold text-[10px]">{u.country || '-'}</td>
                       <td className="px-4 py-3"><span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${STATUS_COLORS[u.status] ?? ''}`}>{u.status}</span></td>
@@ -230,9 +231,10 @@ export function AdminUsersPage() {
                               <LogIn className="h-3 w-3" />
                             </Button>
                           )}
-                          {u.status === 'active' && <Button size="sm" variant="ghost" className="h-7 text-[10px] text-amber-600" onClick={() => { setActionUser(u); setActionType('suspend'); setReason(''); setMsg(null); }}><ShieldOff className="h-3 w-3" /></Button>}
-                          {u.status === 'suspended' && <Button size="sm" variant="ghost" className="h-7 text-[10px] text-emerald-600" onClick={() => { setActionUser(u); setActionType('activate'); setMsg(null); }}><ShieldCheck className="h-3 w-3" /></Button>}
-                          {u.status !== 'banned' && <Button size="sm" variant="ghost" className="h-7 text-[10px] text-destructive" onClick={() => { setActionUser(u); setActionType('ban'); setReason(''); setMsg(null); }}><Ban className="h-3 w-3" /></Button>}
+                          {u.status === 'active' && <Button size="sm" variant="ghost" className="h-7 text-[10px] text-amber-600" onClick={() => { setActionUser(u); setActionType('suspend'); setReason(''); setMsg(null); }} title="Suspend user"><ShieldOff className="h-3 w-3" /></Button>}
+                          {u.status === 'suspended' && <Button size="sm" variant="ghost" className="h-7 text-[10px] text-emerald-600" onClick={() => { setActionUser(u); setActionType('activate'); setMsg(null); }} title="Activate user"><ShieldCheck className="h-3 w-3" /></Button>}
+                          {u.status === 'deleted' && <Button size="sm" variant="ghost" className="h-7 text-[10px] text-blue-500" onClick={() => { setActionUser(u); setActionType('restore'); setMsg(null); }} title="Restore deleted account"><RotateCcw className="h-3 w-3" /></Button>}
+                          {u.status !== 'banned' && u.status !== 'deleted' && <Button size="sm" variant="ghost" className="h-7 text-[10px] text-destructive" onClick={() => { setActionUser(u); setActionType('ban'); setReason(''); setMsg(null); }} title="Ban user"><Ban className="h-3 w-3" /></Button>}
                         </div>
                       </td>
                     </tr>
@@ -257,14 +259,18 @@ export function AdminUsersPage() {
               {actionType === 'suspend' && <><ShieldOff className="h-5 w-5 text-amber-500" /> Suspend User</>}
               {actionType === 'activate' && <><ShieldCheck className="h-5 w-5 text-emerald-500" /> Activate User</>}
               {actionType === 'ban' && <><Ban className="h-5 w-5 text-destructive" /> Ban User</>}
+              {actionType === 'restore' && <><RotateCcw className="h-5 w-5 text-blue-500" /> Restore Deleted Account</>}
             </DialogTitle>
-            <DialogDescription className="text-xs">{actionUser?.name} (@{actionUser?.username})</DialogDescription>
+            <DialogDescription className="text-xs">{actionUser?.name} ({actionUser?.email})</DialogDescription>
           </DialogHeader>
           {msg && <div className={`p-3 rounded-xl text-xs font-bold flex items-center gap-2 ${msg.type === 'success' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'}`}>{msg.type === 'success' ? <CheckCircle2 className="h-4 w-4 shrink-0" /> : <AlertCircle className="h-4 w-4 shrink-0" />}{msg.text}</div>}
-          {actionType !== 'activate' && (
+          {actionType === 'restore' && !msg && (
+            <p className="text-xs text-muted-foreground">This will restore the user account to active status and enable sign-in again.</p>
+          )}
+          {actionType !== 'activate' && actionType !== 'restore' && (
             <textarea className="w-full min-h-[80px] rounded-xl border border-border bg-card p-3 text-xs font-medium text-foreground placeholder:text-muted-foreground resize-none" placeholder="Reason for this action..." value={reason} onChange={(e) => setReason(e.target.value)} />
           )}
-          {!msg && <Button disabled={submitting || (actionType !== 'activate' && !reason)} onClick={handleAction} className="w-full text-sm font-bold">{submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}{actionType === 'suspend' ? 'Suspend' : actionType === 'activate' ? 'Activate' : 'Ban'}</Button>}
+          {!msg && <Button disabled={submitting || (actionType !== 'activate' && actionType !== 'restore' && !reason)} onClick={handleAction} className="w-full text-sm font-bold">{submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}{actionType === 'suspend' ? 'Suspend' : actionType === 'activate' ? 'Activate' : actionType === 'restore' ? 'Restore Account' : 'Ban'}</Button>}
         </DialogContent>
       </Dialog>
     </div>

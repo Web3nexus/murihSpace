@@ -200,11 +200,24 @@ class AuthController extends Controller
             'password' => ['required', 'string'],
         ]);
 
-        $user = User::where('email', $request->email)->first();
+        $user = User::withTrashed()->where('email', $request->email)->first();
 
         if (! $user || ! Hash::check($request->password, $user->password)) {
             throw ValidationException::withMessages([
                 'email' => ['The provided credentials do not match our records.'],
+            ]);
+        }
+
+        if ($user->trashed() || $user->status === 'deleted') {
+            throw ValidationException::withMessages([
+                'email' => ['This account has been deleted. If you wish to recover your account, please contact support.'],
+            ]);
+        }
+
+        if (in_array($user->status, ['banned', 'suspended'], true)) {
+            $reason = $user->suspension_reason ? ": {$user->suspension_reason}" : '.';
+            throw ValidationException::withMessages([
+                'email' => ["Your account has been {$user->status}{$reason}"],
             ]);
         }
 

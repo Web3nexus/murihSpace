@@ -60,13 +60,28 @@ export default function PrivacyPage() {
     }
   };
 
+  const [deletePassword, setDeletePassword] = useState("");
+  const [deleteReason, setDeleteReason] = useState("");
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
   const handleDeleteAccount = async () => {
+    setDeleting(true);
+    setDeleteError(null);
     try {
-      await apiClient.delete("/account", { data: { confirmation: deleteText } });
+      await apiClient.delete("/account", {
+        data: {
+          confirmation: deleteText,
+          password: deletePassword || undefined,
+          reason: deleteReason || undefined,
+        },
+      });
       localStorage.clear();
       window.location.href = "/login";
-    } catch {
-      // ignore
+    } catch (err: any) {
+      setDeleteError(err?.response?.data?.message ?? "Failed to delete account. Please verify your input.");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -177,34 +192,61 @@ export default function PrivacyPage() {
               <p className="text-xs font-bold text-red-600 flex items-center gap-1.5">
                 <Trash2 className="h-3.5 w-3.5" /> Delete Account
               </p>
-              <p className="text-[10px] text-muted-foreground">Permanently delete your account and all associated data. This action cannot be undone.</p>
+              <p className="text-[10px] text-muted-foreground">Deactivate your account, revoke access, and release public username. Financial records are retained securely for statutory compliance.</p>
             </div>
             <button
               type="button"
               onClick={() => setDeleteConfirm(!deleteConfirm)}
               className="px-4 py-2 rounded-xl bg-red-500/10 text-red-600 text-xs font-bold hover:bg-red-500/20 transition-all"
             >
-              Delete
+              {deleteConfirm ? "Cancel" : "Delete"}
             </button>
           </div>
 
           {deleteConfirm && (
             <div className="p-4 rounded-xl border border-red-500/30 bg-red-500/5 space-y-3">
-              <p className="text-xs font-bold text-red-600">Type <span className="font-mono bg-red-500/10 px-1 rounded">DELETE</span> to confirm</p>
-              <input
-                type="text"
-                value={deleteText}
-                onChange={(e) => setDeleteText(e.target.value)}
-                placeholder="Type DELETE to confirm"
-                className="w-full rounded-xl border border-red-500/30 bg-card px-3 py-2 text-xs text-foreground focus:outline-none focus:border-red-500"
-              />
+              {deleteError && (
+                <div className="p-2.5 rounded-lg bg-red-500/10 text-red-600 text-xs font-medium border border-red-500/20">
+                  {deleteError}
+                </div>
+              )}
+              <div className="space-y-1">
+                <label className="text-[11px] font-semibold text-foreground">Account Password (if set)</label>
+                <input
+                  type="password"
+                  value={deletePassword}
+                  onChange={(e) => setDeletePassword(e.target.value)}
+                  placeholder="Enter current password (leave blank if passwordless)"
+                  className="w-full rounded-xl border border-border bg-card px-3 py-2 text-xs text-foreground focus:outline-none focus:border-red-500"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[11px] font-semibold text-foreground">Reason for leaving (optional)</label>
+                <input
+                  type="text"
+                  value={deleteReason}
+                  onChange={(e) => setDeleteReason(e.target.value)}
+                  placeholder="Why are you deleting your account?"
+                  className="w-full rounded-xl border border-border bg-card px-3 py-2 text-xs text-foreground focus:outline-none focus:border-red-500"
+                />
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs font-bold text-red-600">Type <span className="font-mono bg-red-500/10 px-1 rounded">DELETE</span> to confirm</p>
+                <input
+                  type="text"
+                  value={deleteText}
+                  onChange={(e) => setDeleteText(e.target.value)}
+                  placeholder="Type DELETE to confirm"
+                  className="w-full rounded-xl border border-red-500/30 bg-card px-3 py-2 text-xs text-foreground focus:outline-none focus:border-red-500"
+                />
+              </div>
               <button
                 type="button"
                 onClick={handleDeleteAccount}
-                disabled={deleteText !== "DELETE"}
-                className="px-5 py-2 rounded-xl bg-red-600 text-white text-xs font-bold hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                disabled={deleteText !== "DELETE" || deleting}
+                className="px-5 py-2.5 rounded-xl bg-red-600 text-white text-xs font-bold hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all w-full flex items-center justify-center gap-2"
               >
-                Permanently Delete My Account
+                {deleting ? "Deleting Account..." : "Permanently Delete My Account"}
               </button>
             </div>
           )}
