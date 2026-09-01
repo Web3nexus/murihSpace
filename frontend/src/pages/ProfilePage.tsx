@@ -17,6 +17,7 @@ export function ProfilePage() {
   const [county, setCounty] = useState("");
   const [state, setState] = useState("");
   const [mobileNumber, setMobileNumber] = useState("");
+  const [birthday, setBirthday] = useState("");
 
   const [kycDocInput, setKycDocInput] = useState("");
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
@@ -31,7 +32,8 @@ export function ProfilePage() {
       setCountry(profile.country || "");
       setCounty(profile.county || "");
       setState(profile.state || "");
-      setMobileNumber(profile.mobile_number || "");
+      setMobileNumber(profile.mobile_number || profile.phone || "");
+      setBirthday(profile.birthday || "");
       setAvatar(profile.avatar || "");
     }
   }, [profile]);
@@ -48,6 +50,7 @@ export function ProfilePage() {
       county,
       state,
       mobile_number: mobileNumber,
+      birthday: birthday || undefined,
     });
     if (ok) {
       setSuccessMsg("Profile updated successfully!");
@@ -136,7 +139,7 @@ export function ProfilePage() {
               <span className="text-[10px] text-muted-foreground uppercase font-semibold">Communities</span>
             </div>
             <div>
-              <span className="font-extrabold text-emerald-600 dark:text-emerald-400 block text-sm">${profile?.coins ?? 0}</span>
+              <span className="font-extrabold text-emerald-600 dark:text-emerald-400 block text-sm">{profile?.coins ?? 0}</span>
               <span className="text-[10px] text-muted-foreground uppercase font-semibold">Coins</span>
             </div>
           </div>
@@ -279,15 +282,27 @@ export function ProfilePage() {
             </Field>
           </div>
 
-          <Field>
-            <FieldLabel htmlFor="profile-mobile">Mobile Number</FieldLabel>
-            <Input
-              id="profile-mobile"
-              value={mobileNumber}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setMobileNumber(e.target.value)}
-              placeholder="+44 7911 123456"
-            />
-          </Field>
+          <div className="grid grid-cols-2 gap-4">
+            <Field>
+              <FieldLabel htmlFor="profile-mobile">Mobile Number</FieldLabel>
+              <Input
+                id="profile-mobile"
+                value={mobileNumber}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setMobileNumber(e.target.value)}
+                placeholder="+44 7911 123456"
+              />
+            </Field>
+
+            <Field>
+              <FieldLabel htmlFor="profile-birthday">Birthday</FieldLabel>
+              <Input
+                id="profile-birthday"
+                type="date"
+                value={birthday}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setBirthday(e.target.value)}
+              />
+            </Field>
+          </div>
 
           <Button type="submit" disabled={updating} id="save-profile-btn">
             {updating ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</> : "Save Profile"}

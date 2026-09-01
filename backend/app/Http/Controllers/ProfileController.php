@@ -23,11 +23,14 @@ class ProfileController extends Controller
             'role' => $user->role,
             'bio' => $user->bio,
             'avatar' => $user->avatar,
+            'avatar_url' => $user->avatar_url ?? $user->avatar,
             'banner_url' => $user->banner_url ?? null,
             'country' => $user->country,
             'county' => $user->county,
             'state' => $user->state,
             'mobile_number' => $user->mobile_number,
+            'phone' => $user->mobile_number,
+            'birthday' => $user->birthday?->format('Y-m-d'),
             'kyc_status' => $user->kyc_status,
             'kyc_document' => $user->kyc_document,
             'kyc_rejection_reason' => $user->kyc_rejection_reason,
@@ -49,16 +52,28 @@ class ProfileController extends Controller
     {
         $user = $request->user();
 
+        if ($request->filled('phone') && ! $request->filled('mobile_number')) {
+            $request->merge(['mobile_number' => $request->input('phone')]);
+        }
+
         $validated = $request->validate([
             'name' => ['sometimes', 'required', 'string', 'max:255'],
-            'username' => ['sometimes', 'required', 'string', 'min:3', 'max:255', Rule::unique('users')->ignore($user->id)],
+            'username' => ['sometimes', 'required', 'string', 'min:3', 'max:50', 'regex:/\A[a-zA-Z0-9_]+\z/', Rule::unique('users')->ignore($user->id)],
             'bio' => ['nullable', 'string', 'max:1000'],
             'avatar' => ['nullable', 'string', 'max:2048'],
+            'banner_url' => ['nullable', 'string', 'max:2048'],
             'country' => ['nullable', 'string', 'max:255'],
             'county' => ['nullable', 'string', 'max:255'],
             'state' => ['nullable', 'string', 'max:255'],
             'mobile_number' => ['nullable', 'string', 'max:255'],
+            'phone' => ['nullable', 'string', 'max:255'],
+            'birthday' => ['nullable', 'date', 'before:today'],
         ]);
+
+        if (isset($validated['phone']) && ! isset($validated['mobile_number'])) {
+            $validated['mobile_number'] = $validated['phone'];
+        }
+        unset($validated['phone']);
 
         $user->update($validated);
 
@@ -70,12 +85,21 @@ class ProfileController extends Controller
             'role' => $user->role,
             'bio' => $user->bio,
             'avatar' => $user->avatar,
+            'avatar_url' => $user->avatar_url ?? $user->avatar,
+            'banner_url' => $user->banner_url,
             'country' => $user->country,
             'county' => $user->county,
             'state' => $user->state,
             'mobile_number' => $user->mobile_number,
+            'phone' => $user->mobile_number,
+            'birthday' => $user->birthday?->format('Y-m-d'),
             'kyc_status' => $user->kyc_status,
             'email_verified' => $user->hasVerifiedEmail(),
+            'posts_count' => $user->posts()->count(),
+            'followers_count' => $user->followers()->count(),
+            'following_count' => $user->follows()->count(),
+            'communities_count' => $user->communities()->count(),
+            'coins' => $user->wallet?->coin_balance ?? 0,
         ]);
     }
 

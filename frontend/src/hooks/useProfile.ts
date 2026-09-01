@@ -14,6 +14,8 @@ export interface UserProfileData {
   county?: string | null;
   state?: string | null;
   mobile_number?: string | null;
+  phone?: string | null;
+  birthday?: string | null;
   kyc_status: "pending" | "verified" | "rejected";
   kyc_document?: string | null;
   kyc_rejection_reason?: string | null;
