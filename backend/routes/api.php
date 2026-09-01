@@ -296,20 +296,38 @@ Route::prefix('v1')->group(function () {
             $user = $request->user();
 
             return response()->json([
-                'id'             => $user->id,
-                'name'           => $user->name,
-                'email'          => $user->email,
-                'username'       => $user->username,
-                'role'           => $user->role,
-                'permissions'    => $user->permissions(),
-                'kyc_status'     => $user->kyc_status,
-                'email_verified' => $user->hasVerifiedEmail(),
+                'id'                => $user->id,
+                'name'              => $user->name,
+                'email'             => $user->email,
+                'username'          => $user->username,
+                'role'              => $user->role,
+                'bio'               => $user->bio,
+                'avatar'            => $user->avatar,
+                'banner_url'        => $user->banner_url,
+                'permissions'       => $user->permissions(),
+                'kyc_status'        => $user->kyc_status,
+                'email_verified'    => $user->hasVerifiedEmail(),
+                'posts_count'       => $user->posts()->count(),
+                'followers_count'   => $user->followers()->count(),
+                'following_count'   => $user->follows()->count(),
+                'communities_count' => $user->communities()->count(),
+                'coins'             => $user->wallet?->coin_balance ?? 0,
                 'verification_badge' => [
                     'status'     => $user->verification_badge_status,
                     'active'     => $user->hasActiveVerificationBadge(),
                     'expires_at' => $user->verification_badge_expires_at?->toIso8601String(),
                 ],
             ]);
+        });
+
+        // ── Social Follows & User Relations ──────────────────────────────
+        Route::prefix('users/{id}')->group(function () {
+            Route::post('/follow', [\App\Http\Controllers\FollowController::class, 'toggleFollow']);
+            Route::post('/follow-user', [\App\Http\Controllers\FollowController::class, 'follow']);
+            Route::delete('/follow', [\App\Http\Controllers\FollowController::class, 'unfollow']);
+            Route::get('/follow-status', [\App\Http\Controllers\FollowController::class, 'status']);
+            Route::get('/followers', [\App\Http\Controllers\FollowController::class, 'followers']);
+            Route::get('/following', [\App\Http\Controllers\FollowController::class, 'following']);
         });
 
         // Feature flags (read-only for all authenticated users)
