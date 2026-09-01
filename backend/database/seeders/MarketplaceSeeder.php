@@ -145,3 +145,4 @@ class MarketplaceSeeder extends Seeder
         }
     }
 }
+

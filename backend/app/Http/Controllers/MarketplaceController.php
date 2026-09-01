@@ -334,3 +334,4 @@ class MarketplaceController extends Controller
         ];
     }
 }
+
