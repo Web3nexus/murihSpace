@@ -20,15 +20,22 @@ class RoleUpgradeController extends Controller
 
     /**
      * GET /api/v1/role/application
-     * Return the user's current pending (or latest) role application.
+     * Return the user's current pending (or latest) role application along with user KYC state.
      */
     public function myApplication(Request $request): JsonResponse
     {
-        $application = AccountRoleHistory::where('user_id', $request->user()->id)
+        $user = $request->user();
+        $application = AccountRoleHistory::where('user_id', $user->id)
             ->latest()
             ->first();
 
-        return response()->json(['application' => $application]);
+        return response()->json([
+            'application' => $application,
+            'user_kyc_status' => $user->kyc_status ?? 'not_required',
+            'user_kyc_document' => $user->kyc_document,
+            'kyc_requested' => (bool) ($application?->metadata['kyc_requested'] ?? false),
+            'kyc_request_note' => $application?->metadata['kyc_request_note'] ?? null,
+        ]);
     }
 
     /**
@@ -120,8 +127,10 @@ class RoleUpgradeController extends Controller
      */
     public function adminIndex(Request $request): JsonResponse
     {
-        $query = AccountRoleHistory::with(['user:id,name,email,role,avatar', 'approvedBy:id,name'])
-            ->latest();
+        $query = AccountRoleHistory::with([
+            'user:id,name,email,role,avatar,kyc_status,kyc_document,kyc_provider,kyc_rejection_reason',
+            'approvedBy:id,name',
+        ])->latest();
 
         if ($request->filled('status') && $request->input('status') !== 'all') {
             $query->where('status', $request->input('status'));
@@ -145,7 +154,10 @@ class RoleUpgradeController extends Controller
      */
     public function adminShow(int $id): JsonResponse
     {
-        $application = AccountRoleHistory::with(['user', 'approvedBy:id,name'])->findOrFail($id);
+        $application = AccountRoleHistory::with([
+            'user:id,name,email,role,avatar,kyc_status,kyc_document,kyc_provider,kyc_rejection_reason',
+            'approvedBy:id,name',
+        ])->findOrFail($id);
 
         return response()->json(['application' => $application]);
     }
@@ -168,6 +180,72 @@ class RoleUpgradeController extends Controller
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
         }
+    }
+
+    /**
+     * PATCH /api/v1/admin/role-applications/{id}/request-kyc
+     * Request KYC identity verification from the applicant before approval.
+     */
+    public function requestKyc(Request $request, int $id): JsonResponse
+    {
+        $application = AccountRoleHistory::with('user')->findOrFail($id);
+
+        $validated = $request->validate([
+            'note' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $user = $application->user;
+        if (! $user) {
+            return response()->json(['success' => false, 'message' => 'Applicant user not found.'], 404);
+        }
+
+        // Update application metadata
+        $metadata = is_array($application->metadata) ? $application->metadata : [];
+        $metadata['kyc_requested'] = true;
+        $metadata['kyc_requested_at'] = now()->toISOString();
+        $metadata['kyc_request_note'] = $validated['note'] ?? 'Identity verification (KYC) is required for Creator/Vendor account approval.';
+
+        $application->update([
+            'metadata' => $metadata,
+        ]);
+
+        // If user KYC is not already verified or pending, set to not_started
+        if (! in_array($user->kyc_status, ['verified', 'pending'], true)) {
+            $user->update(['kyc_status' => 'not_started']);
+        }
+
+        // Notify user via Action Email
+        try {
+            app(\App\Services\NotificationService::class)->actionEmail(
+                user: $user,
+                title: 'Identity Verification (KYC) Required for Creator Application',
+                bodyHtml: '<p>Hi ' . htmlspecialchars($user->name) . ',</p><p>Our review team requires identity verification (KYC) to approve your application for the <strong>' . htmlspecialchars(ucfirst($application->requested_role)) . '</strong> role.</p><p>' . htmlspecialchars($metadata['kyc_request_note']) . '</p><p>Please log in and submit your KYC documents to continue.</p>',
+                actionLabel: 'Submit KYC Verification',
+                actionUrl: \App\Services\NotificationService::link('kyc'),
+                template: 'kyc_requested',
+            );
+        } catch (\Throwable $e) {
+            \Log::warning("KYC request email notification failed: {$e->getMessage()}");
+        }
+
+        // Create immutable audit log
+        \App\Models\AuditLog::create([
+            'user_id' => $request->user()->id,
+            'action' => 'role_application.kyc_requested',
+            'resource_type' => 'account_role_history',
+            'resource_id' => (string) $application->id,
+            'metadata' => [
+                'applicant_user_id' => $user->id,
+                'requested_role' => $application->requested_role,
+                'note' => $metadata['kyc_request_note'],
+            ],
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => "KYC verification requested from {$user->name}. The applicant has been notified.",
+            'application' => $application->fresh(['user', 'approvedBy']),
+        ]);
     }
 
     /**

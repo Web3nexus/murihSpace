@@ -20,6 +20,11 @@ interface ApplicationRecord {
   requested_at: string;
   approved_at?: string | null;
   rejection_reason?: string | null;
+  metadata?: {
+    kyc_requested?: boolean;
+    kyc_requested_at?: string;
+    kyc_request_note?: string;
+  } | null;
 }
 
 export function UpgradeAccountPage() {
@@ -27,6 +32,9 @@ export function UpgradeAccountPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState<string | null>(null);
   const [application, setApplication] = useState<ApplicationRecord | null>(null);
+  const [userKycStatus, setUserKycStatus] = useState<string>("not_required");
+  const [kycRequested, setKycRequested] = useState<boolean>(false);
+  const [kycRequestNote, setKycRequestNote] = useState<string | null>(null);
   const [history, setHistory] = useState<ApplicationRecord[]>([]);
 
   const fetchApplicationState = useCallback(async () => {
@@ -43,6 +51,10 @@ export function UpgradeAccountPage() {
         setApplication(null);
       }
 
+      setUserKycStatus(appRes.data?.user_kyc_status || user?.kyc_status || "not_required");
+      setKycRequested(Boolean(appRes.data?.kyc_requested));
+      setKycRequestNote(appRes.data?.kyc_request_note || null);
+
       if (historyRes.data?.history) {
         setHistory(historyRes.data.history);
       }
@@ -51,7 +63,7 @@ export function UpgradeAccountPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     fetchApplicationState();
@@ -124,7 +136,7 @@ export function UpgradeAccountPage() {
 
       {/* Pending Application Alert */}
       {application && application.status === "pending" && (
-        <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-5 text-amber-900 dark:text-amber-200">
+        <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-5 text-amber-900 dark:text-amber-200 space-y-4">
           <div className="flex items-start gap-4">
             <Clock className="h-6 w-6 text-amber-500 shrink-0 mt-0.5" />
             <div className="flex-1">
@@ -138,8 +150,38 @@ export function UpgradeAccountPage() {
               </div>
               <p className="mt-1 text-sm text-muted-foreground">
                 You have requested an upgrade to <strong className="capitalize text-foreground">{application.requested_role}</strong>.
-                Our team is reviewing your application and verifying your identity.
+                Our team is reviewing your application.
               </p>
+
+              {/* KYC Condition Callout */}
+              {(kycRequested || userKycStatus !== "verified") && (
+                <div className="mt-4 p-4 rounded-xl border border-blue-500/30 bg-blue-500/10 space-y-2">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <h4 className="text-xs font-bold text-blue-500 flex items-center gap-1.5">
+                      <FileCheck className="h-4 w-4" /> Identity Verification (KYC)
+                    </h4>
+                    <span className="text-[11px] font-semibold text-muted-foreground capitalize">
+                      Status: {userKycStatus === "verified" ? "Verified" : userKycStatus === "pending" ? "Under Review" : "Required"}
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {kycRequestNote || (userKycStatus === "pending"
+                      ? "Your identity document has been submitted and is currently being reviewed by compliance."
+                      : "The review team requires government ID verification before granting Creator/Vendor status.")}
+                  </p>
+                  {userKycStatus !== "verified" && userKycStatus !== "pending" && (
+                    <div className="pt-1">
+                      <a
+                        href="/app/settings/kyc"
+                        className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-3.5 py-1.5 text-xs font-bold text-white shadow hover:bg-blue-700 transition-colors"
+                      >
+                        Submit KYC Verification →
+                      </a>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div className="mt-4 flex items-center gap-3">
                 <button
                   type="button"

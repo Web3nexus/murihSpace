@@ -1148,6 +1148,7 @@ Route::prefix('v1')->group(function () {
                 Route::get('/stats', [\App\Http\Controllers\RoleUpgradeController::class, 'stats']);
                 Route::get('/{id}', [\App\Http\Controllers\RoleUpgradeController::class, 'adminShow']);
                 Route::patch('/{id}/approve', [\App\Http\Controllers\RoleUpgradeController::class, 'approve']);
+                Route::patch('/{id}/request-kyc', [\App\Http\Controllers\RoleUpgradeController::class, 'requestKyc']);
                 Route::patch('/{id}/reject', [\App\Http\Controllers\RoleUpgradeController::class, 'reject']);
             });
 

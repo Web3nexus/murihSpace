@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AccountRoleHistory;
 use App\Models\AuditLog;
 use App\Models\DigitalProduct;
 use App\Models\Order;
@@ -19,6 +20,7 @@ class AdminDashboardController extends Controller
         $activeUsers = User::where('status', 'active')->count();
         $suspendedUsers = User::where('status', 'suspended')->count();
         $pendingKyc = User::where('kyc_status', 'pending')->count();
+        $pendingRoleApplications = AccountRoleHistory::where('status', 'pending')->count();
 
         $totalProducts = DigitalProduct::count();
         $publishedProducts = DigitalProduct::where('status', 'published')->count();
@@ -50,6 +52,7 @@ class AdminDashboardController extends Controller
                 'active' => $activeUsers,
                 'suspended' => $suspendedUsers,
                 'pending_kyc' => $pendingKyc,
+                'pending_role_applications' => $pendingRoleApplications,
             ],
             'store' => [
                 'total_products' => $totalProducts,
@@ -63,6 +66,8 @@ class AdminDashboardController extends Controller
             'operations' => [
                 'pending_withdrawals' => $pendingWithdrawals,
                 'pending_reports' => $pendingReports,
+                'pending_role_applications' => $pendingRoleApplications,
+                'pending_kyc' => $pendingKyc,
             ],
             'wallet' => [
                 'platform_balance' => (float) $platformBalance,

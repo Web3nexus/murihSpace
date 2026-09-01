@@ -99,6 +99,7 @@ export function SecuregateOverviewPage() {
   const [overview, setOverview] = useState<OverviewData | null>(null);
   const [trends, setTrends] = useState<TrendData | null>(null);
   const [topContent, setTopContent] = useState<TopContent | null>(null);
+  const [pendingRoleApps, setPendingRoleApps] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'overview' | 'trends' | 'content'>('overview');
@@ -109,15 +110,21 @@ export function SecuregateOverviewPage() {
     setError(null);
     try {
       const q = `?currency=${encodeURIComponent(currencyCode)}`;
-      const [oRes, tRes, cRes] = await Promise.all([
+      const [oRes, tRes, cRes, dashRes] = await Promise.all([
         apiClient.get(`/securegate/analytics/overview${q}`),
         apiClient.get(`/securegate/analytics/trends${q}&days=30`),
         apiClient.get(`/securegate/analytics/top-content${q}`),
+        apiClient.get(`/securegate/dashboard`),
       ]);
       const extract = (res: { data: { success?: boolean; data?: unknown } }) => res.data?.success ? res.data.data : res.data;
       setOverview(extract(oRes) as OverviewData);
       setTrends(extract(tRes) as TrendData);
       setTopContent(extract(cRes) as TopContent);
+
+      const dashData = dashRes.data;
+      if (dashData?.operations?.pending_role_applications !== undefined) {
+        setPendingRoleApps(dashData.operations.pending_role_applications);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load analytics');
     } finally {
@@ -225,6 +232,31 @@ export function SecuregateOverviewPage() {
 
         {activeTab === 'overview' && overview && (
           <>
+            {/* Pending Role Applications Alert Banner */}
+            {pendingRoleApps > 0 && (
+              <div className="flex items-center justify-between p-4 rounded-2xl border border-[#2164b6]/30 bg-[#2164b6]/10 text-foreground">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 rounded-xl bg-[#2164b6] text-white">
+                    <UserCheck className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold">
+                      {pendingRoleApps} Pending Creator / Role Application{pendingRoleApps > 1 ? 's' : ''}
+                    </h4>
+                    <p className="text-xs text-muted-foreground">
+                      Users have requested to upgrade to Creator or Vendor accounts and require review.
+                    </p>
+                  </div>
+                </div>
+                <a
+                  href="/app/securegate/role-applications"
+                  className="px-4 py-2 rounded-xl bg-[#2164b6] text-white text-xs font-bold shadow hover:bg-[#1a4f91] transition-all"
+                >
+                  Review Applications →
+                </a>
+              </div>
+            )}
+
             {/* Metric Cards */}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <MetricCard label="Total Revenue" value={formatCurrency(overview.revenue.digital_revenue, currency)} trend={`${formatNumber(overview.revenue.digital_orders)} orders`} trendUp icon={TrendingUp} color="bg-[#2164b6]/15 text-[#2164b6] dark:text-[#7ab0ff]" sparklineColor="#10B981" />

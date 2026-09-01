@@ -12,6 +12,10 @@ import {
   Filter,
   Sparkles,
   ShoppingBag,
+  ShieldAlert,
+  ShieldCheck,
+  FileText,
+  ExternalLink,
 } from "lucide-react";
 import { apiClient, type ApiError } from "@/lib/api/client";
 
@@ -24,12 +28,20 @@ interface RoleApplication {
   requested_at: string;
   approved_at?: string | null;
   rejection_reason?: string | null;
+  metadata?: {
+    kyc_requested?: boolean;
+    kyc_requested_at?: string;
+    kyc_request_note?: string;
+  } | null;
   user?: {
     id: number;
     name: string;
     email: string;
     role: string;
     avatar_url?: string;
+    kyc_status?: string;
+    kyc_document?: string | null;
+    kyc_provider?: string | null;
   };
   approvedBy?: {
     id: number;
@@ -55,6 +67,8 @@ export function AdminRoleApplicationsPage() {
   const [processingId, setProcessingId] = useState<number | null>(null);
   const [rejectTarget, setRejectTarget] = useState<RoleApplication | null>(null);
   const [rejectReason, setRejectReason] = useState("");
+  const [kycTarget, setKycTarget] = useState<RoleApplication | null>(null);
+  const [kycNote, setKycNote] = useState("");
   const [selectedApp, setSelectedApp] = useState<RoleApplication | null>(null);
   const [roleFilter, setRoleFilter] = useState<string>("all");
 
@@ -107,6 +121,29 @@ export function AdminRoleApplicationsPage() {
     }
   };
 
+  const handleRequestKyc = async () => {
+    if (!kycTarget) return;
+    setProcessingId(kycTarget.id);
+    try {
+      const res = await apiClient.patch(`/securegate/role-applications/${kycTarget.id}/request-kyc`, {
+        note: kycNote.trim() || undefined,
+      });
+
+      if (res.data?.success) {
+        toast.success(res.data.message || "KYC verification requested from applicant.");
+        setKycTarget(null);
+        setKycNote("");
+        if (selectedApp?.id === kycTarget.id) setSelectedApp(null);
+        await fetchApplications();
+      }
+    } catch (err: unknown) {
+      const apiErr = err as ApiError;
+      toast.error(apiErr.message || "Failed to request KYC.");
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
   const handleReject = async () => {
     if (!rejectTarget) return;
     if (!rejectReason.trim() || rejectReason.trim().length < 10) {
@@ -144,7 +181,7 @@ export function AdminRoleApplicationsPage() {
           Account Role Applications
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Review and approve user requests to upgrade to Creator or Vendor roles.
+          Review, approve, and manage user requests to upgrade to Creator or Vendor roles.
         </p>
       </div>
 
@@ -212,104 +249,162 @@ export function AdminRoleApplicationsPage() {
                 <tr>
                   <th className="px-6 py-3.5">User</th>
                   <th className="px-6 py-3.5">Transition Path</th>
-                  <th className="px-6 py-3.5">Status</th>
+                  <th className="px-6 py-3.5">KYC Status</th>
+                  <th className="px-6 py-3.5">Application Status</th>
                   <th className="px-6 py-3.5">Requested Date</th>
                   <th className="px-6 py-3.5 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {applications.map((app) => (
-                  <tr key={app.id} className="hover:bg-muted/20 transition-colors">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary font-bold text-sm">
-                          {app.user?.name ? app.user.name.charAt(0).toUpperCase() : "U"}
+                {applications.map((app) => {
+                  const userKyc = app.user?.kyc_status ?? "not_required";
+                  const isKycRequested = app.metadata?.kyc_requested;
+
+                  return (
+                    <tr key={app.id} className="hover:bg-muted/20 transition-colors">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary font-bold text-sm">
+                            {app.user?.name ? app.user.name.charAt(0).toUpperCase() : "U"}
+                          </div>
+                          <div>
+                            <div className="font-semibold text-foreground">{app.user?.name || "Unknown User"}</div>
+                            <div className="text-xs text-muted-foreground">{app.user?.email || `ID: ${app.user_id}`}</div>
+                          </div>
                         </div>
-                        <div>
-                          <div className="font-semibold text-foreground">{app.user?.name || "Unknown User"}</div>
-                          <div className="text-xs text-muted-foreground">{app.user?.email || `ID: ${app.user_id}`}</div>
-                        </div>
-                      </div>
-                    </td>
+                      </td>
 
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
-                        <span className="rounded bg-accent px-2 py-0.5 text-xs font-medium capitalize text-muted-foreground">
-                          {app.previous_role}
-                        </span>
-                        <span className="text-xs text-muted-foreground">→</span>
-                        <span className="flex items-center gap-1 rounded bg-primary/10 px-2 py-0.5 text-xs font-semibold capitalize text-primary">
-                          {app.requested_role === "creator" ? (
-                            <Sparkles className="h-3 w-3" />
-                          ) : (
-                            <ShoppingBag className="h-3 w-3" />
-                          )}
-                          {app.requested_role}
-                        </span>
-                      </div>
-                    </td>
-
-                    <td className="px-6 py-4">
-                      <span
-                        className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize ${
-                          app.status === "approved"
-                            ? "bg-emerald-500/10 text-emerald-500"
-                            : app.status === "pending"
-                            ? "bg-amber-500/10 text-amber-500"
-                            : app.status === "rejected"
-                            ? "bg-destructive/10 text-destructive"
-                            : "bg-muted text-muted-foreground"
-                        }`}
-                      >
-                        {app.status === "pending" && <Clock className="h-3.5 w-3.5" />}
-                        {app.status === "approved" && <CheckCircle2 className="h-3.5 w-3.5" />}
-                        {app.status === "rejected" && <XCircle className="h-3.5 w-3.5" />}
-                        {app.status}
-                      </span>
-                    </td>
-
-                    <td className="px-6 py-4 text-xs text-muted-foreground">
-                      {new Date(app.requested_at).toLocaleString()}
-                    </td>
-
-                    <td className="px-6 py-4 text-right space-x-2">
-                      {app.status === "pending" ? (
-                        <>
-                          <button
-                            type="button"
-                            onClick={() => handleApprove(app)}
-                            disabled={processingId === app.id}
-                            className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-emerald-700 transition-colors disabled:opacity-50"
-                          >
-                            {processingId === app.id ? (
-                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                          <span className="rounded bg-accent px-2 py-0.5 text-xs font-medium capitalize text-muted-foreground">
+                            {app.previous_role}
+                          </span>
+                          <span className="text-xs text-muted-foreground">→</span>
+                          <span className="flex items-center gap-1 rounded bg-primary/10 px-2 py-0.5 text-xs font-semibold capitalize text-primary">
+                            {app.requested_role === "creator" ? (
+                              <Sparkles className="h-3 w-3" />
                             ) : (
-                              <CheckCircle2 className="h-3.5 w-3.5" />
+                              <ShoppingBag className="h-3 w-3" />
                             )}
-                            Approve
-                          </button>
+                            {app.requested_role}
+                          </span>
+                        </div>
+                      </td>
+
+                      {/* KYC Status Column */}
+                      <td className="px-6 py-4">
+                        <div className="flex flex-col gap-1">
+                          <span
+                            className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-bold capitalize w-fit ${
+                              userKyc === "verified"
+                                ? "bg-emerald-500/15 text-emerald-500"
+                                : userKyc === "pending"
+                                ? "bg-amber-500/15 text-amber-500"
+                                : isKycRequested
+                                ? "bg-blue-500/15 text-blue-500"
+                                : "bg-muted text-muted-foreground"
+                            }`}
+                          >
+                            {userKyc === "verified" && <ShieldCheck className="h-3 w-3" />}
+                            {userKyc === "pending" && <Clock className="h-3 w-3" />}
+                            {userKyc === "verified"
+                              ? "KYC Verified"
+                              : userKyc === "pending"
+                              ? "KYC Under Review"
+                              : isKycRequested
+                              ? "KYC Requested"
+                              : "KYC Unsubmitted"}
+                          </span>
+                          {app.user?.kyc_document && (
+                            <a
+                              href={app.user.kyc_document}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-1 text-[10px] text-primary hover:underline font-medium"
+                            >
+                              <FileText className="h-2.5 w-2.5" /> View Document <ExternalLink className="h-2.5 w-2.5" />
+                            </a>
+                          )}
+                        </div>
+                      </td>
+
+                      <td className="px-6 py-4">
+                        <span
+                          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize ${
+                            app.status === "approved"
+                              ? "bg-emerald-500/10 text-emerald-500"
+                              : app.status === "pending"
+                              ? "bg-amber-500/10 text-amber-500"
+                              : app.status === "rejected"
+                              ? "bg-destructive/10 text-destructive"
+                              : "bg-muted text-muted-foreground"
+                          }`}
+                        >
+                          {app.status === "pending" && <Clock className="h-3.5 w-3.5" />}
+                          {app.status === "approved" && <CheckCircle2 className="h-3.5 w-3.5" />}
+                          {app.status === "rejected" && <XCircle className="h-3.5 w-3.5" />}
+                          {app.status}
+                        </span>
+                      </td>
+
+                      <td className="px-6 py-4 text-xs text-muted-foreground">
+                        {new Date(app.requested_at).toLocaleString()}
+                      </td>
+
+                      <td className="px-6 py-4 text-right space-x-2 whitespace-nowrap">
+                        {app.status === "pending" ? (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => handleApprove(app)}
+                              disabled={processingId === app.id}
+                              className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-emerald-700 transition-colors disabled:opacity-50"
+                              title="Approve and promote to Creator"
+                            >
+                              {processingId === app.id ? (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              ) : (
+                                <CheckCircle2 className="h-3.5 w-3.5" />
+                              )}
+                              Approve
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setKycTarget(app);
+                                setKycNote(app.metadata?.kyc_request_note || "");
+                              }}
+                              disabled={processingId === app.id}
+                              className="inline-flex items-center gap-1 rounded-lg border border-blue-500/30 bg-blue-500/10 px-3 py-1.5 text-xs font-semibold text-blue-500 hover:bg-blue-500/20 transition-colors disabled:opacity-50"
+                              title="Prompt user to submit KYC documents"
+                            >
+                              <ShieldAlert className="h-3.5 w-3.5" />
+                              Request KYC
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setRejectTarget(app)}
+                              disabled={processingId === app.id}
+                              className="inline-flex items-center gap-1 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-1.5 text-xs font-semibold text-destructive hover:bg-destructive/20 transition-colors disabled:opacity-50"
+                              title="Reject application"
+                            >
+                              <XCircle className="h-3.5 w-3.5" />
+                              Reject
+                            </button>
+                          </>
+                        ) : (
                           <button
                             type="button"
-                            onClick={() => setRejectTarget(app)}
-                            disabled={processingId === app.id}
-                            className="inline-flex items-center gap-1 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-1.5 text-xs font-semibold text-destructive hover:bg-destructive/20 transition-colors disabled:opacity-50"
+                            onClick={() => setSelectedApp(app)}
+                            className="inline-flex items-center gap-1 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
                           >
-                            <XCircle className="h-3.5 w-3.5" />
-                            Reject
+                            Details
                           </button>
-                        </>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => setSelectedApp(app)}
-                          className="inline-flex items-center gap-1 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-                        >
-                          Details
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -383,6 +478,62 @@ export function AdminRoleApplicationsPage() {
         </div>
       )}
 
+      {/* Request KYC Modal */}
+      {kycTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md rounded-xl border border-border bg-card p-6 shadow-xl space-y-4">
+            <div className="flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-blue-500/10 text-blue-500">
+                <ShieldAlert className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-foreground">Request Identity Verification (KYC)</h3>
+                <p className="text-xs text-muted-foreground">
+                  Applicant: <strong className="text-foreground">{kycTarget.user?.name}</strong> ({kycTarget.user?.email})
+                </p>
+              </div>
+            </div>
+
+            <p className="text-xs text-muted-foreground">
+              This will notify the applicant via email and in-app alert to submit their government-issued identity documents before their <strong className="capitalize">{kycTarget.requested_role}</strong> application can be approved.
+            </p>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-foreground">Instructions / Note for Applicant (Optional):</label>
+              <textarea
+                rows={3}
+                value={kycNote}
+                onChange={(e) => setKycNote(e.target.value)}
+                placeholder="e.g. Please upload a clear photo of your passport or national ID and a selfie."
+                className="w-full rounded-lg border border-border bg-background p-3 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setKycTarget(null);
+                  setKycNote("");
+                }}
+                className="rounded-lg border border-border px-4 py-2 text-xs font-semibold text-muted-foreground hover:bg-accent hover:text-foreground"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleRequestKyc}
+                disabled={processingId === kycTarget.id}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold text-white shadow hover:bg-blue-700 disabled:opacity-50"
+              >
+                {processingId === kycTarget.id && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                Send KYC Request
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Details Modal */}
       {selectedApp && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
@@ -410,6 +561,36 @@ export function AdminRoleApplicationsPage() {
                 <span className="text-muted-foreground">Transition</span>
                 <span className="font-semibold capitalize text-foreground">{selectedApp.previous_role} → {selectedApp.requested_role}</span>
               </div>
+              <div className="flex justify-between py-1 border-b border-border/40">
+                <span className="text-muted-foreground">KYC Status</span>
+                <span className="capitalize font-semibold text-foreground">{selectedApp.user?.kyc_status || "Not Required"}</span>
+              </div>
+              {selectedApp.user?.kyc_document && (
+                <div className="flex justify-between py-1 border-b border-border/40">
+                  <span className="text-muted-foreground">KYC Document</span>
+                  <a
+                    href={selectedApp.user.kyc_document}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-xs text-primary inline-flex items-center gap-1 font-semibold hover:underline"
+                  >
+                    View Document <ExternalLink className="h-3 w-3" />
+                  </a>
+                </div>
+              )}
+              {selectedApp.metadata?.kyc_requested && (
+                <div className="rounded-lg border border-blue-500/30 bg-blue-500/10 p-3 mt-2">
+                  <div className="text-xs font-semibold text-blue-500">KYC Verification Requested</div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {selectedApp.metadata.kyc_request_note || "Identity verification requested."}
+                  </p>
+                  {selectedApp.metadata.kyc_requested_at && (
+                    <span className="text-[10px] text-muted-foreground/80 block mt-1">
+                      Requested: {new Date(selectedApp.metadata.kyc_requested_at).toLocaleString()}
+                    </span>
+                  )}
+                </div>
+              )}
               <div className="flex justify-between py-1 border-b border-border/40">
                 <span className="text-muted-foreground">Status</span>
                 <span className="capitalize font-semibold text-foreground">{selectedApp.status}</span>
