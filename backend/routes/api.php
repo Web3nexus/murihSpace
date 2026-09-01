@@ -208,6 +208,11 @@ Route::prefix('v1')->group(function () {
         Route::get('/{id}', [EventController::class, 'show']);
     });
 
+    // Marketplace Public Endpoints
+    Route::get('/marketplace', [\App\Http\Controllers\MarketplaceController::class, 'index']);
+    Route::get('/marketplace/categories', [\App\Http\Controllers\MarketplaceController::class, 'categories']);
+    Route::get('/marketplace/{id}', [\App\Http\Controllers\MarketplaceController::class, 'show']);
+
     // Sprint 30: Public physical product listing (no auth required)
     Route::get('/store/physical-products', [PhysicalProductController::class, 'indexPublic']);
 
@@ -512,7 +517,13 @@ Route::prefix('v1')->group(function () {
             Route::post('/{id}/stock', [PhysicalProductController::class, 'adjustStock']);
         });
 
-                // ── Sprint 31: Cart & Address ────────────────────────────────────
+                // ── Unified Marketplace & Product Endpoints ──────────────────
+        Route::get('/marketplace/my/products', [\App\Http\Controllers\MarketplaceController::class, 'myProducts']);
+        Route::post('/marketplace/products', [\App\Http\Controllers\MarketplaceController::class, 'store']);
+        Route::get('/me/products', [\App\Http\Controllers\MarketplaceController::class, 'myProducts']);
+        Route::post('/products', [\App\Http\Controllers\MarketplaceController::class, 'store']);
+
+        // ── Sprint 31: Cart & Address ────────────────────────────────────
         Route::prefix('store/cart')->group(function () {
             Route::get('/', [CartController::class, 'show']);
             Route::post('/items', [CartController::class, 'addItem']);

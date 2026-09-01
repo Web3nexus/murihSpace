@@ -105,12 +105,21 @@ export default function StoreProductsPage() {
     setMsg(null);
     const token = getAuthToken();
     try {
-      const body = { title: title.trim(), price: Math.round(parseFloat(price) * 100), currency, type: productType };
+      const parsedPrice = parseFloat(price) || 0;
+      const body = {
+        title: title.trim(),
+        name: title.trim(),
+        price: parsedPrice,
+        currency,
+        type: productType,
+        category: productType === 'digital' ? 'other' : 'electronics',
+        is_free: parsedPrice <= 0,
+      };
       const endpoint = editing
-        ? `/store/products/${editing.id}`
-        : `/store/products`;
+        ? (productType === 'physical' ? `/store/physical-products/${editing.id}` : `/store/products/${editing.id}`)
+        : `/marketplace/products`;
       const res = await authFetch(endpoint, {
-        method: editing ? "PATCH" : "POST",
+        method: editing ? "PUT" : "POST",
         headers: {
           Accept: "application/json",
           "Content-Type": "application/json",
@@ -122,7 +131,7 @@ export default function StoreProductsPage() {
       if (!res.ok) throw new Error(j?.message ?? "Save failed");
       resetForm();
       fetchProducts();
-      setMsg({ ok: true, text: editing ? "Product updated." : "Product created." });
+      setMsg({ ok: true, text: editing ? "Product updated." : "Product published to store & marketplace." });
       setTimeout(() => setMsg(null), 3000);
     } catch (e) {
       setMsg({ ok: false, text: e instanceof Error ? e.message : "Save failed" });
