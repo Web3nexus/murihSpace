@@ -758,6 +758,7 @@ Route::prefix('v1')->group(function () {
 
         // ── Gifts & Creator Wallets ─────────────────────────────────
         Route::prefix('gifts')->group(function () {
+            Route::get('/', [GiftController::class, 'catalogue']);
             Route::get('/catalogue', [GiftController::class, 'catalogue']);
             Route::post('/send', [GiftController::class, 'send'])->middleware('verified');
             Route::get('/transactions', [GiftController::class, 'transactions']);
