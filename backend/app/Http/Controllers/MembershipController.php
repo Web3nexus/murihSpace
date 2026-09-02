@@ -43,8 +43,56 @@ class MembershipController extends Controller
             }
         }
 
+        // If community is paid, verify and charge payment
+        if ($community->pricing_type === 'paid' && (float) ($community->price_amount ?? 0) > 0) {
+            $coinCost = (int) $community->price_amount;
+            $wallet = $user->wallet;
+            $currentCoins = (int) ($wallet?->coin_balance ?? 0);
+
+            if ($currentCoins < $coinCost) {
+                return response()->json([
+                    'message' => "Insufficient coin balance. You need {$coinCost} coins to join this community (your balance: {$currentCoins} coins).",
+                    'code' => 'INSUFFICIENT_FUNDS',
+                    'required_coins' => $coinCost,
+                    'current_coins' => $currentCoins,
+                ], 402);
+            }
+
+            // Deduct coins from user and credit creator
+            \Illuminate\Support\Facades\DB::transaction(function () use ($user, $wallet, $coinCost, $community) {
+                if ($wallet) {
+                    $wallet->decrement('coin_balance', $coinCost);
+                }
+
+                $creator = User::find($community->user_id);
+                $creatorWallet = $creator?->wallet;
+                if ($creatorWallet) {
+                    $creatorWallet->increment('coin_balance', $coinCost);
+                }
+
+                // Notify creator of paid subscription
+                try {
+                    $creator?->notify(new \App\Notifications\MurihOfficialNotification(
+                        type: 'money_received',
+                        title: '💎 New Community Subscriber!',
+                        body: "@{$user->username} subscribed to your community {$community->name} (+{$coinCost} coins)!",
+                        actionUrl: NotificationService::link('app/communities/' . $community->slug),
+                        actionLabel: 'View Community',
+                        route: '/communities/' . $community->slug,
+                        metadata: [
+                            'community_id' => $community->id,
+                            'subscriber_id' => $user->id,
+                            'coins' => $coinCost,
+                        ]
+                    ));
+                } catch (\Throwable $e) {
+                    report($e);
+                }
+            });
+        }
+
         // Determine status based on community visibility
-        $status = ($community->visibility === 'public') ? 'active' : 'pending';
+        $status = ($community->visibility === 'public' || $community->pricing_type === 'paid') ? 'active' : 'pending';
 
         $membership = CommunityMembership::updateOrCreate(
             ['community_id' => $communityId, 'user_id' => $user->id],
@@ -86,6 +134,61 @@ class MembershipController extends Controller
                 ? 'Successfully joined the community!'
                 : 'Your join request has been submitted to the creator for approval.',
             'status' => $status,
+            'membership' => $membership,
+        ]);
+    }
+
+    /**
+     * Remove a member from a community (Creator/Admin only).
+     */
+    public function removeMember(Request $request, int $communityId, int $userId): JsonResponse
+    {
+        $community = Community::findOrFail($communityId);
+
+        if ($community->user_id !== $request->user()->id && ! $request->user()->isAdmin()) {
+            return response()->json(['message' => 'Unauthorized. Only the community owner can remove members.'], 403);
+        }
+
+        $membership = CommunityMembership::where('community_id', $communityId)
+            ->where('user_id', $userId)
+            ->first();
+
+        if (! $membership) {
+            return response()->json(['message' => 'Member not found.'], 404);
+        }
+
+        if ($membership->status === 'active' && $community->members_count > 1) {
+            $community->decrement('members_count');
+        }
+
+        $membership->delete();
+
+        return response()->json(['message' => 'Member removed successfully.']);
+    }
+
+    /**
+     * Update a member's role (member | moderator | admin) (Creator only).
+     */
+    public function updateMemberRole(Request $request, int $communityId, int $userId): JsonResponse
+    {
+        $community = Community::findOrFail($communityId);
+
+        if ($community->user_id !== $request->user()->id && ! $request->user()->isAdmin()) {
+            return response()->json(['message' => 'Unauthorized.'], 403);
+        }
+
+        $validated = $request->validate([
+            'role' => ['required', 'string', 'in:member,moderator,admin'],
+        ]);
+
+        $membership = CommunityMembership::where('community_id', $communityId)
+            ->where('user_id', $userId)
+            ->firstOrFail();
+
+        $membership->update(['role' => $validated['role']]);
+
+        return response()->json([
+            'message' => 'Member role updated successfully.',
             'membership' => $membership,
         ]);
     }
@@ -148,11 +251,11 @@ class MembershipController extends Controller
      */
     public function members(int $communityId): JsonResponse
     {
-        $memberships = CommunityMembership::with('user:id,name,username,avatar')
+        $memberships = CommunityMembership::with('user:id,name,username,avatar,bio')
             ->where('community_id', $communityId)
             ->activeOnly()
             ->latest()
-            ->paginate(20);
+            ->paginate(30);
 
         return response()->json($memberships);
     }
@@ -164,7 +267,7 @@ class MembershipController extends Controller
     {
         $community = Community::findOrFail($communityId);
 
-        if ($community->user_id !== $request->user()->id) {
+        if ($community->user_id !== $request->user()->id && ! $request->user()->isAdmin()) {
             return response()->json(['message' => 'Unauthorized. Only the creator can review join requests.'], 403);
         }
 
@@ -174,7 +277,7 @@ class MembershipController extends Controller
             ->latest()
             ->get();
 
-        return response()->json(['requests' => $requests]);
+        return response()->json(['requests' => $requests, 'data' => $requests]);
     }
 
     /**
@@ -184,7 +287,7 @@ class MembershipController extends Controller
     {
         $membership = CommunityMembership::with('community')->findOrFail($membershipId);
 
-        if ($membership->community->user_id !== $request->user()->id) {
+        if ($membership->community->user_id !== $request->user()->id && ! $request->user()->isAdmin()) {
             return response()->json(['message' => 'Unauthorized.'], 403);
         }
 
@@ -203,6 +306,17 @@ class MembershipController extends Controller
                     template: 'community_join_approved',
                     data: ['community' => e($membership->community->name)],
                 );
+
+                // Official In-App Notification with verified Blue Badge
+                $member->notify(new \App\Notifications\MurihOfficialNotification(
+                    type: 'join_approved',
+                    title: '🎉 Welcome to ' . $membership->community->name . '!',
+                    body: "Your request to join {$membership->community->name} has been approved by the creator. Tap to enter the community.",
+                    actionUrl: NotificationService::link('app/communities/' . $membership->community->slug),
+                    actionLabel: 'Open Community',
+                    route: '/communities/' . $membership->community->slug,
+                    metadata: ['community_id' => $membership->community->id]
+                ));
             }
         } catch (\Throwable $e) {
             report($e);
@@ -221,7 +335,7 @@ class MembershipController extends Controller
     {
         $membership = CommunityMembership::with('community')->findOrFail($membershipId);
 
-        if ($membership->community->user_id !== $request->user()->id) {
+        if ($membership->community->user_id !== $request->user()->id && ! $request->user()->isAdmin()) {
             return response()->json(['message' => 'Unauthorized.'], 403);
         }
 

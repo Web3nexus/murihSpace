@@ -383,8 +383,17 @@ Route::prefix('v1')->group(function () {
             Route::post('/join', [MembershipController::class, 'join']);
             Route::post('/leave', [MembershipController::class, 'leave']);
             Route::get('/membership-status', [MembershipController::class, 'status']);
+            Route::get('/members', [MembershipController::class, 'members']);
             Route::get('/requests', [MembershipController::class, 'pendingRequests']);
+            Route::delete('/members/{userId}', [MembershipController::class, 'removeMember']);
+            Route::put('/members/{userId}/role', [MembershipController::class, 'updateMemberRole']);
             Route::post('/roles', [RoleController::class, 'store']);
+        });
+
+        // Membership Approval / Rejection
+        Route::prefix('memberships/{id}')->group(function () {
+            Route::post('/approve', [MembershipController::class, 'approve']);
+            Route::post('/reject', [MembershipController::class, 'reject']);
         });
 
         // Posts, Comments & Reactions
