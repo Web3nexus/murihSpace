@@ -141,6 +141,7 @@ const BusinessWalletPage = lazy(() => import("@/pages/BusinessWalletPage"));
 const AdminFeeManagementPage = lazy(() => import("@/pages/AdminFeeManagementPage").then(module => ({ default: module.AdminFeeManagementPage })));
 const AdminAdsPage = lazy(() => import("@/pages/AdminAdsPage"));
 const AdminGiftsPage = lazy(() => import("@/pages/AdminGiftsPage"));
+const AdminSoundLibraryPage = lazy(() => import("@/pages/AdminSoundLibraryPage"));
 const AdminCoinPacksPage = lazy(() => import("@/pages/AdminCoinPacksPage"));
 const AdminStoriesPage = lazy(() => import("@/pages/AdminStoriesPage"));
 const AdminAlgorithmPage = lazy(() => import("@/pages/AdminAlgorithmPage"));
@@ -777,6 +778,10 @@ export const routes: RouteObject[] = [
       {
         path: "securegate/gifts",
         element: <ProtectedRoute requiredRole="admin"><Suspense fallback={<PageLoader />}><AdminGiftsPage /></Suspense></ProtectedRoute>,
+      },
+      {
+        path: "securegate/sound-tracks",
+        element: <ProtectedRoute requiredRole="admin"><Suspense fallback={<PageLoader />}><AdminSoundLibraryPage /></Suspense></ProtectedRoute>,
       },
       {
         path: "securegate/coin-packs",

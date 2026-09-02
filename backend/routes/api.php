@@ -385,10 +385,14 @@ Route::prefix('v1')->group(function () {
             Route::get('/membership-status', [MembershipController::class, 'status']);
             Route::get('/members', [MembershipController::class, 'members']);
             Route::get('/requests', [MembershipController::class, 'pendingRequests']);
+            Route::get('/gifts', [\App\Http\Controllers\GiftController::class, 'communityGifts']);
             Route::delete('/members/{userId}', [MembershipController::class, 'removeMember']);
             Route::put('/members/{userId}/role', [MembershipController::class, 'updateMemberRole']);
             Route::post('/roles', [RoleController::class, 'store']);
         });
+
+        // Sound & Music Library for Live Streams & Audio Rooms
+        Route::get('/sound-tracks', [\App\Http\Controllers\SoundTrackController::class, 'index']);
 
         // Membership Approval / Rejection
         Route::prefix('memberships/{id}')->group(function () {
@@ -1233,6 +1237,14 @@ Route::prefix('v1')->group(function () {
                 Route::get('/stats', [\App\Http\Controllers\AdminMediaController::class, 'stats']);
                 Route::post('/{uuid}/retry', [\App\Http\Controllers\AdminMediaController::class, 'retry']);
                 Route::delete('/{uuid}', [\App\Http\Controllers\AdminMediaController::class, 'destroy']);
+            });
+
+            // Sound & Music Library Management
+            Route::prefix('sound-tracks')->group(function () {
+                Route::get('/', [\App\Http\Controllers\SoundTrackController::class, 'adminIndex']);
+                Route::post('/', [\App\Http\Controllers\SoundTrackController::class, 'store']);
+                Route::put('/{id}', [\App\Http\Controllers\SoundTrackController::class, 'update']);
+                Route::delete('/{id}', [\App\Http\Controllers\SoundTrackController::class, 'destroy']);
             });
 
             // Reconciliation (Sprint 29)

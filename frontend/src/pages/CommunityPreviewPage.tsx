@@ -7,6 +7,7 @@ import { ErrorState, NotFoundState } from "@/components/common/UIStateComponents
 import { JoinCommunityButton } from "@/components/community/JoinCommunityButton";
 import { JoinRequestsModal } from "@/components/community/JoinRequestsModal";
 import { RoleManagementModal } from "@/components/community/RoleManagementModal";
+import { SEOHead } from "@/components/common/SEOHead";
 import {
   Users,
   Globe,
@@ -24,11 +25,10 @@ import {
   ChevronLeft,
   ChevronRight,
   Loader2,
+  BookOpen,
 } from "lucide-react";
 import type { Community, CommunityMembership } from "@/types/community";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-
-
 
 const MEMBER_ROLE_STYLES: Record<string, string> = {
   owner: "bg-amber-500/15 text-amber-500 border-amber-500/30",
@@ -47,7 +47,7 @@ export function CommunityPreviewPage() {
   const [membersCount, setMembersCount] = React.useState<number>(0);
   const [isRequestsModalOpen, setIsRequestsModalOpen] = React.useState(false);
   const [isRolesModalOpen, setIsRolesModalOpen] = React.useState(false);
-  const [activeTab, setActiveTab] = React.useState<"about" | "members">("about");
+  const [activeTab, setActiveTab] = React.useState<"about" | "courses" | "members">("about");
 
   // Members directory
   const [members, setMembers] = React.useState<CommunityMembership[]>([]);
@@ -149,8 +149,27 @@ export function CommunityPreviewPage() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6 p-4 sm:p-6 lg:p-8">
-      {/* Back button & Creator Actions */}
+    <div className="space-y-6 max-w-6xl mx-auto pb-12">
+      <SEOHead
+        title={community.name}
+        description={community.description || `Join ${community.name} on MurihSpace. Connect with creators, access exclusive courses, live streams, and digital goods.`}
+        image={community.cover_url || community.logo_url}
+        jsonLd={{
+          "@context": "https://schema.org",
+          "@type": "Organization",
+          "name": community.name,
+          "description": community.description,
+          "url": window.location.href,
+          "logo": community.logo_url,
+          "image": community.cover_url,
+          "member": {
+            "@type": "QuantitativeValue",
+            "value": membersCount,
+          },
+        }}
+      />
+
+      {/* Top Header / Back navigation */}
       <div className="flex items-center justify-between">
         <Link
           to="/app/communities"
@@ -257,7 +276,15 @@ export function CommunityPreviewPage() {
 
             {/* Action Buttons */}
             <div className="flex items-center gap-3 self-start sm:self-auto pt-2 sm:pt-0">
-              <Button variant="outline" size="sm" className="gap-2 h-11 px-4 text-xs font-semibold">
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2 h-11 px-4 text-xs font-semibold"
+                onClick={() => {
+                  navigator.clipboard.writeText(window.location.href);
+                  alert("Community link copied to clipboard!");
+                }}
+              >
                 <Share2 className="h-4 w-4" />
                 Share
               </Button>
@@ -310,7 +337,7 @@ export function CommunityPreviewPage() {
         </div>
       </div>
 
-      {/* Navigation Tabs (About vs Members) */}
+      {/* Navigation Tabs (About vs Courses vs Members) */}
       <div className="flex border-b border-border gap-6">
         <button
           onClick={() => setActiveTab("about")}
@@ -321,6 +348,16 @@ export function CommunityPreviewPage() {
           }`}
         >
           About & Overview
+        </button>
+        <button
+          onClick={() => setActiveTab("courses")}
+          className={`pb-3 text-sm font-bold border-b-2 transition-all ${
+            activeTab === "courses"
+              ? "border-secondary text-secondary"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          Courses & Digital Goods (3)
         </button>
         <button
           onClick={() => setActiveTab("members")}
@@ -374,6 +411,77 @@ export function CommunityPreviewPage() {
                 )}
               </div>
             </div>
+          </div>
+        </div>
+      ) : activeTab === "courses" ? (
+        /* Courses & Digital Goods Tab */
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
+                <BookOpen className="h-5 w-5 text-secondary" />
+                In-Community Courses & Digital Assets
+              </h3>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Exclusive content for members and public educational resources.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[
+              {
+                id: 1,
+                title: "Complete Creator Mastery & Monetization",
+                type: "COURSE",
+                lessons: 18,
+                price: "$30 / ₦25,000",
+                access: "PUBLIC MARKETPLACE",
+                image: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=500",
+              },
+              {
+                id: 2,
+                title: "VIP Member Templates & Assets Kit",
+                type: "DIGITAL ASSET",
+                lessons: "ZIP Archive (48MB)",
+                price: "FREE for Members",
+                access: "MEMBERS ONLY",
+                image: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=500",
+              },
+              {
+                id: 3,
+                title: "Community Growth & Live Streaming Blueprint",
+                type: "COURSE",
+                lessons: 12,
+                price: "50 Coins",
+                access: "PUBLIC MARKETPLACE",
+                image: "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=500",
+              },
+            ].map((item) => (
+              <div key={item.id} className="rounded-2xl border border-border bg-card overflow-hidden flex flex-col justify-between shadow-xs hover:border-secondary/50 transition">
+                <div>
+                  <img src={item.image} alt={item.title} className="w-full h-40 object-cover" />
+                  <div className="p-5 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="text-[10px] font-bold text-secondary border-secondary/30">
+                        {item.type}
+                      </Badge>
+                      <Badge variant="secondary" className="text-[10px] font-bold">
+                        {item.access}
+                      </Badge>
+                    </div>
+                    <h4 className="font-bold text-foreground text-sm line-clamp-2">{item.title}</h4>
+                    <p className="text-xs text-muted-foreground">{typeof item.lessons === 'number' ? `${item.lessons} lessons` : item.lessons}</p>
+                  </div>
+                </div>
+                <div className="p-5 pt-0 flex items-center justify-between border-t border-border mt-3">
+                  <span className="font-extrabold text-sm text-emerald-500">{item.price}</span>
+                  <Button size="sm" className="bg-secondary text-secondary-foreground text-xs font-semibold">
+                    {item.access === "MEMBERS ONLY" ? "Join to Unlock" : "Access Now"}
+                  </Button>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       ) : (

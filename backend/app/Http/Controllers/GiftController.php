@@ -49,6 +49,7 @@ class GiftController extends Controller
             'is_public'           => ['nullable', 'boolean'],
             'idempotency_key'     => ['nullable', 'string', 'max:100'],
             'wallet_type'         => ['nullable', 'string', 'in:system,creator,business'],
+            'community_id'        => ['nullable', 'integer', 'exists:communities,id'],
         ]);
 
         $user      = $request->user();
@@ -150,6 +151,7 @@ class GiftController extends Controller
                 return GiftTransaction::create([
                     'sender_id'           => $user->id,
                     'recipient_id'        => $recipient->id,
+                    'community_id'        => $validated['community_id'] ?? null,
                     'gift_id'             => $gift->id,
                     'giftable_type'       => $validated['giftable_type'] ?? null,
                     'giftable_id'         => $validated['giftable_id'] ?? null,
@@ -263,5 +265,37 @@ class GiftController extends Controller
             ->paginate($validated['per_page'] ?? 20);
 
         return response()->json($transactions);
+    }
+
+    /**
+     * List all gifts received by a community and the top community supporters.
+     */
+    public function communityGifts(int $communityId): JsonResponse
+    {
+        $gifts = GiftTransaction::where('community_id', $communityId)
+            ->where('status', 'completed')
+            ->with(['gift', 'sender:id,name,username,avatar'])
+            ->latest()
+            ->paginate(25);
+
+        $totalCoins = (int) GiftTransaction::where('community_id', $communityId)
+            ->where('status', 'completed')
+            ->sum('coin_price');
+
+        $topSupporters = GiftTransaction::select('sender_id', DB::raw('SUM(coin_price) as total_sent'), DB::raw('COUNT(*) as total_gifts'))
+            ->where('community_id', $communityId)
+            ->where('status', 'completed')
+            ->where('is_anonymous', false)
+            ->groupBy('sender_id')
+            ->orderBy('total_sent', 'desc')
+            ->with('sender:id,name,username,avatar')
+            ->limit(10)
+            ->get();
+
+        return response()->json([
+            'total_coins' => $totalCoins,
+            'top_supporters' => $topSupporters,
+            'gifts' => $gifts,
+        ]);
     }
 }

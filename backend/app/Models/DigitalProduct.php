@@ -13,6 +13,7 @@ class DigitalProduct extends Model
 
     protected $fillable = [
         'creator_id',
+        'community_id',
         'title',
         'slug',
         'description',
@@ -20,6 +21,7 @@ class DigitalProduct extends Model
         'price',
         'currency',
         'is_free',
+        'is_public',
         'status',
         'category',
         'file_path',
@@ -31,6 +33,7 @@ class DigitalProduct extends Model
 
     protected $casts = [
         'is_free' => 'boolean',
+        'is_public' => 'boolean',
         'price' => 'decimal:2',
         'file_size_bytes' => 'integer',
         'download_count' => 'integer',
@@ -48,6 +51,11 @@ class DigitalProduct extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'creator_id');
+    }
+
+    public function community(): BelongsTo
+    {
+        return $this->belongsTo(Community::class);
     }
 
     public function toSearchableArray(): array
