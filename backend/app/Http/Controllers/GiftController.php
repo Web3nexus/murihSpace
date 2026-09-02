@@ -197,6 +197,29 @@ class GiftController extends Controller
                 bodyHtml: "<p>" . e($senderLabel) . " sent you a <strong>" . e($gift->name) . "</strong> gift!</p>",
                 template: 'gift_received'
             );
+
+            // Official In-App Notification with Blue Badge
+            try {
+                $formattedAmt = number_format($grossAmount / 100, 2);
+                $recipient->notify(new \App\Notifications\MurihOfficialNotification(
+                    type: 'gift_received',
+                    title: '🎁 Gift Received!',
+                    body: "{$senderLabel} sent you a {$gift->name} gift worth {$senderWallet->currency} {$formattedAmt}!",
+                    actionUrl: \App\Services\NotificationService::link('app/wallet'),
+                    actionLabel: 'View Wallet',
+                    route: '/wallet',
+                    metadata: [
+                        'gift_id' => $gift->id,
+                        'gift_name' => $gift->name,
+                        'amount' => $grossAmount,
+                        'currency' => $senderWallet->currency,
+                        'sender_id' => $user->id,
+                        'sender_name' => $senderLabel,
+                    ]
+                ));
+            } catch (\Throwable $e) {
+                \Log::warning("Gift received in-app notification failed: {$e->getMessage()}");
+            }
         }
 
         $transaction->load(['gift', 'sender:id,name,username,avatar']);

@@ -89,6 +89,23 @@ class DonationController extends Controller
                     'message' => $validated['message'] ?? '',
                 ],
             );
+
+            // Official In-App Notification with Blue Badge
+            $formattedAmt = number_format((float) $validated['amount'], 2);
+            $recipient->notify(new \App\Notifications\MurihOfficialNotification(
+                type: 'money_received',
+                title: '💖 Donation Received!',
+                body: "You received a donation of {$currency} {$formattedAmt} from {$donorName}!" . (($validated['message'] ?? '') ? " Message: {$validated['message']}" : ''),
+                actionUrl: NotificationService::link('app/wallet'),
+                actionLabel: 'View Wallet',
+                route: '/wallet',
+                metadata: [
+                    'amount' => $validated['amount'],
+                    'currency' => $currency,
+                    'sender_name' => $donorName,
+                    'message' => $validated['message'] ?? null,
+                ]
+            ));
         } catch (\Throwable $e) {
             report($e);
         }

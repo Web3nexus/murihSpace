@@ -4,6 +4,7 @@ import {
   Bell,
   CheckCheck,
   ShieldAlert,
+  ShieldCheck,
   MessageSquare,
   UserPlus,
   Zap,
@@ -13,6 +14,10 @@ import {
   RefreshCw,
   ExternalLink,
   LifeBuoy,
+  Award,
+  Gift,
+  Wallet,
+  CheckCircle2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { formatDistanceToNow } from 'date-fns';
@@ -95,6 +100,41 @@ const TYPE_CONFIG: Record<
     label: 'Ticket Reopened',
     description: 'When your support ticket is reopened.',
     icon: <RefreshCw className="h-4 w-4 text-amber-500" />,
+  },
+  role_upgrade_approved: {
+    label: 'Role Upgrades & Status',
+    description: 'Official notifications when your account upgrade or tier is approved.',
+    icon: <Award className="h-4 w-4 text-amber-500" />,
+  },
+  role_upgrade_rejected: {
+    label: 'Role Upgrade Updates',
+    description: 'Updates and feedback regarding account role submissions.',
+    icon: <ShieldAlert className="h-4 w-4 text-rose-500" />,
+  },
+  kyc_approved: {
+    label: 'Identity Verification (KYC)',
+    description: 'Official confirmation when your identity verification is verified.',
+    icon: <ShieldCheck className="h-4 w-4 text-emerald-500" />,
+  },
+  kyc_rejected: {
+    label: 'Identity Verification Alerts',
+    description: 'Notifications if your identity verification requires re-submission.',
+    icon: <ShieldAlert className="h-4 w-4 text-rose-500" />,
+  },
+  kyc_requested: {
+    label: 'KYC Action Requests',
+    description: 'Requests to submit identity documents for high-tier account features.',
+    icon: <ShieldAlert className="h-4 w-4 text-blue-500" />,
+  },
+  gift_received: {
+    label: 'Gifts Received',
+    description: 'Alerts when members send you gifts during streams or on profile.',
+    icon: <Gift className="h-4 w-4 text-pink-500" />,
+  },
+  money_received: {
+    label: 'Money & Wallet Credits',
+    description: 'Instant alerts when donations, transfers, or wallet credits arrive.',
+    icon: <Wallet className="h-4 w-4 text-emerald-500" />,
   },
 };
 
@@ -334,6 +374,12 @@ export default function NotificationsPage() {
                 const config = TYPE_CONFIG[n.data?.type as NotificationType] ?? {
                   icon: <Bell className="h-4 w-4 text-muted-foreground" />,
                 };
+                const isOfficial =
+                  n.data?.is_official ||
+                  n.data?.sender_name === 'Murih Notifications Official' ||
+                  ['role_upgrade_approved', 'role_upgrade_rejected', 'kyc_approved', 'kyc_rejected', 'kyc_requested', 'gift_received', 'money_received'].includes(n.data?.type || n.type);
+                const isVerified = n.data?.is_verified || isOfficial;
+                const channelName = isOfficial ? 'Murih Notifications Official' : (n.data?.sender_name ?? 'Notification');
 
                 return (
                   <div
@@ -345,20 +391,30 @@ export default function NotificationsPage() {
                     <div className="p-2.5 rounded-xl bg-muted shrink-0 mt-0.5">{config.icon}</div>
                     <div className="flex-1 space-y-1">
                       <div className="flex items-center justify-between gap-2">
-                        <span className="text-xs font-bold text-foreground">
-                          {n.data?.title ?? 'Notification'}
-                        </span>
-                        <span className="text-[11px] text-muted-foreground">{timeAgo}</span>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className={`text-xs font-bold ${isOfficial ? 'text-[#007AFF]' : 'text-foreground'}`}>
+                            {channelName}
+                          </span>
+                          {isVerified && (
+                            <CheckCircle2 className="h-3.5 w-3.5 fill-[#007AFF] text-white shrink-0" />
+                          )}
+                          <span className="text-[11px] text-muted-foreground">• {timeAgo}</span>
+                        </div>
                       </div>
+                      {n.data?.title && n.data?.title !== channelName && (
+                        <h4 className="text-sm font-bold text-foreground mt-0.5">
+                          {n.data.title}
+                        </h4>
+                      )}
                       <p className="text-xs text-muted-foreground leading-relaxed">
-                        {n.data?.message ?? 'You have a new notification.'}
+                        {n.data?.body ?? n.data?.message ?? 'You have a new notification.'}
                       </p>
                       {n.data?.action_url && (
                         <Link
-                          to={n.data.action_url}
+                          to={n.data.action_url.startsWith('http') ? n.data.action_url.replace(/https?:\/\/[^/]+/, '') : n.data.action_url}
                           className="inline-flex items-center gap-1 text-xs font-semibold text-secondary hover:underline pt-1"
                         >
-                          View Details <ExternalLink className="h-3 w-3" />
+                          {n.data?.action_label ?? 'View Details'} <ExternalLink className="h-3 w-3" />
                         </Link>
                       )}
                     </div>

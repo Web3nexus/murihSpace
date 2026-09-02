@@ -108,6 +108,26 @@ class RoleTransitionService
 
             // Activate the new role
             $user->update(['role' => $application->requested_role]);
+
+            // Send Official In-App Notification with verified checkmark
+            try {
+                $roleLabel = ucfirst($application->requested_role);
+                $isCreator = $application->requested_role === 'creator';
+                $user->notify(new \App\Notifications\MurihOfficialNotification(
+                    type: 'role_upgrade_approved',
+                    title: "🎉 {$roleLabel} Account Approved!",
+                    body: "Congratulations! Your application for {$roleLabel} status has been approved. You now have full access to {$roleLabel} features and tools.",
+                    actionUrl: \App\Services\NotificationService::link($isCreator ? 'app/creator-hub' : 'app/vendor-hub'),
+                    actionLabel: "Open {$roleLabel} Hub",
+                    route: $isCreator ? '/creator-hub' : '/vendor-hub',
+                    metadata: [
+                        'role' => $application->requested_role,
+                        'approved_at' => now()->toIso8601String(),
+                    ]
+                ));
+            } catch (\Throwable $e) {
+                \Log::warning("Role approval in-app notification failed: {$e->getMessage()}");
+            }
         });
     }
 
@@ -126,6 +146,26 @@ class RoleTransitionService
             'approved_by'      => $admin->id,
             'rejection_reason' => $reason,
         ]);
+
+        // Send Official In-App Notification with verified checkmark
+        try {
+            $user = $application->user;
+            $roleLabel = ucfirst($application->requested_role);
+            $user?->notify(new \App\Notifications\MurihOfficialNotification(
+                type: 'role_upgrade_rejected',
+                title: "Application Update: {$roleLabel}",
+                body: "Your application for {$roleLabel} was not approved at this time: {$reason}",
+                actionUrl: \App\Services\NotificationService::link('upgrade'),
+                actionLabel: 'View Upgrade Details',
+                route: '/upgrade',
+                metadata: [
+                    'role' => $application->requested_role,
+                    'reason' => $reason,
+                ]
+            ));
+        } catch (\Throwable $e) {
+            \Log::warning("Role rejection in-app notification failed: {$e->getMessage()}");
+        }
     }
 
     /**

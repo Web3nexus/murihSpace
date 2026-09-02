@@ -11,7 +11,14 @@ export type NotificationType =
   | 'ticket_status_changed'
   | 'ticket_info_requested'
   | 'ticket_resolved'
-  | 'ticket_reopened';
+  | 'ticket_reopened'
+  | 'role_upgrade_approved'
+  | 'role_upgrade_rejected'
+  | 'kyc_requested'
+  | 'kyc_approved'
+  | 'kyc_rejected'
+  | 'gift_received'
+  | 'money_received';
 
 export type NotificationChannel = 'in_app' | 'email' | 'push';
 
@@ -23,10 +30,16 @@ export interface AppNotification {
   data: {
     title?: string;
     message?: string;
+    body?: string;
     action_url?: string;
-    type?: NotificationType;
+    action_label?: string;
+    route?: string;
+    type?: string;
     sender_name?: string;
     sender_avatar?: string;
+    is_official?: boolean;
+    is_verified?: boolean;
+    metadata?: Record<string, any>;
   };
   read_at: string | null;
   created_at: string;

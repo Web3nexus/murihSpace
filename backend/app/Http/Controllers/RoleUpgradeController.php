@@ -211,7 +211,7 @@ class RoleUpgradeController extends Controller
             $user->update(['kyc_status' => 'not_started']);
         }
 
-        // Notify user via Action Email
+        // Notify user via Action Email & Official In-App Notification
         try {
             app(\App\Services\NotificationService::class)->actionEmail(
                 user: $user,
@@ -221,8 +221,21 @@ class RoleUpgradeController extends Controller
                 actionUrl: \App\Services\NotificationService::link('kyc'),
                 template: 'kyc_requested',
             );
+
+            $user->notify(new \App\Notifications\MurihOfficialNotification(
+                type: 'kyc_requested',
+                title: '🛡️ Identity Verification (KYC) Required',
+                body: "Our review team requires KYC verification to approve your application for " . ucfirst($application->requested_role) . ": " . ($metadata['kyc_request_note'] ?? 'Please submit your government ID.'),
+                actionUrl: \App\Services\NotificationService::link('kyc'),
+                actionLabel: 'Submit KYC Now',
+                route: '/kyc',
+                metadata: [
+                    'role' => $application->requested_role,
+                    'note' => $metadata['kyc_request_note'],
+                ]
+            ));
         } catch (\Throwable $e) {
-            \Log::warning("KYC request email notification failed: {$e->getMessage()}");
+            \Log::warning("KYC request notification failed: {$e->getMessage()}");
         }
 
         // Create immutable audit log
