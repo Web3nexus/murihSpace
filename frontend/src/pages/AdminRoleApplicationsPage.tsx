@@ -85,13 +85,20 @@ export function AdminRoleApplicationsPage() {
 
       const res = await apiClient.get("/securegate/role-applications", { params });
 
-      const envelope = res.data;
-      // API returns: { success, data: { current_page, data: [...], last_page, total } }
-      const paginator = envelope?.success ? envelope.data : envelope;
-      const items = Array.isArray(paginator?.data) ? paginator.data : [];
+      const raw = res.data;
+      let paginator = raw?.data ?? raw;
+      if (paginator && typeof paginator === "object" && !Array.isArray(paginator) && "data" in paginator && typeof paginator.data === "object" && !Array.isArray(paginator.data) && "data" in paginator.data) {
+        paginator = paginator.data;
+      }
+      const items: RoleApplication[] = Array.isArray(paginator?.data)
+        ? paginator.data
+        : Array.isArray(paginator)
+        ? paginator
+        : [];
+
       setApplications(items);
       setLastPage(paginator?.last_page || 1);
-      setTotal(paginator?.total || 0);
+      setTotal(paginator?.total || items.length);
     } catch (err) {
       console.error("Failed to load role applications:", err);
       toast.error("Failed to load role applications.");

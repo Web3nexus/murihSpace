@@ -142,10 +142,7 @@ class RoleUpgradeController extends Controller
 
         $applications = $query->paginate(25);
 
-        return response()->json([
-            'success' => true,
-            'data' => $applications,
-        ]);
+        return response()->json($applications);
     }
 
     /**
