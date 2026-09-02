@@ -110,17 +110,42 @@ class ProfileController extends Controller
     {
         $user = $request->user();
 
-        $validated = $request->validate([
-            'kyc_document' => ['required', 'string', 'max:2048'],
-        ]);
+        $documentData = $request->input('kyc_document');
+        if (is_array($documentData)) {
+            $docString = json_encode($documentData);
+        } elseif (is_string($documentData)) {
+            $docString = $documentData;
+        } else {
+            // Check for individual document fields
+            $fields = $request->only([
+                'document_type',
+                'id_number',
+                'full_legal_name',
+                'country',
+                'expiry_date',
+                'front_url',
+                'back_url',
+                'selfie_url',
+            ]);
+            $docString = !empty(array_filter($fields)) ? json_encode($fields) : null;
+        }
+
+        if (empty($docString)) {
+            return response()->json([
+                'message' => 'The kyc_document field or document details are required.',
+                'errors' => ['kyc_document' => ['Document submission details are required.']],
+            ], 422);
+        }
 
         $user->update([
-            'kyc_document' => $validated['kyc_document'],
+            'kyc_document' => $docString,
             'kyc_status' => 'pending',
             'kyc_rejection_reason' => null,
         ]);
 
         return response()->json([
+            'success' => true,
+            'message' => 'KYC verification submitted successfully and is pending review.',
             'kyc_status' => $user->kyc_status,
             'kyc_document' => $user->kyc_document,
         ]);
