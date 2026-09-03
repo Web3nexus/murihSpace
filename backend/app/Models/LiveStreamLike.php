@@ -30,3 +30,4 @@ class LiveStreamLike extends Model
         return $this->belongsTo(User::class);
     }
 }
+

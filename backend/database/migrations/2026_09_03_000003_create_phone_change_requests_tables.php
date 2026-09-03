@@ -30,3 +30,4 @@ return new class extends Migration
         Schema::dropIfExists('phone_change_requests');
     }
 };
+

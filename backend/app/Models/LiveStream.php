@@ -78,3 +78,4 @@ class LiveStream extends Model
         return $this->status === 'live';
     }
 }
+

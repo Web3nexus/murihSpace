@@ -31,3 +31,4 @@ class LiveStreamMessage extends Model
         return $this->belongsTo(User::class);
     }
 }
+

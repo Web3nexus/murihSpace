@@ -47,3 +47,4 @@ class PendingLoginRequest extends Model
         return $this->status === 'pending' && $this->expires_at->isFuture();
     }
 }
+

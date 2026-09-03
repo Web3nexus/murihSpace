@@ -39,3 +39,4 @@ class PhoneChangeRequest extends Model
         return $this->status === 'pending' && $this->expires_at->isFuture();
     }
 }
+

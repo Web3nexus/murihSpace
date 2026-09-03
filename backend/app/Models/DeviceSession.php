@@ -45,3 +45,4 @@ class DeviceSession extends Model
         return $this->revoked_at === null;
     }
 }
+
