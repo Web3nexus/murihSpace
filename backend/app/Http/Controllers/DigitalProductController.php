@@ -22,9 +22,21 @@ class DigitalProductController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $products = DigitalProduct::where('creator_id', $request->user()->id)
-            ->latest()
-            ->get();
+        $query = DigitalProduct::query();
+
+        if ($request->filled('creator_id')) {
+            $creatorId = $request->input('creator_id');
+            $query->where('creator_id', $creatorId);
+            if (!$request->user() || $request->user()->id != $creatorId) {
+                $query->where('status', 'published');
+            }
+        } elseif ($request->user()) {
+            $query->where('creator_id', $request->user()->id);
+        } else {
+            $query->where('status', 'published');
+        }
+
+        $products = $query->latest()->get();
 
         return response()->json([
             'data' => $products,

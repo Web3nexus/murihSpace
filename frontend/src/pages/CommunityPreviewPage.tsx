@@ -49,6 +49,19 @@ export function CommunityPreviewPage() {
   const [isRolesModalOpen, setIsRolesModalOpen] = React.useState(false);
   const [activeTab, setActiveTab] = React.useState<"about" | "courses" | "members">("about");
 
+  // Courses and Digital Goods
+  interface CourseGoodItem {
+    id: number | string;
+    title: string;
+    type: "COURSE" | "DIGITAL ASSET";
+    lessons: string | number;
+    price: string;
+    access: string;
+    image: string;
+  }
+  const [coursesGoods, setCoursesGoods] = React.useState<CourseGoodItem[]>([]);
+  const [coursesGoodsLoading, setCoursesGoodsLoading] = React.useState(false);
+
   // Members directory
   const [members, setMembers] = React.useState<CommunityMembership[]>([]);
   const [membersLoading, setMembersLoading] = React.useState(false);
@@ -105,6 +118,68 @@ export function CommunityPreviewPage() {
       setMembersLoading(false);
     }
   }, [community, membersPage]);
+
+  const loadCoursesGoods = React.useCallback(async () => {
+    setCoursesGoodsLoading(true);
+    try {
+      const items: CourseGoodItem[] = [];
+
+      // Fetch Courses
+      try {
+        const res = await authFetch('/courses');
+        if (res.ok) {
+          const data = await res.json();
+          const list = data?.data ?? [];
+          for (const c of list) {
+            const price = Number(c.price) || 0;
+            const currency = c.currency || 'USD';
+            items.push({
+              id: `c-${c.id}`,
+              title: c.title || 'Masterclass',
+              type: 'COURSE',
+              lessons: c.lessons_count || 0,
+              price: price <= 0 ? 'FREE' : currency === 'USD' ? `$${price}` : `${currency} ${price}`,
+              access: 'PUBLIC MARKETPLACE',
+              image: c.thumbnail_url || 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=500',
+            });
+          }
+        }
+      } catch (_) {}
+
+      // Fetch Digital Products
+      try {
+        const res = await authFetch('/digital/products');
+        if (res.ok) {
+          const data = await res.json();
+          const list = data?.data ?? [];
+          for (const p of list) {
+            const price = Number(p.price) || 0;
+            const currency = p.currency || 'USD';
+            items.push({
+              id: `p-${p.id}`,
+              title: p.title || 'Digital Asset',
+              type: 'DIGITAL ASSET',
+              lessons: `${p.category || 'Digital'} Download`,
+              price: p.is_free || price <= 0 ? 'FREE' : currency === 'USD' ? `$${price}` : `${currency} ${price}`,
+              access: 'PUBLIC MARKETPLACE',
+              image: p.cover_url || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=500',
+            });
+          }
+        }
+      } catch (_) {}
+
+      setCoursesGoods(items);
+    } catch (_) {
+    } finally {
+      setCoursesGoodsLoading(false);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    if (activeTab === "courses") {
+      loadCoursesGoods();
+    }
+  }, [activeTab, loadCoursesGoods]);
 
   React.useEffect(() => {
     if (activeTab === "members" && community) {
@@ -357,7 +432,7 @@ export function CommunityPreviewPage() {
               : "border-transparent text-muted-foreground hover:text-foreground"
           }`}
         >
-          Courses & Digital Goods (3)
+          Courses & Digital Goods ({coursesGoods.length})
         </button>
         <button
           onClick={() => setActiveTab("members")}
@@ -428,61 +503,49 @@ export function CommunityPreviewPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[
-              {
-                id: 1,
-                title: "Complete Creator Mastery & Monetization",
-                type: "COURSE",
-                lessons: 18,
-                price: "$30 / ₦25,000",
-                access: "PUBLIC MARKETPLACE",
-                image: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=500",
-              },
-              {
-                id: 2,
-                title: "VIP Member Templates & Assets Kit",
-                type: "DIGITAL ASSET",
-                lessons: "ZIP Archive (48MB)",
-                price: "FREE for Members",
-                access: "MEMBERS ONLY",
-                image: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=500",
-              },
-              {
-                id: 3,
-                title: "Community Growth & Live Streaming Blueprint",
-                type: "COURSE",
-                lessons: 12,
-                price: "50 Coins",
-                access: "PUBLIC MARKETPLACE",
-                image: "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=500",
-              },
-            ].map((item) => (
-              <div key={item.id} className="rounded-2xl border border-border bg-card overflow-hidden flex flex-col justify-between shadow-xs hover:border-secondary/50 transition">
-                <div>
-                  <img src={item.image} alt={item.title} className="w-full h-40 object-cover" />
-                  <div className="p-5 space-y-3">
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline" className="text-[10px] font-bold text-secondary border-secondary/30">
-                        {item.type}
-                      </Badge>
-                      <Badge variant="secondary" className="text-[10px] font-bold">
-                        {item.access}
-                      </Badge>
+          {coursesGoodsLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="h-64 rounded-2xl bg-muted animate-pulse border border-border" />
+              ))}
+            </div>
+          ) : coursesGoods.length === 0 ? (
+            <div className="rounded-2xl border border-border bg-card p-12 text-center space-y-3">
+              <BookOpen className="h-10 w-10 text-muted-foreground mx-auto" />
+              <h4 className="font-bold text-foreground text-base">No Courses or Digital Assets Yet</h4>
+              <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+                No courses or downloadable goods have been published in this community yet.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {coursesGoods.map((item) => (
+                <div key={item.id} className="rounded-2xl border border-border bg-card overflow-hidden flex flex-col justify-between shadow-xs hover:border-secondary/50 transition">
+                  <div>
+                    <img src={item.image} alt={item.title} className="w-full h-40 object-cover" />
+                    <div className="p-5 space-y-3">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="text-[10px] font-bold text-secondary border-secondary/30">
+                          {item.type}
+                        </Badge>
+                        <Badge variant="secondary" className="text-[10px] font-bold">
+                          {item.access}
+                        </Badge>
+                      </div>
+                      <h4 className="font-bold text-foreground text-sm line-clamp-2">{item.title}</h4>
+                      <p className="text-xs text-muted-foreground">{typeof item.lessons === 'number' ? `${item.lessons} lessons` : item.lessons}</p>
                     </div>
-                    <h4 className="font-bold text-foreground text-sm line-clamp-2">{item.title}</h4>
-                    <p className="text-xs text-muted-foreground">{typeof item.lessons === 'number' ? `${item.lessons} lessons` : item.lessons}</p>
+                  </div>
+                  <div className="p-5 pt-0 flex items-center justify-between border-t border-border mt-3">
+                    <span className="font-extrabold text-sm text-emerald-500">{item.price}</span>
+                    <Button size="sm" className="bg-secondary text-secondary-foreground text-xs font-semibold">
+                      {item.access === "MEMBERS ONLY" ? "Join to Unlock" : "Access Now"}
+                    </Button>
                   </div>
                 </div>
-                <div className="p-5 pt-0 flex items-center justify-between border-t border-border mt-3">
-                  <span className="font-extrabold text-sm text-emerald-500">{item.price}</span>
-                  <Button size="sm" className="bg-secondary text-secondary-foreground text-xs font-semibold">
-                    {item.access === "MEMBERS ONLY" ? "Join to Unlock" : "Access Now"}
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       ) : (
         /* Members Directory Tab */

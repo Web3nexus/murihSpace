@@ -13,11 +13,45 @@ class CourseController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $courses = Course::where('creator_id', $request->user()->id)
-            ->withCount('lessons')
-            ->latest()->get();
+        $query = Course::query()->withCount('lessons')->with('modules.lessons');
+
+        if ($request->filled('creator_id')) {
+            $creatorId = $request->input('creator_id');
+            $query->where('creator_id', $creatorId);
+            if (!$request->user() || $request->user()->id != $creatorId) {
+                $query->where('status', 'published');
+            }
+        } elseif ($request->user()) {
+            $query->where('creator_id', $request->user()->id);
+        } else {
+            $query->where('status', 'published');
+        }
+
+        $courses = $query->latest()->get();
 
         return response()->json(['data' => $courses]);
+    }
+
+    public function userCoursesAndGoods(Request $request, int $userId): JsonResponse
+    {
+        $courses = Course::where('creator_id', $userId)
+            ->where('status', 'published')
+            ->withCount('lessons')
+            ->with('modules.lessons')
+            ->latest()
+            ->get();
+
+        $digitalGoods = \App\Models\DigitalProduct::where('creator_id', $userId)
+            ->where('status', 'published')
+            ->latest()
+            ->get();
+
+        return response()->json([
+            'data' => [
+                'courses' => $courses,
+                'digital_products' => $digitalGoods,
+            ],
+        ]);
     }
 
     public function store(Request $request): JsonResponse

@@ -870,11 +870,14 @@ Route::prefix('v1')->group(function () {
             Route::delete('/{id}', [\App\Http\Controllers\SocialAccountController::class, 'destroy']);
         });
 
-        // ── Courses ──────────────────────────────────────────────────
+        // ── Courses & Creator Goods ──────────────────────────────────
+        Route::get('/courses', [\App\Http\Controllers\CourseController::class, 'index']);
+        Route::get('/courses/{course}', [\App\Http\Controllers\CourseController::class, 'show']);
+        Route::get('/users/{id}/courses-and-goods', [\App\Http\Controllers\CourseController::class, 'userCoursesAndGoods']);
+        Route::get('/digital/products', [\App\Http\Controllers\DigitalProductController::class, 'index']);
+
         Route::prefix('courses')->middleware('creator')->group(function () {
-            Route::get('/', [\App\Http\Controllers\CourseController::class, 'index']);
             Route::post('/', [\App\Http\Controllers\CourseController::class, 'store']);
-            Route::get('/{course}', [\App\Http\Controllers\CourseController::class, 'show']);
             Route::put('/{course}', [\App\Http\Controllers\CourseController::class, 'update']);
             Route::delete('/{course}', [\App\Http\Controllers\CourseController::class, 'destroy']);
         });
