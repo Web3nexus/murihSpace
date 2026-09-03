@@ -21,6 +21,8 @@ use App\Http\Controllers\BrandDealProposalController;
 use App\Http\Controllers\BrandInvoiceController;
 use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\LiveStreamController;
+use App\Http\Controllers\PhoneVerificationController;
 use App\Http\Controllers\BadgeController;
 use App\Http\Controllers\BlockController;
 use App\Http\Controllers\CartController;
@@ -146,6 +148,9 @@ Route::prefix('v1')->group(function () {
             Route::match(['get', 'post'], '/{provider}/callback', [SocialAuthController::class, 'callback']);
         });
 
+        // Device approval status check (Public for Device B)
+        Route::get('/device-approval/check-status/{token}', [AuthController::class, 'checkDeviceLoginStatus']);
+
         Route::middleware('auth:sanctum')->group(function () {
             Route::post('/logout', [AuthController::class, 'logout']);
             Route::post('/email/send-code', [VerificationController::class, 'sendCode']);
@@ -158,8 +163,18 @@ Route::prefix('v1')->group(function () {
                 Route::post('/confirm', [AuthController::class, 'confirm2fa']);
                 Route::get('/status', [AuthController::class, 'status2fa']);
             });
+
+            // Device Approval & Sessions
+            Route::get('/device-approval/pending', [AuthController::class, 'pendingLoginRequests']);
+            Route::post('/device-approval/{id}/approve', [AuthController::class, 'approveDeviceLogin']);
+            Route::post('/device-approval/{id}/deny', [AuthController::class, 'denyDeviceLogin']);
             Route::get('/sessions', [AuthController::class, 'sessions']);
             Route::delete('/sessions/{id}', [AuthController::class, 'destroySession']);
+            Route::post('/sessions/revoke-all-others', [AuthController::class, 'revokeAllOtherSessions']);
+
+            // Verified Mobile Number Change
+            Route::post('/phone/change-request', [PhoneVerificationController::class, 'requestChange'])->middleware('throttle:otp');
+            Route::post('/phone/verify-change', [PhoneVerificationController::class, 'verifyChange'])->middleware('throttle:otp');
         });
 
         Route::get('/email/verify/{id}/{hash}', [VerificationController::class, 'verify'])
@@ -1141,6 +1156,21 @@ Route::prefix('v1')->group(function () {
                 Route::post('/{id}/users/{userId}/role', [AudioRoomController::class, 'updateRole']);
                 Route::post('/{id}/users/{userId}/mute', [AudioRoomController::class, 'toggleMute']);
             });
+        });
+
+        // ── Live Streaming & Live Broadcast Core ────────────────────────────
+        Route::prefix('live')->group(function () {
+            Route::get('/', [LiveStreamController::class, 'index']);
+            Route::get('/{id}', [LiveStreamController::class, 'show']);
+            Route::get('/{id}/chat', [LiveStreamController::class, 'getMessages']);
+
+            Route::post('/start', [LiveStreamController::class, 'start']);
+            Route::post('/{id}/join', [LiveStreamController::class, 'join']);
+            Route::post('/{id}/leave', [LiveStreamController::class, 'leave']);
+            Route::post('/{id}/like', [LiveStreamController::class, 'like']);
+            Route::post('/{id}/chat', [LiveStreamController::class, 'sendMessage']);
+            Route::post('/{id}/gift', [LiveStreamController::class, 'sendGift']);
+            Route::post('/{id}/end', [LiveStreamController::class, 'end']);
         });
 
         // ── Sprint 17: Core Administration (securegate) ────────────────────

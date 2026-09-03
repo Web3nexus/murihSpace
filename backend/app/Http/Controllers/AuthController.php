@@ -21,6 +21,7 @@ class AuthController extends Controller
     public function __construct(
         private readonly NotificationService $notifications,
         private readonly EmailVerificationService $emailVerification,
+        private readonly \App\Services\DeviceSecurityService $deviceSecurity,
     ) {}
 
     public function register(Request $request): JsonResponse
@@ -127,6 +128,7 @@ class AuthController extends Controller
         }
 
         $token = app(AuthSessionService::class)->issue($user, $request)['token'];
+        $this->deviceSecurity->registerActiveSession($user, $request, $token);
 
         try {
             if ($user->email) {
@@ -235,6 +237,22 @@ class AuthController extends Controller
             ]);
         }
 
+        if ($this->deviceSecurity->requiresDeviceApproval($user, $request)) {
+            $pending = $this->deviceSecurity->createPendingLoginRequest($user, $request);
+
+            return response()->json([
+                'status' => 'pending_device_approval',
+                'message' => 'New device login requires approval from your existing active session.',
+                'pending_request' => [
+                    'request_id' => $pending->id,
+                    'request_token' => $pending->request_token,
+                    'device_name' => $pending->device_name,
+                    'platform' => $pending->platform,
+                    'expires_at' => $pending->expires_at->toIso8601String(),
+                ],
+            ], 202);
+        }
+
         $maxTokens = 5;
         $excess = $user->tokens()
             ->where('name', 'auth-token')
@@ -251,6 +269,7 @@ class AuthController extends Controller
         $token = $user->createToken('auth-token', ['*'], $expiresAt)->plainTextToken;
 
         $this->trackTokenMetadata($user, $request, $token);
+        $this->deviceSecurity->registerActiveSession($user, $request, $token);
 
         return response()->json([
             'message' => 'Login successful.',
@@ -449,6 +468,134 @@ class AuthController extends Controller
         $token->delete();
 
         return response()->json(['message' => 'Session revoked.']);
+    }
+
+    public function approveDeviceLogin(Request $request, int $id): JsonResponse
+    {
+        $pending = \App\Models\PendingLoginRequest::findOrFail($id);
+        $user = $request->user();
+
+        if ($pending->user_id !== $user->id) {
+            return response()->json(['message' => 'Unauthorized.'], 403);
+        }
+
+        if (! $pending->isPending()) {
+            return response()->json(['message' => 'Login request has expired or is no longer pending.'], 422);
+        }
+
+        $currentToken = $user->currentAccessToken();
+        $tokenId = ($currentToken instanceof \Laravel\Sanctum\PersonalAccessToken) ? $currentToken->id : null;
+
+        $currentSession = $tokenId ? \App\Models\DeviceSession::where('user_id', $user->id)
+            ->where('personal_access_token_id', $tokenId)
+            ->first() : null;
+
+        $this->deviceSecurity->approveLoginRequest($pending, $user, $currentSession);
+
+        return response()->json([
+            'message' => 'Device login request approved successfully.',
+            'status' => 'approved',
+        ]);
+    }
+
+    public function denyDeviceLogin(Request $request, int $id): JsonResponse
+    {
+        $pending = \App\Models\PendingLoginRequest::findOrFail($id);
+        $user = $request->user();
+
+        if ($pending->user_id !== $user->id) {
+            return response()->json(['message' => 'Unauthorized.'], 403);
+        }
+
+        $this->deviceSecurity->denyLoginRequest($pending, $user);
+
+        return response()->json([
+            'message' => 'Device login request denied.',
+            'status' => 'denied',
+        ]);
+    }
+
+    public function checkDeviceLoginStatus(string $token): JsonResponse
+    {
+        $pending = \App\Models\PendingLoginRequest::where('request_token', $token)->firstOrFail();
+
+        if ($pending->status === 'approved') {
+            try {
+                $plainToken = decrypt($pending->authorized_token);
+            } catch (\Throwable $e) {
+                return response()->json(['status' => 'failed', 'message' => 'Token decryption error.'], 500);
+            }
+
+            $user = $pending->user;
+
+            return response()->json([
+                'status' => 'approved',
+                'token' => $plainToken,
+                'user' => [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'username' => $user->username,
+                    'role' => $user->role,
+                    'avatar_url' => $user->avatar_url ?? $user->avatar,
+                    'mobile_number' => $user->mobile_number,
+                    'coins' => $user->wallet?->coin_balance ?? 0,
+                ],
+            ]);
+        }
+
+        if ($pending->status === 'denied') {
+            return response()->json([
+                'status' => 'denied',
+                'message' => 'Login request was rejected by your existing device.',
+            ], 403);
+        }
+
+        if ($pending->expires_at->isPast() || $pending->status === 'expired') {
+            return response()->json([
+                'status' => 'expired',
+                'message' => 'Login authorization request expired. Please sign in again.',
+            ], 410);
+        }
+
+        return response()->json([
+            'status' => 'pending',
+            'expires_at' => $pending->expires_at->toIso8601String(),
+        ]);
+    }
+
+    public function pendingLoginRequests(Request $request): JsonResponse
+    {
+        $requests = \App\Models\PendingLoginRequest::where('user_id', $request->user()->id)
+            ->where('status', 'pending')
+            ->where('expires_at', '>', now())
+            ->latest()
+            ->get();
+
+        return response()->json(['data' => $requests]);
+    }
+
+    public function revokeAllOtherSessions(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $currentToken = $user->currentAccessToken();
+        $tokenId = ($currentToken instanceof \Laravel\Sanctum\PersonalAccessToken) ? $currentToken->id : null;
+
+        if ($tokenId) {
+            // Delete all other tokens
+            $user->tokens()->where('id', '!=', $tokenId)->delete();
+
+            // Mark other sessions revoked
+            \App\Models\DeviceSession::where('user_id', $user->id)
+                ->where('personal_access_token_id', '!=', $tokenId)
+                ->update(['revoked_at' => now()]);
+        } else {
+            // In testing / session-based auth
+            $user->tokens()->delete();
+            \App\Models\DeviceSession::where('user_id', $user->id)->update(['revoked_at' => now()]);
+        }
+
+        return response()->json(['message' => 'All other active sessions have been revoked.']);
     }
 
     private function trackTokenMetadata(User $user, Request $request, string $plainToken): void
