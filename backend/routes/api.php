@@ -951,7 +951,7 @@ Route::prefix('v1')->group(function () {
         // ── Verified badge (blue checkmark) ─────────────────────────
         Route::prefix('verification-badge')->group(function () {
             Route::get('/status', [\App\Http\Controllers\VerificationBadgeController::class, 'status']);
-            Route::post('/apply', [\App\Http\Controllers\VerificationBadgeController::class, 'apply'])->middleware('kyc');
+            Route::post('/apply', [\App\Http\Controllers\VerificationBadgeController::class, 'apply']);
             Route::post('/activate', [\App\Http\Controllers\VerificationBadgeController::class, 'activate']);
             Route::post('/renew', [\App\Http\Controllers\VerificationBadgeController::class, 'renew']);
             Route::post('/cancel-auto-renew', [\App\Http\Controllers\VerificationBadgeController::class, 'cancelAutoRenew']);

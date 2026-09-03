@@ -16,9 +16,17 @@ class VerificationBadgeController extends Controller
         private WalletService $walletService,
     ) {}
 
+    private function getBadgePricing(): array
+    {
+        $monthly = (int) \App\Models\AdminSetting::get('verification_badge_fee', config('murihspace.verification_badge_fee', 100));
+        $annual = (int) \App\Models\AdminSetting::get('verification_badge_annual_fee', (int) round($monthly * 12 * 0.67));
+        return ['monthly' => $monthly, 'annual' => $annual];
+    }
+
     public function status(Request $request): JsonResponse
     {
         $user = $request->user();
+        $pricing = $this->getBadgePricing();
 
         return response()->json([
             'data' => [
@@ -27,7 +35,9 @@ class VerificationBadgeController extends Controller
                 'purchased_at' => $user->verification_badge_purchased_at?->toIso8601String(),
                 'auto_renew' => (bool) $user->verification_badge_auto_renew,
                 'kyc_verified' => $user->hasVerifiedKyc(),
-                'monthly_fee' => (int) config('murihspace.verification_badge_fee'),
+                'monthly_fee' => $pricing['monthly'],
+                'annual_fee' => $pricing['annual'],
+                'currency' => 'Coins',
                 'wallet_balance' => (int) ($this->walletService->getOrCreateWallet($user, 'system')->available),
             ],
         ]);
@@ -36,6 +46,9 @@ class VerificationBadgeController extends Controller
     public function apply(Request $request): JsonResponse
     {
         $user = $request->user();
+        $billingCycle = $request->input('billing_cycle', 'annual');
+        $pricing = $this->getBadgePricing();
+        $fee = $billingCycle === 'annual' ? $pricing['annual'] : $pricing['monthly'];
 
         // 0. Idempotency guard — prevent double-charging
         if (
@@ -60,18 +73,21 @@ class VerificationBadgeController extends Controller
                 'message' => 'Identity verification (KYC) is required before applying for the paid verification badge.',
                 'code' => 'KYC_REQUIRED',
                 'status' => 'kyc_pending',
+                'errors' => [
+                    'code' => 'KYC_REQUIRED',
+                    'status' => 'kyc_pending',
+                ],
             ], 422);
         }
 
         // 2. Check wallet balance
-        $fee = (int) config('murihspace.verification_badge_fee');
         $wallet = $this->walletService->getOrCreateWallet($user, 'system');
 
         if ($wallet->available < $fee) {
             $user->update(['verification_badge_status' => 'payment_pending']);
 
             return response()->json([
-                'message' => "Insufficient wallet balance. The verified badge costs {$fee} tokens per month.",
+                'message' => "Insufficient wallet balance. The verified badge costs {$fee} coins for {$billingCycle} plan.",
                 'code' => 'INSUFFICIENT_BALANCE',
                 'status' => 'payment_pending',
                 'fee' => $fee,
@@ -80,7 +96,8 @@ class VerificationBadgeController extends Controller
         }
 
         // 3. Debit fee and update status atomically
-        \DB::transaction(function () use ($user, $fee, $wallet) {
+        \DB::transaction(function () use ($user, $fee, $wallet, $billingCycle) {
+            $durationLabel = $billingCycle === 'annual' ? '1 year' : '1 month';
             $this->ledgerService->debit(
                 user: $user,
                 amount: $fee,
@@ -88,14 +105,16 @@ class VerificationBadgeController extends Controller
                 walletType: 'system',
                 balanceCategory: 'available',
                 type: 'fee',
-                description: 'Verified badge application (1 month)',
-                metadata: ['badge' => true],
+                description: "Verified badge application ({$durationLabel})",
+                metadata: ['badge' => true, 'billing_cycle' => $billingCycle],
             );
 
             $now = now();
+            $expiresAt = $billingCycle === 'annual' ? $now->copy()->addYear() : $now->copy()->addMonth();
+
             $user->update([
                 'verification_badge_status'      => 'under_review',
-                'verification_badge_expires_at'  => $now->copy()->addMonth(),
+                'verification_badge_expires_at'  => $expiresAt,
                 'verification_badge_purchased_at' => $now,
                 'verification_badge_auto_renew'  => true,
             ]);
@@ -121,6 +140,9 @@ class VerificationBadgeController extends Controller
     public function renew(Request $request): JsonResponse
     {
         $user = $request->user();
+        $billingCycle = $request->input('billing_cycle', 'monthly');
+        $pricing = $this->getBadgePricing();
+        $fee = $billingCycle === 'annual' ? $pricing['annual'] : $pricing['monthly'];
 
         if (! in_array($user->verification_badge_status, ['active', 'verified'], true)) {
             return response()->json([
@@ -129,16 +151,16 @@ class VerificationBadgeController extends Controller
             ], 422);
         }
 
-        $fee = (int) config('murihspace.verification_badge_fee');
         $wallet = $this->walletService->getOrCreateWallet($user, 'system');
 
         if ($wallet->available < $fee) {
             return response()->json([
-                'message' => "Insufficient wallet balance. Renewal costs {$fee} tokens per month.",
+                'message' => "Insufficient wallet balance. Renewal costs {$fee} coins.",
                 'code' => 'INSUFFICIENT_BALANCE',
             ], 422);
         }
 
+        $durationLabel = $billingCycle === 'annual' ? '1 year' : '1 month';
         $this->ledgerService->debit(
             user: $user,
             amount: $fee,
@@ -146,16 +168,18 @@ class VerificationBadgeController extends Controller
             walletType: 'system',
             balanceCategory: 'available',
             type: 'fee',
-            description: 'Verified badge renewal (1 month)',
-            metadata: ['badge' => true, 'renewal' => true],
+            description: "Verified badge renewal ({$durationLabel})",
+            metadata: ['badge' => true, 'renewal' => true, 'billing_cycle' => $billingCycle],
         );
 
         $base = $user->verification_badge_expires_at && $user->verification_badge_expires_at->isFuture()
             ? $user->verification_badge_expires_at
             : now();
+        $expiresAt = $billingCycle === 'annual' ? $base->copy()->addYear() : $base->copy()->addMonth();
+
         $user->update([
             'verification_badge_status' => 'active',
-            'verification_badge_expires_at' => $base->copy()->addMonth(),
+            'verification_badge_expires_at' => $expiresAt,
             'verification_badge_auto_renew' => true,
         ]);
 
