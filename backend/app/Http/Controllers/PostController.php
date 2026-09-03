@@ -28,6 +28,8 @@ class PostController extends Controller
             ->pinnedFirst()
             ->paginate(15);
 
+        $this->attachUserMeta($posts, $request->user());
+
         return response()->json($posts);
     }
 
@@ -42,11 +44,13 @@ class PostController extends Controller
             ->pinnedFirst()
             ->paginate(20);
 
+        $this->attachUserMeta($posts, $request->user());
+
         return response()->json($posts);
     }
 
     /**
-     * Display aggregate global feed across all communities.
+     * Display aggregate global feed across all public and community posts.
      */
     public function globalFeed(Request $request): JsonResponse
     {
@@ -55,11 +59,14 @@ class PostController extends Controller
             ->pinnedFirst()
             ->paginate(20);
 
+        $this->attachUserMeta($posts, $request->user());
+
         return response()->json($posts);
     }
 
     /**
-     * Store a newly created post / status with server-side link restriction checks.
+     * Store a newly created post / poll / announcement / status.
+     * Supports both community posts and direct public profile wall posts.
      */
     public function store(Request $request): JsonResponse
     {
@@ -68,7 +75,7 @@ class PostController extends Controller
         $user = $request->user();
 
         $validated = $request->validate([
-            'community_id' => ['required', 'exists:communities,id'],
+            'community_id' => ['nullable', 'exists:communities,id'],
             'type' => ['required', Rule::in(['post', 'status', 'announcement', 'poll', 'media', 'event', 'product', 'service'])],
             'content' => ['required', 'string', 'max:50000'],
             'media_urls' => ['nullable', 'array'],
@@ -92,54 +99,57 @@ class PostController extends Controller
             'scheduled_at' => ['nullable', 'date', 'after:now'],
         ]);
 
-        $community = Community::findOrFail($validated['community_id']);
+        $community = null;
+        if (! empty($validated['community_id'])) {
+            $community = Community::findOrFail($validated['community_id']);
 
-        // Enforce active membership or ownership for any post in this community
-        $isOwner = $community->user_id === $user->id;
-        if (! $isOwner) {
-            $isMember = CommunityMembership::where('community_id', $community->id)
-                ->where('user_id', $user->id)
-                ->where('status', 'active')
-                ->exists();
-            if (! $isMember) {
-                return response()->json(['message' => 'You must be an active member of this community to post.'], 403);
-            }
-        }
-
-        // Check link-sharing permissions on server side (Sprint 8 requirement)
-        $hasUrlInContent = (bool) preg_match('/https?:\/\/[^\s]+/', $validated['content']);
-        $hasLinkUrl = ! empty($validated['link_url']);
-
-        if ($hasUrlInContent || $hasLinkUrl) {
-            $isOwnerOrCreator = ($community->user_id === $user->id);
-
-            if (! $isOwnerOrCreator) {
-                $membership = CommunityMembership::with('customRole')
-                    ->where('community_id', $community->id)
+            // Enforce active membership or ownership for any post in this community
+            $isOwner = $community->user_id === $user->id;
+            if (! $isOwner) {
+                $isMember = CommunityMembership::where('community_id', $community->id)
                     ->where('user_id', $user->id)
                     ->where('status', 'active')
-                    ->first();
-
-                $hasLinkPermission = false;
-                if ($membership) {
-                    if (in_array($membership->role, ['admin', 'moderator'])) {
-                        $hasLinkPermission = true;
-                    } elseif ($membership->customRole && $membership->customRole->hasPermission('share_links')) {
-                        $hasLinkPermission = true;
-                    }
+                    ->exists();
+                if (! $isMember) {
+                    return response()->json(['message' => 'You must be an active member of this community to post.'], 403);
                 }
+            }
 
-                if (! $hasLinkPermission) {
-                    return response()->json([
-                        'message' => 'Link sharing is restricted. Regular community members cannot share external URLs by default.',
-                        'error_code' => 'LINK_SHARING_RESTRICTED',
-                    ], 403);
+            // Check link-sharing permissions on server side (Sprint 8 requirement)
+            $hasUrlInContent = (bool) preg_match('/https?:\/\/[^\s]+/', $validated['content']);
+            $hasLinkUrl = ! empty($validated['link_url']);
+
+            if ($hasUrlInContent || $hasLinkUrl) {
+                $isOwnerOrCreator = ($community->user_id === $user->id);
+
+                if (! $isOwnerOrCreator) {
+                    $membership = CommunityMembership::with('customRole')
+                        ->where('community_id', $community->id)
+                        ->where('user_id', $user->id)
+                        ->where('status', 'active')
+                        ->first();
+
+                    $hasLinkPermission = false;
+                    if ($membership) {
+                        if (in_array($membership->role, ['admin', 'moderator'])) {
+                            $hasLinkPermission = true;
+                        } elseif ($membership->customRole && $membership->customRole->hasPermission('share_links')) {
+                            $hasLinkPermission = true;
+                        }
+                    }
+
+                    if (! $hasLinkPermission) {
+                        return response()->json([
+                            'message' => 'Link sharing is restricted. Regular community members cannot share external URLs by default.',
+                            'error_code' => 'LINK_SHARING_RESTRICTED',
+                        ], 403);
+                    }
                 }
             }
         }
 
         $post = Post::create([
-            'community_id' => $community->id,
+            'community_id' => $community?->id,
             'user_id' => $user->id,
             'type' => $validated['type'],
             'content' => $validated['content'],
@@ -166,6 +176,55 @@ class PostController extends Controller
             'message' => 'Post published successfully.',
             'post' => $post,
         ], 201);
+    }
+
+    /**
+     * Submit a vote for a poll post.
+     */
+    public function votePoll(Request $request, int $id): JsonResponse
+    {
+        $user = $request->user();
+        $post = Post::findOrFail($id);
+
+        if ($post->type !== 'poll' || empty($post->poll_options)) {
+            return response()->json(['message' => 'This post is not an active poll.'], 400);
+        }
+
+        if ($post->poll_ends_at && $post->poll_ends_at->isPast()) {
+            return response()->json(['message' => 'This poll has ended.'], 400);
+        }
+
+        $validated = $request->validate([
+            'option_index' => ['required', 'integer', 'min:0', 'max:' . (count($post->poll_options) - 1)],
+        ]);
+
+        \App\Models\PostPollVote::updateOrCreate(
+            ['post_id' => $post->id, 'user_id' => $user->id],
+            ['option_index' => $validated['option_index']]
+        );
+
+        return response()->json([
+            'message' => 'Vote recorded successfully.',
+            'poll_results' => $post->pollResults(),
+            'user_poll_vote' => (int) $validated['option_index'],
+        ]);
+    }
+
+    private function attachUserMeta($posts, ?User $user): void
+    {
+        if (! $user) {
+            return;
+        }
+
+        $postIds = $posts->pluck('id')->toArray();
+        $votes = \App\Models\PostPollVote::whereIn('post_id', $postIds)
+            ->where('user_id', $user->id)
+            ->pluck('option_index', 'post_id')
+            ->toArray();
+
+        foreach ($posts->items() as $post) {
+            $post->user_poll_vote = $votes[$post->id] ?? null;
+        }
     }
 
     public function update(Request $request, int $id): JsonResponse

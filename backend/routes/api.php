@@ -423,6 +423,7 @@ Route::prefix('v1')->group(function () {
             Route::delete('/{id}', [PostController::class, 'destroy']);
             Route::post('/{id}/pin', [PostController::class, 'pin']);
             Route::post('/{id}/unpin', [PostController::class, 'unpin']);
+            Route::post('/{id}/poll/vote', [PostController::class, 'votePoll']);
             Route::get('/{id}/comments', [PostController::class, 'getComments']);
             Route::post('/{id}/comments', [PostController::class, 'addComment']);
             Route::post('/{id}/reactions/toggle', [ReactionController::class, 'togglePostReaction']);

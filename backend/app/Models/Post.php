@@ -41,6 +41,8 @@ class Post extends Model
         'views_count' => 'integer',
     ];
 
+    protected $appends = ['poll_results'];
+
     public function community(): BelongsTo
     {
         return $this->belongsTo(Community::class);
@@ -64,6 +66,49 @@ class Post extends Model
     public function saves(): HasMany
     {
         return $this->hasMany(SavedPost::class);
+    }
+
+    public function pollVotes(): HasMany
+    {
+        return $this->hasMany(PostPollVote::class);
+    }
+
+    public function getPollResultsAttribute(): ?array
+    {
+        return $this->pollResults();
+    }
+
+    public function pollResults(): ?array
+    {
+        if ($this->type !== 'poll' || empty($this->poll_options)) {
+            return null;
+        }
+
+        $votes = $this->pollVotes()
+            ->selectRaw('option_index, count(*) as count')
+            ->groupBy('option_index')
+            ->pluck('count', 'option_index')
+            ->toArray();
+
+        $total = array_sum($votes);
+
+        $options = [];
+        foreach ($this->poll_options as $index => $label) {
+            $count = $votes[$index] ?? 0;
+            $percent = $total > 0 ? round(($count / $total) * 100, 1) : 0;
+            $options[] = [
+                'index' => (int) $index,
+                'label' => (string) $label,
+                'votes_count' => (int) $count,
+                'percentage' => (float) $percent,
+            ];
+        }
+
+        return [
+            'total_votes' => (int) $total,
+            'options' => $options,
+            'is_expired' => $this->poll_ends_at ? $this->poll_ends_at->isPast() : false,
+        ];
     }
 
     public function scopePublished($query)
