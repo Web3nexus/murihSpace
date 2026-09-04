@@ -19,28 +19,33 @@ class DeviceSecurityService
      */
     public function requiresDeviceApproval(User $user, Request $request): bool
     {
-        $deviceId = $this->resolveDeviceId($request);
+        try {
+            $deviceId = $this->resolveDeviceId($request);
 
-        // Check if there is an active trusted session for THIS exact device
-        $existingThisDevice = DeviceSession::where('user_id', $user->id)
-            ->where('device_id', $deviceId)
-            ->whereNull('revoked_at')
-            ->where('is_trusted', true)
-            ->exists();
+            // Check if there is an active trusted session for THIS exact device
+            $existingThisDevice = DeviceSession::where('user_id', $user->id)
+                ->where('device_id', $deviceId)
+                ->whereNull('revoked_at')
+                ->where('is_trusted', true)
+                ->exists();
 
-        if ($existingThisDevice) {
+            if ($existingThisDevice) {
+                return false;
+            }
+
+            // Count other active, valid sessions on other devices
+            $activeOtherSessions = DeviceSession::where('user_id', $user->id)
+                ->where('device_id', '!=', $deviceId)
+                ->whereNull('revoked_at')
+                ->where('is_trusted', true)
+                ->where('last_active_at', '>=', now()->subDays(30))
+                ->exists();
+
+            return $activeOtherSessions;
+        } catch (\Throwable $e) {
+            report($e);
             return false;
         }
-
-        // Count other active, valid sessions on other devices
-        $activeOtherSessions = DeviceSession::where('user_id', $user->id)
-            ->where('device_id', '!=', $deviceId)
-            ->whereNull('revoked_at')
-            ->where('is_trusted', true)
-            ->where('last_active_at', '>=', now()->subDays(30))
-            ->exists();
-
-        return $activeOtherSessions;
     }
 
     /**
@@ -49,9 +54,13 @@ class DeviceSecurityService
     public function createPendingLoginRequest(User $user, Request $request): PendingLoginRequest
     {
         // Invalidate any older pending requests for this user
-        PendingLoginRequest::where('user_id', $user->id)
-            ->where('status', 'pending')
-            ->update(['status' => 'cancelled']);
+        try {
+            PendingLoginRequest::where('user_id', $user->id)
+                ->where('status', 'pending')
+                ->update(['status' => 'cancelled']);
+        } catch (\Throwable $e) {
+            report($e);
+        }
 
         $deviceId = $this->resolveDeviceId($request);
         $deviceName = $request->input('device_name') ?? $this->inferDeviceName($request);
@@ -113,16 +122,20 @@ class DeviceSecurityService
         // Create DeviceSession for new device
         $tokenRecord = $approvingUser->tokens()->where('token', hash('sha256', explode('|', $plainToken)[1] ?? $plainToken))->first();
 
-        DeviceSession::create([
-            'user_id' => $approvingUser->id,
-            'device_id' => $request->device_id,
-            'device_name' => $request->device_name,
-            'platform' => $request->platform,
-            'ip' => $request->ip,
-            'personal_access_token_id' => $tokenRecord?->id,
-            'is_trusted' => true,
-            'last_active_at' => now(),
-        ]);
+        try {
+            DeviceSession::create([
+                'user_id' => $approvingUser->id,
+                'device_id' => $request->device_id,
+                'device_name' => $request->device_name,
+                'platform' => $request->platform,
+                'ip' => $request->ip,
+                'personal_access_token_id' => $tokenRecord?->id,
+                'is_trusted' => true,
+                'last_active_at' => now(),
+            ]);
+        } catch (\Throwable $e) {
+            report($e);
+        }
 
         $request->update([
             'status' => 'approved',
@@ -152,29 +165,34 @@ class DeviceSecurityService
     /**
      * Registers or updates an active DeviceSession for an authenticated token.
      */
-    public function registerActiveSession(User $user, Request $request, string $plainToken): DeviceSession
+    public function registerActiveSession(User $user, Request $request, string $plainToken): ?DeviceSession
     {
-        $deviceId = $this->resolveDeviceId($request);
-        $deviceName = $request->input('device_name') ?? $this->inferDeviceName($request);
-        $platform = $request->input('platform') ?? $this->inferPlatform($request);
-        $tokenRecord = $user->tokens()->where('token', hash('sha256', explode('|', $plainToken)[1] ?? $plainToken))->first();
+        try {
+            $deviceId = $this->resolveDeviceId($request);
+            $deviceName = $request->input('device_name') ?? $this->inferDeviceName($request);
+            $platform = $request->input('platform') ?? $this->inferPlatform($request);
+            $tokenRecord = $user->tokens()->where('token', hash('sha256', explode('|', $plainToken)[1] ?? $plainToken))->first();
 
-        return DeviceSession::updateOrCreate(
-            [
-                'user_id' => $user->id,
-                'device_id' => $deviceId,
-            ],
-            [
-                'device_name' => $deviceName,
-                'platform' => $platform,
-                'ip' => $request->ip(),
-                'user_agent' => $request->userAgent(),
-                'personal_access_token_id' => $tokenRecord?->id,
-                'is_trusted' => true,
-                'last_active_at' => now(),
-                'revoked_at' => null,
-            ]
-        );
+            return DeviceSession::updateOrCreate(
+                [
+                    'user_id' => $user->id,
+                    'device_id' => $deviceId,
+                ],
+                [
+                    'device_name' => $deviceName,
+                    'platform' => $platform,
+                    'ip' => $request->ip(),
+                    'user_agent' => $request->userAgent(),
+                    'personal_access_token_id' => $tokenRecord?->id,
+                    'is_trusted' => true,
+                    'last_active_at' => now(),
+                    'revoked_at' => null,
+                ]
+            );
+        } catch (\Throwable $e) {
+            report($e);
+            return null;
+        }
     }
 
     public function resolveDeviceId(Request $request): string
