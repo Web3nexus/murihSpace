@@ -911,6 +911,7 @@ Route::prefix('v1')->group(function () {
             Route::get('/', [FriendRequestController::class, 'friends']);
             Route::get('/suggestions', [FriendRequestController::class, 'suggestions']);
             Route::get('/search', [FriendRequestController::class, 'search']);
+            Route::post('/contacts/sync', [FriendRequestController::class, 'syncContacts']);
             Route::get('/requests', [FriendRequestController::class, 'index']);
             Route::get('/requests/sent', [FriendRequestController::class, 'sent']);
             Route::get('/{userId}/status', [FriendRequestController::class, 'status']);
@@ -920,6 +921,7 @@ Route::prefix('v1')->group(function () {
             Route::post('/requests/{id}/cancel', [FriendRequestController::class, 'cancel']);
             Route::delete('/{userId}', [FriendRequestController::class, 'unfriend']);
         });
+        Route::post('/contacts/sync', [FriendRequestController::class, 'syncContacts']);
 
         // ── Account & Settings (apiClient) ───────────────────────────
         Route::prefix('settings')->group(function () {
