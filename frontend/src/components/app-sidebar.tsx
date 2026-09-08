@@ -62,9 +62,9 @@ function filterByFlags(nav: NavGroup[], flags: Record<string, boolean>): NavGrou
       ...group,
       items: group.items
         .map((item) => {
-          if (item.featureFlag && !flags[item.featureFlag]) return null;
+          if (item.featureFlag && flags[item.featureFlag] === false) return null;
           if (item.children) {
-            const kept = item.children.filter((c) => !c.featureFlag || flags[c.featureFlag]);
+            const kept = item.children.filter((c) => !c.featureFlag || flags[c.featureFlag] !== false);
             if (kept.length === 0) return null;
             return { ...item, children: kept };
           }

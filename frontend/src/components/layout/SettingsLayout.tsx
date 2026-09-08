@@ -41,20 +41,27 @@ export function SettingsLayout() {
       .catch(() => {});
   }, []);
 
+  const isKycVerified = user?.kyc_status === "verified";
+  const isKycPending = user?.kyc_status === "pending" || user?.kyc_status === "in_review";
+
   const roleLabel =
     user?.role === "admin"
       ? "Platform Admin"
       : user?.role === "creator"
-      ? "Verified Creator"
+      ? (isKycVerified ? "Verified Creator" : isKycPending ? "Creator (KYC Pending)" : "Creator")
       : user?.role === "vendor"
-      ? "Store Owner"
+      ? (isKycVerified ? "Verified Store Owner" : isKycPending ? "Store Owner (KYC Pending)" : "Store Owner")
       : "Community Member";
 
   const roleBadgeColor =
     user?.role === "admin"
       ? "bg-purple-500/15 text-purple-600 dark:text-purple-400 border-purple-500/30"
       : user?.role === "creator"
-      ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30"
+      ? (isKycVerified
+          ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
+          : isKycPending
+          ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30"
+          : "bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30")
       : user?.role === "vendor"
       ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
       : "bg-secondary/15 text-secondary border-secondary/30";
