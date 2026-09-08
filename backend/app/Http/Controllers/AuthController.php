@@ -2,12 +2,16 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\DeviceSession;
+use App\Models\PendingLoginRequest;
 use App\Models\RegistrationSession;
 use App\Models\User;
 use App\Services\AuthMethodConfigService;
 use App\Services\AuthSessionService;
+use App\Services\DeviceSecurityService;
 use App\Services\EmailVerificationService;
 use App\Services\NotificationService;
+use App\Services\RoleTransitionService;
 use App\Services\SupportEventPublisher;
 use App\Services\TwoFactorAuthService;
 use Illuminate\Auth\Events\Registered;
@@ -15,13 +19,14 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
+use Laravel\Sanctum\PersonalAccessToken;
 
 class AuthController extends Controller
 {
     public function __construct(
         private readonly NotificationService $notifications,
         private readonly EmailVerificationService $emailVerification,
-        private readonly \App\Services\DeviceSecurityService $deviceSecurity,
+        private readonly DeviceSecurityService $deviceSecurity,
     ) {}
 
     public function register(Request $request): JsonResponse
@@ -86,6 +91,7 @@ class AuthController extends Controller
         if ($requestedRole === 'user') {
             $requestedRole = 'member';
         }
+        $initialRole = 'member';
         $kycStatus = $requestedRole !== 'member' ? 'not_started' : 'not_required';
 
         $user = User::create([
@@ -98,10 +104,18 @@ class AuthController extends Controller
             'phone_verified_at' => $registrationSession ? now() : null,
             'county' => $request->county,
             'state' => $request->state,
-            'role' => $requestedRole,
+            'role' => $initialRole,
             'kyc_status' => $kycStatus,
             'kyc_document' => $request->kyc_document,
         ]);
+
+        if (in_array($requestedRole, ['creator', 'vendor'], true)) {
+            try {
+                app(RoleTransitionService::class)->apply($user, $requestedRole);
+            } catch (\Throwable $e) {
+                report($e);
+            }
+        }
 
         if ($registrationSession) {
             $registrationSession->update([
@@ -264,7 +278,7 @@ class AuthController extends Controller
         }
 
         $expiration = (int) config('sanctum.expiration', 43200);
-        $expiresAt  = now()->addMinutes($expiration > 0 ? $expiration : 43200);
+        $expiresAt = now()->addMinutes($expiration > 0 ? $expiration : 43200);
 
         $token = $user->createToken('auth-token', ['*'], $expiresAt)->plainTextToken;
 
@@ -472,7 +486,7 @@ class AuthController extends Controller
 
     public function approveDeviceLogin(Request $request, int $id): JsonResponse
     {
-        $pending = \App\Models\PendingLoginRequest::findOrFail($id);
+        $pending = PendingLoginRequest::findOrFail($id);
         $user = $request->user();
 
         if ($pending->user_id !== $user->id) {
@@ -484,9 +498,9 @@ class AuthController extends Controller
         }
 
         $currentToken = $user->currentAccessToken();
-        $tokenId = ($currentToken instanceof \Laravel\Sanctum\PersonalAccessToken) ? $currentToken->id : null;
+        $tokenId = ($currentToken instanceof PersonalAccessToken) ? $currentToken->id : null;
 
-        $currentSession = $tokenId ? \App\Models\DeviceSession::where('user_id', $user->id)
+        $currentSession = $tokenId ? DeviceSession::where('user_id', $user->id)
             ->where('personal_access_token_id', $tokenId)
             ->first() : null;
 
@@ -500,7 +514,7 @@ class AuthController extends Controller
 
     public function denyDeviceLogin(Request $request, int $id): JsonResponse
     {
-        $pending = \App\Models\PendingLoginRequest::findOrFail($id);
+        $pending = PendingLoginRequest::findOrFail($id);
         $user = $request->user();
 
         if ($pending->user_id !== $user->id) {
@@ -517,7 +531,7 @@ class AuthController extends Controller
 
     public function checkDeviceLoginStatus(string $token): JsonResponse
     {
-        $pending = \App\Models\PendingLoginRequest::where('request_token', $token)->firstOrFail();
+        $pending = PendingLoginRequest::where('request_token', $token)->firstOrFail();
 
         if ($pending->status === 'approved') {
             try {
@@ -566,7 +580,7 @@ class AuthController extends Controller
 
     public function pendingLoginRequests(Request $request): JsonResponse
     {
-        $requests = \App\Models\PendingLoginRequest::where('user_id', $request->user()->id)
+        $requests = PendingLoginRequest::where('user_id', $request->user()->id)
             ->where('status', 'pending')
             ->where('expires_at', '>', now())
             ->latest()
@@ -579,20 +593,20 @@ class AuthController extends Controller
     {
         $user = $request->user();
         $currentToken = $user->currentAccessToken();
-        $tokenId = ($currentToken instanceof \Laravel\Sanctum\PersonalAccessToken) ? $currentToken->id : null;
+        $tokenId = ($currentToken instanceof PersonalAccessToken) ? $currentToken->id : null;
 
         if ($tokenId) {
             // Delete all other tokens
             $user->tokens()->where('id', '!=', $tokenId)->delete();
 
             // Mark other sessions revoked
-            \App\Models\DeviceSession::where('user_id', $user->id)
+            DeviceSession::where('user_id', $user->id)
                 ->where('personal_access_token_id', '!=', $tokenId)
                 ->update(['revoked_at' => now()]);
         } else {
             // In testing / session-based auth
             $user->tokens()->delete();
-            \App\Models\DeviceSession::where('user_id', $user->id)->update(['revoked_at' => now()]);
+            DeviceSession::where('user_id', $user->id)->update(['revoked_at' => now()]);
         }
 
         return response()->json(['message' => 'All other active sessions have been revoked.']);

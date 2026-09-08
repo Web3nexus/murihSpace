@@ -1,40 +1,66 @@
 <?php
 
+use App\Http\Controllers\ActivityLogController;
+use App\Http\Controllers\AdController;
+use App\Http\Controllers\AddressController;
+use App\Http\Controllers\AdminAccountingController;
+use App\Http\Controllers\AdminAdController;
+use App\Http\Controllers\AdminAiSettingsController;
 use App\Http\Controllers\AdminAnalyticsController;
+use App\Http\Controllers\AdminAuthMethodController;
+use App\Http\Controllers\AdminConversionMetricsController;
 use App\Http\Controllers\AdminDashboardController;
+use App\Http\Controllers\AdminEmailTemplateController;
+use App\Http\Controllers\AdminFeeController;
 use App\Http\Controllers\AdminKycController;
+use App\Http\Controllers\AdminMailSettingsController;
 use App\Http\Controllers\AdminManagementController;
+use App\Http\Controllers\AdminMediaController;
+use App\Http\Controllers\AdminMediaRetentionController;
+use App\Http\Controllers\AdminModerationLogController;
+use App\Http\Controllers\AdminObjectStorageProviderController;
+use App\Http\Controllers\AdminPaymentProviderController;
+use App\Http\Controllers\AdminPaymentTransactionController;
 use App\Http\Controllers\AdminPlansController;
+use App\Http\Controllers\AdminSettingsController;
+use App\Http\Controllers\AdminSmsSettingsController;
+use App\Http\Controllers\AdminSocialLoginController;
+use App\Http\Controllers\AdminStorageController;
+use App\Http\Controllers\AdminStoryController;
+use App\Http\Controllers\AdminSystemHealthController;
+use App\Http\Controllers\AdminTaxController;
 use App\Http\Controllers\AdminUserController;
 use App\Http\Controllers\AdminWalletController;
-use App\Http\Controllers\AdminFeeController;
-use App\Http\Controllers\FeeController;
-use App\Http\Controllers\AdminStorageController;
+use App\Http\Controllers\AffiliateProductController;
+use App\Http\Controllers\AiChatController;
+use App\Http\Controllers\AiSettingsController;
 use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\AudioRoomController;
-use App\Http\Controllers\AddressController;
+use App\Http\Controllers\AuditLogController;
+use App\Http\Controllers\AuthController;
+use App\Http\Controllers\AuthMethodConfigController;
+use App\Http\Controllers\BadgeController;
+use App\Http\Controllers\BlockController;
 use App\Http\Controllers\BrandController;
-use App\Http\Controllers\CountryController;
 use App\Http\Controllers\BrandDealController;
 use App\Http\Controllers\BrandDealMilestoneController;
 use App\Http\Controllers\BrandDealProposalController;
 use App\Http\Controllers\BrandInvoiceController;
-use App\Http\Controllers\AuditLogController;
-use App\Http\Controllers\AuthController;
-use App\Http\Controllers\LiveStreamController;
-use App\Http\Controllers\PhoneVerificationController;
-use App\Http\Controllers\BadgeController;
-use App\Http\Controllers\BlockController;
 use App\Http\Controllers\CartController;
+use App\Http\Controllers\ChatMediaController;
+use App\Http\Controllers\ChatRoomController;
 use App\Http\Controllers\CheckoutController;
-use App\Http\Controllers\ActivityLogController;
-use App\Http\Controllers\ContentPlannerController;
-use App\Http\Controllers\CurrencyController;
 use App\Http\Controllers\CoachingBookingController;
 use App\Http\Controllers\CoachingServiceController;
+use App\Http\Controllers\CoinPackController;
 use App\Http\Controllers\CommunityController;
+use App\Http\Controllers\ContentItemController;
+use App\Http\Controllers\ContentPlannerController;
 use App\Http\Controllers\ConversationController;
 use App\Http\Controllers\ConversationSettingsController;
+use App\Http\Controllers\CountryController;
+use App\Http\Controllers\CourseController;
+use App\Http\Controllers\CurrencyController;
 use App\Http\Controllers\DigitalProductController;
 use App\Http\Controllers\DonationController;
 use App\Http\Controllers\EmailBroadcastController;
@@ -42,11 +68,20 @@ use App\Http\Controllers\EmailSequenceController;
 use App\Http\Controllers\EscrowController;
 use App\Http\Controllers\EventController;
 use App\Http\Controllers\FeatureFlagController;
+use App\Http\Controllers\FeeController;
+use App\Http\Controllers\FeedController;
+use App\Http\Controllers\FollowController;
 use App\Http\Controllers\FriendRequestController;
 use App\Http\Controllers\FulfilmentDisputeController;
 use App\Http\Controllers\FulfilmentOrderController;
 use App\Http\Controllers\FulfilmentPayoutController;
+use App\Http\Controllers\GiftController;
+use App\Http\Controllers\InternalAccountingSyncController;
 use App\Http\Controllers\KycController;
+use App\Http\Controllers\LinkInBioController;
+use App\Http\Controllers\LiveStreamController;
+use App\Http\Controllers\MarketingCampaignController;
+use App\Http\Controllers\MarketplaceController;
 use App\Http\Controllers\MediaKitController;
 use App\Http\Controllers\MembershipController;
 use App\Http\Controllers\MessageAttachmentController;
@@ -55,36 +90,52 @@ use App\Http\Controllers\MilestoneController;
 use App\Http\Controllers\ModerationController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\NotificationPreferenceController;
+use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\PageSectionController;
 use App\Http\Controllers\PasswordResetController;
+use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\PaymentWebhookController;
+use App\Http\Controllers\PhoneOtpController;
+use App\Http\Controllers\PhoneVerificationController;
 use App\Http\Controllers\PhysicalProductController;
+use App\Http\Controllers\PlatformController;
 use App\Http\Controllers\PostController;
-use App\Http\Controllers\ReactionController;
-use App\Http\Controllers\AdController;
-use App\Http\Controllers\AdminAdController;
-use App\Http\Controllers\GiftController;
-use App\Http\Controllers\CoinPackController;
-use App\Http\Controllers\FeedController;
 use App\Http\Controllers\ProductReviewController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PurchaseController;
 use App\Http\Controllers\PushTokenController;
+use App\Http\Controllers\QueueMonitorController;
+use App\Http\Controllers\ReactionController;
 use App\Http\Controllers\ReconciliationController;
 use App\Http\Controllers\ReferralController;
 use App\Http\Controllers\RoleController;
+use App\Http\Controllers\RoleUpgradeController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\ShippingProfileController;
+use App\Http\Controllers\ShortLinkController;
+use App\Http\Controllers\SocialAccountController;
 use App\Http\Controllers\SocialAuthController;
-use App\Http\Controllers\StoryController;
+use App\Http\Controllers\SoundTrackController;
+use App\Http\Controllers\StoreCategoryController;
 use App\Http\Controllers\StorefrontController;
+use App\Http\Controllers\StoreInventoryController;
+use App\Http\Controllers\StoreMembershipPlanController;
 use App\Http\Controllers\StorePostController;
+use App\Http\Controllers\StoreReturnController;
+use App\Http\Controllers\StoreSettingsController;
+use App\Http\Controllers\StoryController;
 use App\Http\Controllers\SubscriptionController;
 use App\Http\Controllers\SubscriptionPlanController;
+use App\Http\Controllers\SupportController;
+use App\Http\Controllers\TicketProxyController;
 use App\Http\Controllers\TransferController;
+use App\Http\Controllers\UploadController;
+use App\Http\Controllers\VerificationBadgeController;
 use App\Http\Controllers\VerificationController;
 use App\Http\Controllers\WalletController;
 use App\Http\Controllers\WithdrawalController;
+use App\Services\Kyc\KycProviderManager;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -114,13 +165,26 @@ Route::prefix('v1')->group(function () {
     Route::get('/permissions-matrix', [RoleController::class, 'permissionsMatrix']);
 
     // Sumsub KYC webhook (public, signature-verified)
-    Route::post('/webhooks/sumsub', fn (\Illuminate\Http\Request $r) => app(\App\Http\Controllers\KycController::class)->webhook($r, app(\App\Services\Kyc\KycProviderManager::class), 'sumsub'))->middleware('throttle:30,1');
+    Route::post('/webhooks/sumsub', fn (Request $r) => app(KycController::class)->webhook($r, app(KycProviderManager::class), 'sumsub'))->middleware('throttle:30,1');
 
     // Didit KYC webhook (public, signature-verified)
-    Route::post('/webhooks/didit', fn (\Illuminate\Http\Request $r) => app(\App\Http\Controllers\KycController::class)->webhook($r, app(\App\Services\Kyc\KycProviderManager::class), 'didit'))->middleware('throttle:30,1');
+    Route::post('/webhooks/didit', fn (Request $r) => app(KycController::class)->webhook($r, app(KycProviderManager::class), 'didit'))->middleware('throttle:30,1');
+
+    // Dedicated Webhooks for Airwallex, Paystack, Flutterwave
+    Route::post('/webhooks/airwallex', [PaymentWebhookController::class, 'airwallex'])->middleware('throttle:60,1');
+    Route::post('/webhooks/paystack', [PaymentWebhookController::class, 'paystack'])->middleware('throttle:60,1');
+    Route::post('/webhooks/flutterwave', [PaymentWebhookController::class, 'flutterwave'])->middleware('throttle:60,1');
+
+    // Internal Services Accounting Synchronization (web/ads-backend -> web/backend)
+    Route::post('/internal/accounting/sync-ad-revenue', [InternalAccountingSyncController::class, 'syncAdRevenue'])->middleware('throttle:120,1');
+
+    // Payment Engine
+    Route::get('/payments/methods', [PaymentController::class, 'methods']);
+    Route::get('/payments/{reference}/status', [PaymentController::class, 'status']);
+    Route::post('/payments/initialize', [PaymentController::class, 'initialize'])->middleware('auth:sanctum');
 
     // Public platform config (used by login/registration + app-lock screens)
-    Route::get('/platform', [\App\Http\Controllers\PlatformController::class, 'config'])->middleware('cache.public:30');
+    Route::get('/platform', [PlatformController::class, 'config'])->middleware('cache.public:30');
 
     // Authentication Routes
     Route::prefix('auth')->group(function () {
@@ -129,13 +193,13 @@ Route::prefix('v1')->group(function () {
         Route::get('/check-username/{username}', [AuthController::class, 'checkUsername'])->middleware('throttle:60,1');
 
         // Public authentication-method config (no secrets) used to render login/registration.
-        Route::get('/methods', [\App\Http\Controllers\AuthMethodConfigController::class, 'publicConfig'])
+        Route::get('/methods', [AuthMethodConfigController::class, 'publicConfig'])
             ->middleware('cache.public:30');
 
         // Phone OTP verification (Twilio Verify in production).
         Route::prefix('otp')->group(function () {
-            Route::post('/request', [\App\Http\Controllers\PhoneOtpController::class, 'request'])->middleware('throttle:otp');
-            Route::post('/verify', [\App\Http\Controllers\PhoneOtpController::class, 'verify'])->middleware('throttle:otp');
+            Route::post('/request', [PhoneOtpController::class, 'request'])->middleware('throttle:otp');
+            Route::post('/verify', [PhoneOtpController::class, 'verify'])->middleware('throttle:otp');
         });
 
         // Password Reset
@@ -202,16 +266,16 @@ Route::prefix('v1')->group(function () {
     Route::get('/stores/{shortCode}/posts', [StorePostController::class, 'publicPosts'])->middleware('cache.public:5');
 
     // Public Link-in-Bio Page
-    Route::get('/l/{username}', [\App\Http\Controllers\LinkInBioController::class, 'publicPage'])->middleware('cache.public:10');
+    Route::get('/l/{username}', [LinkInBioController::class, 'publicPage'])->middleware('cache.public:10');
 
     // Link in Bio Click Redirect (public)
-    Route::get('/l/click/{linkId}', [\App\Http\Controllers\LinkInBioController::class, 'redirectClick'])->middleware('throttle:60,1');
+    Route::get('/l/click/{linkId}', [LinkInBioController::class, 'redirectClick'])->middleware('throttle:60,1');
 
     // Affiliate Product Click Redirect (public)
-    Route::get('/l/affiliate/{product}', [\App\Http\Controllers\AffiliateProductController::class, 'redirectClick'])->middleware('throttle:60,1');
+    Route::get('/l/affiliate/{product}', [AffiliateProductController::class, 'redirectClick'])->middleware('throttle:60,1');
 
     // Short Link Redirect (public)
-    Route::get('/s/{code}', [\App\Http\Controllers\ShortLinkController::class, 'redirect'])->middleware('throttle:60,1');
+    Route::get('/s/{code}', [ShortLinkController::class, 'redirect'])->middleware('throttle:60,1');
     Route::get('/public/products/{slug}', [DigitalProductController::class, 'publicShow']);
 
     // Sprint 15: Public payment webhook (no auth — provider calls this)
@@ -224,9 +288,9 @@ Route::prefix('v1')->group(function () {
     });
 
     // Marketplace Public Endpoints
-    Route::get('/marketplace', [\App\Http\Controllers\MarketplaceController::class, 'index']);
-    Route::get('/marketplace/categories', [\App\Http\Controllers\MarketplaceController::class, 'categories']);
-    Route::get('/marketplace/{id}', [\App\Http\Controllers\MarketplaceController::class, 'show']);
+    Route::get('/marketplace', [MarketplaceController::class, 'index']);
+    Route::get('/marketplace/categories', [MarketplaceController::class, 'categories']);
+    Route::get('/marketplace/{id}', [MarketplaceController::class, 'show']);
 
     // Sprint 30: Public physical product listing (no auth required)
     Route::get('/store/physical-products', [PhysicalProductController::class, 'indexPublic']);
@@ -316,32 +380,32 @@ Route::prefix('v1')->group(function () {
             $user = $request->user();
 
             return response()->json([
-                'id'                => $user->id,
-                'name'              => $user->name,
-                'email'             => $user->email,
-                'username'          => $user->username,
-                'role'              => $user->role,
-                'bio'               => $user->bio,
-                'avatar'            => $user->avatar,
-                'avatar_url'        => $user->avatar_url ?? $user->avatar,
-                'banner_url'        => $user->banner_url,
-                'mobile_number'     => $user->mobile_number,
-                'phone'             => $user->mobile_number,
-                'birthday'          => $user->birthday?->format('Y-m-d'),
-                'country'           => $user->country,
-                'county'            => $user->county,
-                'state'             => $user->state,
-                'permissions'       => $user->permissions(),
-                'kyc_status'        => $user->kyc_status,
-                'email_verified'    => $user->hasVerifiedEmail(),
-                'posts_count'       => $user->posts()->count(),
-                'followers_count'   => $user->followers()->count(),
-                'following_count'   => $user->follows()->count(),
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'username' => $user->username,
+                'role' => $user->role,
+                'bio' => $user->bio,
+                'avatar' => $user->avatar,
+                'avatar_url' => $user->avatar_url ?? $user->avatar,
+                'banner_url' => $user->banner_url,
+                'mobile_number' => $user->mobile_number,
+                'phone' => $user->mobile_number,
+                'birthday' => $user->birthday?->format('Y-m-d'),
+                'country' => $user->country,
+                'county' => $user->county,
+                'state' => $user->state,
+                'permissions' => $user->permissions(),
+                'kyc_status' => $user->kyc_status,
+                'email_verified' => $user->hasVerifiedEmail(),
+                'posts_count' => $user->posts()->count(),
+                'followers_count' => $user->followers()->count(),
+                'following_count' => $user->follows()->count(),
                 'communities_count' => $user->communities()->count(),
-                'coins'             => $user->wallet?->coin_balance ?? 0,
+                'coins' => $user->wallet?->coin_balance ?? 0,
                 'verification_badge' => [
-                    'status'     => $user->verification_badge_status,
-                    'active'     => $user->hasActiveVerificationBadge(),
+                    'status' => $user->verification_badge_status,
+                    'active' => $user->hasActiveVerificationBadge(),
                     'expires_at' => $user->verification_badge_expires_at?->toIso8601String(),
                 ],
             ]);
@@ -349,12 +413,12 @@ Route::prefix('v1')->group(function () {
 
         // ── Social Follows & User Relations ──────────────────────────────
         Route::prefix('users/{id}')->group(function () {
-            Route::post('/follow', [\App\Http\Controllers\FollowController::class, 'toggleFollow']);
-            Route::post('/follow-user', [\App\Http\Controllers\FollowController::class, 'follow']);
-            Route::delete('/follow', [\App\Http\Controllers\FollowController::class, 'unfollow']);
-            Route::get('/follow-status', [\App\Http\Controllers\FollowController::class, 'status']);
-            Route::get('/followers', [\App\Http\Controllers\FollowController::class, 'followers']);
-            Route::get('/following', [\App\Http\Controllers\FollowController::class, 'following']);
+            Route::post('/follow', [FollowController::class, 'toggleFollow']);
+            Route::post('/follow-user', [FollowController::class, 'follow']);
+            Route::delete('/follow', [FollowController::class, 'unfollow']);
+            Route::get('/follow-status', [FollowController::class, 'status']);
+            Route::get('/followers', [FollowController::class, 'followers']);
+            Route::get('/following', [FollowController::class, 'following']);
         });
 
         // Feature flags (read-only for all authenticated users)
@@ -362,19 +426,19 @@ Route::prefix('v1')->group(function () {
 
         // ── File Uploads & Central Media Processing ──────────────────────
         Route::prefix('upload')->group(function () {
-            Route::get('/', [\App\Http\Controllers\UploadController::class, 'index']);
-            Route::post('/', [\App\Http\Controllers\UploadController::class, 'store']);
-            Route::delete('/{media}', [\App\Http\Controllers\UploadController::class, 'destroy']);
+            Route::get('/', [UploadController::class, 'index']);
+            Route::post('/', [UploadController::class, 'store']);
+            Route::delete('/{media}', [UploadController::class, 'destroy']);
         });
 
         Route::prefix('media')->group(function () {
-            Route::get('/', [\App\Http\Controllers\UploadController::class, 'index']);
-            Route::post('/signed-upload-url', [\App\Http\Controllers\UploadController::class, 'createSignedUploadUrl']);
-            Route::post('/complete', [\App\Http\Controllers\UploadController::class, 'completeUpload']);
-            Route::get('/{uuid}', [\App\Http\Controllers\UploadController::class, 'showByUuid']);
-            Route::get('/{uuid}/status', [\App\Http\Controllers\UploadController::class, 'statusByUuid']);
-            Route::post('/{uuid}/retry', [\App\Http\Controllers\UploadController::class, 'retryProcessing']);
-            Route::delete('/{uuid}', [\App\Http\Controllers\UploadController::class, 'destroy']);
+            Route::get('/', [UploadController::class, 'index']);
+            Route::post('/signed-upload-url', [UploadController::class, 'createSignedUploadUrl']);
+            Route::post('/complete', [UploadController::class, 'completeUpload']);
+            Route::get('/{uuid}', [UploadController::class, 'showByUuid']);
+            Route::get('/{uuid}/status', [UploadController::class, 'statusByUuid']);
+            Route::post('/{uuid}/retry', [UploadController::class, 'retryProcessing']);
+            Route::delete('/{uuid}', [UploadController::class, 'destroy']);
         });
 
         // Profile Management
@@ -400,14 +464,14 @@ Route::prefix('v1')->group(function () {
             Route::get('/membership-status', [MembershipController::class, 'status']);
             Route::get('/members', [MembershipController::class, 'members']);
             Route::get('/requests', [MembershipController::class, 'pendingRequests']);
-            Route::get('/gifts', [\App\Http\Controllers\GiftController::class, 'communityGifts']);
+            Route::get('/gifts', [GiftController::class, 'communityGifts']);
             Route::delete('/members/{userId}', [MembershipController::class, 'removeMember']);
             Route::put('/members/{userId}/role', [MembershipController::class, 'updateMemberRole']);
             Route::post('/roles', [RoleController::class, 'store']);
         });
 
         // Sound & Music Library for Live Streams & Audio Rooms
-        Route::get('/sound-tracks', [\App\Http\Controllers\SoundTrackController::class, 'index']);
+        Route::get('/sound-tracks', [SoundTrackController::class, 'index']);
 
         // Membership Approval / Rejection
         Route::prefix('memberships/{id}')->group(function () {
@@ -498,12 +562,12 @@ Route::prefix('v1')->group(function () {
             Route::post('/attachments', [MessageAttachmentController::class, 'upload']);
             Route::post('/{id}/reactions', [MessageReactionController::class, 'toggle']);
             Route::get('/{id}/reactions', [MessageReactionController::class, 'index']);
-            Route::post('/{id}/forward', [\App\Http\Controllers\ConversationController::class, 'forwardMessage']);
+            Route::post('/{id}/forward', [ConversationController::class, 'forwardMessage']);
         });
 
         // Secure chat media access
         Route::prefix('chat')->group(function () {
-            Route::get('/media/{media}', [\App\Http\Controllers\ChatMediaController::class, 'show']);
+            Route::get('/media/{media}', [ChatMediaController::class, 'show']);
         });
 
         Route::prefix('push-tokens')->group(function () {
@@ -546,11 +610,11 @@ Route::prefix('v1')->group(function () {
             Route::post('/{id}/stock', [PhysicalProductController::class, 'adjustStock']);
         });
 
-                // ── Unified Marketplace & Product Endpoints ──────────────────
-        Route::get('/marketplace/my/products', [\App\Http\Controllers\MarketplaceController::class, 'myProducts']);
-        Route::post('/marketplace/products', [\App\Http\Controllers\MarketplaceController::class, 'store']);
-        Route::get('/me/products', [\App\Http\Controllers\MarketplaceController::class, 'myProducts']);
-        Route::post('/products', [\App\Http\Controllers\MarketplaceController::class, 'store']);
+        // ── Unified Marketplace & Product Endpoints ──────────────────
+        Route::get('/marketplace/my/products', [MarketplaceController::class, 'myProducts']);
+        Route::post('/marketplace/products', [MarketplaceController::class, 'store']);
+        Route::get('/me/products', [MarketplaceController::class, 'myProducts']);
+        Route::post('/products', [MarketplaceController::class, 'store']);
 
         // ── Sprint 31: Cart & Address ────────────────────────────────────
         Route::prefix('store/cart')->group(function () {
@@ -571,37 +635,37 @@ Route::prefix('v1')->group(function () {
 
         // ── Store Categories ──────────────────────────────────────────
         Route::prefix('store/categories')->middleware('creator')->group(function () {
-            Route::get('/', [\App\Http\Controllers\StoreCategoryController::class, 'index']);
-            Route::post('/', [\App\Http\Controllers\StoreCategoryController::class, 'store']);
-            Route::patch('/{category}', [\App\Http\Controllers\StoreCategoryController::class, 'update']);
-            Route::delete('/{category}', [\App\Http\Controllers\StoreCategoryController::class, 'destroy']);
+            Route::get('/', [StoreCategoryController::class, 'index']);
+            Route::post('/', [StoreCategoryController::class, 'store']);
+            Route::patch('/{category}', [StoreCategoryController::class, 'update']);
+            Route::delete('/{category}', [StoreCategoryController::class, 'destroy']);
         });
 
         // ── Store Inventory ──────────────────────────────────────────
         Route::prefix('store/inventory')->middleware('creator')->group(function () {
-            Route::get('/', [\App\Http\Controllers\StoreInventoryController::class, 'index']);
-            Route::patch('/{product}', [\App\Http\Controllers\StoreInventoryController::class, 'update']);
+            Route::get('/', [StoreInventoryController::class, 'index']);
+            Route::patch('/{product}', [StoreInventoryController::class, 'update']);
         });
 
         // ── Store Returns ────────────────────────────────────────────
         Route::prefix('store/returns')->group(function () {
-            Route::get('/', [\App\Http\Controllers\StoreReturnController::class, 'index']);
-            Route::post('/', [\App\Http\Controllers\StoreReturnController::class, 'store']);
-            Route::put('/{return}', [\App\Http\Controllers\StoreReturnController::class, 'update']);
+            Route::get('/', [StoreReturnController::class, 'index']);
+            Route::post('/', [StoreReturnController::class, 'store']);
+            Route::put('/{return}', [StoreReturnController::class, 'update']);
         });
 
         // ── Store Membership Plans ───────────────────────────────────
         Route::prefix('store/memberships')->middleware('creator')->group(function () {
-            Route::get('/', [\App\Http\Controllers\StoreMembershipPlanController::class, 'index']);
-            Route::post('/', [\App\Http\Controllers\StoreMembershipPlanController::class, 'store']);
-            Route::patch('/{plan}', [\App\Http\Controllers\StoreMembershipPlanController::class, 'update']);
-            Route::delete('/{plan}', [\App\Http\Controllers\StoreMembershipPlanController::class, 'destroy']);
+            Route::get('/', [StoreMembershipPlanController::class, 'index']);
+            Route::post('/', [StoreMembershipPlanController::class, 'store']);
+            Route::patch('/{plan}', [StoreMembershipPlanController::class, 'update']);
+            Route::delete('/{plan}', [StoreMembershipPlanController::class, 'destroy']);
         });
 
         // ── Store Settings ──────────────────────────────────────────
         Route::prefix('store/settings')->middleware('creator')->group(function () {
-            Route::get('/', [\App\Http\Controllers\StoreSettingsController::class, 'show']);
-            Route::put('/', [\App\Http\Controllers\StoreSettingsController::class, 'update']);
+            Route::get('/', [StoreSettingsController::class, 'show']);
+            Route::put('/', [StoreSettingsController::class, 'update']);
         });
 
         // ── Fulfilment & Shipping ────────────────────────────────────
@@ -726,35 +790,35 @@ Route::prefix('v1')->group(function () {
 
         // ── Content Studio ──────────────────────────────────────────
         Route::prefix('content')->middleware('creator')->group(function () {
-            Route::get('/', [\App\Http\Controllers\ContentItemController::class, 'index']);
-            Route::post('/', [\App\Http\Controllers\ContentItemController::class, 'store']);
-            Route::patch('/{item}', [\App\Http\Controllers\ContentItemController::class, 'update']);
-            Route::delete('/{item}', [\App\Http\Controllers\ContentItemController::class, 'destroy']);
+            Route::get('/', [ContentItemController::class, 'index']);
+            Route::post('/', [ContentItemController::class, 'store']);
+            Route::patch('/{item}', [ContentItemController::class, 'update']);
+            Route::delete('/{item}', [ContentItemController::class, 'destroy']);
         });
 
         // ── Support Threads ──────────────────────────────────────────
         Route::prefix('support/threads')->group(function () {
-            Route::get('/', [\App\Http\Controllers\SupportController::class, 'index']);
-            Route::get('/{thread}/messages', [\App\Http\Controllers\SupportController::class, 'messages']);
-            Route::post('/{thread}/messages', [\App\Http\Controllers\SupportController::class, 'sendMessage']);
+            Route::get('/', [SupportController::class, 'index']);
+            Route::get('/{thread}/messages', [SupportController::class, 'messages']);
+            Route::post('/{thread}/messages', [SupportController::class, 'sendMessage']);
         });
 
         // ── My Tickets (proxied to the ticket service) ───────────────
         Route::prefix('tickets')->group(function () {
-            Route::get('/categories', [\App\Http\Controllers\TicketProxyController::class, 'categories']);
-            Route::get('/', [\App\Http\Controllers\TicketProxyController::class, 'index']);
-            Route::post('/', [\App\Http\Controllers\TicketProxyController::class, 'store']);
-            Route::get('/{ticket}', [\App\Http\Controllers\TicketProxyController::class, 'show']);
-            Route::post('/{ticket}/reply', [\App\Http\Controllers\TicketProxyController::class, 'reply']);
-            Route::post('/{ticket}/status', [\App\Http\Controllers\TicketProxyController::class, 'status']);
-            Route::post('/{ticket}/rate', [\App\Http\Controllers\TicketProxyController::class, 'rate']);
+            Route::get('/categories', [TicketProxyController::class, 'categories']);
+            Route::get('/', [TicketProxyController::class, 'index']);
+            Route::post('/', [TicketProxyController::class, 'store']);
+            Route::get('/{ticket}', [TicketProxyController::class, 'show']);
+            Route::post('/{ticket}/reply', [TicketProxyController::class, 'reply']);
+            Route::post('/{ticket}/status', [TicketProxyController::class, 'status']);
+            Route::post('/{ticket}/rate', [TicketProxyController::class, 'rate']);
         });
 
         // ── Chat Rooms (alias for frontend) ──────────────────────────
         Route::prefix('chat/rooms')->group(function () {
-            Route::get('/', [\App\Http\Controllers\ChatRoomController::class, 'rooms']);
-            Route::get('/{room}/messages', [\App\Http\Controllers\ChatRoomController::class, 'messages']);
-            Route::post('/{room}/messages', [\App\Http\Controllers\ChatRoomController::class, 'sendMessage']);
+            Route::get('/', [ChatRoomController::class, 'rooms']);
+            Route::get('/{room}/messages', [ChatRoomController::class, 'messages']);
+            Route::post('/{room}/messages', [ChatRoomController::class, 'sendMessage']);
         });
 
         // ── Advertising Campaigns ────────────────────────────────────
@@ -801,102 +865,102 @@ Route::prefix('v1')->group(function () {
 
         // ── Link in Bio ──────────────────────────────────────────────
         Route::prefix('link-in-bio')->group(function () {
-            Route::get('/', [\App\Http\Controllers\LinkInBioController::class, 'index']);
-            Route::post('/', [\App\Http\Controllers\LinkInBioController::class, 'storeLink']);
-            Route::patch('/{link}', [\App\Http\Controllers\LinkInBioController::class, 'updateLink']);
-            Route::delete('/{link}', [\App\Http\Controllers\LinkInBioController::class, 'destroyLink']);
-            Route::put('/profile', [\App\Http\Controllers\LinkInBioController::class, 'saveProfile']);
-            Route::get('/design', [\App\Http\Controllers\LinkInBioController::class, 'showDesign']);
-            Route::put('/design', [\App\Http\Controllers\LinkInBioController::class, 'updateDesign']);
-            Route::post('/design/apply-theme', [\App\Http\Controllers\LinkInBioController::class, 'applyTheme']);
-            Route::post('/design/apply-template', [\App\Http\Controllers\LinkInBioController::class, 'applyTemplate']);
-            Route::put('/domain', [\App\Http\Controllers\LinkInBioController::class, 'updateDomain']);
-            Route::post('/domain/verify', [\App\Http\Controllers\LinkInBioController::class, 'verifyDomain']);
-            Route::post('/links/{link}/track-click', [\App\Http\Controllers\LinkInBioController::class, 'trackClick']);
+            Route::get('/', [LinkInBioController::class, 'index']);
+            Route::post('/', [LinkInBioController::class, 'storeLink']);
+            Route::patch('/{link}', [LinkInBioController::class, 'updateLink']);
+            Route::delete('/{link}', [LinkInBioController::class, 'destroyLink']);
+            Route::put('/profile', [LinkInBioController::class, 'saveProfile']);
+            Route::get('/design', [LinkInBioController::class, 'showDesign']);
+            Route::put('/design', [LinkInBioController::class, 'updateDesign']);
+            Route::post('/design/apply-theme', [LinkInBioController::class, 'applyTheme']);
+            Route::post('/design/apply-template', [LinkInBioController::class, 'applyTemplate']);
+            Route::put('/domain', [LinkInBioController::class, 'updateDomain']);
+            Route::post('/domain/verify', [LinkInBioController::class, 'verifyDomain']);
+            Route::post('/links/{link}/track-click', [LinkInBioController::class, 'trackClick']);
 
             // Social links
-            Route::get('/socials', [\App\Http\Controllers\LinkInBioController::class, 'indexSocials']);
-            Route::post('/socials', [\App\Http\Controllers\LinkInBioController::class, 'storeSocial']);
-            Route::patch('/socials/{social}', [\App\Http\Controllers\LinkInBioController::class, 'updateSocial']);
-            Route::delete('/socials/{social}', [\App\Http\Controllers\LinkInBioController::class, 'destroySocial']);
+            Route::get('/socials', [LinkInBioController::class, 'indexSocials']);
+            Route::post('/socials', [LinkInBioController::class, 'storeSocial']);
+            Route::patch('/socials/{social}', [LinkInBioController::class, 'updateSocial']);
+            Route::delete('/socials/{social}', [LinkInBioController::class, 'destroySocial']);
 
             // Products
-            Route::get('/products', [\App\Http\Controllers\LinkInBioController::class, 'indexProducts']);
-            Route::post('/products', [\App\Http\Controllers\LinkInBioController::class, 'storeProduct']);
-            Route::patch('/products/{product}', [\App\Http\Controllers\LinkInBioController::class, 'updateProduct']);
-            Route::delete('/products/{product}', [\App\Http\Controllers\LinkInBioController::class, 'destroyProduct']);
+            Route::get('/products', [LinkInBioController::class, 'indexProducts']);
+            Route::post('/products', [LinkInBioController::class, 'storeProduct']);
+            Route::patch('/products/{product}', [LinkInBioController::class, 'updateProduct']);
+            Route::delete('/products/{product}', [LinkInBioController::class, 'destroyProduct']);
         });
 
         // ── Marketing Campaigns ──────────────────────────────────────
         Route::prefix('marketing/campaigns')->middleware('creator')->group(function () {
-            Route::get('/', [\App\Http\Controllers\MarketingCampaignController::class, 'index']);
-            Route::post('/', [\App\Http\Controllers\MarketingCampaignController::class, 'store']);
-            Route::get('/{campaign}', [\App\Http\Controllers\MarketingCampaignController::class, 'show']);
-            Route::put('/{campaign}', [\App\Http\Controllers\MarketingCampaignController::class, 'update']);
-            Route::delete('/{campaign}', [\App\Http\Controllers\MarketingCampaignController::class, 'destroy']);
+            Route::get('/', [MarketingCampaignController::class, 'index']);
+            Route::post('/', [MarketingCampaignController::class, 'store']);
+            Route::get('/{campaign}', [MarketingCampaignController::class, 'show']);
+            Route::put('/{campaign}', [MarketingCampaignController::class, 'update']);
+            Route::delete('/{campaign}', [MarketingCampaignController::class, 'destroy']);
         });
 
         // ── AI Chat ──────────────────────────────────────────────────
-        Route::post('/ai/chat', [\App\Http\Controllers\AiChatController::class, 'chat'])->middleware('throttle:30,1');
+        Route::post('/ai/chat', [AiChatController::class, 'chat'])->middleware('throttle:30,1');
 
         // ── AI behavior settings (persona, tone, topic guardrails) ─────
         Route::prefix('ai')->group(function () {
-            Route::get('/settings', [\App\Http\Controllers\AiSettingsController::class, 'show']);
-            Route::put('/settings', [\App\Http\Controllers\AiSettingsController::class, 'update']);
+            Route::get('/settings', [AiSettingsController::class, 'show']);
+            Route::put('/settings', [AiSettingsController::class, 'update']);
         });
 
         // ── AI Onboarding wizard ─────────────────────────────────────
         Route::prefix('onboarding')->group(function () {
-            Route::get('/', [\App\Http\Controllers\OnboardingController::class, 'state']);
-            Route::get('/config', [\App\Http\Controllers\OnboardingController::class, 'config']);
-            Route::post('/progress', [\App\Http\Controllers\OnboardingController::class, 'saveProgress']);
-            Route::post('/vendor-info', [\App\Http\Controllers\OnboardingController::class, 'saveVendorInfo']);
-            Route::post('/member-setup', [\App\Http\Controllers\OnboardingController::class, 'saveMemberSetup']);
-            Route::post('/chat', [\App\Http\Controllers\OnboardingController::class, 'chat'])->middleware('throttle:30,1');
-            Route::post('/about', [\App\Http\Controllers\OnboardingController::class, 'saveAbout']);
-            Route::post('/interests', [\App\Http\Controllers\OnboardingController::class, 'saveInterests']);
-            Route::post('/socials', [\App\Http\Controllers\OnboardingController::class, 'saveSocials']);
-            Route::post('/draft-profile', [\App\Http\Controllers\OnboardingController::class, 'draftProfile']);
-            Route::post('/setup', [\App\Http\Controllers\OnboardingController::class, 'setup']);
-            Route::post('/complete', [\App\Http\Controllers\OnboardingController::class, 'complete']);
+            Route::get('/', [OnboardingController::class, 'state']);
+            Route::get('/config', [OnboardingController::class, 'config']);
+            Route::post('/progress', [OnboardingController::class, 'saveProgress']);
+            Route::post('/vendor-info', [OnboardingController::class, 'saveVendorInfo']);
+            Route::post('/member-setup', [OnboardingController::class, 'saveMemberSetup']);
+            Route::post('/chat', [OnboardingController::class, 'chat'])->middleware('throttle:30,1');
+            Route::post('/about', [OnboardingController::class, 'saveAbout']);
+            Route::post('/interests', [OnboardingController::class, 'saveInterests']);
+            Route::post('/socials', [OnboardingController::class, 'saveSocials']);
+            Route::post('/draft-profile', [OnboardingController::class, 'draftProfile']);
+            Route::post('/setup', [OnboardingController::class, 'setup']);
+            Route::post('/complete', [OnboardingController::class, 'complete']);
         });
 
         // ── Connected Social Accounts & Follower Intelligence ────────────
         Route::prefix('social-accounts')->group(function () {
-            Route::get('/', [\App\Http\Controllers\SocialAccountController::class, 'index']);
-            Route::get('/supported-providers', [\App\Http\Controllers\SocialAccountController::class, 'supportedProviders']);
-            Route::get('/follower-summary', [\App\Http\Controllers\SocialAccountController::class, 'followerSummary']);
-            Route::post('/manual', [\App\Http\Controllers\SocialAccountController::class, 'manualConnect']);
-            Route::patch('/{id}', [\App\Http\Controllers\SocialAccountController::class, 'update']);
-            Route::delete('/{id}', [\App\Http\Controllers\SocialAccountController::class, 'destroy']);
+            Route::get('/', [SocialAccountController::class, 'index']);
+            Route::get('/supported-providers', [SocialAccountController::class, 'supportedProviders']);
+            Route::get('/follower-summary', [SocialAccountController::class, 'followerSummary']);
+            Route::post('/manual', [SocialAccountController::class, 'manualConnect']);
+            Route::patch('/{id}', [SocialAccountController::class, 'update']);
+            Route::delete('/{id}', [SocialAccountController::class, 'destroy']);
         });
 
         // ── Courses & Creator Goods ──────────────────────────────────
-        Route::get('/courses', [\App\Http\Controllers\CourseController::class, 'index']);
-        Route::get('/courses/{course}', [\App\Http\Controllers\CourseController::class, 'show']);
-        Route::get('/users/{id}/courses-and-goods', [\App\Http\Controllers\CourseController::class, 'userCoursesAndGoods']);
-        Route::get('/digital/products', [\App\Http\Controllers\DigitalProductController::class, 'index']);
+        Route::get('/courses', [CourseController::class, 'index']);
+        Route::get('/courses/{course}', [CourseController::class, 'show']);
+        Route::get('/users/{id}/courses-and-goods', [CourseController::class, 'userCoursesAndGoods']);
+        Route::get('/digital/products', [DigitalProductController::class, 'index']);
 
         Route::prefix('courses')->middleware('creator')->group(function () {
-            Route::post('/', [\App\Http\Controllers\CourseController::class, 'store']);
-            Route::put('/{course}', [\App\Http\Controllers\CourseController::class, 'update']);
-            Route::delete('/{course}', [\App\Http\Controllers\CourseController::class, 'destroy']);
+            Route::post('/', [CourseController::class, 'store']);
+            Route::put('/{course}', [CourseController::class, 'update']);
+            Route::delete('/{course}', [CourseController::class, 'destroy']);
         });
 
         // ── Affiliate Products ──────────────────────────────────────
         Route::prefix('affiliate/products')->middleware('creator')->group(function () {
-            Route::get('/', [\App\Http\Controllers\AffiliateProductController::class, 'index']);
-            Route::post('/', [\App\Http\Controllers\AffiliateProductController::class, 'store']);
-            Route::get('/{product}', [\App\Http\Controllers\AffiliateProductController::class, 'show']);
-            Route::put('/{product}', [\App\Http\Controllers\AffiliateProductController::class, 'update']);
-            Route::delete('/{product}', [\App\Http\Controllers\AffiliateProductController::class, 'destroy']);
+            Route::get('/', [AffiliateProductController::class, 'index']);
+            Route::post('/', [AffiliateProductController::class, 'store']);
+            Route::get('/{product}', [AffiliateProductController::class, 'show']);
+            Route::put('/{product}', [AffiliateProductController::class, 'update']);
+            Route::delete('/{product}', [AffiliateProductController::class, 'destroy']);
         });
 
         // ── Short Links ──────────────────────────────────────────
         Route::prefix('short-links')->group(function () {
-            Route::get('/', [\App\Http\Controllers\ShortLinkController::class, 'index']);
-            Route::post('/', [\App\Http\Controllers\ShortLinkController::class, 'store']);
-            Route::delete('/{shortLink}', [\App\Http\Controllers\ShortLinkController::class, 'destroy']);
+            Route::get('/', [ShortLinkController::class, 'index']);
+            Route::post('/', [ShortLinkController::class, 'store']);
+            Route::delete('/{shortLink}', [ShortLinkController::class, 'destroy']);
         });
 
         // ── Community Requests (user's own sent requests) ────────────
@@ -925,27 +989,27 @@ Route::prefix('v1')->group(function () {
 
         // ── Account & Settings (apiClient) ───────────────────────────
         Route::prefix('settings')->group(function () {
-            Route::put('/privacy', [\App\Http\Controllers\ProfileController::class, 'updatePrivacy']);
+            Route::put('/privacy', [ProfileController::class, 'updatePrivacy']);
         });
 
         Route::prefix('account')->group(function () {
-            Route::post('/export', [\App\Http\Controllers\ProfileController::class, 'exportData']);
-            Route::delete('/', [\App\Http\Controllers\ProfileController::class, 'deleteAccount']);
+            Route::post('/export', [ProfileController::class, 'exportData']);
+            Route::delete('/', [ProfileController::class, 'deleteAccount']);
         });
 
         // ── Sprint 1: Role Upgrade / Account Transition ──────────────────
         Route::prefix('role')->group(function () {
-            Route::get('/application', [\App\Http\Controllers\RoleUpgradeController::class, 'myApplication']);
-            Route::get('/history', [\App\Http\Controllers\RoleUpgradeController::class, 'myHistory']);
-            Route::post('/apply', [\App\Http\Controllers\RoleUpgradeController::class, 'apply']);
-            Route::delete('/apply', [\App\Http\Controllers\RoleUpgradeController::class, 'cancel']);
+            Route::get('/application', [RoleUpgradeController::class, 'myApplication']);
+            Route::get('/history', [RoleUpgradeController::class, 'myHistory']);
+            Route::post('/apply', [RoleUpgradeController::class, 'apply']);
+            Route::delete('/apply', [RoleUpgradeController::class, 'cancel']);
         });
 
         // ── KYC (separate from profile/kyc for frontend compat) ─────
         Route::prefix('kyc')->group(function () {
             Route::get('/status', [KycController::class, 'status']);
             Route::get('/triggers', [KycController::class, 'triggers']);
-            Route::post('/submit', [\App\Http\Controllers\ProfileController::class, 'submitKyc']);
+            Route::post('/submit', [ProfileController::class, 'submitKyc']);
             Route::post('/start', [KycController::class, 'start'])->middleware('throttle:kyc.session');
             Route::get('/history', [KycController::class, 'history']);
             Route::get('/callback', [KycController::class, 'callback']);
@@ -953,19 +1017,19 @@ Route::prefix('v1')->group(function () {
 
         // ── Verified badge (blue checkmark) ─────────────────────────
         Route::prefix('verification-badge')->group(function () {
-            Route::get('/status', [\App\Http\Controllers\VerificationBadgeController::class, 'status']);
-            Route::post('/apply', [\App\Http\Controllers\VerificationBadgeController::class, 'apply']);
-            Route::post('/activate', [\App\Http\Controllers\VerificationBadgeController::class, 'activate']);
-            Route::post('/renew', [\App\Http\Controllers\VerificationBadgeController::class, 'renew']);
-            Route::post('/cancel-auto-renew', [\App\Http\Controllers\VerificationBadgeController::class, 'cancelAutoRenew']);
+            Route::get('/status', [VerificationBadgeController::class, 'status']);
+            Route::post('/apply', [VerificationBadgeController::class, 'apply']);
+            Route::post('/activate', [VerificationBadgeController::class, 'activate']);
+            Route::post('/renew', [VerificationBadgeController::class, 'renew']);
+            Route::post('/cancel-auto-renew', [VerificationBadgeController::class, 'cancelAutoRenew']);
         });
 
         // ── Analytics extras ────────────────────────────────────────
         Route::prefix('analytics')->group(function () {
-            Route::get('/products', [\App\Http\Controllers\AnalyticsController::class, 'productPerformance']);
-            Route::get('/chat-channels', [\App\Http\Controllers\AnalyticsController::class, 'chatChannels']);
-            Route::get('/content-planner', [\App\Http\Controllers\AnalyticsController::class, 'contentPlanner']);
-            Route::get('/community-activity', [\App\Http\Controllers\AnalyticsController::class, 'communityActivity']);
+            Route::get('/products', [AnalyticsController::class, 'productPerformance']);
+            Route::get('/chat-channels', [AnalyticsController::class, 'chatChannels']);
+            Route::get('/content-planner', [AnalyticsController::class, 'contentPlanner']);
+            Route::get('/community-activity', [AnalyticsController::class, 'communityActivity']);
         });
 
         // ── Sprint G: Activity Log ──────────────────────────────────────────
@@ -990,9 +1054,9 @@ Route::prefix('v1')->group(function () {
             Route::post('/convert', [CurrencyController::class, 'convert']);
         });
 
-        Route::get('/conversations/stats', [\App\Http\Controllers\ConversationController::class, 'stats']);
-        Route::get('/messages/recent-activity', [\App\Http\Controllers\ConversationController::class, 'recentActivity']);
-        Route::get('/wallet/overview', [\App\Http\Controllers\WalletController::class, 'overview']);
+        Route::get('/conversations/stats', [ConversationController::class, 'stats']);
+        Route::get('/messages/recent-activity', [ConversationController::class, 'recentActivity']);
+        Route::get('/wallet/overview', [WalletController::class, 'overview']);
 
         // ── Sprint 40: Analytics & AI Tools ────────────────────────────────────
         Route::prefix('analytics')->group(function () {
@@ -1232,18 +1296,18 @@ Route::prefix('v1')->group(function () {
 
             // ── Sprint 1: Role Applications ──────────────────────────────
             Route::prefix('role-applications')->group(function () {
-                Route::get('/', [\App\Http\Controllers\RoleUpgradeController::class, 'adminIndex']);
-                Route::get('/stats', [\App\Http\Controllers\RoleUpgradeController::class, 'stats']);
-                Route::get('/{id}', [\App\Http\Controllers\RoleUpgradeController::class, 'adminShow']);
-                Route::patch('/{id}/approve', [\App\Http\Controllers\RoleUpgradeController::class, 'approve']);
-                Route::patch('/{id}/request-kyc', [\App\Http\Controllers\RoleUpgradeController::class, 'requestKyc']);
-                Route::patch('/{id}/reject', [\App\Http\Controllers\RoleUpgradeController::class, 'reject']);
+                Route::get('/', [RoleUpgradeController::class, 'adminIndex']);
+                Route::get('/stats', [RoleUpgradeController::class, 'stats']);
+                Route::get('/{id}', [RoleUpgradeController::class, 'adminShow']);
+                Route::patch('/{id}/approve', [RoleUpgradeController::class, 'approve']);
+                Route::patch('/{id}/request-kyc', [RoleUpgradeController::class, 'requestKyc']);
+                Route::patch('/{id}/reject', [RoleUpgradeController::class, 'reject']);
             });
 
             // ── Sprint 2: Verification Badges ───────────────────────────
             Route::prefix('verification-badges')->group(function () {
-                Route::get('/', [\App\Http\Controllers\VerificationBadgeController::class, 'adminIndex']);
-                Route::patch('/{userId}/status', [\App\Http\Controllers\VerificationBadgeController::class, 'adminUpdateStatus']);
+                Route::get('/', [VerificationBadgeController::class, 'adminIndex']);
+                Route::patch('/{userId}/status', [VerificationBadgeController::class, 'adminUpdateStatus']);
             });
 
             // Withdrawals
@@ -1270,24 +1334,64 @@ Route::prefix('v1')->group(function () {
 
             // Central Media Management
             Route::prefix('media')->group(function () {
-                Route::get('/', [\App\Http\Controllers\AdminMediaController::class, 'index']);
-                Route::get('/stats', [\App\Http\Controllers\AdminMediaController::class, 'stats']);
-                Route::post('/{uuid}/retry', [\App\Http\Controllers\AdminMediaController::class, 'retry']);
-                Route::delete('/{uuid}', [\App\Http\Controllers\AdminMediaController::class, 'destroy']);
+                Route::get('/', [AdminMediaController::class, 'index']);
+                Route::get('/stats', [AdminMediaController::class, 'stats']);
+                Route::post('/{uuid}/retry', [AdminMediaController::class, 'retry']);
+                Route::delete('/{uuid}', [AdminMediaController::class, 'destroy']);
             });
 
             // Sound & Music Library Management
             Route::prefix('sound-tracks')->group(function () {
-                Route::get('/', [\App\Http\Controllers\SoundTrackController::class, 'adminIndex']);
-                Route::post('/', [\App\Http\Controllers\SoundTrackController::class, 'store']);
-                Route::put('/{id}', [\App\Http\Controllers\SoundTrackController::class, 'update']);
-                Route::delete('/{id}', [\App\Http\Controllers\SoundTrackController::class, 'destroy']);
+                Route::get('/', [SoundTrackController::class, 'adminIndex']);
+                Route::post('/', [SoundTrackController::class, 'store']);
+                Route::put('/{id}', [SoundTrackController::class, 'update']);
+                Route::delete('/{id}', [SoundTrackController::class, 'destroy']);
             });
 
             // Reconciliation (Sprint 29)
             Route::prefix('reconciliation')->group(function () {
                 Route::get('/audit', [ReconciliationController::class, 'audit']);
                 Route::get('/ledger-summary', [ReconciliationController::class, 'ledgerSummary']);
+            });
+
+            // Payment Infrastructure (Providers, Routing, Transactions, Payouts, Refunds)
+            Route::prefix('payment-providers')->group(function () {
+                Route::get('/', [AdminPaymentProviderController::class, 'index']);
+                Route::put('/{code}', [AdminPaymentProviderController::class, 'update']);
+                Route::post('/{code}/test-connection', [AdminPaymentProviderController::class, 'testConnection']);
+            });
+
+            Route::prefix('payment-routes')->group(function () {
+                Route::get('/', [AdminPaymentProviderController::class, 'routes']);
+                Route::post('/', [AdminPaymentProviderController::class, 'storeRoute']);
+                Route::post('/simulate', [AdminPaymentProviderController::class, 'simulateRouting']);
+            });
+
+            Route::prefix('payments')->group(function () {
+                Route::get('/stats', [AdminPaymentTransactionController::class, 'stats']);
+                Route::get('/', [AdminPaymentTransactionController::class, 'payments']);
+                Route::get('/{id}', [AdminPaymentTransactionController::class, 'showPayment']);
+                Route::post('/{id}/sync', [AdminPaymentTransactionController::class, 'syncPayment']);
+                Route::post('/{id}/refund', [AdminPaymentTransactionController::class, 'issueRefund']);
+            });
+
+            Route::get('/payouts/all', [AdminPaymentTransactionController::class, 'payouts']);
+            Route::get('/refunds/all', [AdminPaymentTransactionController::class, 'refunds']);
+            Route::get('/financial-audit-logs', [AdminPaymentTransactionController::class, 'auditLogs']);
+
+            // Multi-Stream Accounting & Tax Compliance Hub
+            Route::prefix('accounting')->middleware('admin.permission:accounting')->group(function () {
+                Route::get('/overview', [AdminAccountingController::class, 'overview']);
+                Route::get('/streams', [AdminAccountingController::class, 'streams']);
+                Route::get('/export', [AdminAccountingController::class, 'export']);
+            });
+
+            Route::prefix('tax')->middleware('admin.permission:tax')->group(function () {
+                Route::get('/summary', [AdminTaxController::class, 'summary']);
+                Route::get('/rates', [AdminTaxController::class, 'rates']);
+                Route::post('/rates', [AdminTaxController::class, 'storeRate']);
+                Route::get('/wht-schedule', [AdminTaxController::class, 'whtSchedule']);
+                Route::get('/export', [AdminTaxController::class, 'export']);
             });
 
             // Feature Flags
@@ -1301,13 +1405,13 @@ Route::prefix('v1')->group(function () {
 
             // ── Sprint 19: Queue & System Monitoring ─────────────────────────
             Route::prefix('queue')->group(function () {
-                Route::get('/health', [\App\Http\Controllers\QueueMonitorController::class, 'health']);
-                Route::get('/stats', [\App\Http\Controllers\QueueMonitorController::class, 'stats']);
-                Route::get('/failed-jobs', [\App\Http\Controllers\QueueMonitorController::class, 'failedJobs']);
-                Route::post('/failed-jobs/{id}/retry', [\App\Http\Controllers\QueueMonitorController::class, 'retryFailed']);
-                Route::post('/failed-jobs/retry-all', [\App\Http\Controllers\QueueMonitorController::class, 'retryAllFailed']);
-                Route::delete('/failed-jobs', [\App\Http\Controllers\QueueMonitorController::class, 'flushFailed']);
-                Route::get('/system-info', [\App\Http\Controllers\QueueMonitorController::class, 'systemInfo']);
+                Route::get('/health', [QueueMonitorController::class, 'health']);
+                Route::get('/stats', [QueueMonitorController::class, 'stats']);
+                Route::get('/failed-jobs', [QueueMonitorController::class, 'failedJobs']);
+                Route::post('/failed-jobs/{id}/retry', [QueueMonitorController::class, 'retryFailed']);
+                Route::post('/failed-jobs/retry-all', [QueueMonitorController::class, 'retryAllFailed']);
+                Route::delete('/failed-jobs', [QueueMonitorController::class, 'flushFailed']);
+                Route::get('/system-info', [QueueMonitorController::class, 'systemInfo']);
             });
 
             // ── Sprint 20: Events Management ──────────────────────────────────
@@ -1396,80 +1500,80 @@ Route::prefix('v1')->group(function () {
             });
 
             // ── System Health ────────────────────────────────────────────────
-            Route::get('/system-health', [\App\Http\Controllers\AdminSystemHealthController::class, 'index']);
+            Route::get('/system-health', [AdminSystemHealthController::class, 'index']);
 
             // ── Moderation Logs ─────────────────────────────────────────────
-            Route::get('/moderation-logs', [\App\Http\Controllers\AdminModerationLogController::class, 'index']);
+            Route::get('/moderation-logs', [AdminModerationLogController::class, 'index']);
 
             // ── Audit Trail ─────────────────────────────────────────────────
             Route::prefix('audit-trail')->group(function () {
-                Route::get('/', [\App\Http\Controllers\AuditLogController::class, 'index']);
+                Route::get('/', [AuditLogController::class, 'index']);
             });
 
             // ── Admin Settings ──────────────────────────────────────────────
             Route::prefix('settings')->group(function () {
-                Route::get('/', [\App\Http\Controllers\AdminSettingsController::class, 'show']);
-                Route::put('/', [\App\Http\Controllers\AdminSettingsController::class, 'update']);
+                Route::get('/', [AdminSettingsController::class, 'show']);
+                Route::put('/', [AdminSettingsController::class, 'update']);
             });
 
             // ── AI Provider Selection ───────────────────────────────────────
             Route::prefix('ai-settings')->group(function () {
-                Route::get('/', [\App\Http\Controllers\AdminAiSettingsController::class, 'show']);
-                Route::put('/', [\App\Http\Controllers\AdminAiSettingsController::class, 'update']);
-                Route::post('/test', [\App\Http\Controllers\AdminAiSettingsController::class, 'test']);
+                Route::get('/', [AdminAiSettingsController::class, 'show']);
+                Route::put('/', [AdminAiSettingsController::class, 'update']);
+                Route::post('/test', [AdminAiSettingsController::class, 'test']);
             });
 
             // ── Mail Engine & Email Templates ───────────────────────────────
             Route::prefix('mail-settings')->group(function () {
-                Route::get('/', [\App\Http\Controllers\AdminMailSettingsController::class, 'show']);
-                Route::put('/', [\App\Http\Controllers\AdminMailSettingsController::class, 'update']);
-                Route::post('/test', [\App\Http\Controllers\AdminMailSettingsController::class, 'test']);
+                Route::get('/', [AdminMailSettingsController::class, 'show']);
+                Route::put('/', [AdminMailSettingsController::class, 'update']);
+                Route::post('/test', [AdminMailSettingsController::class, 'test']);
             });
 
             // ── SMS Engine ─────────────────────────────────────────────────
             Route::prefix('sms-settings')->group(function () {
-                Route::get('/', [\App\Http\Controllers\AdminSmsSettingsController::class, 'show']);
-                Route::put('/', [\App\Http\Controllers\AdminSmsSettingsController::class, 'update']);
-                Route::post('/test', [\App\Http\Controllers\AdminSmsSettingsController::class, 'test']);
+                Route::get('/', [AdminSmsSettingsController::class, 'show']);
+                Route::put('/', [AdminSmsSettingsController::class, 'update']);
+                Route::post('/test', [AdminSmsSettingsController::class, 'test']);
             });
 
             // ── Social Login (OAuth) Providers ──────────────────────────────
             Route::prefix('social-login')->group(function () {
-                Route::get('/', [\App\Http\Controllers\AdminSocialLoginController::class, 'show']);
-                Route::put('/', [\App\Http\Controllers\AdminSocialLoginController::class, 'update']);
+                Route::get('/', [AdminSocialLoginController::class, 'show']);
+                Route::put('/', [AdminSocialLoginController::class, 'update']);
             });
 
             // ── Authentication Methods ──────────────────────────────────────
             Route::prefix('auth')->middleware('admin.permission:settings')->group(function () {
-                Route::get('/methods', [\App\Http\Controllers\AdminAuthMethodController::class, 'show']);
-                Route::put('/methods', [\App\Http\Controllers\AdminAuthMethodController::class, 'update']);
+                Route::get('/methods', [AdminAuthMethodController::class, 'show']);
+                Route::put('/methods', [AdminAuthMethodController::class, 'update']);
             });
 
             // ── Server Media Retention ─────────────────────────────────────
             Route::prefix('messaging-retention')->middleware('admin.permission:settings')->group(function () {
-                Route::get('/', [\App\Http\Controllers\AdminMediaRetentionController::class, 'show']);
-                Route::put('/', [\App\Http\Controllers\AdminMediaRetentionController::class, 'update']);
-                Route::post('/run', [\App\Http\Controllers\AdminMediaRetentionController::class, 'runNow']);
-                Route::get('/holds', [\App\Http\Controllers\AdminMediaRetentionController::class, 'holds']);
-                Route::post('/holds', [\App\Http\Controllers\AdminMediaRetentionController::class, 'placeHold']);
-                Route::delete('/holds/{hold}', [\App\Http\Controllers\AdminMediaRetentionController::class, 'releaseHold']);
-                Route::get('/logs', [\App\Http\Controllers\AdminMediaRetentionController::class, 'logs']);
+                Route::get('/', [AdminMediaRetentionController::class, 'show']);
+                Route::put('/', [AdminMediaRetentionController::class, 'update']);
+                Route::post('/run', [AdminMediaRetentionController::class, 'runNow']);
+                Route::get('/holds', [AdminMediaRetentionController::class, 'holds']);
+                Route::post('/holds', [AdminMediaRetentionController::class, 'placeHold']);
+                Route::delete('/holds/{hold}', [AdminMediaRetentionController::class, 'releaseHold']);
+                Route::get('/logs', [AdminMediaRetentionController::class, 'logs']);
             });
 
             // ── Creator Qualification Settings & Events ─────────────────────
             Route::prefix('creator-qualification')->group(function () {
-                Route::get('/settings', [\App\Http\Controllers\AdminSettingsController::class, 'getCreatorQualification']);
-                Route::put('/settings', [\App\Http\Controllers\AdminSettingsController::class, 'updateCreatorQualification']);
-                Route::get('/events', [\App\Http\Controllers\AdminSettingsController::class, 'listQualificationEvents']);
-                Route::post('/events/{id}/notify', [\App\Http\Controllers\AdminSettingsController::class, 'notifyQualificationEvent']);
-                Route::get('/accounts', [\App\Http\Controllers\AdminSettingsController::class, 'listSocialAccounts']);
+                Route::get('/settings', [AdminSettingsController::class, 'getCreatorQualification']);
+                Route::put('/settings', [AdminSettingsController::class, 'updateCreatorQualification']);
+                Route::get('/events', [AdminSettingsController::class, 'listQualificationEvents']);
+                Route::post('/events/{id}/notify', [AdminSettingsController::class, 'notifyQualificationEvent']);
+                Route::get('/accounts', [AdminSettingsController::class, 'listSocialAccounts']);
             });
 
             Route::prefix('email-templates')->group(function () {
-                Route::get('/', [\App\Http\Controllers\AdminEmailTemplateController::class, 'index']);
-                Route::get('{key}', [\App\Http\Controllers\AdminEmailTemplateController::class, 'show']);
-                Route::put('{key}', [\App\Http\Controllers\AdminEmailTemplateController::class, 'update']);
-                Route::post('{key}/reset', [\App\Http\Controllers\AdminEmailTemplateController::class, 'reset']);
+                Route::get('/', [AdminEmailTemplateController::class, 'index']);
+                Route::get('{key}', [AdminEmailTemplateController::class, 'show']);
+                Route::put('{key}', [AdminEmailTemplateController::class, 'update']);
+                Route::post('{key}/reset', [AdminEmailTemplateController::class, 'reset']);
             });
 
             // ── Storage Configuration ───────────────────────────────────────
@@ -1478,11 +1582,11 @@ Route::prefix('v1')->group(function () {
                 Route::put('/', [AdminStorageController::class, 'update']);
 
                 Route::prefix('providers')->group(function () {
-                    Route::get('/', [\App\Http\Controllers\AdminObjectStorageProviderController::class, 'index']);
-                    Route::post('/', [\App\Http\Controllers\AdminObjectStorageProviderController::class, 'store']);
-                    Route::get('{provider}', [\App\Http\Controllers\AdminObjectStorageProviderController::class, 'show']);
-                    Route::put('{provider}', [\App\Http\Controllers\AdminObjectStorageProviderController::class, 'update']);
-                    Route::delete('{provider}', [\App\Http\Controllers\AdminObjectStorageProviderController::class, 'destroy']);
+                    Route::get('/', [AdminObjectStorageProviderController::class, 'index']);
+                    Route::post('/', [AdminObjectStorageProviderController::class, 'store']);
+                    Route::get('{provider}', [AdminObjectStorageProviderController::class, 'show']);
+                    Route::put('{provider}', [AdminObjectStorageProviderController::class, 'update']);
+                    Route::delete('{provider}', [AdminObjectStorageProviderController::class, 'destroy']);
                 });
             });
 
@@ -1546,12 +1650,12 @@ Route::prefix('v1')->group(function () {
 
             // ── Story Settings ─────────────────────────────────────────────
             Route::prefix('stories')->group(function () {
-                Route::get('/settings', [\App\Http\Controllers\AdminStoryController::class, 'show']);
-                Route::put('/settings', [\App\Http\Controllers\AdminStoryController::class, 'update']);
+                Route::get('/settings', [AdminStoryController::class, 'show']);
+                Route::put('/settings', [AdminStoryController::class, 'update']);
             });
 
             // ── Conversion Metrics ─────────────────────────────────────────
-            Route::get('/analytics/conversions', [\App\Http\Controllers\AdminConversionMetricsController::class, 'index']);
+            Route::get('/analytics/conversions', [AdminConversionMetricsController::class, 'index']);
         });
     });
 });

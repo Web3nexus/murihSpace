@@ -8,6 +8,7 @@
 .env.staging.*
 .env.local
 .env.*.local
+.env.testing
 !.env.example
 .phpactor.json
 .phpunit.result.cache

@@ -143,6 +143,8 @@ const AdminGiftsPage = lazyWithRetry(() => import("@/pages/AdminGiftsPage"));
 const AdminSoundLibraryPage = lazyWithRetry(() => import("@/pages/AdminSoundLibraryPage"));
 const AdminCoinPacksPage = lazyWithRetry(() => import("@/pages/AdminCoinPacksPage"));
 const AdminStoriesPage = lazyWithRetry(() => import("@/pages/AdminStoriesPage"));
+const AdminPaymentProvidersPage = lazyWithRetry(() => import("@/pages/AdminPaymentProvidersPage"), "AdminPaymentProvidersPage");
+const AdminAccountingPage = lazyWithRetry(() => import("@/pages/AdminAccountingPage"), "AdminAccountingPage");
 const AdminAlgorithmPage = lazyWithRetry(() => import("@/pages/AdminAlgorithmPage"));
 const AdminMediaManagerPage = lazyWithRetry(() => import("@/pages/AdminMediaManagerPage"));
 const SocialAuthCallbackPage = lazyWithRetry(() => import("@/pages/SocialAuthCallbackPage"), "SocialAuthCallbackPage");
@@ -625,6 +627,14 @@ export const routes: RouteObject[] = [
       {
         path: "securegate/transactions",
         element: <ProtectedRoute requiredRole="admin"><Suspense fallback={<PageLoader />}><AdminTransactionsPage /></Suspense></ProtectedRoute>,
+      },
+      {
+        path: "securegate/payment-providers",
+        element: <ProtectedRoute requiredRole="admin"><Suspense fallback={<PageLoader />}><AdminPaymentProvidersPage /></Suspense></ProtectedRoute>,
+      },
+      {
+        path: "securegate/accounting",
+        element: <ProtectedRoute requiredRole="admin"><Suspense fallback={<PageLoader />}><AdminAccountingPage /></Suspense></ProtectedRoute>,
       },
       {
         path: "securegate/reports",

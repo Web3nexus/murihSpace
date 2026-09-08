@@ -31,9 +31,9 @@ class WithdrawalController extends Controller
 
         $validated = $request->validate([
             'wallet_type' => ['nullable', 'string', 'in:system,creator,business'],
-            'amount'      => ['required', 'integer', 'min:100'],
-            'currency'    => ['nullable', 'string', 'max:3'],
-            'pin'         => ['required', 'string', 'digits:4'],
+            'amount' => ['required', 'integer', 'min:100'],
+            'currency' => ['nullable', 'string', 'max:3'],
+            'pin' => ['required', 'string', 'digits:4'],
         ]);
 
         $walletType = $validated['wallet_type'] ?? 'creator';
@@ -41,7 +41,7 @@ class WithdrawalController extends Controller
         if ($walletType === 'system' && ! $user->isSuperAdmin()) {
             return response()->json([
                 'message' => 'System wallet funds cannot be withdrawn directly. Creator and business earnings can be withdrawn from their respective wallets.',
-                'code'    => 'SYSTEM_WALLET_WITHDRAWAL_RESTRICTED',
+                'code' => 'SYSTEM_WALLET_WITHDRAWAL_RESTRICTED',
             ], 403);
         }
 
@@ -89,8 +89,8 @@ class WithdrawalController extends Controller
         if ($search = $request->query('search')) {
             $query->where(function ($q) use ($search) {
                 $q->where('id', (int) $search)
-                  ->orWhere('ledger_transaction_id', (int) $search)
-                  ->orWhere('user_id', (int) $search);
+                    ->orWhere('ledger_transaction_id', (int) $search)
+                    ->orWhere('user_id', (int) $search);
                 if (in_array(strtolower($search), ['pending', 'approved', 'processing', 'completed', 'rejected'], true)) {
                     $q->orWhere('status', strtolower($search));
                 }
@@ -104,93 +104,101 @@ class WithdrawalController extends Controller
 
     public function adminProcess(Request $request, int $id): JsonResponse
     {
+        if (! $request->user()->hasAdminPermission('payouts')) {
+            return response()->json([
+                'message' => 'Forbidden. Financial auditors and accountants cannot process or approve withdrawals.',
+            ], 403);
+        }
+
         $validated = $request->validate([
             'action' => ['required', 'string', 'in:approve,reject'],
             'rejection_reason' => ['required_if:action,reject', 'nullable', 'string', 'max:1000'],
         ]);
 
-        $withdrawal = WithdrawalRequest::findOrFail($id);
+        return \Illuminate\Support\Facades\DB::transaction(function () use ($id, $validated, $request) {
+            $withdrawal = WithdrawalRequest::where('id', $id)->lockForUpdate()->firstOrFail();
 
-        if ($withdrawal->status !== 'pending') {
-            return response()->json(['message' => 'Withdrawal already processed.', 'code' => 'ALREADY_PROCESSED'], 409);
-        }
+            if ($withdrawal->status !== 'pending') {
+                return response()->json(['message' => 'Withdrawal already processed.', 'code' => 'ALREADY_PROCESSED'], 409);
+            }
 
-        if ($validated['action'] === 'reject') {
-            $withdrawal->update([
-                'status' => 'rejected',
-                'rejection_reason' => $validated['rejection_reason'],
-                'processed_by' => $request->user()->id,
-                'processed_at' => now(),
-            ]);
+            if ($validated['action'] === 'reject') {
+                $withdrawal->update([
+                    'status' => 'rejected',
+                    'rejection_reason' => $validated['rejection_reason'],
+                    'processed_by' => $request->user()->id,
+                    'processed_at' => now(),
+                ]);
+
+                $user = User::find($withdrawal->user_id);
+                if (! $user) {
+                    return response()->json(['message' => 'Withdrawal owner not found.', 'code' => 'USER_NOT_FOUND'], 404);
+                }
+                $this->notifications->actionEmail(
+                    user: $user,
+                    title: 'Your withdrawal request was declined',
+                    bodyHtml: '<p>Your withdrawal request of <strong>'.e($withdrawal->currency).' '.number_format($withdrawal->amount, 2).'</strong> was not approved.</p><p><strong>Reason:</strong> '.e($validated['rejection_reason']).'</p>',
+                    actionLabel: 'View wallet',
+                    actionUrl: NotificationService::link('wallet'),
+                    template: 'withdrawal_rejected',
+                    data: [
+                        'currency' => e($withdrawal->currency),
+                        'amount' => number_format($withdrawal->amount, 2),
+                        'reason' => e($validated['rejection_reason']),
+                    ],
+                );
+
+                return response()->json(['message' => 'Withdrawal rejected.', 'data' => $withdrawal]);
+            }
 
             $user = User::find($withdrawal->user_id);
-            if (! $user) {
-                return response()->json(['message' => 'Withdrawal owner not found.', 'code' => 'USER_NOT_FOUND'], 404);
+            if (! $user || ! $user->hasVerifiedKyc()) {
+                return response()->json([
+                    'message' => 'This user has not completed KYC identity verification. Withdrawals are blocked until KYC is verified.',
+                    'code' => 'KYC_REQUIRED',
+                ], 403);
             }
+
+            // Resolve wallet via WalletService (LedgerService no longer exposes getOrCreateWallet)
+            $walletType = $withdrawal->wallet_type ?? 'creator';
+            $wallet = $this->walletService->getOrCreateWallet($user, $walletType);
+
+            if ($wallet->withdrawable < $withdrawal->amount) {
+                return response()->json(['message' => 'Insufficient withdrawable balance for withdrawal.', 'code' => 'INSUFFICIENT_BALANCE'], 422);
+            }
+
+            $ledgerTxn = $this->ledgerService->debit(
+                user: $user,
+                amount: $withdrawal->amount,
+                currency: $withdrawal->currency,
+                walletType: $walletType,
+                balanceCategory: 'withdrawable',
+                type: 'withdrawal',
+                description: "Withdrawal request #{$withdrawal->id}",
+                idempotencyKey: "WDR-{$withdrawal->id}",
+            );
+
+            $withdrawal->update([
+                'status' => 'completed',
+                'processed_by' => $request->user()->id,
+                'processed_at' => now(),
+                'ledger_transaction_id' => $ledgerTxn->id,
+            ]);
+
             $this->notifications->actionEmail(
                 user: $user,
-                title: 'Your withdrawal request was declined',
-                bodyHtml: '<p>Your withdrawal request of <strong>'.e($withdrawal->currency).' '.number_format($withdrawal->amount, 2).'</strong> was not approved.</p><p><strong>Reason:</strong> '.e($validated['rejection_reason']).'</p>',
+                title: 'Your withdrawal has been processed',
+                bodyHtml: '<p>Your withdrawal of <strong>'.e($withdrawal->currency).' '.number_format($withdrawal->amount, 2).'</strong> has been approved and is being sent to your account. Funds will appear shortly.</p>',
                 actionLabel: 'View wallet',
                 actionUrl: NotificationService::link('wallet'),
-                template: 'withdrawal_rejected',
+                template: 'withdrawal_approved',
                 data: [
                     'currency' => e($withdrawal->currency),
                     'amount' => number_format($withdrawal->amount, 2),
-                    'reason' => e($validated['rejection_reason']),
                 ],
             );
 
-            return response()->json(['message' => 'Withdrawal rejected.', 'data' => $withdrawal]);
-        }
-
-        $user = User::find($withdrawal->user_id);
-        if (! $user || ! $user->hasVerifiedKyc()) {
-            return response()->json([
-                'message' => 'This user has not completed KYC identity verification. Withdrawals are blocked until KYC is verified.',
-                'code' => 'KYC_REQUIRED',
-            ], 403);
-        }
-
-        // Resolve wallet via WalletService (LedgerService no longer exposes getOrCreateWallet)
-        $walletType = $withdrawal->wallet_type ?? 'creator';
-        $wallet = $this->walletService->getOrCreateWallet($user, $walletType);
-
-        if ($wallet->withdrawable < $withdrawal->amount) {
-            return response()->json(['message' => 'Insufficient withdrawable balance for withdrawal.', 'code' => 'INSUFFICIENT_BALANCE'], 422);
-        }
-
-        $ledgerTxn = $this->ledgerService->debit(
-            user: $user,
-            amount: $withdrawal->amount,
-            currency: $withdrawal->currency,
-            walletType: $walletType,
-            balanceCategory: 'withdrawable',
-            type: 'withdrawal',
-            description: "Withdrawal request #{$withdrawal->id}",
-            idempotencyKey: "WDR-{$withdrawal->id}",
-        );
-
-        $withdrawal->update([
-            'status' => 'completed',
-            'processed_by' => $request->user()->id,
-            'processed_at' => now(),
-            'ledger_transaction_id' => $ledgerTxn->id,
-        ]);
-
-        $this->notifications->actionEmail(
-            user: $user,
-            title: 'Your withdrawal has been processed',
-            bodyHtml: '<p>Your withdrawal of <strong>'.e($withdrawal->currency).' '.number_format($withdrawal->amount, 2).'</strong> has been approved and is being sent to your account. Funds will appear shortly.</p>',
-            actionLabel: 'View wallet',
-            actionUrl: NotificationService::link('wallet'),
-            template: 'withdrawal_approved',
-            data: [
-                'currency' => e($withdrawal->currency),
-                'amount' => number_format($withdrawal->amount, 2),
-            ],
-        );
-
-        return response()->json(['message' => 'Withdrawal approved and processed.', 'data' => $withdrawal->fresh()]);
+            return response()->json(['message' => 'Withdrawal approved and processed.', 'data' => $withdrawal->fresh()]);
+        });
     }
 }

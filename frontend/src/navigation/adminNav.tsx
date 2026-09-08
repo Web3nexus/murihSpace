@@ -29,6 +29,7 @@ import {
   Receipt,
   Wallet,
   KeyRound,
+  CreditCard,
 } from "lucide-react";
 import type { NavGroup } from "./navTypes";
 import { MeraIcon } from "@/components/brand/MeraIcon";
@@ -123,6 +124,11 @@ export const adminNav: NavGroup[] = [
     title: "COMMERCE",
     items: [
       {
+        title: "Payment Gateways",
+        url: "/app/securegate/payment-providers",
+        icon: <CreditCard className="size-4" />,
+      },
+      {
         title: "Transactions",
         url: "/app/securegate/transactions",
         icon: <ArrowLeftRight className="size-4" />,
@@ -160,6 +166,16 @@ export const adminNav: NavGroup[] = [
       {
         title: "Platform Fees",
         url: "/app/securegate/fees",
+        icon: <Receipt className="size-4" />,
+      },
+    ],
+  },
+  {
+    title: "ACCOUNTING & TAX",
+    items: [
+      {
+        title: "Revenue & Tax Hub",
+        url: "/app/securegate/accounting",
         icon: <Receipt className="size-4" />,
       },
     ],

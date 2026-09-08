@@ -13,6 +13,11 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->app->singleton(\App\Services\Kyc\KycProviderManager::class);
         $this->app->singleton(\App\Services\Kyc\KycService::class);
+        $this->app->singleton(\App\Services\Payment\Router\ProviderRouter::class);
+        $this->app->singleton(\App\Services\Payment\PaymentService::class);
+        $this->app->singleton(\App\Services\Payment\PayoutService::class);
+        $this->app->singleton(\App\Services\Payment\RefundService::class);
+        $this->app->singleton(\App\Services\Payment\ProviderHealthMonitorService::class);
     }
 
     public function boot(): void
