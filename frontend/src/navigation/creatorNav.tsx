@@ -2,7 +2,6 @@ import {
   LayoutDashboard,
   Users,
   Video,
-  Sparkles,
   Link2,
   GraduationCap,
   CalendarCheck,
@@ -33,20 +32,13 @@ export const creatorNav: NavGroup[] = [
     title: "CREATE",
     items: [
       {
-        title: "Requests",
-        url: "/app/requests",
-        icon: <Sparkles className="size-4" />,
-        featureFlag: "creator_requests",
-      },
-      {
         title: "Friends",
         url: "/app/friends",
         icon: <Users className="size-4" />,
         featureFlag: "friends",
         children: [
           { title: "My Friends", url: "/app/friends" },
-          { title: "Friend Requests", url: "/app/requests/friends" },
-          { title: "Find Friends", url: "/app/friends/find" },
+          { title: "Requests", url: "/app/requests" },
         ],
       },
       {

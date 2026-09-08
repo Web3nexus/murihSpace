@@ -3,7 +3,7 @@ import { useProfile } from "@/hooks/useProfile";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
-import { Loader2, CheckCircle2, AlertCircle, ShieldAlert, Upload, BadgeCheck } from "lucide-react";
+import { Loader2, CheckCircle2, AlertCircle, ShieldAlert, Upload, BadgeCheck, Share2, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ImageUploader } from "@/components/upload/ImageUploader";
 
@@ -22,6 +22,33 @@ export function ProfilePage() {
   const [kycDocInput, setKycDocInput] = useState("");
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [avatar, setAvatar] = useState("");
+  const [copied, setCopied] = useState(false);
+
+  const handleShareProfile = async () => {
+    const cleanUser = username || profile?.username;
+    if (!cleanUser) return;
+    const shareUrl = `${window.location.origin}/u/${cleanUser}`;
+    const shareData = {
+      title: `${name || cleanUser} on MurihSpace`,
+      text: `Check out my profile on MurihSpace`,
+      url: shareUrl,
+    };
+    if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
+      try {
+        await navigator.share(shareData);
+        return;
+      } catch {
+        // Fallback to clipboard
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    } catch {
+      // Ignore
+    }
+  };
 
   useEffect(() => {
     if (profile) {
@@ -108,6 +135,16 @@ export function ProfilePage() {
               </div>
             </div>
             <div className="flex items-center gap-2 pb-1">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleShareProfile}
+                className="h-8 gap-1.5 text-xs font-semibold"
+              >
+                {copied ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Share2 className="h-3.5 w-3.5" />}
+                {copied ? "Link Copied!" : "Share Profile"}
+              </Button>
               <span className="px-3 py-1 rounded-full bg-[#2164b6]/10 text-[#2164b6] dark:text-[#7ab0ff] text-xs font-bold capitalize">
                 {profile?.role || "Member"} Mode
               </span>

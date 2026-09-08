@@ -320,8 +320,15 @@ export function CommunitiesPage() {
                       {
                         icon: <Share2 className="h-[18px] w-[18px]" />,
                         label: "Share",
-                        onClick: () => {
-                          navigator.clipboard.writeText(`${window.location.origin}/app/communities/${post.community_slug}`);
+                        onClick: async () => {
+                          const url = `${window.location.origin}/c/${post.community_slug}`;
+                          if (navigator.share && navigator.canShare && navigator.canShare({ url })) {
+                            try {
+                              await navigator.share({ title: "Community on MurihSpace", url });
+                              return;
+                            } catch {}
+                          }
+                          navigator.clipboard.writeText(url);
                         },
                         active: false,
                       },

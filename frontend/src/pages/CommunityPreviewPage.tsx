@@ -1,6 +1,6 @@
 import { authFetch } from "@/lib/api/authFetch";
 import * as React from "react";
-import { useParams, Link } from "react-router";
+import { useParams, Link, useNavigate } from "react-router";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ErrorState, NotFoundState } from "@/components/common/UIStateComponents";
@@ -8,6 +8,9 @@ import { JoinCommunityButton } from "@/components/community/JoinCommunityButton"
 import { JoinRequestsModal } from "@/components/community/JoinRequestsModal";
 import { RoleManagementModal } from "@/components/community/RoleManagementModal";
 import { SEOHead } from "@/components/common/SEOHead";
+import { OpenInAppBanner } from "@/components/common/OpenInAppBanner";
+import { AuthPromptModal } from "@/components/auth/AuthPromptModal";
+import { useAuth } from "@/hooks/useAuth";
 import {
   Users,
   Globe,
@@ -26,6 +29,7 @@ import {
   ChevronRight,
   Loader2,
   BookOpen,
+  Check,
 } from "lucide-react";
 import type { Community, CommunityMembership } from "@/types/community";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -39,9 +43,19 @@ const MEMBER_ROLE_STYLES: Record<string, string> = {
 
 export function CommunityPreviewPage() {
   const { slug } = useParams<{ slug: string }>();
+  const navigate = useNavigate();
+  const { isAuthenticated, user: currentUser } = useAuth();
   const [community, setCommunity] = React.useState<Community | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
+  const [copied, setCopied] = React.useState(false);
+
+  // Auth prompt
+  const [isAuthModalOpen, setIsAuthModalOpen] = React.useState(false);
+  const [authModalReason, setAuthModalReason] = React.useState<{ title: string; desc: string }>({
+    title: "Join this Community on MurihSpace",
+    desc: "Log in or create a free account to join communities, access exclusive feeds, courses, and participate in events.",
+  });
 
   // Dynamic live member count
   const [membersCount, setMembersCount] = React.useState<number>(0);
@@ -77,9 +91,10 @@ export function CommunityPreviewPage() {
       const res = await authFetch(`/communities/${slug}`);
       if (res.ok) {
         const data = await res.json();
-        if (data.data?.community) {
-          setCommunity(data.data.community);
-          setMembersCount(data.data.community.active_members_count ?? data.data.community.members_count ?? 1);
+        const comm = data.data?.community || data.community || data.data;
+        if (comm && comm.id) {
+          setCommunity(comm);
+          setMembersCount(comm.active_members_count ?? comm.members_count ?? 1);
           return;
         }
       }
@@ -91,6 +106,43 @@ export function CommunityPreviewPage() {
       setIsLoading(false);
     }
   }, [slug]);
+
+  const handleShare = async () => {
+    if (!community) return;
+    const shareUrl = `${window.location.origin}/c/${community.slug}`;
+    const shareData = {
+      title: community.name,
+      text: community.description || `Join ${community.name} on MurihSpace`,
+      url: shareUrl,
+    };
+    if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
+      try {
+        await navigator.share(shareData);
+        return;
+      } catch {
+        // Fallback
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    } catch {
+      // Ignore
+    }
+  };
+
+  const handleViewFeed = () => {
+    if (!isAuthenticated) {
+      setAuthModalReason({
+        title: `Join ${community?.name}`,
+        desc: "Log in or create a free account to view discussions, posts, and connect with members in this community.",
+      });
+      setIsAuthModalOpen(true);
+      return;
+    }
+    navigate(`/app/communities/${community?.slug}/feed`);
+  };
 
   React.useEffect(() => {
     loadCommunity();
@@ -244,38 +296,47 @@ export function CommunityPreviewPage() {
         }}
       />
 
+      {/* Mobile Open-In-App Smart Banner */}
+      <OpenInAppBanner
+        scheme={`murihspace://c/${community.slug}`}
+        title={community.name}
+        subtitle="Open in app to chat, join live audio, and access courses"
+      />
+
       {/* Top Header / Back navigation */}
       <div className="flex items-center justify-between">
         <Link
-          to="/app/communities"
+          to={isAuthenticated ? "/app/communities" : "/communities"}
           className="inline-flex items-center gap-2 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors"
         >
           <ArrowLeft className="h-4 w-4" />
           Back to Communities Hub
         </Link>
 
-        {/* Creator Control Actions */}
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setIsRolesModalOpen(true)}
-            className="gap-2 h-9 text-xs font-semibold border-border hover:bg-muted"
-          >
-            <Key className="h-3.5 w-3.5 text-secondary" />
-            Roles & Permissions
-          </Button>
+        {/* Creator Control Actions (only for community owner or platform admin) */}
+        {isAuthenticated && (currentUser?.id === community.user_id || currentUser?.role === "admin") && (
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsRolesModalOpen(true)}
+              className="gap-2 h-9 text-xs font-semibold border-border hover:bg-muted"
+            >
+              <Key className="h-3.5 w-3.5 text-secondary" />
+              Roles & Permissions
+            </Button>
 
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setIsRequestsModalOpen(true)}
-            className="gap-2 h-9 text-xs font-semibold border-amber-500/30 text-amber-600 dark:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20"
-          >
-            <Clock className="h-3.5 w-3.5" />
-            Join Requests Queue
-          </Button>
-        </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsRequestsModalOpen(true)}
+              className="gap-2 h-9 text-xs font-semibold border-amber-500/30 text-amber-600 dark:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20"
+            >
+              <Clock className="h-3.5 w-3.5" />
+              Join Requests Queue
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Hero Banner */}
@@ -355,27 +416,33 @@ export function CommunityPreviewPage() {
                 variant="outline"
                 size="sm"
                 className="gap-2 h-11 px-4 text-xs font-semibold"
-                onClick={() => {
-                  navigator.clipboard.writeText(window.location.href);
-                  alert("Community link copied to clipboard!");
-                }}
+                onClick={handleShare}
               >
-                <Share2 className="h-4 w-4" />
-                Share
+                {copied ? <Check className="h-4 w-4 text-emerald-500" /> : <Share2 className="h-4 w-4" />}
+                {copied ? "Link Copied!" : "Share"}
               </Button>
 
               {/* Go to Feed */}
-              <Link to={`/app/communities/${community.slug}/feed`}>
-                <Button size="sm" className="gap-2 h-11 px-4 text-xs font-semibold bg-secondary hover:bg-secondary/90 text-secondary-foreground">
-                  <MessageSquare className="h-4 w-4" />
-                  View Feed
-                </Button>
-              </Link>
+              <Button
+                size="sm"
+                onClick={handleViewFeed}
+                className="gap-2 h-11 px-4 text-xs font-semibold bg-secondary hover:bg-secondary/90 text-secondary-foreground"
+              >
+                <MessageSquare className="h-4 w-4" />
+                View Feed
+              </Button>
 
               {/* Dynamic Stateful Join/Leave Button */}
               <JoinCommunityButton
                 community={community}
                 onStatusChange={handleStatusChange}
+                onGuestJoin={() => {
+                  setAuthModalReason({
+                    title: `Join ${community.name}`,
+                    desc: "Create a free account or sign in to join this community, interact with creators, and post.",
+                  });
+                  setIsAuthModalOpen(true);
+                }}
               />
             </div>
           </div>
@@ -461,6 +528,56 @@ export function CommunityPreviewPage() {
                   "No description provided for this community space."}
               </p>
             </div>
+
+            {/* Member Feed Preview for Guests */}
+            {!isAuthenticated && (
+              <div className="rounded-2xl border border-border/80 bg-card p-6 shadow-xs space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <MessageSquare className="h-4 w-4 text-secondary" />
+                    <h4 className="text-sm font-bold text-foreground">Community Feed & Discussions</h4>
+                  </div>
+                  <Badge variant="outline" className="text-[10px] font-semibold text-muted-foreground gap-1">
+                    <Lock className="h-3 w-3" /> Members Only
+                  </Badge>
+                </div>
+
+                {/* Blurred mockup of posts */}
+                <div className="relative overflow-hidden rounded-xl border border-border bg-muted/20 p-4 space-y-3 filter blur-[2px] select-none pointer-events-none opacity-60">
+                  <div className="flex items-center gap-3">
+                    <div className="h-8 w-8 rounded-full bg-muted-foreground/30" />
+                    <div className="space-y-1">
+                      <div className="h-3 w-28 rounded bg-muted-foreground/30" />
+                      <div className="h-2 w-16 rounded bg-muted-foreground/20" />
+                    </div>
+                  </div>
+                  <div className="h-3 w-full rounded bg-muted-foreground/20" />
+                  <div className="h-3 w-3/4 rounded bg-muted-foreground/20" />
+                </div>
+
+                {/* CTA */}
+                <div className="text-center pt-2 space-y-2">
+                  <p className="text-xs text-muted-foreground">
+                    Sign in or create a free account to join the conversation in <strong>{community.name}</strong>.
+                  </p>
+                  <div className="flex items-center justify-center gap-2">
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        setAuthModalReason({
+                          title: `Join ${community.name}`,
+                          desc: "Log in or register to participate in discussions and unlock full member features.",
+                        });
+                        setIsAuthModalOpen(true);
+                      }}
+                      className="h-8 text-xs font-bold bg-secondary text-secondary-foreground hover:bg-secondary/90"
+                    >
+                      Join Community to View Feed
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Right Column: Rules & Guidelines */}
@@ -652,6 +769,14 @@ export function CommunityPreviewPage() {
         onOpenChange={setIsRolesModalOpen}
         communityId={community.id}
         communityName={community.name}
+      />
+
+      {/* Auth Prompt Modal for Guests */}
+      <AuthPromptModal
+        open={isAuthModalOpen}
+        onOpenChange={setIsAuthModalOpen}
+        title={authModalReason.title}
+        description={authModalReason.desc}
       />
     </div>
   );

@@ -131,6 +131,7 @@ const FriendsPage = lazyWithRetry(() => import("@/pages/FriendsPage"));
 const AffiliateProductsPage = lazyWithRetry(() => import("@/pages/AffiliateProductsPage"));
 const MarketingPage = lazyWithRetry(() => import("@/pages/MarketingPage"));
 const PublicLinkInBioPage = lazyWithRetry(() => import("@/pages/PublicLinkInBioPage"));
+const PublicProfilePage = lazyWithRetry(() => import("@/pages/PublicProfilePage"), "PublicProfilePage");
 const ActivityLogPage = lazyWithRetry(() => import("@/pages/ActivityLogPage"));
 const ContentPlannerPage = lazyWithRetry(() => import("@/pages/ContentPlannerPage"));
 const AdCampaignPage = lazyWithRetry(() => import("@/pages/AdCampaignPage"));
@@ -166,6 +167,8 @@ export const routes: RouteObject[] = [
   { path: "/store/:shortCode", element: <Suspense fallback={<PageLoader />}><PublicStorefrontPage /></Suspense> },
   { path: "/media-kit/:creatorId", element: <Suspense fallback={<PageLoader />}><PublicMediaKitPage /></Suspense> },
   { path: "/communities", element: <Suspense fallback={<PageLoader />}><PublicCommunitiesPage /></Suspense> },
+  { path: "/communities/:slug", element: <Suspense fallback={<PageLoader />}><CommunityPreviewPage /></Suspense> },
+  { path: "/c/:slug", element: <Suspense fallback={<PageLoader />}><CommunityPreviewPage /></Suspense> },
   { path: "/privacy", element: <Suspense fallback={<PageLoader />}><PrivacyPolicyPage /></Suspense> },
   { path: "/terms", element: <Suspense fallback={<PageLoader />}><TermsOfServicePage /></Suspense> },
   { path: "/gdpr", element: <Suspense fallback={<PageLoader />}><GDPRPolicyPage /></Suspense> },
@@ -237,11 +240,19 @@ export const routes: RouteObject[] = [
         path: "requests",
         element: <Suspense fallback={<PageLoader />}><RequestsPage /></Suspense>,
       },
+      {
+        path: "requests/friends",
+        element: <Navigate to="/app/requests" replace />,
+      },
 
       // ── Friends (dedicated friends manager) ──────
       {
         path: "friends",
         element: <Suspense fallback={<PageLoader />}><FriendsPage /></Suspense>,
+      },
+      {
+        path: "friends/find",
+        element: <Navigate to="/app/friends" replace />,
       },
 
       // ── Content Studio (Creator) ────────────────
@@ -814,11 +825,11 @@ export const routes: RouteObject[] = [
   { path: RoutePaths.HOME, element: <Navigate to="/app" replace /> },
 
   // ── Public link-in-bio & profile pages ───────────
-  { path: "u/:username", element: <Suspense fallback={<PageLoader />}><PublicLinkInBioPage /></Suspense> },
+  { path: "u/:username", element: <Suspense fallback={<PageLoader />}><PublicProfilePage /></Suspense> },
+  { path: "@:username", element: <Suspense fallback={<PageLoader />}><PublicProfilePage /></Suspense> },
   { path: "l/:username", element: <Suspense fallback={<PageLoader />}><PublicLinkInBioPage /></Suspense> },
   { path: "bio/:username", element: <Suspense fallback={<PageLoader />}><PublicLinkInBioPage /></Suspense> },
-  { path: "@:username", element: <Suspense fallback={<PageLoader />}><PublicLinkInBioPage /></Suspense> },
-  { path: ":username", element: <Suspense fallback={<PageLoader />}><PublicLinkInBioPage /></Suspense> },
+  { path: ":username", element: <Suspense fallback={<PageLoader />}><PublicProfilePage /></Suspense> },
 
   // ── 404 ───────────────────────────────────────
   { path: "*", element: <Suspense fallback={<PageLoader />}><NotFoundPage /></Suspense> },

@@ -15,12 +15,14 @@ const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_
 interface JoinCommunityButtonProps {
   community: Community;
   onStatusChange?: (status: "active" | "pending" | "none", newCount: number) => void;
+  onGuestJoin?: () => void;
   className?: string;
 }
 
 export function JoinCommunityButton({
   community,
   onStatusChange,
+  onGuestJoin,
   className = "",
 }: JoinCommunityButtonProps) {
   const [status, setStatus] = React.useState<"active" | "pending" | "rejected" | "none">("none");
@@ -56,7 +58,12 @@ export function JoinCommunityButton({
     try {
       const token = getAuthToken();
       if (!token) {
-        window.location.href = "/login";
+        setIsLoading(false);
+        if (onGuestJoin) {
+          onGuestJoin();
+        } else {
+          window.location.href = "/login";
+        }
         return;
       }
 

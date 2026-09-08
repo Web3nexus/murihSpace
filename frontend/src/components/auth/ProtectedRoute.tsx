@@ -20,6 +20,11 @@ export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) 
   }
 
   if (!isAuthenticated) {
+    // If an unauthenticated guest opened a community URL (/app/communities/:slug), redirect to public /c/:slug preview
+    const commMatch = location.pathname.match(/^\/app\/communities\/([^/]+)$/);
+    if (commMatch) {
+      return <Navigate to={`/c/${commMatch[1]}`} replace />;
+    }
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 

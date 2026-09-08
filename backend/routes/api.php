@@ -265,6 +265,9 @@ Route::prefix('v1')->group(function () {
     Route::get('/stores/{shortCode}', [StorefrontController::class, 'show'])->middleware('cache.public:10');
     Route::get('/stores/{shortCode}/posts', [StorePostController::class, 'publicPosts'])->middleware('cache.public:5');
 
+    // Public User Profile Endpoint
+    Route::get('/users/{username}/public', [ProfileController::class, 'publicProfile'])->middleware('cache.public:10');
+
     // Public Link-in-Bio Page
     Route::get('/l/{username}', [LinkInBioController::class, 'publicPage'])->middleware('cache.public:10');
 

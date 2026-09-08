@@ -121,6 +121,16 @@ export const memberNav: NavGroup[] = [
         icon: <Users className="size-4" />,
         featureFlag: "community_chat",
       },
+      {
+        title: "Friends",
+        url: "/app/friends",
+        icon: <Users className="size-4" />,
+        featureFlag: "friends",
+        children: [
+          { title: "My Friends", url: "/app/friends" },
+          { title: "Requests", url: "/app/requests" },
+        ],
+      },
     ],
   },
   {
