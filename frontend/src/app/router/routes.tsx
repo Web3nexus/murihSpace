@@ -813,7 +813,11 @@ export const routes: RouteObject[] = [
   // ── Public home → redirect to app dashboard ────
   { path: RoutePaths.HOME, element: <Navigate to="/app" replace /> },
 
-  // ── Public link-in-bio pages ─────────────────────
+  // ── Public link-in-bio & profile pages ───────────
+  { path: "u/:username", element: <Suspense fallback={<PageLoader />}><PublicLinkInBioPage /></Suspense> },
+  { path: "l/:username", element: <Suspense fallback={<PageLoader />}><PublicLinkInBioPage /></Suspense> },
+  { path: "bio/:username", element: <Suspense fallback={<PageLoader />}><PublicLinkInBioPage /></Suspense> },
+  { path: "@:username", element: <Suspense fallback={<PageLoader />}><PublicLinkInBioPage /></Suspense> },
   { path: ":username", element: <Suspense fallback={<PageLoader />}><PublicLinkInBioPage /></Suspense> },
 
   // ── 404 ───────────────────────────────────────

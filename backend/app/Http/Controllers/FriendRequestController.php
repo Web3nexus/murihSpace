@@ -144,9 +144,9 @@ class FriendRequestController extends Controller
         $users = User::where('id', '!=', $userId)
             ->whereNull('deleted_at')
             ->where(function (Builder $query) use ($q, $cleanQ) {
-                $query->where('name', 'ilike', "%{$q}%")
-                    ->orWhere('username', 'ilike', "%{$cleanQ}%")
-                    ->orWhere('email', 'ilike', "%{$q}%")
+                $query->where('name', 'like', "%{$q}%")
+                    ->orWhere('username', 'like', "%{$cleanQ}%")
+                    ->orWhere('email', 'like', "%{$q}%")
                     ->orWhere('mobile_number', 'like', "%{$q}%");
             })
             ->limit(30)
