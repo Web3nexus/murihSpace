@@ -42,9 +42,21 @@ export function QueueMonitorPage() {
         authFetch(`/securegate/queue/failed-jobs?per_page=50`, {  }),
         authFetch(`/securegate/queue/system-info`, {  }),
       ]);
-      if (statsRes.ok) { const j = await statsRes.json(); setStats(j.data?.data ?? j.data); }
-      if (failedRes.ok) { const j = await failedRes.json(); const f = j?.data?.data ?? j?.data; setFailedJobs(Array.isArray(f) ? f : []); }
-      if (sysRes.ok) { const j = await sysRes.json(); setSysInfo(j.data?.data ?? j.data); }
+      if (statsRes.ok) { 
+        const j = await statsRes.json(); 
+        const d = j?.data?.data ?? j?.data ?? j;
+        if (d && typeof d === 'object') setStats(d); 
+      }
+      if (failedRes.ok) { 
+        const j = await failedRes.json(); 
+        const f = j?.data?.data ?? j?.data?.items ?? j?.data ?? j; 
+        setFailedJobs(Array.isArray(f) ? f : []); 
+      }
+      if (sysRes.ok) { 
+        const j = await sysRes.json(); 
+        const s = j?.data?.data ?? j?.data ?? j;
+        if (s && typeof s === 'object') setSysInfo(s); 
+      }
 
       const failed = [statsRes, failedRes, sysRes].filter(r => !r.ok);
       if (failed.length > 0) setFetchError(`${failed.length} data source(s) failed to load.`);
