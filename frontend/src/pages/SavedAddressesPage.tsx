@@ -40,7 +40,7 @@ export default function SavedAddressesPage() {
   const [street, setStreet] = useState("");
   const [city, setCity] = useState("");
   const [state, setState] = useState("");
-  const [country, setCountry] = useState("GB");
+  const [country, setCountry] = useState("NG");
   const [zip, setZip] = useState("");
   const [phone, setPhone] = useState("");
 
@@ -58,7 +58,7 @@ export default function SavedAddressesPage() {
   useEffect(() => { fetchAddresses(); }, [fetchAddresses]);
 
   const resetForm = () => {
-    setLabel(""); setFullName(""); setStreet(""); setCity(""); setState(""); setCountry("GB"); setZip(""); setPhone("");
+    setLabel(""); setFullName(""); setStreet(""); setCity(""); setState(""); setCountry("NG"); setZip(""); setPhone("");
     setEditing(null); setShowForm(false); setMsg(null);
   };
 
@@ -199,7 +199,7 @@ export default function SavedAddressesPage() {
                   setStreet(a.street_line1 || a.street || "");
                   setCity(a.city);
                   setState(a.state ?? "");
-                  setCountry(a.country || "GB");
+                  setCountry(a.country || "NG");
                   setZip(a.postal_code || a.zip || "");
                   setPhone(a.phone || "");
                   setShowForm(true);

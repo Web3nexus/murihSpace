@@ -32,3 +32,4 @@ class QueueMonitorTest extends TestCase
         $this->assertFalse($sysData['redis_connected']);
     }
 }
+

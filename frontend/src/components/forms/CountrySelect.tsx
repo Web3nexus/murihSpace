@@ -14,6 +14,16 @@ export interface CountryItem {
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? "http://localhost:8000/api/v1";
 
+const INITIAL_COUNTRIES: CountryItem[] = [
+  { iso2: "NG", iso3: "NGA", name: "Nigeria", calling_code: "234", flag: "🇳🇬", currency: "NGN", state_required: false, postal_code_required: true },
+  { iso2: "GB", iso3: "GBR", name: "United Kingdom", calling_code: "44", flag: "🇬🇧", currency: "GBP", state_required: false, postal_code_required: true },
+  { iso2: "US", iso3: "USA", name: "United States", calling_code: "1", flag: "🇺🇸", currency: "USD", state_required: true, postal_code_required: true },
+  { iso2: "CA", iso3: "CAN", name: "Canada", calling_code: "1", flag: "🇨🇦", currency: "CAD", state_required: true, postal_code_required: true },
+  { iso2: "GH", iso3: "GHA", name: "Ghana", calling_code: "233", flag: "🇬🇭", currency: "GHS", state_required: false, postal_code_required: false },
+  { iso2: "KE", iso3: "KEN", name: "Kenya", calling_code: "254", flag: "🇰🇪", currency: "KES", state_required: false, postal_code_required: false },
+  { iso2: "ZA", iso3: "ZAF", name: "South Africa", calling_code: "27", flag: "🇿🇦", currency: "ZAR", state_required: false, postal_code_required: true },
+];
+
 interface CountrySelectProps {
   value?: string;
   onChange: (iso2: string, country?: CountryItem) => void;
@@ -29,8 +39,8 @@ export function CountrySelect({
   disabled = false,
   className = "",
 }: CountrySelectProps) {
-  const [countries, setCountries] = useState<CountryItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [countries, setCountries] = useState<CountryItem[]>(INITIAL_COUNTRIES);
+  const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const containerRef = useRef<HTMLDivElement>(null);
@@ -51,7 +61,7 @@ export function CountrySelect({
             : Array.isArray(json) 
               ? json 
               : [];
-        if (active) {
+        if (active && list.length > 0) {
           setCountries(list);
         }
       } catch (err) {

@@ -85,7 +85,7 @@ export default function OnboardingPage() {
   const [businessName, setBusinessName] = useState("");
   const [businessCategory, setBusinessCategory] = useState("Apparel & Fashion");
   const [fulfilmentModel, setFulfilmentModel] = useState("Self-fulfilled (hand-shipped)");
-  const [vendorCountry, setVendorCountry] = useState("GB");
+  const [vendorCountry, setVendorCountry] = useState("NG");
   const [vendorBio, setVendorBio] = useState("");
 
   // Creator state

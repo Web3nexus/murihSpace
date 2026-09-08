@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Country;
 use App\Models\State;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\File;
 
 class CountryController extends Controller
 {
@@ -18,6 +19,17 @@ class CountryController extends Controller
         ])
         ->orderBy('name')
         ->get();
+
+        if ($countries->isEmpty()) {
+            $countriesFile = database_path('data/countries.json');
+            if (File::exists($countriesFile)) {
+                $raw = json_decode(File::get($countriesFile), true) ?? [];
+                usort($raw, fn ($a, $b) => strcmp($a['name'] ?? '', $b['name'] ?? ''));
+                return response()->json([
+                    'data' => $raw,
+                ]);
+            }
+        }
 
         return response()->json([
             'data' => $countries,
@@ -35,6 +47,18 @@ class CountryController extends Controller
             ->select(['id', 'country_iso2', 'code', 'name'])
             ->orderBy('name')
             ->get();
+
+        if ($states->isEmpty()) {
+            $statesFile = database_path('data/states.json');
+            if (File::exists($statesFile)) {
+                $raw = json_decode(File::get($statesFile), true) ?? [];
+                $filtered = array_values(array_filter($raw, fn ($s) => strtoupper($s['country_iso2'] ?? '') === $countryIso2));
+                return response()->json([
+                    'country_iso2' => $countryIso2,
+                    'data' => $filtered,
+                ]);
+            }
+        }
 
         return response()->json([
             'country_iso2' => $countryIso2,
