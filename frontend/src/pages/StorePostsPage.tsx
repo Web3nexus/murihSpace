@@ -1,5 +1,16 @@
 import { useState, useEffect, useCallback } from "react";
-import { MessageSquareText, Plus, Loader2, Trash2, Edit, Eye, EyeOff, Check, AlertCircle, X } from "lucide-react";
+import {
+  ChatText as ChatText,
+  Plus as Plus,
+  Spinner as Loader2,
+  Trash as Trash2,
+  Pencil as Edit,
+  Eye as Eye,
+  EyeSlash as EyeOff,
+  Check as Check,
+  WarningCircle as AlertCircle,
+  X as X
+} from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { authFetch } from "@/lib/api/authFetch";
 import { useConfirm } from "@/components/ui/DialogProvider";
@@ -123,38 +134,38 @@ export default function StorePostsPage() {
   const selectedFont = FONTS.find((f) => f.value === fontFamily) ?? FONTS[0];
 
   return (
-    <div className="space-y-6 w-full max-w-5xl mx-auto p-4 sm:p-6 lg:p-8">
+    <div className="space-y-6 w-full max-w-5xl mx-auto p-4 sm:p-4 lg:p-5">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground flex items-center gap-2.5">
-            <MessageSquareText className="h-6 w-6 text-secondary" />
-            Store Posts
+          <h1 className="text-xl sm:text-xl font-extrabold tracking-tight text-foreground flex items-center gap-2.5">
+            <ChatText weight="fill" className="h-6 w-6 text-secondary" />
+            Storefront Posts
           </h1>
           <p className="text-xs text-muted-foreground mt-0.5">Create styled text posts for your public storefront.</p>
         </div>
         <button onClick={() => { resetForm(); setShowForm(!showForm); }}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-secondary text-secondary-foreground text-xs font-bold hover:bg-secondary/90 shadow-xs transition-all">
-          <Plus className="h-4 w-4" /> {showForm && !editing ? "Cancel" : "New Post"}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-secondary text-secondary-foreground text-xs font-bold hover:bg-secondary/90  transition-all">
+          <Plus weight="fill" className="h-4 w-4" /> {showForm && !editing ? "Cancel" : "New Post"}
         </button>
       </div>
 
       {msg && (
-        <div className={`flex items-center gap-2 rounded-xl p-3 text-xs font-bold ${msg.ok ? "bg-emerald-500/10 text-emerald-600" : "bg-destructive/10 text-destructive"}`}>
-          {msg.ok ? <Check className="h-4 w-4 shrink-0" /> : <AlertCircle className="h-4 w-4 shrink-0" />}
+        <div className={`flex items-center gap-2 rounded-lg p-3 text-xs font-bold ${msg.ok ? "bg-emerald-500/10 text-emerald-600" : "bg-destructive/10 text-destructive"}`}>
+          {msg.ok ? <Check weight="fill" className="h-4 w-4 shrink-0" /> : <AlertCircle weight="fill" className="h-4 w-4 shrink-0" />}
           {msg.text}
-          <button onClick={() => setMsg(null)} className="ml-auto"><X className="h-3.5 w-3.5" /></button>
+          <button onClick={() => setMsg(null)} className="ml-auto"><X weight="fill" className="h-3.5 w-3.5" /></button>
         </div>
       )}
 
       {showForm && (
-        <form onSubmit={handleSave} className="border border-border rounded-2xl bg-card p-6 space-y-5 shadow-sm">
+        <form onSubmit={handleSave} className="border-none rounded-lg bg-card p-4 space-y-5 ">
           <h2 className="text-sm font-bold text-foreground">{editing ? "Edit Post" : "New Post"}</h2>
 
           <div className="space-y-2">
             <label className="text-xs font-bold text-foreground uppercase tracking-wider">Content</label>
             <textarea value={content} onChange={(e) => setContent(e.target.value)} required rows={4}
               placeholder="What's on your mind?"
-              className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-secondary/50 transition-colors resize-none"
+              className="w-full rounded-lg border-none bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-secondary/50 transition-colors resize-none"
               maxLength={5000}
             />
             <p className="text-[10px] text-muted-foreground text-right">{content.length}/5000</p>
@@ -165,9 +176,9 @@ export default function StorePostsPage() {
             <div className="flex gap-2 flex-wrap">
               {FONTS.map((f) => (
                 <button key={f.value} type="button" onClick={() => setFontFamily(f.value)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border ${
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${
                     fontFamily === f.value
-                      ? "bg-secondary text-secondary-foreground border-secondary shadow-sm"
+                      ? "bg-secondary text-secondary-foreground border-secondary "
                       : "bg-muted text-muted-foreground border-border hover:text-foreground"
                   }`}
                   style={{ fontFamily: f.family }}
@@ -183,8 +194,8 @@ export default function StorePostsPage() {
             <div className="flex gap-2 flex-wrap">
               {COLORS.map((c) => (
                 <button key={c.bg + c.text} type="button" onClick={() => { setBgColor(c.bg); setTextColor(c.text); }}
-                  className={`h-8 w-8 rounded-xl border-2 transition-all shrink-0 ${
-                    bgColor === c.bg ? "border-secondary scale-110 shadow-md" : "border-border hover:scale-105"
+                  className={`h-8 w-8 rounded-lg border-2 transition-all shrink-0 ${
+                    bgColor === c.bg ? "border-secondary scale-110 " : "border-border hover:scale-105"
                   }`}
                   style={{ backgroundColor: c.bg }}
                   title={c.label}
@@ -198,9 +209,9 @@ export default function StorePostsPage() {
             <div className="flex gap-2">
               {ALIGNS.map((a) => (
                 <button key={a} type="button" onClick={() => setTextAlign(a)}
-                  className={`px-4 py-1.5 rounded-xl text-xs font-bold capitalize transition-all border ${
+                  className={`px-4 py-1.5 rounded-lg text-xs font-bold capitalize transition-all border ${
                     textAlign === a
-                      ? "bg-secondary text-secondary-foreground border-secondary shadow-sm"
+                      ? "bg-secondary text-secondary-foreground border-secondary "
                       : "bg-muted text-muted-foreground border-border hover:text-foreground"
                   }`}
                 >
@@ -218,8 +229,8 @@ export default function StorePostsPage() {
 
           <div className="space-y-2">
             <label className="text-xs font-bold text-foreground uppercase tracking-wider">Preview</label>
-            <div className="rounded-2xl overflow-hidden border border-border" style={{ backgroundColor: bgColor }}>
-              <div className="p-8 sm:p-12" style={{ fontFamily: selectedFont.family, textAlign: textAlign }}>
+            <div className="rounded-lg overflow-hidden border-none" style={{ backgroundColor: bgColor }}>
+              <div className="p-5 sm:p-12" style={{ fontFamily: selectedFont.family, textAlign: textAlign }}>
                 <p className="text-lg sm:text-xl font-medium leading-relaxed whitespace-pre-wrap" style={{ color: textColor }}>
                   {content || "Your post will look like this..."}
                 </p>
@@ -230,7 +241,7 @@ export default function StorePostsPage() {
           <div className="flex gap-2 pt-2">
             <Button type="submit" disabled={saving || !content.trim()}
               className="text-xs font-bold bg-secondary hover:bg-secondary/90 text-secondary-foreground">
-              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : editing ? "Update Post" : "Create Post"}
+              {saving ? <Loader2 weight="fill" className="h-4 w-4 animate-spin" /> : editing ? "Update Post" : "Create Post"}
             </Button>
             <Button type="button" variant="ghost" onClick={resetForm} className="text-xs">Cancel</Button>
           </div>
@@ -238,10 +249,10 @@ export default function StorePostsPage() {
       )}
 
       {loading ? (
-        <div className="flex justify-center py-16"><Loader2 className="h-8 w-8 animate-spin text-secondary" /></div>
+        <div className="flex justify-center py-16"><Loader2 weight="fill" className="h-8 w-8 animate-spin text-secondary" /></div>
       ) : posts.length === 0 ? (
-        <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border bg-card p-16 text-center">
-          <MessageSquareText className="h-10 w-10 text-muted-foreground/30" />
+        <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed border-border bg-card p-16 text-center">
+          <ChatText weight="fill" className="h-10 w-10 text-muted-foreground/30" />
           <h3 className="text-sm font-bold text-foreground">No posts yet</h3>
           <p className="text-xs text-muted-foreground">Create your first styled storefront post.</p>
         </div>
@@ -250,8 +261,8 @@ export default function StorePostsPage() {
           {posts.map((post) => {
             const font = FONTS.find((f) => f.value === post.font_family) ?? FONTS[0];
             return (
-              <div key={post.id} className="rounded-2xl border border-border bg-card overflow-hidden shadow-xs">
-                <div className="p-6 sm:p-10" style={{ backgroundColor: post.background_color, fontFamily: font.family, textAlign: post.text_align }}>
+              <div key={post.id} className="rounded-lg border-none bg-card overflow-hidden ">
+                <div className="p-4 sm:p-10" style={{ backgroundColor: post.background_color, fontFamily: font.family, textAlign: post.text_align }}>
                   <p className="text-base sm:text-lg font-medium leading-relaxed whitespace-pre-wrap" style={{ color: post.text_color }}>
                     {post.content}
                   </p>
@@ -265,10 +276,10 @@ export default function StorePostsPage() {
                   </div>
                   <div className="flex items-center gap-1">
                     <button onClick={() => togglePublish(post)} className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-all" title={post.is_published ? "Unpublish" : "Publish"}>
-                      {post.is_published ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                      {post.is_published ? <EyeOff className="h-3.5 w-3.5" /> : <Eye weight="fill" className="h-3.5 w-3.5" />}
                     </button>
-                    <button onClick={() => openEdit(post)} className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-all"><Edit className="h-3.5 w-3.5" /></button>
-                    <button onClick={() => handleDelete(post.id)} className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"><Trash2 className="h-3.5 w-3.5" /></button>
+                    <button onClick={() => openEdit(post)} className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-all"><Edit weight="fill" className="h-3.5 w-3.5" /></button>
+                    <button onClick={() => handleDelete(post.id)} className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"><Trash2 weight="fill" className="h-3.5 w-3.5" /></button>
                   </div>
                 </div>
               </div>

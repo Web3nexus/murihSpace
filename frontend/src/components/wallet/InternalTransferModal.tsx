@@ -1,5 +1,9 @@
 import { useState } from "react";
-import { ArrowRight, Loader2, Lock } from "lucide-react";
+import {
+  ArrowRight as ArrowRight,
+  Spinner as Loader2,
+  Lock as Lock
+} from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { apiClient, type ApiError } from "@/lib/api/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -76,7 +80,7 @@ export function InternalTransferModal({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-lg">
-            <ArrowRight className="h-5 w-5 text-primary" /> Internal Wallet Transfer
+            <ArrowRight weight="fill" className="h-5 w-5 text-primary" /> Internal Wallet Transfer
           </DialogTitle>
           <DialogDescription>
             Transfer earnings from your <strong className="capitalize text-foreground">{fromWalletType} Wallet</strong> to your <strong className="text-foreground">System Wallet</strong> to make purchases, buy gifts, or send tips.
@@ -101,7 +105,7 @@ export function InternalTransferModal({
               placeholder="0.00"
               value={amountInput}
               onChange={(e) => setAmountInput(e.target.value)}
-              className="w-full rounded-xl border border-border bg-background px-3.5 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full rounded-lg border-none bg-background px-3.5 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary"
               required
             />
           </div>
@@ -109,7 +113,7 @@ export function InternalTransferModal({
           {hasPin && (
             <div>
               <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1 flex items-center gap-1">
-                <Lock className="h-3 w-3" /> Transaction PIN
+                <Lock weight="fill" className="h-3 w-3" /> Transaction PIN
               </label>
               <input
                 type="password"
@@ -117,7 +121,7 @@ export function InternalTransferModal({
                 placeholder="4-digit PIN"
                 value={pin}
                 onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))}
-                className="w-full rounded-xl border border-border bg-background px-3.5 py-2.5 text-sm font-semibold tracking-widest text-center focus:outline-none focus:ring-2 focus:ring-primary"
+                className="w-full rounded-lg border-none bg-background px-3.5 py-2.5 text-sm font-semibold tracking-widest text-center focus:outline-none focus:ring-2 focus:ring-primary"
                 required
               />
             </div>
@@ -127,16 +131,16 @@ export function InternalTransferModal({
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 py-2.5 rounded-xl border border-border text-sm font-medium text-muted-foreground hover:bg-accent hover:text-foreground transition"
+              className="flex-1 py-2.5 rounded-lg border-none text-sm font-medium text-muted-foreground hover:bg-accent hover:text-foreground transition"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading || !amountInput || parseFloat(amountInput) <= 0}
-              className="flex-1 py-2.5 rounded-xl bg-primary text-primary-foreground font-bold text-sm shadow hover:opacity-90 transition disabled:opacity-50 inline-flex items-center justify-center gap-1.5"
+              className="flex-1 py-2.5 rounded-lg bg-primary text-primary-foreground font-bold text-sm shadow hover:opacity-90 transition disabled:opacity-50 inline-flex items-center justify-center gap-1.5"
             >
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Confirm Transfer"}
+              {loading ? <Loader2 weight="fill" className="h-4 w-4 animate-spin" /> : "Confirm Transfer"}
             </button>
           </div>
         </form>

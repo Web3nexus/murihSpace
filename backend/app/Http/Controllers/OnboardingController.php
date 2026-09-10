@@ -57,26 +57,24 @@ class OnboardingController extends Controller
         };
 
         return response()->json([
-            'data' => [
-                'role' => $role,
-                'is_business' => $isBusiness,
-                'onboarding_completed' => $role === 'admin' || $profile?->onboarding_completed_at !== null,
-                'steps' => $steps,
-                'saved_progress' => $savedProgress,
-                'profile' => [
-                    'name' => $user->name,
-                    'username' => $user->username,
-                    'about' => $profile?->about,
-                    'niche' => $profile?->niche,
-                    'community_interests' => $profile?->community_interests ?? [],
-                    'content_interests' => $profile?->content_interests ?? [],
-                ],
-                'storefront' => $storefront ? [
-                    'name' => $storefront->display_name ?? $storefront->name,
-                    'bio' => $storefront->bio,
-                    'tagline' => $storefront->tagline,
-                ] : null,
+            'role' => $role,
+            'is_business' => $isBusiness,
+            'onboarding_completed' => $role === 'admin' || $profile?->onboarding_completed_at !== null,
+            'steps' => $steps,
+            'saved_progress' => $savedProgress,
+            'profile' => [
+                'name' => $user->name,
+                'username' => $user->username,
+                'about' => $profile?->about,
+                'niche' => $profile?->niche,
+                'community_interests' => $profile?->community_interests ?? [],
+                'content_interests' => $profile?->content_interests ?? [],
             ],
+            'storefront' => $storefront ? [
+                'name' => $storefront->display_name ?? $storefront->name,
+                'bio' => $storefront->bio,
+                'tagline' => $storefront->tagline,
+            ] : null,
         ]);
     }
 

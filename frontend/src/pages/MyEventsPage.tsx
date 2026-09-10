@@ -1,11 +1,18 @@
 import { useState, useEffect, useCallback } from "react";
 import { useConfirm } from "@/components/ui/DialogProvider";
 import { Link } from "react-router";
-import { Plus, Calendar, Trash2, Users, ExternalLink } from "lucide-react";
+import {
+  Plus as Plus,
+  Calendar as Calendar,
+  Trash as Trash2,
+  Users as Users,
+  ArrowSquareOut as ExternalLink
+} from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState, LoadingState, ErrorState } from "@/components/common/UIStateComponents";
 import { CreateEventModal } from "@/components/events/CreateEventModal";
+import { PageSecondaryNav, type PageNavTab } from "@/components/common/PageSecondaryNav";
 import type { EventData } from "@/types/events";
 import { env } from "@/config/env";
 import { getAuthToken } from "@/lib/auth/token";
@@ -88,20 +95,26 @@ export function MyEventsPage() {
   if (isLoading) return <LoadingState message="Loading your events…" />;
   if (error) return <ErrorState title="Failed to load events" description={error} onRetry={fetchEvents} />;
 
+  const eventTabs: PageNavTab[] = [
+    { label: "Discover Events", href: "/app/events", exact: true },
+    { label: "My Events", href: "/app/my-events" },
+    { label: "Live Video & Audio Rooms", href: "/app/audio-rooms" },
+  ];
+
   return (
-    <div className="space-y-6 p-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">My Events</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Create and manage your community events
-          </p>
-        </div>
-        <Button onClick={() => setIsModalOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Create Event
-        </Button>
-      </div>
+    <div className="w-full max-w-7xl mx-auto space-y-6 p-4 lg:p-5">
+      <PageSecondaryNav
+        title="My Community Events"
+        subtitle="Create, schedule, and manage your live events and workshops."
+        icon={<Calendar weight="fill" className="h-5 w-5 text-primary" />}
+        tabs={eventTabs}
+        actions={
+          <Button onClick={() => setIsModalOpen(true)} size="sm" className="font-bold text-xs">
+            <Plus weight="fill" className="mr-1.5 h-4 w-4" />
+            Create Event
+          </Button>
+        }
+      />
 
       {events.length === 0 ? (
         <EmptyState
@@ -115,7 +128,7 @@ export function MyEventsPage() {
           {events.map((event) => (
             <div
               key={event.id}
-              className="rounded-xl border border-border bg-card p-4 flex items-center justify-between gap-4"
+              className="rounded-lg border-none bg-card p-4 flex items-center justify-between gap-4"
             >
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
@@ -131,11 +144,11 @@ export function MyEventsPage() {
                 </div>
                 <div className="flex items-center gap-4 text-xs text-muted-foreground">
                   <span className="flex items-center gap-1">
-                    <Calendar className="h-3 w-3" />
+                    <Calendar weight="fill" className="h-3 w-3" />
                     {formatDate(event.start_date)}
                   </span>
                   <span className="flex items-center gap-1">
-                    <Users className="h-3 w-3" />
+                    <Users weight="fill" className="h-3 w-3" />
                     {event.registration_count ?? 0}{event.capacity ? `/${event.capacity}` : ""}
                   </span>
                   {event.community && <span>{event.community.name}</span>}
@@ -155,11 +168,11 @@ export function MyEventsPage() {
                 )}
                 <Button size="sm" variant="ghost" asChild>
                   <Link to={`/app/events/${event.id}`}>
-                    <ExternalLink className="h-4 w-4" />
+                    <ExternalLink weight="fill" className="h-4 w-4" />
                   </Link>
                 </Button>
                 <Button size="sm" variant="ghost" onClick={() => handleDelete(event.id)}>
-                  <Trash2 className="h-4 w-4 text-destructive" />
+                  <Trash2 weight="fill" className="h-4 w-4 text-destructive" />
                 </Button>
               </div>
             </div>

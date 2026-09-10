@@ -14,3 +14,4 @@ class PaymentIntentResponse
         public readonly array $rawResponse = [],
     ) {}
 }
+

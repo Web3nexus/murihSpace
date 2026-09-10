@@ -5,7 +5,7 @@ export function NotFoundPage() {
   return (
     <AnimatedPage className="flex flex-col items-center justify-center min-h-[60vh] px-4 py-8">
       <h1 className="text-6xl font-extrabold text-blue-600">404</h1>
-      <h2 className="text-3xl font-bold tracking-tight text-gray-950 dark:text-white mt-4">
+      <h2 className="text-xl font-bold tracking-tight text-gray-950 dark:text-white mt-4">
         Page not found
       </h2>
       <p className="mt-2 text-base text-gray-600 dark:text-gray-400">

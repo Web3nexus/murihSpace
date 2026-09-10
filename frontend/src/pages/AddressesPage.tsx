@@ -1,5 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Plus, MapPin, Trash2, CheckCircle, Loader2, Edit, Circle } from 'lucide-react';
+import {
+  Plus as Plus,
+  MapPin as MapPin,
+  Trash as Trash2,
+  CheckCircle as CheckCircle,
+  Spinner as Loader2,
+  Pencil as Edit,
+  Circle as Circle
+} from "@phosphor-icons/react";
 import { useConfirm } from '@/components/ui/DialogProvider';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -139,31 +147,26 @@ export function AddressesPage() {
   if (isLoading) {
     return (
       <div className="w-full flex items-center justify-center h-64">
-        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+        <Loader2 weight="fill" className="w-6 h-6 animate-spin text-muted-foreground" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 w-full max-w-7xl mx-auto p-6 lg:p-8">
+    <div className="space-y-6 w-full max-w-7xl mx-auto p-4 lg:p-5">
       {/* ── Page Header Banner ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 sm:p-8 rounded-2xl bg-gradient-to-br from-[#102840] via-[#173852] to-[#102840] text-white shadow-lg">
-        <div className="space-y-1.5">
-          <div className="flex items-center gap-2">
-            <span className="px-2.5 py-0.5 rounded-full bg-[#2164b6]/20 text-[#2164b6] dark:text-[#7ab0ff] text-xs font-semibold uppercase tracking-wider border border-[#2164b6]/30">
-              Phase 9 — Physical Marketplace
-            </span>
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">Addresses</h1>
-          <p className="text-sm text-white/70 max-w-xl">Manage your shipping and billing addresses.</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 sm:p-6 rounded-2xl bg-gradient-to-br from-[#102840] via-[#173852] to-[#102840] text-white shadow-md">
+        <div className="space-y-1">
+          <h1 className="text-xl sm:text-2xl font-black tracking-tight">Delivery Addresses</h1>
+          <p className="text-sm text-white/80 max-w-xl">Manage your verified shipping and billing delivery addresses.</p>
         </div>
-        <Button onClick={openNew} className="bg-[#2164b6] text-white hover:bg-[#1a5091] font-semibold h-11 px-5 rounded-xl shadow-md gap-2 shrink-0 self-start sm:self-auto">
-          <Plus className="h-5 w-5" /> Add Address
+        <Button onClick={openNew} className="bg-[#2164b6] text-white hover:bg-[#1a5091] font-semibold h-11 px-5 rounded-lg gap-2 shrink-0 self-start sm:self-auto">
+          <Plus weight="fill" className="h-5 w-5" /> Add Address
         </Button>
       </div>
 
       {message && (
-        <div className={`px-4 py-3 rounded-xl text-sm flex items-center gap-2 border ${
+        <div className={`px-4 py-3 rounded-lg text-sm flex items-center gap-2 border ${
           message.type === 'success' ? 'bg-emerald-50/50 text-emerald-600 border-emerald-200/50' : 'bg-destructive/10 text-destructive border-destructive/20'
         }`}>
           {message.text}
@@ -171,21 +174,21 @@ export function AddressesPage() {
       )}
 
       {showForm && (
-        <form onSubmit={handleSubmit} className="rounded-2xl border border-border bg-card p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="rounded-lg border-none bg-card p-4 space-y-4">
           <h2 className="font-semibold text-foreground">{editing ? 'Edit Address' : 'New Address'}</h2>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm text-muted-foreground mb-1">Label</label>
               <select value={form.label} onChange={e => setForm(p => ({ ...p, label: e.target.value }))}
-                className="w-full rounded-xl border-border bg-card px-3 py-2 text-sm text-foreground">
+                className="w-full rounded-lg border-border bg-card px-3 py-2 text-sm text-foreground">
                 <option>Home</option><option>Work</option><option>Office</option><option>Other</option>
               </select>
             </div>
             <div>
-              <label className="block text-sm text-muted-foreground mb-1">Type</label>
+              <label className="block text-sm text-muted-foreground mb-1">TextT</label>
               <select value={form.type} onChange={e => setForm(p => ({ ...p, type: e.target.value }))}
-                className="w-full rounded-xl border-border bg-card px-3 py-2 text-sm text-foreground">
+                className="w-full rounded-lg border-border bg-card px-3 py-2 text-sm text-foreground">
                 <option value="both">Shipping & Billing</option>
                 <option value="shipping">Shipping</option>
                 <option value="billing">Billing</option>
@@ -239,7 +242,7 @@ export function AddressesPage() {
             <div>
               <label className="block text-sm text-muted-foreground mb-1">Country</label>
               <select value={form.country} onChange={e => setForm(p => ({ ...p, country: e.target.value }))}
-                className="w-full rounded-xl border-border bg-card px-3 py-2 text-sm text-foreground">
+                className="w-full rounded-lg border-border bg-card px-3 py-2 text-sm text-foreground">
                 {Object.entries(COUNTRY_NAMES).map(([code, name]) => (
                   <option key={code} value={code}>{name} ({code})</option>
                 ))}
@@ -256,7 +259,7 @@ export function AddressesPage() {
 
           <div className="flex gap-3 pt-2">
             <Button type="submit" disabled={isSubmitting} className="gap-2">
-              {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
+              {isSubmitting && <Loader2 weight="fill" className="w-4 h-4 animate-spin" />}
               {editing ? 'Update' : 'Save'}
             </Button>
             <Button type="button" variant="outline" onClick={() => { setShowForm(false); setEditing(null); }}>
@@ -267,9 +270,9 @@ export function AddressesPage() {
       )}
 
       {addresses.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-border p-12 text-center space-y-3 bg-card">
+        <div className="rounded-lg border border-dashed border-border p-12 text-center space-y-3 bg-card">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
-            <MapPin className="h-6 w-6" />
+            <MapPin weight="fill" className="h-6 w-6" />
           </div>
           <h3 className="text-base font-semibold text-foreground">No addresses saved</h3>
           <p className="text-xs text-muted-foreground max-w-sm mx-auto">Add a shipping or billing address to get started.</p>
@@ -277,23 +280,23 @@ export function AddressesPage() {
       ) : (
         <div className="space-y-3">
           {addresses.map((addr) => (
-            <div key={addr.id} className="rounded-2xl border border-border bg-card overflow-hidden shadow-xs hover:shadow-md hover:border-primary/30 transition-all duration-200 p-5">
+            <div key={addr.id} className="rounded-lg border-none bg-card overflow-hidden  hover: hover:border-primary/30 transition-all duration-200 p-5">
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-2 flex-wrap">
                   <Badge variant="secondary">{addr.label}</Badge>
                   <Badge variant="outline">{addr.type}</Badge>
                   {addr.is_default && (
                     <Badge variant="secondary" className="flex items-center gap-1">
-                      <CheckCircle className="w-3 h-3 text-emerald-500" /> Default
+                      <CheckCircle weight="fill" className="w-3 h-3 text-emerald-500" /> Default
                     </Badge>
                   )}
                 </div>
                 <div className="flex items-center gap-1">
                   <Button variant="ghost" size="icon" onClick={() => openEdit(addr)}>
-                    <Edit className="w-4 h-4" />
+                    <Edit weight="fill" className="w-4 h-4" />
                   </Button>
                   <Button variant="ghost" size="icon" onClick={() => deleteAddress(addr.id)}>
-                    <Trash2 className="w-4 h-4 text-destructive" />
+                    <Trash2 weight="fill" className="w-4 h-4 text-destructive" />
                   </Button>
                 </div>
               </div>
@@ -308,7 +311,7 @@ export function AddressesPage() {
 
               {!addr.is_default && (
                 <Button variant="link" size="sm" onClick={() => setDefault(addr.id)} className="mt-3 h-auto p-0 text-sm">
-                  <Circle className="w-3.5 h-3.5" /> Set as default
+                  <Circle weight="fill" className="w-3.5 h-3.5" /> Set as default
                 </Button>
               )}
             </div>

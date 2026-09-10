@@ -1,5 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
-import { DollarSign, Loader2, TrendingUp, CheckCircle, Clock } from 'lucide-react';
+import {
+  CurrencyDollar as DollarSign,
+  Spinner as Loader2,
+  TrendUp as TrendingUp,
+  CheckCircle as CheckCircle,
+  Clock as Clock
+} from "@phosphor-icons/react";
 import { Badge } from "@/components/ui/badge";
 import { authFetch } from "@/lib/api/authFetch";
 
@@ -58,70 +64,65 @@ export function PayoutsPage() {
   if (isLoading) {
     return (
       <div className="w-full flex items-center justify-center h-64">
-        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+        <Loader2 weight="fill" className="w-6 h-6 animate-spin text-muted-foreground" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 w-full max-w-7xl mx-auto p-6 lg:p-8">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 sm:p-8 rounded-2xl bg-gradient-to-br from-[#102840] via-[#173852] to-[#102840] text-white shadow-lg">
-        <div className="space-y-1.5">
-          <div className="flex items-center gap-2">
-            <span className="px-2.5 py-0.5 rounded-full bg-[#2164b6]/20 text-[#2164b6] dark:text-[#7ab0ff] text-xs font-semibold uppercase tracking-wider border border-[#2164b6]/30">
-              Phase 9 — Payouts
-            </span>
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">Payouts</h1>
-          <p className="text-sm text-white/70 max-w-xl">Track your earnings and payout history.</p>
+    <div className="space-y-6 w-full max-w-7xl mx-auto p-4 lg:p-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 sm:p-6 rounded-2xl bg-gradient-to-br from-[#102840] via-[#173852] to-[#102840] text-white shadow-md">
+        <div className="space-y-1">
+          <h1 className="text-xl sm:text-2xl font-black tracking-tight">Payouts</h1>
+          <p className="text-sm text-white/80 max-w-xl">Track your sales earnings, deductions, and payout history.</p>
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-4">
-        <div className="rounded-2xl border border-border bg-card p-5 shadow-xs">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="rounded-xl border border-border/60 bg-card p-5 shadow-sm">
           <div className="flex items-center gap-2 text-muted-foreground mb-2">
-            <Clock className="w-5 h-5" />
-            <span className="text-sm font-medium">Pending</span>
+            <Clock weight="fill" className="w-5 h-5 text-amber-500" />
+            <span className="text-sm font-medium">Pending Payouts</span>
           </div>
-          <p className="text-2xl font-bold text-foreground">{formatPrice(stats?.pending ?? 0)}</p>
+          <p className="text-2xl font-extrabold text-foreground">{formatPrice(stats?.pending ?? 0)}</p>
         </div>
-        <div className="rounded-2xl border border-border bg-card p-5 shadow-xs">
-          <div className="flex items-center gap-2 text-[#2164b6] dark:text-[#7ab0ff] mb-2">
-            <CheckCircle className="w-5 h-5" />
-            <span className="text-sm font-medium">Paid</span>
+        <div className="rounded-xl border border-border/60 bg-card p-5 shadow-sm">
+          <div className="flex items-center gap-2 text-muted-foreground mb-2">
+            <CheckCircle weight="fill" className="w-5 h-5 text-emerald-500" />
+            <span className="text-sm font-medium">Completed Payouts</span>
           </div>
-          <p className="text-2xl font-bold text-foreground">{formatPrice(stats?.paid ?? 0)}</p>
+          <p className="text-2xl font-extrabold text-foreground">{formatPrice(stats?.paid ?? 0)}</p>
         </div>
-        <div className="rounded-2xl border border-border bg-card p-5 shadow-xs">
-          <div className="flex items-center gap-2 text-secondary mb-2">
-            <TrendingUp className="w-5 h-5" />
+        <div className="rounded-xl border border-border/60 bg-card p-5 shadow-sm">
+          <div className="flex items-center gap-2 text-muted-foreground mb-2">
+            <TrendingUp weight="fill" className="w-5 h-5 text-[#2164b6] dark:text-[#7ab0ff]" />
             <span className="text-sm font-medium">Orders Fulfilled</span>
           </div>
-          <p className="text-2xl font-bold text-foreground">{stats?.total_orders ?? 0}</p>
+          <p className="text-2xl font-extrabold text-foreground">{stats?.total_orders ?? 0}</p>
         </div>
       </div>
 
       {totals && (
-        <div className="rounded-2xl border border-border bg-card p-5 grid grid-cols-3 gap-4 text-sm shadow-xs">
-          <div>
-            <span className="text-muted-foreground">Gross Revenue:</span>{' '}
-            <strong className="text-foreground">{formatPrice(totals.total_gross)}</strong>
+        <div className="rounded-xl border border-border/60 bg-card p-5 grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm shadow-sm">
+          <div className="flex flex-col gap-0.5">
+            <span className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Gross Revenue</span>
+            <strong className="text-lg font-bold text-foreground">{formatPrice(totals.total_gross)}</strong>
           </div>
-          <div>
-            <span className="text-muted-foreground">Platform Fees:</span>{' '}
-            <strong className="text-muted-foreground">{formatPrice(totals.total_fees)}</strong>
+          <div className="flex flex-col gap-0.5">
+            <span className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Platform Fees</span>
+            <strong className="text-lg font-bold text-muted-foreground">{formatPrice(totals.total_fees)}</strong>
           </div>
-          <div>
-            <span className="text-muted-foreground">Net Earnings:</span>{' '}
-            <strong className="text-foreground font-bold">{formatPrice(totals.total_net)}</strong>
+          <div className="flex flex-col gap-0.5">
+            <span className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Net Earnings</span>
+            <strong className="text-lg font-black text-emerald-600 dark:text-emerald-400">{formatPrice(totals.total_net)}</strong>
           </div>
         </div>
       )}
 
       {payouts.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-border p-12 text-center space-y-3 bg-card">
+        <div className="rounded-lg border border-dashed border-border p-12 text-center space-y-3 bg-card">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
-            <DollarSign className="h-6 w-6" />
+            <DollarSign weight="fill" className="h-6 w-6" />
           </div>
           <h3 className="text-base font-semibold">No payouts yet</h3>
           <p className="text-xs text-muted-foreground max-w-sm mx-auto">Payouts are created when a fulfilment order is delivered.</p>
@@ -136,7 +137,7 @@ export function PayoutsPage() {
             <span>Status</span>
           </div>
           {payouts.map(p => (
-            <div key={p.id} className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-4 items-center rounded-2xl border border-border bg-card px-4 py-3.5 shadow-xs hover:shadow-md hover:border-primary/30 transition-all duration-200">
+            <div key={p.id} className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-4 items-center rounded-lg border-none bg-card px-4 py-3.5  hover: hover:border-primary/30 transition-all duration-200">
               <div>
                 <p className="font-medium text-sm">{p.order_number ?? '#' + p.fulfilment_order_id}</p>
                 <p className="text-xs text-muted-foreground">{p.order_created_at ? new Date(p.order_created_at).toLocaleDateString() : ''}</p>

@@ -4,7 +4,10 @@ import { useAuth } from "@/hooks/useAuth";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Loader2, ShieldAlert } from "lucide-react";
+import {
+  Spinner as Loader2,
+  ShieldWarning as ShieldWarning
+} from "@phosphor-icons/react";
 
 export function AdminLoginPage() {
   const [email, setEmail] = useState("");
@@ -46,16 +49,16 @@ export function AdminLoginPage() {
       <main className="flex-1 flex items-center justify-center px-4">
         <div className="w-full max-w-sm">
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center h-14 w-14 rounded-2xl bg-amber-500/10 border border-amber-500/20 mb-4">
-              <ShieldAlert className="h-7 w-7 text-amber-400" />
+            <div className="inline-flex items-center justify-center h-14 w-14 rounded-lg bg-amber-500/10 border border-amber-500/20 mb-4">
+              <ShieldWarning weight="fill" className="h-7 w-7 text-amber-400" />
             </div>
-            <h1 className="text-2xl font-bold text-white">Securegate</h1>
+            <h1 className="text-xl font-bold text-white">Securegate</h1>
             <p className="text-sm text-slate-400 mt-1">Platform administration portal</p>
           </div>
 
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
+          <div className="bg-slate-900 border border-slate-800 rounded-lg p-4">
             {error && (
-              <div className="mb-4 rounded-xl bg-rose-500/10 border border-rose-500/20 p-3 text-xs text-rose-400 text-center font-medium">
+              <div className="mb-4 rounded-lg bg-rose-500/10 border border-rose-500/20 p-3 text-xs text-rose-400 text-center font-medium">
                 {error}
               </div>
             )}
@@ -75,7 +78,7 @@ export function AdminLoginPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     disabled={loading}
-                    className="h-11 px-4 rounded-xl text-sm bg-slate-800/60 border-slate-700 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 text-slate-100 placeholder:text-slate-500"
+                    className="h-11 px-4 rounded-lg text-sm bg-slate-800/60 border-slate-700 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 text-slate-100 placeholder:text-slate-500"
                   />
                   {fieldErrors.email && (
                     <p className="text-xs text-rose-400 mt-1">{fieldErrors.email[0]}</p>
@@ -95,7 +98,7 @@ export function AdminLoginPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     disabled={loading}
-                    className="h-11 px-4 rounded-xl text-sm bg-slate-800/60 border-slate-700 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 text-slate-100 placeholder:text-slate-500"
+                    className="h-11 px-4 rounded-lg text-sm bg-slate-800/60 border-slate-700 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 text-slate-100 placeholder:text-slate-500"
                   />
                   {fieldErrors.password && (
                     <p className="text-xs text-rose-400 mt-1">{fieldErrors.password[0]}</p>
@@ -106,10 +109,10 @@ export function AdminLoginPage() {
                   <Button
                     type="submit"
                     disabled={loading || !email || !password}
-                    className="w-full h-11 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-sm font-bold transition-all duration-200 active:scale-[0.99] disabled:opacity-50"
+                    className="w-full h-11 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 text-sm font-bold transition-all duration-200 active:scale-[0.99] disabled:opacity-50"
                   >
                     {loading ? (
-                      <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Authenticating…</>
+                      <><Loader2 weight="fill" className="mr-2 h-4 w-4 animate-spin" /> Authenticating…</>
                     ) : (
                       "Access Securegate"
                     )}

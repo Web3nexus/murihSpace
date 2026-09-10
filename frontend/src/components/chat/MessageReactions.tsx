@@ -68,7 +68,7 @@ export function MessageReactions({ messageId, reactions, onReactionToggle }: Mes
         {showPicker && (
           <>
             <div className="fixed inset-0 z-40" onClick={() => setShowPicker(false)} role="presentation" onKeyDown={(e) => e.key === 'Enter' && setShowPicker(false)} />
-            <div className="absolute bottom-7 left-0 z-50 flex gap-1 p-1.5 rounded-xl border border-border bg-card shadow-xl">
+            <div className="absolute bottom-7 left-0 z-50 flex gap-1 p-1.5 rounded-lg border-none bg-card shadow-xl">
               {QUICK_EMOJIS.map((emoji) => (
                 <button
                   key={emoji}

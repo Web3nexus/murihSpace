@@ -1,6 +1,15 @@
 import { useState, useEffect, useCallback } from "react";
 import { useConfirm, usePrompt } from "@/components/ui/DialogProvider";
-import { AlertCircle, DollarSign, Loader2, Megaphone, Search, ThumbsUp, ThumbsDown, X } from "lucide-react";
+import {
+  WarningCircle as AlertCircle,
+  CurrencyDollar as DollarSign,
+  Spinner as Loader2,
+  Megaphone as Megaphone,
+  MagnifyingGlass as Search,
+  ThumbsUp as ThumbsUp,
+  ThumbsDown as ThumbsDown,
+  X as X
+} from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { authFetch } from "@/lib/api/authFetch";
@@ -42,7 +51,18 @@ export default function AdminAdsPage() {
         authFetch(`${ADS_API_BASE}/admin/ads/stats`, {  }),
         authFetch(`${ADS_API_BASE}/admin/ads/revenue`, {  }),
       ]);
-      if (cRes.ok) { const j = await cRes.json(); setCampaigns(j?.data ?? j); }
+      if (cRes.ok) {
+        const j = await cRes.json();
+        const payload = j?.data ?? j;
+        const list = Array.isArray(payload)
+          ? payload
+          : Array.isArray(payload?.data)
+            ? payload.data
+            : Array.isArray(j?.data?.data)
+              ? j.data.data
+              : [];
+        setCampaigns(list);
+      }
       if (sRes.ok) setStats(await sRes.json());
       if (rRes.ok) setRevenue(await rRes.json());
     } catch { /* ignore */ }
@@ -71,16 +91,17 @@ export default function AdminAdsPage() {
     } catch { /* ignore */ }
   };
 
-  const filtered = campaigns.filter((c: any) =>
-    c.name?.toLowerCase().includes(search.toLowerCase()) ||
-    c.user?.name?.toLowerCase().includes(search.toLowerCase())
+  const campaignList = Array.isArray(campaigns) ? campaigns : [];
+  const filtered = campaignList.filter((c: any) =>
+    c?.name?.toLowerCase().includes(search.toLowerCase()) ||
+    c?.user?.name?.toLowerCase().includes(search.toLowerCase())
   );
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-6">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2"><Megaphone className="w-6 h-6 text-purple-500" /> Advertisements</h1>
+          <h1 className="text-xl font-bold flex items-center gap-2"><Megaphone weight="fill" className="w-6 h-6 text-purple-500" /> Advertisements</h1>
           <p className="text-sm text-gray-500 mt-1">Review, approve, and manage platform advertisements</p>
         </div>
         <div className="flex gap-2">
@@ -91,51 +112,51 @@ export default function AdminAdsPage() {
 
       {stats && (
         <div className="grid grid-cols-3 gap-4 mb-6">
-          <div className="bg-white border rounded-xl p-4 shadow-sm">
+          <div className="bg-white border rounded-lg p-4 ">
             <p className="text-sm text-gray-500">Total Campaigns</p>
-            <p className="text-2xl font-bold">{stats.total_campaigns}</p>
+            <p className="text-xl font-bold">{stats.total_campaigns}</p>
           </div>
-          <div className="bg-white border rounded-xl p-4 shadow-sm">
+          <div className="bg-white border rounded-lg p-4 ">
             <p className="text-sm text-gray-500">Active</p>
-            <p className="text-2xl font-bold text-green-600">{stats.active_campaigns}</p>
+            <p className="text-xl font-bold text-green-600">{stats.active_campaigns}</p>
           </div>
-          <div className="bg-white border rounded-xl p-4 shadow-sm">
+          <div className="bg-white border rounded-lg p-4 ">
             <p className="text-sm text-gray-500">Pending Review</p>
-            <p className="text-2xl font-bold text-yellow-600">{stats.pending_review}</p>
+            <p className="text-xl font-bold text-yellow-600">{stats.pending_review}</p>
           </div>
         </div>
       )}
 
       {tab === "revenue" && revenue && (
-        <div className="bg-white border rounded-xl p-6 shadow-sm mb-6">
-          <h2 className="font-semibold text-lg mb-4 flex items-center gap-2"><DollarSign className="w-5 h-5 text-green-500" /> Advertising Revenue</h2>
+        <div className="bg-white border rounded-lg p-4  mb-6">
+          <h2 className="font-semibold text-lg mb-4 flex items-center gap-2"><DollarSign weight="fill" className="w-5 h-5 text-green-500" /> Advertising Revenue</h2>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <p className="text-sm text-gray-500">Total Revenue</p>
-              <p className="text-3xl font-bold">${parseFloat(revenue.total_revenue || 0).toLocaleString()}</p>
+              <p className="text-xl font-bold">${parseFloat(revenue.total_revenue || 0).toLocaleString()}</p>
             </div>
             <div>
               <p className="text-sm text-gray-500">Active Campaigns</p>
-              <p className="text-3xl font-bold">{revenue.active_campaigns}</p>
+              <p className="text-xl font-bold">{revenue.active_campaigns}</p>
             </div>
           </div>
         </div>
       )}
 
       <div className="relative mb-4">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+        <Search weight="fill" className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
         <input type="text" placeholder="Search campaigns by name or advertiser..." value={search} onChange={e => setSearch(e.target.value)} className="w-full pl-10 pr-4 py-2 border rounded-lg text-sm" />
       </div>
 
-      <div className="bg-white border rounded-xl shadow-sm overflow-hidden">
+      <div className="bg-white border rounded-lg  overflow-hidden">
         <div className="p-4 border-b bg-gray-50 flex items-center justify-between">
           <h2 className="font-semibold">{filtered.length} Campaigns</h2>
         </div>
         {loading ? (
-          <div className="flex items-center justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-gray-400" /></div>
+          <div className="flex items-center justify-center py-12"><Loader2 weight="fill" className="w-6 h-6 animate-spin text-gray-400" /></div>
         ) : filtered.length === 0 ? (
           <div className="text-center py-12 text-gray-400">
-            <Megaphone className="w-12 h-12 mx-auto mb-3 opacity-40" />
+            <Megaphone weight="fill" className="w-12 h-12 mx-auto mb-3 opacity-40" />
             <p>No campaigns found.</p>
           </div>
         ) : (
@@ -156,10 +177,10 @@ export default function AdminAdsPage() {
                     <p className="text-xs text-gray-400 mt-1">Created {new Date(c.created_at).toLocaleDateString()}</p>
                   </div>
                   <div className="flex items-center gap-1">
-                    <Button variant="ghost" size="sm" onClick={() => handleAction(c.id, "approve")} className="text-green-600" title="Approve"><ThumbsUp className="w-4 h-4" /></Button>
-                    <Button variant="ghost" size="sm" onClick={() => handleAction(c.id, "reject")} className="text-red-600" title="Reject"><ThumbsDown className="w-4 h-4" /></Button>
-                    <Button variant="ghost" size="sm" onClick={() => handleAction(c.id, "suspend")} className="text-yellow-600" title="Suspend"><AlertCircle className="w-4 h-4" /></Button>
-                    <Button variant="ghost" size="sm" onClick={() => handleAction(c.id, "remove")} className="text-red-600" title="Remove"><X className="w-4 h-4" /></Button>
+                    <Button variant="ghost" size="sm" onClick={() => handleAction(c.id, "approve")} className="text-green-600" title="Approve"><ThumbsUp weight="fill" className="w-4 h-4" /></Button>
+                    <Button variant="ghost" size="sm" onClick={() => handleAction(c.id, "reject")} className="text-red-600" title="Reject"><ThumbsDown weight="fill" className="w-4 h-4" /></Button>
+                    <Button variant="ghost" size="sm" onClick={() => handleAction(c.id, "suspend")} className="text-yellow-600" title="Suspend"><AlertCircle weight="fill" className="w-4 h-4" /></Button>
+                    <Button variant="ghost" size="sm" onClick={() => handleAction(c.id, "remove")} className="text-red-600" title="Remove"><X weight="fill" className="w-4 h-4" /></Button>
                   </div>
                 </div>
                 {c.review_notes && <p className="text-xs text-red-500 mt-1">Notes: {c.review_notes}</p>}

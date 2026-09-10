@@ -13,10 +13,16 @@ class AdController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
+        $user = $request->user();
+        if (!$user) {
+            return response()->json([], 401);
+        }
+
         $campaigns = AdCampaign::with('creatives')
-            ->where('user_id', $request->user()->id)
+            ->where('user_id', $user->id)
             ->latest()
-            ->paginate(15);
+            ->get();
+
         return response()->json($campaigns);
     }
 

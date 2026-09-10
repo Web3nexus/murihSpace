@@ -1,10 +1,12 @@
-import { ShieldCheck } from "lucide-react";
+import {
+  ShieldCheck as ShieldCheck
+} from "@phosphor-icons/react";
 import { LegalLayout } from "@/components/layout/LegalLayout";
 
 export default function PrivacyPolicyPage() {
   return (
     <LegalLayout
-      icon={<ShieldCheck className="h-6 w-6" />}
+      icon={<ShieldCheck weight="fill" className="h-6 w-6" />}
       eyebrow="Legal"
       title="Privacy Policy"
       updated="August 4, 2026"

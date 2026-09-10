@@ -218,6 +218,14 @@ class User extends Authenticatable implements MustVerifyEmail
         return in_array($this->role, ['creator', 'admin']);
     }
 
+    /**
+     * True for any role that can own a store: creator, vendor, or admin.
+     */
+    public function isStoreOwner(): bool
+    {
+        return in_array($this->role, ['creator', 'vendor', 'admin']);
+    }
+
     public function follows(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'follows', 'follower_id', 'following_id')

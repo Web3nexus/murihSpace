@@ -314,35 +314,38 @@ class ProfileController extends Controller
             ->take(6)
             ->get();
 
+        $reviewsQuery = \App\Models\ProductReview::whereHas('physicalProduct', fn ($q) => $q->where('creator_id', $user->id))->approved();
+        $reviewsCount = (clone $reviewsQuery)->count();
+        $averageRating = $reviewsCount > 0 ? round((clone $reviewsQuery)->avg('rating') ?? 0, 1) : null;
+
         $hasLinkInBio = \App\Models\LinkInBioLink::where('user_id', $user->id)->where('is_active', true)->exists();
-        $storefront = \App\Models\Storefront::where('user_id', $user->id)->where('is_published', true)->first(['short_code', 'display_name']);
+        $storefront = \App\Models\Storefront::where('user_id', $user->id)->where('is_published', true)->first();
 
         return response()->json([
-            'success' => true,
-            'data' => [
-                'id' => $user->id,
-                'name' => $user->name,
-                'username' => $user->username,
-                'role' => $user->role,
-                'bio' => $user->bio,
-                'avatar' => $user->avatar,
-                'avatar_url' => $user->avatar_url ?? $user->avatar,
-                'banner_url' => $user->banner_url,
-                'country' => $user->country,
-                'kyc_status' => $user->kyc_status,
-                'has_active_verification_badge' => $user->hasActiveVerificationBadge(),
-                'followers_count' => $user->followers()->count(),
-                'following_count' => $user->follows()->count(),
-                'communities_count' => $user->communities()->count(),
-                'posts_count' => $user->posts()->count(),
-                'has_link_in_bio' => $hasLinkInBio,
-                'storefront' => $storefront ? [
-                    'short_code' => $storefront->short_code,
-                    'display_name' => $storefront->display_name,
-                ] : null,
-                'public_communities' => $publicCommunities,
-                'created_at' => $user->created_at?->toISOString(),
-            ],
+            'id' => $user->id,
+            'name' => $user->name,
+            'username' => $user->username,
+            'role' => $user->role,
+            'bio' => $user->bio,
+            'avatar' => $user->avatar,
+            'avatar_url' => $user->avatar_url ?? $user->avatar,
+            'banner_url' => $user->banner_url,
+            'country' => $user->country,
+            'kyc_status' => $user->kyc_status,
+            'has_active_verification_badge' => $user->hasActiveVerificationBadge(),
+            'followers_count' => $user->followers()->count(),
+            'following_count' => $user->follows()->count(),
+            'communities_count' => $user->communities()->count(),
+            'posts_count' => $user->posts()->count(),
+            'reviews_count' => $reviewsCount,
+            'average_rating' => $averageRating,
+            'has_link_in_bio' => $hasLinkInBio,
+            'storefront' => $storefront ? [
+                'short_code' => $storefront->short_code,
+                'display_name' => $storefront->display_name,
+            ] : null,
+            'public_communities' => $publicCommunities,
+            'created_at' => $user->created_at?->toISOString(),
         ]);
     }
 }

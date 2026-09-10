@@ -10,6 +10,10 @@ use App\Http\Controllers\Api\AdController;
 use App\Http\Controllers\Api\AdminController;
 use App\Http\Controllers\Api\TrackingController;
 use App\Http\Controllers\Api\AnalyticsController;
+use App\Http\Controllers\Api\MurihSpaceAuthController;
+
+// ── MurihSpace Single Sign-On Authentication ──
+Route::post('/auth/murihspace-sso', [MurihSpaceAuthController::class, 'ssoLogin']);
 
 Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/user', function (Request $request) {

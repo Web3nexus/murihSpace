@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Media;
 use App\Models\Message;
+use App\Services\FileSecurityFilterService;
 use App\Services\StorageQuotaService;
 use App\Services\StorageRouter;
 use Illuminate\Http\JsonResponse;
@@ -18,6 +19,7 @@ class MessageAttachmentController extends Controller
     public function __construct(
         private readonly StorageRouter $router,
         private readonly StorageQuotaService $quota,
+        private readonly FileSecurityFilterService $securityFilter,
     ) {
         $this->attachmentDisk = config('filesystems.upload_disk', 'local_uploads');
     }
@@ -28,6 +30,11 @@ class MessageAttachmentController extends Controller
             'file' => ['required', 'file', 'max:10240', 'mimes:jpg,jpeg,png,gif,webp,pdf,doc,docx,txt,mp3,mp4,mov,zip,csv,xlsx,pptx'],
             'client_uuid' => ['nullable', 'string', 'max:64'],
         ]);
+
+        $file = $validated['file'];
+
+        // Server-Side Security Filter: block webshells, polyglots, dangerous extensions
+        $this->securityFilter->validateUploadedFile($file);
 
         $clientUuid = $validated['client_uuid'] ?? null;
 

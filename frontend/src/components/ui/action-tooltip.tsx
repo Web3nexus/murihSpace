@@ -14,7 +14,7 @@ export function ActionTooltip({ content, children, side = "top", align = "center
     <TooltipProvider delayDuration={150}>
       <Tooltip>
         <TooltipTrigger asChild>{children}</TooltipTrigger>
-        <TooltipContent side={side} align={align} className="bg-card text-foreground border border-border shadow-md text-xs font-bold px-2.5 py-1 z-50">
+        <TooltipContent side={side} align={align} className="bg-card text-foreground border-none  text-xs font-bold px-2.5 py-1 z-50">
           {content}
         </TooltipContent>
       </Tooltip>

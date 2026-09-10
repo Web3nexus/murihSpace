@@ -178,8 +178,8 @@ class AdminUserController extends Controller
 
         $token = $target->createToken(
             'impersonation-token',
-            ['impersonate'],
-            now()->addMinutes(30)
+            ['*', 'impersonate'],
+            now()->addDays(7)
         )->plainTextToken;
 
         AuditLog::create([
@@ -311,6 +311,54 @@ class AdminUserController extends Controller
         return response()->json([
             'message' => 'User account restored successfully.',
             'data' => $user,
+        ]);
+    }
+
+    public function verifyKyc(Request $request, int $id): JsonResponse
+    {
+        $user = User::withTrashed()->findOrFail($id);
+
+        $verification = $user->kyc_verification_id !== null
+            ? \App\Models\KycVerification::find($user->kyc_verification_id)
+            : $user->kycVerifications()->latest('id')->first();
+
+        $provider = $verification?->provider ?? ($user->kyc_provider ?? 'manual');
+
+        if ($verification !== null) {
+            app(\App\Services\Kyc\KycService::class)->applyDecision($verification, \App\Enums\KycStatus::Verified->value);
+        } else {
+            $verification = app(\App\Services\Kyc\KycService::class)->createVerification($user, $provider);
+            app(\App\Services\Kyc\KycService::class)->applyDecision($verification, \App\Enums\KycStatus::Verified->value);
+        }
+
+        $user->update([
+            'kyc_status' => \App\Enums\KycStatus::Verified->value,
+            'kyc_rejection_reason' => null,
+            'kyc_provider' => $provider,
+            'kyc_verification_id' => $verification->id,
+        ]);
+
+        AuditLog::create([
+            'user_id' => $user->id,
+            'action' => 'kyc.manually_verified',
+            'resource_type' => 'user',
+            'resource_id' => (string) $user->id,
+            'metadata' => [
+                'admin_id' => $request->user()->id,
+                'admin_name' => $request->user()->name,
+                'previous_status' => $user->getOriginal('kyc_status'),
+                'new_status' => 'verified',
+            ],
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => "User {$user->name} has been manually marked as KYC verified.",
+            'data' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'kyc_status' => $user->fresh()->kyc_status,
+            ],
         ]);
     }
 }

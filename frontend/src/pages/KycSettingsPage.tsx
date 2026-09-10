@@ -1,19 +1,19 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import QRCode from "qrcode";
 import {
-  ShieldCheck,
-  Check,
-  X,
-  AlertCircle,
-  Loader2,
-  RefreshCw,
-  BadgeCheck,
-  Coins,
-  Smartphone,
-  QrCode,
-  Copy,
-  Sparkles,
-} from "lucide-react";
+  ShieldCheck as ShieldCheck,
+  Check as Check,
+  X as X,
+  WarningCircle as AlertCircle,
+  Spinner as Loader2,
+  ArrowsClockwise as RefreshCw,
+  SealCheck as BadgeCheck,
+  Coins as Coins,
+  DeviceMobile as Smartphone,
+  QrCode as QrCode,
+  Copy as Copy,
+  Sparkle as Sparkle
+} from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { apiClient } from "@/lib/api/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -143,7 +143,7 @@ function StatusBanner({
   const Icon = c.icon;
   return (
     <div
-      className={`flex items-start gap-3.5 p-4 sm:p-5 rounded-2xl border ${c.bg} ${c.border}`}
+      className={`flex items-start gap-3.5 p-4 sm:p-5 rounded-lg border ${c.bg} ${c.border}`}
     >
       <Icon
         className={`h-5 w-5 shrink-0 mt-0.5 ${
@@ -176,16 +176,16 @@ function KycQrCode({ content, size = 200 }: { content: string; size?: number }) 
   if (failed) {
     return (
       <div
-        className="flex items-center justify-center rounded-2xl bg-muted"
+        className="flex items-center justify-center rounded-lg bg-muted"
         style={{ width: size, height: size }}
       >
-        <QrCode className="h-10 w-10 text-muted-foreground" />
+        <QrCode weight="fill" className="h-10 w-10 text-muted-foreground" />
       </div>
     );
   }
 
   return (
-    <div className="rounded-2xl bg-white p-3 shadow-md border border-border inline-block">
+    <div className="rounded-lg bg-white p-3  border-none inline-block">
       <canvas ref={canvasRef} width={size} height={size} className="block" />
     </div>
   );
@@ -310,7 +310,7 @@ export default function KycSettingsPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-secondary" />
+        <Loader2 weight="fill" className="h-8 w-8 animate-spin text-secondary" />
       </div>
     );
   }
@@ -328,7 +328,7 @@ export default function KycSettingsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-extrabold text-foreground flex items-center gap-2.5">
-            <ShieldCheck className="h-6 w-6 text-primary" />
+            <ShieldCheck weight="fill" className="h-6 w-6 text-primary" />
             Identity Verification (KYC)
           </h2>
           <p className="text-xs text-muted-foreground mt-1">
@@ -338,9 +338,9 @@ export default function KycSettingsPage() {
         <button
           onClick={() => fetchStatus()}
           title="Refresh Status"
-          className="p-2.5 rounded-xl border border-border text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors"
+          className="p-2.5 rounded-lg border-none text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors"
         >
-          <RefreshCw className="h-4 w-4" />
+          <RefreshCw weight="fill" className="h-4 w-4" />
         </button>
       </div>
 
@@ -349,18 +349,18 @@ export default function KycSettingsPage() {
 
       {/* Verified Badge Section (when KYC is approved) */}
       {isVerified && (
-        <section className="rounded-3xl border border-border bg-card p-6 shadow-sm space-y-5">
+        <section className="rounded-3xl border-none bg-card p-4  space-y-5">
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-center gap-3.5">
-              <div className="h-12 w-12 rounded-2xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center">
-                <BadgeCheck className="h-6 w-6 text-sky-500" />
+              <div className="h-12 w-12 rounded-lg bg-sky-500/10 border border-sky-500/20 flex items-center justify-center">
+                <BadgeCheck weight="fill" className="h-6 w-6 text-sky-500" />
               </div>
               <div>
                 <h3 className="text-base font-bold text-foreground flex items-center gap-2">
                   Official Blue Checkmark Badge
                   {badge?.status === "active" && (
                     <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-sky-500/10 text-sky-600 dark:text-sky-400 text-[11px] font-bold">
-                      <BadgeCheck className="h-3.5 w-3.5" /> Active
+                      <BadgeCheck weight="fill" className="h-3.5 w-3.5" /> Active
                     </span>
                   )}
                 </h3>
@@ -373,32 +373,32 @@ export default function KycSettingsPage() {
 
           {badgeLoading ? (
             <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
-              <Loader2 className="h-4 w-4 animate-spin" /> Checking badge status…
+              <Loader2 weight="fill" className="h-4 w-4 animate-spin" /> Checking badge status…
             </div>
           ) : badge ? (
             <div className="space-y-4 pt-2">
               <div className="grid grid-cols-2 gap-3">
-                <div className="p-3.5 rounded-2xl bg-muted/40 border border-border">
+                <div className="p-3.5 rounded-lg bg-muted/40 border-none">
                   <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide">
                     Monthly Fee
                   </p>
                   <p className="text-base font-extrabold text-foreground mt-0.5 flex items-center gap-1.5">
-                    <Coins className="h-4 w-4 text-primary" /> {badge.monthly_fee} tokens
+                    <Coins weight="fill" className="h-4 w-4 text-primary" /> {badge.monthly_fee} tokens
                   </p>
                 </div>
-                <div className="p-3.5 rounded-2xl bg-muted/40 border border-border">
+                <div className="p-3.5 rounded-lg bg-muted/40 border-none">
                   <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide">
                     Wallet Balance
                   </p>
                   <p className="text-base font-extrabold text-foreground mt-0.5 flex items-center gap-1.5">
-                    <Coins className="h-4 w-4 text-primary" /> {badge.wallet_balance.toLocaleString()} tokens
+                    <Coins weight="fill" className="h-4 w-4 text-primary" /> {badge.wallet_balance.toLocaleString()} tokens
                   </p>
                 </div>
               </div>
 
               {badge.expires_at && badge.status === "active" && (
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <BadgeCheck className="h-4 w-4 text-sky-500" />
+                  <BadgeCheck weight="fill" className="h-4 w-4 text-sky-500" />
                   Expires{" "}
                   {new Date(badge.expires_at).toLocaleDateString(undefined, {
                     year: "numeric",
@@ -419,16 +419,16 @@ export default function KycSettingsPage() {
 
               {badgeMsg && (
                 <div
-                  className={`flex items-start gap-2 p-3.5 rounded-2xl text-xs ${
+                  className={`flex items-start gap-2 p-3.5 rounded-lg text-xs ${
                     badgeMsg.ok
                       ? "bg-emerald-500/10 text-emerald-600"
                       : "bg-red-500/10 text-red-600"
                   }`}
                 >
                   {badgeMsg.ok ? (
-                    <Check className="h-4 w-4 shrink-0 mt-0.5" />
+                    <Check weight="fill" className="h-4 w-4 shrink-0 mt-0.5" />
                   ) : (
-                    <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                    <AlertCircle weight="fill" className="h-4 w-4 shrink-0 mt-0.5" />
                   )}
                   {badgeMsg.text}
                 </div>
@@ -441,15 +441,15 @@ export default function KycSettingsPage() {
                       badgeAction("/verification-badge/activate", "activate")
                     }
                     disabled={badgeBusy !== null}
-                    className="px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-xs font-bold hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
+                    className="px-5 py-2.5 rounded-lg bg-primary text-primary-foreground text-xs font-bold hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all  flex items-center gap-2"
                   >
                     {badgeBusy === "activate" ? (
                       <>
-                        <Loader2 className="h-4 w-4 animate-spin" /> Activating…
+                        <Loader2 weight="fill" className="h-4 w-4 animate-spin" /> Activating…
                       </>
                     ) : (
                       <>
-                        <BadgeCheck className="h-4 w-4" /> Activate Badge (
+                        <BadgeCheck weight="fill" className="h-4 w-4" /> Activate Badge (
                         {badge.monthly_fee}/mo)
                       </>
                     )}
@@ -461,15 +461,15 @@ export default function KycSettingsPage() {
                       badgeAction("/verification-badge/renew", "renew")
                     }
                     disabled={badgeBusy !== null}
-                    className="px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-xs font-bold hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
+                    className="px-5 py-2.5 rounded-lg bg-primary text-primary-foreground text-xs font-bold hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all  flex items-center gap-2"
                   >
                     {badgeBusy === "renew" ? (
                       <>
-                        <Loader2 className="h-4 w-4 animate-spin" /> Renewing…
+                        <Loader2 weight="fill" className="h-4 w-4 animate-spin" /> Renewing…
                       </>
                     ) : (
                       <>
-                        <RefreshCw className="h-4 w-4" /> Renew for{" "}
+                        <RefreshCw weight="fill" className="h-4 w-4" /> Renew for{" "}
                         {badge.monthly_fee} tokens
                       </>
                     )}
@@ -484,11 +484,11 @@ export default function KycSettingsPage() {
                       )
                     }
                     disabled={badgeBusy !== null}
-                    className="px-5 py-2.5 rounded-xl border border-border text-muted-foreground text-xs font-bold hover:text-foreground hover:border-muted-foreground/40 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                    className="px-5 py-2.5 rounded-lg border-none text-muted-foreground text-xs font-bold hover:text-foreground hover:border-muted-foreground/40 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                   >
                     {badgeBusy === "cancel" ? (
                       <>
-                        <Loader2 className="h-4 w-4 animate-spin" /> Turning off…
+                        <Loader2 weight="fill" className="h-4 w-4 animate-spin" /> Turning off…
                       </>
                     ) : (
                       "Turn off auto-renew"
@@ -503,10 +503,10 @@ export default function KycSettingsPage() {
 
       {/* Non-verified PC state: QR Code Mobile Handoff */}
       {!isVerified && (
-        <div className="rounded-3xl border border-border bg-card p-6 sm:p-8 shadow-sm space-y-6">
+        <div className="rounded-3xl border-none bg-card p-4 sm:p-5  space-y-6">
           <div className="text-center max-w-md mx-auto space-y-2">
-            <div className="inline-flex p-3 rounded-2xl bg-primary/10 text-primary mb-1">
-              <Smartphone className="h-7 w-7" />
+            <div className="inline-flex p-3 rounded-lg bg-primary/10 text-primary mb-1">
+              <Smartphone weight="fill" className="h-7 w-7" />
             </div>
             <h3 className="text-lg font-black text-foreground">
               Verify on the MurihSpace App
@@ -517,17 +517,17 @@ export default function KycSettingsPage() {
           </div>
 
           {/* QR Code & Scan Instructions */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-8 py-2">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-5 py-2">
             <div className="flex flex-col items-center">
               <KycQrCode content={kycQrUrl} size={190} />
               <p className="text-[11px] font-bold text-muted-foreground mt-2.5 flex items-center gap-1.5">
-                <Sparkles className="h-3.5 w-3.5 text-primary" /> Scan with your phone camera
+                <Sparkle weight="fill" className="h-3.5 w-3.5 text-primary" /> Scan with your phone camera
               </p>
             </div>
 
             <div className="space-y-4 max-w-sm">
               <div className="flex items-start gap-3">
-                <div className="h-7 w-7 rounded-xl bg-primary/10 text-primary text-xs font-black flex items-center justify-center shrink-0">
+                <div className="h-7 w-7 rounded-lg bg-primary/10 text-primary text-xs font-black flex items-center justify-center shrink-0">
                   1
                 </div>
                 <div>
@@ -539,7 +539,7 @@ export default function KycSettingsPage() {
               </div>
 
               <div className="flex items-start gap-3">
-                <div className="h-7 w-7 rounded-xl bg-primary/10 text-primary text-xs font-black flex items-center justify-center shrink-0">
+                <div className="h-7 w-7 rounded-lg bg-primary/10 text-primary text-xs font-black flex items-center justify-center shrink-0">
                   2
                 </div>
                 <div>
@@ -551,7 +551,7 @@ export default function KycSettingsPage() {
               </div>
 
               <div className="flex items-start gap-3">
-                <div className="h-7 w-7 rounded-xl bg-primary/10 text-primary text-xs font-black flex items-center justify-center shrink-0">
+                <div className="h-7 w-7 rounded-lg bg-primary/10 text-primary text-xs font-black flex items-center justify-center shrink-0">
                   3
                 </div>
                 <div>
@@ -580,9 +580,9 @@ export default function KycSettingsPage() {
 
             <button
               onClick={copyMobileLink}
-              className="px-4 py-2 rounded-xl border border-border text-xs font-bold text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors flex items-center gap-2"
+              className="px-4 py-2 rounded-lg border-none text-xs font-bold text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors flex items-center gap-2"
             >
-              <Copy className="h-3.5 w-3.5" /> Copy Mobile Link
+              <Copy weight="fill" className="h-3.5 w-3.5" /> Copy Mobile Link
             </button>
           </div>
         </div>

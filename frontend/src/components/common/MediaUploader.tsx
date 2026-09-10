@@ -1,5 +1,12 @@
 import { useState, useRef } from "react";
-import { Upload, Film, Image as ImageIcon, Loader2, AlertCircle, RefreshCw } from "lucide-react";
+import {
+  UploadSimple as Upload,
+  FilmStrip as FilmStrip,
+  Image as ImageIcon,
+  Spinner as Loader2,
+  WarningCircle as AlertCircle,
+  ArrowsClockwise as RefreshCw
+} from "@phosphor-icons/react";
 import { authFetch } from "@/lib/api/authFetch";
 
 export interface MediaUploadResult {
@@ -214,10 +221,10 @@ export function MediaUploader({
         <button
           type="button"
           onClick={() => fileInputRef.current?.click()}
-          className="w-full border-2 border-dashed border-border hover:border-primary/50 bg-card hover:bg-muted/20 rounded-2xl p-6 flex flex-col items-center justify-center gap-2.5 transition-all text-center group cursor-pointer"
+          className="w-full border-2 border-dashed border-border hover:border-primary/50 bg-card hover:bg-muted/20 rounded-lg p-4 flex flex-col items-center justify-center gap-2.5 transition-all text-center group cursor-pointer"
         >
           <div className="h-10 w-10 rounded-full bg-primary/10 text-primary flex items-center justify-center group-hover:scale-110 transition-transform">
-            <Upload className="h-5 w-5" />
+            <Upload weight="fill" className="h-5 w-5" />
           </div>
           <div>
             <p className="text-xs font-bold text-foreground">{label}</p>
@@ -229,10 +236,10 @@ export function MediaUploader({
       )}
 
       {(status === "requesting" || status === "uploading") && (
-        <div className="border border-border rounded-2xl p-5 bg-card space-y-3">
+        <div className="border-none rounded-lg p-5 bg-card space-y-3">
           <div className="flex items-center justify-between text-xs font-bold">
             <span className="flex items-center gap-2">
-              <Loader2 className="h-4 w-4 animate-spin text-primary" />
+              <Loader2 weight="fill" className="h-4 w-4 animate-spin text-primary" />
               Uploading directly to Object Storage...
             </span>
             <span>{progress}%</span>
@@ -247,8 +254,8 @@ export function MediaUploader({
       )}
 
       {status === "processing" && (
-        <div className="border border-border rounded-2xl p-5 bg-card flex items-center gap-3 text-xs font-bold text-foreground">
-          <RefreshCw className="h-4 w-4 animate-spin text-amber-500 shrink-0" />
+        <div className="border-none rounded-lg p-5 bg-card flex items-center gap-3 text-xs font-bold text-foreground">
+          <RefreshCw weight="fill" className="h-4 w-4 animate-spin text-amber-500 shrink-0" />
           <div>
             <p>Processing & Optimizing Media...</p>
             <p className="text-[10px] font-normal text-muted-foreground">
@@ -259,12 +266,12 @@ export function MediaUploader({
       )}
 
       {status === "ready" && mediaResult && (
-        <div className="border border-emerald-500/30 bg-emerald-500/5 rounded-2xl p-4 flex items-center justify-between gap-3 text-xs">
+        <div className="border border-emerald-500/30 bg-emerald-500/5 rounded-lg p-4 flex items-center justify-between gap-3 text-xs">
           <div className="flex items-center gap-2.5 min-w-0">
             {mediaResult.media_type === "video" ? (
-              <Film className="h-5 w-5 text-emerald-500 shrink-0" />
+              <FilmStrip weight="fill" className="h-5 w-5 text-emerald-500 shrink-0" />
             ) : (
-              <ImageIcon className="h-5 w-5 text-emerald-500 shrink-0" />
+              <ImageIcon weight="fill" className="h-5 w-5 text-emerald-500 shrink-0" />
             )}
             <div className="min-w-0">
               <p className="font-bold text-foreground truncate">Upload & Processing Complete</p>
@@ -285,9 +292,9 @@ export function MediaUploader({
       )}
 
       {status === "error" && (
-        <div className="border border-destructive/30 bg-destructive/5 rounded-2xl p-4 flex items-center justify-between gap-3 text-xs text-destructive">
+        <div className="border border-destructive/30 bg-destructive/5 rounded-lg p-4 flex items-center justify-between gap-3 text-xs text-destructive">
           <div className="flex items-center gap-2">
-            <AlertCircle className="h-4 w-4 shrink-0" />
+            <AlertCircle weight="fill" className="h-4 w-4 shrink-0" />
             <span>{errorMsg || "Upload failed."}</span>
           </div>
           <button

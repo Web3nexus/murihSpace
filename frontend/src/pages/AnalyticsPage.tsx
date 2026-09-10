@@ -1,374 +1,905 @@
-import { useState, useEffect, useCallback } from "react";
-import { useNavigate, useLocation } from "react-router";
-import { BarChart3, DollarSign, ShoppingBag, Users, Mail, TrendingUp, Lightbulb, Target, Zap, CheckCircle2, Loader2, AlertCircle } from "lucide-react";
-import { MeraIcon } from "@/components/brand/MeraIcon";
-import { apiClient } from "@/lib/api/client";
+import { useState, useEffect, useCallback, useId } from "react";
+import { Link } from "react-router";
+import {
+  Eye,
+  ChatCircleDots,
+  Users,
+  Broadcast,
+  FileText,
+  Calendar,
+  ArrowUp,
+  ArrowDown,
+  CaretDown,
+  Plus,
+  Handshake,
+  Sparkle,
+  Spinner,
+  WarningCircle,
+  Clock,
+  ArrowRight,
+} from "@phosphor-icons/react";
+import { useAuth } from "@/hooks/useAuth";
+import { authFetch } from "@/lib/api/authFetch";
 import { AnimatedPage } from "@/components/common/AnimatedPage";
-import { Button } from "@/components/ui/button";
 
-function formatPrice(cents: number): string {
-  return "$" + (cents / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+interface TimeSeriesPoint {
+  date: string;
+  label: string;
+  views: number;
+  engagement: number;
+  net_follows: number;
+  reach: number;
 }
 
-interface AnalyticsData {
-  revenue: { total: number; physical: number; digital: number; subscription: number; deals: number; referral: number };
-  orders: { total: number; digital: number; physical: number; completed: number };
-  products: { total: number };
-  audience: { followers: number; subscribers: number; monthly_recurring: number };
-  engagement: { broadcasts: number; emails_sent: number; referral_clicks: number; referrals: number; active_deals: number };
-  growth: { member_since: string };
+interface ContentPerformanceItem {
+  id: number;
+  title: string;
+  thumbnail: string | null;
+  created_at: string;
+  views: number;
+  engagement: number;
+  likes: number;
+  comments: number;
+  shares: number;
 }
 
-interface Suggestion { type: string; title: string; description: string; action: string; link: string; }
-interface ContentIdea { platform: string; idea: string; }
+interface AudienceData {
+  total_followers: number;
+  growth_rate: number;
+  returning_percentage: number;
+  top_locations: { name: string; percentage: number }[];
+  activity_peak: string;
+}
 
-function StatCard({ icon, label, value, className }: { icon: React.ReactNode; label: string; value: React.ReactNode; className?: string }) {
-  return (
-    <div className={`rounded-2xl border border-border bg-card p-5 shadow-2xs space-y-2 hover:border-primary/30 transition-all ${className ?? ""}`}>
-      <div className="flex items-center gap-2">
-        <span className="text-muted-foreground">{icon}</span>
-        <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{label}</span>
+interface ProfileStatusData {
+  name: string;
+  username: string;
+  avatar: string | null;
+  profile_views: number;
+  followers: number;
+  engagement_rate: string;
+  weekly_progress: number;
+}
+
+interface PlannedContentItem {
+  id: number;
+  title: string;
+  date: string;
+  status: string;
+}
+
+interface MetricSummary {
+  value: number;
+  delta: number;
+}
+
+interface CreatorPerformanceData {
+  summary: {
+    views: MetricSummary;
+    engagement: MetricSummary;
+    net_follows: MetricSummary;
+    reach: MetricSummary;
+  };
+  time_series: TimeSeriesPoint[];
+  top_content: ContentPerformanceItem[];
+  audience: AudienceData;
+  profile_status: ProfileStatusData;
+  planned_content: PlannedContentItem[];
+}
+
+type MetricKey = "views" | "engagement" | "net_follows" | "reach";
+type DateRange = "7d" | "28d" | "90d";
+
+const METRIC_CONFIG: Record<
+  MetricKey,
+  { label: string; icon: typeof Eye; format: (v: number) => string }
+> = {
+  views: {
+    label: "Views",
+    icon: Eye,
+    format: (v) => v.toLocaleString(),
+  },
+  engagement: {
+    label: "Engagement",
+    icon: ChatCircleDots,
+    format: (v) => v.toLocaleString(),
+  },
+  net_follows: {
+    label: "Net follows",
+    icon: Users,
+    format: (v) => v.toLocaleString(),
+  },
+  reach: {
+    label: "Reach",
+    icon: Broadcast,
+    format: (v) => v.toLocaleString(),
+  },
+};
+
+function formatCompactTime(dateStr?: string): string {
+  if (!dateStr) return "";
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return "";
+  const now = new Date();
+  const diffSec = Math.floor((now.getTime() - d.getTime()) / 1000);
+  if (diffSec < 60) return "Just now";
+  if (diffSec < 3600) return `${Math.floor(diffSec / 60)}m ago`;
+  if (diffSec < 86400) return `${Math.floor(diffSec / 3600)}h ago`;
+  const diffDays = Math.floor(diffSec / 86400);
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
+function PerformanceChart({
+  data,
+  metric,
+}: {
+  data: TimeSeriesPoint[];
+  metric: MetricKey;
+}) {
+  const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
+  const chartGradientId = useId();
+
+  if (!data || data.length === 0) {
+    return (
+      <div className="h-64 flex items-center justify-center text-xs text-[#65676B] dark:text-[#B0B3B8]">
+        No trend data available for this range
       </div>
-      <div className="text-2xl font-black text-foreground tracking-tight">{value}</div>
+    );
+  }
+
+  const values = data.map((d) => d[metric]);
+  const maxVal = Math.max(...values, 5);
+  const minVal = 0;
+  const range = maxVal - minVal || 1;
+
+  const width = 800;
+  const height = 240;
+  const paddingX = 40;
+  const paddingY = 30;
+  const chartWidth = width - paddingX * 2;
+  const chartHeight = height - paddingY * 2;
+
+  const points = data.map((d, idx) => {
+    const x = paddingX + (idx / (data.length - 1 || 1)) * chartWidth;
+    const y = height - paddingY - ((d[metric] - minVal) / range) * chartHeight;
+    return { x, y, point: d, val: d[metric] };
+  });
+
+  const pathD = points.reduce((acc, p, idx) => {
+    if (idx === 0) return `M ${p.x} ${p.y}`;
+    const prev = points[idx - 1];
+    const cpX1 = prev.x + (p.x - prev.x) / 2;
+    const cpY1 = prev.y;
+    const cpX2 = prev.x + (p.x - prev.x) / 2;
+    const cpY2 = p.y;
+    return `${acc} C ${cpX1} ${cpY1}, ${cpX2} ${cpY2}, ${p.x} ${p.y}`;
+  }, "");
+
+  const areaD = `${pathD} L ${points[points.length - 1].x} ${height - paddingY} L ${points[0].x} ${height - paddingY} Z`;
+
+  // Y-axis ticks
+  const yTicks = [0, Math.round(maxVal * 0.5), maxVal];
+
+  // X-axis sampled labels
+  const step = Math.ceil(data.length / 6);
+  const sampledLabels = data.filter((_, idx) => idx % step === 0 || idx === data.length - 1);
+
+  return (
+    <div className="relative w-full select-none pt-2">
+      <svg
+        viewBox={`0 0 ${width} ${height}`}
+        className="w-full h-56 sm:h-64 overflow-visible"
+        preserveAspectRatio="none"
+      >
+        <defs>
+          <linearGradient id={chartGradientId} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#2164b6" stopOpacity="0.22" />
+            <stop offset="100%" stopColor="#2164b6" stopOpacity="0.0" />
+          </linearGradient>
+        </defs>
+
+        {/* Horizontal grid lines */}
+        {yTicks.map((tick, i) => {
+          const y = height - paddingY - ((tick - minVal) / range) * chartHeight;
+          return (
+            <g key={i}>
+              <line
+                x1={paddingX}
+                y1={y}
+                x2={width - paddingX}
+                y2={y}
+                stroke="currentColor"
+                strokeDasharray="3 3"
+                className="text-[#DADDE1] dark:text-[#3E4042]/70"
+                strokeWidth="1"
+              />
+              <text
+                x={paddingX - 8}
+                y={y + 3}
+                textAnchor="end"
+                className="text-[10px] fill-[#65676B] dark:fill-[#B0B3B8] font-medium"
+              >
+                {tick.toLocaleString()}
+              </text>
+            </g>
+          );
+        })}
+
+        {/* Gradient fill */}
+        <path d={areaD} fill={`url(#${chartGradientId})`} />
+
+        {/* Main curved line */}
+        <path
+          d={pathD}
+          fill="none"
+          stroke="#2164b6"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+
+        {/* Hover vertical indicator & dot */}
+        {hoveredIdx !== null && points[hoveredIdx] && (
+          <g>
+            <line
+              x1={points[hoveredIdx].x}
+              y1={paddingY}
+              x2={points[hoveredIdx].x}
+              y2={height - paddingY}
+              stroke="#2164b6"
+              strokeDasharray="2 2"
+              strokeWidth="1.5"
+              className="opacity-70"
+            />
+            <circle
+              cx={points[hoveredIdx].x}
+              cy={points[hoveredIdx].y}
+              r="5"
+              fill="#2164b6"
+              stroke="#FFFFFF"
+              strokeWidth="2"
+              className="drop-shadow-sm"
+            />
+          </g>
+        )}
+
+        {/* Interactive capture rectangles */}
+        {points.map((p, idx) => {
+          const sliceWidth = chartWidth / (points.length || 1);
+          return (
+            <rect
+              key={idx}
+              x={p.x - sliceWidth / 2}
+              y={0}
+              width={sliceWidth}
+              height={height}
+              fill="transparent"
+              className="cursor-pointer"
+              onMouseEnter={() => setHoveredIdx(idx)}
+              onMouseLeave={() => setHoveredIdx(null)}
+            />
+          );
+        })}
+      </svg>
+
+      {/* Floating tooltip */}
+      {hoveredIdx !== null && points[hoveredIdx] && (
+        <div
+          className="absolute z-20 pointer-events-none -translate-x-1/2 -top-1 px-2.5 py-1 rounded-md bg-[#050505] text-white text-[11px] font-semibold shadow-md whitespace-nowrap"
+          style={{
+            left: `${(points[hoveredIdx].x / width) * 100}%`,
+          }}
+        >
+          <span>
+            {points[hoveredIdx].point.label}:{" "}
+            <strong className="text-[#7ab0ff]">
+              {METRIC_CONFIG[metric].format(points[hoveredIdx].val)}
+            </strong>{" "}
+            {METRIC_CONFIG[metric].label.toLowerCase()}
+          </span>
+        </div>
+      )}
+
+      {/* X-axis date labels */}
+      <div className="flex justify-between px-10 pt-1 text-[11px] text-[#65676B] dark:text-[#B0B3B8]">
+        {sampledLabels.map((lbl, idx) => (
+          <span key={idx}>{lbl.label}</span>
+        ))}
+      </div>
     </div>
   );
 }
 
-function TabButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
-  return (
-    <button
-      onClick={onClick}
-      className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${
-        active
-          ? "bg-[#2164b6]/10 text-[#2164b6] dark:text-[#7ab0ff] shadow-xs"
-          : "text-muted-foreground hover:text-foreground hover:bg-muted"
-      }`}
-    >
-      {children}
-    </button>
-  );
-}
-
 export function AnalyticsPage() {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const pathTab = location.pathname.split("/").pop() ?? "";
-  const tab: "overview" | "traffic" | "revenue" | "ai" = (
-    ["overview", "traffic", "revenue", "ai"].includes(pathTab) ? pathTab as "overview" | "traffic" | "revenue" | "ai" : "overview"
-  );
-  const [data, setData] = useState<AnalyticsData | null>(null);
-  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
-  const [contentIdeas, setContentIdeas] = useState<ContentIdea[]>([]);
-  const [aiInsight, setAiInsight] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const { user } = useAuth();
+  const [range, setRange] = useState<DateRange>("28d");
+  const [selectedMetric, setSelectedMetric] = useState<MetricKey>("views");
+  const [data, setData] = useState<CreatorPerformanceData | null>(null);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchAll = useCallback(async () => {
-    setIsLoading(true);
+  const fetchInsights = useCallback(async (r: DateRange) => {
+    setLoading(true);
     setError(null);
     try {
-      const ovRes = await apiClient.get("/analytics/overview");
-      const ovData = ovRes.data?.data ?? ovRes.data;
-      const raw = ovData?.success ? ovData.data : ovData;
-      setData(raw ? {
-        revenue: { total: 0, physical: 0, digital: 0, subscription: 0, deals: 0, referral: 0, ...raw.revenue },
-        orders: { total: 0, digital: 0, physical: 0, completed: 0, ...raw.orders },
-        products: { total: 0, ...raw.products },
-        audience: { followers: 0, subscribers: 0, monthly_recurring: 0, ...raw.audience },
-        engagement: { broadcasts: 0, emails_sent: 0, referral_clicks: 0, referrals: 0, active_deals: 0, ...raw.engagement },
-        growth: { member_since: "", ...raw.growth },
-      } : null);
-    } catch {
-      setError("Failed to load analytics data.");
-    }
-
-    try {
-      const aiRes = await apiClient.get("/analytics/ai-suggestions");
-      if (aiRes.data) {
-        const ai = aiRes.data?.data ?? aiRes.data;
-        setSuggestions(ai?.suggestions ?? []);
-        setContentIdeas(ai?.content_ideas ?? []);
-        setAiInsight(ai?.insight ?? null);
+      const res = await authFetch(`/analytics/creator-performance?range=${r}`);
+      if (!res.ok) {
+        if (res.status === 401) {
+          throw new Error("Your session has expired. Please sign in to view insights.");
+        }
+        let serverMessage = `Server responded with status ${res.status}`;
+        try {
+          const errData = await res.json();
+          if (errData?.message) serverMessage = errData.message;
+        } catch {}
+        throw new Error(serverMessage);
       }
-    } catch {
-      // AI suggestions are optional — don't block the page
+
+      const raw = await res.json();
+      const payload: CreatorPerformanceData | null =
+        raw?.data?.summary
+          ? raw.data
+          : raw?.data?.data?.summary
+          ? raw.data.data
+          : raw?.summary
+          ? raw
+          : null;
+
+      if (payload && payload.summary) {
+        setData(payload);
+      } else {
+        throw new Error("Invalid response format received from analytics service.");
+      }
+    } catch (err: unknown) {
+      console.error("Failed to load insights:", err);
+      const message =
+        err instanceof Error
+          ? err.message
+          : typeof err === "object" && err && "message" in err
+          ? String((err as { message: unknown }).message)
+          : "Failed to load performance insights. Please try again.";
+      setError(message);
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   }, []);
 
-  useEffect(() => { fetchAll(); }, [fetchAll]);
+  useEffect(() => {
+    fetchInsights(range);
+  }, [range, fetchInsights]);
 
-  if (isLoading) {
+  if (loading && !data) {
     return (
-      <AnimatedPage className="flex items-center justify-center min-h-[60vh]">
-        <div className="text-center space-y-3">
-          <Loader2 className="h-8 w-8 animate-spin text-[#2164b6] dark:text-[#7ab0ff] mx-auto" />
-          <p className="text-sm text-muted-foreground font-medium">Loading analytics...</p>
+      <AnimatedPage className="w-full min-h-[60vh] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <Spinner weight="bold" className="h-7 w-7 animate-spin text-[#2164b6]" />
+          <p className="text-xs font-semibold text-[#65676B] dark:text-[#B0B3B8]">
+            Loading creator insights…
+          </p>
         </div>
       </AnimatedPage>
     );
   }
 
-  if (error || !data) {
+  if (error && !data) {
     return (
-      <AnimatedPage className="flex items-center justify-center min-h-[60vh]">
-        <div className="text-center space-y-3 max-w-sm">
-          <AlertCircle className="h-8 w-8 text-destructive mx-auto" />
-          <p className="text-sm font-medium text-foreground">{error ?? "No analytics data available."}</p>
-          <Button variant="outline" size="sm" onClick={fetchAll}>Try Again</Button>
+      <AnimatedPage className="w-full min-h-[60vh] flex items-center justify-center p-4">
+        <div className="text-center space-y-3 max-w-sm bg-white dark:bg-[#242526] p-6 rounded-lg shadow-xs">
+          <WarningCircle weight="fill" className="h-8 w-8 text-rose-500 mx-auto" />
+          <h2 className="text-base font-bold text-[#050505] dark:text-[#E4E6EB]">Unable to Load Insights</h2>
+          <p className="text-xs text-[#65676B] dark:text-[#B0B3B8]">{error}</p>
+          <div className="flex items-center justify-center gap-2 pt-2">
+            <button
+              onClick={() => fetchInsights(range)}
+              className="px-4 py-2 rounded-lg bg-[#2164b6] hover:bg-[#1a5091] text-white text-xs font-semibold transition-colors"
+            >
+              Retry
+            </button>
+            <button
+              onClick={() => {
+                setError(null);
+                setData({
+                  summary: {
+                    views: { value: 0, delta: 0 },
+                    engagement: { value: 0, delta: 0 },
+                    net_follows: { value: 0, delta: 0 },
+                    reach: { value: 0, delta: 0 },
+                  },
+                  time_series: [],
+                  top_content: [],
+                  audience: {
+                    total_followers: 0,
+                    growth_rate: 0,
+                    returning_percentage: 0,
+                    top_locations: [{ name: "Worldwide", percentage: 100 }],
+                    activity_peak: "No recent activity",
+                  },
+                  profile_status: {
+                    name: user?.name || "Creator",
+                    username: user?.username || "creator",
+                    avatar: user?.avatar || null,
+                    profile_views: 0,
+                    followers: 0,
+                    engagement_rate: "0%",
+                    weekly_progress: 0,
+                  },
+                  planned_content: [],
+                });
+              }}
+              className="px-4 py-2 rounded-lg bg-[#F0F2F5] dark:bg-[#3A3B3C] text-[#050505] dark:text-[#E4E6EB] text-xs font-semibold hover:bg-[#E4E6EB] transition-colors"
+            >
+              View Baseline
+            </button>
+          </div>
         </div>
       </AnimatedPage>
     );
   }
+
+  const summary = data?.summary ?? {
+    views: { value: 0, delta: 0 },
+    engagement: { value: 0, delta: 0 },
+    net_follows: { value: 0, delta: 0 },
+    reach: { value: 0, delta: 0 },
+  };
+
+  const hasZeroActivity =
+    summary.views.value === 0 &&
+    summary.engagement.value === 0 &&
+    summary.net_follows.value === 0 &&
+    (!data?.top_content || data.top_content.length === 0);
 
   return (
-    <AnimatedPage className="w-full space-y-6 p-4 sm:p-6 lg:p-8">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">Analytics & AI Tools</h1>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">Track performance, revenue and growth insights.</p>
-        </div>
-        <div className="flex gap-1 bg-muted p-1 rounded-xl w-fit">
-          <TabButton active={tab === "overview"} onClick={() => navigate("/app/analytics")}>Overview</TabButton>
-          <TabButton active={tab === "traffic"} onClick={() => navigate("/app/analytics/traffic")}>Traffic</TabButton>
-          <TabButton active={tab === "revenue"} onClick={() => navigate("/app/analytics/revenue")}>Revenue</TabButton>
-          <TabButton active={tab === "ai"} onClick={() => navigate("/app/analytics/ai")}>AI Insights</TabButton>
-        </div>
-      </div>
+    <AnimatedPage className="w-full min-h-full bg-[#F0F2F5] dark:bg-[#18191A] text-[#050505] dark:text-[#E4E6EB] py-5 px-3 sm:px-6">
+      <div className="max-w-[1240px] mx-auto flex flex-col lg:flex-row gap-6 items-start">
+        {/* ── MAIN INSIGHTS AREA (700–850px) ── */}
+        <div className="flex-1 min-w-0 w-full max-w-[850px] space-y-5">
+          {/* 1. Insights Page Identity Header */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-[#242526] p-4 sm:p-5 rounded-lg shadow-xs">
+            <div>
+              <h1 className="text-2xl sm:text-[26px] font-bold text-[#050505] dark:text-[#E4E6EB] tracking-tight leading-tight">
+                Insights
+              </h1>
+              <p className="text-xs sm:text-[13px] text-[#65676B] dark:text-[#B0B3B8] mt-1">
+                Understand how your content, audience and creator business are performing.
+              </p>
+            </div>
 
-      {/* ── Overview Tab ── */}
-      {tab === "overview" && (
-        <div className="space-y-6">
-          <div>
-            <h2 className="font-bold text-foreground text-sm mb-3 flex items-center gap-2">
-              <DollarSign className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" /> Revenue
-            </h2>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <StatCard icon={<DollarSign className="h-4 w-4" />} label="Total Revenue" value={formatPrice(data.revenue.total)} />
-              <StatCard icon={<Zap className="h-4 w-4" />} label="Digital" value={formatPrice(data.revenue.digital)} />
-              <StatCard icon={<ShoppingBag className="h-4 w-4" />} label="Physical" value={formatPrice(data.revenue.physical)} />
-              <StatCard icon={<Users className="h-4 w-4" />} label="Subscriptions (MRR)" value={formatPrice(data.revenue.subscription)} />
+            {/* Date Range Selector */}
+            <div className="flex items-center gap-1.5 self-start sm:self-auto shrink-0">
+              <div className="relative">
+                <select
+                  value={range}
+                  onChange={(e) => setRange(e.target.value as DateRange)}
+                  className="appearance-none h-9 pl-3 pr-8 rounded-lg bg-[#F0F2F5] dark:bg-[#3A3B3C] text-[#050505] dark:text-[#E4E6EB] text-xs font-semibold border-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#2164b6]/40 transition-all"
+                >
+                  <option value="7d">Last 7 days</option>
+                  <option value="28d">Last 28 days</option>
+                  <option value="90d">Last 90 days</option>
+                </select>
+                <CaretDown
+                  weight="bold"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[#65676B] dark:text-[#B0B3B8] pointer-events-none"
+                />
+              </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="rounded-2xl border border-border bg-card p-5 shadow-2xs space-y-3">
-              <h3 className="font-bold text-foreground text-xs flex items-center gap-2">
-                <ShoppingBag className="h-3.5 w-3.5 text-[#2164b6] dark:text-[#7ab0ff]" /> Orders
+          {/* 2. Empty State if brand new account with 0 data */}
+          {hasZeroActivity && (
+            <div className="bg-white dark:bg-[#242526] rounded-lg shadow-xs p-8 text-center space-y-3 flex flex-col items-center justify-center">
+              <div className="h-12 w-12 rounded-full bg-[#2164b6]/10 text-[#2164b6] flex items-center justify-center mx-auto">
+                <Sparkle weight="fill" className="h-6 w-6" />
+              </div>
+              <h3 className="text-base font-bold text-[#050505] dark:text-[#E4E6EB] text-center">
+                No performance data yet
               </h3>
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                {[
-                  { label: "Total", value: data.orders.total },
-                  { label: "Digital", value: data.orders.digital },
-                  { label: "Physical", value: data.orders.physical },
-                  { label: "Completed", value: data.orders.completed },
-                ].map((o) => (
-                  <div key={o.label} className="p-3 rounded-xl bg-muted/40">
-                    <span className="text-[10px] text-muted-foreground font-bold block">{o.label}</span>
-                    <span className="text-lg font-black text-foreground">{o.value}</span>
+              <p className="text-xs sm:text-sm text-[#65676B] dark:text-[#B0B3B8] max-w-md mx-auto leading-relaxed text-center">
+                Once you publish content, your views, engagement and audience insights will automatically appear here.
+              </p>
+              <Link to="/app/feed" className="inline-block pt-1 text-center">
+                <button className="px-4 py-2 rounded-lg bg-[#2164b6] hover:bg-[#1a5091] text-white text-xs font-bold transition-colors">
+                  Create your first post
+                </button>
+              </Link>
+            </div>
+          )}
+
+          {/* 3. Primary Performance Area (Metric Selectors + Interactive Chart) */}
+          <div className="bg-white dark:bg-[#242526] rounded-lg shadow-xs p-4 sm:p-5 space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-[17px] font-bold text-[#050505] dark:text-[#E4E6EB]">
+                  Performance Overview
+                </h2>
+                <p className="text-[12px] text-[#65676B] dark:text-[#B0B3B8]">
+                  Select a metric below to visualize trends over the past{" "}
+                  {range === "7d" ? "7 days" : range === "90d" ? "90 days" : "28 days"}.
+                </p>
+              </div>
+            </div>
+
+            {/* Unified Metric Selectors Bar */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+              {(["views", "engagement", "net_follows", "reach"] as MetricKey[]).map((key) => {
+                const metricMeta = METRIC_CONFIG[key];
+                const itemSummary = summary[key];
+                const isSelected = selectedMetric === key;
+                const isUp = itemSummary.delta >= 0;
+
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setSelectedMetric(key)}
+                    className={`flex flex-col text-left p-3 rounded-lg border transition-all cursor-pointer select-none ${
+                      isSelected
+                        ? "border-[#2164b6] bg-[#E7F3FF]/70 dark:bg-[#2D3F54]/50 shadow-2xs"
+                        : "border-[#DADDE1] dark:border-[#3E4042] hover:bg-[#F7F8FA] dark:hover:bg-[#2F3031]"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between w-full mb-1">
+                      <span
+                        className={`text-[12px] font-semibold truncate ${
+                          isSelected
+                            ? "text-[#2164b6] dark:text-[#7ab0ff]"
+                            : "text-[#65676B] dark:text-[#B0B3B8]"
+                        }`}
+                      >
+                        {metricMeta.label}
+                      </span>
+                      <metricMeta.icon
+                        weight="fill"
+                        className={`h-4 w-4 shrink-0 ${
+                          isSelected
+                            ? "text-[#2164b6] dark:text-[#7ab0ff]"
+                            : "text-[#65676B] dark:text-[#B0B3B8]"
+                        }`}
+                      />
+                    </div>
+
+                    <div className="text-[22px] sm:text-[24px] font-bold text-[#050505] dark:text-[#E4E6EB] tracking-tight leading-tight">
+                      {metricMeta.format(itemSummary.value)}
+                    </div>
+
+                    <div className="flex items-center gap-1 mt-1 text-[11px] font-semibold">
+                      {isUp ? (
+                        <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-0.5">
+                          <ArrowUp weight="bold" className="h-3 w-3" />
+                          {itemSummary.delta}%
+                        </span>
+                      ) : (
+                        <span className="text-rose-600 dark:text-rose-400 flex items-center gap-0.5">
+                          <ArrowDown weight="bold" className="h-3 w-3" />
+                          {Math.abs(itemSummary.delta)}%
+                        </span>
+                      )}
+                      <span className="text-[#65676B] dark:text-[#B0B3B8] font-normal text-[10px]">
+                        vs prior period
+                      </span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Performance Line Chart */}
+            <div className="pt-2 border-t border-[#DADDE1] dark:border-[#3E4042]">
+              <PerformanceChart data={data?.time_series ?? []} metric={selectedMetric} />
+            </div>
+          </div>
+
+          {/* 4. Content Performance Section */}
+          <div className="bg-white dark:bg-[#242526] rounded-lg shadow-xs p-4 sm:p-5 space-y-3">
+            <div className="flex items-center justify-between border-b border-[#DADDE1] dark:border-[#3E4042] pb-3">
+              <div>
+                <h2 className="text-[17px] font-bold text-[#050505] dark:text-[#E4E6EB]">
+                  Content Performance
+                </h2>
+                <p className="text-[12px] text-[#65676B] dark:text-[#B0B3B8]">
+                  Recent posts and stories performance
+                </p>
+              </div>
+              <Link
+                to="/app/feed"
+                className="text-xs font-semibold text-[#2164b6] dark:text-[#7ab0ff] hover:underline flex items-center gap-1"
+              >
+                <span>View all posts</span>
+                <ArrowRight weight="bold" className="h-3 w-3" />
+              </Link>
+            </div>
+
+            {/* Content Rows */}
+            {(!data?.top_content || data.top_content.length === 0) ? (
+              <p className="text-xs text-[#65676B] dark:text-[#B0B3B8] py-4 text-center">
+                No recent posts published in this date range.
+              </p>
+            ) : (
+              <div className="divide-y divide-[#DADDE1] dark:divide-[#3E4042]">
+                {data.top_content.map((post) => (
+                  <div
+                    key={post.id}
+                    className="flex items-center gap-3 py-3 hover:bg-[#F7F8FA] dark:hover:bg-[#2F3031] -mx-2 px-2 rounded-lg transition-colors"
+                  >
+                    {/* Thumbnail: 76px x 52px, 6px radius */}
+                    <div className="w-[76px] h-[52px] rounded-[6px] overflow-hidden bg-[#F0F2F5] dark:bg-[#3A3B3C] shrink-0 flex items-center justify-center text-muted-foreground">
+                      {post.thumbnail ? (
+                        <img
+                          src={post.thumbnail}
+                          alt=""
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <FileText weight="fill" className="h-5 w-5 text-[#65676B] dark:text-[#B0B3B8]" />
+                      )}
+                    </div>
+
+                    {/* Post Info */}
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[13px] font-semibold text-[#050505] dark:text-[#E4E6EB] line-clamp-1 leading-snug">
+                        {post.title}
+                      </p>
+                      <p className="text-[11px] text-[#65676B] dark:text-[#B0B3B8] mt-0.5 flex items-center gap-2">
+                        <span>{formatCompactTime(post.created_at)}</span>
+                        <span>·</span>
+                        <span>Post</span>
+                      </p>
+                    </div>
+
+                    {/* Metrics Values */}
+                    <div className="flex items-center gap-4 sm:gap-6 text-right shrink-0">
+                      <div>
+                        <p className="text-[13px] font-bold text-[#050505] dark:text-[#E4E6EB]">
+                          {post.views.toLocaleString()}
+                        </p>
+                        <p className="text-[10px] text-[#65676B] dark:text-[#B0B3B8]">Views</p>
+                      </div>
+                      <div>
+                        <p className="text-[13px] font-bold text-[#050505] dark:text-[#E4E6EB]">
+                          {post.engagement.toLocaleString()}
+                        </p>
+                        <p className="text-[10px] text-[#65676B] dark:text-[#B0B3B8]">Engaged</p>
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>
+            )}
+          </div>
+
+          {/* 5. Audience Insights Section */}
+          <div className="bg-white dark:bg-[#242526] rounded-lg shadow-xs p-4 sm:p-5 space-y-4">
+            <div className="border-b border-[#DADDE1] dark:border-[#3E4042] pb-3">
+              <h2 className="text-[17px] font-bold text-[#050505] dark:text-[#E4E6EB]">
+                Audience Insights
+              </h2>
+              <p className="text-[12px] text-[#65676B] dark:text-[#B0B3B8]">
+                Growth, retention, and geographic reach
+              </p>
             </div>
-            <div className="rounded-2xl border border-border bg-card p-5 shadow-2xs space-y-3">
-              <h3 className="font-bold text-foreground text-xs flex items-center gap-2">
-                <Target className="h-3.5 w-3.5 text-emerald-500" /> Products
-              </h3>
-              <div className="p-3 rounded-xl bg-muted/40">
-                <span className="text-[10px] text-muted-foreground font-bold block">Total Products</span>
-                <span className="text-lg font-black text-foreground">{data.products.total}</span>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Left: Follower Growth & Retention */}
+              <div className="p-3.5 rounded-lg bg-[#F7F8FA] dark:bg-[#2F3031] space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-[#65676B] dark:text-[#B0B3B8]">
+                    Followers Retention
+                  </span>
+                  <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                    +{data?.audience?.growth_rate ?? 0}% growth
+                  </span>
+                </div>
+
+                <div className="space-y-2 pt-1">
+                  <div>
+                    <div className="flex justify-between text-xs mb-1">
+                      <span className="text-[#050505] dark:text-[#E4E6EB] font-medium">Returning Viewers</span>
+                      <span className="font-bold text-[#050505] dark:text-[#E4E6EB]">
+                        {data?.audience?.returning_percentage ?? 0}%
+                      </span>
+                    </div>
+                    <div className="h-2 w-full rounded-full bg-[#E4E6EB] dark:bg-[#3A3B3C] overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-[#2164b6]"
+                        style={{ width: `${data?.audience?.returning_percentage ?? 0}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="pt-2 flex items-center justify-between text-xs border-t border-[#DADDE1] dark:border-[#3E4042]">
+                    <span className="text-[#65676B] dark:text-[#B0B3B8]">Peak Activity Hours:</span>
+                    <span className="font-semibold text-[#050505] dark:text-[#E4E6EB] flex items-center gap-1">
+                      <Clock weight="fill" className="h-3.5 w-3.5 text-[#2164b6]" />
+                      {data?.audience?.activity_peak ?? "No recent activity"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right: Top Locations */}
+              <div className="p-3.5 rounded-lg bg-[#F7F8FA] dark:bg-[#2F3031] space-y-2">
+                <span className="text-xs font-semibold text-[#65676B] dark:text-[#B0B3B8] block mb-1">
+                  Top Locations
+                </span>
+                {(!data?.audience?.top_locations || data.audience.top_locations.length === 0) ? (
+                  <p className="text-xs text-[#65676B] dark:text-[#B0B3B8] py-2 text-center">
+                    No location data available yet.
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {data.audience.top_locations.map((loc) => (
+                      <div key={loc.name}>
+                        <div className="flex justify-between text-xs mb-0.5">
+                          <span className="text-[#050505] dark:text-[#E4E6EB] font-medium">{loc.name}</span>
+                          <span className="font-bold text-[#65676B] dark:text-[#B0B3B8]">{loc.percentage}%</span>
+                        </div>
+                        <div className="h-1.5 w-full rounded-full bg-[#E4E6EB] dark:bg-[#3A3B3C] overflow-hidden">
+                          <div
+                            className="h-full rounded-full bg-[#2164b6]"
+                            style={{ width: `${loc.percentage}%` }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </div>
-
-          <div>
-            <h2 className="font-bold text-foreground text-sm mb-3 flex items-center gap-2">
-              <Users className="h-4 w-4 text-emerald-500" /> Audience
-            </h2>
-            <div className="grid grid-cols-3 gap-3">
-              <StatCard icon={<Users className="h-4 w-4" />} label="Followers" value={data.audience.followers.toLocaleString()} />
-              <StatCard icon={<Users className="h-4 w-4" />} label="Paid Subscribers" value={data.audience.subscribers} />
-              <StatCard icon={<TrendingUp className="h-4 w-4" />} label="Monthly Recurring" value={`${formatPrice(data.audience.monthly_recurring)}/mo`} />
-            </div>
-          </div>
-
-          <div>
-            <h2 className="font-bold text-foreground text-sm mb-3 flex items-center gap-2">
-              <Mail className="h-4 w-4 text-purple-500" /> Engagement
-            </h2>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <StatCard icon={<Mail className="h-4 w-4" />} label="Broadcasts" value={data.engagement.broadcasts} />
-              <StatCard icon={<Mail className="h-4 w-4" />} label="Emails Sent" value={data.engagement.emails_sent} />
-              <StatCard icon={<TrendingUp className="h-4 w-4" />} label="Referral Clicks" value={data.engagement.referral_clicks} />
-              <StatCard icon={<Lightbulb className="h-4 w-4" />} label="Active Deals" value={data.engagement.active_deals} />
-            </div>
-          </div>
         </div>
-      )}
 
-      {/* ── Traffic Tab ── */}
-      {tab === "traffic" && (
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <StatCard icon={<Users className="h-4 w-4" />} label="Total Followers" value={data.audience.followers.toLocaleString()} className="text-center" />
-            <StatCard icon={<TrendingUp className="h-4 w-4" />} label="Referral Clicks" value={data.engagement.referral_clicks} className="text-center" />
-            <StatCard icon={<Mail className="h-4 w-4" />} label="Emails Delivered" value={data.engagement.emails_sent} className="text-center" />
+        {/* ── RIGHT CONTEXT PANEL (280–320px) ── */}
+        <div className="w-full lg:w-[300px] xl:w-[320px] shrink-0 space-y-4">
+          {/* 1. Profile Status Widget */}
+          <div className="bg-white dark:bg-[#242526] rounded-lg shadow-xs p-4 space-y-3">
+            <div className="flex items-center gap-3">
+              <div className="h-11 w-11 rounded-full overflow-hidden bg-[#2164b6] flex items-center justify-center text-white font-bold text-sm shrink-0">
+                {data?.profile_status?.avatar ? (
+                  <img
+                    src={data.profile_status.avatar}
+                    alt=""
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  (data?.profile_status?.name ?? user?.name ?? "U").charAt(0).toUpperCase()
+                )}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-[14px] font-bold text-[#050505] dark:text-[#E4E6EB] truncate leading-tight">
+                  {data?.profile_status?.name ?? user?.name}
+                </p>
+                <p className="text-[11px] text-[#65676B] dark:text-[#B0B3B8] truncate leading-normal">
+                  @{data?.profile_status?.username ?? user?.username ?? "creator"}
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-2 py-2 border-y border-[#DADDE1] dark:border-[#3E4042] text-center">
+              <div>
+                <p className="text-[14px] font-bold text-[#050505] dark:text-[#E4E6EB]">
+                  {(data?.profile_status?.profile_views ?? 0).toLocaleString()}
+                </p>
+                <p className="text-[10px] text-[#65676B] dark:text-[#B0B3B8]">Views</p>
+              </div>
+              <div>
+                <p className="text-[14px] font-bold text-[#050505] dark:text-[#E4E6EB]">
+                  {(data?.profile_status?.followers ?? 0).toLocaleString()}
+                </p>
+                <p className="text-[10px] text-[#65676B] dark:text-[#B0B3B8]">Followers</p>
+              </div>
+              <div>
+                <p className="text-[14px] font-bold text-[#050505] dark:text-[#E4E6EB]">
+                  {data?.profile_status?.engagement_rate ?? "0%"}
+                </p>
+                <p className="text-[10px] text-[#65676B] dark:text-[#B0B3B8]">Engagement</p>
+              </div>
+            </div>
+
+            <div>
+              <div className="flex justify-between text-[11px] mb-1">
+                <span className="text-[#65676B] dark:text-[#B0B3B8] font-medium">Weekly Growth Goal</span>
+                <span className="font-bold text-[#2164b6] dark:text-[#7ab0ff]">
+                  {data?.profile_status?.weekly_progress ?? 0}%
+                </span>
+              </div>
+              <div className="h-1.5 w-full rounded-full bg-[#E4E6EB] dark:bg-[#3A3B3C] overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-[#2164b6]"
+                  style={{ width: `${data?.profile_status?.weekly_progress ?? 0}%` }}
+                />
+              </div>
+            </div>
+
+            <Link
+              to="/app/settings/profile"
+              className="block text-center text-xs font-semibold text-[#2164b6] dark:text-[#7ab0ff] hover:underline pt-1"
+            >
+              See public profile →
+            </Link>
           </div>
 
-          <div className="rounded-2xl border border-border bg-card p-6 shadow-2xs space-y-4">
-            <h3 className="font-bold text-foreground text-sm flex items-center gap-2">
-              <TrendingUp className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" /> Traffic Sources
+          {/* 2. Professional Creator Tools */}
+          <div className="bg-white dark:bg-[#242526] rounded-lg shadow-xs p-4 space-y-2">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-[#65676B] dark:text-[#B0B3B8] mb-2">
+              Creator Tools
             </h3>
-            <p className="text-xs text-muted-foreground">
-              Detailed traffic analytics (link clicks, referral sources, channel breakdown) coming in a future update.
-            </p>
-            <div className="space-y-3">
+
+            <div className="space-y-1">
               {[
-                { label: "Referral Links", value: `${data.engagement.referral_clicks} clicks` },
-                { label: "Referrals Converted", value: data.engagement.referrals },
-              ].map((r) => (
-                <div key={r.label} className="flex items-center justify-between p-3 rounded-xl bg-muted/40">
-                  <span className="text-xs font-semibold text-foreground">{r.label}</span>
-                  <span className="text-xs font-bold text-foreground">{r.value}</span>
-                </div>
+                { label: "Create post", url: "/app/feed", icon: Plus },
+                { label: "Community hub", url: "/app/communities", icon: Users },
+                { label: "Brand deals & pitches", url: "/app/brand-deals", icon: Handshake },
+                { label: "Content calendar", url: "/app/marketing", icon: Calendar },
+              ].map((tool) => (
+                <Link
+                  key={tool.label}
+                  to={tool.url}
+                  className="flex items-center justify-between p-2.5 rounded-lg hover:bg-[#F7F8FA] dark:hover:bg-[#2F3031] text-[13px] font-medium text-[#050505] dark:text-[#E4E6EB] transition-colors"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <tool.icon weight="fill" className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" />
+                    <span>{tool.label}</span>
+                  </div>
+                  <ArrowRight weight="bold" className="h-3 w-3 text-[#65676B] dark:text-[#B0B3B8]" />
+                </Link>
               ))}
             </div>
           </div>
-        </div>
-      )}
 
-      {/* ── Revenue Tab ── */}
-      {tab === "revenue" && (
-        <div className="space-y-6">
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            <StatCard icon={<DollarSign className="h-4 w-4" />} label="Total" value={formatPrice(data.revenue.total)} className="text-center" />
-            <StatCard icon={<Zap className="h-4 w-4" />} label="Digital Sales" value={formatPrice(data.revenue.digital)} className="text-center" />
-            <StatCard icon={<ShoppingBag className="h-4 w-4" />} label="Physical Sales" value={formatPrice(data.revenue.physical)} className="text-center" />
-            <StatCard icon={<Users className="h-4 w-4" />} label="Subscriptions" value={formatPrice(data.revenue.subscription)} className="text-center" />
-            <StatCard icon={<Lightbulb className="h-4 w-4" />} label="Brand Deals" value={formatPrice(data.revenue.deals)} className="text-center" />
-            <StatCard icon={<TrendingUp className="h-4 w-4" />} label="Referrals" value={formatPrice(data.revenue.referral)} className="text-center" />
-          </div>
-
-          <div className="rounded-2xl border border-border bg-card p-6 shadow-2xs space-y-4">
-            <h3 className="font-bold text-foreground text-sm flex items-center gap-2">
-              <BarChart3 className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" /> Revenue Breakdown
-            </h3>
-            <div className="space-y-3">
-              {[
-                { label: "Digital Products", value: data.revenue.digital, color: "bg-[#2164b6]" },
-                { label: "Physical Products", value: data.revenue.physical, color: "bg-amber-500" },
-                { label: "Subscriptions", value: data.revenue.subscription, color: "bg-emerald-500" },
-                { label: "Brand Deals", value: data.revenue.deals, color: "bg-purple-500" },
-                { label: "Referrals", value: data.revenue.referral, color: "bg-rose-500" },
-              ].filter(r => r.value > 0).map(r => {
-                const pct = data.revenue.total > 0 ? (r.value / data.revenue.total) * 100 : 0;
-                return (
-                  <div key={r.label}>
-                    <div className="flex justify-between text-xs mb-1.5">
-                      <span className="font-semibold text-foreground">{r.label}</span>
-                      <span className="font-bold text-foreground">{formatPrice(r.value)} <span className="text-muted-foreground font-normal">({pct.toFixed(0)}%)</span></span>
-                    </div>
-                    <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
-                      <div className={`h-full rounded-full ${r.color}`} style={{ width: `${pct}%` }} />
-                    </div>
-                  </div>
-                );
-              })}
-              {data.revenue.total === 0 && <p className="text-xs text-muted-foreground text-center py-4">No revenue data yet.</p>}
+          {/* 3. Planned Content Calendar Preview */}
+          <div className="bg-white dark:bg-[#242526] rounded-lg shadow-xs p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-[#65676B] dark:text-[#B0B3B8]">
+                Planned Content
+              </h3>
+              <Link
+                to="/app/marketing"
+                className="text-[11px] font-semibold text-[#2164b6] dark:text-[#7ab0ff] hover:underline"
+              >
+                Calendar
+              </Link>
             </div>
-          </div>
-        </div>
-      )}
 
-      {/* ── AI Insights Tab ── */}
-      {tab === "ai" && (
-        <div className="space-y-6">
-          {aiInsight && (
-            <div className="rounded-2xl border border-[#2164b6]/30 bg-gradient-to-br from-[#2164b6]/10 to-purple-500/10 p-5 shadow-2xs">
-              <div className="flex items-center gap-2 mb-2">
-                <MeraIcon className="h-4 w-4" />
-                <h3 className="font-bold text-foreground text-sm">Mera's take</h3>
-              </div>
-              <p className="text-xs sm:text-sm text-foreground/90 leading-relaxed">{aiInsight}</p>
-            </div>
-          )}
-          <div>
-            <h2 className="font-bold text-foreground text-sm mb-3 flex items-center gap-2">
-              <Lightbulb className="h-4 w-4 text-amber-500" /> Smart Suggestions
-            </h2>
-            {suggestions.length === 0 ? (
-              <div className="rounded-2xl border border-border bg-card p-8 text-center shadow-2xs">
-                <CheckCircle2 className="h-10 w-10 mx-auto mb-3 text-emerald-400" />
-                <p className="font-bold text-foreground text-sm">You're on a roll!</p>
-                <p className="text-xs text-muted-foreground mt-1">No suggestions right now — keep up the great work.</p>
+            {(!data?.planned_content || data.planned_content.length === 0) ? (
+              <div className="flex flex-col items-center justify-center text-center py-4 space-y-2">
+                <Calendar weight="fill" className="h-6 w-6 text-[#65676B] dark:text-[#B0B3B8] mx-auto opacity-40" />
+                <p className="text-[11px] text-[#65676B] dark:text-[#B0B3B8] text-center mx-auto">
+                  No upcoming posts scheduled
+                </p>
+                <Link to="/app/feed" className="inline-flex justify-center">
+                  <button className="px-3 py-1 rounded-md bg-[#F0F2F5] dark:bg-[#3A3B3C] hover:bg-[#E4E6EB] text-xs font-semibold text-[#050505] dark:text-[#E4E6EB] transition-colors">
+                    + Schedule post
+                  </button>
+                </Link>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {suggestions.map((s, i) => {
-                  const borderColors: Record<string, string> = {
-                    product: "border-l-[#2164b6]", audience: "border-l-emerald-500",
-                    brand: "border-l-purple-500", email: "border-l-amber-500",
-                  };
+              <div className="space-y-2">
+                {data.planned_content.map((item) => {
+                  const d = item.date ? new Date(item.date) : null;
+                  const dayStr = d
+                    ? d.toLocaleDateString("en-US", { weekday: "short", day: "numeric" })
+                    : "Scheduled";
                   return (
-                    <div key={i} className={`rounded-2xl border border-l-4 ${borderColors[s.type] ?? "border-l-muted-foreground"} border-border bg-card p-5 shadow-2xs space-y-2`}>
-                      <h3 className="font-bold text-foreground text-sm">{s.title}</h3>
-                      <p className="text-xs text-muted-foreground">{s.description}</p>
-                      <a href={s.link} className="inline-block text-xs font-bold text-[#2164b6] dark:text-[#7ab0ff] hover:underline">{s.action} &rarr;</a>
+                    <div
+                      key={item.id}
+                      className="flex items-center gap-2.5 p-2 rounded-lg bg-[#F7F8FA] dark:bg-[#2F3031]"
+                    >
+                      <div className="px-2 py-1 rounded bg-[#2164b6]/10 text-[#2164b6] font-bold text-[10px] shrink-0 text-center leading-tight">
+                        {dayStr}
+                      </div>
+                      <p className="text-[12px] font-medium text-[#050505] dark:text-[#E4E6EB] truncate">
+                        {item.title}
+                      </p>
                     </div>
                   );
                 })}
               </div>
             )}
           </div>
-
-          <div>
-            <h2 className="font-bold text-foreground text-sm mb-3 flex items-center gap-2">
-              <Lightbulb className="h-4 w-4 text-purple-500" /> Content Strategy Ideas
-            </h2>
-            <div className="rounded-2xl border border-border bg-card shadow-2xs overflow-hidden">
-              {contentIdeas.length === 0 ? (
-                <div className="p-6 text-center">
-                  <p className="text-xs text-muted-foreground">No content ideas yet. Check back soon.</p>
-                </div>
-              ) : (
-                contentIdeas.map((idea, i) => {
-                  const platformColors: Record<string, string> = {
-                    Social: "bg-blue-500/10 text-blue-600",
-                    Email: "bg-amber-500/10 text-amber-600",
-                    Community: "bg-emerald-500/10 text-emerald-600",
-                  };
-                  return (
-                    <div key={i} className={`px-4 py-3.5 flex items-start gap-3 ${i < contentIdeas.length - 1 ? "border-b border-border" : ""}`}>
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold shrink-0 ${platformColors[idea.platform] ?? "bg-muted text-muted-foreground"}`}>
-                        {idea.platform}
-                      </span>
-                      <p className="text-xs text-foreground">{idea.idea}</p>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          </div>
-
-          <div className="rounded-2xl border border-border bg-card p-6 shadow-2xs space-y-4">
-            <h3 className="font-bold text-foreground text-sm">Your Creator Journey</h3>
-            <p className="text-xs text-muted-foreground">Member since {data.growth.member_since}</p>
-            <div className="grid grid-cols-3 gap-3">
-              {[
-                { label: "Products Created", value: data.products.total },
-                { label: "Orders Fulfilled", value: data.orders.completed },
-                { label: "Followers", value: data.audience.followers.toLocaleString() },
-              ].map((m) => (
-                <div key={m.label} className="p-3 rounded-xl bg-muted/40 text-center">
-                  <span className="text-[10px] text-muted-foreground font-bold block">{m.label}</span>
-                  <span className="text-lg font-black text-foreground">{m.value}</span>
-                </div>
-              ))}
-            </div>
-          </div>
         </div>
-      )}
+      </div>
     </AnimatedPage>
   );
 }
+export default AnalyticsPage;

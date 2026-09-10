@@ -27,3 +27,4 @@ enum PaymentStatus: string
         return $this === self::Successful;
     }
 }
+

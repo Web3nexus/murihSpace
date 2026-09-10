@@ -14,3 +14,4 @@ enum CapabilityStatus: string
         return $this === self::Confirmed;
     }
 }
+

@@ -2,8 +2,14 @@ import { authFetch } from "@/lib/api/authFetch";
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router";
 import {
-  Loader2, Users, Eye, BarChart3, Globe, ShieldCheck, Sparkles,
-} from "lucide-react";
+  Spinner as Loader2,
+  Users as Users,
+  Eye as Eye,
+  ChartBar as BarChart3,
+  Globe as Globe,
+  ShieldCheck as ShieldCheck,
+  Sparkle as Sparkle
+} from "@phosphor-icons/react";
 
 
 
@@ -59,15 +65,15 @@ export function PublicMediaKitPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-secondary" />
+        <Loader2 weight="fill" className="h-8 w-8 animate-spin text-secondary" />
       </div>
     );
   }
 
   if (notFound || !kit) {
     return (
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 text-center space-y-4">
-        <div className="p-4 rounded-full bg-destructive/10 text-destructive"><Users className="h-8 w-8" /></div>
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4 text-center space-y-4">
+        <div className="p-4 rounded-full bg-destructive/10 text-destructive"><Users weight="fill" className="h-8 w-8" /></div>
         <h2 className="text-xl font-bold text-foreground">Media kit unavailable</h2>
         <p className="text-sm text-muted-foreground max-w-sm">This creator has not published a media kit yet.</p>
         <Link to="/" className="text-xs font-bold text-secondary hover:underline">Go to MurihSpace</Link>
@@ -88,7 +94,7 @@ export function PublicMediaKitPage() {
         <header className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-2 text-sm font-bold text-foreground">
             <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              <Sparkles className="h-4 w-4" />
+              <Sparkle weight="fill" className="h-4 w-4" />
             </span>
             MurihSpace
           </div>
@@ -97,16 +103,16 @@ export function PublicMediaKitPage() {
 
         <div className="space-y-8">
           {/* Profile hero */}
-          <section className="rounded-3xl border border-border bg-card p-6 sm:p-8 shadow-xs">
+          <section className="rounded-3xl border-none bg-card p-4 sm:p-5 ">
             <div className="flex flex-col sm:flex-row items-start gap-5">
-              <div className="h-24 w-24 shrink-0 rounded-2xl bg-muted flex items-center justify-center overflow-hidden">
+              <div className="h-24 w-24 shrink-0 rounded-lg bg-muted flex items-center justify-center overflow-hidden">
                 {kit.profile_image_url
                   ? <img src={kit.profile_image_url} alt="Creator" className="h-full w-full object-cover" />
-                  : <Users className="h-10 w-10 text-muted-foreground" />}
+                  : <Users weight="fill" className="h-10 w-10 text-muted-foreground" />}
               </div>
               <div className="flex-1 text-center sm:text-left">
                 <div className="inline-flex items-center gap-1.5 rounded-full bg-secondary/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-secondary">
-                  <ShieldCheck className="h-3 w-3" /> Media Kit
+                  <ShieldCheck weight="fill" className="h-3 w-3" /> Media Kit
                 </div>
                 <p className="mt-3 text-xs font-medium text-muted-foreground">Content creator on MurihSpace</p>
                 {kit.bio && <p className="mt-1.5 text-sm text-muted-foreground max-w-prose">{kit.bio}</p>}
@@ -116,20 +122,20 @@ export function PublicMediaKitPage() {
             {/* Stats */}
             <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-3">
               {stats.map(({ icon: Icon, label, value, tint }) => (
-                <div key={label} className="rounded-xl border border-border bg-muted/40 p-4 text-center">
+                <div key={label} className="rounded-lg border-none bg-muted/40 p-4 text-center">
                   <Icon className={`h-5 w-5 mx-auto mb-1 ${tint}`} />
-                  <p className="text-2xl font-extrabold text-foreground">{value}</p>
+                  <p className="text-xl font-extrabold text-foreground">{value}</p>
                   <p className="text-[11px] font-medium text-muted-foreground mt-0.5">{label}</p>
                 </div>
               ))}
             </div>
           </section>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             <div className="lg:col-span-2 space-y-6">
               {/* Demographics */}
               {kit.audience_demographics && Object.keys(kit.audience_demographics).length > 0 && (
-                <section className="rounded-2xl border border-border bg-card p-6 shadow-xs">
+                <section className="rounded-lg border-none bg-card p-4 ">
                   <h2 className="text-sm font-bold text-foreground">Audience</h2>
                   <div className="mt-4 flex flex-wrap gap-2">
                     {Object.entries(kit.audience_demographics).map(([k, v]) => (
@@ -147,7 +153,7 @@ export function PublicMediaKitPage() {
                   <h2 className="text-sm font-bold text-foreground mb-3">Top Content</h2>
                   <div className="space-y-2">
                     {kit.top_content.map((c, i) => (
-                      <div key={i} className="rounded-xl border border-border bg-card px-4 py-3 text-sm text-foreground">
+                      <div key={i} className="rounded-lg border-none bg-card px-4 py-3 text-sm text-foreground">
                         {c}
                       </div>
                     ))}
@@ -158,7 +164,7 @@ export function PublicMediaKitPage() {
 
             <div className="space-y-6">
               {/* Rate card */}
-              <section className="rounded-2xl border border-border bg-card p-6 shadow-xs">
+              <section className="rounded-lg border-none bg-card p-4 ">
                 <h2 className="text-sm font-bold text-foreground">Rate Card</h2>
                 {kit.rate_card.length === 0 ? (
                   <p className="mt-2 text-xs text-muted-foreground">No rates listed.</p>
@@ -175,7 +181,7 @@ export function PublicMediaKitPage() {
               </section>
 
               {/* Past partnerships */}
-              <section className="rounded-2xl border border-border bg-card p-6 shadow-xs">
+              <section className="rounded-lg border-none bg-card p-4 ">
                 <h2 className="text-sm font-bold text-foreground">Past Partnerships</h2>
                 {kit.past_partnerships.length === 0 ? (
                   <p className="mt-2 text-xs text-muted-foreground">None listed yet.</p>
@@ -183,7 +189,7 @@ export function PublicMediaKitPage() {
                   <div className="mt-4 space-y-2">
                     {kit.past_partnerships.map((p, i) => (
                       <div key={i} className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <Globe className="h-3.5 w-3.5 text-secondary shrink-0" /> {p}
+                        <Globe weight="fill" className="h-3.5 w-3.5 text-secondary shrink-0" /> {p}
                       </div>
                     ))}
                   </div>

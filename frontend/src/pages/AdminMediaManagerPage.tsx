@@ -1,16 +1,16 @@
 import { useState, useEffect, useCallback } from "react";
 import {
-  HardDrive,
-  Film,
+  HardDrive as HardDrive,
+  FilmStrip as FilmStrip,
   Image as ImageIcon,
-  Loader2,
-  RefreshCw,
-  Search,
-  Trash2,
-  AlertCircle,
-  CheckCircle2,
-  Clock,
-} from "lucide-react";
+  Spinner as Loader2,
+  ArrowsClockwise as RefreshCw,
+  MagnifyingGlass as Search,
+  Trash as Trash2,
+  WarningCircle as AlertCircle,
+  CheckCircle as CheckCircle2,
+  Clock as Clock
+} from "@phosphor-icons/react";
 import { getAuthToken } from "@/lib/auth/token";
 import { authFetch } from "@/lib/api/authFetch";
 
@@ -109,16 +109,16 @@ export default function AdminMediaManagerPage() {
   if (loading) {
     return (
       <div className="flex justify-center py-24">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <Loader2 weight="fill" className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
-    <div className="w-full mx-auto max-w-[1400px] space-y-6 p-6 lg:p-10">
+    <div className="w-full mx-auto max-w-[1400px] space-y-6 p-4 lg:p-10">
       <div>
-        <h1 className="text-2xl font-black tracking-tight flex items-center gap-2.5">
-          <HardDrive className="h-6 w-6 text-primary" /> Media Service & Storage Audit
+        <h1 className="text-xl font-black tracking-tight flex items-center gap-2.5">
+          <HardDrive weight="fill" className="h-6 w-6 text-primary" /> Media Service & Storage Audit
         </h1>
         <p className="text-xs text-muted-foreground mt-1">
           Monitor Contabo Object Storage, async video processing queues, and media lifecycles.
@@ -126,39 +126,39 @@ export default function AdminMediaManagerPage() {
       </div>
 
       {errorMsg && (
-        <div className="flex items-center gap-2 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-xs text-destructive">
-          <AlertCircle className="h-4 w-4 shrink-0" /> {errorMsg}
+        <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-xs text-destructive">
+          <AlertCircle weight="fill" className="h-4 w-4 shrink-0" /> {errorMsg}
         </div>
       )}
 
       {/* Metrics Grid */}
       {stats && (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="border border-border rounded-2xl p-5 bg-card space-y-1">
+          <div className="border-none rounded-lg p-5 bg-card space-y-1">
             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Total Storage</p>
             <p className="text-xl font-black text-foreground">{stats.total_storage_formatted}</p>
             <p className="text-[10px] text-muted-foreground">{stats.total_media_count} files stored</p>
           </div>
 
-          <div className="border border-border rounded-2xl p-5 bg-card space-y-1">
+          <div className="border-none rounded-lg p-5 bg-card space-y-1">
             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Media Breakdown</p>
             <div className="flex items-center gap-3 text-xs font-bold text-foreground">
-              <span className="flex items-center gap-1"><Film className="h-3.5 w-3.5 text-blue-500" /> {stats.by_type.videos} Videos</span>
-              <span className="flex items-center gap-1"><ImageIcon className="h-3.5 w-3.5 text-emerald-500" /> {stats.by_type.images} Images</span>
+              <span className="flex items-center gap-1"><FilmStrip weight="fill" className="h-3.5 w-3.5 text-blue-500" /> {stats.by_type.videos} Videos</span>
+              <span className="flex items-center gap-1"><ImageIcon weight="fill" className="h-3.5 w-3.5 text-emerald-500" /> {stats.by_type.images} Images</span>
             </div>
             <p className="text-[10px] text-muted-foreground">{stats.by_type.documents} documents & audio</p>
           </div>
 
-          <div className="border border-border rounded-2xl p-5 bg-card space-y-1">
+          <div className="border-none rounded-lg p-5 bg-card space-y-1">
             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Processing Queue</p>
             <div className="flex items-center gap-3 text-xs font-bold text-foreground">
-              <span className="flex items-center gap-1 text-emerald-500"><CheckCircle2 className="h-3.5 w-3.5" /> {stats.by_status.completed} Ready</span>
-              <span className="flex items-center gap-1 text-amber-500"><Clock className="h-3.5 w-3.5" /> {stats.by_status.processing + stats.by_status.queued} Queued</span>
+              <span className="flex items-center gap-1 text-emerald-500"><CheckCircle2 weight="fill" className="h-3.5 w-3.5" /> {stats.by_status.completed} Ready</span>
+              <span className="flex items-center gap-1 text-amber-500"><Clock weight="fill" className="h-3.5 w-3.5" /> {stats.by_status.processing + stats.by_status.queued} Queued</span>
             </div>
             <p className="text-[10px] text-muted-foreground">FFmpeg HLS background workers</p>
           </div>
 
-          <div className="border border-border rounded-2xl p-5 bg-card space-y-1">
+          <div className="border-none rounded-lg p-5 bg-card space-y-1">
             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Failed Jobs</p>
             <p className="text-xl font-black text-destructive">{stats.by_status.failed}</p>
             <p className="text-[10px] text-muted-foreground">Requires queue retry</p>
@@ -166,16 +166,16 @@ export default function AdminMediaManagerPage() {
         </div>
       )}
 
-      {/* Filter Controls */}
-      <div className="flex flex-wrap items-center justify-between gap-4 bg-card border border-border rounded-2xl p-4">
+      {/* Faders Controls */}
+      <div className="flex flex-wrap items-center justify-between gap-4 bg-card border-none rounded-lg p-4">
         <div className="relative flex-1 min-w-[220px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Search weight="fill" className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <input
             type="text"
             placeholder="Search filename or UUID..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 bg-muted/30 border border-border rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+            className="w-full pl-9 pr-4 py-2 bg-muted/30 border-none rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-primary"
           />
         </div>
 
@@ -183,7 +183,7 @@ export default function AdminMediaManagerPage() {
           <select
             value={typeFilter}
             onChange={(e) => setTypeFilter(e.target.value)}
-            className="px-3 py-2 bg-muted/30 border border-border rounded-xl text-xs focus:outline-none"
+            className="px-3 py-2 bg-muted/30 border-none rounded-lg text-xs focus:outline-none"
           >
             <option value="">All Media Types</option>
             <option value="video">Videos</option>
@@ -195,7 +195,7 @@ export default function AdminMediaManagerPage() {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-3 py-2 bg-muted/30 border border-border rounded-xl text-xs focus:outline-none"
+            className="px-3 py-2 bg-muted/30 border-none rounded-lg text-xs focus:outline-none"
           >
             <option value="">All Statuses</option>
             <option value="completed">Completed</option>
@@ -207,7 +207,7 @@ export default function AdminMediaManagerPage() {
       </div>
 
       {/* Media Table */}
-      <div className="border border-border rounded-2xl bg-card overflow-hidden">
+      <div className="border-none rounded-lg bg-card overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-xs text-left">
             <thead className="bg-muted/40 border-b border-border text-[10px] uppercase font-black text-muted-foreground tracking-wider">
@@ -233,7 +233,7 @@ export default function AdminMediaManagerPage() {
                   <tr key={m.id} className="hover:bg-muted/20 transition-colors">
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center overflow-hidden shrink-0 border border-border relative">
+                        <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center overflow-hidden shrink-0 border-none relative">
                           {m.thumbnail_url || m.url ? (
                             <img
                               src={m.thumbnail_url || m.url}
@@ -241,9 +241,9 @@ export default function AdminMediaManagerPage() {
                               className="h-full w-full object-cover"
                             />
                           ) : m.media_type === "video" ? (
-                            <Film className="h-5 w-5 text-blue-500" />
+                            <FilmStrip weight="fill" className="h-5 w-5 text-blue-500" />
                           ) : (
-                            <ImageIcon className="h-5 w-5 text-emerald-500" />
+                            <ImageIcon weight="fill" className="h-5 w-5 text-emerald-500" />
                           )}
                         </div>
                         <div className="min-w-0">
@@ -298,19 +298,19 @@ export default function AdminMediaManagerPage() {
                           <button
                             onClick={() => handleRetry(m.uuid)}
                             disabled={actionLoading === m.uuid}
-                            className="p-1.5 rounded-lg border border-border hover:bg-muted text-amber-500 transition-colors"
+                            className="p-1.5 rounded-lg border-none hover:bg-muted text-amber-500 transition-colors"
                             title="Retry Processing"
                           >
-                            <RefreshCw className={`h-3.5 w-3.5 ${actionLoading === m.uuid ? "animate-spin" : ""}`} />
+                            <RefreshCw weight="fill" className={`h-3.5 w-3.5 ${actionLoading === m.uuid ? "animate-spin" : ""}`} />
                           </button>
                         )}
                         <button
                           onClick={() => handleDelete(m.uuid)}
                           disabled={actionLoading === m.uuid}
-                          className="p-1.5 rounded-lg border border-border hover:bg-destructive/10 text-destructive transition-colors"
+                          className="p-1.5 rounded-lg border-none hover:bg-destructive/10 text-destructive transition-colors"
                           title="Delete File"
                         >
-                          <Trash2 className="h-3.5 w-3.5" />
+                          <Trash2 weight="fill" className="h-3.5 w-3.5" />
                         </button>
                       </div>
                     </td>
@@ -329,14 +329,14 @@ export default function AdminMediaManagerPage() {
               <button
                 disabled={page <= 1}
                 onClick={() => setPage((p) => Math.max(p - 1, 1))}
-                className="px-3 py-1.5 rounded-lg border border-border bg-card hover:bg-muted disabled:opacity-50 font-bold"
+                className="px-3 py-1.5 rounded-lg border-none bg-card hover:bg-muted disabled:opacity-50 font-bold"
               >
                 Previous
               </button>
               <button
                 disabled={page >= lastPage}
                 onClick={() => setPage((p) => Math.min(p + 1, lastPage))}
-                className="px-3 py-1.5 rounded-lg border border-border bg-card hover:bg-muted disabled:opacity-50 font-bold"
+                className="px-3 py-1.5 rounded-lg border-none bg-card hover:bg-muted disabled:opacity-50 font-bold"
               >
                 Next
               </button>

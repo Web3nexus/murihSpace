@@ -14,7 +14,7 @@ class Post extends Model
     use HasFactory, Searchable, SoftDeletes;
 
     protected $fillable = [
-        'community_id', 'user_id', 'type', 'content', 'media_urls',
+        'community_id', 'group_id', 'user_id', 'type', 'content', 'media_urls',
         'link_url', 'hashtags', 'mentions', 'location',
         'is_draft', 'is_pinned', 'pinned_at', 'scheduled_at',
         'privacy', 'comments_disabled', 'accessibility_text',
@@ -46,6 +46,11 @@ class Post extends Model
     public function community(): BelongsTo
     {
         return $this->belongsTo(Community::class);
+    }
+
+    public function group(): BelongsTo
+    {
+        return $this->belongsTo(Group::class);
     }
 
     public function author(): BelongsTo

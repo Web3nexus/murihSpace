@@ -1,6 +1,18 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useConfirm } from '@/components/ui/DialogProvider';
-import { Trophy, Award, Plus, Loader2, Edit, Trash2, Target, TrendingUp, ShoppingBag, DollarSign, Heart } from 'lucide-react';
+import {
+  Trophy as Trophy,
+  Medal as Award,
+  Plus as Plus,
+  Spinner as Loader2,
+  Pencil as Edit,
+  Trash as Trash2,
+  Target as Target,
+  TrendUp as TrendingUp,
+  Bag as ShoppingBag,
+  CurrencyDollar as DollarSign,
+  Heart as Heart
+} from "@phosphor-icons/react";
 import { authFetch } from "@/lib/api/authFetch";
 
 
@@ -115,19 +127,19 @@ export function MilestonesPage() {
   }
 
   if (isLoading) {
-    return <div className="w-full flex items-center justify-center h-64"><Loader2 className="w-6 h-6 animate-spin text-gray-400" /></div>;
+    return <div className="w-full flex items-center justify-center h-64"><Loader2 weight="fill" className="w-6 h-6 animate-spin text-gray-400" /></div>;
   }
 
-  const tabStyle = (t: string) => `px-5 py-2 rounded-lg text-sm font-medium transition ${tab === t ? 'bg-white shadow-sm' : 'text-gray-600 hover:text-gray-900'}`;
+  const tabStyle = (t: string) => `px-5 py-2 rounded-lg text-sm font-medium transition ${tab === t ? 'bg-white ' : 'text-gray-600 hover:text-gray-900'}`;
 
   return (
-    <div className="space-y-6 w-full max-w-7xl mx-auto p-6 lg:p-8">
+    <div className="space-y-6 w-full max-w-7xl mx-auto p-4 lg:p-5">
       <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3"><Trophy className="w-6 h-6" /><h1 className="text-2xl font-bold">Milestones & Badges</h1></div>
-        {tab === 'manage' && <button onClick={openNew} className="flex items-center gap-2 px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 text-sm"><Plus className="w-4 h-4" /> New Milestone</button>}
+        <div className="flex items-center gap-3"><Trophy weight="fill" className="w-6 h-6" /><h1 className="text-xl font-bold">Milestones & Badges</h1></div>
+        {tab === 'manage' && <button onClick={openNew} className="flex items-center gap-2 px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 text-sm"><Plus weight="fill" className="w-4 h-4" /> New Milestone</button>}
       </div>
 
-      <div className="flex gap-1 mb-6 bg-gray-100 p-1 rounded-xl w-fit">
+      <div className="flex gap-1 mb-6 bg-gray-100 p-1 rounded-lg w-fit">
         <button onClick={() => setTab('manage')} className={tabStyle('manage')}>Milestones</button>
         <button onClick={() => setTab('progress')} className={tabStyle('progress')}>My Progress</button>
         <button onClick={() => setTab('badges')} className={tabStyle('badges')}>Badges</button>
@@ -142,7 +154,7 @@ export function MilestonesPage() {
       {/* Form Modal */}
       {showForm && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setShowForm(false)}>
-          <div className="bg-white rounded-2xl max-w-lg w-full p-6" onClick={e => e.stopPropagation()}>
+          <div className="bg-white rounded-lg max-w-lg w-full p-4" onClick={e => e.stopPropagation()}>
             <h2 className="text-lg font-bold mb-4">{editing ? 'Edit Milestone' : 'New Milestone'}</h2>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
@@ -166,7 +178,7 @@ export function MilestonesPage() {
                 </div>
               </div>
               <div>
-                <label className="block text-sm text-gray-600 mb-1">Reward Type</label>
+                <label className="block text-sm text-gray-600 mb-1">Reward TextT</label>
                 <select value={fReward} onChange={e => setFReward(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm">
                   <option value="">No reward</option>
                   <option value="badge">Badge</option>
@@ -180,7 +192,7 @@ export function MilestonesPage() {
               </label>
               <div className="flex gap-3">
                 <button type="submit" disabled={isSubmitting} className="px-6 py-2 bg-black text-white rounded-lg hover:bg-gray-800 text-sm disabled:opacity-50 flex items-center gap-2">
-                  {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}{editing ? 'Update' : 'Create'}
+                  {isSubmitting && <Loader2 weight="fill" className="w-4 h-4 animate-spin" />}{editing ? 'Update' : 'Create'}
                 </button>
                 <button type="button" onClick={() => { setShowForm(false); setEditing(null); }} className="px-6 py-2 border rounded-lg hover:bg-gray-50 text-sm">Cancel</button>
               </div>
@@ -193,7 +205,7 @@ export function MilestonesPage() {
       {tab === 'manage' && (
         milestones.length === 0 ? (
           <div className="flex flex-col items-center text-center gap-4 py-16">
-            <Target className="w-16 h-16 text-gray-300" />
+            <Target weight="fill" className="w-16 h-16 text-gray-300" />
             <h2 className="text-xl font-semibold text-gray-700">No milestones yet</h2>
             <p className="text-gray-500">Create goals for your audience to reach.</p>
           </div>
@@ -202,7 +214,7 @@ export function MilestonesPage() {
             {milestones.map(m => {
               const Icon = METRIC_ICONS[m.metric_type] ?? Target;
               return (
-                <div key={m.id} className="bg-white border rounded-xl p-5">
+                <div key={m.id} className="bg-white border rounded-lg p-5">
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3">
                       <div className={`p-2.5 rounded-lg ${m.is_active ? 'bg-blue-50 text-blue-600' : 'bg-gray-100 text-gray-400'}`}>
@@ -217,8 +229,8 @@ export function MilestonesPage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <button onClick={() => openEdit(m)} className="p-1.5 hover:bg-gray-100 rounded-lg"><Edit className="w-4 h-4 text-gray-500" /></button>
-                      <button onClick={() => deleteMilestone(m.id)} className="p-1.5 hover:bg-gray-100 rounded-lg"><Trash2 className="w-4 h-4 text-red-400" /></button>
+                      <button onClick={() => openEdit(m)} className="p-1.5 hover:bg-gray-100 rounded-lg"><Edit weight="fill" className="w-4 h-4 text-gray-500" /></button>
+                      <button onClick={() => deleteMilestone(m.id)} className="p-1.5 hover:bg-gray-100 rounded-lg"><Trash2 weight="fill" className="w-4 h-4 text-red-400" /></button>
                     </div>
                   </div>
                   {m.description && <p className="text-sm text-gray-600 mt-2">{m.description}</p>}
@@ -233,7 +245,7 @@ export function MilestonesPage() {
       {tab === 'progress' && (
         progress.length === 0 ? (
           <div className="flex flex-col items-center text-center gap-4 py-16">
-            <TrendingUp className="w-16 h-16 text-gray-300" />
+            <TrendingUp weight="fill" className="w-16 h-16 text-gray-300" />
             <h2 className="text-xl font-semibold text-gray-700">No progress yet</h2>
             <p className="text-gray-500">Complete milestones to track your achievements.</p>
           </div>
@@ -242,7 +254,7 @@ export function MilestonesPage() {
             {progress.map(p => {
               const pct = p.target > 0 ? Math.min(100, Math.round((p.progress / p.target) * 100)) : 0;
               return (
-                <div key={p.milestone_id} className="bg-white border rounded-xl p-5">
+                <div key={p.milestone_id} className="bg-white border rounded-lg p-5">
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
                       <h3 className="font-semibold text-sm">{p.milestone?.title}</h3>
@@ -265,16 +277,16 @@ export function MilestonesPage() {
       {tab === 'badges' && (
         badges.length === 0 ? (
           <div className="flex flex-col items-center text-center gap-4 py-16">
-            <Award className="w-16 h-16 text-gray-300" />
+            <Award weight="fill" className="w-16 h-16 text-gray-300" />
             <h2 className="text-xl font-semibold text-gray-700">No badges yet</h2>
             <p className="text-gray-500">Earn badges by completing milestones and achievements.</p>
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
             {badges.map(ub => (
-              <div key={ub.badge_id} className="bg-white border rounded-xl p-5 text-center">
+              <div key={ub.badge_id} className="bg-white border rounded-lg p-5 text-center">
                 <div className="w-14 h-14 mx-auto rounded-full flex items-center justify-center mb-3" style={{ backgroundColor: (ub.badge?.color ?? '#2164b6') + '20' }}>
-                  <Award className="w-7 h-7" style={{ color: ub.badge?.color ?? '#2164b6' }} />
+                  <Award weight="fill" className="w-7 h-7" style={{ color: ub.badge?.color ?? '#2164b6' }} />
                 </div>
                 <h3 className="font-semibold text-sm">{ub.badge?.name}</h3>
                 <p className="text-xs text-gray-500 mt-1">{ub.badge?.description}</p>

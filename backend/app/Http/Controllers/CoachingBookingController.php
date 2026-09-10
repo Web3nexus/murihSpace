@@ -98,7 +98,7 @@ class CoachingBookingController extends Controller
 
             $meetingUrl = $validated['meeting_url'] ?? $service->meeting_url;
 
-            return CoachingBooking::create([
+            $createdBooking = CoachingBooking::create([
                 'service_id' => $service->id,
                 'slot_id' => $slot->id,
                 'booker_id' => $request->user()->id,
@@ -106,10 +106,17 @@ class CoachingBookingController extends Controller
                 'end_time' => $slot->end_time,
                 'status' => 'confirmed',
                 'notes' => $validated['notes'] ?? null,
-                'meeting_url' => $meetingUrl,
+                'meeting_url' => null,
                 'price_paid' => $service->price,
                 'currency' => $service->currency,
             ]);
+
+            // Set native MurihSpace meeting URL
+            $createdBooking->update([
+                'meeting_url' => "/app/meeting/booking/{$createdBooking->id}",
+            ]);
+
+            return $createdBooking;
         });
 
         $booking->load([
@@ -118,6 +125,51 @@ class CoachingBookingController extends Controller
         ]);
 
         return response()->json(['data' => $booking], 201);
+    }
+
+    public function livekitToken(Request $request, int $id): JsonResponse
+    {
+        $booking = CoachingBooking::with('service.creator')->findOrFail($id);
+
+        $isBooker = (int) $booking->booker_id === (int) $request->user()->id;
+        $isCreator = (int) $booking->service->creator_id === (int) $request->user()->id;
+
+        if (! $isBooker && ! $isCreator) {
+            return response()->json(['message' => 'Forbidden. You are not a participant in this meeting.'], 403);
+        }
+
+        if (! in_array($booking->status, ['confirmed', 'completed'])) {
+            return response()->json(['message' => 'Meeting is not confirmed.'], 400);
+        }
+
+        $isHost = $isCreator;
+
+        try {
+            $service = app(\App\Services\LiveKitService::class);
+            $roomName = "coaching-booking-{$booking->id}";
+            $token = $service->generateToken(
+                identity: (string) $request->user()->id,
+                roomName: $roomName,
+                metadata: json_encode([
+                    'name' => $request->user()->name,
+                    'username' => $request->user()->username ?? '',
+                    'role' => $isHost ? 'host' : 'attendee',
+                ]),
+                canPublish: true,
+                canSubscribe: true,
+                name: $request->user()->name,
+            );
+
+            return response()->json([
+                'token' => $token,
+                'host' => config('livekit.host'),
+                'room' => $roomName,
+                'title' => $booking->service->name,
+                'is_host' => $isHost,
+            ]);
+        } catch (\RuntimeException $e) {
+            return response()->json(['message' => $e->getMessage()], 503);
+        }
     }
 
     public function cancel(Request $request, int $id): JsonResponse

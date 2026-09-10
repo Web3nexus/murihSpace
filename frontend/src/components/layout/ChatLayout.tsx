@@ -1,34 +1,42 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router';
 import {
-  MessageSquare, Search, Send, Loader2, Bookmark, Users, ArrowLeft,
-  AlertCircle, RotateCcw, BellOff, Archive, MoreVertical,
-  Reply, Paperclip, CheckCheck,
-} from 'lucide-react';
-import { formatDistanceToNow, format } from 'date-fns';
+  ChatTeardropText as MessageSquare,
+  MagnifyingGlass as Search,
+  PaperPlaneRight as Send,
+  Spinner as Loader2,
+  BookmarkSimple as Bookmark,
+  Users as Users,
+  ArrowLeft as ArrowLeft,
+  WarningCircle as AlertCircle,
+  ArrowCounterClockwise as RotateCcw,
+  BellSlash as BellOff,
+  Archive as Archive,
+  DotsThreeVertical as MoreVertical,
+  ArrowUUpLeft as Reply,
+  Paperclip as Paperclip,
+  Checks as CheckCheck
+} from "@phosphor-icons/react";
+import { safeFormatDistanceToNow, safeFormat } from '@/lib/date';
 import type { ConversationItem, ChatMessage, MessageStatus, MessageReaction } from '@/types/chat';
 import { ReplyPreviewBar } from '@/components/chat/ReplyPreviewBar';
 import { MessageReactions } from '@/components/chat/MessageReactions';
-import { StoriesCarousel } from '../chat/StoriesCarousel';
+import { StoriesCarousel, type StoryUser } from '../chat/StoriesCarousel';
 import { StoryCreateModal } from '../story/StoryCreateModal';
 import { NewChatModal } from '@/components/chat/NewChatModal';
 import { CallOverlayModal, type CallMode } from '@/components/video/CallOverlayModal';
 import { useRealtimeMessaging } from '@/hooks/useRealtimeMessaging';
+import { useAuth } from '@/hooks/useAuth';
 import { getAuthToken } from "@/lib/auth/token";
-import { Plus, Video } from 'lucide-react';
+import {
+  Plus as Plus,
+  VideoCamera as Video
+} from "@phosphor-icons/react";
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? 'http://localhost:8000/api/v1';
 
 function getToken(): string | null {
   return getAuthToken();
-}
-
-function getUserData(): Record<string, unknown> {
-  try {
-    return JSON.parse(localStorage.getItem('user_data') ?? '{}');
-  } catch {
-    return {};
-  }
 }
 
 async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
@@ -53,7 +61,7 @@ function Avatar({ name, src, size = 36 }: { name?: string; src?: string; size?: 
   const initials = name ? name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase() : '?';
   if (src) return <img src={src} alt={name} style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />;
   return (
-    <div className="flex items-center justify-center rounded-full bg-gradient-to-br from-primary to-secondary text-white font-bold shrink-0 shadow-sm" style={{ width: size, height: size, fontSize: size * 0.35 }}>
+    <div className="flex items-center justify-center rounded-full bg-gradient-to-br from-primary to-secondary text-white font-bold shrink-0 " style={{ width: size, height: size, fontSize: size * 0.35 }}>
       {initials}
     </div>
   );
@@ -79,12 +87,34 @@ export function ChatLayout() {
   const [isCallModalOpen, setIsCallModalOpen] = useState(false);
   const [callMode, setCallMode] = useState<CallMode>('video');
   const [isCreateStoryOpen, setIsCreateStoryOpen] = useState(false);
+  const [storiesList, setStoriesList] = useState<StoryUser[]>([]);
+
+  const { user } = useAuth();
+  const currentUserId = user?.id;
+  const currentUserName = user?.name || user?.username || 'there';
+  const currentUserAvatar = (user as any)?.avatar_url || (user as any)?.avatar;
+
+  useEffect(() => {
+    let cancelled = false;
+    apiFetch<any>('/stories')
+      .then((data) => {
+        if (cancelled) return;
+        const list = Array.isArray(data) ? data : (data?.data ?? []);
+        const mapped: StoryUser[] = list.map((item: any) => ({
+          id: item.user?.id || Math.random(),
+          name: item.user?.name || item.user?.username || 'Member',
+          avatar_url: item.user?.avatar,
+          hasUnreadStory: true,
+        }));
+        setStoriesList(mapped);
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const currentUserData = getUserData();
-  const currentUserId = (currentUserData?.id as number | undefined) ?? undefined;
 
   useRealtimeMessaging(activeConv?.id ?? null, currentUserId, {
     onMessageReceived: useCallback((msg: ChatMessage) => {
@@ -224,7 +254,7 @@ export function ChatLayout() {
       reply_to_id: replyingTo?.id ?? undefined,
       reply_to: replyingTo ? { id: replyingTo.id!, user_id: replyingTo.user_id, content: replyingTo.content } : undefined,
       created_at: new Date().toISOString(),
-      user: { id: currentUserId ?? 0, name: (currentUserData?.name as string) ?? 'You', username: (currentUserData?.username as string) ?? 'you' },
+      user: { id: currentUserId ?? 0, name: currentUserName, username: (user as any)?.username ?? 'you', avatar_url: currentUserAvatar },
     };
 
     setReplyingTo(null);
@@ -267,7 +297,7 @@ export function ChatLayout() {
         attachment_url,
         attachment_type: attachment_type as ChatMessage['attachment_type'],
         created_at: new Date().toISOString(),
-        user: { id: currentUserId ?? 0, name: (currentUserData?.name as string) ?? 'You', username: (currentUserData?.username as string) ?? 'you' },
+        user: { id: currentUserId ?? 0, name: currentUserName, username: (user as any)?.username ?? 'you', avatar_url: currentUserAvatar },
       };
 
       setMessages((prev) => [...prev, draft]);
@@ -295,11 +325,14 @@ export function ChatLayout() {
   };
 
   const filteredConversations = conversations.filter((c) => {
+    if (!c) return false;
     if (filterTab === 'channels' && c.type !== 'community') return false;
     if (filterTab === 'direct' && c.type !== 'direct') return false;
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
-      return c.title.toLowerCase().includes(q) || c.latest_message?.content?.toLowerCase().includes(q);
+      const title = (c.title || c.other_user?.name || '').toLowerCase();
+      const content = (c.latest_message?.content || '').toLowerCase();
+      return title.includes(q) || content.includes(q);
     }
     return true;
   });
@@ -310,48 +343,51 @@ export function ChatLayout() {
       <aside className={`${activeConv ? 'hidden md:flex' : 'flex'} w-full md:w-[360px] shrink-0 flex-col border-r border-border bg-card relative`}>
         {/* Stories Carousel */}
         <StoriesCarousel
-          currentUserName={(currentUserData?.name as string) ?? 'User'}
-          unreadMessagesCount={conversations.reduce((acc, c) => acc + (c.unread_count || 0), 0)}
+          currentUserName={currentUserName}
+          currentUserAvatar={currentUserAvatar}
+          unreadMessagesCount={conversations.reduce((acc, c) => acc + (c?.unread_count || 0), 0)}
+          stories={storiesList}
           onAddStory={() => setIsCreateStoryOpen(true)}
         />
 
         <div className="px-3 py-2.5 border-b border-border">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-            <input type="search" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search conversations…" className="w-full pl-9 pr-3 py-1.5 text-xs rounded-xl bg-muted border-0 outline-none focus:ring-1 focus:ring-secondary placeholder:text-muted-foreground" />
+            <Search weight="fill" className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+            <input type="search" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search conversations…" className="w-full pl-9 pr-3 py-1.5 text-xs rounded-lg bg-muted border-0 outline-none focus:ring-1 focus:ring-secondary placeholder:text-muted-foreground" />
           </div>
         </div>
 
         <div className="flex gap-1 px-3 py-2 border-b border-border bg-muted/10">
           {(['all', 'channels', 'direct'] as const).map((tab) => (
-            <button key={tab} onClick={() => setFilterTab(tab)} className={`px-3 py-1 text-xs font-semibold rounded-lg capitalize transition-all ${filterTab === tab ? 'bg-secondary text-secondary-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted'}`}>{tab}</button>
+            <button key={tab} onClick={() => setFilterTab(tab)} className={`px-3 py-1 text-xs font-semibold rounded-lg capitalize transition-all ${filterTab === tab ? 'bg-secondary text-secondary-foreground ' : 'text-muted-foreground hover:bg-muted'}`}>{tab}</button>
           ))}
         </div>
 
         <div className="flex-1 overflow-y-auto divide-y divide-border/40 pb-16">
           {isLoadingList ? (
-            <div className="py-12 text-center space-y-2"><Loader2 className="h-6 w-6 animate-spin text-secondary mx-auto" /><p className="text-xs text-muted-foreground font-medium">Loading conversations…</p></div>
+            <div className="py-12 text-center space-y-2"><Loader2 weight="fill" className="h-6 w-6 animate-spin text-secondary mx-auto" /><p className="text-xs text-muted-foreground font-medium">Loading conversations…</p></div>
           ) : filteredConversations.length === 0 ? (
-            <div className="p-8 text-center space-y-2"><MessageSquare className="h-8 w-8 text-muted-foreground/30 mx-auto" /><p className="text-xs font-bold text-foreground">No conversations found</p></div>
+            <div className="p-5 text-center space-y-2"><MessageSquare weight="fill" className="h-8 w-8 text-muted-foreground/30 mx-auto" /><p className="text-xs font-bold text-foreground">No conversations found</p></div>
           ) : filteredConversations.map((c) => {
             const isSelected = activeConv?.id === c.id;
-            const timeFormatted = c.latest_message ? formatDistanceToNow(new Date(c.latest_message.created_at), { addSuffix: false }) : '';
+            const timeFormatted = safeFormatDistanceToNow(c.latest_message?.created_at, { addSuffix: false });
+            const title = c.title || c.other_user?.name || (c.type === 'saved' ? 'Saved Messages' : 'Conversation');
             return (
               <button key={c.id} onClick={() => selectConversation(c)} className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors ${isSelected ? 'bg-secondary/15 border-l-4 border-secondary' : 'hover:bg-muted/40'}`}>
-                {c.type === 'saved' ? <div className="h-9 w-9 rounded-full bg-amber-500/20 text-amber-500 flex items-center justify-center shrink-0"><Bookmark className="h-4 w-4" /></div>
-                  : c.type === 'community' ? <div className="h-9 w-9 rounded-full bg-secondary/20 text-secondary flex items-center justify-center shrink-0"><Users className="h-4 w-4" /></div>
-                  : <Avatar name={c.other_user?.name ?? c.title} src={c.other_user?.avatar_url} size={36} />}
+                {c.type === 'saved' ? <div className="h-9 w-9 rounded-full bg-amber-500/20 text-amber-500 flex items-center justify-center shrink-0"><Bookmark weight="fill" className="h-4 w-4" /></div>
+                  : c.type === 'community' ? <div className="h-9 w-9 rounded-full bg-secondary/20 text-secondary flex items-center justify-center shrink-0"><Users weight="fill" className="h-4 w-4" /></div>
+                  : <Avatar name={c.other_user?.name ?? title} src={c.other_user?.avatar_url} size={36} />}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-foreground truncate flex items-center gap-1">
-                      {c.is_muted && <BellOff className="h-3 w-3 text-muted-foreground shrink-0" />}
-                      {c.title}
+                      {c.is_muted && <BellOff weight="fill" className="h-3 w-3 text-muted-foreground shrink-0" />}
+                      {title}
                     </span>
                     {timeFormatted && <span className="text-[10px] text-muted-foreground shrink-0 ml-1">{timeFormatted}</span>}
                   </div>
                   <p className="text-[11px] text-muted-foreground truncate mt-0.5">{c.latest_message ? c.latest_message.content : 'No messages yet'}</p>
                 </div>
-                {c.unread_count > 0 && <span className="h-4 min-w-4 px-1 rounded-full bg-secondary text-secondary-foreground text-[10px] font-extrabold flex items-center justify-center shrink-0 shadow-sm">{c.unread_count}</span>}
+                {c.unread_count > 0 && <span className="h-4 min-w-4 px-1 rounded-full bg-secondary text-secondary-foreground text-[10px] font-extrabold flex items-center justify-center shrink-0 ">{c.unread_count}</span>}
               </button>
             );
           })}
@@ -364,7 +400,7 @@ export function ChatLayout() {
             onClick={() => setIsNewModalOpen(true)}
             className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-extrabold text-xs shadow-xl hover:scale-105 transition-all"
           >
-            <Plus className="h-4 w-4" />
+            <Plus weight="fill" className="h-4 w-4" />
             <span>New</span>
           </button>
         </div>
@@ -377,14 +413,14 @@ export function ChatLayout() {
             {/* Header */}
             <div className="px-4 py-3 border-b border-border bg-card flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <button onClick={() => setActiveConv(null)} className="md:hidden p-1.5 rounded-lg hover:bg-muted text-muted-foreground"><ArrowLeft className="h-5 w-5" /></button>
-                {activeConv.type === 'saved' ? <div className="h-9 w-9 rounded-full bg-amber-500/20 text-amber-500 flex items-center justify-center shrink-0"><Bookmark className="h-4 w-4" /></div>
-                  : activeConv.type === 'community' ? <div className="h-9 w-9 rounded-full bg-secondary/20 text-secondary flex items-center justify-center shrink-0"><Users className="h-4 w-4" /></div>
-                  : <Avatar name={activeConv.other_user?.name ?? activeConv.title} src={activeConv.other_user?.avatar_url} size={36} />}
+                <button onClick={() => setActiveConv(null)} className="md:hidden p-1.5 rounded-lg hover:bg-muted text-muted-foreground"><ArrowLeft weight="fill" className="h-5 w-5" /></button>
+                {activeConv.type === 'saved' ? <div className="h-9 w-9 rounded-full bg-amber-500/20 text-amber-500 flex items-center justify-center shrink-0"><Bookmark weight="fill" className="h-4 w-4" /></div>
+                  : activeConv.type === 'community' ? <div className="h-9 w-9 rounded-full bg-secondary/20 text-secondary flex items-center justify-center shrink-0"><Users weight="fill" className="h-4 w-4" /></div>
+                  : <Avatar name={activeConv.other_user?.name ?? activeConv.title ?? 'Conversation'} src={activeConv.other_user?.avatar_url} size={36} />}
                 <div>
                   <h3 className="text-xs sm:text-sm font-extrabold text-foreground flex items-center gap-1.5">
-                    {isMuted && <BellOff className="h-3.5 w-3.5 text-muted-foreground" />}
-                    {activeConv.title}
+                    {isMuted && <BellOff weight="fill" className="h-3.5 w-3.5 text-muted-foreground" />}
+                    {activeConv.title || activeConv.other_user?.name || 'Conversation'}
                   </h3>
                   <span className="text-[10px] text-muted-foreground capitalize">
                     {activeConv.type === 'community' ? 'Community General Channel' : activeConv.type === 'saved' ? 'Personal Notes' : 'Direct Message'}
@@ -397,22 +433,22 @@ export function ChatLayout() {
                 <button
                   type="button"
                   onClick={() => { setCallMode('video'); setIsCallModalOpen(true); }}
-                  className="p-2 rounded-xl hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                  className="p-2 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
                   title="Start Video Call"
                 >
-                  <Video className="h-4.5 w-4.5 text-secondary" />
+                  <Video weight="fill" className="h-4.5 w-4.5 text-secondary" />
                 </button>
                 <div className="relative">
-                  <button onClick={() => setShowHeaderMenu((v) => !v)} className="p-1.5 rounded-xl hover:bg-muted text-muted-foreground transition-colors"><MoreVertical className="h-4 w-4" /></button>
+                  <button onClick={() => setShowHeaderMenu((v) => !v)} className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground transition-colors"><MoreVertical weight="fill" className="h-4 w-4" /></button>
                   {showHeaderMenu && (
                     <>
                       <div className="fixed inset-0 z-40" onClick={() => setShowHeaderMenu(false)} role="presentation" onKeyDown={(e) => e.key === 'Enter' && setShowHeaderMenu(false)} />
-                      <div className="absolute right-0 top-8 z-50 w-44 rounded-xl border border-border bg-card shadow-xl p-1 text-xs space-y-0.5">
+                      <div className="absolute right-0 top-5 z-50 w-44 rounded-lg border-none bg-card shadow-xl p-1 text-xs space-y-0.5">
                         <button onClick={() => handleToggleSetting('is_muted')} className="w-full flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-muted text-foreground font-medium">
-                          <BellOff className="h-3.5 w-3.5 text-muted-foreground" /> {isMuted ? 'Unmute' : 'Mute'} conversation
+                          <BellOff weight="fill" className="h-3.5 w-3.5 text-muted-foreground" /> {isMuted ? 'Unmute' : 'Mute'} conversation
                         </button>
                         <button onClick={() => handleToggleSetting('is_archived')} className="w-full flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-muted text-foreground font-medium">
-                          <Archive className="h-3.5 w-3.5 text-muted-foreground" /> {isArchived ? 'Unarchive' : 'Archive'}
+                          <Archive weight="fill" className="h-3.5 w-3.5 text-muted-foreground" /> {isArchived ? 'Unarchive' : 'Archive'}
                         </button>
                       </div>
                     </>
@@ -424,9 +460,9 @@ export function ChatLayout() {
             {/* Message Stream */}
             <div className="flex-1 overflow-y-auto p-4 space-y-1 bg-muted/10">
               {isLoadingMsgs ? (
-                <div className="py-20 text-center space-y-2"><Loader2 className="h-6 w-6 animate-spin text-secondary mx-auto" /><p className="text-xs text-muted-foreground">Loading message history…</p></div>
+                <div className="py-20 text-center space-y-2"><Loader2 weight="fill" className="h-6 w-6 animate-spin text-secondary mx-auto" /><p className="text-xs text-muted-foreground">Loading message history…</p></div>
               ) : messages.length === 0 ? (
-                <div className="py-20 text-center space-y-2"><MessageSquare className="h-8 w-8 text-secondary/40 mx-auto" /><p className="text-xs font-bold text-foreground">Start the conversation!</p></div>
+                <div className="py-20 text-center space-y-2"><MessageSquare weight="fill" className="h-8 w-8 text-secondary/40 mx-auto" /><p className="text-xs font-bold text-foreground">Start the conversation!</p></div>
               ) : messages.map((msg) => {
                 const isMine = msg.user_id === currentUserId;
                 const isPending = msg.status === 'pending';
@@ -439,32 +475,32 @@ export function ChatLayout() {
                     <div className="max-w-[75%] sm:max-w-[65%] space-y-1">
                       {/* Reply context */}
                       {msg.reply_to && (
-                        <div className={`px-2.5 py-1.5 rounded-xl text-[10px] border-l-2 border-secondary bg-secondary/10 text-muted-foreground ${isMine ? 'ml-auto' : ''}`}>
+                        <div className={`px-2.5 py-1.5 rounded-lg text-[10px] border-l-2 border-secondary bg-secondary/10 text-muted-foreground ${isMine ? 'ml-auto' : ''}`}>
                           <span className="font-bold text-secondary">{msg.reply_to.user?.name ?? 'User'}</span>
                           <p className="truncate">{msg.reply_to.content?.slice(0, 60)}</p>
                         </div>
                       )}
 
-                      <div className={`p-3 rounded-2xl text-xs space-y-1 ${isMine ? (isFailed ? 'bg-destructive/15 border border-destructive/40 text-foreground rounded-br-none' : isPending ? 'bg-secondary/70 text-secondary-foreground rounded-br-none opacity-85 shadow-sm' : 'bg-secondary text-secondary-foreground rounded-br-none shadow-sm') : 'bg-card border border-border text-foreground rounded-bl-none shadow-sm'}`}>
+                      <div className={`p-3 rounded-lg text-xs space-y-1 ${isMine ? (isFailed ? 'bg-destructive/15 border border-destructive/40 text-foreground rounded-br-none' : isPending ? 'bg-secondary/70 text-secondary-foreground rounded-br-none opacity-85 ' : 'bg-secondary text-secondary-foreground rounded-br-none ') : 'bg-card border-none text-foreground rounded-bl-none '}`}>
                         {!isMine && msg.user?.name && <span className="block text-[10px] font-bold text-secondary">{msg.user.name}</span>}
 
                         {/* Attachment */}
                         {msg.attachment_url && (
                           msg.attachment_type === 'image'
-                            ? <img src={msg.attachment_url} alt="attachment" className="max-w-full rounded-xl max-h-48 object-cover mb-1" />
-                            : <a href={msg.attachment_url} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-xs font-semibold underline"><Paperclip className="h-3.5 w-3.5" /> Attachment</a>
+                            ? <img src={msg.attachment_url} alt="attachment" className="max-w-full rounded-lg max-h-48 object-cover mb-1" />
+                            : <a href={msg.attachment_url} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-xs font-semibold underline"><Paperclip weight="fill" className="h-3.5 w-3.5" /> Attachment</a>
                         )}
 
                         <p className="leading-relaxed whitespace-pre-wrap break-words font-normal">{msg.content}</p>
 
                         <div className="flex items-center justify-end gap-1 text-[9px] opacity-80 pt-0.5">
-                          <span>{format(new Date(msg.created_at), 'h:mm a')}</span>
-                          {isMine && (isPending ? <Loader2 className="h-2.5 w-2.5 animate-spin" /> : isFailed ? <AlertCircle className="h-2.5 w-2.5 text-destructive" /> : <CheckCheck className="h-2.5 w-2.5" />)}
+                          <span>{safeFormat(msg.created_at, 'h:mm a')}</span>
+                          {isMine && (isPending ? <Loader2 weight="fill" className="h-2.5 w-2.5 animate-spin" /> : isFailed ? <AlertCircle weight="fill" className="h-2.5 w-2.5 text-destructive" /> : <CheckCheck weight="fill" className="h-2.5 w-2.5" />)}
                         </div>
 
                         {isFailed && (
                           <button onClick={() => executeSendMessage(msg)} className="mt-1 flex items-center gap-1 text-[10px] font-extrabold text-destructive hover:underline">
-                            <RotateCcw className="h-3 w-3" /> Retry sending
+                            <RotateCcw weight="fill" className="h-3 w-3" /> Retry sending
                           </button>
                         )}
                       </div>
@@ -483,7 +519,7 @@ export function ChatLayout() {
                       className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground shrink-0 mb-1"
                       title="Reply"
                     >
-                      <Reply className="h-3.5 w-3.5" />
+                      <Reply weight="fill" className="h-3.5 w-3.5" />
                     </button>
                   </div>
                 );
@@ -513,10 +549,10 @@ export function ChatLayout() {
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploading}
-                className="p-2 rounded-xl hover:bg-muted text-muted-foreground hover:text-foreground transition-colors shrink-0 disabled:opacity-50"
+                className="p-2 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors shrink-0 disabled:opacity-50"
                 title="Attach file"
               >
-                {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Paperclip className="h-4 w-4" />}
+                {uploading ? <Loader2 weight="fill" className="h-4 w-4 animate-spin" /> : <Paperclip weight="fill" className="h-4 w-4" />}
               </button>
               <input
                 ref={fileInputRef}
@@ -530,17 +566,17 @@ export function ChatLayout() {
                 type="text"
                 value={inputContent}
                 onChange={(e) => { setInputContent(e.target.value); handleTypingDebounced(); }}
-                placeholder={`Message ${activeConv.title}…`}
-                className="flex-1 px-4 py-2.5 text-xs rounded-xl bg-muted border-0 outline-none focus:ring-1 focus:ring-secondary placeholder:text-muted-foreground"
+                placeholder={`Message ${activeConv.title || activeConv.other_user?.name || '…'}…`}
+                className="flex-1 px-4 py-2.5 text-xs rounded-lg bg-muted border-0 outline-none focus:ring-1 focus:ring-secondary placeholder:text-muted-foreground"
               />
-              <button type="submit" disabled={!inputContent.trim() || uploading} className="p-2.5 rounded-xl bg-secondary text-secondary-foreground font-bold hover:bg-secondary/90 disabled:opacity-50 transition-all shrink-0 shadow-sm">
-                <Send className="h-4 w-4" />
+              <button type="submit" disabled={!inputContent.trim() || uploading} className="p-2.5 rounded-lg bg-secondary text-secondary-foreground font-bold hover:bg-secondary/90 disabled:opacity-50 transition-all shrink-0 ">
+                <Send weight="fill" className="h-4 w-4" />
               </button>
             </form>
           </>
         ) : (
           <div className="flex flex-1 flex-col items-center justify-center gap-4 text-center px-6">
-            <div className="rounded-2xl bg-secondary/10 p-5 text-secondary border border-secondary/20"><MessageSquare className="h-10 w-10" /></div>
+            <div className="rounded-lg bg-secondary/10 p-5 text-secondary border border-secondary/20"><MessageSquare weight="fill" className="h-10 w-10" /></div>
             <div className="space-y-1">
               <h3 className="text-base font-extrabold text-foreground">Your Messages Hub</h3>
               <p className="text-xs text-muted-foreground max-w-sm">Select a conversation or open Saved Messages to start chatting.</p>

@@ -9,3 +9,4 @@ class ProviderUnavailableException extends PaymentException
         parent::__construct($message, 'PROVIDER_UNAVAILABLE', 503, array_merge(['provider' => $provider], $context));
     }
 }
+

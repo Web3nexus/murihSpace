@@ -9,3 +9,4 @@ class RoutingException extends PaymentException
         parent::__construct($message, 'NO_PROVIDER_AVAILABLE', 422, $context);
     }
 }
+

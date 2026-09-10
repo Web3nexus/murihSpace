@@ -5,7 +5,7 @@ interface IOSTypingBubbleProps {
 export function IOSTypingBubble({ names = [] }: IOSTypingBubbleProps) {
   return (
     <div className="flex items-end gap-2 px-2 py-1 animate-fade-in">
-      <div className="relative flex items-center gap-1.5 px-4 py-2.5 rounded-2xl rounded-bl-sm bg-muted/80 dark:bg-[#102840] border border-border/40 shadow-xs">
+      <div className="relative flex items-center gap-1.5 px-4 py-2.5 rounded-lg rounded-bl-sm bg-muted/80 dark:bg-[#102840] border-none/40 ">
         {/* iOS 3 Dots Wave Animation */}
         <div className="flex items-center gap-1">
           <span

@@ -1,14 +1,14 @@
 import { useState } from "react";
 import {
-  Lock,
-  Eye,
-  EyeOff,
-  Globe,
-  Users,
-  Download,
-  Trash2,
-  Check,
-} from "lucide-react";
+  Lock as Lock,
+  Eye as Eye,
+  EyeSlash as EyeOff,
+  Globe as Globe,
+  Users as Users,
+  DownloadSimple as Download,
+  Trash as Trash2,
+  Check as Check
+} from "@phosphor-icons/react";
 import { apiClient } from "@/lib/api/client";
 
 export default function PrivacyPage() {
@@ -89,7 +89,7 @@ export default function PrivacyPage() {
     <div className="space-y-6 w-full max-w-3xl mx-auto">
       <div>
         <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
-          <Lock className="h-5 w-5 text-secondary" />
+          <Lock weight="fill" className="h-5 w-5 text-secondary" />
           Privacy & Visibility
         </h2>
         <p className="text-xs text-muted-foreground mt-0.5">
@@ -98,9 +98,9 @@ export default function PrivacyPage() {
       </div>
 
       {/* ── Profile Visibility ── */}
-      <section className="rounded-2xl border border-border bg-card p-5 shadow-2xs space-y-4">
+      <section className="rounded-lg border-none bg-card p-5 shadow-2xs space-y-4">
         <h3 className="font-bold text-foreground text-xs flex items-center gap-2">
-          <Eye className="h-3.5 w-3.5 text-secondary" /> Profile Visibility
+          <Eye weight="fill" className="h-3.5 w-3.5 text-secondary" /> Profile Visibility
         </h3>
         <div className="space-y-2">
           {[
@@ -115,7 +115,7 @@ export default function PrivacyPage() {
                 key={opt.value}
                 type="button"
                 onClick={() => setProfileVisibility(opt.value)}
-                className={`w-full flex items-center gap-3 p-3 rounded-xl border text-left transition-all ${
+                className={`w-full flex items-center gap-3 p-3 rounded-lg border text-left transition-all ${
                   active ? "border-secondary bg-secondary/5" : "border-border bg-muted/30 hover:border-muted-foreground/30"
                 }`}
               >
@@ -134,9 +134,9 @@ export default function PrivacyPage() {
       </section>
 
       {/* ── Privacy Toggles ── */}
-      <section className="rounded-2xl border border-border bg-card p-5 shadow-2xs space-y-4">
+      <section className="rounded-lg border-none bg-card p-5 shadow-2xs space-y-4">
         <h3 className="font-bold text-foreground text-xs flex items-center gap-2">
-          <Users className="h-3.5 w-3.5 text-secondary" /> Profile Preferences
+          <Users weight="fill" className="h-3.5 w-3.5 text-secondary" /> Profile Preferences
         </h3>
         <div className="space-y-2">
           {[
@@ -144,7 +144,7 @@ export default function PrivacyPage() {
             { key: "donations", label: "Show Donation & Tip Stats", desc: "Display your total received tips and donations on your profile.", val: showDonations, set: setShowDonations },
             { key: "tagging", label: "Allow Tagging", desc: "Allow other members to tag you in posts and comments.", val: allowTagging, set: setAllowTagging },
           ].map((item) => (
-            <label key={item.key} className="flex items-center justify-between p-3 rounded-xl border border-border bg-muted/30 cursor-pointer hover:border-muted-foreground/30 transition-all">
+            <label key={item.key} className="flex items-center justify-between p-3 rounded-lg border-none bg-muted/30 cursor-pointer hover:border-muted-foreground/30 transition-all">
               <div className="space-y-0.5">
                 <p className="text-xs font-bold text-foreground">{item.label}</p>
                 <p className="text-[10px] text-muted-foreground">{item.desc}</p>
@@ -156,7 +156,7 @@ export default function PrivacyPage() {
                 onClick={() => item.set(!item.val)}
                 className={`relative h-6 w-11 rounded-full p-0.5 transition-colors shrink-0 ${item.val ? "bg-secondary" : "bg-muted-foreground/30"}`}
               >
-                <div className={`h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${item.val ? "translate-x-5" : "translate-x-0"}`} />
+                <div className={`h-5 w-5 rounded-full bg-white  transition-transform ${item.val ? "translate-x-5" : "translate-x-0"}`} />
               </button>
             </label>
           ))}
@@ -164,12 +164,12 @@ export default function PrivacyPage() {
       </section>
 
       {/* ── Data & Account ── */}
-      <section className="rounded-2xl border border-border bg-card p-5 shadow-2xs space-y-4">
+      <section className="rounded-lg border-none bg-card p-5 shadow-2xs space-y-4">
         <h3 className="font-bold text-foreground text-xs flex items-center gap-2">
-          <Download className="h-3.5 w-3.5 text-secondary" /> Data & Account
+          <Download weight="fill" className="h-3.5 w-3.5 text-secondary" /> Data & Account
         </h3>
         <div className="space-y-3">
-          <div className="flex items-center justify-between p-3 rounded-xl border border-border bg-muted/30">
+          <div className="flex items-center justify-between p-3 rounded-lg border-none bg-muted/30">
             <div className="space-y-0.5">
               <p className="text-xs font-bold text-foreground">Download My Data</p>
               <p className="text-[10px] text-muted-foreground">Export all your data including posts, messages, and account info.</p>
@@ -178,33 +178,33 @@ export default function PrivacyPage() {
               type="button"
               onClick={handleDownloadData}
               disabled={dataDownloading}
-              className="px-4 py-2 rounded-xl border border-border text-xs font-bold text-foreground hover:bg-muted transition-all disabled:opacity-50"
+              className="px-4 py-2 rounded-lg border-none text-xs font-bold text-foreground hover:bg-muted transition-all disabled:opacity-50"
             >
               {dataDownloading ? "Exporting..." : "Export"}
             </button>
           </div>
           {downloadMsg && (
-            <p className="text-xs text-emerald-500 flex items-center gap-1"><Check className="h-3 w-3" />{downloadMsg}</p>
+            <p className="text-xs text-emerald-500 flex items-center gap-1"><Check weight="fill" className="h-3 w-3" />{downloadMsg}</p>
           )}
 
-          <div className="flex items-center justify-between p-3 rounded-xl border border-red-500/20 bg-red-500/5">
+          <div className="flex items-center justify-between p-3 rounded-lg border border-red-500/20 bg-red-500/5">
             <div className="space-y-0.5">
               <p className="text-xs font-bold text-red-600 flex items-center gap-1.5">
-                <Trash2 className="h-3.5 w-3.5" /> Delete Account
+                <Trash2 weight="fill" className="h-3.5 w-3.5" /> Delete Account
               </p>
               <p className="text-[10px] text-muted-foreground">Deactivate your account, revoke access, and release public username. Financial records are retained securely for statutory compliance.</p>
             </div>
             <button
               type="button"
               onClick={() => setDeleteConfirm(!deleteConfirm)}
-              className="px-4 py-2 rounded-xl bg-red-500/10 text-red-600 text-xs font-bold hover:bg-red-500/20 transition-all"
+              className="px-4 py-2 rounded-lg bg-red-500/10 text-red-600 text-xs font-bold hover:bg-red-500/20 transition-all"
             >
               {deleteConfirm ? "Cancel" : "Delete"}
             </button>
           </div>
 
           {deleteConfirm && (
-            <div className="p-4 rounded-xl border border-red-500/30 bg-red-500/5 space-y-3">
+            <div className="p-4 rounded-lg border border-red-500/30 bg-red-500/5 space-y-3">
               {deleteError && (
                 <div className="p-2.5 rounded-lg bg-red-500/10 text-red-600 text-xs font-medium border border-red-500/20">
                   {deleteError}
@@ -217,7 +217,7 @@ export default function PrivacyPage() {
                   value={deletePassword}
                   onChange={(e) => setDeletePassword(e.target.value)}
                   placeholder="Enter current password (leave blank if passwordless)"
-                  className="w-full rounded-xl border border-border bg-card px-3 py-2 text-xs text-foreground focus:outline-none focus:border-red-500"
+                  className="w-full rounded-lg border-none bg-card px-3 py-2 text-xs text-foreground focus:outline-none focus:border-red-500"
                 />
               </div>
               <div className="space-y-1">
@@ -227,24 +227,24 @@ export default function PrivacyPage() {
                   value={deleteReason}
                   onChange={(e) => setDeleteReason(e.target.value)}
                   placeholder="Why are you deleting your account?"
-                  className="w-full rounded-xl border border-border bg-card px-3 py-2 text-xs text-foreground focus:outline-none focus:border-red-500"
+                  className="w-full rounded-lg border-none bg-card px-3 py-2 text-xs text-foreground focus:outline-none focus:border-red-500"
                 />
               </div>
               <div className="space-y-1">
-                <p className="text-xs font-bold text-red-600">Type <span className="font-mono bg-red-500/10 px-1 rounded">DELETE</span> to confirm</p>
+                <p className="text-xs font-bold text-red-600">TextT <span className="font-mono bg-red-500/10 px-1 rounded">DELETE</span> to confirm</p>
                 <input
                   type="text"
                   value={deleteText}
                   onChange={(e) => setDeleteText(e.target.value)}
-                  placeholder="Type DELETE to confirm"
-                  className="w-full rounded-xl border border-red-500/30 bg-card px-3 py-2 text-xs text-foreground focus:outline-none focus:border-red-500"
+                  placeholder="TextT DELETE to confirm"
+                  className="w-full rounded-lg border border-red-500/30 bg-card px-3 py-2 text-xs text-foreground focus:outline-none focus:border-red-500"
                 />
               </div>
               <button
                 type="button"
                 onClick={handleDeleteAccount}
                 disabled={deleteText !== "DELETE" || deleting}
-                className="px-5 py-2.5 rounded-xl bg-red-600 text-white text-xs font-bold hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all w-full flex items-center justify-center gap-2"
+                className="px-5 py-2.5 rounded-lg bg-red-600 text-white text-xs font-bold hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all w-full flex items-center justify-center gap-2"
               >
                 {deleting ? "Deleting Account..." : "Permanently Delete My Account"}
               </button>
@@ -253,20 +253,20 @@ export default function PrivacyPage() {
         </div>
       </section>
 
-      {/* ── Save ── */}
+      {/* ── FloppyDisk ── */}
       <div className="flex items-center justify-end gap-3">
         {saved && (
           <span className="text-xs font-semibold text-emerald-500 flex items-center gap-1">
-            <Check className="h-4 w-4" /> Privacy settings saved!
+            <Check weight="fill" className="h-4 w-4" /> Privacy settings saved!
           </span>
         )}
         <button
           type="button"
           onClick={handleSave}
           disabled={saving}
-          className="px-6 py-2 rounded-xl bg-secondary text-secondary-foreground text-xs font-bold hover:bg-secondary/90 disabled:opacity-50 transition-all shadow-xs"
+          className="px-6 py-2 rounded-lg bg-secondary text-secondary-foreground text-xs font-bold hover:bg-secondary/90 disabled:opacity-50 transition-all "
         >
-          {saving ? "Saving..." : "Save Preferences"}
+          {saving ? "Saving..." : "FloppyDisk Preferences"}
         </button>
       </div>
     </div>

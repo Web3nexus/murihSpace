@@ -24,6 +24,10 @@ export default [
     route("business", "routes/business/index.tsx"),
   ]),
   
+  // Auth Routes
+  route("login", "routes/login.tsx"),
+  route("auth/sso", "routes/auth/sso.tsx"),
+
   // Admin Routes
   route("secureads/login", "routes/secureads/login.tsx"),
   layout("routes/secureads/layout.tsx", [

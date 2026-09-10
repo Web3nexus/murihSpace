@@ -1,6 +1,14 @@
 import { getAuthToken } from "@/lib/auth/token";
 import { useEffect, useMemo, useState } from "react";
-import { Mail, Loader2, Save, RotateCcw, CheckCircle2, AlertCircle, Search } from "lucide-react";
+import {
+  Envelope as Envelope,
+  Spinner as Loader2,
+  FloppyDisk as FloppyDisk,
+  ArrowCounterClockwise as RotateCcw,
+  CheckCircle as CheckCircle2,
+  WarningCircle as AlertCircle,
+  MagnifyingGlass as Search
+} from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -92,12 +100,12 @@ export default function AdminEmailTemplatesPage() {
         }),
       });
       const j = await res.json();
-      if (!res.ok) throw new Error(j?.message ?? "Save failed");
+      if (!res.ok) throw new Error(j?.message ?? "FloppyDisk failed");
       const updated = unwrap<EmailTemplate>(j);
       setTemplates((prev) => prev.map((t) => (t.key === updated.key ? updated : t)));
       toast.success("Email template saved.");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Save failed");
+      toast.error(e instanceof Error ? e.message : "FloppyDisk failed");
     } finally {
       setSaving(false);
     }
@@ -123,14 +131,14 @@ export default function AdminEmailTemplatesPage() {
   };
 
   if (loading) {
-    return <div className="flex justify-center py-24"><Loader2 className="h-8 w-8 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" /></div>;
+    return <div className="flex justify-center py-24"><Loader2 weight="fill" className="h-8 w-8 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" /></div>;
   }
 
   return (
-    <div className="w-full mx-auto max-w-[980px] space-y-6 p-6 lg:p-10">
+    <div className="w-full mx-auto max-w-[980px] space-y-6 p-4 lg:p-10">
       <div>
-        <h1 className="text-2xl font-black tracking-tight flex items-center gap-2.5">
-          <Mail className="h-6 w-6 text-[#2164b6] dark:text-[#7ab0ff]" /> Email Templates
+        <h1 className="text-xl font-black tracking-tight flex items-center gap-2.5">
+          <Envelope weight="fill" className="h-6 w-6 text-[#2164b6] dark:text-[#7ab0ff]" /> Email Templates
         </h1>
         <p className="text-xs text-muted-foreground mt-1">
           Customise the transactional emails sent to members. Placeholders like {"{{name}}"}, {"{{action_label}}"} and {"{{action_url}}"} are always available; others ({"{{currency}}"}, {"{{amount}}"}, {"{{reason}}"}, {"{{role}}"}) depend on the email type.
@@ -141,7 +149,7 @@ export default function AdminEmailTemplatesPage() {
         {/* Template list */}
         <div className="space-y-3">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Search weight="fill" className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
@@ -157,7 +165,7 @@ export default function AdminEmailTemplatesPage() {
                   key={t.key}
                   onClick={() => setSelectedKey(t.key)}
                   className={cn(
-                    "w-full text-left rounded-xl border px-3 py-2.5 transition-all",
+                    "w-full text-left rounded-lg border px-3 py-2.5 transition-all",
                     active ? "border-[#2164b6] bg-[#2164b6]/5 ring-1 ring-[#2164b6]/20" : "border-border bg-card hover:border-[#2164b6]/40"
                   )}
                 >
@@ -182,7 +190,7 @@ export default function AdminEmailTemplatesPage() {
 
         {/* Editor */}
         {draft && (
-          <div className="border border-border rounded-2xl bg-card p-6 space-y-4">
+          <div className="border-none rounded-lg bg-card p-4 space-y-4">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="text-sm font-black text-foreground">{draft.name}</p>
@@ -226,8 +234,8 @@ export default function AdminEmailTemplatesPage() {
 
             <div className="flex items-center gap-3 flex-wrap">
               <Button onClick={save} disabled={saving} className="text-sm font-bold gap-1.5">
-                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                Save template
+                {saving ? <Loader2 weight="fill" className="h-4 w-4 animate-spin" /> : <FloppyDisk weight="fill" className="h-4 w-4" />}
+                FloppyDisk template
               </Button>
               <Button
                 variant="outline"
@@ -235,16 +243,16 @@ export default function AdminEmailTemplatesPage() {
                 disabled={resetting === draft.key}
                 className="text-sm font-bold gap-1.5"
               >
-                {resetting === draft.key ? <Loader2 className="h-4 w-4 animate-spin" /> : <RotateCcw className="h-4 w-4" />}
+                {resetting === draft.key ? <Loader2 weight="fill" className="h-4 w-4 animate-spin" /> : <RotateCcw weight="fill" className="h-4 w-4" />}
                 Reset to default
               </Button>
               {draft.is_active ? (
                 <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-                  <CheckCircle2 className="h-3.5 w-3.5" /> Live — used for outgoing email
+                  <CheckCircle2 weight="fill" className="h-3.5 w-3.5" /> Live — used for outgoing email
                 </span>
               ) : (
                 <span className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1">
-                  <AlertCircle className="h-3.5 w-3.5" /> Inactive — system defaults are used
+                  <AlertCircle weight="fill" className="h-3.5 w-3.5" /> Inactive — system defaults are used
                 </span>
               )}
             </div>

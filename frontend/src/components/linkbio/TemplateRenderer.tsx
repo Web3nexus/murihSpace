@@ -1,26 +1,40 @@
-import { Globe, ExternalLink, ShoppingCart, Tag, Camera, Music, Hash, Film, MessageCircle, Send, Link as LinkIcon, Crown, ChevronRight } from "lucide-react";
+import {
+  Globe as Globe,
+  ArrowSquareOut as ExternalLink,
+  ShoppingCart as ShoppingCart,
+  Tag as Tag,
+  Camera as Camera,
+  MusicNote as Music,
+  Hash as Hash,
+  FilmStrip as FilmStrip,
+  ChatCircle as MessageCircle,
+  PaperPlaneRight as Send,
+  Link as LinkIcon,
+  Crown as Crown,
+  CaretRight as ChevronRight
+} from "@phosphor-icons/react";
 import type { LinkBioPageData, LinkBioLinkItem, LinkBioProductItem, LinkBioSocial } from "@/lib/linkBioTypes";
 import { templateBySlug, pageBackground, buttonRadius, fontFamily, avatarRadius } from "@/lib/linkBioTemplates";
 
 export function SocialIcon({ platform, className = "h-4 w-4" }: { platform: string; className?: string }) {
   const icon: Record<string, React.ReactNode> = {
-    instagram: <Camera className={className} />,
-    twitter: <Hash className={className} />,
-    tiktok: <Music className={className} />,
-    youtube: <Film className={className} />,
-    facebook: <MessageCircle className={className} />,
-    snapchat: <Send className={className} />,
-    linkedin: <LinkIcon className={className} />,
-    github: <LinkIcon className={className} />,
+    instagram: <Camera weight="fill" className={className} />,
+    twitter: <Hash weight="fill" className={className} />,
+    tiktok: <Music weight="fill" className={className} />,
+    youtube: <FilmStrip weight="fill" className={className} />,
+    facebook: <MessageCircle weight="fill" className={className} />,
+    snapchat: <Send weight="fill" className={className} />,
+    linkedin: <LinkIcon weight="fill" className={className} />,
+    github: <LinkIcon weight="fill" className={className} />,
   };
-  return <>{icon[platform] ?? <LinkIcon className={className} />}</>;
+  return <>{icon[platform] ?? <LinkIcon weight="fill" className={className} />}</>;
 }
 
 function Avatar({ data, size, className }: { data: LinkBioPageData; size: number; className?: string }) {
   const def = templateBySlug(data.template);
   return (
     <div
-      className={`flex items-center justify-center overflow-hidden shadow-md ${avatarRadius(def.avatar_shape)} ${className ?? ""}`}
+      className={`flex items-center justify-center overflow-hidden  ${avatarRadius(def.avatar_shape)} ${className ?? ""}`}
       style={{
         width: size,
         height: size,
@@ -32,7 +46,7 @@ function Avatar({ data, size, className }: { data: LinkBioPageData; size: number
       {data.avatar_url ? (
         <img src={data.avatar_url} alt="" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
       ) : (
-        <Globe style={{ width: size * 0.45, height: size * 0.45 }} />
+        <Globe weight="fill" style={{ width: size * 0.45, height: size * 0.45 }} />
       )}
     </div>
   );
@@ -77,7 +91,7 @@ function LinkButton({ data, link, href, transparent }: { data: LinkBioPageData; 
       }}
     >
       <span className="truncate">{link.title}</span>
-      <ExternalLink className="h-4 w-4 shrink-0 ml-2" style={{ color: data.accent }} />
+      <ExternalLink weight="fill" className="h-4 w-4 shrink-0 ml-2" style={{ color: data.accent }} />
     </a>
   );
 }
@@ -100,7 +114,7 @@ function ProductCard({ data, p, href }: { data: LinkBioPageData; p: LinkBioProdu
         <img src={p.media_url} alt="" className="w-12 h-12 rounded-lg object-cover shrink-0" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
       ) : (
         <div className="w-12 h-12 rounded-lg flex items-center justify-center shrink-0" style={{ background: `${data.accent}20` }}>
-          <Tag className="h-5 w-5" style={{ color: data.accent }} />
+          <Tag weight="fill" className="h-5 w-5" style={{ color: data.accent }} />
         </div>
       )}
       <div className="flex-1 min-w-0">
@@ -120,7 +134,7 @@ function ProductsBlock({ data, hrefFor }: { data: LinkBioPageData; hrefFor: (p: 
   return (
     <div className="space-y-3">
       <h3 className="text-xs font-bold uppercase tracking-wider opacity-60 flex items-center justify-center gap-2">
-        <ShoppingCart className="h-3.5 w-3.5" /> Products
+        <ShoppingCart weight="fill" className="h-3.5 w-3.5" /> Products
       </h3>
       <div className="space-y-2">
         {data.products.map((p) => (
@@ -174,7 +188,7 @@ export default function TemplateRenderer({ data, linkHref, productHref }: Templa
                   className={`flex flex-col items-center justify-center gap-1 px-3 py-5 text-sm font-bold text-center transition-all hover:scale-[1.02] ${buttonRadius(data.button_style)}`}
                   style={{ background: data.card_bg, color: data.text_color, border: `1px solid ${data.text_color}15` }}
                 >
-                  <ExternalLink className="h-4 w-4" style={{ color: data.accent }} />
+                  <ExternalLink weight="fill" className="h-4 w-4" style={{ color: data.accent }} />
                   <span className="truncate w-full">{link.title}</span>
                 </a>
               ))}
@@ -191,7 +205,7 @@ export default function TemplateRenderer({ data, linkHref, productHref }: Templa
           <div className="w-full max-w-sm mx-auto space-y-5 text-center">
             <Avatar data={data} size={92} className="mx-auto" />
             <div className="space-y-1">
-              <h1 className="text-2xl font-black tracking-tight">{name}</h1>
+              <h1 className="text-xl font-black tracking-tight">{name}</h1>
               {data.profile_bio && <p className="text-sm" style={{ color: `${data.text_color}aa` }}>{data.profile_bio}</p>}
             </div>
             <SocialRow socials={socials} accent={data.accent} />
@@ -209,7 +223,7 @@ export default function TemplateRenderer({ data, linkHref, productHref }: Templa
                     <SocialIcon platform={socials[i % socials.length]?.platform ?? ""} className="h-4 w-4" />
                   </span>
                   <span className="flex-1 text-left truncate">{link.title}</span>
-                  <ChevronRight className="h-4 w-4 shrink-0" style={{ color: data.accent }} />
+                  <ChevronRight weight="fill" className="h-4 w-4 shrink-0" style={{ color: data.accent }} />
                 </a>
               ))}
             </div>
@@ -260,7 +274,7 @@ export default function TemplateRenderer({ data, linkHref, productHref }: Templa
         <div className="min-h-screen flex flex-col items-center py-12 px-4 transition-all duration-300" style={common}>
           <div className="w-full max-w-sm mx-auto space-y-5">
             <div className="text-center">
-              <h1 className="text-3xl font-black uppercase tracking-tight">{name}</h1>
+              <h1 className="text-xl font-black uppercase tracking-tight">{name}</h1>
               <div className="mx-auto mt-2 h-px w-24" style={{ background: data.accent }} />
               {data.profile_bio && <p className="text-sm mt-2 italic" style={{ color: `${data.text_color}99` }}>{data.profile_bio}</p>}
             </div>
@@ -290,11 +304,11 @@ export default function TemplateRenderer({ data, linkHref, productHref }: Templa
       return (
         <div className="min-h-screen flex flex-col items-center py-12 px-4 transition-all duration-300" style={common}>
           <div className="w-full max-w-sm mx-auto">
-            <div className="h-44 rounded-2xl overflow-hidden shadow-lg" style={{ background: data.banner_url ? "transparent" : `linear-gradient(135deg, ${data.accent}40 0%, ${data.accent}20 100%)` }}>
+            <div className="h-44 rounded-lg overflow-hidden shadow-lg" style={{ background: data.banner_url ? "transparent" : `linear-gradient(135deg, ${data.accent}40 0%, ${data.accent}20 100%)` }}>
               {data.banner_url ? (
                 <img src={data.banner_url} alt="" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
               ) : (
-                <div className="w-full h-full flex items-center justify-center"><ShoppingCart className="h-12 w-12" style={{ color: `${data.accent}40` }} /></div>
+                <div className="w-full h-full flex items-center justify-center"><ShoppingCart weight="fill" className="h-12 w-12" style={{ color: `${data.accent}40` }} /></div>
               )}
             </div>
             <div className="px-4 -mt-10 relative z-10 text-center space-y-4">
@@ -342,7 +356,7 @@ export default function TemplateRenderer({ data, linkHref, productHref }: Templa
                   }}
                 >
                   <span className="truncate">{link.title}</span>
-                  <ExternalLink className="h-4 w-4 shrink-0 ml-2" style={{ color: data.accent }} />
+                  <ExternalLink weight="fill" className="h-4 w-4 shrink-0 ml-2" style={{ color: data.accent }} />
                 </a>
               ))}
             </div>
@@ -427,7 +441,7 @@ export default function TemplateRenderer({ data, linkHref, productHref }: Templa
             <div className="py-3 text-[11px] font-black uppercase tracking-[0.3em] opacity-50">MurihSpace</div>
             <Avatar data={data} size={104} className="mx-auto" />
             <div className="space-y-1">
-              <h1 className="text-2xl font-black uppercase tracking-tight">{name}</h1>
+              <h1 className="text-xl font-black uppercase tracking-tight">{name}</h1>
               {data.profile_bio && <p className="text-sm" style={{ color: `${data.text_color}aa` }}>{data.profile_bio}</p>}
             </div>
             <SocialRow socials={socials} accent={data.accent} size="lg" />
@@ -457,11 +471,11 @@ export default function TemplateRenderer({ data, linkHref, productHref }: Templa
       return (
         <div className="min-h-screen flex flex-col items-center py-12 px-4 transition-all duration-300" style={common}>
           <div className="w-full max-w-sm mx-auto">
-            <div className="h-40 rounded-2xl overflow-hidden shadow-lg" style={{ background: data.banner_url ? "transparent" : `linear-gradient(135deg, ${data.accent}40 0%, ${data.accent}20 100%)` }}>
+            <div className="h-40 rounded-lg overflow-hidden shadow-lg" style={{ background: data.banner_url ? "transparent" : `linear-gradient(135deg, ${data.accent}40 0%, ${data.accent}20 100%)` }}>
               {data.banner_url ? (
                 <img src={data.banner_url} alt="" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
               ) : (
-                <div className="w-full h-full flex items-center justify-center"><Globe className="h-12 w-12" style={{ color: `${data.accent}40` }} /></div>
+                <div className="w-full h-full flex items-center justify-center"><Globe weight="fill" className="h-12 w-12" style={{ color: `${data.accent}40` }} /></div>
               )}
             </div>
             <div className="px-4 -mt-10 relative z-10 text-center space-y-4">
@@ -492,7 +506,7 @@ function Footer({ data }: { data: LinkBioPageData }) {
         className="inline-flex items-center gap-1.5 text-xs font-bold opacity-50 hover:opacity-100 transition-opacity"
         style={{ color: data.text_color }}
       >
-        <Crown className="h-3 w-3" /> MurihSpace
+        <Crown weight="fill" className="h-3 w-3" /> MurihSpace
       </a>
     </div>
   );

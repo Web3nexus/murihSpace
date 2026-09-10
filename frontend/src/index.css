@@ -200,3 +200,32 @@ code {
     @apply font-sans;
   }
 }
+
+@keyframes murih-breathe {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.92;
+  }
+  50% {
+    transform: scale(1.08);
+    opacity: 1;
+    filter: drop-shadow(0 0 16px rgba(33, 100, 182, 0.4));
+  }
+}
+
+@keyframes murih-shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(200%);
+  }
+}
+
+.animate-murih-breathe {
+  animation: murih-breathe 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.animate-murih-shimmer {
+  animation: murih-shimmer 1.5s ease-in-out infinite;
+}

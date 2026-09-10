@@ -1,5 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
-import { ShieldAlert, Plus, Loader2, Eye, Clock, CheckCircle, XCircle } from 'lucide-react';
+import {
+  ShieldWarning as ShieldWarning,
+  Plus as Plus,
+  Spinner as Loader2,
+  Eye as Eye,
+  Clock as Clock,
+  CheckCircle as CheckCircle,
+  XCircle as XCircle
+} from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -31,7 +39,7 @@ interface Dispute {
 }
 
 const STATUS_CFG: Record<string, { label: string; className: string; icon: typeof Clock }> = {
-  open:          { label: 'Open',          className: 'bg-muted text-muted-foreground',                   icon: ShieldAlert },
+  open:          { label: 'Open',          className: 'bg-muted text-muted-foreground',                   icon: ShieldWarning },
   under_review:  { label: 'Under Review',  className: 'bg-muted text-muted-foreground',                   icon: Clock },
   resolved:      { label: 'Resolved',      className: 'bg-[#2164b6]/20 text-[#2164b6] dark:text-[#7ab0ff] border border-[#2164b6]/30', icon: CheckCircle },
   dismissed:     { label: 'Dismissed',     className: 'bg-muted text-muted-foreground',                  icon: XCircle },
@@ -108,7 +116,7 @@ export function DisputesPage() {
   if (isLoading) {
     return (
       <div className="w-full flex items-center justify-center h-64">
-        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+        <Loader2 weight="fill" className="w-6 h-6 animate-spin text-muted-foreground" />
       </div>
     );
   }
@@ -120,7 +128,7 @@ export function DisputesPage() {
 
     return (
       <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setSelected(null)}>
-        <div className="bg-card rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 shadow-lg border border-border" onClick={e => e.stopPropagation()}>
+        <div className="bg-card rounded-lg max-w-lg w-full max-h-[90vh] overflow-y-auto p-4 shadow-lg border-none" onClick={e => e.stopPropagation()}>
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-bold">Dispute #{selected.id}</h2>
             <Badge className={sc.className + ' flex items-center gap-1'}>
@@ -147,13 +155,13 @@ export function DisputesPage() {
             </div>
           </div>
 
-          <div className="mt-4 p-4 bg-muted rounded-xl">
+          <div className="mt-4 p-4 bg-muted rounded-lg">
             <p className="text-sm font-medium mb-1">Description</p>
             <p className="text-sm text-foreground/80">{selected.description}</p>
           </div>
 
           {selected.resolution && (
-            <div className="mt-3 p-4 bg-muted rounded-xl">
+            <div className="mt-3 p-4 bg-muted rounded-lg">
               <p className="text-sm font-medium mb-1">Resolution</p>
               <p className="text-sm text-foreground/80">{selected.resolution}</p>
               {selected.resolved_by && (
@@ -185,26 +193,21 @@ export function DisputesPage() {
   };
 
   return (
-    <div className="space-y-6 w-full max-w-7xl mx-auto p-6 lg:p-8">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 sm:p-8 rounded-2xl bg-gradient-to-br from-[#102840] via-[#173852] to-[#102840] text-white shadow-lg">
-        <div className="space-y-1.5">
-          <div className="flex items-center gap-2">
-            <span className="px-2.5 py-0.5 rounded-full bg-[#2164b6]/20 text-[#2164b6] dark:text-[#7ab0ff] text-xs font-semibold uppercase tracking-wider border border-[#2164b6]/30">
-              Phase 9 — Disputes
-            </span>
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">Disputes</h1>
-          <p className="text-sm text-white/70 max-w-xl">Manage and resolve order disputes on the marketplace.</p>
+    <div className="space-y-6 w-full max-w-7xl mx-auto p-4 lg:p-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 sm:p-6 rounded-2xl bg-gradient-to-br from-[#102840] via-[#173852] to-[#102840] text-white shadow-md">
+        <div className="space-y-1">
+          <h1 className="text-xl sm:text-2xl font-black tracking-tight">Order Disputes</h1>
+          <p className="text-sm text-white/80 max-w-xl">Manage and resolve marketplace order disputes securely with Escrow protection.</p>
         </div>
         <Button onClick={() => setShowForm(true)}
-          className="bg-[#2164b6] text-white hover:bg-[#1a5091] font-semibold h-11 px-5 rounded-xl shadow-md gap-2 shrink-0 self-start sm:self-auto">
-          <Plus className="h-5 w-5" />
+          className="bg-[#2164b6] text-white hover:bg-[#1a5091] font-semibold h-11 px-5 rounded-lg gap-2 shrink-0 self-start sm:self-auto">
+          <Plus weight="fill" className="h-5 w-5" />
           Open Dispute
         </Button>
       </div>
 
       {message && (
-        <div className={`mb-4 px-4 py-3 rounded-xl text-sm flex items-center gap-2 ${
+        <div className={`mb-4 px-4 py-3 rounded-lg text-sm flex items-center gap-2 ${
           message.type === 'success' ? 'bg-[#2164b6]/20 text-[#2164b6] dark:text-[#7ab0ff]' : 'bg-muted text-muted-foreground'
         }`}>
           {message.text}
@@ -213,7 +216,7 @@ export function DisputesPage() {
 
       {showForm && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setShowForm(false)}>
-          <div className="bg-card rounded-2xl max-w-lg w-full p-6 shadow-lg border border-border" onClick={e => e.stopPropagation()}>
+          <div className="bg-card rounded-lg max-w-lg w-full p-4 shadow-lg border-none" onClick={e => e.stopPropagation()}>
             <h2 className="text-lg font-bold mb-4">Open a Dispute</h2>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
@@ -224,7 +227,7 @@ export function DisputesPage() {
               <div>
                 <label className="block text-sm text-muted-foreground mb-1.5">Subject *</label>
                 <select value={fSubject} onChange={e => setFSubject(e.target.value)}
-                  className="w-full bg-card border border-border rounded-xl px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring">
+                  className="w-full bg-card border-none rounded-lg px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring">
                   {SUBJECTS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
                 </select>
               </div>
@@ -232,12 +235,12 @@ export function DisputesPage() {
                 <label className="block text-sm text-muted-foreground mb-1.5">Description *</label>
                 <textarea value={fDesc} onChange={e => setFDesc(e.target.value)} rows={4}
                   required minLength={10}
-                  className="w-full bg-card border border-border rounded-xl px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-none"
+                  className="w-full bg-card border-none rounded-lg px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-none"
                   placeholder="Describe the issue (min 10 characters)" />
               </div>
               <div className="flex gap-3">
                 <Button type="submit" disabled={isSubmitting}>
-                  {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
+                  {isSubmitting && <Loader2 weight="fill" className="w-4 h-4 animate-spin" />}
                   Submit Dispute
                 </Button>
                 <Button type="button" variant="outline" onClick={() => setShowForm(false)}>Cancel</Button>
@@ -248,9 +251,9 @@ export function DisputesPage() {
       )}
 
       {disputes.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-border p-12 text-center space-y-3 bg-card">
+        <div className="rounded-lg border border-dashed border-border p-12 text-center space-y-3 bg-card">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
-            <ShieldAlert className="h-6 w-6" />
+            <ShieldWarning weight="fill" className="h-6 w-6" />
           </div>
           <h3 className="text-base font-semibold">No disputes</h3>
           <p className="text-xs text-muted-foreground max-w-sm mx-auto">If there's an issue with an order, you can open a dispute here.</p>
@@ -261,10 +264,10 @@ export function DisputesPage() {
             const sc = STATUS_CFG[d.status] ?? STATUS_CFG.open;
             const Icon = sc.icon;
             return (
-              <div key={d.id} className="rounded-2xl border border-border bg-card overflow-hidden shadow-xs hover:shadow-md hover:border-primary/30 transition-all duration-200 p-5">
+              <div key={d.id} className="rounded-lg border-none bg-card overflow-hidden  hover: hover:border-primary/30 transition-all duration-200 p-5">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-muted text-muted-foreground">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted text-muted-foreground">
                       <Icon className="w-5 h-5" />
                     </div>
                     <div>
@@ -278,7 +281,7 @@ export function DisputesPage() {
                     </div>
                   </div>
                   <Button variant="ghost" size="icon" onClick={() => setSelected(d)}>
-                    <Eye className="w-4 h-4" />
+                    <Eye weight="fill" className="w-4 h-4" />
                   </Button>
                 </div>
                 <p className="text-sm text-foreground/80 mt-2 line-clamp-2">{d.description}</p>

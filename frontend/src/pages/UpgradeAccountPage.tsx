@@ -1,13 +1,13 @@
 import { useState, useEffect, useCallback } from "react";
 import {
-  Sparkles,
-  ShoppingBag,
-  Clock,
-  CheckCircle2,
-  XCircle,
-  Loader2,
-  FileCheck,
-} from "lucide-react";
+  Sparkle as Sparkle,
+  Bag as ShoppingBag,
+  Clock as Clock,
+  CheckCircle as CheckCircle2,
+  XCircle as XCircle,
+  Spinner as Loader2,
+  FileText as FileText
+} from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { apiClient, type ApiError } from "@/lib/api/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -108,7 +108,7 @@ export function UpgradeAccountPage() {
   if (loading) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <Loader2 weight="fill" className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -118,7 +118,7 @@ export function UpgradeAccountPage() {
   return (
     <div className="max-w-4xl space-y-8">
       {/* Header Banner */}
-      <div className="rounded-xl border border-primary/20 bg-gradient-to-r from-primary/10 via-accent/20 to-background p-6 shadow-sm">
+      <div className="rounded-lg border border-primary/20 bg-gradient-to-r from-primary/10 via-accent/20 to-background p-4 ">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary mb-2">
@@ -136,9 +136,9 @@ export function UpgradeAccountPage() {
 
       {/* Pending Application Alert */}
       {application && application.status === "pending" && (
-        <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-5 text-amber-900 dark:text-amber-200 space-y-4">
+        <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-5 text-amber-900 dark:text-amber-200 space-y-4">
           <div className="flex items-start gap-4">
-            <Clock className="h-6 w-6 text-amber-500 shrink-0 mt-0.5" />
+            <Clock weight="fill" className="h-6 w-6 text-amber-500 shrink-0 mt-0.5" />
             <div className="flex-1">
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <h3 className="font-semibold text-base text-foreground">
@@ -155,10 +155,10 @@ export function UpgradeAccountPage() {
 
               {/* KYC Condition Callout */}
               {(kycRequested || userKycStatus !== "verified") && (
-                <div className="mt-4 p-4 rounded-xl border border-blue-500/30 bg-blue-500/10 space-y-2">
+                <div className="mt-4 p-4 rounded-lg border border-blue-500/30 bg-blue-500/10 space-y-2">
                   <div className="flex items-center justify-between flex-wrap gap-2">
                     <h4 className="text-xs font-bold text-blue-500 flex items-center gap-1.5">
-                      <FileCheck className="h-4 w-4" /> Identity Verification (KYC)
+                      <FileText weight="fill" className="h-4 w-4" /> Identity Verification (KYC)
                     </h4>
                     <span className="text-[11px] font-semibold text-muted-foreground capitalize">
                       Status: {userKycStatus === "verified" ? "Verified" : userKycStatus === "pending" ? "Under Review" : "Required"}
@@ -187,9 +187,9 @@ export function UpgradeAccountPage() {
                   type="button"
                   onClick={handleCancel}
                   disabled={submitting === "cancel"}
-                  className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-accent hover:text-foreground transition-colors disabled:opacity-50"
+                  className="inline-flex items-center gap-2 rounded-lg border-none px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-accent hover:text-foreground transition-colors disabled:opacity-50"
                 >
-                  {submitting === "cancel" && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                  {submitting === "cancel" && <Loader2 weight="fill" className="h-3.5 w-3.5 animate-spin" />}
                   Cancel Application
                 </button>
               </div>
@@ -200,9 +200,9 @@ export function UpgradeAccountPage() {
 
       {/* Rejection Alert */}
       {application && application.status === "rejected" && (
-        <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-5 text-destructive dark:text-red-200">
+        <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-5 text-destructive dark:text-red-200">
           <div className="flex items-start gap-4">
-            <XCircle className="h-6 w-6 text-destructive shrink-0 mt-0.5" />
+            <XCircle weight="fill" className="h-6 w-6 text-destructive shrink-0 mt-0.5" />
             <div>
               <h3 className="font-semibold text-base">Application Not Approved</h3>
               <p className="mt-1 text-sm opacity-90">
@@ -217,20 +217,20 @@ export function UpgradeAccountPage() {
       )}
 
       {/* Role Upgrade Cards */}
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-2">
         {/* Creator Card */}
         <div
-          className={`relative rounded-xl border p-6 flex flex-col justify-between transition-all ${
+          className={`relative rounded-lg border p-4 flex flex-col justify-between transition-all ${
             currentRole === "creator"
               ? "border-primary/40 bg-primary/5"
-              : "border-border bg-card hover:border-primary/50 hover:shadow-md"
+              : "border-border bg-card hover:border-primary/50 hover:"
           }`}
         >
           <div>
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2.5">
                 <div className="rounded-lg bg-primary/10 p-2.5 text-primary">
-                  <Sparkles className="h-6 w-6" />
+                  <Sparkle weight="fill" className="h-6 w-6" />
                 </div>
                 <div>
                   <h3 className="font-bold text-lg text-foreground">Creator Role</h3>
@@ -239,7 +239,7 @@ export function UpgradeAccountPage() {
               </div>
               {currentRole === "creator" && (
                 <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-semibold text-emerald-500">
-                  <CheckCircle2 className="h-3.5 w-3.5" /> Active Role
+                  <CheckCircle2 weight="fill" className="h-3.5 w-3.5" /> Active Role
                 </span>
               )}
             </div>
@@ -250,27 +250,27 @@ export function UpgradeAccountPage() {
 
             <ul className="space-y-2 text-xs text-muted-foreground mb-6">
               <li className="flex items-center gap-2 text-foreground">
-                <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+                <CheckCircle2 weight="fill" className="h-4 w-4 text-emerald-500 shrink-0" />
                 <span>Link-in-bio website & theme builder</span>
               </li>
               <li className="flex items-center gap-2 text-foreground">
-                <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+                <CheckCircle2 weight="fill" className="h-4 w-4 text-emerald-500 shrink-0" />
                 <span>Digital products, courses & 1:1 coaching</span>
               </li>
               <li className="flex items-center gap-2 text-foreground">
-                <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+                <CheckCircle2 weight="fill" className="h-4 w-4 text-emerald-500 shrink-0" />
                 <span>Communities & Video Conferences</span>
               </li>
               <li className="flex items-center gap-2 text-foreground">
-                <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+                <CheckCircle2 weight="fill" className="h-4 w-4 text-emerald-500 shrink-0" />
                 <span>Live sessions, tips & conference gifts</span>
               </li>
               <li className="flex items-center gap-2 text-foreground">
-                <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+                <CheckCircle2 weight="fill" className="h-4 w-4 text-emerald-500 shrink-0" />
                 <span>Creator payouts & media kit tools</span>
               </li>
               <li className="flex items-center gap-2 text-foreground">
-                <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+                <CheckCircle2 weight="fill" className="h-4 w-4 text-emerald-500 shrink-0" />
                 <span>Physical storefront & vendor capabilities included</span>
               </li>
             </ul>
@@ -288,7 +288,7 @@ export function UpgradeAccountPage() {
                 disabled={submitting !== null || (application?.status === "pending")}
                 className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow transition-colors hover:bg-primary/90 disabled:opacity-50"
               >
-                {submitting === "creator" && <Loader2 className="h-4 w-4 animate-spin" />}
+                {submitting === "creator" && <Loader2 weight="fill" className="h-4 w-4 animate-spin" />}
                 Apply as Creator
               </button>
             )}
@@ -297,17 +297,17 @@ export function UpgradeAccountPage() {
 
         {/* Vendor Card */}
         <div
-          className={`relative rounded-xl border p-6 flex flex-col justify-between transition-all ${
+          className={`relative rounded-lg border p-4 flex flex-col justify-between transition-all ${
             currentRole === "vendor"
               ? "border-primary/40 bg-primary/5"
-              : "border-border bg-card hover:border-primary/50 hover:shadow-md"
+              : "border-border bg-card hover:border-primary/50 hover:"
           }`}
         >
           <div>
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2.5">
                 <div className="rounded-lg bg-primary/10 p-2.5 text-primary">
-                  <ShoppingBag className="h-6 w-6" />
+                  <ShoppingBag weight="fill" className="h-6 w-6" />
                 </div>
                 <div>
                   <h3 className="font-bold text-lg text-foreground">Vendor Role</h3>
@@ -316,7 +316,7 @@ export function UpgradeAccountPage() {
               </div>
               {currentRole === "vendor" && (
                 <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-semibold text-emerald-500">
-                  <CheckCircle2 className="h-3.5 w-3.5" /> Active Role
+                  <CheckCircle2 weight="fill" className="h-3.5 w-3.5" /> Active Role
                 </span>
               )}
             </div>
@@ -327,27 +327,27 @@ export function UpgradeAccountPage() {
 
             <ul className="space-y-2 text-xs text-muted-foreground mb-6">
               <li className="flex items-center gap-2 text-foreground">
-                <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+                <CheckCircle2 weight="fill" className="h-4 w-4 text-emerald-500 shrink-0" />
                 <span>Physical product storefront & catalogue</span>
               </li>
               <li className="flex items-center gap-2 text-foreground">
-                <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+                <CheckCircle2 weight="fill" className="h-4 w-4 text-emerald-500 shrink-0" />
                 <span>Inventory management & stock alerts</span>
               </li>
               <li className="flex items-center gap-2 text-foreground">
-                <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+                <CheckCircle2 weight="fill" className="h-4 w-4 text-emerald-500 shrink-0" />
                 <span>Orders, shipping profiles & fulfilment</span>
               </li>
               <li className="flex items-center gap-2 text-foreground">
-                <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+                <CheckCircle2 weight="fill" className="h-4 w-4 text-emerald-500 shrink-0" />
                 <span>Reviews & dispute management</span>
               </li>
               <li className="flex items-center gap-2 text-foreground">
-                <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+                <CheckCircle2 weight="fill" className="h-4 w-4 text-emerald-500 shrink-0" />
                 <span>Business wallet & payout settlement</span>
               </li>
               <li className="flex items-center gap-2 text-muted-foreground/60">
-                <XCircle className="h-4 w-4 text-muted-foreground/40 shrink-0" />
+                <XCircle weight="fill" className="h-4 w-4 text-muted-foreground/40 shrink-0" />
                 <span className="line-through">No community or conference hosting</span>
               </li>
             </ul>
@@ -367,9 +367,9 @@ export function UpgradeAccountPage() {
                 type="button"
                 onClick={() => handleApply("vendor")}
                 disabled={submitting !== null || (application?.status === "pending")}
-                className="w-full inline-flex items-center justify-center gap-2 rounded-lg border border-border bg-background px-4 py-2.5 text-sm font-semibold text-foreground shadow-sm hover:bg-accent hover:text-accent-foreground transition-colors disabled:opacity-50"
+                className="w-full inline-flex items-center justify-center gap-2 rounded-lg border-none bg-background px-4 py-2.5 text-sm font-semibold text-foreground  hover:bg-accent hover:text-accent-foreground transition-colors disabled:opacity-50"
               >
-                {submitting === "vendor" && <Loader2 className="h-4 w-4 animate-spin" />}
+                {submitting === "vendor" && <Loader2 weight="fill" className="h-4 w-4 animate-spin" />}
                 Apply as Vendor
               </button>
             )}
@@ -378,14 +378,14 @@ export function UpgradeAccountPage() {
       </div>
 
       {/* Role Upgrade Process Steps */}
-      <div className="rounded-xl border border-border bg-card p-6 space-y-4">
+      <div className="rounded-lg border-none bg-card p-4 space-y-4">
         <h3 className="font-semibold text-base text-foreground flex items-center gap-2">
-          <FileCheck className="h-5 w-5 text-primary" />
+          <FileText weight="fill" className="h-5 w-5 text-primary" />
           Role Upgrade Workflow
         </h3>
 
         <div className="grid gap-4 sm:grid-cols-3 text-sm">
-          <div className="rounded-lg border border-border/50 bg-background/50 p-4">
+          <div className="rounded-lg border-none/50 bg-background/50 p-4">
             <div className="flex items-center gap-2 text-primary font-semibold mb-1">
               <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-xs">1</span>
               Submit Application
@@ -395,7 +395,7 @@ export function UpgradeAccountPage() {
             </p>
           </div>
 
-          <div className="rounded-lg border border-border/50 bg-background/50 p-4">
+          <div className="rounded-lg border-none/50 bg-background/50 p-4">
             <div className="flex items-center gap-2 text-primary font-semibold mb-1">
               <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-xs">2</span>
               Complete KYC Verification
@@ -405,7 +405,7 @@ export function UpgradeAccountPage() {
             </p>
           </div>
 
-          <div className="rounded-lg border border-border/50 bg-background/50 p-4">
+          <div className="rounded-lg border-none/50 bg-background/50 p-4">
             <div className="flex items-center gap-2 text-primary font-semibold mb-1">
               <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-xs">3</span>
               Role Activation
@@ -417,11 +417,11 @@ export function UpgradeAccountPage() {
         </div>
       </div>
 
-      {/* Role History */}
+      {/* Role ClockCounterClockwise */}
       {history.length > 0 && (
-        <div className="rounded-xl border border-border bg-card p-6 space-y-4">
-          <h3 className="font-semibold text-base text-foreground">Application History</h3>
-          <div className="divide-y divide-border rounded-lg border border-border overflow-hidden">
+        <div className="rounded-lg border-none bg-card p-4 space-y-4">
+          <h3 className="font-semibold text-base text-foreground">Application ClockCounterClockwise</h3>
+          <div className="divide-y divide-border rounded-lg border-none overflow-hidden">
             {history.map((record) => (
               <div key={record.id} className="flex items-center justify-between p-4 text-sm bg-background/30">
                 <div>

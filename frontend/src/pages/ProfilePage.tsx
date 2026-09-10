@@ -1,9 +1,21 @@
 import React, { useState, useEffect } from "react";
+import { Link } from "react-router";
 import { useProfile } from "@/hooks/useProfile";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
-import { Loader2, CheckCircle2, AlertCircle, ShieldAlert, Upload, BadgeCheck, Share2, Check } from "lucide-react";
+import {
+  Spinner as Loader2,
+  CheckCircle as CheckCircle2,
+  WarningCircle as AlertCircle,
+  ShieldWarning as ShieldWarning,
+  UploadSimple as Upload,
+  SealCheck as BadgeCheck,
+  ShareNetwork as Share2,
+  Check as Check,
+  ArrowSquareOut as ArrowSquareOut,
+  Star as Star
+} from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
 import { ImageUploader } from "@/components/upload/ImageUploader";
 
@@ -98,7 +110,7 @@ export function ProfilePage() {
   if (loading) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        <Loader2 weight="fill" className="h-6 w-6 animate-spin text-muted-foreground" />
       </div>
     );
   }
@@ -106,7 +118,7 @@ export function ProfilePage() {
   return (
     <div className="w-full max-w-3xl mx-auto space-y-8">
       {/* ── PROFILE HEADER CARD ── */}
-      <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+      <div className="overflow-hidden rounded-lg border-none bg-card ">
         <div className="h-32 w-full bg-[#1877f2]/15 dark:bg-[#242526] border-b border-border relative overflow-hidden">
           {profile?.banner_url ? (
             <img src={profile.banner_url} alt="" className="w-full h-full object-cover" />
@@ -117,7 +129,7 @@ export function ProfilePage() {
         <div className="px-6 pb-6 pt-0 relative">
           <div className="flex flex-col sm:flex-row sm:items-end justify-between -mt-12 mb-4 gap-4">
             <div className="flex items-end gap-4">
-              <div className="w-24 h-24 rounded-full border-4 border-card bg-muted flex items-center justify-center overflow-hidden text-2xl font-black text-foreground shadow-md shrink-0">
+              <div className="w-24 h-24 rounded-full border-4 border-card bg-muted flex items-center justify-center overflow-hidden text-xl font-black text-foreground  shrink-0">
                 {avatar ? (
                   <img src={avatar} alt="" className="w-full h-full object-cover" />
                 ) : (
@@ -128,13 +140,26 @@ export function ProfilePage() {
                 <div className="flex items-center gap-2">
                   <h2 className="text-xl font-extrabold text-foreground">{name || "Your Name"}</h2>
                   {(profile?.has_active_verification_badge || profile?.kyc_status === "verified") && (
-                    <BadgeCheck className="h-5 w-5 text-[#2164b6] fill-[#2164b6]/10" />
+                    <BadgeCheck weight="fill" className="h-5 w-5 text-[#2164b6] fill-[#2164b6]/10" />
                   )}
                 </div>
                 <p className="text-xs font-medium text-muted-foreground">@{username || "username"}</p>
               </div>
             </div>
-            <div className="flex items-center gap-2 pb-1">
+            <div className="flex items-center gap-2 pb-1 flex-wrap">
+              {(username || profile?.username) && (
+                <Link to={`/u/${username || profile?.username}`}>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-8 gap-1.5 text-xs font-semibold"
+                  >
+                    <ArrowSquareOut weight="bold" className="h-3.5 w-3.5" />
+                    Public View
+                  </Button>
+                </Link>
+              )}
               <Button
                 type="button"
                 variant="outline"
@@ -142,7 +167,7 @@ export function ProfilePage() {
                 onClick={handleShareProfile}
                 className="h-8 gap-1.5 text-xs font-semibold"
               >
-                {copied ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Share2 className="h-3.5 w-3.5" />}
+                {copied ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Share2 weight="fill" className="h-3.5 w-3.5" />}
                 {copied ? "Link Copied!" : "Share Profile"}
               </Button>
               <span className="px-3 py-1 rounded-full bg-[#2164b6]/10 text-[#2164b6] dark:text-[#7ab0ff] text-xs font-bold capitalize">
@@ -158,7 +183,7 @@ export function ProfilePage() {
           )}
 
           {/* Stats Bar */}
-          <div className="grid grid-cols-5 gap-2 py-3 px-4 rounded-xl bg-muted/40 border border-border text-center text-xs">
+          <div className="grid grid-cols-5 gap-2 py-3 px-4 rounded-lg bg-muted/40 border-none text-center text-xs">
             <div>
               <span className="font-extrabold text-foreground block text-sm">{profile?.posts_count ?? 0}</span>
               <span className="text-[10px] text-muted-foreground uppercase font-semibold">Posts</span>
@@ -192,20 +217,20 @@ export function ProfilePage() {
 
       {successMsg && (
         <div className="flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm text-emerald-600 dark:text-emerald-400">
-          <CheckCircle2 className="h-4 w-4 shrink-0" />
+          <CheckCircle2 weight="fill" className="h-4 w-4 shrink-0" />
           <span>{successMsg}</span>
         </div>
       )}
 
       {error && (
         <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
-          <AlertCircle className="h-4 w-4 shrink-0" />
+          <AlertCircle weight="fill" className="h-4 w-4 shrink-0" />
           <span>{error}</span>
         </div>
       )}
 
       {/* KYC Status Badge */}
-      <div className="rounded-xl border border-border bg-muted/40 p-4 flex items-center justify-between">
+      <div className="rounded-lg border-none bg-muted/40 p-4 flex items-center justify-between">
         <div>
           <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">Account Role & Verification</span>
           <span className="text-sm font-semibold capitalize text-foreground mt-0.5 block">
@@ -215,26 +240,48 @@ export function ProfilePage() {
         <div className="flex items-center gap-2">
           {profile?.kyc_status === "verified" && (
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-semibold">
-              <CheckCircle2 className="h-3.5 w-3.5" /> Verified
+              <CheckCircle2 weight="fill" className="h-3.5 w-3.5" /> Verified
             </span>
           )}
           {profile?.has_active_verification_badge && (
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-500/10 text-sky-600 dark:text-sky-400 text-xs font-semibold">
-              <BadgeCheck className="h-3.5 w-3.5" /> Verified Badge
+              <BadgeCheck weight="fill" className="h-3.5 w-3.5" /> Verified Badge
             </span>
           )}
           {profile?.kyc_status === "pending" && (
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 text-xs font-semibold">
-              <Loader2 className="h-3.5 w-3.5 animate-spin" /> Pending Review
+              <Loader2 weight="fill" className="h-3.5 w-3.5 animate-spin" /> Pending Review
             </span>
           )}
           {profile?.kyc_status === "rejected" && (
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-destructive/10 text-destructive text-xs font-semibold">
-              <ShieldAlert className="h-3.5 w-3.5" /> Rejected
+              <ShieldWarning weight="fill" className="h-3.5 w-3.5" /> Rejected
             </span>
           )}
         </div>
       </div>
+
+      {/* Vendor Store Reviews Shortcut */}
+      {profile?.role === "vendor" && (
+        <div className="rounded-lg border border-border/70 bg-card p-4 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-lg bg-amber-500/10 text-amber-500 flex items-center justify-center shrink-0">
+              <Star weight="fill" className="h-5 w-5 fill-amber-500" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-foreground">Customer Store Reviews</h3>
+              <p className="text-xs text-muted-foreground">
+                View customer ratings, review feedback, and reply to buyer reviews.
+              </p>
+            </div>
+          </div>
+          <Link to="/app/store/reviews">
+            <Button variant="outline" size="sm" className="h-8 text-xs font-semibold shrink-0">
+              Manage Reviews
+            </Button>
+          </Link>
+        </div>
+      )}
 
       {profile?.kyc_status === "rejected" && profile.kyc_rejection_reason && (
         <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-xs text-destructive space-y-1">
@@ -286,7 +333,7 @@ export function ProfilePage() {
               value={bio}
               onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setBio(e.target.value)}
               placeholder="Tell the community about yourself or your creative projects..."
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm  focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
             />
           </Field>
 
@@ -342,14 +389,14 @@ export function ProfilePage() {
           </div>
 
           <Button type="submit" disabled={updating} id="save-profile-btn">
-            {updating ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</> : "Save Profile"}
+            {updating ? <><Loader2 weight="fill" className="mr-2 h-4 w-4 animate-spin" /> Saving...</> : "Save Profile"}
           </Button>
         </FieldGroup>
       </form>
 
       {/* KYC Resubmission block for Creators / Vendors or Rejected status */}
       {(profile?.role !== "member" || profile?.kyc_status === "rejected") && profile?.kyc_status !== "verified" && (
-        <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-6 space-y-4">
+        <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-4 space-y-4">
           <div>
             <h3 className="text-sm font-semibold text-foreground">Identity Verification (KYC) Submission</h3>
             <p className="text-xs text-muted-foreground mt-0.5">
@@ -370,7 +417,7 @@ export function ProfilePage() {
               />
             </Field>
             <Button type="submit" size="sm" className="gap-1.5" disabled={updating || !kycDocInput}>
-              <Upload className="h-3.5 w-3.5" /> Submit Verification
+              <Upload weight="fill" className="h-3.5 w-3.5" /> Submit Verification
             </Button>
           </form>
         </div>

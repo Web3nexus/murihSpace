@@ -6,7 +6,18 @@ import { usePlatformConfig } from "@/hooks/usePlatformConfig";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Loader2, ArrowRight, ArrowLeft, CheckCircle2, XCircle, BadgeCheck, Crown, ShieldCheck, Eye, EyeOff } from "lucide-react";
+import {
+  Spinner as Loader2,
+  ArrowRight as ArrowRight,
+  ArrowLeft as ArrowLeft,
+  CheckCircle as CheckCircle2,
+  XCircle as XCircle,
+  SealCheck as BadgeCheck,
+  Crown as Crown,
+  ShieldCheck as ShieldCheck,
+  Eye as Eye,
+  EyeSlash as EyeOff
+} from "@phosphor-icons/react";
 import { PASSWORD_RULES, validatePassword } from "@/lib/auth/passwordRules";
 
 import { AuthLayout } from "@/components/layout/AuthLayout";
@@ -235,7 +246,7 @@ export function RegisterPage() {
   };
 
   const socialBtnClass = (prov: string) =>
-    `flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border text-xs font-bold transition-all ${
+    `flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border text-xs font-bold transition-all ${
       socialLoading === prov ? "opacity-50" : "hover:border-[#2164b6]/50 hover:bg-muted/50"
     } border-border bg-card text-foreground`;
 
@@ -288,11 +299,11 @@ export function RegisterPage() {
             <p className="text-[10px] text-muted-foreground leading-relaxed">
               By continuing you agree to receive an SMS verification code. Standard message and data rates may apply.
             </p>
-            {otpError && <div className="p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-xs font-bold text-destructive">{otpError}</div>}
-            {error && !otpError && <div className="p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-xs font-bold text-destructive">{error}</div>}
+            {otpError && <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-xs font-bold text-destructive">{otpError}</div>}
+            {error && !otpError && <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-xs font-bold text-destructive">{error}</div>}
             <Button type="submit" disabled={loading || !phoneE164} className="w-full text-sm font-bold">
-              {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-              Send verification code <ArrowRight className="h-4 w-4 ml-1" />
+              {loading ? <Loader2 weight="fill" className="h-4 w-4 animate-spin mr-2" /> : null}
+              Send verification code <ArrowRight weight="fill" className="h-4 w-4 ml-1" />
             </Button>
             <p className="text-center text-[10px] text-muted-foreground">
               Already have an account? <Link to="/login" className="text-[#2164b6] dark:text-[#7ab0ff] font-bold hover:underline">Sign in</Link>
@@ -303,8 +314,8 @@ export function RegisterPage() {
         {/* Step 2: OTP */}
         {step === 2 && (
           <form onSubmit={handleVerifyOtp} className="space-y-4">
-            <div className="p-3 rounded-xl bg-[#2164b6]/10 border border-[#2164b6]/20 flex items-center gap-2.5">
-              <ShieldCheck className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff] shrink-0" />
+            <div className="p-3 rounded-lg bg-[#2164b6]/10 border border-[#2164b6]/20 flex items-center gap-2.5">
+              <ShieldCheck weight="fill" className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff] shrink-0" />
               <p className="text-xs font-medium text-[#2164b6] dark:text-[#7ab0ff]">Code sent to <span className="font-bold">{maskedPhone}</span></p>
             </div>
             <OtpInput value={code} onChange={(v) => { setCode(v); setOtpError(null); }} />
@@ -313,15 +324,15 @@ export function RegisterPage() {
             )}
             <div className="flex gap-2">
               <Button type="button" variant="ghost" onClick={() => setStep(1)} disabled={loading} className="text-sm">
-                <ArrowLeft className="h-4 w-4 mr-1" /> Change number
+                <ArrowLeft weight="fill" className="h-4 w-4 mr-1" /> Change number
               </Button>
               <Button type="button" variant="ghost" onClick={resend} disabled={loading || resendIn > 0} className="flex-1 text-sm text-[#2164b6] dark:text-[#7ab0ff]">
-                <ArrowRight className="h-4 w-4 mr-1" />
+                <ArrowRight weight="fill" className="h-4 w-4 mr-1" />
                 {resendIn > 0 ? `Resend in ${resendIn}s` : "Resend code"}
               </Button>
             </div>
             <Button type="submit" disabled={loading || code.length < 6} className="w-full text-sm font-bold">
-              {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              {loading ? <Loader2 weight="fill" className="h-4 w-4 animate-spin mr-2" /> : null}
               Verify number
             </Button>
           </form>
@@ -339,12 +350,12 @@ export function RegisterPage() {
                   value={username}
                   onChange={(e) => handleUsernameChange(e.target.value)}
                   placeholder="username"
-                  className="w-full rounded-xl border border-border bg-card pl-8 pr-10 py-2.5 text-sm font-medium text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-[#2164b6]/50"
+                  className="w-full rounded-lg border-none bg-card pl-8 pr-10 py-2.5 text-sm font-medium text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-[#2164b6]/50"
                   autoFocus
                 />
-                {usernameChecking && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />}
-                {!usernameChecking && usernameAvailable === true && <CheckCircle2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-emerald-500" />}
-                {!usernameChecking && usernameAvailable === false && <XCircle className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-destructive" />}
+                {usernameChecking && <Loader2 weight="fill" className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />}
+                {!usernameChecking && usernameAvailable === true && <CheckCircle2 weight="fill" className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-emerald-500" />}
+                {!usernameChecking && usernameAvailable === false && <XCircle weight="fill" className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-destructive" />}
               </div>
               {usernameAvailable === true && <p className="text-[10px] text-emerald-500 font-medium">Username is available!</p>}
               {usernameAvailable === false && <p className="text-[10px] text-destructive font-medium">Username is taken. Try another.</p>}
@@ -358,8 +369,8 @@ export function RegisterPage() {
               )}
             </div>
 
-            <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-start gap-2.5">
-              <Crown className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
+            <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-start gap-2.5">
+              <Crown weight="fill" className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
               <div>
                 <p className="text-xs font-bold text-emerald-500">Your link: <span className="font-mono">murihspace.com/@{username || "username"}</span></p>
                 <p className="text-[10px] text-emerald-500/70 mt-0.5">Usernames are free — yours to keep.</p>
@@ -367,7 +378,7 @@ export function RegisterPage() {
             </div>
 
             <Button type="submit" disabled={!usernameAvailable || usernameChecking} className="w-full text-sm font-bold">
-              Claim Username <ArrowRight className="h-4 w-4 ml-1" />
+              Claim Username <ArrowRight weight="fill" className="h-4 w-4 ml-1" />
             </Button>
 
             {SOCIAL_PROVIDERS.filter((p) => cfg.auth_methods?.methods?.[p.id as "google" | "apple"]?.registration).length > 0 && (
@@ -381,7 +392,7 @@ export function RegisterPage() {
                     (p) => cfg.auth_methods.methods[p.id as "google" | "apple"].registration
                   ).map((p) => (
                     <button key={p.id} type="button" onClick={() => handleSocialLogin(p.id)} disabled={socialLoading !== null} className={socialBtnClass(p.id)}>
-                      {socialLoading === p.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <span className="font-bold text-base">{p.icon}</span>}
+                      {socialLoading === p.id ? <Loader2 weight="fill" className="h-4 w-4 animate-spin" /> : <span className="font-bold text-base">{p.icon}</span>}
                       <span className="hidden sm:inline">{p.label}</span>
                     </button>
                   ))}
@@ -390,7 +401,7 @@ export function RegisterPage() {
             )}
 
             <div className="flex gap-2">
-              <Button type="button" variant="ghost" onClick={() => setStep(2)} className="text-sm"><ArrowLeft className="h-4 w-4 mr-1" /> Back</Button>
+              <Button type="button" variant="ghost" onClick={() => setStep(2)} className="text-sm"><ArrowLeft weight="fill" className="h-4 w-4 mr-1" /> Back</Button>
             </div>
           </form>
         )}
@@ -398,8 +409,8 @@ export function RegisterPage() {
         {/* Step 4: Name */}
         {step === 4 && (
           <form onSubmit={handleNextName} className="space-y-4">
-            <div className="p-3 rounded-xl bg-[#2164b6]/10 border border-[#2164b6]/20 flex items-center gap-2.5">
-              <BadgeCheck className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff] shrink-0" />
+            <div className="p-3 rounded-lg bg-[#2164b6]/10 border border-[#2164b6]/20 flex items-center gap-2.5">
+              <BadgeCheck weight="fill" className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff] shrink-0" />
               <p className="text-xs font-medium text-[#2164b6] dark:text-[#7ab0ff]"><span className="font-bold">{verifiedPhone}</span> verified <span className="font-bold">✓</span></p>
             </div>
             <FieldGroup>
@@ -409,9 +420,9 @@ export function RegisterPage() {
               </Field>
             </FieldGroup>
             <div className="flex gap-2">
-              <Button type="button" variant="ghost" onClick={() => setStep(3)} className="text-sm"><ArrowLeft className="h-4 w-4 mr-1" /> Back</Button>
+              <Button type="button" variant="ghost" onClick={() => setStep(3)} className="text-sm"><ArrowLeft weight="fill" className="h-4 w-4 mr-1" /> Back</Button>
               <Button type="submit" disabled={!name} className="flex-1 text-sm font-bold">
-                Continue <ArrowRight className="h-4 w-4 ml-1" />
+                Continue <ArrowRight weight="fill" className="h-4 w-4 ml-1" />
               </Button>
             </div>
           </form>
@@ -440,14 +451,14 @@ export function RegisterPage() {
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 focus:outline-none"
                   >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye weight="fill" className="w-4 h-4" />}
                   </button>
                 </div>
-                <div className="mt-3 space-y-1.5 p-3 rounded-xl bg-muted/50 border border-border/50">
+                <div className="mt-3 space-y-1.5 p-3 rounded-lg bg-muted/50 border-none/50">
                   <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2">Password Requirements</p>
                   {PASSWORD_RULES.map((rule, idx) => (
                     <div key={idx} className="flex items-center gap-2 text-xs font-medium">
-                      {rule.check(password) ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> : <XCircle className="w-3.5 h-3.5 text-muted-foreground" />}
+                      {rule.check(password) ? <CheckCircle2 weight="fill" className="w-3.5 h-3.5 text-emerald-500" /> : <XCircle weight="fill" className="w-3.5 h-3.5 text-muted-foreground" />}
                       <span className={rule.check(password) ? "text-foreground" : "text-muted-foreground"}>{rule.label}</span>
                     </div>
                   ))}
@@ -475,15 +486,15 @@ export function RegisterPage() {
                     onClick={() => setShowPasswordConfirm(!showPasswordConfirm)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 focus:outline-none"
                   >
-                    {showPasswordConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    {showPasswordConfirm ? <EyeOff className="w-4 h-4" /> : <Eye weight="fill" className="w-4 h-4" />}
                   </button>
                 </div>
                 
                 {passwordConfirmation && (
                   <div className="flex items-center gap-2 mt-3 pl-1">
                     {password === passwordConfirmation
-                      ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                      : <XCircle className="w-3.5 h-3.5 text-muted-foreground" />}
+                      ? <CheckCircle2 weight="fill" className="w-3.5 h-3.5 text-emerald-500" />
+                      : <XCircle weight="fill" className="w-3.5 h-3.5 text-muted-foreground" />}
                     <span className={`text-[11px] font-medium ${password === passwordConfirmation ? 'text-emerald-500' : 'text-muted-foreground'}`}>
                       Passwords match
                     </span>
@@ -493,11 +504,11 @@ export function RegisterPage() {
                 <InlineFieldError id="password-confirm-error" error={passwordConfirmError} />
               </Field>
             </FieldGroup>
-            {error && <div className="p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-xs font-bold text-destructive">{error}</div>}
+            {error && <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-xs font-bold text-destructive">{error}</div>}
             <div className="flex gap-2">
-              <Button type="button" variant="ghost" onClick={() => setStep(4)} className="text-sm"><ArrowLeft className="h-4 w-4 mr-1" /> Back</Button>
+              <Button type="button" variant="ghost" onClick={() => setStep(4)} className="text-sm"><ArrowLeft weight="fill" className="h-4 w-4 mr-1" /> Back</Button>
               <Button type="submit" disabled={loading || !password || !passwordConfirmation} className="flex-1 text-sm font-bold">
-                {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                {loading ? <Loader2 weight="fill" className="h-4 w-4 animate-spin mr-2" /> : null}
                 Create Account
               </Button>
             </div>

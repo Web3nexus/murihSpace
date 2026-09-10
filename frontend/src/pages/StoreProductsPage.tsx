@@ -3,7 +3,18 @@ import { useConfirm } from "@/components/ui/DialogProvider";
 import { useAuth } from "@/hooks/useAuth";
 import { getAuthToken } from "@/lib/auth/token";
 import { Link } from "react-router";
-import { Package, Plus, Loader2, Edit, Trash2, Eye, EyeOff, AlertCircle, RotateCcw, ShieldCheck } from "lucide-react";
+import {
+  Package as Package,
+  Plus as Plus,
+  Spinner as Loader2,
+  Pencil as Edit,
+  Trash as Trash2,
+  Eye as Eye,
+  EyeSlash as EyeOff,
+  WarningCircle as AlertCircle,
+  ArrowCounterClockwise as RotateCcw,
+  ShieldCheck as ShieldCheck
+} from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { authFetch } from "@/lib/api/authFetch";
@@ -171,59 +182,59 @@ export default function StoreProductsPage() {
   };
 
   return (
-    <div className="w-full max-w-7xl mx-auto space-y-6 p-4 sm:p-6 lg:p-8">
+    <div className="w-full max-w-7xl mx-auto space-y-6 p-4 sm:p-4 lg:p-5">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 sm:p-8 rounded-2xl bg-card border border-border text-foreground shadow-xs">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 sm:p-5 rounded-lg bg-card border-none text-foreground ">
         <div className="space-y-1">
           <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#1877f2]/10 text-[#1877f2] text-xs font-bold uppercase tracking-wider border border-[#1877f2]/20">
-            <Package className="h-3.5 w-3.5" /> Store Catalog
+            <Package weight="fill" className="h-3.5 w-3.5" /> Storefront Catalog
           </span>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">Products</h1>
+          <h1 className="text-xl sm:text-xl font-bold tracking-tight text-foreground">Products</h1>
           <p className="text-xs sm:text-sm text-muted-foreground">Manage your digital and physical products.</p>
         </div>
         <ActionTooltip content={!isKycVerified ? "Identity verification (KYC) is required to add products." : "Create new product"}>
           <Button
             onClick={() => { if (isKycVerified) { resetForm(); setShowForm(true); } }}
             disabled={!isKycVerified}
-            className="bg-[#1877f2] hover:bg-[#166fe5] text-white font-bold h-10 px-4 rounded-xl shrink-0 gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="bg-[#1877f2] hover:bg-[#166fe5] text-white font-bold h-10 px-4 rounded-lg shrink-0 gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <Plus className="h-4 w-4" /> New Product
+            <Plus weight="fill" className="h-4 w-4" /> New Product
           </Button>
         </ActionTooltip>
       </div>
 
       {/* Error state with Verify KYC Now button */}
       {fetchError && (
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border border-destructive/30 bg-destructive/10 px-5 py-4 text-xs font-bold text-destructive shadow-xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-lg border border-destructive/30 bg-destructive/10 px-5 py-4 text-xs font-bold text-destructive ">
           <div className="flex items-center gap-2.5">
-            <AlertCircle className="h-4 w-4 shrink-0 text-destructive" />
+            <AlertCircle weight="fill" className="h-4 w-4 shrink-0 text-destructive" />
             <span>{fetchError}</span>
           </div>
           {isKycError || !isKycVerified ? (
             <Link to="/app/kyc" className="shrink-0">
               <Button
                 size="sm"
-                className="bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs h-8 px-4 rounded-xl gap-1.5 shadow-xs"
+                className="bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs h-8 px-4 rounded-lg gap-1.5 "
               >
-                <ShieldCheck className="h-4 w-4" /> Verify KYC Now
+                <ShieldCheck weight="fill" className="h-4 w-4" /> Verify KYC Now
               </Button>
             </Link>
           ) : (
             <Button
               onClick={() => fetchProducts()}
               size="sm"
-              className="bg-destructive text-white hover:bg-destructive/90 font-bold text-xs h-8 px-3 rounded-xl gap-1.5 shrink-0"
+              className="bg-destructive text-white hover:bg-destructive/90 font-bold text-xs h-8 px-3 rounded-lg gap-1.5 shrink-0"
             >
-              <RotateCcw className="h-3.5 w-3.5" /> Retry
+              <RotateCcw weight="fill" className="h-3.5 w-3.5" /> Retry
             </Button>
           )}
         </div>
       )}
 
       {showForm && (
-        <form onSubmit={handleSave} className="border border-border rounded-2xl bg-card p-6 space-y-4 shadow-xs">
+        <form onSubmit={handleSave} className="border-none rounded-lg bg-card p-4 space-y-4 ">
           {msg && (
-            <div className={`p-3 rounded-xl text-xs font-bold border ${
+            <div className={`p-3 rounded-lg text-xs font-bold border ${
               msg.ok ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 'bg-rose-500/10 text-rose-500 border-rose-500/20'
             }`}>
               {msg.text}
@@ -232,42 +243,42 @@ export default function StoreProductsPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
             <div className="space-y-1">
               <label className="font-bold text-foreground uppercase tracking-wider">Title *</label>
-              <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Product title" required className="h-10 rounded-xl" />
+              <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Product title" required className="h-10 rounded-lg" />
             </div>
             <div className="space-y-1">
-              <label className="font-bold text-foreground uppercase tracking-wider">Type</label>
-              <select value={productType} onChange={(e) => setProductType(e.target.value as "digital" | "physical")} className="w-full rounded-xl border border-border bg-card p-2.5 text-xs font-bold text-foreground">
+              <label className="font-bold text-foreground uppercase tracking-wider">TextT</label>
+              <select value={productType} onChange={(e) => setProductType(e.target.value as "digital" | "physical")} className="w-full rounded-lg border-none bg-card p-2.5 text-xs font-bold text-foreground">
                 <option value="digital">Digital Download</option>
                 <option value="physical">Physical Product</option>
               </select>
             </div>
             <div className="space-y-1">
               <label className="font-bold text-foreground uppercase tracking-wider">Price</label>
-              <Input type="number" step="0.01" min="0" value={price} onChange={(e) => setPrice(e.target.value)} className="font-mono h-10 rounded-xl" />
+              <Input type="number" step="0.01" min="0" value={price} onChange={(e) => setPrice(e.target.value)} className="font-mono h-10 rounded-lg" />
             </div>
             <div className="space-y-1">
               <label className="font-bold text-foreground uppercase tracking-wider">Currency</label>
-              <select value={currency} onChange={(e) => setCurrency(e.target.value)} className="w-full rounded-xl border border-border bg-card p-2.5 text-xs font-bold text-foreground">
+              <select value={currency} onChange={(e) => setCurrency(e.target.value)} className="w-full rounded-lg border-none bg-card p-2.5 text-xs font-bold text-foreground">
                 {["USD", "NGN", "GBP", "EUR"].map((c) => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
           </div>
           <div className="flex gap-2 pt-2">
-            <Button type="submit" disabled={saving || !title.trim() || !isKycVerified} className="bg-[#1877f2] hover:bg-[#166fe5] text-white font-bold h-10 px-5 rounded-xl text-xs disabled:opacity-50">
-              {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}{editing ? "Update" : "Create"}
+            <Button type="submit" disabled={saving || !title.trim() || !isKycVerified} className="bg-[#1877f2] hover:bg-[#166fe5] text-white font-bold h-10 px-5 rounded-lg text-xs disabled:opacity-50">
+              {saving ? <Loader2 weight="fill" className="h-4 w-4 animate-spin mr-2" /> : null}{editing ? "Update" : "Create"}
             </Button>
-            <Button type="button" variant="outline" onClick={resetForm} className="h-10 rounded-xl text-xs">Cancel</Button>
+            <Button type="button" variant="outline" onClick={resetForm} className="h-10 rounded-lg text-xs">Cancel</Button>
           </div>
         </form>
       )}
 
       {loading ? (
         <div className="flex justify-center py-24">
-          <Loader2 className="h-8 w-8 animate-spin text-[#1877f2]" />
+          <Loader2 weight="fill" className="h-8 w-8 animate-spin text-[#1877f2]" />
         </div>
       ) : safeArray(products).length === 0 ? (
         <div className="p-16 text-center border border-dashed border-border rounded-3xl bg-card space-y-3 flex flex-col items-center justify-center">
-          <Package className="h-12 w-12 text-muted-foreground/30 mx-auto" />
+          <Package weight="fill" className="h-12 w-12 text-muted-foreground/30 mx-auto" />
           <h3 className="text-sm font-bold text-foreground text-center">No products yet</h3>
           <p className="text-xs text-muted-foreground max-w-sm mx-auto text-center">
             {role === "creator"
@@ -277,14 +288,14 @@ export default function StoreProductsPage() {
           <div className="pt-2 flex justify-center gap-3">
             {role === "creator" && (
               <Link to="/app/store/digital">
-                <Button disabled={!isKycVerified} className="bg-[#1877f2] hover:bg-[#166fe5] text-white font-bold text-xs rounded-xl h-9 px-4 disabled:opacity-50">
+                <Button disabled={!isKycVerified} className="bg-[#1877f2] hover:bg-[#166fe5] text-white font-bold text-xs rounded-lg h-9 px-4 disabled:opacity-50">
                   Add Digital Product
                 </Button>
               </Link>
             )}
             {role === "vendor" && (
               <Link to="/app/store/physical-products">
-                <Button disabled={!isKycVerified} className="bg-[#1877f2] hover:bg-[#166fe5] text-white font-bold text-xs rounded-xl h-9 px-4 disabled:opacity-50">
+                <Button disabled={!isKycVerified} className="bg-[#1877f2] hover:bg-[#166fe5] text-white font-bold text-xs rounded-lg h-9 px-4 disabled:opacity-50">
                   Add Physical Product
                 </Button>
               </Link>
@@ -292,12 +303,12 @@ export default function StoreProductsPage() {
           </div>
         </div>
       ) : (
-        <div className="border border-border rounded-2xl bg-card overflow-hidden shadow-xs">
+        <div className="border-none rounded-lg bg-card overflow-hidden ">
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
               <thead className="bg-muted/30 border-b border-border font-bold text-muted-foreground uppercase tracking-wider">
                 <tr className="text-left">
-                  {["Product", "Type", "Price", "Sales / Downloads", "Status", "Actions"].map((h) => (
+                  {["Product", "TextT", "Price", "Sales / Downloads", "Status", "Actions"].map((h) => (
                     <th key={h} className="px-5 py-3.5">{h}</th>
                   ))}
                 </tr>
@@ -328,17 +339,17 @@ export default function StoreProductsPage() {
                       <div className="flex justify-end gap-1">
                         <ActionTooltip content={p.status === 'published' ? 'Unpublish' : 'Publish'}>
                           <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => togglePublish(p)}>
-                            {p.status === 'published' ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            {p.status === 'published' ? <EyeOff className="h-4 w-4" /> : <Eye weight="fill" className="h-4 w-4" />}
                           </Button>
                         </ActionTooltip>
                         <ActionTooltip content="Edit product">
                           <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => { setEditing(p); setTitle(p.title); setPrice(String(p.price / 100)); setCurrency(p.currency); setProductType(p.type); setShowForm(true); setMsg(null); }}>
-                            <Edit className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+                            <Edit weight="fill" className="h-4 w-4 text-muted-foreground hover:text-foreground" />
                           </Button>
                         </ActionTooltip>
                         <ActionTooltip content="Delete product">
                           <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-destructive hover:bg-destructive/10" onClick={() => handleDelete(p.id)}>
-                            <Trash2 className="h-4 w-4" />
+                            <Trash2 weight="fill" className="h-4 w-4" />
                           </Button>
                         </ActionTooltip>
                       </div>
@@ -355,8 +366,8 @@ export default function StoreProductsPage() {
         <div className="flex items-center justify-between border-t border-border px-6 py-3 bg-muted/10">
           <span className="text-xs text-muted-foreground font-medium">Page {page} of {lastPage}</span>
           <div className="flex items-center gap-2">
-            <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1} className="px-3 py-1.5 rounded-xl text-xs font-bold border border-border bg-card hover:bg-muted disabled:opacity-40 transition-colors">Previous</button>
-            <button onClick={() => setPage(p => Math.min(lastPage, p + 1))} disabled={page >= lastPage} className="px-3 py-1.5 rounded-xl text-xs font-bold border border-border bg-card hover:bg-muted disabled:opacity-40 transition-colors">Next</button>
+            <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1} className="px-3 py-1.5 rounded-lg text-xs font-bold border-none bg-card hover:bg-muted disabled:opacity-40 transition-colors">Previous</button>
+            <button onClick={() => setPage(p => Math.min(lastPage, p + 1))} disabled={page >= lastPage} className="px-3 py-1.5 rounded-lg text-xs font-bold border-none bg-card hover:bg-muted disabled:opacity-40 transition-colors">Next</button>
           </div>
         </div>
       )}

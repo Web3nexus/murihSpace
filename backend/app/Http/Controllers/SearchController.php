@@ -27,13 +27,20 @@ class SearchController extends Controller
 
         $results = [];
 
+        $like = \Illuminate\Support\Facades\DB::connection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
+
         if ($type === 'all' || $type === 'users') {
-            $results['users'] = User::where(function ($query) use ($q, $cleanQ) {
-                $query->where('name', 'like', "%{$q}%")
-                    ->orWhere('username', 'like', "%{$cleanQ}%")
-                    ->orWhere('email', 'like', "%{$q}%");
+            $results['users'] = User::where(function ($query) use ($q, $cleanQ, $like) {
+                $query->where('name', $like, "%{$q}%")
+                    ->orWhere('username', $like, "%{$cleanQ}%")
+                    ->orWhere('email', $like, "%{$q}%");
             })
                 ->whereNull('deleted_at')
+                ->orderByRaw("CASE 
+                    WHEN LOWER(username) = LOWER(?) THEN 0 
+                    WHEN LOWER(username) LIKE LOWER(?) THEN 1 
+                    WHEN LOWER(name) LIKE LOWER(?) THEN 2 
+                    ELSE 3 END", [$cleanQ, "{$cleanQ}%", "{$q}%"])
                 ->take($perPage)
                 ->get()
                 ->map(fn (User $u) => [
@@ -48,11 +55,15 @@ class SearchController extends Controller
         }
 
         if ($type === 'all' || $type === 'communities') {
-            $results['communities'] = Community::where(function ($query) use ($q) {
-                $query->where('name', 'like', "%{$q}%")
-                    ->orWhere('slug', 'like', "%{$q}%")
-                    ->orWhere('description', 'like', "%{$q}%");
+            $results['communities'] = Community::where(function ($query) use ($q, $like) {
+                $query->where('name', $like, "%{$q}%")
+                    ->orWhere('slug', $like, "%{$q}%")
+                    ->orWhere('description', $like, "%{$q}%");
             })
+                ->orderByRaw("CASE 
+                    WHEN LOWER(name) = LOWER(?) THEN 0 
+                    WHEN LOWER(name) LIKE LOWER(?) THEN 1 
+                    ELSE 2 END", [$q, "{$q}%"])
                 ->take($perPage)
                 ->get()
                 ->map(fn (Community $c) => [

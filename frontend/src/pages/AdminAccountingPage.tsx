@@ -1,17 +1,17 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
-  DollarSign,
-  TrendingUp,
-  Receipt,
-  FileText,
-  Download,
-  Building2,
-  RefreshCw,
-  Plus,
-  ShieldCheck,
-  Layers,
-  Percent,
-} from 'lucide-react';
+  CurrencyDollar as DollarSign,
+  TrendUp as TrendingUp,
+  Receipt as Receipt,
+  FileText as FileText,
+  DownloadSimple as Download,
+  Buildings as Building2,
+  ArrowsClockwise as RefreshCw,
+  Plus as Plus,
+  ShieldCheck as ShieldCheck,
+  Stack as Layers,
+  Percent as Percent
+} from "@phosphor-icons/react";
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -191,12 +191,12 @@ export default function AdminAccountingPage() {
   };
 
   return (
-    <div className="p-6 space-y-6 max-w-7xl mx-auto">
+    <div className="p-4 space-y-6 max-w-7xl mx-auto">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
-            <Receipt className="size-6 text-primary" />
+          <h1 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
+            <Receipt weight="fill" className="size-6 text-primary" />
             Financial Accounting & Tax Hub
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
@@ -217,7 +217,7 @@ export default function AdminAccountingPage() {
           </select>
 
           <Button variant="outline" size="sm" onClick={loadData} disabled={loading} className="gap-2">
-            <RefreshCw className={`size-4 ${loading ? 'animate-spin' : ''}`} />
+            <RefreshCw weight="fill" className={`size-4 ${loading ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
         </div>
@@ -225,12 +225,12 @@ export default function AdminAccountingPage() {
 
       {/* Top Level Metric Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="p-4 rounded-xl border bg-card text-card-foreground shadow-sm">
+        <div className="p-4 rounded-lg border bg-card text-card-foreground ">
           <div className="flex items-center justify-between text-muted-foreground text-xs font-medium">
             <span>MONTH GROSS VOLUME</span>
-            <DollarSign className="size-4 text-emerald-500" />
+            <DollarSign weight="fill" className="size-4 text-emerald-500" />
           </div>
-          <div className="text-2xl font-bold mt-2">
+          <div className="text-xl font-bold mt-2">
             {metrics ? formatCurrency(metrics.month_gross_cents, currency) : '$0.00'}
           </div>
           <div className="text-xs text-muted-foreground mt-1">
@@ -238,12 +238,12 @@ export default function AdminAccountingPage() {
           </div>
         </div>
 
-        <div className="p-4 rounded-xl border bg-card text-card-foreground shadow-sm">
+        <div className="p-4 rounded-lg border bg-card text-card-foreground ">
           <div className="flex items-center justify-between text-muted-foreground text-xs font-medium">
             <span>NET PLATFORM REVENUE</span>
-            <TrendingUp className="size-4 text-blue-500" />
+            <TrendingUp weight="fill" className="size-4 text-blue-500" />
           </div>
-          <div className="text-2xl font-bold mt-2 text-primary">
+          <div className="text-xl font-bold mt-2 text-primary">
             {metrics ? formatCurrency(metrics.month_net_cents, currency) : '$0.00'}
           </div>
           <div className="text-xs text-muted-foreground mt-1">
@@ -251,12 +251,12 @@ export default function AdminAccountingPage() {
           </div>
         </div>
 
-        <div className="p-4 rounded-xl border bg-card text-card-foreground shadow-sm">
+        <div className="p-4 rounded-lg border bg-card text-card-foreground ">
           <div className="flex items-center justify-between text-muted-foreground text-xs font-medium">
             <span>VAT / SALES TAX COLLECTED</span>
-            <Receipt className="size-4 text-amber-500" />
+            <Receipt weight="fill" className="size-4 text-amber-500" />
           </div>
-          <div className="text-2xl font-bold mt-2 text-amber-600">
+          <div className="text-xl font-bold mt-2 text-amber-600">
             {taxTotals ? formatCurrency(taxTotals.total_tax_collected_cents, currency) : '$0.00'}
           </div>
           <div className="text-xs text-muted-foreground mt-1">
@@ -264,12 +264,12 @@ export default function AdminAccountingPage() {
           </div>
         </div>
 
-        <div className="p-4 rounded-xl border bg-card text-card-foreground shadow-sm">
+        <div className="p-4 rounded-lg border bg-card text-card-foreground ">
           <div className="flex items-center justify-between text-muted-foreground text-xs font-medium">
             <span>WHT WITHHELD ON PAYOUTS</span>
-            <ShieldCheck className="size-4 text-purple-500" />
+            <ShieldCheck weight="fill" className="size-4 text-purple-500" />
           </div>
-          <div className="text-2xl font-bold mt-2 text-purple-600">
+          <div className="text-xl font-bold mt-2 text-purple-600">
             {taxTotals ? formatCurrency(taxTotals.total_wht_withheld_cents, currency) : '$0.00'}
           </div>
           <div className="text-xs text-muted-foreground mt-1">
@@ -288,7 +288,7 @@ export default function AdminAccountingPage() {
               : 'border-transparent text-muted-foreground hover:text-foreground'
           }`}
         >
-          <Layers className="size-4" />
+          <Layers weight="fill" className="size-4" />
           Revenue Streams Monitor
         </button>
 
@@ -300,7 +300,7 @@ export default function AdminAccountingPage() {
               : 'border-transparent text-muted-foreground hover:text-foreground'
           }`}
         >
-          <Receipt className="size-4" />
+          <Receipt weight="fill" className="size-4" />
           Tax Liabilities & VAT
         </button>
 
@@ -312,7 +312,7 @@ export default function AdminAccountingPage() {
               : 'border-transparent text-muted-foreground hover:text-foreground'
           }`}
         >
-          <Percent className="size-4" />
+          <Percent weight="fill" className="size-4" />
           Tax Rates & Rules
         </button>
 
@@ -324,7 +324,7 @@ export default function AdminAccountingPage() {
               : 'border-transparent text-muted-foreground hover:text-foreground'
           }`}
         >
-          <Download className="size-4" />
+          <Download weight="fill" className="size-4" />
           Audit & Tax Export Center
         </button>
       </div>
@@ -332,7 +332,7 @@ export default function AdminAccountingPage() {
       {/* TAB 1: REVENUE STREAMS MONITOR */}
       {activeTab === 'streams' && (
         <div className="space-y-6">
-          <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
+          <div className="rounded-lg border bg-card  overflow-hidden">
             <div className="p-4 border-b bg-muted/30">
               <h2 className="text-base font-semibold">Revenue Stream Segregation</h2>
               <p className="text-xs text-muted-foreground">
@@ -392,7 +392,7 @@ export default function AdminAccountingPage() {
       {/* TAB 2: TAX LIABILITIES */}
       {activeTab === 'tax' && (
         <div className="space-y-6">
-          <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
+          <div className="rounded-lg border bg-card  overflow-hidden">
             <div className="p-4 border-b bg-muted/30 flex justify-between items-center">
               <div>
                 <h2 className="text-base font-semibold">Tax Liabilities by Jurisdiction</h2>
@@ -408,7 +408,7 @@ export default function AdminAccountingPage() {
                   <tr>
                     <th className="px-4 py-3">Period</th>
                     <th className="px-4 py-3">Country</th>
-                    <th className="px-4 py-3">Tax Type</th>
+                    <th className="px-4 py-3">Tax TextT</th>
                     <th className="px-4 py-3 text-right">Taxable Base</th>
                     <th className="px-4 py-3 text-right">VAT Collected</th>
                     <th className="px-4 py-3 text-right">WHT Withheld</th>
@@ -421,7 +421,7 @@ export default function AdminAccountingPage() {
                     <tr key={item.id} className="hover:bg-muted/30">
                       <td className="px-4 py-3 font-medium font-mono">{item.period_identifier}</td>
                       <td className="px-4 py-3 font-medium flex items-center gap-1.5">
-                        <Building2 className="size-3.5 text-muted-foreground" />
+                        <Building2 weight="fill" className="size-3.5 text-muted-foreground" />
                         {item.country_code}
                       </td>
                       <td className="px-4 py-3 text-muted-foreground">{item.tax_type}</td>
@@ -476,12 +476,12 @@ export default function AdminAccountingPage() {
               </p>
             </div>
             <Button size="sm" onClick={() => setShowAddRate(true)} className="gap-2">
-              <Plus className="size-4" />
+              <Plus weight="fill" className="size-4" />
               Add Tax Rule
             </Button>
           </div>
 
-          <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
+          <div className="rounded-lg border bg-card  overflow-hidden">
             <table className="w-full text-sm text-left">
               <thead className="text-xs uppercase bg-muted/50 text-muted-foreground border-b">
                 <tr>
@@ -518,7 +518,7 @@ export default function AdminAccountingPage() {
           {/* Add Tax Rate Modal */}
           {showAddRate && (
             <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-              <div className="bg-card border rounded-xl max-w-md w-full p-6 shadow-xl space-y-4">
+              <div className="bg-card border rounded-lg max-w-md w-full p-4 shadow-xl space-y-4">
                 <div className="flex justify-between items-center border-b pb-3">
                   <h3 className="font-bold text-lg">Add Country Tax Rule</h3>
                   <button onClick={() => setShowAddRate(false)} className="text-muted-foreground hover:text-foreground">
@@ -610,7 +610,7 @@ export default function AdminAccountingPage() {
       {/* TAB 4: AUDIT & STATUTORY EXPORTS */}
       {activeTab === 'exports' && (
         <div className="space-y-6">
-          <div className="rounded-xl border bg-card p-6 shadow-sm space-y-6">
+          <div className="rounded-lg border bg-card p-4  space-y-6">
             <div>
               <h2 className="text-lg font-bold">Government Tax & Financial Audit Export Center</h2>
               <p className="text-sm text-muted-foreground mt-1">
@@ -621,7 +621,7 @@ export default function AdminAccountingPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="p-4 rounded-lg border bg-muted/20 space-y-3">
                 <div className="flex items-center gap-2 font-semibold">
-                  <FileText className="size-5 text-primary" />
+                  <FileText weight="fill" className="size-5 text-primary" />
                   Master Revenue Journal
                 </div>
                 <p className="text-xs text-muted-foreground">
@@ -633,14 +633,14 @@ export default function AdminAccountingPage() {
                   className="w-full gap-2"
                   onClick={() => downloadReport('/api/v1/securegate/accounting/export', 'murihspace_revenue_journal.csv')}
                 >
-                  <Download className="size-4" />
+                  <Download weight="fill" className="size-4" />
                   Download CSV
                 </Button>
               </div>
 
               <div className="p-4 rounded-lg border bg-muted/20 space-y-3">
                 <div className="flex items-center gap-2 font-semibold">
-                  <Receipt className="size-5 text-amber-500" />
+                  <Receipt weight="fill" className="size-5 text-amber-500" />
                   VAT & Sales Tax Schedule
                 </div>
                 <p className="text-xs text-muted-foreground">
@@ -652,14 +652,14 @@ export default function AdminAccountingPage() {
                   className="w-full gap-2"
                   onClick={() => downloadReport('/api/v1/securegate/tax/export', 'murihspace_vat_schedule.csv')}
                 >
-                  <Download className="size-4" />
+                  <Download weight="fill" className="size-4" />
                   Download CSV
                 </Button>
               </div>
 
               <div className="p-4 rounded-lg border bg-muted/20 space-y-3">
                 <div className="flex items-center gap-2 font-semibold">
-                  <ShieldCheck className="size-5 text-purple-500" />
+                  <ShieldCheck weight="fill" className="size-5 text-purple-500" />
                   Creator WHT Schedule
                 </div>
                 <p className="text-xs text-muted-foreground">
@@ -671,7 +671,7 @@ export default function AdminAccountingPage() {
                   className="w-full gap-2"
                   onClick={() => downloadReport('/api/v1/securegate/tax/export?type=wht', 'murihspace_wht_schedule.csv')}
                 >
-                  <Download className="size-4" />
+                  <Download weight="fill" className="size-4" />
                   Download CSV
                 </Button>
               </div>

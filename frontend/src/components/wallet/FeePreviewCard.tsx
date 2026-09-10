@@ -1,4 +1,6 @@
-import { Receipt } from "lucide-react";
+import {
+  Receipt as Receipt
+} from "@phosphor-icons/react";
 
 interface FeePreviewData {
   gross_amount: number;
@@ -28,10 +30,10 @@ export function FeePreviewCard({ preview, type = "transfer" }: FeePreviewCardPro
   const isCreatorReceipt = type === "creator_receipt";
 
   return (
-    <div className="p-4 rounded-xl bg-muted/40 border border-border space-y-2 text-xs">
+    <div className="p-4 rounded-lg bg-muted/40 border-none space-y-2 text-xs">
       <div className="flex items-center justify-between font-semibold text-foreground pb-2 border-b border-border">
         <span className="flex items-center gap-1.5">
-          <Receipt className="h-4 w-4 text-primary" /> Fee Calculation Summary
+          <Receipt weight="fill" className="h-4 w-4 text-primary" /> Fee Calculation Summary
         </span>
         {preview.rule_name && (
           <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] uppercase font-bold">

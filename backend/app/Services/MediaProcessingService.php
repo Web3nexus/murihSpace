@@ -9,6 +9,10 @@ use Illuminate\Support\Facades\Storage;
 
 class MediaProcessingService
 {
+    public function __construct(
+        private readonly FileSecurityFilterService $securityFilter,
+    ) {}
+
     public function markUploadComplete(Media $media): Media
     {
         $disk = Storage::disk($media->disk);
@@ -19,6 +23,48 @@ class MediaProcessingService
                 'processing_error' => 'File not found on storage destination after upload.',
             ]);
             return $media;
+        }
+
+        // Security scan before approval / queueing
+        $tmpDir = storage_path('app/tmp/security-scans');
+        if (! is_dir($tmpDir)) {
+            mkdir($tmpDir, 0755, true);
+        }
+        $tmpSample = $tmpDir . '/' . $media->uuid . '.bin';
+
+        try {
+            // Read up to 2MB to verify security signatures
+            $stream = $disk->readStream($media->path);
+            if ($stream) {
+                $sampleData = fread($stream, 2 * 1024 * 1024);
+                fclose($stream);
+                file_put_contents($tmpSample, $sampleData);
+
+                $this->securityFilter->validateExistingFile(
+                    $tmpSample,
+                    $media->original_name ?? $media->filename,
+                    $media->mime_type
+                );
+            }
+        } catch (\Throwable $e) {
+            // Malicious or invalid file: remove from disk immediately
+            if ($disk->exists($media->path)) {
+                $disk->delete($media->path);
+            }
+            if (file_exists($tmpSample)) {
+                @unlink($tmpSample);
+            }
+
+            $media->update([
+                'processing_status' => Media::STATUS_FAILED,
+                'processing_error' => 'Security policy violation: ' . $e->getMessage(),
+            ]);
+
+            return $media;
+        } finally {
+            if (file_exists($tmpSample)) {
+                @unlink($tmpSample);
+            }
         }
 
         $size = $disk->size($media->path);

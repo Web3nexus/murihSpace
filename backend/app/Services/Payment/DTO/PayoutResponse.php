@@ -16,3 +16,4 @@ class PayoutResponse
         public readonly array $rawResponse = [],
     ) {}
 }
+

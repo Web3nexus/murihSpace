@@ -1,7 +1,10 @@
 import { authFetch } from "@/lib/api/authFetch";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
-import { Loader2, ShieldAlert } from "lucide-react";
+import {
+  Spinner as Loader2,
+  ShieldWarning as ShieldWarning
+} from "@phosphor-icons/react";
 import { AuthLayout } from "@/components/layout/AuthLayout";
 import { Link } from "react-router";
 
@@ -108,14 +111,14 @@ export function SocialAuthCallbackPage() {
       <div className="flex flex-col items-center gap-5 py-8 text-center">
         {status === "loading" && (
           <>
-            <Loader2 className="h-10 w-10 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" />
+            <Loader2 weight="fill" className="h-10 w-10 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" />
             <p className="text-sm text-slate-500 dark:text-slate-400">Signing you in…</p>
           </>
         )}
         {status === "error" && (
           <div className="w-full flex flex-col items-center gap-4">
-            <div className="rounded-xl bg-rose-500/10 border border-rose-500/20 p-4 flex items-start gap-3 w-full">
-              <ShieldAlert className="h-5 w-5 text-rose-500 shrink-0 mt-0.5" />
+            <div className="rounded-lg bg-rose-500/10 border border-rose-500/20 p-4 flex items-start gap-3 w-full">
+              <ShieldWarning weight="fill" className="h-5 w-5 text-rose-500 shrink-0 mt-0.5" />
               <p className="text-xs sm:text-sm text-rose-600 dark:text-rose-400 text-left font-medium">{message}</p>
             </div>
             <Link

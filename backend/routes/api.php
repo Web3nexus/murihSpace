@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\AdController;
+use App\Http\Controllers\AdsSsoController;
 use App\Http\Controllers\AddressController;
 use App\Http\Controllers\AdminAccountingController;
 use App\Http\Controllers\AdminAdController;
@@ -76,6 +77,12 @@ use App\Http\Controllers\FulfilmentDisputeController;
 use App\Http\Controllers\FulfilmentOrderController;
 use App\Http\Controllers\FulfilmentPayoutController;
 use App\Http\Controllers\GiftController;
+use App\Http\Controllers\GroupChatController;
+use App\Http\Controllers\GroupController;
+use App\Http\Controllers\GroupInvitationController;
+use App\Http\Controllers\GroupMemberController;
+use App\Http\Controllers\GroupPostController;
+use App\Http\Controllers\GroupSettingsController;
 use App\Http\Controllers\InternalAccountingSyncController;
 use App\Http\Controllers\KycController;
 use App\Http\Controllers\LinkInBioController;
@@ -267,6 +274,7 @@ Route::prefix('v1')->group(function () {
 
     // Public User Profile Endpoint
     Route::get('/users/{username}/public', [ProfileController::class, 'publicProfile'])->middleware('cache.public:10');
+    Route::get('/users/{username}/reviews', [ProductReviewController::class, 'userReviews']);
 
     // Public Link-in-Bio Page
     Route::get('/l/{username}', [LinkInBioController::class, 'publicPage'])->middleware('cache.public:10');
@@ -460,6 +468,51 @@ Route::prefix('v1')->group(function () {
             Route::delete('/{community}', [CommunityController::class, 'destroy']);
         });
 
+        // Groups Feature (Social Feed, Real-time Chat, Moderation, Invites)
+        Route::prefix('groups')->group(function () {
+            Route::get('/', [GroupController::class, 'index']);
+            Route::get('/mine', [GroupController::class, 'mine']);
+            Route::get('/invitations', [GroupController::class, 'invitations']);
+            Route::post('/', [GroupController::class, 'store']);
+            Route::post('/invitations/{code}/accept-by-code', [GroupInvitationController::class, 'acceptByCode']);
+            Route::post('/invitations/{id}/respond', [GroupInvitationController::class, 'respond']);
+
+            Route::prefix('{group}')->group(function () {
+                Route::get('/', [GroupController::class, 'show']);
+                Route::put('/', [GroupController::class, 'update']);
+                Route::delete('/', [GroupController::class, 'destroy']);
+                Route::post('/join', [GroupController::class, 'join']);
+                Route::post('/leave', [GroupController::class, 'leave']);
+
+                // Member management & moderation
+                Route::get('/members', [GroupMemberController::class, 'index']);
+                Route::put('/members/{memberId}/role', [GroupMemberController::class, 'updateRole']);
+                Route::post('/members/{memberId}/mute', [GroupMemberController::class, 'mute']);
+                Route::delete('/members/{memberId}', [GroupMemberController::class, 'remove']);
+                Route::get('/join-requests', [GroupMemberController::class, 'joinRequests']);
+                Route::post('/join-requests/{requestId}/review', [GroupMemberController::class, 'reviewJoinRequest']);
+
+                // Invitations & Links
+                Route::post('/invitations', [GroupInvitationController::class, 'invite']);
+                Route::get('/invite-link', [GroupInvitationController::class, 'getOrCreateInviteLink']);
+
+                // Group Feed
+                Route::get('/posts', [GroupPostController::class, 'index']);
+                Route::post('/posts', [GroupPostController::class, 'store']);
+                Route::post('/posts/{post}/pin', [GroupPostController::class, 'togglePin']);
+                Route::delete('/posts/{post}', [GroupPostController::class, 'destroy']);
+
+                // Real-time Chat
+                Route::get('/chat', [GroupChatController::class, 'conversation']);
+                Route::get('/chat/messages', [GroupChatController::class, 'messages']);
+                Route::post('/chat/messages', [GroupChatController::class, 'sendMessage']);
+
+                // Settings
+                Route::get('/settings', [GroupSettingsController::class, 'show']);
+                Route::put('/settings', [GroupSettingsController::class, 'update']);
+            });
+        });
+
         // Community Actions
         Route::prefix('communities/{id}')->group(function () {
             Route::post('/join', [MembershipController::class, 'join']);
@@ -496,6 +549,7 @@ Route::prefix('v1')->group(function () {
             Route::post('/{id}/reactions/toggle', [ReactionController::class, 'togglePostReaction']);
             Route::post('/{id}/share', [PostController::class, 'share']);
             Route::post('/{id}/save', [PostController::class, 'toggleSave']);
+            Route::post('/{id}/view', [PostController::class, 'recordView']);
             Route::post('/{id}/report', [PostController::class, 'report']);
         });
 
@@ -579,7 +633,7 @@ Route::prefix('v1')->group(function () {
         });
 
         // ── Sprint 13: Creator Storefront ──────────────────────────────────
-        Route::prefix('storefront')->middleware('creator')->group(function () {
+        Route::prefix('storefront')->middleware('store.owner')->group(function () {
             Route::get('/', [StorefrontController::class, 'mine']);
             Route::put('/', [StorefrontController::class, 'update']);
             Route::post('/publish', [StorefrontController::class, 'publish']);
@@ -637,7 +691,7 @@ Route::prefix('v1')->group(function () {
         });
 
         // ── Store Categories ──────────────────────────────────────────
-        Route::prefix('store/categories')->middleware('creator')->group(function () {
+        Route::prefix('store/categories')->middleware('store.owner')->group(function () {
             Route::get('/', [StoreCategoryController::class, 'index']);
             Route::post('/', [StoreCategoryController::class, 'store']);
             Route::patch('/{category}', [StoreCategoryController::class, 'update']);
@@ -645,7 +699,7 @@ Route::prefix('v1')->group(function () {
         });
 
         // ── Store Inventory ──────────────────────────────────────────
-        Route::prefix('store/inventory')->middleware('creator')->group(function () {
+        Route::prefix('store/inventory')->middleware('store.owner')->group(function () {
             Route::get('/', [StoreInventoryController::class, 'index']);
             Route::patch('/{product}', [StoreInventoryController::class, 'update']);
         });
@@ -666,7 +720,7 @@ Route::prefix('v1')->group(function () {
         });
 
         // ── Store Settings ──────────────────────────────────────────
-        Route::prefix('store/settings')->middleware('creator')->group(function () {
+        Route::prefix('store/settings')->middleware('store.owner')->group(function () {
             Route::get('/', [StoreSettingsController::class, 'show']);
             Route::put('/', [StoreSettingsController::class, 'update']);
         });
@@ -824,10 +878,12 @@ Route::prefix('v1')->group(function () {
             Route::post('/{room}/messages', [ChatRoomController::class, 'sendMessage']);
         });
 
-        // ── Advertising Campaigns ────────────────────────────────────
+        // ── Advertising Campaigns & Ads Studio SSO ──────────────────
         Route::prefix('ads')->group(function () {
             Route::get('/', [AdController::class, 'index']);
             Route::post('/', [AdController::class, 'store']);
+            Route::post('/sso-token', [AdsSsoController::class, 'getSsoToken']);
+            Route::get('/sso-launch', [AdsSsoController::class, 'launchSso']);
             Route::get('/{id}', [AdController::class, 'show']);
             Route::put('/{id}', [AdController::class, 'update']);
             Route::delete('/{id}', [AdController::class, 'destroy']);
@@ -838,6 +894,11 @@ Route::prefix('v1')->group(function () {
             Route::post('/{id}/submit', [AdController::class, 'submit']);
             Route::get('/{id}/analytics', [AdController::class, 'analytics']);
         });
+
+        // ── Sponsored Advertising Delivery & Tracking ────────────────
+        Route::get('/ads/sponsored', [AdsSsoController::class, 'getSponsoredAds']);
+        Route::post('/ads/track/impression', [AdsSsoController::class, 'trackImpression']);
+        Route::post('/ads/track/click', [AdsSsoController::class, 'trackClick']);
 
         // ── Gifts & Creator Wallets ─────────────────────────────────
         Route::prefix('gifts')->group(function () {
@@ -976,10 +1037,12 @@ Route::prefix('v1')->group(function () {
         // ── Friends & Friend Requests ─────────────────────────────────
         Route::prefix('friends')->group(function () {
             Route::get('/', [FriendRequestController::class, 'friends']);
+            Route::get('/birthdays', [FriendRequestController::class, 'birthdays']);
             Route::get('/suggestions', [FriendRequestController::class, 'suggestions']);
             Route::get('/search', [FriendRequestController::class, 'search']);
             Route::post('/contacts/sync', [FriendRequestController::class, 'syncContacts']);
             Route::get('/requests', [FriendRequestController::class, 'index']);
+            Route::get('/requests/incoming', [FriendRequestController::class, 'index']);
             Route::get('/requests/sent', [FriendRequestController::class, 'sent']);
             Route::get('/{userId}/status', [FriendRequestController::class, 'status']);
             Route::post('/requests', [FriendRequestController::class, 'send']);
@@ -1033,6 +1096,7 @@ Route::prefix('v1')->group(function () {
             Route::get('/chat-channels', [AnalyticsController::class, 'chatChannels']);
             Route::get('/content-planner', [AnalyticsController::class, 'contentPlanner']);
             Route::get('/community-activity', [AnalyticsController::class, 'communityActivity']);
+            Route::get('/creator-performance', [AnalyticsController::class, 'creatorPerformance']);
         });
 
         // ── Sprint G: Activity Log ──────────────────────────────────────────
@@ -1072,6 +1136,8 @@ Route::prefix('v1')->group(function () {
         // ── Sprint 33: Reviews & Disputes ─────────────────────────────────────
         Route::prefix('store/reviews')->group(function () {
             Route::get('/my', [ProductReviewController::class, 'myReviews']);
+            Route::get('/vendor', [ProductReviewController::class, 'vendorReviews']);
+            Route::post('/{id}/reply', [ProductReviewController::class, 'reply']);
             Route::post('/', [ProductReviewController::class, 'store']);
             Route::put('/{id}', [ProductReviewController::class, 'update']);
             Route::delete('/{id}', [ProductReviewController::class, 'destroy']);
@@ -1183,6 +1249,13 @@ Route::prefix('v1')->group(function () {
             Route::get('/my-sessions', [CoachingBookingController::class, 'mySessions']);
             Route::post('/bookings/{id}/cancel', [CoachingBookingController::class, 'cancel']);
             Route::post('/bookings/{id}/complete', [CoachingBookingController::class, 'complete']);
+            Route::get('/bookings/{id}/livekit-token', [CoachingBookingController::class, 'livekitToken']);
+        });
+
+        // ── Native Video Meetings & Conferences (Google Meet Style) ────────
+        Route::prefix('meetings')->group(function () {
+            Route::post('/instant', [\App\Http\Controllers\MeetingController::class, 'instant']);
+            Route::get('/{code}/token', [\App\Http\Controllers\MeetingController::class, 'token']);
         });
 
         // ── Sprint 20: Events ──────────────────────────────────────────────
@@ -1261,6 +1334,7 @@ Route::prefix('v1')->group(function () {
                 Route::post('/{id}/ban', [AdminUserController::class, 'ban']);
                 Route::post('/{id}/restore', [AdminUserController::class, 'restore']);
                 Route::post('/{id}/impersonate', [AdminUserController::class, 'impersonate']);
+                Route::post('/{id}/verify-kyc', [AdminUserController::class, 'verifyKyc']);
             });
 
             // Admins (admin management — super admin only)
@@ -1360,6 +1434,7 @@ Route::prefix('v1')->group(function () {
             // Payment Infrastructure (Providers, Routing, Transactions, Payouts, Refunds)
             Route::prefix('payment-providers')->group(function () {
                 Route::get('/', [AdminPaymentProviderController::class, 'index']);
+                Route::post('/', [AdminPaymentProviderController::class, 'store']);
                 Route::put('/{code}', [AdminPaymentProviderController::class, 'update']);
                 Route::post('/{code}/test-connection', [AdminPaymentProviderController::class, 'testConnection']);
             });
@@ -1367,6 +1442,7 @@ Route::prefix('v1')->group(function () {
             Route::prefix('payment-routes')->group(function () {
                 Route::get('/', [AdminPaymentProviderController::class, 'routes']);
                 Route::post('/', [AdminPaymentProviderController::class, 'storeRoute']);
+                Route::delete('/{id}', [AdminPaymentProviderController::class, 'destroyRoute']);
                 Route::post('/simulate', [AdminPaymentProviderController::class, 'simulateRouting']);
             });
 

@@ -1,8 +1,18 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  Crown, Plus, Loader2, Pencil, Trash2, X,
-  Users, Banknote, Calendar, Eye, EyeOff, AlertCircle,
-} from 'lucide-react';
+  Crown as Crown,
+  Plus as Plus,
+  Spinner as Loader2,
+  Pencil as Pencil,
+  Trash as Trash2,
+  X as X,
+  Users as Users,
+  Money as Money,
+  Calendar as Calendar,
+  Eye as Eye,
+  EyeSlash as EyeOff,
+  WarningCircle as AlertCircle
+} from "@phosphor-icons/react";
 import type { SubscriptionPlan, SubscriptionStats, CreatePlanPayload } from '@/types/subscription';
 import { authFetch } from "@/lib/api/authFetch";
 import { useConfirm } from '@/components/ui/DialogProvider';
@@ -144,47 +154,47 @@ export function SubscriptionManagementPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <Loader2 className="h-6 w-6 animate-spin text-secondary" />
+        <Loader2 weight="fill" className="h-6 w-6 animate-spin text-secondary" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-8 w-full max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
+    <div className="space-y-8 w-full max-w-7xl mx-auto p-4 sm:p-4 lg:p-5">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-extrabold text-foreground flex items-center gap-2">
-            <Crown className="h-5 w-5 text-amber-500" />
+            <Crown weight="fill" className="h-5 w-5 text-amber-500" />
             Subscriptions & Memberships
           </h1>
           <p className="text-xs text-muted-foreground mt-1">Create membership tiers and manage recurring revenue.</p>
         </div>
-        <button onClick={() => { resetForm(); setShowForm(true); }} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl bg-secondary text-secondary-foreground hover:bg-secondary/90 transition-colors shadow-sm">
-          <Plus className="h-3.5 w-3.5" /> New Plan
+        <button onClick={() => { resetForm(); setShowForm(true); }} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg bg-secondary text-secondary-foreground hover:bg-secondary/90 transition-colors ">
+          <Plus weight="fill" className="h-3.5 w-3.5" /> New Plan
         </button>
       </div>
 
       {/* Stats Cards */}
       {stats && (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="rounded-xl border border-border bg-card p-4">
+          <div className="rounded-lg border-none bg-card p-4">
             <div className="flex items-center gap-2 text-muted-foreground text-xs font-semibold mb-1">
-              <Users className="h-3.5 w-3.5" /> Active Subscribers
+              <Users weight="fill" className="h-3.5 w-3.5" /> Active Subscribers
             </div>
-            <p className="text-2xl font-extrabold text-foreground">{stats.active_subscribers}</p>
+            <p className="text-xl font-extrabold text-foreground">{stats.active_subscribers}</p>
           </div>
-          <div className="rounded-xl border border-border bg-card p-4">
+          <div className="rounded-lg border-none bg-card p-4">
             <div className="flex items-center gap-2 text-muted-foreground text-xs font-semibold mb-1">
-              <Banknote className="h-3.5 w-3.5" /> Monthly Revenue
+              <Money weight="fill" className="h-3.5 w-3.5" /> Monthly Revenue
             </div>
-            <p className="text-2xl font-extrabold text-foreground">{formatPrice(stats.total_monthly_revenue)}</p>
+            <p className="text-xl font-extrabold text-foreground">{formatPrice(stats.total_monthly_revenue)}</p>
           </div>
-          <div className="rounded-xl border border-border bg-card p-4">
+          <div className="rounded-lg border-none bg-card p-4">
             <div className="flex items-center gap-2 text-muted-foreground text-xs font-semibold mb-1">
-              <Calendar className="h-3.5 w-3.5" /> Recent Signups
+              <Calendar weight="fill" className="h-3.5 w-3.5" /> Recent Signups
             </div>
-            <p className="text-2xl font-extrabold text-foreground">{stats.recent_subscriptions?.length ?? 0}</p>
+            <p className="text-xl font-extrabold text-foreground">{stats.recent_subscriptions?.length ?? 0}</p>
           </div>
         </div>
       )}
@@ -193,14 +203,14 @@ export function SubscriptionManagementPage() {
       <div className="space-y-3">
         <h2 className="text-sm font-extrabold text-foreground">Your Plans</h2>
         {plans.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-border p-8 text-center">
-            <Crown className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" />
+          <div className="rounded-lg border border-dashed border-border p-5 text-center">
+            <Crown weight="fill" className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" />
             <p className="text-xs font-bold text-foreground">No plans yet</p>
             <p className="text-[11px] text-muted-foreground mt-1">Create your first membership tier to start earning recurring revenue.</p>
           </div>
         ) : (
           plans.map((plan) => (
-            <div key={plan.id} className="rounded-xl border border-border bg-card p-4 flex items-start justify-between gap-4">
+            <div key={plan.id} className="rounded-lg border-none bg-card p-4 flex items-start justify-between gap-4">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-extrabold text-foreground">{plan.name}</span>
@@ -217,7 +227,7 @@ export function SubscriptionManagementPage() {
                 <div className="flex items-center gap-3 mt-2">
                   <span className="text-lg font-extrabold text-foreground">{formatPrice(plan.price, plan.currency)}<span className="text-xs text-muted-foreground font-normal">{formatCycle(plan.billing_cycle)}</span></span>
                   {plan.active_subscribers !== undefined && (
-                    <span className="text-xs text-muted-foreground flex items-center gap-1"><Users className="h-3 w-3" /> {plan.active_subscribers} subscriber{plan.active_subscribers !== 1 ? 's' : ''}</span>
+                    <span className="text-xs text-muted-foreground flex items-center gap-1"><Users weight="fill" className="h-3 w-3" /> {plan.active_subscribers} subscriber{plan.active_subscribers !== 1 ? 's' : ''}</span>
                   )}
                 </div>
                 {plan.features && plan.features.length > 0 && (
@@ -230,13 +240,13 @@ export function SubscriptionManagementPage() {
               </div>
               <div className="flex items-center gap-1 shrink-0">
                 <button onClick={() => toggleActive(plan)} className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title={plan.is_active ? 'Deactivate' : 'Activate'}>
-                  {plan.is_active ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                  {plan.is_active ? <EyeOff className="h-3.5 w-3.5" /> : <Eye weight="fill" className="h-3.5 w-3.5" />}
                 </button>
                 <button onClick={() => editPlan(plan)} className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors">
-                  <Pencil className="h-3.5 w-3.5" />
+                  <Pencil weight="fill" className="h-3.5 w-3.5" />
                 </button>
                 <button onClick={() => handleDelete(plan.id)} className="p-1.5 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors">
-                  <Trash2 className="h-3.5 w-3.5" />
+                  <Trash2 weight="fill" className="h-3.5 w-3.5" />
                 </button>
               </div>
             </div>
@@ -248,7 +258,7 @@ export function SubscriptionManagementPage() {
       {stats?.recent_subscriptions && stats.recent_subscriptions.length > 0 && (
         <div className="space-y-2">
           <h2 className="text-sm font-extrabold text-foreground">Recent Subscribers</h2>
-          <div className="rounded-xl border border-border bg-card divide-y divide-border">
+          <div className="rounded-lg border-none bg-card divide-y divide-border">
             {stats.recent_subscriptions.map((rs) => (
               <div key={rs.id} className="flex items-center gap-3 px-4 py-3">
                 <div className="h-8 w-8 rounded-full bg-gradient-to-br from-primary to-secondary text-white text-[10px] font-bold flex items-center justify-center shrink-0">
@@ -271,15 +281,15 @@ export function SubscriptionManagementPage() {
           {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
           <div className="fixed inset-0 bg-black/40 z-40" onClick={resetForm} />
           <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
-            <div className="w-full max-w-lg rounded-2xl border border-border bg-card shadow-2xl p-6 max-h-[90vh] overflow-y-auto">
+            <div className="w-full max-w-lg rounded-lg border-none bg-card shadow-2xl p-4 max-h-[90vh] overflow-y-auto">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-sm font-extrabold text-foreground">{editingId ? 'Edit Plan' : 'New Plan'}</h3>
-                <button onClick={resetForm} className="p-1 rounded-lg hover:bg-muted text-muted-foreground"><X className="h-4 w-4" /></button>
+                <button onClick={resetForm} className="p-1 rounded-lg hover:bg-muted text-muted-foreground"><X weight="fill" className="h-4 w-4" /></button>
               </div>
 
               {error && (
-                <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-destructive/10 text-destructive text-xs font-medium mb-4">
-                  <AlertCircle className="h-3.5 w-3.5" /> {error}
+                <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-destructive/10 text-destructive text-xs font-medium mb-4">
+                  <AlertCircle weight="fill" className="h-3.5 w-3.5" /> {error}
                 </div>
               )}
 
@@ -290,7 +300,7 @@ export function SubscriptionManagementPage() {
                     id="plan-name"
                     type="text" value={form.name} required
                     onChange={(e) => setForm({ ...form, name: e.target.value })}
-                    className="w-full px-3 py-2 text-xs rounded-xl bg-muted border-0 outline-none focus:ring-1 focus:ring-secondary"
+                    className="w-full px-3 py-2 text-xs rounded-lg bg-muted border-0 outline-none focus:ring-1 focus:ring-secondary"
                     placeholder="e.g. Premium Tier"
                   />
                 </div>
@@ -301,7 +311,7 @@ export function SubscriptionManagementPage() {
                     id="plan-desc"
                     value={form.description ?? ''}
                     onChange={(e) => setForm({ ...form, description: e.target.value })}
-                    className="w-full px-3 py-2 text-xs rounded-xl bg-muted border-0 outline-none focus:ring-1 focus:ring-secondary resize-none"
+                    className="w-full px-3 py-2 text-xs rounded-lg bg-muted border-0 outline-none focus:ring-1 focus:ring-secondary resize-none"
                     rows={2}
                     placeholder="What's included in this tier?"
                   />
@@ -314,7 +324,7 @@ export function SubscriptionManagementPage() {
                       id="plan-price"
                       type="number" value={form.price} required min={0}
                       onChange={(e) => setForm({ ...form, price: parseInt(e.target.value) || 0 })}
-                      className="w-full px-3 py-2 text-xs rounded-xl bg-muted border-0 outline-none focus:ring-1 focus:ring-secondary"
+                      className="w-full px-3 py-2 text-xs rounded-lg bg-muted border-0 outline-none focus:ring-1 focus:ring-secondary"
                       placeholder="e.g. 500 = $5.00"
                     />
                     <p className="text-[10px] text-muted-foreground mt-0.5">Enter amount in cents (e.g. 500 = {formatPrice(500)})</p>
@@ -325,7 +335,7 @@ export function SubscriptionManagementPage() {
                       id="plan-cycle"
                       value={form.billing_cycle}
                       onChange={(e) => setForm({ ...form, billing_cycle: e.target.value as 'monthly' | 'yearly' })}
-                      className="w-full px-3 py-2 text-xs rounded-xl bg-muted border-0 outline-none focus:ring-1 focus:ring-secondary"
+                      className="w-full px-3 py-2 text-xs rounded-lg bg-muted border-0 outline-none focus:ring-1 focus:ring-secondary"
                     >
                       <option value="monthly">Monthly</option>
                       <option value="yearly">Yearly</option>
@@ -341,16 +351,16 @@ export function SubscriptionManagementPage() {
                       type="text" value={featureInput}
                       onChange={(e) => setFeatureInput(e.target.value)}
                       onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addFeature())}
-                      className="flex-1 px-3 py-1.5 text-xs rounded-xl bg-muted border-0 outline-none focus:ring-1 focus:ring-secondary"
+                      className="flex-1 px-3 py-1.5 text-xs rounded-lg bg-muted border-0 outline-none focus:ring-1 focus:ring-secondary"
                       placeholder="e.g. Exclusive content"
                     />
-                    <button type="button" onClick={addFeature} className="px-3 py-1.5 text-xs font-bold rounded-xl bg-secondary text-secondary-foreground hover:bg-secondary/90">Add</button>
+                    <button type="button" onClick={addFeature} className="px-3 py-1.5 text-xs font-bold rounded-lg bg-secondary text-secondary-foreground hover:bg-secondary/90">Add</button>
                   </div>
                   <div className="flex flex-wrap gap-1.5">
                     {(form.features ?? []).map((f, i) => (
                       <span key={i} className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-muted text-[10px] font-medium">
                         {f}
-                        <button type="button" onClick={() => removeFeature(i)} className="text-muted-foreground hover:text-foreground"><X className="h-2.5 w-2.5" /></button>
+                        <button type="button" onClick={() => removeFeature(i)} className="text-muted-foreground hover:text-foreground"><X weight="fill" className="h-2.5 w-2.5" /></button>
                       </span>
                     ))}
                   </div>
@@ -367,9 +377,9 @@ export function SubscriptionManagementPage() {
                     Active (visible to members)
                   </label>
                   <div className="flex gap-2">
-                    <button type="button" onClick={resetForm} className="px-3 py-1.5 text-xs font-bold rounded-xl border border-border hover:bg-muted transition-colors">Cancel</button>
-                    <button type="submit" disabled={saving} className="px-4 py-1.5 text-xs font-bold rounded-xl bg-secondary text-secondary-foreground hover:bg-secondary/90 disabled:opacity-50 transition-all flex items-center gap-1.5">
-                      {saving && <Loader2 className="h-3 w-3 animate-spin" />}
+                    <button type="button" onClick={resetForm} className="px-3 py-1.5 text-xs font-bold rounded-lg border-none hover:bg-muted transition-colors">Cancel</button>
+                    <button type="submit" disabled={saving} className="px-4 py-1.5 text-xs font-bold rounded-lg bg-secondary text-secondary-foreground hover:bg-secondary/90 disabled:opacity-50 transition-all flex items-center gap-1.5">
+                      {saving && <Loader2 weight="fill" className="h-3 w-3 animate-spin" />}
                       {editingId ? 'Update' : 'Create'} Plan
                     </button>
                   </div>

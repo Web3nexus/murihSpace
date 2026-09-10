@@ -1,14 +1,21 @@
-import { Camera, Hash, Music, Film, MessageCircle, Send } from "lucide-react";
+import {
+  Camera as Camera,
+  Hash as Hash,
+  MusicNote as Music,
+  FilmStrip as FilmStrip,
+  ChatCircle as MessageCircle,
+  PaperPlaneRight as Send
+} from "@phosphor-icons/react";
 import type { TemplateDef } from "@/lib/linkBioTemplates";
 import { pageBackground, buttonRadius } from "@/lib/linkBioTemplates";
 
 const socialIcon: Record<string, React.ReactNode> = {
-  instagram: <Camera className="h-1.5 w-1.5" />,
-  twitter: <Hash className="h-1.5 w-1.5" />,
-  tiktok: <Music className="h-1.5 w-1.5" />,
-  youtube: <Film className="h-1.5 w-1.5" />,
-  facebook: <MessageCircle className="h-1.5 w-1.5" />,
-  snapchat: <Send className="h-1.5 w-1.5" />,
+  instagram: <Camera weight="fill" className="h-1.5 w-1.5" />,
+  twitter: <Hash weight="fill" className="h-1.5 w-1.5" />,
+  tiktok: <Music weight="fill" className="h-1.5 w-1.5" />,
+  youtube: <FilmStrip weight="fill" className="h-1.5 w-1.5" />,
+  facebook: <MessageCircle weight="fill" className="h-1.5 w-1.5" />,
+  snapchat: <Send weight="fill" className="h-1.5 w-1.5" />,
 };
 
 function LinkDots({ count, palette, wide }: { count: number; palette: TemplateDef["palette"]; wide?: boolean }) {
@@ -186,7 +193,7 @@ export default function TemplateThumb({ template }: { template: TemplateDef }) {
   const { palette } = template;
   return (
     <div
-      className="w-full aspect-[3/4] rounded-xl overflow-hidden p-1.5 flex flex-col"
+      className="w-full aspect-[3/4] rounded-lg overflow-hidden p-1.5 flex flex-col"
       style={{ ...pageBackground({ background_type: palette.background_type, background_value: palette.background_value, bg: palette.bg }) }}
     >
       <Skeleton slug={template.slug} palette={palette} avatar={template.avatar_shape} />

@@ -1,5 +1,9 @@
 import { useEffect, useState } from "react";
-import { Sparkles, Coins, Gift as GiftIcon } from "lucide-react";
+import {
+  Sparkle as Sparkle,
+  Coins as Coins,
+  Gift as GiftIcon
+} from "@phosphor-icons/react";
 
 export interface GiftAnimationData {
   giftName: string;
@@ -62,7 +66,7 @@ export function GiftAnimationOverlay({ data, onComplete }: GiftAnimationOverlayP
       </div>
 
       {/* Main Animated Card */}
-      <div className="relative z-10 flex flex-col items-center justify-center p-6 text-center animate-bounce-in">
+      <div className="relative z-10 flex flex-col items-center justify-center p-4 text-center animate-bounce-in">
         {/* Glow Aura behind image */}
         <div className="relative mb-4 group">
           <div className="absolute -inset-4 rounded-full bg-gradient-to-r from-amber-500 via-pink-500 to-purple-600 blur-xl opacity-80 animate-spin-slow" />
@@ -75,21 +79,21 @@ export function GiftAnimationOverlay({ data, onComplete }: GiftAnimationOverlayP
                 className="w-full h-full object-contain drop-shadow-[0_10px_20px_rgba(0,0,0,0.3)] animate-pulse"
               />
             ) : (
-              <GiftIcon className="w-20 h-20 text-pink-500" />
+              <GiftIcon weight="fill" className="w-20 h-20 text-pink-500" />
             )}
           </div>
         </div>
 
         {/* Sender & Gift Banner */}
-        <div className="space-y-1 bg-background/90 border border-amber-500/40 px-6 py-3 rounded-2xl shadow-2xl backdrop-blur-xl">
+        <div className="space-y-1 bg-background/90 border border-amber-500/40 px-6 py-3 rounded-lg shadow-2xl backdrop-blur-xl">
           <p className="text-xs uppercase tracking-widest font-bold text-amber-500 flex items-center justify-center gap-1">
-            <Sparkles className="w-3.5 h-3.5" /> Gift Sent! <Sparkles className="w-3.5 h-3.5" />
+            <Sparkle weight="fill" className="w-3.5 h-3.5" /> Gift Sent! <Sparkle weight="fill" className="w-3.5 h-3.5" />
           </p>
-          <h3 className="text-xl sm:text-2xl font-black text-foreground">
+          <h3 className="text-xl sm:text-xl font-black text-foreground">
             {data.senderName ? `${data.senderName} sent ` : ""}{data.giftName}
           </h3>
           <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 text-xs font-extrabold">
-            <Coins className="w-3.5 h-3.5 text-amber-500" />
+            <Coins weight="fill" className="w-3.5 h-3.5 text-amber-500" />
             <span>{data.coinPrice.toLocaleString()} Coins</span>
           </div>
         </div>

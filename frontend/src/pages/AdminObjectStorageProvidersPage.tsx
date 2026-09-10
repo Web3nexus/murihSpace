@@ -1,6 +1,22 @@
 import { useState, useEffect, useCallback } from "react";
 import { useConfirm } from "@/components/ui/DialogProvider";
-import { HardDrive, Plus, Pencil, Trash2, Loader2, Save, X, Check, AlertCircle, CheckCircle2, Eye, EyeOff, ChevronRight, HelpCircle, ExternalLink } from "lucide-react";
+import {
+  HardDrive as HardDrive,
+  Plus as Plus,
+  Pencil as Pencil,
+  Trash as Trash2,
+  Spinner as Loader2,
+  FloppyDisk as FloppyDisk,
+  X as X,
+  Check as Check,
+  WarningCircle as AlertCircle,
+  CheckCircle as CheckCircle2,
+  Eye as Eye,
+  EyeSlash as EyeOff,
+  CaretRight as ChevronRight,
+  Question as HelpCircle,
+  ArrowSquareOut as ExternalLink
+} from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { authFetch } from "@/lib/api/authFetch";
 
@@ -164,17 +180,17 @@ export default function AdminObjectStorageProvidersPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        <Loader2 weight="fill" className="h-6 w-6 animate-spin text-muted-foreground" />
       </div>
     );
   }
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
+    <div className="max-w-4xl mx-auto p-4">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            <HardDrive className="h-6 w-6" />
+          <h1 className="text-xl font-bold text-foreground flex items-center gap-2">
+            <HardDrive weight="fill" className="h-6 w-6" />
             Object Storage Providers
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
@@ -183,58 +199,58 @@ export default function AdminObjectStorageProvidersPage() {
         </div>
         {!editing && (
           <Button type="button" onClick={beginAdd} className="gap-1">
-            <Plus className="h-4 w-4" /> Add Provider
+            <Plus weight="fill" className="h-4 w-4" /> Add Provider
           </Button>
         )}
       </div>
 
-      <details className="mb-6 rounded-xl border border-border bg-card overflow-hidden">
+      <details className="mb-6 rounded-lg border-none bg-card overflow-hidden">
         <summary className="flex items-center gap-2 p-3 cursor-pointer select-none hover:bg-muted/30 transition-colors text-sm font-medium text-muted-foreground">
-          <HelpCircle className="h-4 w-4 text-primary" />
+          <HelpCircle weight="fill" className="h-4 w-4 text-primary" />
           Quick Setup Guide
-          <ChevronRight className="h-4 w-4 ml-auto details-open:rotate-90 transition-transform [details[open]_&]:rotate-90" />
+          <ChevronRight weight="fill" className="h-4 w-4 ml-auto details-open:rotate-90 transition-transform [details[open]_&]:rotate-90" />
         </summary>
         <div className="px-4 pb-4 space-y-3 border-t border-border pt-3">
           <div className="grid gap-3 text-xs">
-            <div className="rounded-lg border border-border bg-muted/30 p-3">
+            <div className="rounded-lg border-none bg-muted/30 p-3">
               <p className="font-semibold text-foreground mb-1">Contabo Object Storage</p>
               <ol className="list-decimal list-inside space-y-1 text-muted-foreground">
-                <li>Create bucket in <a href="https://console.contabo.com/object-storage" target="_blank" rel="noopener noreferrer" className="text-primary underline">Contabo Console</a> <ExternalLink className="h-3 w-3 inline" /></li>
+                <li>Create bucket in <a href="https://console.contabo.com/object-storage" target="_blank" rel="noopener noreferrer" className="text-primary underline">Contabo Console</a> <ExternalLink weight="fill" className="h-3 w-3 inline" /></li>
                 <li>Go to bucket → <strong>Access Keys</strong> → generate a key pair</li>
                 <li>Set <strong>Endpoint</strong> to <code className="bg-muted px-1 rounded">https://eu.contabostorage.com</code> (adjust region)</li>
                 <li>Leave <strong>Use Path-Style Endpoint</strong> <strong>unchecked</strong></li>
                 <li>Public URL format: <code className="bg-muted px-1 rounded">{`https://{bucket}.eu.contabostorage.com`}</code></li>
               </ol>
             </div>
-            <div className="rounded-lg border border-border bg-muted/30 p-3">
+            <div className="rounded-lg border-none bg-muted/30 p-3">
               <p className="font-semibold text-foreground mb-1">Wasabi</p>
               <ol className="list-decimal list-inside space-y-1 text-muted-foreground">
-                <li>Create bucket in <a href="https://console.wasabi.com" target="_blank" rel="noopener noreferrer" className="text-primary underline">Wasabi Console</a> <ExternalLink className="h-3 w-3 inline" /></li>
+                <li>Create bucket in <a href="https://console.wasabi.com" target="_blank" rel="noopener noreferrer" className="text-primary underline">Wasabi Console</a> <ExternalLink weight="fill" className="h-3 w-3 inline" /></li>
                 <li>Go to <strong>Access Keys</strong> → create key pair</li>
                 <li>Set <strong>Endpoint</strong> to <code className="bg-muted px-1 rounded">{`https://s3.{region}.wasabisys.com`}</code></li>
                 <li>Check <strong>Use Path-Style Endpoint</strong></li>
               </ol>
             </div>
-            <div className="rounded-lg border border-border bg-muted/30 p-3">
+            <div className="rounded-lg border-none bg-muted/30 p-3">
               <p className="font-semibold text-foreground mb-1">DigitalOcean Spaces</p>
               <ol className="list-decimal list-inside space-y-1 text-muted-foreground">
-                <li>Create Space in <a href="https://cloud.digitalocean.com/spaces" target="_blank" rel="noopener noreferrer" className="text-primary underline">DO Control Panel</a> <ExternalLink className="h-3 w-3 inline" /></li>
+                <li>Create Space in <a href="https://cloud.digitalocean.com/spaces" target="_blank" rel="noopener noreferrer" className="text-primary underline">DO Control Panel</a> <ExternalLink weight="fill" className="h-3 w-3 inline" /></li>
                 <li>Generate API key (Spaces Access Key)</li>
                 <li>Set <strong>Endpoint</strong> to <code className="bg-muted px-1 rounded">{`https://{region}.digitaloceanspaces.com`}</code></li>
                 <li>Leave <strong>Use Path-Style Endpoint</strong> <strong>unchecked</strong></li>
                 <li>Set <strong>CDN / Public URL</strong> to <code className="bg-muted px-1 rounded">{`https://{bucket}.{region}.cdn.digitaloceanspaces.com`}</code></li>
               </ol>
             </div>
-            <div className="rounded-lg border border-border bg-muted/30 p-3">
+            <div className="rounded-lg border-none bg-muted/30 p-3">
               <p className="font-semibold text-foreground mb-1">Bunny CDN (Storage Zone)</p>
               <ol className="list-decimal list-inside space-y-1 text-muted-foreground">
-                <li>Create a Storage Zone in <a href="https://panel.bunny.net" target="_blank" rel="noopener noreferrer" className="text-primary underline">Bunny Panel</a> <ExternalLink className="h-3 w-3 inline" /></li>
+                <li>Create a Storage Zone in <a href="https://panel.bunny.net" target="_blank" rel="noopener noreferrer" className="text-primary underline">Bunny Panel</a> <ExternalLink weight="fill" className="h-3 w-3 inline" /></li>
                 <li>Go to <strong>FTP & API</strong> → copy API Access Key</li>
                 <li>Set <strong>Endpoint</strong> to <code className="bg-muted px-1 rounded">{`https://{storage-zone}.{region}.storage.bunnycdn.com`}</code></li>
                 <li>Check <strong>Use Path-Style Endpoint</strong></li>
               </ol>
             </div>
-            <div className="rounded-lg border border-border bg-muted/30 p-3">
+            <div className="rounded-lg border-none bg-muted/30 p-3">
               <p className="font-semibold text-foreground mb-1">MinIO (Self-Hosted)</p>
               <ol className="list-decimal list-inside space-y-1 text-muted-foreground">
                 <li>Create bucket via MinIO Console or <code className="bg-muted px-1 rounded">mc mb</code></li>
@@ -251,13 +267,13 @@ export default function AdminObjectStorageProvidersPage() {
 
       {msg && (
         <div className={`mb-4 flex items-center gap-2 rounded-lg border p-3 text-sm ${msg.ok ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-600" : "border-destructive/30 bg-destructive/10 text-destructive"}`}>
-          {msg.ok ? <CheckCircle2 className="h-4 w-4 shrink-0" /> : <AlertCircle className="h-4 w-4 shrink-0" />}
+          {msg.ok ? <CheckCircle2 className="h-4 w-4 shrink-0" /> : <AlertCircle weight="fill" className="h-4 w-4 shrink-0" />}
           <span>{msg.text}</span>
         </div>
       )}
 
       {editing && (
-        <div className="rounded-xl border border-border bg-card p-5 space-y-4 mb-6">
+        <div className="rounded-lg border-none bg-card p-5 space-y-4 mb-6">
           <h2 className="text-sm font-bold text-foreground">
             {"id" in editing && editing.id ? "Edit Provider" : "New Provider"}
           </h2>
@@ -270,7 +286,7 @@ export default function AdminObjectStorageProvidersPage() {
                 value={editing.key ?? ""}
                 onChange={(e) => setField("key", e.target.value)}
                 placeholder="contabo_prod"
-                className="w-full rounded-lg border border-border bg-muted px-3 py-2 text-sm font-mono"
+                className="w-full rounded-lg border-none bg-muted px-3 py-2 text-sm font-mono"
               />
               <p className="text-[10px] text-muted-foreground">Unique identifier (lowercase, no spaces)</p>
             </div>
@@ -281,7 +297,7 @@ export default function AdminObjectStorageProvidersPage() {
                 value={editing.label ?? ""}
                 onChange={(e) => setField("label", e.target.value)}
                 placeholder="Contabo Production"
-                className="w-full rounded-lg border border-border bg-muted px-3 py-2 text-sm"
+                className="w-full rounded-lg border-none bg-muted px-3 py-2 text-sm"
               />
             </div>
           </div>
@@ -293,7 +309,7 @@ export default function AdminObjectStorageProvidersPage() {
                 type="text"
                 value={editing.access_key ?? ""}
                 onChange={(e) => setField("access_key", e.target.value)}
-                className="w-full rounded-lg border border-border bg-muted px-3 py-2 text-sm font-mono"
+                className="w-full rounded-lg border-none bg-muted px-3 py-2 text-sm font-mono"
               />
             </div>
             <div className="space-y-1.5">
@@ -303,7 +319,7 @@ export default function AdminObjectStorageProvidersPage() {
                   type={showSecret ? "text" : "password"}
                   value={editing.secret_key ?? ""}
                   onChange={(e) => setField("secret_key", e.target.value)}
-                  className="w-full rounded-lg border border-border bg-muted px-3 py-2 text-sm font-mono pr-8"
+                  className="w-full rounded-lg border-none bg-muted px-3 py-2 text-sm font-mono pr-8"
                   placeholder={editing.id ? "(unchanged)" : ""}
                 />
                 <button
@@ -311,7 +327,7 @@ export default function AdminObjectStorageProvidersPage() {
                   onClick={() => setShowSecret(!showSecret)}
                   className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 >
-                  {showSecret ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  {showSecret ? <EyeOff className="h-4 w-4" /> : <Eye weight="fill" className="h-4 w-4" />}
                 </button>
               </div>
             </div>
@@ -325,7 +341,7 @@ export default function AdminObjectStorageProvidersPage() {
                 value={editing.bucket ?? ""}
                 onChange={(e) => setField("bucket", e.target.value)}
                 placeholder="my-bucket"
-                className="w-full rounded-lg border border-border bg-muted px-3 py-2 text-sm font-mono"
+                className="w-full rounded-lg border-none bg-muted px-3 py-2 text-sm font-mono"
               />
             </div>
             <div className="space-y-1.5">
@@ -335,7 +351,7 @@ export default function AdminObjectStorageProvidersPage() {
                 value={editing.region ?? ""}
                 onChange={(e) => setField("region", e.target.value)}
                 placeholder="eu-central-1"
-                className="w-full rounded-lg border border-border bg-muted px-3 py-2 text-sm font-mono"
+                className="w-full rounded-lg border-none bg-muted px-3 py-2 text-sm font-mono"
               />
             </div>
           </div>
@@ -348,7 +364,7 @@ export default function AdminObjectStorageProvidersPage() {
                 value={editing.endpoint ?? ""}
                 onChange={(e) => setField("endpoint", e.target.value)}
                 placeholder="https://eu2.contabostorage.com"
-                className="w-full rounded-lg border border-border bg-muted px-3 py-2 text-sm font-mono"
+                className="w-full rounded-lg border-none bg-muted px-3 py-2 text-sm font-mono"
               />
             </div>
             <div className="space-y-1.5">
@@ -358,7 +374,7 @@ export default function AdminObjectStorageProvidersPage() {
                 value={editing.url ?? ""}
                 onChange={(e) => setField("url", e.target.value)}
                 placeholder="https://cdn.example.com"
-                className="w-full rounded-lg border border-border bg-muted px-3 py-2 text-sm font-mono"
+                className="w-full rounded-lg border-none bg-muted px-3 py-2 text-sm font-mono"
               />
             </div>
           </div>
@@ -386,19 +402,19 @@ export default function AdminObjectStorageProvidersPage() {
 
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" onClick={cancelEdit} className="gap-1">
-              <X className="h-4 w-4" /> Cancel
+              <X weight="fill" className="h-4 w-4" /> Cancel
             </Button>
             <Button type="button" onClick={save} disabled={saving} className="gap-1">
-              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-              {saving ? "Saving..." : "Save"}
+              {saving ? <Loader2 weight="fill" className="h-4 w-4 animate-spin" /> : <FloppyDisk weight="fill" className="h-4 w-4" />}
+              {saving ? "Saving..." : "FloppyDisk"}
             </Button>
           </div>
         </div>
       )}
 
       {providers.length === 0 && !editing && (
-        <div className="rounded-xl border border-border bg-card p-10 text-center">
-          <HardDrive className="h-10 w-10 text-muted-foreground/40 mx-auto mb-3" />
+        <div className="rounded-lg border-none bg-card p-10 text-center">
+          <HardDrive weight="fill" className="h-10 w-10 text-muted-foreground/40 mx-auto mb-3" />
           <p className="text-sm text-muted-foreground">No storage providers configured.</p>
           <p className="text-xs text-muted-foreground mt-1">Add a provider to start using S3-compatible object storage.</p>
         </div>
@@ -407,7 +423,7 @@ export default function AdminObjectStorageProvidersPage() {
       {providers.length > 0 && (
         <div className="space-y-3">
           {providers.map((p) => (
-            <div key={p.id} className="rounded-xl border border-border bg-card p-4 flex items-center justify-between">
+            <div key={p.id} className="rounded-lg border-none bg-card p-4 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <button
                   type="button"
@@ -415,7 +431,7 @@ export default function AdminObjectStorageProvidersPage() {
                   className={`p-1 rounded-full transition-colors ${p.is_active ? "text-emerald-500 hover:text-emerald-600" : "text-muted-foreground/40 hover:text-muted-foreground"}`}
                   title={p.is_active ? "Active (click to disable)" : "Inactive (click to enable)"}
                 >
-                  {p.is_active ? <Check className="h-4 w-4" /> : <X className="h-4 w-4" />}
+                  {p.is_active ? <Check className="h-4 w-4" /> : <X weight="fill" className="h-4 w-4" />}
                 </button>
                 <div>
                   <p className="text-sm font-semibold text-foreground">{p.label}</p>
@@ -426,10 +442,10 @@ export default function AdminObjectStorageProvidersPage() {
               </div>
               <div className="flex items-center gap-1">
                 <Button type="button" variant="ghost" size="sm" onClick={() => beginEdit(p)}>
-                  <Pencil className="h-3.5 w-3.5" />
+                  <Pencil weight="fill" className="h-3.5 w-3.5" />
                 </Button>
                 <Button type="button" variant="ghost" size="sm" onClick={() => remove(p)} className="text-destructive hover:text-destructive">
-                  <Trash2 className="h-3.5 w-3.5" />
+                  <Trash2 weight="fill" className="h-3.5 w-3.5" />
                 </Button>
               </div>
             </div>

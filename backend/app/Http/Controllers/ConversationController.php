@@ -81,7 +81,7 @@ class ConversationController extends Controller
                 return [
                     'id' => $conv->id,
                     'type' => $conv->type,
-                    'title' => $conv->type === 'direct' ? ($otherUser ? $otherUser->name : 'Direct Message') : ($conv->type === 'saved' ? 'Saved Messages' : ($conv->community ? $conv->community->name : $conv->title)),
+                    'title' => $conv->type === 'direct' ? ($otherUser ? $otherUser->name : 'Direct Message') : ($conv->type === 'saved' ? 'Saved Messages' : ($conv->community ? $conv->community->name : ($conv->title ?: 'Conversation'))),
                     'community' => $conv->community,
                     'other_user' => $otherUser,
                     'latest_message' => $conv->latestMessage,

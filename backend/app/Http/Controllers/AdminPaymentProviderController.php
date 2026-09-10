@@ -33,21 +33,50 @@ class AdminPaymentProviderController extends Controller
     {
         $this->authorizeSuperAdmin($request);
 
-        $providers = PaymentProvider::with('capabilities')->get();
+        if (PaymentProvider::count() === 0) {
+            try {
+                (new \Database\Seeders\PaymentInfrastructureSeeder())->run();
+            } catch (\Throwable $e) {
+                report($e);
+            }
+        }
+
+        // Ensure Stripe is available as an option
+        PaymentProvider::firstOrCreate(
+            ['code' => 'stripe'],
+            [
+                'name' => 'Stripe Payments',
+                'is_enabled' => false,
+                'environment' => 'sandbox',
+                'priority' => 25,
+                'health_status' => \App\Enums\ProviderHealthStatus::Healthy,
+            ]
+        );
+
+        $providers = PaymentProvider::with('capabilities')->orderBy('priority', 'asc')->get();
 
         $data = $providers->map(function ($p) {
             $configKey = "payments.providers.{$p->code}";
+            $cfg = $p->config ?? [];
             $hasSecret = false;
 
             if ($p->code === 'airwallex') {
-                $hasSecret = ! empty(config("{$configKey}.client_id")) && ! empty(config("{$configKey}.api_key"));
+                $hasSecret = (! empty(config("{$configKey}.client_id")) && ! empty(config("{$configKey}.api_key")))
+                    || (! empty($cfg['client_id']) && ! empty($cfg['api_key']));
             } elseif ($p->code === 'paystack') {
-                $hasSecret = ! empty(config("{$configKey}.secret_key"));
+                $hasSecret = ! empty(config("{$configKey}.secret_key")) || ! empty($cfg['secret_key']);
             } elseif ($p->code === 'flutterwave') {
-                $hasSecret = ! empty(config("{$configKey}.secret_key"));
+                $hasSecret = ! empty(config("{$configKey}.secret_key")) || ! empty($cfg['secret_key']);
+            } elseif ($p->code === 'stripe') {
+                $hasSecret = ! empty(config('stripe.secret')) || ! empty($cfg['secret_key']);
+            } else {
+                $hasSecret = ! empty($cfg['secret_key']) || ! empty($cfg['api_key']);
             }
 
             $credentialStatus = $hasSecret ? 'Configured' : 'Not configured';
+
+            // Safe masked preview of public/client key if configured
+            $publicKeyPreview = $cfg['public_key'] ?? $cfg['client_id'] ?? config("{$configKey}.public_key") ?? config("{$configKey}.client_id") ?? null;
 
             return [
                 'id' => $p->id,
@@ -58,6 +87,8 @@ class AdminPaymentProviderController extends Controller
                 'priority' => $p->priority,
                 'health_status' => $p->health_status->value,
                 'credential_status' => $credentialStatus,
+                'has_credentials' => $hasSecret,
+                'public_key_preview' => $publicKeyPreview,
                 'last_health_check_at' => $p->last_health_check_at?->toISOString(),
                 'last_successful_request_at' => $p->last_successful_request_at?->toISOString(),
                 'last_failed_request_at' => $p->last_failed_request_at?->toISOString(),
@@ -73,11 +104,72 @@ class AdminPaymentProviderController extends Controller
             ];
         });
 
-        return response()->json($data->values()->all());
+        return response()->json([
+            'success' => true,
+            'data' => $data->values()->all(),
+        ]);
     }
 
     /**
-     * Update provider settings (toggle active, environment, priority).
+     * Add a new payment provider gateway.
+     */
+    public function store(Request $request): JsonResponse
+    {
+        $this->authorizeSuperAdmin($request);
+
+        $validated = $request->validate([
+            'code' => ['required', 'string', 'max:50'],
+            'name' => ['required', 'string', 'max:100'],
+            'is_enabled' => ['nullable', 'boolean'],
+            'environment' => ['required', 'string', 'in:sandbox,production,test,live'],
+            'priority' => ['nullable', 'integer', 'min:1', 'max:1000'],
+            'public_key' => ['nullable', 'string', 'max:500'],
+            'secret_key' => ['nullable', 'string', 'max:500'],
+            'client_id' => ['nullable', 'string', 'max:500'],
+            'api_key' => ['nullable', 'string', 'max:500'],
+            'webhook_secret' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $config = [];
+        foreach (['public_key', 'secret_key', 'client_id', 'api_key', 'webhook_secret'] as $field) {
+            if (! empty($validated[$field])) {
+                $config[$field] = $validated[$field];
+            }
+        }
+
+        $code = strtolower(trim($validated['code']));
+        $provider = PaymentProvider::updateOrCreate(
+            ['code' => $code],
+            [
+                'name' => $validated['name'],
+                'is_enabled' => $validated['is_enabled'] ?? true,
+                'environment' => $validated['environment'],
+                'priority' => $validated['priority'] ?? 10,
+                'health_status' => \App\Enums\ProviderHealthStatus::Healthy,
+                'config' => $config,
+            ]
+        );
+
+        FinancialAuditLog::create([
+            'admin_id' => $request->user()?->id,
+            'action' => 'provider_created',
+            'resource_type' => 'payment_provider',
+            'resource_id' => $provider->code,
+            'new_values' => $provider->only(['code', 'name', 'is_enabled', 'environment', 'priority']),
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'reason' => 'Admin connected/configured payment provider: ' . $provider->name,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => "Payment provider {$provider->name} saved successfully.",
+            'data' => $provider,
+        ], 201);
+    }
+
+    /**
+     * Update provider settings & credentials (toggle active, environment, priority, API keys).
      */
     public function update(Request $request, string $code): JsonResponse
     {
@@ -85,14 +177,23 @@ class AdminPaymentProviderController extends Controller
         $provider = PaymentProvider::where('code', $code)->firstOrFail();
 
         $validated = $request->validate([
+            'name' => ['nullable', 'string', 'max:100'],
             'is_enabled' => ['nullable', 'boolean'],
             'environment' => ['nullable', 'string', 'in:sandbox,production,test,live'],
             'priority' => ['nullable', 'integer', 'min:1', 'max:1000'],
-            'reason' => ['required', 'string', 'max:255'],
+            'reason' => ['nullable', 'string', 'max:255'],
+            'public_key' => ['nullable', 'string', 'max:500'],
+            'secret_key' => ['nullable', 'string', 'max:500'],
+            'client_id' => ['nullable', 'string', 'max:500'],
+            'api_key' => ['nullable', 'string', 'max:500'],
+            'webhook_secret' => ['nullable', 'string', 'max:500'],
         ]);
 
-        $oldValues = $provider->only(['is_enabled', 'environment', 'priority']);
+        $oldValues = $provider->only(['is_enabled', 'environment', 'priority', 'name']);
 
+        if (isset($validated['name'])) {
+            $provider->name = $validated['name'];
+        }
         if (isset($validated['is_enabled'])) {
             $provider->is_enabled = $validated['is_enabled'];
         }
@@ -103,6 +204,13 @@ class AdminPaymentProviderController extends Controller
             $provider->priority = $validated['priority'];
         }
 
+        $currentConfig = $provider->config ?? [];
+        foreach (['public_key', 'secret_key', 'client_id', 'api_key', 'webhook_secret'] as $field) {
+            if (array_key_exists($field, $validated) && ! empty($validated[$field])) {
+                $currentConfig[$field] = $validated[$field];
+            }
+        }
+        $provider->config = $currentConfig;
         $provider->save();
 
         // Record Financial Audit Log
@@ -112,10 +220,10 @@ class AdminPaymentProviderController extends Controller
             'resource_type' => 'payment_provider',
             'resource_id' => $provider->code,
             'old_values' => $oldValues,
-            'new_values' => $provider->only(['is_enabled', 'environment', 'priority']),
+            'new_values' => $provider->only(['is_enabled', 'environment', 'priority', 'name']),
             'ip_address' => $request->ip(),
             'user_agent' => $request->userAgent(),
-            'reason' => $validated['reason'],
+            'reason' => $validated['reason'] ?? 'Admin updated provider credentials/settings',
         ]);
 
         return response()->json(['success' => true, 'message' => 'Provider updated successfully.', 'data' => $provider]);
@@ -183,6 +291,18 @@ class AdminPaymentProviderController extends Controller
         ]);
 
         return response()->json(['success' => true, 'data' => $route->load(['primaryProvider', 'fallbackProvider'])], 201);
+    }
+
+    /**
+     * Delete a provider routing rule.
+     */
+    public function destroyRoute(Request $request, int $id): JsonResponse
+    {
+        $this->authorizeSuperAdmin($request);
+        $route = ProviderRoute::findOrFail($id);
+        $route->delete();
+
+        return response()->json(['success' => true, 'message' => 'Routing rule deleted.']);
     }
 
     /**

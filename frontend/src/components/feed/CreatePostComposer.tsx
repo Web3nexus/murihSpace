@@ -2,13 +2,13 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import {
-  MessageSquare,
-  Megaphone,
-  ImageIcon,
-  Link2,
-  Send,
-  X,
-} from 'lucide-react';
+  ChatTeardropText as MessageSquare,
+  Megaphone as Megaphone,
+  Image as ImageIcon,
+  Link as Link,
+  PaperPlaneRight as Send,
+  X as X
+} from "@phosphor-icons/react";
 import type { CreatePostPayload, PostType } from '@/types/post';
 
 interface CreatePostComposerProps {
@@ -21,9 +21,9 @@ interface CreatePostComposerProps {
 }
 
 const POST_TYPES: { value: PostType; label: string; icon: React.ReactNode; color: string }[] = [
-  { value: 'status', label: 'Status', icon: <MessageSquare size={14} />, color: '#2164b6' },
-  { value: 'announcement', label: 'Announcement', icon: <Megaphone size={14} />, color: '#F59E0B' },
-  { value: 'media', label: 'Media', icon: <ImageIcon size={14} />, color: '#8B5CF6' },
+  { value: 'status', label: 'Status', icon: <MessageSquare weight="fill" size={14} />, color: '#2164b6' },
+  { value: 'announcement', label: 'Announcement', icon: <Megaphone weight="fill" size={14} />, color: '#F59E0B' },
+  { value: 'media', label: 'Media', icon: <ImageIcon weight="fill" size={14} />, color: '#8B5CF6' },
 ];
 
 export default function CreatePostComposer({
@@ -120,7 +120,7 @@ export default function CreatePostComposer({
           {/* Link input */}
           {showLinkInput && (
             <div className="composer-link-row">
-              <Link2 size={14} className="composer-link-icon" />
+              <Link weight="fill" size={14} className="composer-link-icon" />
               <input
                 type="url"
                 value={linkUrl}
@@ -129,7 +129,7 @@ export default function CreatePostComposer({
                 className="composer-link-input"
               />
               <button onClick={() => { setShowLinkInput(false); setLinkUrl(''); }} className="composer-link-close">
-                <X size={14} />
+                <X weight="fill" size={14} />
               </button>
             </div>
           )}
@@ -143,7 +143,7 @@ export default function CreatePostComposer({
                   onClick={() => setShowLinkInput((v) => !v)}
                   title="Attach link"
                 >
-                  <Link2 size={16} />
+                  <Link weight="fill" size={16} />
                 </button>
               </div>
 
@@ -161,7 +161,7 @@ export default function CreatePostComposer({
                     <span className="composer-spinner" />
                   ) : (
                     <>
-                      <Send size={14} />
+                      <Send weight="fill" size={14} />
                       Post
                     </>
                   )}

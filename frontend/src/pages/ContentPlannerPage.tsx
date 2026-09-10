@@ -1,5 +1,12 @@
 import { useState, useEffect, useCallback } from "react";
-import { Calendar, Clock, FileText, Loader2, Trash2, RefreshCw } from "lucide-react";
+import {
+  Calendar as Calendar,
+  Clock as Clock,
+  FileText as FileText,
+  Spinner as Loader2,
+  Trash as Trash2,
+  ArrowsClockwise as RefreshCw
+} from "@phosphor-icons/react";
 import { authFetch } from "@/lib/api/authFetch";
 
 
@@ -59,11 +66,11 @@ export default function ContentPlannerPage() {
   const dates = Object.keys(groups);
 
   return (
-    <div className="w-full max-w-7xl mx-auto space-y-6 p-6 lg:p-8">
+    <div className="w-full max-w-7xl mx-auto space-y-6 p-4 lg:p-5">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            <Calendar className="h-6 w-6" />
+          <h1 className="text-xl font-bold text-foreground flex items-center gap-2">
+            <Calendar weight="fill" className="h-6 w-6" />
             Content Planner
           </h1>
           <p className="text-sm text-muted-foreground mt-1">Schedule and manage your upcoming posts</p>
@@ -72,14 +79,14 @@ export default function ContentPlannerPage() {
           onClick={() => loadPlan()}
           className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
         >
-          <RefreshCw className="h-3 w-3" />
+          <RefreshCw weight="fill" className="h-3 w-3" />
           Refresh
         </button>
       </div>
 
       {loading && (
         <div className="flex items-center justify-center py-20">
-          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          <Loader2 weight="fill" className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
       )}
 
@@ -91,7 +98,7 @@ export default function ContentPlannerPage() {
 
       {!loading && !error && scheduled.length === 0 && (
         <div className="text-center py-20 text-muted-foreground">
-          <Calendar className="h-10 w-10 mx-auto mb-3 opacity-40" />
+          <Calendar weight="fill" className="h-10 w-10 mx-auto mb-3 opacity-40" />
           <p className="text-sm">No scheduled content</p>
           <p className="text-xs mt-1">Schedule a post from the Content Studio to see it here</p>
         </div>
@@ -102,21 +109,21 @@ export default function ContentPlannerPage() {
           {dates.map((date) => (
             <div key={date}>
               <h2 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-                <Clock className="h-4 w-4 text-muted-foreground" />
+                <Clock weight="fill" className="h-4 w-4 text-muted-foreground" />
                 {date}
               </h2>
               <div className="space-y-2">
                 {groups[date].map((item) => (
-                  <div key={item.id} className="flex items-start gap-4 rounded-lg border border-border/50 bg-card p-4">
+                  <div key={item.id} className="flex items-start gap-4 rounded-lg border-none/50 bg-card p-4">
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                      <FileText className="h-5 w-5" />
+                      <FileText weight="fill" className="h-5 w-5" />
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium text-foreground">{item.title}</p>
                       <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
                         {item.scheduled_at && (
                           <span className="flex items-center gap-1">
-                            <Clock className="h-3 w-3" />
+                            <Clock weight="fill" className="h-3 w-3" />
                             {new Date(item.scheduled_at).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}
                           </span>
                         )}
@@ -134,7 +141,7 @@ export default function ContentPlannerPage() {
                         className="rounded-md p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
                         title="Remove from schedule"
                       >
-                        <Trash2 className="h-3.5 w-3.5" />
+                        <Trash2 weight="fill" className="h-3.5 w-3.5" />
                       </button>
                     </div>
                   </div>

@@ -1,5 +1,17 @@
 import { useState, useEffect, useCallback } from "react";
-import { Gift, Loader2, Search, Send, Coins, AlertCircle, Check, Plus, X, History, ShoppingBag } from "lucide-react";
+import {
+  Gift as Gift,
+  Spinner as Loader2,
+  MagnifyingGlass as Search,
+  PaperPlaneRight as Send,
+  Coins as Coins,
+  WarningCircle as AlertCircle,
+  Check as Check,
+  Plus as Plus,
+  X as X,
+  ClockCounterClockwise as ClockCounterClockwise,
+  Bag as ShoppingBag
+} from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -42,12 +54,12 @@ function getAssetUrl(path: string | null | undefined): string {
   return `${backendHost}${path.startsWith('/') ? '' : '/'}${path}`;
 }
 
-function GiftIcon({ iconUrl, name, className = "w-full h-full object-contain drop-shadow-xs" }: { iconUrl: string | null; name: string; className?: string }) {
+function GiftIcon({ iconUrl, name, className = "w-full h-full object-contain drop-" }: { iconUrl: string | null; name: string; className?: string }) {
   const [failed, setFailed] = useState(false);
   const url = getAssetUrl(iconUrl);
 
   if (!url || failed) {
-    return <Gift className="w-9 h-9 text-[#1877f2]" />;
+    return <Gift weight="fill" className="w-9 h-9 text-[#1877f2]" />;
   }
 
   return (
@@ -268,21 +280,21 @@ export default function GiftsPage() {
   );
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl mx-auto w-full">
+    <div className="p-4 sm:p-4 lg:p-5 space-y-6 max-w-7xl mx-auto w-full">
       {/* Header Banner - Meta Standard Dark Surface */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 p-6 sm:p-8 rounded-2xl bg-card border border-border text-foreground shadow-xs">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 p-4 sm:p-5 rounded-lg bg-card border-none text-foreground ">
         <div className="space-y-1.5 max-w-xl">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold uppercase tracking-wider border border-primary/20">
-            <Gift className="w-3.5 h-3.5" /> Virtual Gifting Store
+            <Gift weight="fill" className="w-3.5 h-3.5" /> Virtual Gifting Store
           </div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">Gift Catalogue</h1>
+          <h1 className="text-xl sm:text-xl font-bold tracking-tight text-foreground">Gift Catalogue</h1>
           <p className="text-xs sm:text-sm text-muted-foreground">Send virtual gifts to your favorite creators, support streams, and boost community status.</p>
         </div>
 
         <div className="flex flex-wrap items-center gap-3 shrink-0">
-          <div className="bg-muted/50 border border-border rounded-xl px-4 py-2 flex items-center gap-3">
+          <div className="bg-muted/50 border-none rounded-lg px-4 py-2 flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center">
-              <Coins className="w-4 h-4 text-amber-500" />
+              <Coins weight="fill" className="w-4 h-4 text-amber-500" />
             </div>
             <div>
               <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Balance</p>
@@ -293,9 +305,9 @@ export default function GiftsPage() {
           <ActionTooltip content="Purchase MSH coins to send gifts">
             <Button
               onClick={() => setShowCoinShop(true)}
-              className="bg-[#1877f2] hover:bg-[#166fe5] text-white font-bold h-10 px-4 rounded-xl gap-2 shadow-xs"
+              className="bg-[#1877f2] hover:bg-[#166fe5] text-white font-bold h-10 px-4 rounded-lg gap-2 "
             >
-              <Plus className="w-4 h-4" /> Buy Coins
+              <Plus weight="fill" className="w-4 h-4" /> Buy Coins
             </Button>
           </ActionTooltip>
         </div>
@@ -307,36 +319,36 @@ export default function GiftsPage() {
           <ActionTooltip content="Browse available virtual gifts">
             <button
               onClick={() => setTab("shop")}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-colors ${
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-colors ${
                 tab === "shop"
-                  ? "bg-[#1877f2] text-white shadow-xs"
+                  ? "bg-[#1877f2] text-white "
                   : "text-muted-foreground hover:bg-muted hover:text-foreground"
               }`}
             >
-              <ShoppingBag className="w-4 h-4" /> Gift Tray
+              <ShoppingBag weight="fill" className="w-4 h-4" /> Gift Tray
             </button>
           </ActionTooltip>
 
           <ActionTooltip content="View sent and received gifts">
             <button
               onClick={() => setTab("history")}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-colors ${
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-colors ${
                 tab === "history"
-                  ? "bg-[#1877f2] text-white shadow-xs"
+                  ? "bg-[#1877f2] text-white "
                   : "text-muted-foreground hover:bg-muted hover:text-foreground"
               }`}
             >
-              <History className="w-4 h-4" /> Transaction History
+              <ClockCounterClockwise weight="fill" className="w-4 h-4" /> Transaction ClockCounterClockwise
             </button>
           </ActionTooltip>
         </div>
       </div>
 
       {msg && (
-        <div className={`p-4 rounded-xl flex items-center gap-3 text-xs font-bold border ${
+        <div className={`p-4 rounded-lg flex items-center gap-3 text-xs font-bold border ${
           msg.ok ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" : "bg-rose-500/10 text-rose-500 border-rose-500/20"
         }`}>
-          {msg.ok ? <Check className="w-4 h-4 text-emerald-500" /> : <AlertCircle className="w-4 h-4 text-rose-500" />}
+          {msg.ok ? <Check className="w-4 h-4 text-emerald-500" /> : <AlertCircle weight="fill" className="w-4 h-4 text-rose-500" />}
           {msg.text}
         </div>
       )}
@@ -350,10 +362,10 @@ export default function GiftsPage() {
                 <button
                   key={cat}
                   onClick={() => setCategory(cat)}
-                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold capitalize transition-colors ${
+                  className={`px-3.5 py-1.5 rounded-lg text-xs font-bold capitalize transition-colors ${
                     category === cat
                       ? "bg-[#1877f2] text-white"
-                      : "bg-card border border-border text-muted-foreground hover:text-foreground hover:border-muted-foreground/30"
+                      : "bg-card border-none text-muted-foreground hover:text-foreground hover:border-muted-foreground/30"
                   }`}
                 >
                   {cat}
@@ -362,13 +374,13 @@ export default function GiftsPage() {
             </div>
 
             <div className="relative min-w-[240px]">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Search weight="fill" className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <input
                 type="text"
                 placeholder="Search gifts..."
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 bg-card border border-border rounded-xl text-xs font-medium text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-[#1877f2]/30 focus:border-[#1877f2]"
+                className="w-full pl-10 pr-4 py-2 bg-card border-none rounded-lg text-xs font-medium text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-[#1877f2]/30 focus:border-[#1877f2]"
               />
             </div>
           </div>
@@ -377,7 +389,7 @@ export default function GiftsPage() {
           {loading ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
               {Array.from({ length: 12 }).map((_, i) => (
-                <Skeleton key={i} className="h-44 w-full rounded-2xl bg-card border border-border/50" />
+                <Skeleton key={i} className="h-44 w-full rounded-lg bg-card border-none/50" />
               ))}
             </div>
           ) : (
@@ -386,7 +398,7 @@ export default function GiftsPage() {
                 <button
                   key={gift.id}
                   onClick={() => setSelectedGift(gift)}
-                  className={`group relative w-full border rounded-2xl p-4 text-center transition-all duration-200 hover:-translate-y-0.5 flex flex-col items-center justify-between ${
+                  className={`group relative w-full border rounded-lg p-4 text-center transition-all duration-200 hover:-translate-y-0.5 flex flex-col items-center justify-between ${
                     selectedGift?.id === gift.id
                       ? "border-[#1877f2] ring-2 ring-[#1877f2]/20 bg-[#1877f2]/10"
                       : "border-border bg-card hover:border-[#1877f2]/40"
@@ -401,7 +413,7 @@ export default function GiftsPage() {
                     {gift.category}
                   </span>
 
-                  <div className="w-16 h-16 mx-auto my-2 rounded-xl bg-muted/40 border border-border p-2 flex items-center justify-center group-hover:scale-105 transition-transform duration-200">
+                  <div className="w-16 h-16 mx-auto my-2 rounded-lg bg-muted/40 border-none p-2 flex items-center justify-center group-hover:scale-105 transition-transform duration-200">
                     <GiftIcon iconUrl={gift.icon_url} name={gift.name} />
                   </div>
 
@@ -410,7 +422,7 @@ export default function GiftsPage() {
                       {gift.name}
                     </p>
                     <div className="inline-flex items-center justify-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-500 font-extrabold text-[11px]">
-                      <Coins className="w-3 h-3" />
+                      <Coins weight="fill" className="w-3 h-3" />
                       <span>{gift.coin_price.toLocaleString()}</span>
                     </div>
                   </div>
@@ -419,7 +431,7 @@ export default function GiftsPage() {
 
               {filtered.length === 0 && (
                 <div className="col-span-full flex flex-col items-center justify-center py-16 text-muted-foreground space-y-2">
-                  <Gift className="w-10 h-10 opacity-20" />
+                  <Gift weight="fill" className="w-10 h-10 opacity-20" />
                   <p className="text-xs font-bold">No gifts found matching your filter.</p>
                 </div>
               )}
@@ -433,7 +445,7 @@ export default function GiftsPage() {
               onClick={() => setSelectedGift(null)}
             >
               <div
-                className="bg-card border border-border text-foreground rounded-2xl p-6 max-w-md w-full shadow-xl space-y-5 relative overflow-hidden"
+                className="bg-card border-none text-foreground rounded-lg p-4 max-w-md w-full shadow-xl space-y-5 relative overflow-hidden"
                 onClick={e => e.stopPropagation()}
               >
                 <ActionTooltip content="Close">
@@ -441,18 +453,18 @@ export default function GiftsPage() {
                     onClick={() => setSelectedGift(null)}
                     className="absolute top-4 right-4 p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground"
                   >
-                    <X className="w-4 h-4" />
+                    <X weight="fill" className="w-4 h-4" />
                   </button>
                 </ActionTooltip>
 
                 <div className="text-center space-y-2.5">
-                  <div className="w-20 h-20 mx-auto bg-muted/50 border border-border rounded-2xl flex items-center justify-center p-2.5 shadow-xs">
+                  <div className="w-20 h-20 mx-auto bg-muted/50 border-none rounded-lg flex items-center justify-center p-2.5 ">
                     <GiftIcon iconUrl={selectedGift.icon_url} name={selectedGift.name} />
                   </div>
                   <div>
                     <h2 className="text-lg font-bold text-foreground">{selectedGift.name}</h2>
                     <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-500 font-bold text-xs mt-1">
-                      <Coins className="w-3.5 h-3.5" /> {selectedGift.coin_price.toLocaleString()} Coins
+                      <Coins weight="fill" className="w-3.5 h-3.5" /> {selectedGift.coin_price.toLocaleString()} Coins
                     </div>
                   </div>
                   <p className="text-xs text-muted-foreground">
@@ -468,7 +480,7 @@ export default function GiftsPage() {
                       value={recipient}
                       onChange={e => setRecipient(e.target.value)}
                       placeholder="Enter user ID..."
-                      className="bg-muted/30 border-border text-foreground placeholder:text-muted-foreground text-xs h-10 rounded-xl"
+                      className="bg-muted/30 border-border text-foreground placeholder:text-muted-foreground text-xs h-10 rounded-lg"
                     />
                   </div>
 
@@ -479,7 +491,7 @@ export default function GiftsPage() {
                       onChange={e => setMessage(e.target.value)}
                       placeholder="Say something encouraging..."
                       rows={2.5}
-                      className="bg-muted/30 border-border text-foreground placeholder:text-muted-foreground text-xs rounded-xl resize-none"
+                      className="bg-muted/30 border-border text-foreground placeholder:text-muted-foreground text-xs rounded-lg resize-none"
                     />
                   </div>
 
@@ -497,15 +509,15 @@ export default function GiftsPage() {
                     <Button
                       onClick={handleSend}
                       disabled={sending || !recipient}
-                      className="flex-1 bg-[#1877f2] hover:bg-[#166fe5] text-white font-bold h-10 rounded-xl"
+                      className="flex-1 bg-[#1877f2] hover:bg-[#166fe5] text-white font-bold h-10 rounded-lg"
                     >
-                      {sending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
+                      {sending ? <Loader2 weight="fill" className="w-4 h-4 mr-2 animate-spin" /> : <Send weight="fill" className="w-4 h-4 mr-2" />}
                       Send Gift
                     </Button>
                     <Button
                       variant="outline"
                       onClick={() => setSelectedGift(null)}
-                      className="border border-border text-foreground hover:bg-muted font-bold h-10 rounded-xl"
+                      className="border-none text-foreground hover:bg-muted font-bold h-10 rounded-lg"
                     >
                       Cancel
                     </Button>
@@ -517,15 +529,15 @@ export default function GiftsPage() {
         </div>
       )}
 
-      {/* History Tab */}
+      {/* ClockCounterClockwise Tab */}
       {tab === "history" && (
-        <div className="bg-card border border-border rounded-2xl shadow-xs overflow-hidden">
+        <div className="bg-card border-none rounded-lg  overflow-hidden">
           <div className="px-5 py-4 border-b border-border bg-muted/20">
             <h2 className="font-bold text-foreground text-xs uppercase tracking-wider">Gifting Transactions</h2>
           </div>
           {safeTxList.length === 0 ? (
             <div className="text-center py-16 text-muted-foreground flex flex-col items-center justify-center space-y-2">
-              <Gift className="w-10 h-10 opacity-20" />
+              <Gift weight="fill" className="w-10 h-10 opacity-20" />
               <p className="font-bold text-xs">No gift transactions recorded yet.</p>
             </div>
           ) : (
@@ -560,13 +572,13 @@ export default function GiftsPage() {
           onClick={() => setShowCoinShop(false)}
         >
           <div
-            className="bg-card border border-border text-foreground rounded-2xl p-6 max-w-lg w-full shadow-xl space-y-5 relative overflow-hidden"
+            className="bg-card border-none text-foreground rounded-lg p-4 max-w-lg w-full shadow-xl space-y-5 relative overflow-hidden"
             onClick={e => e.stopPropagation()}
           >
             <div className="flex items-center justify-between border-b border-border pb-3">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center">
-                  <Coins className="w-4 h-4 text-amber-500" />
+                  <Coins weight="fill" className="w-4 h-4 text-amber-500" />
                 </div>
                 <div>
                   <h2 className="text-base font-bold text-foreground">Buy System Coins</h2>
@@ -575,7 +587,7 @@ export default function GiftsPage() {
               </div>
               <ActionTooltip content="Close">
                 <button onClick={() => setShowCoinShop(false)} className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground">
-                  <X className="w-4 h-4" />
+                  <X weight="fill" className="w-4 h-4" />
                 </button>
               </ActionTooltip>
             </div>
@@ -584,7 +596,7 @@ export default function GiftsPage() {
               {safePacksList.map(pack => (
                 <div
                   key={pack.id}
-                  className={`relative border rounded-xl p-4 flex flex-col justify-between transition-all ${
+                  className={`relative border rounded-lg p-4 flex flex-col justify-between transition-all ${
                     pack.badge ? "border-amber-500/50 bg-amber-500/5" : "border-border bg-muted/20"
                   }`}
                 >
@@ -595,7 +607,7 @@ export default function GiftsPage() {
                   )}
                   <div className="space-y-0.5 mb-3">
                     <div className="flex items-center gap-1.5">
-                      <Coins className="w-4 h-4 text-amber-500" />
+                      <Coins weight="fill" className="w-4 h-4 text-amber-500" />
                       <span className="font-black text-lg text-foreground">{(pack.coins || 0).toLocaleString()}</span>
                     </div>
                     {(pack.bonus_coins || 0) > 0 && (
@@ -607,9 +619,9 @@ export default function GiftsPage() {
                     size="sm"
                     onClick={() => buyPack(pack)}
                     disabled={buying !== null}
-                    className="w-full bg-[#1877f2] hover:bg-[#166fe5] text-white font-bold rounded-xl h-9"
+                    className="w-full bg-[#1877f2] hover:bg-[#166fe5] text-white font-bold rounded-lg h-9"
                   >
-                    {buying === pack.id ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <Plus className="w-3.5 h-3.5 mr-1.5" />}
+                    {buying === pack.id ? <Loader2 weight="fill" className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <Plus weight="fill" className="w-3.5 h-3.5 mr-1.5" />}
                     Purchase
                   </Button>
                 </div>

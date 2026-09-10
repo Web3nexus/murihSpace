@@ -1,13 +1,13 @@
 import { useState, useEffect } from "react";
 import {
-  Share2Icon,
-  PlusIcon,
-  Trash2Icon,
-  RefreshCwIcon,
-  SparklesIcon,
-  ExternalLinkIcon,
-  BadgeCheckIcon,
-} from "lucide-react";
+  ShareNetwork as Share2Icon,
+  Plus as PlusIcon,
+  Trash as Trash2Icon,
+  ArrowsClockwise as RefreshCwIcon,
+  Sparkle as SparklesIcon,
+  ArrowSquareOut as ExternalLinkIcon,
+  SealCheck as BadgeCheckIcon
+} from "@phosphor-icons/react";
 import { Link } from "react-router";
 import { toast } from "sonner";
 import { useConfirm } from "@/components/ui/DialogProvider";
@@ -149,7 +149,7 @@ export default function ConnectedAccountsPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64 text-muted-foreground">
-        <RefreshCwIcon className="h-6 w-6 animate-spin mr-2" /> Loading connected accounts...
+        <RefreshCwIcon weight="fill" className="h-6 w-6 animate-spin mr-2" /> Loading connected accounts...
       </div>
     );
   }
@@ -171,16 +171,16 @@ export default function ConnectedAccountsPage() {
           onClick={() => setModalOpen(true)}
           className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground font-medium text-sm rounded-lg hover:opacity-90 transition"
         >
-          <PlusIcon className="h-4 w-4" /> Add Social Account
+          <PlusIcon weight="fill" className="h-4 w-4" /> Add Social Account
         </button>
       </div>
 
       {/* Creator Threshold Qualification Banner */}
-      <div className="p-6 rounded-xl border border-primary/20 bg-gradient-to-r from-primary/5 via-primary/10 to-transparent relative overflow-hidden">
+      <div className="p-4 rounded-lg border border-primary/20 bg-gradient-to-r from-primary/5 via-primary/10 to-transparent relative overflow-hidden">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2">
-              <SparklesIcon className="h-5 w-5 text-primary" />
+              <SparklesIcon weight="fill" className="h-5 w-5 text-primary" />
               <h3 className="font-semibold text-foreground">Combined Creator Qualification</h3>
             </div>
             <p className="text-sm text-muted-foreground mt-1">
@@ -193,7 +193,7 @@ export default function ConnectedAccountsPage() {
               to="/app/settings/upgrade"
               className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm rounded-lg transition shrink-0"
             >
-              <BadgeCheckIcon className="h-4 w-4" /> Apply as Creator
+              <BadgeCheckIcon weight="fill" className="h-4 w-4" /> Apply as Creator
             </Link>
           ) : (
             <span className="text-xs font-semibold px-3 py-1 bg-secondary text-secondary-foreground rounded-full shrink-0">
@@ -220,8 +220,8 @@ export default function ConnectedAccountsPage() {
       {/* Accounts List */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {accounts.length === 0 ? (
-          <div className="col-span-2 p-8 text-center border border-dashed rounded-xl text-muted-foreground">
-            <Share2Icon className="h-10 w-10 mx-auto mb-2 opacity-50" />
+          <div className="col-span-2 p-5 text-center border border-dashed rounded-lg text-muted-foreground">
+            <Share2Icon weight="fill" className="h-10 w-10 mx-auto mb-2 opacity-50" />
             <p className="font-medium">No social accounts connected yet</p>
             <p className="text-sm mt-1">Click "Add Social Account" above to link your channels.</p>
           </div>
@@ -229,7 +229,7 @@ export default function ConnectedAccountsPage() {
           accounts.map((acc) => (
             <div
               key={acc.id}
-              className="p-5 rounded-xl border border-border bg-card flex items-center justify-between gap-4"
+              className="p-5 rounded-lg border-none bg-card flex items-center justify-between gap-4"
             >
               <div className="flex items-center gap-3">
                 <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center font-bold text-primary capitalize">
@@ -240,7 +240,7 @@ export default function ConnectedAccountsPage() {
                     <span className="font-semibold text-foreground capitalize">{acc.provider}</span>
                     {acc.verified_on_provider && (
                       <span title="Verified profile">
-                        <BadgeCheckIcon className="h-4 w-4 text-sky-500 fill-sky-500/20" />
+                        <BadgeCheckIcon weight="fill" className="h-4 w-4 text-sky-500 fill-sky-500/20" />
                       </span>
                     )}
                   </div>
@@ -264,7 +264,7 @@ export default function ConnectedAccountsPage() {
                     rel="noreferrer"
                     className="p-2 text-muted-foreground hover:text-foreground rounded-lg border border-transparent hover:border-border transition"
                   >
-                    <ExternalLinkIcon className="h-4 w-4" />
+                    <ExternalLinkIcon weight="fill" className="h-4 w-4" />
                   </a>
                 )}
                 <button
@@ -272,7 +272,7 @@ export default function ConnectedAccountsPage() {
                   className="p-2 text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-lg transition"
                   title="Disconnect"
                 >
-                  <Trash2Icon className="h-4 w-4" />
+                  <Trash2Icon weight="fill" className="h-4 w-4" />
                 </button>
               </div>
             </div>
@@ -283,7 +283,7 @@ export default function ConnectedAccountsPage() {
       {/* Manual Connect Modal */}
       {modalOpen && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-card border border-border w-full max-w-md rounded-2xl p-6 shadow-2xl space-y-4">
+          <div className="bg-card border-none w-full max-w-md rounded-lg p-4 shadow-2xl space-y-4">
             <div className="flex justify-between items-center">
               <h3 className="text-lg font-bold">Connect Social Account</h3>
               <button
@@ -300,7 +300,7 @@ export default function ConnectedAccountsPage() {
                 <select
                   value={selectedProvider}
                   onChange={(e) => setSelectedProvider(e.target.value)}
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                  className="w-full rounded-lg border-none bg-background px-3 py-2 text-sm"
                 >
                   {providers.map((p) => (
                     <option key={p.provider} value={p.provider}>
@@ -317,7 +317,7 @@ export default function ConnectedAccountsPage() {
                   placeholder="e.g. johndoe_official"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                  className="w-full rounded-lg border-none bg-background px-3 py-2 text-sm"
                   required
                 />
               </div>
@@ -329,7 +329,7 @@ export default function ConnectedAccountsPage() {
                   placeholder="e.g. 5000"
                   value={followerCount}
                   onChange={(e) => setFollowerCount(e.target.value ? Number(e.target.value) : "")}
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                  className="w-full rounded-lg border-none bg-background px-3 py-2 text-sm"
                   min="0"
                   required
                 />
@@ -342,7 +342,7 @@ export default function ConnectedAccountsPage() {
                   placeholder="https://instagram.com/johndoe_official"
                   value={profileUrl}
                   onChange={(e) => setProfileUrl(e.target.value)}
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                  className="w-full rounded-lg border-none bg-background px-3 py-2 text-sm"
                 />
               </div>
 

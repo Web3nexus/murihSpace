@@ -21,13 +21,13 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import {
-  ChevronsUpDownIcon,
-  UserCircle,
-  ShieldCheck,
-  Bell,
-  Wallet,
-  LogOut,
-} from "lucide-react";
+  CaretUpDown as ChevronsUpDownIcon,
+  UserCircle as UserCircle,
+  ShieldCheck as ShieldCheck,
+  Bell as Bell,
+  Wallet as Wallet,
+  SignOut as LogOut
+} from "@phosphor-icons/react";
 
 interface NavUserProps {
   user: {
@@ -78,7 +78,7 @@ export function NavUser({ user }: NavUserProps) {
                 <span className="truncate font-semibold">{user.name}</span>
                 <span className="truncate text-xs text-sidebar-foreground/60">{user.email}</span>
               </div>
-              <ChevronsUpDownIcon className="ml-auto size-4 shrink-0" />
+              <ChevronsUpDownIcon weight="fill" className="ml-auto size-4 shrink-0" />
             </SidebarMenuButton>
           </DropdownMenuTrigger>
 
@@ -110,25 +110,25 @@ export function NavUser({ user }: NavUserProps) {
             <DropdownMenuGroup>
               <DropdownMenuItem asChild className="cursor-pointer gap-2">
                 <Link to="/app/settings">
-                  <UserCircle className="size-4" />
+                  <UserCircle weight="fill" className="size-4" />
                   Profile & Identity
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild className="cursor-pointer gap-2">
                 <Link to="/app/settings/kyc">
-                  <ShieldCheck className="size-4" />
+                  <ShieldCheck weight="fill" className="size-4" />
                   KYC Verification
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild className="cursor-pointer gap-2">
                 <Link to="/app/wallet">
-                  <Wallet className="size-4" />
+                  <Wallet weight="fill" className="size-4" />
                   MurihPay Wallet
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild className="cursor-pointer gap-2">
                 <Link to="/app/settings/notifications">
-                  <Bell className="size-4" />
+                  <Bell weight="fill" className="size-4" />
                   Notifications
                 </Link>
               </DropdownMenuItem>
@@ -141,7 +141,7 @@ export function NavUser({ user }: NavUserProps) {
               className="cursor-pointer gap-2 text-destructive focus:text-destructive"
               onClick={handleLogout}
             >
-              <LogOut className="size-4" />
+              <LogOut weight="fill" className="size-4" />
               Sign Out
             </DropdownMenuItem>
           </DropdownMenuContent>

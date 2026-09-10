@@ -1,6 +1,17 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useConfirm } from '@/components/ui/DialogProvider';
-import { Briefcase, Plus, Loader2, Building2, DollarSign, Edit2, Trash2, Check, AlertCircle, X } from 'lucide-react';
+import {
+  Briefcase as Briefcase,
+  Plus as Plus,
+  Spinner as Loader2,
+  Buildings as Building2,
+  CurrencyDollar as DollarSign,
+  PencilSimple as Edit2,
+  Trash as Trash2,
+  Check as Check,
+  WarningCircle as AlertCircle,
+  X as X
+} from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,6 +20,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { authFetch } from "@/lib/api/authFetch";
+import { PageSecondaryNav, type PageNavTab } from "@/components/common/PageSecondaryNav";
 
 
 
@@ -127,40 +139,44 @@ export function BrandDealsPage() {
   if (isLoading) {
     return (
       <div className="h-64 w-full flex items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin text-secondary" />
+        <Loader2 weight="fill" className="h-6 w-6 animate-spin text-secondary" />
       </div>
     );
   }
 
+  const brandDealTabs: PageNavTab[] = [
+    { label: "Marketplace", href: "/app/brand-deals", exact: true },
+    { label: "Proposals", href: "/app/brand-deals/proposals" },
+    { label: "Media Kit", href: "/app/brand-deals/media-kit" },
+    { label: "Invoices", href: "/app/brand-deals/invoicing" },
+  ];
+
   return (
-    <div className="space-y-6 w-full max-w-7xl mx-auto p-6 lg:p-8">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-black text-foreground tracking-tight flex items-center gap-2.5">
-            <Briefcase className="h-6 w-6 text-secondary" />
-            Brand Deals Hub
-          </h1>
-          <p className="text-xs text-muted-foreground mt-1">
-            Manage your brand partnerships, budgets and deliverables in one place.
-          </p>
-        </div>
-        <Button onClick={() => { resetForm(); setShowForm(!showForm); }}
-          variant={showForm ? "outline" : "default"} className="shrink-0">
-          {showForm ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-          {showForm ? 'Cancel' : 'New Deal'}
-        </Button>
-      </div>
+    <div className="space-y-6 w-full max-w-7xl mx-auto p-4 lg:p-5">
+      <PageSecondaryNav
+        title="Brand Deals Hub"
+        subtitle="Manage your brand partnerships, budgets, and deliverables in one place."
+        icon={<Briefcase weight="fill" className="h-5 w-5 text-secondary" />}
+        tabs={brandDealTabs}
+        actions={
+          <Button onClick={() => { resetForm(); setShowForm(!showForm); }}
+            variant={showForm ? "outline" : "default"} className="shrink-0 text-xs font-bold">
+            {showForm ? <X className="h-4 w-4 mr-1.5" /> : <Plus weight="fill" className="h-4 w-4 mr-1.5" />}
+            {showForm ? 'Cancel' : 'New Deal'}
+          </Button>
+        }
+      />
 
       {message && (
-        <div className={`flex items-center gap-2 px-4 py-3 rounded-xl text-xs font-medium ${message.type === 'success' ? 'bg-green-500/10 text-green-600' : 'bg-destructive/10 text-destructive'}`}>
-          {message.type === 'success' ? <Check className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
+        <div className={`flex items-center gap-2 px-4 py-3 rounded-lg text-xs font-medium ${message.type === 'success' ? 'bg-green-500/10 text-green-600' : 'bg-destructive/10 text-destructive'}`}>
+          {message.type === 'success' ? <Check weight="fill" className="h-4 w-4" /> : <AlertCircle weight="fill" className="h-4 w-4" />}
           <span className="flex-1">{message.text}</span>
-          <button onClick={() => setMessage(null)} className="p-0.5 hover:opacity-70"><X className="h-3.5 w-3.5" /></button>
+          <button onClick={() => setMessage(null)} className="p-0.5 hover:opacity-70"><X weight="fill" className="h-3.5 w-3.5" /></button>
         </div>
       )}
 
       {showForm && (
-        <form onSubmit={handleSubmit} className="rounded-2xl border border-border bg-card p-6 space-y-5 shadow-xs">
+        <form onSubmit={handleSubmit} className="rounded-lg border-none bg-card p-4 space-y-5 ">
           <div>
             <h2 className="text-base font-bold text-foreground">{editId ? 'Edit Deal' : 'New Brand Deal'}</h2>
             <p className="text-xs text-muted-foreground mt-0.5">Set the terms of this brand partnership.</p>
@@ -176,7 +192,7 @@ export function BrandDealsPage() {
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold text-foreground">Deal Type</Label>
+              <Label className="text-xs font-semibold text-foreground">Deal TextT</Label>
               <Select value={form.deal_type} onValueChange={v => setForm({ ...form, deal_type: v })}>
                 <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -231,8 +247,8 @@ export function BrandDealsPage() {
 
       {deals.length === 0 ? (
         <div className="rounded-3xl border border-dashed border-border bg-card p-12 flex flex-col items-center justify-center text-center space-y-3.5 w-full min-h-[240px]">
-          <div className="w-14 h-14 rounded-2xl bg-[#2164b6]/10 flex items-center justify-center">
-            <Briefcase className="h-7 w-7 text-[#2164b6] dark:text-[#7ab0ff]" />
+          <div className="w-14 h-14 rounded-lg bg-[#2164b6]/10 flex items-center justify-center">
+            <Briefcase weight="fill" className="h-7 w-7 text-[#2164b6] dark:text-[#7ab0ff]" />
           </div>
           <div className="space-y-1 max-w-md mx-auto text-center">
             <h3 className="text-base font-extrabold text-foreground">No brand deals yet</h3>
@@ -240,17 +256,17 @@ export function BrandDealsPage() {
               Create your first brand partnership deal to get started earning from sponsorships.
             </p>
           </div>
-          <Button size="sm" className="bg-[#2164b6] hover:bg-[#1a5091] text-white font-bold text-xs shadow-xs mx-auto flex items-center gap-1.5" onClick={() => { resetForm(); setShowForm(true); }}>
-            <Plus className="h-4 w-4" /> New Deal
+          <Button size="sm" className="bg-[#2164b6] hover:bg-[#1a5091] text-white font-bold text-xs  mx-auto flex items-center gap-1.5" onClick={() => { resetForm(); setShowForm(true); }}>
+            <Plus weight="fill" className="h-4 w-4" /> New Deal
           </Button>
         </div>
       ) : (<>
         <div className="space-y-3">
           {(deals ?? []).map(d => (
-            <div key={d.id} className="rounded-xl border border-border bg-card p-4 flex items-start justify-between gap-4">
+            <div key={d.id} className="rounded-lg border-none bg-card p-4 flex items-start justify-between gap-4">
               <div className="flex items-start gap-3 min-w-0">
-                <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center shrink-0">
-                  {d.brand?.logo_url ? <img src={d.brand.logo_url} alt={d.brand.name} className="w-8 h-8 rounded-lg" /> : <Building2 className="w-5 h-5 text-muted-foreground" />}
+                <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                  {d.brand?.logo_url ? <img src={d.brand.logo_url} alt={d.brand.name} className="w-8 h-8 rounded-lg" /> : <Building2 weight="fill" className="w-5 h-5 text-muted-foreground" />}
                 </div>
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
@@ -263,7 +279,7 @@ export function BrandDealsPage() {
                     <span className="capitalize">{d.deal_type.replace('_', ' ')}</span>
                     <span>·</span>
                     <span className="flex items-center gap-1 font-semibold text-foreground">
-                      <DollarSign className="w-3 h-3" />{formatPrice(d.budget, d.currency)}
+                      <DollarSign weight="fill" className="w-3 h-3" />{formatPrice(d.budget, d.currency)}
                     </span>
                   </div>
                   {d.deliverables && <p className="text-xs text-muted-foreground mt-1.5 line-clamp-2">{d.deliverables}</p>}
@@ -277,10 +293,10 @@ export function BrandDealsPage() {
               </div>
               <div className="flex items-center gap-1 shrink-0">
                 <Button variant="ghost" size="icon-sm" onClick={() => startEdit(d)} aria-label="Edit deal">
-                  <Edit2 className="h-4 w-4 text-muted-foreground" />
+                  <Edit2 weight="fill" className="h-4 w-4 text-muted-foreground" />
                 </Button>
                 <Button variant="ghost" size="icon-sm" onClick={() => deleteDeal(d.id)} aria-label="Delete deal">
-                  <Trash2 className="h-4 w-4 text-destructive" />
+                  <Trash2 weight="fill" className="h-4 w-4 text-destructive" />
                 </Button>
               </div>
             </div>

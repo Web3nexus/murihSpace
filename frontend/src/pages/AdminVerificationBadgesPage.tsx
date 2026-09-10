@@ -2,16 +2,16 @@ import { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "react-router";
 import { toast } from "sonner";
 import {
-  BadgeCheck,
-  AlertTriangle,
-  Clock,
-  Filter,
-  Loader2,
-  ChevronLeft,
-  ChevronRight,
-  Shield,
-  ShieldCheck,
-} from "lucide-react";
+  SealCheck as BadgeCheck,
+  Warning as AlertTriangle,
+  Clock as Clock,
+  Faders as Faders,
+  Spinner as Loader2,
+  CaretLeft as ChevronLeft,
+  CaretRight as ChevronRight,
+  Shield as Shield,
+  ShieldCheck as ShieldCheck
+} from "@phosphor-icons/react";
 import { apiClient, type ApiError } from "@/lib/api/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ActionTooltip } from "@/components/ui/action-tooltip";
@@ -34,7 +34,7 @@ const TABS = [
   { key: "under_review", label: "Under Review", icon: Clock },
   { key: "active", label: "Active & Verified Badges", icon: BadgeCheck },
   { key: "kyc_pending", label: "KYC Pending", icon: AlertTriangle },
-  { key: "all", label: "All Badge Accounts", icon: Filter },
+  { key: "all", label: "All Badge Accounts", icon: Faders },
 ];
 
 export function AdminVerificationBadgesPage() {
@@ -130,11 +130,11 @@ export function AdminVerificationBadgesPage() {
   };
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 space-y-6 w-full max-w-7xl mx-auto">
+    <div className="p-4 sm:p-4 lg:p-5 space-y-6 w-full max-w-7xl mx-auto">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
-          <BadgeCheck className="h-6 w-6 text-[#1877f2]" />
+        <h1 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
+          <BadgeCheck weight="fill" className="h-6 w-6 text-[#1877f2]" />
           Verification Badge Management
         </h1>
         <p className="text-xs sm:text-sm text-muted-foreground mt-1">
@@ -148,16 +148,16 @@ export function AdminVerificationBadgesPage() {
           const Icon = tab.icon;
           const isActive = currentStatus === tab.key;
           return (
-            <ActionTooltip key={tab.key} content={`Filter by ${tab.label}`}>
+            <ActionTooltip key={tab.key} content={`Faders by ${tab.label}`}>
               <button
                 onClick={() => {
                   setSearchParams({ status: tab.key });
                   setPage(1);
                 }}
-                className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-colors whitespace-nowrap ${
+                className={`flex items-center gap-2 rounded-lg px-4 py-2 text-xs font-bold transition-colors whitespace-nowrap ${
                   isActive
-                    ? "bg-[#1877f2] text-white shadow-xs"
-                    : "bg-card text-muted-foreground hover:bg-muted hover:text-foreground border border-border"
+                    ? "bg-[#1877f2] text-white "
+                    : "bg-card text-muted-foreground hover:bg-muted hover:text-foreground border-none"
                 }`}
               >
                 <Icon className="h-4 w-4" />
@@ -169,16 +169,16 @@ export function AdminVerificationBadgesPage() {
       </div>
 
       {/* Table */}
-      <div className="rounded-2xl border border-border bg-card shadow-xs overflow-hidden">
+      <div className="rounded-lg border-none bg-card  overflow-hidden">
         {loading ? (
-          <div className="p-6 space-y-4">
+          <div className="p-4 space-y-4">
             {Array.from({ length: 5 }).map((_, i) => (
-              <Skeleton key={i} className="h-12 w-full rounded-xl" />
+              <Skeleton key={i} className="h-12 w-full rounded-lg" />
             ))}
           </div>
         ) : users.length === 0 ? (
           <div className="flex flex-col items-center justify-center p-16 text-center">
-            <BadgeCheck className="h-12 w-12 text-muted-foreground/30 mb-3" />
+            <BadgeCheck weight="fill" className="h-12 w-12 text-muted-foreground/30 mb-3" />
             <h3 className="font-bold text-base text-foreground">No verification badges found</h3>
             <p className="text-xs text-muted-foreground mt-1">
               There are no accounts matching the selected badge filter.
@@ -208,7 +208,7 @@ export function AdminVerificationBadgesPage() {
                           <div className="font-bold text-foreground flex items-center gap-1.5 text-xs">
                             {u.name}
                             {(u.verification_badge_status === "active" || u.verification_badge_status === "verified") && (
-                              <BadgeCheck className="h-4 w-4 text-[#1877f2] shrink-0" />
+                              <BadgeCheck weight="fill" className="h-4 w-4 text-[#1877f2] shrink-0" />
                             )}
                           </div>
                           <div className="text-[11px] text-muted-foreground">{u.email}</div>
@@ -223,13 +223,13 @@ export function AdminVerificationBadgesPage() {
                             ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20"
                             : u.kyc_status === "pending" || u.kyc_status === "in_review"
                             ? "bg-amber-500/10 text-amber-500 border border-amber-500/20"
-                            : "bg-muted text-muted-foreground border border-border"
+                            : "bg-muted text-muted-foreground border-none"
                         }`}
                       >
                         {u.kyc_status === "verified" ? (
-                          <ShieldCheck className="h-3.5 w-3.5" />
+                          <ShieldCheck weight="fill" className="h-3.5 w-3.5" />
                         ) : (
-                          <Shield className="h-3.5 w-3.5" />
+                          <Shield weight="fill" className="h-3.5 w-3.5" />
                         )}
                         {u.kyc_status}
                       </span>
@@ -257,14 +257,14 @@ export function AdminVerificationBadgesPage() {
 
                     <td className="px-6 py-4 text-right space-x-2">
                       {processingId === u.id ? (
-                        <Loader2 className="h-4 w-4 animate-spin text-primary inline-block" />
+                        <Loader2 weight="fill" className="h-4 w-4 animate-spin text-primary inline-block" />
                       ) : (
                         <>
                           {u.verification_badge_status !== "verified" && u.verification_badge_status !== "active" && (
                             <button
                               type="button"
                               onClick={() => handleUpdateStatus(u, "verified")}
-                              className="rounded-xl bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-emerald-700 transition-colors"
+                              className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white  hover:bg-emerald-700 transition-colors"
                             >
                               Approve Badge
                             </button>
@@ -273,7 +273,7 @@ export function AdminVerificationBadgesPage() {
                             <button
                               type="button"
                               onClick={() => handleUpdateStatus(u, "suspended")}
-                              className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-xs font-bold text-amber-500 hover:bg-amber-500/20 transition-colors"
+                              className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-xs font-bold text-amber-500 hover:bg-amber-500/20 transition-colors"
                             >
                               Suspend
                             </button>
@@ -282,7 +282,7 @@ export function AdminVerificationBadgesPage() {
                             <button
                               type="button"
                               onClick={() => handleUpdateStatus(u, "revoked")}
-                              className="rounded-xl border border-destructive/30 bg-destructive/10 px-3 py-1.5 text-xs font-bold text-destructive hover:bg-destructive/20 transition-colors"
+                              className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-1.5 text-xs font-bold text-destructive hover:bg-destructive/20 transition-colors"
                             >
                               Revoke
                             </button>
@@ -308,18 +308,18 @@ export function AdminVerificationBadgesPage() {
                 <button
                   disabled={page <= 1}
                   onClick={() => setPage(page - 1)}
-                  className="rounded-xl border border-border p-2 text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-40 transition-colors"
+                  className="rounded-lg border-none p-2 text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-40 transition-colors"
                 >
-                  <ChevronLeft className="h-4 w-4" />
+                  <ChevronLeft weight="fill" className="h-4 w-4" />
                 </button>
               </ActionTooltip>
               <ActionTooltip content="Next page">
                 <button
                   disabled={page >= lastPage}
                   onClick={() => setPage(page + 1)}
-                  className="rounded-xl border border-border p-2 text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-40 transition-colors"
+                  className="rounded-lg border-none p-2 text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-40 transition-colors"
                 >
-                  <ChevronRight className="h-4 w-4" />
+                  <ChevronRight weight="fill" className="h-4 w-4" />
                 </button>
               </ActionTooltip>
             </div>

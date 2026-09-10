@@ -1,7 +1,21 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useConfirm } from '@/components/ui/DialogProvider';
-import { Mail, Loader2, Send, Edit2, Trash2, Check, Eye, MousePointerClick, Plus, Sparkles, X, Clock, BarChart2 } from 'lucide-react';
+import {
+  Envelope as Envelope,
+  Spinner as Loader2,
+  PaperPlaneRight as Send,
+  PencilSimple as Edit2,
+  Trash as Trash2,
+  Check as Check,
+  Eye as Eye,
+  CursorClick as CursorClick,
+  Plus as Plus,
+  X as X,
+  Clock as Clock,
+  ChartBar as BarChart2
+} from "@phosphor-icons/react";
 import { authFetch } from "@/lib/api/authFetch";
+import { PageSecondaryNav, type PageNavTab } from "@/components/common/PageSecondaryNav";
 
 
 
@@ -99,57 +113,58 @@ export function EmailBroadcastsPage() {
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
         <div className="relative">
           <div className="absolute inset-0 rounded-full blur-xl bg-[#2164b6]/20 animate-pulse"></div>
-          <Loader2 className="h-10 w-10 animate-spin text-[#2164b6] relative z-10" />
+          <Loader2 weight="fill" className="h-10 w-10 animate-spin text-[#2164b6] relative z-10" />
         </div>
         <p className="text-sm text-muted-foreground font-medium animate-pulse">Loading Broadcasts...</p>
       </div>
     );
   }
 
+  const marketingTabs: PageNavTab[] = [
+    { label: "Overview", href: "/app/marketing", exact: true },
+    { label: "Email Broadcasts", href: "/app/marketing/broadcasts" },
+    { label: "Automated Sequences", href: "/app/marketing/sequences" },
+    { label: "Ad Campaigns", href: "/app/marketing/ads" },
+    { label: "Affiliates", href: "/app/marketing/affiliates" },
+    { label: "Referrals", href: "/app/marketing/referrals" },
+  ];
+
   return (
-    <div className="w-full max-w-7xl mx-auto space-y-8 p-6 lg:p-8 animate-in fade-in duration-500 pb-24">
-      {/* Header Section */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-20">
-        <div className="space-y-2">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#2164b6]/10 text-[#2164b6] dark:text-[#7ab0ff] text-xs font-bold mb-2">
-            <Sparkles className="w-3.5 h-3.5" />
-            Engage Your Audience
-          </div>
-          <h1 className="text-3xl md:text-4xl font-black tracking-tight text-foreground flex items-center gap-3">
-            Email Broadcasts
-          </h1>
-          <p className="text-sm text-muted-foreground max-w-xl">
-            Send newsletters, announcements, and product updates to your community directly to their inbox.
-          </p>
-        </div>
-        
-        <button 
-          onClick={() => { if(showForm) resetForm(); else setShowForm(true); }}
-          className={`flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-sm font-bold shadow-lg transition-all duration-300 ${
-            showForm 
-              ? 'bg-muted text-foreground hover:bg-muted/80 shadow-none' 
-              : 'bg-gradient-to-r from-[#2164b6] to-[#1a5091] text-white hover:-translate-y-0.5 hover:shadow-[#2164b6]/25'
-          }`}
-        >
-          {showForm ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-          {showForm ? 'Cancel Compose' : 'Compose Email'}
-        </button>
-      </div>
+    <div className="w-full max-w-7xl mx-auto space-y-6 p-4 lg:p-5 animate-in fade-in duration-500 pb-24">
+      <PageSecondaryNav
+        title="Email Broadcasts"
+        subtitle="Send newsletters, announcements, and product updates to your community directly to their inbox."
+        icon={<Envelope weight="fill" className="h-5 w-5 text-primary" />}
+        tabs={marketingTabs}
+        actions={
+          <button 
+            onClick={() => { if(showForm) resetForm(); else setShowForm(true); }}
+            className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all shadow-xs ${
+              showForm 
+                ? 'bg-muted text-foreground hover:bg-muted/80' 
+                : 'bg-[#2164b6] hover:bg-[#1a5091] text-white'
+            }`}
+          >
+            {showForm ? <X className="h-4 w-4" /> : <Plus weight="fill" className="h-4 w-4" />}
+            {showForm ? 'Cancel Compose' : 'Compose Email'}
+          </button>
+        }
+      />
 
       {message && (
-        <div className={`p-4 rounded-xl border text-sm font-bold flex items-center gap-2 animate-in slide-in-from-top-2 ${
+        <div className={`p-4 rounded-lg border text-sm font-bold flex items-center gap-2 animate-in slide-in-from-top-2 ${
           message.type === 'success' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500' : 'bg-rose-500/10 border-rose-500/20 text-rose-500'
         }`}>
-          {message.type === 'success' ? <Check className="w-4 h-4" /> : null}
+          {message.type === 'success' ? <Check weight="fill" className="w-4 h-4" /> : null}
           {message.text}
         </div>
       )}
 
       {showForm && (
-        <div className="rounded-2xl border border-border/50 bg-card/50 backdrop-blur-xl shadow-xl overflow-hidden animate-in slide-in-from-top-4 duration-500">
-          <div className="p-6 border-b border-border/50 flex items-center gap-4 bg-background/50">
-            <div className="p-2.5 rounded-xl bg-[#2164b6]/10 text-[#2164b6] shrink-0">
-              <Mail className="w-5 h-5" />
+        <div className="rounded-lg border-none/50 bg-card/50 backdrop-blur-xl shadow-xl overflow-hidden animate-in slide-in-from-top-4 duration-500">
+          <div className="p-4 border-b border-border/50 flex items-center gap-4 bg-background/50">
+            <div className="p-2.5 rounded-lg bg-[#2164b6]/10 text-[#2164b6] shrink-0">
+              <Envelope weight="fill" className="w-5 h-5" />
             </div>
             <div>
               <h2 className="text-lg font-bold text-foreground">{editId ? 'Edit Draft' : 'New Broadcast'}</h2>
@@ -157,8 +172,8 @@ export function EmailBroadcastsPage() {
             </div>
           </div>
           
-          <form onSubmit={handleSubmit} className="p-6 space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <form onSubmit={handleSubmit} className="p-4 space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Internal Campaign Name</label>
                 <input 
@@ -166,7 +181,7 @@ export function EmailBroadcastsPage() {
                   onChange={e => setForm({ ...form, title: e.target.value })} 
                   required
                   placeholder="e.g. November Newsletter"
-                  className="w-full h-12 rounded-xl bg-background border border-border/50 px-4 text-sm font-medium focus:ring-2 focus:ring-[#2164b6]/50 transition-all" 
+                  className="w-full h-12 rounded-lg bg-background border-none/50 px-4 text-sm font-medium focus:ring-2 focus:ring-[#2164b6]/50 transition-all" 
                 />
               </div>
               <div className="space-y-2">
@@ -176,7 +191,7 @@ export function EmailBroadcastsPage() {
                   onChange={e => setForm({ ...form, subject: e.target.value })} 
                   required
                   placeholder="e.g. Exciting updates for this month! 🎉"
-                  className="w-full h-12 rounded-xl bg-background border border-border/50 px-4 text-sm font-medium focus:ring-2 focus:ring-[#2164b6]/50 transition-all" 
+                  className="w-full h-12 rounded-lg bg-background border-none/50 px-4 text-sm font-medium focus:ring-2 focus:ring-[#2164b6]/50 transition-all" 
                 />
               </div>
             </div>
@@ -192,7 +207,7 @@ export function EmailBroadcastsPage() {
                 required
                 rows={12} 
                 placeholder="<h1>Hello!</h1><p>Write your email content here...</p>"
-                className="w-full rounded-xl bg-background border border-border/50 p-4 text-sm font-mono focus:ring-2 focus:ring-[#2164b6]/50 transition-all resize-y" 
+                className="w-full rounded-lg bg-background border-none/50 p-4 text-sm font-mono focus:ring-2 focus:ring-[#2164b6]/50 transition-all resize-y" 
               />
             </div>
             
@@ -200,13 +215,13 @@ export function EmailBroadcastsPage() {
               <button 
                 type="button"
                 onClick={resetForm}
-                className="px-6 py-3 rounded-xl bg-muted text-foreground text-sm font-bold hover:bg-muted/80 transition-colors"
+                className="px-6 py-3 rounded-lg bg-muted text-foreground text-sm font-bold hover:bg-muted/80 transition-colors"
               >
                 Discard
               </button>
               <button 
                 type="submit" 
-                className="px-8 py-3 rounded-xl bg-[#2164b6] text-white text-sm font-bold hover:bg-[#1a5091] hover:shadow-lg transition-all duration-300"
+                className="px-8 py-3 rounded-lg bg-[#2164b6] text-white text-sm font-bold hover:bg-[#1a5091] hover:shadow-lg transition-all duration-300"
               >
                 {editId ? 'Update Draft' : 'Save to Drafts'}
               </button>
@@ -218,13 +233,13 @@ export function EmailBroadcastsPage() {
       {broadcasts.length === 0 ? (
         <div className="flex flex-col items-center justify-center text-center gap-4 py-24 rounded-3xl border border-dashed border-border/50 bg-card/30 backdrop-blur-sm">
           <div className="w-20 h-20 rounded-3xl bg-[#2164b6]/10 flex items-center justify-center mb-2">
-            <Mail className="h-10 w-10 text-[#2164b6]" />
+            <Envelope weight="fill" className="h-10 w-10 text-[#2164b6]" />
           </div>
-          <h2 className="text-2xl font-bold text-foreground tracking-tight">No broadcasts yet</h2>
+          <h2 className="text-xl font-bold text-foreground tracking-tight">No broadcasts yet</h2>
           <p className="text-sm text-muted-foreground max-w-md">Start engaging your audience by creating your first email broadcast. Send newsletters, announcements, or exclusive offers.</p>
           <button 
             onClick={() => setShowForm(true)}
-            className="mt-4 px-6 py-3 rounded-xl bg-background border border-border/50 text-foreground font-bold hover:bg-muted transition-colors"
+            className="mt-4 px-6 py-3 rounded-lg bg-background border-none/50 text-foreground font-bold hover:bg-muted transition-colors"
           >
             Create First Broadcast
           </button>
@@ -232,22 +247,22 @@ export function EmailBroadcastsPage() {
       ) : (
         <div className="space-y-4">
           {broadcasts.map(b => (
-            <div key={b.id} className="group relative overflow-hidden rounded-2xl border border-border/50 bg-card/50 backdrop-blur-xl p-5 md:p-6 transition-all duration-300 hover:shadow-lg hover:border-primary/30">
+            <div key={b.id} className="group relative overflow-hidden rounded-lg border-none/50 bg-card/50 backdrop-blur-xl p-5 md:p-4 transition-all duration-300 hover:shadow-lg hover:border-primary/30">
               
               {/* Status Glow */}
               <div className={`absolute -right-16 -top-16 w-32 h-32 rounded-full blur-3xl opacity-0 group-hover:opacity-20 transition-opacity duration-500 ${
                 b.status === 'sent' ? 'bg-emerald-500' : b.status === 'draft' ? 'bg-muted-foreground' : 'bg-blue-500'
               }`}></div>
               
-              <div className="relative z-10 flex flex-col md:flex-row md:items-start justify-between gap-6">
+              <div className="relative z-10 flex flex-col md:flex-row md:items-start justify-between gap-4">
                 <div className="flex-1 space-y-4">
                   <div>
                     <div className="flex items-center gap-3 mb-2">
                       <h3 className="text-lg font-bold text-foreground leading-tight">{b.title}</h3>
                       <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${statusStyles[b.status] || 'bg-muted text-muted-foreground'}`}>
-                        {b.status === 'sent' && <Check className="w-3 h-3" />}
-                        {b.status === 'draft' && <Edit2 className="w-3 h-3" />}
-                        {b.status === 'sending' && <Loader2 className="w-3 h-3 animate-spin" />}
+                        {b.status === 'sent' && <Check weight="fill" className="w-3 h-3" />}
+                        {b.status === 'draft' && <Edit2 weight="fill" className="w-3 h-3" />}
+                        {b.status === 'sending' && <Loader2 weight="fill" className="w-3 h-3 animate-spin" />}
                         {b.status}
                       </span>
                     </div>
@@ -255,31 +270,31 @@ export function EmailBroadcastsPage() {
                   </div>
                   
                   {b.status === 'sent' && (
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 rounded-xl bg-background border border-border/50">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 rounded-lg bg-background border-none/50">
                       <div className="space-y-1">
                         <div className="flex items-center gap-1.5 text-muted-foreground">
-                          <Send className="w-3.5 h-3.5" />
+                          <Send weight="fill" className="w-3.5 h-3.5" />
                           <span className="text-[10px] font-bold uppercase tracking-wider">Delivered</span>
                         </div>
                         <p className="text-lg font-black text-foreground">{b.sent_count}<span className="text-xs text-muted-foreground font-medium ml-1">/ {b.recipient_count}</span></p>
                       </div>
                       <div className="space-y-1">
                         <div className="flex items-center gap-1.5 text-muted-foreground">
-                          <Eye className="w-3.5 h-3.5" />
+                          <Eye weight="fill" className="w-3.5 h-3.5" />
                           <span className="text-[10px] font-bold uppercase tracking-wider">Opens</span>
                         </div>
                         <p className="text-lg font-black text-foreground">{b.open_count}</p>
                       </div>
                       <div className="space-y-1">
                         <div className="flex items-center gap-1.5 text-muted-foreground">
-                          <MousePointerClick className="w-3.5 h-3.5" />
+                          <CursorClick weight="fill" className="w-3.5 h-3.5" />
                           <span className="text-[10px] font-bold uppercase tracking-wider">Clicks</span>
                         </div>
                         <p className="text-lg font-black text-foreground">{b.click_count}</p>
                       </div>
                       <div className="space-y-1">
                         <div className="flex items-center gap-1.5 text-muted-foreground">
-                          <Clock className="w-3.5 h-3.5" />
+                          <Clock weight="fill" className="w-3.5 h-3.5" />
                           <span className="text-[10px] font-bold uppercase tracking-wider">Sent On</span>
                         </div>
                         <p className="text-sm font-bold text-foreground truncate mt-1">
@@ -295,15 +310,15 @@ export function EmailBroadcastsPage() {
                     <>
                       <button 
                         onClick={() => startEdit(b)} 
-                        className="h-10 px-4 rounded-xl bg-background border border-border/50 text-foreground text-sm font-bold hover:bg-muted transition-colors flex items-center gap-2"
+                        className="h-10 px-4 rounded-lg bg-background border-none/50 text-foreground text-sm font-bold hover:bg-muted transition-colors flex items-center gap-2"
                       >
-                        <Edit2 className="w-4 h-4" /> Edit
+                        <Edit2 weight="fill" className="w-4 h-4" /> Edit
                       </button>
                       <button 
                         onClick={() => sendBroadcast(b.id)} 
-                        className="h-10 px-4 rounded-xl bg-[#2164b6] text-white text-sm font-bold hover:bg-[#1a5091] hover:shadow-lg transition-all flex items-center gap-2"
+                        className="h-10 px-4 rounded-lg bg-[#2164b6] text-white text-sm font-bold hover:bg-[#1a5091] hover:shadow-lg transition-all flex items-center gap-2"
                       >
-                        <Send className="w-4 h-4" /> Send Now
+                        <Send weight="fill" className="w-4 h-4" /> Send Now
                       </button>
                     </>
                   )}
@@ -311,17 +326,17 @@ export function EmailBroadcastsPage() {
                     <button 
                       disabled
                       title="Reporting is not available yet"
-                      className="h-10 px-4 rounded-xl bg-background border border-border/50 text-foreground text-sm font-bold hover:bg-muted transition-colors flex items-center gap-2 opacity-50 cursor-not-allowed"
+                      className="h-10 px-4 rounded-lg bg-background border-none/50 text-foreground text-sm font-bold hover:bg-muted transition-colors flex items-center gap-2 opacity-50 cursor-not-allowed"
                     >
-                      <BarChart2 className="w-4 h-4" /> Report
+                      <BarChart2 weight="fill" className="w-4 h-4" /> Report
                     </button>
                   )}
                   <button 
                     onClick={() => deleteBroadcast(b.id)} 
-                    className="h-10 w-10 flex items-center justify-center rounded-xl bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white transition-colors ml-2"
+                    className="h-10 w-10 flex items-center justify-center rounded-lg bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white transition-colors ml-2"
                     title="Delete Broadcast"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <Trash2 weight="fill" className="w-4 h-4" />
                   </button>
                 </div>
               </div>
@@ -335,7 +350,7 @@ export function EmailBroadcastsPage() {
           <button 
             onClick={() => setPage(p => Math.max(1, p - 1))} 
             disabled={page <= 1} 
-            className="px-4 py-2 rounded-xl bg-background border border-border/50 text-sm font-bold hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="px-4 py-2 rounded-lg bg-background border-none/50 text-sm font-bold hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             Previous
           </button>
@@ -345,7 +360,7 @@ export function EmailBroadcastsPage() {
           <button 
             onClick={() => setPage(p => Math.min(lastPage, p + 1))} 
             disabled={page >= lastPage} 
-            className="px-4 py-2 rounded-xl bg-background border border-border/50 text-sm font-bold hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="px-4 py-2 rounded-lg bg-background border-none/50 text-sm font-bold hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             Next
           </button>

@@ -24,7 +24,7 @@ class LiveStreamFeatureTest extends TestCase
 
     public function test_host_can_start_live_stream_and_receive_publisher_token(): void
     {
-        $host = User::factory()->create(['name' => 'Jane Host', 'username' => 'janehost']);
+        $host = User::factory()->create(['name' => 'Jane Host', 'username' => 'janehost', 'kyc_status' => 'verified']);
 
         $res = $this->actingAs($host)->postJson('/api/v1/live/start', [
             'title' => 'My Live Podcast',
@@ -42,6 +42,24 @@ class LiveStreamFeatureTest extends TestCase
             'title' => 'My Live Podcast',
             'status' => 'live',
             'viewers_count' => 1,
+        ]);
+    }
+
+    public function test_unverified_host_cannot_start_live_stream_without_kyc(): void
+    {
+        $host = User::factory()->create(['name' => 'Unverified Host', 'kyc_status' => 'pending']);
+
+        $res = $this->actingAs($host)->postJson('/api/v1/live/start', [
+            'title' => 'Attempted Stream',
+            'stream_mode' => 'video',
+        ]);
+
+        $res->assertStatus(403);
+        $this->assertStringContainsString('Identity verification (KYC) is required', $res->json('message'));
+
+        $this->assertDatabaseMissing('live_streams', [
+            'user_id' => $host->id,
+            'title' => 'Attempted Stream',
         ]);
     }
 

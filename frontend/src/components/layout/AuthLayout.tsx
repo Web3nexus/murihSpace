@@ -17,7 +17,7 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
   return (
     <div className="min-h-screen w-full bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col justify-between selection:bg-[#2164b6]/20 selection:text-[#2164b6] dark:text-[#7ab0ff]">
       {/* Main Two-Sided Section (Facebook Login Style) */}
-      <main className="w-full max-w-7xl mx-auto px-6 py-6 lg:py-10 grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 items-center flex-1">
+      <main className="w-full max-w-7xl mx-auto px-6 py-6 lg:py-10 grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-16 items-center flex-1">
         {/* LEFT COLUMN: Brand Hero & Visual Showcase */}
         <div className="lg:col-span-6 xl:col-span-7 flex flex-col justify-center space-y-6 lg:space-y-8 pr-0 lg:pr-4">
           {/* Logo Brand Mark */}
@@ -35,7 +35,7 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
           </Link>
 
           {/* Facebook-style Impactful Headline */}
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight text-slate-900 dark:text-white leading-[1.1]">
+          <h1 className="text-xl sm:text-5xl lg:text-6xl font-black tracking-tight text-slate-900 dark:text-white leading-[1.1]">
             {headlineText}{" "}
             <span className="text-[#2164b6] dark:text-[#7ab0ff] relative inline-block">
               {accentText}
@@ -62,7 +62,7 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
 
         {/* RIGHT COLUMN: Two-Sided Form Container */}
         <div className="lg:col-span-6 xl:col-span-5 flex flex-col items-center lg:items-end justify-center">
-          <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-3xl p-6 sm:p-8 shadow-xl shadow-slate-200/60 dark:shadow-none transition-all">
+          <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-3xl p-4 sm:p-5 shadow-xl shadow-slate-200/60 dark:shadow-none transition-all">
             {children}
           </div>
         </div>

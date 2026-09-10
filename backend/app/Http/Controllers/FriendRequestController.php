@@ -25,9 +25,13 @@ class FriendRequestController extends Controller
             'id' => $user->id,
             'name' => $user->name,
             'username' => $user->username,
-            'avatar' => $user->avatar,
-            'avatar_url' => $user->avatar,
+            'avatar' => $user->avatar_url ?? $user->avatar,
+            'avatar_url' => $user->avatar_url ?? $user->avatar,
+            'banner_url' => $user->banner_url ?? null,
             'bio' => $user->bio,
+            'birthday' => $user->birthday ? $user->birthday->format('Y-m-d') : null,
+            'role' => $user->role,
+            'has_active_verification_badge' => (bool) $user->has_active_verification_badge,
         ];
     }
 
@@ -63,7 +67,7 @@ class FriendRequestController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $requests = FriendRequest::with('sender:id,name,username,avatar,bio')
+        $requests = FriendRequest::with('sender')
             ->where('receiver_id', $request->user()->id)
             ->pending()
             ->latest()
@@ -84,7 +88,7 @@ class FriendRequestController extends Controller
      */
     public function sent(Request $request): JsonResponse
     {
-        $requests = FriendRequest::with('receiver:id,name,username,avatar,bio')
+        $requests = FriendRequest::with('receiver')
             ->where('sender_id', $request->user()->id)
             ->pending()
             ->latest()
@@ -106,7 +110,7 @@ class FriendRequestController extends Controller
     {
         $userId = $request->user()->id;
 
-        $friends = FriendRequest::with('sender:id,name,username,avatar,bio', 'receiver:id,name,username,avatar,bio')
+        $friends = FriendRequest::with('sender', 'receiver')
             ->accepted()
             ->where(fn (Builder $q) => $q->where('sender_id', $userId)->orWhere('receiver_id', $userId))
             ->latest()
@@ -140,15 +144,21 @@ class FriendRequestController extends Controller
         $q = trim($request->input('q'));
         $cleanQ = ltrim($q, '@'); // strip leading @
         $userId = $request->user()->id;
+        $like = DB::connection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
 
         $users = User::where('id', '!=', $userId)
             ->whereNull('deleted_at')
-            ->where(function (Builder $query) use ($q, $cleanQ) {
-                $query->where('name', 'like', "%{$q}%")
-                    ->orWhere('username', 'like', "%{$cleanQ}%")
-                    ->orWhere('email', 'like', "%{$q}%")
-                    ->orWhere('mobile_number', 'like', "%{$q}%");
+            ->where(function (Builder $query) use ($q, $cleanQ, $like) {
+                $query->where('name', $like, "%{$q}%")
+                    ->orWhere('username', $like, "%{$cleanQ}%")
+                    ->orWhere('email', $like, "%{$q}%")
+                    ->orWhere('mobile_number', $like, "%{$q}%");
             })
+            ->orderByRaw("CASE 
+                WHEN LOWER(username) = LOWER(?) THEN 0 
+                WHEN LOWER(username) LIKE LOWER(?) THEN 1 
+                WHEN LOWER(name) LIKE LOWER(?) THEN 2 
+                ELSE 3 END", [$cleanQ, "{$cleanQ}%", "{$q}%"])
             ->limit(30)
             ->get()
             ->map(function (User $u) use ($userId) {
@@ -553,5 +563,64 @@ class FriendRequestController extends Controller
         }
 
         return response()->json(['message' => 'Friend removed.']);
+    }
+
+    /**
+     * Get friends with birthdays (today and upcoming in next 60 days).
+     */
+    public function birthdays(Request $request): JsonResponse
+    {
+        $userId = $request->user()->id;
+
+        $friendRequests = FriendRequest::with(['sender', 'receiver'])
+            ->accepted()
+            ->where(fn (Builder $q) => $q->where('sender_id', $userId)->orWhere('receiver_id', $userId))
+            ->get();
+
+        $friends = $friendRequests->map(function (FriendRequest $r) use ($userId) {
+            return $r->sender_id === $userId ? $r->receiver : $r->sender;
+        })->filter()->unique('id')->values();
+
+        $today = now();
+        $todayMonthDay = $today->format('m-d');
+
+        $todayBirthdays = [];
+        $upcomingBirthdays = [];
+
+        foreach ($friends as $friend) {
+            if (! $friend->birthday) {
+                continue;
+            }
+
+            $bdayMonthDay = $friend->birthday->format('m-d');
+            $payload = $this->userPayload($friend);
+            $payload['mutual_friends'] = $this->mutualFriendsCount($userId, $friend->id);
+
+            // Determine next birthday occurrence
+            $thisYearBday = $friend->birthday->copy()->year($today->year);
+            if ($thisYearBday->isPast() && ! $thisYearBday->isToday()) {
+                $thisYearBday->addYear();
+            }
+            $daysRemaining = (int) $today->startOfDay()->diffInDays($thisYearBday->startOfDay(), false);
+
+            $payload['days_remaining'] = $daysRemaining;
+            $payload['formatted_date'] = $friend->birthday->format('F j');
+
+            if ($bdayMonthDay === $todayMonthDay) {
+                $todayBirthdays[] = $payload;
+            } elseif ($daysRemaining > 0 && $daysRemaining <= 60) {
+                $upcomingBirthdays[] = $payload;
+            }
+        }
+
+        usort($upcomingBirthdays, fn ($a, $b) => $a['days_remaining'] <=> $b['days_remaining']);
+
+        return response()->json([
+            'data' => [
+                'today' => $todayBirthdays,
+                'upcoming' => $upcomingBirthdays,
+                'total_with_birthdays' => count($todayBirthdays) + count($upcomingBirthdays),
+            ],
+        ]);
     }
 }

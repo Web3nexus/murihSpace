@@ -1,16 +1,16 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate, Link } from "react-router";
 import {
-  Calendar,
-  Clock,
-  MapPin,
-  Users,
-  Video,
-  ArrowLeft,
-  ExternalLink,
-  CheckCircle,
-  XCircle,
-} from "lucide-react";
+  Calendar as Calendar,
+  Clock as Clock,
+  MapPin as MapPin,
+  Users as Users,
+  VideoCamera as Video,
+  ArrowLeft as ArrowLeft,
+  ArrowSquareOut as ExternalLink,
+  CheckCircle as CheckCircle,
+  XCircle as XCircle
+} from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { LoadingState, ErrorState, NotFoundState } from "@/components/common/UIStateComponents";
@@ -136,13 +136,13 @@ export function EventDetailPage() {
   const isPast = new Date(event.end_date) < new Date();
 
   return (
-    <div className="max-w-3xl mx-auto p-6 space-y-6">
+    <div className="max-w-3xl mx-auto p-4 space-y-6">
       <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="gap-2">
-        <ArrowLeft className="h-4 w-4" />
+        <ArrowLeft weight="fill" className="h-4 w-4" />
         Back
       </Button>
 
-      <div className="rounded-xl border border-border bg-card overflow-hidden">
+      <div className="rounded-lg border-none bg-card overflow-hidden">
         {event.cover_url && (
           <img
             src={event.cover_url}
@@ -151,11 +151,11 @@ export function EventDetailPage() {
           />
         )}
 
-        <div className="p-6 space-y-6">
+        <div className="p-4 space-y-6">
           <div className="flex items-start justify-between gap-4">
             <div className="space-y-1">
               <div className="flex items-center gap-2">
-                <h1 className="text-2xl font-bold">{event.title}</h1>
+                <h1 className="text-xl font-bold">{event.title}</h1>
                 <Badge variant="secondary">{EVENT_TYPE_LABELS[event.event_type]}</Badge>
               </div>
               {event.community && (
@@ -174,36 +174,36 @@ export function EventDetailPage() {
 
           <div className="grid gap-3 text-sm">
             <div className="flex items-center gap-3">
-              <Calendar className="h-4 w-4 text-muted-foreground" />
+              <Calendar weight="fill" className="h-4 w-4 text-muted-foreground" />
               <span>{formatDate(event.start_date)}</span>
             </div>
             <div className="flex items-center gap-3">
-              <Clock className="h-4 w-4 text-muted-foreground" />
+              <Clock weight="fill" className="h-4 w-4 text-muted-foreground" />
               <span>
                 {formatTime(event.start_date)} – {formatTime(event.end_date)}
               </span>
             </div>
             {(event.event_type === "in_person" || event.event_type === "hybrid") && event.location && (
               <div className="flex items-center gap-3">
-                <MapPin className="h-4 w-4 text-muted-foreground" />
+                <MapPin weight="fill" className="h-4 w-4 text-muted-foreground" />
                 <span>{event.location}</span>
               </div>
             )}
             {(event.event_type === "online" || event.event_type === "hybrid") && event.meeting_url && (
               <div className="flex items-center gap-3">
-                <Video className="h-4 w-4 text-muted-foreground" />
+                <Video weight="fill" className="h-4 w-4 text-muted-foreground" />
                 <a
                   href={event.meeting_url}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-primary hover:underline inline-flex items-center gap-1"
                 >
-                  Join online <ExternalLink className="h-3 w-3" />
+                  Join online <ExternalLink weight="fill" className="h-3 w-3" />
                 </a>
               </div>
             )}
             <div className="flex items-center gap-3">
-              <Users className="h-4 w-4 text-muted-foreground" />
+              <Users weight="fill" className="h-4 w-4 text-muted-foreground" />
               <span>
                 {event.registration_count ?? 0}{event.capacity ? ` / ${event.capacity}` : ""} registered
                 {event.is_full && " — Full"}
@@ -227,9 +227,9 @@ export function EventDetailPage() {
               }`}
             >
               {registrationMessage.type === "success" ? (
-                <CheckCircle className="h-4 w-4 shrink-0" />
+                <CheckCircle weight="fill" className="h-4 w-4 shrink-0" />
               ) : (
-                <XCircle className="h-4 w-4 shrink-0" />
+                <XCircle weight="fill" className="h-4 w-4 shrink-0" />
               )}
               {registrationMessage.text}
             </div>

@@ -12,25 +12,25 @@ import { OpenInAppBanner } from "@/components/common/OpenInAppBanner";
 import { AuthPromptModal } from "@/components/auth/AuthPromptModal";
 import { useAuth } from "@/hooks/useAuth";
 import {
-  Users,
-  Globe,
-  Lock,
-  CheckCircle2,
-  ShieldAlert,
-  ArrowLeft,
-  Share2,
-  MessageSquare,
-  Info,
-  DollarSign,
-  Clock,
-  Key,
-  UserPlus,
-  ChevronLeft,
-  ChevronRight,
-  Loader2,
-  BookOpen,
-  Check,
-} from "lucide-react";
+  Users as Users,
+  Globe as Globe,
+  Lock as Lock,
+  CheckCircle as CheckCircle2,
+  ShieldWarning as ShieldWarning,
+  ArrowLeft as ArrowLeft,
+  ShareNetwork as Share2,
+  ChatTeardropText as MessageSquare,
+  Info as Info,
+  CurrencyDollar as DollarSign,
+  Clock as Clock,
+  Key as Key,
+  UserPlus as UserPlus,
+  CaretLeft as ChevronLeft,
+  CaretRight as ChevronRight,
+  Spinner as Loader2,
+  BookOpen as BookOpen,
+  Check as Check
+} from "@phosphor-icons/react";
 import type { Community, CommunityMembership } from "@/types/community";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
@@ -245,16 +245,16 @@ export function CommunityPreviewPage() {
 
   if (isLoading) {
     return (
-      <div className="max-w-5xl mx-auto space-y-6 p-4 sm:p-6 lg:p-8">
-        <div className="h-64 rounded-2xl bg-muted animate-pulse" />
-        <div className="h-32 rounded-2xl bg-muted animate-pulse" />
+      <div className="max-w-5xl mx-auto space-y-6 p-4 sm:p-4 lg:p-5">
+        <div className="h-64 rounded-lg bg-muted animate-pulse" />
+        <div className="h-32 rounded-lg bg-muted animate-pulse" />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="max-w-5xl mx-auto p-4 sm:p-6">
+      <div className="max-w-5xl mx-auto p-4 sm:p-4">
         <ErrorState
           title="Failed to load community"
           description={error}
@@ -266,7 +266,7 @@ export function CommunityPreviewPage() {
 
   if (!community) {
     return (
-      <div className="max-w-5xl mx-auto p-4 sm:p-6">
+      <div className="max-w-5xl mx-auto p-4 sm:p-4">
         <NotFoundState
           title="Community not found"
           description="The community you're looking for doesn't exist or may have been removed."
@@ -309,7 +309,7 @@ export function CommunityPreviewPage() {
           to={isAuthenticated ? "/app/communities" : "/communities"}
           className="inline-flex items-center gap-2 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors"
         >
-          <ArrowLeft className="h-4 w-4" />
+          <ArrowLeft weight="fill" className="h-4 w-4" />
           Back to Communities Hub
         </Link>
 
@@ -322,7 +322,7 @@ export function CommunityPreviewPage() {
               onClick={() => setIsRolesModalOpen(true)}
               className="gap-2 h-9 text-xs font-semibold border-border hover:bg-muted"
             >
-              <Key className="h-3.5 w-3.5 text-secondary" />
+              <Key weight="fill" className="h-3.5 w-3.5 text-secondary" />
               Roles & Permissions
             </Button>
 
@@ -332,7 +332,7 @@ export function CommunityPreviewPage() {
               onClick={() => setIsRequestsModalOpen(true)}
               className="gap-2 h-9 text-xs font-semibold border-amber-500/30 text-amber-600 dark:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20"
             >
-              <Clock className="h-3.5 w-3.5" />
+              <Clock weight="fill" className="h-3.5 w-3.5" />
               Join Requests Queue
             </Button>
           </div>
@@ -340,7 +340,7 @@ export function CommunityPreviewPage() {
       </div>
 
       {/* Hero Banner */}
-      <div className="relative rounded-3xl overflow-hidden border border-border bg-card shadow-md">
+      <div className="relative rounded-3xl overflow-hidden border-none bg-card ">
         {/* Cover Photo */}
         <div className="h-64 sm:h-80 w-full relative bg-gradient-to-r from-[#102840] via-[#173852] to-[#2164b6]/50">
           {community.cover_url && (
@@ -357,11 +357,11 @@ export function CommunityPreviewPage() {
             <Badge className="bg-background/90 text-foreground backdrop-blur-md font-bold px-3 py-1 text-xs">
               {community.visibility === "public" ? (
                 <span className="flex items-center gap-1">
-                  <Globe className="h-3.5 w-3.5 text-secondary" /> Public
+                  <Globe weight="fill" className="h-3.5 w-3.5 text-secondary" /> Public
                 </span>
               ) : (
                 <span className="flex items-center gap-1">
-                  <Lock className="h-3.5 w-3.5 text-warning" /> Private
+                  <Lock weight="fill" className="h-3.5 w-3.5 text-warning" /> Private
                 </span>
               )}
             </Badge>
@@ -375,11 +375,11 @@ export function CommunityPreviewPage() {
         </div>
 
         {/* Community Info Header */}
-        <div className="p-6 sm:p-8 pt-0 relative -mt-16 space-y-6">
+        <div className="p-4 sm:p-5 pt-0 relative -mt-16 space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
             {/* Logo Avatar */}
             <div className="flex items-end gap-4">
-              <div className="h-24 w-24 rounded-2xl border-4 border-card bg-primary text-primary-foreground text-3xl font-extrabold flex items-center justify-center shadow-xl overflow-hidden shrink-0">
+              <div className="h-24 w-24 rounded-lg border-4 border-card bg-primary text-primary-foreground text-xl font-extrabold flex items-center justify-center shadow-xl overflow-hidden shrink-0">
                 {community.logo_url ? (
                   <img
                     src={community.logo_url}
@@ -400,12 +400,12 @@ export function CommunityPreviewPage() {
                     /c/{community.slug}
                   </span>
                 </div>
-                <h1 className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight">
+                <h1 className="text-xl sm:text-xl font-extrabold text-foreground tracking-tight">
                   {community.name}
                 </h1>
                 <p className="text-xs text-muted-foreground flex items-center gap-1.5">
                   <span>Created by {community.creator?.name || "Community Host"}</span>
-                  <CheckCircle2 className="h-3.5 w-3.5 text-secondary fill-secondary/20" />
+                  <CheckCircle2 weight="fill" className="h-3.5 w-3.5 text-secondary fill-secondary/20" />
                 </p>
               </div>
             </div>
@@ -418,7 +418,7 @@ export function CommunityPreviewPage() {
                 className="gap-2 h-11 px-4 text-xs font-semibold"
                 onClick={handleShare}
               >
-                {copied ? <Check className="h-4 w-4 text-emerald-500" /> : <Share2 className="h-4 w-4" />}
+                {copied ? <Check className="h-4 w-4 text-emerald-500" /> : <Share2 weight="fill" className="h-4 w-4" />}
                 {copied ? "Link Copied!" : "Share"}
               </Button>
 
@@ -428,7 +428,7 @@ export function CommunityPreviewPage() {
                 onClick={handleViewFeed}
                 className="gap-2 h-11 px-4 text-xs font-semibold bg-secondary hover:bg-secondary/90 text-secondary-foreground"
               >
-                <MessageSquare className="h-4 w-4" />
+                <MessageSquare weight="fill" className="h-4 w-4" />
                 View Feed
               </Button>
 
@@ -448,18 +448,18 @@ export function CommunityPreviewPage() {
           </div>
 
           {/* Quick Stats Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 rounded-xl bg-muted/50 border border-border">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 rounded-lg bg-muted/50 border-none">
             <div>
               <p className="text-xs text-muted-foreground">Members</p>
               <p className="text-base font-bold text-foreground flex items-center gap-1.5 mt-0.5">
-                <Users className="h-4 w-4 text-secondary" />
+                <Users weight="fill" className="h-4 w-4 text-secondary" />
                 {membersCount}
               </p>
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Pricing</p>
               <p className="text-base font-bold text-foreground flex items-center gap-1.5 mt-0.5">
-                <DollarSign className="h-4 w-4 text-secondary" />
+                <DollarSign weight="fill" className="h-4 w-4 text-secondary" />
                 {community.pricing_type === "paid" ? `$${community.price_amount}` : "Free"}
               </p>
             </div>
@@ -480,7 +480,7 @@ export function CommunityPreviewPage() {
       </div>
 
       {/* Navigation Tabs (About vs Courses vs Members) */}
-      <div className="flex border-b border-border gap-6">
+      <div className="flex border-b border-border gap-4">
         <button
           onClick={() => setActiveTab("about")}
           className={`pb-3 text-sm font-bold border-b-2 transition-all ${
@@ -513,14 +513,15 @@ export function CommunityPreviewPage() {
         </button>
       </div>
 
-      {/* Main Content Details */}
+      {/* Main Content Details — capped to same width as header area */}
+      <div className="max-w-5xl mx-auto w-full">
       {activeTab === "about" ? (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           {/* Left Column: About & Description */}
           <div className="lg:col-span-2 space-y-6">
-            <div className="rounded-2xl border border-border bg-card p-6 space-y-3 shadow-xs">
+            <div className="rounded-lg border-none bg-card p-4 space-y-3 ">
               <h3 className="text-base font-bold text-foreground flex items-center gap-2">
-                <Info className="h-4 w-4 text-secondary" />
+                <Info weight="fill" className="h-4 w-4 text-secondary" />
                 About this Community
               </h3>
               <p className="text-sm text-muted-foreground leading-relaxed">
@@ -531,19 +532,19 @@ export function CommunityPreviewPage() {
 
             {/* Member Feed Preview for Guests */}
             {!isAuthenticated && (
-              <div className="rounded-2xl border border-border/80 bg-card p-6 shadow-xs space-y-4">
+              <div className="rounded-lg border-none/80 bg-card p-4  space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <MessageSquare className="h-4 w-4 text-secondary" />
+                    <MessageSquare weight="fill" className="h-4 w-4 text-secondary" />
                     <h4 className="text-sm font-bold text-foreground">Community Feed & Discussions</h4>
                   </div>
                   <Badge variant="outline" className="text-[10px] font-semibold text-muted-foreground gap-1">
-                    <Lock className="h-3 w-3" /> Members Only
+                    <Lock weight="fill" className="h-3 w-3" /> Members Only
                   </Badge>
                 </div>
 
                 {/* Blurred mockup of posts */}
-                <div className="relative overflow-hidden rounded-xl border border-border bg-muted/20 p-4 space-y-3 filter blur-[2px] select-none pointer-events-none opacity-60">
+                <div className="relative overflow-hidden rounded-lg border-none bg-muted/20 p-4 space-y-3 filter blur-[2px] select-none pointer-events-none opacity-60">
                   <div className="flex items-center gap-3">
                     <div className="h-8 w-8 rounded-full bg-muted-foreground/30" />
                     <div className="space-y-1">
@@ -582,9 +583,9 @@ export function CommunityPreviewPage() {
 
           {/* Right Column: Rules & Guidelines */}
           <div className="space-y-6">
-            <div className="rounded-2xl border border-border bg-card p-6 space-y-4 shadow-xs">
+            <div className="rounded-lg border-none bg-card p-4 space-y-4 ">
               <h3 className="text-base font-bold text-foreground flex items-center gap-2">
-                <ShieldAlert className="h-4 w-4 text-secondary" />
+                <ShieldWarning weight="fill" className="h-4 w-4 text-secondary" />
                 Community Guidelines
               </h3>
 
@@ -611,7 +612,7 @@ export function CommunityPreviewPage() {
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
-                <BookOpen className="h-5 w-5 text-secondary" />
+                <BookOpen weight="fill" className="h-5 w-5 text-secondary" />
                 In-Community Courses & Digital Assets
               </h3>
               <p className="text-xs text-muted-foreground mt-0.5">
@@ -621,23 +622,23 @@ export function CommunityPreviewPage() {
           </div>
 
           {coursesGoodsLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="h-64 rounded-2xl bg-muted animate-pulse border border-border" />
+                <div key={i} className="h-64 rounded-lg bg-muted animate-pulse border-none" />
               ))}
             </div>
           ) : coursesGoods.length === 0 ? (
-            <div className="rounded-2xl border border-border bg-card p-12 text-center space-y-3">
-              <BookOpen className="h-10 w-10 text-muted-foreground mx-auto" />
+            <div className="rounded-lg border-none bg-card p-12 text-center space-y-3">
+              <BookOpen weight="fill" className="h-10 w-10 text-muted-foreground mx-auto" />
               <h4 className="font-bold text-foreground text-base">No Courses or Digital Assets Yet</h4>
               <p className="text-xs text-muted-foreground max-w-sm mx-auto">
                 No courses or downloadable goods have been published in this community yet.
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {coursesGoods.map((item) => (
-                <div key={item.id} className="rounded-2xl border border-border bg-card overflow-hidden flex flex-col justify-between shadow-xs hover:border-secondary/50 transition">
+                <div key={item.id} className="rounded-lg border-none bg-card overflow-hidden flex flex-col justify-between  hover:border-secondary/50 transition">
                   <div>
                     <img src={item.image} alt={item.title} className="w-full h-40 object-cover" />
                     <div className="p-5 space-y-3">
@@ -666,11 +667,11 @@ export function CommunityPreviewPage() {
         </div>
       ) : (
         /* Members Directory Tab */
-        <div className="rounded-2xl border border-border bg-card overflow-hidden">
+        <div className="rounded-lg border-none bg-card overflow-hidden">
           <div className="p-4 sm:p-5 border-b border-border flex items-center justify-between">
             <div>
               <h3 className="text-base font-bold text-foreground flex items-center gap-2">
-                <Users className="h-4 w-4 text-secondary" />
+                <Users weight="fill" className="h-4 w-4 text-secondary" />
                 Active Members
               </h3>
               <p className="text-xs text-muted-foreground mt-0.5">
@@ -681,7 +682,7 @@ export function CommunityPreviewPage() {
 
           {membersLoading ? (
             <div className="flex items-center justify-center py-16">
-              <Loader2 className="h-6 w-6 animate-spin text-secondary" />
+              <Loader2 weight="fill" className="h-6 w-6 animate-spin text-secondary" />
             </div>
           ) : membersError ? (
             <div className="flex flex-col items-center justify-center py-16 text-center">
@@ -691,7 +692,7 @@ export function CommunityPreviewPage() {
           ) : members.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center">
               <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted">
-                <UserPlus className="h-8 w-8 text-muted-foreground" aria-hidden="true" />
+                <UserPlus weight="fill" className="h-8 w-8 text-muted-foreground" aria-hidden="true" />
               </div>
               <p className="font-semibold text-base mt-4">No members yet</p>
               <p className="mt-1 text-sm text-muted-foreground max-w-sm">
@@ -704,7 +705,7 @@ export function CommunityPreviewPage() {
                 {members.map((m) => (
                   <div
                     key={m.id}
-                    className="flex items-center gap-3 rounded-xl border border-border bg-card p-3 hover:border-secondary/40 transition-colors"
+                    className="flex items-center gap-3 rounded-lg border-none bg-card p-3 hover:border-secondary/40 transition-colors"
                   >
                     <Avatar className="h-10 w-10 shrink-0">
                       {m.user?.avatar ? (
@@ -737,7 +738,7 @@ export function CommunityPreviewPage() {
                       disabled={membersPage <= 1}
                       onClick={() => setMembersPage((p) => Math.max(1, p - 1))}
                     >
-                      <ChevronLeft className="h-3.5 w-3.5" />
+                      <ChevronLeft weight="fill" className="h-3.5 w-3.5" />
                     </Button>
                     <Button
                       variant="outline"
@@ -745,7 +746,7 @@ export function CommunityPreviewPage() {
                       disabled={membersPage >= membersLastPage}
                       onClick={() => setMembersPage((p) => Math.min(membersLastPage, p + 1))}
                     >
-                      <ChevronRight className="h-3.5 w-3.5" />
+                      <ChevronRight weight="fill" className="h-3.5 w-3.5" />
                     </Button>
                   </div>
                 </div>
@@ -754,6 +755,7 @@ export function CommunityPreviewPage() {
           )}
         </div>
       )}
+      </div>
 
       {/* Creator Join Requests Modal */}
       <JoinRequestsModal

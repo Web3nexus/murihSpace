@@ -1,14 +1,14 @@
 import { useState, useEffect, useCallback } from "react";
 import {
-  Receipt,
-  Plus,
-  RefreshCw,
-  Sliders,
-  Pencil,
-  Trash2,
-  ToggleLeft,
-  ToggleRight,
-} from "lucide-react";
+  Receipt as Receipt,
+  Plus as Plus,
+  ArrowsClockwise as RefreshCw,
+  Sliders as Sliders,
+  Pencil as Pencil,
+  Trash as Trash2,
+  ToggleLeft as ToggleLeft,
+  ToggleRight as ToggleRight
+} from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { apiClient, type ApiError } from "@/lib/api/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -184,11 +184,11 @@ export function AdminFeeManagementPage() {
   });
 
   return (
-    <div className="p-6 lg:p-8 space-y-6 max-w-7xl mx-auto w-full">
+    <div className="p-4 lg:p-5 space-y-6 max-w-7xl mx-auto w-full">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
-            <Receipt className="h-6 w-6 text-primary" /> Platform Fee & Charge Management
+          <h1 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
+            <Receipt weight="fill" className="h-6 w-6 text-primary" /> Platform Fee & Charge Management
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
             Configure platform commissions, gateway deposit fees, withdrawal processing charges, and transfer rules.
@@ -197,22 +197,22 @@ export function AdminFeeManagementPage() {
 
         <button
           onClick={handleOpenAdd}
-          className="inline-flex items-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground font-semibold text-sm rounded-xl hover:opacity-90 transition shadow-sm"
+          className="inline-flex items-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground font-semibold text-sm rounded-lg hover:opacity-90 transition "
         >
-          <Plus className="h-4 w-4" /> Add Fee Rule
+          <Plus weight="fill" className="h-4 w-4" /> Add Fee Rule
         </button>
       </div>
 
-      {/* Category Filter Tabs */}
+      {/* Category Faders Tabs */}
       <div className="flex items-center gap-2 border-b border-border pb-3 overflow-x-auto">
         {["all", "deposit", "transfer", "withdrawal", "gift", "commerce"].map((cat) => (
           <button
             key={cat}
             onClick={() => setFilterCategory(cat)}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold uppercase tracking-wider transition ${
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider transition ${
               filterCategory === cat
-                ? "bg-primary text-primary-foreground shadow-sm"
-                : "bg-card border border-border text-muted-foreground hover:text-foreground"
+                ? "bg-primary text-primary-foreground "
+                : "bg-card border-none text-muted-foreground hover:text-foreground"
             }`}
           >
             {cat}
@@ -221,10 +221,10 @@ export function AdminFeeManagementPage() {
       </div>
 
       {/* Rules Table */}
-      <div className="p-6 rounded-2xl border border-border bg-card shadow-sm space-y-4">
+      <div className="p-4 rounded-lg border-none bg-card  space-y-4">
         {loading ? (
           <div className="flex items-center justify-center py-12 text-muted-foreground">
-            <RefreshCw className="h-6 w-6 animate-spin mr-2" /> Loading fee rules...
+            <RefreshCw weight="fill" className="h-6 w-6 animate-spin mr-2" /> Loading fee rules...
           </div>
         ) : filteredRules.length === 0 ? (
           <div className="text-center py-12 text-muted-foreground text-sm">No platform fee rules configured.</div>
@@ -236,7 +236,7 @@ export function AdminFeeManagementPage() {
                   <th className="px-4 py-3 font-semibold">Rule Code / Name</th>
                   <th className="px-4 py-3 font-semibold">Fee Structure</th>
                   <th className="px-4 py-3 font-semibold">Min / Max Caps</th>
-                  <th className="px-4 py-3 font-semibold">Target Type</th>
+                  <th className="px-4 py-3 font-semibold">Target TextT</th>
                   <th className="px-4 py-3 font-semibold">Status</th>
                   <th className="px-4 py-3 font-semibold text-right">Actions</th>
                 </tr>
@@ -274,7 +274,7 @@ export function AdminFeeManagementPage() {
                             : "bg-muted text-muted-foreground border-border"
                         }`}
                       >
-                        {rule.enabled ? <ToggleRight className="h-4 w-4" /> : <ToggleLeft className="h-4 w-4" />}
+                        {rule.enabled ? <ToggleRight className="h-4 w-4" /> : <ToggleLeft weight="fill" className="h-4 w-4" />}
                         {rule.enabled ? "Active" : "Disabled"}
                       </button>
                     </td>
@@ -282,15 +282,15 @@ export function AdminFeeManagementPage() {
                     <td className="px-4 py-3 text-right space-x-1">
                       <button
                         onClick={() => handleOpenEdit(rule)}
-                        className="p-1.5 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:bg-accent transition"
+                        className="p-1.5 rounded-lg border-none text-muted-foreground hover:text-foreground hover:bg-accent transition"
                       >
-                        <Pencil className="h-4 w-4" />
+                        <Pencil weight="fill" className="h-4 w-4" />
                       </button>
                       <button
                         onClick={() => handleDelete(rule)}
                         className="p-1.5 rounded-lg border border-destructive/30 text-destructive hover:bg-destructive/10 transition"
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Trash2 weight="fill" className="h-4 w-4" />
                       </button>
                     </td>
                   </tr>
@@ -306,7 +306,7 @@ export function AdminFeeManagementPage() {
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-lg">
-              <Sliders className="h-5 w-5 text-primary" /> {editingRule ? "Edit Fee Rule" : "Create Platform Fee Rule"}
+              <Sliders weight="fill" className="h-5 w-5 text-primary" /> {editingRule ? "Edit Fee Rule" : "Create Platform Fee Rule"}
             </DialogTitle>
             <DialogDescription>Configure platform charges, percentage rates, and minimum/maximum fee caps.</DialogDescription>
           </DialogHeader>
@@ -322,7 +322,7 @@ export function AdminFeeManagementPage() {
                   placeholder="e.g. Deposit Fee"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="w-full rounded-lg border-none bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                   required
                 />
               </div>
@@ -336,7 +336,7 @@ export function AdminFeeManagementPage() {
                   placeholder="DEPOSIT_FEE"
                   value={code}
                   onChange={(e) => setCode(e.target.value)}
-                  className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="w-full rounded-lg border-none bg-background px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary"
                   required
                 />
               </div>
@@ -345,12 +345,12 @@ export function AdminFeeManagementPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
-                  Fee Type
+                  Fee TextT
                 </label>
                 <select
                   value={feeType}
                   onChange={(e) => setFeeType(e.target.value as any)}
-                  className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="w-full rounded-lg border-none bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                 >
                   <option value="percentage">Percentage (%)</option>
                   <option value="fixed">Fixed Amount</option>
@@ -360,12 +360,12 @@ export function AdminFeeManagementPage() {
 
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
-                  Transaction Type
+                  Transaction TextT
                 </label>
                 <select
                   value={transactionType}
                   onChange={(e) => setTransactionType(e.target.value)}
-                  className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="w-full rounded-lg border-none bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                 >
                   <option value="deposit">Deposit</option>
                   <option value="internal_transfer">Internal Transfer</option>
@@ -402,7 +402,7 @@ export function AdminFeeManagementPage() {
                     max="100"
                     value={percentageInput}
                     onChange={(e) => setPercentageInput(e.target.value)}
-                    className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                    className="w-full rounded-lg border-none bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                   />
                 </div>
               )}
@@ -418,7 +418,7 @@ export function AdminFeeManagementPage() {
                     min="0"
                     value={fixedAmountInput}
                     onChange={(e) => setFixedAmountInput(e.target.value)}
-                    className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                    className="w-full rounded-lg border-none bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                   />
                 </div>
               )}
@@ -435,7 +435,7 @@ export function AdminFeeManagementPage() {
                   min="0"
                   value={minimumFeeInput}
                   onChange={(e) => setMinimumFeeInput(e.target.value)}
-                  className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="w-full rounded-lg border-none bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
 
@@ -450,7 +450,7 @@ export function AdminFeeManagementPage() {
                   placeholder="Unlimited"
                   value={maximumFeeInput}
                   onChange={(e) => setMaximumFeeInput(e.target.value)}
-                  className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="w-full rounded-lg border-none bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
             </div>
@@ -463,7 +463,7 @@ export function AdminFeeManagementPage() {
                 <select
                   value={currency}
                   onChange={(e) => setCurrency(e.target.value)}
-                  className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="w-full rounded-lg border-none bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                 >
                   <option value="NGN">NGN</option>
                   <option value="USD">USD</option>
@@ -477,7 +477,7 @@ export function AdminFeeManagementPage() {
                 <select
                   value={role}
                   onChange={(e) => setRole(e.target.value)}
-                  className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="w-full rounded-lg border-none bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                 >
                   <option value="">Any</option>
                   <option value="creator">Creator</option>
@@ -490,12 +490,12 @@ export function AdminFeeManagementPage() {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
-                  Wallet Type
+                  Wallet TextT
                 </label>
                 <select
                   value={walletType}
                   onChange={(e) => setWalletType(e.target.value)}
-                  className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="w-full rounded-lg border-none bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                 >
                   <option value="">Any</option>
                   <option value="fiat">Fiat</option>
@@ -512,7 +512,7 @@ export function AdminFeeManagementPage() {
                   placeholder="e.g. card, transfer"
                   value={paymentMethod}
                   onChange={(e) => setPaymentMethod(e.target.value)}
-                  className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="w-full rounded-lg border-none bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
 
@@ -525,7 +525,7 @@ export function AdminFeeManagementPage() {
                   placeholder="e.g. NG, US"
                   value={country}
                   onChange={(e) => setCountry(e.target.value)}
-                  className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="w-full rounded-lg border-none bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
             </div>
@@ -534,16 +534,16 @@ export function AdminFeeManagementPage() {
               <button
                 type="button"
                 onClick={() => setShowModal(false)}
-                className="flex-1 py-2.5 rounded-xl border border-border text-sm font-medium text-muted-foreground hover:bg-accent hover:text-foreground transition"
+                className="flex-1 py-2.5 rounded-lg border-none text-sm font-medium text-muted-foreground hover:bg-accent hover:text-foreground transition"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={submitting || !name || !code}
-                className="flex-1 py-2.5 rounded-xl bg-primary text-primary-foreground font-bold text-sm shadow hover:opacity-90 transition disabled:opacity-50 inline-flex items-center justify-center gap-1.5"
+                className="flex-1 py-2.5 rounded-lg bg-primary text-primary-foreground font-bold text-sm shadow hover:opacity-90 transition disabled:opacity-50 inline-flex items-center justify-center gap-1.5"
               >
-                {submitting ? <RefreshCw className="h-4 w-4 animate-spin" /> : "Save Rule"}
+                {submitting ? <RefreshCw weight="fill" className="h-4 w-4 animate-spin" /> : "Save Rule"}
               </button>
             </div>
           </form>

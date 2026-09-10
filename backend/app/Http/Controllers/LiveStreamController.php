@@ -58,6 +58,16 @@ class LiveStreamController extends Controller
 
         $user = $request->user();
 
+        // Enforce KYC verification before going live
+        if (!in_array($user->kyc_status, ['verified', 'approved'], true)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Identity verification (KYC) is required before going live. Please verify your identity first.',
+                'error' => 'kyc_required',
+                'kyc_status' => $user->kyc_status ?? 'unsubmitted',
+            ], 403);
+        }
+
         // End any active streams previously hosted by this user
         LiveStream::where('user_id', $user->id)
             ->where('status', 'live')

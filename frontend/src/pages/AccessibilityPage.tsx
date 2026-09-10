@@ -1,12 +1,12 @@
 import { useState } from "react";
 import {
-  Eye,
-  Keyboard,
-  MousePointer2,
-  Underline,
-  Type,
-  Check,
-} from "lucide-react";
+  Eye as Eye,
+  Keyboard as Keyboard,
+  Cursor as Cursor,
+  TextUnderline as TextUnderline,
+  TextT as TextT,
+  Check as Check
+} from "@phosphor-icons/react";
 
 const STORAGE_KEY_HC = "murihspace-high-contrast";
 const STORAGE_KEY_FOCUS = "murihspace-focus-ring";
@@ -68,11 +68,11 @@ export default function AccessibilityPage() {
     },
     {
       key: "underline",
-      label: "Always Underline Links",
+      label: "Always TextUnderline Links",
       desc: "Display links with persistent underlines for clearer identification.",
       val: linkUnderline,
       set: setLinkUnderline,
-      icon: Underline,
+      icon: TextUnderline,
     },
     {
       key: "transparency",
@@ -88,7 +88,7 @@ export default function AccessibilityPage() {
     <div className="space-y-6 w-full max-w-3xl mx-auto">
       <div>
         <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
-          <Eye className="h-5 w-5 text-secondary" />
+          <Eye weight="fill" className="h-5 w-5 text-secondary" />
           Accessibility
         </h2>
         <p className="text-xs text-muted-foreground mt-0.5">
@@ -97,9 +97,9 @@ export default function AccessibilityPage() {
       </div>
 
       {/* Font Size */}
-      <section className="rounded-2xl border border-border bg-card p-5 shadow-2xs space-y-4">
+      <section className="rounded-lg border-none bg-card p-5 shadow-2xs space-y-4">
         <h3 className="font-bold text-foreground text-xs flex items-center gap-2">
-          <Type className="h-3.5 w-3.5 text-secondary" /> Font Size
+          <TextT weight="fill" className="h-3.5 w-3.5 text-secondary" /> Font Size
         </h3>
         <div className="space-y-2">
           {(Object.keys(FONT_SIZE_MAP) as FontSize[]).map((key) => {
@@ -110,7 +110,7 @@ export default function AccessibilityPage() {
                 key={key}
                 type="button"
                 onClick={() => setFontSize(key)}
-                className={`w-full flex items-center justify-between p-3 rounded-xl border text-left transition-all ${
+                className={`w-full flex items-center justify-between p-3 rounded-lg border text-left transition-all ${
                   active ? "border-secondary bg-secondary/5" : "border-border bg-muted/30 hover:border-muted-foreground/30"
                 }`}
               >
@@ -121,7 +121,7 @@ export default function AccessibilityPage() {
                     <p className="text-[10px] text-muted-foreground">{f.desc}</p>
                   </div>
                 </div>
-                {active && <Check className="h-4 w-4 text-secondary" />}
+                {active && <Check weight="fill" className="h-4 w-4 text-secondary" />}
               </button>
             );
           })}
@@ -129,9 +129,9 @@ export default function AccessibilityPage() {
       </section>
 
       {/* Toggles */}
-      <section className="rounded-2xl border border-border bg-card p-5 shadow-2xs space-y-4">
+      <section className="rounded-lg border-none bg-card p-5 shadow-2xs space-y-4">
         <h3 className="font-bold text-foreground text-xs flex items-center gap-2">
-          <MousePointer2 className="h-3.5 w-3.5 text-secondary" /> Display & Interaction
+          <Cursor weight="fill" className="h-3.5 w-3.5 text-secondary" /> Display & Interaction
         </h3>
         <div className="space-y-2">
           {toggles.map((t) => {
@@ -139,7 +139,7 @@ export default function AccessibilityPage() {
             return (
               <label
                 key={t.key}
-                className="flex items-center justify-between p-3 rounded-xl border border-border bg-muted/30 cursor-pointer hover:border-muted-foreground/30 transition-all"
+                className="flex items-center justify-between p-3 rounded-lg border-none bg-muted/30 cursor-pointer hover:border-muted-foreground/30 transition-all"
               >
                 <div className="flex items-center gap-3">
                   <Icon className="h-5 w-5 text-muted-foreground shrink-0" />
@@ -157,7 +157,7 @@ export default function AccessibilityPage() {
                     t.val ? "bg-secondary" : "bg-muted-foreground/30"
                   }`}
                 >
-                  <div className={`h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${t.val ? "translate-x-5" : "translate-x-0"}`} />
+                  <div className={`h-5 w-5 rounded-full bg-white  transition-transform ${t.val ? "translate-x-5" : "translate-x-0"}`} />
                 </button>
               </label>
             );
@@ -168,15 +168,15 @@ export default function AccessibilityPage() {
       <div className="flex items-center justify-end gap-3">
         {saved && (
           <span className="text-xs font-semibold text-emerald-500 flex items-center gap-1">
-            <Check className="h-4 w-4" /> Accessibility preferences saved!
+            <Check weight="fill" className="h-4 w-4" /> Accessibility preferences saved!
           </span>
         )}
         <button
           type="button"
           onClick={applySettings}
-          className="px-6 py-2 rounded-xl bg-secondary text-secondary-foreground text-xs font-bold hover:bg-secondary/90 transition-all shadow-xs"
+          className="px-6 py-2 rounded-lg bg-secondary text-secondary-foreground text-xs font-bold hover:bg-secondary/90 transition-all "
         >
-          Save Preferences
+          FloppyDisk Preferences
         </button>
       </div>
     </div>

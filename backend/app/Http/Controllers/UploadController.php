@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Media;
 use App\Services\DirectStorageUploadService;
+use App\Services\FileSecurityFilterService;
 use App\Services\MediaProcessingService;
 use App\Services\StorageRouter;
 use Illuminate\Http\JsonResponse;
@@ -17,6 +18,7 @@ class UploadController extends Controller
         private readonly StorageRouter $router,
         private readonly DirectStorageUploadService $directUploadService,
         private readonly MediaProcessingService $processingService,
+        private readonly FileSecurityFilterService $securityFilter,
     ) {}
 
     public function index(Request $request): JsonResponse
@@ -134,19 +136,26 @@ class UploadController extends Controller
         ]);
 
         $file = $request->file('file');
-        $mime = $file->getMimeType();
 
-        $target = $this->router->resolve($mime, $request->input('folder'));
+        // Server-Side Security Filter: block webshells, polyglots, SVG XSS, dangerous extensions
+        $this->securityFilter->validateUploadedFile($file);
+
+        $mime = $file->getMimeType();
+        $folder = $this->securityFilter->sanitizeFolder($request->input('folder'));
+
+        $target = $this->router->resolve($mime, $folder);
         $disk = $target['disk'];
-        $folder = $target['folder'];
+        $resolvedFolder = $target['folder'];
 
         $diskConfig = config("filesystems.disks.{$disk}");
         if (! $diskConfig) {
             $disk = 'contabo';
         }
 
-        $filename = Str::random(32) . '.' . ($file->getClientOriginalExtension() ?: 'bin');
-        $path = ltrim($folder . '/' . $filename, '/');
+        $cleanExt = strtolower($file->getClientOriginalExtension() ?: 'bin');
+        $cleanExt = preg_replace('/[^a-z0-9]/', '', $cleanExt);
+        $filename = Str::random(40) . ($cleanExt ? '.' . $cleanExt : '');
+        $path = ltrim($resolvedFolder . '/' . $filename, '/');
 
         $stored = Storage::disk($disk)->put($path, file_get_contents($file->getRealPath()), [
             'visibility' => 'public',
@@ -163,7 +172,7 @@ class UploadController extends Controller
         $media = Media::create([
             'user_id' => $request->user()->id,
             'disk' => $disk,
-            'folder' => $folder,
+            'folder' => $resolvedFolder,
             'filename' => $filename,
             'original_name' => $file->getClientOriginalName(),
             'path' => $path,

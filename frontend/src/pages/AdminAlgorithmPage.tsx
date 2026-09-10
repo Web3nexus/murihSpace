@@ -1,5 +1,21 @@
 import { useState, useEffect, useCallback } from "react";
-import { BarChart3, Loader2, TrendingUp, ToggleLeft, ToggleRight, RotateCcw, Play, Square, FlaskConical, Check, AlertCircle, Zap, Plus, Trash2, FileText } from "lucide-react";
+import {
+  ChartBar as BarChart3,
+  Spinner as Loader2,
+  TrendUp as TrendingUp,
+  ToggleLeft as ToggleLeft,
+  ToggleRight as ToggleRight,
+  ArrowCounterClockwise as RotateCcw,
+  Play as Play,
+  Square as Square,
+  Flask as Flask,
+  Check as Check,
+  WarningCircle as AlertCircle,
+  Lightning as Zap,
+  Plus as Plus,
+  Trash as Trash2,
+  FileText as FileText
+} from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -130,7 +146,7 @@ export default function AdminAlgorithmPage() {
     <div className="max-w-7xl mx-auto px-4 py-6">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2"><BarChart3 className="w-6 h-6 text-blue-500" /> Feed Algorithm</h1>
+          <h1 className="text-xl font-bold flex items-center gap-2"><BarChart3 weight="fill" className="w-6 h-6 text-blue-500" /> Feed Algorithm</h1>
           <p className="text-sm text-gray-500 mt-1">Manage ranking weights, boosting, A/B tests, and feed configuration</p>
         </div>
         <div className="flex gap-2">
@@ -144,23 +160,23 @@ export default function AdminAlgorithmPage() {
 
       {msg && (
         <div className={`mb-4 p-3 rounded-lg flex items-center gap-2 text-sm ${msg.ok ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"}`}>
-          {msg.ok ? <Check className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}{msg.text}
+          {msg.ok ? <Check weight="fill" className="w-4 h-4" /> : <AlertCircle weight="fill" className="w-4 h-4" />}{msg.text}
         </div>
       )}
 
       {tab === "weights" && (
         <div>
           <div className="flex items-center gap-3 mb-4">
-            <label className="text-sm font-medium">Feed Type:</label>
+            <label className="text-sm font-medium">Feed TextT:</label>
             <select value={feedType} onChange={e => setFeedType(e.target.value)} className="border rounded-lg px-3 py-1.5 text-sm">
               {FEED_TYPES.map(ft => <option key={ft} value={ft}>{ft.charAt(0).toUpperCase() + ft.slice(1)}</option>)}
             </select>
-            <Button variant="outline" size="sm" onClick={handleSeed}><RotateCcw className="w-3 h-3 mr-1" />Seed Defaults</Button>
+            <Button variant="outline" size="sm" onClick={handleSeed}><RotateCcw weight="fill" className="w-3 h-3 mr-1" />Seed Defaults</Button>
           </div>
-          <div className="bg-white border rounded-xl shadow-sm overflow-hidden">
+          <div className="bg-white border rounded-lg  overflow-hidden">
             <div className="p-4 border-b bg-gray-50"><h2 className="font-semibold">Ranking Signals</h2></div>
             {loading ? (
-              <div className="p-12 text-center"><Loader2 className="w-6 h-6 animate-spin mx-auto text-gray-400" /></div>
+              <div className="p-12 text-center"><Loader2 weight="fill" className="w-6 h-6 animate-spin mx-auto text-gray-400" /></div>
             ) : (
               <div className="divide-y">
                 {weights.map((w: any) => (
@@ -179,7 +195,7 @@ export default function AdminAlgorithmPage() {
                         <Button variant="ghost" size="sm" onClick={() => handleUpdateWeight(w.id, "weight", (parseFloat(w.weight) + 0.5).toFixed(4))} disabled={!w.is_active}>+</Button>
                       </div>
                       <Button variant="ghost" size="sm" onClick={() => handleUpdateWeight(w.id, "is_active", !w.is_active)}>
-                        {w.is_active ? <ToggleRight className="w-4 h-4 text-green-600" /> : <ToggleLeft className="w-4 h-4 text-gray-400" />}
+                        {w.is_active ? <ToggleRight className="w-4 h-4 text-green-600" /> : <ToggleLeft weight="fill" className="w-4 h-4 text-gray-400" />}
                       </Button>
                     </div>
                   </div>
@@ -191,9 +207,9 @@ export default function AdminAlgorithmPage() {
       )}
 
       {tab === "configs" && (
-        <div className="bg-white border rounded-xl shadow-sm overflow-hidden">
+        <div className="bg-white border rounded-lg  overflow-hidden">
           <div className="p-4 border-b bg-gray-50"><h2 className="font-semibold">Feed Configurations</h2></div>
-          {loading ? <div className="p-12 text-center"><Loader2 className="w-6 h-6 animate-spin mx-auto text-gray-400" /></div> : (
+          {loading ? <div className="p-12 text-center"><Loader2 weight="fill" className="w-6 h-6 animate-spin mx-auto text-gray-400" /></div> : (
             <div className="divide-y">
               {configs.map((c: any) => (
                 <div key={c.id} className="p-4 flex items-center justify-between">
@@ -202,8 +218,8 @@ export default function AdminAlgorithmPage() {
                     <p className="text-xs text-gray-400">Stage: <Badge className={c.stage === "production" ? "bg-green-100 text-green-700" : c.stage === "staging" ? "bg-yellow-100 text-yellow-700" : "bg-gray-100 text-gray-600"}>{c.stage}</Badge> {c.is_active ? "Active" : "Inactive"}</p>
                   </div>
                   <div className="flex gap-2">
-                    {c.stage !== "production" && <Button variant="outline" size="sm" onClick={() => handlePromote(c.id)}><TrendingUp className="w-3 h-3 mr-1" />Promote</Button>}
-                    {c.stage === "production" && <Button variant="outline" size="sm" onClick={() => handleRollback(c.id)}><RotateCcw className="w-3 h-3 mr-1" />Rollback</Button>}
+                    {c.stage !== "production" && <Button variant="outline" size="sm" onClick={() => handlePromote(c.id)}><TrendingUp weight="fill" className="w-3 h-3 mr-1" />Promote</Button>}
+                    {c.stage === "production" && <Button variant="outline" size="sm" onClick={() => handleRollback(c.id)}><RotateCcw weight="fill" className="w-3 h-3 mr-1" />Rollback</Button>}
                   </div>
                 </div>
               ))}
@@ -215,24 +231,24 @@ export default function AdminAlgorithmPage() {
       {tab === "boosts" && (
         <div>
           <div className="flex justify-end mb-4">
-            <Button onClick={() => setShowBoostForm(!showBoostForm)}><Plus className="w-4 h-4 mr-2" />Add Boost</Button>
+            <Button onClick={() => setShowBoostForm(!showBoostForm)}><Plus weight="fill" className="w-4 h-4 mr-2" />Add Boost</Button>
           </div>
           {showBoostForm && (
-            <form onSubmit={handleCreateBoost} className="bg-white border rounded-xl p-4 mb-4 space-y-3">
+            <form onSubmit={handleCreateBoost} className="bg-white border rounded-lg p-4 mb-4 space-y-3">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <Input placeholder="Boostable Type (e.g. posts)" value={boostForm.boostable_type} onChange={e => setBoostForm(f => ({ ...f, boostable_type: e.target.value }))} required />
+                <Input placeholder="Boostable TextT (e.g. posts)" value={boostForm.boostable_type} onChange={e => setBoostForm(f => ({ ...f, boostable_type: e.target.value }))} required />
                 <Input type="number" placeholder="Boostable ID" value={boostForm.boostable_id} onChange={e => setBoostForm(f => ({ ...f, boostable_id: e.target.value }))} required />
                 <Input type="number" step="0.1" placeholder="Factor (e.g. 2)" value={boostForm.boost_factor} onChange={e => setBoostForm(f => ({ ...f, boost_factor: e.target.value }))} required />
                 <Input type="date" value={boostForm.ends_at} onChange={e => setBoostForm(f => ({ ...f, ends_at: e.target.value }))} />
               </div>
               <Input placeholder="Reason" value={boostForm.reason} onChange={e => setBoostForm(f => ({ ...f, reason: e.target.value }))} required />
               <div className="flex gap-2">
-                <Button type="submit" disabled={saving}>{saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Zap className="w-4 h-4 mr-2" />}Create Boost</Button>
+                <Button type="submit" disabled={saving}>{saving ? <Loader2 weight="fill" className="w-4 h-4 mr-2 animate-spin" /> : <Zap weight="fill" className="w-4 h-4 mr-2" />}Create Boost</Button>
                 <Button type="button" variant="outline" onClick={() => setShowBoostForm(false)}>Cancel</Button>
               </div>
             </form>
           )}
-          <div className="bg-white border rounded-xl shadow-sm overflow-hidden">
+          <div className="bg-white border rounded-lg  overflow-hidden">
             <div className="p-4 border-b bg-gray-50"><h2 className="font-semibold">Active Boosts</h2></div>
             {boosts.length === 0 ? (
               <div className="text-center py-8 text-gray-400 text-sm">No active boosts</div>
@@ -246,7 +262,7 @@ export default function AdminAlgorithmPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       <Badge className="bg-green-100 text-green-700">Active</Badge>
-                      <Button variant="ghost" size="sm" onClick={async () => { if (await confirm({ title: "Remove Boost", message: "Remove boost?", variant: "destructive" })) { await authFetch(`/securegate/feed-algorithm/boosts/${b.id}`, { method: "DELETE",  }); fetchAll(); } }}><Trash2 className="w-4 h-4 text-red-500" /></Button>
+                      <Button variant="ghost" size="sm" onClick={async () => { if (await confirm({ title: "Remove Boost", message: "Remove boost?", variant: "destructive" })) { await authFetch(`/securegate/feed-algorithm/boosts/${b.id}`, { method: "DELETE",  }); fetchAll(); } }}><Trash2 weight="fill" className="w-4 h-4 text-red-500" /></Button>
                     </div>
                   </div>
                 ))}
@@ -259,10 +275,10 @@ export default function AdminAlgorithmPage() {
       {tab === "abtests" && (
         <div>
           <div className="flex justify-end mb-4">
-            <Button onClick={() => setShowAbForm(!showAbForm)}><FlaskConical className="w-4 h-4 mr-2" />New A/B Test</Button>
+            <Button onClick={() => setShowAbForm(!showAbForm)}><Flask weight="fill" className="w-4 h-4 mr-2" />New A/B Test</Button>
           </div>
           {showAbForm && (
-            <form onSubmit={handleCreateAbTest} className="bg-white border rounded-xl p-4 mb-4 space-y-3">
+            <form onSubmit={handleCreateAbTest} className="bg-white border rounded-lg p-4 mb-4 space-y-3">
               <div className="grid grid-cols-2 gap-3">
                 <Input placeholder="Test Name" value={abForm.name} onChange={e => setAbForm(f => ({ ...f, name: e.target.value }))} required />
                 <select value={abForm.feed_type} onChange={e => setAbForm(f => ({ ...f, feed_type: e.target.value }))} className="border rounded-lg px-3 py-2 text-sm">
@@ -273,12 +289,12 @@ export default function AdminAlgorithmPage() {
               <Input placeholder='Control Config JSON (e.g. {"recency":15})' value={abForm.control_config} onChange={e => setAbForm(f => ({ ...f, control_config: e.target.value }))} />
               <Input placeholder='Variant Config JSON' value={abForm.variant_config} onChange={e => setAbForm(f => ({ ...f, variant_config: e.target.value }))} />
               <div className="flex gap-2">
-                <Button type="submit" disabled={saving}>{saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}Create</Button>
+                <Button type="submit" disabled={saving}>{saving ? <Loader2 weight="fill" className="w-4 h-4 mr-2 animate-spin" /> : null}Create</Button>
                 <Button type="button" variant="outline" onClick={() => setShowAbForm(false)}>Cancel</Button>
               </div>
             </form>
           )}
-          <div className="bg-white border rounded-xl shadow-sm overflow-hidden">
+          <div className="bg-white border rounded-lg  overflow-hidden">
             <div className="p-4 border-b bg-gray-50"><h2 className="font-semibold">A/B Tests</h2></div>
             {abTests.length === 0 ? (
               <div className="text-center py-8 text-gray-400 text-sm">No A/B tests created</div>
@@ -292,8 +308,8 @@ export default function AdminAlgorithmPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       <Badge className={t.status === "running" ? "bg-green-100 text-green-700" : t.status === "draft" ? "bg-gray-100 text-gray-600" : "bg-blue-100 text-blue-700"}>{t.status}</Badge>
-                      {t.status === "draft" && <Button variant="outline" size="sm" onClick={async () => { await authFetch(`/securegate/feed-algorithm/ab-tests/${t.id}/start`, { method: "POST",  }); fetchAll(); }}><Play className="w-3 h-3 mr-1" />Start</Button>}
-                      {t.status === "running" && <Button variant="outline" size="sm" onClick={async () => { await authFetch(`/securegate/feed-algorithm/ab-tests/${t.id}/end`, { method: "POST",  }); fetchAll(); }}><Square className="w-3 h-3 mr-1" />End</Button>}
+                      {t.status === "draft" && <Button variant="outline" size="sm" onClick={async () => { await authFetch(`/securegate/feed-algorithm/ab-tests/${t.id}/start`, { method: "POST",  }); fetchAll(); }}><Play weight="fill" className="w-3 h-3 mr-1" />Start</Button>}
+                      {t.status === "running" && <Button variant="outline" size="sm" onClick={async () => { await authFetch(`/securegate/feed-algorithm/ab-tests/${t.id}/end`, { method: "POST",  }); fetchAll(); }}><Square weight="fill" className="w-3 h-3 mr-1" />End</Button>}
                     </div>
                   </div>
                 ))}
@@ -304,10 +320,10 @@ export default function AdminAlgorithmPage() {
       )}
 
       {tab === "changes" && (
-        <div className="bg-white border rounded-xl shadow-sm overflow-hidden">
+        <div className="bg-white border rounded-lg  overflow-hidden">
           <div className="p-4 border-b bg-gray-50"><h2 className="font-semibold">Algorithm Change Audit Log</h2></div>
-          {loading ? <div className="p-12 text-center"><Loader2 className="w-6 h-6 animate-spin mx-auto text-gray-400" /></div> : changes.length === 0 ? (
-            <div className="text-center py-8 text-gray-400 text-sm"><FileText className="w-8 h-8 mx-auto mb-2 opacity-40" /><p>No changes recorded yet</p></div>
+          {loading ? <div className="p-12 text-center"><Loader2 weight="fill" className="w-6 h-6 animate-spin mx-auto text-gray-400" /></div> : changes.length === 0 ? (
+            <div className="text-center py-8 text-gray-400 text-sm"><FileText weight="fill" className="w-8 h-8 mx-auto mb-2 opacity-40" /><p>No changes recorded yet</p></div>
           ) : (
             <div className="divide-y">
               {changes.map((ch: any) => (

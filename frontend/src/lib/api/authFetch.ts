@@ -1,4 +1,4 @@
-import { getAuthToken } from "@/lib/auth/token";
+import { getAuthToken, getAdminToken } from "@/lib/auth/token";
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? 'http://localhost:8000/api/v1';
 
@@ -30,8 +30,9 @@ export async function authFetch(path: string, options: RequestInit = {}): Promis
     headers.set('Accept', 'application/json');
   }
   
-  // Inject Auth Token
-  const token = getAuthToken();
+  // Inject Auth Token (prefer admin token for securegate admin routes)
+  const isAdminEndpoint = path.includes('/securegate') || path.startsWith('securegate');
+  const token = isAdminEndpoint ? (getAdminToken() || getAuthToken()) : getAuthToken();
   if (token && !headers.has('Authorization')) {
     headers.set('Authorization', `Bearer ${token}`);
   }

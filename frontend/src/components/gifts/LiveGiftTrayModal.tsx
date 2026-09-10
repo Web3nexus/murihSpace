@@ -1,5 +1,10 @@
 import { useState, useEffect, useCallback } from "react";
-import { Wallet, Send, Loader2, Sparkles } from "lucide-react";
+import {
+  Wallet as Wallet,
+  PaperPlaneRight as Send,
+  Spinner as Loader2,
+  Sparkle as Sparkle
+} from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { apiClient, type ApiError } from "@/lib/api/client";
 import { FeePreviewCard } from "@/components/wallet/FeePreviewCard";
@@ -119,7 +124,7 @@ export function LiveGiftTrayModal({
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-lg">
-            <Sparkles className="h-5 w-5 text-purple-500" /> Send Live Gift to {recipientName}
+            <Sparkle weight="fill" className="h-5 w-5 text-purple-500" /> Send Live Gift to {recipientName}
           </DialogTitle>
           <DialogDescription>
             Gifts are debited from your <strong className="text-foreground">System Wallet</strong> and credited directly to the creator's <strong className="text-foreground">Creator Wallet</strong>.
@@ -127,16 +132,16 @@ export function LiveGiftTrayModal({
         </DialogHeader>
 
         {/* Sender Balance Info Banner */}
-        <div className="p-3 rounded-xl bg-muted/40 border flex items-center justify-between text-xs">
+        <div className="p-3 rounded-lg bg-muted/40 border flex items-center justify-between text-xs">
           <span className="flex items-center gap-1.5 font-medium text-muted-foreground">
-            <Wallet className="h-4 w-4 text-primary" /> System Wallet Available:
+            <Wallet weight="fill" className="h-4 w-4 text-primary" /> System Wallet Available:
           </span>
           <strong className="text-foreground text-sm font-bold">₦{formattedBalance}</strong>
         </div>
 
         {loading ? (
           <div className="flex items-center justify-center py-10 text-muted-foreground text-sm">
-            <Loader2 className="h-5 w-5 animate-spin mr-2" /> Loading gift tray...
+            <Loader2 weight="fill" className="h-5 w-5 animate-spin mr-2" /> Loading gift tray...
           </div>
         ) : (
           <div className="space-y-4 pt-1">
@@ -148,13 +153,13 @@ export function LiveGiftTrayModal({
                   <button
                     key={gift.id}
                     onClick={() => setSelectedGift(gift)}
-                    className={`p-3 rounded-xl border text-center transition flex flex-col items-center justify-between ${
+                    className={`p-3 rounded-lg border text-center transition flex flex-col items-center justify-between ${
                       isSelected
-                        ? "bg-primary/10 border-primary text-primary shadow-sm ring-2 ring-primary/30"
+                        ? "bg-primary/10 border-primary text-primary  ring-2 ring-primary/30"
                         : "bg-card border-border hover:bg-accent hover:text-foreground"
                     }`}
                   >
-                    <span className="text-2xl mb-1">{gift.icon || "🎁"}</span>
+                    <span className="text-xl mb-1">{gift.icon || "🎁"}</span>
                     <span className="text-xs font-bold truncate w-full">{gift.name}</span>
                     <span className="text-[11px] font-semibold text-muted-foreground mt-0.5">
                       ₦{(gift.coin_price / 100).toFixed(2)}
@@ -172,7 +177,7 @@ export function LiveGiftTrayModal({
               <button
                 type="button"
                 onClick={onClose}
-                className="flex-1 py-2.5 rounded-xl border border-border text-sm font-medium text-muted-foreground hover:bg-accent hover:text-foreground transition"
+                className="flex-1 py-2.5 rounded-lg border-none text-sm font-medium text-muted-foreground hover:bg-accent hover:text-foreground transition"
               >
                 Cancel
               </button>
@@ -180,9 +185,9 @@ export function LiveGiftTrayModal({
                 type="button"
                 onClick={handleSendGift}
                 disabled={sending || !selectedGift}
-                className="flex-1 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-sm shadow transition disabled:opacity-50 inline-flex items-center justify-center gap-1.5"
+                className="flex-1 py-2.5 rounded-lg bg-purple-600 hover:bg-purple-700 text-white font-bold text-sm shadow transition disabled:opacity-50 inline-flex items-center justify-center gap-1.5"
               >
-                {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Send className="h-4 w-4" /> Send Gift</>}
+                {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Send weight="fill" className="h-4 w-4" /> Send Gift</>}
               </button>
             </div>
           </div>

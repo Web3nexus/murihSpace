@@ -7,7 +7,11 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { LogIn, UserPlus, Sparkles } from "lucide-react";
+import {
+  SignIn as SignIn,
+  UserPlus as UserPlus,
+  Sparkle as Sparkle
+} from "@phosphor-icons/react";
 
 interface AuthPromptModalProps {
   open: boolean;
@@ -37,10 +41,10 @@ export function AuthPromptModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md p-6 overflow-hidden">
+      <DialogContent className="sm:max-w-md p-4 overflow-hidden">
         <div className="flex flex-col items-center text-center space-y-4 pt-2">
-          <div className="h-14 w-14 rounded-2xl bg-gradient-to-tr from-[#2164b6] to-[#102840] flex items-center justify-center text-white shadow-lg shadow-[#2164b6]/20">
-            <Sparkles className="h-7 w-7 text-white animate-pulse" />
+          <div className="h-14 w-14 rounded-lg bg-gradient-to-tr from-[#2164b6] to-[#102840] flex items-center justify-center text-white shadow-lg shadow-[#2164b6]/20">
+            <Sparkle weight="fill" className="h-7 w-7 text-white animate-pulse" />
           </div>
 
           <DialogHeader className="space-y-1.5">
@@ -55,9 +59,9 @@ export function AuthPromptModal({
           <div className="flex flex-col w-full gap-2.5 pt-2">
             <Button
               onClick={handleRegister}
-              className="w-full h-10 font-bold text-xs bg-secondary text-secondary-foreground hover:bg-secondary/90 shadow-sm gap-2"
+              className="w-full h-10 font-bold text-xs bg-secondary text-secondary-foreground hover:bg-secondary/90  gap-2"
             >
-              <UserPlus className="h-4 w-4" />
+              <UserPlus weight="fill" className="h-4 w-4" />
               Create Free Account
             </Button>
 
@@ -66,7 +70,7 @@ export function AuthPromptModal({
               onClick={handleLogin}
               className="w-full h-10 font-semibold text-xs border-border hover:bg-muted gap-2"
             >
-              <LogIn className="h-4 w-4 text-secondary" />
+              <SignIn weight="fill" className="h-4 w-4 text-secondary" />
               Sign In to Your Account
             </Button>
           </div>

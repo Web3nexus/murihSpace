@@ -9,6 +9,7 @@ use App\Http\Middleware\EnsureEmailIsVerified;
 use App\Http\Middleware\EnsureInternalRequest;
 use App\Http\Middleware\IsAdmin;
 use App\Http\Middleware\IsCreator;
+use App\Http\Middleware\IsStoreOwner;
 use App\Http\Middleware\IsVendor;
 use App\Http\Middleware\RequiresKyc;
 use App\Http\Middleware\RequiresPermission;
@@ -55,6 +56,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'admin.permission' => EnsureAdminPermission::class,
             'creator' => IsCreator::class,
             'vendor' => IsVendor::class,
+            'store.owner' => IsStoreOwner::class,
             'permission' => RequiresPermission::class,
             'kyc' => RequiresKyc::class,
             'verified' => EnsureEmailIsVerified::class,

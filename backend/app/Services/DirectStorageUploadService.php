@@ -16,6 +16,7 @@ class DirectStorageUploadService
 
     public function __construct(
         private readonly StorageRouter $router,
+        private readonly FileSecurityFilterService $securityFilter,
     ) {}
 
     public function createPresignedUpload(
@@ -28,6 +29,16 @@ class DirectStorageUploadService
         ?int $ownerId = null
     ): array {
         $this->validateSize($mimeType, $sizeBytes);
+
+        // Sanitize destination folder to prevent path traversal
+        $folder = $this->securityFilter->sanitizeFolder($folder);
+
+        // Verify filename safety against dangerous extensions and null bytes
+        $ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+        $dangerous = ['php', 'phtml', 'phar', 'exe', 'bat', 'sh', 'py', 'rb', 'cgi', 'asp', 'aspx', 'jsp', 'vbs', 'dll'];
+        if (in_array($ext, $dangerous, true) || str_contains($filename, "\0") || str_contains($filename, '%00')) {
+            throw new \InvalidArgumentException('Unauthorized or dangerous file extension.');
+        }
 
         $target = $this->router->resolve($mimeType, $folder);
         $disk = $target['disk'];

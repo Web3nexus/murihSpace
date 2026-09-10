@@ -463,4 +463,23 @@ class PostController extends Controller
 
         return response()->json(['message' => 'Post reported. Thank you for helping keep the community safe.'], 201);
     }
+
+    /**
+     * Record a view for a post securely.
+     */
+    public function recordView(Request $request, int $id): JsonResponse
+    {
+        $post = Post::findOrFail($id);
+        $user = $request->user();
+
+        // Increment view count if viewer is not the author
+        if (!$user || $user->id !== $post->user_id) {
+            $post->increment('views_count');
+        }
+
+        return response()->json([
+            'views_count' => (int) $post->fresh()->views_count,
+        ]);
+    }
 }
+

@@ -2,21 +2,21 @@ import { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "react-router";
 import { toast } from "sonner";
 import {
-  UserCheck,
-  Clock,
-  CheckCircle2,
-  XCircle,
-  Loader2,
-  ChevronLeft,
-  ChevronRight,
-  Filter,
-  Sparkles,
-  ShoppingBag,
-  ShieldAlert,
-  ShieldCheck,
-  FileText,
-  ExternalLink,
-} from "lucide-react";
+  UserCheck as UserCheck,
+  Clock as Clock,
+  CheckCircle as CheckCircle2,
+  XCircle as XCircle,
+  Spinner as Loader2,
+  CaretLeft as ChevronLeft,
+  CaretRight as ChevronRight,
+  Faders as Faders,
+  Sparkle as Sparkle,
+  Bag as ShoppingBag,
+  ShieldWarning as ShieldWarning,
+  ShieldCheck as ShieldCheck,
+  FileText as FileText,
+  ArrowSquareOut as ExternalLink
+} from "@phosphor-icons/react";
 import { apiClient, type ApiError } from "@/lib/api/client";
 
 interface RoleApplication {
@@ -53,7 +53,7 @@ const TABS = [
   { key: "pending", label: "Pending Applications", icon: Clock },
   { key: "approved", label: "Approved History", icon: CheckCircle2 },
   { key: "rejected", label: "Rejected History", icon: XCircle },
-  { key: "all", label: "All Records", icon: Filter },
+  { key: "all", label: "All Records", icon: Faders },
 ];
 
 export function AdminRoleApplicationsPage() {
@@ -180,11 +180,11 @@ export function AdminRoleApplicationsPage() {
   };
 
   return (
-    <div className="p-6 lg:p-8 space-y-6 w-full max-w-7xl mx-auto">
+    <div className="p-4 lg:p-5 space-y-6 w-full max-w-7xl mx-auto">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
-          <UserCheck className="h-6 w-6 text-primary" />
+        <h1 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
+          <UserCheck weight="fill" className="h-6 w-6 text-primary" />
           Account Role Applications
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
@@ -208,7 +208,7 @@ export function AdminRoleApplicationsPage() {
                 className={`flex items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-medium transition-colors whitespace-nowrap ${
                   isActive
                     ? "bg-primary text-primary-foreground shadow"
-                    : "bg-card text-muted-foreground hover:bg-accent hover:text-foreground border border-border"
+                    : "bg-card text-muted-foreground hover:bg-accent hover:text-foreground border-none"
                 }`}
               >
                 <Icon className="h-4 w-4" />
@@ -219,14 +219,14 @@ export function AdminRoleApplicationsPage() {
         </div>
 
         <div className="flex items-center gap-2">
-          <Filter className="h-4 w-4 text-muted-foreground" />
+          <Faders weight="fill" className="h-4 w-4 text-muted-foreground" />
           <select
             value={roleFilter}
             onChange={(e) => {
               setRoleFilter(e.target.value);
               setPage(1);
             }}
-            className="rounded-lg border border-border bg-card px-3 py-1.5 text-sm font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+            className="rounded-lg border-none bg-card px-3 py-1.5 text-sm font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
           >
             <option value="all">All Requested Roles</option>
             <option value="creator">Creator Applications</option>
@@ -236,14 +236,14 @@ export function AdminRoleApplicationsPage() {
       </div>
 
       {/* Table Content */}
-      <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
+      <div className="rounded-lg border-none bg-card  overflow-hidden">
         {loading ? (
           <div className="flex h-64 items-center justify-center">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <Loader2 weight="fill" className="h-8 w-8 animate-spin text-primary" />
           </div>
         ) : applications.length === 0 ? (
           <div className="flex flex-col items-center justify-center p-12 text-center">
-            <UserCheck className="h-12 w-12 text-muted-foreground/40 mb-3" />
+            <UserCheck weight="fill" className="h-12 w-12 text-muted-foreground/40 mb-3" />
             <h3 className="font-semibold text-lg text-foreground">No applications found</h3>
             <p className="text-sm text-muted-foreground mt-1">
               There are no role transition requests matching the selected filter.
@@ -289,9 +289,9 @@ export function AdminRoleApplicationsPage() {
                           <span className="text-xs text-muted-foreground">→</span>
                           <span className="flex items-center gap-1 rounded bg-primary/10 px-2 py-0.5 text-xs font-semibold capitalize text-primary">
                             {app.requested_role === "creator" ? (
-                              <Sparkles className="h-3 w-3" />
+                              <Sparkle weight="fill" className="h-3 w-3" />
                             ) : (
-                              <ShoppingBag className="h-3 w-3" />
+                              <ShoppingBag weight="fill" className="h-3 w-3" />
                             )}
                             {app.requested_role}
                           </span>
@@ -312,8 +312,8 @@ export function AdminRoleApplicationsPage() {
                                 : "bg-muted text-muted-foreground"
                             }`}
                           >
-                            {userKyc === "verified" && <ShieldCheck className="h-3 w-3" />}
-                            {userKyc === "pending" && <Clock className="h-3 w-3" />}
+                            {userKyc === "verified" && <ShieldCheck weight="fill" className="h-3 w-3" />}
+                            {userKyc === "pending" && <Clock weight="fill" className="h-3 w-3" />}
                             {userKyc === "verified"
                               ? "KYC Verified"
                               : userKyc === "pending"
@@ -329,7 +329,7 @@ export function AdminRoleApplicationsPage() {
                               rel="noreferrer"
                               className="inline-flex items-center gap-1 text-[10px] text-primary hover:underline font-medium"
                             >
-                              <FileText className="h-2.5 w-2.5" /> View Document <ExternalLink className="h-2.5 w-2.5" />
+                              <FileText weight="fill" className="h-2.5 w-2.5" /> View Document <ExternalLink weight="fill" className="h-2.5 w-2.5" />
                             </a>
                           )}
                         </div>
@@ -347,9 +347,9 @@ export function AdminRoleApplicationsPage() {
                               : "bg-muted text-muted-foreground"
                           }`}
                         >
-                          {app.status === "pending" && <Clock className="h-3.5 w-3.5" />}
-                          {app.status === "approved" && <CheckCircle2 className="h-3.5 w-3.5" />}
-                          {app.status === "rejected" && <XCircle className="h-3.5 w-3.5" />}
+                          {app.status === "pending" && <Clock weight="fill" className="h-3.5 w-3.5" />}
+                          {app.status === "approved" && <CheckCircle2 weight="fill" className="h-3.5 w-3.5" />}
+                          {app.status === "rejected" && <XCircle weight="fill" className="h-3.5 w-3.5" />}
                           {app.status}
                         </span>
                       </td>
@@ -365,13 +365,13 @@ export function AdminRoleApplicationsPage() {
                               type="button"
                               onClick={() => handleApprove(app)}
                               disabled={processingId === app.id}
-                              className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-emerald-700 transition-colors disabled:opacity-50"
+                              className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white  hover:bg-emerald-700 transition-colors disabled:opacity-50"
                               title="Approve and promote to Creator"
                             >
                               {processingId === app.id ? (
-                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                <Loader2 weight="fill" className="h-3.5 w-3.5 animate-spin" />
                               ) : (
-                                <CheckCircle2 className="h-3.5 w-3.5" />
+                                <CheckCircle2 weight="fill" className="h-3.5 w-3.5" />
                               )}
                               Approve
                             </button>
@@ -385,7 +385,7 @@ export function AdminRoleApplicationsPage() {
                               className="inline-flex items-center gap-1 rounded-lg border border-blue-500/30 bg-blue-500/10 px-3 py-1.5 text-xs font-semibold text-blue-500 hover:bg-blue-500/20 transition-colors disabled:opacity-50"
                               title="Prompt user to submit KYC documents"
                             >
-                              <ShieldAlert className="h-3.5 w-3.5" />
+                              <ShieldWarning weight="fill" className="h-3.5 w-3.5" />
                               Request KYC
                             </button>
                             <button
@@ -395,7 +395,7 @@ export function AdminRoleApplicationsPage() {
                               className="inline-flex items-center gap-1 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-1.5 text-xs font-semibold text-destructive hover:bg-destructive/20 transition-colors disabled:opacity-50"
                               title="Reject application"
                             >
-                              <XCircle className="h-3.5 w-3.5" />
+                              <XCircle weight="fill" className="h-3.5 w-3.5" />
                               Reject
                             </button>
                           </>
@@ -403,7 +403,7 @@ export function AdminRoleApplicationsPage() {
                           <button
                             type="button"
                             onClick={() => setSelectedApp(app)}
-                            className="inline-flex items-center gap-1 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+                            className="inline-flex items-center gap-1 rounded-lg border-none bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
                           >
                             Details
                           </button>
@@ -427,16 +427,16 @@ export function AdminRoleApplicationsPage() {
               <button
                 disabled={page <= 1}
                 onClick={() => setPage(page - 1)}
-                className="rounded-lg border border-border p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground disabled:opacity-40"
+                className="rounded-lg border-none p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground disabled:opacity-40"
               >
-                <ChevronLeft className="h-4 w-4" />
+                <ChevronLeft weight="fill" className="h-4 w-4" />
               </button>
               <button
                 disabled={page >= lastPage}
                 onClick={() => setPage(page + 1)}
-                className="rounded-lg border border-border p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground disabled:opacity-40"
+                className="rounded-lg border-none p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground disabled:opacity-40"
               >
-                <ChevronRight className="h-4 w-4" />
+                <ChevronRight weight="fill" className="h-4 w-4" />
               </button>
             </div>
           </div>
@@ -446,7 +446,7 @@ export function AdminRoleApplicationsPage() {
       {/* Reject Modal */}
       {rejectTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="w-full max-w-md rounded-xl border border-border bg-card p-6 shadow-xl space-y-4">
+          <div className="w-full max-w-md rounded-lg border-none bg-card p-4 shadow-xl space-y-4">
             <h3 className="text-lg font-bold text-foreground">Reject Role Application</h3>
             <p className="text-xs text-muted-foreground">
               Provide a clear reason for rejecting <strong className="text-foreground">{rejectTarget.user?.name}</strong>'s request to become a <span className="capitalize">{rejectTarget.requested_role}</span>.
@@ -457,7 +457,7 @@ export function AdminRoleApplicationsPage() {
               value={rejectReason}
               onChange={(e) => setRejectReason(e.target.value)}
               placeholder="Explain what requirements were missing..."
-              className="w-full rounded-lg border border-border bg-background p-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full rounded-lg border-none bg-background p-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
             />
 
             <div className="flex items-center justify-end gap-3 pt-2">
@@ -467,7 +467,7 @@ export function AdminRoleApplicationsPage() {
                   setRejectTarget(null);
                   setRejectReason("");
                 }}
-                className="rounded-lg border border-border px-4 py-2 text-xs font-semibold text-muted-foreground hover:bg-accent hover:text-foreground"
+                className="rounded-lg border-none px-4 py-2 text-xs font-semibold text-muted-foreground hover:bg-accent hover:text-foreground"
               >
                 Cancel
               </button>
@@ -477,7 +477,7 @@ export function AdminRoleApplicationsPage() {
                 disabled={processingId === rejectTarget.id}
                 className="inline-flex items-center gap-1.5 rounded-lg bg-destructive px-4 py-2 text-xs font-semibold text-destructive-foreground shadow hover:bg-destructive/90 disabled:opacity-50"
               >
-                {processingId === rejectTarget.id && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                {processingId === rejectTarget.id && <Loader2 weight="fill" className="h-3.5 w-3.5 animate-spin" />}
                 Confirm Rejection
               </button>
             </div>
@@ -488,10 +488,10 @@ export function AdminRoleApplicationsPage() {
       {/* Request KYC Modal */}
       {kycTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="w-full max-w-md rounded-xl border border-border bg-card p-6 shadow-xl space-y-4">
+          <div className="w-full max-w-md rounded-lg border-none bg-card p-4 shadow-xl space-y-4">
             <div className="flex items-center gap-2">
               <div className="p-2 rounded-lg bg-blue-500/10 text-blue-500">
-                <ShieldAlert className="h-5 w-5" />
+                <ShieldWarning weight="fill" className="h-5 w-5" />
               </div>
               <div>
                 <h3 className="text-base font-bold text-foreground">Request Identity Verification (KYC)</h3>
@@ -512,7 +512,7 @@ export function AdminRoleApplicationsPage() {
                 value={kycNote}
                 onChange={(e) => setKycNote(e.target.value)}
                 placeholder="e.g. Please upload a clear photo of your passport or national ID and a selfie."
-                className="w-full rounded-lg border border-border bg-background p-3 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                className="w-full rounded-lg border-none bg-background p-3 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
 
@@ -523,7 +523,7 @@ export function AdminRoleApplicationsPage() {
                   setKycTarget(null);
                   setKycNote("");
                 }}
-                className="rounded-lg border border-border px-4 py-2 text-xs font-semibold text-muted-foreground hover:bg-accent hover:text-foreground"
+                className="rounded-lg border-none px-4 py-2 text-xs font-semibold text-muted-foreground hover:bg-accent hover:text-foreground"
               >
                 Cancel
               </button>
@@ -533,7 +533,7 @@ export function AdminRoleApplicationsPage() {
                 disabled={processingId === kycTarget.id}
                 className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold text-white shadow hover:bg-blue-700 disabled:opacity-50"
               >
-                {processingId === kycTarget.id && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                {processingId === kycTarget.id && <Loader2 weight="fill" className="h-3.5 w-3.5 animate-spin" />}
                 Send KYC Request
               </button>
             </div>
@@ -544,7 +544,7 @@ export function AdminRoleApplicationsPage() {
       {/* Details Modal */}
       {selectedApp && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="w-full max-w-lg rounded-xl border border-border bg-card p-6 shadow-xl space-y-4">
+          <div className="w-full max-w-lg rounded-lg border-none bg-card p-4 shadow-xl space-y-4">
             <div className="flex items-center justify-between border-b border-border pb-3">
               <h3 className="text-lg font-bold text-foreground">Application Record #{selectedApp.id}</h3>
               <button
@@ -581,7 +581,7 @@ export function AdminRoleApplicationsPage() {
                     rel="noreferrer"
                     className="text-xs text-primary inline-flex items-center gap-1 font-semibold hover:underline"
                   >
-                    View Document <ExternalLink className="h-3 w-3" />
+                    View Document <ExternalLink weight="fill" className="h-3 w-3" />
                   </a>
                 </div>
               )}

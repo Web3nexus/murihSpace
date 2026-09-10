@@ -1,9 +1,26 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { formatDistanceToNow } from 'date-fns';
-import { MessageSquare, Link2, MoreHorizontal, Pin, PinOff, Megaphone, Heart, Zap, ThumbsUp, HandMetal, ShieldAlert, UserX, BadgeCheck } from 'lucide-react';
+import {
+  ChatTeardropText as MessageSquare,
+  Link as Link,
+  DotsThree as MoreHorizontal,
+  PushPin as PushPin,
+  PushPinSlash as PushPinSlash,
+  Megaphone as Megaphone,
+  Heart as Heart,
+  Lightning as Zap,
+  ThumbsUp as ThumbsUp,
+  HandGrabbing as HandGrabbing,
+  ShieldWarning as ShieldWarning,
+  UserMinus as UserMinus,
+  SealCheck as BadgeCheck
+} from "@phosphor-icons/react";
 import type { Post, ReactionType } from '@/types/post';
 import { ReportModal } from '@/components/moderation/ReportModal';
 import type { ReportedType } from '@/types/moderation';
+import { apiClient } from '@/lib/api/client';
+
+const viewedPostsSet = new Set<number>();
 
 interface PostCardProps {
   post: Post;
@@ -16,10 +33,10 @@ interface PostCardProps {
 }
 
 const REACTIONS: { type: ReactionType; emoji: string; icon: React.ReactNode; label: string }[] = [
-  { type: 'like', emoji: '👍', icon: <ThumbsUp size={13} />, label: 'Like' },
-  { type: 'heart', emoji: '❤️', icon: <Heart size={13} />, label: 'Love' },
-  { type: 'fire', emoji: '🔥', icon: <Zap size={13} />, label: 'Fire' },
-  { type: 'clap', emoji: '👏', icon: <HandMetal size={13} />, label: 'Clap' },
+  { type: 'like', emoji: '👍', icon: <ThumbsUp weight="fill" size={13} />, label: 'Like' },
+  { type: 'heart', emoji: '❤️', icon: <Heart weight="fill" size={13} />, label: 'Love' },
+  { type: 'fire', emoji: '🔥', icon: <Zap weight="fill" size={13} />, label: 'Fire' },
+  { type: 'clap', emoji: '👏', icon: <HandGrabbing weight="fill" size={13} />, label: 'Clap' },
 ];
 
 const TYPE_LABELS: Record<string, { label: string; color: string }> = {
@@ -65,6 +82,12 @@ export default function PostCard({ post, onReact, onComment, onPin, onUnpin, isM
   const typeLabel = TYPE_LABELS[post.type];
   const timeAgo = formatDistanceToNow(new Date(post.created_at), { addSuffix: true });
 
+  useEffect(() => {
+    if (!post?.id || viewedPostsSet.has(post.id)) return;
+    viewedPostsSet.add(post.id);
+    apiClient.post(`/posts/${post.id}/view`).catch(() => {});
+  }, [post?.id]);
+
   const handleReact = async (type: ReactionType) => {
     if (!onReact || reactingType) return;
     setReactingType(type);
@@ -95,7 +118,7 @@ export default function PostCard({ post, onReact, onComment, onPin, onUnpin, isM
       {/* Pinned banner */}
       {post.is_pinned && (
         <div className="post-card-pinned-banner">
-          <Pin size={12} />
+          <PushPin weight="fill" size={12} />
           Pinned post
         </div>
       )}
@@ -103,7 +126,7 @@ export default function PostCard({ post, onReact, onComment, onPin, onUnpin, isM
       {/* Announcement label */}
       {typeLabel.label && (
         <div className="post-card-type-label" style={{ '--label-color': typeLabel.color } as React.CSSProperties}>
-          <Megaphone size={12} />
+          <Megaphone weight="fill" size={12} />
           {typeLabel.label}
         </div>
       )}
@@ -116,7 +139,7 @@ export default function PostCard({ post, onReact, onComment, onPin, onUnpin, isM
             <span className="post-card-author">
               {post.author?.name ?? 'Unknown'}
               {post.author?.has_active_verification_badge && (
-                <BadgeCheck size={14} className="inline-block ml-1 text-sky-500 -mt-0.5" aria-label="Verified" />
+                <BadgeCheck weight="fill" size={14} className="inline-block ml-1 text-sky-500 -mt-0.5" aria-label="Verified" />
               )}
             </span>
             {post.author?.username && (
@@ -136,12 +159,12 @@ export default function PostCard({ post, onReact, onComment, onPin, onUnpin, isM
               onClick={() => setShowMenu((v) => !v)}
               title="More options"
             >
-              <MoreHorizontal size={16} />
+              <MoreHorizontal weight="fill" size={16} />
             </button>
             {showMenu && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setShowMenu(false)} role="presentation" onKeyDown={(e) => e.key === 'Enter' && setShowMenu(false)} />
-                <div className="absolute right-0 mt-1 w-44 rounded-xl border border-border bg-card shadow-xl z-50 p-1 space-y-0.5 text-xs">
+                <div className="absolute right-0 mt-1 w-44 rounded-lg border-none bg-card shadow-xl z-50 p-1 space-y-0.5 text-xs">
                   {isModerator && (
                     <>
                       {post.is_pinned ? (
@@ -149,7 +172,7 @@ export default function PostCard({ post, onReact, onComment, onPin, onUnpin, isM
                           onClick={() => { setShowMenu(false); onUnpin?.(post.id); }}
                           className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-muted text-foreground font-medium flex items-center gap-2"
                         >
-                          <PinOff size={14} />
+                          <PushPinSlash weight="fill" size={14} />
                           Unpin post
                         </button>
                       ) : (
@@ -157,8 +180,8 @@ export default function PostCard({ post, onReact, onComment, onPin, onUnpin, isM
                           onClick={() => { setShowMenu(false); onPin?.(post.id); }}
                           className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-muted text-foreground font-medium flex items-center gap-2"
                         >
-                          <Pin size={14} />
-                          Pin post
+                          <PushPin weight="fill" size={14} />
+                          PushPin post
                         </button>
                       )}
                     </>
@@ -170,7 +193,7 @@ export default function PostCard({ post, onReact, onComment, onPin, onUnpin, isM
                     }}
                     className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-destructive/10 text-destructive font-semibold flex items-center gap-2"
                   >
-                    <ShieldAlert size={14} />
+                    <ShieldWarning weight="fill" size={14} />
                     Report Post
                   </button>
                   {post.author?.id && (
@@ -181,7 +204,7 @@ export default function PostCard({ post, onReact, onComment, onPin, onUnpin, isM
                       }}
                       className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-muted text-foreground font-medium flex items-center gap-2"
                     >
-                      <UserX size={14} />
+                      <UserMinus weight="fill" size={14} />
                       Report Author
                     </button>
                   )}
@@ -215,7 +238,7 @@ export default function PostCard({ post, onReact, onComment, onPin, onUnpin, isM
             rel="noopener noreferrer"
             className="post-card-link-preview"
           >
-            <Link2 size={13} />
+            <Link weight="fill" size={13} />
             <span>{post.link_title ?? post.link_url}</span>
           </a>
         )}
@@ -257,7 +280,7 @@ export default function PostCard({ post, onReact, onComment, onPin, onUnpin, isM
               className="post-card-action-btn comment"
               onClick={() => setShowCommentBox((v) => !v)}
             >
-              <MessageSquare size={14} />
+              <MessageSquare weight="fill" size={14} />
               {(post.comments_count ?? 0) > 0 && <span>{post.comments_count}</span>}
               Comment
             </button>
@@ -305,7 +328,7 @@ export default function PostCard({ post, onReact, onComment, onPin, onUnpin, isM
                   <span className="post-card-comment-author">
                     {c.user?.name ?? 'User'}
                     {c.user?.has_active_verification_badge && (
-                      <BadgeCheck size={12} className="inline-block ml-0.5 text-sky-500 -mt-0.5" aria-label="Verified" />
+                      <BadgeCheck weight="fill" size={12} className="inline-block ml-0.5 text-sky-500 -mt-0.5" aria-label="Verified" />
                     )}
                   </span>
                   <span className="post-card-comment-text">{c.content}</span>

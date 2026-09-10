@@ -12,3 +12,4 @@ interface RefundProviderInterface extends PaymentProviderInterface
      */
     public function processRefund(RefundRequest $request): RefundResponse;
 }
+

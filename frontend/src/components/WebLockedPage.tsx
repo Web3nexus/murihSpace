@@ -1,6 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import QRCode from "qrcode";
-import { Download, Smartphone, LogOut, Loader2, QrCode } from "lucide-react";
+import {
+  DownloadSimple as Download,
+  DeviceMobile as Smartphone,
+  SignOut as LogOut,
+  Spinner as Loader2,
+  QrCode as QrCode
+} from "@phosphor-icons/react";
 import { usePlatformConfig } from "@/hooks/usePlatformConfig";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -26,13 +32,13 @@ export function AppDownloadQR({ content, size = 176 }: { content: string; size?:
   if (failed) {
     return (
       <div className="flex items-center justify-center" style={{ width: size, height: size }}>
-        <QrCode className="h-10 w-10 text-muted-foreground" />
+        <QrCode weight="fill" className="h-10 w-10 text-muted-foreground" />
       </div>
     );
   }
 
   return (
-    <div className="rounded-2xl bg-white p-3 shadow-md border border-border inline-block">
+    <div className="rounded-lg bg-white p-3  border-none inline-block">
       <canvas ref={canvasRef} width={size} height={size} className="block" />
     </div>
   );
@@ -51,8 +57,8 @@ export function WebLockedPage({ role, embedded = false }: WebLockedPageProps) {
 
   const content = (
     <div className="w-full max-w-sm mx-auto text-center space-y-5">
-      <div className="mx-auto h-16 w-16 rounded-2xl bg-[#2164b6]/10 flex items-center justify-center">
-        <Smartphone className="h-8 w-8 text-[#2164b6] dark:text-[#7ab0ff]" />
+      <div className="mx-auto h-16 w-16 rounded-lg bg-[#2164b6]/10 flex items-center justify-center">
+        <Smartphone weight="fill" className="h-8 w-8 text-[#2164b6] dark:text-[#7ab0ff]" />
       </div>
 
       <div className="space-y-1.5">
@@ -67,7 +73,7 @@ export function WebLockedPage({ role, embedded = false }: WebLockedPageProps) {
 
       {cfg.loading ? (
         <div className="flex justify-center py-8">
-          <Loader2 className="h-5 w-5 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" />
+          <Loader2 weight="fill" className="h-5 w-5 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" />
         </div>
       ) : (
         <div className="space-y-3">
@@ -78,9 +84,9 @@ export function WebLockedPage({ role, embedded = false }: WebLockedPageProps) {
             href={cfg.app_download_url}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-[#2164b6] hover:bg-[#1a5091] text-white text-xs font-bold transition-colors shadow-xs"
+            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg bg-[#2164b6] hover:bg-[#1a5091] text-white text-xs font-bold transition-colors "
           >
-            <Download className="h-4 w-4" /> Download the app
+            <Download weight="fill" className="h-4 w-4" /> Download the app
           </a>
           <p className="text-[10px] text-muted-foreground">
             Already have the app? Just sign in with the same account.
@@ -95,8 +101,8 @@ export function WebLockedPage({ role, embedded = false }: WebLockedPageProps) {
   }
 
   return (
-    <div className="min-h-screen w-full bg-slate-50/60 dark:bg-background flex items-center justify-center p-6">
-      <div className="w-full max-w-md bg-card border border-border rounded-3xl shadow-sm p-8">
+    <div className="min-h-screen w-full bg-slate-50/60 dark:bg-background flex items-center justify-center p-4">
+      <div className="w-full max-w-md bg-card border-none rounded-3xl  p-5">
         {content}
         <div className="mt-6 pt-6 border-t border-border/60 text-center">
           <button
@@ -104,7 +110,7 @@ export function WebLockedPage({ role, embedded = false }: WebLockedPageProps) {
             disabled={loading}
             className="inline-flex items-center gap-1.5 text-xs font-bold text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
           >
-            {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <LogOut className="h-3.5 w-3.5" />}
+            {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <LogOut weight="fill" className="h-3.5 w-3.5" />}
             Sign out
           </button>
         </div>

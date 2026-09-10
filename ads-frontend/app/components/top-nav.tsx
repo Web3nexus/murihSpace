@@ -73,9 +73,21 @@ export function TopNav() {
           </div>
           
           <div className="flex items-center gap-3">
+            <a
+              href="http://localhost:5173/app"
+              className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:text-[#2164b6] transition-colors"
+            >
+              MurihSpace App
+            </a>
             <div className="hidden sm:block text-right">
-              <div className="text-sm font-medium leading-none">Advertiser</div>
-              <div className="text-xs text-muted-foreground mt-1">ID: 4892 291 00</div>
+              <div className="text-sm font-medium leading-none">
+                {typeof window !== "undefined" && localStorage.getItem("ads_user")
+                  ? JSON.parse(localStorage.getItem("ads_user") || "{}").name || "Advertiser"
+                  : "Advertiser"}
+              </div>
+              <div className="text-xs text-muted-foreground mt-1">
+                ID: {typeof window !== "undefined" ? localStorage.getItem("advertiser_id") || "4892 291 00" : "4892 291 00"}
+              </div>
             </div>
             <Button variant="outline" size="icon" className="rounded-full h-8 w-8" aria-label="User Profile">
               <User className="h-4 w-4" />

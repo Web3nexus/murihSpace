@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { UserX, Check } from 'lucide-react';
+import {
+  UserMinus as UserMinus,
+  Check as Check
+} from "@phosphor-icons/react";
 import { getAuthToken } from "@/lib/auth/token";
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? 'http://localhost:8000/api/v1';
@@ -53,16 +56,16 @@ export function BlockUserButton({
       size="sm"
       onClick={toggleBlock}
       disabled={isLoading}
-      className="text-xs font-semibold gap-1.5 h-8 px-3 rounded-xl"
+      className="text-xs font-semibold gap-1.5 h-8 px-3 rounded-lg"
     >
       {isBlocked ? (
         <>
-          <Check className="h-3.5 w-3.5 text-emerald-500" />
+          <Check weight="fill" className="h-3.5 w-3.5 text-emerald-500" />
           Blocked
         </>
       ) : (
         <>
-          <UserX className="h-3.5 w-3.5" />
+          <UserMinus weight="fill" className="h-3.5 w-3.5" />
           Block User
         </>
       )}

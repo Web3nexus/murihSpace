@@ -12,9 +12,9 @@ import {
 } from "@/components/common/UIStateComponents";
 import { RoutePaths } from "./route-paths";
 
-import { Loader2 } from "lucide-react";
+import { BrandPreloader } from "@/components/common/BrandPreloader";
 
-const PageLoader = () => (<div className="flex h-[50vh] w-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary/50" /></div>);
+const PageLoader = () => <BrandPreloader size="md" />;
 
 // Lazy-loaded pages with automated deployment chunk-retry
 const LoginPage = lazyWithRetry(() => import("@/pages/LoginPage"), "LoginPage");
@@ -30,6 +30,8 @@ const CommunitiesPage = lazyWithRetry(() => import("@/pages/CommunitiesPage"), "
 const CommunityPreviewPage = lazyWithRetry(() => import("@/pages/CommunityPreviewPage"), "CommunityPreviewPage");
 const PublicCommunitiesPage = lazyWithRetry(() => import("@/pages/PublicCommunitiesPage"), "PublicCommunitiesPage");
 const CommunityFeedPage = lazyWithRetry(() => import("@/pages/CommunityFeedPage"));
+const GroupsPage = lazyWithRetry(() => import("@/pages/GroupsPage"), "GroupsPage");
+const GroupDetailPage = lazyWithRetry(() => import("@/pages/GroupDetailPage"), "GroupDetailPage");
 const SearchPage = lazyWithRetry(() => import("@/pages/SearchPage"));
 const EventsPage = lazyWithRetry(() => import("@/pages/EventsPage"), "EventsPage");
 const EventDetailPage = lazyWithRetry(() => import("@/pages/EventDetailPage"), "EventDetailPage");
@@ -55,6 +57,7 @@ const AnalyticsPage = lazyWithRetry(() => import("@/pages/AnalyticsPage"), "Anal
 const BrandDealsPage = lazyWithRetry(() => import("@/pages/BrandDealsPage"), "BrandDealsPage");
 const BrandInvoicingPage = lazyWithRetry(() => import("@/pages/BrandInvoicingPage"), "BrandInvoicingPage");
 const CoachingPage = lazyWithRetry(() => import("@/pages/CoachingPage"), "CoachingPage");
+const MeetingRoomPage = lazyWithRetry(() => import("@/pages/MeetingRoomPage"), "MeetingRoomPage");
 const PhysicalProductsPage = lazyWithRetry(() => import("@/pages/PhysicalProductsPage"), "PhysicalProductsPage");
 const CartPage = lazyWithRetry(() => import("@/pages/CartPage"), "CartPage");
 const AddressesPage = lazyWithRetry(() => import("@/pages/AddressesPage"), "AddressesPage");
@@ -174,6 +177,22 @@ export const routes: RouteObject[] = [
   { path: "/gdpr", element: <Suspense fallback={<PageLoader />}><GDPRPolicyPage /></Suspense> },
   { path: "/cookies", element: <Suspense fallback={<PageLoader />}><CookiesPolicyPage /></Suspense> },
   { path: "/help", element: <Suspense fallback={<PageLoader />}><HelpCenterPage /></Suspense> },
+  { path: "/friends", element: <Navigate to="/app/friends" replace /> },
+  { path: "/friends/*", element: <Navigate to="/app/friends" replace /> },
+  { path: "/community", element: <Navigate to="/app/communities" replace /> },
+  { path: "/community/*", element: <Navigate to="/app/communities" replace /> },
+  { path: "/courses", element: <Navigate to="/app/courses" replace /> },
+  { path: "/courses/*", element: <Navigate to="/app/courses" replace /> },
+  { path: "/marketing", element: <Navigate to="/app/marketing" replace /> },
+  { path: "/marketing/*", element: <Navigate to="/app/marketing" replace /> },
+  { path: "/brand-deals", element: <Navigate to="/app/brand-deals" replace /> },
+  { path: "/brand-deals/*", element: <Navigate to="/app/brand-deals" replace /> },
+  { path: "/live-events", element: <Navigate to="/app/events" replace /> },
+  { path: "/live-events/*", element: <Navigate to="/app/events" replace /> },
+  { path: "/my-events", element: <Navigate to="/app/my-events" replace /> },
+  { path: "/audio-rooms", element: <Navigate to="/app/audio-rooms" replace /> },
+  { path: "/subscriptions", element: <Navigate to="/app/subscriptions" replace /> },
+  { path: "/subscriptions/*", element: <Navigate to="/app/subscriptions" replace /> },
 
   // ── Authenticated Dashboard (sidebar-07 shell) ─
   {
@@ -211,6 +230,20 @@ export const routes: RouteObject[] = [
         element: <Suspense fallback={<PageLoader />}><CoachingPage /></Suspense>,
       },
 
+      // ── Video Meetings & Conferences (Google Meet Style) ──
+      {
+        path: "meetings",
+        element: <Suspense fallback={<PageLoader />}><MeetingRoomPage /></Suspense>,
+      },
+      {
+        path: "meeting/:roomCode",
+        element: <Suspense fallback={<PageLoader />}><MeetingRoomPage /></Suspense>,
+      },
+      {
+        path: "meeting/booking/:bookingId",
+        element: <Suspense fallback={<PageLoader />}><MeetingRoomPage /></Suspense>,
+      },
+
       // ── Identity Verification (KYC) ─────────────
       {
         path: "kyc",
@@ -242,13 +275,29 @@ export const routes: RouteObject[] = [
       },
       {
         path: "requests/friends",
-        element: <Navigate to="/app/requests" replace />,
+        element: <Navigate to="/app/friends?tab=requests" replace />,
       },
 
       // ── Friends (dedicated friends manager) ──────
       {
         path: "friends",
         element: <Suspense fallback={<PageLoader />}><FriendsPage /></Suspense>,
+      },
+      {
+        path: "friends/requests",
+        element: <Suspense fallback={<PageLoader />}><FriendsPage initialTab="requests" /></Suspense>,
+      },
+      {
+        path: "friends/suggestions",
+        element: <Suspense fallback={<PageLoader />}><FriendsPage initialTab="suggestions" /></Suspense>,
+      },
+      {
+        path: "friends/birthdays",
+        element: <Suspense fallback={<PageLoader />}><FriendsPage initialTab="birthdays" /></Suspense>,
+      },
+      {
+        path: "friends/lists",
+        element: <Suspense fallback={<PageLoader />}><FriendsPage initialTab="lists" /></Suspense>,
       },
       {
         path: "friends/find",
@@ -279,6 +328,10 @@ export const routes: RouteObject[] = [
 
       // ── MurihStore (Digital, Courses, Coaching, Physical, Subscriptions) ─
       {
+        path: "storefront",
+        element: <Navigate to="/app/store" replace />,
+      },
+      {
         path: "store",
         element: <Suspense fallback={<PageLoader />}><StoreManagementPage /></Suspense>,
       },
@@ -296,27 +349,39 @@ export const routes: RouteObject[] = [
       },
       {
         path: "store/posts",
-        element: <ProtectedRoute requiredRole="creator"><Suspense fallback={<PageLoader />}><StorePostsPage /></Suspense></ProtectedRoute>,
+        element: <ProtectedRoute requiredRole={["creator", "vendor"]}><Suspense fallback={<PageLoader />}><StorePostsPage /></Suspense></ProtectedRoute>,
       },
       {
         path: "store/physical-products",
-        element: <ProtectedRoute requiredRole="creator"><Suspense fallback={<PageLoader />}><PhysicalProductsPage /></Suspense></ProtectedRoute>,
+        element: <ProtectedRoute requiredRole={["creator", "vendor"]}><Suspense fallback={<PageLoader />}><PhysicalProductsPage /></Suspense></ProtectedRoute>,
       },
       {
         path: "store/inventory",
-        element: <ProtectedRoute requiredRole="creator"><Suspense fallback={<PageLoader />}><InventoryPage /></Suspense></ProtectedRoute>,
+        element: <ProtectedRoute requiredRole={["creator", "vendor"]}><Suspense fallback={<PageLoader />}><InventoryPage /></Suspense></ProtectedRoute>,
       },
       {
         path: "store/categories",
-        element: <ProtectedRoute requiredRole="creator"><Suspense fallback={<PageLoader />}><CategoriesPage /></Suspense></ProtectedRoute>,
+        element: <ProtectedRoute requiredRole={["creator", "vendor"]}><Suspense fallback={<PageLoader />}><CategoriesPage /></Suspense></ProtectedRoute>,
       },
       {
         path: "store/returns",
-        element: <ProtectedRoute requiredRole="creator"><Suspense fallback={<PageLoader />}><ReturnsPage /></Suspense></ProtectedRoute>,
+        element: <ProtectedRoute requiredRole={["creator", "vendor"]}><Suspense fallback={<PageLoader />}><ReturnsPage /></Suspense></ProtectedRoute>,
       },
       {
         path: "store/digital",
         element: <Suspense fallback={<PageLoader />}><DigitalProductsPage /></Suspense>,
+      },
+      {
+        path: "courses",
+        element: <Suspense fallback={<PageLoader />}><CoursesPage /></Suspense>,
+      },
+      {
+        path: "courses/my",
+        element: <Suspense fallback={<PageLoader />}><CoursesPage /></Suspense>,
+      },
+      {
+        path: "courses/studio",
+        element: <ProtectedRoute requiredRole="creator"><Suspense fallback={<PageLoader />}><CoursesPage /></Suspense></ProtectedRoute>,
       },
       {
         path: "store/courses",
@@ -328,7 +393,7 @@ export const routes: RouteObject[] = [
       },
       {
         path: "store/physical",
-        element: <ProtectedRoute requiredRole="creator"><Suspense fallback={<PageLoader />}><PhysicalProductsPage /></Suspense></ProtectedRoute>,
+        element: <ProtectedRoute requiredRole={["creator", "vendor"]}><Suspense fallback={<PageLoader />}><PhysicalProductsPage /></Suspense></ProtectedRoute>,
       },
       {
         path: "store/cart",
@@ -340,7 +405,7 @@ export const routes: RouteObject[] = [
       },
       {
         path: "store/fulfilment",
-        element: <ProtectedRoute requiredRole="vendor"><Suspense fallback={<PageLoader />}><FulfilmentPage /></Suspense></ProtectedRoute>,
+        element: <ProtectedRoute requiredRole={["creator", "vendor"]}><Suspense fallback={<PageLoader />}><FulfilmentPage /></Suspense></ProtectedRoute>,
       },
       {
         path: "store/reviews",
@@ -352,7 +417,7 @@ export const routes: RouteObject[] = [
       },
       {
         path: "store/shipping",
-        element: <ProtectedRoute requiredRole="vendor"><Suspense fallback={<PageLoader />}><ShippingProfilesPage /></Suspense></ProtectedRoute>,
+        element: <ProtectedRoute requiredRole={["creator", "vendor"]}><Suspense fallback={<PageLoader />}><ShippingProfilesPage /></Suspense></ProtectedRoute>,
       },
       {
         path: "store/orders",
@@ -389,10 +454,14 @@ export const routes: RouteObject[] = [
         element: <ProtectedRoute requiredRole="creator"><Suspense fallback={<PageLoader />}><BrandInvoicingPage /></Suspense></ProtectedRoute>,
       },
 
-      // ── Advertising ────────────────────────────
+      // ── Advertising & Ads Manager ───────────────
       {
         path: "ads",
-        element: <ProtectedRoute requiredRole="creator"><Suspense fallback={<PageLoader />}><AdCampaignPage /></Suspense></ProtectedRoute>,
+        element: <ProtectedRoute><Suspense fallback={<PageLoader />}><AdCampaignPage /></Suspense></ProtectedRoute>,
+      },
+      {
+        path: "ads-manager",
+        element: <ProtectedRoute><Suspense fallback={<PageLoader />}><AdCampaignPage /></Suspense></ProtectedRoute>,
       },
 
       // ── Gifts & Creator Wallet ─────────────────
@@ -419,11 +488,31 @@ export const routes: RouteObject[] = [
         element: <ProtectedRoute requiredRole="creator"><Suspense fallback={<PageLoader />}><EmailSequencesPage /></Suspense></ProtectedRoute>,
       },
       {
+        path: "marketing/ads",
+        element: <ProtectedRoute requiredRole="creator"><Suspense fallback={<PageLoader />}><AdCampaignPage /></Suspense></ProtectedRoute>,
+      },
+      {
         path: "marketing/affiliates",
         element: <Suspense fallback={<PageLoader />}><AffiliateProductsPage /></Suspense>,
       },
       {
         path: "marketing/referrals",
+        element: <Suspense fallback={<PageLoader />}><ReferralsPage /></Suspense>,
+      },
+      {
+        path: "affiliate",
+        element: <Suspense fallback={<PageLoader />}><AffiliateProductsPage /></Suspense>,
+      },
+      {
+        path: "affiliates",
+        element: <Suspense fallback={<PageLoader />}><AffiliateProductsPage /></Suspense>,
+      },
+      {
+        path: "referrals",
+        element: <Suspense fallback={<PageLoader />}><ReferralsPage /></Suspense>,
+      },
+      {
+        path: "rewards",
         element: <Suspense fallback={<PageLoader />}><ReferralsPage /></Suspense>,
       },
       {
@@ -441,6 +530,14 @@ export const routes: RouteObject[] = [
         element: <Suspense fallback={<PageLoader />}><CommunitiesPage /></Suspense>,
       },
       {
+        path: "groups",
+        element: <Suspense fallback={<PageLoader />}><GroupsPage /></Suspense>,
+      },
+      {
+        path: "groups/:slug",
+        element: <Suspense fallback={<PageLoader />}><GroupDetailPage /></Suspense>,
+      },
+      {
         path: "communities/:slug",
         element: <Suspense fallback={<PageLoader />}><CommunityPreviewPage /></Suspense>,
       },
@@ -454,7 +551,7 @@ export const routes: RouteObject[] = [
       },
       {
         path: "events",
-        element: <Suspense fallback={<PageLoader />}><MyEventsPage /></Suspense>,
+        element: <Suspense fallback={<PageLoader />}><EventsPage /></Suspense>,
       },
       {
         path: "audio-rooms",
@@ -539,7 +636,11 @@ export const routes: RouteObject[] = [
         element: <Suspense fallback={<PageLoader />}><EscrowPage /></Suspense>,
       },
 
-      // ── Analytics & Sales ──────────────────────
+      // ── Analytics & Insights ──────────────────────
+      {
+        path: "insights",
+        element: <Suspense fallback={<PageLoader />}><AnalyticsPage /></Suspense>,
+      },
       {
         path: "analytics",
         element: <Suspense fallback={<PageLoader />}><AnalyticsPage /></Suspense>,

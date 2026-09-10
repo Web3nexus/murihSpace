@@ -9,7 +9,12 @@ import {
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ErrorState, EmptyState } from "@/components/common/UIStateComponents";
-import { Clock, ShieldCheck, Check, X } from "lucide-react";
+import {
+  Clock as Clock,
+  ShieldCheck as ShieldCheck,
+  Check as Check,
+  X as X
+} from "@phosphor-icons/react";
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? 'http://localhost:8000/api/v1';
 import type { JoinRequest } from "@/types/community";
@@ -84,11 +89,11 @@ export function JoinRequestsModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-xl md:max-w-2xl rounded-2xl p-6 sm:p-8">
+      <DialogContent className="sm:max-w-xl md:max-w-2xl rounded-lg p-4 sm:p-5">
         <DialogHeader>
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400">
-              <Clock className="h-5 w-5" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400">
+              <Clock weight="fill" className="h-5 w-5" />
             </div>
             <div>
               <DialogTitle className="text-lg font-bold">Join Requests Queue</DialogTitle>
@@ -108,8 +113,8 @@ export function JoinRequestsModal({
             />
           ) : isLoading ? (
             <div className="space-y-3 p-4">
-              <div className="h-14 rounded-xl bg-muted animate-pulse" />
-              <div className="h-14 rounded-xl bg-muted animate-pulse" />
+              <div className="h-14 rounded-lg bg-muted animate-pulse" />
+              <div className="h-14 rounded-lg bg-muted animate-pulse" />
             </div>
           ) : requests.length === 0 ? (
             <EmptyState
@@ -121,7 +126,7 @@ export function JoinRequestsModal({
             requests.map((req) => (
               <div
                 key={req.id}
-                className="flex items-center justify-between gap-3 p-3.5 rounded-xl border border-border bg-card shadow-2xs hover:border-primary/30 transition-all"
+                className="flex items-center justify-between gap-3 p-3.5 rounded-lg border-none bg-card shadow-2xs hover:border-primary/30 transition-all"
               >
                 <div className="flex items-center gap-3 min-w-0">
                   <Avatar className="h-10 w-10 shrink-0 rounded-lg">
@@ -148,7 +153,7 @@ export function JoinRequestsModal({
                     className="h-8 w-8 p-0 text-destructive border-destructive/30 hover:bg-destructive/10"
                     title="Reject applicant"
                   >
-                    <X className="h-4 w-4" />
+                    <X weight="fill" className="h-4 w-4" />
                   </Button>
                   <Button
                     size="sm"
@@ -156,7 +161,7 @@ export function JoinRequestsModal({
                     disabled={processingId === req.id}
                     className="h-8 px-3 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white gap-1"
                   >
-                    <Check className="h-3.5 w-3.5" />
+                    <Check weight="fill" className="h-3.5 w-3.5" />
                     Approve
                   </Button>
                 </div>

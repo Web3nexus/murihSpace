@@ -1,13 +1,13 @@
 import { useState, useEffect } from "react";
 import {
-  SparklesIcon,
-  SaveIcon,
-  RefreshCwIcon,
-  MailIcon,
-  CheckCircle2Icon,
-  SlidersIcon,
-  ClockIcon,
-} from "lucide-react";
+  Sparkle as SparklesIcon,
+  FloppyDisk as SaveIcon,
+  ArrowsClockwise as RefreshCwIcon,
+  Envelope as MailIcon,
+  CheckCircle as CheckCircle2Icon,
+  Sliders as SlidersIcon,
+  Clock as ClockIcon
+} from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { apiClient } from "@/lib/api/client";
 
@@ -107,16 +107,16 @@ export default function AdminCreatorQualificationPage() {
   if (loading || !settings) {
     return (
       <div className="flex items-center justify-center h-64 text-muted-foreground">
-        <RefreshCwIcon className="h-6 w-6 animate-spin mr-2" /> Loading qualification settings...
+        <RefreshCwIcon weight="fill" className="h-6 w-6 animate-spin mr-2" /> Loading qualification settings...
       </div>
     );
   }
 
   return (
-    <div className="p-6 lg:p-8 space-y-6 max-w-4xl w-full">
+    <div className="p-4 lg:p-5 space-y-6 max-w-4xl w-full">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Creator Qualification Settings</h1>
+          <h1 className="text-xl font-bold tracking-tight">Creator Qualification Settings</h1>
           <p className="text-sm text-muted-foreground mt-1">
             Configure social follower thresholds, delay rules, enabled platforms, and automated email invitations.
           </p>
@@ -126,16 +126,16 @@ export default function AdminCreatorQualificationPage() {
           disabled={saving}
           className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground font-semibold text-sm rounded-lg hover:opacity-90 transition disabled:opacity-50"
         >
-          <SaveIcon className="h-4 w-4" /> {saving ? "Saving..." : "Save Settings"}
+          <SaveIcon weight="fill" className="h-4 w-4" /> {saving ? "Saving..." : "FloppyDisk Settings"}
         </button>
       </div>
 
       <form onSubmit={handleSave} className="space-y-6">
         {/* Master Switch & Follower Rules */}
-        <div className="p-6 rounded-xl border border-border bg-card space-y-4">
+        <div className="p-4 rounded-lg border-none bg-card space-y-4">
           <div className="flex items-center justify-between border-b pb-4">
             <div className="flex items-center gap-2">
-              <SparklesIcon className="h-5 w-5 text-primary" />
+              <SparklesIcon weight="fill" className="h-5 w-5 text-primary" />
               <h2 className="font-semibold text-foreground">Qualification Workflow</h2>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
@@ -158,7 +158,7 @@ export default function AdminCreatorQualificationPage() {
                 type="number"
                 value={settings.follower_threshold}
                 onChange={(e) => setSettings({ ...settings, follower_threshold: safeNum(e.target.value) })}
-                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                className="w-full rounded-lg border-none bg-background px-3 py-2 text-sm"
                 min="0"
               />
               <p className="text-xs text-muted-foreground mt-1">Minimum combined followers to qualify.</p>
@@ -171,7 +171,7 @@ export default function AdminCreatorQualificationPage() {
                 type="number"
                 value={settings.min_connected_accounts}
                 onChange={(e) => setSettings({ ...settings, min_connected_accounts: safeNum(e.target.value, 1) })}
-                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                className="w-full rounded-lg border-none bg-background px-3 py-2 text-sm"
                 min="1"
               />
               <p className="text-xs text-muted-foreground mt-1">Minimum number of active social profiles.</p>
@@ -184,7 +184,7 @@ export default function AdminCreatorQualificationPage() {
                 type="number"
                 value={settings.delay_amount}
                 onChange={(e) => setSettings({ ...settings, delay_amount: safeNum(e.target.value) })}
-                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                className="w-full rounded-lg border-none bg-background px-3 py-2 text-sm"
                 min="0"
               />
             </div>
@@ -195,7 +195,7 @@ export default function AdminCreatorQualificationPage() {
                 id="delay_unit"
                 value={settings.delay_unit}
                 onChange={(e) => setSettings({ ...settings, delay_unit: e.target.value })}
-                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                className="w-full rounded-lg border-none bg-background px-3 py-2 text-sm"
               >
                 <option value="hours">Hours</option>
                 <option value="days">Days</option>
@@ -205,9 +205,9 @@ export default function AdminCreatorQualificationPage() {
         </div>
 
         {/* Eligible Platforms */}
-        <div className="p-6 rounded-xl border border-border bg-card space-y-4">
+        <div className="p-4 rounded-lg border-none bg-card space-y-4">
           <div className="flex items-center gap-2 border-b pb-3">
-            <SlidersIcon className="h-5 w-5 text-primary" />
+            <SlidersIcon weight="fill" className="h-5 w-5 text-primary" />
             <h2 className="font-semibold text-foreground">Eligible Platforms</h2>
           </div>
           <p className="text-sm text-muted-foreground">Select which social platforms contribute to the combined follower count.</p>
@@ -227,7 +227,7 @@ export default function AdminCreatorQualificationPage() {
                   }`}
                 >
                   <span>{prov.label}</span>
-                  {active && <CheckCircle2Icon className="h-4 w-4 text-primary" />}
+                  {active && <CheckCircle2Icon weight="fill" className="h-4 w-4 text-primary" />}
                 </button>
               );
             })}
@@ -235,9 +235,9 @@ export default function AdminCreatorQualificationPage() {
         </div>
 
         {/* Reminder & Expiry Settings */}
-        <div className="p-6 rounded-xl border border-border bg-card space-y-4">
+        <div className="p-4 rounded-lg border-none bg-card space-y-4">
           <div className="flex items-center gap-2 border-b pb-3">
-            <ClockIcon className="h-5 w-5 text-primary" />
+            <ClockIcon weight="fill" className="h-5 w-5 text-primary" />
             <h2 className="font-semibold text-foreground">Reminder & Expiry</h2>
           </div>
 
@@ -266,7 +266,7 @@ export default function AdminCreatorQualificationPage() {
                 type="number"
                 value={settings.reminder_delay_hours}
                 onChange={(e) => setSettings({ ...settings, reminder_delay_hours: safeNum(e.target.value, 48) })}
-                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                className="w-full rounded-lg border-none bg-background px-3 py-2 text-sm"
                 min="1"
                 disabled={!settings.reminder_enabled}
               />
@@ -280,7 +280,7 @@ export default function AdminCreatorQualificationPage() {
                 type="number"
                 value={settings.auto_expiry_hours}
                 onChange={(e) => setSettings({ ...settings, auto_expiry_hours: safeNum(e.target.value, 168) })}
-                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                className="w-full rounded-lg border-none bg-background px-3 py-2 text-sm"
                 min="1"
               />
               <p className="text-xs text-muted-foreground mt-1">Hours until a pending event expires without action.</p>
@@ -289,10 +289,10 @@ export default function AdminCreatorQualificationPage() {
         </div>
 
         {/* Email Settings */}
-        <div className="p-6 rounded-xl border border-border bg-card space-y-4">
+        <div className="p-4 rounded-lg border-none bg-card space-y-4">
           <div className="flex items-center justify-between border-b pb-3">
             <div className="flex items-center gap-2">
-              <MailIcon className="h-5 w-5 text-primary" />
+              <MailIcon weight="fill" className="h-5 w-5 text-primary" />
               <h2 className="font-semibold text-foreground">Automated Outreach Email</h2>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
@@ -314,7 +314,7 @@ export default function AdminCreatorQualificationPage() {
               type="text"
               value={settings.email_subject}
               onChange={(e) => setSettings({ ...settings, email_subject: e.target.value })}
-              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+              className="w-full rounded-lg border-none bg-background px-3 py-2 text-sm"
             />
           </div>
 
@@ -325,7 +325,7 @@ export default function AdminCreatorQualificationPage() {
               rows={4}
               value={settings.email_content}
               onChange={(e) => setSettings({ ...settings, email_content: e.target.value })}
-              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+              className="w-full rounded-lg border-none bg-background px-3 py-2 text-sm"
             />
           </div>
         </div>

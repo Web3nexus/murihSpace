@@ -1,5 +1,8 @@
 import { useState, useEffect, useMemo, useRef } from "react";
-import { ChevronDown, Loader2 } from "lucide-react";
+import {
+  CaretDown as ChevronDown,
+  Spinner as Loader2
+} from "@phosphor-icons/react";
 import { env } from "@/config/env";
 
 const API_BASE = env.VITE_API_BASE_URL;
@@ -150,7 +153,7 @@ export function PhoneInput({
   };
 
   return (
-    <div className={`relative flex items-center rounded-xl border border-border bg-card text-foreground focus-within:border-[#2164b6]/50 transition-colors ${className}`}>
+    <div className={`relative flex items-center rounded-lg border-none bg-card text-foreground focus-within:border-[#2164b6]/50 transition-colors ${className}`}>
       {/* Country calling code picker */}
       <div ref={dropdownRef} className="relative shrink-0">
         <button
@@ -160,24 +163,24 @@ export function PhoneInput({
           className="flex items-center gap-1.5 px-3 py-2.5 border-r border-border bg-muted/30 text-xs font-bold text-foreground hover:bg-muted/60 transition-colors rounded-l-xl"
         >
           {loading ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
+            <Loader2 weight="fill" className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
           ) : (
             <>
               <span className="text-base leading-none">{currentCountry.flag || "🌐"}</span>
               <span className="font-mono text-muted-foreground">+{currentCountry.calling_code}</span>
-              <ChevronDown className="h-3 w-3 text-muted-foreground" />
+              <ChevronDown weight="fill" className="h-3 w-3 text-muted-foreground" />
             </>
           )}
         </button>
 
         {dropdownOpen && (
-          <div className="absolute top-full left-0 z-50 mt-1 w-64 max-h-60 overflow-y-auto rounded-2xl border border-border bg-card shadow-xl p-1 space-y-0.5 scrollbar-thin">
+          <div className="absolute top-full left-0 z-50 mt-1 w-64 max-h-60 overflow-y-auto rounded-lg border-none bg-card shadow-xl p-1 space-y-0.5 scrollbar-thin">
             {countries.map((c) => (
               <button
                 key={c.iso2}
                 type="button"
                 onClick={() => handleCountrySelect(c)}
-                className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-colors ${
+                className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
                   selectedIso2.toLowerCase() === c.iso2.toLowerCase()
                     ? "bg-[#2164b6]/10 text-[#2164b6] dark:text-[#7ab0ff] font-bold"
                     : "hover:bg-muted/50 text-foreground"

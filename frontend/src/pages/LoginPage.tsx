@@ -8,7 +8,16 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { PhoneInput } from "@/components/forms/PhoneInput";
 import { OtpInput } from "@/components/forms/OtpInput";
-import { Loader2, ShieldAlert, ArrowLeft, RefreshCw, CheckCircle2, Smartphone, Eye, EyeOff } from "lucide-react";
+import {
+  Spinner as Loader2,
+  ShieldWarning as ShieldWarning,
+  ArrowLeft as ArrowLeft,
+  ArrowsClockwise as RefreshCw,
+  CheckCircle as CheckCircle2,
+  DeviceMobile as Smartphone,
+  Eye as Eye,
+  EyeSlash as EyeOff
+} from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
 import { AuthLayout } from "@/components/layout/AuthLayout";
 
@@ -168,7 +177,7 @@ export function LoginPage() {
     >
       <div className="flex flex-col gap-5">
         <div className="flex flex-col gap-1 text-left">
-          <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+          <h2 className="text-xl sm:text-xl font-extrabold tracking-tight text-slate-900 dark:text-white">
             Log in to MurihSpace
           </h2>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
@@ -177,9 +186,9 @@ export function LoginPage() {
         </div>
 
         {adminBlocked && (
-          <div className="rounded-xl bg-amber-500/10 border border-amber-500/20 p-4 text-center">
+          <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 p-4 text-center">
             <div className="flex items-center justify-center gap-2 mb-2">
-              <ShieldAlert className="h-4 w-4 text-amber-500" />
+              <ShieldWarning weight="fill" className="h-4 w-4 text-amber-500" />
               <span className="text-xs font-bold text-amber-500 uppercase tracking-wide">Admin access</span>
             </div>
             <p className="text-xs text-amber-600 dark:text-amber-400">
@@ -193,10 +202,10 @@ export function LoginPage() {
         )}
 
         {memberBlocked && (
-          <div className="rounded-xl bg-blue-500/10 border border-blue-500/20 p-6 text-center shadow-sm">
+          <div className="rounded-lg bg-blue-500/10 border border-blue-500/20 p-4 text-center ">
             <div className="flex items-center justify-center mb-3">
               <div className="bg-blue-100 dark:bg-blue-900/40 p-3 rounded-full text-blue-600 dark:text-blue-400">
-                <Smartphone className="h-6 w-6" />
+                <Smartphone weight="fill" className="h-6 w-6" />
               </div>
             </div>
             <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-2">Download the App</h3>
@@ -215,21 +224,21 @@ export function LoginPage() {
         )}
 
         {socialError && (
-          <div className="rounded-xl bg-rose-500/10 border border-rose-500/20 p-3 text-xs sm:text-sm text-rose-500 text-center font-medium">
+          <div className="rounded-lg bg-rose-500/10 border border-rose-500/20 p-3 text-xs sm:text-sm text-rose-500 text-center font-medium">
             {socialError}
           </div>
         )}
 
         {/* Method tabs */}
         {(phoneLoginEnabled && emailLoginEnabled) && (
-          <div className="flex rounded-xl border border-border bg-muted/30 p-1">
+          <div className="flex rounded-lg border-none bg-muted/30 p-1">
             {phoneLoginEnabled && (
               <button
                 type="button"
                 onClick={() => setTab("phone")}
                 className={cn(
                   "flex-1 rounded-lg py-2 text-xs font-bold transition-colors",
-                  tab === "phone" ? "bg-[#2164b6] text-white shadow-sm" : "text-slate-500 dark:text-slate-400 hover:text-foreground"
+                  tab === "phone" ? "bg-[#2164b6] text-white " : "text-slate-500 dark:text-slate-400 hover:text-foreground"
                 )}
               >
                 Phone
@@ -241,7 +250,7 @@ export function LoginPage() {
                 onClick={() => setTab("email")}
                 className={cn(
                   "flex-1 rounded-lg py-2 text-xs font-bold transition-colors",
-                  tab === "email" ? "bg-[#2164b6] text-white shadow-sm" : "text-slate-500 dark:text-slate-400 hover:text-foreground"
+                  tab === "email" ? "bg-[#2164b6] text-white " : "text-slate-500 dark:text-slate-400 hover:text-foreground"
                 )}
               >
                 Email & password
@@ -279,16 +288,16 @@ export function LoginPage() {
                     id="login-phone-submit"
                     type="submit"
                     disabled={loading || !phoneE164}
-                    className="w-full h-12 rounded-xl bg-[#2164b6] hover:bg-[#1a5091] text-white text-base font-bold shadow-lg shadow-[#2164b6]/25 transition-all duration-200 active:scale-[0.99]"
+                    className="w-full h-12 rounded-lg bg-[#2164b6] hover:bg-[#1a5091] text-white text-base font-bold shadow-lg shadow-[#2164b6]/25 transition-all duration-200 active:scale-[0.99]"
                   >
-                    {loading ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Sending code…</> : "Continue"}
+                    {loading ? <><Loader2 weight="fill" className="mr-2 h-5 w-5 animate-spin" /> Sending code…</> : "Continue"}
                   </Button>
                 </FieldGroup>
               </form>
             ) : (
               <div className="space-y-4">
-                <div className="p-3 rounded-xl bg-[#2164b6]/10 border border-[#2164b6]/20 flex items-center gap-2.5">
-                  <CheckCircle2 className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff] shrink-0" />
+                <div className="p-3 rounded-lg bg-[#2164b6]/10 border border-[#2164b6]/20 flex items-center gap-2.5">
+                  <CheckCircle2 weight="fill" className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff] shrink-0" />
                   <p className="text-xs font-medium text-slate-700 dark:text-slate-300">
                     We sent a 6-digit code to <span className="font-bold text-[#2164b6] dark:text-[#7ab0ff]">{maskedPhone}</span>.
                   </p>
@@ -307,14 +316,14 @@ export function LoginPage() {
                     <p className="text-xs text-rose-500 text-center font-medium">{otpError || error}</p>
                   )}
                   {noAccount && (
-                    <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-center space-y-2">
+                    <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-center space-y-2">
                       <p className="text-xs text-amber-600 dark:text-amber-400 font-medium">
                         No account is linked to this number.
                       </p>
                       <Button
                         type="button"
                         onClick={goToRegister}
-                        className="w-full h-10 rounded-xl bg-[#2164b6] hover:bg-[#1a5091] text-white text-sm font-bold"
+                        className="w-full h-10 rounded-lg bg-[#2164b6] hover:bg-[#1a5091] text-white text-sm font-bold"
                       >
                         Create an account with this number
                       </Button>
@@ -328,7 +337,7 @@ export function LoginPage() {
                       disabled={loading}
                       className="text-sm text-slate-600 dark:text-slate-400"
                     >
-                      <ArrowLeft className="h-4 w-4 mr-1" /> Change number
+                      <ArrowLeft weight="fill" className="h-4 w-4 mr-1" /> Change number
                     </Button>
                     <Button
                       type="button"
@@ -337,7 +346,7 @@ export function LoginPage() {
                       disabled={loading || resendIn > 0}
                       className="flex-1 text-sm text-[#2164b6] dark:text-[#7ab0ff]"
                     >
-                      <RefreshCw className={cn("h-4 w-4 mr-1", resendIn > 0 && "opacity-50")} />
+                      <RefreshCw weight="fill" className={cn("h-4 w-4 mr-1", resendIn > 0 && "opacity-50")} />
                       {resendIn > 0 ? `Resend in ${resendIn}s` : "Resend code"}
                     </Button>
                   </div>
@@ -345,9 +354,9 @@ export function LoginPage() {
                     id="login-phone-verify"
                     type="submit"
                     disabled={loading || code.length < 6}
-                    className="w-full h-12 rounded-xl bg-[#2164b6] hover:bg-[#1a5091] text-white text-base font-bold shadow-lg shadow-[#2164b6]/25 transition-all duration-200 active:scale-[0.99]"
+                    className="w-full h-12 rounded-lg bg-[#2164b6] hover:bg-[#1a5091] text-white text-base font-bold shadow-lg shadow-[#2164b6]/25 transition-all duration-200 active:scale-[0.99]"
                   >
-                    {loading ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Verifying…</> : "Log in"}
+                    {loading ? <><Loader2 weight="fill" className="mr-2 h-5 w-5 animate-spin" /> Verifying…</> : "Log in"}
                   </Button>
                 </form>
               </div>
@@ -373,7 +382,7 @@ export function LoginPage() {
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
                   disabled={loading}
                   className={cn(
-                    "h-12 px-4 rounded-xl text-sm bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-800 focus:border-[#2164b6] focus:ring-2 focus:ring-[#2164b6]/20",
+                    "h-12 px-4 rounded-lg text-sm bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-800 focus:border-[#2164b6] focus:ring-2 focus:ring-[#2164b6]/20",
                     fieldErrors.email && "border-rose-500 focus-visible:ring-rose-500"
                   )}
                 />
@@ -400,7 +409,7 @@ export function LoginPage() {
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
                     disabled={loading}
                     className={cn(
-                      "h-12 px-4 rounded-xl text-sm bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-800 focus:border-[#2164b6] focus:ring-2 focus:ring-[#2164b6]/20",
+                      "h-12 px-4 rounded-lg text-sm bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-800 focus:border-[#2164b6] focus:ring-2 focus:ring-[#2164b6]/20",
                       fieldErrors.password && "border-rose-500 focus-visible:ring-rose-500"
                     )}
                   />
@@ -409,14 +418,14 @@ export function LoginPage() {
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 focus:outline-none"
                   >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye weight="fill" className="w-4 h-4" />}
                   </button>
                 </div>
                 {fieldErrors.password && <p className="text-xs text-rose-500 mt-1">{fieldErrors.password[0]}</p>}
               </Field>
 
               {!adminBlocked && error && (
-                <div id="login-error" className="rounded-xl bg-rose-500/10 border border-rose-500/20 p-3 text-xs sm:text-sm text-rose-500 text-center font-medium">
+                <div id="login-error" className="rounded-lg bg-rose-500/10 border border-rose-500/20 p-3 text-xs sm:text-sm text-rose-500 text-center font-medium">
                   {error}
                 </div>
               )}
@@ -426,9 +435,9 @@ export function LoginPage() {
                   id="login-submit"
                   type="submit"
                   disabled={loading || !email || !password}
-                  className="w-full h-12 rounded-xl bg-[#2164b6] hover:bg-[#1a5091] text-white text-base font-bold shadow-lg shadow-[#2164b6]/25 transition-all duration-200 active:scale-[0.99]"
+                  className="w-full h-12 rounded-lg bg-[#2164b6] hover:bg-[#1a5091] text-white text-base font-bold shadow-lg shadow-[#2164b6]/25 transition-all duration-200 active:scale-[0.99]"
                 >
-                  {loading ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Logging in…</> : "Log in"}
+                  {loading ? <><Loader2 weight="fill" className="mr-2 h-5 w-5 animate-spin" /> Logging in…</> : "Log in"}
                 </Button>
               </Field>
             </FieldGroup>
@@ -455,11 +464,11 @@ export function LoginPage() {
                     type="button"
                     onClick={() => handleSocialLogin(p)}
                     disabled={socialLoading !== null}
-                    className={`flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-bold text-slate-700 dark:text-slate-300 hover:border-[#2164b6]/50 transition-all ${
+                    className={`flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-bold text-slate-700 dark:text-slate-300 hover:border-[#2164b6]/50 transition-all ${
                       socialLoadingState ? "opacity-50" : ""
                     }`}
                   >
-                    {socialLoadingState ? <Loader2 className="h-4 w-4 animate-spin" /> : (
+                    {socialLoadingState ? <Loader2 weight="fill" className="h-4 w-4 animate-spin" /> : (
                       <span className="font-bold text-base">{p === "google" ? "G" : "A"}</span>
                     )}
                     <span className="hidden sm:inline capitalize">{p}</span>
@@ -475,7 +484,7 @@ export function LoginPage() {
           <Link
             to="/register"
             id="login-create-account-btn"
-            className="w-full h-12 rounded-xl border-2 border-[#2164b6] text-[#2164b6] dark:text-[#7ab0ff] hover:bg-[#2164b6]/10 font-bold text-sm sm:text-base flex items-center justify-center transition-all duration-200 active:scale-[0.99]"
+            className="w-full h-12 rounded-lg border-2 border-[#2164b6] text-[#2164b6] dark:text-[#7ab0ff] hover:bg-[#2164b6]/10 font-bold text-sm sm:text-base flex items-center justify-center transition-all duration-200 active:scale-[0.99]"
           >
             Create new account
           </Link>

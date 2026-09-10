@@ -52,7 +52,16 @@ class AudioRoomController extends Controller
             'is_recorded' => ['nullable', 'boolean'],
         ]);
 
-        $validated['creator_id'] = $request->user()->id;
+        $user = $request->user();
+        if (!in_array($user->kyc_status, ['verified', 'approved'], true)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Identity verification (KYC) is required to host audio rooms.',
+                'error' => 'kyc_required',
+            ], 403);
+        }
+
+        $validated['creator_id'] = $user->id;
         $validated['scheduled_at'] = $validated['scheduled_at'] ?? null;
         $validated['status'] = !empty($validated['scheduled_at']) ? 'scheduled' : 'scheduled';
         $validated['is_recorded'] ??= false;
@@ -134,7 +143,16 @@ class AudioRoomController extends Controller
     {
         $room = AudioRoom::findOrFail($id);
 
-        if ($room->creator_id !== $request->user()->id) {
+        $user = $request->user();
+        if (!in_array($user->kyc_status, ['verified', 'approved'], true)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Identity verification (KYC) is required before starting an audio room.',
+                'error' => 'kyc_required',
+            ], 403);
+        }
+
+        if ($room->creator_id !== $user->id) {
             return response()->json(['message' => 'Forbidden.'], 403);
         }
 

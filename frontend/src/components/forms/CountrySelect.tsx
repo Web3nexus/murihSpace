@@ -1,5 +1,9 @@
 import { useState, useEffect, useRef, useMemo } from "react";
-import { ChevronDown, Search, Loader2 } from "lucide-react";
+import {
+  CaretDown as ChevronDown,
+  MagnifyingGlass as Search,
+  Spinner as Loader2
+} from "@phosphor-icons/react";
 
 export interface CountryItem {
   iso2: string;
@@ -116,11 +120,11 @@ export function CountrySelect({
         type="button"
         disabled={disabled || loading}
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl border border-border bg-card text-foreground text-sm font-medium focus:outline-none focus:border-[#2164b6]/50 disabled:opacity-50 transition-colors"
+        className="w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-lg border-none bg-card text-foreground text-sm font-medium focus:outline-none focus:border-[#2164b6]/50 disabled:opacity-50 transition-colors"
       >
         <span className="flex items-center gap-2 truncate">
           {loading ? (
-            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+            <Loader2 weight="fill" className="h-4 w-4 animate-spin text-muted-foreground" />
           ) : selectedCountry ? (
             <>
               <span className="text-base leading-none">{selectedCountry.flag || "🌐"}</span>
@@ -131,13 +135,13 @@ export function CountrySelect({
             <span className="text-muted-foreground">{placeholder}</span>
           )}
         </span>
-        <ChevronDown className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
+        <ChevronDown weight="fill" className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
 
       {open && (
-        <div className="absolute z-50 mt-1.5 w-full rounded-2xl border border-border bg-card shadow-xl overflow-hidden animate-in fade-in-50 zoom-in-95">
+        <div className="absolute z-50 mt-1.5 w-full rounded-lg border-none bg-card shadow-xl overflow-hidden animate-in fade-in-50 zoom-in-95">
           <div className="p-2 border-b border-border bg-muted/30 flex items-center gap-2">
-            <Search className="h-4 w-4 text-muted-foreground shrink-0 ml-1" />
+            <Search weight="fill" className="h-4 w-4 text-muted-foreground shrink-0 ml-1" />
             <input
               type="text"
               value={search}
@@ -158,7 +162,7 @@ export function CountrySelect({
                     key={c.iso2}
                     type="button"
                     onClick={() => handleSelect(c)}
-                    className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-colors ${
+                    className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
                       isSelected
                         ? "bg-[#2164b6]/10 text-[#2164b6] dark:text-[#7ab0ff] font-bold"
                         : "hover:bg-muted/50 text-foreground"

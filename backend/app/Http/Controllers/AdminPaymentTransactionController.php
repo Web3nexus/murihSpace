@@ -222,3 +222,4 @@ class AdminPaymentTransactionController extends Controller
         return response()->json(['success' => true, 'data' => $logs]);
     }
 }
+

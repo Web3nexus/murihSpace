@@ -1,22 +1,22 @@
 import { getAuthToken } from "@/lib/auth/token";
 import { useEffect, useState } from "react";
 import {
-  Mail,
-  Loader2,
-  Save,
-  Send,
-  AlertCircle,
-  CheckCircle2,
-  Eye,
-  EyeOff,
-  Lock,
-  Server,
-  TerminalSquare,
-  ShipWheel,
-  Cloud,
-  Paperclip,
-  Archive,
-} from "lucide-react";
+  Envelope as Envelope,
+  Spinner as Loader2,
+  FloppyDisk as FloppyDisk,
+  PaperPlaneRight as Send,
+  WarningCircle as AlertCircle,
+  CheckCircle as CheckCircle2,
+  Eye as Eye,
+  EyeSlash as EyeOff,
+  Lock as Lock,
+  HardDrives as HardDrives,
+  TerminalWindow as TerminalWindow,
+  SteeringWheel as SteeringWheel,
+  Cloud as Cloud,
+  Paperclip as Paperclip,
+  Archive as Archive
+} from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,12 +25,12 @@ import { authFetch } from "@/lib/api/authFetch";
 
 
 
-const TRANSPORTS: { id: string; label: string; desc: string; color: string; icon: typeof Server }[] = [
-  { id: "smtp", label: "SMTP", desc: "Any SMTP relay or mailbox (Mailgun, SendGrid, Gmail, etc.).", color: "from-sky-500/20 to-indigo-500/20", icon: Server },
-  { id: "postmark", label: "Postmark", desc: "High-deliverability transactional email API.", color: "from-emerald-500/20 to-teal-500/20", icon: ShipWheel },
+const TRANSPORTS: { id: string; label: string; desc: string; color: string; icon: typeof HardDrives }[] = [
+  { id: "smtp", label: "SMTP", desc: "Any SMTP relay or mailbox (Mailgun, SendGrid, Gmail, etc.).", color: "from-sky-500/20 to-indigo-500/20", icon: HardDrives },
+  { id: "postmark", label: "Postmark", desc: "High-deliverability transactional email API.", color: "from-emerald-500/20 to-teal-500/20", icon: SteeringWheel },
   { id: "ses", label: "Amazon SES", desc: "Simple Email Service for cost-effective volume sending.", color: "from-orange-500/20 to-amber-500/20", icon: Cloud },
   { id: "resend", label: "Resend", desc: "Developer-friendly email API with great deliverability.", color: "from-rose-500/20 to-pink-500/20", icon: Paperclip },
-  { id: "sendmail", label: "Sendmail", desc: "Local MTA on the server.", color: "from-slate-500/20 to-slate-600/20", icon: TerminalSquare },
+  { id: "sendmail", label: "Sendmail", desc: "Local MTA on the server.", color: "from-slate-500/20 to-slate-600/20", icon: TerminalWindow },
   { id: "log", label: "Log", desc: "Write emails to the log for development and testing.", color: "from-amber-500/20 to-yellow-500/20", icon: Archive },
   { id: "array", label: "Array", desc: "Collect emails in memory (test suites only).", color: "from-gray-500/20 to-gray-600/20", icon: Archive },
 ];
@@ -119,14 +119,14 @@ export default function AdminEmailEngineSettingsPage() {
       };
       const res = await authFetch(`/securegate/mail-settings`, { method: "PUT", headers: authHeaders(), body: JSON.stringify(body) });
       const j = await res.json();
-      if (!res.ok) throw new Error(j?.message ?? "Save failed");
+      if (!res.ok) throw new Error(j?.message ?? "FloppyDisk failed");
       const d = j?.success ? j?.data?.data ?? j?.data : j;
       setSettings(((d?.config ?? d) ?? settings));
       setSecrets({});
       setTestResult(null);
-      toast.success("Mail engine configuration saved.");
+      toast.success("Envelope engine configuration saved.");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Save failed");
+      toast.error(e instanceof Error ? e.message : "FloppyDisk failed");
     } finally {
       setSaving(false);
     }
@@ -160,20 +160,20 @@ export default function AdminEmailEngineSettingsPage() {
   };
 
   if (loading) {
-    return <div className="flex justify-center py-24"><Loader2 className="h-8 w-8 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" /></div>;
+    return <div className="flex justify-center py-24"><Loader2 weight="fill" className="h-8 w-8 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" /></div>;
   }
 
   if (!settings) {
-    return <div className="flex justify-center py-24"><AlertCircle className="h-8 w-8 text-rose-500" /></div>;
+    return <div className="flex justify-center py-24"><AlertCircle weight="fill" className="h-8 w-8 text-rose-500" /></div>;
   }
 
   const s = settings;
 
   return (
-    <div className="w-full mx-auto max-w-[880px] space-y-6 p-6 lg:p-10">
+    <div className="w-full mx-auto max-w-[880px] space-y-6 p-4 lg:p-10">
       <div>
-        <h1 className="text-2xl font-black tracking-tight flex items-center gap-2.5">
-          <Mail className="h-6 w-6 text-[#2164b6] dark:text-[#7ab0ff]" /> Mail Engine
+        <h1 className="text-xl font-black tracking-tight flex items-center gap-2.5">
+          <Envelope weight="fill" className="h-6 w-6 text-[#2164b6] dark:text-[#7ab0ff]" /> Envelope Engine
         </h1>
         <p className="text-xs text-muted-foreground mt-1">
           Choose the mail transport used for transactional email. Secrets are encrypted at rest and never exposed again; enter a new value to replace one.
@@ -189,10 +189,10 @@ export default function AdminEmailEngineSettingsPage() {
             <button
               key={t.id}
               onClick={() => patch(["transport"], t.id)}
-              className={`text-left rounded-2xl border p-4 transition-all ${active ? "border-[#2164b6] ring-2 ring-[#2164b6]/20 bg-[#2164b6]/5" : "border-border bg-card hover:border-[#2164b6]/40"}`}
+              className={`text-left rounded-lg border p-4 transition-all ${active ? "border-[#2164b6] ring-2 ring-[#2164b6]/20 bg-[#2164b6]/5" : "border-border bg-card hover:border-[#2164b6]/40"}`}
             >
               <div className="flex items-center justify-between mb-2">
-                <div className={`h-9 w-9 rounded-xl bg-gradient-to-br ${t.color} flex items-center justify-center`}>
+                <div className={`h-9 w-9 rounded-lg bg-gradient-to-br ${t.color} flex items-center justify-center`}>
                   <Icon className="h-4.5 w-4.5 text-[#2164b6] dark:text-[#7ab0ff]" />
                 </div>
                 {active && (
@@ -209,7 +209,7 @@ export default function AdminEmailEngineSettingsPage() {
       </div>
 
       {/* From / identity */}
-      <div className="border border-border rounded-2xl bg-card p-6 space-y-4">
+      <div className="border-none rounded-lg bg-card p-4 space-y-4">
         <p className="text-xs font-black text-foreground uppercase tracking-wide">Sender identity</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
@@ -235,9 +235,9 @@ export default function AdminEmailEngineSettingsPage() {
 
       {/* SMTP config */}
       {s.transport === "smtp" && (
-        <div className="border border-border rounded-2xl bg-card p-6 space-y-4">
+        <div className="border-none rounded-lg bg-card p-4 space-y-4">
           <p className="text-xs font-black text-foreground uppercase tracking-wide flex items-center gap-1.5">
-            <Server className="h-3.5 w-3.5 text-[#2164b6] dark:text-[#7ab0ff]" /> SMTP settings
+            <HardDrives weight="fill" className="h-3.5 w-3.5 text-[#2164b6] dark:text-[#7ab0ff]" /> SMTP settings
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
@@ -260,7 +260,7 @@ export default function AdminEmailEngineSettingsPage() {
             </div>
             <div>
               <Label className="text-[11px] font-bold text-muted-foreground flex items-center gap-1">
-                <Lock className="h-3 w-3" /> Password
+                <Lock weight="fill" className="h-3 w-3" /> Password
               </Label>
               <div className="relative mt-1">
                 <Input
@@ -272,7 +272,7 @@ export default function AdminEmailEngineSettingsPage() {
                   className="pr-10"
                 />
                 <button type="button" onClick={() => toggleReveal("smtp_password")} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
-                  {reveal.smtp_password ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  {reveal.smtp_password ? <EyeOff className="h-4 w-4" /> : <Eye weight="fill" className="h-4 w-4" />}
                 </button>
               </div>
             </div>
@@ -282,13 +282,13 @@ export default function AdminEmailEngineSettingsPage() {
 
       {/* Service keys */}
       {s.transport === "postmark" && (
-        <div className="border border-border rounded-2xl bg-card p-6 space-y-3">
+        <div className="border-none rounded-lg bg-card p-4 space-y-3">
           <p className="text-xs font-black text-foreground uppercase tracking-wide flex items-center gap-1.5">
-            <ShipWheel className="h-3.5 w-3.5 text-[#2164b6] dark:text-[#7ab0ff]" /> Postmark
+            <SteeringWheel weight="fill" className="h-3.5 w-3.5 text-[#2164b6] dark:text-[#7ab0ff]" /> Postmark
           </p>
           <div>
             <Label className="text-[11px] font-bold text-muted-foreground flex items-center gap-1">
-              <Lock className="h-3 w-3" /> Server API token
+              <Lock weight="fill" className="h-3 w-3" /> HardDrives API token
             </Label>
             <div className="relative mt-1">
               <Input
@@ -300,7 +300,7 @@ export default function AdminEmailEngineSettingsPage() {
                 className="pr-10"
               />
               <button type="button" onClick={() => toggleReveal("postmark_key")} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
-                {reveal.postmark_key ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                {reveal.postmark_key ? <EyeOff className="h-4 w-4" /> : <Eye weight="fill" className="h-4 w-4" />}
               </button>
             </div>
           </div>
@@ -308,9 +308,9 @@ export default function AdminEmailEngineSettingsPage() {
       )}
 
       {s.transport === "ses" && (
-        <div className="border border-border rounded-2xl bg-card p-6">
+        <div className="border-none rounded-lg bg-card p-4">
           <p className="text-xs font-black text-foreground uppercase tracking-wide flex items-center gap-1.5">
-            <Cloud className="h-3.5 w-3.5 text-[#2164b6] dark:text-[#7ab0ff]" /> Amazon SES
+            <Cloud weight="fill" className="h-3.5 w-3.5 text-[#2164b6] dark:text-[#7ab0ff]" /> Amazon SES
           </p>
           <p className="text-[11px] text-muted-foreground mt-2 leading-relaxed">
             Amazon SES uses your IAM credentials from <code className="text-[#2164b6] dark:text-[#7ab0ff]">AWS_ACCESS_KEY_ID</code> / <code className="text-[#2164b6] dark:text-[#7ab0ff]">AWS_SECRET_ACCESS_KEY</code> and the region set in <code className="text-[#2164b6] dark:text-[#7ab0ff]">AWS_DEFAULT_REGION</code>. Configure those via the server environment.
@@ -319,13 +319,13 @@ export default function AdminEmailEngineSettingsPage() {
       )}
 
       {s.transport === "resend" && (
-        <div className="border border-border rounded-2xl bg-card p-6 space-y-3">
+        <div className="border-none rounded-lg bg-card p-4 space-y-3">
           <p className="text-xs font-black text-foreground uppercase tracking-wide flex items-center gap-1.5">
-            <Paperclip className="h-3.5 w-3.5 text-[#2164b6] dark:text-[#7ab0ff]" /> Resend
+            <Paperclip weight="fill" className="h-3.5 w-3.5 text-[#2164b6] dark:text-[#7ab0ff]" /> Resend
           </p>
           <div>
             <Label className="text-[11px] font-bold text-muted-foreground flex items-center gap-1">
-              <Lock className="h-3 w-3" /> API key
+              <Lock weight="fill" className="h-3 w-3" /> API key
             </Label>
             <div className="relative mt-1">
               <Input
@@ -337,7 +337,7 @@ export default function AdminEmailEngineSettingsPage() {
                 className="pr-10"
               />
               <button type="button" onClick={() => toggleReveal("resend_key")} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
-                {reveal.resend_key ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                {reveal.resend_key ? <EyeOff className="h-4 w-4" /> : <Eye weight="fill" className="h-4 w-4" />}
               </button>
             </div>
           </div>
@@ -345,9 +345,9 @@ export default function AdminEmailEngineSettingsPage() {
       )}
 
       {s.transport === "sendmail" && (
-        <div className="border border-border rounded-2xl bg-card p-6 space-y-3">
+        <div className="border-none rounded-lg bg-card p-4 space-y-3">
           <p className="text-xs font-black text-foreground uppercase tracking-wide flex items-center gap-1.5">
-            <TerminalSquare className="h-3.5 w-3.5 text-[#2164b6] dark:text-[#7ab0ff]" /> Sendmail
+            <TerminalWindow weight="fill" className="h-3.5 w-3.5 text-[#2164b6] dark:text-[#7ab0ff]" /> Sendmail
           </p>
           <div>
             <Label className="text-[11px] font-bold text-muted-foreground">Sendmail path</Label>
@@ -356,11 +356,11 @@ export default function AdminEmailEngineSettingsPage() {
         </div>
       )}
 
-      {/* Save + test */}
-      <div className="flex flex-col sm:flex-row sm:items-center gap-3 justify-between border border-border rounded-2xl bg-card p-5">
+      {/* FloppyDisk + test */}
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3 justify-between border-none rounded-lg bg-card p-5">
         <Button onClick={save} disabled={saving} className="text-sm font-bold gap-1.5">
-          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-          Save mail engine
+          {saving ? <Loader2 weight="fill" className="h-4 w-4 animate-spin" /> : <FloppyDisk weight="fill" className="h-4 w-4" />}
+          FloppyDisk mail engine
         </Button>
         <div className="flex flex-col sm:flex-row sm:items-center gap-2">
           <Input
@@ -370,7 +370,7 @@ export default function AdminEmailEngineSettingsPage() {
             className="sm:w-64"
           />
           <Button variant="outline" onClick={test} disabled={testing} className="text-sm font-bold gap-1.5">
-            {testing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            {testing ? <Loader2 weight="fill" className="h-4 w-4 animate-spin" /> : <Send weight="fill" className="h-4 w-4" />}
             Send test email
           </Button>
         </div>
@@ -378,7 +378,7 @@ export default function AdminEmailEngineSettingsPage() {
 
       {testResult && (
         <p className={`text-[12px] font-semibold flex items-center gap-1.5 ${testResult.ok ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
-          {testResult.ok ? <CheckCircle2 className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
+          {testResult.ok ? <CheckCircle2 className="h-4 w-4" /> : <AlertCircle weight="fill" className="h-4 w-4" />}
           {testResult.text}
         </p>
       )}

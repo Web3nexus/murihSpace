@@ -1,182 +1,128 @@
 import {
-  LayoutDashboard,
+  ChartBar,
   Users,
-  Video,
-  Link2,
+  LinkSimple,
+  UsersThree,
+  ChatCircleDots,
+  VideoCamera,
   GraduationCap,
   CalendarCheck,
   Megaphone,
+  Broadcast,
   Handshake,
-  DollarSign,
-  TrendingUp,
-  Award,
+  ShoppingBag,
+  TrendUp,
+  Gift,
   Wallet,
-  Settings,
+  Gear,
   ShieldCheck,
-  Package,
-} from "lucide-react";
+} from "@phosphor-icons/react";
 import type { NavGroup } from "./navTypes";
 
 export const creatorNav: NavGroup[] = [
   {
-    title: "MAIN",
+    title: "",
     items: [
       {
-        title: "Dashboard",
-        url: "/app",
-        icon: <LayoutDashboard className="size-4" />,
+        title: "Insights",
+        url: "/app/insights",
+        icon: <ChartBar weight="fill" className="h-5 w-5" />,
       },
-    ],
-  },
-  {
-    title: "CREATE",
-    items: [
       {
         title: "Friends",
         url: "/app/friends",
-        icon: <Users className="size-4" />,
+        icon: <Users weight="fill" className="h-5 w-5" />,
         featureFlag: "friends",
-        children: [
-          { title: "My Friends", url: "/app/friends" },
-          { title: "Requests", url: "/app/requests" },
-        ],
       },
       {
         title: "Link in Bio & Site",
         url: "/app/link-in-bio",
-        icon: <Link2 className="size-4" />,
+        icon: <LinkSimple weight="bold" className="h-5 w-5" />,
         featureFlag: "link_in_bio",
-        children: [
-          { title: "Bio Page Editor", url: "/app/link-in-bio" },
-          { title: "Custom Domain", url: "/app/link-in-bio/domain" },
-          { title: "Appearance & Theme", url: "/app/link-in-bio/theme" },
-          { title: "Analytics", url: "/app/link-in-bio/analytics" },
-        ],
       },
       {
         title: "Community",
         url: "/app/communities",
-        icon: <Users className="size-4" />,
+        icon: <UsersThree weight="fill" className="h-5 w-5" />,
         featureFlag: "community_hub",
-        children: [
-          { title: "My Communities", url: "/app/communities" },
-          { title: "Feed & Posts", url: "/app/feed", featureFlag: "community_feed" },
-        ],
+      },
+      {
+        title: "Groups",
+        url: "/app/groups",
+        icon: <ChatCircleDots weight="fill" className="h-5 w-5" />,
       },
       {
         title: "Live Video & Events",
         url: "/app/events",
-        icon: <Video className="size-4" />,
+        icon: <VideoCamera weight="fill" className="h-5 w-5" />,
         featureFlag: "events",
-        children: [
-          { title: "Live Video Studio", url: "/app/audio-rooms", featureFlag: "audio_rooms" },
-          { title: "Events", url: "/app/events" },
-          { title: "My Events", url: "/app/my-events" },
-        ],
       },
-    ],
-  },
-  {
-    title: "LEARN & TEACH",
-    items: [
       {
         title: "Online Courses",
         url: "/app/courses",
-        icon: <GraduationCap className="size-4" />,
+        icon: <GraduationCap weight="fill" className="h-5 w-5" />,
         featureFlag: "courses",
-        children: [
-          { title: "Browse Courses", url: "/app/courses" },
-          { title: "My Enrolled Courses", url: "/app/courses/my" },
-          { title: "Course Studio (Creator)", url: "/app/courses/studio", featureFlag: "courses" },
-        ],
       },
       {
-        title: "1:1 Coaching & Bookings",
+        title: "1:1 Consultations & Meetings",
         url: "/app/coaching",
-        icon: <CalendarCheck className="size-4" />,
+        icon: <CalendarCheck weight="fill" className="h-5 w-5" />,
         featureFlag: "coaching",
       },
-    ],
-  },
-  {
-    title: "GROW",
-    items: [
+      {
+        title: "Ads Manager",
+        url: "/app/ads",
+        icon: <Megaphone weight="fill" className="h-5 w-5" />,
+      },
       {
         title: "Marketing",
         url: "/app/marketing",
-        icon: <Megaphone className="size-4" />,
+        icon: <Broadcast weight="fill" className="h-5 w-5" />,
         featureFlag: "email_broadcasts",
-        children: [
-          { title: "Overview", url: "/app/marketing" },
-          { title: "Email Broadcasts", url: "/app/marketing/broadcasts" },
-          { title: "Automated Sequences", url: "/app/marketing/sequences" },
-          { title: "Ad Campaigns", url: "/app/marketing/ads", featureFlag: "ad_campaigns" },
-        ],
       },
       {
         title: "Brand Deals",
         url: "/app/brand-deals",
-        icon: <Handshake className="size-4" />,
+        icon: <Handshake weight="fill" className="h-5 w-5" />,
         featureFlag: "brand_deals",
-        children: [
-          { title: "Marketplace", url: "/app/brand-deals" },
-          { title: "Active Proposals", url: "/app/brand-deals/proposals" },
-          { title: "Media Kit", url: "/app/brand-deals/media-kit" },
-          { title: "Brand Invoices", url: "/app/brand-deals/invoices" },
-        ],
       },
-    ],
-  },
-  {
-    title: "MONETIZE",
-    items: [
       {
         title: "Store Catalog",
-        url: "/app/store/digital",
-        icon: <Package className="size-4" />,
+        url: "/app/store",
+        icon: <ShoppingBag weight="fill" className="h-5 w-5" />,
         featureFlag: "digital_products",
-        children: [
-          { title: "Digital Products", url: "/app/store/digital" },
-          { title: "Store Overview", url: "/app/store" },
-        ],
-      },
-      {
-        title: "Memberships",
-        url: "/app/store/memberships",
-        icon: <DollarSign className="size-4" />,
-        featureFlag: "memberships",
       },
       {
         title: "Affiliate Hub",
         url: "/app/affiliate",
-        icon: <TrendingUp className="size-4" />,
+        icon: <TrendUp weight="fill" className="h-5 w-5" />,
         featureFlag: "affiliate",
       },
       {
         title: "Referrals & Rewards",
         url: "/app/referrals",
-        icon: <Award className="size-4" />,
+        icon: <Gift weight="fill" className="h-5 w-5" />,
       },
       {
         title: "MurihPay Wallet",
         url: "/app/wallet",
-        icon: <Wallet className="size-4" />,
+        icon: <Wallet weight="fill" className="h-5 w-5" />,
         featureFlag: "wallet",
       },
     ],
   },
   {
-    title: "SETTINGS",
+    title: "Shortcuts",
     items: [
       {
         title: "Settings & Profile",
         url: "/app/settings",
-        icon: <Settings className="size-4" />,
+        icon: <Gear weight="fill" className="h-5 w-5" />,
       },
       {
         title: "KYC Verification",
         url: "/app/kyc",
-        icon: <ShieldCheck className="size-4" />,
+        icon: <ShieldCheck weight="fill" className="h-5 w-5" />,
         featureFlag: "kyc",
       },
     ],

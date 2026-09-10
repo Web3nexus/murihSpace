@@ -1,5 +1,12 @@
 import { useState, useEffect, useCallback } from "react";
-import { Globe, Loader2, ExternalLink, CheckCircle2, XCircle, RefreshCw } from "lucide-react";
+import {
+  Globe as Globe,
+  Spinner as Loader2,
+  ArrowSquareOut as ExternalLink,
+  CheckCircle as CheckCircle2,
+  XCircle as XCircle,
+  ArrowsClockwise as RefreshCw
+} from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { authFetch } from "@/lib/api/authFetch";
@@ -71,17 +78,17 @@ export default function LinkInBioDomainPage() {
   };
 
   return (
-    <div className="w-full max-w-7xl mx-auto space-y-6 p-6 lg:p-8">
+    <div className="w-full max-w-7xl mx-auto space-y-6 p-4 lg:p-5">
       <div>
-        <h1 className="text-2xl font-black tracking-tight flex items-center gap-2.5">
-          <Globe className="h-6 w-6 text-[#2164b6] dark:text-[#7ab0ff]" /> Custom Domain
+        <h1 className="text-xl font-black tracking-tight flex items-center gap-2.5">
+          <Globe weight="fill" className="h-6 w-6 text-[#2164b6] dark:text-[#7ab0ff]" /> Custom Domain
         </h1>
         <p className="text-xs text-muted-foreground mt-1">Connect your own domain (e.g. yourname.com).</p>
       </div>
 
       {verified === true && (
-        <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-5 flex items-center gap-3">
-          <CheckCircle2 className="h-8 w-8 text-emerald-500 shrink-0" />
+        <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-5 flex items-center gap-3">
+          <CheckCircle2 weight="fill" className="h-8 w-8 text-emerald-500 shrink-0" />
           <div>
             <p className="text-sm font-bold text-emerald-500">Domain Verified</p>
             <p className="text-xs text-muted-foreground">
@@ -92,8 +99,8 @@ export default function LinkInBioDomainPage() {
       )}
 
       {verified === false && (
-        <div className="rounded-2xl border border-rose-500/20 bg-rose-500/5 p-5 flex items-center gap-3">
-          <XCircle className="h-8 w-8 text-rose-500 shrink-0" />
+        <div className="rounded-lg border border-rose-500/20 bg-rose-500/5 p-5 flex items-center gap-3">
+          <XCircle weight="fill" className="h-8 w-8 text-rose-500 shrink-0" />
           <div>
             <p className="text-sm font-bold text-rose-500">DNS Not Configured</p>
             <p className="text-xs text-muted-foreground">Add a CNAME record pointing to link.murihspace.com</p>
@@ -101,8 +108,8 @@ export default function LinkInBioDomainPage() {
         </div>
       )}
 
-      <div className="border border-border rounded-2xl bg-card p-6 space-y-4">
-        <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs">
+      <div className="border-none rounded-lg bg-card p-4 space-y-4">
+        <div className="p-4 rounded-lg bg-amber-500/10 border border-amber-500/20 text-xs">
           <p className="font-bold text-amber-400">How it works</p>
           <p className="mt-1 text-muted-foreground">
             Enter your domain below, then add a CNAME record pointing to{" "}
@@ -113,7 +120,7 @@ export default function LinkInBioDomainPage() {
 
         <form onSubmit={handleSave} className="space-y-4">
           {msg && (
-            <div className={`p-3 rounded-xl text-xs font-bold border ${
+            <div className={`p-3 rounded-lg text-xs font-bold border ${
               msg.ok ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : "bg-rose-500/10 text-rose-400 border-rose-500/20"
             }`}>{msg.text}</div>
           )}
@@ -122,20 +129,20 @@ export default function LinkInBioDomainPage() {
             <div className="flex gap-2">
               <Input value={domain} onChange={(e) => setDomain(e.target.value)} placeholder="yourname.com" className="flex-1 font-mono text-sm" />
               <Button type="submit" disabled={saving || !domain.trim()} className="text-sm font-bold shrink-0">
-                {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}Save
+                {saving ? <Loader2 weight="fill" className="h-4 w-4 animate-spin mr-2" /> : null}Save
               </Button>
             </div>
           </div>
         </form>
       </div>
 
-      <div className="border border-border rounded-2xl bg-card p-6 space-y-3">
+      <div className="border-none rounded-lg bg-card p-4 space-y-3">
         <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">DNS Configuration</h2>
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
               <tr className="text-left border-b border-border">
-                <th className="pb-2 font-bold text-muted-foreground">Type</th>
+                <th className="pb-2 font-bold text-muted-foreground">TextT</th>
                 <th className="pb-2 font-bold text-muted-foreground">Name</th>
                 <th className="pb-2 font-bold text-muted-foreground">Value</th>
               </tr>
@@ -151,7 +158,7 @@ export default function LinkInBioDomainPage() {
         </div>
         <div className="flex items-center justify-between">
           <a href="https://docs.murihspace.com/custom-domains" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-[#2164b6] dark:text-[#7ab0ff] font-bold hover:underline">
-            <ExternalLink className="h-3 w-3" /> View full setup guide
+            <ExternalLink weight="fill" className="h-3 w-3" /> View full setup guide
           </a>
           <Button
             variant="outline"
@@ -160,7 +167,7 @@ export default function LinkInBioDomainPage() {
             disabled={verifying || !currentDomain}
             className="gap-1.5 text-xs"
           >
-            {verifying ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+            {verifying ? <Loader2 weight="fill" className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw weight="fill" className="h-3.5 w-3.5" />}
             Verify DNS
           </Button>
         </div>

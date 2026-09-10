@@ -24,7 +24,7 @@ class AdminKycController extends Controller
     public function index(Request $request): JsonResponse
     {
         $request->validate([
-            'status' => ['sometimes', 'string', 'in:pending,verified,rejected,expired'],
+            'status' => ['sometimes', 'string', 'in:pending,verified,rejected,expired,unsubmitted,all'],
             'search' => ['sometimes', 'string', 'max:100'],
             'per_page' => ['sometimes', 'integer', 'min:1', 'max:50'],
         ]);
@@ -33,18 +33,27 @@ class AdminKycController extends Controller
         $search = trim((string) $request->query('search', ''));
         $perPage = (int) $request->query('per_page', 20);
 
-        $query = User::where('kyc_status', $status)
+        $query = User::query()
             ->select([
                 'id', 'name', 'email', 'username', 'role', 'kyc_status',
                 'kyc_document', 'kyc_rejection_reason', 'kyc_provider',
                 'sumsub_applicant_id', 'kyc_verification_id', 'created_at',
             ]);
 
+        if ($status === 'unsubmitted') {
+            $query->where(function ($q) {
+                $q->whereIn('kyc_status', ['unsubmitted', 'not_started'])
+                    ->orWhereNull('kyc_status');
+            });
+        } elseif ($status !== 'all') {
+            $query->where('kyc_status', $status);
+        }
+
         if ($search !== '') {
             $query->where(function ($q) use ($search) {
-                $q->where('name', 'ilike', "%{$search}%")
-                    ->orWhere('email', 'ilike', "%{$search}%")
-                    ->orWhere('username', 'ilike', "%{$search}%");
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhere('username', 'like', "%{$search}%");
             });
         }
 
@@ -54,6 +63,8 @@ class AdminKycController extends Controller
             'pending' => User::where('kyc_status', 'pending')->count(),
             'verified' => User::where('kyc_status', 'verified')->count(),
             'rejected' => User::where('kyc_status', 'rejected')->count(),
+            'unsubmitted' => User::whereIn('kyc_status', ['unsubmitted', 'not_started'])->orWhereNull('kyc_status')->count(),
+            'all' => User::count(),
         ];
 
         return response()->json([
@@ -143,16 +154,30 @@ class AdminKycController extends Controller
             $this->kyc->applyDecision($verification, KycStatus::Verified->value);
         }
 
+        // Explicitly guarantee user record is updated to verified
+        $user->update([
+            'kyc_status' => KycStatus::Verified->value,
+            'kyc_rejection_reason' => null,
+            'kyc_provider' => $provider,
+            'kyc_verification_id' => $verification->id,
+        ]);
+
         AuditLog::create([
             'user_id' => $user->id,
             'action' => 'kyc.approved',
             'resource_type' => 'kyc_verification',
             'resource_id' => (string) $verification->id,
-            'metadata' => ['provider' => $provider],
+            'metadata' => [
+                'provider' => $provider,
+                'manual_admin_approval' => true,
+            ],
         ]);
 
         return response()->json([
+            'success' => true,
+            'message' => "User {$user->name} has been manually marked as KYC verified.",
             'id' => $user->id,
+            'name' => $user->name,
             'kyc_status' => $user->fresh()->kyc_status,
         ]);
     }

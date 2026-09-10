@@ -1,6 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useConfirm } from '@/components/ui/DialogProvider';
-import { Building2, Search, Loader2, Trash2, Eye, Globe, Lock, AlertCircle } from 'lucide-react';
+import {
+  Buildings as Building2,
+  MagnifyingGlass as Search,
+  Spinner as Loader2,
+  Trash as Trash2,
+  Eye as Eye,
+  Globe as Globe,
+  Lock as Lock,
+  WarningCircle as AlertCircle
+} from "@phosphor-icons/react";
 import { toast } from 'sonner';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -55,28 +64,28 @@ export function AdminCommunitiesPage() {
   }
 
   if (isLoading) {
-    return <div className="w-full flex items-center justify-center h-64"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>;
+    return <div className="w-full flex items-center justify-center h-64"><Loader2 weight="fill" className="w-6 h-6 animate-spin text-primary" /></div>;
   }
 
   return (
-    <div className="w-full mx-auto max-w-[1400px] space-y-6 p-6 lg:p-10">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 sm:p-8 rounded-2xl bg-gradient-to-br from-[#102840] via-[#173852] to-[#102840] text-white shadow-lg">
+    <div className="w-full mx-auto max-w-[1400px] space-y-6 p-4 lg:p-10">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 sm:p-5 rounded-lg bg-gradient-to-br from-[#102840] via-[#173852] to-[#102840] text-white shadow-lg">
         <div className="space-y-1.5">
           <span className="px-2.5 py-0.5 rounded-full bg-[#2164b6]/20 text-[#2164b6] dark:text-[#7ab0ff] text-xs font-semibold uppercase tracking-wider border border-[#2164b6]/30">Admin</span>
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">Communities</h1>
+          <h1 className="text-xl sm:text-xl font-extrabold tracking-tight">Communities</h1>
           <p className="text-sm text-white/70 max-w-xl">Manage all communities on the platform.</p>
         </div>
       </div>
 
       {fetchError && (
-        <div className="flex items-center gap-2 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-xs text-destructive">
-          <AlertCircle className="h-4 w-4 shrink-0" /> {fetchError}
+        <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-xs text-destructive">
+          <AlertCircle weight="fill" className="h-4 w-4 shrink-0" /> {fetchError}
           <button onClick={() => { setIsLoading(true); fetchCommunities(); }} className="ml-auto text-muted-foreground hover:text-foreground font-bold">Retry</button>
         </div>
       )}
 
       {message && (
-        <div className={`px-4 py-3 rounded-xl text-sm flex items-center gap-2 border ${
+        <div className={`px-4 py-3 rounded-lg text-sm flex items-center gap-2 border ${
           message.type === 'success' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border-rose-500/20'
         }`}>{message.text}</div>
       )}
@@ -89,8 +98,8 @@ export function AdminCommunitiesPage() {
             { label: 'Private', value: stats.private, color: 'text-amber-500' },
             { label: 'Categories', value: stats.categories?.length ?? 0, color: 'text-muted-foreground' },
           ].map(s => (
-            <div key={s.label} className="rounded-xl border border-border bg-card p-4 text-center">
-              <p className={`text-2xl font-black ${s.color}`}>{s.value}</p>
+            <div key={s.label} className="rounded-lg border-none bg-card p-4 text-center">
+              <p className={`text-xl font-black ${s.color}`}>{s.value}</p>
               <p className="text-xs text-muted-foreground mt-0.5">{s.label}</p>
             </div>
           ))}
@@ -99,7 +108,7 @@ export function AdminCommunitiesPage() {
 
       <div className="flex flex-wrap gap-2 items-center">
         <div className="relative flex-1 min-w-[200px] max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Search weight="fill" className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} placeholder="Search communities..." className="pl-9 text-sm" />
         </div>
         {['', 'public', 'private'].map(v => (
@@ -110,23 +119,23 @@ export function AdminCommunitiesPage() {
       </div>
 
       {communities.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-border p-12 text-center space-y-3 bg-card">
-          <Building2 className="h-10 w-10 text-muted-foreground/30 mx-auto" />
+        <div className="rounded-lg border border-dashed border-border p-12 text-center space-y-3 bg-card">
+          <Building2 weight="fill" className="h-10 w-10 text-muted-foreground/30 mx-auto" />
           <h3 className="text-base font-semibold text-foreground">No communities found</h3>
         </div>
       ) : (
-        <div className="border border-border rounded-2xl bg-card overflow-hidden shadow-sm">
+        <div className="border-none rounded-lg bg-card overflow-hidden ">
           <div className="divide-y divide-border/50">
             {communities.map(c => (
               <div key={c.id} className="flex items-center justify-between px-4 py-3.5 hover:bg-muted/10 transition-colors">
                 <div className="flex items-center gap-3 min-w-0 flex-1">
-                  <div className="p-2 rounded-xl bg-[#2164b6]/10 text-[#2164b6] dark:text-[#7ab0ff] shrink-0">
-                    <Building2 className="h-4 w-4" />
+                  <div className="p-2 rounded-lg bg-[#2164b6]/10 text-[#2164b6] dark:text-[#7ab0ff] shrink-0">
+                    <Building2 weight="fill" className="h-4 w-4" />
                   </div>
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
                       <p className="text-sm font-bold text-foreground truncate">{c.name}</p>
-                      {c.visibility === 'private' ? <Lock className="h-3 w-3 text-amber-500" /> : <Globe className="h-3 w-3 text-emerald-500" />}
+                      {c.visibility === 'private' ? <Lock className="h-3 w-3 text-amber-500" /> : <Globe weight="fill" className="h-3 w-3 text-emerald-500" />}
                     </div>
                     <p className="text-xs text-muted-foreground truncate">
                       by @{c.creator?.username ?? 'unknown'} · {c.category} · {c.active_members_count ?? c.members_count} members
@@ -135,10 +144,10 @@ export function AdminCommunitiesPage() {
                 </div>
                 <div className="flex items-center gap-1 shrink-0 ml-4">
                   <Button variant="ghost" size="icon" onClick={() => window.open(`/app/communities/${c.slug}`, '_blank')} title="View">
-                    <Eye className="h-4 w-4" />
+                    <Eye weight="fill" className="h-4 w-4" />
                   </Button>
                   <Button variant="ghost" size="icon" onClick={() => deleteCommunity(c.id, c.name)} title="Delete">
-                    <Trash2 className="h-4 w-4 text-destructive" />
+                    <Trash2 weight="fill" className="h-4 w-4 text-destructive" />
                   </Button>
                 </div>
               </div>

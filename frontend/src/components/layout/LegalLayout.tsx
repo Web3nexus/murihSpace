@@ -1,6 +1,9 @@
 import React from "react";
 import { Link } from "react-router";
-import { ArrowLeft, ExternalLink } from "lucide-react";
+import {
+  ArrowLeft as ArrowLeft,
+  ArrowSquareOut as ExternalLink
+} from "@phosphor-icons/react";
 
 interface LegalSection {
   heading: string;
@@ -39,7 +42,7 @@ export const LegalLayout: React.FC<LegalLayoutProps> = ({
             to="/"
             className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors"
           >
-            <ArrowLeft className="h-3.5 w-3.5" /> Back to home
+            <ArrowLeft weight="fill" className="h-3.5 w-3.5" /> Back to home
           </Link>
         </div>
       </header>
@@ -47,14 +50,14 @@ export const LegalLayout: React.FC<LegalLayoutProps> = ({
       {/* Body */}
       <main className="max-w-4xl mx-auto px-5 py-10 sm:py-14">
         {/* Header card */}
-        <div className="rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 sm:p-10 shadow-sm">
+        <div className="rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 sm:p-10 ">
           <div className="flex items-start gap-4">
-            <div className="h-12 w-12 shrink-0 rounded-2xl bg-[#2164b6]/10 text-[#2164b6] dark:text-[#7ab0ff] flex items-center justify-center">
+            <div className="h-12 w-12 shrink-0 rounded-lg bg-[#2164b6]/10 text-[#2164b6] dark:text-[#7ab0ff] flex items-center justify-center">
               {icon}
             </div>
             <div>
               <p className="text-[11px] font-bold uppercase tracking-widest text-[#2164b6] dark:text-[#7ab0ff]">{eyebrow}</p>
-              <h1 className="mt-1 text-2xl sm:text-3xl font-black tracking-tight">{title}</h1>
+              <h1 className="mt-1 text-xl sm:text-xl font-black tracking-tight">{title}</h1>
               <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400">Last updated: {updated}</p>
             </div>
           </div>
@@ -66,7 +69,7 @@ export const LegalLayout: React.FC<LegalLayoutProps> = ({
           {sections.map((s, i) => (
             <section
               key={i}
-              className="rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 sm:p-8 shadow-sm"
+              className="rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 sm:p-5 "
             >
               <div className="flex items-center gap-3">
                 <span className="h-7 w-7 shrink-0 rounded-lg bg-[#2164b6]/10 text-[#2164b6] dark:text-[#7ab0ff] flex items-center justify-center text-xs font-black">
@@ -88,7 +91,7 @@ export const LegalLayout: React.FC<LegalLayoutProps> = ({
         {/* Footer note */}
         {footerNote && (
           <div className="mt-6 flex items-start gap-3 rounded-3xl border border-[#2164b6]/20 bg-[#2164b6]/5 p-5 text-sm text-slate-600 dark:text-slate-300">
-            <ExternalLink className="h-4 w-4 mt-0.5 text-[#2164b6] dark:text-[#7ab0ff] shrink-0" />
+            <ExternalLink weight="fill" className="h-4 w-4 mt-0.5 text-[#2164b6] dark:text-[#7ab0ff] shrink-0" />
             <p>{footerNote}</p>
           </div>
         )}

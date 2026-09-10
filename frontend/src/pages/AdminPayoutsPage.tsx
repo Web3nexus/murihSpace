@@ -1,6 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useConfirm } from '@/components/ui/DialogProvider';
-import { DollarSign, Loader2, CheckCircle2, Clock, AlertTriangle, AlertCircle } from 'lucide-react';
+import {
+  CurrencyDollar as DollarSign,
+  Spinner as Loader2,
+  CheckCircle as CheckCircle2,
+  Clock as Clock,
+  Warning as AlertTriangle,
+  WarningCircle as AlertCircle
+} from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { authFetch } from "@/lib/api/authFetch";
 
@@ -62,27 +69,27 @@ export function AdminPayoutsPage() {
     } catch { setMessage({ type: 'error', text: 'Network error.' }); }
   }
 
-  if (isLoading) return <div className="w-full flex items-center justify-center h-64"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>;
+  if (isLoading) return <div className="w-full flex items-center justify-center h-64"><Loader2 weight="fill" className="w-6 h-6 animate-spin text-primary" /></div>;
 
   return (
-    <div className="w-full mx-auto max-w-[1400px] space-y-6 p-6 lg:p-10">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 sm:p-8 rounded-2xl bg-gradient-to-br from-[#102840] via-[#173852] to-[#102840] text-white shadow-lg">
+    <div className="w-full mx-auto max-w-[1400px] space-y-6 p-4 lg:p-10">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 sm:p-5 rounded-lg bg-gradient-to-br from-[#102840] via-[#173852] to-[#102840] text-white shadow-lg">
         <div className="space-y-1.5">
           <span className="px-2.5 py-0.5 rounded-full bg-[#2164b6]/20 text-[#2164b6] dark:text-[#7ab0ff] text-xs font-semibold uppercase tracking-wider border border-[#2164b6]/30">Admin</span>
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">Fulfilment Payouts</h1>
+          <h1 className="text-xl sm:text-xl font-extrabold tracking-tight">Fulfilment Payouts</h1>
           <p className="text-sm text-white/70 max-w-xl">Manage creator payouts for physical product orders.</p>
         </div>
       </div>
 
       {fetchError && (
-        <div className="flex items-center gap-2 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-xs text-destructive">
-          <AlertCircle className="h-4 w-4 shrink-0" /> {fetchError}
+        <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-xs text-destructive">
+          <AlertCircle weight="fill" className="h-4 w-4 shrink-0" /> {fetchError}
           <button onClick={() => { setIsLoading(true); fetchPayouts(); }} className="ml-auto text-muted-foreground hover:text-foreground font-bold">Retry</button>
         </div>
       )}
 
       {message && (
-        <div className={`px-4 py-3 rounded-xl text-sm flex items-center gap-2 border ${
+        <div className={`px-4 py-3 rounded-lg text-sm flex items-center gap-2 border ${
           message.type === 'success' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border-rose-500/20'
         }`}>{message.text}</div>
       )}
@@ -95,7 +102,7 @@ export function AdminPayoutsPage() {
             { label: 'Failed', value: formatAmount(summary.total_failed), color: 'text-red-500' },
             { label: 'Total Pending Orders', value: summary.pending_count, color: 'text-muted-foreground' },
           ].map(s => (
-            <div key={s.label} className="rounded-xl border border-border bg-card p-4">
+            <div key={s.label} className="rounded-lg border-none bg-card p-4">
               <p className="text-xs text-muted-foreground">{s.label}</p>
               <p className={`text-lg font-black ${s.color}`}>{s.value}</p>
               {s.count !== undefined && <p className="text-xs text-muted-foreground">{s.count} payouts</p>}
@@ -113,18 +120,18 @@ export function AdminPayoutsPage() {
       </div>
 
       {payouts.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-border p-12 text-center space-y-3 bg-card">
-          <DollarSign className="h-10 w-10 text-muted-foreground/30 mx-auto" />
+        <div className="rounded-lg border border-dashed border-border p-12 text-center space-y-3 bg-card">
+          <DollarSign weight="fill" className="h-10 w-10 text-muted-foreground/30 mx-auto" />
           <h3 className="text-base font-semibold text-foreground">No payouts found</h3>
         </div>
       ) : (
-        <div className="border border-border rounded-2xl bg-card overflow-hidden shadow-sm">
+        <div className="border-none rounded-lg bg-card overflow-hidden ">
           <div className="divide-y divide-border/50">
             {payouts.map(p => (
               <div key={p.id} className="flex items-center justify-between px-4 py-3.5 hover:bg-muted/10 transition-colors">
                 <div className="flex items-center gap-3 min-w-0 flex-1">
-                  <div className={`p-2 rounded-xl shrink-0 ${p.status === 'paid' ? 'bg-emerald-500/20 text-emerald-400' : p.status === 'failed' ? 'bg-rose-500/20 text-rose-400' : 'bg-amber-500/20 text-amber-400'}`}>
-                    {p.status === 'paid' ? <CheckCircle2 className="h-4 w-4" /> : p.status === 'failed' ? <AlertTriangle className="h-4 w-4" /> : <Clock className="h-4 w-4" />}
+                  <div className={`p-2 rounded-lg shrink-0 ${p.status === 'paid' ? 'bg-emerald-500/20 text-emerald-400' : p.status === 'failed' ? 'bg-rose-500/20 text-rose-400' : 'bg-amber-500/20 text-amber-400'}`}>
+                    {p.status === 'paid' ? <CheckCircle2 weight="fill" className="h-4 w-4" /> : p.status === 'failed' ? <AlertTriangle className="h-4 w-4" /> : <Clock weight="fill" className="h-4 w-4" />}
                   </div>
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
@@ -141,7 +148,7 @@ export function AdminPayoutsPage() {
                   <span>Fee: -{formatAmount(p.platform_fee, p.currency)}</span>
                   {p.status === 'pending' && (
                     <Button variant="default" size="sm" onClick={() => markPaid(p.id)} className="ml-2">
-                      <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Mark Paid
+                      <CheckCircle2 weight="fill" className="h-3.5 w-3.5 mr-1" /> Mark Paid
                     </Button>
                   )}
                 </div>
@@ -153,9 +160,9 @@ export function AdminPayoutsPage() {
 
       {lastPage > 1 && (
         <div className="flex items-center justify-center gap-2 pt-4">
-          <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1} className="px-3 py-1.5 rounded-lg text-xs font-bold border border-border bg-card hover:bg-muted disabled:opacity-40">Previous</button>
+          <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1} className="px-3 py-1.5 rounded-lg text-xs font-bold border-none bg-card hover:bg-muted disabled:opacity-40">Previous</button>
           <span className="text-xs text-muted-foreground">Page {page} of {lastPage}</span>
-          <button onClick={() => setPage(p => Math.min(lastPage, p + 1))} disabled={page >= lastPage} className="px-3 py-1.5 rounded-lg text-xs font-bold border border-border bg-card hover:bg-muted disabled:opacity-40">Next</button>
+          <button onClick={() => setPage(p => Math.min(lastPage, p + 1))} disabled={page >= lastPage} className="px-3 py-1.5 rounded-lg text-xs font-bold border-none bg-card hover:bg-muted disabled:opacity-40">Next</button>
         </div>
       )}
     </div>

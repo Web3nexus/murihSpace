@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
-import { ImageOff, Loader2 } from 'lucide-react';
+import {
+  ImageSquare as ImageSquare,
+  Spinner as Loader2
+} from "@phosphor-icons/react";
 
 interface OptimizedImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
   src: string;
@@ -57,7 +60,7 @@ export function OptimizedImage({
         className={`flex items-center justify-center bg-muted/60 text-muted-foreground/50 rounded-lg ${className}`}
         style={{ aspectRatio }}
       >
-        <ImageOff className="w-5 h-5" />
+        <ImageSquare weight="fill" className="w-5 h-5" />
       </div>
     );
   }
@@ -66,7 +69,7 @@ export function OptimizedImage({
     <div className={`relative overflow-hidden ${className}`} style={{ aspectRatio }}>
       {!isLoaded && (
         <div className="absolute inset-0 bg-muted/40 animate-pulse flex items-center justify-center">
-          <Loader2 className="w-4 h-4 animate-spin text-muted-foreground/30" />
+          <Loader2 weight="fill" className="w-4 h-4 animate-spin text-muted-foreground/30" />
         </div>
       )}
       <img

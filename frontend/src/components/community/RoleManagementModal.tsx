@@ -14,7 +14,13 @@ import { Badge } from "@/components/ui/badge";
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? 'http://localhost:8000/api/v1';
 import { ErrorState, EmptyState } from "@/components/common/UIStateComponents";
 import { RoleBadge } from "@/components/community/RoleBadge";
-import { Plus, Check, AlertCircle, Key, ShieldCheck } from "lucide-react";
+import {
+  Plus as Plus,
+  Check as Check,
+  WarningCircle as AlertCircle,
+  Key as Key,
+  ShieldCheck as ShieldCheck
+} from "@phosphor-icons/react";
 import type { CommunityRole, PermissionDefinition } from "@/types/community";
 import { getAuthToken } from "@/lib/auth/token";
 
@@ -171,11 +177,11 @@ export function RoleManagementModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-3xl md:max-w-4xl max-h-[90vh] overflow-y-auto rounded-2xl p-6 sm:p-8">
+      <DialogContent className="sm:max-w-3xl md:max-w-4xl max-h-[90vh] overflow-y-auto rounded-lg p-4 sm:p-5">
         <DialogHeader>
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary border border-primary/20 shrink-0">
-              <Key className="h-5 w-5" />
+            <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-primary/10 text-primary border border-primary/20 shrink-0">
+              <Key weight="fill" className="h-5 w-5" />
             </div>
             <div>
               <DialogTitle className="text-xl font-bold">Roles & Permissions Matrix</DialogTitle>
@@ -187,12 +193,12 @@ export function RoleManagementModal({
         </DialogHeader>
 
         {/* Tab switch */}
-        <div className="flex p-1 bg-muted rounded-xl gap-1 w-fit my-2">
+        <div className="flex p-1 bg-muted rounded-lg gap-1 w-fit my-2">
           <button
             onClick={() => setTab("roles")}
             className={`px-4 py-1.5 text-xs font-semibold rounded-lg transition-all ${
               tab === "roles"
-                ? "bg-card text-foreground shadow-xs"
+                ? "bg-card text-foreground "
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
@@ -202,11 +208,11 @@ export function RoleManagementModal({
             onClick={() => setTab("create")}
             className={`flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold rounded-lg transition-all ${
               tab === "create"
-                ? "bg-card text-foreground shadow-xs"
+                ? "bg-card text-foreground "
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            <Plus className="h-3.5 w-3.5" />
+            <Plus weight="fill" className="h-3.5 w-3.5" />
             Create Custom Role
           </button>
         </div>
@@ -215,8 +221,8 @@ export function RoleManagementModal({
           <div className="space-y-4 my-2">
             {isLoadingRoles ? (
               <div className="space-y-3 p-4">
-                <div className="h-16 rounded-xl bg-muted animate-pulse" />
-                <div className="h-16 rounded-xl bg-muted animate-pulse" />
+                <div className="h-16 rounded-lg bg-muted animate-pulse" />
+                <div className="h-16 rounded-lg bg-muted animate-pulse" />
               </div>
             ) : rolesError ? (
               <ErrorState
@@ -236,7 +242,7 @@ export function RoleManagementModal({
                   {roles.map((r) => (
                     <div
                       key={r.id}
-                      className="p-4 rounded-xl border border-border bg-card shadow-2xs space-y-3"
+                      className="p-4 rounded-lg border-none bg-card shadow-2xs space-y-3"
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2.5">
@@ -277,8 +283,8 @@ export function RoleManagementModal({
                   ))}
                 </div>
 
-                <div className="p-3.5 rounded-xl bg-muted/50 border border-border flex items-start gap-2.5 text-xs text-muted-foreground">
-                  <AlertCircle className="h-4 w-4 text-secondary shrink-0 mt-0.5" />
+                <div className="p-3.5 rounded-lg bg-muted/50 border-none flex items-start gap-2.5 text-xs text-muted-foreground">
+                  <AlertCircle weight="fill" className="h-4 w-4 text-secondary shrink-0 mt-0.5" />
                   <span>
                     <strong>Sprint 7 Security Rule:</strong> Regular members do not have link-sharing permissions by default. You can create a custom role or grant <code className="text-primary font-mono">share_links</code> to authorized members.
                   </span>
@@ -320,7 +326,7 @@ export function RoleManagementModal({
                     type="color"
                     value={roleColor}
                     onChange={(e) => setRoleColor(e.target.value)}
-                    className="h-10 w-12 rounded border border-border cursor-pointer bg-card"
+                    className="h-10 w-12 rounded border-none cursor-pointer bg-card"
                   />
                   <Input
                     type="text"
@@ -343,7 +349,7 @@ export function RoleManagementModal({
                       key={pm.key}
                       type="button"
                       onClick={() => togglePermission(pm.key)}
-                      className={`flex items-start gap-3 p-3 rounded-xl border text-left transition-all ${
+                      className={`flex items-start gap-3 p-3 rounded-lg border text-left transition-all ${
                         isChecked
                           ? "border-primary bg-accent/30 text-foreground"
                           : "border-border bg-card text-muted-foreground hover:bg-muted"
@@ -356,7 +362,7 @@ export function RoleManagementModal({
                             : "border-border bg-background"
                         }`}
                       >
-                        {isChecked && <Check className="h-3.5 w-3.5 stroke-[3]" />}
+                        {isChecked && <Check weight="fill" className="h-3.5 w-3.5 stroke-[3]" />}
                       </div>
                       <div className="space-y-0.5">
                         <p className="text-xs font-bold text-foreground">{pm.name}</p>
@@ -379,8 +385,8 @@ export function RoleManagementModal({
                 disabled={isSubmitting}
                 className="bg-primary text-primary-foreground font-semibold gap-1.5"
               >
-                <ShieldCheck className="h-4 w-4" />
-                Save Custom Role
+                <ShieldCheck weight="fill" className="h-4 w-4" />
+                FloppyDisk Custom Role
               </Button>
             </div>
           </form>

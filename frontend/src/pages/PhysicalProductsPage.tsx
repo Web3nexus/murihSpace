@@ -3,7 +3,22 @@ import { useState, useEffect, useCallback } from 'react';
 import { useConfirm } from '@/components/ui/DialogProvider';
 import { useAuth } from '@/hooks/useAuth';
 import { Link } from 'react-router';
-import { Package, Plus, Search, Edit, Trash2, Loader2, Check, AlertCircle, X, Eye, EyeOff, RotateCcw, Sparkles, ShieldCheck } from 'lucide-react';
+import {
+  Package as Package,
+  Plus as Plus,
+  MagnifyingGlass as Search,
+  Pencil as Edit,
+  Trash as Trash2,
+  Spinner as Loader2,
+  Check as Check,
+  WarningCircle as AlertCircle,
+  X as X,
+  Eye as Eye,
+  EyeSlash as EyeOff,
+  ArrowCounterClockwise as RotateCcw,
+  Sparkle as Sparkle,
+  ShieldCheck as ShieldCheck
+} from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MultiImageUploader } from "@/components/upload/ImageUploader";
@@ -244,20 +259,20 @@ export function PhysicalProductsPage() {
   const safeProductsList = safeArray<PhysicalProduct>(products);
 
   return (
-    <div className="space-y-6 w-full max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
+    <div className="space-y-6 w-full max-w-7xl mx-auto p-4 sm:p-4 lg:p-5">
       {/* Header Section */}
       <PageHeader 
         title="Physical Products & Inventory"
         description="Manage physical merchandise, track stock levels, and fulfill orders."
-        icon={<Package className="h-6 w-6 text-[#1877f2]" />}
+        icon={<Package weight="fill" className="h-6 w-6 text-[#1877f2]" />}
         action={
           <ActionTooltip content={!isKycVerified ? "Complete identity verification (KYC) to add products" : "Add physical merchandise"}>
             <Button
               onClick={() => { if (isKycVerified) { resetForm(); setEditing(null); setShowForm(true); } }}
               disabled={!isKycVerified}
-              className="bg-[#1877f2] text-white hover:bg-[#166fe5] font-bold h-10 px-4 rounded-xl shadow-xs gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="bg-[#1877f2] text-white hover:bg-[#166fe5] font-bold h-10 px-4 rounded-lg  gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <Plus className="h-4 w-4" /> Add Product
+              <Plus weight="fill" className="h-4 w-4" /> Add Product
             </Button>
           </ActionTooltip>
         }
@@ -265,9 +280,9 @@ export function PhysicalProductsPage() {
 
       {/* Role Guidance Banner if Creator */}
       {role === 'creator' && (
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-500 text-xs">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-500 text-xs">
           <div className="flex items-center gap-2.5">
-            <Sparkles className="h-4 w-4 shrink-0 text-amber-500" />
+            <Sparkle weight="fill" className="h-4 w-4 shrink-0 text-amber-500" />
             <span>
               <strong>Creator Note:</strong> Creators publish Digital Products (eBooks, templates, courses). Physical merchandise & shipping inventory are managed by Vendors.
             </span>
@@ -291,11 +306,11 @@ export function PhysicalProductsPage() {
 
       {/* Search */}
       <div className="relative w-full sm:w-72">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+        <Search weight="fill" className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
         <Input
           type="search" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="Search products or SKU…"
-          className="pl-9 h-9 rounded-xl bg-card border-border text-xs"
+          className="pl-9 h-9 rounded-lg bg-card border-border text-xs"
         />
       </div>
 
@@ -303,12 +318,12 @@ export function PhysicalProductsPage() {
       {isLoading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {[1, 2, 3].map((n) => (
-            <div key={n} className="h-64 rounded-2xl bg-muted animate-pulse border border-border" />
+            <div key={n} className="h-64 rounded-lg bg-muted animate-pulse border-none" />
           ))}
         </div>
       ) : hasError ? (
         <div className="p-12 text-center border border-destructive/20 rounded-3xl bg-destructive/5 space-y-4 max-w-lg mx-auto">
-          <AlertCircle className="h-10 w-10 text-destructive mx-auto" />
+          <AlertCircle weight="fill" className="h-10 w-10 text-destructive mx-auto" />
           <div>
             <h3 className="text-sm font-bold text-foreground">
               {isKycError ? 'Identity Verification Required' : 'Failed to load physical products'}
@@ -317,23 +332,23 @@ export function PhysicalProductsPage() {
           </div>
           {isKycError || !isKycVerified ? (
             <Link to="/app/kyc">
-              <Button className="bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs h-9 px-5 rounded-xl inline-flex items-center gap-2">
-                <ShieldCheck className="h-4 w-4" /> Verify KYC Now
+              <Button className="bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs h-9 px-5 rounded-lg inline-flex items-center gap-2">
+                <ShieldCheck weight="fill" className="h-4 w-4" /> Verify KYC Now
               </Button>
             </Link>
           ) : (
             <Button
               onClick={fetchProducts}
-              className="bg-[#1877f2] hover:bg-[#166fe5] text-white font-bold text-xs h-9 px-5 rounded-xl inline-flex items-center gap-2"
+              className="bg-[#1877f2] hover:bg-[#166fe5] text-white font-bold text-xs h-9 px-5 rounded-lg inline-flex items-center gap-2"
             >
-              <RotateCcw className="h-3.5 w-3.5" /> Retry
+              <RotateCcw weight="fill" className="h-3.5 w-3.5" /> Retry
             </Button>
           )}
         </div>
       ) : safeProductsList.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-border p-12 text-center space-y-3 bg-card flex flex-col items-center justify-center">
+        <div className="rounded-lg border border-dashed border-border p-12 text-center space-y-3 bg-card flex flex-col items-center justify-center">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
-            <Package className="h-6 w-6" />
+            <Package weight="fill" className="h-6 w-6" />
           </div>
           <h3 className="text-base font-semibold text-foreground text-center">{products.length === 0 ? 'No physical products yet' : 'No matching products'}</h3>
           <p className="text-xs text-muted-foreground max-w-sm mx-auto text-center">Add your first physical product to start selling merchandise.</p>
@@ -341,27 +356,27 @@ export function PhysicalProductsPage() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {safeProductsList.map((p) => (
-            <div key={p.id} className="rounded-2xl border border-border bg-card overflow-hidden shadow-xs hover:shadow-md hover:border-[#1877f2]/30 transition-all duration-200 flex flex-col">
+            <div key={p.id} className="rounded-lg border-none bg-card overflow-hidden  hover: hover:border-[#1877f2]/30 transition-all duration-200 flex flex-col">
               {/* Image */}
               <div className="h-36 bg-muted relative overflow-hidden">
                 {p.images && p.images.length > 0 ? (
                   <img src={p.images[0]} alt={p.title} className="w-full h-full object-cover" />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-muted-foreground/30">
-                    <Package className="h-12 w-12" />
+                    <Package weight="fill" className="h-12 w-12" />
                   </div>
                 )}
-                <div className="absolute top-2.5 left-2.5 px-2.5 py-1 rounded-lg bg-card/90 backdrop-blur-md border border-border text-xs font-black text-foreground shadow-xs">
+                <div className="absolute top-2.5 left-2.5 px-2.5 py-1 rounded-lg bg-card/90 backdrop-blur-md border-none text-xs font-black text-foreground ">
                   {formatPrice(p.price, p.currency)}
                 </div>
                 <Button
                   onClick={() => handleToggleActive(p)}
                   variant="secondary"
                   size="sm"
-                  className={`absolute top-2.5 right-2.5 p-1.5 shadow-xs ${p.is_active ? '' : 'bg-muted-foreground text-muted hover:bg-muted-foreground/80'}`}
+                  className={`absolute top-2.5 right-2.5 p-1.5  ${p.is_active ? '' : 'bg-muted-foreground text-muted hover:bg-muted-foreground/80'}`}
                   title={p.is_active ? 'Deactivate' : 'Activate'}
                 >
-                  {p.is_active ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
+                  {p.is_active ? <Eye weight="fill" className="h-3 w-3" /> : <EyeOff weight="fill" className="h-3 w-3" />}
                 </Button>
               </div>
 
@@ -378,11 +393,11 @@ export function PhysicalProductsPage() {
                   <div className="flex items-center gap-1.5">
                     {p.track_inventory ? (
                       p.stock_quantity <= 0 ? (
-                        <span className="text-[10px] font-bold text-destructive flex items-center gap-1"><X className="h-3 w-3" /> Out of Stock</span>
+                        <span className="text-[10px] font-bold text-destructive flex items-center gap-1"><X weight="fill" className="h-3 w-3" /> Out of Stock</span>
                       ) : p.stock_quantity <= p.low_stock_threshold ? (
-                        <span className="text-[10px] font-bold text-amber-500 flex items-center gap-1"><AlertCircle className="h-3 w-3" /> Low: {p.stock_quantity}</span>
+                        <span className="text-[10px] font-bold text-amber-500 flex items-center gap-1"><AlertCircle weight="fill" className="h-3 w-3" /> Low: {p.stock_quantity}</span>
                       ) : (
-                        <span className="text-[10px] font-bold text-emerald-500 flex items-center gap-1"><Check className="h-3 w-3" /> {p.stock_quantity} in stock</span>
+                        <span className="text-[10px] font-bold text-emerald-500 flex items-center gap-1"><Check weight="fill" className="h-3 w-3" /> {p.stock_quantity} in stock</span>
                       )
                       ) : (
                         <span className="text-[10px] text-muted-foreground">No tracking</span>
@@ -395,10 +410,10 @@ export function PhysicalProductsPage() {
               <div className="p-3 bg-muted/20 border-t border-border flex items-center justify-between gap-2">
                 <div className="flex items-center gap-1">
                   <ActionTooltip content="Edit product">
-                    <Button onClick={() => openEdit(p)} variant="ghost" size="sm" className="p-2"><Edit className="h-4 w-4" /></Button>
+                    <Button onClick={() => openEdit(p)} variant="ghost" size="sm" className="p-2"><Edit weight="fill" className="h-4 w-4" /></Button>
                   </ActionTooltip>
                   <ActionTooltip content="Delete product">
-                    <Button onClick={() => handleDelete(p.id)} variant="ghost" size="sm" className="p-2 text-destructive hover:bg-destructive/10"><Trash2 className="h-4 w-4" /></Button>
+                    <Button onClick={() => handleDelete(p.id)} variant="ghost" size="sm" className="p-2 text-destructive hover:bg-destructive/10"><Trash2 weight="fill" className="h-4 w-4" /></Button>
                   </ActionTooltip>
                 </div>
                 {p.track_inventory && (
@@ -406,7 +421,7 @@ export function PhysicalProductsPage() {
                     onClick={() => { setAdjustingId(p.id); setAdjQty('0'); setAdjReason(''); }}
                     variant="secondary"
                     size="sm"
-                    className="text-[10px] font-bold px-2.5 py-1.5 h-auto rounded-xl"
+                    className="text-[10px] font-bold px-2.5 py-1.5 h-auto rounded-lg"
                   >
                     Adjust Stock
                   </Button>
@@ -419,56 +434,56 @@ export function PhysicalProductsPage() {
 
       {lastPage > 1 && (
         <div className="flex items-center justify-center gap-2 pt-4">
-          <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1} className="px-3 py-1.5 rounded-lg text-xs font-bold border border-border bg-card hover:bg-muted disabled:opacity-40">Previous</button>
+          <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1} className="px-3 py-1.5 rounded-lg text-xs font-bold border-none bg-card hover:bg-muted disabled:opacity-40">Previous</button>
           <span className="text-xs text-muted-foreground">Page {page} of {lastPage}</span>
-          <button onClick={() => setPage(p => Math.min(lastPage, p + 1))} disabled={page >= lastPage} className="px-3 py-1.5 rounded-lg text-xs font-bold border border-border bg-card hover:bg-muted disabled:opacity-40">Next</button>
+          <button onClick={() => setPage(p => Math.min(lastPage, p + 1))} disabled={page >= lastPage} className="px-3 py-1.5 rounded-lg text-xs font-bold border-none bg-card hover:bg-muted disabled:opacity-40">Next</button>
         </div>
       )}
 
       {/* Create / Edit Modal */}
       {showForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-xs overflow-y-auto">
-          <div className="border border-border rounded-2xl bg-card p-6 max-w-xl w-full shadow-2xl space-y-4 my-8">
+          <div className="border-none rounded-lg bg-card p-4 max-w-xl w-full shadow-2xl space-y-4 my-8">
             <h3 className="text-base font-bold text-foreground">{editing ? 'Edit Product' : 'Add Physical Product'}</h3>
             <form onSubmit={handleSubmit} className="space-y-3 max-h-[70vh] overflow-y-auto pr-1">
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1 col-span-2">
                   <label className="text-xs font-bold text-foreground uppercase tracking-wider">Title</label>
-                  <Input type="text" value={fTitle} onChange={(e) => setFTitle(e.target.value)} required placeholder="e.g. Premium Cotton Hoodie" className="bg-muted border-border rounded-xl text-xs" />
+                  <Input type="text" value={fTitle} onChange={(e) => setFTitle(e.target.value)} required placeholder="e.g. Premium Cotton Hoodie" className="bg-muted border-border rounded-lg text-xs" />
                 </div>
                 <div className="space-y-1 col-span-2">
                   <label className="text-xs font-bold text-foreground uppercase tracking-wider">Description</label>
-                  <textarea value={fDesc} onChange={(e) => setFDesc(e.target.value)} rows={3} className="w-full px-3 py-2 text-xs rounded-xl bg-muted border-0 outline-none focus:ring-1 focus:ring-[#1877f2] resize-none" />
+                  <textarea value={fDesc} onChange={(e) => setFDesc(e.target.value)} rows={3} className="w-full px-3 py-2 text-xs rounded-lg bg-muted border-0 outline-none focus:ring-1 focus:ring-[#1877f2] resize-none" />
                 </div>
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-foreground uppercase tracking-wider">SKU</label>
-                  <Input type="text" value={fSku} onChange={(e) => setFSku(e.target.value)} required placeholder="HOODIE-BLK-001" className="bg-muted border-border rounded-xl text-xs font-mono" />
+                  <Input type="text" value={fSku} onChange={(e) => setFSku(e.target.value)} required placeholder="HOODIE-BLK-001" className="bg-muted border-border rounded-lg text-xs font-mono" />
                 </div>
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-foreground uppercase tracking-wider">Price (cents)</label>
-                  <Input type="number" value={fPrice} onChange={(e) => setFPrice(e.target.value)} min={0} required className="bg-muted border-border rounded-xl text-xs" />
+                  <Input type="number" value={fPrice} onChange={(e) => setFPrice(e.target.value)} min={0} required className="bg-muted border-border rounded-lg text-xs" />
                 </div>
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-foreground uppercase tracking-wider">Category</label>
-                  <select value={fCategory} onChange={(e) => setFCategory(e.target.value)} className="w-full px-3 py-2 text-xs rounded-xl bg-muted border border-border outline-none focus-visible:ring-1 focus-visible:ring-[#1877f2] text-foreground">
+                  <select value={fCategory} onChange={(e) => setFCategory(e.target.value)} className="w-full px-3 py-2 text-xs rounded-lg bg-muted border-none outline-none focus-visible:ring-1 focus-visible:ring-[#1877f2] text-foreground">
                     <option value="">None</option>
                     {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
                   </select>
                 </div>
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-foreground uppercase tracking-wider">Currency</label>
-                  <select value={fCurrency} onChange={(e) => setFCurrency(e.target.value)} className="w-full px-3 py-2 text-xs rounded-xl bg-muted border border-border outline-none focus-visible:ring-1 focus-visible:ring-[#1877f2] text-foreground">
+                  <select value={fCurrency} onChange={(e) => setFCurrency(e.target.value)} className="w-full px-3 py-2 text-xs rounded-lg bg-muted border-none outline-none focus-visible:ring-1 focus-visible:ring-[#1877f2] text-foreground">
                     <option value="NGN">NGN</option>
                     <option value="USD">USD</option>
                   </select>
                 </div>
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-foreground uppercase tracking-wider">Stock Qty</label>
-                  <Input type="number" value={fStock} onChange={(e) => setFStock(e.target.value)} min={0} className="bg-muted border-border rounded-xl text-xs" />
+                  <Input type="number" value={fStock} onChange={(e) => setFStock(e.target.value)} min={0} className="bg-muted border-border rounded-lg text-xs" />
                 </div>
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-foreground uppercase tracking-wider">Low Stock Threshold</label>
-                  <Input type="number" value={fLowStock} onChange={(e) => setFLowStock(e.target.value)} min={0} className="bg-muted border-border rounded-xl text-xs" />
+                  <Input type="number" value={fLowStock} onChange={(e) => setFLowStock(e.target.value)} min={0} className="bg-muted border-border rounded-lg text-xs" />
                 </div>
                 <div className="flex items-center gap-4">
                   <label className="flex items-center gap-2">
@@ -483,7 +498,7 @@ export function PhysicalProductsPage() {
               </div>
 
               {/* Shipping dimensions */}
-              <div className="p-3 rounded-2xl bg-muted/30 border border-border space-y-3">
+              <div className="p-3 rounded-lg bg-muted/30 border-none space-y-3">
                 <p className="text-[11px] font-bold text-foreground uppercase tracking-wider">Shipping Dimensions</p>
                 <div className="grid grid-cols-4 gap-2">
                   <div className="space-y-0.5">
@@ -492,7 +507,7 @@ export function PhysicalProductsPage() {
                   </div>
                   <div className="space-y-0.5">
                     <label className="text-[10px] font-bold text-muted-foreground">Unit</label>
-                    <select value={fWeightUnit} onChange={(e) => setFWeightUnit(e.target.value)} className="w-full px-2 py-1.5 text-xs rounded-lg bg-muted border border-border outline-none focus-visible:ring-1 focus-visible:ring-[#1877f2] text-foreground">
+                    <select value={fWeightUnit} onChange={(e) => setFWeightUnit(e.target.value)} className="w-full px-2 py-1.5 text-xs rounded-lg bg-muted border-none outline-none focus-visible:ring-1 focus-visible:ring-[#1877f2] text-foreground">
                       <option value="kg">kg</option><option value="g">g</option><option value="lb">lb</option><option value="oz">oz</option>
                     </select>
                   </div>
@@ -524,8 +539,8 @@ export function PhysicalProductsPage() {
 
               <div className="flex items-center justify-end gap-2 pt-2">
                 <Button type="button" variant="ghost" onClick={() => setShowForm(false)}>Cancel</Button>
-                <Button type="submit" disabled={isSubmitting || !isKycVerified} className="bg-[#1877f2] hover:bg-[#166fe5] text-white font-bold text-xs rounded-xl gap-1.5 disabled:opacity-50">
-                  {isSubmitting ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
+                <Button type="submit" disabled={isSubmitting || !isKycVerified} className="bg-[#1877f2] hover:bg-[#166fe5] text-white font-bold text-xs rounded-lg gap-1.5 disabled:opacity-50">
+                  {isSubmitting ? <Loader2 weight="fill" className="h-3 w-3 animate-spin" /> : null}
                   {editing ? 'Update' : 'Create'} Product
                 </Button>
               </div>
@@ -537,22 +552,22 @@ export function PhysicalProductsPage() {
       {/* Stock Adjust Modal */}
       {adjustingId && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-xs">
-          <div className="border border-border rounded-2xl bg-card p-6 max-w-md w-full shadow-2xl space-y-4">
+          <div className="border-none rounded-lg bg-card p-4 max-w-md w-full shadow-2xl space-y-4">
             <h3 className="text-base font-bold text-foreground">Adjust Stock</h3>
             <p className="text-xs text-muted-foreground">Use positive values to add stock, negative to remove.</p>
             <div className="space-y-3">
               <div className="space-y-1">
                 <label className="text-xs font-bold text-foreground uppercase tracking-wider">Quantity change</label>
-                <Input type="number" value={adjQty} onChange={(e) => setAdjQty(e.target.value)} placeholder="e.g. 5 or -2" className="bg-muted border-border rounded-xl text-xs" />
+                <Input type="number" value={adjQty} onChange={(e) => setAdjQty(e.target.value)} placeholder="e.g. 5 or -2" className="bg-muted border-border rounded-lg text-xs" />
               </div>
               <div className="space-y-1">
                 <label className="text-xs font-bold text-foreground uppercase tracking-wider">Reason (optional)</label>
-                <Input type="text" value={adjReason} onChange={(e) => setAdjReason(e.target.value)} placeholder="e.g. Received new shipment" className="bg-muted border-border rounded-xl text-xs" />
+                <Input type="text" value={adjReason} onChange={(e) => setAdjReason(e.target.value)} placeholder="e.g. Received new shipment" className="bg-muted border-border rounded-lg text-xs" />
               </div>
             </div>
             <div className="flex items-center justify-end gap-2 pt-2">
               <Button type="button" variant="ghost" onClick={() => setAdjustingId(null)}>Cancel</Button>
-              <Button onClick={handleAdjustStock} className="bg-[#1877f2] hover:bg-[#166fe5] text-white font-bold text-xs rounded-xl">Apply Adjustment</Button>
+              <Button onClick={handleAdjustStock} className="bg-[#1877f2] hover:bg-[#166fe5] text-white font-bold text-xs rounded-lg">Apply Adjustment</Button>
             </div>
           </div>
         </div>

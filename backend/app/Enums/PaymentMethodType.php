@@ -11,3 +11,4 @@ enum PaymentMethodType: string
     case ApplePay = 'apple_pay';
     case GooglePay = 'google_pay';
 }
+

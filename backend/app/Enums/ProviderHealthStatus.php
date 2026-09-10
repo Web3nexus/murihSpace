@@ -9,3 +9,4 @@ enum ProviderHealthStatus: string
     case Down = 'down';
     case Maintenance = 'maintenance';
 }
+

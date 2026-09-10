@@ -1,5 +1,10 @@
 import React from 'react';
-import { MessageSquare, UserPlus, Users, X } from 'lucide-react';
+import {
+  ChatTeardropText as MessageSquare,
+  UserPlus as UserPlus,
+  Users as Users,
+  X as X
+} from "@phosphor-icons/react";
 
 interface NewChatModalProps {
   isOpen: boolean;
@@ -20,7 +25,7 @@ export const NewChatModal: React.FC<NewChatModalProps> = ({
       <div className="fixed inset-0" onClick={onClose} role="button" tabIndex={-1} aria-label="Close modal" />
 
       {/* Modal Sheet */}
-      <div className="relative z-10 w-full max-w-sm rounded-t-3xl sm:rounded-3xl bg-card border border-border/80 shadow-2xl p-5 space-y-4 animate-in slide-in-from-bottom duration-300">
+      <div className="relative z-10 w-full max-w-sm rounded-t-3xl sm:rounded-3xl bg-card border-none/80 shadow-2xl p-5 space-y-4 animate-in slide-in-from-bottom duration-300">
         <div className="flex items-center justify-between border-b border-border/50 pb-3">
           <h3 className="text-base font-extrabold text-foreground">Create New</h3>
           <button
@@ -28,7 +33,7 @@ export const NewChatModal: React.FC<NewChatModalProps> = ({
             onClick={onClose}
             className="p-1 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
           >
-            <X className="h-4 w-4" />
+            <X weight="fill" className="h-4 w-4" />
           </button>
         </div>
 
@@ -40,10 +45,10 @@ export const NewChatModal: React.FC<NewChatModalProps> = ({
               onSelectAction('chat');
               onClose();
             }}
-            className="w-full flex items-start gap-3.5 p-3.5 rounded-2xl hover:bg-muted/70 transition-all text-left group"
+            className="w-full flex items-start gap-3.5 p-3.5 rounded-lg hover:bg-muted/70 transition-all text-left group"
           >
-            <div className="p-2.5 rounded-xl bg-secondary/15 text-secondary group-hover:bg-secondary group-hover:text-white transition-colors shrink-0">
-              <MessageSquare className="h-5 w-5" />
+            <div className="p-2.5 rounded-lg bg-secondary/15 text-secondary group-hover:bg-secondary group-hover:text-white transition-colors shrink-0">
+              <MessageSquare weight="fill" className="h-5 w-5" />
             </div>
             <div>
               <p className="text-xs font-bold text-foreground group-hover:text-secondary transition-colors">
@@ -62,10 +67,10 @@ export const NewChatModal: React.FC<NewChatModalProps> = ({
               onSelectAction('contact');
               onClose();
             }}
-            className="w-full flex items-start gap-3.5 p-3.5 rounded-2xl hover:bg-muted/70 transition-all text-left group border-t border-border/30"
+            className="w-full flex items-start gap-3.5 p-3.5 rounded-lg hover:bg-muted/70 transition-all text-left group border-t border-border/30"
           >
-            <div className="p-2.5 rounded-xl bg-amber-500/15 text-amber-500 group-hover:bg-amber-500 group-hover:text-white transition-colors shrink-0">
-              <UserPlus className="h-5 w-5" />
+            <div className="p-2.5 rounded-lg bg-amber-500/15 text-amber-500 group-hover:bg-amber-500 group-hover:text-white transition-colors shrink-0">
+              <UserPlus weight="fill" className="h-5 w-5" />
             </div>
             <div>
               <p className="text-xs font-bold text-foreground group-hover:text-amber-500 transition-colors">
@@ -84,10 +89,10 @@ export const NewChatModal: React.FC<NewChatModalProps> = ({
               onSelectAction('community');
               onClose();
             }}
-            className="w-full flex items-start gap-3.5 p-3.5 rounded-2xl hover:bg-muted/70 transition-all text-left group border-t border-border/30"
+            className="w-full flex items-start gap-3.5 p-3.5 rounded-lg hover:bg-muted/70 transition-all text-left group border-t border-border/30"
           >
-            <div className="p-2.5 rounded-xl bg-emerald-500/15 text-emerald-500 group-hover:bg-emerald-500 group-hover:text-white transition-colors shrink-0">
-              <Users className="h-5 w-5" />
+            <div className="p-2.5 rounded-lg bg-emerald-500/15 text-emerald-500 group-hover:bg-emerald-500 group-hover:text-white transition-colors shrink-0">
+              <Users weight="fill" className="h-5 w-5" />
             </div>
             <div>
               <p className="text-xs font-bold text-foreground group-hover:text-emerald-500 transition-colors">
@@ -103,7 +108,7 @@ export const NewChatModal: React.FC<NewChatModalProps> = ({
         <button
           type="button"
           onClick={onClose}
-          className="w-full py-2.5 rounded-2xl bg-muted text-muted-foreground hover:text-foreground font-bold text-xs transition-colors"
+          className="w-full py-2.5 rounded-lg bg-muted text-muted-foreground hover:text-foreground font-bold text-xs transition-colors"
         >
           Cancel
         </button>

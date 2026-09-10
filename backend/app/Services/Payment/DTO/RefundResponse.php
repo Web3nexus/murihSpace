@@ -14,3 +14,4 @@ class RefundResponse
         public readonly array $rawResponse = [],
     ) {}
 }
+

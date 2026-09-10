@@ -1,5 +1,11 @@
 import { useEffect, useState } from "react";
-import { Loader2, CheckCircle2, AlertCircle, Save, ShieldCheck } from "lucide-react";
+import {
+  Spinner as Loader2,
+  CheckCircle as CheckCircle2,
+  WarningCircle as AlertCircle,
+  FloppyDisk as FloppyDisk,
+  ShieldCheck as ShieldCheck
+} from "@phosphor-icons/react";
 import { apiClient } from "@/lib/api/client";
 import { MeraIcon } from "@/components/brand/MeraIcon";
 
@@ -63,7 +69,7 @@ export default function AiSettingsPage() {
       <div className="max-w-3xl mx-auto px-6 py-8 space-y-6">
         {/* Header */}
         <div className="flex items-center gap-3">
-          <div className="h-11 w-11 rounded-2xl bg-gradient-to-br from-[#2164b6] to-[#1a6b9e] flex items-center justify-center shadow-md shadow-[#2164b6]/20">
+          <div className="h-11 w-11 rounded-lg bg-gradient-to-br from-[#2164b6] to-[#1a6b9e] flex items-center justify-center  shadow-[#2164b6]/20">
             <MeraIcon className="h-6 w-6" />
           </div>
           <div>
@@ -76,12 +82,12 @@ export default function AiSettingsPage() {
 
         {loading ? (
           <div className="flex items-center justify-center py-24 text-muted-foreground">
-            <Loader2 className="h-5 w-5 animate-spin mr-2" /> Loading settings…
+            <Loader2 weight="fill" className="h-5 w-5 animate-spin mr-2" /> Loading settings…
           </div>
         ) : (
           <div className="space-y-6">
             {/* Identity */}
-            <section className="rounded-2xl border border-border/60 bg-white dark:bg-[#102840]/60 p-5 shadow-sm space-y-4">
+            <section className="rounded-lg border-none/60 bg-white dark:bg-[#102840]/60 p-5  space-y-4">
               <div className="flex items-center gap-2">
                 <MeraIcon className="h-4 w-4" />
                 <h2 className="text-sm font-bold text-foreground">Assistant identity</h2>
@@ -94,7 +100,7 @@ export default function AiSettingsPage() {
                   value={persona}
                   onChange={(e) => setPersona(e.target.value)}
                   maxLength={80}
-                  className="mt-1.5 w-full rounded-xl border border-border/60 bg-background px-3.5 py-2.5 text-sm outline-none focus:border-[#2164b6]/40 focus:ring-2 focus:ring-[#2164b6]/15"
+                  className="mt-1.5 w-full rounded-lg border-none/60 bg-background px-3.5 py-2.5 text-sm outline-none focus:border-[#2164b6]/40 focus:ring-2 focus:ring-[#2164b6]/15"
                 />
                 <p className="text-[11px] text-muted-foreground/50 mt-1">
                   The persona the assistant speaks as across chat, onboarding, and analytics insights.
@@ -106,7 +112,7 @@ export default function AiSettingsPage() {
                   id="mera-tone"
                   value={tone}
                   onChange={(e) => setTone(e.target.value)}
-                  className="mt-1.5 w-full rounded-xl border border-border/60 bg-background px-3.5 py-2.5 text-sm outline-none focus:border-[#2164b6]/40 focus:ring-2 focus:ring-[#2164b6]/15"
+                  className="mt-1.5 w-full rounded-lg border-none/60 bg-background px-3.5 py-2.5 text-sm outline-none focus:border-[#2164b6]/40 focus:ring-2 focus:ring-[#2164b6]/15"
                 >
                   {TONE_OPTIONS.map((t) => (
                     <option key={t.value} value={t.value}>
@@ -118,9 +124,9 @@ export default function AiSettingsPage() {
             </section>
 
             {/* Guardrails notice */}
-            <section className="rounded-2xl border border-border/60 bg-white dark:bg-[#102840]/60 p-5 shadow-sm">
+            <section className="rounded-lg border-none/60 bg-white dark:bg-[#102840]/60 p-5 ">
               <div className="flex items-center gap-2">
-                <ShieldCheck className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" />
+                <ShieldCheck weight="fill" className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" />
                 <h2 className="text-sm font-bold text-foreground">Stay on-topic</h2>
               </div>
               <p className="text-xs text-muted-foreground/60 mt-2 leading-relaxed">
@@ -129,15 +135,15 @@ export default function AiSettingsPage() {
               </p>
             </section>
 
-            {/* Save */}
+            {/* FloppyDisk */}
             <div className="flex items-center gap-3">
               <button
                 onClick={save}
                 disabled={saving}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#2164b6] to-[#1a5091] text-white text-sm font-bold hover:from-[#1a5091] hover:to-[#154074] disabled:opacity-50 transition-all shadow-sm hover:shadow-md hover:shadow-[#2164b6]/20"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-gradient-to-r from-[#2164b6] to-[#1a5091] text-white text-sm font-bold hover:from-[#1a5091] hover:to-[#154074] disabled:opacity-50 transition-all  hover: hover:shadow-[#2164b6]/20"
               >
-                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                Save behavior
+                {saving ? <Loader2 weight="fill" className="h-4 w-4 animate-spin" /> : <FloppyDisk weight="fill" className="h-4 w-4" />}
+                FloppyDisk behavior
               </button>
               {status && (
                 <span
@@ -145,7 +151,7 @@ export default function AiSettingsPage() {
                     status.ok ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"
                   }`}
                 >
-                  {status.ok ? <CheckCircle2 className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
+                  {status.ok ? <CheckCircle2 weight="fill" className="h-4 w-4" /> : <AlertCircle weight="fill" className="h-4 w-4" />}
                   {status.text}
                 </span>
               )}

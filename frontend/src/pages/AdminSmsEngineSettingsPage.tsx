@@ -1,17 +1,17 @@
 import { getAuthToken } from "@/lib/auth/token";
 import { useEffect, useState } from "react";
 import {
-  MessageSquareText,
-  Loader2,
-  Save,
-  Send,
-  AlertCircle,
-  CheckCircle2,
-  Eye,
-  EyeOff,
-  Lock,
-  Archive,
-} from "lucide-react";
+  ChatText as ChatText,
+  Spinner as Loader2,
+  FloppyDisk as FloppyDisk,
+  PaperPlaneRight as Send,
+  WarningCircle as AlertCircle,
+  CheckCircle as CheckCircle2,
+  Eye as Eye,
+  EyeSlash as EyeOff,
+  Lock as Lock,
+  Archive as Archive
+} from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,7 +26,7 @@ const TRANSPORTS: { id: string; label: string; desc: string; color: string; icon
     label: "Twilio",
     desc: "Programmable SMS over a Twilio phone number or messaging service.",
     color: "from-rose-500/20 to-red-500/20",
-    icon: MessageSquareText,
+    icon: ChatText,
   },
   {
     id: "log",
@@ -107,14 +107,14 @@ export default function AdminSmsEngineSettingsPage() {
         body: JSON.stringify(body),
       });
       const j = await res.json();
-      if (!res.ok) throw new Error(j?.message ?? "Save failed");
+      if (!res.ok) throw new Error(j?.message ?? "FloppyDisk failed");
       const d = j?.success ? j?.data?.data ?? j?.data : j;
       setSettings((d?.config ?? d) ?? settings);
       setAuthToken("");
       setTestResult(null);
       toast.success("SMS engine configuration saved.");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Save failed");
+      toast.error(e instanceof Error ? e.message : "FloppyDisk failed");
     } finally {
       setSaving(false);
     }
@@ -148,20 +148,20 @@ export default function AdminSmsEngineSettingsPage() {
   };
 
   if (loading) {
-    return <div className="flex justify-center py-24"><Loader2 className="h-8 w-8 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" /></div>;
+    return <div className="flex justify-center py-24"><Loader2 weight="fill" className="h-8 w-8 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" /></div>;
   }
 
   if (!settings) {
-    return <div className="flex justify-center py-24"><AlertCircle className="h-8 w-8 text-rose-500" /></div>;
+    return <div className="flex justify-center py-24"><AlertCircle weight="fill" className="h-8 w-8 text-rose-500" /></div>;
   }
 
   const s = settings;
 
   return (
-    <div className="w-full mx-auto max-w-[880px] space-y-6 p-6 lg:p-10">
+    <div className="w-full mx-auto max-w-[880px] space-y-6 p-4 lg:p-10">
       <div>
-        <h1 className="text-2xl font-black tracking-tight flex items-center gap-2.5">
-          <MessageSquareText className="h-6 w-6 text-[#2164b6] dark:text-[#7ab0ff]" /> SMS Engine
+        <h1 className="text-xl font-black tracking-tight flex items-center gap-2.5">
+          <ChatText weight="fill" className="h-6 w-6 text-[#2164b6] dark:text-[#7ab0ff]" /> SMS Engine
         </h1>
         <p className="text-xs text-muted-foreground mt-1">
           Choose the transport used for outbound SMS. Secrets are encrypted at rest and never exposed again; enter a new value to replace one.
@@ -177,10 +177,10 @@ export default function AdminSmsEngineSettingsPage() {
             <button
               key={t.id}
               onClick={() => patch(["transport"], t.id)}
-              className={`text-left rounded-2xl border p-4 transition-all ${active ? "border-[#2164b6] ring-2 ring-[#2164b6]/20 bg-[#2164b6]/5" : "border-border bg-card hover:border-[#2164b6]/40"}`}
+              className={`text-left rounded-lg border p-4 transition-all ${active ? "border-[#2164b6] ring-2 ring-[#2164b6]/20 bg-[#2164b6]/5" : "border-border bg-card hover:border-[#2164b6]/40"}`}
             >
               <div className="flex items-center justify-between mb-2">
-                <div className={`h-9 w-9 rounded-xl bg-gradient-to-br ${t.color} flex items-center justify-center`}>
+                <div className={`h-9 w-9 rounded-lg bg-gradient-to-br ${t.color} flex items-center justify-center`}>
                   <Icon className="h-4.5 w-4.5 text-[#2164b6] dark:text-[#7ab0ff]" />
                 </div>
                 {active && (
@@ -198,9 +198,9 @@ export default function AdminSmsEngineSettingsPage() {
 
       {/* Twilio config */}
       {s.transport === "twilio" && (
-        <div className="border border-border rounded-2xl bg-card p-6 space-y-4">
+        <div className="border-none rounded-lg bg-card p-4 space-y-4">
           <p className="text-xs font-black text-foreground uppercase tracking-wide flex items-center gap-1.5">
-            <MessageSquareText className="h-3.5 w-3.5 text-[#2164b6] dark:text-[#7ab0ff]" /> Twilio settings
+            <ChatText weight="fill" className="h-3.5 w-3.5 text-[#2164b6] dark:text-[#7ab0ff]" /> Twilio settings
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
@@ -226,7 +226,7 @@ export default function AdminSmsEngineSettingsPage() {
           </div>
           <div>
             <Label className="text-[11px] font-bold text-muted-foreground flex items-center gap-1">
-              <Lock className="h-3 w-3" /> Auth token
+              <Lock weight="fill" className="h-3 w-3" /> Auth token
             </Label>
             <div className="relative mt-1">
               <Input
@@ -242,7 +242,7 @@ export default function AdminSmsEngineSettingsPage() {
                 onClick={() => setRevealToken((v) => !v)}
                 className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
               >
-                {revealToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                {revealToken ? <EyeOff className="h-4 w-4" /> : <Eye weight="fill" className="h-4 w-4" />}
               </button>
             </div>
           </div>
@@ -250,9 +250,9 @@ export default function AdminSmsEngineSettingsPage() {
       )}
 
       {s.transport === "log" && (
-        <div className="border border-border rounded-2xl bg-card p-6">
+        <div className="border-none rounded-lg bg-card p-4">
           <p className="text-xs font-black text-foreground uppercase tracking-wide flex items-center gap-1.5">
-            <Archive className="h-3.5 w-3.5 text-[#2164b6] dark:text-[#7ab0ff]" /> Log
+            <Archive weight="fill" className="h-3.5 w-3.5 text-[#2164b6] dark:text-[#7ab0ff]" /> Log
           </p>
           <p className="text-[11px] text-muted-foreground mt-2 leading-relaxed">
             Messages are written to the server log instead of being delivered. Use this for development and testing.
@@ -260,11 +260,11 @@ export default function AdminSmsEngineSettingsPage() {
         </div>
       )}
 
-      {/* Save + test */}
-      <div className="flex flex-col sm:flex-row sm:items-center gap-3 justify-between border border-border rounded-2xl bg-card p-5">
+      {/* FloppyDisk + test */}
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3 justify-between border-none rounded-lg bg-card p-5">
         <Button onClick={save} disabled={saving} className="text-sm font-bold gap-1.5">
-          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-          Save SMS engine
+          {saving ? <Loader2 weight="fill" className="h-4 w-4 animate-spin" /> : <FloppyDisk weight="fill" className="h-4 w-4" />}
+          FloppyDisk SMS engine
         </Button>
         <div className="flex flex-col sm:flex-row sm:items-center gap-2">
           <Input
@@ -274,7 +274,7 @@ export default function AdminSmsEngineSettingsPage() {
             className="sm:w-64"
           />
           <Button variant="outline" onClick={test} disabled={testing} className="text-sm font-bold gap-1.5">
-            {testing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            {testing ? <Loader2 weight="fill" className="h-4 w-4 animate-spin" /> : <Send weight="fill" className="h-4 w-4" />}
             Send test SMS
           </Button>
         </div>
@@ -282,7 +282,7 @@ export default function AdminSmsEngineSettingsPage() {
 
       {testResult && (
         <p className={`text-[12px] font-semibold flex items-center gap-1.5 ${testResult.ok ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
-          {testResult.ok ? <CheckCircle2 className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
+          {testResult.ok ? <CheckCircle2 className="h-4 w-4" /> : <AlertCircle weight="fill" className="h-4 w-4" />}
           {testResult.text}
         </p>
       )}

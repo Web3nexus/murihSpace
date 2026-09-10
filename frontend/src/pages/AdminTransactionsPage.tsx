@@ -1,6 +1,15 @@
 import { getAuthToken } from "@/lib/auth/token";
 import { useState, useEffect, useCallback } from 'react';
-import { BadgeDollarSign, Loader2, CheckCircle2, Clock, XCircle, AlertCircle, Check, Search } from 'lucide-react';
+import {
+  CurrencyDollar as CurrencyDollar,
+  Spinner as Loader2,
+  CheckCircle as CheckCircle2,
+  Clock as Clock,
+  XCircle as XCircle,
+  WarningCircle as AlertCircle,
+  Check as Check,
+  MagnifyingGlass as Search
+} from "@phosphor-icons/react";
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import type { WithdrawalRequest } from '@/types/wallet';
@@ -62,42 +71,42 @@ export function AdminTransactionsPage() {
   };
 
   return (
-    <div className="w-full mx-auto max-w-[1400px] space-y-6 p-6 lg:p-10">
+    <div className="w-full mx-auto max-w-[1400px] space-y-6 p-4 lg:p-10">
       <div>
-        <h1 className="text-2xl font-black tracking-tight flex items-center gap-2.5">
-          <BadgeDollarSign className="h-6 w-6 text-[#2164b6] dark:text-[#7ab0ff]" /> Transactions
+        <h1 className="text-xl font-black tracking-tight flex items-center gap-2.5">
+          <CurrencyDollar weight="fill" className="h-6 w-6 text-[#2164b6] dark:text-[#7ab0ff]" /> Transactions
         </h1>
         <p className="text-xs text-muted-foreground mt-1">Review withdrawals, orders, and platform transactions.</p>
       </div>
 
       {error && (
-        <div className="flex items-center gap-2 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-xs text-destructive">
-          <AlertCircle className="h-4 w-4 shrink-0" /> {error}
+        <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-xs text-destructive">
+          <AlertCircle weight="fill" className="h-4 w-4 shrink-0" /> {error}
           <button onClick={() => { setLoading(true); loadWithdrawals(); }} className="ml-auto text-muted-foreground hover:text-foreground font-bold">Retry</button>
         </div>
       )}
       {msg && (
-        <div className={`flex items-center gap-2 rounded-xl px-4 py-3 text-xs font-bold ${msg.ok ? 'bg-emerald-500/10 text-emerald-600' : 'bg-destructive/10 text-destructive'}`}>
-          {msg.ok ? <Check className="h-4 w-4 shrink-0" /> : <AlertCircle className="h-4 w-4 shrink-0" />}
+        <div className={`flex items-center gap-2 rounded-lg px-4 py-3 text-xs font-bold ${msg.ok ? 'bg-emerald-500/10 text-emerald-600' : 'bg-destructive/10 text-destructive'}`}>
+          {msg.ok ? <Check className="h-4 w-4 shrink-0" /> : <AlertCircle weight="fill" className="h-4 w-4 shrink-0" />}
           {msg.text}
         </div>
       )}
-      <div className="border border-border rounded-2xl bg-card overflow-hidden shadow-sm">
+      <div className="border-none rounded-lg bg-card overflow-hidden ">
         <div className="px-4 py-3 border-b border-border bg-white/[0.02] flex items-center justify-between gap-3 flex-wrap">
           <h2 className="text-xs font-bold text-foreground">Withdrawal Requests</h2>
           <div className="relative max-w-[220px]">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+            <Search weight="fill" className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
             <Input value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} placeholder="Search by ID, user, status..." className="pl-8 h-8 text-xs" />
           </div>
         </div>
-        {loading ? <div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" /></div>
-          : withdrawals.length === 0 ? <div className="p-12 text-center"><BadgeDollarSign className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" /><p className="text-xs text-muted-foreground">No withdrawal requests.</p></div>
+        {loading ? <div className="flex justify-center py-12"><Loader2 weight="fill" className="h-8 w-8 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" /></div>
+          : withdrawals.length === 0 ? <div className="p-12 text-center"><CurrencyDollar weight="fill" className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" /><p className="text-xs text-muted-foreground">No withdrawal requests.</p></div>
           : <div className="divide-y divide-border/50">
               {withdrawals.map((w) => (
                 <div key={w.id} className="flex items-center justify-between px-4 py-3.5 hover:bg-muted/10 transition-colors">
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className={`p-2 rounded-xl shrink-0 ${statusColor[w.status] ?? 'bg-muted text-muted-foreground'}`}>
-                      {w.status === 'completed' ? <CheckCircle2 className="h-4 w-4" /> : w.status === 'rejected' ? <XCircle className="h-4 w-4" /> : <Clock className="h-4 w-4" />}
+                    <div className={`p-2 rounded-lg shrink-0 ${statusColor[w.status] ?? 'bg-muted text-muted-foreground'}`}>
+                      {w.status === 'completed' ? <CheckCircle2 weight="fill" className="h-4 w-4" /> : w.status === 'rejected' ? <XCircle className="h-4 w-4" /> : <Clock weight="fill" className="h-4 w-4" />}
                     </div>
                     <div>
                       <p className="text-sm font-bold text-foreground">#{w.id} — {w.user?.name ?? w.user?.username ?? `User #${w.user_id}`}</p>
@@ -123,9 +132,9 @@ export function AdminTransactionsPage() {
 
       {lastPage > 1 && (
         <div className="flex items-center justify-center gap-2 pt-4">
-          <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1} className="px-3 py-1.5 rounded-lg text-xs font-bold border border-border bg-card hover:bg-muted disabled:opacity-40">Previous</button>
+          <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1} className="px-3 py-1.5 rounded-lg text-xs font-bold border-none bg-card hover:bg-muted disabled:opacity-40">Previous</button>
           <span className="text-xs text-muted-foreground">Page {page} of {lastPage}</span>
-          <button onClick={() => setPage(p => Math.min(lastPage, p + 1))} disabled={page >= lastPage} className="px-3 py-1.5 rounded-lg text-xs font-bold border border-border bg-card hover:bg-muted disabled:opacity-40">Next</button>
+          <button onClick={() => setPage(p => Math.min(lastPage, p + 1))} disabled={page >= lastPage} className="px-3 py-1.5 rounded-lg text-xs font-bold border-none bg-card hover:bg-muted disabled:opacity-40">Next</button>
         </div>
       )}
     </div>

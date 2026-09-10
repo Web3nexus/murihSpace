@@ -5,7 +5,13 @@ import { AuthLayout } from "@/components/layout/AuthLayout";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Loader2, Check, AlertCircle, Eye, EyeOff } from "lucide-react";
+import {
+  Spinner as Loader2,
+  Check as Check,
+  WarningCircle as AlertCircle,
+  Eye as Eye,
+  EyeSlash as EyeOff
+} from "@phosphor-icons/react";
 import { PASSWORD_RULES, validatePassword } from "@/lib/auth/passwordRules";
 
 export function ResetPasswordPage() {
@@ -62,7 +68,7 @@ export function ResetPasswordPage() {
     >
       <div className="flex flex-col gap-5">
         <div className="flex flex-col gap-1 text-left">
-          <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+          <h2 className="text-xl sm:text-xl font-extrabold tracking-tight text-slate-900 dark:text-white">
             Reset password
           </h2>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
@@ -71,21 +77,21 @@ export function ResetPasswordPage() {
         </div>
 
         {error && (
-          <div className="rounded-xl bg-rose-500/10 border border-rose-500/20 p-3 text-xs sm:text-sm text-rose-500 text-center font-medium">
-            <AlertCircle className="h-4 w-4 inline-block mr-1.5 -mt-0.5" />
+          <div className="rounded-lg bg-rose-500/10 border border-rose-500/20 p-3 text-xs sm:text-sm text-rose-500 text-center font-medium">
+            <AlertCircle weight="fill" className="h-4 w-4 inline-block mr-1.5 -mt-0.5" />
             {error}
           </div>
         )}
 
         {reset ? (
-          <div className="rounded-xl bg-emerald-500/10 border border-emerald-500/20 p-6 text-center space-y-4">
-            <Check className="h-10 w-10 text-emerald-500 mx-auto" />
+          <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/20 p-4 text-center space-y-4">
+            <Check weight="fill" className="h-10 w-10 text-emerald-500 mx-auto" />
             <p className="text-sm font-bold text-emerald-600 dark:text-emerald-400">
               Password reset successful!
             </p>
             <Link
               to="/login"
-              className="inline-flex items-center justify-center w-full h-12 rounded-xl bg-[#2164b6] hover:bg-[#1a5091] text-white text-base font-bold shadow-lg shadow-[#2164b6]/25 transition-all duration-200"
+              className="inline-flex items-center justify-center w-full h-12 rounded-lg bg-[#2164b6] hover:bg-[#1a5091] text-white text-base font-bold shadow-lg shadow-[#2164b6]/25 transition-all duration-200"
             >
               Log in with new password
             </Link>
@@ -106,7 +112,7 @@ export function ResetPasswordPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   disabled={loading || !!emailFromUrl}
-                  className="h-12 px-4 rounded-xl text-sm bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-800 focus:border-[#2164b6] focus:ring-2 focus:ring-[#2164b6]/20"
+                  className="h-12 px-4 rounded-lg text-sm bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-800 focus:border-[#2164b6] focus:ring-2 focus:ring-[#2164b6]/20"
                 />
                 {fieldErrors.email && (
                   <p className="text-xs text-rose-500 mt-1">{fieldErrors.email[0]}</p>
@@ -127,7 +133,7 @@ export function ResetPasswordPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     disabled={loading}
-                    className="h-12 px-4 rounded-xl text-sm bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-800 focus:border-[#2164b6] focus:ring-2 focus:ring-[#2164b6]/20 pr-10"
+                    className="h-12 px-4 rounded-lg text-sm bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-800 focus:border-[#2164b6] focus:ring-2 focus:ring-[#2164b6]/20 pr-10"
                     aria-describedby="password-requirements"
                   />
                 </div>
@@ -135,7 +141,7 @@ export function ResetPasswordPage() {
                   <div id="password-requirements" aria-live="polite" className="space-y-1.5 mt-2 pl-1">
                     {PASSWORD_RULES.map((rule, idx) => (
                       <div key={idx} className="flex items-center gap-2">
-                        {rule.check(password) ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <div className="w-3.5 h-3.5 rounded-full border border-slate-300 dark:border-slate-700" />}
+                        {rule.check(password) ? <Check weight="fill" className="w-3.5 h-3.5 text-emerald-500" /> : <div className="w-3.5 h-3.5 rounded-full border border-slate-300 dark:border-slate-700" />}
                         <span className={`text-[11px] font-medium ${rule.check(password) ? 'text-emerald-500' : 'text-slate-500 dark:text-slate-400'}`}>{rule.label}</span>
                       </div>
                     ))}
@@ -156,7 +162,7 @@ export function ResetPasswordPage() {
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   disabled={loading}
-                  className="h-12 px-4 rounded-xl text-sm bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-800 focus:border-[#2164b6] focus:ring-2 focus:ring-[#2164b6]/20"
+                  className="h-12 px-4 rounded-lg text-sm bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-800 focus:border-[#2164b6] focus:ring-2 focus:ring-[#2164b6]/20"
                 />
               </Field>
 
@@ -168,7 +174,7 @@ export function ResetPasswordPage() {
                   className="rounded border-slate-300 dark:border-slate-600"
                 />
                 <span className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
-                  {showPasswords ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                  {showPasswords ? <EyeOff className="h-3 w-3" /> : <Eye weight="fill" className="h-3 w-3" />}
                   Show passwords
                 </span>
               </label>
@@ -177,10 +183,10 @@ export function ResetPasswordPage() {
                 <Button
                   type="submit"
                   disabled={loading || !email || !password || !confirmPassword}
-                  className="w-full h-12 rounded-xl bg-[#2164b6] hover:bg-[#1a5091] text-white text-base font-bold shadow-lg shadow-[#2164b6]/25 transition-all duration-200 active:scale-[0.99]"
+                  className="w-full h-12 rounded-lg bg-[#2164b6] hover:bg-[#1a5091] text-white text-base font-bold shadow-lg shadow-[#2164b6]/25 transition-all duration-200 active:scale-[0.99]"
                 >
                   {loading ? (
-                    <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Resetting…</>
+                    <><Loader2 weight="fill" className="mr-2 h-5 w-5 animate-spin" /> Resetting…</>
                   ) : (
                     "Reset password"
                   )}

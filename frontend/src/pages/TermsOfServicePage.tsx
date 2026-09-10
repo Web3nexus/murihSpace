@@ -1,10 +1,12 @@
-import { ScrollText } from "lucide-react";
+import {
+  Scroll as Scroll
+} from "@phosphor-icons/react";
 import { LegalLayout } from "@/components/layout/LegalLayout";
 
 export default function TermsOfServicePage() {
   return (
     <LegalLayout
-      icon={<ScrollText className="h-6 w-6" />}
+      icon={<Scroll weight="fill" className="h-6 w-6" />}
       eyebrow="Legal"
       title="Terms of Service"
       updated="August 4, 2026"

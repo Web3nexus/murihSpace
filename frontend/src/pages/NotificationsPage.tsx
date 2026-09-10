@@ -1,24 +1,24 @@
 import { getAuthToken } from "@/lib/auth/token";
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  Bell,
-  CheckCheck,
-  ShieldAlert,
-  ShieldCheck,
-  MessageSquare,
-  UserPlus,
-  Zap,
-  Sliders,
-  Check,
-  Loader2,
-  RefreshCw,
-  ExternalLink,
-  LifeBuoy,
-  Award,
-  Gift,
-  Wallet,
-  CheckCircle2,
-} from 'lucide-react';
+  Bell as Bell,
+  Checks as CheckCheck,
+  ShieldWarning as ShieldWarning,
+  ShieldCheck as ShieldCheck,
+  ChatTeardropText as MessageSquare,
+  UserPlus as UserPlus,
+  Lightning as Zap,
+  Sliders as Sliders,
+  Check as Check,
+  Spinner as Loader2,
+  ArrowsClockwise as RefreshCw,
+  ArrowSquareOut as ExternalLink,
+  Lifebuoy as Lifebuoy,
+  Medal as Award,
+  Gift as Gift,
+  Wallet as Wallet,
+  CheckCircle as CheckCircle2
+} from "@phosphor-icons/react";
 import { Button } from '@/components/ui/button';
 import { formatDistanceToNow } from 'date-fns';
 import { Link } from 'react-router';
@@ -39,109 +39,109 @@ const TYPE_CONFIG: Record<
   new_post: {
     label: 'New Community Posts',
     description: 'Notifications when creators or members publish new posts in joined communities.',
-    icon: <MessageSquare className="h-4 w-4 text-secondary" />,
+    icon: <MessageSquare weight="fill" className="h-4 w-4 text-secondary" />,
   },
   new_comment: {
     label: 'Comments on Posts',
     description: 'Notifications when someone comments on your post or replies to your comment.',
-    icon: <MessageSquare className="h-4 w-4 text-secondary" />,
+    icon: <MessageSquare weight="fill" className="h-4 w-4 text-secondary" />,
   },
   new_reaction: {
     label: 'Post & Comment Reactions',
     description: 'Notifications when members react (like, love, fire, clap) to your content.',
-    icon: <Zap className="h-4 w-4 text-amber-500" />,
+    icon: <Zap weight="fill" className="h-4 w-4 text-amber-500" />,
   },
   new_member: {
     label: 'New Members Joined',
     description: 'Notifications when new members join your community.',
-    icon: <UserPlus className="h-4 w-4 text-emerald-500" />,
+    icon: <UserPlus weight="fill" className="h-4 w-4 text-emerald-500" />,
   },
   join_request: {
     label: 'Community Join Requests',
     description: 'Notifications when a member requests access to your private community.',
-    icon: <UserPlus className="h-4 w-4 text-amber-500" />,
+    icon: <UserPlus weight="fill" className="h-4 w-4 text-amber-500" />,
   },
   join_approved: {
     label: 'Join Request Approved',
     description: 'Notifications when your request to join a private community is accepted.',
-    icon: <Check className="h-4 w-4 text-emerald-500" />,
+    icon: <Check weight="fill" className="h-4 w-4 text-emerald-500" />,
   },
   moderation_action: {
     label: 'Moderation & Safety Alerts',
     description: 'Notifications regarding content reports, warnings, or moderation actions.',
-    icon: <ShieldAlert className="h-4 w-4 text-destructive" />,
+    icon: <ShieldWarning weight="fill" className="h-4 w-4 text-destructive" />,
   },
   ticket_created: {
     label: 'Ticket Created',
     description: 'When a support ticket you opened is created.',
-    icon: <LifeBuoy className="h-4 w-4 text-blue-500" />,
+    icon: <Lifebuoy weight="fill" className="h-4 w-4 text-blue-500" />,
   },
   ticket_reply: {
     label: 'Support Replies',
     description: 'When a support agent replies to your ticket.',
-    icon: <LifeBuoy className="h-4 w-4 text-emerald-500" />,
+    icon: <Lifebuoy weight="fill" className="h-4 w-4 text-emerald-500" />,
   },
   ticket_status_changed: {
     label: 'Ticket Status Changes',
     description: 'When the status of your support ticket changes.',
-    icon: <RefreshCw className="h-4 w-4 text-blue-500" />,
+    icon: <RefreshCw weight="fill" className="h-4 w-4 text-blue-500" />,
   },
   ticket_info_requested: {
     label: 'More Information Requested',
     description: 'When support asks you for more information on a ticket.',
-    icon: <MessageSquare className="h-4 w-4 text-amber-500" />,
+    icon: <MessageSquare weight="fill" className="h-4 w-4 text-amber-500" />,
   },
   ticket_resolved: {
     label: 'Ticket Resolved',
     description: 'When your support ticket is marked resolved.',
-    icon: <Check className="h-4 w-4 text-emerald-500" />,
+    icon: <Check weight="fill" className="h-4 w-4 text-emerald-500" />,
   },
   ticket_reopened: {
     label: 'Ticket Reopened',
     description: 'When your support ticket is reopened.',
-    icon: <RefreshCw className="h-4 w-4 text-amber-500" />,
+    icon: <RefreshCw weight="fill" className="h-4 w-4 text-amber-500" />,
   },
   role_upgrade_approved: {
     label: 'Role Upgrades & Status',
     description: 'Official notifications when your account upgrade or tier is approved.',
-    icon: <Award className="h-4 w-4 text-amber-500" />,
+    icon: <Award weight="fill" className="h-4 w-4 text-amber-500" />,
   },
   role_upgrade_rejected: {
     label: 'Role Upgrade Updates',
     description: 'Updates and feedback regarding account role submissions.',
-    icon: <ShieldAlert className="h-4 w-4 text-rose-500" />,
+    icon: <ShieldWarning weight="fill" className="h-4 w-4 text-rose-500" />,
   },
   kyc_approved: {
     label: 'Identity Verification (KYC)',
     description: 'Official confirmation when your identity verification is verified.',
-    icon: <ShieldCheck className="h-4 w-4 text-emerald-500" />,
+    icon: <ShieldCheck weight="fill" className="h-4 w-4 text-emerald-500" />,
   },
   kyc_rejected: {
     label: 'Identity Verification Alerts',
     description: 'Notifications if your identity verification requires re-submission.',
-    icon: <ShieldAlert className="h-4 w-4 text-rose-500" />,
+    icon: <ShieldWarning weight="fill" className="h-4 w-4 text-rose-500" />,
   },
   kyc_requested: {
     label: 'KYC Action Requests',
     description: 'Requests to submit identity documents for high-tier account features.',
-    icon: <ShieldAlert className="h-4 w-4 text-blue-500" />,
+    icon: <ShieldWarning weight="fill" className="h-4 w-4 text-blue-500" />,
   },
   gift_received: {
     label: 'Gifts Received',
     description: 'Alerts when members send you gifts during streams or on profile.',
-    icon: <Gift className="h-4 w-4 text-pink-500" />,
+    icon: <Gift weight="fill" className="h-4 w-4 text-pink-500" />,
   },
   money_received: {
     label: 'Money & Wallet Credits',
     description: 'Instant alerts when donations, transfers, or wallet credits arrive.',
-    icon: <Wallet className="h-4 w-4 text-emerald-500" />,
+    icon: <Wallet weight="fill" className="h-4 w-4 text-emerald-500" />,
   },
 };
 
 export default function NotificationsPage() {
   const [activeTab, setActiveTab] = useState<'all' | 'preferences'>('all');
 
-  // Notification History state
+  // Notification ClockCounterClockwise state
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -282,12 +282,12 @@ export default function NotificationsPage() {
   };
 
   return (
-    <div className="space-y-6 w-full max-w-7xl mx-auto p-6 lg:p-8">
+    <div className="space-y-6 w-full max-w-7xl mx-auto p-4 lg:p-5">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-foreground tracking-tight flex items-center gap-2.5">
-            <Bell className="h-6 w-6 text-secondary" />
+          <h1 className="text-xl font-black text-foreground tracking-tight flex items-center gap-2.5">
+            <Bell weight="fill" className="h-6 w-6 text-secondary" />
             Notifications & Preferences
           </h1>
           <p className="text-xs text-muted-foreground mt-1">
@@ -296,12 +296,12 @@ export default function NotificationsPage() {
         </div>
 
         {/* Tab switcher */}
-        <div className="flex items-center p-1 rounded-xl bg-muted/60 border border-border shrink-0 self-start sm:self-auto">
+        <div className="flex items-center p-1 rounded-lg bg-muted/60 border-none shrink-0 self-start sm:self-auto">
           <button
             onClick={() => setActiveTab('all')}
             className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
               activeTab === 'all'
-                ? 'bg-card text-foreground shadow-sm'
+                ? 'bg-card text-foreground '
                 : 'text-muted-foreground hover:text-foreground'
             }`}
           >
@@ -311,11 +311,11 @@ export default function NotificationsPage() {
             onClick={() => setActiveTab('preferences')}
             className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
               activeTab === 'preferences'
-                ? 'bg-card text-foreground shadow-sm'
+                ? 'bg-card text-foreground '
                 : 'text-muted-foreground hover:text-foreground'
             }`}
           >
-            <Sliders className="h-3.5 w-3.5" />
+            <Sliders weight="fill" className="h-3.5 w-3.5" />
             Preferences
           </button>
         </div>
@@ -336,7 +336,7 @@ export default function NotificationsPage() {
                   onClick={handleMarkAllRead}
                   className="h-8 text-xs font-semibold gap-1.5"
                 >
-                  <CheckCheck className="h-3.5 w-3.5 text-secondary" />
+                  <CheckCheck weight="fill" className="h-3.5 w-3.5 text-secondary" />
                   Mark All Read
                 </Button>
               )}
@@ -347,7 +347,7 @@ export default function NotificationsPage() {
                 disabled={isRefreshing}
                 className="h-8 text-xs font-semibold gap-1.5"
               >
-                <RefreshCw className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+                <RefreshCw weight="fill" className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
                 Refresh
               </Button>
             </div>
@@ -355,24 +355,24 @@ export default function NotificationsPage() {
 
           {isLoading ? (
             <div className="py-16 text-center space-y-2">
-              <Loader2 className="h-8 w-8 animate-spin text-secondary mx-auto" />
+              <Loader2 weight="fill" className="h-8 w-8 animate-spin text-secondary mx-auto" />
               <p className="text-xs text-muted-foreground font-medium">Loading notifications…</p>
             </div>
           ) : notifications.length === 0 ? (
-            <div className="p-12 text-center border border-dashed border-border rounded-2xl bg-card space-y-3">
-              <Bell className="h-10 w-10 text-muted-foreground/30 mx-auto" />
+            <div className="p-12 text-center border border-dashed border-border rounded-lg bg-card space-y-3">
+              <Bell weight="fill" className="h-10 w-10 text-muted-foreground/30 mx-auto" />
               <h3 className="text-sm font-bold text-foreground">All caught up!</h3>
               <p className="text-xs text-muted-foreground max-w-sm mx-auto">
                 You don't have any notifications right now. Activity in your communities will appear here.
               </p>
             </div>
           ) : (
-            <div className="border border-border rounded-2xl bg-card divide-y divide-border overflow-hidden shadow-sm">
+            <div className="border-none rounded-lg bg-card divide-y divide-border overflow-hidden ">
               {notifications.map((n) => {
                 const isUnread = !n.read_at;
                 const timeAgo = formatDistanceToNow(new Date(n.created_at), { addSuffix: true });
                 const config = TYPE_CONFIG[n.data?.type as NotificationType] ?? {
-                  icon: <Bell className="h-4 w-4 text-muted-foreground" />,
+                  icon: <Bell weight="fill" className="h-4 w-4 text-muted-foreground" />,
                 };
                 const isOfficial =
                   n.data?.is_official ||
@@ -388,7 +388,7 @@ export default function NotificationsPage() {
                       isUnread ? 'bg-secondary/5' : 'hover:bg-muted/20'
                     }`}
                   >
-                    <div className="p-2.5 rounded-xl bg-muted shrink-0 mt-0.5">{config.icon}</div>
+                    <div className="p-2.5 rounded-lg bg-muted shrink-0 mt-0.5">{config.icon}</div>
                     <div className="flex-1 space-y-1">
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-1.5 flex-wrap">
@@ -396,7 +396,7 @@ export default function NotificationsPage() {
                             {channelName}
                           </span>
                           {isVerified && (
-                            <CheckCircle2 className="h-3.5 w-3.5 fill-[#007AFF] text-white shrink-0" />
+                            <CheckCircle2 weight="fill" className="h-3.5 w-3.5 fill-[#007AFF] text-white shrink-0" />
                           )}
                           <span className="text-[11px] text-muted-foreground">• {timeAgo}</span>
                         </div>
@@ -414,7 +414,7 @@ export default function NotificationsPage() {
                           to={n.data.action_url.startsWith('http') ? n.data.action_url.replace(/https?:\/\/[^/]+/, '') : n.data.action_url}
                           className="inline-flex items-center gap-1 text-xs font-semibold text-secondary hover:underline pt-1"
                         >
-                          {n.data?.action_label ?? 'View Details'} <ExternalLink className="h-3 w-3" />
+                          {n.data?.action_label ?? 'View Details'} <ExternalLink weight="fill" className="h-3 w-3" />
                         </Link>
                       )}
                     </div>
@@ -430,8 +430,8 @@ export default function NotificationsPage() {
       {/* TAB 2: Preferences Matrix */}
       {activeTab === 'preferences' && (
         <div className="space-y-6">
-          <div className="p-4 rounded-2xl bg-secondary/10 border border-secondary/20 flex items-start gap-3">
-            <Sliders className="h-5 w-5 text-secondary shrink-0 mt-0.5" />
+          <div className="p-4 rounded-lg bg-secondary/10 border border-secondary/20 flex items-start gap-3">
+            <Sliders weight="fill" className="h-5 w-5 text-secondary shrink-0 mt-0.5" />
             <div className="space-y-1">
               <h4 className="text-xs font-bold text-foreground">Notification Channels</h4>
               <p className="text-xs text-muted-foreground leading-relaxed">
@@ -442,11 +442,11 @@ export default function NotificationsPage() {
 
           {isPrefLoading ? (
             <div className="py-16 text-center space-y-2">
-              <Loader2 className="h-8 w-8 animate-spin text-secondary mx-auto" />
+              <Loader2 weight="fill" className="h-8 w-8 animate-spin text-secondary mx-auto" />
               <p className="text-xs text-muted-foreground font-medium">Loading preferences…</p>
             </div>
           ) : (
-            <div className="border border-border rounded-2xl bg-card overflow-hidden shadow-sm divide-y divide-border">
+            <div className="border-none rounded-lg bg-card overflow-hidden  divide-y divide-border">
               {/* Header row */}
               <div className="p-4 bg-muted/40 grid grid-cols-12 gap-2 text-xs font-bold text-foreground uppercase tracking-wider">
                 <div className="col-span-6 sm:col-span-7">Notification Category</div>
@@ -482,7 +482,7 @@ export default function NotificationsPage() {
                         }`}
                       >
                         <div
-                          className={`w-4 h-4 rounded-full bg-white transition-transform duration-200 shadow-sm ${
+                          className={`w-4 h-4 rounded-full bg-white transition-transform duration-200  ${
                             inApp ? 'translate-x-4' : 'translate-x-0'
                           }`}
                         />
@@ -499,7 +499,7 @@ export default function NotificationsPage() {
                         }`}
                       >
                         <div
-                          className={`w-4 h-4 rounded-full bg-white transition-transform duration-200 shadow-sm ${
+                          className={`w-4 h-4 rounded-full bg-white transition-transform duration-200  ${
                             email ? 'translate-x-4' : 'translate-x-0'
                           }`}
                         />
@@ -516,7 +516,7 @@ export default function NotificationsPage() {
                         }`}
                       >
                         <div
-                          className={`w-4 h-4 rounded-full bg-white transition-transform duration-200 shadow-sm ${
+                          className={`w-4 h-4 rounded-full bg-white transition-transform duration-200  ${
                             push ? 'translate-x-4' : 'translate-x-0'
                           }`}
                         />
@@ -531,7 +531,7 @@ export default function NotificationsPage() {
           <div className="flex items-center justify-end gap-3 pt-2">
             {saveSuccess && (
               <span className="text-xs font-semibold text-emerald-500 flex items-center gap-1">
-                <Check className="h-4 w-4" /> Preferences saved!
+                <Check weight="fill" className="h-4 w-4" /> Preferences saved!
               </span>
             )}
             <Button

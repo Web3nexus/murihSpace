@@ -1,5 +1,11 @@
 import React, { useState, useRef } from "react";
-import { X, Upload, Send, Loader2, Sparkles } from "lucide-react";
+import {
+  X as X,
+  UploadSimple as Upload,
+  PaperPlaneRight as Send,
+  Spinner as Loader2,
+  Sparkle as Sparkle
+} from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { authFetch } from "@/lib/api/authFetch";
@@ -65,18 +71,18 @@ export const StoryCreateModal: React.FC<StoryCreateModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-card border border-border rounded-3xl p-6 max-w-md w-full space-y-4 shadow-2xl relative">
+      <div className="bg-card border-none rounded-3xl p-4 max-w-md w-full space-y-4 shadow-2xl relative">
         <div className="flex items-center justify-between border-b border-border pb-3">
           <h2 className="text-lg font-black tracking-tight flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-secondary" /> Create Story
+            <Sparkle weight="fill" className="h-5 w-5 text-secondary" /> Create Story
           </h2>
           <Button size="sm" variant="ghost" onClick={onClose}>
-            <X className="h-4 w-4" />
+            <X weight="fill" className="h-4 w-4" />
           </Button>
         </div>
 
         {msg && (
-          <div className="p-3 text-xs font-bold text-destructive bg-destructive/10 rounded-xl">
+          <div className="p-3 text-xs font-bold text-destructive bg-destructive/10 rounded-lg">
             {msg}
           </div>
         )}
@@ -93,7 +99,7 @@ export const StoryCreateModal: React.FC<StoryCreateModalProps> = ({
           {/* Media Preview Box */}
           <div
             onClick={() => fileInputRef.current?.click()}
-            className="relative h-56 w-full rounded-2xl border-2 border-dashed border-border hover:border-secondary bg-muted/30 flex flex-col items-center justify-center cursor-pointer overflow-hidden transition-all group"
+            className="relative h-56 w-full rounded-lg border-2 border-dashed border-border hover:border-secondary bg-muted/30 flex flex-col items-center justify-center cursor-pointer overflow-hidden transition-all group"
           >
             {previewUrl ? (
               file?.type.startsWith("video/") ? (
@@ -104,7 +110,7 @@ export const StoryCreateModal: React.FC<StoryCreateModalProps> = ({
             ) : (
               <div className="text-center p-4 space-y-2">
                 <div className="h-12 w-12 rounded-full bg-secondary/15 flex items-center justify-center mx-auto text-secondary group-hover:scale-110 transition-transform">
-                  <Upload className="h-6 w-6" />
+                  <Upload weight="fill" className="h-6 w-6" />
                 </div>
                 <p className="text-xs font-bold text-foreground">Click to upload photo or video</p>
                 <p className="text-[10px] text-muted-foreground">Supports MP4, JPG, PNG, WEBP</p>
@@ -119,7 +125,7 @@ export const StoryCreateModal: React.FC<StoryCreateModalProps> = ({
               onChange={(e) => setCaption(e.target.value)}
               placeholder="What's on your mind?..."
               rows={2}
-              className="text-xs rounded-xl"
+              className="text-xs rounded-lg"
             />
           </div>
 
@@ -128,7 +134,7 @@ export const StoryCreateModal: React.FC<StoryCreateModalProps> = ({
             <select
               value={privacy}
               onChange={(e) => setPrivacy(e.target.value as any)}
-              className="text-xs font-bold bg-muted border border-border rounded-xl px-3 py-1.5 outline-none"
+              className="text-xs font-bold bg-muted border-none rounded-lg px-3 py-1.5 outline-none"
             >
               <option value="public">Public (Everyone)</option>
               <option value="followers">Followers Only</option>
@@ -149,7 +155,7 @@ export const StoryCreateModal: React.FC<StoryCreateModalProps> = ({
               disabled={uploading || (!file && !caption)}
               className="flex-1 font-bold text-xs bg-secondary text-secondary-foreground hover:bg-secondary/90"
             >
-              {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4 mr-1.5" />}
+              {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send weight="fill" className="h-4 w-4 mr-1.5" />}
               Publish Story
             </Button>
           </div>

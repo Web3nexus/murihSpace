@@ -1,5 +1,7 @@
 import React from "react";
-import { AlertTriangleIcon } from "lucide-react";
+import {
+  Warning as AlertTriangleIcon
+} from "@phosphor-icons/react";
 
 interface FormErrorSummaryProps {
   title?: string;
@@ -34,10 +36,10 @@ export const FormErrorSummary: React.FC<FormErrorSummaryProps> = ({
     <div
       role="alert"
       tabIndex={-1}
-      className={`p-4 rounded-xl border border-rose-500/20 bg-rose-500/10 text-rose-600 dark:text-rose-400 space-y-2 ${className}`}
+      className={`p-4 rounded-lg border border-rose-500/20 bg-rose-500/10 text-rose-600 dark:text-rose-400 space-y-2 ${className}`}
     >
       <div className="flex items-center gap-2 font-semibold text-sm">
-        <AlertTriangleIcon className="h-4 w-4 shrink-0 text-rose-500" />
+        <AlertTriangleIcon weight="fill" className="h-4 w-4 shrink-0 text-rose-500" />
         <span>{title}</span>
       </div>
       <ul className="list-disc list-inside text-xs space-y-1 pl-1">

@@ -9,3 +9,4 @@ class InvalidWebhookSignatureException extends PaymentException
         parent::__construct($message, 'INVALID_WEBHOOK_SIGNATURE', 401, array_merge(['provider' => $provider], $context));
     }
 }
+

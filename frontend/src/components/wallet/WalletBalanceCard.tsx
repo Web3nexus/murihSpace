@@ -1,4 +1,11 @@
-import { Wallet, ShieldCheck, Clock, Lock, Scale, ArrowUpRight } from "lucide-react";
+import {
+  Wallet as Wallet,
+  ShieldCheck as ShieldCheck,
+  Clock as Clock,
+  Lock as Lock,
+  Scales as Scales,
+  ArrowUpRight as ArrowUpRight
+} from "@phosphor-icons/react";
 
 interface WalletBalanceData {
   id: number;
@@ -48,15 +55,15 @@ export function WalletBalanceCard({ wallet, onDeposit, onTransfer, onWithdraw }:
   };
 
   return (
-    <div className={`p-6 sm:p-8 rounded-2xl bg-gradient-to-br ${getGradient()} text-white border shadow-xl space-y-6`}>
+    <div className={`p-4 sm:p-5 rounded-lg bg-gradient-to-br ${getGradient()} text-white border shadow-xl space-y-6`}>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 text-white/90 text-xs font-semibold uppercase tracking-wider backdrop-blur-sm border border-white/10">
-            <Wallet className="h-3.5 w-3.5 text-primary" /> {getLabel()}
+            <Wallet weight="fill" className="h-3.5 w-3.5 text-primary" /> {getLabel()}
           </span>
           <div className="mt-3">
             <p className="text-xs text-white/70 font-medium uppercase tracking-wider">Available Balance</p>
-            <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight mt-0.5">{wallet.formatted.available}</h2>
+            <h2 className="text-xl sm:text-xl font-extrabold tracking-tight mt-0.5">{wallet.formatted.available}</h2>
           </div>
         </div>
 
@@ -64,7 +71,7 @@ export function WalletBalanceCard({ wallet, onDeposit, onTransfer, onWithdraw }:
           {isSystem && onDeposit && (
             <button
               onClick={onDeposit}
-              className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground font-bold text-sm shadow hover:opacity-90 transition"
+              className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-lg bg-primary text-primary-foreground font-bold text-sm shadow hover:opacity-90 transition"
             >
               Deposit Funds
             </button>
@@ -73,16 +80,16 @@ export function WalletBalanceCard({ wallet, onDeposit, onTransfer, onWithdraw }:
           {!isSystem && onTransfer && (
             <button
               onClick={onTransfer}
-              className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-white text-slate-900 font-bold text-sm shadow hover:bg-white/90 transition"
+              className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-lg bg-white text-slate-900 font-bold text-sm shadow hover:bg-white/90 transition"
             >
-              <ArrowUpRight className="h-4 w-4" /> Transfer to System Wallet
+              <ArrowUpRight weight="fill" className="h-4 w-4" /> Transfer to System Wallet
             </button>
           )}
 
           {!isSystem && onWithdraw && (
             <button
               onClick={onWithdraw}
-              className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-white/15 hover:bg-white/25 text-white font-semibold text-sm transition backdrop-blur-sm"
+              className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-lg bg-white/15 hover:bg-white/25 text-white font-semibold text-sm transition backdrop-blur-sm"
             >
               Withdraw
             </button>
@@ -92,30 +99,30 @@ export function WalletBalanceCard({ wallet, onDeposit, onTransfer, onWithdraw }:
 
       {/* Granular Balance Category Breakdown Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-4 border-t border-white/10">
-        <div className="p-3 rounded-xl bg-white/5 border border-white/5">
+        <div className="p-3 rounded-lg bg-white/5 border border-white/5">
           <div className="flex items-center gap-1.5 text-white/60 text-xs font-medium">
-            <Clock className="h-3.5 w-3.5 text-amber-400" /> Pending
+            <Clock weight="fill" className="h-3.5 w-3.5 text-amber-400" /> Pending
           </div>
           <p className="text-sm font-bold text-white mt-1">{wallet.formatted.pending}</p>
         </div>
 
-        <div className="p-3 rounded-xl bg-white/5 border border-white/5">
+        <div className="p-3 rounded-lg bg-white/5 border border-white/5">
           <div className="flex items-center gap-1.5 text-white/60 text-xs font-medium">
-            <Lock className="h-3.5 w-3.5 text-blue-400" /> Reserved
+            <Lock weight="fill" className="h-3.5 w-3.5 text-blue-400" /> Reserved
           </div>
           <p className="text-sm font-bold text-white mt-1">{wallet.formatted.reserved}</p>
         </div>
 
-        <div className="p-3 rounded-xl bg-white/5 border border-white/5">
+        <div className="p-3 rounded-lg bg-white/5 border border-white/5">
           <div className="flex items-center gap-1.5 text-white/60 text-xs font-medium">
-            <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" /> Escrow
+            <ShieldCheck weight="fill" className="h-3.5 w-3.5 text-emerald-400" /> Escrow
           </div>
           <p className="text-sm font-bold text-white mt-1">{wallet.formatted.escrow}</p>
         </div>
 
-        <div className="p-3 rounded-xl bg-white/5 border border-white/5">
+        <div className="p-3 rounded-lg bg-white/5 border border-white/5">
           <div className="flex items-center gap-1.5 text-white/60 text-xs font-medium">
-            <Scale className="h-3.5 w-3.5 text-purple-400" /> Total Balance
+            <Scales weight="fill" className="h-3.5 w-3.5 text-purple-400" /> Total Balance
           </div>
           <p className="text-sm font-bold text-white mt-1">{wallet.formatted.total}</p>
         </div>

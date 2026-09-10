@@ -14,7 +14,9 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
 } from "@/components/ui/sidebar";
-import { ChevronRightIcon } from "lucide-react";
+import {
+  CaretRight as ChevronRightIcon
+} from "@phosphor-icons/react";
 
 interface NavItem {
   title: string;
@@ -77,7 +79,7 @@ export function NavMain({ items, groupLabel = "MurihSpace" }: NavMainProps) {
                   >
                     {item.icon}
                     <span>{item.title}</span>
-                    <ChevronRightIcon className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                    <ChevronRightIcon weight="fill" className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
                   </SidebarMenuButton>
                 </CollapsibleTrigger>
                 <CollapsibleContent>

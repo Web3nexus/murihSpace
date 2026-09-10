@@ -1,6 +1,15 @@
 import { getAuthToken } from "@/lib/auth/token";
 import { useEffect, useState } from "react";
-import { Loader2, Save, AlertCircle, CheckCircle2, Eye, EyeOff, PlugZap, Lock } from "lucide-react";
+import {
+  Spinner as Loader2,
+  FloppyDisk as FloppyDisk,
+  WarningCircle as AlertCircle,
+  CheckCircle as CheckCircle2,
+  Eye as Eye,
+  EyeSlash as EyeOff,
+  Plug as Plug,
+  Lock as Lock
+} from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -130,7 +139,7 @@ export default function AdminAiSettingsPage() {
       }
       const res = await authFetch(`/securegate/ai-settings`, { method: "PUT", headers: authHeaders(), body: JSON.stringify(body) });
       const j = await res.json();
-      if (!res.ok) throw new Error(j?.message ?? "Save failed");
+      if (!res.ok) throw new Error(j?.message ?? "FloppyDisk failed");
       const d = j?.success ? j?.data?.data ?? j?.data : j;
       setProviders(d?.providers ?? providers);
       setProvider(d?.provider ?? provider);
@@ -148,7 +157,7 @@ export default function AdminAiSettingsPage() {
       setTestResult({});
       toast.success("AI settings saved.");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Save failed");
+      toast.error(e instanceof Error ? e.message : "FloppyDisk failed");
     } finally {
       setSaving(false);
     }
@@ -183,13 +192,13 @@ export default function AdminAiSettingsPage() {
   };
 
   if (loading) {
-    return <div className="flex justify-center py-24"><Loader2 className="h-8 w-8 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" /></div>;
+    return <div className="flex justify-center py-24"><Loader2 weight="fill" className="h-8 w-8 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" /></div>;
   }
 
   return (
-    <div className="w-full mx-auto max-w-[860px] space-y-6 p-6 lg:p-10">
+    <div className="w-full mx-auto max-w-[860px] space-y-6 p-4 lg:p-10">
       <div>
-        <h1 className="text-2xl font-black tracking-tight flex items-center gap-2.5">
+        <h1 className="text-xl font-black tracking-tight flex items-center gap-2.5">
           <MeraIcon className="h-6 w-6" /> AI Providers
         </h1>
         <p className="text-xs text-muted-foreground mt-1">
@@ -207,10 +216,10 @@ export default function AdminAiSettingsPage() {
             <button
               key={p.id}
               onClick={() => setProvider(p.id)}
-              className={`text-left rounded-2xl border p-4 transition-all ${active ? "border-[#2164b6] ring-2 ring-[#2164b6]/20 bg-[#2164b6]/5" : "border-border bg-card hover:border-[#2164b6]/40"}`}
+              className={`text-left rounded-lg border p-4 transition-all ${active ? "border-[#2164b6] ring-2 ring-[#2164b6]/20 bg-[#2164b6]/5" : "border-border bg-card hover:border-[#2164b6]/40"}`}
             >
               <div className={`flex items-center justify-between mb-2`}>
-                <div className={`h-9 w-9 rounded-xl bg-gradient-to-br ${p.color} flex items-center justify-center`}>
+                <div className={`h-9 w-9 rounded-lg bg-gradient-to-br ${p.color} flex items-center justify-center`}>
                   <MeraIcon className="h-5 w-5" />
                 </div>
                 <span
@@ -236,11 +245,11 @@ export default function AdminAiSettingsPage() {
       </div>
 
       {/* Per-provider config */}
-      <div className="border border-border rounded-2xl bg-card p-6 space-y-5">
+      <div className="border-none rounded-lg bg-card p-4 space-y-5">
         {PROVIDERS.map((p) => {
           const meta = providers[p.id];
           return (
-            <div key={p.id} className="rounded-xl border border-border/60 p-4 space-y-3">
+            <div key={p.id} className="rounded-lg border-none/60 p-4 space-y-3">
               <div className="flex items-center justify-between">
                 <p className="text-xs font-bold text-foreground">{p.label}</p>
                 <button
@@ -248,7 +257,7 @@ export default function AdminAiSettingsPage() {
                   disabled={testing === p.id}
                   className="inline-flex items-center gap-1.5 text-[11px] font-bold text-muted-foreground hover:text-[#2164b6] dark:text-[#7ab0ff] disabled:opacity-50 transition-colors"
                 >
-                  {testing === p.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <PlugZap className="h-3.5 w-3.5" />}
+                  {testing === p.id ? <Loader2 weight="fill" className="h-3.5 w-3.5 animate-spin" /> : <Plug weight="fill" className="h-3.5 w-3.5" />}
                   Test connection
                 </button>
               </div>
@@ -258,14 +267,14 @@ export default function AdminAiSettingsPage() {
                     testResult[p.id].ok ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"
                   }`}
                 >
-                  {testResult[p.id].ok ? <CheckCircle2 className="h-3.5 w-3.5" /> : <AlertCircle className="h-3.5 w-3.5" />}
+                  {testResult[p.id].ok ? <CheckCircle2 className="h-3.5 w-3.5" /> : <AlertCircle weight="fill" className="h-3.5 w-3.5" />}
                   {testResult[p.id].text}
                 </p>
               )}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-[11px] font-bold text-muted-foreground flex items-center gap-1">
-                    <Lock className="h-3 w-3" /> API key
+                    <Lock weight="fill" className="h-3 w-3" /> API key
                   </label>
                   <div className="relative mt-1">
                     <Input
@@ -287,7 +296,7 @@ export default function AdminAiSettingsPage() {
                       onClick={() => setReveal((prev) => ({ ...prev, [p.id]: !prev[p.id] }))}
                       className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                     >
-                      {reveal[p.id] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      {reveal[p.id] ? <EyeOff className="h-4 w-4" /> : <Eye weight="fill" className="h-4 w-4" />}
                     </button>
                   </div>
                 </div>
@@ -307,7 +316,7 @@ export default function AdminAiSettingsPage() {
       </div>
 
       {/* Mera behavior & guardrails (admin-locked, applied platform-wide) */}
-      <div className="border border-border rounded-2xl bg-card p-6 space-y-5">
+      <div className="border-none rounded-lg bg-card p-4 space-y-5">
         <div className="flex items-center gap-2">
           <MeraIcon className="h-5 w-5" />
           <p className="text-xs font-black text-foreground uppercase tracking-wide">Mera behavior & guardrails</p>
@@ -336,7 +345,7 @@ export default function AdminAiSettingsPage() {
               id="guardrails-tone"
               value={guardrails.tone}
               onChange={(e) => setGuardrails((prev) => ({ ...prev, tone: e.target.value }))}
-              className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-xs outline-none focus:border-[#2164b6]/40 focus:ring-2 focus:ring-[#2164b6]/15"
+              className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm  outline-none focus:border-[#2164b6]/40 focus:ring-2 focus:ring-[#2164b6]/15"
             >
               {TONE_OPTIONS.map((t) => (
                 <option key={t.value} value={t.value}>
@@ -404,8 +413,8 @@ export default function AdminAiSettingsPage() {
 
       <div className="flex items-center gap-3">
         <Button onClick={save} disabled={saving} className="text-sm font-bold gap-1.5">
-          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-          Save AI settings
+          {saving ? <Loader2 weight="fill" className="h-4 w-4 animate-spin" /> : <FloppyDisk weight="fill" className="h-4 w-4" />}
+          FloppyDisk AI settings
         </Button>
         <p className="text-[11px] text-muted-foreground">
           Changing the active provider takes effect on the next AI request. Guardrails apply platform-wide.

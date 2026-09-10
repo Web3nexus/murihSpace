@@ -1,10 +1,25 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router";
 import {
-  BarChart3, TrendingUp, DollarSign, Users, ShoppingBag, Globe, Crown, Wallet,
-  Loader2, Store, ShieldCheck, RefreshCw, CreditCard, Coins,
-  ArrowUpRight, ArrowDownRight, Package, AlertCircle,
-} from "lucide-react";
+  ChartBar as BarChart3,
+  TrendUp as TrendingUp,
+  CurrencyDollar as DollarSign,
+  Users as Users,
+  Bag as ShoppingBag,
+  Globe as Globe,
+  Crown as Crown,
+  Wallet as Wallet,
+  Spinner as Loader2,
+  Storefront,
+  ShieldCheck as ShieldCheck,
+  ArrowsClockwise as RefreshCw,
+  CreditCard as CreditCard,
+  Coins as Coins,
+  ArrowUpRight as ArrowUpRight,
+  ArrowDownRight as ArrowDownRight,
+  Package as Package,
+  WarningCircle as AlertCircle
+} from "@phosphor-icons/react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, AreaChart, Area,
@@ -42,16 +57,16 @@ function StatCard({ icon, label, value, sub, trend }: {
   icon: React.ReactNode; label: string; value: React.ReactNode; sub?: string; trend?: { value: number; isUp: boolean };
 }) {
   return (
-    <div className="rounded-2xl border border-border bg-card p-5 space-y-2.5 hover:border-primary/30 transition-all">
+    <div className="rounded-lg border-none bg-card p-5 space-y-2.5 hover:border-primary/30 transition-all">
       <div className="flex items-center justify-between">
         <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{label}</span>
         <span className="text-muted-foreground/60">{icon}</span>
       </div>
-      <p className="text-2xl font-black text-foreground tracking-tight">{value}</p>
+      <p className="text-xl font-black text-foreground tracking-tight">{value}</p>
       {sub && <p className="text-xs text-muted-foreground">{sub}</p>}
       {trend && (
         <p className={`flex items-center gap-1 text-xs font-semibold ${trend.isUp ? "text-emerald-500" : "text-rose-500"}`}>
-          {trend.isUp ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
+          {trend.isUp ? <ArrowUpRight weight="fill" className="h-3 w-3" /> : <ArrowDownRight weight="fill" className="h-3 w-3" />}
           {trend.value}% {trend.isUp ? "up" : "down"}
         </p>
       )}
@@ -64,7 +79,7 @@ function TabButton({ active, onClick, children }: { active: boolean; onClick: ()
     <button
       onClick={onClick}
       className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${
-        active ? "bg-[#2164b6]/10 text-[#2164b6] dark:text-[#7ab0ff] shadow-xs" : "text-muted-foreground hover:text-foreground hover:bg-muted"
+        active ? "bg-[#2164b6]/10 text-[#2164b6] dark:text-[#7ab0ff] " : "text-muted-foreground hover:text-foreground hover:bg-muted"
       }`}
     >
       {children}
@@ -131,7 +146,7 @@ export function AdminAnalyticsPage() {
   if (isLoading && loadingCurrency) {
     return (
       <div className="w-full flex items-center justify-center h-64">
-        <Loader2 className="w-6 h-6 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" />
+        <Loader2 weight="fill" className="w-6 h-6 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" />
       </div>
     );
   }
@@ -143,30 +158,30 @@ export function AdminAnalyticsPage() {
   };
 
   const tabs = [
-    { key: "overview", label: "Overview", icon: <BarChart3 className="h-3.5 w-3.5" /> },
-    { key: "growth", label: "Growth", icon: <TrendingUp className="h-3.5 w-3.5" /> },
-    { key: "revenue", label: "Revenue", icon: <DollarSign className="h-3.5 w-3.5" /> },
-    { key: "content", label: "Content", icon: <ShoppingBag className="h-3.5 w-3.5" /> },
+    { key: "overview", label: "Overview", icon: <BarChart3 weight="fill" className="h-3.5 w-3.5" /> },
+    { key: "growth", label: "Growth", icon: <TrendingUp weight="fill" className="h-3.5 w-3.5" /> },
+    { key: "revenue", label: "Revenue", icon: <DollarSign weight="fill" className="h-3.5 w-3.5" /> },
+    { key: "content", label: "Content", icon: <ShoppingBag weight="fill" className="h-3.5 w-3.5" /> },
   ];
 
   return (
-    <div className="w-full mx-auto max-w-[1400px] space-y-6 p-6 lg:p-10">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 sm:p-8 rounded-2xl bg-gradient-to-br from-[#102840] via-[#173852] to-[#102840] text-white shadow-lg">
+    <div className="w-full mx-auto max-w-[1400px] space-y-6 p-4 lg:p-10">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 sm:p-5 rounded-lg bg-gradient-to-br from-[#102840] via-[#173852] to-[#102840] text-white shadow-lg">
         <div className="space-y-1.5">
           <span className="px-2.5 py-0.5 rounded-full bg-[#2164b6]/20 text-[#2164b6] dark:text-[#7ab0ff] text-xs font-semibold uppercase tracking-wider border border-[#2164b6]/30">
             Admin
           </span>
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">Platform Analytics</h1>
+          <h1 className="text-xl sm:text-xl font-extrabold tracking-tight">Platform Analytics</h1>
           <p className="text-sm text-white/70 max-w-xl">Platform-wide metrics, growth trends, and top content.</p>
         </div>
         <div className="flex items-center gap-3">
           <div className="relative">
-            <Coins className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-white/50 pointer-events-none" />
+            <Coins weight="fill" className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-white/50 pointer-events-none" />
             <select
               value={currency}
               onChange={(e) => changeCurrency(e.target.value)}
               disabled={isLoading}
-              className="appearance-none h-9 pl-9 pr-8 rounded-xl bg-white/10 border border-white/20 text-white text-xs font-bold cursor-pointer hover:bg-white/15 transition-colors disabled:opacity-50 disabled:cursor-wait focus:outline-none"
+              className="appearance-none h-9 pl-9 pr-8 rounded-lg bg-white/10 border border-white/20 text-white text-xs font-bold cursor-pointer hover:bg-white/15 transition-colors disabled:opacity-50 disabled:cursor-wait focus:outline-none"
               aria-label="Analytics currency"
             >
               {SUPPORTED_CURRENCIES.map((c) => (
@@ -175,14 +190,14 @@ export function AdminAnalyticsPage() {
             </select>
           </div>
           <Button onClick={() => fetchAll(currency)} variant="secondary" size="sm" className="gap-1.5 shrink-0">
-            <RefreshCw className="h-4 w-4" /> Refresh
+            <RefreshCw weight="fill" className="h-4 w-4" /> Refresh
           </Button>
         </div>
       </div>
 
       {fetchError && (
-        <div className="flex items-center gap-2 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-xs text-destructive">
-          <AlertCircle className="h-4 w-4 shrink-0" /> {fetchError}
+        <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-xs text-destructive">
+          <AlertCircle weight="fill" className="h-4 w-4 shrink-0" /> {fetchError}
           <button onClick={() => fetchAll(currency)} className="ml-auto text-muted-foreground hover:text-foreground font-bold">Retry</button>
         </div>
       )}
@@ -210,14 +225,14 @@ export function AdminAnalyticsPage() {
 
 function OverviewTab({ overview, topContent, currency }: { overview: any; topContent: any; currency: string }) {
   const stats = [
-    { label: "Total Users", value: compact(overview?.users?.total ?? 0), sub: `${compact(overview?.users?.creators ?? 0)} creators \u00B7 ${compact(overview?.users?.members ?? 0)} members`, icon: <Users className="h-4 w-4" /> },
-    { label: "Digital Revenue", value: formatAmount(overview?.revenue?.digital_revenue ?? 0, currency), sub: `${overview?.revenue?.digital_orders ?? 0} orders`, icon: <DollarSign className="h-4 w-4" /> },
-    { label: "Monthly Recurring", value: formatAmount(overview?.revenue?.mrr ?? 0, currency), sub: `${overview?.revenue?.active_subscriptions ?? 0} active subs`, icon: <TrendingUp className="h-4 w-4" /> },
-    { label: "Platform Balance", value: formatAmount(overview?.wallet?.platform_balance ?? 0, currency), sub: `${formatAmount(overview?.wallet?.user_balances ?? 0, currency)} in user wallets`, icon: <Wallet className="h-4 w-4" /> },
-    { label: "Products", value: (overview?.content?.digital_products ?? 0) + (overview?.content?.physical_products ?? 0), sub: `${overview?.content?.published_products ?? 0} published digital \u00B7 ${overview?.content?.physical_products ?? 0} physical`, icon: <Package className="h-4 w-4" /> },
-    { label: "Communities", value: overview?.content?.communities ?? 0, sub: `${overview?.content?.public_communities ?? 0} public`, icon: <Globe className="h-4 w-4" /> },
-    { label: "KYC Verified", value: overview?.users?.verified_kyc ?? 0, sub: `${overview?.users?.pending_kyc ?? 0} pending`, icon: <ShieldCheck className="h-4 w-4" /> },
-    { label: "Subscription Plans", value: overview?.subscriptions?.active_plans ?? 0, sub: `${overview?.subscriptions?.total_plans ?? 0} total`, icon: <Crown className="h-4 w-4" /> },
+    { label: "Total Users", value: compact(overview?.users?.total ?? 0), sub: `${compact(overview?.users?.creators ?? 0)} creators \u00B7 ${compact(overview?.users?.members ?? 0)} members`, icon: <Users weight="fill" className="h-4 w-4" /> },
+    { label: "Digital Revenue", value: formatAmount(overview?.revenue?.digital_revenue ?? 0, currency), sub: `${overview?.revenue?.digital_orders ?? 0} orders`, icon: <DollarSign weight="fill" className="h-4 w-4" /> },
+    { label: "Monthly Recurring", value: formatAmount(overview?.revenue?.mrr ?? 0, currency), sub: `${overview?.revenue?.active_subscriptions ?? 0} active subs`, icon: <TrendingUp weight="fill" className="h-4 w-4" /> },
+    { label: "Platform Balance", value: formatAmount(overview?.wallet?.platform_balance ?? 0, currency), sub: `${formatAmount(overview?.wallet?.user_balances ?? 0, currency)} in user wallets`, icon: <Wallet weight="fill" className="h-4 w-4" /> },
+    { label: "Products", value: (overview?.content?.digital_products ?? 0) + (overview?.content?.physical_products ?? 0), sub: `${overview?.content?.published_products ?? 0} published digital \u00B7 ${overview?.content?.physical_products ?? 0} physical`, icon: <Package weight="fill" className="h-4 w-4" /> },
+    { label: "Communities", value: overview?.content?.communities ?? 0, sub: `${overview?.content?.public_communities ?? 0} public`, icon: <Globe weight="fill" className="h-4 w-4" /> },
+    { label: "KYC Verified", value: overview?.users?.verified_kyc ?? 0, sub: `${overview?.users?.pending_kyc ?? 0} pending`, icon: <ShieldCheck weight="fill" className="h-4 w-4" /> },
+    { label: "Subscription Plans", value: overview?.subscriptions?.active_plans ?? 0, sub: `${overview?.subscriptions?.total_plans ?? 0} total`, icon: <Crown weight="fill" className="h-4 w-4" /> },
   ];
 
   return (
@@ -228,9 +243,9 @@ function OverviewTab({ overview, topContent, currency }: { overview: any; topCon
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {Array.isArray(topContent?.top_digital_products) && topContent.top_digital_products.length > 0 && (
-          <div className="rounded-2xl border border-border bg-card p-5">
+          <div className="rounded-lg border-none bg-card p-5">
             <h3 className="font-semibold text-sm text-foreground mb-3 flex items-center gap-2">
-              <ShoppingBag className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" /> Top Digital Products
+              <ShoppingBag weight="fill" className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" /> Top Digital Products
             </h3>
             <div className="space-y-2.5">
               {topContent.top_digital_products.slice(0, 5).map((p: any, i: number) => (
@@ -247,9 +262,9 @@ function OverviewTab({ overview, topContent, currency }: { overview: any; topCon
         )}
 
         {Array.isArray(topContent?.top_creators) && topContent.top_creators.length > 0 && (
-          <div className="rounded-2xl border border-border bg-card p-5">
+          <div className="rounded-lg border-none bg-card p-5">
             <h3 className="font-semibold text-sm text-foreground mb-3 flex items-center gap-2">
-              <Crown className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" /> Top Creators
+              <Crown weight="fill" className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" /> Top Creators
             </h3>
             <div className="space-y-2.5">
               {topContent.top_creators.slice(0, 5).map((c: any, i: number) => (
@@ -266,9 +281,9 @@ function OverviewTab({ overview, topContent, currency }: { overview: any; topCon
         )}
 
         {Array.isArray(topContent?.top_communities) && topContent.top_communities.length > 0 && (
-          <div className="rounded-2xl border border-border bg-card p-5">
+          <div className="rounded-lg border-none bg-card p-5">
             <h3 className="font-semibold text-sm text-foreground mb-3 flex items-center gap-2">
-              <Globe className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" /> Top Communities
+              <Globe weight="fill" className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" /> Top Communities
             </h3>
             <div className="space-y-2.5">
               {topContent.top_communities.slice(0, 5).map((c: any, i: number) => (
@@ -299,14 +314,14 @@ function GrowthTab({ data, currency }: { data: any; currency: string }) {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard label="Total Users" value={compact(data.total_users ?? 0)} icon={<Users className="h-4 w-4" />} />
-        <StatCard label="New Users (30d)" value={compact(data.new_users_30d ?? 0)} icon={<TrendingUp className="h-4 w-4" />} />
-        <StatCard label="Active Creators" value={compact(data.active_creators ?? 0)} icon={<Store className="h-4 w-4" />} />
-        <StatCard label="GMV (30d)" value={formatAmount(data.gmv_30d ?? 0, currency)} icon={<DollarSign className="h-4 w-4" />} />
+        <StatCard label="Total Users" value={compact(data.total_users ?? 0)} icon={<Users weight="fill" className="h-4 w-4" />} />
+        <StatCard label="New Users (30d)" value={compact(data.new_users_30d ?? 0)} icon={<TrendingUp weight="fill" className="h-4 w-4" />} />
+        <StatCard label="Active Creators" value={compact(data.active_creators ?? 0)} icon={<Storefront weight="fill" className="h-4 w-4" />} />
+        <StatCard label="GMV (30d)" value={formatAmount(data.gmv_30d ?? 0, currency)} icon={<DollarSign weight="fill" className="h-4 w-4" />} />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="rounded-2xl border border-border bg-card p-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="rounded-lg border-none bg-card p-4">
           <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-4">Daily Signups ({signups.length} days)</h3>
           {signups.length > 0 ? (
             <ResponsiveContainer width="100%" height={200}>
@@ -330,10 +345,10 @@ function GrowthTab({ data, currency }: { data: any; currency: string }) {
         </div>
 
         <div className="space-y-6">
-          <div className="rounded-2xl border border-border bg-card p-6">
+          <div className="rounded-lg border-none bg-card p-4">
             <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-4">Users by Role</h3>
             {roleData.length > 0 ? (
-              <div className="flex items-center gap-6">
+              <div className="flex items-center gap-4">
                 <div className="shrink-0">
                   <ResponsiveContainer width={140} height={140}>
                     <PieChart>
@@ -361,7 +376,7 @@ function GrowthTab({ data, currency }: { data: any; currency: string }) {
             )}
           </div>
 
-          <div className="rounded-2xl border border-border bg-card p-6">
+          <div className="rounded-lg border-none bg-card p-4">
             <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">KYC Status</h3>
             <div className="space-y-3">
               {[
@@ -401,14 +416,14 @@ function RevenueTab({ data, currency }: { data: any; currency: string }) {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard label="Digital Revenue" value={formatAmount(data.digital_revenue ?? 0, currency)} sub={`${data.digital_orders ?? 0} orders`} icon={<DollarSign className="h-4 w-4" />} />
-        <StatCard label="MRR" value={formatAmount(data.mrr ?? 0, currency)} sub={`${data.active_subscriptions ?? 0} active subs`} icon={<TrendingUp className="h-4 w-4" />} />
-        <StatCard label="Platform Fees" value={formatAmount(data.platform_fees ?? 0, currency)} icon={<CreditCard className="h-4 w-4" />} />
-        <StatCard label="Pending Payouts" value={formatAmount(data.pending_payouts ?? 0, currency)} icon={<Wallet className="h-4 w-4" />} />
+        <StatCard label="Digital Revenue" value={formatAmount(data.digital_revenue ?? 0, currency)} sub={`${data.digital_orders ?? 0} orders`} icon={<DollarSign weight="fill" className="h-4 w-4" />} />
+        <StatCard label="MRR" value={formatAmount(data.mrr ?? 0, currency)} sub={`${data.active_subscriptions ?? 0} active subs`} icon={<TrendingUp weight="fill" className="h-4 w-4" />} />
+        <StatCard label="Platform Fees" value={formatAmount(data.platform_fees ?? 0, currency)} icon={<CreditCard weight="fill" className="h-4 w-4" />} />
+        <StatCard label="Pending Payouts" value={formatAmount(data.pending_payouts ?? 0, currency)} icon={<Wallet weight="fill" className="h-4 w-4" />} />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="rounded-2xl border border-border bg-card p-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="rounded-lg border-none bg-card p-4">
           <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-4">Monthly Revenue Trend</h3>
           {trend.length > 0 ? (
             <ResponsiveContainer width="100%" height={250}>
@@ -425,10 +440,10 @@ function RevenueTab({ data, currency }: { data: any; currency: string }) {
           )}
         </div>
 
-        <div className="rounded-2xl border border-border bg-card p-6">
+        <div className="rounded-lg border-none bg-card p-4">
           <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-4">Revenue by Source</h3>
           {sourceData.length > 0 ? (
-            <div className="flex items-center gap-6">
+            <div className="flex items-center gap-4">
               <div className="shrink-0">
                 <ResponsiveContainer width={160} height={160}>
                   <PieChart>
@@ -464,10 +479,10 @@ function ContentTab({ data }: { data: any }) {
   if (!data) return <p className="text-sm text-muted-foreground">No content data available.</p>;
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <div className="rounded-2xl border border-border bg-card p-5">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <div className="rounded-lg border-none bg-card p-5">
         <h3 className="font-semibold text-sm text-foreground mb-4 flex items-center gap-2">
-          <ShoppingBag className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" /> Top Digital Products
+          <ShoppingBag weight="fill" className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" /> Top Digital Products
         </h3>
         <div className="space-y-3">
           {Array.isArray(data.top_digital_products) && data.top_digital_products.length > 0 ? (
@@ -486,9 +501,9 @@ function ContentTab({ data }: { data: any }) {
         </div>
       </div>
 
-      <div className="rounded-2xl border border-border bg-card p-5">
+      <div className="rounded-lg border-none bg-card p-5">
         <h3 className="font-semibold text-sm text-foreground mb-4 flex items-center gap-2">
-          <Crown className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" /> Top Creators
+          <Crown weight="fill" className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" /> Top Creators
         </h3>
         <div className="space-y-3">
           {Array.isArray(data.top_creators) && data.top_creators.length > 0 ? (
@@ -510,9 +525,9 @@ function ContentTab({ data }: { data: any }) {
         </div>
       </div>
 
-      <div className="rounded-2xl border border-border bg-card p-5">
+      <div className="rounded-lg border-none bg-card p-5">
         <h3 className="font-semibold text-sm text-foreground mb-4 flex items-center gap-2">
-          <Globe className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" /> Top Communities
+          <Globe weight="fill" className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" /> Top Communities
         </h3>
         <div className="space-y-3">
           {Array.isArray(data.top_communities) && data.top_communities.length > 0 ? (

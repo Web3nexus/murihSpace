@@ -12,18 +12,24 @@ class CommunityController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $search = $request->query('search');
+        $search = trim((string) $request->query('search'));
         $category = $request->query('category');
+        $like = \Illuminate\Support\Facades\DB::connection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
 
         $query = Community::with('creator:id,name,username,avatar')
             ->publicOnly()
             ->byCategory($category);
 
-        if ($search) {
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                    ->orWhere('description', 'like', "%{$search}%");
-            });
+        if ($search !== '') {
+            $query->where(function ($q) use ($search, $like) {
+                $q->where('name', $like, "%{$search}%")
+                    ->orWhere('slug', $like, "%{$search}%")
+                    ->orWhere('description', $like, "%{$search}%");
+            })
+            ->orderByRaw("CASE 
+                WHEN LOWER(name) = LOWER(?) THEN 0 
+                WHEN LOWER(name) LIKE LOWER(?) THEN 1 
+                ELSE 2 END", [$search, "{$search}%"]);
         }
 
         $communities = $query->latest()->paginate(12);
@@ -41,18 +47,24 @@ class CommunityController extends Controller
      */
     public function publicIndex(Request $request): JsonResponse
     {
-        $search = $request->query('search');
+        $search = trim((string) $request->query('search'));
         $category = $request->query('category');
+        $like = \Illuminate\Support\Facades\DB::connection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
 
         $query = Community::with('creator:id,name,username,avatar')
             ->publicOnly()
             ->withCount(['memberships as member_count' => fn ($q) => $q->where('status', 'active')]);
 
-        if ($search) {
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                    ->orWhere('description', 'like', "%{$search}%");
-            });
+        if ($search !== '') {
+            $query->where(function ($q) use ($search, $like) {
+                $q->where('name', $like, "%{$search}%")
+                    ->orWhere('slug', $like, "%{$search}%")
+                    ->orWhere('description', $like, "%{$search}%");
+            })
+            ->orderByRaw("CASE 
+                WHEN LOWER(name) = LOWER(?) THEN 0 
+                WHEN LOWER(name) LIKE LOWER(?) THEN 1 
+                ELSE 2 END", [$search, "{$search}%"]);
         }
 
         if ($category) {

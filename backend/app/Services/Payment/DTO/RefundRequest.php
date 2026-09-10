@@ -14,3 +14,4 @@ class RefundRequest
         public readonly string $idempotencyKey,
     ) {}
 }
+

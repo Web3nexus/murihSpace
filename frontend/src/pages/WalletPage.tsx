@@ -1,18 +1,18 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import {
-  Wallet,
-  ArrowUpRight,
-  ArrowDownLeft,
-  Send,
-  Plus,
-  Lock,
-  Loader2,
-  RefreshCw,
-  Clock,
-  ShieldCheck,
-  Building2,
-  Sparkles,
-} from "lucide-react";
+  Wallet as Wallet,
+  ArrowUpRight as ArrowUpRight,
+  ArrowDownLeft as ArrowDownLeft,
+  PaperPlaneRight as Send,
+  Plus as Plus,
+  Lock as Lock,
+  Spinner as Loader2,
+  ArrowsClockwise as RefreshCw,
+  Clock as Clock,
+  ShieldCheck as ShieldCheck,
+  Buildings as Building2,
+  Sparkle as Sparkle
+} from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { apiClient, type ApiError } from "@/lib/api/client";
 import { WalletBalanceCard } from "@/components/wallet/WalletBalanceCard";
@@ -84,7 +84,7 @@ export function WalletPage() {
   const [sendPin, setSendPin] = useState("");
   const [sendLoading, setSendLoading] = useState(false);
 
-  // Pin Form
+  // PushPin Form
   const [pinInput, setPinInput] = useState("");
   const [pinLoading, setPinLoading] = useState(false);
 
@@ -274,7 +274,7 @@ export function WalletPage() {
   if (loading && wallets.length === 0) {
     return (
       <div className="flex items-center justify-center min-h-[400px] text-muted-foreground">
-        <RefreshCw className="h-6 w-6 animate-spin mr-2" /> Loading your wallets...
+        <RefreshCw weight="fill" className="h-6 w-6 animate-spin mr-2" /> Loading your wallets...
       </div>
     );
   }
@@ -282,7 +282,7 @@ export function WalletPage() {
   if (wallets.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] text-center space-y-3">
-        <Wallet className="h-10 w-10 text-muted-foreground" />
+        <Wallet weight="fill" className="h-10 w-10 text-muted-foreground" />
         <p className="text-muted-foreground font-medium">No wallets available yet.</p>
         <p className="text-sm text-muted-foreground">Your wallets will appear here once they are provisioned.</p>
       </div>
@@ -294,7 +294,7 @@ export function WalletPage() {
   if (!activeWallet) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] text-center space-y-3">
-        <Wallet className="h-10 w-10 text-muted-foreground" />
+        <Wallet weight="fill" className="h-10 w-10 text-muted-foreground" />
         <p className="text-foreground font-bold">No {activeTab} wallet found</p>
         <p className="text-sm text-muted-foreground max-w-sm">
           You don&apos;t have a {activeTab} wallet yet. Wallets are provisioned based on your account role.
@@ -307,12 +307,12 @@ export function WalletPage() {
   const hasBusinessWallet = wallets.some((w) => w.wallet_type === "business");
 
   return (
-    <div className="p-6 lg:p-8 space-y-6 max-w-7xl mx-auto w-full">
+    <div className="p-4 lg:p-5 space-y-6 max-w-7xl mx-auto w-full">
       {/* Header & Quick Action Buttons */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
-            <Wallet className="h-6 w-6 text-primary" /> MurihPay Multi-Wallet System
+          <h1 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
+            <Wallet weight="fill" className="h-6 w-6 text-primary" /> MurihPay Multi-Wallet System
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
             Separate personal spending from creator & business earnings with double-entry ledger protection.
@@ -322,17 +322,17 @@ export function WalletPage() {
         <div className="flex items-center gap-2">
           <button
             onClick={() => setShowSendModal(true)}
-            className="inline-flex items-center gap-1.5 px-4 py-2 bg-card border border-border text-foreground font-semibold text-sm rounded-xl hover:bg-accent transition shadow-sm"
+            className="inline-flex items-center gap-1.5 px-4 py-2 bg-card border-none text-foreground font-semibold text-sm rounded-lg hover:bg-accent transition "
           >
-            <Send className="h-4 w-4 text-primary" /> Send Money
+            <Send weight="fill" className="h-4 w-4 text-primary" /> Send Money
           </button>
 
           {!systemWallet?.has_pin && (
             <button
               onClick={() => setShowPinModal(true)}
-              className="inline-flex items-center gap-1.5 px-4 py-2 bg-amber-500/10 text-amber-600 dark:text-amber-400 font-semibold text-sm rounded-xl hover:bg-amber-500/20 transition border border-amber-500/20"
+              className="inline-flex items-center gap-1.5 px-4 py-2 bg-amber-500/10 text-amber-600 dark:text-amber-400 font-semibold text-sm rounded-lg hover:bg-amber-500/20 transition border border-amber-500/20"
             >
-              <Lock className="h-4 w-4" /> Setup PIN
+              <Lock weight="fill" className="h-4 w-4" /> Setup PIN
             </button>
           )}
         </div>
@@ -342,38 +342,38 @@ export function WalletPage() {
       <div className="flex items-center gap-2 border-b border-border pb-3 overflow-x-auto">
         <button
           onClick={() => setActiveTab("system")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition whitespace-nowrap ${
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition whitespace-nowrap ${
             activeTab === "system"
               ? "bg-primary text-primary-foreground shadow"
-              : "bg-card border border-border text-muted-foreground hover:text-foreground"
+              : "bg-card border-none text-muted-foreground hover:text-foreground"
           }`}
         >
-          <Wallet className="h-4 w-4" /> System Wallet (Personal)
+          <Wallet weight="fill" className="h-4 w-4" /> System Wallet (Personal)
         </button>
 
         {hasCreatorWallet && (
           <button
             onClick={() => setActiveTab("creator")}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition whitespace-nowrap ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition whitespace-nowrap ${
               activeTab === "creator"
                 ? "bg-purple-600 text-white shadow"
-                : "bg-card border border-border text-muted-foreground hover:text-foreground"
+                : "bg-card border-none text-muted-foreground hover:text-foreground"
             }`}
           >
-            <Sparkles className="h-4 w-4" /> Creator Earnings
+            <Sparkle weight="fill" className="h-4 w-4" /> Creator Earnings
           </button>
         )}
 
         {hasBusinessWallet && (
           <button
             onClick={() => setActiveTab("business")}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition whitespace-nowrap ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition whitespace-nowrap ${
               activeTab === "business"
                 ? "bg-emerald-600 text-white shadow"
-                : "bg-card border border-border text-muted-foreground hover:text-foreground"
+                : "bg-card border-none text-muted-foreground hover:text-foreground"
             }`}
           >
-            <Building2 className="h-4 w-4" /> Business Revenue
+            <Building2 weight="fill" className="h-4 w-4" /> Business Revenue
           </button>
         )}
       </div>
@@ -385,11 +385,11 @@ export function WalletPage() {
         onTransfer={() => setShowInternalTransfer(true)}
       />
 
-      {/* Transaction History Section */}
-      <div className="p-6 rounded-2xl border border-border bg-card space-y-4 shadow-sm">
+      {/* Transaction ClockCounterClockwise Section */}
+      <div className="p-4 rounded-lg border-none bg-card space-y-4 ">
         <div className="flex items-center justify-between border-b border-border pb-3">
           <h2 className="text-base font-bold text-foreground flex items-center gap-2">
-            <Clock className="h-5 w-5 text-primary" /> Double-Entry Ledger History ({activeTab.toUpperCase()})
+            <Clock weight="fill" className="h-5 w-5 text-primary" /> Double-Entry Ledger ClockCounterClockwise ({activeTab.toUpperCase()})
           </h2>
           <span className="text-xs text-muted-foreground">Real-time audited records</span>
         </div>
@@ -403,7 +403,7 @@ export function WalletPage() {
             <table className="w-full text-left text-sm">
               <thead>
                 <tr className="border-b border-border text-xs uppercase tracking-wider text-muted-foreground bg-muted/20">
-                  <th className="px-4 py-3 font-semibold">Type</th>
+                  <th className="px-4 py-3 font-semibold">TextT</th>
                   <th className="px-4 py-3 font-semibold">Category</th>
                   <th className="px-4 py-3 font-semibold">Description</th>
                   <th className="px-4 py-3 font-semibold">Amount</th>
@@ -418,9 +418,9 @@ export function WalletPage() {
                     <tr key={tx.id} className="hover:bg-muted/10 transition">
                       <td className="px-4 py-3 font-medium capitalize flex items-center gap-1.5">
                         {isCredit ? (
-                          <ArrowDownLeft className="h-4 w-4 text-emerald-500 shrink-0" />
+                          <ArrowDownLeft weight="fill" className="h-4 w-4 text-emerald-500 shrink-0" />
                         ) : (
-                          <ArrowUpRight className="h-4 w-4 text-rose-500 shrink-0" />
+                          <ArrowUpRight weight="fill" className="h-4 w-4 text-rose-500 shrink-0" />
                         )}
                         <span>{(tx.type || "transaction").replace(/_/g, " ")}</span>
                       </td>
@@ -468,7 +468,7 @@ export function WalletPage() {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-lg">
-              <Plus className="h-5 w-5 text-primary" /> Deposit Funds to System Wallet
+              <Plus weight="fill" className="h-5 w-5 text-primary" /> Deposit Funds to System Wallet
             </DialogTitle>
             <DialogDescription>
               Add funds to your personal spending wallet using secure payment gateways.
@@ -487,7 +487,7 @@ export function WalletPage() {
                 placeholder="1000.00"
                 value={depositAmount}
                 onChange={(e) => setDepositAmount(e.target.value)}
-                className="w-full rounded-xl border border-border bg-background px-3.5 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary"
+                className="w-full rounded-lg border-none bg-background px-3.5 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary"
                 required
               />
             </div>
@@ -499,7 +499,7 @@ export function WalletPage() {
               <select
                 value={depositGateway}
                 onChange={(e) => setDepositGateway(e.target.value)}
-                className="w-full rounded-xl border border-border bg-background px-3.5 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary"
+                className="w-full rounded-lg border-none bg-background px-3.5 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary"
               >
                 <option value="paystack">Paystack (Card, Bank Transfer, USSD)</option>
                 <option value="flutterwave">Flutterwave</option>
@@ -512,7 +512,7 @@ export function WalletPage() {
             )}
             {feePreviewLoading && (
               <div className="text-xs text-muted-foreground flex items-center gap-1.5">
-                <Loader2 className="h-3.5 w-3.5 animate-spin" /> Calculating fees...
+                <Loader2 weight="fill" className="h-3.5 w-3.5 animate-spin" /> Calculating fees...
               </div>
             )}
 
@@ -520,16 +520,16 @@ export function WalletPage() {
               <button
                 type="button"
                 onClick={closeDepositModal}
-                className="flex-1 py-2.5 rounded-xl border border-border text-sm font-medium text-muted-foreground hover:bg-accent hover:text-foreground transition"
+                className="flex-1 py-2.5 rounded-lg border-none text-sm font-medium text-muted-foreground hover:bg-accent hover:text-foreground transition"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={depositLoading || !depositAmount}
-                className="flex-1 py-2.5 rounded-xl bg-primary text-primary-foreground font-bold text-sm shadow hover:opacity-90 transition disabled:opacity-50 inline-flex items-center justify-center gap-1.5"
+                className="flex-1 py-2.5 rounded-lg bg-primary text-primary-foreground font-bold text-sm shadow hover:opacity-90 transition disabled:opacity-50 inline-flex items-center justify-center gap-1.5"
               >
-                {depositLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Complete Deposit"}
+                {depositLoading ? <Loader2 weight="fill" className="h-4 w-4 animate-spin" /> : "Complete Deposit"}
               </button>
             </div>
           </form>
@@ -541,7 +541,7 @@ export function WalletPage() {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-lg">
-              <Send className="h-5 w-5 text-primary" /> Send Money to User
+              <Send weight="fill" className="h-5 w-5 text-primary" /> Send Money to User
             </DialogTitle>
             <DialogDescription>Transfer System Wallet balance to another MurihSpace member.</DialogDescription>
           </DialogHeader>
@@ -556,7 +556,7 @@ export function WalletPage() {
                 placeholder="username"
                 value={sendRecipient}
                 onChange={(e) => setSendRecipient(e.target.value)}
-                className="w-full rounded-xl border border-border bg-background px-3.5 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary"
+                className="w-full rounded-lg border-none bg-background px-3.5 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary"
                 required
               />
             </div>
@@ -572,7 +572,7 @@ export function WalletPage() {
                 placeholder="500.00"
                 value={sendAmount}
                 onChange={(e) => setSendAmount(e.target.value)}
-                className="w-full rounded-xl border border-border bg-background px-3.5 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary"
+                className="w-full rounded-lg border-none bg-background px-3.5 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary"
                 required
               />
             </div>
@@ -586,14 +586,14 @@ export function WalletPage() {
                 placeholder="e.g. Thanks for your help!"
                 value={sendNote}
                 onChange={(e) => setSendNote(e.target.value)}
-                className="w-full rounded-xl border border-border bg-background px-3.5 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary"
+                className="w-full rounded-lg border-none bg-background px-3.5 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
 
             {systemWallet?.has_pin && (
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1 flex items-center gap-1">
-                  <Lock className="h-3 w-3" /> Transaction PIN
+                  <Lock weight="fill" className="h-3 w-3" /> Transaction PIN
                 </label>
                 <input
                   type="password"
@@ -601,7 +601,7 @@ export function WalletPage() {
                   placeholder="4-digit PIN"
                   value={sendPin}
                   onChange={(e) => setSendPin(e.target.value.replace(/\D/g, ""))}
-                  className="w-full rounded-xl border border-border bg-background px-3.5 py-2.5 text-sm font-semibold tracking-widest text-center focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="w-full rounded-lg border-none bg-background px-3.5 py-2.5 text-sm font-semibold tracking-widest text-center focus:outline-none focus:ring-2 focus:ring-primary"
                   required
                 />
               </div>
@@ -611,16 +611,16 @@ export function WalletPage() {
               <button
                 type="button"
                 onClick={closeSendModal}
-                className="flex-1 py-2.5 rounded-xl border border-border text-sm font-medium text-muted-foreground hover:bg-accent hover:text-foreground transition"
+                className="flex-1 py-2.5 rounded-lg border-none text-sm font-medium text-muted-foreground hover:bg-accent hover:text-foreground transition"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={sendLoading || !sendRecipient || !sendAmount}
-                className="flex-1 py-2.5 rounded-xl bg-primary text-primary-foreground font-bold text-sm shadow hover:opacity-90 transition disabled:opacity-50 inline-flex items-center justify-center gap-1.5"
+                className="flex-1 py-2.5 rounded-lg bg-primary text-primary-foreground font-bold text-sm shadow hover:opacity-90 transition disabled:opacity-50 inline-flex items-center justify-center gap-1.5"
               >
-                {sendLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Send Funds"}
+                {sendLoading ? <Loader2 weight="fill" className="h-4 w-4 animate-spin" /> : "Send Funds"}
               </button>
             </div>
           </form>
@@ -632,7 +632,7 @@ export function WalletPage() {
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-lg">
-              <ShieldCheck className="h-5 w-5 text-amber-500" /> Setup Transaction PIN
+              <ShieldCheck weight="fill" className="h-5 w-5 text-amber-500" /> Setup Transaction PIN
             </DialogTitle>
             <DialogDescription>Set a 4-digit security PIN to authorize transfers and withdrawals.</DialogDescription>
           </DialogHeader>
@@ -648,7 +648,7 @@ export function WalletPage() {
                 placeholder="1234"
                 value={pinInput}
                 onChange={(e) => setPinInput(e.target.value.replace(/\D/g, ""))}
-                className="w-full rounded-xl border border-border bg-background px-3.5 py-2.5 text-sm font-semibold tracking-widest text-center focus:outline-none focus:ring-2 focus:ring-primary"
+                className="w-full rounded-lg border-none bg-background px-3.5 py-2.5 text-sm font-semibold tracking-widest text-center focus:outline-none focus:ring-2 focus:ring-primary"
                 required
               />
             </div>
@@ -657,16 +657,16 @@ export function WalletPage() {
               <button
                 type="button"
                 onClick={closePinModal}
-                className="flex-1 py-2.5 rounded-xl border border-border text-sm font-medium text-muted-foreground hover:bg-accent hover:text-foreground transition"
+                className="flex-1 py-2.5 rounded-lg border-none text-sm font-medium text-muted-foreground hover:bg-accent hover:text-foreground transition"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={pinLoading || pinInput.length !== 4}
-                className="flex-1 py-2.5 rounded-xl bg-primary text-primary-foreground font-bold text-sm shadow hover:opacity-90 transition disabled:opacity-50 inline-flex items-center justify-center gap-1.5"
+                className="flex-1 py-2.5 rounded-lg bg-primary text-primary-foreground font-bold text-sm shadow hover:opacity-90 transition disabled:opacity-50 inline-flex items-center justify-center gap-1.5"
               >
-                {pinLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save PIN"}
+                {pinLoading ? <Loader2 weight="fill" className="h-4 w-4 animate-spin" /> : "Save PIN"}
               </button>
             </div>
           </form>

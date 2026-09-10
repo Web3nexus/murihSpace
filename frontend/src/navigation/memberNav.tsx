@@ -1,198 +1,123 @@
 import {
-  LayoutDashboard,
+  CalendarCheck,
   Compass,
   Users,
+  ChatCircleDots,
   Rss,
-  Video,
+  VideoCamera,
   Crown,
   BookOpen,
   MapPin,
-  MessageCircle,
-  MessageSquare,
+  ChatCircle,
+  ChatTeardropText,
   Wallet,
-  Heart,
-  Shield,
   UserCircle,
   ShieldCheck,
-  Lock,
-  Bell,
-  LifeBuoy,
-} from "lucide-react";
+  Gear,
+} from "@phosphor-icons/react";
 import type { NavGroup } from "./navTypes";
 
 export const memberNav: NavGroup[] = [
   {
-    title: "MAIN",
+    title: "",
     items: [
-      {
-        title: "Home",
-        url: "/app",
-        icon: <LayoutDashboard className="size-4" />,
-      },
       {
         title: "Discover",
         url: "/app/discover",
-        icon: <Compass className="size-4" />,
+        icon: <Compass weight="fill" className="h-5 w-5" />,
       },
-    ],
-  },
-  {
-    title: "COMMUNITY",
-    items: [
       {
-        title: "My Communities",
+        title: "Community",
         url: "/app/communities",
-        icon: <Users className="size-4" />,
+        icon: <Users weight="fill" className="h-5 w-5" />,
         featureFlag: "community_hub",
-        children: [
-          { title: "All Communities", url: "/app/communities" },
-          { title: "Feed", url: "/app/feed", featureFlag: "community_feed" },
-          { title: "Live Video & Events", url: "/app/events", featureFlag: "events" },
-        ],
+      },
+      {
+        title: "Groups",
+        url: "/app/groups",
+        icon: <ChatCircleDots weight="fill" className="h-5 w-5" />,
       },
       {
         title: "Feed",
         url: "/app/feed",
-        icon: <Rss className="size-4" />,
+        icon: <Rss weight="fill" className="h-5 w-5" />,
         featureFlag: "community_feed",
       },
       {
         title: "Live Video & Events",
         url: "/app/events",
-        icon: <Video className="size-4" />,
+        icon: <VideoCamera weight="fill" className="h-5 w-5" />,
         featureFlag: "events",
-        children: [
-          { title: "Live Video Studio", url: "/app/audio-rooms", featureFlag: "audio_rooms" },
-          { title: "Events", url: "/app/communities/events" },
-          { title: "My Events", url: "/app/my-events" },
-        ],
-      },
-    ],
-  },
-  {
-    title: "SUBSCRIPTIONS",
-    items: [
-      {
-        title: "Discover Plans",
-        url: "/app/subscriptions/discover",
-        icon: <Crown className="size-4" />,
-        featureFlag: "subscriptions",
       },
       {
-        title: "My Subscriptions",
-        url: "/app/subscriptions/my-subscriptions",
-        icon: <Crown className="size-4" />,
-        featureFlag: "subscriptions",
-      },
-    ],
-  },
-  {
-    title: "PURCHASES",
-    items: [
-      {
-        title: "Purchase Library",
-        url: "/app/wallet/purchase-library",
-        icon: <BookOpen className="size-4" />,
-      },
-      {
-        title: "Saved Addresses",
-        url: "/app/store/saved-addresses",
-        icon: <MapPin className="size-4" />,
-      },
-      {
-        title: "Reviews & Disputes",
-        url: "/app/store/reviews",
-        icon: <MessageCircle className="size-4" />,
-      },
-    ],
-  },
-  {
-    title: "CONNECT",
-    items: [
-      {
-        title: "MurihSpace Inbox",
-        url: "/app/messages",
-        icon: <MessageSquare className="size-4" />,
-        featureFlag: "inbox",
-      },
-      {
-        title: "Community Chat",
-        url: "/app/community-chat",
-        icon: <Users className="size-4" />,
-        featureFlag: "community_chat",
+        title: "Meetings & Consultations",
+        url: "/app/coaching",
+        icon: <CalendarCheck weight="fill" className="h-5 w-5" />,
       },
       {
         title: "Friends",
         url: "/app/friends",
-        icon: <Users className="size-4" />,
+        icon: <Users weight="fill" className="h-5 w-5" />,
         featureFlag: "friends",
-        children: [
-          { title: "My Friends", url: "/app/friends" },
-          { title: "Requests", url: "/app/requests" },
-        ],
       },
-    ],
-  },
-  {
-    title: "MONEY",
-    items: [
+      {
+        title: "MurihSpace Inbox",
+        url: "/app/messages",
+        icon: <ChatTeardropText weight="fill" className="h-5 w-5" />,
+        featureFlag: "inbox",
+      },
+      {
+        title: "Subscriptions",
+        url: "/app/subscriptions",
+        icon: <Crown weight="fill" className="h-5 w-5" />,
+        featureFlag: "subscriptions",
+      },
+      {
+        title: "Purchase Library",
+        url: "/app/wallet/purchase-library",
+        icon: <BookOpen weight="fill" className="h-5 w-5" />,
+      },
+      {
+        title: "Saved Addresses",
+        url: "/app/store/saved-addresses",
+        icon: <MapPin weight="fill" className="h-5 w-5" />,
+      },
+      {
+        title: "Reviews & Disputes",
+        url: "/app/store/reviews",
+        icon: <ChatCircle weight="fill" className="h-5 w-5" />,
+      },
       {
         title: "MurihPay Wallet",
         url: "/app/wallet",
-        icon: <Wallet className="size-4" />,
+        icon: <Wallet weight="fill" className="h-5 w-5" />,
         featureFlag: "wallet",
-        children: [
-          { title: "Wallet Overview", url: "/app/wallet" },
-          { title: "Tips & Donations", url: "/app/wallet/tips" },
-          { title: "Escrow", url: "/app/wallet/escrow", featureFlag: "escrow" },
-        ],
-      },
-      {
-        title: "Tips & Donations",
-        url: "/app/wallet/tips",
-        icon: <Heart className="size-4" />,
-      },
-      {
-        title: "Escrow",
-        url: "/app/wallet/escrow",
-        icon: <Shield className="size-4" />,
-        featureFlag: "escrow",
       },
     ],
   },
   {
-    title: "SETTINGS",
+    title: "Shortcuts",
     items: [
       {
         title: "Profile & Identity",
         url: "/app/settings/profile",
-        icon: <UserCircle className="size-4" />,
+        icon: <UserCircle weight="fill" className="h-5 w-5" />,
+      },
+      {
+        title: "Account Settings",
+        url: "/app/settings",
+        icon: <Gear weight="fill" className="h-5 w-5" />,
       },
       {
         title: "Upgrade Account",
         url: "/app/settings/upgrade",
-        icon: <Crown className="size-4" />,
+        icon: <Crown weight="fill" className="h-5 w-5" />,
       },
       {
         title: "KYC Verification",
         url: "/app/kyc",
-        icon: <ShieldCheck className="size-4" />,
+        icon: <ShieldCheck weight="fill" className="h-5 w-5" />,
         featureFlag: "kyc",
-      },
-      {
-        title: "Security",
-        url: "/app/settings/security",
-        icon: <Lock className="size-4" />,
-      },
-      {
-        title: "Notifications",
-        url: "/app/settings/notifications",
-        icon: <Bell className="size-4" />,
-      },
-      {
-        title: "Help & Support",
-        url: "/app/settings/help",
-        icon: <LifeBuoy className="size-4" />,
       },
     ],
   },
