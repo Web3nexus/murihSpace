@@ -1,5 +1,11 @@
 import { useState, useCallback, useId } from "react";
-import { Upload, X, Loader2, ImageIcon, GripVertical } from "lucide-react";
+import {
+  UploadSimple as Upload,
+  X as X,
+  Spinner as Loader2,
+  Image as ImageIcon,
+  DotsSixVertical as DotsSixVertical
+} from "@phosphor-icons/react";
 import { useDropzone } from "react-dropzone";
 import { getAuthToken } from "@/lib/auth/token";
 
@@ -61,8 +67,8 @@ function UploadZone({
 }) {
   if (uploading) {
     return (
-      <div className="border-2 border-dashed border-border rounded-xl p-6 text-center">
-        <Loader2 className="h-6 w-6 animate-spin text-[#2164b6] dark:text-[#7ab0ff] mx-auto" />
+      <div className="border-2 border-dashed border-border rounded-lg p-4 text-center">
+        <Loader2 weight="fill" className="h-6 w-6 animate-spin text-[#2164b6] dark:text-[#7ab0ff] mx-auto" />
         <span className="text-xs text-muted-foreground mt-2 block">Uploading...</span>
       </div>
     );
@@ -70,10 +76,10 @@ function UploadZone({
   return (
     <div
       {...getRootProps()}
-      className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer hover:border-[#2164b6]/50 hover:bg-muted/50 transition-all focus:outline-none focus:border-[#2164b6] ${isDragActive ? "border-[#2164b6] bg-[#2164b6]/5" : "border-border"}`}
+      className={`border-2 border-dashed rounded-lg p-4 text-center cursor-pointer hover:border-[#2164b6]/50 hover:bg-muted/50 transition-all focus:outline-none focus:border-[#2164b6] ${isDragActive ? "border-[#2164b6] bg-[#2164b6]/5" : "border-border"}`}
     >
       <input {...getInputProps()} accept={accept} />
-      <ImageIcon className="h-8 w-8 text-muted-foreground/50 mx-auto" />
+      <ImageIcon weight="fill" className="h-8 w-8 text-muted-foreground/50 mx-auto" />
       <span className="text-xs text-muted-foreground mt-2 block">
         {isDragActive ? "Drop file here" : "Click or drag to upload"}
       </span>
@@ -114,7 +120,7 @@ export function ImageUploader({ value, onChange, folder = "uploads", accept = "i
     <div className="space-y-2">
       {label && <label className="text-xs font-bold text-muted-foreground">{label}</label>}
       {value ? (
-        <div className="relative rounded-xl overflow-hidden bg-muted group">
+        <div className="relative rounded-lg overflow-hidden bg-muted group">
           <img
             src={value}
             alt=""
@@ -124,11 +130,11 @@ export function ImageUploader({ value, onChange, folder = "uploads", accept = "i
           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center gap-2">
             <button type="button" onClick={() => document.getElementById(inputId)?.click()}
               className="opacity-0 group-hover:opacity-100 p-2 rounded-lg bg-white/20 text-white hover:bg-white/40 transition-all">
-              <Upload className="h-4 w-4" />
+              <Upload weight="fill" className="h-4 w-4" />
             </button>
             <button type="button" onClick={clear}
               className="opacity-0 group-hover:opacity-100 p-2 rounded-lg bg-rose-500/40 text-white hover:bg-rose-500/60 transition-all">
-              <X className="h-4 w-4" />
+              <X weight="fill" className="h-4 w-4" />
             </button>
           </div>
           <input
@@ -213,12 +219,12 @@ export function MultiImageUploader({ values, onChange, folder = "uploads", accep
                 {i > 0 && (
                   <button type="button" onClick={() => move(i, i - 1)}
                     className="p-1 rounded bg-white/20 text-white hover:bg-white/40">
-                    <GripVertical className="h-3 w-3 rotate-90" />
+                    <DotsSixVertical weight="fill" className="h-3 w-3 rotate-90" />
                   </button>
                 )}
                 <button type="button" onClick={() => remove(i)}
                   className="p-1 rounded bg-rose-500/40 text-white hover:bg-rose-500/60">
-                  <X className="h-3 w-3" />
+                  <X weight="fill" className="h-3 w-3" />
                 </button>
               </div>
             </div>
@@ -230,10 +236,10 @@ export function MultiImageUploader({ values, onChange, folder = "uploads", accep
             >
               <div className="text-center">
                 {uploading ? (
-                  <Loader2 className="h-5 w-5 animate-spin text-[#2164b6] dark:text-[#7ab0ff] mx-auto" />
+                  <Loader2 weight="fill" className="h-5 w-5 animate-spin text-[#2164b6] dark:text-[#7ab0ff] mx-auto" />
                 ) : (
                   <>
-                    <ImageIcon className="h-5 w-5 text-muted-foreground/50 mx-auto" />
+                    <ImageIcon weight="fill" className="h-5 w-5 text-muted-foreground/50 mx-auto" />
                     <span className="text-[10px] text-muted-foreground mt-1 block">Add</span>
                   </>
                 )}

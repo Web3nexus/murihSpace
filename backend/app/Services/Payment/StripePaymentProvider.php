@@ -4,8 +4,8 @@ namespace App\Services\Payment;
 
 use App\Models\Order;
 use Illuminate\Http\Request;
-use Stripe\Stripe;
 use Stripe\PaymentIntent;
+use Stripe\Stripe;
 use Stripe\Webhook;
 
 class StripePaymentProvider implements PaymentProviderInterface

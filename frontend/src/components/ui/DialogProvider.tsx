@@ -1,5 +1,9 @@
 import React, { createContext, useContext, useState } from "react";
-import { AlertTriangleIcon, HelpCircleIcon, XIcon } from "lucide-react";
+import {
+  Warning as AlertTriangleIcon,
+  Question as HelpCircleIcon,
+  X as XIcon
+} from "@phosphor-icons/react";
 
 export interface ConfirmOptions {
   title?: string;
@@ -84,32 +88,32 @@ export const DialogProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
       {/* Confirmation Modal */}
       {confirmState?.open && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-card border border-border w-full max-w-md rounded-2xl p-6 shadow-2xl space-y-4 text-foreground">
+        <div className="fixed inset-0 z-50 bg-black/60 dark:bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-card border border-border/80 w-full max-w-md rounded-3xl p-6 shadow-2xl space-y-5 text-foreground">
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-center gap-3">
                 <div
-                  className={`p-2.5 rounded-xl shrink-0 ${
+                  className={`h-11 w-11 rounded-2xl flex items-center justify-center shrink-0 ${
                     confirmState.options.variant === "destructive"
-                      ? "bg-rose-500/10 text-rose-500"
+                      ? "bg-rose-500/15 text-rose-500"
                       : confirmState.options.variant === "warning"
-                      ? "bg-amber-500/10 text-amber-500"
-                      : "bg-primary/10 text-primary"
+                      ? "bg-amber-500/15 text-amber-500"
+                      : "bg-primary/15 text-primary"
                   }`}
                 >
-                  <AlertTriangleIcon className="h-5 w-5" />
+                  <AlertTriangleIcon weight="fill" className="h-5 w-5" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-base">
+                  <h3 className="font-heading font-bold text-base sm:text-lg">
                     {confirmState.options.title || "Please Confirm"}
                   </h3>
                 </div>
               </div>
               <button
                 onClick={() => handleConfirmClose(false)}
-                className="text-muted-foreground hover:text-foreground p-1"
+                className="text-muted-foreground hover:text-foreground p-1.5 rounded-full hover:bg-muted/80 transition-colors"
               >
-                <XIcon className="h-4 w-4" />
+                <XIcon weight="bold" className="h-4 w-4" />
               </button>
             </div>
 
@@ -117,21 +121,21 @@ export const DialogProvider: React.FC<{ children: React.ReactNode }> = ({ childr
               {confirmState.options.message}
             </p>
 
-            <div className="flex items-center justify-end gap-2 pt-2">
+            <div className="flex items-center justify-end gap-2.5 pt-2">
               <button
                 type="button"
                 onClick={() => handleConfirmClose(false)}
-                className="px-4 py-2 text-sm font-medium rounded-lg border border-border bg-background hover:bg-muted transition"
+                className="h-10 px-4 text-xs font-semibold rounded-2xl border border-border/70 bg-background hover:bg-muted transition-colors"
               >
                 {confirmState.options.cancelText || "Cancel"}
               </button>
               <button
                 type="button"
                 onClick={() => handleConfirmClose(true)}
-                className={`px-4 py-2 text-sm font-semibold rounded-lg transition ${
+                className={`h-10 px-5 text-xs font-bold rounded-2xl transition-all shadow-sm ${
                   confirmState.options.variant === "destructive"
                     ? "bg-rose-600 hover:bg-rose-700 text-white"
-                    : "bg-primary hover:opacity-90 text-primary-foreground"
+                    : "bg-primary hover:bg-primary/90 text-primary-foreground"
                 }`}
               >
                 {confirmState.options.confirmText || "Confirm"}
@@ -143,29 +147,29 @@ export const DialogProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
       {/* Prompt Modal */}
       {promptState?.open && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-card border border-border w-full max-w-md rounded-2xl p-6 shadow-2xl space-y-4 text-foreground">
+        <div className="fixed inset-0 z-50 bg-black/60 dark:bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-card border border-border/80 w-full max-w-md rounded-3xl p-6 shadow-2xl space-y-5 text-foreground">
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-center gap-3">
-                <div className="p-2.5 rounded-xl bg-primary/10 text-primary shrink-0">
-                  <HelpCircleIcon className="h-5 w-5" />
+                <div className="h-11 w-11 rounded-2xl bg-primary/15 text-primary flex items-center justify-center shrink-0">
+                  <HelpCircleIcon weight="fill" className="h-5 w-5" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-base">
+                  <h3 className="font-heading font-bold text-base sm:text-lg">
                     {promptState.options.title || "Input Required"}
                   </h3>
                 </div>
               </div>
               <button
                 onClick={() => handlePromptClose(null)}
-                className="text-muted-foreground hover:text-foreground p-1"
+                className="text-muted-foreground hover:text-foreground p-1.5 rounded-full hover:bg-muted/80 transition-colors"
               >
-                <XIcon className="h-4 w-4" />
+                <XIcon weight="bold" className="h-4 w-4" />
               </button>
             </div>
 
             {promptState.options.message && (
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-muted-foreground leading-relaxed">
                 {promptState.options.message}
               </p>
             )}
@@ -175,6 +179,7 @@ export const DialogProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                 e.preventDefault();
                 handlePromptClose(promptState.value);
               }}
+              className="space-y-4"
             >
               <input
                 type="text"
@@ -183,21 +188,21 @@ export const DialogProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                   setPromptState({ ...promptState, value: e.target.value })
                 }
                 placeholder={promptState.options.placeholder || "Enter value..."}
-                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                className="w-full h-11 rounded-2xl border border-border/70 bg-muted/30 px-4 text-sm outline-none focus:ring-2 focus:ring-primary/40 transition-all"
                 autoFocus
               />
 
-              <div className="flex items-center justify-end gap-2 pt-4">
+              <div className="flex items-center justify-end gap-2.5 pt-2">
                 <button
                   type="button"
                   onClick={() => handlePromptClose(null)}
-                  className="px-4 py-2 text-sm font-medium rounded-lg border border-border bg-background hover:bg-muted transition"
+                  className="h-10 px-4 text-xs font-semibold rounded-2xl border border-border/70 bg-background hover:bg-muted transition-colors"
                 >
                   {promptState.options.cancelText || "Cancel"}
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 text-sm font-semibold rounded-lg bg-primary hover:opacity-90 text-primary-foreground transition"
+                  className="h-10 px-5 text-xs font-bold rounded-2xl bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm transition-all"
                 >
                   {promptState.options.confirmText || "Submit"}
                 </button>

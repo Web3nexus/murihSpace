@@ -1,8 +1,16 @@
 import React, { useState } from 'react';
 import {
-  Phone, PhoneOff, Mic, MicOff, Video, VideoOff, MessageSquare,
-  Volume2, Bell, ArrowLeft
-} from 'lucide-react';
+  Phone as Phone,
+  PhoneSlash as PhoneSlash,
+  Microphone as Mic,
+  MicrophoneSlash as MicOff,
+  VideoCamera as Video,
+  VideoCameraSlash as VideoCameraSlash,
+  ChatTeardropText as MessageSquare,
+  SpeakerHigh as Volume2,
+  Bell as Bell,
+  ArrowLeft as ArrowLeft
+} from "@phosphor-icons/react";
 
 export type CallMode = 'incoming' | 'video' | 'group';
 
@@ -61,7 +69,7 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 text-white overflow-hidden animate-in fade-in duration-300">
       {/* ── Mode 1: INCOMING CALL ───────────────────────────────────────────── */}
       {mode === 'incoming' && (
-        <div className="relative w-full h-full max-w-md flex flex-col justify-between p-6 overflow-hidden">
+        <div className="relative w-full h-full max-w-md flex flex-col justify-between p-4 overflow-hidden">
           {/* Blurred Background Image */}
           <div className="absolute inset-0 z-0">
             <img
@@ -78,7 +86,7 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
             <div className="h-28 w-28 rounded-full overflow-hidden mx-auto border-4 border-white/20 shadow-2xl">
               <img src={callerAvatar} alt={callerName} className="w-full h-full object-cover" />
             </div>
-            <h2 className="text-2xl font-black text-white tracking-tight">{callerName}</h2>
+            <h2 className="text-xl font-black text-white tracking-tight">{callerName}</h2>
           </div>
 
           {/* Quick Actions */}
@@ -90,7 +98,7 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
                 className="flex flex-col items-center gap-2 text-slate-300 hover:text-white transition-colors"
               >
                 <div className="p-3.5 rounded-full bg-white/10 backdrop-blur-md hover:bg-white/20">
-                  <Bell className="h-5 w-5" />
+                  <Bell weight="fill" className="h-5 w-5" />
                 </div>
                 <span className="text-xs font-semibold">Remind me</span>
               </button>
@@ -104,7 +112,7 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
                 className="flex flex-col items-center gap-2 text-slate-300 hover:text-white transition-colors"
               >
                 <div className="p-3.5 rounded-full bg-white/10 backdrop-blur-md hover:bg-white/20">
-                  <MessageSquare className="h-5 w-5" />
+                  <MessageSquare weight="fill" className="h-5 w-5" />
                 </div>
                 <span className="text-xs font-semibold">Message</span>
               </button>
@@ -118,7 +126,7 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
                 style={{ transform: `translateX(${slideProgress}%)` }}
                 className="h-13 w-13 rounded-full bg-emerald-500 hover:bg-emerald-400 text-white flex items-center justify-center shadow-lg transition-transform duration-200 cursor-pointer shrink-0"
               >
-                <Phone className="h-6 w-6 animate-pulse" />
+                <Phone weight="fill" className="h-6 w-6 animate-pulse" />
               </button>
 
               <span className="text-xs font-bold text-white/80 uppercase tracking-wider mx-auto pr-6 pointer-events-none">
@@ -130,7 +138,7 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
                 onClick={onClose}
                 className="h-13 w-13 rounded-full bg-red-600 hover:bg-red-500 text-white flex items-center justify-center shadow-lg shrink-0"
               >
-                <PhoneOff className="h-6 w-6" />
+                <PhoneSlash weight="fill" className="h-6 w-6" />
               </button>
             </div>
           </div>
@@ -157,11 +165,11 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
               onClick={onClose}
               className="p-2.5 rounded-full bg-black/40 backdrop-blur-md text-white hover:bg-black/60 transition-colors"
             >
-              <ArrowLeft className="h-5 w-5" />
+              <ArrowLeft weight="fill" className="h-5 w-5" />
             </button>
 
             {/* Inset Self Video Preview */}
-            <div className="h-28 w-20 rounded-2xl overflow-hidden border-2 border-white/30 shadow-2xl bg-black relative">
+            <div className="h-28 w-20 rounded-lg overflow-hidden border-2 border-white/30 shadow-2xl bg-black relative">
               {isVideoOn ? (
                 <img
                   src="https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&auto=format&fit=crop&q=80"
@@ -177,8 +185,8 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
           </div>
 
           {/* Vertical Sound Volume Control Slider Overlay */}
-          <div className="relative z-10 self-start ml-2 mb-20 flex flex-col items-center gap-2 p-2 rounded-2xl bg-black/40 backdrop-blur-md border border-white/10">
-            <Volume2 className="h-4 w-4 text-emerald-400" />
+          <div className="relative z-10 self-start ml-2 mb-20 flex flex-col items-center gap-2 p-2 rounded-lg bg-black/40 backdrop-blur-md border border-white/10">
+            <Volume2 weight="fill" className="h-4 w-4 text-emerald-400" />
             <input
               type="range"
               min="0"
@@ -199,7 +207,7 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
                   isMuted ? 'bg-red-500/80 text-white' : 'bg-white/15 text-white hover:bg-white/25'
                 }`}
               >
-                {isMuted ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
+                {isMuted ? <MicOff className="h-5 w-5" /> : <Mic weight="fill" className="h-5 w-5" />}
               </button>
 
               <button
@@ -209,7 +217,7 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
                   isSpeakerOn ? 'bg-white/25 text-white' : 'bg-white/10 text-white/60'
                 }`}
               >
-                <Volume2 className="h-5 w-5" />
+                <Volume2 weight="fill" className="h-5 w-5" />
               </button>
 
               <button
@@ -219,7 +227,7 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
                   !isVideoOn ? 'bg-red-500/80 text-white' : 'bg-white/15 text-white hover:bg-white/25'
                 }`}
               >
-                {isVideoOn ? <Video className="h-5 w-5" /> : <VideoOff className="h-5 w-5" />}
+                {isVideoOn ? <Video weight="fill" className="h-5 w-5" /> : <VideoCameraSlash weight="fill" className="h-5 w-5" />}
               </button>
 
               <button
@@ -230,7 +238,7 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
                 }}
                 className="p-3.5 rounded-full bg-emerald-500 text-white hover:bg-emerald-400 transition-colors shadow-lg"
               >
-                <MessageSquare className="h-5 w-5" />
+                <MessageSquare weight="fill" className="h-5 w-5" />
               </button>
 
               <button
@@ -238,7 +246,7 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
                 onClick={onClose}
                 className="p-3.5 rounded-full bg-red-600 text-white hover:bg-red-500 transition-colors shadow-lg"
               >
-                <PhoneOff className="h-5 w-5" />
+                <PhoneSlash weight="fill" className="h-5 w-5" />
               </button>
             </div>
           </div>
@@ -247,7 +255,7 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
 
       {/* ── Mode 3: GROUP CALL ─────────────────────────────────────────────── */}
       {mode === 'group' && (
-        <div className="relative w-full h-full max-w-lg flex flex-col justify-between p-6 bg-slate-950 border border-slate-800 rounded-3xl shadow-2xl overflow-y-auto">
+        <div className="relative w-full h-full max-w-lg flex flex-col justify-between p-4 bg-slate-950 border border-slate-800 rounded-3xl shadow-2xl overflow-y-auto">
           {/* Header */}
           <div className="flex items-center justify-between pb-4 border-b border-white/10">
             <div>
@@ -262,14 +270,14 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
               onClick={onClose}
               className="p-2 rounded-full bg-white/10 hover:bg-white/20 text-white"
             >
-              <PhoneOff className="h-5 w-5 text-red-500" />
+              <PhoneSlash weight="fill" className="h-5 w-5 text-red-500" />
             </button>
           </div>
 
           {/* Speaker Comments / Live Transcript Feed */}
           <div className="my-6 space-y-3">
             {participants.map((p) => (
-              <div key={p.id} className="flex items-center gap-3 p-3 rounded-2xl bg-white/5 border border-white/10">
+              <div key={p.id} className="flex items-center gap-3 p-3 rounded-lg bg-white/5 border border-white/10">
                 <div className="h-10 w-10 rounded-full overflow-hidden border border-white/20 shrink-0">
                   <img src={p.avatar_url} alt={p.name} className="w-full h-full object-cover" />
                 </div>
@@ -278,7 +286,7 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
                   <p className="text-[11px] text-slate-300 truncate">{p.statusText}</p>
                 </div>
                 <div className="p-1.5 rounded-full bg-white/10 text-slate-400 shrink-0">
-                  {p.isMuted ? <MicOff className="h-3.5 w-3.5 text-red-400" /> : <Mic className="h-3.5 w-3.5 text-emerald-400" />}
+                  {p.isMuted ? <MicOff className="h-3.5 w-3.5 text-red-400" /> : <Mic weight="fill" className="h-3.5 w-3.5 text-emerald-400" />}
                 </div>
               </div>
             ))}
@@ -291,7 +299,7 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
                 <img src={p.avatar_url} alt="" className="w-full h-full object-cover" />
                 {p.isMuted && (
                   <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-                    <MicOff className="h-3.5 w-3.5 text-red-400" />
+                    <MicOff weight="fill" className="h-3.5 w-3.5 text-red-400" />
                   </div>
                 )}
               </div>
@@ -305,12 +313,12 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
               onClick={() => setIsMuted(!isMuted)}
               className={`p-3.5 rounded-full ${isMuted ? 'bg-red-500' : 'bg-white/15'}`}
             >
-              {isMuted ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
+              {isMuted ? <MicOff className="h-5 w-5" /> : <Mic weight="fill" className="h-5 w-5" />}
             </button>
-            <button type="button" className="p-3.5 rounded-full bg-white/15"><Volume2 className="h-5 w-5" /></button>
-            <button type="button" className="p-3.5 rounded-full bg-white/15"><Video className="h-5 w-5" /></button>
-            <button type="button" onClick={onOpenChat} className="p-3.5 rounded-full bg-emerald-500"><MessageSquare className="h-5 w-5" /></button>
-            <button type="button" onClick={onClose} className="p-3.5 rounded-full bg-red-600"><PhoneOff className="h-5 w-5" /></button>
+            <button type="button" className="p-3.5 rounded-full bg-white/15"><Volume2 weight="fill" className="h-5 w-5" /></button>
+            <button type="button" className="p-3.5 rounded-full bg-white/15"><Video weight="fill" className="h-5 w-5" /></button>
+            <button type="button" onClick={onOpenChat} className="p-3.5 rounded-full bg-emerald-500"><MessageSquare weight="fill" className="h-5 w-5" /></button>
+            <button type="button" onClick={onClose} className="p-3.5 rounded-full bg-red-600"><PhoneSlash weight="fill" className="h-5 w-5" /></button>
           </div>
         </div>
       )}

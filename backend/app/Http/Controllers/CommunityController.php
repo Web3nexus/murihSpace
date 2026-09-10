@@ -12,23 +12,33 @@ class CommunityController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $search = $request->query('search');
+        $search = trim((string) $request->query('search'));
         $category = $request->query('category');
+        $like = \Illuminate\Support\Facades\DB::connection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
 
         $query = Community::with('creator:id,name,username,avatar')
             ->publicOnly()
             ->byCategory($category);
 
-        if ($search) {
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                    ->orWhere('description', 'like', "%{$search}%");
-            });
+        if ($search !== '') {
+            $query->where(function ($q) use ($search, $like) {
+                $q->where('name', $like, "%{$search}%")
+                    ->orWhere('slug', $like, "%{$search}%")
+                    ->orWhere('description', $like, "%{$search}%");
+            })
+            ->orderByRaw("CASE 
+                WHEN LOWER(name) = LOWER(?) THEN 0 
+                WHEN LOWER(name) LIKE LOWER(?) THEN 1 
+                ELSE 2 END", [$search, "{$search}%"]);
         }
 
         $communities = $query->latest()->paginate(12);
 
-        return response()->json($communities);
+        return response()->json([
+            'success' => true,
+            'data' => $communities,
+            'communities' => $communities->items(),
+        ]);
     }
 
     /**
@@ -37,18 +47,24 @@ class CommunityController extends Controller
      */
     public function publicIndex(Request $request): JsonResponse
     {
-        $search = $request->query('search');
+        $search = trim((string) $request->query('search'));
         $category = $request->query('category');
+        $like = \Illuminate\Support\Facades\DB::connection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
 
         $query = Community::with('creator:id,name,username,avatar')
             ->publicOnly()
             ->withCount(['memberships as member_count' => fn ($q) => $q->where('status', 'active')]);
 
-        if ($search) {
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                    ->orWhere('description', 'like', "%{$search}%");
-            });
+        if ($search !== '') {
+            $query->where(function ($q) use ($search, $like) {
+                $q->where('name', $like, "%{$search}%")
+                    ->orWhere('slug', $like, "%{$search}%")
+                    ->orWhere('description', $like, "%{$search}%");
+            })
+            ->orderByRaw("CASE 
+                WHEN LOWER(name) = LOWER(?) THEN 0 
+                WHEN LOWER(name) LIKE LOWER(?) THEN 1 
+                ELSE 2 END", [$search, "{$search}%"]);
         }
 
         if ($category) {
@@ -134,19 +150,28 @@ class CommunityController extends Controller
 
     public function myCommunities(Request $request): JsonResponse
     {
-        $created = Community::where('user_id', $request->user()->id)
+        $user = $request->user();
+        if (! $user) {
+            return response()->json(['success' => true, 'communities' => [], 'data' => []]);
+        }
+
+        $created = Community::where('user_id', $user->id)
             ->latest()
             ->get();
 
-        $joined = Community::whereIn('id', function ($q) use ($request) {
+        $joined = Community::whereIn('id', function ($q) use ($user) {
             $q->select('community_id')
                 ->from('community_memberships')
-                ->where('user_id', $request->user()->id)
+                ->where('user_id', $user->id)
                 ->where('status', 'active');
         })->latest()->get();
 
+        $all = $created->merge($joined)->unique('id')->values()->sortByDesc('created_at')->values();
+
         return response()->json([
-            'communities' => $created->merge($joined)->unique('id')->values()->sortByDesc('created_at')->values(),
+            'success' => true,
+            'communities' => $all,
+            'data' => $all,
         ]);
     }
 

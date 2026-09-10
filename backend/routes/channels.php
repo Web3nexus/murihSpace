@@ -4,6 +4,8 @@ use App\Models\Community;
 use App\Models\CommunityMembership;
 use App\Models\Conversation;
 use App\Models\ConversationParticipant;
+use App\Models\Group;
+use App\Models\GroupMember;
 use Illuminate\Support\Facades\Broadcast;
 
 // Register broadcast auth route (outside api middleware to avoid envelope wrapping)
@@ -17,6 +19,19 @@ Broadcast::channel('conversation.{id}', function ($user, $id) {
     $conversation = Conversation::find($id);
     if (! $conversation) {
         return false;
+    }
+
+    if ($conversation->type === 'group' && $conversation->group_id) {
+        $isMember = GroupMember::where('group_id', $conversation->group_id)
+            ->where('user_id', $user->id)
+            ->where('status', 'active')
+            ->exists();
+
+        $isCreator = Group::where('id', $conversation->group_id)
+            ->where('creator_id', $user->id)
+            ->exists();
+
+        return $isMember || $isCreator;
     }
 
     if ($conversation->type === 'community' && $conversation->community_id) {

@@ -71,7 +71,7 @@ class AuthSessionService
             'phone_verified' => $user->hasVerifiedPhone(),
             'mobile_number' => $user->mobile_number,
             'link_in_bio_url' => $user->getLinkInBioUrl(),
-            'onboarding_completed' => $user->creatorProfile?->onboarding_completed_at !== null,
+            'onboarding_completed' => $user->role === 'admin' || $user->creatorProfile?->onboarding_completed_at !== null,
             'username_trial_ends_at' => $user->username_trial_ends_at?->toIso8601String(),
         ];
     }

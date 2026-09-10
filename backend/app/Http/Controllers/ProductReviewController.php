@@ -45,6 +45,10 @@ class ProductReviewController extends Controller
 
         $buyerId = $request->user()->id;
 
+        if ($request->user()->role === 'vendor') {
+            return response()->json(['message' => 'Vendors cannot write reviews. As a vendor, you can manage and reply to reviews left by customers on your products.'], 403);
+        }
+
         $product = PhysicalProduct::findOrFail($validated['physical_product_id']);
         if ($product->creator_id === $buyerId) {
             return response()->json(['message' => 'You cannot review your own product.'], 403);
@@ -121,6 +125,105 @@ class ProductReviewController extends Controller
         return response()->json(['data' => $reviews]);
     }
 
+    /**
+     * Reviews received on the authenticated vendor's products.
+     */
+    public function vendorReviews(Request $request): JsonResponse
+    {
+        $vendorId = $request->user()->id;
+
+        $query = ProductReview::whereHas('physicalProduct', function ($q) use ($vendorId) {
+            $q->where('creator_id', $vendorId);
+        });
+
+        $allReviews = (clone $query)->get();
+
+        $stats = [
+            'average' => round($allReviews->avg('rating') ?? 0, 1),
+            'total' => $allReviews->count(),
+            'unreplied' => $allReviews->whereNull('vendor_reply')->count(),
+            'distribution' => collect(range(5, 1))->mapWithKeys(fn ($s) => [
+                $s => $allReviews->where('rating', $s)->count(),
+            ]),
+        ];
+
+        $reviews = $query->with(['buyer:id,name,username,avatar,avatar_url', 'physicalProduct:id,title,images'])
+            ->latest()
+            ->paginate(20);
+
+        $formattedItems = collect($reviews->items())->map(fn ($r) => $this->format($r));
+
+        return response()->json([
+            'data' => $formattedItems,
+            'stats' => $stats,
+            'pagination' => [
+                'current_page' => $reviews->currentPage(),
+                'last_page' => $reviews->lastPage(),
+                'total' => $reviews->total(),
+            ],
+        ]);
+    }
+
+    /**
+     * Vendor reply to a customer review on their product.
+     */
+    public function reply(Request $request, int $id): JsonResponse
+    {
+        $vendorId = $request->user()->id;
+
+        $review = ProductReview::whereHas('physicalProduct', function ($q) use ($vendorId) {
+            $q->where('creator_id', $vendorId);
+        })->with(['buyer:id,name,username', 'physicalProduct:id,title,images'])->findOrFail($id);
+
+        $validated = $request->validate([
+            'reply' => ['required', 'string', 'max:5000'],
+        ]);
+
+        $review->update([
+            'vendor_reply' => $validated['reply'],
+            'vendor_replied_at' => now(),
+        ]);
+
+        return response()->json([
+            'message' => 'Your reply has been published.',
+            'data' => $this->format($review),
+        ]);
+    }
+
+    /**
+     * Public reviews for a user/vendor profile.
+     */
+    public function userReviews(string $username): JsonResponse
+    {
+        $cleanUsername = ltrim($username, '@');
+        $user = \App\Models\User::where('username', $cleanUsername)->firstOrFail();
+
+        $query = ProductReview::whereHas('physicalProduct', function ($q) use ($user) {
+            $q->where('creator_id', $user->id);
+        })->approved();
+
+        $allApproved = (clone $query)->get();
+
+        $stats = [
+            'average' => round($allApproved->avg('rating') ?? 0, 1),
+            'total' => $allApproved->count(),
+            'distribution' => collect(range(5, 1))->mapWithKeys(fn ($s) => [
+                $s => $allApproved->where('rating', $s)->count(),
+            ]),
+        ];
+
+        $reviews = $query->with(['buyer:id,name,username,avatar,avatar_url', 'physicalProduct:id,title,images'])
+            ->latest()
+            ->take(20)
+            ->get()
+            ->map(fn ($r) => $this->format($r));
+
+        return response()->json([
+            'data' => $reviews,
+            'stats' => $stats,
+        ]);
+    }
+
     // ── Admin: list, edit, approve, delete (no time restriction) ──────────
 
     public function adminIndex(Request $request): JsonResponse
@@ -177,7 +280,9 @@ class ProductReviewController extends Controller
             'title' => $review->title,
             'body' => $review->body,
             'is_approved' => $review->is_approved,
-            'created_at' => $review->created_at->toIso8601String(),
+            'vendor_reply' => $review->vendor_reply,
+            'vendor_replied_at' => $review->vendor_replied_at?->toIso8601String(),
+            'created_at' => $review->created_at?->toIso8601String(),
             'can_edit' => $canEdit,
             'edit_expires_at' => $editExpiresAt,
             'buyer' => $review->relationLoaded('buyer') ? $review->buyer : null,

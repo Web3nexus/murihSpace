@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AccountRoleHistory;
 use App\Models\AuditLog;
 use App\Models\DigitalProduct;
 use App\Models\Order;
@@ -19,6 +20,7 @@ class AdminDashboardController extends Controller
         $activeUsers = User::where('status', 'active')->count();
         $suspendedUsers = User::where('status', 'suspended')->count();
         $pendingKyc = User::where('kyc_status', 'pending')->count();
+        $pendingRoleApplications = AccountRoleHistory::where('status', 'pending')->count();
 
         $totalProducts = DigitalProduct::count();
         $publishedProducts = DigitalProduct::where('status', 'published')->count();
@@ -30,8 +32,8 @@ class AdminDashboardController extends Controller
         $pendingWithdrawals = WithdrawalRequest::where('status', 'pending')->count();
         $pendingReports = Report::where('status', 'pending')->count();
 
-        $platformBalance = Wallet::where('user_id', 1)->value('balance') ?? 0;
-        $totalWallets = Wallet::where('user_id', '!=', 1)->sum('balance');
+        $platformBalance = Wallet::where('user_id', 1)->value('available') ?? 0;
+        $totalWallets = Wallet::where('user_id', '!=', 1)->sum('available');
 
         $recentLogs = AuditLog::with('user:id,name')
             ->latest()
@@ -41,7 +43,7 @@ class AdminDashboardController extends Controller
                 'id' => $l->id,
                 'action' => $l->action,
                 'user_name' => $l->user?->name,
-                'created_at' => $l->created_at->diffForHumans(),
+                'created_at' => $l->created_at?->diffForHumans() ?? 'Just now',
             ]);
 
         return response()->json([
@@ -50,6 +52,7 @@ class AdminDashboardController extends Controller
                 'active' => $activeUsers,
                 'suspended' => $suspendedUsers,
                 'pending_kyc' => $pendingKyc,
+                'pending_role_applications' => $pendingRoleApplications,
             ],
             'store' => [
                 'total_products' => $totalProducts,
@@ -63,6 +66,8 @@ class AdminDashboardController extends Controller
             'operations' => [
                 'pending_withdrawals' => $pendingWithdrawals,
                 'pending_reports' => $pendingReports,
+                'pending_role_applications' => $pendingRoleApplications,
+                'pending_kyc' => $pendingKyc,
             ],
             'wallet' => [
                 'platform_balance' => (float) $platformBalance,

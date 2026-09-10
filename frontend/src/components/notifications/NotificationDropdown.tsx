@@ -1,14 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router';
 import {
-  Bell,
-  CheckCheck,
-  ExternalLink,
-  MessageSquare,
-  UserPlus,
-  Zap,
-  ShieldAlert,
-} from 'lucide-react';
+  Bell as Bell,
+  Checks as CheckCheck,
+  ArrowSquareOut as ExternalLink,
+  ChatTeardropText as MessageSquare,
+  UserPlus as UserPlus,
+  Lightning as Zap,
+  ShieldWarning as ShieldWarning
+} from "@phosphor-icons/react";
 import { formatDistanceToNow } from 'date-fns';
 import type { AppNotification } from '@/types/notification';
 import { getAuthToken } from "@/lib/auth/token";
@@ -94,18 +94,18 @@ export function NotificationDropdown() {
   const getNotificationIcon = (type?: string) => {
     switch (type) {
       case 'new_reaction':
-        return <Zap className="h-3.5 w-3.5 text-amber-500" />;
+        return <Zap weight="fill" className="h-3.5 w-3.5 text-amber-500" />;
       case 'new_comment':
       case 'new_post':
-        return <MessageSquare className="h-3.5 w-3.5 text-secondary" />;
+        return <MessageSquare weight="fill" className="h-3.5 w-3.5 text-secondary" />;
       case 'new_member':
       case 'join_request':
       case 'join_approved':
-        return <UserPlus className="h-3.5 w-3.5 text-emerald-500" />;
+        return <UserPlus weight="fill" className="h-3.5 w-3.5 text-emerald-500" />;
       case 'moderation_action':
-        return <ShieldAlert className="h-3.5 w-3.5 text-destructive" />;
+        return <ShieldWarning weight="fill" className="h-3.5 w-3.5 text-destructive" />;
       default:
-        return <Bell className="h-3.5 w-3.5 text-muted-foreground" />;
+        return <Bell weight="fill" className="h-3.5 w-3.5 text-muted-foreground" />;
     }
   };
 
@@ -113,12 +113,12 @@ export function NotificationDropdown() {
     <div className="relative">
       <button
         onClick={() => setIsOpen((prev) => !prev)}
-        className="relative p-2 rounded-xl border border-border bg-card hover:bg-muted text-foreground transition-all duration-150 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-secondary/50"
+        className="relative p-2 rounded-lg border-none bg-card hover:bg-muted text-foreground transition-all duration-150 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-secondary/50"
         title="Notifications"
       >
-        <Bell className="h-4 w-4 text-foreground/80" />
+        <Bell weight="fill" className="h-4 w-4 text-foreground/80" />
         {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 h-4 min-w-4 px-1 rounded-full bg-secondary text-[10px] font-bold text-secondary-foreground flex items-center justify-center shadow-md animate-pulse">
+          <span className="absolute -top-1 -right-1 h-4 min-w-4 px-1 rounded-full bg-secondary text-[10px] font-bold text-secondary-foreground flex items-center justify-center  animate-pulse">
             {unreadCount > 99 ? '99+' : unreadCount}
           </span>
         )}
@@ -129,7 +129,7 @@ export function NotificationDropdown() {
           {/* Backdrop overlay for outside click */}
           <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} role="presentation" onKeyDown={(e) => e.key === 'Enter' && setIsOpen(false)} />
 
-          <div className="absolute right-0 mt-2 w-80 sm:w-96 rounded-2xl border border-border bg-card shadow-2xl z-50 overflow-hidden text-card-foreground animate-in fade-in slide-in-from-top-2 duration-150">
+          <div className="absolute right-0 mt-2 w-80 sm:w-96 rounded-lg border-none bg-card shadow-2xl z-50 overflow-hidden text-card-foreground animate-in fade-in slide-in-from-top-2 duration-150">
             {/* Header */}
             <div className="p-3 px-4 border-b border-border flex items-center justify-between bg-muted/30">
               <div className="flex items-center gap-2">
@@ -145,7 +145,7 @@ export function NotificationDropdown() {
                   onClick={handleMarkAllRead}
                   className="text-[11px] font-semibold text-secondary hover:underline flex items-center gap-1"
                 >
-                  <CheckCheck className="h-3 w-3" />
+                  <CheckCheck weight="fill" className="h-3 w-3" />
                   Mark all read
                 </button>
               )}
@@ -154,8 +154,8 @@ export function NotificationDropdown() {
             {/* List */}
             <div className="max-h-80 overflow-y-auto divide-y divide-border/50">
               {notifications.length === 0 ? (
-                <div className="p-8 text-center space-y-2">
-                  <Bell className="h-8 w-8 text-muted-foreground/40 mx-auto" />
+                <div className="p-5 text-center space-y-2">
+                  <Bell weight="fill" className="h-8 w-8 text-muted-foreground/40 mx-auto" />
                   <p className="text-xs font-semibold text-muted-foreground">No notifications yet</p>
                   <p className="text-[11px] text-muted-foreground/70">
                     We’ll notify you when members react, comment, or join your communities.
@@ -177,7 +177,7 @@ export function NotificationDropdown() {
                         isUnread ? 'bg-secondary/5 hover:bg-secondary/10 font-medium' : 'hover:bg-muted/40'
                       }`}
                     >
-                      <div className="p-2 rounded-xl bg-muted shrink-0 mt-0.5">
+                      <div className="p-2 rounded-lg bg-muted shrink-0 mt-0.5">
                         {getNotificationIcon(n.data?.type)}
                       </div>
                       <div className="flex-1 space-y-0.5 text-xs">
@@ -197,7 +197,7 @@ export function NotificationDropdown() {
                             className="inline-flex items-center gap-1 text-[10px] font-semibold text-secondary hover:underline pt-1"
                           >
                             <span>View</span>
-                            <ExternalLink className="h-2.5 w-2.5" />
+                            <ExternalLink weight="fill" className="h-2.5 w-2.5" />
                           </Link>
                         )}
                       </div>

@@ -6,22 +6,24 @@ import { toast } from "sonner";
 import { apiClient } from "@/lib/api/client";
 import { timeAgo, mapApiPost, mapApiComments } from "@/lib/feed";
 import {
-  Plus,
-  Heart,
-  MessageCircle,
-  Share2,
-  ChevronRight,
-  ChevronLeft,
-  Play,
-  BadgeCheck,
-  Rss,
-  Send,
-  Loader2,
-  Copy,
-  Check,
-  X,
-  ChevronDown,
-} from "lucide-react";
+  Plus as Plus,
+  Heart as Heart,
+  ChatCircle as MessageCircle,
+  ShareNetwork as Share2,
+  CaretRight as ChevronRight,
+  CaretLeft as ChevronLeft,
+  Play as Play,
+  SealCheck as BadgeCheck,
+  Rss as Rss,
+  PaperPlaneRight as Send,
+  Spinner as Loader2,
+  Copy as Copy,
+  Check as Check,
+  X as X,
+  CaretDown as ChevronDown
+} from "@phosphor-icons/react";
+import { SponsoredRightRail } from "@/components/ads/SponsoredRightRail";
+import { InterPostSponsoredAd, type SponsoredAdData } from "@/components/ads/InterPostSponsoredAd";
 
 interface CommentItem {
   id: number;
@@ -70,6 +72,7 @@ export default function FeedPage() {
 
   const [posts, setPosts] = useState<PostItem[]>([]);
   const [feedLoading, setFeedLoading] = useState(true);
+  const [interPostAds, setInterPostAds] = useState<SponsoredAdData[]>([]);
 
   interface StorySubItem {
     id: number;
@@ -128,41 +131,16 @@ export default function FeedPage() {
         const apiPosts = feedData?.data ?? (Array.isArray(feedData) ? feedData : []);
         const mapped: PostItem[] = apiPosts.map((p: any) => mapApiPost(p, user?.id));
 
-        try {
-          const adRes = await fetch(`http://localhost:8002/api/delivery/ad?placement=feed&user_id=${user?.id || 1}`);
-          const adData = await adRes.json();
-          
-          if (adData.status === 'success' && adData.data) {
-            const payload = adData.data;
-            const sponsoredPost: PostItem = {
-              id: Date.now() + Math.floor(Math.random() * 1000), // unique id
-              author: "Sponsored",
-              authorVerified: true,
-              avatar: "", 
-              badge: "Ad",
-              time: "Sponsored",
-              content: payload.creative?.body || "Check out this amazing offer!",
-              likes: Math.floor(Math.random() * 100) + 10,
-              comments: 0,
-              shares: 0,
-              isLiked: false,
-              embedType: "media",
-              embedBg: payload.creative?.image_url || "https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=800&q=80",
-              commentList: [],
-              isSponsored: true,
-              ctaText: payload.cta_type || "Learn More",
-              ctaUrl: payload.cta_url,
-              impressionUrl: payload.tracking?.impression_url,
-              clickUrl: payload.tracking?.click_url,
-            };
-            if (mapped.length >= 2) {
-              mapped.splice(2, 0, sponsoredPost);
-            } else {
-              mapped.push(sponsoredPost);
-            }
+        if (user?.role !== "admin") {
+          try {
+            const adsRes = await apiClient.get<{ data: SponsoredAdData[] }>("/ads/sponsored?placement=inter_post&limit=3");
+            const adsList = Array.isArray(adsRes.data?.data) ? adsRes.data.data : [];
+            setInterPostAds(adsList);
+          } catch (adErr) {
+            console.error("Failed to load sponsored ad", adErr);
           }
-        } catch (adErr) {
-          console.error("Failed to load sponsored ad", adErr);
+        } else {
+          setInterPostAds([]);
         }
 
         setPosts(mapped);
@@ -437,20 +415,21 @@ export default function FeedPage() {
 
   return (
     <AnimatedPage className="w-full min-h-screen bg-slate-50/60 dark:bg-background">
-      <div className="max-w-[760px] mx-auto p-4 sm:p-6 space-y-5">
+      <div className="max-w-[1240px] mx-auto p-4 sm:p-4 flex gap-6 justify-center">
+        <div className="w-full max-w-[760px] space-y-5 min-w-0">
 
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-xl sm:text-2xl font-black text-foreground flex items-center gap-2">
-              <Rss className="h-5 w-5 text-[#2164b6] dark:text-[#7ab0ff]" /> Community Feed
+            <h1 className="text-xl sm:text-xl font-black text-foreground flex items-center gap-2">
+              <Rss weight="fill" className="h-5 w-5 text-[#2164b6] dark:text-[#7ab0ff]" /> Community Feed
             </h1>
             <p className="text-xs text-muted-foreground">Stay updated with content from creator communities you follow.</p>
           </div>
         </div>
 
-        <div className="bg-card border border-border shadow-xs rounded-2xl p-4 sm:p-5 space-y-4">
+        <div className="bg-card border-none  rounded-lg p-4 sm:p-5 space-y-4">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-full bg-gradient-to-br from-[#2164b6] to-purple-600 flex items-center justify-center text-white font-black text-sm shrink-0 overflow-hidden shadow-xs">
+            <div className="h-10 w-10 rounded-full bg-[#1877f2] flex items-center justify-center text-white font-black text-sm shrink-0 overflow-hidden ">
               {user?.avatar_url ? (
                 <img src={user.avatar_url} alt="" className="w-full h-full object-cover" />
               ) : (
@@ -459,7 +438,7 @@ export default function FeedPage() {
             </div>
             <div
               onClick={() => { setComposerOpen(true); setCommunityPickerOpen(false); }}
-              className="flex-1 rounded-full border border-border/80 bg-muted/40 hover:bg-muted/70 transition-colors px-5 py-2.5 text-xs sm:text-sm text-muted-foreground cursor-pointer"
+              className="flex-1 rounded-full border-none/80 bg-muted/40 hover:bg-muted/70 transition-colors px-5 py-2.5 text-xs sm:text-sm text-muted-foreground cursor-pointer"
             >
               What do you want to share with your community today?
             </div>
@@ -471,22 +450,22 @@ export default function FeedPage() {
                 value={postText}
                 onChange={(e) => setPostText(e.target.value)}
                 placeholder="Write your post here..."
-                className="w-full h-28 p-3.5 text-xs sm:text-sm rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-[#2164b6]/40 resize-none"
+                className="w-full h-28 p-3.5 text-xs sm:text-sm rounded-lg border-none bg-background focus:outline-none focus:ring-2 focus:ring-[#2164b6]/40 resize-none"
                 autoFocus
               />
               <div className="relative">
                 <button
                   type="button"
                   onClick={() => setCommunityPickerOpen(!communityPickerOpen)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border/60 text-xs font-semibold text-foreground hover:bg-muted/50 transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border-none/60 text-xs font-semibold text-foreground hover:bg-muted/50 transition-colors"
                 >
                   {selectedCommunityId
                     ? userCommunities.find((c) => c.id === selectedCommunityId)?.name ?? "Select community"
                     : "Select community"}
-                  <ChevronDown className="h-3 w-3" />
+                  <ChevronDown weight="fill" className="h-3 w-3" />
                 </button>
                 {communityPickerOpen && userCommunities.length > 0 && (
-                  <div className="absolute top-full left-0 mt-1 w-56 bg-card border border-border rounded-xl shadow-lg z-30 py-1 max-h-48 overflow-y-auto">
+                  <div className="absolute top-full left-0 mt-1 w-56 bg-card border-none rounded-lg shadow-lg z-30 py-1 max-h-48 overflow-y-auto">
                     {userCommunities.map((c) => (
                       <button
                         key={c.id}
@@ -509,7 +488,7 @@ export default function FeedPage() {
                   </div>
                 )}
                 {communityPickerOpen && userCommunities.length === 0 && (
-                  <div className="absolute top-full left-0 mt-1 w-56 bg-card border border-border rounded-xl shadow-lg z-30 py-3 px-3 text-xs text-muted-foreground text-center">
+                  <div className="absolute top-full left-0 mt-1 w-56 bg-card border-none rounded-lg shadow-lg z-30 py-3 px-3 text-xs text-muted-foreground text-center">
                     <p className="font-semibold mb-1">No communities yet</p>
                     <Link to="/app/communities" className="text-[#2164b6] dark:text-[#7ab0ff] hover:underline" onClick={() => setCommunityPickerOpen(false)}>
                       Create a community first
@@ -527,9 +506,9 @@ export default function FeedPage() {
                 <button
                   onClick={handleCreatePost}
                   disabled={submittingPost || !postText.trim() || !selectedCommunityId}
-                  className="px-4 py-2 rounded-xl bg-[#2164b6] hover:bg-[#1a5091] disabled:opacity-50 text-white font-bold text-xs transition-colors flex items-center gap-1.5 shadow-xs"
+                  className="px-4 py-2 rounded-lg bg-[#2164b6] hover:bg-[#1a5091] disabled:opacity-50 text-white font-bold text-xs transition-colors flex items-center gap-1.5 "
                 >
-                  {submittingPost ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+                  {submittingPost ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send weight="fill" className="h-3.5 w-3.5" />}
                   Publish
                 </button>
               </div>
@@ -549,10 +528,10 @@ export default function FeedPage() {
             <button
               onClick={() => storyFileRef.current?.click()}
               disabled={storyUploading}
-              className="relative shrink-0 w-28 sm:w-32 h-44 rounded-2xl overflow-hidden bg-gradient-to-b from-[#2164b6] to-blue-600 shadow-xs cursor-pointer group hover:scale-[1.02] transition-transform flex flex-col items-center justify-center text-white p-3 disabled:opacity-70 disabled:cursor-not-allowed"
+              className="relative shrink-0 w-28 sm:w-32 h-44 rounded-lg overflow-hidden bg-gradient-to-b from-[#2164b6] to-blue-600  cursor-pointer group hover:scale-[1.02] transition-transform flex flex-col items-center justify-center text-white p-3 disabled:opacity-70 disabled:cursor-not-allowed"
             >
               <div className="h-10 w-10 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
-                {storyUploading ? <Loader2 className="h-6 w-6 text-white animate-spin" /> : <Plus className="h-6 w-6 text-white stroke-[2.5]" />}
+                {storyUploading ? <Loader2 className="h-6 w-6 text-white animate-spin" /> : <Plus weight="fill" className="h-6 w-6 text-white stroke-[2.5]" />}
               </div>
               <span className="text-xs font-bold text-center leading-tight">{storyUploading ? "Uploading…" : "Create Story"}</span>
             </button>
@@ -564,12 +543,12 @@ export default function FeedPage() {
                   setActiveStoryIndex(index);
                   setActiveSubIndex(0);
                 }}
-                className="relative shrink-0 w-28 sm:w-32 h-44 rounded-2xl overflow-hidden bg-slate-800 shadow-xs cursor-pointer group hover:scale-[1.02] transition-transform"
+                className="relative shrink-0 w-28 sm:w-32 h-44 rounded-lg overflow-hidden bg-slate-800  cursor-pointer group hover:scale-[1.02] transition-transform"
               >
                 {story.bg && <img src={story.bg} alt="" className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />}
                 <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/80" />
                 <div className="absolute top-2.5 left-2.5 z-10">
-                  <div className="h-9 w-9 rounded-full p-[2px] bg-gradient-to-tr from-purple-500 via-pink-500 to-[#2164b6]">
+                  <div className="h-9 w-9 rounded-full p-[2px] bg-[#1877f2]">
                     {story.avatar ? (
                       <img src={story.avatar} alt="" className="w-full h-full rounded-full object-cover border-2 border-white/40" />
                     ) : (
@@ -580,7 +559,7 @@ export default function FeedPage() {
                   </div>
                 </div>
                 <div className="absolute bottom-2.5 left-2.5 right-2.5 z-10 text-white">
-                  <p className="text-[11px] font-bold leading-tight line-clamp-2 drop-shadow-sm">{story.name}</p>
+                  <p className="text-[11px] font-bold leading-tight line-clamp-2 drop-">{story.name}</p>
                   <p className="text-[9px] text-white/80 font-medium">{story.time}</p>
                 </div>
               </div>
@@ -590,44 +569,45 @@ export default function FeedPage() {
           <button
             onClick={() => storyScrollRef.current?.scrollBy({ left: 320, behavior: "smooth" })}
             aria-label="Scroll stories"
-            className="absolute -right-3 top-1/2 -translate-y-1/2 z-20 h-8 w-8 rounded-full bg-white dark:bg-card border border-border shadow-md flex items-center justify-center text-foreground hover:bg-muted transition-colors"
+            className="absolute -right-3 top-1/2 -translate-y-1/2 z-20 h-8 w-8 rounded-full bg-white dark:bg-card border-none  flex items-center justify-center text-foreground hover:bg-muted transition-colors"
           >
-            <ChevronRight className="h-4 w-4" />
+            <ChevronRight weight="fill" className="h-4 w-4" />
           </button>
         </div>
 
         <div className="space-y-4">
           {feedLoading && posts.length === 0 && (
             <div className="flex items-center justify-center py-12 text-muted-foreground">
-              <Loader2 className="h-5 w-5 animate-spin mr-2" />
+              <Loader2 weight="fill" className="h-5 w-5 animate-spin mr-2" />
               <span className="text-xs font-semibold">Loading feed…</span>
             </div>
           )}
 
           {!feedLoading && posts.length === 0 && (
             <div className="text-center py-12 text-muted-foreground space-y-2">
-              <Rss className="h-8 w-8 mx-auto opacity-40" />
+              <Rss weight="fill" className="h-8 w-8 mx-auto opacity-40" />
               <p className="text-sm font-semibold">No posts in the feed yet</p>
               <p className="text-xs">Be the first to share something with the community.</p>
               <Link to="/app/communities">
-                <button className="mt-2 px-4 py-2 rounded-xl bg-[#2164b6] hover:bg-[#1a5091] text-white font-bold text-xs transition-colors">
+                <button className="mt-2 px-4 py-2 rounded-lg bg-[#2164b6] hover:bg-[#1a5091] text-white font-bold text-xs transition-colors">
                   Browse Communities
                 </button>
               </Link>
             </div>
           )}
 
-          {posts.map((post) => {
+          {posts.map((post, idx) => {
             const isCommenting = activeCommentPostId === post.id;
 
             return (
-              <div key={post.id} className="bg-card border border-border shadow-xs rounded-2xl p-4 sm:p-5 space-y-3 relative">
+              <div key={post.id} className="space-y-4">
+                <div className="bg-card border-none  rounded-lg p-4 sm:p-5 space-y-3 relative">
                 {post.isSponsored && post.impressionUrl && (
                   <img src={post.impressionUrl} alt="" className="hidden w-0 h-0 absolute" />
                 )}
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-full bg-gradient-to-tr from-[#2164b6] to-purple-600 p-[2px]">
+                    <div className="h-10 w-10 rounded-full bg-[#1877f2] p-[2px]">
                       {post.avatar ? (
                         <img src={post.avatar} alt="" className="w-full h-full rounded-full object-cover" />
                       ) : (
@@ -640,7 +620,7 @@ export default function FeedPage() {
                       <div className="flex items-center gap-1.5">
                         <span className="text-sm font-bold text-foreground">{post.author}</span>
                         {post.authorVerified && (
-                          <BadgeCheck className="h-3.5 w-3.5 text-sky-500" />
+                          <BadgeCheck weight="fill" className="h-3.5 w-3.5 text-sky-500" />
                         )}
                       </div>
                       <p className="text-[11px] text-muted-foreground">{post.badge} · {post.time} · 🌐</p>
@@ -653,11 +633,11 @@ export default function FeedPage() {
                 </p>
 
                 {post.embedType === "video" && post.embedBg && (
-                  <div className="rounded-xl border border-border overflow-hidden bg-slate-900 flex flex-col sm:flex-row group cursor-pointer">
+                  <div className="rounded-lg border-none overflow-hidden bg-slate-900 flex flex-col sm:flex-row group cursor-pointer">
                     <div className="relative sm:w-48 h-32 bg-slate-800 shrink-0 flex items-center justify-center overflow-hidden">
                       <img src={post.embedBg} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 opacity-80" />
                       <div className="absolute h-10 w-10 rounded-full bg-black/60 backdrop-blur-xs border border-white/30 flex items-center justify-center text-white">
-                        <Play className="h-5 w-5 fill-white ml-0.5" />
+                        <Play weight="fill" className="h-5 w-5 fill-white ml-0.5" />
                       </div>
                     </div>
                     <div className="p-3.5 flex flex-col justify-center bg-card flex-1 border-t sm:border-t-0 sm:border-l border-border">
@@ -673,8 +653,8 @@ export default function FeedPage() {
                 )}
 
                 {post.embedType === "product" && (
-                  <div className="p-3.5 rounded-xl border border-border bg-slate-50/50 dark:bg-muted/30 flex items-center gap-4">
-                    <div className="h-20 w-16 rounded-lg bg-gradient-to-br from-[#2164b6] to-blue-700 shrink-0 overflow-hidden shadow-xs flex items-center justify-center text-white p-2">
+                  <div className="p-3.5 rounded-lg border-none bg-slate-50/50 dark:bg-muted/30 flex items-center gap-4">
+                    <div className="h-20 w-16 rounded-lg bg-gradient-to-br from-[#2164b6] to-blue-700 shrink-0 overflow-hidden  flex items-center justify-center text-white p-2">
                       <div className="text-center">
                         <p className="text-[8px] font-extrabold uppercase tracking-widest text-white/80">LINK</p>
                         <p className="text-[10px] font-black leading-tight mt-1">External</p>
@@ -695,7 +675,7 @@ export default function FeedPage() {
                 )}
 
                 {post.embedType === "media" && post.embedBg && (
-                  <div className="rounded-xl overflow-hidden border border-border bg-slate-800">
+                  <div className="rounded-lg overflow-hidden border-none bg-slate-800">
                     <img src={post.embedBg} alt="" className="w-full max-h-80 object-cover" />
                   </div>
                 )}
@@ -709,9 +689,9 @@ export default function FeedPage() {
                       onClick={() => {
                         if (post.clickUrl) fetch(post.clickUrl).catch(() => {});
                       }}
-                      className="block w-full text-center px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-[#2164b6] dark:text-[#7ab0ff] font-bold text-xs transition-colors"
+                      className="block w-full text-center px-4 py-2.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-[#2164b6] dark:text-[#7ab0ff] font-bold text-xs transition-colors"
                     >
-                      {post.ctaText} <ChevronRight className="inline-block h-4 w-4 ml-1 -mt-0.5" />
+                      {post.ctaText} <ChevronRight weight="fill" className="inline-block h-4 w-4 ml-1 -mt-0.5" />
                     </a>
                   </div>
                 )}
@@ -741,7 +721,7 @@ export default function FeedPage() {
                       post.isLiked ? "text-[#2164b6] dark:text-[#7ab0ff] bg-[#2164b6]/10" : "text-muted-foreground hover:bg-muted"
                     }`}
                   >
-                    <Heart className={`h-4 w-4 ${post.isLiked ? "fill-[#2164b6]" : ""}`} /> Like
+                    <Heart weight="fill" className={`h-4 w-4 ${post.isLiked ? "fill-[#2164b6]" : ""}`} /> Like
                   </button>
                   <button
                     onClick={() => handleClickComment(post.id)}
@@ -749,13 +729,13 @@ export default function FeedPage() {
                       isCommenting ? "text-[#2164b6] dark:text-[#7ab0ff] bg-[#2164b6]/10" : "text-muted-foreground hover:bg-muted"
                     }`}
                   >
-                    <MessageCircle className="h-4 w-4" /> Comment
+                    <MessageCircle weight="fill" className="h-4 w-4" /> Comment
                   </button>
                   <button
                     onClick={() => handleShare(post)}
                     className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-semibold text-muted-foreground hover:bg-muted transition-colors"
                   >
-                    <Share2 className="h-4 w-4" /> Share
+                    <Share2 weight="fill" className="h-4 w-4" /> Share
                   </button>
                 </div>
 
@@ -763,15 +743,15 @@ export default function FeedPage() {
                   <div className="border-t border-border/60 pt-3 space-y-3 animate-in fade-in slide-in-from-top-1 duration-200">
                     {loadingComments.has(post.id) && (
                       <div className="flex items-center justify-center py-4">
-                        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                        <Loader2 weight="fill" className="h-4 w-4 animate-spin text-muted-foreground" />
                       </div>
                     )}
 
                     {!loadingComments.has(post.id) && post.commentList.length > 0 && (
                       <div className="space-y-2.5">
                         {post.commentList.map((cmt) => (
-                          <div key={cmt.id} className="flex items-start gap-2.5 text-xs p-2.5 rounded-xl bg-slate-50 dark:bg-muted/40">
-                            <div className="h-7 w-7 rounded-full bg-gradient-to-br from-[#2164b6] to-purple-600 flex items-center justify-center text-white font-bold text-[10px] shrink-0">
+                          <div key={cmt.id} className="flex items-start gap-2.5 text-xs p-2.5 rounded-lg bg-slate-50 dark:bg-muted/40">
+                            <div className="h-7 w-7 rounded-full bg-[#1877f2] flex items-center justify-center text-white font-bold text-[10px] shrink-0">
                               {cmt.avatar_url ? <img src={cmt.avatar_url} alt="" className="w-full h-full rounded-full object-cover" /> : cmt.user_name.charAt(0)}
                             </div>
                             <div className="flex-1 min-w-0">
@@ -779,7 +759,7 @@ export default function FeedPage() {
                                 <span className="font-bold text-foreground text-[11px]">
                                   {cmt.user_name}
                                   {cmt.verified && (
-                                    <BadgeCheck size={12} className="inline-block ml-0.5 text-sky-500 -mt-0.5" aria-label="Verified" />
+                                    <BadgeCheck weight="fill" size={12} className="inline-block ml-0.5 text-sky-500 -mt-0.5" aria-label="Verified" />
                                   )}
                                 </span>
                                 <span className="text-[9px] text-muted-foreground">{cmt.time}</span>
@@ -798,24 +778,44 @@ export default function FeedPage() {
                         onChange={(e) => setCommentInput(e.target.value)}
                         onKeyDown={(e) => { if (e.key === "Enter") handleAddComment(post.id); }}
                         placeholder="Write a comment..."
-                        className="flex-1 h-9 px-3.5 text-xs rounded-full border border-border bg-background focus:outline-none focus:ring-2 focus:ring-[#2164b6]/40"
+                        className="flex-1 h-9 px-3.5 text-xs rounded-full border-none bg-background focus:outline-none focus:ring-2 focus:ring-[#2164b6]/40"
                       />
                       <button
                         onClick={() => handleAddComment(post.id)}
                         disabled={submittingComment || !commentInput.trim()}
                         className="px-3.5 h-9 rounded-full bg-[#2164b6] hover:bg-[#1a5091] disabled:opacity-50 text-white font-bold text-xs transition-colors flex items-center gap-1 shrink-0"
                       >
-                        {submittingComment ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+                        {submittingComment ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send weight="fill" className="h-3.5 w-3.5" />}
                       </button>
                     </div>
                   </div>
                 )}
 
               </div>
+
+                {/* Inter-post sponsored ad insertion (Facebook / TikTok style with countdown) */}
+                {user?.role !== "admin" && idx === 1 && interPostAds[0] && (
+                  <InterPostSponsoredAd
+                    ad={interPostAds[0]}
+                    onDismiss={() => setInterPostAds((prev) => prev.filter((_, i) => i !== 0))}
+                  />
+                )}
+                {user?.role !== "admin" && idx === 4 && interPostAds[1] && (
+                  <InterPostSponsoredAd
+                    ad={interPostAds[1]}
+                    onDismiss={() => setInterPostAds((prev) => prev.filter((_, i) => i !== 1))}
+                  />
+                )}
+              </div>
             );
           })}
         </div>
+        </div>
 
+        {/* Desktop Right Rail for Sponsored Ads */}
+        <div className="hidden lg:block">
+          <SponsoredRightRail />
+        </div>
       </div>
 
       {shareModalPost && (
@@ -824,15 +824,15 @@ export default function FeedPage() {
           onClick={() => setShareModalPost(null)}
         >
           <div
-            className="bg-card border border-border shadow-2xl rounded-2xl p-5 max-w-sm w-full space-y-4 animate-in fade-in zoom-in-95 duration-200"
+            className="bg-card border-none shadow-2xl rounded-lg p-5 max-w-sm w-full space-y-4 animate-in fade-in zoom-in-95 duration-200"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between border-b border-border pb-3">
               <h3 className="font-bold text-foreground text-sm flex items-center gap-2">
-                <Share2 className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" /> Share Post
+                <Share2 weight="fill" className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" /> Share Post
               </h3>
               <button onClick={() => setShareModalPost(null)} aria-label="Close share dialog" className="text-muted-foreground hover:text-foreground">
-                <X className="h-4 w-4" />
+                <X weight="fill" className="h-4 w-4" />
               </button>
             </div>
 
@@ -845,7 +845,7 @@ export default function FeedPage() {
                 type="text"
                 readOnly
                 value={`${window.location.origin}/app/feed?post=${shareModalPost.id}`}
-                className="flex-1 h-9 px-3 text-xs rounded-xl border border-border bg-muted/40 font-mono text-muted-foreground truncate"
+                className="flex-1 h-9 px-3 text-xs rounded-lg border-none bg-muted/40 font-mono text-muted-foreground truncate"
               />
               <button
                 onClick={() => {
@@ -853,9 +853,9 @@ export default function FeedPage() {
                   setCopiedLink(true);
                   setTimeout(() => setCopiedLink(false), 3000);
                 }}
-                className="px-3 h-9 rounded-xl bg-[#2164b6] hover:bg-[#1a5091] text-white font-bold text-xs transition-colors flex items-center gap-1 shrink-0"
+                className="px-3 h-9 rounded-lg bg-[#2164b6] hover:bg-[#1a5091] text-white font-bold text-xs transition-colors flex items-center gap-1 shrink-0"
               >
-                {copiedLink ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                {copiedLink ? <Check className="h-3.5 w-3.5" /> : <Copy weight="fill" className="h-3.5 w-3.5" />}
                 {copiedLink ? "Copied!" : "Copy"}
               </button>
             </div>
@@ -865,7 +865,7 @@ export default function FeedPage() {
                 href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareModalPost.content.slice(0, 100))}&url=${encodeURIComponent(`${window.location.origin}/app/feed?post=${shareModalPost.id}`)}`}
                 target="_blank"
                 rel="noreferrer"
-                className="p-2.5 rounded-xl border border-border bg-slate-50 dark:bg-muted/40 hover:bg-muted text-center text-xs font-semibold text-foreground transition-colors"
+                className="p-2.5 rounded-lg border-none bg-slate-50 dark:bg-muted/40 hover:bg-muted text-center text-xs font-semibold text-foreground transition-colors"
               >
                 Twitter / X
               </a>
@@ -873,7 +873,7 @@ export default function FeedPage() {
                 href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(`${window.location.origin}/app/feed?post=${shareModalPost.id}`)}`}
                 target="_blank"
                 rel="noreferrer"
-                className="p-2.5 rounded-xl border border-border bg-slate-50 dark:bg-muted/40 hover:bg-muted text-center text-xs font-semibold text-foreground transition-colors"
+                className="p-2.5 rounded-lg border-none bg-slate-50 dark:bg-muted/40 hover:bg-muted text-center text-xs font-semibold text-foreground transition-colors"
               >
                 Facebook
               </a>
@@ -881,7 +881,7 @@ export default function FeedPage() {
                 href={`https://api.whatsapp.com/send?text=${encodeURIComponent(`${shareModalPost.content.slice(0, 100)} ${window.location.origin}/app/feed?post=${shareModalPost.id}`)}`}
                 target="_blank"
                 rel="noreferrer"
-                className="p-2.5 rounded-xl border border-border bg-slate-50 dark:bg-muted/40 hover:bg-muted text-center text-xs font-semibold text-foreground transition-colors"
+                className="p-2.5 rounded-lg border-none bg-slate-50 dark:bg-muted/40 hover:bg-muted text-center text-xs font-semibold text-foreground transition-colors"
               >
                 WhatsApp
               </a>
@@ -920,7 +920,7 @@ export default function FeedPage() {
                 className="absolute inset-0 w-full h-full object-cover"
               />
             ) : (
-              <div className="absolute inset-0 bg-gradient-to-br from-[#2164b6] to-purple-800 flex items-center justify-center p-6 text-center text-white font-bold text-lg">
+              <div className="absolute inset-0 bg-[#1877f2] flex items-center justify-center p-4 text-center text-white font-bold text-lg">
                 {stories[activeStoryIndex].items[activeSubIndex]?.caption ?? stories[activeStoryIndex].name}
               </div>
             )}
@@ -946,7 +946,7 @@ export default function FeedPage() {
               {/* User header */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                  <div className="h-9 w-9 rounded-full bg-gradient-to-tr from-purple-500 via-pink-500 to-[#2164b6] p-[2px]">
+                  <div className="h-9 w-9 rounded-full bg-[#1877f2] p-[2px]">
                     {stories[activeStoryIndex].avatar ? (
                       <img src={stories[activeStoryIndex].avatar} alt="" className="w-full h-full rounded-full object-cover" />
                     ) : (
@@ -956,7 +956,7 @@ export default function FeedPage() {
                     )}
                   </div>
                   <div>
-                    <p className="text-xs font-bold text-white drop-shadow-sm">{stories[activeStoryIndex].name}</p>
+                    <p className="text-xs font-bold text-white drop-">{stories[activeStoryIndex].name}</p>
                     <p className="text-[10px] text-white/70">{stories[activeStoryIndex].time}</p>
                   </div>
                 </div>
@@ -966,7 +966,7 @@ export default function FeedPage() {
                   className="h-8 w-8 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center text-white hover:bg-black/60 transition-colors"
                   aria-label="Close story"
                 >
-                  <X className="h-4 w-4" />
+                  <X weight="fill" className="h-4 w-4" />
                 </button>
               </div>
             </div>
@@ -1017,7 +1017,7 @@ export default function FeedPage() {
                 aria-label="Previous story"
                 className="absolute left-3 top-1/2 -translate-y-1/2 z-20 h-9 w-9 rounded-full bg-black/40 backdrop-blur-md border border-white/20 flex items-center justify-center text-white hover:bg-black/60 transition-colors"
               >
-                <ChevronLeft className="h-5 w-5" />
+                <ChevronLeft weight="fill" className="h-5 w-5" />
               </button>
             ) : null}
 
@@ -1037,13 +1037,13 @@ export default function FeedPage() {
                 aria-label="Next story"
                 className="absolute right-3 top-1/2 -translate-y-1/2 z-20 h-9 w-9 rounded-full bg-black/40 backdrop-blur-md border border-white/20 flex items-center justify-center text-white hover:bg-black/60 transition-colors"
               >
-                <ChevronRight className="h-5 w-5" />
+                <ChevronRight weight="fill" className="h-5 w-5" />
               </button>
 
             {/* Bottom Caption */}
             {stories[activeStoryIndex].items[activeSubIndex]?.caption && (
               <div className="relative z-10 p-4 pb-6 text-center">
-                <p className="text-xs font-semibold text-white/90 bg-black/50 backdrop-blur-md p-3 rounded-2xl border border-white/10 line-clamp-3">
+                <p className="text-xs font-semibold text-white/90 bg-black/50 backdrop-blur-md p-3 rounded-lg border border-white/10 line-clamp-3">
                   {stories[activeStoryIndex].items[activeSubIndex].caption}
                 </p>
               </div>

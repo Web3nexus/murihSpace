@@ -1,11 +1,31 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router";
+import { toast } from "sonner";
 import {
-  Loader2, Wand2, Send, Plus, X, Check, ChevronRight, ChevronLeft,
-  Camera, Music, Hash, Film, MessageCircle, Link as LinkIcon, ShoppingCart,
-  Palette, ArrowRight, Smartphone, Store, User as UserIcon,
-  Package, Globe, Target
-} from "lucide-react";
+  Spinner as Loader2,
+  MagicWand as MagicWand,
+  PaperPlaneRight as Send,
+  Plus as Plus,
+  X as X,
+  Check as Check,
+  CaretRight as ChevronRight,
+  CaretLeft as ChevronLeft,
+  Camera as Camera,
+  MusicNote as Music,
+  Hash as Hash,
+  FilmStrip as FilmStrip,
+  ChatCircle as MessageCircle,
+  Link as LinkIcon,
+  ShoppingCart as ShoppingCart,
+  Palette as Palette,
+  ArrowRight as ArrowRight,
+  DeviceMobile as Smartphone,
+  Storefront,
+  User as UserIcon,
+  Package as Package,
+  Globe as Globe,
+  Target as Target
+} from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MeraIcon } from "@/components/brand/MeraIcon";
@@ -22,16 +42,16 @@ import { CountrySelect } from "@/components/forms/CountrySelect";
 
 
 const SOCIAL_PLATFORMS: { value: string; label: string; placeholder: string; icon: React.ReactNode }[] = [
-  { value: "instagram", label: "Instagram", placeholder: "your_handle", icon: <Camera className="h-4 w-4" /> },
-  { value: "twitter", label: "Twitter / X", placeholder: "your_handle", icon: <Hash className="h-4 w-4" /> },
-  { value: "tiktok", label: "TikTok", placeholder: "your_handle", icon: <Music className="h-4 w-4" /> },
-  { value: "youtube", label: "YouTube", placeholder: "your_channel", icon: <Film className="h-4 w-4" /> },
-  { value: "facebook", label: "Facebook", placeholder: "your.page", icon: <MessageCircle className="h-4 w-4" /> },
-  { value: "snapchat", label: "Snapchat", placeholder: "your_snap", icon: <Send className="h-4 w-4" /> },
-  { value: "linkedin", label: "LinkedIn", placeholder: "your_name", icon: <LinkIcon className="h-4 w-4" /> },
-  { value: "github", label: "GitHub", placeholder: "your_name", icon: <LinkIcon className="h-4 w-4" /> },
-  { value: "pinterest", label: "Pinterest", placeholder: "your_name", icon: <LinkIcon className="h-4 w-4" /> },
-  { value: "twitch", label: "Twitch", placeholder: "your_channel", icon: <LinkIcon className="h-4 w-4" /> },
+  { value: "instagram", label: "Instagram", placeholder: "your_handle", icon: <Camera weight="fill" className="h-4 w-4" /> },
+  { value: "twitter", label: "Twitter / X", placeholder: "your_handle", icon: <Hash weight="fill" className="h-4 w-4" /> },
+  { value: "tiktok", label: "TikTok", placeholder: "your_handle", icon: <Music weight="fill" className="h-4 w-4" /> },
+  { value: "youtube", label: "YouTube", placeholder: "your_channel", icon: <FilmStrip weight="fill" className="h-4 w-4" /> },
+  { value: "facebook", label: "Facebook", placeholder: "your.page", icon: <MessageCircle weight="fill" className="h-4 w-4" /> },
+  { value: "snapchat", label: "Snapchat", placeholder: "your_snap", icon: <Send weight="fill" className="h-4 w-4" /> },
+  { value: "linkedin", label: "LinkedIn", placeholder: "your_name", icon: <LinkIcon weight="fill" className="h-4 w-4" /> },
+  { value: "github", label: "GitHub", placeholder: "your_name", icon: <LinkIcon weight="fill" className="h-4 w-4" /> },
+  { value: "pinterest", label: "Pinterest", placeholder: "your_name", icon: <LinkIcon weight="fill" className="h-4 w-4" /> },
+  { value: "twitch", label: "Twitch", placeholder: "your_channel", icon: <LinkIcon weight="fill" className="h-4 w-4" /> },
 ];
 
 
@@ -69,7 +89,7 @@ const QUICK_PROMPTS = [
 
 export default function OnboardingPage() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, markOnboardingCompleted, refreshUser } = useAuth();
 
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -85,7 +105,7 @@ export default function OnboardingPage() {
   const [businessName, setBusinessName] = useState("");
   const [businessCategory, setBusinessCategory] = useState("Apparel & Fashion");
   const [fulfilmentModel, setFulfilmentModel] = useState("Self-fulfilled (hand-shipped)");
-  const [vendorCountry, setVendorCountry] = useState("GB");
+  const [vendorCountry, setVendorCountry] = useState("NG");
   const [vendorBio, setVendorBio] = useState("");
 
   // Creator state
@@ -118,15 +138,53 @@ export default function OnboardingPage() {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  const VENDOR_DEFAULT_STEPS = [
+    { key: "business", label: "Business Info" },
+    { key: "products", label: "Products & Fulfilment" },
+    { key: "target", label: "Target Market" },
+    { key: "brand", label: "Brand & Socials" },
+    { key: "setup", label: "Dashboard Setup" },
+  ];
+
+  const CREATOR_DEFAULT_STEPS = [
+    { key: "ai", label: "Meet Mera" },
+    { key: "socials", label: "Connect Socials" },
+    { key: "interests", label: "Your Interests" },
+    { key: "profile", label: "AI Profile" },
+    { key: "template", label: "Pick Template" },
+  ];
+
+  const MEMBER_DEFAULT_STEPS = [
+    { key: "profile", label: "Profile Setup" },
+    { key: "interests", label: "Community Interests" },
+    { key: "preferences", label: "Preferences" },
+  ];
+
   // Load config & saved progress
   const loadConfig = useCallback(async () => {
+    const userRole = (user?.role as string) ?? "member";
+    if (userRole === "admin") {
+      markOnboardingCompleted();
+      navigate("/app/securegate", { replace: true });
+      return;
+    }
+
     try {
-      const res = await authFetch(`/onboarding/config`, {  });
+      const res = await authFetch(`/onboarding/config`);
       const j = await res.json();
-      const d = j?.data ?? j;
+      const d = j?.data?.data ?? j?.data ?? j;
       if (d) {
-        setRole(d.role ?? user?.role ?? "member");
-        setSteps(d.steps ?? []);
+        const resolvedRole = d.role ?? user?.role ?? "member";
+        setRole(resolvedRole);
+
+        const defaultSteps =
+          resolvedRole === "vendor"
+            ? VENDOR_DEFAULT_STEPS
+            : resolvedRole === "creator"
+            ? CREATOR_DEFAULT_STEPS
+            : MEMBER_DEFAULT_STEPS;
+
+        setSteps(Array.isArray(d.steps) && d.steps.length > 0 ? d.steps : defaultSteps);
 
         // Restore saved progress if available
         const saved = d.saved_progress;
@@ -147,21 +205,28 @@ export default function OnboardingPage() {
         }
       }
     } catch {
-      // Fall back to the role from the auth user so the correct onboarding
-      // flow is shown even when the config request fails
-      setRole(user?.role ?? 'member');
+      const userRole = (user?.role as string) ?? "member";
+      setRole(userRole);
+      setSteps(
+        userRole === "vendor"
+          ? VENDOR_DEFAULT_STEPS
+          : userRole === "creator"
+          ? CREATOR_DEFAULT_STEPS
+          : MEMBER_DEFAULT_STEPS
+      );
     }
     finally { setLoading(false); }
-  }, [user]);
+  }, [user, markOnboardingCompleted, navigate]);
 
   useEffect(() => { loadConfig(); }, [loadConfig]);
 
   const saveProgress = async (newStep: number) => {
-    setStep(newStep);
+    const validStep = typeof newStep === 'number' && !isNaN(newStep) ? Math.max(0, Math.floor(newStep)) : 0;
+    setStep(validStep);
     try {
       await authFetch(`/onboarding/progress`, {
         method: "POST", 
-        body: JSON.stringify({ step: newStep, form_data: { role, niche, businessName } }),
+        body: JSON.stringify({ step: validStep, form_data: { role, niche, businessName } }),
       });
     } catch { /* ignore */ }
   };
@@ -241,9 +306,12 @@ export default function OnboardingPage() {
         method: "POST", 
         body: JSON.stringify({ template: def.slug, ...def.palette, profile_name: profileName, profile_bio: profileBio }),
       });
-      await authFetch(`/onboarding/complete`, { method: "POST",  });
-      navigate("/app/link-in-bio", { replace: true });
+      await authFetch(`/onboarding/complete`, { method: "POST" });
     } catch { /* ignore */ }
+    markOnboardingCompleted();
+    refreshUser();
+    toast.success("Creator setup completed!");
+    navigate("/app/link-in-bio", { replace: true });
     setSaving(false);
   };
 
@@ -253,16 +321,19 @@ export default function OnboardingPage() {
       await authFetch(`/onboarding/vendor-info`, {
         method: "POST", 
         body: JSON.stringify({
-          business_name: businessName || user?.name || "My Store",
+          business_name: businessName || user?.name || "My Storefront",
           business_category: businessCategory,
           fulfilment_model: fulfilmentModel,
           country: vendorCountry,
           bio: vendorBio,
         }),
       });
-      await authFetch(`/onboarding/complete`, { method: "POST",  });
-      navigate("/app/storefront", { replace: true });
+      await authFetch(`/onboarding/complete`, { method: "POST" });
     } catch { /* ignore */ }
+    markOnboardingCompleted();
+    refreshUser();
+    toast.success("Vendor setup completed!");
+    navigate("/app/store", { replace: true });
     setSaving(false);
   };
 
@@ -276,9 +347,12 @@ export default function OnboardingPage() {
           notification_preferences: { feed: notifyFeed },
         }),
       });
-      await authFetch(`/onboarding/complete`, { method: "POST",  });
-      navigate("/app", { replace: true });
+      await authFetch(`/onboarding/complete`, { method: "POST" });
     } catch { /* ignore */ }
+    markOnboardingCompleted();
+    refreshUser();
+    toast.success("Setup completed!");
+    navigate("/app", { replace: true });
     setSaving(false);
   };
 
@@ -293,7 +367,23 @@ export default function OnboardingPage() {
       if (step === 2) await saveInterests();
       if (step === 3 && (!profileName || !profileBio)) await generateDraft();
     }
-    saveProgress(Math.min(step + 1, steps.length - 1));
+    if (role === "vendor") {
+      try {
+        await authFetch(`/onboarding/vendor-info`, {
+          method: "POST",
+          body: JSON.stringify({
+            business_name: businessName || user?.name || "My Storefront",
+            business_category: businessCategory,
+            fulfilment_model: fulfilmentModel,
+            country: vendorCountry,
+            bio: vendorBio,
+          }),
+        });
+      } catch { /* ignore */ }
+    }
+    const maxSteps = steps.length > 0 ? steps.length : (role === "vendor" ? 5 : role === "creator" ? 5 : 3);
+    const targetStep = Math.min(step + 1, maxSteps - 1);
+    saveProgress(targetStep);
   };
 
   const addSocialRow = () => {
@@ -329,16 +419,16 @@ export default function OnboardingPage() {
     products: [],
   };
 
-  if (loading) return <div className="flex justify-center py-24"><Loader2 className="h-8 w-8 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" /></div>;
+  if (loading) return <div className="flex justify-center py-24"><Loader2 weight="fill" className="h-8 w-8 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" /></div>;
 
 
 
   return (
-    <div className="w-full max-w-7xl mx-auto space-y-6 p-6 lg:p-8">
+    <div className="w-full max-w-7xl mx-auto space-y-6 p-4 lg:p-5">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-black tracking-tight flex items-center gap-2.5">
-            <Wand2 className="h-6 w-6 text-[#2164b6] dark:text-[#7ab0ff]" />
+          <h1 className="text-xl font-black tracking-tight flex items-center gap-2.5">
+            <MagicWand weight="fill" className="h-6 w-6 text-[#2164b6] dark:text-[#7ab0ff]" />
             {role === "vendor" ? "Vendor AI Onboarding" : role === "creator" ? "Creator AI Onboarding" : "Account Setup"}
           </h1>
           <p className="text-xs text-muted-foreground mt-1">
@@ -356,27 +446,27 @@ export default function OnboardingPage() {
           disabled={saving}
           className="text-xs font-bold gap-1.5 border-[#2164b6] text-[#2164b6] hover:bg-[#2164b6] hover:text-white transition-all shrink-0"
         >
-          {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />} Skip & Complete Setup
+          {saving ? <Loader2 weight="fill" className="h-3.5 w-3.5 animate-spin" /> : <Check weight="fill" className="h-3.5 w-3.5" />} Skip & Complete Setup
         </Button>
       </div>
 
       {/* Progress steps */}
-      <div className="flex items-center gap-1 bg-muted p-1 rounded-xl overflow-x-auto scrollbar-none">
+      <div className="flex items-center gap-1 bg-muted p-1 rounded-lg overflow-x-auto scrollbar-none">
         {steps.map((s, i) => (
-          <div key={s.key} className={`flex-1 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold whitespace-nowrap ${i === step ? "bg-card text-foreground shadow-sm" : i < step ? "text-emerald-400" : "text-muted-foreground"}`}>
-            <span className={`h-4 w-4 rounded-full flex items-center justify-center text-[9px] ${i < step ? "bg-emerald-500 text-white" : i === step ? "bg-[#2164b6] text-white" : "bg-muted-foreground/20"}`}>{i < step ? <Check className="h-2.5 w-2.5" /> : i + 1}</span>
+          <div key={s.key} className={`flex-1 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold whitespace-nowrap ${i === step ? "bg-card text-foreground " : i < step ? "text-emerald-400" : "text-muted-foreground"}`}>
+            <span className={`h-4 w-4 rounded-full flex items-center justify-center text-[9px] ${i < step ? "bg-emerald-500 text-white" : i === step ? "bg-[#2164b6] text-white" : "bg-muted-foreground/20"}`}>{i < step ? <Check weight="fill" className="h-2.5 w-2.5" /> : i + 1}</span>
             {s.label}
           </div>
         ))}
       </div>
 
       {/* ── MEMBER ONBOARDING ── */}
-      {role === "member" && (
-        <div className="max-w-xl mx-auto border border-border rounded-2xl bg-card p-6 space-y-6">
+      {(role === "member" || !["creator", "vendor"].includes(role)) && (
+        <div className="max-w-xl mx-auto border-none rounded-lg bg-card p-4 space-y-6">
           {step === 0 && (
             <div className="space-y-4">
               <div className="flex items-center gap-2">
-                <UserIcon className="h-5 w-5 text-[#2164b6] dark:text-[#7ab0ff]" />
+                <UserIcon weight="fill" className="h-5 w-5 text-[#2164b6] dark:text-[#7ab0ff]" />
                 <h2 className="text-sm font-bold text-foreground">Welcome, @{user?.username}!</h2>
               </div>
               <p className="text-xs text-muted-foreground">Your account is ready. Let's customize your experience.</p>
@@ -385,7 +475,7 @@ export default function OnboardingPage() {
                 <Input value={user?.name ?? ""} disabled className="bg-muted/50" />
               </div>
               <div className="flex justify-end">
-                <Button size="sm" onClick={() => saveProgress(1)} className="text-xs font-bold">Continue <ChevronRight className="h-3 w-3 ml-1" /></Button>
+                <Button size="sm" onClick={() => saveProgress(1)} className="text-xs font-bold">Continue <ChevronRight weight="fill" className="h-3 w-3 ml-1" /></Button>
               </div>
             </div>
           )}
@@ -400,8 +490,8 @@ export default function OnboardingPage() {
                 ))}
               </div>
               <div className="flex justify-between pt-2">
-                <Button size="sm" variant="ghost" onClick={() => setStep(0)} className="text-xs font-bold"><ChevronLeft className="h-3 w-3 mr-1" /> Back</Button>
-                <Button size="sm" onClick={() => saveProgress(2)} className="text-xs font-bold">Continue <ChevronRight className="h-3 w-3 ml-1" /></Button>
+                <Button size="sm" variant="ghost" onClick={() => setStep(0)} className="text-xs font-bold"><ChevronLeft weight="fill" className="h-3 w-3 mr-1" /> Back</Button>
+                <Button size="sm" onClick={() => saveProgress(2)} className="text-xs font-bold">Continue <ChevronRight weight="fill" className="h-3 w-3 ml-1" /></Button>
               </div>
             </div>
           )}
@@ -409,7 +499,7 @@ export default function OnboardingPage() {
           {step === 2 && (
             <div className="space-y-4">
               <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Notification Preferences</h2>
-              <div className="p-3 rounded-xl border border-border flex items-center justify-between">
+              <div className="p-3 rounded-lg border-none flex items-center justify-between">
                 <div>
                   <p className="text-xs font-bold">Feed & Community Notifications</p>
                   <p className="text-[10px] text-muted-foreground">Receive updates when posts or events are published.</p>
@@ -417,9 +507,9 @@ export default function OnboardingPage() {
                 <input type="checkbox" checked={notifyFeed} onChange={(e) => setNotifyFeed(e.target.checked)} className="h-4 w-4 rounded accent-[#2164b6]" />
               </div>
               <div className="flex justify-between pt-2">
-                <Button size="sm" variant="ghost" onClick={() => setStep(1)} className="text-xs font-bold"><ChevronLeft className="h-3 w-3 mr-1" /> Back</Button>
+                <Button size="sm" variant="ghost" onClick={() => setStep(1)} className="text-xs font-bold"><ChevronLeft weight="fill" className="h-3 w-3 mr-1" /> Back</Button>
                 <Button size="sm" onClick={handleFinishMember} disabled={saving} className="text-xs font-bold">
-                  {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : null} Complete Setup <ArrowRight className="h-3.5 w-3.5 ml-1" />
+                  {saving ? <Loader2 weight="fill" className="h-3.5 w-3.5 animate-spin mr-1" /> : null} Complete Setup <ArrowRight weight="fill" className="h-3.5 w-3.5 ml-1" />
                 </Button>
               </div>
             </div>
@@ -429,29 +519,29 @@ export default function OnboardingPage() {
 
       {/* ── VENDOR ONBOARDING ── */}
       {role === "vendor" && (
-        <div className="max-w-2xl mx-auto border border-border rounded-2xl bg-card p-6 space-y-6">
+        <div className="max-w-2xl mx-auto border-none rounded-lg bg-card p-4 space-y-6">
           {step === 0 && (
             <div className="space-y-4">
               <div className="flex items-center gap-2">
-                <Store className="h-5 w-5 text-[#2164b6] dark:text-[#7ab0ff]" />
+                <Storefront weight="fill" className="h-5 w-5 text-[#2164b6] dark:text-[#7ab0ff]" />
                 <h2 className="text-sm font-bold text-foreground">Tell us about your business</h2>
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-bold text-muted-foreground">Store / Business Name *</label>
+                <label className="text-xs font-bold text-muted-foreground">Storefront / Business Name *</label>
                 <Input value={businessName} onChange={(e) => setBusinessName(e.target.value)} placeholder="e.g. Acme Outfitters" required />
               </div>
               <div className="space-y-2">
                 <label className="text-xs font-bold text-muted-foreground">Business Category</label>
-                <select value={businessCategory} onChange={(e) => setBusinessCategory(e.target.value)} className="w-full rounded-xl border border-border bg-card p-2.5 text-xs font-medium text-foreground">
+                <select value={businessCategory} onChange={(e) => setBusinessCategory(e.target.value)} className="w-full rounded-lg border-none bg-card p-2.5 text-xs font-medium text-foreground">
                   {BUSINESS_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
               <div className="space-y-2">
                 <label className="text-xs font-bold text-muted-foreground">Short Bio / Tagline</label>
-                <textarea value={vendorBio} onChange={(e) => setVendorBio(e.target.value)} rows={3} placeholder="Describe your store in a few words..." className="w-full rounded-xl border border-border bg-card p-2.5 text-sm font-medium text-foreground resize-none" />
+                <textarea value={vendorBio} onChange={(e) => setVendorBio(e.target.value)} rows={3} placeholder="Describe your store in a few words..." className="w-full rounded-lg border-none bg-card p-2.5 text-sm font-medium text-foreground resize-none" />
               </div>
               <div className="flex justify-end">
-                <Button size="sm" onClick={goNext} disabled={!businessName.trim()} className="text-xs font-bold">Continue <ChevronRight className="h-3 w-3 ml-1" /></Button>
+                <Button size="sm" onClick={goNext} disabled={!businessName.trim()} className="text-xs font-bold">Continue <ChevronRight weight="fill" className="h-3 w-3 ml-1" /></Button>
               </div>
             </div>
           )}
@@ -459,18 +549,18 @@ export default function OnboardingPage() {
           {step === 1 && (
             <div className="space-y-4">
               <div className="flex items-center gap-2">
-                <Package className="h-5 w-5 text-[#2164b6] dark:text-[#7ab0ff]" />
+                <Package weight="fill" className="h-5 w-5 text-[#2164b6] dark:text-[#7ab0ff]" />
                 <h2 className="text-sm font-bold text-foreground">Fulfilment & Shipping</h2>
               </div>
               <div className="space-y-2">
                 <label className="text-xs font-bold text-muted-foreground">Fulfilment Model</label>
-                <select value={fulfilmentModel} onChange={(e) => setFulfilmentModel(e.target.value)} className="w-full rounded-xl border border-border bg-card p-2.5 text-xs font-medium text-foreground">
+                <select value={fulfilmentModel} onChange={(e) => setFulfilmentModel(e.target.value)} className="w-full rounded-lg border-none bg-card p-2.5 text-xs font-medium text-foreground">
                   {FULFILMENT_MODELS.map((m) => <option key={m} value={m}>{m}</option>)}
                 </select>
               </div>
               <div className="flex justify-between pt-2">
-                <Button size="sm" variant="ghost" onClick={() => saveProgress(0)} className="text-xs font-bold"><ChevronLeft className="h-3 w-3 mr-1" /> Back</Button>
-                <Button size="sm" onClick={goNext} className="text-xs font-bold">Continue <ChevronRight className="h-3 w-3 ml-1" /></Button>
+                <Button size="sm" variant="ghost" onClick={() => saveProgress(0)} className="text-xs font-bold"><ChevronLeft weight="fill" className="h-3 w-3 mr-1" /> Back</Button>
+                <Button size="sm" onClick={goNext} className="text-xs font-bold">Continue <ChevronRight weight="fill" className="h-3 w-3 ml-1" /></Button>
               </div>
             </div>
           )}
@@ -478,7 +568,7 @@ export default function OnboardingPage() {
           {step === 2 && (
             <div className="space-y-4">
               <div className="flex items-center gap-2">
-                <Globe className="h-5 w-5 text-[#2164b6] dark:text-[#7ab0ff]" />
+                <Globe weight="fill" className="h-5 w-5 text-[#2164b6] dark:text-[#7ab0ff]" />
                 <h2 className="text-sm font-bold text-foreground">Target Country</h2>
               </div>
               <div className="space-y-2">
@@ -486,8 +576,8 @@ export default function OnboardingPage() {
                 <CountrySelect value={vendorCountry} onChange={(iso2) => setVendorCountry(iso2)} />
               </div>
               <div className="flex justify-between pt-2">
-                <Button size="sm" variant="ghost" onClick={() => saveProgress(1)} className="text-xs font-bold"><ChevronLeft className="h-3 w-3 mr-1" /> Back</Button>
-                <Button size="sm" onClick={goNext} className="text-xs font-bold">Continue <ChevronRight className="h-3 w-3 ml-1" /></Button>
+                <Button size="sm" variant="ghost" onClick={() => saveProgress(1)} className="text-xs font-bold"><ChevronLeft weight="fill" className="h-3 w-3 mr-1" /> Back</Button>
+                <Button size="sm" onClick={goNext} className="text-xs font-bold">Continue <ChevronRight weight="fill" className="h-3 w-3 ml-1" /></Button>
               </div>
             </div>
           )}
@@ -495,44 +585,44 @@ export default function OnboardingPage() {
           {step === 3 && (
             <div className="space-y-4">
               <div className="flex items-center gap-2">
-                <Target className="h-5 w-5 text-[#2164b6] dark:text-[#7ab0ff]" />
+                <Target weight="fill" className="h-5 w-5 text-[#2164b6] dark:text-[#7ab0ff]" />
                 <h2 className="text-sm font-bold text-foreground">Brand & Social Accounts</h2>
               </div>
               <div className="flex gap-2">
-                <select value={socialPlatform} onChange={(e) => setSocialPlatform(e.target.value)} className="w-36 rounded-xl border border-border bg-card p-2.5 text-xs font-medium text-foreground">
+                <select value={socialPlatform} onChange={(e) => setSocialPlatform(e.target.value)} className="w-36 rounded-lg border-none bg-card p-2.5 text-xs font-medium text-foreground">
                   {SOCIAL_PLATFORMS.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
                 </select>
                 <Input value={socialHandle} onChange={(e) => setSocialHandle(e.target.value)} placeholder="your_business_handle" className="flex-1" />
-                <Button size="sm" variant="ghost" onClick={addSocialRow} disabled={!socialHandle.trim()} className="text-xs font-bold"><Plus className="h-3.5 w-3.5" /></Button>
+                <Button size="sm" variant="ghost" onClick={addSocialRow} disabled={!socialHandle.trim()} className="text-xs font-bold"><Plus weight="fill" className="h-3.5 w-3.5" /></Button>
               </div>
               {socialRows.length > 0 && (
                 <div className="space-y-1.5">
                   {socialRows.map((r) => (
-                    <div key={r.platform} className="flex items-center justify-between p-2 rounded-xl bg-muted/50">
+                    <div key={r.platform} className="flex items-center justify-between p-2 rounded-lg bg-muted/50">
                       <span className="text-xs font-bold capitalize">{r.platform}: @{r.handle}</span>
-                      <button onClick={() => setSocialRows((rows) => rows.filter((x) => x.platform !== r.platform))} className="p-1 text-rose-400"><X className="h-3 w-3" /></button>
+                      <button onClick={() => setSocialRows((rows) => rows.filter((x) => x.platform !== r.platform))} className="p-1 text-rose-400"><X weight="fill" className="h-3 w-3" /></button>
                     </div>
                   ))}
                 </div>
               )}
               <div className="flex justify-between pt-2">
-                <Button size="sm" variant="ghost" onClick={() => saveProgress(2)} className="text-xs font-bold"><ChevronLeft className="h-3 w-3 mr-1" /> Back</Button>
-                <Button size="sm" onClick={goNext} className="text-xs font-bold">Continue <ChevronRight className="h-3 w-3 ml-1" /></Button>
+                <Button size="sm" variant="ghost" onClick={() => saveProgress(2)} className="text-xs font-bold"><ChevronLeft weight="fill" className="h-3 w-3 mr-1" /> Back</Button>
+                <Button size="sm" onClick={goNext} className="text-xs font-bold">Continue <ChevronRight weight="fill" className="h-3 w-3 ml-1" /></Button>
               </div>
             </div>
           )}
 
           {step === 4 && (
             <div className="space-y-4 text-center">
-              <div className="mx-auto h-12 w-12 rounded-2xl bg-[#2164b6]/10 flex items-center justify-center text-[#2164b6] dark:text-[#7ab0ff]">
-                <Store className="h-6 w-6" />
+              <div className="mx-auto h-12 w-12 rounded-lg bg-[#2164b6]/10 flex items-center justify-center text-[#2164b6] dark:text-[#7ab0ff]">
+                <Storefront weight="fill" className="h-6 w-6" />
               </div>
               <h2 className="text-base font-black">Your Storefront is Ready</h2>
               <p className="text-xs text-muted-foreground">Mera has configured your store settings for <span className="font-bold text-foreground">{businessName}</span>.</p>
               <div className="pt-3 flex justify-center gap-2">
-                <Button size="sm" variant="ghost" onClick={() => saveProgress(3)} className="text-xs font-bold"><ChevronLeft className="h-3 w-3 mr-1" /> Back</Button>
+                <Button size="sm" variant="ghost" onClick={() => saveProgress(3)} className="text-xs font-bold"><ChevronLeft weight="fill" className="h-3 w-3 mr-1" /> Back</Button>
                 <Button size="sm" onClick={handleFinishVendor} disabled={saving} className="text-xs font-bold">
-                  {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : null} Open Vendor Dashboard <ArrowRight className="h-3.5 w-3.5 ml-1" />
+                  {saving ? <Loader2 weight="fill" className="h-3.5 w-3.5 animate-spin mr-1" /> : null} Open Vendor Dashboard <ArrowRight weight="fill" className="h-3.5 w-3.5 ml-1" />
                 </Button>
               </div>
             </div>
@@ -542,11 +632,11 @@ export default function OnboardingPage() {
 
       {/* ── CREATOR ONBOARDING ── */}
       {role === "creator" && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <div className="space-y-4">
             {/* Step 1: AI chat */}
             {step === 0 && (
-              <div className="border border-border rounded-2xl bg-card overflow-hidden flex flex-col">
+              <div className="border-none rounded-lg bg-card overflow-hidden flex flex-col">
                 <div className="px-5 py-4 border-b border-border flex items-center gap-2.5">
                   <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#2164b6] to-[#2164b6] flex items-center justify-center text-white"><MeraIcon className="h-4 w-4" /></div>
                   <div>
@@ -557,12 +647,12 @@ export default function OnboardingPage() {
                 <div className="p-4 h-72 overflow-y-auto space-y-3 bg-muted/30">
                   {[greeting, ...messages].map((m, i) => (
                     <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
-                      <div className={`max-w-[85%] px-3.5 py-2.5 text-xs leading-relaxed ${m.role === "user" ? "bg-[#2164b6] text-white rounded-2xl rounded-br-sm" : "bg-card border border-border text-foreground rounded-2xl rounded-bl-sm"}`}>
+                      <div className={`max-w-[85%] px-3.5 py-2.5 text-xs leading-relaxed ${m.role === "user" ? "bg-[#2164b6] text-white rounded-lg rounded-br-sm" : "bg-card border-none text-foreground rounded-lg rounded-bl-sm"}`}>
                         {m.content}
                       </div>
                     </div>
                   ))}
-                  {chatSending && <div className="flex justify-start"><div className="px-3.5 py-2.5 text-xs bg-card border border-border rounded-2xl rounded-bl-sm"><Loader2 className="h-3.5 w-3.5 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" /></div></div>}
+                  {chatSending && <div className="flex justify-start"><div className="px-3.5 py-2.5 text-xs bg-card border-none rounded-lg rounded-bl-sm"><Loader2 weight="fill" className="h-3.5 w-3.5 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" /></div></div>}
                   <div ref={chatEndRef} />
                 </div>
                 <div className="p-3 border-t border-border space-y-2.5">
@@ -573,65 +663,65 @@ export default function OnboardingPage() {
                   </div>
                   <div className="flex gap-2">
                     <Input value={chatInput} onChange={(e) => setChatInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && sendChat()} placeholder="Tell Mera about you..." className="flex-1" />
-                    <Button size="sm" onClick={() => sendChat()} disabled={chatSending || !chatInput.trim()} className="text-xs font-bold"><Send className="h-3.5 w-3.5" /></Button>
+                    <Button size="sm" onClick={() => sendChat()} disabled={chatSending || !chatInput.trim()} className="text-xs font-bold"><Send weight="fill" className="h-3.5 w-3.5" /></Button>
                   </div>
                 </div>
               </div>
             )}
 
             {step === 0 && (
-              <div className="border border-border rounded-2xl bg-card p-6 space-y-4">
+              <div className="border-none rounded-lg bg-card p-4 space-y-4">
                 <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">What do you create?</h2>
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-muted-foreground">About your brand</label>
-                  <textarea value={about} onChange={(e) => setAbout(e.target.value)} rows={3} placeholder="e.g. I'm a fitness coach sharing workout plans and healthy recipes" className="w-full rounded-xl border border-border bg-card p-2.5 text-sm font-medium text-foreground placeholder:text-muted-foreground resize-none" />
+                  <textarea value={about} onChange={(e) => setAbout(e.target.value)} rows={3} placeholder="e.g. I'm a fitness coach sharing workout plans and healthy recipes" className="w-full rounded-lg border-none bg-card p-2.5 text-sm font-medium text-foreground placeholder:text-muted-foreground resize-none" />
                 </div>
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-muted-foreground">Niche (one word works)</label>
                   <Input value={niche} onChange={(e) => setNiche(e.target.value)} placeholder="e.g. fitness, art, gaming, food" />
                 </div>
                 <div className="flex justify-end">
-                  <Button size="sm" onClick={goNext} className="text-xs font-bold">Continue <ChevronRight className="h-3 w-3 ml-1" /></Button>
+                  <Button size="sm" onClick={goNext} className="text-xs font-bold">Continue <ChevronRight weight="fill" className="h-3 w-3 ml-1" /></Button>
                 </div>
               </div>
             )}
 
             {/* Step 2: Socials */}
             {step === 1 && (
-              <div className="border border-border rounded-2xl bg-card p-6 space-y-4">
+              <div className="border-none rounded-lg bg-card p-4 space-y-4">
                 <div className="flex items-center gap-2">
-                  <Send className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" />
+                  <Send weight="fill" className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" />
                   <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Connect your socials</h2>
                 </div>
                 <div className="flex gap-2">
-                  <select value={socialPlatform} onChange={(e) => setSocialPlatform(e.target.value)} className="w-36 rounded-xl border border-border bg-card p-2.5 text-xs font-medium text-foreground">
+                  <select value={socialPlatform} onChange={(e) => setSocialPlatform(e.target.value)} className="w-36 rounded-lg border-none bg-card p-2.5 text-xs font-medium text-foreground">
                     {SOCIAL_PLATFORMS.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
                   </select>
                   <Input value={socialHandle} onChange={(e) => setSocialHandle(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addSocialRow()} placeholder={SOCIAL_PLATFORMS.find((p) => p.value === socialPlatform)?.placeholder ?? "handle"} className="flex-1" />
-                  <Button size="sm" variant="ghost" onClick={addSocialRow} disabled={!socialHandle.trim()} className="text-xs font-bold"><Plus className="h-3.5 w-3.5" /></Button>
+                  <Button size="sm" variant="ghost" onClick={addSocialRow} disabled={!socialHandle.trim()} className="text-xs font-bold"><Plus weight="fill" className="h-3.5 w-3.5" /></Button>
                 </div>
                 {socialRows.length > 0 && (
                   <div className="space-y-1.5">
                     {socialRows.map((r) => (
-                      <div key={r.platform} className="flex items-center justify-between p-2 rounded-xl bg-muted/50">
+                      <div key={r.platform} className="flex items-center justify-between p-2 rounded-lg bg-muted/50">
                         <span className="text-xs font-bold capitalize">{r.platform}: @{r.handle}</span>
-                        <button onClick={() => setSocialRows((rows) => rows.filter((x) => x.platform !== r.platform))} className="p-1 text-rose-400"><X className="h-3 w-3" /></button>
+                        <button onClick={() => setSocialRows((rows) => rows.filter((x) => x.platform !== r.platform))} className="p-1 text-rose-400"><X weight="fill" className="h-3 w-3" /></button>
                       </div>
                     ))}
                   </div>
                 )}
                 <div className="flex justify-between">
-                  <Button size="sm" variant="ghost" onClick={() => saveProgress(0)} className="text-xs font-bold"><ChevronLeft className="h-3 w-3 mr-1" /> Back</Button>
-                  <Button size="sm" onClick={goNext} className="text-xs font-bold">Continue <ChevronRight className="h-3 w-3 ml-1" /></Button>
+                  <Button size="sm" variant="ghost" onClick={() => saveProgress(0)} className="text-xs font-bold"><ChevronLeft weight="fill" className="h-3 w-3 mr-1" /> Back</Button>
+                  <Button size="sm" onClick={goNext} className="text-xs font-bold">Continue <ChevronRight weight="fill" className="h-3 w-3 ml-1" /></Button>
                 </div>
               </div>
             )}
 
             {/* Step 3: Interests */}
             {step === 2 && (
-              <div className="border border-border rounded-2xl bg-card p-6 space-y-5">
+              <div className="border-none rounded-lg bg-card p-4 space-y-5">
                 <div>
-                  <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2"><ShoppingCart className="h-3 w-3" /> Community interests</h2>
+                  <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2"><ShoppingCart weight="fill" className="h-3 w-3" /> Community interests</h2>
                   <div className="flex flex-wrap gap-1.5 mt-2">
                     {COMMUNITY_OPTIONS.map((o) => (
                       <button key={o} onClick={() => toggle(communityInterests, setCommunityInterests, o)}
@@ -640,7 +730,7 @@ export default function OnboardingPage() {
                   </div>
                 </div>
                 <div className="border-t border-border pt-5">
-                  <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2"><Wand2 className="h-3 w-3" /> Content interests</h2>
+                  <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2"><MagicWand weight="fill" className="h-3 w-3" /> Content interests</h2>
                   <div className="flex flex-wrap gap-1.5 mt-2">
                     {CONTENT_OPTIONS.map((o) => (
                       <button key={o} onClick={() => toggle(contentInterests, setContentInterests, o)}
@@ -649,17 +739,17 @@ export default function OnboardingPage() {
                   </div>
                 </div>
                 <div className="flex justify-between">
-                  <Button size="sm" variant="ghost" onClick={() => saveProgress(1)} className="text-xs font-bold"><ChevronLeft className="h-3 w-3 mr-1" /> Back</Button>
-                  <Button size="sm" onClick={goNext} className="text-xs font-bold">Continue <ChevronRight className="h-3 w-3 ml-1" /></Button>
+                  <Button size="sm" variant="ghost" onClick={() => saveProgress(1)} className="text-xs font-bold"><ChevronLeft weight="fill" className="h-3 w-3 mr-1" /> Back</Button>
+                  <Button size="sm" onClick={goNext} className="text-xs font-bold">Continue <ChevronRight weight="fill" className="h-3 w-3 ml-1" /></Button>
                 </div>
               </div>
             )}
 
             {/* Step 4: AI profile */}
             {step === 3 && (
-              <div className="border border-border rounded-2xl bg-card p-6 space-y-4">
+              <div className="border-none rounded-lg bg-card p-4 space-y-4">
                 <div className="flex items-center gap-2">
-                  <Wand2 className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" />
+                  <MagicWand weight="fill" className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" />
                   <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Your AI-drafted profile</h2>
                 </div>
                 <div className="space-y-2">
@@ -668,23 +758,23 @@ export default function OnboardingPage() {
                 </div>
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-muted-foreground">Bio</label>
-                  <textarea value={profileBio} onChange={(e) => setProfileBio(e.target.value)} rows={3} className="w-full rounded-xl border border-border bg-card p-2.5 text-sm font-medium text-foreground resize-none" />
+                  <textarea value={profileBio} onChange={(e) => setProfileBio(e.target.value)} rows={3} className="w-full rounded-lg border-none bg-card p-2.5 text-sm font-medium text-foreground resize-none" />
                 </div>
                 <Button variant="ghost" size="sm" onClick={generateDraft} disabled={draftLoading} className="text-xs font-bold text-[#2164b6] dark:text-[#7ab0ff]">
-                  {draftLoading ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Wand2 className="h-3 w-3 mr-1" />} Regenerate with AI
+                  {draftLoading ? <Loader2 weight="fill" className="h-3 w-3 animate-spin mr-1" /> : <MagicWand weight="fill" className="h-3 w-3 mr-1" />} Regenerate with AI
                 </Button>
                 <div className="flex justify-between">
-                  <Button size="sm" variant="ghost" onClick={() => saveProgress(2)} className="text-xs font-bold"><ChevronLeft className="h-3 w-3 mr-1" /> Back</Button>
-                  <Button size="sm" onClick={goNext} className="text-xs font-bold">Continue <ChevronRight className="h-3 w-3 ml-1" /></Button>
+                  <Button size="sm" variant="ghost" onClick={() => saveProgress(2)} className="text-xs font-bold"><ChevronLeft weight="fill" className="h-3 w-3 mr-1" /> Back</Button>
+                  <Button size="sm" onClick={goNext} className="text-xs font-bold">Continue <ChevronRight weight="fill" className="h-3 w-3 ml-1" /></Button>
                 </div>
               </div>
             )}
 
             {/* Step 5: Template */}
             {step === 4 && (
-              <div className="border border-border rounded-2xl bg-card p-6 space-y-4">
+              <div className="border-none rounded-lg bg-card p-4 space-y-4">
                 <div className="flex items-center gap-2">
-                  <Palette className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" />
+                  <Palette weight="fill" className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" />
                   <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Pick your template</h2>
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -692,8 +782,8 @@ export default function OnboardingPage() {
                     const isActive = template === t.slug;
                     return (
                       <button key={t.slug} onClick={() => setTemplate(t.slug)}
-                        className={`relative rounded-xl border-2 transition-all overflow-hidden text-left ${isActive ? "border-[#2164b6] shadow-md" : "border-border hover:border-[#2164b6]/50"}`}>
-                        {isActive && <span className="absolute top-1.5 left-1.5 z-10 bg-[#2164b6] text-white rounded-full p-0.5"><Check className="h-3 w-3" /></span>}
+                        className={`relative rounded-lg border-2 transition-all overflow-hidden text-left ${isActive ? "border-[#2164b6] " : "border-border hover:border-[#2164b6]/50"}`}>
+                        {isActive && <span className="absolute top-1.5 left-1.5 z-10 bg-[#2164b6] text-white rounded-full p-0.5"><Check weight="fill" className="h-3 w-3" /></span>}
                         <div className="p-2"><TemplateThumb template={t} /></div>
                         <div className="px-2.5 pb-2.5">
                           <p className="text-xs font-bold truncate text-foreground">{t.name}</p>
@@ -703,9 +793,9 @@ export default function OnboardingPage() {
                   })}
                 </div>
                 <div className="flex justify-between">
-                  <Button size="sm" variant="ghost" onClick={() => saveProgress(3)} className="text-xs font-bold"><ChevronLeft className="h-3 w-3 mr-1" /> Back</Button>
+                  <Button size="sm" variant="ghost" onClick={() => saveProgress(3)} className="text-xs font-bold"><ChevronLeft weight="fill" className="h-3 w-3 mr-1" /> Back</Button>
                   <Button size="sm" onClick={handleFinishCreator} disabled={saving} className="text-xs font-bold">
-                    {saving ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}Finish & open builder <ArrowRight className="h-3 w-3 ml-1" />
+                    {saving ? <Loader2 weight="fill" className="h-3 w-3 animate-spin mr-1" /> : null}Finish & open builder <ArrowRight weight="fill" className="h-3 w-3 ml-1" />
                   </Button>
                 </div>
               </div>
@@ -713,9 +803,9 @@ export default function OnboardingPage() {
           </div>
 
           {/* Right: live preview */}
-          <div className="lg:sticky lg:top-6 space-y-3 self-start">
-            <div className="border border-border rounded-2xl bg-card p-6">
-              <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-4 flex items-center gap-2"><Smartphone className="h-3 w-3" /> Live preview</h2>
+          <div className="lg:sticky lg:top-4 space-y-3 self-start">
+            <div className="border-none rounded-lg bg-card p-4">
+              <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-4 flex items-center gap-2"><Smartphone weight="fill" className="h-3 w-3" /> Live preview</h2>
               <div className="mx-auto max-w-[300px] rounded-[2rem] border-[6px] border-border overflow-hidden shadow-xl max-h-[560px] overflow-y-auto">
                 <TemplateRenderer data={previewData} />
               </div>

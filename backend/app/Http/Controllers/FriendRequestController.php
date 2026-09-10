@@ -25,9 +25,13 @@ class FriendRequestController extends Controller
             'id' => $user->id,
             'name' => $user->name,
             'username' => $user->username,
-            'avatar' => $user->avatar,
-            'avatar_url' => $user->avatar,
+            'avatar' => $user->avatar_url ?? $user->avatar,
+            'avatar_url' => $user->avatar_url ?? $user->avatar,
+            'banner_url' => $user->banner_url ?? null,
             'bio' => $user->bio,
+            'birthday' => $user->birthday ? $user->birthday->format('Y-m-d') : null,
+            'role' => $user->role,
+            'has_active_verification_badge' => (bool) $user->has_active_verification_badge,
         ];
     }
 
@@ -63,7 +67,7 @@ class FriendRequestController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $requests = FriendRequest::with('sender:id,name,username,avatar,bio')
+        $requests = FriendRequest::with('sender')
             ->where('receiver_id', $request->user()->id)
             ->pending()
             ->latest()
@@ -84,7 +88,7 @@ class FriendRequestController extends Controller
      */
     public function sent(Request $request): JsonResponse
     {
-        $requests = FriendRequest::with('receiver:id,name,username,avatar,bio')
+        $requests = FriendRequest::with('receiver')
             ->where('sender_id', $request->user()->id)
             ->pending()
             ->latest()
@@ -106,7 +110,7 @@ class FriendRequestController extends Controller
     {
         $userId = $request->user()->id;
 
-        $friends = FriendRequest::with('sender:id,name,username,avatar,bio', 'receiver:id,name,username,avatar,bio')
+        $friends = FriendRequest::with('sender', 'receiver')
             ->accepted()
             ->where(fn (Builder $q) => $q->where('sender_id', $userId)->orWhere('receiver_id', $userId))
             ->latest()
@@ -128,8 +132,8 @@ class FriendRequestController extends Controller
     }
 
     /**
-     * Search users to add as friends (excludes self, existing friends,
-     * and anyone already involved in a request with the current user).
+     * Search users to add as friends or connect with.
+     * Returns matching users with their actual friendship status.
      */
     public function search(Request $request): JsonResponse
     {
@@ -138,28 +142,161 @@ class FriendRequestController extends Controller
         ]);
 
         $q = trim($request->input('q'));
+        $cleanQ = ltrim($q, '@'); // strip leading @
         $userId = $request->user()->id;
+        $like = DB::connection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
 
-        $relatedUserIds = FriendRequest::where(fn (Builder $query) => $query
-            ->where('sender_id', $userId)
-            ->orWhere('receiver_id', $userId))
-            ->pluck('sender_id')
-            ->merge(FriendRequest::where(fn (Builder $query) => $query
-                ->where('sender_id', $userId)
-                ->orWhere('receiver_id', $userId))
-                ->pluck('receiver_id'))
-            ->push($userId)
-            ->unique();
-
-        $users = User::whereNotIn('id', $relatedUserIds)
-            ->where(fn (Builder $query) => $query
-                ->where('name', 'ilike', "%{$q}%")
-                ->orWhere('username', 'ilike', "%{$q}%"))
-            ->limit(10)
+        $users = User::where('id', '!=', $userId)
+            ->whereNull('deleted_at')
+            ->where(function (Builder $query) use ($q, $cleanQ, $like) {
+                $query->where('name', $like, "%{$q}%")
+                    ->orWhere('username', $like, "%{$cleanQ}%")
+                    ->orWhere('email', $like, "%{$q}%")
+                    ->orWhere('mobile_number', $like, "%{$q}%");
+            })
+            ->orderByRaw("CASE 
+                WHEN LOWER(username) = LOWER(?) THEN 0 
+                WHEN LOWER(username) LIKE LOWER(?) THEN 1 
+                WHEN LOWER(name) LIKE LOWER(?) THEN 2 
+                ELSE 3 END", [$cleanQ, "{$cleanQ}%", "{$q}%"])
+            ->limit(30)
             ->get()
-            ->map(fn (User $u) => $this->userPayload($u));
+            ->map(function (User $u) use ($userId) {
+                $friendship = FriendRequest::where(function (Builder $query) use ($userId, $u) {
+                    $query->where('sender_id', $userId)->where('receiver_id', $u->id);
+                })->orWhere(function (Builder $query) use ($userId, $u) {
+                    $query->where('sender_id', $u->id)->where('receiver_id', $userId);
+                })->first();
+
+                $status = 'none';
+                $requestId = 0;
+                if ($friendship) {
+                    $requestId = $friendship->id;
+                    if ($friendship->status === FriendRequest::STATUS_ACCEPTED) {
+                        $status = 'accepted';
+                    } elseif ($friendship->status === FriendRequest::STATUS_PENDING) {
+                        $status = $friendship->sender_id === $userId ? 'pending_sent' : 'pending_received';
+                    }
+                }
+
+                $payload = $this->userPayload($u);
+                $payload['request_id'] = $requestId;
+                $payload['mutual_friends'] = $this->mutualFriendsCount($userId, $u->id);
+                $payload['status'] = $status;
+                $payload['is_friend'] = $status === 'accepted';
+                $payload['phone'] = $u->mobile_number ?? '';
+                $payload['mobile_number'] = $u->mobile_number ?? '';
+                return $payload;
+            });
 
         return response()->json(['data' => $users]);
+    }
+
+    /**
+     * Match a list of phone numbers or contact records against registered users.
+     */
+    public function syncContacts(Request $request): JsonResponse
+    {
+        $request->validate([
+            'contacts' => ['nullable', 'array'],
+            'contacts.*.name' => ['nullable', 'string'],
+            'contacts.*.phone' => ['nullable', 'string'],
+            'phones' => ['nullable', 'array'],
+            'phones.*' => ['string'],
+        ]);
+
+        $userId = $request->user()->id;
+        $rawPhones = collect();
+
+        if ($request->has('phones') && is_array($request->input('phones'))) {
+            $rawPhones = $rawPhones->merge($request->input('phones'));
+        }
+
+        if ($request->has('contacts') && is_array($request->input('contacts'))) {
+            foreach ($request->input('contacts') as $c) {
+                if (! empty($c['phone'])) {
+                    $rawPhones->push($c['phone']);
+                }
+            }
+        }
+
+        // Normalize phone numbers: remove spaces, dashes, parentheses
+        $cleanedPhones = $rawPhones
+            ->map(fn ($p) => preg_replace('/[^\d+]/', '', (string) $p))
+            ->filter(fn ($p) => strlen((string) $p) >= 7)
+            ->unique()
+            ->values();
+
+        if ($cleanedPhones->isEmpty()) {
+            return response()->json(['data' => []]);
+        }
+
+        // Build variations for each phone (e.g. +2348067437000, 08067437000, 8067437000)
+        $searchTerms = collect();
+        foreach ($cleanedPhones as $phone) {
+            $searchTerms->push($phone);
+            if (str_starts_with($phone, '+')) {
+                $searchTerms->push(substr($phone, 1));
+            }
+            if (str_starts_with($phone, '+234') && strlen($phone) > 4) {
+                $searchTerms->push('0' . substr($phone, 4));
+                $searchTerms->push(substr($phone, 4));
+            } elseif (str_starts_with($phone, '234') && strlen($phone) > 3) {
+                $searchTerms->push('0' . substr($phone, 3));
+                $searchTerms->push(substr($phone, 3));
+            } elseif (str_starts_with($phone, '0') && strlen($phone) > 1) {
+                $searchTerms->push('+234' . substr($phone, 1));
+                $searchTerms->push('234' . substr($phone, 1));
+                $searchTerms->push(substr($phone, 1));
+            }
+        }
+
+        $searchTerms = $searchTerms->unique()->values();
+
+        $matchedUsers = User::where('id', '!=', $userId)
+            ->whereNull('deleted_at')
+            ->where(function (Builder $query) use ($searchTerms) {
+                foreach ($searchTerms as $term) {
+                    $query->orWhere('mobile_number', 'like', "%{$term}%");
+                }
+            })
+            ->limit(100)
+            ->get();
+
+        $matched = $matchedUsers->map(function (User $u) use ($userId) {
+            $friendship = FriendRequest::where(function (Builder $q) use ($userId, $u) {
+                $q->where('sender_id', $userId)->where('receiver_id', $u->id);
+            })->orWhere(function (Builder $q) use ($userId, $u) {
+                $q->where('sender_id', $u->id)->where('receiver_id', $userId);
+            })->first();
+
+            $status = 'none';
+            $requestId = 0;
+            if ($friendship) {
+                $requestId = $friendship->id;
+                if ($friendship->status === FriendRequest::STATUS_ACCEPTED) {
+                    $status = 'accepted';
+                } elseif ($friendship->status === FriendRequest::STATUS_PENDING) {
+                    $status = $friendship->sender_id === $userId ? 'pending_sent' : 'pending_received';
+                }
+            }
+
+            return [
+                'id' => $u->id,
+                'request_id' => $requestId,
+                'name' => $u->name,
+                'username' => $u->username,
+                'phone' => $u->mobile_number ?? '',
+                'avatar_url' => $u->avatar_url ?? $u->avatar,
+                'avatar_color' => '0xFF007AFF',
+                'bio' => $u->bio,
+                'mutual_friends' => $this->mutualFriendsCount($userId, $u->id),
+                'status' => $status,
+                'is_friend' => $status === 'accepted',
+            ];
+        });
+
+        return response()->json(['data' => $matched->values()]);
     }
 
     /**
@@ -326,6 +463,82 @@ class FriendRequestController extends Controller
     }
 
     /**
+     * Get suggested users to add as friends.
+     */
+    public function suggestions(Request $request): JsonResponse
+    {
+        $userId = $request->user()->id;
+
+        $excludedUserIds = FriendRequest::where(fn (Builder $query) => $query
+            ->where('sender_id', $userId)
+            ->orWhere('receiver_id', $userId))
+            ->pluck('sender_id')
+            ->merge(FriendRequest::where(fn (Builder $query) => $query
+                ->where('sender_id', $userId)
+                ->orWhere('receiver_id', $userId))
+                ->pluck('receiver_id'))
+            ->push($userId)
+            ->unique();
+
+        $suggestions = User::whereNotIn('id', $excludedUserIds)
+            ->whereNull('deleted_at')
+            ->where('status', 'active')
+            ->limit(20)
+            ->get()
+            ->map(function (User $u) use ($userId) {
+                $payload = $this->userPayload($u);
+                $payload['mutual_friends'] = $this->mutualFriendsCount($userId, $u->id);
+                return $payload;
+            });
+
+        return response()->json(['data' => $suggestions]);
+    }
+
+    /**
+     * Get friendship status between authenticated user and target user.
+     */
+    public function status(Request $request, int $userId): JsonResponse
+    {
+        $me = $request->user()->id;
+
+        if ($me === $userId) {
+            return response()->json([
+                'status' => 'self',
+                'is_friend' => false,
+                'request_id' => null,
+                'mutual_friends' => 0,
+            ]);
+        }
+
+        $friendRequest = FriendRequest::where(function (Builder $q) use ($me, $userId) {
+            $q->where('sender_id', $me)->where('receiver_id', $userId);
+        })->orWhere(function (Builder $q) use ($me, $userId) {
+            $q->where('sender_id', $userId)->where('receiver_id', $me);
+        })->first();
+
+        $status = 'none';
+        $requestId = null;
+        $isFriend = false;
+
+        if ($friendRequest) {
+            $requestId = $friendRequest->id;
+            if ($friendRequest->status === FriendRequest::STATUS_ACCEPTED) {
+                $status = 'accepted';
+                $isFriend = true;
+            } elseif ($friendRequest->status === FriendRequest::STATUS_PENDING) {
+                $status = $friendRequest->sender_id === $me ? 'pending_sent' : 'pending_received';
+            }
+        }
+
+        return response()->json([
+            'status' => $status,
+            'is_friend' => $isFriend,
+            'request_id' => $requestId,
+            'mutual_friends' => $this->mutualFriendsCount($me, $userId),
+        ]);
+    }
+
+    /**
      * Unfriend / remove an accepted friendship.
      */
     public function unfriend(Request $request, int $userId): JsonResponse
@@ -350,5 +563,64 @@ class FriendRequestController extends Controller
         }
 
         return response()->json(['message' => 'Friend removed.']);
+    }
+
+    /**
+     * Get friends with birthdays (today and upcoming in next 60 days).
+     */
+    public function birthdays(Request $request): JsonResponse
+    {
+        $userId = $request->user()->id;
+
+        $friendRequests = FriendRequest::with(['sender', 'receiver'])
+            ->accepted()
+            ->where(fn (Builder $q) => $q->where('sender_id', $userId)->orWhere('receiver_id', $userId))
+            ->get();
+
+        $friends = $friendRequests->map(function (FriendRequest $r) use ($userId) {
+            return $r->sender_id === $userId ? $r->receiver : $r->sender;
+        })->filter()->unique('id')->values();
+
+        $today = now();
+        $todayMonthDay = $today->format('m-d');
+
+        $todayBirthdays = [];
+        $upcomingBirthdays = [];
+
+        foreach ($friends as $friend) {
+            if (! $friend->birthday) {
+                continue;
+            }
+
+            $bdayMonthDay = $friend->birthday->format('m-d');
+            $payload = $this->userPayload($friend);
+            $payload['mutual_friends'] = $this->mutualFriendsCount($userId, $friend->id);
+
+            // Determine next birthday occurrence
+            $thisYearBday = $friend->birthday->copy()->year($today->year);
+            if ($thisYearBday->isPast() && ! $thisYearBday->isToday()) {
+                $thisYearBday->addYear();
+            }
+            $daysRemaining = (int) $today->startOfDay()->diffInDays($thisYearBday->startOfDay(), false);
+
+            $payload['days_remaining'] = $daysRemaining;
+            $payload['formatted_date'] = $friend->birthday->format('F j');
+
+            if ($bdayMonthDay === $todayMonthDay) {
+                $todayBirthdays[] = $payload;
+            } elseif ($daysRemaining > 0 && $daysRemaining <= 60) {
+                $upcomingBirthdays[] = $payload;
+            }
+        }
+
+        usort($upcomingBirthdays, fn ($a, $b) => $a['days_remaining'] <=> $b['days_remaining']);
+
+        return response()->json([
+            'data' => [
+                'today' => $todayBirthdays,
+                'upcoming' => $upcomingBirthdays,
+                'total_with_birthdays' => count($todayBirthdays) + count($upcomingBirthdays),
+            ],
+        ]);
     }
 }

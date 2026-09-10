@@ -35,10 +35,7 @@ class ProcessUploadedImage implements ShouldQueue
         [$width, $height] = $info;
 
         $this->media->update([
-            'metadata' => array_merge($this->media->metadata ?? [], [
-                'width' => $width,
-                'height' => $height,
-            ]),
+            'processing_status' => Media::STATUS_PROCESSING,
         ]);
 
         $filename = pathinfo($this->media->filename, PATHINFO_FILENAME);
@@ -51,6 +48,19 @@ class ProcessUploadedImage implements ShouldQueue
         if (in_array($ext, ['jpg', 'jpeg', 'png'])) {
             $this->convertToWebp($local, $disk, $baseDir, $filename);
         }
+
+        $thumbPath = "{$baseDir}/thumbnails/{$filename}_320.{$ext}";
+
+        $this->media->update([
+            'width' => $width,
+            'height' => $height,
+            'processing_status' => Media::STATUS_COMPLETED,
+            'thumbnail_path' => $disk->exists($thumbPath) ? $thumbPath : null,
+            'metadata' => array_merge($this->media->metadata ?? [], [
+                'width' => $width,
+                'height' => $height,
+            ]),
+        ]);
 
         $this->cleanTemp($local);
     }

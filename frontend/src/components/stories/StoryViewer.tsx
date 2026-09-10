@@ -1,5 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { X, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
+import {
+  X as X,
+  CaretLeft as ChevronLeft,
+  CaretRight as ChevronRight,
+  Trash as Trash2
+} from "@phosphor-icons/react";
 import { getAuthToken } from "@/lib/auth/token";
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? 'http://localhost:8000/api/v1';
@@ -142,7 +147,7 @@ export default function StoryViewer({ groups, initialIndex, onClose }: Props) {
         onClick={onClose}
         className="absolute top-4 right-4 z-10 p-2 rounded-full bg-black/40 text-white hover:bg-black/60 transition-colors"
       >
-        <X className="w-5 h-5" />
+        <X weight="fill" className="w-5 h-5" />
       </button>
 
       {/* Progress bars */}
@@ -160,7 +165,7 @@ export default function StoryViewer({ groups, initialIndex, onClose }: Props) {
       </div>
 
       {/* Top bar with user info */}
-      <div className="absolute top-6 left-4 z-10 flex items-center gap-3">
+      <div className="absolute top-4 left-4 z-10 flex items-center gap-3">
         <div className="w-9 h-9 rounded-full overflow-hidden border-2 border-white/50 bg-white/20">
           {currentGroup.user.avatar ? (
             <img src={currentGroup.user.avatar} alt="" className="w-full h-full object-cover" />
@@ -170,10 +175,10 @@ export default function StoryViewer({ groups, initialIndex, onClose }: Props) {
             </div>
           )}
         </div>
-        <span className="text-sm font-semibold text-white drop-shadow-sm">{currentGroup.user.name}</span>
+        <span className="text-sm font-semibold text-white drop-">{currentGroup.user.name}</span>
         {currentUserId === currentGroup.user.id && (
           <button onClick={handleDelete} className="p-1 rounded-full bg-black/30 text-white/70 hover:text-white hover:bg-black/50 transition-colors">
-            <Trash2 className="w-3.5 h-3.5" />
+            <Trash2 weight="fill" className="w-3.5 h-3.5" />
           </button>
         )}
       </div>
@@ -185,7 +190,7 @@ export default function StoryViewer({ groups, initialIndex, onClose }: Props) {
       >
         {currentStory.media_type === 'text' ? (
           <div className="max-w-lg px-6 text-center">
-            <p className="text-xl sm:text-2xl font-medium text-white leading-relaxed">
+            <p className="text-xl sm:text-xl font-medium text-white leading-relaxed">
               {currentStory.caption || 'New story'}
             </p>
           </div>
@@ -212,7 +217,7 @@ export default function StoryViewer({ groups, initialIndex, onClose }: Props) {
             onClick={(e) => { e.stopPropagation(); goBack(); }}
             className="absolute left-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/30 text-white hover:bg-black/50 transition-colors"
           >
-            <ChevronLeft className="w-6 h-6" />
+            <ChevronLeft weight="fill" className="w-6 h-6" />
           </button>
         )}
         {groupIdx < groups.length - 1 && (
@@ -220,7 +225,7 @@ export default function StoryViewer({ groups, initialIndex, onClose }: Props) {
             onClick={(e) => { e.stopPropagation(); advance(); }}
             className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/30 text-white hover:bg-black/50 transition-colors"
           >
-            <ChevronRight className="w-6 h-6" />
+            <ChevronRight weight="fill" className="w-6 h-6" />
           </button>
         )}
       </div>
@@ -228,7 +233,7 @@ export default function StoryViewer({ groups, initialIndex, onClose }: Props) {
       {/* Caption */}
       {currentStory.caption && currentStory.media_type !== 'text' && (
         <div className="absolute bottom-8 left-4 right-4 z-10">
-          <p className="text-sm text-white/90 text-center drop-shadow-md">{currentStory.caption}</p>
+          <p className="text-sm text-white/90 text-center drop-">{currentStory.caption}</p>
         </div>
       )}
     </div>

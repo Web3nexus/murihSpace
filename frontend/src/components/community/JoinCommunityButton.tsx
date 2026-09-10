@@ -6,7 +6,14 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { UserPlus, CheckCircle2, Clock, LogOut, ChevronDown, Lock } from "lucide-react";
+import {
+  UserPlus as UserPlus,
+  CheckCircle as CheckCircle2,
+  Clock as Clock,
+  SignOut as LogOut,
+  CaretDown as ChevronDown,
+  Lock as Lock
+} from "@phosphor-icons/react";
 import type { Community } from "@/types/community";
 import { getAuthToken } from "@/lib/auth/token";
 
@@ -15,12 +22,14 @@ const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_
 interface JoinCommunityButtonProps {
   community: Community;
   onStatusChange?: (status: "active" | "pending" | "none", newCount: number) => void;
+  onGuestJoin?: () => void;
   className?: string;
 }
 
 export function JoinCommunityButton({
   community,
   onStatusChange,
+  onGuestJoin,
   className = "",
 }: JoinCommunityButtonProps) {
   const [status, setStatus] = React.useState<"active" | "pending" | "rejected" | "none">("none");
@@ -56,7 +65,12 @@ export function JoinCommunityButton({
     try {
       const token = getAuthToken();
       if (!token) {
-        window.location.href = "/login";
+        setIsLoading(false);
+        if (onGuestJoin) {
+          onGuestJoin();
+        } else {
+          window.location.href = "/login";
+        }
         return;
       }
 
@@ -132,21 +146,21 @@ export function JoinCommunityButton({
         <DropdownMenuTrigger asChild>
           <Button
             variant="outline"
-            className={`h-11 px-5 text-sm font-bold border-emerald-500/40 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 gap-2 shadow-xs ${className}`}
+            className={`h-11 px-5 text-sm font-bold border-emerald-500/40 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 gap-2  ${className}`}
             disabled={isLoading}
           >
-            <CheckCircle2 className="h-4 w-4" />
+            <CheckCircle2 weight="fill" className="h-4 w-4" />
             <span>Joined Member</span>
-            <ChevronDown className="h-3.5 w-3.5 opacity-60 ml-1" />
+            <ChevronDown weight="fill" className="h-3.5 w-3.5 opacity-60 ml-1" />
           </Button>
         </DropdownMenuTrigger>
 
-        <DropdownMenuContent align="end" className="w-48 rounded-xl">
+        <DropdownMenuContent align="end" className="w-48 rounded-lg">
           <DropdownMenuItem
             onClick={handleLeave}
             className="text-destructive focus:text-destructive cursor-pointer gap-2"
           >
-            <LogOut className="h-4 w-4" />
+            <LogOut weight="fill" className="h-4 w-4" />
             Leave Community
           </DropdownMenuItem>
         </DropdownMenuContent>
@@ -163,7 +177,7 @@ export function JoinCommunityButton({
         title="Click to cancel join request"
         disabled={isLoading}
       >
-        <Clock className="h-4 w-4 animate-spin-slow" />
+        <Clock weight="fill" className="h-4 w-4 animate-spin-slow" />
         <span>Request Pending</span>
       </Button>
     );
@@ -175,18 +189,18 @@ export function JoinCommunityButton({
       <Button
         onClick={handleJoin}
         disabled={isLoading}
-        className={`h-11 px-6 text-sm font-bold gap-2 shadow-md transition-all bg-primary text-primary-foreground hover:bg-primary/90 ${className}`}
+        className={`h-11 px-6 text-sm font-bold gap-2  transition-all bg-primary text-primary-foreground hover:bg-primary/90 ${className}`}
       >
         {isLoading ? (
           <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
         ) : community.visibility === "private" ? (
           <>
-            <Lock className="h-4 w-4" />
+            <Lock weight="fill" className="h-4 w-4" />
             Request to Join
           </>
         ) : (
           <>
-            <UserPlus className="h-4 w-4" />
+            <UserPlus weight="fill" className="h-4 w-4" />
             {community.pricing_type === "paid"
               ? `Join for $${community.price_amount}`
               : "Join Community Free"}

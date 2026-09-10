@@ -1,5 +1,7 @@
 import React from "react";
-import { AlertCircleIcon } from "lucide-react";
+import {
+  WarningCircle as AlertCircleIcon
+} from "@phosphor-icons/react";
 
 interface InlineFieldErrorProps {
   id?: string;
@@ -21,7 +23,7 @@ export const InlineFieldError: React.FC<InlineFieldErrorProps> = ({
       aria-live="polite"
       className={`flex items-center gap-1.5 text-xs text-rose-500 font-medium mt-1 animate-in fade-in slide-in-from-top-1 ${className}`}
     >
-      <AlertCircleIcon className="h-3.5 w-3.5 shrink-0" />
+      <AlertCircleIcon weight="fill" className="h-3.5 w-3.5 shrink-0" />
       <span>{error}</span>
     </div>
   );

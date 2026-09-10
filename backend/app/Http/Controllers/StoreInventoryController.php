@@ -11,7 +11,7 @@ class StoreInventoryController extends Controller
     public function index(Request $request): JsonResponse
     {
         $items = PhysicalProduct::where('creator_id', $request->user()->id)
-            ->select('id', 'product_id', 'name as product_name', 'sku', 'quantity', 'low_stock_threshold')
+            ->select('id', 'title as product_name', 'sku', 'stock_quantity as quantity', 'low_stock_threshold')
             ->selectRaw('0 as reserved')
             ->latest()->get();
 
@@ -20,13 +20,16 @@ class StoreInventoryController extends Controller
 
     public function update(Request $request, PhysicalProduct $product): JsonResponse
     {
-        $this->authorize('update', $product);
+        // Ensure the product belongs to the authenticated user
+        if ($product->creator_id !== $request->user()->id) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
 
         $validated = $request->validate([
             'quantity' => ['required', 'integer', 'min:0'],
         ]);
 
-        $product->update(['quantity' => $validated['quantity']]);
+        $product->update(['stock_quantity' => $validated['quantity']]);
 
         return response()->json(['data' => $product->fresh()]);
     }

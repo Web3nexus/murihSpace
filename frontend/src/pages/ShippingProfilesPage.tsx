@@ -1,5 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Truck, Plus, Loader2, Edit, Trash2, Globe } from 'lucide-react';
+import {
+  Truck as Truck,
+  Plus as Plus,
+  Spinner as Loader2,
+  Pencil as Edit,
+  Trash as Trash2,
+  Globe as Globe
+} from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -154,26 +161,21 @@ export function ShippingProfilesPage() {
   if (isLoading) {
     return (
       <div className="w-full flex items-center justify-center h-64">
-        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+        <Loader2 weight="fill" className="w-6 h-6 animate-spin text-muted-foreground" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 w-full max-w-7xl mx-auto p-6 lg:p-8">
+    <div className="space-y-6 w-full max-w-7xl mx-auto p-4 lg:p-5">
       <PageHeader 
         title="Shipping Profiles"
         description="Configure shipping rates and delivery options for your products."
-        badge={
-          <span className="px-2.5 py-0.5 rounded-full bg-[#2164b6]/10 text-[#2164b6] dark:text-[#7ab0ff] text-xs font-semibold uppercase tracking-wider border border-[#2164b6]/20">
-            Phase 9 — Shipping
-          </span>
-        }
         action={
           <Button onClick={openNew}
-            className="bg-[#2164b6] text-white hover:bg-[#1a5091] font-semibold h-11 px-5 rounded-xl shadow-md gap-2"
+            className="bg-[#2164b6] text-white hover:bg-[#1a5091] font-semibold h-11 px-5 rounded-lg  gap-2"
           >
-            <Plus className="h-5 w-5" /> New Profile
+            <Plus weight="fill" className="h-5 w-5" /> New Profile
           </Button>
         }
       />
@@ -186,7 +188,7 @@ export function ShippingProfilesPage() {
       )}
 
       {showForm && (
-        <form onSubmit={handleSubmit} className="rounded-2xl border border-border bg-card p-6 space-y-4 shadow-xs">
+        <form onSubmit={handleSubmit} className="rounded-lg border-none bg-card p-4 space-y-4 ">
           <h2 className="font-semibold">{editing ? 'Edit Profile' : 'New Shipping Profile'}</h2>
 
           <div>
@@ -228,9 +230,9 @@ export function ShippingProfilesPage() {
             <div className="flex flex-wrap gap-2">
               {COUNTRY_OPTIONS.map(({ code, name }) => (
                 <button key={code} type="button" onClick={() => toggleCountry(code)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-medium border transition-all ${
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
                     fCountries.includes(code)
-                      ? 'bg-primary text-primary-foreground border-primary shadow-xs'
+                      ? 'bg-primary text-primary-foreground border-primary '
                       : 'bg-card text-muted-foreground border-border hover:border-primary/40 hover:text-foreground'
                   }`}>
                   {name}
@@ -248,7 +250,7 @@ export function ShippingProfilesPage() {
 
           <div className="flex gap-3 pt-2">
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
+              {isSubmitting && <Loader2 weight="fill" className="w-4 h-4 animate-spin" />}
               {editing ? 'Update' : 'Create'}
             </Button>
             <Button type="button" variant="outline" onClick={() => { setShowForm(false); setEditing(null); }}>Cancel</Button>
@@ -257,9 +259,9 @@ export function ShippingProfilesPage() {
       )}
 
       {profiles.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-border p-12 text-center space-y-3 bg-card">
+        <div className="rounded-lg border border-dashed border-border p-12 text-center space-y-3 bg-card">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
-            <Truck className="h-6 w-6" />
+            <Truck weight="fill" className="h-6 w-6" />
           </div>
           <h3 className="text-base font-semibold">No shipping profiles</h3>
           <p className="text-xs text-muted-foreground max-w-sm mx-auto">Create shipping profiles to set rates for domestic and international delivery.</p>
@@ -267,7 +269,7 @@ export function ShippingProfilesPage() {
       ) : (
         <div className="space-y-3">
           {profiles.map(p => (
-            <div key={p.id} className="rounded-2xl border border-border bg-card overflow-hidden shadow-xs hover:shadow-md hover:border-primary/30 transition-all duration-200 p-5">
+            <div key={p.id} className="rounded-lg border-none bg-card overflow-hidden  hover: hover:border-primary/30 transition-all duration-200 p-5">
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-2">
                   <h3 className="font-semibold">{p.name}</h3>
@@ -277,10 +279,10 @@ export function ShippingProfilesPage() {
                 </div>
                 <div className="flex items-center gap-1">
                   <Button variant="ghost" size="icon" onClick={() => openEdit(p)}>
-                    <Edit className="w-4 h-4" />
+                    <Edit weight="fill" className="w-4 h-4" />
                   </Button>
                   <Button variant="ghost" size="icon" onClick={() => deleteProfile(p.id)}>
-                    <Trash2 className="w-4 h-4 text-muted-foreground" />
+                    <Trash2 weight="fill" className="w-4 h-4 text-muted-foreground" />
                   </Button>
                 </div>
               </div>
@@ -304,7 +306,7 @@ export function ShippingProfilesPage() {
                     <span className="inline-flex flex-wrap gap-1">
                       {p.countries.map(c => (
                         <span key={c} className="inline-flex items-center gap-0.5 text-xs bg-muted text-muted-foreground px-1.5 py-0.5 rounded">
-                          <Globe className="w-3 h-3" /> {COUNTRY_NAMES[c] ?? c}
+                          <Globe weight="fill" className="w-3 h-3" /> {COUNTRY_NAMES[c] ?? c}
                         </span>
                       ))}
                     </span>

@@ -21,7 +21,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
         <div className="flex items-center gap-2.5 mb-1">
           {badge}
         </div>
-        <h1 className="text-2xl font-black text-foreground tracking-tight flex items-center gap-2.5">
+        <h1 className="text-xl font-black text-foreground tracking-tight flex items-center gap-2.5">
           {icon && <span className="text-secondary">{icon}</span>}
           {title}
         </h1>

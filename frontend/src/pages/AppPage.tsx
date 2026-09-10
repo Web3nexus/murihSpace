@@ -1,43 +1,34 @@
 import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
-import { Link, useNavigate } from "react-router";
+import { Link } from "react-router";
 import { AnimatedPage } from "@/components/common/AnimatedPage";
 import { useAuth } from "@/hooks/useAuth";
 import { apiClient } from "@/lib/api/client";
-import { MeraIcon } from "@/components/brand/MeraIcon";
 import { timeAgo, mapApiPost, mapApiComments } from "@/lib/feed";
 import { SkeletonFeed } from "@/components/ui/skeletons";
 import {
-  TrendingUp,
-  Users,
-  Wallet,
-  Smartphone,
-  Lightbulb,
-  Plus,
-  MessageSquare,
-  Package,
-  Calendar,
-  MessageCircle,
-  Inbox,
-  Activity,
-  Video,
-  BarChart2,
-  Heart,
-  Share2,
-  MoreHorizontal,
-  ChevronRight,
-  Play,
-  BadgeCheck,
-  Send,
-  Loader2,
-  Copy,
-  Check,
-  X,
-  ChevronDown,
-  Rss,
-  AlertCircle,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
+  Users as Users,
+  Plus as Plus,
+  Package as Package,
+  Calendar as Calendar,
+  ChatCircle as MessageCircle,
+  VideoCamera as Video,
+  ChartBar as BarChart2,
+  Heart as Heart,
+  ShareNetwork as Share2,
+  DotsThree as MoreHorizontal,
+  CaretRight as ChevronRight,
+  Play as Play,
+  SealCheck as BadgeCheck,
+  PaperPlaneRight as Send,
+  Spinner as Loader2,
+  Copy as Copy,
+  Check as Check,
+  X as X,
+  CaretDown as ChevronDown,
+  Rss as Rss,
+  WarningCircle as AlertCircle,
+} from "@phosphor-icons/react";
 
 interface CommentItem {
   id: number;
@@ -101,58 +92,6 @@ interface SidebarCommunityRequest {
   role: string;
 }
 
-/**
- * Shown when a Member account authenticates on the web.
- * Extracted as a standalone component so the main AppPage never violates
- * React's rules of hooks with an early return before its own hook calls.
- */
-function MemberWebBlockPage() {
-  const { logout } = useAuth();
-  const navigate = useNavigate();
-
-  const handleSwitchAccount = async () => {
-    await logout();
-    navigate("/login");
-  };
-
-  return (
-    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 text-center">
-      <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 border border-slate-100 flex flex-col items-center">
-        <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mb-6">
-          <Smartphone className="w-8 h-8" />
-        </div>
-        <h1 className="text-2xl font-bold text-slate-900 mb-3">Download the App</h1>
-        <p className="text-slate-500 mb-8">
-          The web dashboard is exclusively designed for Creators and Vendors. Please use the MurihSpace mobile app to connect, chat, and interact with communities.
-        </p>
-        <div className="flex flex-col sm:flex-row gap-4 w-full">
-          <Button
-            variant="outline"
-            className="flex-1 h-12 rounded-xl"
-            onClick={() => window.open('https://play.google.com/store/apps/details?id=com.murihspace.app', '_blank')}
-          >
-            Google Play
-          </Button>
-          <Button
-            className="flex-1 h-12 rounded-xl bg-slate-900 text-white hover:bg-slate-800"
-            onClick={() => window.open('https://apps.apple.com/app/murihspace/id000000000', '_blank')}
-          >
-            App Store
-          </Button>
-        </div>
-        <div className="mt-8 pt-6 border-t border-slate-100 w-full">
-          <button
-            onClick={handleSwitchAccount}
-            className="text-sm font-medium text-blue-600 hover:text-blue-700 hover:underline"
-          >
-            Sign in with a different account
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export function AppPage() {
   const { user } = useAuth();
 
@@ -199,21 +138,41 @@ export function AppPage() {
 
   const [friendReqs, setFriendReqs] = useState<SidebarFriendRequest[]>([]);
   const [communityReqs, setCommunityReqs] = useState<SidebarCommunityRequest[]>([]);
+  const [suggestedCommunities, setSuggestedCommunities] = useState<
+    { id: number; name: string; slug: string; logo_url?: string | null; members_count?: number }[]
+  >([]);
+  const [upcomingEventsList, setUpcomingEventsList] = useState<
+    { id: number; title: string; starts_at?: string; location?: string }[]
+  >([]);
   const [reqsLoading, setReqsLoading] = useState(true);
   const [reqActionId, setReqActionId] = useState<number | null>(null);
 
   useEffect(() => {
     let active = true;
-    Promise.all([
+    Promise.allSettled([
       apiClient.get("/friends/requests"),
       apiClient.get("/community-requests/incoming"),
+      apiClient.get("/communities?tab=discover&per_page=4"),
+      apiClient.get("/events?per_page=3"),
     ])
-      .then(([f, c]) => {
+      .then(([f, c, comms, evts]) => {
         if (!active) return;
-        const fData = f.data?.data?.data ?? f.data?.data ?? [];
-        const cData = c.data?.data?.data ?? c.data?.data ?? [];
-        setFriendReqs(Array.isArray(fData) ? fData : []);
-        setCommunityReqs(Array.isArray(cData) ? cData : []);
+        if (f.status === "fulfilled") {
+          const fData = f.value.data?.data?.data ?? f.value.data?.data ?? [];
+          setFriendReqs(Array.isArray(fData) ? fData : []);
+        }
+        if (c.status === "fulfilled") {
+          const cData = c.value.data?.data?.data ?? c.value.data?.data ?? [];
+          setCommunityReqs(Array.isArray(cData) ? cData : []);
+        }
+        if (comms.status === "fulfilled") {
+          const commData = comms.value.data?.data?.data ?? comms.value.data?.data ?? comms.value.data ?? [];
+          setSuggestedCommunities(Array.isArray(commData) ? commData.slice(0, 4) : []);
+        }
+        if (evts.status === "fulfilled") {
+          const evtData = evts.value.data?.data?.data ?? evts.value.data?.data ?? evts.value.data ?? [];
+          setUpcomingEventsList(Array.isArray(evtData) ? evtData.slice(0, 3) : []);
+        }
       })
       .catch(() => {})
       .finally(() => {
@@ -579,19 +538,15 @@ export function AppPage() {
     }
   }, [composerOpen, userCommunities.length, selectedCommunityId]);
 
-  if (user?.role === 'member') {
-    return <MemberWebBlockPage />;
-  }
-
   return (
-    <AnimatedPage className="w-full min-h-screen bg-slate-50/60 dark:bg-background">
-      <div className="flex w-full">
+    <AnimatedPage className="w-full min-h-screen bg-[#F0F2F5] dark:bg-[#18191A] text-[#050505] dark:text-[#E4E6EB]">
+      <div className="flex w-full justify-center max-w-[1400px] mx-auto min-h-0">
 
-        <div className="flex-1 min-w-0 p-4 sm:p-6 space-y-5 max-w-[760px] mx-auto">
+        <div className="flex-1 min-w-0 p-3 sm:p-4 space-y-4 max-w-[680px] w-full mx-auto">
 
-          <div className="bg-card border border-border shadow-xs rounded-2xl p-4 sm:p-5 space-y-4">
+          <div className="bg-white dark:bg-[#242526] rounded-lg shadow-xs p-3.5 sm:p-4 space-y-3">
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-full bg-gradient-to-br from-[#2164b6] to-purple-600 flex items-center justify-center text-white font-black text-sm shrink-0 overflow-hidden shadow-xs">
+              <div className="h-10 w-10 rounded-full bg-[#2164b6] flex items-center justify-center text-white font-bold text-sm shrink-0 overflow-hidden">
                 {user?.avatar_url ? (
                   <img src={user.avatar_url} alt="" className="w-full h-full object-cover" />
                 ) : (
@@ -604,9 +559,9 @@ export function AppPage() {
                   setComposerOpen(true);
                   setCommunityPickerOpen(false);
                 }}
-                className="w-full rounded-full border border-border/80 bg-muted/40 hover:bg-muted/70 transition-colors px-5 py-2.5 text-xs sm:text-sm text-muted-foreground cursor-pointer flex items-center justify-between"
+                className="w-full rounded-full bg-[#F0F2F5] dark:bg-[#3A3B3C] hover:bg-[#E4E6EB] dark:hover:bg-[#4E4F50] transition-colors px-4 py-2.5 text-xs sm:text-[14px] text-[#65676B] dark:text-[#B0B3B8] cursor-pointer flex items-center justify-between"
               >
-                <span>What do you want to share with your community today?</span>
+                <span>What's on your mind?</span>
               </button>
             </div>
 
@@ -616,7 +571,7 @@ export function AppPage() {
                   value={postText}
                   onChange={(e) => setPostText(e.target.value)}
                   placeholder="Write your post here... Share thoughts, updates, or announcements."
-                  className="w-full h-28 p-3.5 text-xs sm:text-sm rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-[#2164b6]/40 resize-none"
+                  className="w-full h-28 p-3.5 text-xs sm:text-sm rounded-lg border-none bg-background focus:outline-none focus:ring-2 focus:ring-[#2164b6]/40 resize-none"
                   autoFocus
                 />
 
@@ -624,15 +579,15 @@ export function AppPage() {
                   <button
                     type="button"
                     onClick={() => setCommunityPickerOpen(!communityPickerOpen)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border/60 text-xs font-semibold text-foreground hover:bg-muted/50 transition-colors"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border-none/60 text-xs font-semibold text-foreground hover:bg-muted/50 transition-colors"
                   >
                     {selectedCommunityId
                       ? userCommunities.find((c) => c.id === selectedCommunityId)?.name ?? "Select community"
                       : "Select community"}
-                    <ChevronDown className="h-3 w-3" />
+                    <ChevronDown weight="fill" className="h-3 w-3" />
                   </button>
                   {communityPickerOpen && userCommunities.length > 0 && (
-                    <div className="absolute top-full left-0 mt-1 w-56 bg-card border border-border rounded-xl shadow-lg z-30 py-1 max-h-48 overflow-y-auto">
+                    <div className="absolute top-full left-0 mt-1 w-56 bg-card border-none rounded-lg shadow-lg z-30 py-1 max-h-48 overflow-y-auto">
                       {userCommunities.map((c) => (
                         <button
                           key={c.id}
@@ -658,7 +613,7 @@ export function AppPage() {
                     </div>
                   )}
                   {communityPickerOpen && userCommunities.length === 0 && (
-                    <div className="absolute top-full left-0 mt-1 w-56 bg-card border border-border rounded-xl shadow-lg z-30 py-3 px-3 text-xs text-muted-foreground text-center">
+                    <div className="absolute top-full left-0 mt-1 w-56 bg-card border-none rounded-lg shadow-lg z-30 py-3 px-3 text-xs text-muted-foreground text-center">
                       <p className="font-semibold mb-1">No communities yet</p>
                       <Link to="/app/communities" className="text-[#2164b6] dark:text-[#7ab0ff] hover:underline" onClick={() => setCommunityPickerOpen(false)}>
                         Create a community first
@@ -677,15 +632,15 @@ export function AppPage() {
                   <button
                     onClick={handleCreatePost}
                     disabled={submittingPost || !postText.trim() || !selectedCommunityId}
-                    className="px-4 py-2 rounded-xl bg-[#2164b6] hover:bg-[#1a5091] disabled:opacity-50 text-white font-bold text-xs transition-colors flex items-center gap-1.5 shadow-xs"
+                    className="px-4 py-2 rounded-lg bg-[#2164b6] hover:bg-[#1a5091] disabled:opacity-50 text-white font-bold text-xs transition-colors flex items-center gap-1.5 "
                   >
-                    {submittingPost ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+                    {submittingPost ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send weight="fill" className="h-3.5 w-3.5" />}
                     Publish Post
                   </button>
                 </div>
                 {postError && (
                   <p className="text-[11px] font-semibold text-red-600 dark:text-red-400 flex items-center gap-1.5">
-                    <AlertCircle className="h-3.5 w-3.5" /> {postError}
+                    <AlertCircle weight="fill" className="h-3.5 w-3.5" /> {postError}
                   </p>
                 )}
               </div>
@@ -693,21 +648,22 @@ export function AppPage() {
 
             <div className="flex items-center justify-between gap-1 sm:gap-2 border-t border-border/60 pt-3 overflow-x-auto no-scrollbar">
               {[
-                { icon: <Plus className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" />, label: "Create Post", action: () => { setComposerOpen(true); setCommunityPickerOpen(false); } },
-                { icon: <Package className="h-4 w-4 text-rose-500" />, label: "Add Product", to: "/app/store" },
-                { icon: <Video className="h-4 w-4 text-red-500" />, label: "Go Live", to: "/app/audio-rooms" },
-                { icon: <Calendar className="h-4 w-4 text-blue-500" />, label: "New Event", to: "/app/events" },
-                { icon: <BarChart2 className="h-4 w-4 text-amber-500" />, label: "Poll", to: "/app/communities" },
+                { icon: <Plus weight="fill" className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" />, label: "Create Post", action: () => { setComposerOpen(true); setCommunityPickerOpen(false); } },
+                { icon: <Package weight="fill" className="h-4 w-4 text-rose-500" />, label: "Add Product", to: "/app/store" },
+                { icon: <Video weight="fill" className="h-4 w-4 text-red-500" />, label: "Go Live", to: "/app/audio-rooms" },
+                { icon: <Video weight="fill" className="h-4 w-4 text-emerald-500" />, label: "New Meeting", to: "/app/meetings" },
+                { icon: <Calendar weight="fill" className="h-4 w-4 text-blue-500" />, label: "New Event", to: "/app/events" },
+                { icon: <BarChart2 weight="fill" className="h-4 w-4 text-amber-500" />, label: "Poll", to: "/app/communities" },
               ].map((act, i) => (
                 act.to ? (
                   <Link key={i} to={act.to} className="shrink-0">
-                    <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border/60 hover:border-border hover:bg-muted/50 text-xs font-semibold text-foreground transition-all">
+                    <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border-none/60 hover:border-border hover:bg-muted/50 text-xs font-semibold text-foreground transition-all">
                       {act.icon}
                       <span>{act.label}</span>
                     </button>
                   </Link>
                 ) : (
-                  <button key={i} onClick={act.action} className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border/60 hover:border-border hover:bg-muted/50 text-xs font-semibold text-foreground transition-all">
+                  <button key={i} onClick={act.action} className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg border-none/60 hover:border-border hover:bg-muted/50 text-xs font-semibold text-foreground transition-all">
                     {act.icon}
                     <span>{act.label}</span>
                   </button>
@@ -721,12 +677,12 @@ export function AppPage() {
               <button
                 onClick={() => setStoryComposerOpen(true)}
                 disabled={storyUploading}
-                className="relative shrink-0 w-28 sm:w-32 h-44 rounded-2xl overflow-hidden bg-gradient-to-b from-[#2164b6] to-blue-600 shadow-xs cursor-pointer group hover:scale-[1.02] transition-transform flex flex-col items-center justify-center text-white p-3 disabled:opacity-70 disabled:cursor-not-allowed"
+                className="relative shrink-0 w-28 sm:w-32 h-44 rounded-lg overflow-hidden bg-gradient-to-b from-[#2164b6] to-blue-600  cursor-pointer group hover:scale-[1.02] transition-transform flex flex-col items-center justify-center text-white p-3 disabled:opacity-70 disabled:cursor-not-allowed"
               >
                 <div className="h-10 w-10 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
                   {storyUploading
-                    ? <Loader2 className="h-6 w-6 text-white animate-spin" />
-                    : <Plus className="h-6 w-6 text-white stroke-[2.5]" />}
+                    ? <Loader2 weight="fill" className="h-6 w-6 text-white animate-spin" />
+                    : <Plus weight="fill" className="h-6 w-6 text-white stroke-[2.5]" />}
                 </div>
                 <span className="text-xs font-bold text-center leading-tight">
                   {storyUploading ? "Creating…" : "Create Story"}
@@ -734,20 +690,20 @@ export function AppPage() {
               </button>
 
               {stories.map((story) => (
-                <div key={story.id} className="relative shrink-0 w-28 sm:w-32 h-44 rounded-2xl overflow-hidden bg-slate-800 shadow-xs cursor-pointer group hover:scale-[1.02] transition-transform">
+                <div key={story.id} className="relative shrink-0 w-28 sm:w-32 h-44 rounded-lg overflow-hidden bg-slate-800  cursor-pointer group hover:scale-[1.02] transition-transform">
                   {story.bg && <img src={story.bg} alt="" className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />}
                   <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/80" />
 
                   {story.mediaType === "text" && story.text && (
                     <div className="absolute inset-0 flex items-center justify-center px-3">
-                      <p className="text-[12px] font-semibold text-white leading-snug line-clamp-4 drop-shadow-sm text-center">
+                      <p className="text-[12px] font-semibold text-white leading-snug line-clamp-4 drop- text-center">
                         {story.text}
                       </p>
                     </div>
                   )}
 
                   <div className="absolute top-2.5 left-2.5 z-10">
-                    <div className="h-9 w-9 rounded-full p-[2px] bg-gradient-to-tr from-purple-500 via-pink-500 to-[#2164b6]">
+                    <div className="h-9 w-9 rounded-full p-[2px] bg-[#1877f2]">
                       {story.avatar
                         ? <img src={story.avatar} alt="" className="w-full h-full rounded-full object-cover border-2 border-white/40" />
                         : <div className="w-full h-full rounded-full bg-muted flex items-center justify-center text-xs font-bold text-white border-2 border-white/40">{story.name.charAt(0).toUpperCase()}</div>
@@ -756,7 +712,7 @@ export function AppPage() {
                   </div>
 
                   <div className="absolute bottom-2.5 left-2.5 right-2.5 z-10 text-white">
-                    <p className="text-[11px] font-bold leading-tight line-clamp-2 drop-shadow-sm">{story.name}</p>
+                    <p className="text-[11px] font-bold leading-tight line-clamp-2 drop-">{story.name}</p>
                     <p className="text-[9px] text-white/80 font-medium">{story.time}</p>
                   </div>
                 </div>
@@ -764,13 +720,13 @@ export function AppPage() {
             </div>
 
             {storyComposerOpen && (
-              <div className="mt-3 rounded-2xl border border-border bg-card p-4 shadow-xs space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
+              <div className="mt-3 rounded-lg border-none bg-card p-4  space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
                 <textarea
                   value={storyText}
                   onChange={(e) => setStoryText(e.target.value)}
                   placeholder="Share an update with your audience…"
                   maxLength={500}
-                  className="w-full h-24 p-3.5 text-xs sm:text-sm rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-[#2164b6]/40 resize-none"
+                  className="w-full h-24 p-3.5 text-xs sm:text-sm rounded-lg border-none bg-background focus:outline-none focus:ring-2 focus:ring-[#2164b6]/40 resize-none"
                 />
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] text-muted-foreground">{storyText.length}/500</span>
@@ -784,9 +740,9 @@ export function AppPage() {
                     <button
                       onClick={handleCreateTextStory}
                       disabled={storyUploading || !storyText.trim()}
-                      className="px-4 py-1.5 rounded-xl bg-[#2164b6] hover:bg-[#1a5091] disabled:opacity-50 text-white font-bold text-xs transition-colors flex items-center gap-1.5 shadow-xs"
+                      className="px-4 py-1.5 rounded-lg bg-[#2164b6] hover:bg-[#1a5091] disabled:opacity-50 text-white font-bold text-xs transition-colors flex items-center gap-1.5 "
                     >
-                      {storyUploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+                      {storyUploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send weight="fill" className="h-3.5 w-3.5" />}
                       Publish Story
                     </button>
                   </div>
@@ -794,8 +750,8 @@ export function AppPage() {
               </div>
             )}
 
-            <button className="absolute -right-3 top-1/2 -translate-y-1/2 z-20 h-8 w-8 rounded-full bg-white dark:bg-card border border-border shadow-md flex items-center justify-center text-foreground hover:bg-muted transition-colors">
-              <ChevronRight className="h-4 w-4" />
+            <button className="absolute -right-3 top-1/2 -translate-y-1/2 z-20 h-8 w-8 rounded-full bg-white dark:bg-card border-none shadow-sm flex items-center justify-center text-foreground hover:bg-muted transition-colors">
+              <ChevronRight weight="fill" className="h-4 w-4" />
             </button>
           </div>
 
@@ -806,11 +762,11 @@ export function AppPage() {
 
             {!feedLoading && posts.length === 0 && (
               <div className="text-center py-12 text-muted-foreground space-y-2">
-                <Rss className="h-8 w-8 mx-auto opacity-40" />
+                <Rss weight="fill" className="h-8 w-8 mx-auto opacity-40" />
                 <p className="text-sm font-semibold">No posts in your feed yet</p>
                 <p className="text-xs">Follow communities and creators to see their posts here.</p>
                 <Link to="/app/communities">
-                  <button className="mt-2 px-4 py-2 rounded-xl bg-[#2164b6] hover:bg-[#1a5091] text-white font-bold text-xs transition-colors">
+                  <button className="mt-2 px-4 py-2 rounded-lg bg-[#2164b6] hover:bg-[#1a5091] text-white font-bold text-xs transition-colors">
                     Browse Communities
                   </button>
                 </Link>
@@ -821,10 +777,10 @@ export function AppPage() {
               const isCommenting = activeCommentPostId === post.id;
 
               return (
-                <div key={post.id} className="bg-card border border-border shadow-xs rounded-2xl p-4 sm:p-5 space-y-3">
+                <div key={post.id} className="bg-card border-none  rounded-lg p-4 sm:p-5 space-y-3">
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-full bg-gradient-to-tr from-[#2164b6] to-purple-600 p-[2px]">
+                      <div className="h-10 w-10 rounded-full bg-[#1877f2] p-[2px]">
                         {post.avatar ? (
                           <img src={post.avatar} alt="" className="w-full h-full rounded-full object-cover" />
                         ) : (
@@ -837,14 +793,14 @@ export function AppPage() {
                         <div className="flex items-center gap-1.5">
                           <span className="text-sm font-bold text-foreground">{post.author}</span>
                           {post.authorVerified && (
-                            <BadgeCheck className="h-3.5 w-3.5 text-sky-500" />
+                            <BadgeCheck weight="fill" className="h-3.5 w-3.5 text-sky-500" />
                           )}
                         </div>
                         <p className="text-[11px] text-muted-foreground">{post.badge} · {post.time} · 🌐</p>
                       </div>
                     </div>
                     <button className="text-muted-foreground hover:text-foreground p-1">
-                      <MoreHorizontal className="h-4 w-4" />
+                      <MoreHorizontal weight="fill" className="h-4 w-4" />
                     </button>
                   </div>
 
@@ -853,11 +809,11 @@ export function AppPage() {
                   </p>
 
                   {post.embedType === "video" && post.embedBg && (
-                    <div className="rounded-xl border border-border overflow-hidden bg-slate-900 flex flex-col sm:flex-row group cursor-pointer">
+                    <div className="rounded-lg border-none overflow-hidden bg-slate-900 flex flex-col sm:flex-row group cursor-pointer">
                       <div className="relative sm:w-48 h-32 bg-slate-800 shrink-0 flex items-center justify-center overflow-hidden">
                         <img src={post.embedBg} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 opacity-80" />
                         <div className="absolute h-10 w-10 rounded-full bg-black/60 backdrop-blur-xs border border-white/30 flex items-center justify-center text-white">
-                          <Play className="h-5 w-5 fill-white ml-0.5" />
+                          <Play weight="fill" className="h-5 w-5 fill-white ml-0.5" />
                         </div>
                       </div>
                       <div className="p-3.5 flex flex-col justify-center bg-card flex-1 border-t sm:border-t-0 sm:border-l border-border">
@@ -873,8 +829,8 @@ export function AppPage() {
                   )}
 
                   {post.embedType === "product" && (
-                    <div className="p-3.5 rounded-xl border border-border bg-slate-50/50 dark:bg-muted/30 flex items-center gap-4">
-                      <div className="h-20 w-16 rounded-lg bg-gradient-to-br from-[#2164b6] to-blue-700 shrink-0 overflow-hidden shadow-xs flex items-center justify-center text-white p-2">
+                    <div className="p-3.5 rounded-lg border-none bg-slate-50/50 dark:bg-muted/30 flex items-center gap-4">
+                      <div className="h-20 w-16 rounded-lg bg-gradient-to-br from-[#2164b6] to-blue-700 shrink-0 overflow-hidden  flex items-center justify-center text-white p-2">
                         <div className="text-center">
                           <p className="text-[8px] font-extrabold uppercase tracking-widest text-white/80">LINK</p>
                           <p className="text-[10px] font-black leading-tight mt-1">External</p>
@@ -896,7 +852,7 @@ export function AppPage() {
                   )}
 
                   {post.embedType === "media" && post.mediaUrl && (
-                    <div className="rounded-xl overflow-hidden border border-border bg-slate-800">
+                    <div className="rounded-lg overflow-hidden border-none bg-slate-800">
                       <img src={post.mediaUrl} alt="" className="w-full max-h-80 object-cover" />
                     </div>
                   )}
@@ -926,7 +882,7 @@ export function AppPage() {
                         post.isLiked ? "text-[#2164b6] dark:text-[#7ab0ff] bg-[#2164b6]/10" : "text-muted-foreground hover:bg-muted"
                       }`}
                     >
-                      <Heart className={`h-4 w-4 ${post.isLiked ? "fill-[#2164b6]" : ""}`} /> Like
+                      <Heart weight="fill" className={`h-4 w-4 ${post.isLiked ? "fill-[#2164b6]" : ""}`} /> Like
                     </button>
                     <button
                       onClick={() => handleClickComment(post.id)}
@@ -934,13 +890,13 @@ export function AppPage() {
                         isCommenting ? "text-[#2164b6] dark:text-[#7ab0ff] bg-[#2164b6]/10" : "text-muted-foreground hover:bg-muted"
                       }`}
                     >
-                      <MessageCircle className="h-4 w-4" /> Comment
+                      <MessageCircle weight="fill" className="h-4 w-4" /> Comment
                     </button>
                     <button
                       onClick={() => handleShare(post)}
                       className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-semibold text-muted-foreground hover:bg-muted transition-colors"
                     >
-                      <Share2 className="h-4 w-4" /> Share
+                      <Share2 weight="fill" className="h-4 w-4" /> Share
                     </button>
                   </div>
 
@@ -948,15 +904,15 @@ export function AppPage() {
                     <div className="border-t border-border/60 pt-3 space-y-3 animate-in fade-in slide-in-from-top-1 duration-200">
                       {loadingComments.has(post.id) && (
                         <div className="flex items-center justify-center py-4">
-                          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                          <Loader2 weight="fill" className="h-4 w-4 animate-spin text-muted-foreground" />
                         </div>
                       )}
 
                       {!loadingComments.has(post.id) && post.commentList.length > 0 && (
                         <div className="space-y-2.5">
                           {post.commentList.map((cmt) => (
-                            <div key={cmt.id} className="flex items-start gap-2.5 text-xs p-2.5 rounded-xl bg-slate-50 dark:bg-muted/40">
-                              <div className="h-7 w-7 rounded-full bg-gradient-to-br from-[#2164b6] to-purple-600 flex items-center justify-center text-white font-bold text-[10px] shrink-0">
+                            <div key={cmt.id} className="flex items-start gap-2.5 text-xs p-2.5 rounded-lg bg-slate-50 dark:bg-muted/40">
+                              <div className="h-7 w-7 rounded-full bg-[#1877f2] flex items-center justify-center text-white font-bold text-[10px] shrink-0">
                                 {cmt.avatar_url ? <img src={cmt.avatar_url} alt="" className="w-full h-full rounded-full object-cover" /> : cmt.user_name.charAt(0)}
                               </div>
                               <div className="flex-1 min-w-0">
@@ -964,7 +920,7 @@ export function AppPage() {
                                   <span className="font-bold text-foreground text-[11px]">
                                     {cmt.user_name}
                                     {cmt.verified && (
-                                      <BadgeCheck size={12} className="inline-block ml-0.5 text-sky-500 -mt-0.5" aria-label="Verified" />
+                                      <BadgeCheck weight="fill" size={12} className="inline-block ml-0.5 text-sky-500 -mt-0.5" aria-label="Verified" />
                                     )}
                                   </span>
                                   <span className="text-[9px] text-muted-foreground">{cmt.time}</span>
@@ -983,14 +939,14 @@ export function AppPage() {
                           onChange={(e) => setCommentInput(e.target.value)}
                           onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleAddComment(post.id); } }}
                           placeholder="Write a comment..."
-                          className="flex-1 h-9 px-3.5 text-xs rounded-full border border-border bg-background focus:outline-none focus:ring-2 focus:ring-[#2164b6]/40"
+                          className="flex-1 h-9 px-3.5 text-xs rounded-full border-none bg-background focus:outline-none focus:ring-2 focus:ring-[#2164b6]/40"
                         />
                         <button
                           onClick={() => handleAddComment(post.id)}
                           disabled={submittingComment || !commentInput.trim()}
-                          className="px-3.5 h-9 rounded-full bg-[#2164b6] hover:bg-[#1a5091] disabled:opacity-50 text-white font-bold text-xs transition-colors flex items-center gap-1 shrink-0"
+                          className="px-3.5 h-9 rounded-lg bg-[#2164b6] hover:bg-[#1a5091] disabled:opacity-50 text-white font-bold text-xs transition-colors flex items-center gap-1 shrink-0"
                         >
-                          {submittingComment ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+                          {submittingComment ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send weight="fill" className="h-3.5 w-3.5" />}
                         </button>
                       </div>
                     </div>
@@ -1003,48 +959,46 @@ export function AppPage() {
 
         </div>
 
-        <div className="w-[350px] shrink-0 hidden lg:block p-4 space-y-4 overflow-y-auto h-screen sticky top-16 border-l border-border bg-[#F8F7F4] dark:bg-card/40">
+        {/* Right Rail: 280-320px, borderless, holding Requests, Suggested Communities, Events, Chats */}
+        <div className="w-[280px] xl:w-[320px] shrink-0 hidden lg:block py-4 px-2 space-y-4 overflow-y-auto h-[calc(100vh-3.5rem)] sticky top-14 no-scrollbar">
 
-          <div className="rounded-2xl border border-border bg-card p-4 shadow-xs space-y-3">
+          {/* 1. Requests (Friends & Communities) */}
+          <div className="rounded-lg bg-white dark:bg-[#242526] shadow-xs p-3.5 space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="p-1.5 rounded-lg bg-[#2164b6]/10 text-[#2164b6] dark:text-[#7ab0ff]">
-                  <Users className="h-3.5 w-3.5" />
-                </div>
-                <h3 className="font-bold text-foreground text-xs sm:text-sm">Requests</h3>
+                <Users weight="fill" className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" />
+                <h3 className="font-bold text-[#050505] dark:text-[#E4E6EB] text-xs sm:text-sm">Requests</h3>
                 {totalRequests > 0 && (
                   <span className="h-4 min-w-[18px] px-1 rounded-full bg-[#2164b6] text-white text-[9px] font-extrabold flex items-center justify-center">
                     {totalRequests > 99 ? "99+" : totalRequests}
                   </span>
                 )}
               </div>
-              <div className="flex items-center gap-1.5 text-[10px] font-bold">
-                <Link to="/app/friends" className="text-[#2164b6] dark:text-[#7ab0ff] hover:underline">Friends</Link>
-                <span className="text-muted-foreground/40">·</span>
-                <Link to="/app/communities" className="text-[#2164b6] dark:text-[#7ab0ff] hover:underline">Communities</Link>
+              <div className="flex items-center gap-1.5 text-[11px] font-semibold">
+                <Link to="/app/requests" className="text-[#2164b6] dark:text-[#7ab0ff] hover:underline">See all</Link>
               </div>
             </div>
 
             {reqsLoading ? (
               <div className="flex items-center justify-center py-4">
-                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground/50" />
+                <Loader2 weight="fill" className="h-4 w-4 animate-spin text-muted-foreground/50" />
               </div>
             ) : requestItems.length === 0 ? (
-              <p className="text-[11px] text-muted-foreground/60 text-center py-2">
+              <p className="text-[11px] text-[#65676B] dark:text-[#B0B3B8] text-center py-2">
                 No pending requests
               </p>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-2.5">
                 {requestItems.map((item) => (
                   <div key={`${item.kind}-${item.id}`} className="flex items-center gap-2.5 min-w-0">
-                    <div className="h-8 w-8 rounded-full shrink-0 overflow-hidden bg-gradient-to-br from-[#2164b6] to-[#1a6b9e] flex items-center justify-center text-white font-bold text-xs">
+                    <div className="h-8 w-8 rounded-full shrink-0 overflow-hidden bg-[#2164b6] flex items-center justify-center text-white font-bold text-xs">
                       {item.avatarUrl
                         ? <img src={item.avatarUrl} alt="" className="w-full h-full object-cover" />
                         : item.initials}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-[11px] font-bold text-foreground truncate">{item.name}</p>
-                      <p className="text-[9px] text-muted-foreground truncate">{item.sub}</p>
+                      <p className="text-[12px] font-semibold text-[#050505] dark:text-[#E4E6EB] truncate leading-snug">{item.name}</p>
+                      <p className="text-[10px] text-[#65676B] dark:text-[#B0B3B8] truncate">{item.sub}</p>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
                       <button
@@ -1055,11 +1009,11 @@ export function AppPage() {
                         }
                         disabled={reqActionId === item.id}
                         title={item.kind === "friend" ? "Accept" : "Approve"}
-                        className="h-6 w-6 rounded-lg bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 flex items-center justify-center transition-colors disabled:opacity-50"
+                        className="h-7 w-7 rounded-md bg-[#2164b6] text-white hover:bg-[#1a5091] flex items-center justify-center transition-colors disabled:opacity-50"
                       >
                         {reqActionId === item.id
-                          ? <Loader2 className="h-3 w-3 animate-spin" />
-                          : <Check className="h-3 w-3" />}
+                          ? <Loader2 weight="fill" className="h-3.5 w-3.5 animate-spin" />
+                          : <Check weight="bold" className="h-3.5 w-3.5" />}
                       </button>
                       <button
                         onClick={() =>
@@ -1069,9 +1023,9 @@ export function AppPage() {
                         }
                         disabled={reqActionId === item.id}
                         title={item.kind === "friend" ? "Decline" : "Reject"}
-                        className="h-6 w-6 rounded-lg border border-border/60 text-muted-foreground hover:bg-muted flex items-center justify-center transition-colors disabled:opacity-50"
+                        className="h-7 w-7 rounded-md bg-[#E4E6EB] dark:bg-[#3A3B3C] text-[#050505] dark:text-[#E4E6EB] hover:bg-[#D8DADF] flex items-center justify-center transition-colors disabled:opacity-50"
                       >
-                        <X className="h-3 w-3" />
+                        <X weight="bold" className="h-3.5 w-3.5" />
                       </button>
                     </div>
                   </div>
@@ -1080,217 +1034,133 @@ export function AppPage() {
             )}
           </div>
 
-          <div className="rounded-2xl border border-purple-200/80 dark:border-purple-900/50 bg-gradient-to-br from-purple-50/70 via-purple-50/20 to-card p-4.5 shadow-xs space-y-3">
+          {/* 2. Suggested Communities */}
+          <div className="rounded-lg bg-white dark:bg-[#242526] shadow-xs p-3.5 space-y-3">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="p-1.5 rounded-xl bg-purple-500/10 text-purple-600">
-                  <MeraIcon className="h-4 w-4" />
-                </div>
-                <h3 className="font-bold text-foreground text-xs sm:text-sm">AI Assistant</h3>
-              </div>
-              <span className="px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase bg-purple-500/15 text-purple-600">BETA</span>
-            </div>
-            <p className="text-[11px] text-muted-foreground leading-tight">Your MurihSpace AI, built to help you grow faster.</p>
-
-            <div className="space-y-2 pt-1">
-              {[
-                { icon: <BarChart2 className="h-3.5 w-3.5 text-purple-600" />, text: "Create a poll to engage your community" },
-                { icon: <Lightbulb className="h-3.5 w-3.5 text-emerald-600" />, text: "Suggest content ideas based on your audience" },
-                { icon: <MessageSquare className="h-3.5 w-3.5 text-blue-600" />, text: "Summarize top conversations this week" },
-              ].map((p, idx) => (
-                <button key={idx} className="w-full flex items-center gap-2.5 p-2.5 rounded-xl bg-white dark:bg-card border border-purple-100/80 dark:border-purple-950 hover:border-purple-300 transition-colors text-left shadow-2xs">
-                  <div className="p-1 rounded-md bg-purple-50 dark:bg-purple-950 shrink-0">{p.icon}</div>
-                  <span className="text-[11px] font-medium text-foreground leading-tight">{p.text}</span>
-                </button>
-              ))}
+              <h3 className="font-bold text-[#050505] dark:text-[#E4E6EB] text-xs sm:text-sm">
+                Suggested Communities
+              </h3>
+              <Link to="/app/communities" className="text-[11px] font-semibold text-[#2164b6] dark:text-[#7ab0ff] hover:underline">
+                See all
+              </Link>
             </div>
 
-            <Link to="/app/ai-assistant" className="block text-center text-[11px] font-bold text-purple-600 hover:underline pt-1">
-              Go to AI Assistant &rarr;
-            </Link>
-          </div>
-
-          <div className="rounded-2xl border border-border bg-card p-4 shadow-xs space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="p-1.5 rounded-lg bg-[#2164b6]/10 text-[#2164b6] dark:text-[#7ab0ff]">
-                  <Inbox className="h-3.5 w-3.5" />
-                </div>
-                <h3 className="font-bold text-foreground text-xs sm:text-sm">MurihSpace Inbox</h3>
-              </div>
-              <Link to="/app/messages" className="text-[10px] font-bold text-[#2164b6] dark:text-[#7ab0ff] hover:underline">See all</Link>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2">
-              {[
-                { label: "Unread", value: analytics.unreadCount },
-                { label: "AI Replies", value: analytics.aiReplies },
-                { label: "Human Follow-Ups", value: analytics.humanFollowUps },
-                { label: "Active Conversations", value: analytics.activeConversations },
-              ].map((item) => (
-                <div key={item.label} className="p-2.5 rounded-xl bg-slate-50 dark:bg-muted/40 border border-border/50">
-                  <span className="text-[10px] text-muted-foreground font-semibold block leading-tight">{item.label}</span>
-                  <span className="text-base font-black text-foreground">{item.value}</span>
-                </div>
-              ))}
-            </div>
-
-            <Link to="/app/messages" className="block text-center text-[11px] font-bold text-[#2164b6] dark:text-[#7ab0ff] hover:underline border-t border-border/50 pt-2">
-              Open Inbox &rarr;
-            </Link>
-          </div>
-
-          <div className="rounded-2xl border border-border bg-card p-4 shadow-xs space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="p-1.5 rounded-lg bg-[#2164b6]/10 text-[#2164b6] dark:text-[#7ab0ff]">
-                  <MessageSquare className="h-3.5 w-3.5" />
-                </div>
-                <h3 className="font-bold text-foreground text-xs sm:text-sm">MurihSpace Chat Center</h3>
-              </div>
-              <Link to="/app/messages" className="text-[10px] font-bold text-[#2164b6] dark:text-[#7ab0ff] hover:underline">Go to Inbox &rarr;</Link>
-            </div>
-            <p className="text-[10px] text-muted-foreground">All your community conversations in one place</p>
-
-            <div className="grid grid-cols-2 gap-2">
-              {analytics.channels.map((ch, idx) => (
-                <Link key={idx} to="/app/messages">
-                  <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-muted/40 border border-border/50 hover:border-[#2164b6]/40 transition-all cursor-pointer">
-                    <div className="flex items-center gap-1.5 mb-1">
-                      <div className={`p-1 rounded-md ${ch.bg} ${ch.color}`}>
-                        <MessageCircle className="h-3 w-3" />
-                      </div>
-                      <span className="text-[11px] font-bold text-foreground truncate">{ch.name}</span>
+            {suggestedCommunities.length === 0 ? (
+              <p className="text-[11px] text-[#65676B] dark:text-[#B0B3B8] text-center py-2">
+                No new suggestions
+              </p>
+            ) : (
+              <div className="space-y-2.5">
+                {suggestedCommunities.map((comm) => (
+                  <div key={comm.id} className="flex items-center gap-2.5 min-w-0">
+                    <div className="h-9 w-9 rounded-lg shrink-0 overflow-hidden bg-[#2164b6]/10 text-[#2164b6] flex items-center justify-center text-xs font-bold">
+                      {comm.logo_url ? (
+                        <img src={comm.logo_url} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        comm.name.charAt(0)
+                      )}
                     </div>
-                    <span className={`text-[9px] font-semibold ${ch.color}`}>{ch.badge}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[12px] font-semibold text-[#050505] dark:text-[#E4E6EB] truncate leading-tight">
+                        {comm.name}
+                      </p>
+                      <p className="text-[10px] text-[#65676B] dark:text-[#B0B3B8] truncate">
+                        {comm.members_count ? `${comm.members_count} members` : "Active group"}
+                      </p>
+                    </div>
+                    <Link
+                      to={`/app/communities/${comm.slug}`}
+                      className="px-2.5 py-1 rounded-md bg-[#F0F2F5] dark:bg-[#3A3B3C] hover:bg-[#E4E6EB] dark:hover:bg-[#4E4F50] text-[#050505] dark:text-[#E4E6EB] text-[11px] font-semibold transition-colors shrink-0"
+                    >
+                      View
+                    </Link>
                   </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* 3. Upcoming Events */}
+          <div className="rounded-lg bg-white dark:bg-[#242526] shadow-xs p-3.5 space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-[#050505] dark:text-[#E4E6EB] text-xs sm:text-sm">
+                Upcoming Events
+              </h3>
+              <Link to="/app/events" className="text-[11px] font-semibold text-[#2164b6] dark:text-[#7ab0ff] hover:underline">
+                See all
+              </Link>
+            </div>
+
+            {upcomingEventsList.length === 0 ? (
+              <div className="flex items-center gap-2.5 py-1">
+                <div className="h-9 w-9 rounded-lg bg-rose-500/10 text-rose-600 shrink-0 font-black text-center text-[9px] leading-tight flex flex-col items-center justify-center">
+                  <span>{analytics.upcomingEvent.month || "LIVE"}</span>
+                  <span className="text-xs">{analytics.upcomingEvent.day || "•"}</span>
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[11px] font-semibold text-[#050505] dark:text-[#E4E6EB] truncate">
+                    {analytics.upcomingEvent.title || "No scheduled events"}
+                  </p>
+                  <p className="text-[10px] text-[#65676B] dark:text-[#B0B3B8]">
+                    {analytics.upcomingEvent.date || "Stay tuned for new lives"}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-2.5">
+                {upcomingEventsList.map((evt) => {
+                  const d = evt.starts_at ? new Date(evt.starts_at) : null;
+                  const month = d ? d.toLocaleString("en-US", { month: "short" }).toUpperCase() : "LIVE";
+                  const day = d ? String(d.getDate()) : "•";
+                  return (
+                    <Link
+                      key={evt.id}
+                      to="/app/events"
+                      className="flex items-center gap-2.5 p-1 rounded-lg hover:bg-[#F0F2F5] dark:hover:bg-[#3A3B3C] transition-colors"
+                    >
+                      <div className="h-9 w-9 rounded-lg bg-rose-500/10 text-rose-600 shrink-0 font-bold text-center text-[9px] leading-tight flex flex-col items-center justify-center">
+                        <span>{month}</span>
+                        <span className="text-xs font-black">{day}</span>
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[12px] font-semibold text-[#050505] dark:text-[#E4E6EB] truncate leading-tight">
+                          {evt.title}
+                        </p>
+                        <p className="text-[10px] text-[#65676B] dark:text-[#B0B3B8] truncate">
+                          {evt.location || "Online Studio"}
+                        </p>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* 4. Conversations */}
+          <div className="rounded-lg bg-white dark:bg-[#242526] shadow-xs p-3.5 space-y-2.5">
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-[#050505] dark:text-[#E4E6EB] text-xs sm:text-sm">
+                Conversations
+              </h3>
+              <Link to="/app/messages" className="text-[11px] font-semibold text-[#2164b6] dark:text-[#7ab0ff] hover:underline">
+                Open Chat
+              </Link>
+            </div>
+            <div className="space-y-1">
+              {analytics.channels.slice(0, 3).map((ch, idx) => (
+                <Link
+                  key={idx}
+                  to="/app/messages"
+                  className="flex items-center justify-between p-2 rounded-lg hover:bg-[#F0F2F5] dark:hover:bg-[#3A3B3C] transition-colors"
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="h-2 w-2 rounded-full bg-emerald-500 shrink-0" />
+                    <span className="text-[12px] font-medium text-[#050505] dark:text-[#E4E6EB] truncate">{ch.name}</span>
+                  </div>
+                  <span className="text-[10px] text-[#65676B] dark:text-[#B0B3B8] shrink-0">{ch.badge}</span>
                 </Link>
               ))}
-            </div>
-          </div>
-
-          <div className="rounded-2xl border border-border bg-card p-4 shadow-xs space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-600">
-                  <TrendingUp className="h-3.5 w-3.5" />
-                </div>
-                <h3 className="font-bold text-foreground text-xs sm:text-sm">Revenue &amp; Growth</h3>
-              </div>
-              <span className="text-[10px] font-semibold text-muted-foreground border border-border rounded-md px-1.5 py-0.5">This month ▾</span>
-            </div>
-
-            <div className="grid grid-cols-3 gap-2">
-              <div>
-                <p className="text-[9px] text-muted-foreground font-semibold">Total Revenue</p>
-                <p className="text-xs font-black text-foreground">{analytics.totalRevenue}</p>
-                {analytics.revenueGrowth && <p className="text-[9px] font-bold text-emerald-500">{analytics.revenueGrowth}</p>}
-              </div>
-              <div>
-                <p className="text-[9px] text-muted-foreground font-semibold">Net Earnings</p>
-                <p className="text-xs font-black text-foreground">{analytics.netEarnings}</p>
-                {analytics.earningsGrowth && <p className="text-[9px] font-bold text-emerald-500">{analytics.earningsGrowth}</p>}
-              </div>
-              <div>
-                <p className="text-[9px] text-muted-foreground font-semibold">Growth Rate</p>
-                <p className="text-xs font-black text-foreground">{analytics.growthRate}</p>
-                {analytics.growthRateDelta && <p className="text-[9px] font-bold text-emerald-500">{analytics.growthRateDelta}</p>}
-              </div>
-            </div>
-
-            <div className="h-8 w-full pt-1">
-              <svg className="w-full h-full" viewBox="0 0 200 30" preserveAspectRatio="none">
-                <path d="M 0 25 Q 40 20, 80 15 T 140 10 T 200 5" fill="none" stroke="#2164b6" strokeWidth="2" />
-              </svg>
-            </div>
-          </div>
-
-          <div className="rounded-2xl border border-border bg-card p-4 shadow-xs space-y-2">
-            <div className="flex items-center gap-2">
-              <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-600">
-                <Wallet className="h-3.5 w-3.5" />
-              </div>
-              <h3 className="font-bold text-foreground text-xs sm:text-sm">Monetization Status</h3>
-            </div>
-            <p className="text-[11px] text-muted-foreground text-center py-2">Wallet data unavailable</p>
-            <Link to="/app/wallet" className="block text-center text-[10px] font-bold text-[#2164b6] dark:text-[#7ab0ff] hover:underline">
-              Go to Wallet
-            </Link>
-          </div>
-
-          <div className="rounded-2xl border border-border bg-card p-4 shadow-xs space-y-2">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="p-1.5 rounded-lg bg-blue-500/10 text-blue-600">
-                  <Activity className="h-3.5 w-3.5" />
-                </div>
-                <h3 className="font-bold text-foreground text-xs sm:text-sm">Chat Activity</h3>
-              </div>
-              <Link to="/app/messages" className="text-[10px] font-bold text-[#2164b6] dark:text-[#7ab0ff] hover:underline">View All</Link>
-            </div>
-            <p className="text-[11px] text-muted-foreground text-center py-2">No recent activity</p>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div className="rounded-2xl border border-border bg-card p-3 shadow-xs space-y-2">
-              <div className="flex items-center gap-1">
-                <Calendar className="h-3 w-3 text-[#2164b6] dark:text-[#7ab0ff]" />
-                <span className="text-[11px] font-bold text-foreground">Content Planner</span>
-              </div>
-              <Link to="/app/marketing" className="text-[9px] font-bold text-[#2164b6] dark:text-[#7ab0ff] hover:underline block">View Calendar</Link>
-              <div className="text-[10px] text-muted-foreground">
-                <p className="font-semibold text-foreground">{analytics.contentPlanner[0]?.title ?? "No posts scheduled"}</p>
-                <p className="text-[9px]">{analytics.contentPlanner[0]?.date ?? ""}</p>
-              </div>
-            </div>
-
-            <div className="rounded-2xl border border-border bg-card p-3 shadow-xs space-y-2">
-              <div className="flex items-center gap-1">
-                <Package className="h-3 w-3 text-amber-500" />
-                <span className="text-[11px] font-bold text-foreground">Top Products</span>
-              </div>
-              <Link to="/app/store" className="text-[9px] font-bold text-[#2164b6] dark:text-[#7ab0ff] hover:underline block">View All</Link>
-              <div className="flex items-center gap-2">
-                <div className="h-7 w-6 rounded bg-[#2164b6] shrink-0 text-[8px] text-white font-bold flex items-center justify-center">
-                  PDF
-                </div>
-                <div className="min-w-0">
-                  <p className="text-[10px] font-bold truncate">{analytics.topProduct.title}</p>
-                  <p className="text-[9px] text-muted-foreground">{analytics.topProduct.subtitle}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div className="rounded-2xl border border-border bg-card p-3 shadow-xs space-y-2">
-              <div className="flex items-center gap-1">
-                <Users className="h-3 w-3 text-purple-500" />
-                <span className="text-[11px] font-bold text-foreground">Community Activity</span>
-              </div>
-              <Link to="/app/communities" className="text-[9px] font-bold text-[#2164b6] dark:text-[#7ab0ff] hover:underline block">View All</Link>
-              <div className="text-[10px]">
-                <p className="font-bold text-foreground">{analytics.communityMembers}</p>
-                <p className="text-[9px] text-emerald-500 font-semibold">{analytics.communityGrowth}</p>
-              </div>
-            </div>
-
-            <div className="rounded-2xl border border-border bg-card p-3 shadow-xs space-y-2">
-              <div className="flex items-center gap-1">
-                <Calendar className="h-3 w-3 text-rose-500" />
-                <span className="text-[11px] font-bold text-foreground">Upcoming Events</span>
-              </div>
-              <Link to="/app/events" className="text-[9px] font-bold text-[#2164b6] dark:text-[#7ab0ff] hover:underline block">See all</Link>
-              <div className="flex items-center gap-2">
-                <div className="h-8 w-8 rounded-lg bg-rose-500/10 text-rose-600 shrink-0 font-black text-center text-[9px] leading-tight flex flex-col items-center justify-center">
-                  <span>{analytics.upcomingEvent.month}</span>
-                  <span className="text-xs">{analytics.upcomingEvent.day}</span>
-                </div>
-                <div className="min-w-0">
-                  <p className="text-[10px] font-bold truncate">{analytics.upcomingEvent.title}</p>
-                  <p className="text-[9px] text-muted-foreground">{analytics.upcomingEvent.date}</p>
-                </div>
-              </div>
             </div>
           </div>
 
@@ -1300,13 +1170,13 @@ export function AppPage() {
 
       {shareModalPost && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-card border border-border shadow-2xl rounded-2xl p-5 max-w-sm w-full space-y-4 animate-in fade-in zoom-in-95 duration-200">
+          <div className="bg-card border-none shadow-2xl rounded-lg p-5 max-w-sm w-full space-y-4 animate-in fade-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between border-b border-border pb-3">
               <h3 className="font-bold text-foreground text-sm flex items-center gap-2">
-                <Share2 className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" /> Share Post
+                <Share2 weight="fill" className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" /> Share Post
               </h3>
               <button onClick={() => setShareModalPost(null)} className="text-muted-foreground hover:text-foreground">
-                <X className="h-4 w-4" />
+                <X weight="fill" className="h-4 w-4" />
               </button>
             </div>
 
@@ -1319,13 +1189,13 @@ export function AppPage() {
                 type="text"
                 readOnly
                 value={`${window.location.origin}/app/feed?post=${shareModalPost.id}`}
-                className="flex-1 h-9 px-3 text-xs rounded-xl border border-border bg-muted/40 font-mono text-muted-foreground truncate"
+                className="flex-1 h-9 px-3 text-xs rounded-lg border-none bg-muted/40 font-mono text-muted-foreground truncate"
               />
               <button
                 onClick={handleCopyLink}
-                className="px-3 h-9 rounded-xl bg-[#2164b6] hover:bg-[#1a5091] text-white font-bold text-xs transition-colors flex items-center gap-1 shrink-0"
+                className="px-3 h-9 rounded-lg bg-[#2164b6] hover:bg-[#1a5091] text-white font-bold text-xs transition-colors flex items-center gap-1 shrink-0"
               >
-                {copiedLink ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                {copiedLink ? <Check className="h-3.5 w-3.5" /> : <Copy weight="fill" className="h-3.5 w-3.5" />}
                 {copiedLink ? "Copied!" : "Copy"}
               </button>
             </div>
@@ -1335,7 +1205,7 @@ export function AppPage() {
                 href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareModalPost.content.slice(0, 100))}&url=${encodeURIComponent(`${window.location.origin}/app/feed?post=${shareModalPost.id}`)}`}
                 target="_blank"
                 rel="noreferrer"
-                className="p-2.5 rounded-xl border border-border bg-slate-50 dark:bg-muted/40 hover:bg-muted text-center text-xs font-semibold text-foreground transition-colors"
+                className="p-2.5 rounded-lg border-none bg-slate-50 dark:bg-muted/40 hover:bg-muted text-center text-xs font-semibold text-foreground transition-colors"
               >
                 Twitter / X
               </a>
@@ -1343,7 +1213,7 @@ export function AppPage() {
                 href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(`${window.location.origin}/app/feed?post=${shareModalPost.id}`)}`}
                 target="_blank"
                 rel="noreferrer"
-                className="p-2.5 rounded-xl border border-border bg-slate-50 dark:bg-muted/40 hover:bg-muted text-center text-xs font-semibold text-foreground transition-colors"
+                className="p-2.5 rounded-lg border-none bg-slate-50 dark:bg-muted/40 hover:bg-muted text-center text-xs font-semibold text-foreground transition-colors"
               >
                 Facebook
               </a>
@@ -1351,7 +1221,7 @@ export function AppPage() {
                 href={`https://api.whatsapp.com/send?text=${encodeURIComponent(`${shareModalPost.content.slice(0, 100)} ${window.location.origin}/app/feed?post=${shareModalPost.id}`)}`}
                 target="_blank"
                 rel="noreferrer"
-                className="p-2.5 rounded-xl border border-border bg-slate-50 dark:bg-muted/40 hover:bg-muted text-center text-xs font-semibold text-foreground transition-colors"
+                className="p-2.5 rounded-lg border-none bg-slate-50 dark:bg-muted/40 hover:bg-muted text-center text-xs font-semibold text-foreground transition-colors"
               >
                 WhatsApp
               </a>

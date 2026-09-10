@@ -1,6 +1,29 @@
 import { useState, useEffect, useCallback } from "react";
 import { useConfirm } from "@/components/ui/DialogProvider";
-import { Link2, Loader2, Edit, Trash2, Globe, Tag, ShoppingCart, Plus, X, Music, Camera, MessageCircle, Send, Hash, Film, Link as LinkIcon, Check, Crown, Palette, Sparkles, ChevronRight, ChevronLeft } from "lucide-react";
+import {
+  Link as Link,
+  Spinner as Loader2,
+  Pencil as Edit,
+  Trash as Trash2,
+  Globe as Globe,
+  Tag as Tag,
+  ShoppingCart as ShoppingCart,
+  Plus as Plus,
+  X as X,
+  MusicNote as Music,
+  Camera as Camera,
+  ChatCircle as MessageCircle,
+  PaperPlaneRight as Send,
+  Hash as Hash,
+  FilmStrip as FilmStrip,
+  Link as LinkIcon,
+  Check as Check,
+  Crown as Crown,
+  Palette as Palette,
+  Sparkle as Sparkle,
+  CaretRight as ChevronRight,
+  CaretLeft as ChevronLeft
+} from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ImageUploader } from "@/components/upload/ImageUploader";
@@ -24,7 +47,7 @@ interface Theme {
 
 const SOCIAL_PLATFORMS = [
   { value: "instagram", label: "Instagram", icon: Camera }, { value: "twitter", label: "Twitter / X", icon: Hash },
-  { value: "tiktok", label: "TikTok", icon: Music }, { value: "youtube", label: "YouTube", icon: Film },
+  { value: "tiktok", label: "TikTok", icon: Music }, { value: "youtube", label: "YouTube", icon: FilmStrip },
   { value: "facebook", label: "Facebook", icon: MessageCircle }, { value: "snapchat", label: "Snapchat", icon: Send },
   { value: "linkedin", label: "LinkedIn", icon: LinkIcon }, { value: "github", label: "GitHub", icon: LinkIcon },
   { value: "website", label: "Website", icon: LinkIcon },
@@ -42,10 +65,10 @@ const LAYOUT_OPTIONS = [
 ];
 
 const STEPS = [
-  { key: "template", label: "Template", icon: Sparkles },
+  { key: "template", label: "Template", icon: Sparkle },
   { key: "style", label: "Style", icon: Palette },
   { key: "profile", label: "Profile", icon: Globe },
-  { key: "links", label: "Links", icon: Link2 },
+  { key: "links", label: "Links", icon: Link },
   { key: "social", label: "Social", icon: Send },
   { key: "products", label: "Products", icon: ShoppingCart },
 ];
@@ -321,27 +344,27 @@ export default function LinkInBioPage() {
     setProdMediaUrl(p.media_url ?? ""); setProdCheckoutUrl(p.checkout_url ?? ""); setShowProductForm(true);
   };
 
-  if (loading) return <div className="flex justify-center py-24"><Loader2 className="h-8 w-8 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" /></div>;
+  if (loading) return <div className="flex justify-center py-24"><Loader2 weight="fill" className="h-8 w-8 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" /></div>;
 
   const msgBg = msg ? (msg.ok ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" : "bg-rose-500/10 border-rose-500/20 text-rose-400") : "";
 
   return (
-    <div className="w-full max-w-7xl mx-auto space-y-6 p-6 lg:p-8">
+    <div className="w-full max-w-7xl mx-auto space-y-6 p-4 lg:p-5">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-black tracking-tight flex items-center gap-2.5">
-            <Link2 className="h-6 w-6 text-[#2164b6] dark:text-[#7ab0ff]" /> Link in Bio Builder
+          <h1 className="text-xl font-black tracking-tight flex items-center gap-2.5">
+            <Link weight="fill" className="h-6 w-6 text-[#2164b6] dark:text-[#7ab0ff]" /> Link in Bio Builder
           </h1>
           <p className="text-xs text-muted-foreground mt-1">Set up your page in 6 easy steps.</p>
         </div>
       </div>
 
       {/* Step Indicator */}
-      <div className="flex items-center gap-1 bg-muted p-1 rounded-xl overflow-x-auto">
+      <div className="flex items-center gap-1 bg-muted p-1 rounded-lg overflow-x-auto">
         {STEPS.map((s, i) => (
           <button key={s.key} onClick={() => setStep(i)}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold whitespace-nowrap transition-colors ${
-              step === i ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+              step === i ? "bg-card text-foreground " : "text-muted-foreground hover:text-foreground"
             } ${i < step ? "text-emerald-400" : ""}`}>
             <s.icon className="h-3 w-3" />
             {s.label}
@@ -349,18 +372,18 @@ export default function LinkInBioPage() {
         ))}
       </div>
 
-      {msg && <div className={`p-3 rounded-xl border text-xs font-bold ${msgBg}`}>{msg.text}</div>}
+      {msg && <div className={`p-3 rounded-lg border text-xs font-bold ${msgBg}`}>{msg.text}</div>}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* ──────────── Left Column: Step Content ──────────── */}
         <div className="space-y-4">
 
           {/* Step 0: Template */}
           {step === 0 && (
             <div className="space-y-4">
-              <div className="border border-border rounded-2xl bg-card p-6">
+              <div className="border-none rounded-lg bg-card p-4">
                 <div className="flex items-center gap-2 mb-1">
-                  <Sparkles className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" />
+                  <Sparkle weight="fill" className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" />
                   <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Choose a Template</h2>
                 </div>
                 <p className="text-[11px] text-muted-foreground mb-4">Full layouts with built-in colors — switch anytime. You can fine-tune in the Style step.</p>
@@ -369,10 +392,10 @@ export default function LinkInBioPage() {
                     const isActive = template === t.slug;
                     return (
                       <button key={t.slug} onClick={() => applyTemplate(t.slug)} disabled={saving}
-                        className={`relative rounded-xl border-2 transition-all overflow-hidden text-left ${
-                          isActive ? "border-[#2164b6] shadow-md" : "border-border hover:border-[#2164b6]/50"
+                        className={`relative rounded-lg border-2 transition-all overflow-hidden text-left ${
+                          isActive ? "border-[#2164b6] " : "border-border hover:border-[#2164b6]/50"
                         }`}>
-                        {isActive && <span className="absolute top-1.5 left-1.5 z-10 bg-[#2164b6] text-white rounded-full p-0.5"><Check className="h-3 w-3" /></span>}
+                        {isActive && <span className="absolute top-1.5 left-1.5 z-10 bg-[#2164b6] text-white rounded-full p-0.5"><Check weight="fill" className="h-3 w-3" /></span>}
                         <div className="p-2"><TemplateThumb template={t} /></div>
                         <div className="px-2.5 pb-2.5">
                           <p className="text-xs font-bold truncate text-foreground">{t.name}</p>
@@ -384,15 +407,15 @@ export default function LinkInBioPage() {
                 </div>
                 <div className="flex justify-end mt-4">
                   <Button size="sm" onClick={() => setStep(1)} className="text-xs font-bold">
-                    Customize <ChevronRight className="h-3 w-3 ml-1" />
+                    Customize <ChevronRight weight="fill" className="h-3 w-3 ml-1" />
                   </Button>
                 </div>
               </div>
 
               {/* Color presets */}
-              <div className="border border-border rounded-2xl bg-card p-6">
+              <div className="border-none rounded-lg bg-card p-4">
                 <div className="flex items-center gap-2 mb-1">
-                  <Palette className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" />
+                  <Palette weight="fill" className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" />
                   <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Color Presets</h2>
                 </div>
                 <p className="text-[11px] text-muted-foreground mb-4">Apply a preset palette on top of your chosen template.</p>
@@ -402,11 +425,11 @@ export default function LinkInBioPage() {
                     const isActive = selectedTheme === theme.id;
                     return (
                       <button key={theme.id} onClick={() => applyTheme(theme)} disabled={saving}
-                        className={`relative p-3 rounded-xl border-2 transition-all text-left overflow-hidden ${
-                          isActive ? "border-[#2164b6] shadow-md" : "border-border hover:border-[#2164b6]/50"
+                        className={`relative p-3 rounded-lg border-2 transition-all text-left overflow-hidden ${
+                          isActive ? "border-[#2164b6] " : "border-border hover:border-[#2164b6]/50"
                         }`} style={{ background: c.bg, color: c.text_color }}>
-                        {theme.is_premium && <span className="absolute top-1 right-1"><Crown className="h-3 w-3 text-amber-400" /></span>}
-                        {isActive && <span className="absolute top-1 left-1 bg-[#2164b6] text-white rounded-full p-0.5"><Check className="h-3 w-3" /></span>}
+                        {theme.is_premium && <span className="absolute top-1 right-1"><Crown weight="fill" className="h-3 w-3 text-amber-400" /></span>}
+                        {isActive && <span className="absolute top-1 left-1 bg-[#2164b6] text-white rounded-full p-0.5"><Check weight="fill" className="h-3 w-3" /></span>}
                         <div className="flex gap-1 mb-2">
                           <div className="w-4 h-4 rounded-full" style={{ background: c.bg, border: "1px solid rgba(0,0,0,0.1)" }} />
                           <div className="w-4 h-4 rounded-full" style={{ background: c.card_bg, border: "1px solid rgba(0,0,0,0.1)" }} />
@@ -424,7 +447,7 @@ export default function LinkInBioPage() {
 
           {/* Step 1: Style */}
           {step === 1 && (
-            <div className="border border-border rounded-2xl bg-card p-6 space-y-5">
+            <div className="border-none rounded-lg bg-card p-4 space-y-5">
               <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Customize Style</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {([
@@ -433,8 +456,8 @@ export default function LinkInBioPage() {
                 ] as const).map(([label, val, set]) => (
                   <div key={label} className="flex items-center gap-3">
                     <label className="text-xs font-bold text-muted-foreground w-20">{label}</label>
-                    <input type="color" value={val} onChange={(e) => set(e.target.value)} className="w-8 h-8 rounded-lg border border-border cursor-pointer shrink-0" />
-                    <input value={val} onChange={(e) => set(e.target.value)} className="flex-1 rounded-xl border border-border bg-card p-2 text-xs font-mono text-foreground" />
+                    <input type="color" value={val} onChange={(e) => set(e.target.value)} className="w-8 h-8 rounded-lg border-none cursor-pointer shrink-0" />
+                    <input value={val} onChange={(e) => set(e.target.value)} className="flex-1 rounded-lg border-none bg-card p-2 text-xs font-mono text-foreground" />
                   </div>
                 ))}
               </div>
@@ -470,9 +493,9 @@ export default function LinkInBioPage() {
                 </div>
               </div>
               <div className="flex justify-between">
-                <Button size="sm" variant="ghost" onClick={() => setStep(0)} className="text-xs font-bold"><ChevronLeft className="h-3 w-3 mr-1" /> Theme</Button>
+                <Button size="sm" variant="ghost" onClick={() => setStep(0)} className="text-xs font-bold"><ChevronLeft weight="fill" className="h-3 w-3 mr-1" /> Theme</Button>
                 <Button size="sm" onClick={async () => { await saveCustomDesign(); setStep(2); }} className="text-xs font-bold" disabled={saving}>
-                  {saving ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}Save & Next <ChevronRight className="h-3 w-3 ml-1" />
+                  {saving ? <Loader2 weight="fill" className="h-3 w-3 animate-spin mr-1" /> : null}Save & Next <ChevronRight weight="fill" className="h-3 w-3 ml-1" />
                 </Button>
               </div>
             </div>
@@ -480,12 +503,12 @@ export default function LinkInBioPage() {
 
           {/* Step 2: Profile */}
           {step === 2 && (
-            <div className="border border-border rounded-2xl bg-card overflow-hidden">
+            <div className="border-none rounded-lg bg-card overflow-hidden">
               <div className="h-32 sm:h-40 bg-gradient-to-br from-[#2164b6]/20 to-[#2164b6]/20 relative">
                 {bannerUrl && <img src={bannerUrl} alt="" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />}
                 <div className="absolute inset-0 flex items-end p-4">
-                  <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-card bg-muted shadow-md">
-                    {avatarUrl ? <img src={avatarUrl} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full bg-muted flex items-center justify-center"><Globe className="h-6 w-6 text-muted-foreground/50" /></div>}
+                  <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-card bg-muted ">
+                    {avatarUrl ? <img src={avatarUrl} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full bg-muted flex items-center justify-center"><Globe weight="fill" className="h-6 w-6 text-muted-foreground/50" /></div>}
                   </div>
                 </div>
               </div>
@@ -502,14 +525,14 @@ export default function LinkInBioPage() {
                 </div>
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-muted-foreground">Bio</label>
-                  <textarea value={profileBio} onChange={(e) => setProfileBio(e.target.value)} rows={2} className="w-full rounded-xl border border-border bg-card p-2.5 text-sm font-medium text-foreground placeholder:text-muted-foreground resize-none" placeholder="A short bio..." />
+                  <textarea value={profileBio} onChange={(e) => setProfileBio(e.target.value)} rows={2} className="w-full rounded-lg border-none bg-card p-2.5 text-sm font-medium text-foreground placeholder:text-muted-foreground resize-none" placeholder="A short bio..." />
                 </div>
                 <Button onClick={saveProfile} disabled={saving} className="text-sm font-bold w-full">
-                  {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}Save Profile
+                  {saving ? <Loader2 weight="fill" className="h-4 w-4 animate-spin mr-2" /> : null}Save Profile
                 </Button>
                 <div className="flex justify-between">
-                  <Button size="sm" variant="ghost" onClick={() => setStep(1)} className="text-xs font-bold"><ChevronLeft className="h-3 w-3 mr-1" /> Style</Button>
-                  <Button size="sm" onClick={() => setStep(3)} className="text-xs font-bold">Next: Links <ChevronRight className="h-3 w-3 ml-1" /></Button>
+                  <Button size="sm" variant="ghost" onClick={() => setStep(1)} className="text-xs font-bold"><ChevronLeft weight="fill" className="h-3 w-3 mr-1" /> Style</Button>
+                  <Button size="sm" onClick={() => setStep(3)} className="text-xs font-bold">Next: Links <ChevronRight weight="fill" className="h-3 w-3 ml-1" /></Button>
                 </div>
               </div>
             </div>
@@ -518,7 +541,7 @@ export default function LinkInBioPage() {
           {/* Step 3: Links */}
           {step === 3 && (
             <>
-              <form onSubmit={handleSave} className="border border-border rounded-2xl bg-card p-6 space-y-4">
+              <form onSubmit={handleSave} className="border-none rounded-lg bg-card p-4 space-y-4">
                 <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{editing ? "Edit Link" : "Add Link"}</h2>
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-muted-foreground">Title</label>
@@ -530,17 +553,17 @@ export default function LinkInBioPage() {
                 </div>
                 <div className="flex gap-2">
                   <Button type="submit" disabled={saving || !title.trim() || !url.trim()} className="text-sm font-bold">
-                    {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}{editing ? "Update" : "Add"}
+                    {saving ? <Loader2 weight="fill" className="h-4 w-4 animate-spin mr-2" /> : null}{editing ? "Update" : "Add"}
                   </Button>
                   {editing && <Button type="button" variant="ghost" onClick={resetForm} className="text-sm">Cancel</Button>}
                 </div>
               </form>
-              <div className="border border-border rounded-2xl bg-card overflow-hidden">
+              <div className="border-none rounded-lg bg-card overflow-hidden">
                 <div className="px-4 py-3 border-b border-border flex items-center justify-between">
                   <span className="text-xs font-bold text-foreground">All Links</span>
                 </div>
                 {links.length === 0 ? (
-                  <div className="p-12 text-center"><Link2 className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" /><p className="text-xs text-muted-foreground">No links added yet.</p></div>
+                  <div className="p-12 text-center"><Link weight="fill" className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" /><p className="text-xs text-muted-foreground">No links added yet.</p></div>
                 ) : (
                   <div className="divide-y divide-border/50">
                     {links.map((link, i) => (
@@ -558,16 +581,16 @@ export default function LinkInBioPage() {
                         </div>
                         </div>
                         <div className="flex gap-1 shrink-0">
-                          <Button size="sm" variant="ghost" className="h-7 text-[10px]" onClick={() => startEdit(link)}><Edit className="h-3 w-3" /></Button>
-                          <Button size="sm" variant="ghost" className="h-7 text-[10px] text-destructive" onClick={() => handleDelete(link.id)}><Trash2 className="h-3 w-3" /></Button>
+                          <Button size="sm" variant="ghost" className="h-7 text-[10px]" onClick={() => startEdit(link)}><Edit weight="fill" className="h-3 w-3" /></Button>
+                          <Button size="sm" variant="ghost" className="h-7 text-[10px] text-destructive" onClick={() => handleDelete(link.id)}><Trash2 weight="fill" className="h-3 w-3" /></Button>
                         </div>
                       </div>
                     ))}
                   </div>
                 )}
                 <div className="flex justify-between items-center p-4 border-t border-border">
-                  <Button size="sm" variant="ghost" onClick={() => setStep(2)} className="text-xs font-bold"><ChevronLeft className="h-3 w-3 mr-1" /> Profile</Button>
-                  <Button size="sm" onClick={() => setStep(4)} className="text-xs font-bold">Next: Social <ChevronRight className="h-3 w-3 ml-1" /></Button>
+                  <Button size="sm" variant="ghost" onClick={() => setStep(2)} className="text-xs font-bold"><ChevronLeft weight="fill" className="h-3 w-3 mr-1" /> Profile</Button>
+                  <Button size="sm" onClick={() => setStep(4)} className="text-xs font-bold">Next: Social <ChevronRight weight="fill" className="h-3 w-3 ml-1" /></Button>
                 </div>
               </div>
             </>
@@ -575,11 +598,11 @@ export default function LinkInBioPage() {
 
           {/* Step 4: Social */}
           {step === 4 && (
-            <div className="border border-border rounded-2xl bg-card p-6 space-y-4">
-              <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2"><Send className="h-3 w-3" /> Social Links</h2>
+            <div className="border-none rounded-lg bg-card p-4 space-y-4">
+              <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2"><Send weight="fill" className="h-3 w-3" /> Social Links</h2>
               <form onSubmit={handleSaveSocial} className="space-y-3">
                 <select value={socialPlatform} onChange={(e) => setSocialPlatform(e.target.value)}
-                  className="w-full rounded-xl border border-border bg-card p-2.5 text-xs font-medium text-foreground">
+                  className="w-full rounded-lg border-none bg-card p-2.5 text-xs font-medium text-foreground">
                   <option value="">Select platform</option>
                   {SOCIAL_PLATFORMS.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
                 </select>
@@ -588,41 +611,41 @@ export default function LinkInBioPage() {
                   <Button type="submit" disabled={saving || !socialPlatform || !socialUrl.trim()} size="sm" className="text-xs font-bold">
                     {editingSocial ? "Update" : "Add"}
                   </Button>
-                  {editingSocial && <Button type="button" variant="ghost" size="sm" onClick={resetSocialForm} className="text-xs"><X className="h-3 w-3" /></Button>}
+                  {editingSocial && <Button type="button" variant="ghost" size="sm" onClick={resetSocialForm} className="text-xs"><X weight="fill" className="h-3 w-3" /></Button>}
                 </div>
               </form>
               {socials.length > 0 && (
                 <div className="space-y-1.5">
                   {socials.map((s) => (
-                    <div key={s.id} className="flex items-center justify-between p-2 rounded-xl bg-muted/50">
+                    <div key={s.id} className="flex items-center justify-between p-2 rounded-lg bg-muted/50">
                       <div className="flex items-center gap-2 min-w-0">
                         <span className="text-xs font-bold text-muted-foreground capitalize shrink-0">{s.platform}</span>
                         <span className="text-[10px] text-muted-foreground truncate">{s.url}</span>
                       </div>
                       <div className="flex gap-1 shrink-0">
-                        <button onClick={() => { setEditingSocial(s); setSocialPlatform(s.platform); setSocialUrl(s.url); }} className="p-1 text-muted-foreground hover:text-foreground"><Edit className="h-3 w-3" /></button>
-                        <button onClick={() => handleDeleteSocial(s.id)} className="p-1 text-rose-400"><Trash2 className="h-3 w-3" /></button>
+                        <button onClick={() => { setEditingSocial(s); setSocialPlatform(s.platform); setSocialUrl(s.url); }} className="p-1 text-muted-foreground hover:text-foreground"><Edit weight="fill" className="h-3 w-3" /></button>
+                        <button onClick={() => handleDeleteSocial(s.id)} className="p-1 text-rose-400"><Trash2 weight="fill" className="h-3 w-3" /></button>
                       </div>
                     </div>
                   ))}
                 </div>
               )}
               <div className="flex justify-between">
-                <Button size="sm" variant="ghost" onClick={() => setStep(3)} className="text-xs font-bold"><ChevronLeft className="h-3 w-3 mr-1" /> Links</Button>
-                <Button size="sm" onClick={() => setStep(5)} className="text-xs font-bold">Next: Products <ChevronRight className="h-3 w-3 ml-1" /></Button>
+                <Button size="sm" variant="ghost" onClick={() => setStep(3)} className="text-xs font-bold"><ChevronLeft weight="fill" className="h-3 w-3 mr-1" /> Links</Button>
+                <Button size="sm" onClick={() => setStep(5)} className="text-xs font-bold">Next: Products <ChevronRight weight="fill" className="h-3 w-3 ml-1" /></Button>
               </div>
             </div>
           )}
 
           {/* Step 5: Products */}
           {step === 5 && (
-            <div className="border border-border rounded-2xl bg-card p-6 space-y-4">
+            <div className="border-none rounded-lg bg-card p-4 space-y-4">
               <div className="flex items-center justify-between">
-                <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2"><ShoppingCart className="h-3 w-3" /> Products</h2>
-                {!showProductForm && <Button size="sm" variant="ghost" onClick={() => setShowProductForm(true)} className="text-xs font-bold"><Plus className="h-3 w-3 mr-1" /> Add</Button>}
+                <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2"><ShoppingCart weight="fill" className="h-3 w-3" /> Products</h2>
+                {!showProductForm && <Button size="sm" variant="ghost" onClick={() => setShowProductForm(true)} className="text-xs font-bold"><Plus weight="fill" className="h-3 w-3 mr-1" /> Add</Button>}
               </div>
               {showProductForm && (
-                <form onSubmit={handleSaveProduct} className="space-y-3 border border-border rounded-xl p-4 bg-muted/30">
+                <form onSubmit={handleSaveProduct} className="space-y-3 border-none rounded-lg p-4 bg-muted/30">
                   <div className="grid grid-cols-2 gap-3">
                     <div className="col-span-2">
                       <label className="text-[10px] font-bold text-muted-foreground">Title</label>
@@ -630,19 +653,19 @@ export default function LinkInBioPage() {
                     </div>
                     <div className="col-span-2">
                       <label className="text-[10px] font-bold text-muted-foreground">Description</label>
-                      <textarea value={prodDesc} onChange={(e) => setProdDesc(e.target.value)} rows={2} className="w-full rounded-xl border border-border bg-card p-2.5 text-xs font-medium text-foreground placeholder:text-muted-foreground resize-none" />
+                      <textarea value={prodDesc} onChange={(e) => setProdDesc(e.target.value)} rows={2} className="w-full rounded-lg border-none bg-card p-2.5 text-xs font-medium text-foreground placeholder:text-muted-foreground resize-none" />
                     </div>
                     <div>
                       <label className="text-[10px] font-bold text-muted-foreground">Price</label>
                       <div className="flex gap-1">
-                        <select value={prodCurrency} onChange={(e) => setProdCurrency(e.target.value)} className="w-16 rounded-xl border border-border bg-card p-2 text-xs font-medium text-foreground">
+                        <select value={prodCurrency} onChange={(e) => setProdCurrency(e.target.value)} className="w-16 rounded-lg border-none bg-card p-2 text-xs font-medium text-foreground">
                           {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
                         </select>
                         <Input type="number" step="0.01" min="0" value={prodPrice} onChange={(e) => setProdPrice(e.target.value)} placeholder="0.00" required />
                       </div>
                     </div>
                     <div>
-                      <label className="text-[10px] font-bold text-muted-foreground">Type</label>
+                      <label className="text-[10px] font-bold text-muted-foreground">TextT</label>
                       <div className="flex gap-1">
                         <button type="button" onClick={() => setProdType("digital")} className={`flex-1 px-2 py-1.5 rounded-lg text-[10px] font-bold ${prodType === "digital" ? "bg-[#2164b6] text-white" : "bg-muted text-muted-foreground"}`}>Digital</button>
                         <button type="button" onClick={() => setProdType("physical")} className={`flex-1 px-2 py-1.5 rounded-lg text-[10px] font-bold ${prodType === "physical" ? "bg-[#2164b6] text-white" : "bg-muted text-muted-foreground"}`}>Physical</button>
@@ -658,7 +681,7 @@ export default function LinkInBioPage() {
                   </div>
                   <div className="flex gap-2 pt-1">
                     <Button type="submit" disabled={saving || !prodTitle.trim() || !prodPrice} size="sm" className="text-xs font-bold">
-                      {saving ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}{editingProd ? "Update" : "Add"} Product
+                      {saving ? <Loader2 weight="fill" className="h-3 w-3 animate-spin mr-1" /> : null}{editingProd ? "Update" : "Add"} Product
                     </Button>
                     <Button type="button" variant="ghost" size="sm" onClick={resetProductForm} className="text-xs">Cancel</Button>
                   </div>
@@ -667,15 +690,15 @@ export default function LinkInBioPage() {
               {products.length > 0 && (
                 <div className="space-y-1.5">
                   {products.map((p) => (
-                    <div key={p.id} className="flex items-center justify-between p-2 rounded-xl bg-muted/50">
+                    <div key={p.id} className="flex items-center justify-between p-2 rounded-lg bg-muted/50">
                       <div className="flex items-center gap-2 min-w-0">
                         {p.media_url ? <img src={p.media_url} alt="" className="w-8 h-8 rounded-lg object-cover shrink-0" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
-                          : <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center shrink-0"><Tag className="h-3 w-3 text-muted-foreground" /></div>}
+                          : <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center shrink-0"><Tag weight="fill" className="h-3 w-3 text-muted-foreground" /></div>}
                         <div className="min-w-0"><p className="text-xs font-bold truncate">{p.title}</p><p className="text-[10px] text-muted-foreground">{p.currency} {p.price} · {p.type}</p></div>
                       </div>
                       <div className="flex gap-1 shrink-0">
-                        <button onClick={() => startEditProduct(p)} className="p-1 text-muted-foreground hover:text-foreground"><Edit className="h-3 w-3" /></button>
-                        <button onClick={() => handleDeleteProduct(p.id)} className="p-1 text-rose-400"><Trash2 className="h-3 w-3" /></button>
+                        <button onClick={() => startEditProduct(p)} className="p-1 text-muted-foreground hover:text-foreground"><Edit weight="fill" className="h-3 w-3" /></button>
+                        <button onClick={() => handleDeleteProduct(p.id)} className="p-1 text-rose-400"><Trash2 weight="fill" className="h-3 w-3" /></button>
                       </div>
                     </div>
                   ))}
@@ -683,16 +706,16 @@ export default function LinkInBioPage() {
               )}
               {products.length === 0 && !showProductForm && <p className="text-xs text-muted-foreground text-center py-4">No products yet.</p>}
               <div className="flex">
-                <Button size="sm" variant="ghost" onClick={() => setStep(4)} className="text-xs font-bold"><ChevronLeft className="h-3 w-3 mr-1" /> Social</Button>
+                <Button size="sm" variant="ghost" onClick={() => setStep(4)} className="text-xs font-bold"><ChevronLeft weight="fill" className="h-3 w-3 mr-1" /> Social</Button>
               </div>
             </div>
           )}
         </div>
 
         {/* ──────────── Right Column: Preview ──────────── */}
-        <div className="border border-border rounded-2xl bg-card p-6">
+        <div className="border-none rounded-lg bg-card p-4">
           <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-4">Preview</h2>
-          <div className="mx-auto max-w-[320px] rounded-2xl shadow-sm transition-all duration-300 overflow-hidden max-h-[620px] overflow-y-auto">
+          <div className="mx-auto max-w-[320px] rounded-lg  transition-all duration-300 overflow-hidden max-h-[620px] overflow-y-auto">
             <TemplateRenderer
               data={{
                 username: "preview",

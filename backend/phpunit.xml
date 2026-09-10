@@ -33,5 +33,23 @@
         <env name="PULSE_ENABLED" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>
+        <env name="DEFAULT_CURRENCY" value="NGN"/>
+        <env name="AIRWALLEX_ENABLED" value="true"/>
+        <env name="AIRWALLEX_ENV" value="sandbox"/>
+        <env name="AIRWALLEX_CLIENT_ID" value="test_awx_client_id"/>
+        <env name="AIRWALLEX_API_KEY" value="test_awx_api_key"/>
+        <env name="AIRWALLEX_WEBHOOK_SECRET" value="test_awx_webhook_secret"/>
+        <env name="PAYSTACK_ENABLED" value="true"/>
+        <env name="PAYSTACK_ENV" value="test"/>
+        <env name="PAYSTACK_PUBLIC_KEY" value="pk_test_sample"/>
+        <env name="PAYSTACK_SECRET_KEY" value="sk_test_sample"/>
+        <env name="FLUTTERWAVE_ENABLED" value="true"/>
+        <env name="FLUTTERWAVE_ENV" value="sandbox"/>
+        <env name="FLUTTERWAVE_PUBLIC_KEY" value="FLWPUBK_TEST-sample"/>
+        <env name="FLUTTERWAVE_SECRET_KEY" value="FLWSECK_TEST-sample"/>
+        <env name="FLUTTERWAVE_ENCRYPTION_KEY" value="FLWSECK_TEST_enc"/>
+        <env name="FLUTTERWAVE_WEBHOOK_SECRET_HASH" value="flw_sample_hash"/>
+        <env name="PAYMENT_WEBHOOK_TOLERANCE" value="300"/>
+        <env name="PAYMENT_WEBHOOK_QUEUE" value="sync"/>
     </php>
 </phpunit>

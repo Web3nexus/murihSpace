@@ -27,91 +27,104 @@ import {
   SidebarMenuItem,
   SidebarProvider,
 } from "@/components/ui/sidebar"
-import { BellIcon, MenuIcon, HomeIcon, PaintbrushIcon, MessageCircleIcon, GlobeIcon, KeyboardIcon, CheckIcon, VideoIcon, LinkIcon, LockIcon, SettingsIcon } from "lucide-react"
+import {
+  Bell as BellIcon,
+  List as MenuIcon,
+  House as HomeIcon,
+  PaintBrush as PaintbrushIcon,
+  ChatCircle as MessageCircleIcon,
+  Globe as GlobeIcon,
+  Keyboard as KeyboardIcon,
+  Check as CheckIcon,
+  VideoCamera as VideoIcon,
+  Link as LinkIcon,
+  Lock as LockIcon,
+  Gear as SettingsIcon
+} from "@phosphor-icons/react";
 
 const data = {
   nav: [
     {
       name: "Notifications",
       icon: (
-        <BellIcon
+        <BellIcon weight="fill"
         />
       ),
     },
     {
       name: "Navigation",
       icon: (
-        <MenuIcon
+        <MenuIcon weight="fill"
         />
       ),
     },
     {
       name: "Home",
       icon: (
-        <HomeIcon
+        <HomeIcon weight="fill"
         />
       ),
     },
     {
       name: "Appearance",
       icon: (
-        <PaintbrushIcon
+        <PaintbrushIcon weight="fill"
         />
       ),
     },
     {
       name: "Messages & media",
       icon: (
-        <MessageCircleIcon
+        <MessageCircleIcon weight="fill"
         />
       ),
     },
     {
       name: "Language & region",
       icon: (
-        <GlobeIcon
+        <GlobeIcon weight="fill"
         />
       ),
     },
     {
       name: "Accessibility",
       icon: (
-        <KeyboardIcon
+        <KeyboardIcon weight="fill"
         />
       ),
     },
     {
       name: "Mark as read",
       icon: (
-        <CheckIcon
+        <CheckIcon weight="fill"
         />
       ),
     },
     {
       name: "Audio & video",
       icon: (
-        <VideoIcon
+        <VideoIcon weight="fill"
         />
       ),
     },
     {
       name: "Connected accounts",
       icon: (
-        <LinkIcon
+        <LinkIcon weight="fill"
         />
       ),
     },
     {
       name: "Privacy & visibility",
       icon: (
-        <LockIcon
+        <LockIcon weight="fill"
         />
       ),
     },
     {
       name: "Advanced",
       icon: (
-        <SettingsIcon
+        <SettingsIcon weight="fill"
         />
       ),
     },
@@ -176,7 +189,7 @@ export function SettingsDialog() {
               {Array.from({ length: 10 }).map((_, i) => (
                 <div
                   key={i}
-                  className="aspect-video max-w-3xl rounded-xl bg-muted/50"
+                  className="aspect-video max-w-3xl rounded-lg bg-muted/50"
                 />
               ))}
             </div>

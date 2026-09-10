@@ -1,6 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useConfirm } from '@/components/ui/DialogProvider';
-import { Award, MessageSquare, Loader2, CheckCircle2, XCircle, Trash2, AlertCircle } from 'lucide-react';
+import {
+  Medal as Award,
+  ChatTeardropText as MessageSquare,
+  Spinner as Loader2,
+  CheckCircle as CheckCircle2,
+  XCircle as XCircle,
+  Trash as Trash2,
+  WarningCircle as AlertCircle
+} from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { authFetch } from "@/lib/api/authFetch";
 
@@ -20,7 +28,7 @@ function StarDisplay({ rating, size = 14 }: { rating: number; size?: number }) {
   return (
     <div className="flex gap-0.5">
       {[1, 2, 3, 4, 5].map(s => (
-        <Award key={s} size={size} className={s <= rating ? 'text-amber-400 fill-amber-400' : 'text-muted-foreground'} />
+        <Award weight="fill" key={s} size={size} className={s <= rating ? 'text-amber-400 fill-amber-400' : 'text-muted-foreground'} />
       ))}
     </div>
   );
@@ -67,30 +75,30 @@ export function AdminReviewsPage() {
     } catch { setMessage({ type: 'error', text: 'Network error.' }); }
   }
 
-  if (isLoading) return <div className="w-full flex items-center justify-center h-64"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>;
+  if (isLoading) return <div className="w-full flex items-center justify-center h-64"><Loader2 weight="fill" className="w-6 h-6 animate-spin text-primary" /></div>;
 
   const counts = { all: reviews.length, pending: reviews.filter(r => !r.is_approved).length, approved: reviews.filter(r => r.is_approved).length };
   const filtered = reviews;
 
   return (
-    <div className="w-full mx-auto max-w-[1400px] space-y-6 p-6 lg:p-10">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 sm:p-8 rounded-2xl bg-gradient-to-br from-[#102840] via-[#173852] to-[#102840] text-white shadow-lg">
+    <div className="w-full mx-auto max-w-[1400px] space-y-6 p-4 lg:p-10">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 sm:p-5 rounded-lg bg-gradient-to-br from-[#102840] via-[#173852] to-[#102840] text-white shadow-lg">
         <div className="space-y-1.5">
           <span className="px-2.5 py-0.5 rounded-full bg-[#2164b6]/20 text-[#2164b6] dark:text-[#7ab0ff] text-xs font-semibold uppercase tracking-wider border border-[#2164b6]/30">Admin</span>
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">Review Moderation</h1>
+          <h1 className="text-xl sm:text-xl font-extrabold tracking-tight">Review Moderation</h1>
           <p className="text-sm text-white/70 max-w-xl">Approve, reject, or remove product reviews.</p>
         </div>
       </div>
 
       {fetchError && (
-        <div className="flex items-center gap-2 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-xs text-destructive">
-          <AlertCircle className="h-4 w-4 shrink-0" /> {fetchError}
+        <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-xs text-destructive">
+          <AlertCircle weight="fill" className="h-4 w-4 shrink-0" /> {fetchError}
           <button onClick={() => { setIsLoading(true); fetchReviews(); }} className="ml-auto text-muted-foreground hover:text-foreground font-bold">Retry</button>
         </div>
       )}
 
       {message && (
-        <div className={`px-4 py-3 rounded-xl text-sm flex items-center gap-2 border ${
+        <div className={`px-4 py-3 rounded-lg text-sm flex items-center gap-2 border ${
           message.type === 'success' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border-rose-500/20'
         }`}>{message.text}</div>
       )}
@@ -106,19 +114,19 @@ export function AdminReviewsPage() {
       </div>
 
       {filtered.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-border p-12 text-center space-y-3 bg-card">
-          <MessageSquare className="h-10 w-10 text-muted-foreground/30 mx-auto" />
+        <div className="rounded-lg border border-dashed border-border p-12 text-center space-y-3 bg-card">
+          <MessageSquare weight="fill" className="h-10 w-10 text-muted-foreground/30 mx-auto" />
           <h3 className="text-base font-semibold text-foreground">No reviews</h3>
           <p className="text-xs text-muted-foreground">No {filter !== 'all' ? filter : ''} reviews to moderate.</p>
         </div>
       ) : (
         <div className="space-y-3">
           {filtered.map(r => (
-            <div key={r.id} className="rounded-2xl border border-border bg-card overflow-hidden shadow-xs hover:shadow-md transition-all duration-200 p-5">
+            <div key={r.id} className="rounded-lg border-none bg-card overflow-hidden  hover: transition-all duration-200 p-5">
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3 min-w-0 flex-1">
-                  <div className="w-10 h-10 bg-muted rounded-xl flex items-center justify-center overflow-hidden flex-shrink-0">
-                    {r.product?.images?.[0] ? <img src={r.product.images[0]} alt="" className="w-full h-full object-cover" /> : <MessageSquare className="w-5 h-5 text-muted-foreground" />}
+                  <div className="w-10 h-10 bg-muted rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
+                    {r.product?.images?.[0] ? <img src={r.product.images[0]} alt="" className="w-full h-full object-cover" /> : <MessageSquare weight="fill" className="w-5 h-5 text-muted-foreground" />}
                   </div>
                   <div className="min-w-0">
                     <p className="font-medium text-sm text-foreground truncate">{r.product?.title ?? 'Product #' + r.physical_product_id}</p>
@@ -133,10 +141,10 @@ export function AdminReviewsPage() {
                 </div>
                 <div className="flex items-center gap-1 shrink-0 ml-4">
                   <Button variant="ghost" size="icon" onClick={() => toggleApprove(r.id)} title={r.is_approved ? 'Unapprove' : 'Approve'}>
-                    {r.is_approved ? <XCircle className="h-4 w-4 text-amber-500" /> : <CheckCircle2 className="h-4 w-4 text-emerald-500" />}
+                    {r.is_approved ? <XCircle className="h-4 w-4 text-amber-500" /> : <CheckCircle2 weight="fill" className="h-4 w-4 text-emerald-500" />}
                   </Button>
                   <Button variant="ghost" size="icon" onClick={() => deleteReview(r.id)} title="Delete">
-                    <Trash2 className="h-4 w-4 text-destructive" />
+                    <Trash2 weight="fill" className="h-4 w-4 text-destructive" />
                   </Button>
                 </div>
               </div>
@@ -150,9 +158,9 @@ export function AdminReviewsPage() {
 
       {lastPage > 1 && (
         <div className="flex items-center justify-center gap-2 pt-4">
-          <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1} className="px-3 py-1.5 rounded-lg text-xs font-bold border border-border bg-card hover:bg-muted disabled:opacity-40">Previous</button>
+          <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1} className="px-3 py-1.5 rounded-lg text-xs font-bold border-none bg-card hover:bg-muted disabled:opacity-40">Previous</button>
           <span className="text-xs text-muted-foreground">Page {page} of {lastPage}</span>
-          <button onClick={() => setPage(p => Math.min(lastPage, p + 1))} disabled={page >= lastPage} className="px-3 py-1.5 rounded-lg text-xs font-bold border border-border bg-card hover:bg-muted disabled:opacity-40">Next</button>
+          <button onClick={() => setPage(p => Math.min(lastPage, p + 1))} disabled={page >= lastPage} className="px-3 py-1.5 rounded-lg text-xs font-bold border-none bg-card hover:bg-muted disabled:opacity-40">Next</button>
         </div>
       )}
     </div>

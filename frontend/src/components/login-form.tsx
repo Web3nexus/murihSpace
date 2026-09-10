@@ -10,7 +10,9 @@ import {
   FieldSeparator,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
-import { GalleryVerticalEndIcon } from "lucide-react"
+import {
+  Cards as GalleryVerticalEndIcon
+} from "@phosphor-icons/react";
 import { Link } from "react-router"
 
 export function LoginForm({
@@ -18,13 +20,13 @@ export function LoginForm({
   ...props
 }: React.ComponentProps<"div">) {
   return (
-    <div className={cn("flex flex-col gap-6", className)} {...props}>
+    <div className={cn("flex flex-col gap-4", className)} {...props}>
       <form>
         <FieldGroup>
           <div className="flex flex-col items-center gap-2 text-center">
             <div className="flex flex-col items-center gap-2 font-medium">
               <div className="flex size-8 items-center justify-center rounded-md">
-                <GalleryVerticalEndIcon className="size-6" />
+                <GalleryVerticalEndIcon weight="fill" className="size-6" />
               </div>
               <span className="sr-only">Acme Inc.</span>
             </div>

@@ -3,13 +3,13 @@ import { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router";
 import { AnimatedPage } from "@/components/common/AnimatedPage";
 import {
-  Search,
-  Users,
-  Globe,
-  ArrowRight,
-  Loader2,
-  Sparkles,
-} from "lucide-react";
+  MagnifyingGlass as Search,
+  Users as Users,
+  Globe as Globe,
+  ArrowRight as ArrowRight,
+  Spinner as Loader2,
+  Sparkle as Sparkle
+} from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 
 
@@ -101,7 +101,7 @@ export function PublicCommunitiesPage() {
             </Link>
             <Link to="/register">
               <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90 font-semibold gap-1">
-                Get Started <ArrowRight className="h-4 w-4" />
+                Get Started <ArrowRight weight="fill" className="h-4 w-4" />
               </Button>
             </Link>
           </div>
@@ -109,14 +109,14 @@ export function PublicCommunitiesPage() {
       </header>
 
       {/* Hero Banner */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-[#2164b6] via-[#1a5091] to-[#1a5091] px-6 py-16 text-white text-center">
+      <section className="relative overflow-hidden bg-[#1877f2] px-6 py-16 text-white text-center">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(255,255,255,0.08),transparent)] pointer-events-none" />
         <div className="relative max-w-2xl mx-auto space-y-4">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-white/20 bg-white/10 text-white/90 text-xs font-semibold backdrop-blur-sm">
-            <Sparkles className="h-3.5 w-3.5" />
+            <Sparkle weight="fill" className="h-3.5 w-3.5" />
             Public Communities
           </div>
-          <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight">
+          <h1 className="text-xl md:text-xl font-extrabold tracking-tight">
             Discover Communities to Join
           </h1>
           <p className="text-sm md:text-base text-white/80 max-w-xl mx-auto leading-relaxed">
@@ -126,16 +126,16 @@ export function PublicCommunitiesPage() {
       </section>
 
       {/* Search Bar */}
-      <div className="bg-card border-b border-border px-6 py-4 shadow-sm">
+      <div className="bg-card border-b border-border px-6 py-4 ">
         <div className="max-w-3xl mx-auto relative">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+          <Search weight="fill" className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
           <input
             id="community-search"
             type="text"
             placeholder="Search communities by name or description…"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 h-11 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-[#2164b6]/40 transition-shadow"
+            className="w-full pl-10 pr-4 h-11 rounded-lg border-none bg-background text-sm focus:outline-none focus:ring-2 focus:ring-[#2164b6]/40 transition-shadow"
           />
         </div>
       </div>
@@ -145,12 +145,12 @@ export function PublicCommunitiesPage() {
         <div className="max-w-7xl mx-auto">
           {isLoading ? (
             <div className="flex items-center justify-center py-24">
-              <Loader2 className="h-8 w-8 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" />
+              <Loader2 weight="fill" className="h-8 w-8 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" />
             </div>
           ) : communities.length === 0 ? (
             <div className="flex flex-col items-center justify-center min-h-[320px] px-6 text-center gap-4">
               <div className="p-4 rounded-full bg-muted">
-                <Users className="h-10 w-10 text-muted-foreground" />
+                <Users weight="fill" className="h-10 w-10 text-muted-foreground" />
               </div>
               <h3 className="text-lg font-semibold text-foreground">No communities found</h3>
               <p className="text-sm text-muted-foreground max-w-md">
@@ -177,7 +177,7 @@ export function PublicCommunitiesPage() {
                 {communities.map((community) => (
                   <div
                     key={community.id}
-                    className="group rounded-2xl border border-border bg-card overflow-hidden shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5"
+                    className="group rounded-lg border-none bg-card overflow-hidden  hover: transition-all hover:-translate-y-0.5"
                   >
                     {/* Banner */}
                     <div
@@ -194,12 +194,12 @@ export function PublicCommunitiesPage() {
                           <img
                             src={community.logo_url}
                             alt={community.name}
-                            className="h-12 w-12 rounded-xl object-cover border-2 border-white shadow-md"
+                            className="h-12 w-12 rounded-lg object-cover border-2 border-white "
                           />
                         </div>
                       )}
                       {!community.logo_url && (
-                        <div className="absolute -bottom-5 left-4 h-12 w-12 rounded-xl bg-white dark:bg-card border-2 border-white shadow-md flex items-center justify-center text-[#2164b6] dark:text-[#7ab0ff] font-black text-xl">
+                        <div className="absolute -bottom-5 left-4 h-12 w-12 rounded-lg bg-white dark:bg-card border-2 border-white  flex items-center justify-center text-[#2164b6] dark:text-[#7ab0ff] font-black text-xl">
                           {community.name.charAt(0).toUpperCase()}
                         </div>
                       )}
@@ -229,15 +229,15 @@ export function PublicCommunitiesPage() {
 
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                          <Globe className="h-3.5 w-3.5 text-[#2164b6] dark:text-[#7ab0ff]" />
+                          <Globe weight="fill" className="h-3.5 w-3.5 text-[#2164b6] dark:text-[#7ab0ff]" />
                           <span className="flex items-center gap-1">
-                            <Users className="h-3 w-3" />
+                            <Users weight="fill" className="h-3 w-3" />
                             <span className="font-semibold text-foreground">{community.member_count.toLocaleString()}</span> members
                           </span>
                         </div>
                         <Link to={`/login?redirect=/app/communities/${community.slug}`}>
                           <button className="px-3 py-1.5 rounded-lg bg-[#2164b6] hover:bg-[#1a5091] text-white text-[11px] font-bold transition-colors flex items-center gap-1">
-                            Join <ArrowRight className="h-3 w-3" />
+                            Join <ArrowRight weight="fill" className="h-3 w-3" />
                           </button>
                         </Link>
                       </div>
@@ -290,7 +290,7 @@ export function PublicCommunitiesPage() {
           </p>
           <Link to="/register">
             <Button className="bg-white text-[#2164b6] dark:text-[#7ab0ff] hover:bg-white/90 font-bold gap-2 mt-2">
-              Create a Community <ArrowRight className="h-4 w-4" />
+              Create a Community <ArrowRight weight="fill" className="h-4 w-4" />
             </Button>
           </Link>
         </div>
@@ -300,7 +300,7 @@ export function PublicCommunitiesPage() {
       <footer className="border-t border-border bg-card px-6 py-6">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-muted-foreground">
           <span className="font-bold text-foreground">MurihSpace</span>
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-4">
             <Link to="/" className="hover:text-foreground">Home</Link>
             <Link to="/login" className="hover:text-foreground">Sign In</Link>
             <Link to="/register" className="hover:text-foreground font-semibold text-[#2164b6] dark:text-[#7ab0ff]">Get Started</Link>

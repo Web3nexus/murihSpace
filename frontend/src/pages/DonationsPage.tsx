@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  Gift,
-  Heart,
-  Send,
-  Loader2,
-  AlertCircle,
-  CheckCircle2,
-} from 'lucide-react';
+  Gift as Gift,
+  Heart as Heart,
+  PaperPlaneRight as Send,
+  Spinner as Loader2,
+  WarningCircle as AlertCircle,
+  CheckCircle as CheckCircle2
+} from "@phosphor-icons/react";
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -103,18 +103,18 @@ export function DonationsPage() {
   if (isLoading) {
     return (
       <div className="w-full flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-secondary" />
+        <Loader2 weight="fill" className="h-8 w-8 animate-spin text-secondary" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 w-full max-w-7xl mx-auto p-6 lg:p-8">
+    <div className="space-y-6 w-full max-w-7xl mx-auto p-4 lg:p-5">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-black text-foreground tracking-tight flex items-center gap-2.5">
-            <Heart className="h-6 w-6 text-rose-500" />
+          <h1 className="text-xl font-black text-foreground tracking-tight flex items-center gap-2.5">
+            <Heart weight="fill" className="h-6 w-6 text-rose-500" />
             Tips & Donations
           </h1>
           <p className="text-xs text-muted-foreground mt-1">
@@ -122,7 +122,7 @@ export function DonationsPage() {
           </p>
         </div>
         <Button onClick={() => { setShowSend(true); setActionMessage(null); }} className="text-xs font-bold gap-1.5">
-          <Send className="h-4 w-4" /> Send a Tip
+          <Send weight="fill" className="h-4 w-4" /> Send a Tip
         </Button>
       </div>
 
@@ -132,8 +132,8 @@ export function DonationsPage() {
           { label: 'Received (this page)', value: formatAmount(stats.totalReceived), sub: `${stats.countReceived} tips`, icon: Heart, color: 'text-rose-600 bg-rose-100 dark:text-rose-400 dark:bg-rose-950' },
           { label: 'Sent (this page)', value: formatAmount(stats.totalSent), sub: `${stats.countSent} tips`, icon: Gift, color: 'text-blue-600 bg-blue-100 dark:text-blue-400 dark:bg-blue-950' },
         ].map((m) => (
-          <div key={m.label} className="border border-border rounded-2xl bg-card p-4 shadow-sm flex items-center gap-4">
-            <div className={`p-2.5 rounded-xl ${m.color} shrink-0`}>
+          <div key={m.label} className="border-none rounded-lg bg-card p-4  flex items-center gap-4">
+            <div className={`p-2.5 rounded-lg ${m.color} shrink-0`}>
               <m.icon className="h-5 w-5" />
             </div>
             <div>
@@ -163,7 +163,7 @@ export function DonationsPage() {
       {/* Donations List */}
       {(tab === 'received' ? receivedDonations : sentDonations).length === 0 ? (
         <div className="p-12 text-center border border-dashed border-border rounded-3xl bg-card space-y-3">
-          <Gift className="h-10 w-10 text-muted-foreground/30 mx-auto" />
+          <Gift weight="fill" className="h-10 w-10 text-muted-foreground/30 mx-auto" />
           <h3 className="text-sm font-bold text-foreground">No {tab} donations yet</h3>
           <p className="text-xs text-muted-foreground max-w-sm mx-auto">
             {tab === 'received'
@@ -172,13 +172,13 @@ export function DonationsPage() {
           </p>
         </div>
       ) : (
-        <div className="border border-border rounded-2xl bg-card overflow-hidden shadow-sm">
+        <div className="border-none rounded-lg bg-card overflow-hidden ">
           <div className="divide-y divide-border/50">
             {(tab === 'received' ? receivedDonations : sentDonations).map((donation) => (
               <div key={donation.id} className="flex items-center justify-between px-4 py-3.5 hover:bg-muted/10 transition-colors">
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="p-2 rounded-xl bg-rose-100 text-rose-600 dark:bg-rose-950 dark:text-rose-400 shrink-0">
-                    <Heart className="h-4 w-4" />
+                  <div className="p-2 rounded-lg bg-rose-100 text-rose-600 dark:bg-rose-950 dark:text-rose-400 shrink-0">
+                    <Heart weight="fill" className="h-4 w-4" />
                   </div>
                   <div className="min-w-0">
                     <p className="text-sm font-bold text-foreground truncate">
@@ -206,25 +206,25 @@ export function DonationsPage() {
 
       {tab === 'received' && recvLastPage > 1 && (
         <div className="flex items-center justify-center gap-2 pt-4">
-          <button onClick={() => setRecvPage(p => Math.max(1, p - 1))} disabled={recvPage <= 1} className="px-3 py-1.5 rounded-lg text-xs font-bold border border-border bg-card hover:bg-muted disabled:opacity-40">Previous</button>
+          <button onClick={() => setRecvPage(p => Math.max(1, p - 1))} disabled={recvPage <= 1} className="px-3 py-1.5 rounded-lg text-xs font-bold border-none bg-card hover:bg-muted disabled:opacity-40">Previous</button>
           <span className="text-xs text-muted-foreground">Page {recvPage} of {recvLastPage}</span>
-          <button onClick={() => setRecvPage(p => Math.min(recvLastPage, p + 1))} disabled={recvPage >= recvLastPage} className="px-3 py-1.5 rounded-lg text-xs font-bold border border-border bg-card hover:bg-muted disabled:opacity-40">Next</button>
+          <button onClick={() => setRecvPage(p => Math.min(recvLastPage, p + 1))} disabled={recvPage >= recvLastPage} className="px-3 py-1.5 rounded-lg text-xs font-bold border-none bg-card hover:bg-muted disabled:opacity-40">Next</button>
         </div>
       )}
       {tab === 'sent' && sentLastPage > 1 && (
         <div className="flex items-center justify-center gap-2 pt-4">
-          <button onClick={() => setSentPage(p => Math.max(1, p - 1))} disabled={sentPage <= 1} className="px-3 py-1.5 rounded-lg text-xs font-bold border border-border bg-card hover:bg-muted disabled:opacity-40">Previous</button>
+          <button onClick={() => setSentPage(p => Math.max(1, p - 1))} disabled={sentPage <= 1} className="px-3 py-1.5 rounded-lg text-xs font-bold border-none bg-card hover:bg-muted disabled:opacity-40">Previous</button>
           <span className="text-xs text-muted-foreground">Page {sentPage} of {sentLastPage}</span>
-          <button onClick={() => setSentPage(p => Math.min(sentLastPage, p + 1))} disabled={sentPage >= sentLastPage} className="px-3 py-1.5 rounded-lg text-xs font-bold border border-border bg-card hover:bg-muted disabled:opacity-40">Next</button>
+          <button onClick={() => setSentPage(p => Math.min(sentLastPage, p + 1))} disabled={sentPage >= sentLastPage} className="px-3 py-1.5 rounded-lg text-xs font-bold border-none bg-card hover:bg-muted disabled:opacity-40">Next</button>
         </div>
       )}
 
       {/* Send Donation Dialog */}
       <Dialog open={showSend} onOpenChange={() => { setShowSend(false); setActionMessage(null); }}>
-        <DialogContent className="sm:max-w-lg md:max-w-xl bg-card border-border shadow-2xl rounded-2xl p-6 sm:p-8">
+        <DialogContent className="sm:max-w-lg md:max-w-xl bg-card border-border shadow-2xl rounded-lg p-4 sm:p-5">
           <DialogHeader>
             <DialogTitle className="text-base font-bold text-foreground flex items-center gap-2">
-              <Gift className="h-5 w-5 text-rose-500" /> Send a Tip
+              <Gift weight="fill" className="h-5 w-5 text-rose-500" /> Send a Tip
             </DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground">
               Support a creator or community member with a direct tip.
@@ -232,10 +232,10 @@ export function DonationsPage() {
           </DialogHeader>
 
           {actionMessage && (
-            <div className={`p-3 rounded-xl text-xs font-bold flex items-center gap-2 ${
+            <div className={`p-3 rounded-lg text-xs font-bold flex items-center gap-2 ${
               actionMessage.type === 'success' ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20' : 'bg-destructive/10 text-destructive border border-destructive/20'
             }`}>
-              {actionMessage.type === 'success' ? <CheckCircle2 className="h-4 w-4 shrink-0" /> : <AlertCircle className="h-4 w-4 shrink-0" />}
+              {actionMessage.type === 'success' ? <CheckCircle2 className="h-4 w-4 shrink-0" /> : <AlertCircle weight="fill" className="h-4 w-4 shrink-0" />}
               {actionMessage.text}
             </div>
           )}
@@ -250,7 +250,7 @@ export function DonationsPage() {
             </label>
             <Input name="pin" type="password" maxLength={4} inputMode="numeric" placeholder="Transaction PIN" required className="text-sm" />
             <Button type="submit" disabled={isSubmitting} className="w-full text-sm font-bold">
-              {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              {isSubmitting ? <Loader2 weight="fill" className="h-4 w-4 animate-spin mr-2" /> : null}
               Send Tip
             </Button>
           </form>

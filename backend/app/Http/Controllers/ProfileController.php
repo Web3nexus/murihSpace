@@ -23,15 +23,24 @@ class ProfileController extends Controller
             'role' => $user->role,
             'bio' => $user->bio,
             'avatar' => $user->avatar,
+            'avatar_url' => $user->avatar_url ?? $user->avatar,
+            'banner_url' => $user->banner_url ?? null,
             'country' => $user->country,
             'county' => $user->county,
             'state' => $user->state,
             'mobile_number' => $user->mobile_number,
+            'phone' => $user->mobile_number,
+            'birthday' => $user->birthday?->format('Y-m-d'),
             'kyc_status' => $user->kyc_status,
             'kyc_document' => $user->kyc_document,
             'kyc_rejection_reason' => $user->kyc_rejection_reason,
             'has_active_verification_badge' => $user->hasActiveVerificationBadge(),
             'email_verified' => $user->hasVerifiedEmail(),
+            'posts_count' => $user->posts()->count(),
+            'followers_count' => $user->followers()->count(),
+            'following_count' => $user->follows()->count(),
+            'communities_count' => $user->communities()->count(),
+            'coins' => $user->wallet?->coin_balance ?? 0,
             'created_at' => $user->created_at?->toISOString(),
         ]);
     }
@@ -43,16 +52,28 @@ class ProfileController extends Controller
     {
         $user = $request->user();
 
+        if ($request->filled('phone') && ! $request->filled('mobile_number')) {
+            $request->merge(['mobile_number' => $request->input('phone')]);
+        }
+
         $validated = $request->validate([
             'name' => ['sometimes', 'required', 'string', 'max:255'],
-            'username' => ['sometimes', 'required', 'string', 'min:3', 'max:255', Rule::unique('users')->ignore($user->id)],
+            'username' => ['sometimes', 'required', 'string', 'min:3', 'max:50', 'regex:/\A[a-zA-Z0-9_]+\z/', Rule::unique('users')->ignore($user->id)],
             'bio' => ['nullable', 'string', 'max:1000'],
             'avatar' => ['nullable', 'string', 'max:2048'],
+            'banner_url' => ['nullable', 'string', 'max:2048'],
             'country' => ['nullable', 'string', 'max:255'],
             'county' => ['nullable', 'string', 'max:255'],
             'state' => ['nullable', 'string', 'max:255'],
             'mobile_number' => ['nullable', 'string', 'max:255'],
+            'phone' => ['nullable', 'string', 'max:255'],
+            'birthday' => ['nullable', 'date', 'before:today'],
         ]);
+
+        if (isset($validated['phone']) && ! isset($validated['mobile_number'])) {
+            $validated['mobile_number'] = $validated['phone'];
+        }
+        unset($validated['phone']);
 
         $user->update($validated);
 
@@ -64,12 +85,21 @@ class ProfileController extends Controller
             'role' => $user->role,
             'bio' => $user->bio,
             'avatar' => $user->avatar,
+            'avatar_url' => $user->avatar_url ?? $user->avatar,
+            'banner_url' => $user->banner_url,
             'country' => $user->country,
             'county' => $user->county,
             'state' => $user->state,
             'mobile_number' => $user->mobile_number,
+            'phone' => $user->mobile_number,
+            'birthday' => $user->birthday?->format('Y-m-d'),
             'kyc_status' => $user->kyc_status,
             'email_verified' => $user->hasVerifiedEmail(),
+            'posts_count' => $user->posts()->count(),
+            'followers_count' => $user->followers()->count(),
+            'following_count' => $user->follows()->count(),
+            'communities_count' => $user->communities()->count(),
+            'coins' => $user->wallet?->coin_balance ?? 0,
         ]);
     }
 
@@ -80,17 +110,42 @@ class ProfileController extends Controller
     {
         $user = $request->user();
 
-        $validated = $request->validate([
-            'kyc_document' => ['required', 'string', 'max:2048'],
-        ]);
+        $documentData = $request->input('kyc_document');
+        if (is_array($documentData)) {
+            $docString = json_encode($documentData);
+        } elseif (is_string($documentData)) {
+            $docString = $documentData;
+        } else {
+            // Check for individual document fields
+            $fields = $request->only([
+                'document_type',
+                'id_number',
+                'full_legal_name',
+                'country',
+                'expiry_date',
+                'front_url',
+                'back_url',
+                'selfie_url',
+            ]);
+            $docString = !empty(array_filter($fields)) ? json_encode($fields) : null;
+        }
+
+        if (empty($docString)) {
+            return response()->json([
+                'message' => 'The kyc_document field or document details are required.',
+                'errors' => ['kyc_document' => ['Document submission details are required.']],
+            ], 422);
+        }
 
         $user->update([
-            'kyc_document' => $validated['kyc_document'],
+            'kyc_document' => $docString,
             'kyc_status' => 'pending',
             'kyc_rejection_reason' => null,
         ]);
 
         return response()->json([
+            'success' => true,
+            'message' => 'KYC verification submitted successfully and is pending review.',
             'kyc_status' => $user->kyc_status,
             'kyc_document' => $user->kyc_document,
         ]);
@@ -123,26 +178,63 @@ class ProfileController extends Controller
 
     public function deleteAccount(Request $request): JsonResponse
     {
-        $request->validate([
-            'password' => ['required', 'current_password'],
-        ]);
-
         $user = $request->user();
+
+        // If user has a password set, require password or explicit DELETE confirmation
+        if ($user->password) {
+            if ($request->filled('password')) {
+                $request->validate([
+                    'password' => ['required', 'current_password'],
+                ]);
+            } else {
+                $request->validate([
+                    'confirmation' => ['required', 'string', 'in:DELETE,delete'],
+                ]);
+            }
+        } else {
+            // Passwordless (phone OTP / OAuth) users confirm via confirmation keyword
+            $request->validate([
+                'confirmation' => ['required', 'string', 'in:DELETE,delete'],
+            ]);
+        }
+
+        // 1. Revoke API tokens
         $user->tokens()->delete();
+
+        // 2. Delete push notification device tokens
+        \App\Models\PushToken::where('user_id', $user->id)->delete();
+
+        // 3. Mark user as deleted and free up username, while keeping user_id for financial compliance audit
+        $originalUsername = $user->username;
         $user->update([
-            'name' => 'Deleted User',
-            'email' => "deleted-{$user->id}@murihspace.local",
-            'username' => null,
-            'mobile_number' => null,
-            'kyc_document' => null,
-            'kyc_rejection_reason' => null,
+            'status' => 'deleted',
+            'username' => null, // Free username for future reuse
             'bio' => null,
             'avatar' => null,
-            'provider_id' => null,
+            'avatar_url' => null,
         ]);
+
+        // 4. Soft delete user (preserves all ledger transactions, orders, and financial history)
         $user->delete();
 
-        return response()->json(['message' => 'Account deleted.']);
+        // 5. Create immutable audit log
+        \App\Models\AuditLog::create([
+            'user_id' => $user->id,
+            'action' => 'account.deleted',
+            'details' => json_encode([
+                'reason' => $request->input('reason', 'User initiated account deletion'),
+                'previous_username' => $originalUsername,
+                'email' => $user->email,
+                'mobile_number' => $user->mobile_number,
+                'ip' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+            ]),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Your account has been deleted successfully. Financial and audit records have been securely retained in accordance with legal and regulatory compliance standards.',
+        ]);
     }
 
     public function kycStatus(Request $request): JsonResponse
@@ -153,6 +245,107 @@ class ProfileController extends Controller
             'kyc_status' => $user->kyc_status ?? 'unsubmitted',
             'kyc_document' => $user->kyc_document,
             'kyc_rejection_reason' => $user->kyc_rejection_reason,
+        ]);
+    }
+
+    /**
+     * Switch active profile mode (member, creator, vendor).
+     */
+    public function switchRole(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        $validated = $request->validate([
+            'role' => ['required', 'string', 'in:member,creator,vendor,admin'],
+        ]);
+
+        $targetRole = $validated['role'];
+
+        // Admin can switch to any mode
+        if ($user->role === 'admin' || $user->admin_role) {
+            $user->update(['role' => $targetRole]);
+            return response()->json([
+                'message' => "Switched active mode to {$targetRole}.",
+                'role' => $user->role,
+            ]);
+        }
+
+        // Check if user has approved history or holds unlocked roles
+        $hasApprovedRole = \App\Models\AccountRoleHistory::where('user_id', $user->id)
+            ->where(function ($q) use ($targetRole) {
+                $q->where('requested_role', $targetRole)
+                  ->orWhere('previous_role', $targetRole)
+                  ->orWhere('status', 'approved');
+            })
+            ->exists();
+
+        if ($targetRole === 'member' || $hasApprovedRole || $user->role === $targetRole || in_array($targetRole, ['creator', 'vendor'], true)) {
+            $user->update(['role' => $targetRole]);
+            return response()->json([
+                'message' => "Switched active mode to {$targetRole}.",
+                'role' => $user->role,
+            ]);
+        }
+
+        return response()->json([
+            'message' => "You must apply and upgrade to {$targetRole} before switching to this mode.",
+        ], 403);
+    }
+
+    /**
+     * Display a user's public profile for web/mobile visitors.
+     */
+    public function publicProfile(string $username): JsonResponse
+    {
+        $cleanUsername = ltrim($username, '@');
+
+        $user = \App\Models\User::where('username', $cleanUsername)->first();
+
+        if (! $user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'User not found.',
+            ], 404);
+        }
+
+        $publicCommunities = $user->communities()
+            ->where('visibility', 'public')
+            ->select('communities.id', 'communities.name', 'communities.slug', 'communities.logo_url', 'communities.cover_url', 'communities.description', 'communities.category', 'communities.members_count', 'communities.pricing_type', 'communities.price_amount')
+            ->take(6)
+            ->get();
+
+        $reviewsQuery = \App\Models\ProductReview::whereHas('physicalProduct', fn ($q) => $q->where('creator_id', $user->id))->approved();
+        $reviewsCount = (clone $reviewsQuery)->count();
+        $averageRating = $reviewsCount > 0 ? round((clone $reviewsQuery)->avg('rating') ?? 0, 1) : null;
+
+        $hasLinkInBio = \App\Models\LinkInBioLink::where('user_id', $user->id)->where('is_active', true)->exists();
+        $storefront = \App\Models\Storefront::where('user_id', $user->id)->where('is_published', true)->first();
+
+        return response()->json([
+            'id' => $user->id,
+            'name' => $user->name,
+            'username' => $user->username,
+            'role' => $user->role,
+            'bio' => $user->bio,
+            'avatar' => $user->avatar,
+            'avatar_url' => $user->avatar_url ?? $user->avatar,
+            'banner_url' => $user->banner_url,
+            'country' => $user->country,
+            'kyc_status' => $user->kyc_status,
+            'has_active_verification_badge' => $user->hasActiveVerificationBadge(),
+            'followers_count' => $user->followers()->count(),
+            'following_count' => $user->follows()->count(),
+            'communities_count' => $user->communities()->count(),
+            'posts_count' => $user->posts()->count(),
+            'reviews_count' => $reviewsCount,
+            'average_rating' => $averageRating,
+            'has_link_in_bio' => $hasLinkInBio,
+            'storefront' => $storefront ? [
+                'short_code' => $storefront->short_code,
+                'display_name' => $storefront->display_name,
+            ] : null,
+            'public_communities' => $publicCommunities,
+            'created_at' => $user->created_at?->toISOString(),
         ]);
     }
 }

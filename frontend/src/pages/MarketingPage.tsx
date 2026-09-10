@@ -1,12 +1,25 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router";
-import { Megaphone, Loader2, Mail, Plus, Eye, MousePointerClick, ListOrdered, Link2, Gift, TrendingUp, Target, ArrowRight, Check, AlertCircle } from "lucide-react";
+import {
+  Megaphone as Megaphone,
+  Spinner as Loader2,
+  Envelope as Envelope,
+  Plus as Plus,
+  Eye as Eye,
+  CursorClick as CursorClick,
+  ListNumbers as ListNumbers,
+  Link as Link,
+  Gift as Gift,
+  TrendUp as TrendingUp,
+  Target as Target,
+  Check as Check,
+  WarningCircle as AlertCircle,
+  Tray as Inbox
+} from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { authFetch } from "@/lib/api/authFetch";
-
-
-
-
+import { Skeleton, SkeletonStatsGrid, SkeletonTable } from "@/components/ui/skeletons";
+import { PageSecondaryNav, type PageNavTab } from "@/components/common/PageSecondaryNav";
 
 interface Campaign {
   id: number; name: string; type: string; status: string;
@@ -42,9 +55,9 @@ export default function MarketingPage() {
     setLoading(true);
     try {
       const [cRes, bRes, sRes] = await Promise.all([
-        authFetch(`/marketing/campaigns`, {  }),
-        authFetch(`/email-broadcasts`, {  }),
-        authFetch(`/email-sequences`, {  }),
+        authFetch(`/marketing/campaigns`),
+        authFetch(`/email-broadcasts`),
+        authFetch(`/email-sequences`),
       ]);
       if (cRes.ok) { const j = await cRes.json(); setCampaigns(j?.success ? j?.data?.data ?? j?.data : j?.data ?? j); }
       if (bRes.ok) { const j = await bRes.json(); setBroadcasts(j?.data?.data ?? j?.data ?? []); }
@@ -80,162 +93,269 @@ export default function MarketingPage() {
     finally { setCfSaving(false); }
   };
 
-  if (loading) return <div className="flex justify-center py-24"><Loader2 className="h-8 w-8 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" /></div>;
+  if (loading) {
+    return (
+      <div className="w-full max-w-7xl mx-auto space-y-6 p-4 lg:p-5 animate-in fade-in duration-300">
+        {/* Header Skeleton */}
+        <div className="flex items-center justify-between pb-2 border-b border-border/40">
+          <div className="space-y-2">
+            <Skeleton className="h-7 w-64 rounded-lg" />
+            <Skeleton className="h-3.5 w-80 rounded-md" />
+          </div>
+          <Skeleton className="h-9 w-32 rounded-lg" />
+        </div>
+
+        {/* Summary Cards Skeleton */}
+        <SkeletonStatsGrid count={4} />
+
+        {/* Quick Actions Skeleton */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="rounded-lg border-none/60 bg-card p-5 space-y-3">
+              <Skeleton className="h-6 w-6 rounded-lg" />
+              <Skeleton className="h-4 w-24 rounded-md" />
+              <Skeleton className="h-3 w-32 rounded-md" />
+            </div>
+          ))}
+        </div>
+
+        {/* Performance Overview Skeleton */}
+        <div className="rounded-lg border-none/60 bg-card overflow-hidden">
+          <div className="px-6 py-4 border-b border-border/40 bg-muted/20">
+            <Skeleton className="h-4 w-44 rounded-md" />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-border/40 p-4 gap-4">
+            <div className="space-y-2 flex flex-col items-center">
+              <Skeleton className="h-3 w-28 rounded-md" />
+              <Skeleton className="h-8 w-16 rounded-lg" />
+            </div>
+            <div className="space-y-2 flex flex-col items-center">
+              <Skeleton className="h-3 w-28 rounded-md" />
+              <Skeleton className="h-8 w-16 rounded-lg" />
+            </div>
+            <div className="space-y-2 flex flex-col items-center">
+              <Skeleton className="h-3 w-28 rounded-md" />
+              <Skeleton className="h-8 w-16 rounded-lg" />
+            </div>
+          </div>
+        </div>
+
+        {/* Table Skeleton */}
+        <SkeletonTable rows={4} cols={4} />
+      </div>
+    );
+  }
+
+  const marketingTabs: PageNavTab[] = [
+    { label: "Overview", href: "/app/marketing", exact: true },
+    { label: "Email Broadcasts", href: "/app/marketing/broadcasts" },
+    { label: "Automated Sequences", href: "/app/marketing/sequences" },
+    { label: "Ad Campaigns", href: "/app/marketing/ads" },
+    { label: "Affiliates", href: "/app/marketing/affiliates" },
+    { label: "Referrals", href: "/app/marketing/referrals" },
+  ];
 
   return (
-    <div className="w-full max-w-7xl mx-auto space-y-6 p-6 lg:p-8">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-black tracking-tight flex items-center gap-2.5"><Megaphone className="h-6 w-6 text-[#2164b6] dark:text-[#7ab0ff]" /> Marketing & Automations</h1>
-          <p className="text-xs text-muted-foreground mt-1">Email campaigns, broadcasts, automated sequences and more.</p>
-        </div>
-        <Button size="sm" className="bg-[#2164b6] hover:bg-[#1a5091] text-white" onClick={() => { setCfMsg(null); setShowCampaignForm(true); }}>
-          <Plus className="h-4 w-4 mr-1" /> New Campaign
-        </Button>
-      </div>
+    <div className="w-full max-w-7xl mx-auto space-y-6 p-4 lg:p-5">
+      <PageSecondaryNav
+        title="Marketing & Automations"
+        subtitle="Email campaigns, broadcasts, automated sequences, and referral tracking."
+        icon={<Megaphone weight="fill" className="h-5 w-5 text-primary" />}
+        tabs={marketingTabs}
+        actions={
+          <Button size="sm" className="bg-[#2164b6] hover:bg-[#1a5091] text-white font-bold" onClick={() => { setCfMsg(null); setShowCampaignForm(true); }}>
+            <Plus weight="fill" className="h-4 w-4 mr-1.5" /> New Campaign
+          </Button>
+        }
+      />
 
       {/* Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="rounded-xl border bg-card p-4"><div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-lg bg-blue-500/10 flex items-center justify-center"><Target className="h-5 w-5 text-blue-500" /></div>
-          <div><p className="text-2xl font-bold">{campaigns.length + broadcasts.length + sequences.length}</p><p className="text-xs text-muted-foreground">Total Campaigns</p></div>
-        </div></div>
-        <div className="rounded-xl border bg-card p-4"><div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-lg bg-green-500/10 flex items-center justify-center"><Mail className="h-5 w-5 text-green-500" /></div>
-          <div><p className="text-2xl font-bold">{totalSent.toLocaleString()}</p><p className="text-xs text-muted-foreground">Emails Sent</p></div>
-        </div></div>
-        <div className="rounded-xl border bg-card p-4"><div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-lg bg-purple-500/10 flex items-center justify-center"><Eye className="h-5 w-5 text-purple-500" /></div>
-          <div><p className="text-2xl font-bold">{totalOpens.toLocaleString()}</p><p className="text-xs text-muted-foreground">Opens</p></div>
-        </div></div>
-        <div className="rounded-xl border bg-card p-4"><div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-lg bg-amber-500/10 flex items-center justify-center"><MousePointerClick className="h-5 w-5 text-amber-500" /></div>
-          <div><p className="text-2xl font-bold">{totalClicks.toLocaleString()}</p><p className="text-xs text-muted-foreground">Clicks</p></div>
-        </div></div>
+        <div className="rounded-lg border-none/60 bg-card p-5  hover:border-[#2164b6]/40 transition-all">
+          <div className="flex items-center gap-3">
+            <div className="h-11 w-11 rounded-lg bg-blue-500/10 flex items-center justify-center shrink-0">
+              <Target weight="fill" className="h-5 w-5 text-blue-500" />
+            </div>
+            <div>
+              <p className="text-xl font-extrabold text-foreground tracking-tight">{campaigns.length + broadcasts.length + sequences.length}</p>
+              <p className="text-xs font-semibold text-muted-foreground">Total Campaigns</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-lg border-none/60 bg-card p-5  hover:border-emerald-500/40 transition-all">
+          <div className="flex items-center gap-3">
+            <div className="h-11 w-11 rounded-lg bg-emerald-500/10 flex items-center justify-center shrink-0">
+              <Envelope weight="fill" className="h-5 w-5 text-emerald-500" />
+            </div>
+            <div>
+              <p className="text-xl font-extrabold text-foreground tracking-tight">{totalSent.toLocaleString()}</p>
+              <p className="text-xs font-semibold text-muted-foreground">Emails Sent</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-lg border-none/60 bg-card p-5  hover:border-purple-500/40 transition-all">
+          <div className="flex items-center gap-3">
+            <div className="h-11 w-11 rounded-lg bg-purple-500/10 flex items-center justify-center shrink-0">
+              <Eye weight="fill" className="h-5 w-5 text-purple-500" />
+            </div>
+            <div>
+              <p className="text-xl font-extrabold text-foreground tracking-tight">{totalOpens.toLocaleString()}</p>
+              <p className="text-xs font-semibold text-muted-foreground">Opens</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-lg border-none/60 bg-card p-5  hover:border-amber-500/40 transition-all">
+          <div className="flex items-center gap-3">
+            <div className="h-11 w-11 rounded-lg bg-amber-500/10 flex items-center justify-center shrink-0">
+              <CursorClick weight="fill" className="h-5 w-5 text-amber-500" />
+            </div>
+            <div>
+              <p className="text-xl font-extrabold text-foreground tracking-tight">{totalClicks.toLocaleString()}</p>
+              <p className="text-xs font-semibold text-muted-foreground">Clicks</p>
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* Quick Actions */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <button onClick={() => navigate("/app/marketing/broadcasts")} className="rounded-xl border bg-card p-4 text-left hover:bg-muted/50 transition-all">
-          <Mail className="h-5 w-5 text-[#2164b6] dark:text-[#7ab0ff] mb-2" />
-          <p className="text-sm font-bold">Broadcasts</p>
-          <p className="text-[11px] text-muted-foreground">{broadcasts.length} broadcasts</p>
+      {/* Quick Actions Grid */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <button onClick={() => navigate("/app/marketing/broadcasts")} className="rounded-lg border-none/60 bg-card p-5 text-left hover:border-[#2164b6]/50 hover:bg-muted/40 transition-all group ">
+          <Envelope weight="fill" className="h-6 w-6 text-[#2164b6] dark:text-[#7ab0ff] mb-3 group-hover:scale-110 transition-transform" />
+          <p className="text-sm font-bold text-foreground">Broadcasts</p>
+          <p className="text-xs font-medium text-muted-foreground mt-0.5">{broadcasts.length} broadcasts active</p>
         </button>
-        <button onClick={() => navigate("/app/marketing/sequences")} className="rounded-xl border bg-card p-4 text-left hover:bg-muted/50 transition-all">
-          <ListOrdered className="h-5 w-5 text-emerald-500 mb-2" />
-          <p className="text-sm font-bold">Sequences</p>
-          <p className="text-[11px] text-muted-foreground">{sequences.length} sequences</p>
+
+        <button onClick={() => navigate("/app/marketing/sequences")} className="rounded-lg border-none/60 bg-card p-5 text-left hover:border-emerald-500/50 hover:bg-muted/40 transition-all group ">
+          <ListNumbers weight="fill" className="h-6 w-6 text-emerald-500 mb-3 group-hover:scale-110 transition-transform" />
+          <p className="text-sm font-bold text-foreground">Sequences</p>
+          <p className="text-xs font-medium text-muted-foreground mt-0.5">{sequences.length} automated flows</p>
         </button>
-        <button onClick={() => navigate("/app/marketing/affiliates")} className="rounded-xl border bg-card p-4 text-left hover:bg-muted/50 transition-all">
-          <Link2 className="h-5 w-5 text-purple-500 mb-2" />
-          <p className="text-sm font-bold">Affiliates</p>
-          <p className="text-[11px] text-muted-foreground">Commission tracking</p>
+
+        <button onClick={() => navigate("/app/marketing/affiliates")} className="rounded-lg border-none/60 bg-card p-5 text-left hover:border-purple-500/50 hover:bg-muted/40 transition-all group ">
+          <Link weight="fill" className="h-6 w-6 text-purple-500 mb-3 group-hover:scale-110 transition-transform" />
+          <p className="text-sm font-bold text-foreground">Affiliates</p>
+          <p className="text-xs font-medium text-muted-foreground mt-0.5">Commission tracking</p>
         </button>
-        <button onClick={() => navigate("/app/marketing/referrals")} className="rounded-xl border bg-card p-4 text-left hover:bg-muted/50 transition-all">
-          <Gift className="h-5 w-5 text-amber-500 mb-2" />
-          <p className="text-sm font-bold">Referrals</p>
-          <p className="text-[11px] text-muted-foreground">Referral program</p>
+
+        <button onClick={() => navigate("/app/marketing/referrals")} className="rounded-lg border-none/60 bg-card p-5 text-left hover:border-amber-500/50 hover:bg-muted/40 transition-all group ">
+          <Gift weight="fill" className="h-6 w-6 text-amber-500 mb-3 group-hover:scale-110 transition-transform" />
+          <p className="text-sm font-bold text-foreground">Referrals</p>
+          <p className="text-xs font-medium text-muted-foreground mt-0.5">Referral program</p>
         </button>
       </div>
 
       {/* Performance Overview */}
-      <div className="rounded-xl border bg-card">
-        <div className="px-5 py-4 border-b flex items-center justify-between">
-          <div className="flex items-center gap-2"><TrendingUp className="h-5 w-5 text-[#2164b6] dark:text-[#7ab0ff]" /><h2 className="text-sm font-bold">Performance Overview</h2></div>
+      <div className="rounded-lg border-none/60 bg-card overflow-hidden ">
+        <div className="px-6 py-4 border-b border-border/40 flex items-center justify-between bg-muted/20">
+          <div className="flex items-center gap-2">
+            <TrendingUp weight="fill" className="h-5 w-5 text-[#2164b6] dark:text-[#7ab0ff]" />
+            <h2 className="text-sm font-extrabold text-foreground">Performance Overview</h2>
+          </div>
         </div>
-        <div className="grid grid-cols-3 gap-px bg-border">
+        <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-border/40">
           {[
-            { label: "Avg. Open Rate", value: totalSent > 0 ? `${((totalOpens / totalSent) * 100).toFixed(1)}%` : "—", color: "text-blue-600" },
-            { label: "Avg. Click Rate", value: totalOpens > 0 ? `${((totalClicks / totalOpens) * 100).toFixed(1)}%` : "—", color: "text-amber-600" },
-            { label: "Active Now", value: campaigns.filter(c => c.status === "active").length + sequences.filter(s => s.is_active).length, color: "text-emerald-600" },
+            { label: "Avg. Open Rate", value: totalSent > 0 ? `${((totalOpens / totalSent) * 100).toFixed(1)}%` : "0%", color: "text-[#2164b6] dark:text-[#7ab0ff]" },
+            { label: "Avg. Click Rate", value: totalOpens > 0 ? `${((totalClicks / totalOpens) * 100).toFixed(1)}%` : "0%", color: "text-amber-500" },
+            { label: "Active Campaigns", value: campaigns.filter(c => c.status === "active").length + sequences.filter(s => s.is_active).length, color: "text-emerald-500" },
           ].map((stat, i) => (
-            <div key={i} className="bg-card px-5 py-4">
-              <p className="text-[11px] text-muted-foreground">{stat.label}</p>
-              <p className={`text-xl font-bold mt-0.5 ${stat.color}`}>{stat.value}</p>
+            <div key={i} className="p-4 text-center">
+              <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{stat.label}</p>
+              <p className={`text-xl font-black mt-2 ${stat.color}`}>{stat.value}</p>
             </div>
           ))}
         </div>
       </div>
 
       {/* Recent Campaigns */}
-      <div className="rounded-xl border bg-card">
-        <div className="px-5 py-4 border-b flex items-center justify-between">
-          <h2 className="text-sm font-bold">Recent Campaigns</h2>
-          <Button variant="ghost" size="sm" className="text-xs text-[#2164b6] dark:text-[#7ab0ff]" onClick={() => { setCfMsg(null); setShowCampaignForm(true); }}>
-            <Plus className="h-3 w-3 mr-1" /> New
+      <div className="rounded-lg border-none/60 bg-card overflow-hidden ">
+        <div className="px-6 py-4 border-b border-border/40 flex items-center justify-between bg-muted/20">
+          <h2 className="text-sm font-extrabold text-foreground">Recent Campaigns</h2>
+          <Button variant="ghost" size="sm" className="text-xs font-bold text-[#2164b6] dark:text-[#7ab0ff]" onClick={() => { setCfMsg(null); setShowCampaignForm(true); }}>
+            <Plus weight="fill" className="h-3.5 w-3.5 mr-1" /> New
           </Button>
         </div>
         {campaigns.length === 0 ? (
-          <p className="text-xs text-muted-foreground p-6 text-center">No campaigns yet.</p>
+          <div className="py-16 px-4 flex flex-col items-center justify-center text-center space-y-3.5 w-full">
+            <div className="w-14 h-14 rounded-lg bg-[#2164b6]/10 flex items-center justify-center">
+              <Inbox weight="fill" className="h-7 w-7 text-[#2164b6] dark:text-[#7ab0ff]" />
+            </div>
+            <div className="space-y-1 max-w-md mx-auto text-center">
+              <p className="text-base font-extrabold text-foreground">No campaigns created yet</p>
+              <p className="text-xs font-medium text-muted-foreground leading-relaxed text-center">
+                Launch your first email or social campaign to engage your audience and track conversions.
+              </p>
+            </div>
+            <Button size="sm" className="bg-[#2164b6] hover:bg-[#1a5091] text-white font-bold text-xs  mx-auto" onClick={() => { setCfMsg(null); setShowCampaignForm(true); }}>
+              <Plus weight="fill" className="h-4 w-4 mr-1.5" /> Create Campaign
+            </Button>
+          </div>
         ) : (
-          <div className="divide-y">
+          <div className="divide-y divide-border/40">
             {campaigns.slice(0, 5).map((c) => (
-              <div key={c.id} className="p-4 flex items-center justify-between gap-4">
+              <div key={c.id} className="p-5 flex items-center justify-between gap-4 hover:bg-muted/30 transition-colors">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <p className="text-sm font-medium">{c.name}</p>
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
-                      c.status === "active" ? "bg-green-100 text-green-700" :
-                      c.status === "draft" ? "bg-yellow-100 text-yellow-700" :
-                      "bg-muted text-muted-foreground"
+                    <p className="text-sm font-bold text-foreground truncate">{c.name}</p>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${
+                      c.status === "active" ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20" :
+                      c.status === "draft" ? "bg-amber-500/10 text-amber-500 border border-amber-500/20" :
+                      "bg-muted text-muted-foreground border-none"
                     }`}>{c.status}</span>
                   </div>
-                  <p className="text-[11px] text-muted-foreground mt-0.5 capitalize">{c.type} campaign</p>
-                  <div className="flex items-center gap-3 mt-1.5">
-                    <span className="text-[11px] text-muted-foreground flex items-center gap-1"><Mail className="h-3 w-3" /> {c.sent_count} sent</span>
-                    <span className="text-[11px] text-muted-foreground flex items-center gap-1"><Eye className="h-3 w-3" /> {c.open_count} opens</span>
-                    <span className="text-[11px] text-muted-foreground flex items-center gap-1"><MousePointerClick className="h-3 w-3" /> {c.click_count} clicks</span>
+                  <p className="text-xs font-medium text-muted-foreground mt-0.5 capitalize">{c.type} campaign</p>
+                  <div className="flex items-center gap-4 mt-2">
+                    <span className="text-xs font-semibold text-muted-foreground flex items-center gap-1"><Envelope weight="fill" className="h-3.5 w-3.5 text-muted-foreground" /> {c.sent_count} sent</span>
+                    <span className="text-xs font-semibold text-muted-foreground flex items-center gap-1"><Eye weight="fill" className="h-3.5 w-3.5 text-muted-foreground" /> {c.open_count} opens</span>
+                    <span className="text-xs font-semibold text-muted-foreground flex items-center gap-1"><CursorClick weight="fill" className="h-3.5 w-3.5 text-muted-foreground" /> {c.click_count} clicks</span>
                   </div>
                 </div>
               </div>
             ))}
           </div>
         )}
-        {campaigns.length > 5 && (
-          <div className="px-5 py-3 border-t text-center">
-            <Button variant="link" size="sm" className="text-xs text-muted-foreground" onClick={() => navigate("/app/marketing")}>
-              View all campaigns <ArrowRight className="h-3 w-3 ml-1" />
-            </Button>
-          </div>
-        )}
       </div>
 
       {/* New Campaign Modal */}
       {showCampaignForm && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 overflow-y-auto py-8" onClick={() => { setShowCampaignForm(false); }}>
-          <div className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-2xl mx-4" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-base font-bold flex items-center gap-2"><Megaphone className="h-5 w-5 text-[#2164b6] dark:text-[#7ab0ff]" /> New Campaign</h2>
-              <button onClick={() => setShowCampaignForm(false)} className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted">&times;</button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4" onClick={() => { setShowCampaignForm(false); }}>
+          <div className="w-full max-w-md rounded-lg border-none bg-card p-4 shadow-2xl space-y-4" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between pb-2 border-b border-border/40">
+              <h2 className="text-base font-extrabold text-foreground flex items-center gap-2">
+                <Megaphone weight="fill" className="h-5 w-5 text-[#2164b6] dark:text-[#7ab0ff]" />
+                New Campaign
+              </h2>
+              <button onClick={() => setShowCampaignForm(false)} className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted text-lg leading-none">&times;</button>
             </div>
 
             {cfMsg && (
-              <div className={`mb-4 flex items-center gap-2 rounded-xl p-3 text-xs font-bold ${
-                cfMsg.ok ? "bg-emerald-500/10 text-emerald-600" : "bg-destructive/10 text-destructive"
+              <div className={`flex items-center gap-2 rounded-lg p-3 text-xs font-bold ${
+                cfMsg.ok ? "bg-emerald-500/10 text-emerald-500" : "bg-destructive/10 text-destructive"
               }`}>
-                {cfMsg.ok ? <Check className="h-4 w-4 shrink-0" /> : <AlertCircle className="h-4 w-4 shrink-0" />}
+                {cfMsg.ok ? <Check weight="fill" className="h-4 w-4 shrink-0" /> : <AlertCircle weight="fill" className="h-4 w-4 shrink-0" />}
                 {cfMsg.text}
               </div>
             )}
 
             <form onSubmit={handleCreateCampaign} className="space-y-4">
               <div>
-                <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block mb-1">Campaign Name</label>
-                <input value={cfName} onChange={(e) => setCfName(e.target.value)} required placeholder="e.g. Summer Sale 2026" className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-xs text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-secondary/50 transition-colors" />
+                <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-1.5">Campaign Name</label>
+                <input value={cfName} onChange={(e) => setCfName(e.target.value)} required placeholder="e.g. Summer Special Offer" className="w-full rounded-lg border-none bg-background px-4 py-2.5 text-xs font-medium text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-[#2164b6] transition-colors" />
               </div>
               <div>
-                <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block mb-1">Type</label>
-                <select value={cfType} onChange={(e) => setCfType(e.target.value)} className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-xs text-foreground focus:outline-none focus:border-secondary/50 transition-colors">
-                  <option value="email">Email</option>
-                  <option value="social">Social Media</option>
-                  <option value="ads">Paid Ads</option>
+                <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-1.5">Campaign TextT</label>
+                <select value={cfType} onChange={(e) => setCfType(e.target.value)} className="w-full rounded-lg border-none bg-background px-4 py-2.5 text-xs font-medium text-foreground focus:outline-none focus:border-[#2164b6] transition-colors">
+                  <option value="email">Email Campaign</option>
+                  <option value="social">Social Media Post</option>
+                  <option value="ads">Paid Ad Promotion</option>
                 </select>
               </div>
               <div className="flex gap-2 pt-2">
-                <button type="button" onClick={() => setShowCampaignForm(false)} className="flex-1 rounded-xl border border-border px-4 py-2.5 text-xs font-bold text-muted-foreground hover:text-foreground transition-colors">Cancel</button>
-                <button type="submit" disabled={cfSaving} className="flex-1 rounded-xl bg-[#2164b6] text-white px-4 py-2.5 text-xs font-bold hover:bg-[#1a5091] disabled:opacity-50 shadow-xs transition-all">
-                  {cfSaving ? <Loader2 className="mx-auto h-4 w-4 animate-spin" /> : "Create Campaign"}
+                <button type="button" onClick={() => setShowCampaignForm(false)} className="flex-1 rounded-lg border-none px-4 py-2.5 text-xs font-bold text-muted-foreground hover:text-foreground transition-colors">Cancel</button>
+                <button type="submit" disabled={cfSaving} className="flex-1 rounded-lg bg-[#2164b6] text-white px-4 py-2.5 text-xs font-bold hover:bg-[#1a5091] disabled:opacity-50  transition-all">
+                  {cfSaving ? <Loader2 weight="fill" className="mx-auto h-4 w-4 animate-spin" /> : "Create Campaign"}
                 </button>
               </div>
             </form>

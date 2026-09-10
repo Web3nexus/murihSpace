@@ -1,5 +1,9 @@
 import { useState } from "react";
-import { Globe, Check, ChevronDown } from "lucide-react";
+import {
+  Globe as Globe,
+  Check as Check,
+  CaretDown as ChevronDown
+} from "@phosphor-icons/react";
 
 const LANGUAGES = [
   { code: "en", label: "English (US)" },
@@ -63,7 +67,7 @@ export default function LanguagePage() {
     <div className="space-y-6 w-full max-w-3xl mx-auto">
       <div>
         <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
-          <Globe className="h-5 w-5 text-secondary" />
+          <Globe weight="fill" className="h-5 w-5 text-secondary" />
           Language & Region
         </h2>
         <p className="text-xs text-muted-foreground mt-0.5">
@@ -72,21 +76,21 @@ export default function LanguagePage() {
       </div>
 
       {/* Language */}
-      <section className="rounded-2xl border border-border bg-card p-5 shadow-2xs space-y-4">
+      <section className="rounded-lg border-none bg-card p-5 shadow-2xs space-y-4">
         <h3 className="font-bold text-foreground text-xs flex items-center gap-2">
-          <Globe className="h-3.5 w-3.5 text-secondary" /> Interface Language
+          <Globe weight="fill" className="h-3.5 w-3.5 text-secondary" /> Interface Language
         </h3>
         <div className="relative">
           <button
             type="button"
             onClick={() => { setLangOpen(!langOpen); setTzOpen(false); }}
-            className="w-full flex items-center justify-between rounded-xl border border-border bg-muted/30 px-4 py-2.5 text-xs text-foreground hover:border-muted-foreground/30 transition-all"
+            className="w-full flex items-center justify-between rounded-lg border-none bg-muted/30 px-4 py-2.5 text-xs text-foreground hover:border-muted-foreground/30 transition-all"
           >
             <span>{LANGUAGES.find((l) => l.code === language)?.label || language}</span>
-            <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${langOpen ? "rotate-180" : ""}`} />
+            <ChevronDown weight="fill" className={`h-4 w-4 text-muted-foreground transition-transform ${langOpen ? "rotate-180" : ""}`} />
           </button>
           {langOpen && (
-            <div className="absolute z-10 mt-1 w-full rounded-xl border border-border bg-card shadow-lg overflow-hidden">
+            <div className="absolute z-10 mt-1 w-full rounded-lg border-none bg-card shadow-lg overflow-hidden">
               {LANGUAGES.map((l) => (
                 <button
                   key={l.code}
@@ -95,7 +99,7 @@ export default function LanguagePage() {
                   className="w-full flex items-center justify-between px-4 py-2.5 text-xs text-foreground hover:bg-muted transition-colors"
                 >
                   {l.label}
-                  {language === l.code && <Check className="h-3.5 w-3.5 text-secondary" />}
+                  {language === l.code && <Check weight="fill" className="h-3.5 w-3.5 text-secondary" />}
                 </button>
               ))}
             </div>
@@ -104,21 +108,21 @@ export default function LanguagePage() {
       </section>
 
       {/* Timezone */}
-      <section className="rounded-2xl border border-border bg-card p-5 shadow-2xs space-y-4">
+      <section className="rounded-lg border-none bg-card p-5 shadow-2xs space-y-4">
         <h3 className="font-bold text-foreground text-xs flex items-center gap-2">
-          <Globe className="h-3.5 w-3.5 text-secondary" /> Time Zone
+          <Globe weight="fill" className="h-3.5 w-3.5 text-secondary" /> Time Zone
         </h3>
         <div className="relative">
           <button
             type="button"
             onClick={() => { setTzOpen(!tzOpen); setLangOpen(false); }}
-            className="w-full flex items-center justify-between rounded-xl border border-border bg-muted/30 px-4 py-2.5 text-xs text-foreground hover:border-muted-foreground/30 transition-all"
+            className="w-full flex items-center justify-between rounded-lg border-none bg-muted/30 px-4 py-2.5 text-xs text-foreground hover:border-muted-foreground/30 transition-all"
           >
             <span>{timezone}</span>
-            <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${tzOpen ? "rotate-180" : ""}`} />
+            <ChevronDown weight="fill" className={`h-4 w-4 text-muted-foreground transition-transform ${tzOpen ? "rotate-180" : ""}`} />
           </button>
           {tzOpen && (
-            <div className="absolute z-10 mt-1 w-full max-h-48 overflow-y-auto rounded-xl border border-border bg-card shadow-lg">
+            <div className="absolute z-10 mt-1 w-full max-h-48 overflow-y-auto rounded-lg border-none bg-card shadow-lg">
               {TIMEZONES.map((tz) => (
                 <button
                   key={tz}
@@ -127,7 +131,7 @@ export default function LanguagePage() {
                   className="w-full flex items-center justify-between px-4 py-2 text-xs text-foreground hover:bg-muted transition-colors"
                 >
                   {tz}
-                  {timezone === tz && <Check className="h-3.5 w-3.5 text-secondary" />}
+                  {timezone === tz && <Check weight="fill" className="h-3.5 w-3.5 text-secondary" />}
                 </button>
               ))}
             </div>
@@ -136,9 +140,9 @@ export default function LanguagePage() {
       </section>
 
       {/* Region Formatting */}
-      <section className="rounded-2xl border border-border bg-card p-5 shadow-2xs space-y-4">
+      <section className="rounded-lg border-none bg-card p-5 shadow-2xs space-y-4">
         <h3 className="font-bold text-foreground text-xs flex items-center gap-2">
-          <Globe className="h-3.5 w-3.5 text-secondary" /> Region & Formatting
+          <Globe weight="fill" className="h-3.5 w-3.5 text-secondary" /> Region & Formatting
         </h3>
         <div className="space-y-4">
           <div>
@@ -153,7 +157,7 @@ export default function LanguagePage() {
                     key={df.value}
                     type="button"
                     onClick={() => setDateFormat(df.value)}
-                    className={`p-3 rounded-xl border text-center transition-all ${
+                    className={`p-3 rounded-lg border text-center transition-all ${
                       active ? "border-secondary bg-secondary/5" : "border-border bg-muted/30 hover:border-muted-foreground/30"
                     }`}
                   >
@@ -177,11 +181,11 @@ export default function LanguagePage() {
                     key={fd.value}
                     type="button"
                     onClick={() => setFirstDay(fd.value)}
-                    className={`p-3 rounded-xl border text-center transition-all ${
+                    className={`p-3 rounded-lg border text-center transition-all ${
                       active ? "border-secondary bg-secondary/5" : "border-border bg-muted/30 hover:border-muted-foreground/30"
                     }`}
                   >
-                    <Check className={`h-4 w-4 mx-auto mb-1 ${active ? "text-secondary" : "text-transparent"}`} />
+                    <Check weight="fill" className={`h-4 w-4 mx-auto mb-1 ${active ? "text-secondary" : "text-transparent"}`} />
                     <p className={`text-xs font-bold ${active ? "text-secondary" : "text-foreground"}`}>{fd.label}</p>
                   </button>
                 );
@@ -194,15 +198,15 @@ export default function LanguagePage() {
       <div className="flex items-center justify-end gap-3">
         {saved && (
           <span className="text-xs font-semibold text-emerald-500 flex items-center gap-1">
-            <Check className="h-4 w-4" /> Preferences saved!
+            <Check weight="fill" className="h-4 w-4" /> Preferences saved!
           </span>
         )}
         <button
           type="button"
           onClick={handleSave}
-          className="px-6 py-2 rounded-xl bg-secondary text-secondary-foreground text-xs font-bold hover:bg-secondary/90 transition-all shadow-xs"
+          className="px-6 py-2 rounded-lg bg-secondary text-secondary-foreground text-xs font-bold hover:bg-secondary/90 transition-all "
         >
-          Save Preferences
+          FloppyDisk Preferences
         </button>
       </div>
     </div>

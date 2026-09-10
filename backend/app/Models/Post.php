@@ -14,7 +14,7 @@ class Post extends Model
     use HasFactory, Searchable, SoftDeletes;
 
     protected $fillable = [
-        'community_id', 'user_id', 'type', 'content', 'media_urls',
+        'community_id', 'group_id', 'user_id', 'type', 'content', 'media_urls',
         'link_url', 'hashtags', 'mentions', 'location',
         'is_draft', 'is_pinned', 'pinned_at', 'scheduled_at',
         'privacy', 'comments_disabled', 'accessibility_text',
@@ -41,9 +41,16 @@ class Post extends Model
         'views_count' => 'integer',
     ];
 
+    protected $appends = ['poll_results'];
+
     public function community(): BelongsTo
     {
         return $this->belongsTo(Community::class);
+    }
+
+    public function group(): BelongsTo
+    {
+        return $this->belongsTo(Group::class);
     }
 
     public function author(): BelongsTo
@@ -64,6 +71,49 @@ class Post extends Model
     public function saves(): HasMany
     {
         return $this->hasMany(SavedPost::class);
+    }
+
+    public function pollVotes(): HasMany
+    {
+        return $this->hasMany(PostPollVote::class);
+    }
+
+    public function getPollResultsAttribute(): ?array
+    {
+        return $this->pollResults();
+    }
+
+    public function pollResults(): ?array
+    {
+        if ($this->type !== 'poll' || empty($this->poll_options)) {
+            return null;
+        }
+
+        $votes = $this->pollVotes()
+            ->selectRaw('option_index, count(*) as count')
+            ->groupBy('option_index')
+            ->pluck('count', 'option_index')
+            ->toArray();
+
+        $total = array_sum($votes);
+
+        $options = [];
+        foreach ($this->poll_options as $index => $label) {
+            $count = $votes[$index] ?? 0;
+            $percent = $total > 0 ? round(($count / $total) * 100, 1) : 0;
+            $options[] = [
+                'index' => (int) $index,
+                'label' => (string) $label,
+                'votes_count' => (int) $count,
+                'percentage' => (float) $percent,
+            ];
+        }
+
+        return [
+            'total_votes' => (int) $total,
+            'options' => $options,
+            'is_expired' => $this->poll_ends_at ? $this->poll_ends_at->isPast() : false,
+        ];
     }
 
     public function scopePublished($query)

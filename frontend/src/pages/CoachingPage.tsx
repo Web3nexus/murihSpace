@@ -1,16 +1,29 @@
 import { useState, useEffect, useCallback } from 'react';
+import { Link } from 'react-router';
 import { useConfirm } from '@/components/ui/DialogProvider';
-import { Calendar, Clock, Video, Loader2, Plus, Trash2, Check, X, MapPin, CreditCard, ExternalLink, Edit, ChevronRight } from 'lucide-react';
+import {
+  Calendar,
+  Clock,
+  VideoCamera,
+  Spinner,
+  Plus,
+  Trash,
+  Check,
+  X,
+  MapPin,
+  CreditCard,
+  Pencil,
+  CaretRight,
+  HandHeart,
+  WarningCircle,
+  Users,
+} from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { authFetch } from "@/lib/api/authFetch";
 import { SuccessBanner } from '@/components/ui/SuccessBanner';
 import { FormErrorSummary } from '@/components/ui/FormErrorSummary';
-import { PageHeader } from '@/components/ui/PageHeader';
-
-
-
-
+import { LiveKitVideoConference } from '@/components/video/LiveKitVideoConference';
 
 function formatPrice(cents: number, currency = 'NGN'): string {
   const symbols: Record<string, string> = { NGN: '₦', USD: '$', GBP: '£', EUR: '€' };
@@ -56,12 +69,25 @@ interface CoachingBooking {
   meeting_url: string | null;
   price_paid: number;
   currency: string;
-  service?: { id: number; name: string; duration_minutes: number; location_type: string; meeting_url: string | null; creator?: { id: number; name: string; username: string; avatar_url: string | null } };
+  service?: {
+    id: number;
+    name: string;
+    duration_minutes: number;
+    location_type: string;
+    meeting_url: string | null;
+    creator?: { id: number; name: string; username: string; avatar_url: string | null };
+  };
   booker?: { id: number; name: string; username: string; avatar_url: string | null };
 }
 
 type Tab = 'browse' | 'my-services' | 'my-bookings' | 'my-sessions';
 
+function formatDateTime(iso: string) {
+  const d = new Date(iso);
+  return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+
+// ── Service Card ──────────────────────────────────────────────────────────────
 function ServiceCard({
   service,
   onBook,
@@ -75,62 +101,114 @@ function ServiceCard({
   onDelete?: (id: number) => void;
   onToggleActive?: (s: CoachingService) => void;
 }) {
+  const isOnline = service.location_type === 'online' || !service.location_type;
   return (
-    <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-xs hover:shadow-md hover:border-primary/30 transition-all duration-200 p-5 flex flex-col">
+    <div className="group flex flex-col rounded-3xl border border-border/70 bg-card overflow-hidden transition-all duration-200 hover:shadow-lg hover:border-primary/40 hover:-translate-y-0.5 p-5">
       {service.creator && (
-        <div className="flex items-center gap-2 mb-3">
-          <div className="h-7 w-7 rounded-full bg-gradient-to-br from-primary to-secondary text-white text-[9px] font-bold flex items-center justify-center shrink-0">
-            {service.creator.name.charAt(0)}
+        <div className="flex items-center gap-2.5 mb-3.5">
+          <div className="h-8 w-8 rounded-full bg-primary/10 text-primary text-[11px] font-bold flex items-center justify-center shrink-0 overflow-hidden border border-primary/20">
+            {service.creator.avatar_url ? (
+              <img src={service.creator.avatar_url} alt="" className="w-full h-full object-cover" />
+            ) : (
+              service.creator.name.charAt(0)
+            )}
           </div>
-          <span className="text-xs font-semibold text-foreground truncate">{service.creator.name}</span>
-          {service.creator.username && <span className="text-[10px] text-muted-foreground">@{service.creator.username}</span>}
+          <div className="min-w-0">
+            <span className="text-xs font-bold text-foreground block truncate">{service.creator.name}</span>
+            {service.creator.username && (
+              <span className="text-[10px] text-muted-foreground block -mt-0.5">@{service.creator.username}</span>
+            )}
+          </div>
         </div>
       )}
-      <div className="flex items-start justify-between gap-2">
-        <h3 className="text-sm font-extrabold text-foreground">{service.name}</h3>
-        <span className={`shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full ${service.is_active ? 'bg-secondary/10 text-secondary' : 'bg-muted text-muted-foreground'}`}>
+
+      <div className="flex items-start justify-between gap-2 mb-1.5">
+        <h3 className="text-base font-black text-foreground leading-snug line-clamp-2 group-hover:text-primary transition-colors">
+          {service.name}
+        </h3>
+        <span
+          className={`shrink-0 text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${
+            service.is_active
+              ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
+              : 'bg-muted text-muted-foreground border-border/60'
+          }`}
+        >
           {service.is_active ? 'Active' : 'Inactive'}
         </span>
       </div>
+
       {service.description && (
-        <p className="text-xs text-muted-foreground mt-1.5 line-clamp-2">{service.description}</p>
+        <p className="text-xs text-muted-foreground mt-1 line-clamp-2 leading-relaxed">{service.description}</p>
       )}
-      <div className="flex items-center gap-3 mt-3 text-xs text-muted-foreground">
-        <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{service.duration_minutes} min</span>
-        <span className="flex items-center gap-1">{service.location_type === 'online' ? <Video className="h-3 w-3" /> : <MapPin className="h-3 w-3" />}{service.location_type}</span>
-        <span className="flex items-center gap-1 font-bold text-foreground">
+
+      {/* Feature Pills */}
+      <div className="flex items-center gap-2 mt-3.5 flex-wrap">
+        <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-muted/60 text-foreground border border-border/60">
+          <Clock weight="fill" className="h-3 w-3 text-primary shrink-0" />
+          {service.duration_minutes} min
+        </span>
+        <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-primary/10 text-primary border border-primary/20">
+          {isOnline ? (
+            <>
+              <VideoCamera weight="fill" className="h-3 w-3 shrink-0" />
+              MurihSpace Meeting
+            </>
+          ) : (
+            <>
+              <MapPin weight="fill" className="h-3 w-3 shrink-0" />
+              In Person
+            </>
+          )}
+        </span>
+        <span className="ml-auto text-sm font-black text-foreground">
           {service.price === 0 ? 'Free' : formatPrice(service.price, service.currency)}
         </span>
       </div>
+
       {service.available_slots !== undefined && (
-        <p className="text-[10px] text-muted-foreground mt-2">
-          {service.available_slots} available slot{service.available_slots !== 1 ? 's' : ''}
+        <p className="text-[11px] text-muted-foreground mt-2.5 flex items-center gap-1 font-medium">
+          <Calendar weight="bold" className="h-3 w-3 text-primary" />
+          {service.available_slots} slot{service.available_slots !== 1 ? 's' : ''} available
         </p>
       )}
-      <div className="flex items-center gap-2 mt-4">
+
+      <div className="flex items-center gap-2 mt-4 pt-3 border-t border-border/40">
         {onBook && (
           <Button
             onClick={() => onBook(service)}
-            variant="secondary"
-            size="sm"
-            className="flex-1"
+            className="flex-1 h-10 rounded-2xl text-xs font-bold bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm"
           >
-            Book Session
+            <CreditCard weight="fill" className="mr-1.5 h-3.5 w-3.5" />
+            Book Consultation
           </Button>
         )}
         {onEdit && (
-          <Button onClick={() => onEdit(service)} variant="ghost" size="sm" className="p-2">
-            <Edit className="h-4 w-4" />
+          <Button onClick={() => onEdit(service)} variant="outline" size="sm" className="h-10 w-10 p-0 rounded-2xl" title="Edit Service">
+            <Pencil weight="fill" className="h-4 w-4" />
           </Button>
         )}
         {onToggleActive && (
-          <Button onClick={() => onToggleActive(service)} variant="ghost" size="sm" className="p-2" title={service.is_active ? 'Deactivate' : 'Activate'}>
-            <Check className={`h-4 w-4 ${service.is_active ? 'text-secondary' : 'text-muted-foreground'}`} />
+          <Button
+            onClick={() => onToggleActive(service)}
+            variant="outline"
+            size="sm"
+            className={`h-10 w-10 p-0 rounded-2xl ${
+              service.is_active ? 'text-emerald-600 border-emerald-500/30 hover:bg-emerald-500/10' : 'text-muted-foreground'
+            }`}
+            title={service.is_active ? 'Deactivate' : 'Activate'}
+          >
+            <Check weight="bold" className="h-4 w-4" />
           </Button>
         )}
         {onDelete && (
-          <Button onClick={() => onDelete(service.id)} variant="ghost" size="sm" className="p-2 text-destructive hover:bg-destructive/10">
-            <Trash2 className="h-4 w-4" />
+          <Button
+            onClick={() => onDelete(service.id)}
+            variant="ghost"
+            size="sm"
+            className="h-10 w-10 p-0 rounded-2xl text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+            title="Delete"
+          >
+            <Trash weight="fill" className="h-4 w-4" />
           </Button>
         )}
       </div>
@@ -138,58 +216,102 @@ function ServiceCard({
   );
 }
 
-function formatDateTime(iso: string) {
-  const d = new Date(iso);
-  return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-}
-
-function BookingRow({ booking, isCreator, onCancel, onComplete }: {
+// ── Booking Row (with Native MurihSpace Meeting Button) ────────────────────────
+function BookingRow({
+  booking,
+  isCreator,
+  onCancel,
+  onComplete,
+  onJoinMeeting,
+}: {
   booking: CoachingBooking;
   isCreator: boolean;
   onCancel: (id: number) => void;
   onComplete: (id: number) => void;
+  onJoinMeeting: (b: CoachingBooking) => void;
 }) {
   const person = isCreator ? booking.booker : booking.service?.creator;
+  const statusStyle: Record<string, string> = {
+    confirmed: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20',
+    completed: 'bg-primary/10 text-primary border-primary/20',
+    cancelled: 'bg-destructive/10 text-destructive border-destructive/20',
+    pending: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20',
+  };
+
+  const isOnline = booking.service?.location_type === 'online' || !booking.service?.location_type;
+
   return (
-    <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-xs p-4 flex items-start justify-between gap-3">
-      <div className="flex items-start gap-3 flex-1 min-w-0">
-        <div className="h-9 w-9 rounded-full bg-gradient-to-br from-primary to-secondary text-white text-[10px] font-bold flex items-center justify-center shrink-0">
-          {person?.name?.charAt(0) ?? '?'}
+    <div className="p-4 sm:p-5 rounded-3xl border border-border/70 bg-card flex flex-col md:flex-row md:items-center justify-between gap-4 hover:border-primary/30 hover:shadow-sm transition-all">
+      <div className="flex items-start gap-3.5 flex-1 min-w-0">
+        <div className="h-11 w-11 rounded-2xl bg-primary/10 text-primary text-sm font-bold flex items-center justify-center shrink-0 border border-primary/20 overflow-hidden">
+          {person?.avatar_url ? (
+            <img src={person.avatar_url} alt="" className="w-full h-full object-cover" />
+          ) : (
+            person?.name?.charAt(0) ?? '?'
+          )}
         </div>
-        <div className="min-w-0">
-          <p className="text-xs font-bold text-foreground truncate">{booking.service?.name ?? 'Coaching Session'}</p>
-          <p className="text-[11px] text-muted-foreground mt-0.5">
-            with {person?.name ?? 'Unknown'}
-          </p>
-          <div className="flex items-center gap-3 mt-1.5 text-[11px] text-muted-foreground">
-            <span className="flex items-center gap-1"><Calendar className="h-3 w-3" />{formatDateTime(booking.start_time)}</span>
-            <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{booking.service?.duration_minutes ?? '?'} min</span>
+        <div className="min-w-0 flex-1 space-y-1">
+          <div className="flex items-center gap-2 flex-wrap">
+            <p className="text-sm sm:text-base font-bold text-foreground truncate">{booking.service?.name ?? 'Coaching Session'}</p>
+            <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase border ${statusStyle[booking.status] ?? 'bg-muted text-muted-foreground border-border/60'}`}>
+              {booking.status}
+            </span>
           </div>
-          {booking.notes && <p className="text-[11px] text-muted-foreground/70 mt-1 italic">"{booking.notes}"</p>}
-          {booking.status === 'confirmed' && booking.meeting_url && (
-            <a href={booking.meeting_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[11px] font-semibold text-secondary hover:underline mt-1.5">
-              <ExternalLink className="h-3 w-3" /> Join Meeting
-            </a>
+          <p className="text-xs text-muted-foreground">with {person?.name ?? 'Unknown'}</p>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+            <span className="flex items-center gap-1 text-primary font-semibold">
+              <Calendar weight="fill" className="h-3.5 w-3.5 shrink-0" />
+              {formatDateTime(booking.start_time)}
+            </span>
+            <span className="flex items-center gap-1 font-medium">
+              <Clock weight="fill" className="h-3.5 w-3.5 shrink-0" />
+              {booking.service?.duration_minutes ?? 30} min
+            </span>
+            <span className="flex items-center gap-1 font-semibold text-foreground">
+              {isOnline ? 'MurihSpace Video Conference' : 'In Person'}
+            </span>
+          </div>
+          {booking.notes && (
+            <p className="text-[11px] text-muted-foreground/70 italic bg-muted/40 px-3 py-1.5 rounded-xl border border-border/40 mt-1 max-w-lg">
+              "{booking.notes}"
+            </p>
           )}
         </div>
       </div>
-      <div className="flex items-center gap-2 shrink-0">
-        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${
-          booking.status === 'confirmed' ? 'bg-secondary/10 text-secondary' :
-          booking.status === 'completed' ? 'bg-primary/10 text-primary' :
-          booking.status === 'cancelled' ? 'bg-destructive/10 text-destructive' :
-          'bg-muted text-muted-foreground'
-        }`}>
-          {booking.status}
-        </span>
-        {booking.status === 'confirmed' && isCreator && (
-          <Button onClick={() => onComplete(booking.id)} variant="ghost" size="sm" className="p-1.5 text-secondary hover:bg-secondary/10" title="Mark complete">
-            <Check className="h-3.5 w-3.5" />
+
+      <div className="flex items-center gap-2.5 shrink-0 justify-end flex-wrap">
+        {/* Built-in MurihSpace Video Meeting Button */}
+        {booking.status === 'confirmed' && isOnline && (
+          <Button
+            onClick={() => onJoinMeeting(booking)}
+            className="h-10 px-4 rounded-2xl bg-[#1877f2] hover:bg-[#166fe5] text-white text-xs font-bold gap-2 shadow-sm shadow-[#1877f2]/20"
+          >
+            <VideoCamera weight="fill" className="h-4 w-4 animate-pulse" />
+            Join MurihSpace Meeting
           </Button>
         )}
+
+        {booking.status === 'confirmed' && isCreator && (
+          <Button
+            onClick={() => onComplete(booking.id)}
+            variant="outline"
+            size="sm"
+            className="h-10 px-3 rounded-2xl text-xs font-semibold text-emerald-600 border-emerald-500/30 hover:bg-emerald-500/10"
+            title="Mark complete"
+          >
+            <Check weight="bold" className="h-4 w-4 mr-1" /> Complete
+          </Button>
+        )}
+
         {booking.status === 'confirmed' && (
-          <Button onClick={() => onCancel(booking.id)} variant="ghost" size="sm" className="p-1.5 text-destructive hover:bg-destructive/10" title="Cancel booking">
-            <X className="h-3.5 w-3.5" />
+          <Button
+            onClick={() => onCancel(booking.id)}
+            variant="ghost"
+            size="sm"
+            className="h-10 w-10 p-0 rounded-2xl text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+            title="Cancel booking"
+          >
+            <X weight="bold" className="h-4 w-4" />
           </Button>
         )}
       </div>
@@ -197,105 +319,83 @@ function BookingRow({ booking, isCreator, onCancel, onComplete }: {
   );
 }
 
+// ── Main Page Component ───────────────────────────────────────────────────────
 export function CoachingPage() {
   const confirm = useConfirm();
   const [tab, setTab] = useState<Tab>('browse');
 
-  // Services
   const [services, setServices] = useState<CoachingService[]>([]);
   const [myServices, setMyServices] = useState<CoachingService[]>([]);
   const [isLoadingServices, setIsLoadingServices] = useState(true);
-
-  // My bookings / sessions
   const [myBookings, setMyBookings] = useState<CoachingBooking[]>([]);
   const [mySessions, setMySessions] = useState<CoachingBooking[]>([]);
 
-  // Service form
+  // Active in-page meeting state
+  const [activeMeetingBooking, setActiveMeetingBooking] = useState<CoachingBooking | null>(null);
+
+  // Service form states
   const [showServiceForm, setShowServiceForm] = useState(false);
   const [editingService, setEditingService] = useState<CoachingService | null>(null);
   const [sfName, setSfName] = useState('');
   const [sfDesc, setSfDesc] = useState('');
   const [sfDuration, setSfDuration] = useState('30');
   const [sfPrice, setSfPrice] = useState('0');
-  const [sfLocation, setSfLocation] = useState('online');
-  const [sfMeetingUrl, setSfMeetingUrl] = useState('');
-  const [sfBuffer, setSfBuffer] = useState('0');
+  const [sfLocation, setSfLocation] = useState<'online' | 'in_person'>('online');
+  const [sfVenue, setSfVenue] = useState('');
+  const [sfBuffer, setSfBuffer] = useState('10');
   const [sfMaxDaily, setSfMaxDaily] = useState('');
 
-  // Slot management
-  const [showSlotForm, setShowSlotForm] = useState(false);
-  const [selectedServiceForSlots, _setSelectedServiceForSlots] = useState<CoachingService | null>(null);
-  const [slotDates, setSlotDates] = useState('');
-  const [slotStartTime, setSlotStartTime] = useState('09:00');
-  const [slotEndTime, setSlotEndTime] = useState('17:00');
-
-  // Booking
+  // Booking states
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [selectedServiceForBooking, setSelectedServiceForBooking] = useState<CoachingService | null>(null);
   const [availableSlots, setAvailableSlots] = useState<CoachingSlot[]>([]);
   const [selectedSlotId, setSelectedSlotId] = useState<number | null>(null);
   const [bookingNotes, setBookingNotes] = useState('');
 
-  // Shared state
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-  const [browsePage, setBrowsePage] = useState(1);
-  const [browseLastPage, setBrowseLastPage] = useState(1);
-  const [servicesPage, setServicesPage] = useState(1);
-  const [servicesLastPage, setServicesLastPage] = useState(1);
-  const [bookingsPage, setBookingsPage] = useState(1);
-  const [bookingsLastPage, setBookingsLastPage] = useState(1);
-  const [sessionsPage, setSessionsPage] = useState(1);
-  const [sessionsLastPage, setSessionsLastPage] = useState(1);
-
-  // Reset pages when tab changes
-  useEffect(() => { setBrowsePage(1); }, []);
-  useEffect(() => { setServicesPage(1); }, []);
-  useEffect(() => { setBookingsPage(1); }, []);
-  useEffect(() => { setSessionsPage(1); }, []);
+  const browsePage = 1;
+  const servicesPage = 1;
+  const bookingsPage = 1;
+  const sessionsPage = 1;
 
   // ── Data fetching ──────────────────────────────────────────────
-
   const fetchPublicServices = useCallback(async () => {
     try {
-      const res = await authFetch(`/coaching/services?page=${browsePage}&per_page=20`, {  });
+      const res = await authFetch(`/coaching/services?page=${browsePage}&per_page=20`);
       if (res.ok) {
         const json = await res.json();
         setServices(json.data?.data ?? []);
-        setBrowseLastPage(json.data?.last_page ?? 1);
       }
     } catch { /* silent */ }
   }, [browsePage]);
 
   const fetchMyServices = useCallback(async () => {
     try {
-      const res = await authFetch(`/coaching/my-services?page=${servicesPage}&per_page=20`, {  });
+      const res = await authFetch(`/coaching/my-services?page=${servicesPage}&per_page=20`);
       if (res.ok) {
         const json = await res.json();
         setMyServices(json.data?.data ?? []);
-        setServicesLastPage(json.data?.last_page ?? 1);
       }
     } catch { /* silent */ }
   }, [servicesPage]);
 
   const fetchMyBookings = useCallback(async () => {
     try {
-      const res = await authFetch(`/coaching/my-bookings?page=${bookingsPage}&per_page=20`, {  });
+      const res = await authFetch(`/coaching/my-bookings?page=${bookingsPage}&per_page=20`);
       if (res.ok) {
         const json = await res.json();
         setMyBookings(json.data?.data ?? []);
-        setBookingsLastPage(json.data?.last_page ?? 1);
       }
     } catch { /* silent */ }
   }, [bookingsPage]);
 
   const fetchMySessions = useCallback(async () => {
     try {
-      const res = await authFetch(`/coaching/my-sessions?page=${sessionsPage}&per_page=20`, {  });
+      const res = await authFetch(`/coaching/my-sessions?page=${sessionsPage}&per_page=20`);
       if (res.ok) {
         const json = await res.json();
         setMySessions(json.data?.data ?? []);
-        setSessionsLastPage(json.data?.last_page ?? 1);
       }
     } catch { /* silent */ }
   }, [sessionsPage]);
@@ -306,17 +406,27 @@ export function CoachingPage() {
   useEffect(() => { fetchMySessions(); }, [fetchMySessions]);
 
   // ── Service CRUD ───────────────────────────────────────────────
-
   const resetServiceForm = () => {
-    setSfName(''); setSfDesc(''); setSfDuration('30'); setSfPrice('0');
-    setSfLocation('online'); setSfMeetingUrl(''); setSfBuffer('0'); setSfMaxDaily('');
+    setSfName('');
+    setSfDesc('');
+    setSfDuration('30');
+    setSfPrice('0');
+    setSfLocation('online');
+    setSfVenue('');
+    setSfBuffer('10');
+    setSfMaxDaily('');
     setEditingService(null);
   };
 
   const openEditService = (s: CoachingService) => {
-    setSfName(s.name); setSfDesc(s.description ?? ''); setSfDuration(String(s.duration_minutes));
-    setSfPrice(String(s.price)); setSfLocation(s.location_type); setSfMeetingUrl(s.meeting_url ?? '');
-    setSfBuffer(String(s.buffer_minutes)); setSfMaxDaily(s.max_daily_bookings ? String(s.max_daily_bookings) : '');
+    setSfName(s.name);
+    setSfDesc(s.description ?? '');
+    setSfDuration(String(s.duration_minutes));
+    setSfPrice(String(s.price / 100));
+    setSfLocation(s.location_type === 'in_person' ? 'in_person' : 'online');
+    setSfVenue(s.meeting_url?.startsWith('/app') ? '' : (s.meeting_url ?? ''));
+    setSfBuffer(String(s.buffer_minutes ?? 10));
+    setSfMaxDaily(s.max_daily_bookings ? String(s.max_daily_bookings) : '');
     setEditingService(s);
     setShowServiceForm(true);
   };
@@ -327,30 +437,28 @@ export function CoachingPage() {
     setMessage(null);
 
     const body = {
-      name: sfName,
-      description: sfDesc || null,
+      name: sfName.trim(),
+      description: sfDesc.trim() || null,
       duration_minutes: parseInt(sfDuration),
-      price: Math.round(parseFloat(sfPrice) * 100),
+      price: Math.round(parseFloat(sfPrice || '0') * 100),
       location_type: sfLocation,
-      meeting_url: sfMeetingUrl || null,
+      meeting_url: sfLocation === 'in_person' && sfVenue ? sfVenue.trim() : null,
       buffer_minutes: parseInt(sfBuffer) || 0,
       max_daily_bookings: sfMaxDaily ? parseInt(sfMaxDaily) : null,
     };
 
     try {
-      const endpoint = editingService
-        ? `/coaching/services/${editingService.id}`
-        : `/coaching/services`;
+      const endpoint = editingService ? `/coaching/services/${editingService.id}` : `/coaching/services`;
       const res = await authFetch(endpoint, {
         method: editingService ? 'PUT' : 'POST',
-        
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.message ?? 'Failed to save service.');
       setShowServiceForm(false);
       resetServiceForm();
-      setMessage({ type: 'success', text: editingService ? 'Service updated!' : 'Service created!' });
+      setMessage({ type: 'success', text: editingService ? 'Service updated successfully!' : 'Service created successfully!' });
       fetchMyServices();
       fetchPublicServices();
     } catch (err: unknown) {
@@ -362,7 +470,7 @@ export function CoachingPage() {
   const handleDeleteService = async (id: number) => {
     if (!await confirm({ title: 'Delete Service', message: 'Delete this service? This cannot be undone.', variant: 'destructive' })) return;
     try {
-      const res = await authFetch(`/coaching/services/${id}`, { method: 'DELETE',  });
+      const res = await authFetch(`/coaching/services/${id}`, { method: 'DELETE' });
       const json = await res.json();
       if (!res.ok) throw new Error(json.message ?? 'Delete failed.');
       setMyServices((prev) => prev.filter((s) => s.id !== id));
@@ -372,41 +480,13 @@ export function CoachingPage() {
     }
   };
 
-  // ── Slot generation ────────────────────────────────────────────
-
-  const handleGenerateSlots = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedServiceForSlots) return;
-    setIsSubmitting(true);
-    setMessage(null);
-
-    const dates = slotDates.split('\n').map((d) => d.trim()).filter(Boolean);
-
-    try {
-      const res = await authFetch(`/coaching/services/${selectedServiceForSlots.id}/slots/generate`, {
-        method: 'POST',
-        
-        body: JSON.stringify({ dates, start_time: slotStartTime, end_time: slotEndTime }),
-      });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.message ?? 'Slot generation failed.');
-      setMessage({ type: 'success', text: json.message });
-      setShowSlotForm(false);
-    } catch (err: unknown) {
-      setMessage({ type: 'error', text: err instanceof Error ? err.message : 'Failed to generate slots.' });
-    }
-    setIsSubmitting(false);
-  };
-
-  // ── Booking ────────────────────────────────────────────────────
-
   const openBooking = async (service: CoachingService) => {
     setSelectedServiceForBooking(service);
     setSelectedSlotId(null);
     setBookingNotes('');
     setShowBookingModal(true);
     try {
-      const res = await authFetch(`/coaching/services/${service.id}`, {  });
+      const res = await authFetch(`/coaching/services/${service.id}`);
       if (res.ok) {
         const json = await res.json();
         setAvailableSlots((json.data?.data ?? json.data)?.available_slots ?? []);
@@ -418,11 +498,10 @@ export function CoachingPage() {
     if (!selectedServiceForBooking || !selectedSlotId) return;
     setIsSubmitting(true);
     setMessage(null);
-
     try {
       const res = await authFetch(`/coaching/book`, {
         method: 'POST',
-        
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ service_id: selectedServiceForBooking.id, slot_id: selectedSlotId, notes: bookingNotes || null }),
       });
       const json = await res.json();
@@ -432,8 +511,9 @@ export function CoachingPage() {
         throw new Error(json.message ?? 'Booking failed.');
       } else {
         setShowBookingModal(false);
-        setMessage({ type: 'success', text: 'Session booked successfully!' });
+        setMessage({ type: 'success', text: 'Session booked! You can join the MurihSpace video room when the meeting starts.' });
         fetchMyBookings();
+        setTab('my-bookings');
       }
     } catch (err: unknown) {
       setMessage({ type: 'error', text: err instanceof Error ? err.message : 'Booking failed.' });
@@ -444,7 +524,7 @@ export function CoachingPage() {
   const handleCancelBooking = async (id: number) => {
     if (!await confirm({ title: 'Cancel Booking', message: 'Cancel this booking? You will be refunded if paid.', variant: 'warning' })) return;
     try {
-      const res = await authFetch(`/coaching/bookings/${id}/cancel`, { method: 'POST',  });
+      const res = await authFetch(`/coaching/bookings/${id}/cancel`, { method: 'POST' });
       const json = await res.json();
       if (!res.ok) throw new Error(json.message ?? 'Cancellation failed.');
       setMessage({ type: 'success', text: json.message });
@@ -457,7 +537,7 @@ export function CoachingPage() {
 
   const handleCompleteSession = async (id: number) => {
     try {
-      const res = await authFetch(`/coaching/bookings/${id}/complete`, { method: 'POST',  });
+      const res = await authFetch(`/coaching/bookings/${id}/complete`, { method: 'POST' });
       const json = await res.json();
       if (!res.ok) throw new Error(json.message ?? 'Failed to complete session.');
       setMessage({ type: 'success', text: json.message });
@@ -467,273 +547,524 @@ export function CoachingPage() {
     }
   };
 
-  // ── UI ─────────────────────────────────────────────────────────
+  // Launch in-page MurihSpace Video Meeting
+  const handleJoinMeeting = (booking: CoachingBooking) => {
+    setActiveMeetingBooking(booking);
+  };
 
-  const tabs: { key: Tab; label: string }[] = [
-    { key: 'browse', label: 'Browse Services' },
-    { key: 'my-services', label: 'My Services (Creator)' },
-    { key: 'my-bookings', label: 'My Bookings' },
-    { key: 'my-sessions', label: 'My Sessions (Creator)' },
+  const tabs: { key: Tab; label: string; icon: React.ElementType; count?: number }[] = [
+    { key: 'browse', label: 'Browse Services', icon: HandHeart },
+    { key: 'my-services', label: 'My Services', icon: Calendar, count: myServices.length },
+    { key: 'my-bookings', label: 'My Bookings', icon: CreditCard, count: myBookings.length },
+    { key: 'my-sessions', label: 'Client Sessions', icon: Users, count: mySessions.length },
   ];
 
   return (
-    <div className="space-y-6 w-full max-w-7xl mx-auto p-6 lg:p-8">
-      <PageHeader 
-        title="1:1 Coaching & Bookings"
-        description="Offer paid 1-on-1 coaching, consultations, and advice sessions."
-        icon={<Calendar className="h-6 w-6 text-[#2164b6] dark:text-[#7ab0ff]" />}
-        badge={
-          <span className="px-2.5 py-0.5 rounded-full bg-[#2164b6]/10 text-[#2164b6] dark:text-[#7ab0ff] text-xs font-semibold uppercase tracking-wider border border-[#2164b6]/20">
-            Phase 7 — Services
-          </span>
-        }
-        action={
-          tab === 'my-services' && (
+    <div className="w-full max-w-7xl mx-auto space-y-6 px-4 py-5 sm:px-6 sm:py-6 lg:px-8">
+      {/* ── ACTIVE MEETING BANNER / EMBEDDED CONFEENCE ─────── */}
+      {activeMeetingBooking && (
+        <div className="space-y-4 p-4 sm:p-6 bg-card border-2 border-primary/40 rounded-3xl shadow-2xl">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <span className="h-3 w-3 rounded-full bg-emerald-500 animate-ping" />
+              <div>
+                <h2 className="text-base sm:text-lg font-black text-foreground">
+                  {activeMeetingBooking.service?.name ?? '1:1 Coaching Meeting'}
+                </h2>
+                <p className="text-xs text-muted-foreground">
+                  MurihSpace Native Video Room · Google Meet Style
+                </p>
+              </div>
+            </div>
             <Button
-              onClick={() => { resetServiceForm(); setShowServiceForm(true); }}
-              className="bg-[#2164b6] text-white hover:bg-[#1a5091] font-semibold h-11 px-5 rounded-xl shadow-md gap-2"
+              variant="outline"
+              size="sm"
+              onClick={() => setActiveMeetingBooking(null)}
+              className="rounded-xl text-xs font-bold"
             >
-              <Plus className="h-5 w-5" />
-              New Service
+              Minimize Meeting
             </Button>
-          )
-        }
-      />
+          </div>
 
-      {/* Message banner */}
-      {message && message.type === 'success' && (
-        <SuccessBanner message={message.text} onClose={() => setMessage(null)} className="mb-4" />
-      )}
-      {message && message.type === 'error' && (
-        <FormErrorSummary errors={[message.text]} className="mb-4" />
+          <LiveKitVideoConference
+            tokenEndpoint={`/coaching/bookings/${activeMeetingBooking.id}/livekit-token`}
+            roomTitle={activeMeetingBooking.service?.name ?? '1:1 Coaching Meeting'}
+            onLeave={() => setActiveMeetingBooking(null)}
+          />
+        </div>
       )}
 
-      {/* Pill Tabs */}
-      <div className="flex p-1 bg-muted rounded-xl gap-1 w-fit">
-        {tabs.map((t) => (
-          <button
-            key={t.key}
-            onClick={() => setTab(t.key)}
-            className={`px-4 py-2 text-xs font-semibold rounded-lg transition-all ${
-              tab === t.key ? 'bg-card text-foreground shadow-xs' : 'text-muted-foreground hover:text-foreground'
-            }`}
+      {/* ── HEADER ─────────────────────────────────────────── */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-border/40">
+        <div className="space-y-1">
+          <div className="flex items-center gap-3">
+            <div className="h-11 w-11 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+              <VideoCamera weight="fill" className="h-6 w-6" />
+            </div>
+            <h1 className="text-2xl sm:text-[28px] font-black tracking-tight text-foreground">
+              1:1 Consultations &amp; Meetings
+            </h1>
+          </div>
+          <p className="text-sm sm:text-[15px] text-muted-foreground pl-14">
+            Offer paid 1-on-1 advice sessions, video consultations, and instant video meetings with your community.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2.5 shrink-0 self-start md:self-auto ml-14 md:ml-0 flex-wrap">
+          {/* Instant Meeting Button */}
+          <Button
+            asChild
+            variant="outline"
+            className="h-10 px-4 rounded-2xl text-xs font-bold gap-2 border-border/80 hover:bg-muted"
           >
-            {t.label}
+            <Link to="/app/meetings">
+              <VideoCamera weight="fill" className="h-4 w-4 text-emerald-500" />
+              Instant Meeting
+            </Link>
+          </Button>
+
+          {/* New Service Button */}
+          <Button
+            onClick={() => { resetServiceForm(); setShowServiceForm(true); }}
+            className="h-10 px-5 rounded-2xl text-xs font-bold bg-primary hover:bg-primary/90 text-primary-foreground gap-2 shadow-sm"
+          >
+            <Plus weight="bold" className="h-4 w-4" /> New Service
+          </Button>
+        </div>
+      </div>
+
+      {/* ── MESSAGES ────────────────────────────────────────── */}
+      {message?.type === 'success' && (
+        <SuccessBanner message={message.text} onClose={() => setMessage(null)} />
+      )}
+      {message?.type === 'error' && (
+        <FormErrorSummary errors={[message.text]} className="mb-1" />
+      )}
+
+      {/* ── TABS ─────────────────────────────────────────────── */}
+      <div className="flex items-center border-b border-border/60 overflow-x-auto scrollbar-none gap-1">
+        {tabs.map(({ key, label, icon: Icon, count }) => (
+          <button
+            key={key}
+            onClick={() => setTab(key)}
+            className={[
+              "flex items-center gap-2 px-4 py-3 text-sm whitespace-nowrap border-b-2 -mb-px transition-colors",
+              tab === key
+                ? "border-primary text-primary font-bold"
+                : "border-transparent text-muted-foreground hover:text-foreground font-medium",
+            ].join(" ")}
+          >
+            <Icon weight="fill" className="h-4 w-4" />
+            {label}
+            {typeof count === 'number' && count > 0 && (
+              <span className="ml-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
+                {count}
+              </span>
+            )}
           </button>
         ))}
       </div>
 
-      {/* ── Tab: Browse Services ────────────────────────────────── */}
+      {/* ══════════════════════════════════════════════════════
+          TAB: BROWSE SERVICES
+      ══════════════════════════════════════════════════════ */}
       {tab === 'browse' && (
-        <div className="space-y-4">
+        <div className="space-y-5">
           {isLoadingServices ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {[1, 2, 3].map((n) => (
-                <div key={n} className="h-48 rounded-2xl bg-muted animate-pulse border border-border" />
-              ))}
+            <div className="py-24 text-center space-y-3">
+              <Spinner weight="bold" className="h-8 w-8 animate-spin text-primary mx-auto" />
+              <p className="text-sm font-medium text-muted-foreground">Loading services…</p>
             </div>
           ) : services.filter((s) => s.is_active).length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-border p-12 text-center space-y-3 bg-card">
-              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
-                <Calendar className="h-6 w-6" />
+            <div className="py-20 text-center max-w-sm mx-auto space-y-4">
+              <div className="h-14 w-14 rounded-2xl bg-muted flex items-center justify-center mx-auto text-primary">
+                <HandHeart weight="fill" className="h-7 w-7" />
               </div>
-              <h3 className="text-base font-semibold text-foreground">No coaching services available</h3>
-              <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-                Creators haven't published any coaching services yet. Check back later!
+              <h3 className="text-lg font-bold text-foreground">No services listed yet</h3>
+              <p className="text-sm text-muted-foreground">
+                Creators haven't listed any 1:1 consultation sessions yet.
               </p>
+              <Button
+                onClick={() => { resetServiceForm(); setShowServiceForm(true); }}
+                className="h-9 px-4 rounded-2xl text-xs font-semibold bg-primary hover:bg-primary/90 text-primary-foreground gap-1.5"
+              >
+                <Plus weight="bold" className="h-3.5 w-3.5" /> Offer Your Own Service
+              </Button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {services.filter((s) => s.is_active).map((s) => (
                 <ServiceCard key={s.id} service={s} onBook={openBooking} />
               ))}
             </div>
           )}
-          {browseLastPage > 1 && (
-            <div className="flex items-center justify-center gap-2 pt-2">
-              <button onClick={() => setBrowsePage(p => Math.max(1, p - 1))} disabled={browsePage <= 1} className="px-3 py-1.5 rounded-lg text-xs font-bold border border-border bg-card hover:bg-muted disabled:opacity-40">Previous</button>
-              <span className="text-xs text-muted-foreground">Page {browsePage} of {browseLastPage}</span>
-              <button onClick={() => setBrowsePage(p => Math.min(browseLastPage, p + 1))} disabled={browsePage >= browseLastPage} className="px-3 py-1.5 rounded-lg text-xs font-bold border border-border bg-card hover:bg-muted disabled:opacity-40">Next</button>
-            </div>
-          )}
         </div>
       )}
 
-      {/* ── Tab: My Services (Creator) ──────────────────────────── */}
+      {/* ══════════════════════════════════════════════════════
+          TAB: MY SERVICES (CREATOR)
+      ══════════════════════════════════════════════════════ */}
       {tab === 'my-services' && (
-        <div className="space-y-4">
+        <div className="space-y-5">
           {myServices.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-border p-12 text-center space-y-3 bg-card">
-              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
-                <Calendar className="h-6 w-6" />
+            <div className="py-20 text-center max-w-sm mx-auto space-y-4">
+              <div className="h-14 w-14 rounded-2xl bg-muted flex items-center justify-center mx-auto text-primary">
+                <Calendar weight="fill" className="h-7 w-7" />
               </div>
-              <h3 className="text-base font-semibold text-foreground">No services yet</h3>
-              <p className="text-xs text-muted-foreground max-w-sm mx-auto">Create your first coaching service to start accepting bookings.</p>
+              <h3 className="text-lg font-bold text-foreground">No coaching services created</h3>
+              <p className="text-sm text-muted-foreground">
+                Set up 1:1 advice sessions, portfolio reviews, or strategy meetings.
+              </p>
+              <Button
+                onClick={() => { resetServiceForm(); setShowServiceForm(true); }}
+                className="h-9 px-4 rounded-2xl text-xs font-semibold bg-primary hover:bg-primary/90 text-primary-foreground gap-1.5"
+              >
+                <Plus weight="bold" className="h-3.5 w-3.5" /> Create First Service
+              </Button>
             </div>
           ) : (
-            <div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {myServices.map((s) => (
-                  <ServiceCard
-                    key={s.id}
-                    service={s}
-                    onEdit={openEditService}
-                    onDelete={handleDeleteService}
-                  />
-                ))}
-              </div>
-              {servicesLastPage > 1 && (
-                <div className="flex items-center justify-center gap-2 pt-4">
-                  <button onClick={() => setServicesPage(p => Math.max(1, p - 1))} disabled={servicesPage <= 1} className="px-3 py-1.5 rounded-lg text-xs font-bold border border-border bg-card hover:bg-muted disabled:opacity-40">Previous</button>
-                  <span className="text-xs text-muted-foreground">Page {servicesPage} of {servicesLastPage}</span>
-                  <button onClick={() => setServicesPage(p => Math.min(servicesLastPage, p + 1))} disabled={servicesPage >= servicesLastPage} className="px-3 py-1.5 rounded-lg text-xs font-bold border border-border bg-card hover:bg-muted disabled:opacity-40">Next</button>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Service Form Modal */}
-          {showServiceForm && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
-              <div className="border border-border rounded-2xl bg-card p-6 max-w-lg w-full shadow-2xl space-y-4">
-                <h3 className="text-base font-bold text-foreground">{editingService ? 'Edit Service' : 'New Coaching Service'}</h3>
-                <form onSubmit={handleSaveService} className="space-y-3">
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-foreground uppercase tracking-wider">Service Name</label>
-                    <Input type="text" value={sfName} onChange={(e) => setSfName(e.target.value)} required placeholder="e.g. 30-min Coaching Call" className="bg-muted border-border rounded-xl text-xs" />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-foreground uppercase tracking-wider">Description</label>
-                    <textarea value={sfDesc} onChange={(e) => setSfDesc(e.target.value)} placeholder="What will this session cover?" rows={3} className="w-full px-3 py-2 text-xs rounded-xl bg-muted border-0 outline-none focus:ring-1 focus:ring-secondary resize-none" />
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <label className="text-xs font-bold text-foreground uppercase tracking-wider">Duration (min)</label>
-                      <Input type="number" value={sfDuration} onChange={(e) => setSfDuration(e.target.value)} min={15} max={480} required className="bg-muted border-border rounded-xl text-xs" />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-xs font-bold text-foreground uppercase tracking-wider">Price (cents)</label>
-                      <div className="flex items-center gap-0">
-                        <span className="text-xs text-muted-foreground bg-muted px-2.5 py-1.5 rounded-l-xl border border-r-0 border-border">$</span>
-                        <Input type="number" value={sfPrice} onChange={(e) => setSfPrice(e.target.value)} min={0} step={0.01} placeholder="0.00 (free)" className="rounded-l-none bg-muted border-border rounded-r-xl text-xs" />
-                      </div>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <label className="text-xs font-bold text-foreground uppercase tracking-wider">Location</label>
-                      <select value={sfLocation} onChange={(e) => setSfLocation(e.target.value)} className="w-full px-3 py-2 text-xs rounded-xl bg-muted border border-border outline-none focus-visible:ring-1 focus-visible:ring-secondary text-foreground">
-                        <option value="online">Online</option>
-                        <option value="in_person">In Person</option>
-                      </select>
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-xs font-bold text-foreground uppercase tracking-wider">Buffer (min)</label>
-                      <Input type="number" value={sfBuffer} onChange={(e) => setSfBuffer(e.target.value)} min={0} max={120} className="bg-muted border-border rounded-xl text-xs" />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <label className="text-xs font-bold text-foreground uppercase tracking-wider">Meeting URL</label>
-                      <Input type="url" value={sfMeetingUrl} onChange={(e) => setSfMeetingUrl(e.target.value)} placeholder="https://meet.google.com/..." className="bg-muted border-border rounded-xl text-xs" />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-xs font-bold text-foreground uppercase tracking-wider">Max daily</label>
-                      <Input type="number" value={sfMaxDaily} onChange={(e) => setSfMaxDaily(e.target.value)} min={1} max={50} placeholder="Unlimited" className="bg-muted border-border rounded-xl text-xs" />
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-end gap-2 pt-2">
-                    <Button type="button" variant="ghost" onClick={() => setShowServiceForm(false)}>Cancel</Button>
-                    <Button type="submit" disabled={isSubmitting} variant="secondary" className="gap-1.5">
-                      {isSubmitting ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
-                      {editingService ? 'Update' : 'Create'} Service
-                    </Button>
-                  </div>
-                </form>
-              </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {myServices.map((s) => (
+                <ServiceCard
+                  key={s.id}
+                  service={s}
+                  onEdit={openEditService}
+                  onDelete={handleDeleteService}
+                />
+              ))}
             </div>
           )}
         </div>
       )}
 
-      {/* ── Tab: My Bookings ─────────────────────────────────────── */}
+      {/* ══════════════════════════════════════════════════════
+          TAB: MY BOOKINGS (ATTENDEE)
+      ══════════════════════════════════════════════════════ */}
       {tab === 'my-bookings' && (
         <div className="space-y-3">
           {myBookings.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-border p-12 text-center space-y-3 bg-card">
-              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
-                <Calendar className="h-6 w-6" />
+            <div className="py-20 text-center max-w-sm mx-auto space-y-4">
+              <div className="h-14 w-14 rounded-2xl bg-muted flex items-center justify-center mx-auto text-primary">
+                <CreditCard weight="fill" className="h-7 w-7" />
               </div>
-              <h3 className="text-base font-semibold text-foreground">No bookings yet</h3>
-              <p className="text-xs text-muted-foreground max-w-sm mx-auto">Browse services and book a session with a creator.</p>
+              <h3 className="text-lg font-bold text-foreground">No bookings yet</h3>
+              <p className="text-sm text-muted-foreground">
+                Browse creator services to book a 1-on-1 consultation.
+              </p>
+              <Button
+                onClick={() => setTab('browse')}
+                className="h-9 px-4 rounded-2xl text-xs font-semibold bg-primary hover:bg-primary/90 text-primary-foreground gap-1.5"
+              >
+                <HandHeart weight="fill" className="h-3.5 w-3.5" /> Browse Services
+              </Button>
             </div>
           ) : (
             myBookings.map((b) => (
-              <BookingRow key={b.id} booking={b} isCreator={false} onCancel={handleCancelBooking} onComplete={() => {}} />
+              <BookingRow
+                key={b.id}
+                booking={b}
+                isCreator={false}
+                onCancel={handleCancelBooking}
+                onComplete={() => {}}
+                onJoinMeeting={handleJoinMeeting}
+              />
             ))
-          )}
-          {bookingsLastPage > 1 && (
-            <div className="flex items-center justify-center gap-2 pt-2">
-              <button onClick={() => setBookingsPage(p => Math.max(1, p - 1))} disabled={bookingsPage <= 1} className="px-3 py-1.5 rounded-lg text-xs font-bold border border-border bg-card hover:bg-muted disabled:opacity-40">Previous</button>
-              <span className="text-xs text-muted-foreground">Page {bookingsPage} of {bookingsLastPage}</span>
-              <button onClick={() => setBookingsPage(p => Math.min(bookingsLastPage, p + 1))} disabled={bookingsPage >= bookingsLastPage} className="px-3 py-1.5 rounded-lg text-xs font-bold border border-border bg-card hover:bg-muted disabled:opacity-40">Next</button>
-            </div>
           )}
         </div>
       )}
 
-      {/* ── Tab: My Sessions (Creator) ───────────────────────────── */}
+      {/* ══════════════════════════════════════════════════════
+          TAB: CLIENT SESSIONS (HOST)
+      ══════════════════════════════════════════════════════ */}
       {tab === 'my-sessions' && (
         <div className="space-y-3">
           {mySessions.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-border p-12 text-center space-y-3 bg-card">
-              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
-                <Calendar className="h-6 w-6" />
+            <div className="py-20 text-center max-w-sm mx-auto space-y-4">
+              <div className="h-14 w-14 rounded-2xl bg-muted flex items-center justify-center mx-auto text-primary">
+                <Users weight="fill" className="h-7 w-7" />
               </div>
-              <h3 className="text-base font-semibold text-foreground">No upcoming sessions</h3>
-              <p className="text-xs text-muted-foreground max-w-sm mx-auto">Sessions booked by members will appear here.</p>
+              <h3 className="text-lg font-bold text-foreground">No upcoming client sessions</h3>
+              <p className="text-sm text-muted-foreground">
+                When members book consultations with you, they will appear here with your MurihSpace meeting room link.
+              </p>
+              <Button
+                onClick={() => setTab('my-services')}
+                variant="outline"
+                className="h-9 px-4 rounded-2xl text-xs font-semibold gap-1.5"
+              >
+                <Calendar weight="fill" className="h-3.5 w-3.5 text-primary" /> Manage Services
+              </Button>
             </div>
           ) : (
             mySessions.map((b) => (
-              <BookingRow key={b.id} booking={b} isCreator={true} onCancel={handleCancelBooking} onComplete={handleCompleteSession} />
+              <BookingRow
+                key={b.id}
+                booking={b}
+                isCreator={true}
+                onCancel={handleCancelBooking}
+                onComplete={handleCompleteSession}
+                onJoinMeeting={handleJoinMeeting}
+              />
             ))
-          )}
-          {sessionsLastPage > 1 && (
-            <div className="flex items-center justify-center gap-2 pt-2">
-              <button onClick={() => setSessionsPage(p => Math.max(1, p - 1))} disabled={sessionsPage <= 1} className="px-3 py-1.5 rounded-lg text-xs font-bold border border-border bg-card hover:bg-muted disabled:opacity-40">Previous</button>
-              <span className="text-xs text-muted-foreground">Page {sessionsPage} of {sessionsLastPage}</span>
-              <button onClick={() => setSessionsPage(p => Math.min(sessionsLastPage, p + 1))} disabled={sessionsPage >= sessionsLastPage} className="px-3 py-1.5 rounded-lg text-xs font-bold border border-border bg-card hover:bg-muted disabled:opacity-40">Next</button>
-            </div>
           )}
         </div>
       )}
 
-      {/* ── Slot Generation Modal ────────────────────────────────── */}
-      {showSlotForm && selectedServiceForSlots && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
-          <div className="border border-border rounded-2xl bg-card p-6 max-w-lg w-full shadow-2xl space-y-4">
-            <h3 className="text-base font-bold text-foreground">Generate Slots for "{selectedServiceForSlots.name}"</h3>
-            <form onSubmit={handleGenerateSlots} className="space-y-3">
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-foreground uppercase tracking-wider">Dates (one per line)</label>
-                <textarea value={slotDates} onChange={(e) => setSlotDates(e.target.value)} placeholder="2026-07-27&#10;2026-07-28&#10;2026-07-29" rows={4} required className="w-full px-3 py-2 text-xs rounded-xl bg-muted border-0 outline-none focus:ring-1 focus:ring-secondary resize-none font-mono" />
-                <p className="text-[10px] text-muted-foreground mt-1">Enter one date per line in YYYY-MM-DD format. Max 30 dates.</p>
+      {/* ══════════════════════════════════════════════════════
+          REDESIGNED NEW/EDIT SERVICE POPUP MODAL
+      ══════════════════════════════════════════════════════ */}
+      {showServiceForm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-md overflow-y-auto">
+          <div className="border border-border/80 rounded-3xl bg-card max-w-xl w-full shadow-2xl my-6 overflow-hidden">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between px-6 py-5 border-b border-border/60 bg-muted/20">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                  <VideoCamera weight="fill" className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-base sm:text-lg font-black text-foreground">
+                    {editingService ? 'Edit Consultation Service' : 'New 1:1 Service'}
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
+                    Native MurihSpace Video Room · No external links required
+                  </p>
+                </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => setShowServiceForm(false)}
+                className="p-2 rounded-full hover:bg-muted text-muted-foreground transition-colors"
+              >
+                <X weight="bold" className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Modal Form */}
+            <form onSubmit={handleSaveService} className="p-6 space-y-5">
+              {/* Service Title */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-foreground uppercase tracking-wider">
+                  Service Title *
+                </label>
+                <Input
+                  value={sfName}
+                  onChange={(e) => setSfName(e.target.value)}
+                  required
+                  placeholder="e.g. 30-min Strategy Consultation"
+                  className="text-sm rounded-2xl h-11 bg-muted/30 border-border/70"
+                />
+              </div>
+
+              {/* Description */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-foreground uppercase tracking-wider">
+                  Description
+                </label>
+                <textarea
+                  value={sfDesc}
+                  onChange={(e) => setSfDesc(e.target.value)}
+                  placeholder="What topics will you cover in this session?"
+                  rows={3}
+                  className="w-full px-4 py-3 text-xs sm:text-sm rounded-2xl bg-muted/30 border border-border/70 text-foreground outline-none focus:ring-2 focus:ring-primary/40 resize-none transition-all"
+                />
+              </div>
+
+              {/* Location Type / Meeting Mode Visual Selector */}
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-foreground uppercase tracking-wider">
+                  Meeting Location *
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {/* MurihSpace Meeting */}
+                  <button
+                    type="button"
+                    onClick={() => setSfLocation('online')}
+                    className={`p-4 rounded-2xl border text-left flex flex-col justify-between space-y-2 transition-all ${
+                      sfLocation === 'online'
+                        ? 'border-primary bg-primary/10 ring-2 ring-primary/30 shadow-sm'
+                        : 'border-border/70 bg-card hover:bg-muted/40'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="h-9 w-9 rounded-xl bg-primary/15 text-primary flex items-center justify-center">
+                        <VideoCamera weight="fill" className="h-5 w-5" />
+                      </div>
+                      {sfLocation === 'online' && (
+                        <span className="h-5 w-5 rounded-full bg-primary text-white flex items-center justify-center">
+                          <Check weight="bold" className="h-3 w-3" />
+                        </span>
+                      )}
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-foreground">MurihSpace Meeting</p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        Built-in HD video, screen sharing, &amp; crystal audio
+                      </p>
+                    </div>
+                  </button>
+
+                  {/* In-Person Meeting */}
+                  <button
+                    type="button"
+                    onClick={() => setSfLocation('in_person')}
+                    className={`p-4 rounded-2xl border text-left flex flex-col justify-between space-y-2 transition-all ${
+                      sfLocation === 'in_person'
+                        ? 'border-primary bg-primary/10 ring-2 ring-primary/30 shadow-sm'
+                        : 'border-border/70 bg-card hover:bg-muted/40'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="h-9 w-9 rounded-xl bg-muted text-muted-foreground flex items-center justify-center">
+                        <MapPin weight="fill" className="h-5 w-5" />
+                      </div>
+                      {sfLocation === 'in_person' && (
+                        <span className="h-5 w-5 rounded-full bg-primary text-white flex items-center justify-center">
+                          <Check weight="bold" className="h-3 w-3" />
+                        </span>
+                      )}
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-foreground">In-Person Meeting</p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        Physical venue, coffee shop, or studio location
+                      </p>
+                    </div>
+                  </button>
+                </div>
+
+                {/* If online: Explain no URL needed */}
+                {sfLocation === 'online' && (
+                  <div className="flex items-center gap-2 p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-medium">
+                    <Check weight="bold" className="h-4 w-4 shrink-0" />
+                    <span>MurihSpace automatically generates a private Google Meet-style video room for every confirmed booking.</span>
+                  </div>
+                )}
+
+                {/* If in_person: Show venue input */}
+                {sfLocation === 'in_person' && (
+                  <div className="space-y-1 pt-1">
+                    <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+                      Meeting Venue / Address
+                    </label>
+                    <Input
+                      value={sfVenue}
+                      onChange={(e) => setSfVenue(e.target.value)}
+                      placeholder="e.g. Starbucks, Victoria Island, Lagos"
+                      className="text-xs rounded-xl h-10 bg-muted/30"
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Duration & Price */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Duration */}
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-foreground uppercase tracking-wider">
+                    Duration (Minutes) *
+                  </label>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    {['15', '30', '45', '60'].map((mins) => (
+                      <button
+                        key={mins}
+                        type="button"
+                        onClick={() => setSfDuration(mins)}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                          sfDuration === mins
+                            ? 'bg-primary text-primary-foreground shadow-xs'
+                            : 'bg-muted/50 border border-border/70 text-muted-foreground hover:text-foreground'
+                        }`}
+                      >
+                        {mins}m
+                      </button>
+                    ))}
+                    <div className="flex-1 min-w-[70px]">
+                      <Input
+                        type="number"
+                        value={sfDuration}
+                        onChange={(e) => setSfDuration(e.target.value)}
+                        min={10}
+                        max={480}
+                        required
+                        className="text-xs rounded-xl h-9 text-center bg-muted/30"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Price */}
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-foreground uppercase tracking-wider">
+                    Price (NGN ₦)
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-bold text-muted-foreground">
+                      ₦
+                    </span>
+                    <Input
+                      type="number"
+                      value={sfPrice}
+                      onChange={(e) => setSfPrice(e.target.value)}
+                      min={0}
+                      step={100}
+                      placeholder="0 (Free)"
+                      className="text-sm font-bold rounded-2xl h-11 pl-8 bg-muted/30 border-border/70"
+                    />
+                  </div>
+                  <span className="text-[10px] text-muted-foreground block">
+                    Enter 0 to offer this consultation free of charge.
+                  </span>
+                </div>
+              </div>
+
+              {/* Scheduling Settings */}
+              <div className="grid grid-cols-2 gap-3 pt-2 border-t border-border/40">
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-foreground uppercase tracking-wider">Start time</label>
-                  <Input type="time" value={slotStartTime} onChange={(e) => setSlotStartTime(e.target.value)} required className="bg-muted border-border rounded-xl text-xs" />
+                  <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+                    Buffer Time (min)
+                  </label>
+                  <Input
+                    type="number"
+                    value={sfBuffer}
+                    onChange={(e) => setSfBuffer(e.target.value)}
+                    min={0}
+                    max={120}
+                    className="text-xs rounded-xl h-9 bg-muted/30"
+                  />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-foreground uppercase tracking-wider">End time</label>
-                  <Input type="time" value={slotEndTime} onChange={(e) => setSlotEndTime(e.target.value)} required className="bg-muted border-border rounded-xl text-xs" />
+                  <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+                    Daily Limit
+                  </label>
+                  <Input
+                    type="number"
+                    value={sfMaxDaily}
+                    onChange={(e) => setSfMaxDaily(e.target.value)}
+                    min={1}
+                    max={50}
+                    placeholder="Unlimited"
+                    className="text-xs rounded-xl h-9 bg-muted/30"
+                  />
                 </div>
               </div>
-              <div className="flex items-center justify-end gap-2 pt-2">
-                <Button type="button" variant="ghost" onClick={() => setShowSlotForm(false)}>Cancel</Button>
-                <Button type="submit" disabled={isSubmitting} variant="secondary" className="gap-1.5">
-                  {isSubmitting ? <Loader2 className="h-3 w-3 animate-spin" /> : <Plus className="h-3 w-3" />}
-                  Generate Slots
+
+              {/* Action Buttons */}
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-border/40">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowServiceForm(false)}
+                  className="text-xs h-11 px-5 rounded-2xl font-semibold"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs h-11 px-6 rounded-2xl gap-2 shadow-sm"
+                >
+                  {isSubmitting ? <Spinner weight="bold" className="h-4 w-4 animate-spin" /> : <Check weight="bold" className="h-4 w-4" />}
+                  {editingService ? 'Update Service' : 'Create Service'}
                 </Button>
               </div>
             </form>
@@ -741,56 +1072,86 @@ export function CoachingPage() {
         </div>
       )}
 
-      {/* ── Booking Modal ────────────────────────────────────────── */}
+      {/* ── BOOKING MODAL ──────────────────────────────────── */}
       {showBookingModal && selectedServiceForBooking && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
-          <div className="border border-border rounded-2xl bg-card p-6 max-w-lg w-full shadow-2xl space-y-4">
-            <h3 className="text-base font-bold text-foreground">Book: {selectedServiceForBooking.name}</h3>
-            <div className="flex items-center gap-3 text-xs text-muted-foreground">
-              <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{selectedServiceForBooking.duration_minutes} min</span>
-              <span className="flex items-center gap-1">
-                {selectedServiceForBooking.price === 0 ? 'Free' : formatPrice(selectedServiceForBooking.price, selectedServiceForBooking.currency)}
-              </span>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-md">
+          <div className="border border-border/80 rounded-3xl bg-card max-w-lg w-full shadow-2xl overflow-hidden">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-border/60 bg-muted/20">
+              <div>
+                <h3 className="text-base font-bold text-foreground">{selectedServiceForBooking.name}</h3>
+                <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
+                  <span className="flex items-center gap-1">
+                    <Clock weight="fill" className="h-3.5 w-3.5 text-primary" />
+                    {selectedServiceForBooking.duration_minutes} min
+                  </span>
+                  <span className="font-bold text-foreground">
+                    {selectedServiceForBooking.price === 0 ? 'Free' : formatPrice(selectedServiceForBooking.price, selectedServiceForBooking.currency)}
+                  </span>
+                </div>
+              </div>
+              <button onClick={() => setShowBookingModal(false)} className="p-2 rounded-full hover:bg-muted text-muted-foreground">
+                <X weight="bold" className="h-5 w-5" />
+              </button>
             </div>
 
-            {availableSlots.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-border p-6 text-center space-y-2 bg-card">
-                <p className="text-xs text-muted-foreground">No available slots. Please check back later.</p>
-              </div>
-            ) : (
-              <div className="space-y-2 max-h-60 overflow-y-auto">
-                <p className="text-xs font-bold text-foreground uppercase tracking-wider">Select a time slot</p>
-                {availableSlots.map((slot) => (
-                  <button
-                    key={slot.id}
-                    onClick={() => setSelectedSlotId(slot.id)}
-                    className={`w-full flex items-center justify-between p-3 rounded-xl text-xs border transition-all ${
-                      selectedSlotId === slot.id
-                        ? 'border-secondary bg-secondary/10'
-                        : 'border-border bg-muted/20 hover:bg-muted'
-                    }`}
-                  >
-                    <span className="flex items-center gap-2">
-                      <Calendar className="h-3.5 w-3.5 text-secondary" />
-                      {formatDateTime(slot.start_time)}
-                    </span>
-                    <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
-                  </button>
-                ))}
-              </div>
-            )}
+            <div className="p-6 space-y-5">
+              {availableSlots.length === 0 ? (
+                <div className="py-10 text-center space-y-3">
+                  <WarningCircle weight="fill" className="h-8 w-8 text-muted-foreground mx-auto" />
+                  <p className="text-sm font-medium text-foreground">No available slots</p>
+                  <p className="text-xs text-muted-foreground">The creator hasn't published upcoming available times yet.</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <p className="text-xs font-bold text-foreground uppercase tracking-wider">Select a time slot</p>
+                  <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                    {availableSlots.map((slot) => (
+                      <button
+                        key={slot.id}
+                        type="button"
+                        onClick={() => setSelectedSlotId(slot.id)}
+                        className={[
+                          "w-full flex items-center justify-between p-3.5 rounded-2xl text-xs border transition-all",
+                          selectedSlotId === slot.id
+                            ? "border-primary bg-primary/10 text-primary font-bold shadow-xs"
+                            : "border-border/70 bg-card hover:bg-muted/60 text-foreground font-medium",
+                        ].join(" ")}
+                      >
+                        <span className="flex items-center gap-2">
+                          <Calendar weight="fill" className="h-3.5 w-3.5 shrink-0" />
+                          {formatDateTime(slot.start_time)}
+                        </span>
+                        <CaretRight weight="bold" className="h-3.5 w-3.5 text-muted-foreground" />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
-            <div className="space-y-1">
-              <label className="text-xs font-bold text-foreground uppercase tracking-wider">Notes (optional)</label>
-              <textarea value={bookingNotes} onChange={(e) => setBookingNotes(e.target.value)} placeholder="What do you want to discuss?" rows={2} className="w-full px-3 py-2 text-xs rounded-xl bg-muted border-0 outline-none focus:ring-1 focus:ring-secondary resize-none" />
-            </div>
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-foreground uppercase tracking-wider">Notes for host (optional)</label>
+                <textarea
+                  value={bookingNotes}
+                  onChange={(e) => setBookingNotes(e.target.value)}
+                  placeholder="What would you like to discuss during this session?"
+                  rows={2}
+                  className="w-full px-3.5 py-2.5 text-xs rounded-2xl bg-card border border-border/70 outline-none focus:ring-1 focus:ring-primary resize-none"
+                />
+              </div>
 
-            <div className="flex items-center justify-end gap-2 pt-2">
-              <Button type="button" variant="ghost" onClick={() => setShowBookingModal(false)}>Cancel</Button>
-              <Button onClick={handleBook} disabled={!selectedSlotId || isSubmitting} variant="secondary" className="gap-1.5">
-                {isSubmitting ? <Loader2 className="h-3 w-3 animate-spin" /> : <CreditCard className="h-3 w-3" />}
-                {selectedServiceForBooking.price > 0 ? `Pay ${formatPrice(selectedServiceForBooking.price, selectedServiceForBooking.currency)}` : 'Book Free Session'}
-              </Button>
+              <div className="flex items-center justify-end gap-2.5 pt-2">
+                <Button type="button" variant="outline" onClick={() => setShowBookingModal(false)} className="text-xs h-10 px-4 rounded-2xl">Cancel</Button>
+                <Button
+                  onClick={handleBook}
+                  disabled={!selectedSlotId || isSubmitting}
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs h-10 rounded-2xl px-5 gap-1.5"
+                >
+                  {isSubmitting ? <Spinner weight="bold" className="h-4 w-4 animate-spin" /> : <CreditCard weight="fill" className="h-4 w-4" />}
+                  {selectedServiceForBooking.price > 0
+                    ? `Pay ${formatPrice(selectedServiceForBooking.price, selectedServiceForBooking.currency)}`
+                    : 'Book Free Session'}
+                </Button>
+              </div>
             </div>
           </div>
         </div>
@@ -798,3 +1159,5 @@ export function CoachingPage() {
     </div>
   );
 }
+
+export default CoachingPage;

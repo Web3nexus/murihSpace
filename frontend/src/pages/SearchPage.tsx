@@ -1,6 +1,14 @@
 import { useState, useEffect } from "react";
 import { useSearchParams, Link } from "react-router";
-import { Search, Loader2, Users, MessageSquare, FileText, Package, User } from "lucide-react";
+import {
+  MagnifyingGlass as Search,
+  Spinner as Loader2,
+  Users as Users,
+  ChatTeardropText as MessageSquare,
+  FileText as FileText,
+  Package as Package,
+  User as User
+} from "@phosphor-icons/react";
 import { authFetch } from "@/lib/api/authFetch";
 
 
@@ -68,22 +76,22 @@ export default function SearchPage() {
   ];
 
   return (
-    <div className="w-full max-w-7xl mx-auto space-y-6 p-6 lg:p-8">
+    <div className="w-full max-w-7xl mx-auto space-y-6 p-4 lg:p-5">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <Search className="h-6 w-6 text-primary" />
-        <h1 className="text-2xl font-bold">Search</h1>
+        <Search weight="fill" className="h-6 w-6 text-primary" />
+        <h1 className="text-xl font-bold">Search</h1>
       </div>
 
       {/* Search bar */}
       <form onSubmit={handleSearch} className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Search weight="fill" className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <input
           type="text"
           value={localQuery}
           onChange={(e) => setLocalQuery(e.target.value)}
           placeholder="Search users, communities, posts, products..."
-          className="w-full h-11 pl-10 pr-4 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
+          className="w-full h-11 pl-10 pr-4 rounded-lg border-none bg-card text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
         />
       </form>
 
@@ -98,11 +106,11 @@ export default function SearchPage() {
                 tab === t.key ? "text-primary border-b-2 border-primary" : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              {t.key === "users" && <Users className="h-3.5 w-3.5 inline mr-1.5 -mt-0.5" />}
-              {t.key === "messages" && <MessageSquare className="h-3.5 w-3.5 inline mr-1.5 -mt-0.5" />}
-              {t.key === "posts" && <FileText className="h-3.5 w-3.5 inline mr-1.5 -mt-0.5" />}
-              {t.key === "products" && <Package className="h-3.5 w-3.5 inline mr-1.5 -mt-0.5" />}
-              {t.key === "communities" && <Users className="h-3.5 w-3.5 inline mr-1.5 -mt-0.5" />}
+              {t.key === "users" && <Users weight="fill" className="h-3.5 w-3.5 inline mr-1.5 -mt-0.5" />}
+              {t.key === "messages" && <MessageSquare weight="fill" className="h-3.5 w-3.5 inline mr-1.5 -mt-0.5" />}
+              {t.key === "posts" && <FileText weight="fill" className="h-3.5 w-3.5 inline mr-1.5 -mt-0.5" />}
+              {t.key === "products" && <Package weight="fill" className="h-3.5 w-3.5 inline mr-1.5 -mt-0.5" />}
+              {t.key === "communities" && <Users weight="fill" className="h-3.5 w-3.5 inline mr-1.5 -mt-0.5" />}
               {t.label}
             </button>
           ))}
@@ -112,17 +120,17 @@ export default function SearchPage() {
       {/* Results */}
       {loading ? (
         <div className="flex justify-center py-16">
-          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          <Loader2 weight="fill" className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
       ) : query && resultsArray.length === 0 ? (
         <div className="text-center py-16 text-muted-foreground">
-          <Search className="h-12 w-12 mx-auto mb-3 opacity-30" />
+          <Search weight="fill" className="h-12 w-12 mx-auto mb-3 opacity-30" />
           <p className="font-medium">No results for &ldquo;{query}&rdquo;</p>
           <p className="text-sm mt-1">Try a different search term.</p>
         </div>
       ) : !query ? (
         <div className="text-center py-16 text-muted-foreground">
-          <Search className="h-12 w-12 mx-auto mb-3 opacity-30" />
+          <Search weight="fill" className="h-12 w-12 mx-auto mb-3 opacity-30" />
           <p className="font-medium">Search across the platform</p>
           <p className="text-sm mt-1">Find users, communities, posts, messages, and products.</p>
         </div>
@@ -130,9 +138,9 @@ export default function SearchPage() {
         <div className="space-y-2">
           {/* Users */}
           {tab === "all" && results.users && results.users.length > 0 && (
-            <Section title="Users" icon={<Users className="h-4 w-4" />}>
+            <Section title="Users" icon={<Users weight="fill" className="h-4 w-4" />}>
               {results.users.map((user) => (
-                <Link key={user.id} to={`/app/profile/${user.id}`} className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-muted/50 transition-colors">
+                <Link key={user.id} to={`/app/profile/${user.id}`} className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted/50 transition-colors">
                   <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-sm font-bold text-muted-foreground overflow-hidden flex-shrink-0">
                     {user.avatar ? <img src={user.avatar} alt="" className="w-full h-full object-cover" /> : user.name.charAt(0).toUpperCase()}
                   </div>
@@ -147,9 +155,9 @@ export default function SearchPage() {
 
           {/* Communities */}
           {tab === "all" && results.communities && results.communities.length > 0 && (
-            <Section title="Communities" icon={<Users className="h-4 w-4" />}>
+            <Section title="Communities" icon={<Users weight="fill" className="h-4 w-4" />}>
               {results.communities.map((c) => (
-                <Link key={c.id} to={`/app/communities/${c.slug}`} className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-muted/50 transition-colors">
+                <Link key={c.id} to={`/app/communities/${c.slug}`} className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted/50 transition-colors">
                   <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center text-sm font-bold text-muted-foreground overflow-hidden flex-shrink-0">
                     {c.logo_url ? <img src={c.logo_url} alt="" className="w-full h-full object-cover" /> : c.name.charAt(0).toUpperCase()}
                   </div>
@@ -164,9 +172,9 @@ export default function SearchPage() {
 
           {/* Posts */}
           {tab === "all" && results.posts && results.posts.length > 0 && (
-            <Section title="Posts" icon={<FileText className="h-4 w-4" />}>
+            <Section title="Posts" icon={<FileText weight="fill" className="h-4 w-4" />}>
               {results.posts.map((post) => (
-                <Link key={post.id} to={`/app/communities/${post.community?.slug}`} className="block px-4 py-3 rounded-xl hover:bg-muted/50 transition-colors">
+                <Link key={post.id} to={`/app/communities/${post.community?.slug}`} className="block px-4 py-3 rounded-lg hover:bg-muted/50 transition-colors">
                   <p className="text-sm leading-relaxed line-clamp-2">{post.content}</p>
                   <p className="text-xs text-muted-foreground mt-1">
                     {post.author?.name} &middot; {new Date(post.created_at).toLocaleDateString()}
@@ -179,9 +187,9 @@ export default function SearchPage() {
 
           {/* Messages */}
           {tab === "all" && results.messages && results.messages.length > 0 && (
-            <Section title="Messages" icon={<MessageSquare className="h-4 w-4" />}>
+            <Section title="Messages" icon={<MessageSquare weight="fill" className="h-4 w-4" />}>
               {results.messages.map((msg) => (
-                <Link key={msg.id} to={`/app/chat`} className="block px-4 py-3 rounded-xl hover:bg-muted/50 transition-colors">
+                <Link key={msg.id} to={`/app/chat`} className="block px-4 py-3 rounded-lg hover:bg-muted/50 transition-colors">
                   <p className="text-sm leading-relaxed line-clamp-2">{msg.content}</p>
                   <p className="text-xs text-muted-foreground mt-1">
                     {msg.sender?.name} &middot; {new Date(msg.created_at).toLocaleDateString()}
@@ -193,11 +201,11 @@ export default function SearchPage() {
 
           {/* Products */}
           {tab === "all" && results.products && results.products.length > 0 && (
-            <Section title="Products" icon={<Package className="h-4 w-4" />}>
+            <Section title="Products" icon={<Package weight="fill" className="h-4 w-4" />}>
               {results.products.map((p, idx) => (
-                <Link key={`${p.type}-${p.id}-${idx}`} to={`/app/store`} className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-muted/50 transition-colors">
+                <Link key={`${p.type}-${p.id}-${idx}`} to={`/app/store`} className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted/50 transition-colors">
                   <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
-                    <Package className="h-5 w-5 text-muted-foreground" />
+                    <Package weight="fill" className="h-5 w-5 text-muted-foreground" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">{p.title}</p>
@@ -238,9 +246,9 @@ function ResultRow({ item }: { item: ResultItem }) {
   if (item._type === "user") {
     const u = item as unknown as { id: number; name: string; username: string; avatar?: string; bio?: string; _type: string };
     return (
-      <Link to={`/app/profile/${u.id}`} className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-muted/50 transition-colors">
+      <Link to={`/app/profile/${u.id}`} className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted/50 transition-colors">
         <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-sm font-bold overflow-hidden flex-shrink-0">
-          {u.avatar ? <img src={u.avatar} alt="" className="w-full h-full object-cover" /> : <User className="h-5 w-5" />}
+          {u.avatar ? <img src={u.avatar} alt="" className="w-full h-full object-cover" /> : <User weight="fill" className="h-5 w-5" />}
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium truncate">{u.name}</p>
@@ -253,9 +261,9 @@ function ResultRow({ item }: { item: ResultItem }) {
   if (item._type === "community") {
     const c = item as unknown as { id: number; name: string; slug: string; description?: string; logo_url?: string; member_count?: number; _type: string };
     return (
-      <Link to={`/app/communities/${c.slug}`} className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-muted/50 transition-colors">
+      <Link to={`/app/communities/${c.slug}`} className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted/50 transition-colors">
         <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center text-sm font-bold overflow-hidden flex-shrink-0">
-          {c.logo_url ? <img src={c.logo_url} alt="" className="w-full h-full object-cover" /> : <Users className="h-5 w-5" />}
+          {c.logo_url ? <img src={c.logo_url} alt="" className="w-full h-full object-cover" /> : <Users weight="fill" className="h-5 w-5" />}
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium truncate">{c.name}</p>
@@ -268,7 +276,7 @@ function ResultRow({ item }: { item: ResultItem }) {
   if (item._type === "post") {
     const p = item as unknown as { id: number; content: string; author?: { name: string }; community?: { name: string; slug: string }; created_at: string; _type: string };
     return (
-      <Link to={p.community ? `/app/communities/${p.community.slug}` : "#"} className="block px-4 py-3 rounded-xl hover:bg-muted/50 transition-colors">
+      <Link to={p.community ? `/app/communities/${p.community.slug}` : "#"} className="block px-4 py-3 rounded-lg hover:bg-muted/50 transition-colors">
         <p className="text-sm leading-relaxed line-clamp-2">{p.content}</p>
         <p className="text-xs text-muted-foreground mt-1">
           {p.author?.name} &middot; {new Date(p.created_at).toLocaleDateString()}
@@ -281,7 +289,7 @@ function ResultRow({ item }: { item: ResultItem }) {
   if (item._type === "message") {
     const m = item as unknown as { id: number; content: string; sender?: { name: string }; created_at: string; _type: string };
     return (
-      <Link to="/app/chat" className="block px-4 py-3 rounded-xl hover:bg-muted/50 transition-colors">
+      <Link to="/app/chat" className="block px-4 py-3 rounded-lg hover:bg-muted/50 transition-colors">
         <p className="text-sm leading-relaxed line-clamp-2">{m.content}</p>
         <p className="text-xs text-muted-foreground mt-1">{m.sender?.name} &middot; {new Date(m.created_at).toLocaleDateString()}</p>
       </Link>
@@ -291,9 +299,9 @@ function ResultRow({ item }: { item: ResultItem }) {
   if (item._type === "product") {
     const p = item as unknown as { id: number; title: string; price: number; currency: string; _type: string; _subtype?: string };
     return (
-      <Link to="/app/store" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-muted/50 transition-colors">
+      <Link to="/app/store" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted/50 transition-colors">
         <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
-          <Package className="h-5 w-5 text-muted-foreground" />
+          <Package weight="fill" className="h-5 w-5 text-muted-foreground" />
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium truncate">{p.title}</p>

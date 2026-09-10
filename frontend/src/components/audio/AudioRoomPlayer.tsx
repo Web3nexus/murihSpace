@@ -1,5 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { Mic, MicOff, Headphones, Loader2 } from 'lucide-react';
+import {
+  Microphone as Mic,
+  MicrophoneSlash as MicOff,
+  Headphones as Headphones,
+  Spinner as Loader2
+} from "@phosphor-icons/react";
 import { Room, LocalTrackPublication } from 'livekit-client';
 import { getAuthToken } from "@/lib/auth/token";
 
@@ -90,8 +95,8 @@ export default function AudioRoomPlayer({ roomId, onError }: Props) {
 
   if (state === 'connecting') {
     return (
-      <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-muted/50 text-xs text-muted-foreground">
-        <Loader2 className="h-4 w-4 animate-spin" />
+      <div className="flex items-center gap-2 px-4 py-3 rounded-lg bg-muted/50 text-xs text-muted-foreground">
+        <Loader2 weight="fill" className="h-4 w-4 animate-spin" />
         Connecting to audio stream...
       </div>
     );
@@ -100,7 +105,7 @@ export default function AudioRoomPlayer({ roomId, onError }: Props) {
   if (state === 'idle') return null;
 
   return (
-    <div className="flex items-center justify-between gap-4 px-4 py-3 rounded-xl bg-muted/30 border border-border">
+    <div className="flex items-center justify-between gap-4 px-4 py-3 rounded-lg bg-muted/30 border-none">
       <div className="flex items-center gap-3">
         <div className="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse" />
         <span className="text-xs font-semibold text-foreground">Connected</span>
@@ -112,10 +117,10 @@ export default function AudioRoomPlayer({ roomId, onError }: Props) {
           className={`p-2 rounded-lg transition-colors ${isMuted ? 'bg-destructive/10 text-destructive' : 'bg-muted text-foreground hover:bg-muted/80'}`}
           title={isMuted ? 'Unmute' : 'Mute'}
         >
-          {isMuted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+          {isMuted ? <MicOff className="h-4 w-4" /> : <Mic weight="fill" className="h-4 w-4" />}
         </button>
         <div className="p-2 rounded-lg bg-muted text-muted-foreground">
-          <Headphones className="h-4 w-4" />
+          <Headphones weight="fill" className="h-4 w-4" />
         </div>
       </div>
     </div>

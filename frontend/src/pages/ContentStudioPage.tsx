@@ -1,6 +1,18 @@
 import { useState, useEffect, useCallback } from "react";
 import { useConfirm } from "@/components/ui/DialogProvider";
-import { Film, Plus, Loader2, Edit, Trash2, Eye, EyeOff, FileText, Video, Music, Image } from "lucide-react";
+import {
+  FilmStrip as FilmStrip,
+  Plus as Plus,
+  Spinner as Loader2,
+  Pencil as Edit,
+  Trash as Trash2,
+  Eye as Eye,
+  EyeSlash as EyeOff,
+  FileText as FileText,
+  VideoCamera as Video,
+  MusicNote as Music,
+  Image as Image
+} from "@phosphor-icons/react";
 import { ImageUploader } from "@/components/upload/ImageUploader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -121,35 +133,35 @@ export default function ContentStudioPage() {
     setMsg(null);
   };
 
-  if (loading) return <div className="flex justify-center py-24"><Loader2 className="h-8 w-8 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" /></div>;
+  if (loading) return <div className="flex justify-center py-24"><Loader2 weight="fill" className="h-8 w-8 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" /></div>;
 
   return (
-    <div className="w-full max-w-7xl mx-auto space-y-6 p-6 lg:p-8">
+    <div className="w-full max-w-7xl mx-auto space-y-6 p-4 lg:p-5">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-black tracking-tight flex items-center gap-2.5">
-            <Film className="h-6 w-6 text-[#2164b6] dark:text-[#7ab0ff]" /> Content Studio
+          <h1 className="text-xl font-black tracking-tight flex items-center gap-2.5">
+            <FilmStrip weight="fill" className="h-6 w-6 text-[#2164b6] dark:text-[#7ab0ff]" /> Content Studio
           </h1>
           <p className="text-xs text-muted-foreground mt-1">Create and manage your digital content.</p>
         </div>
         <Button onClick={() => { resetForm(); setShowForm(true); }} className="text-sm font-bold gap-1.5">
-          <Plus className="h-4 w-4" /> New Content
+          <Plus weight="fill" className="h-4 w-4" /> New Content
         </Button>
       </div>
 
-      {error && <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-xs font-bold text-rose-400">{error}</div>}
+      {error && <div className="p-4 rounded-lg bg-rose-500/10 border border-rose-500/20 text-xs font-bold text-rose-400">{error}</div>}
 
       {showForm && (
-        <form onSubmit={handleSave} className="border border-border rounded-2xl bg-card p-6 space-y-4">
-          {msg && <div className={`p-3 rounded-xl text-xs font-bold ${msg.ok ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'}`}>{msg.text}</div>}
+        <form onSubmit={handleSave} className="border-none rounded-lg bg-card p-4 space-y-4">
+          {msg && <div className={`p-3 rounded-lg text-xs font-bold ${msg.ok ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'}`}>{msg.text}</div>}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <label className="text-xs font-bold text-muted-foreground">Title</label>
               <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="My content title" required />
             </div>
             <div className="space-y-2">
-              <label className="text-xs font-bold text-muted-foreground">Type</label>
-              <select value={contentType} onChange={(e) => setContentType(e.target.value as ContentItem["type"])} className="w-full rounded-xl border border-border bg-card p-2.5 text-sm font-medium text-foreground">
+              <label className="text-xs font-bold text-muted-foreground">TextT</label>
+              <select value={contentType} onChange={(e) => setContentType(e.target.value as ContentItem["type"])} className="w-full rounded-lg border-none bg-card p-2.5 text-sm font-medium text-foreground">
                 <option value="video">Video</option>
                 <option value="article">Article</option>
                 <option value="audio">Audio</option>
@@ -167,7 +179,7 @@ export default function ContentStudioPage() {
           </div>
           <div className="flex gap-2">
             <Button type="submit" disabled={saving || !title.trim()} className="text-sm font-bold">
-              {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              {saving ? <Loader2 weight="fill" className="h-4 w-4 animate-spin mr-2" /> : null}
               {editing ? "Update" : "Create"}
             </Button>
             <Button type="button" variant="ghost" onClick={resetForm} className="text-sm">Cancel</Button>
@@ -177,7 +189,7 @@ export default function ContentStudioPage() {
 
       {items.length === 0 ? (
         <div className="p-16 text-center border border-dashed border-border rounded-3xl bg-card">
-          <Film className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
+          <FilmStrip weight="fill" className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
           <h3 className="text-sm font-bold">No content yet</h3>
           <p className="text-xs text-muted-foreground mt-1">Create your first piece of content.</p>
         </div>
@@ -186,7 +198,7 @@ export default function ContentStudioPage() {
           {items.map((item) => {
             const Icon = TYPE_ICONS[item.type] ?? FileText;
             return (
-              <div key={item.id} className="border border-border rounded-2xl bg-card overflow-hidden hover:shadow-md transition-shadow group">
+              <div key={item.id} className="border-none rounded-lg bg-card overflow-hidden hover: transition-shadow group">
                 {item.thumbnail_url ? (
                   <div className="aspect-video bg-muted overflow-hidden">
                     <img src={item.thumbnail_url} alt={item.title} className="w-full h-full object-cover" />
@@ -212,10 +224,10 @@ export default function ContentStudioPage() {
                   </p>
                   <div className="flex gap-1 pt-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     <Button size="sm" variant="ghost" className="h-7 text-[10px]" onClick={() => togglePublish(item)} title={item.status === 'published' ? 'Unpublish' : 'Publish'}>
-                      {item.status === 'published' ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                      {item.status === 'published' ? <EyeOff className="h-3 w-3" /> : <Eye weight="fill" className="h-3 w-3" />}
                     </Button>
-                    <Button size="sm" variant="ghost" className="h-7 text-[10px]" onClick={() => startEdit(item)}><Edit className="h-3 w-3" /></Button>
-                    <Button size="sm" variant="ghost" className="h-7 text-[10px] text-destructive" onClick={() => handleDelete(item.id)}><Trash2 className="h-3 w-3" /></Button>
+                    <Button size="sm" variant="ghost" className="h-7 text-[10px]" onClick={() => startEdit(item)}><Edit weight="fill" className="h-3 w-3" /></Button>
+                    <Button size="sm" variant="ghost" className="h-7 text-[10px] text-destructive" onClick={() => handleDelete(item.id)}><Trash2 weight="fill" className="h-3 w-3" /></Button>
                   </div>
                 </div>
               </div>

@@ -20,7 +20,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ShieldCheck, Lock, Globe, DollarSign, Plus, Trash2, Users } from "lucide-react";
+import {
+  ShieldCheck as ShieldCheck,
+  Lock as Lock,
+  Globe as Globe,
+  CurrencyDollar as DollarSign,
+  Plus as Plus,
+  Trash as Trash2,
+  Users as Users
+} from "@phosphor-icons/react";
 import type { Community, CreateCommunityInput } from "@/types/community";
 import { ImageUploader } from "@/components/upload/ImageUploader";
 import { getAuthToken } from "@/lib/auth/token";
@@ -147,11 +155,11 @@ export function CreateCommunityModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl md:max-w-3xl max-h-[90vh] overflow-y-auto rounded-2xl p-6 sm:p-8">
+      <DialogContent className="sm:max-w-2xl md:max-w-3xl max-h-[90vh] overflow-y-auto rounded-lg p-4 sm:p-5">
         <DialogHeader>
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary border border-primary/20 shrink-0">
-              <Users className="h-5 w-5" />
+            <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-primary/10 text-primary border border-primary/20 shrink-0">
+              <Users weight="fill" className="h-5 w-5" />
             </div>
             <div>
               <DialogTitle className="text-xl font-bold">Create a New Community</DialogTitle>
@@ -185,7 +193,7 @@ export function CreateCommunityModal({
             />
             {formData.name && (
               <p className="text-xs text-muted-foreground font-mono">
-                URL Preview: <span className="text-secondary font-semibold">app.murihspace.com/communities/{handleSlugPreview(formData.name)}</span>
+                URL Preview: <span className="text-secondary font-semibold">web.murihspace.com/communities/{handleSlugPreview(formData.name)}</span>
               </p>
             )}
           </div>
@@ -235,11 +243,11 @@ export function CreateCommunityModal({
                   onClick={() => setFormData({ ...formData, visibility: "public" })}
                   className={`flex items-center justify-center gap-2 h-11 rounded-lg border text-xs font-semibold transition-all ${
                     formData.visibility === "public"
-                      ? "border-primary bg-primary text-primary-foreground shadow-xs"
+                      ? "border-primary bg-primary text-primary-foreground "
                       : "border-border bg-card text-muted-foreground hover:bg-muted"
                   }`}
                 >
-                  <Globe className="h-4 w-4" />
+                  <Globe weight="fill" className="h-4 w-4" />
                   Public
                 </button>
                 <button
@@ -247,11 +255,11 @@ export function CreateCommunityModal({
                   onClick={() => setFormData({ ...formData, visibility: "private" })}
                   className={`flex items-center justify-center gap-2 h-11 rounded-lg border text-xs font-semibold transition-all ${
                     formData.visibility === "private"
-                      ? "border-primary bg-primary text-primary-foreground shadow-xs"
+                      ? "border-primary bg-primary text-primary-foreground "
                       : "border-border bg-card text-muted-foreground hover:bg-muted"
                   }`}
                 >
-                  <Lock className="h-4 w-4" />
+                  <Lock weight="fill" className="h-4 w-4" />
                   Private
                 </button>
               </div>
@@ -265,7 +273,7 @@ export function CreateCommunityModal({
               <button
                 type="button"
                 onClick={() => setFormData({ ...formData, pricing_type: "free" })}
-                className={`p-3 rounded-xl border text-left transition-all ${
+                className={`p-3 rounded-lg border text-left transition-all ${
                   formData.pricing_type === "free"
                     ? "border-primary bg-accent/30 text-foreground"
                     : "border-border bg-card text-muted-foreground hover:bg-muted"
@@ -278,7 +286,7 @@ export function CreateCommunityModal({
               <button
                 type="button"
                 onClick={() => setFormData({ ...formData, pricing_type: "paid" })}
-                className={`p-3 rounded-xl border text-left transition-all ${
+                className={`p-3 rounded-lg border text-left transition-all ${
                   formData.pricing_type === "paid"
                     ? "border-primary bg-accent/30 text-foreground"
                     : "border-border bg-card text-muted-foreground hover:bg-muted"
@@ -295,7 +303,7 @@ export function CreateCommunityModal({
                   Price ($ USD)
                 </Label>
                 <div className="relative">
-                  <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <DollarSign weight="fill" className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="price"
                     type="number"
@@ -342,7 +350,7 @@ export function CreateCommunityModal({
               {formData.rules?.map((rule, idx) => (
                 <div
                   key={idx}
-                  className="flex items-center justify-between gap-2 p-2.5 rounded-lg border border-border bg-muted/40 text-xs font-medium"
+                  className="flex items-center justify-between gap-2 p-2.5 rounded-lg border-none bg-muted/40 text-xs font-medium"
                 >
                   <span className="flex-1">
                     <span className="text-secondary font-bold mr-2">{idx + 1}.</span>
@@ -353,7 +361,7 @@ export function CreateCommunityModal({
                     onClick={() => handleRemoveRule(idx)}
                     className="text-muted-foreground hover:text-destructive transition-colors p-1"
                   >
-                    <Trash2 className="h-3.5 w-3.5" />
+                    <Trash2 weight="fill" className="h-3.5 w-3.5" />
                   </button>
                 </div>
               ))}
@@ -373,7 +381,7 @@ export function CreateCommunityModal({
                 }}
               />
               <Button type="button" variant="outline" size="sm" onClick={handleAddRule} className="h-9 gap-1.5 text-xs shrink-0">
-                <Plus className="h-3.5 w-3.5" />
+                <Plus weight="fill" className="h-3.5 w-3.5" />
                 Add Rule
               </Button>
             </div>
@@ -400,7 +408,7 @@ export function CreateCommunityModal({
                 </>
               ) : (
                 <>
-                  <ShieldCheck className="h-4 w-4" />
+                  <ShieldCheck weight="fill" className="h-4 w-4" />
                   Publish Community
                 </>
               )}

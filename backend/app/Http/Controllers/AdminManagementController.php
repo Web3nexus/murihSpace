@@ -17,6 +17,7 @@ class AdminManagementController extends Controller
     }
     public const ROLES = [
         'super_admin' => 'Super Admin',
+        'finance_admin' => 'Finance & Accounting Admin',
         'content_admin' => 'Content Admin',
         'commerce_admin' => 'Commerce Admin',
         'support_admin' => 'Support Admin',
@@ -27,6 +28,8 @@ class AdminManagementController extends Controller
         'kyc' => 'KYC verification',
         'content' => 'Content moderation',
         'commerce' => 'Commerce & orders',
+        'accounting' => 'Accounting & revenue streams',
+        'tax' => 'Tax management & compliance',
         'payouts' => 'Payouts & escrow',
         'analytics' => 'Analytics & reports',
         'settings' => 'Platform settings',

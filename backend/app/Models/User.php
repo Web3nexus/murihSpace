@@ -21,8 +21,8 @@ use App\Services\PermissionService;
 
 #[Fillable([
     'uuid', 'name', 'email', 'password', 'username', 'country',
-    'mobile_number', 'county', 'state', 'role', 'admin_role', 'admin_permissions', 'status',
-    'bio', 'avatar', 'avatar_url',
+    'mobile_number', 'birthday', 'county', 'state', 'role', 'admin_role', 'admin_permissions', 'status',
+    'bio', 'avatar', 'avatar_url', 'banner_url',
     'kyc_status', 'kyc_document', 'kyc_rejection_reason', 'kyc_provider', 'sumsub_applicant_id',
     'kyc_verification_id',
     'verification_badge_status', 'verification_badge_expires_at',
@@ -51,6 +51,7 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         return [
             'email_verified_at' => 'datetime',
+            'birthday' => 'date:Y-m-d',
             'password' => 'hashed',
             'username_trial_ends_at' => 'datetime',
             'is_premium' => 'boolean',
@@ -217,6 +218,14 @@ class User extends Authenticatable implements MustVerifyEmail
         return in_array($this->role, ['creator', 'admin']);
     }
 
+    /**
+     * True for any role that can own a store: creator, vendor, or admin.
+     */
+    public function isStoreOwner(): bool
+    {
+        return in_array($this->role, ['creator', 'vendor', 'admin']);
+    }
+
     public function follows(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'follows', 'follower_id', 'following_id')
@@ -240,6 +249,11 @@ class User extends Authenticatable implements MustVerifyEmail
     public function adCampaigns(): HasMany
     {
         return $this->hasMany(AdCampaign::class);
+    }
+
+    public function posts(): HasMany
+    {
+        return $this->hasMany(Post::class);
     }
 
     public function wallet(): HasOne

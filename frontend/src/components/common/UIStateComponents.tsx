@@ -1,8 +1,14 @@
 import React from "react";
-import { Loader2, Inbox, AlertCircle, ShieldOff, FileSearch } from "lucide-react";
+import {
+  Tray as Inbox,
+  WarningCircle as AlertCircle,
+  ShieldSlash as ShieldSlash,
+  FileMagnifyingGlass as FileMagnifyingGlass
+} from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router";
 import { cn } from "@/lib/utils";
+import { BrandPreloader } from "./BrandPreloader";
 
 // ─────────────────────────────────────────────────────────────
 // Shared Base Component
@@ -37,10 +43,7 @@ export const LoadingState: React.FC<LoadingStateProps> = ({
   message = "Loading…",
   className,
 }) => (
-  <StateContainer className={className}>
-    <Loader2 className="h-10 w-10 animate-spin text-primary/60" aria-hidden="true" />
-    <p className="text-sm text-muted-foreground font-medium">{message}</p>
-  </StateContainer>
+  <BrandPreloader size="sm" message={message} className={className} />
 );
 
 // ─────────────────────────────────────────────────────────────
@@ -101,7 +104,7 @@ export const ErrorState: React.FC<ErrorStateProps> = ({
 }) => (
   <StateContainer className={className}>
     <div className="flex h-16 w-16 items-center justify-center rounded-full bg-destructive/10">
-      <AlertCircle className="h-8 w-8 text-destructive" aria-hidden="true" />
+      <AlertCircle weight="fill" className="h-8 w-8 text-destructive" aria-hidden="true" />
     </div>
     <div>
       <p className="font-semibold text-base">{title}</p>
@@ -131,7 +134,7 @@ export const PermissionDeniedState: React.FC<PermissionDeniedStateProps> = ({
 }) => (
   <StateContainer className={className}>
     <div className="flex h-16 w-16 items-center justify-center rounded-full bg-amber-500/10">
-      <ShieldOff className="h-8 w-8 text-amber-500" aria-hidden="true" />
+      <ShieldSlash weight="fill" className="h-8 w-8 text-amber-500" aria-hidden="true" />
     </div>
     <div>
       <p className="font-semibold text-base">{title}</p>
@@ -159,7 +162,7 @@ export const NotFoundState: React.FC<NotFoundStateProps> = ({
 }) => (
   <StateContainer className={className}>
     <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted">
-      <FileSearch className="h-8 w-8 text-muted-foreground" aria-hidden="true" />
+      <FileMagnifyingGlass weight="fill" className="h-8 w-8 text-muted-foreground" aria-hidden="true" />
     </div>
     <div>
       <p className="font-semibold text-base">{title}</p>

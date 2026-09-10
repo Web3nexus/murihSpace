@@ -10,11 +10,13 @@ class ProductReview extends Model
     protected $fillable = [
         'physical_product_id', 'buyer_id', 'fulfilment_order_id',
         'rating', 'title', 'body', 'is_approved',
+        'vendor_reply', 'vendor_replied_at',
     ];
 
     protected $casts = [
         'rating' => 'integer',
         'is_approved' => 'boolean',
+        'vendor_replied_at' => 'datetime',
     ];
 
     public function physicalProduct(): BelongsTo

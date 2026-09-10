@@ -13,7 +13,11 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { ChevronsUpDownIcon, PlusIcon, ShieldAlert } from "lucide-react";
+import {
+  CaretUpDown as ChevronsUpDownIcon,
+  Plus as PlusIcon,
+  ShieldWarning as ShieldWarning
+} from "@phosphor-icons/react";
 
 interface Workspace {
   name: string;
@@ -48,7 +52,7 @@ export function WorkspaceSwitcher({
               {/* Brand mark / workspace icon */}
               <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground font-bold text-sm">
                 {isAdmin ? (
-                  <ShieldAlert className="size-4" />
+                  <ShieldWarning weight="fill" className="size-4" />
                 ) : (
                   active.icon
                 )}
@@ -61,7 +65,7 @@ export function WorkspaceSwitcher({
                 </span>
               </div>
 
-              <ChevronsUpDownIcon className="ml-auto size-4 shrink-0" />
+              <ChevronsUpDownIcon weight="fill" className="ml-auto size-4 shrink-0" />
             </SidebarMenuButton>
           </DropdownMenuTrigger>
 
@@ -81,7 +85,7 @@ export function WorkspaceSwitcher({
                 onClick={() => setActive(ws)}
                 className="gap-3 p-2 cursor-pointer"
               >
-                <div className="flex size-8 items-center justify-center rounded-md border border-border bg-sidebar-accent text-sidebar-accent-foreground font-bold text-sm shrink-0">
+                <div className="flex size-8 items-center justify-center rounded-md border-none bg-sidebar-accent text-sidebar-accent-foreground font-bold text-sm shrink-0">
                   {ws.icon}
                 </div>
                 <div className="grid text-sm">
@@ -98,7 +102,7 @@ export function WorkspaceSwitcher({
 
             <DropdownMenuItem className="gap-3 p-2 cursor-pointer text-muted-foreground">
               <div className="flex size-8 items-center justify-center rounded-md border border-dashed border-border bg-transparent shrink-0">
-                <PlusIcon className="size-4" />
+                <PlusIcon weight="fill" className="size-4" />
               </div>
               <span className="font-medium">Create Community</span>
             </DropdownMenuItem>

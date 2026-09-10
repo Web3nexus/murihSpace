@@ -1,6 +1,20 @@
 import { getAuthToken } from "@/lib/auth/token";
 import { useState, useEffect, useCallback } from "react";
-import { Settings, Loader2, Save, AlertCircle, Coins, Smartphone, ShieldCheck, Key, ChevronDown, ChevronUp, Lock, X, Mail } from "lucide-react";
+import {
+  Gear as Settings,
+  Spinner as Loader2,
+  FloppyDisk as FloppyDisk,
+  WarningCircle as AlertCircle,
+  Coins as Coins,
+  DeviceMobile as Smartphone,
+  ShieldCheck as ShieldCheck,
+  Key as Key,
+  CaretDown as ChevronDown,
+  CaretUp as ChevronUp,
+  Lock as Lock,
+  X as X,
+  Envelope as Envelope
+} from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -151,7 +165,7 @@ export default function AdminSettingsPage() {
         body: JSON.stringify(payload),
       });
       const j = await res.json();
-      if (!res.ok) throw new Error(j?.message ?? "Save failed");
+      if (!res.ok) throw new Error(j?.message ?? "FloppyDisk failed");
 
       const d = j?.data?.data ?? j?.data ?? j;
       if (d) {
@@ -169,36 +183,36 @@ export default function AdminSettingsPage() {
       toast.success("Settings saved successfully.");
       setTimeout(() => setMsg(null), 3000);
     } catch (e) {
-      const m = e instanceof Error ? e.message : "Save failed";
+      const m = e instanceof Error ? e.message : "FloppyDisk failed";
       setMsg(m);
       toast.error(m);
     } finally { setSaving(false); }
   };
 
-  if (initialLoading) return <div className="flex justify-center py-24"><Loader2 className="h-8 w-8 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" /></div>;
+  if (initialLoading) return <div className="flex justify-center py-24"><Loader2 weight="fill" className="h-8 w-8 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" /></div>;
 
   return (
-    <div className="w-full mx-auto max-w-[800px] space-y-6 p-6 lg:p-10">
-      <div><h1 className="text-2xl font-black tracking-tight flex items-center gap-2.5"><Settings className="h-6 w-6 text-[#2164b6] dark:text-[#7ab0ff]" /> Admin Settings</h1><p className="text-xs text-muted-foreground mt-1">Platform configuration and settings.</p></div>
+    <div className="w-full mx-auto max-w-[800px] space-y-6 p-4 lg:p-10">
+      <div><h1 className="text-xl font-black tracking-tight flex items-center gap-2.5"><Settings weight="fill" className="h-6 w-6 text-[#2164b6] dark:text-[#7ab0ff]" /> Admin Settings</h1><p className="text-xs text-muted-foreground mt-1">Platform configuration and settings.</p></div>
 
       {fetchError && (
-        <div className="flex items-center gap-2 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-xs text-destructive">
-          <AlertCircle className="h-4 w-4 shrink-0" /> {fetchError}
+        <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-xs text-destructive">
+          <AlertCircle weight="fill" className="h-4 w-4 shrink-0" /> {fetchError}
           <button onClick={() => { setInitialLoading(true); fetchSettings(); }} className="ml-auto text-muted-foreground hover:text-foreground font-bold">Retry</button>
         </div>
       )}
 
-      <div className="border border-border rounded-2xl bg-card p-6 space-y-4">
+      <div className="border-none rounded-lg bg-card p-4 space-y-4">
         <div className="space-y-2"><label className="text-xs font-bold text-muted-foreground">Platform Name</label><Input value={platformName} onChange={(e) => setPlatformName(e.target.value)} /></div>
         <div className="space-y-2"><label className="text-xs font-bold text-muted-foreground">Support Email</label><Input type="email" value={supportEmail} onChange={(e) => setSupportEmail(e.target.value)} /></div>
         <div className="space-y-2">
           <label className="text-xs font-bold text-muted-foreground">Default Currency</label>
           <div className="relative">
-            <Coins className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+            <Coins weight="fill" className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
             <select
               value={defaultCurrency}
               onChange={(e) => setDefaultCurrency(e.target.value)}
-              className="appearance-none w-full h-10 pl-9 pr-8 rounded-lg border border-border bg-background text-sm font-bold cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#2164b6]/30"
+              className="appearance-none w-full h-10 pl-9 pr-8 rounded-lg border-none bg-background text-sm font-bold cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#2164b6]/30"
             >
               {SUPPORTED_CURRENCIES.map((c) => (
                 <option key={c} value={c}>{c} — {CURRENCY_SYMBOLS[c]}</option>
@@ -207,15 +221,15 @@ export default function AdminSettingsPage() {
           </div>
           <p className="text-[10px] text-muted-foreground">Analytics dashboards display amounts converted to this currency.</p>
         </div>
-        <div className="flex items-center justify-between p-3 rounded-xl border border-border">
+        <div className="flex items-center justify-between p-3 rounded-lg border-none">
           <div><p className="text-xs font-bold text-foreground">Maintenance Mode</p><p className="text-[10px] text-muted-foreground">Block all user access except admins</p></div>
           <button onClick={() => setMaintenanceMode(!maintenanceMode)} role="switch" aria-checked={maintenanceMode} aria-label="Toggle maintenance mode" className={`w-10 h-5 rounded-full transition-colors ${maintenanceMode ? 'bg-rose-500' : 'bg-muted'}`}>
-            <div className={`w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${maintenanceMode ? 'translate-x-5' : 'translate-x-0.5'}`} />
+            <div className={`w-4 h-4 rounded-full bg-white  transition-transform ${maintenanceMode ? 'translate-x-5' : 'translate-x-0.5'}`} />
           </button>
         </div>
-        <div className="rounded-xl border border-border p-3 space-y-2">
+        <div className="rounded-lg border-none p-3 space-y-2">
           <div className="flex items-center gap-2">
-            <Smartphone className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" />
+            <Smartphone weight="fill" className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" />
             <p className="text-xs font-bold text-foreground">Web Dashboard Access</p>
           </div>
           <p className="text-[10px] text-muted-foreground">
@@ -224,7 +238,7 @@ export default function AdminSettingsPage() {
           {WEB_ROLES.map((r) => {
             const disabled = webDisabledRoles.includes(r.id);
             return (
-              <div key={r.id} className="flex items-center justify-between p-2.5 rounded-lg bg-slate-50 dark:bg-muted/40 border border-border/50">
+              <div key={r.id} className="flex items-center justify-between p-2.5 rounded-lg bg-slate-50 dark:bg-muted/40 border-none/50">
                 <div>
                   <p className="text-xs font-bold text-foreground">{r.label}</p>
                   <p className="text-[10px] text-muted-foreground">{r.desc}</p>
@@ -236,7 +250,7 @@ export default function AdminSettingsPage() {
                   aria-label={`Toggle web dashboard access for ${r.label}`}
                   className={`w-10 h-5 rounded-full transition-colors shrink-0 ${disabled ? 'bg-rose-500' : 'bg-emerald-500'}`}
                 >
-                  <div className={`w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${disabled ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                  <div className={`w-4 h-4 rounded-full bg-white  transition-transform ${disabled ? 'translate-x-5' : 'translate-x-0.5'}`} />
                 </button>
               </div>
             );
@@ -245,10 +259,10 @@ export default function AdminSettingsPage() {
             <p className="text-[10px] text-muted-foreground text-center py-1">All dashboards are available on the web.</p>
           )}
         </div>
-        <div className="rounded-xl border border-border p-3 space-y-3">
+        <div className="rounded-lg border-none p-3 space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <ShieldCheck className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" />
+              <ShieldCheck weight="fill" className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" />
               <p className="text-xs font-bold text-foreground">Identity Verification (KYC) Providers</p>
             </div>
             <button
@@ -258,7 +272,7 @@ export default function AdminSettingsPage() {
               aria-label="Toggle KYC Requirement"
               className={`w-10 h-5 rounded-full transition-colors shrink-0 ${kycEnabled ? 'bg-emerald-500' : 'bg-muted'}`}
             >
-              <div className={`w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${kycEnabled ? 'translate-x-5' : 'translate-x-0.5'}`} />
+              <div className={`w-4 h-4 rounded-full bg-white  transition-transform ${kycEnabled ? 'translate-x-5' : 'translate-x-0.5'}`} />
             </button>
           </div>
           <p className="text-[10px] text-muted-foreground">
@@ -273,7 +287,7 @@ export default function AdminSettingsPage() {
             const fields = KYC_CREDENTIAL_FIELDS[p.name];
 
             return (
-              <div key={p.name} className="rounded-xl bg-slate-50 dark:bg-muted/40 border border-border/50 overflow-hidden">
+              <div key={p.name} className="rounded-lg bg-slate-50 dark:bg-muted/40 border-none/50 overflow-hidden">
                 <div className="flex items-center justify-between p-3">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
@@ -302,9 +316,9 @@ export default function AdminSettingsPage() {
                         onClick={() => setExpandedProvider(isExpanded ? null : p.name)}
                         className="h-7 px-2 text-[11px] font-bold gap-1"
                       >
-                        <Key className="h-3 w-3" />
+                        <Key weight="fill" className="h-3 w-3" />
                         Credentials
-                        {isExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                        {isExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown weight="fill" className="h-3 w-3" />}
                       </Button>
                     )}
 
@@ -317,7 +331,7 @@ export default function AdminSettingsPage() {
                       aria-label={`Toggle ${p.label} KYC provider`}
                       className={`w-10 h-5 rounded-full transition-colors shrink-0 ${active ? 'bg-emerald-500' : 'bg-muted'} ${configured ? '' : 'opacity-40 cursor-not-allowed'}`}
                     >
-                      <div className={`w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${active ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                      <div className={`w-4 h-4 rounded-full bg-white  transition-transform ${active ? 'translate-x-5' : 'translate-x-0.5'}`} />
                     </button>
                   </div>
                 </div>
@@ -325,7 +339,7 @@ export default function AdminSettingsPage() {
                 {fields && isExpanded && (
                   <div className="border-t border-border/50 bg-background/50 p-3.5 space-y-3">
                     <p className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1.5">
-                      <Lock className="h-3.5 w-3.5 text-[#2164b6] dark:text-[#7ab0ff]" />
+                      <Lock weight="fill" className="h-3.5 w-3.5 text-[#2164b6] dark:text-[#7ab0ff]" />
                       API Credentials for {p.label} (Encrypted at rest)
                     </p>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -374,7 +388,7 @@ export default function AdminSettingsPage() {
                                   className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground text-[10px]"
                                   title="Clear input"
                                 >
-                                  <X className="h-3 w-3" />
+                                  <X weight="fill" className="h-3 w-3" />
                                 </button>
                               )}
                             </div>
@@ -396,9 +410,9 @@ export default function AdminSettingsPage() {
           </fieldset>
         </div>
 
-        <div className="rounded-xl border border-border p-3 space-y-3">
+        <div className="rounded-lg border-none p-3 space-y-3">
           <div className="flex items-center gap-2">
-            <Mail className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" />
+            <Envelope weight="fill" className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" />
             <p className="text-xs font-bold text-foreground">Admin Notifications & Alerts</p>
           </div>
           <p className="text-[10px] text-muted-foreground">
@@ -416,7 +430,7 @@ export default function AdminSettingsPage() {
               />
             </div>
             <div className="space-y-1">
-              <label className="text-[11px] font-bold text-muted-foreground">Telegram Bot Token {telegramBotConfigured ? "(Configured)" : "(Optional)"}</label>
+              <label className="text-[11px] font-bold text-muted-foreground">Telegram Robot Token {telegramBotConfigured ? "(Configured)" : "(Optional)"}</label>
               <Input
                 type="password"
                 placeholder={telegramBotConfigured ? "Enter new token to replace" : "123456789:ABCdefGHIjklMNO..."}
@@ -439,7 +453,7 @@ export default function AdminSettingsPage() {
         </div>
 
         {msg && <p className={`text-xs font-bold ${msg === 'Settings saved!' ? 'text-emerald-400' : 'text-rose-400'}`}>{msg}</p>}
-        <Button onClick={handleSave} disabled={saving} className="text-sm font-bold gap-1.5">{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Save Settings</Button>
+        <Button onClick={handleSave} disabled={saving} className="text-sm font-bold gap-1.5">{saving ? <Loader2 weight="fill" className="h-4 w-4 animate-spin" /> : <FloppyDisk weight="fill" className="h-4 w-4" />} FloppyDisk Settings</Button>
       </div>
     </div>
   );

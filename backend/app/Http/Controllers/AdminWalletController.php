@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\LedgerEntry;
 use App\Models\LedgerTransaction;
 use App\Models\User;
 use App\Models\Wallet;
@@ -34,8 +33,8 @@ class AdminWalletController extends Controller
             $search = $request->input('search');
             $query->whereHas('user', function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%")
-                  ->orWhere('username', 'like', "%{$search}%");
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhere('username', 'like', "%{$search}%");
             });
         }
 
@@ -71,20 +70,26 @@ class AdminWalletController extends Controller
      */
     public function adjust(Request $request, int $id): JsonResponse
     {
+        if (! $request->user()->hasAdminPermission('wallets')) {
+            return response()->json([
+                'message' => 'Forbidden. Financial auditors and accountants cannot manually adjust wallet balances.',
+            ], 403);
+        }
+
         $wallet = Wallet::with('user')->findOrFail($id);
 
         $validated = $request->validate([
-            'action'           => ['required', 'string', 'in:credit,debit'],
+            'action' => ['required', 'string', 'in:credit,debit'],
             'balance_category' => ['required', 'string', 'in:available,pending,reserved,escrow,withdrawable,disputed'],
-            'amount'           => ['required', 'integer', 'min:1'],
-            'reason'           => ['required', 'string', 'max:255'],
+            'amount' => ['required', 'integer', 'min:1'],
+            'reason' => ['required', 'string', 'max:255'],
         ]);
 
-        $amount    = (int) $validated['amount'];
-        $category  = $validated['balance_category'];
-        $action    = $validated['action'];
-        $reason    = $validated['reason'];
-        $user      = $wallet->user;
+        $amount = (int) $validated['amount'];
+        $category = $validated['balance_category'];
+        $action = $validated['action'];
+        $reason = $validated['reason'];
+        $user = $wallet->user;
 
         try {
             if ($action === 'credit') {
@@ -112,9 +117,9 @@ class AdminWalletController extends Controller
             }
 
             return response()->json([
-                'message'     => 'Wallet adjusted successfully.',
+                'message' => 'Wallet adjusted successfully.',
                 'transaction' => $txn,
-                'wallet'      => $wallet->fresh(),
+                'wallet' => $wallet->fresh(),
             ]);
         } catch (\Throwable $e) {
             return response()->json(['message' => $e->getMessage()], 422);

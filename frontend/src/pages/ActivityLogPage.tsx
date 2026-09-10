@@ -1,5 +1,16 @@
 import { useState, useEffect, useCallback } from "react";
-import { History, Loader2, RefreshCw, FileText, Users, ShoppingCart, Wallet, Gift, Calendar, CreditCard } from "lucide-react";
+import {
+  ClockCounterClockwise as ClockCounterClockwise,
+  Spinner as Loader2,
+  ArrowsClockwise as RefreshCw,
+  FileText as FileText,
+  Users as Users,
+  ShoppingCart as ShoppingCart,
+  Wallet as Wallet,
+  Gift as Gift,
+  Calendar as Calendar,
+  CreditCard as CreditCard
+} from "@phosphor-icons/react";
 import { authFetch } from "@/lib/api/authFetch";
 
 
@@ -67,11 +78,11 @@ export default function ActivityLogPage() {
   const dates = Object.keys(groups);
 
   return (
-    <div className="w-full max-w-7xl mx-auto space-y-6 p-6 lg:p-8">
+    <div className="w-full max-w-7xl mx-auto space-y-6 p-4 lg:p-5">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            <History className="h-6 w-6" />
+          <h1 className="text-xl font-bold text-foreground flex items-center gap-2">
+            <ClockCounterClockwise weight="fill" className="h-6 w-6" />
             Activity Log
           </h1>
           <p className="text-sm text-muted-foreground mt-1">Your recent activity on the platform</p>
@@ -80,14 +91,14 @@ export default function ActivityLogPage() {
           onClick={() => loadActivities(page)}
           className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
         >
-          <RefreshCw className="h-3 w-3" />
+          <RefreshCw weight="fill" className="h-3 w-3" />
           Refresh
         </button>
       </div>
 
       {loading && (
         <div className="flex items-center justify-center py-20">
-          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          <Loader2 weight="fill" className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
       )}
 
@@ -99,7 +110,7 @@ export default function ActivityLogPage() {
 
       {!loading && !error && activities.length === 0 && (
         <div className="text-center py-20 text-muted-foreground">
-          <History className="h-10 w-10 mx-auto mb-3 opacity-40" />
+          <ClockCounterClockwise weight="fill" className="h-10 w-10 mx-auto mb-3 opacity-40" />
           <p className="text-sm">No activity yet</p>
           <p className="text-xs mt-1">Your actions will appear here as you use the platform</p>
         </div>
@@ -112,10 +123,10 @@ export default function ActivityLogPage() {
               <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">{date}</h2>
               <div className="space-y-2">
                 {groups[date].map((item) => {
-                  const Icon = ACTIVITY_ICONS[item.type] ?? History;
+                  const Icon = ACTIVITY_ICONS[item.type] ?? ClockCounterClockwise;
                   const color = ACTIVITY_COLORS[item.type] ?? "bg-gray-500/20 text-gray-400";
                   return (
-                    <div key={item.id} className="flex items-start gap-3 rounded-lg border border-border/50 bg-card p-3">
+                    <div key={item.id} className="flex items-start gap-3 rounded-lg border-none/50 bg-card p-3">
                       <div className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${color}`}>
                         <Icon className="h-4 w-4" />
                       </div>
@@ -137,7 +148,7 @@ export default function ActivityLogPage() {
               <button
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={page === 1}
-                className="rounded-md border border-border px-3 py-1 text-xs disabled:opacity-40"
+                className="rounded-md border-none px-3 py-1 text-xs disabled:opacity-40"
               >
                 Previous
               </button>
@@ -145,7 +156,7 @@ export default function ActivityLogPage() {
               <button
                 onClick={() => setPage((p) => Math.min(lastPage, p + 1))}
                 disabled={page === lastPage}
-                className="rounded-md border border-border px-3 py-1 text-xs disabled:opacity-40"
+                className="rounded-md border-none px-3 py-1 text-xs disabled:opacity-40"
               >
                 Next
               </button>

@@ -238,6 +238,24 @@ class KycService
                     actionUrl: NotificationService::link('app'),
                     template: 'kyc_approved',
                 );
+
+                // Official In-App Notification with Blue Badge
+                try {
+                    $user->notify(new \App\Notifications\MurihOfficialNotification(
+                        type: 'kyc_approved',
+                        title: '🛡️ Identity Verified Successfully!',
+                        body: 'Your identity (KYC) verification has been approved by compliance. You now have full access to payments, store escrow, and verified tools.',
+                        actionUrl: NotificationService::link('app'),
+                        actionLabel: 'View Account',
+                        route: '/you',
+                        metadata: [
+                            'kyc_status' => 'verified',
+                            'verified_at' => now()->toIso8601String(),
+                        ]
+                    ));
+                } catch (\Throwable $e) {
+                    \Log::warning("KYC approved in-app notification failed: {$e->getMessage()}");
+                }
             } elseif ($status === KycStatus::Rejected->value) {
                 $user->update([
                     'kyc_status' => KycStatus::Rejected->value,
@@ -254,6 +272,24 @@ class KycService
                     template: 'kyc_rejected',
                     data: ['reason' => (string) $reason],
                 );
+
+                // Official In-App Notification with Blue Badge
+                try {
+                    $user->notify(new \App\Notifications\MurihOfficialNotification(
+                        type: 'kyc_rejected',
+                        title: 'Identity Verification Needs Review',
+                        body: 'Your KYC verification submission was not approved: ' . ($reason ?: 'Please resubmit clearer documents.') . ' Tap to re-verify.',
+                        actionUrl: NotificationService::link('app/settings/kyc'),
+                        actionLabel: 'Re-verify Now',
+                        route: '/kyc',
+                        metadata: [
+                            'kyc_status' => 'rejected',
+                            'reason' => $reason,
+                        ]
+                    ));
+                } catch (\Throwable $e) {
+                    \Log::warning("KYC rejected in-app notification failed: {$e->getMessage()}");
+                }
             } elseif ($status === KycStatus::Expired->value) {
                 if ($user->kyc_status === KycStatus::Pending->value) {
                     $user->update([

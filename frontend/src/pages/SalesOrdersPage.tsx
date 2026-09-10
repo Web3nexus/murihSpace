@@ -1,14 +1,14 @@
 import { getAuthToken } from "@/lib/auth/token";
 import { useState, useEffect, useCallback } from 'react';
 import {
-  DollarSign,
-  TrendingUp,
-  Package,
-  Loader2,
-  Receipt,
-  ExternalLink,
-  AlertCircle,
-} from 'lucide-react';
+  CurrencyDollar as DollarSign,
+  TrendUp as TrendingUp,
+  Package as Package,
+  Spinner as Loader2,
+  Receipt as Receipt,
+  ArrowSquareOut as ExternalLink,
+  WarningCircle as AlertCircle
+} from "@phosphor-icons/react";
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -101,11 +101,11 @@ export function SalesOrdersPage() {
   const totalSales = sales.filter((s) => s.status === 'completed').length;
 
   return (
-    <div className="space-y-6 w-full max-w-7xl mx-auto p-6 lg:p-8">
+    <div className="space-y-6 w-full max-w-7xl mx-auto p-4 lg:p-5">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-black text-foreground tracking-tight flex items-center gap-2.5">
-          <DollarSign className="h-6 w-6 text-secondary" />
+        <h1 className="text-xl font-black text-foreground tracking-tight flex items-center gap-2.5">
+          <DollarSign weight="fill" className="h-6 w-6 text-secondary" />
           Sales & Orders
         </h1>
         <p className="text-xs text-muted-foreground mt-1">
@@ -116,12 +116,12 @@ export function SalesOrdersPage() {
       {/* Summary Metrics */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {[
-          { label: 'Total Gross Revenue', value: `$${totalRevenue.toFixed(2)}`, icon: <TrendingUp className="h-5 w-5 text-secondary" />, sub: 'Before platform fee' },
-          { label: 'Net Payout', value: `$${totalNet.toFixed(2)}`, icon: <DollarSign className="h-5 w-5 text-emerald-500" />, sub: 'After 10% platform fee' },
-          { label: 'Completed Orders', value: totalSales.toString(), icon: <Package className="h-5 w-5 text-secondary" />, sub: 'Successful transactions' },
+          { label: 'Total Gross Revenue', value: `$${totalRevenue.toFixed(2)}`, icon: <TrendingUp weight="fill" className="h-5 w-5 text-secondary" />, sub: 'Before platform fee' },
+          { label: 'Net Payout', value: `$${totalNet.toFixed(2)}`, icon: <DollarSign weight="fill" className="h-5 w-5 text-emerald-500" />, sub: 'After 10% platform fee' },
+          { label: 'Completed Orders', value: totalSales.toString(), icon: <Package weight="fill" className="h-5 w-5 text-secondary" />, sub: 'Successful transactions' },
         ].map((m) => (
-          <div key={m.label} className="border border-border rounded-2xl bg-card p-4 shadow-sm flex items-center gap-4">
-            <div className="p-2.5 rounded-xl bg-secondary/10 shrink-0">{m.icon}</div>
+          <div key={m.label} className="border-none rounded-lg bg-card p-4  flex items-center gap-4">
+            <div className="p-2.5 rounded-lg bg-secondary/10 shrink-0">{m.icon}</div>
             <div>
               <p className="text-xs text-muted-foreground font-semibold">{m.label}</p>
               <p className="text-xl font-black text-foreground">{m.value}</p>
@@ -132,8 +132,8 @@ export function SalesOrdersPage() {
       </div>
 
       {fetchError && (
-        <div className="flex items-center gap-2 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-xs text-destructive">
-          <AlertCircle className="h-4 w-4 shrink-0" /> {fetchError}
+        <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-xs text-destructive">
+          <AlertCircle weight="fill" className="h-4 w-4 shrink-0" /> {fetchError}
           <button onClick={() => { setIsLoading(true); fetchSales(); }} className="ml-auto text-muted-foreground hover:text-foreground font-bold">Retry</button>
         </div>
       )}
@@ -141,19 +141,19 @@ export function SalesOrdersPage() {
       {/* Sales Table */}
       {isLoading ? (
         <div className="py-16 text-center space-y-2">
-          <Loader2 className="h-8 w-8 animate-spin text-secondary mx-auto" />
+          <Loader2 weight="fill" className="h-8 w-8 animate-spin text-secondary mx-auto" />
           <p className="text-xs text-muted-foreground">Loading sales data…</p>
         </div>
       ) : sales.length === 0 ? (
         <div className="p-12 text-center border border-dashed border-border rounded-3xl bg-card space-y-3">
-          <DollarSign className="h-10 w-10 text-muted-foreground/30 mx-auto" />
+          <DollarSign weight="fill" className="h-10 w-10 text-muted-foreground/30 mx-auto" />
           <h3 className="text-sm font-bold text-foreground">No sales yet</h3>
           <p className="text-xs text-muted-foreground max-w-sm mx-auto">
             Your digital product sales will appear here once buyers complete their purchases.
           </p>
         </div>
       ) : (
-        <div className="border border-border rounded-2xl bg-card overflow-hidden shadow-sm">
+        <div className="border-none rounded-lg bg-card overflow-hidden ">
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
               <thead className="bg-muted/30 border-b border-border">
@@ -199,7 +199,7 @@ export function SalesOrdersPage() {
                         onClick={() => openReceipt(s.id)}
                         className="h-7 text-[10px] font-semibold text-secondary hover:text-secondary gap-1 px-2"
                       >
-                        <Receipt className="h-3.5 w-3.5" /> Receipt
+                        <Receipt weight="fill" className="h-3.5 w-3.5" /> Receipt
                       </Button>
                     </td>
                   </tr>
@@ -212,25 +212,25 @@ export function SalesOrdersPage() {
 
       {lastPage > 1 && (
         <div className="flex items-center justify-center gap-2 pt-4">
-          <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1} className="px-3 py-1.5 rounded-lg text-xs font-bold border border-border bg-card hover:bg-muted disabled:opacity-40">Previous</button>
+          <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1} className="px-3 py-1.5 rounded-lg text-xs font-bold border-none bg-card hover:bg-muted disabled:opacity-40">Previous</button>
           <span className="text-xs text-muted-foreground">Page {page} of {lastPage}</span>
-          <button onClick={() => setPage(p => Math.min(lastPage, p + 1))} disabled={page >= lastPage} className="px-3 py-1.5 rounded-lg text-xs font-bold border border-border bg-card hover:bg-muted disabled:opacity-40">Next</button>
+          <button onClick={() => setPage(p => Math.min(lastPage, p + 1))} disabled={page >= lastPage} className="px-3 py-1.5 rounded-lg text-xs font-bold border-none bg-card hover:bg-muted disabled:opacity-40">Next</button>
         </div>
       )}
 
       {/* Receipt Modal */}
       {selectedReceipt !== null && (
         <Dialog open={!!selectedReceipt} onOpenChange={() => setSelectedReceipt(null)}>
-          <DialogContent className="sm:max-w-lg md:max-w-xl bg-card border-border shadow-2xl rounded-2xl p-6 sm:p-8">
+          <DialogContent className="sm:max-w-lg md:max-w-xl bg-card border-border shadow-2xl rounded-lg p-4 sm:p-5">
             <DialogHeader>
               <DialogTitle className="text-base font-bold text-foreground flex items-center gap-2">
-                <Receipt className="h-5 w-5 text-secondary" />
+                <Receipt weight="fill" className="h-5 w-5 text-secondary" />
                 Order Receipt
               </DialogTitle>
             </DialogHeader>
 
             <div className="space-y-4 py-2">
-              <div className="p-4 rounded-2xl bg-muted/30 border border-border text-xs space-y-2.5">
+              <div className="p-4 rounded-lg bg-muted/30 border-none text-xs space-y-2.5">
                 {[
                   ['Order Number', selectedReceipt.order_number],
                   ['Product', selectedReceipt.product?.title],
@@ -257,7 +257,7 @@ export function SalesOrdersPage() {
                     rel="noreferrer"
                     className="inline-flex items-center gap-1.5 text-xs font-bold text-secondary hover:underline"
                   >
-                    Download File <ExternalLink className="h-3 w-3" />
+                    Download File <ExternalLink weight="fill" className="h-3 w-3" />
                   </a>
                 )}
               </div>

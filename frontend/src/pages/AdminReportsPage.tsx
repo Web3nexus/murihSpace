@@ -2,9 +2,17 @@ import { getAuthToken } from "@/lib/auth/token";
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router';
 import {
-  FileText, Loader2, Flag, AlertTriangle, CheckCircle2,
-  XCircle, Trash2, Ban, MessageCircle, User as UserIcon,
-} from 'lucide-react';
+  FileText as FileText,
+  Spinner as Loader2,
+  Flag as Flag,
+  Warning as AlertTriangle,
+  CheckCircle as CheckCircle2,
+  XCircle as XCircle,
+  Trash as Trash2,
+  Prohibit as Prohibit,
+  ChatCircle as MessageCircle,
+  User as UserIcon
+} from "@phosphor-icons/react";
 import { Button } from '@/components/ui/button';
 import { authFetch } from "@/lib/api/authFetch";
 
@@ -46,9 +54,9 @@ const STATUS_STYLES: Record<string, string> = {
 };
 
 const TYPE_ICONS: Record<string, React.ReactNode> = {
-  post: <MessageCircle className="h-4 w-4" />,
-  user: <UserIcon className="h-4 w-4" />,
-  comment: <MessageCircle className="h-4 w-4" />,
+  post: <MessageCircle weight="fill" className="h-4 w-4" />,
+  user: <UserIcon weight="fill" className="h-4 w-4" />,
+  comment: <MessageCircle weight="fill" className="h-4 w-4" />,
 };
 
 export function AdminReportsPage() {
@@ -123,19 +131,19 @@ export function AdminReportsPage() {
   const typeTabs = ['', 'post', 'user', 'comment'];
 
   return (
-    <div className="w-full mx-auto max-w-[1400px] space-y-6 p-6 lg:p-10">
+    <div className="w-full mx-auto max-w-[1400px] space-y-6 p-4 lg:p-10">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-black tracking-tight flex items-center gap-2.5">
-            <Flag className="h-6 w-6 text-[#2164b6] dark:text-[#7ab0ff]" /> Posts & Reports
+          <h1 className="text-xl font-black tracking-tight flex items-center gap-2.5">
+            <Flag weight="fill" className="h-6 w-6 text-[#2164b6] dark:text-[#7ab0ff]" /> Posts & Reports
           </h1>
           <p className="text-xs text-muted-foreground mt-1">Review reported content and take action.</p>
         </div>
       </div>
 
       {fetchError && (
-        <div className="flex items-center gap-2 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-xs text-destructive">
-          <AlertTriangle className="h-4 w-4 shrink-0" /> {fetchError}
+        <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-xs text-destructive">
+          <AlertTriangle weight="fill" className="h-4 w-4 shrink-0" /> {fetchError}
           <button onClick={() => { setLoading(true); fetchReports(); }} className="ml-auto text-muted-foreground hover:text-foreground font-bold">Retry</button>
         </div>
       )}
@@ -157,9 +165,9 @@ export function AdminReportsPage() {
         ))}
       </div>
 
-      {/* Type Filter */}
+      {/* TextT Faders */}
       <div className="flex items-center gap-2">
-        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Type:</span>
+        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">TextT:</span>
         {typeTabs.map((t) => (
           <button
             key={t}
@@ -174,22 +182,22 @@ export function AdminReportsPage() {
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-16"><Loader2 className="h-8 w-8 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" /></div>
+        <div className="flex justify-center py-16"><Loader2 weight="fill" className="h-8 w-8 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" /></div>
       ) : reports.length === 0 ? (
         <div className="p-16 text-center border border-dashed border-border rounded-3xl bg-card">
-          <Flag className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
+          <Flag weight="fill" className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
           <h3 className="text-sm font-bold">No {statusFilter || ''} reports</h3>
           <p className="text-xs text-muted-foreground mt-1">{statusFilter === 'pending' ? 'All clear! No pending reports to review.' : 'No reports match the current filters.'}</p>
         </div>
       ) : (
         <div className="space-y-3">
           {reports.map((r) => (
-            <div key={r.id} className="border border-border rounded-2xl bg-card p-5 space-y-3">
+            <div key={r.id} className="border-none rounded-lg bg-card p-5 space-y-3">
               {/* Header */}
               <div className="flex items-start justify-between gap-4">
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="rounded-xl bg-muted p-2.5 text-muted-foreground shrink-0">
-                    {TYPE_ICONS[r.reported_type] || <Flag className="h-4 w-4" />}
+                  <div className="rounded-lg bg-muted p-2.5 text-muted-foreground shrink-0">
+                    {TYPE_ICONS[r.reported_type] || <Flag weight="fill" className="h-4 w-4" />}
                   </div>
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
@@ -208,11 +216,11 @@ export function AdminReportsPage() {
 
               {/* Details */}
               {r.details && (
-                <p className="text-xs text-foreground/80 bg-muted/20 rounded-xl px-3 py-2 border border-border/50">{r.details}</p>
+                <p className="text-xs text-foreground/80 bg-muted/20 rounded-lg px-3 py-2 border-none/50">{r.details}</p>
               )}
               {r.review_note && (
-                <div className="flex items-start gap-2 text-xs text-muted-foreground bg-muted/10 rounded-xl px-3 py-2 border border-border/50">
-                  <FileText className="h-3 w-3 mt-0.5 shrink-0" />
+                <div className="flex items-start gap-2 text-xs text-muted-foreground bg-muted/10 rounded-lg px-3 py-2 border-none/50">
+                  <FileText weight="fill" className="h-3 w-3 mt-0.5 shrink-0" />
                   <span>Review note: {r.review_note}</span>
                 </div>
               )}
@@ -225,21 +233,21 @@ export function AdminReportsPage() {
                     className="h-8 text-[10px] font-bold text-muted-foreground"
                     onClick={() => { setActionModal({ report: r, action: 'dismiss' }); setReviewNote(''); }}
                   >
-                    <XCircle className="h-3 w-3 mr-1" /> Dismiss
+                    <XCircle weight="fill" className="h-3 w-3 mr-1" /> Dismiss
                   </Button>
                   <Button
                     size="sm" variant="outline"
                     className="h-8 text-[10px] font-bold text-amber-600"
                     onClick={() => { setActionModal({ report: r, action: 'delete' }); setReviewNote(''); }}
                   >
-                    <Trash2 className="h-3 w-3 mr-1" /> Delete {r.reported_type}
+                    <Trash2 weight="fill" className="h-3 w-3 mr-1" /> Delete {r.reported_type}
                   </Button>
                   <Button
                     size="sm" variant="outline"
                     className="h-8 text-[10px] font-bold text-destructive"
                     onClick={() => { setActionModal({ report: r, action: 'ban_author' }); setReviewNote(''); }}
                   >
-                    <Ban className="h-3 w-3 mr-1" /> Ban Author
+                    <Prohibit weight="fill" className="h-3 w-3 mr-1" /> Prohibit Author
                   </Button>
                 </div>
               )}
@@ -250,31 +258,31 @@ export function AdminReportsPage() {
 
       {lastPage > 1 && (
         <div className="flex items-center justify-center gap-2 pt-4">
-          <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1} className="px-3 py-1.5 rounded-lg text-xs font-bold border border-border bg-card hover:bg-muted disabled:opacity-40">Previous</button>
+          <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1} className="px-3 py-1.5 rounded-lg text-xs font-bold border-none bg-card hover:bg-muted disabled:opacity-40">Previous</button>
           <span className="text-xs text-muted-foreground">Page {page} of {lastPage}</span>
-          <button onClick={() => setPage(p => Math.min(lastPage, p + 1))} disabled={page >= lastPage} className="px-3 py-1.5 rounded-lg text-xs font-bold border border-border bg-card hover:bg-muted disabled:opacity-40">Next</button>
+          <button onClick={() => setPage(p => Math.min(lastPage, p + 1))} disabled={page >= lastPage} className="px-3 py-1.5 rounded-lg text-xs font-bold border-none bg-card hover:bg-muted disabled:opacity-40">Next</button>
         </div>
       )}
 
       {/* Action Confirmation Modal */}
       {actionModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-          <div className="w-full max-w-md mx-4 rounded-2xl border border-border bg-card p-6 shadow-2xl space-y-4">
+          <div className="w-full max-w-md mx-4 rounded-lg border-none bg-card p-4 shadow-2xl space-y-4">
             <div className="flex items-center gap-3">
-              <div className={`rounded-xl p-2.5 ${
+              <div className={`rounded-lg p-2.5 ${
                 actionModal.action === 'dismiss' ? 'bg-muted text-muted-foreground' :
                 actionModal.action === 'delete' ? 'bg-amber-500/15 text-amber-500' :
                 'bg-destructive/15 text-destructive'
               }`}>
-                {actionModal.action === 'dismiss' ? <XCircle className="h-5 w-5" /> :
-                 actionModal.action === 'delete' ? <Trash2 className="h-5 w-5" /> :
-                 <Ban className="h-5 w-5" />}
+                {actionModal.action === 'dismiss' ? <XCircle weight="fill" className="h-5 w-5" /> :
+                 actionModal.action === 'delete' ? <Trash2 weight="fill" className="h-5 w-5" /> :
+                 <Prohibit weight="fill" className="h-5 w-5" />}
               </div>
               <div>
                 <h3 className="text-sm font-bold text-foreground">
                   {actionModal.action === 'dismiss' ? 'Dismiss Report' :
                    actionModal.action === 'delete' ? `Delete ${actionModal.report.reported_type}` :
-                   'Ban Author'}
+                   'Prohibit Author'}
                 </h3>
                 <p className="text-xs text-muted-foreground mt-0.5">
                   {actionModal.report.reported_type}#{actionModal.report.reported_id} · {REASON_LABELS[actionModal.report.reason]}
@@ -282,7 +290,7 @@ export function AdminReportsPage() {
               </div>
             </div>
             <textarea
-              className="w-full min-h-[60px] rounded-xl border border-border bg-card p-3 text-xs text-foreground placeholder:text-muted-foreground resize-none"
+              className="w-full min-h-[60px] rounded-lg border-none bg-card p-3 text-xs text-foreground placeholder:text-muted-foreground resize-none"
               placeholder="Optional review note..."
               value={reviewNote}
               onChange={(e) => setReviewNote(e.target.value)}
@@ -290,8 +298,8 @@ export function AdminReportsPage() {
             <div className="flex gap-2 justify-end">
               <Button size="sm" variant="outline" className="text-xs" onClick={() => setActionModal(null)} disabled={processing}>Cancel</Button>
               <Button size="sm" variant={actionModal.action === 'ban_author' ? 'destructive' : 'default'} className="text-xs" onClick={handleAction} disabled={processing}>
-                {processing ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}
-                Confirm {actionModal.action === 'dismiss' ? 'Dismiss' : actionModal.action === 'delete' ? 'Delete' : 'Ban'}
+                {processing ? <Loader2 weight="fill" className="h-3 w-3 animate-spin mr-1" /> : null}
+                Confirm {actionModal.action === 'dismiss' ? 'Dismiss' : actionModal.action === 'delete' ? 'Delete' : 'Prohibit'}
               </Button>
             </div>
           </div>

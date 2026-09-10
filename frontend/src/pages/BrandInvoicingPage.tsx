@@ -1,11 +1,24 @@
 import { useState, useEffect, useCallback } from 'react';
-import { FileText, Plus, Loader2, CheckCircle, Send, Trash2, Building2, AlertCircle, X, Download, FileSpreadsheet, Sparkles, DollarSign } from 'lucide-react';
+import {
+  FileText as FileText,
+  Plus as Plus,
+  Spinner as Loader2,
+  CheckCircle as CheckCircle,
+  PaperPlaneRight as Send,
+  Trash as Trash2,
+  Buildings as Building2,
+  WarningCircle as AlertCircle,
+  X as X,
+  DownloadSimple as Download,
+  FileXls as FileXls,
+  CurrencyDollar as DollarSign
+} from "@phosphor-icons/react";
 import { authFetch } from "@/lib/api/authFetch";
 import { useConfirm } from '@/components/ui/DialogProvider';
 import { StatCard } from '@/components/ui/StatCard';
-import { PageHeader } from '@/components/ui/PageHeader';
 import { SuccessBanner } from '@/components/ui/SuccessBanner';
 import { FormErrorSummary } from '@/components/ui/FormErrorSummary';
+import { PageSecondaryNav, type PageNavTab } from "@/components/common/PageSecondaryNav";
 
 
 
@@ -144,35 +157,37 @@ export function BrandInvoicingPage() {
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
         <div className="relative">
           <div className="absolute inset-0 rounded-full blur-xl bg-[#2164b6]/20 animate-pulse"></div>
-          <Loader2 className="h-10 w-10 animate-spin text-[#2164b6] relative z-10" />
+          <Loader2 weight="fill" className="h-10 w-10 animate-spin text-[#2164b6] relative z-10" />
         </div>
         <p className="text-sm text-muted-foreground font-medium animate-pulse">Loading Invoices...</p>
       </div>
     );
   }
 
+  const brandDealTabs: PageNavTab[] = [
+    { label: "Marketplace", href: "/app/brand-deals", exact: true },
+    { label: "Proposals", href: "/app/brand-deals/proposals" },
+    { label: "Media Kit", href: "/app/brand-deals/media-kit" },
+    { label: "Invoices", href: "/app/brand-deals/invoicing" },
+  ];
+
   return (
-    <div className="w-full max-w-7xl mx-auto space-y-8 p-6 lg:p-8 animate-in fade-in duration-500 pb-24">
-      {/* Header Section */}
-      <PageHeader 
+    <div className="w-full max-w-7xl mx-auto space-y-6 p-4 lg:p-5 animate-in fade-in duration-500 pb-24">
+      <PageSecondaryNav 
         title="Invoicing & Payments"
-        description="Generate professional invoices for your brand deals, track sent invoices, and monitor your earnings."
-        badge={
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#2164b6]/10 text-[#2164b6] dark:text-[#7ab0ff] text-xs font-bold">
-            <Sparkles className="w-3.5 h-3.5" />
-            Brand Partnerships
-          </div>
-        }
-        action={
+        subtitle="Generate professional invoices for your brand deals, track sent invoices, and monitor earnings."
+        icon={<FileText weight="fill" className="h-5 w-5 text-primary" />}
+        tabs={brandDealTabs}
+        actions={
           <button 
             onClick={() => { if(showForm) resetForm(); else setShowForm(true); }}
-            className={`flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-sm font-bold shadow-lg transition-all duration-300 ${
+            className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all shadow-xs ${
               showForm 
-                ? 'bg-muted text-foreground hover:bg-muted/80 shadow-none' 
-                : 'bg-gradient-to-r from-[#2164b6] to-[#1a5091] text-white hover:-translate-y-0.5 hover:shadow-[#2164b6]/25'
+                ? 'bg-muted text-foreground hover:bg-muted/80' 
+                : 'bg-[#2164b6] hover:bg-[#1a5091] text-white'
             }`}
           >
-            {showForm ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+            {showForm ? <X className="h-4 w-4" /> : <Plus weight="fill" className="h-4 w-4" />}
             {showForm ? 'Cancel Creation' : 'Generate Invoice'}
           </button>
         }
@@ -186,17 +201,17 @@ export function BrandInvoicingPage() {
       )}
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 animate-in slide-in-from-bottom-4 duration-500">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 animate-in slide-in-from-bottom-4 duration-500">
         <StatCard icon={FileText} label="Total Invoices" value={String(invoices.length)} color="bg-blue-500 text-blue-500" />
         <StatCard icon={AlertCircle} label="Outstanding" value={formatPrice(totalPending)} color="bg-amber-500 text-amber-500" />
         <StatCard icon={CheckCircle} label="Total Paid" value={formatPrice(totalPaid)} color="bg-emerald-500 text-emerald-500" />
       </div>
 
       {showForm && (
-        <div className="rounded-2xl border border-border/50 bg-card/50 backdrop-blur-xl shadow-xl overflow-hidden animate-in slide-in-from-top-4 duration-500">
-          <div className="p-6 border-b border-border/50 flex items-center gap-4 bg-background/50">
-            <div className="p-2.5 rounded-xl bg-[#2164b6]/10 text-[#2164b6] shrink-0">
-              <FileSpreadsheet className="w-5 h-5" />
+        <div className="rounded-lg border-none/50 bg-card/50 backdrop-blur-xl shadow-xl overflow-hidden animate-in slide-in-from-top-4 duration-500">
+          <div className="p-4 border-b border-border/50 flex items-center gap-4 bg-background/50">
+            <div className="p-2.5 rounded-lg bg-[#2164b6]/10 text-[#2164b6] shrink-0">
+              <FileXls weight="fill" className="w-5 h-5" />
             </div>
             <div>
               <h2 className="text-lg font-bold text-foreground">Create New Invoice</h2>
@@ -204,13 +219,13 @@ export function BrandInvoicingPage() {
             </div>
           </div>
           
-          <form onSubmit={createInvoice} className="p-6 space-y-8">
+          <form onSubmit={createInvoice} className="p-4 space-y-8">
             {/* Brand Info */}
             <div className="space-y-4">
               <h3 className="text-sm font-black text-foreground uppercase tracking-wider flex items-center gap-2">
-                <Building2 className="w-4 h-4 text-muted-foreground" /> Brand Details
+                <Building2 weight="fill" className="w-4 h-4 text-muted-foreground" /> Brand Details
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Related Brand Deal (Optional)</label>
                   <select 
@@ -220,7 +235,7 @@ export function BrandInvoicingPage() {
                       setForm(f => ({ ...f, brand_deal_id: dealId }));
                       // Auto-fill brand name if possible based on deal
                     }}
-                    className="w-full h-12 rounded-xl bg-background border border-border/50 px-4 text-sm font-medium focus:ring-2 focus:ring-[#2164b6]/50 transition-all appearance-none"
+                    className="w-full h-12 rounded-lg bg-background border-none/50 px-4 text-sm font-medium focus:ring-2 focus:ring-[#2164b6]/50 transition-all appearance-none"
                   >
                     <option value="">Select a deal...</option>
                     {deals.map(d => <option key={d.id} value={d.id}>{d.title}</option>)}
@@ -233,7 +248,7 @@ export function BrandInvoicingPage() {
                     onChange={e => setForm({ ...form, brand_name: e.target.value })} 
                     required
                     placeholder="e.g. Nike, Spotify"
-                    className="w-full h-12 rounded-xl bg-background border border-border/50 px-4 text-sm font-medium focus:ring-2 focus:ring-[#2164b6]/50 transition-all" 
+                    className="w-full h-12 rounded-lg bg-background border-none/50 px-4 text-sm font-medium focus:ring-2 focus:ring-[#2164b6]/50 transition-all" 
                   />
                 </div>
                 <div className="space-y-2">
@@ -243,7 +258,7 @@ export function BrandInvoicingPage() {
                     value={form.brand_email} 
                     onChange={e => setForm({ ...form, brand_email: e.target.value })} 
                     placeholder="billing@brand.com"
-                    className="w-full h-12 rounded-xl bg-background border border-border/50 px-4 text-sm font-medium focus:ring-2 focus:ring-[#2164b6]/50 transition-all" 
+                    className="w-full h-12 rounded-lg bg-background border-none/50 px-4 text-sm font-medium focus:ring-2 focus:ring-[#2164b6]/50 transition-all" 
                   />
                 </div>
               </div>
@@ -254,9 +269,9 @@ export function BrandInvoicingPage() {
             {/* Invoice Details */}
             <div className="space-y-4">
               <h3 className="text-sm font-black text-foreground uppercase tracking-wider flex items-center gap-2">
-                <FileText className="w-4 h-4 text-muted-foreground" /> Invoice Details
+                <FileText weight="fill" className="w-4 h-4 text-muted-foreground" /> Invoice Details
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div className="lg:col-span-2 space-y-2">
                   <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Description of Services</label>
                   <input 
@@ -264,7 +279,7 @@ export function BrandInvoicingPage() {
                     onChange={e => setForm({ ...form, description: e.target.value })} 
                     required
                     placeholder="e.g. 1x Instagram Reel + Link in Bio"
-                    className="w-full h-12 rounded-xl bg-background border border-border/50 px-4 text-sm font-medium focus:ring-2 focus:ring-[#2164b6]/50 transition-all" 
+                    className="w-full h-12 rounded-lg bg-background border-none/50 px-4 text-sm font-medium focus:ring-2 focus:ring-[#2164b6]/50 transition-all" 
                   />
                 </div>
                 <div className="space-y-2">
@@ -273,7 +288,7 @@ export function BrandInvoicingPage() {
                     type="date"
                     value={form.due_date} 
                     onChange={e => setForm({ ...form, due_date: e.target.value })} 
-                    className="w-full h-12 rounded-xl bg-background border border-border/50 px-4 text-sm font-medium focus:ring-2 focus:ring-[#2164b6]/50 transition-all" 
+                    className="w-full h-12 rounded-lg bg-background border-none/50 px-4 text-sm font-medium focus:ring-2 focus:ring-[#2164b6]/50 transition-all" 
                   />
                 </div>
               </div>
@@ -284,15 +299,15 @@ export function BrandInvoicingPage() {
             {/* Payment */}
             <div className="space-y-4">
               <h3 className="text-sm font-black text-foreground uppercase tracking-wider flex items-center gap-2">
-                <DollarSign className="w-4 h-4 text-muted-foreground" /> Payment Information
+                <DollarSign weight="fill" className="w-4 h-4 text-muted-foreground" /> Payment Information
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Currency</label>
                   <select 
                     value={form.currency} 
                     onChange={e => setForm({ ...form, currency: e.target.value })} 
-                    className="w-full h-12 rounded-xl bg-background border border-border/50 px-4 text-sm font-medium focus:ring-2 focus:ring-[#2164b6]/50 transition-all appearance-none"
+                    className="w-full h-12 rounded-lg bg-background border-none/50 px-4 text-sm font-medium focus:ring-2 focus:ring-[#2164b6]/50 transition-all appearance-none"
                   >
                     <option value="NGN">NGN (₦)</option>
                     <option value="USD">USD ($)</option>
@@ -308,7 +323,7 @@ export function BrandInvoicingPage() {
                     onChange={e => setForm({ ...form, amount: e.target.value })} 
                     required
                     placeholder="0.00"
-                    className="w-full h-12 rounded-xl bg-background border border-border/50 px-4 text-sm font-medium focus:ring-2 focus:ring-[#2164b6]/50 transition-all text-xl" 
+                    className="w-full h-12 rounded-lg bg-background border-none/50 px-4 text-sm font-medium focus:ring-2 focus:ring-[#2164b6]/50 transition-all text-xl" 
                   />
                 </div>
               </div>
@@ -318,7 +333,7 @@ export function BrandInvoicingPage() {
                   value={form.notes} 
                   onChange={e => setForm({ ...form, notes: e.target.value })}
                   placeholder="e.g. Payment due via wire transfer within 30 days."
-                  className="w-full rounded-xl bg-background border border-border/50 p-4 text-sm font-medium focus:ring-2 focus:ring-[#2164b6]/50 transition-all resize-none h-24" 
+                  className="w-full rounded-lg bg-background border-none/50 p-4 text-sm font-medium focus:ring-2 focus:ring-[#2164b6]/50 transition-all resize-none h-24" 
                 />
               </div>
             </div>
@@ -327,16 +342,16 @@ export function BrandInvoicingPage() {
               <button 
                 type="button" 
                 onClick={resetForm}
-                className="px-6 py-3 rounded-xl bg-muted text-foreground text-sm font-bold hover:bg-muted/80 transition-colors"
+                className="px-6 py-3 rounded-lg bg-muted text-foreground text-sm font-bold hover:bg-muted/80 transition-colors"
               >
                 Discard
               </button>
               <button 
                 type="submit" 
                 disabled={saving}
-                className="px-8 py-3 rounded-xl bg-[#2164b6] text-white text-sm font-bold hover:bg-[#1a5091] hover:shadow-lg transition-all duration-300 disabled:opacity-50 flex items-center gap-2"
+                className="px-8 py-3 rounded-lg bg-[#2164b6] text-white text-sm font-bold hover:bg-[#1a5091] hover:shadow-lg transition-all duration-300 disabled:opacity-50 flex items-center gap-2"
               >
-                {saving && <Loader2 className="w-4 h-4 animate-spin" />}
+                {saving && <Loader2 weight="fill" className="w-4 h-4 animate-spin" />}
                 Generate Invoice
               </button>
             </div>
@@ -347,21 +362,21 @@ export function BrandInvoicingPage() {
       {invoices.length === 0 ? (
         <div className="flex flex-col items-center justify-center text-center gap-4 py-24 rounded-3xl border border-dashed border-border/50 bg-card/30 backdrop-blur-sm">
           <div className="w-20 h-20 rounded-3xl bg-[#2164b6]/10 flex items-center justify-center mb-2">
-            <FileSpreadsheet className="h-10 w-10 text-[#2164b6]" />
+            <FileXls weight="fill" className="h-10 w-10 text-[#2164b6]" />
           </div>
-          <h2 className="text-2xl font-bold text-foreground tracking-tight">No invoices yet</h2>
+          <h2 className="text-xl font-bold text-foreground tracking-tight">No invoices yet</h2>
           <p className="text-sm text-muted-foreground max-w-md">Professionalize your brand deals by generating and sending beautifully formatted PDF invoices.</p>
           <button 
             onClick={() => setShowForm(true)}
-            className="mt-4 px-6 py-3 rounded-xl bg-background border border-border/50 text-foreground font-bold hover:bg-muted transition-colors"
+            className="mt-4 px-6 py-3 rounded-lg bg-background border-none/50 text-foreground font-bold hover:bg-muted transition-colors"
           >
             Create First Invoice
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {invoices.map((inv) => (
-            <div key={inv.id} className="group relative rounded-2xl border border-border/50 bg-card/50 backdrop-blur-xl p-5 md:p-6 transition-all duration-300 hover:shadow-lg hover:border-primary/30 flex flex-col h-full">
+            <div key={inv.id} className="group relative rounded-lg border-none/50 bg-card/50 backdrop-blur-xl p-5 md:p-4 transition-all duration-300 hover:shadow-lg hover:border-primary/30 flex flex-col h-full">
               
               {/* Header */}
               <div className="flex items-start justify-between gap-4 mb-4">
@@ -379,7 +394,7 @@ export function BrandInvoicingPage() {
                 </div>
                 
                 <div className="text-right shrink-0">
-                  <p className="text-2xl font-black text-foreground">{formatPrice(inv.amount, inv.currency)}</p>
+                  <p className="text-xl font-black text-foreground">{formatPrice(inv.amount, inv.currency)}</p>
                   {inv.due_date && (
                     <p className={`text-xs font-bold mt-1 ${inv.status === 'overdue' ? 'text-rose-500' : 'text-muted-foreground'}`}>
                       Due: {new Date(inv.due_date).toLocaleDateString()}
@@ -390,8 +405,8 @@ export function BrandInvoicingPage() {
 
               {/* Deal Link (Optional) */}
               {inv.deal && (
-                <div className="flex items-center gap-2 p-3 rounded-xl bg-background border border-border/50 mb-6 mt-2">
-                  <Building2 className="w-4 h-4 text-muted-foreground" />
+                <div className="flex items-center gap-2 p-3 rounded-lg bg-background border-none/50 mb-6 mt-2">
+                  <Building2 weight="fill" className="w-4 h-4 text-muted-foreground" />
                   <span className="text-xs font-bold text-foreground">Linked Deal:</span>
                   <span className="text-xs text-muted-foreground truncate">{inv.deal.title}</span>
                 </div>
@@ -403,16 +418,16 @@ export function BrandInvoicingPage() {
                 <div className="flex items-center gap-2">
                   <button 
                     onClick={() => handleDownloadPDF(inv.id, inv.invoice_number)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-background border border-border/50 text-xs font-bold text-foreground hover:bg-muted transition-colors"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-background border-none/50 text-xs font-bold text-foreground hover:bg-muted transition-colors"
                   >
-                    <Download className="w-3.5 h-3.5" /> PDF
+                    <Download weight="fill" className="w-3.5 h-3.5" /> PDF
                   </button>
                   {inv.brand_email && inv.status === 'draft' && (
                     <button 
                       onClick={() => markSent(inv.id)}
                       className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-500/10 text-blue-500 border border-blue-500/20 text-xs font-bold hover:bg-blue-500 hover:text-white transition-colors"
                     >
-                      <Send className="w-3.5 h-3.5" /> Send
+                      <Send weight="fill" className="w-3.5 h-3.5" /> Send
                     </button>
                   )}
                 </div>
@@ -423,7 +438,7 @@ export function BrandInvoicingPage() {
                       onClick={() => markPaid(inv.id)}
                       className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 text-xs font-bold hover:bg-emerald-500 hover:text-white transition-colors"
                     >
-                      <CheckCircle className="w-3.5 h-3.5" /> Mark Paid
+                      <CheckCircle weight="fill" className="w-3.5 h-3.5" /> Mark Paid
                     </button>
                   )}
                   {inv.status === 'draft' && (
@@ -432,7 +447,7 @@ export function BrandInvoicingPage() {
                       className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:bg-rose-500/10 hover:text-rose-500 transition-colors"
                       title="Delete Draft"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 weight="fill" className="w-4 h-4" />
                     </button>
                   )}
                 </div>

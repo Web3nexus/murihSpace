@@ -2,17 +2,17 @@ import { getAuthToken } from "@/lib/auth/token";
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router';
 import {
-  Users,
-  Settings,
-  ArrowLeft,
-  Loader2,
-  RefreshCw,
-  Lock,
-  Globe,
-  DollarSign,
-  Bell,
-  BellOff,
-} from 'lucide-react';
+  Users as Users,
+  Gear as Settings,
+  ArrowLeft as ArrowLeft,
+  Spinner as Loader2,
+  ArrowsClockwise as RefreshCw,
+  Lock as Lock,
+  Globe as Globe,
+  CurrencyDollar as DollarSign,
+  Bell as Bell,
+  BellSlash as BellOff
+} from "@phosphor-icons/react";
 import { Button } from '@/components/ui/button';
 import CreatePostComposer from '@/components/feed/CreatePostComposer';
 import PostCard from '@/components/feed/PostCard';
@@ -53,9 +53,9 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
 }
 
 function TypeIcon({ type }: { type: string }) {
-  if (type === 'private') return <Lock size={14} className="community-type-icon" />;
-  if (type === 'paid') return <DollarSign size={14} className="community-type-icon paid" />;
-  return <Globe size={14} className="community-type-icon public" />;
+  if (type === 'private') return <Lock weight="fill" size={14} className="community-type-icon" />;
+  if (type === 'paid') return <DollarSign weight="fill" size={14} className="community-type-icon paid" />;
+  return <Globe weight="fill" size={14} className="community-type-icon public" />;
 }
 
 export default function CommunityFeedPage() {
@@ -176,7 +176,7 @@ export default function CommunityFeedPage() {
   if (isLoading) {
     return (
       <div className="feed-loading">
-        <Loader2 className="feed-spinner" />
+        <Loader2 weight="fill" className="feed-spinner" />
         <span>Loading community…</span>
       </div>
     );
@@ -188,7 +188,7 @@ export default function CommunityFeedPage() {
         <p>{error ?? 'Community not found'}</p>
         <Button variant="outline" onClick={() => fetchData()}>Retry</Button>
         <Link to="/communities" className="feed-back-link">
-          <ArrowLeft size={14} /> Back to Communities
+          <ArrowLeft weight="fill" size={14} /> Back to Communities
         </Link>
       </div>
     );
@@ -218,7 +218,7 @@ export default function CommunityFeedPage() {
               <p className="community-feed-desc">{community.description}</p>
             )}
             <div className="community-feed-stats">
-              <Users size={13} />
+              <Users weight="fill" size={13} />
               <span>{community.member_count ?? 0} members</span>
             </div>
           </div>
@@ -229,12 +229,12 @@ export default function CommunityFeedPage() {
               onClick={() => setNotificationsOn((v) => !v)}
               title={notificationsOn ? 'Mute notifications' : 'Turn on notifications'}
             >
-              {notificationsOn ? <Bell size={16} /> : <BellOff size={16} />}
+              {notificationsOn ? <Bell weight="fill" size={16} /> : <BellOff weight="fill" size={16} />}
             </button>
             {isCreator && (
               <Link to={`/communities/${slug}/settings`}>
                 <Button variant="outline" size="sm" className="feed-settings-btn">
-                  <Settings size={14} /> Manage
+                  <Settings weight="fill" size={14} /> Manage
                 </Button>
               </Link>
             )}
@@ -249,7 +249,7 @@ export default function CommunityFeedPage() {
           {/* Breadcrumb */}
           <div className="feed-breadcrumb">
             <Link to="/communities" className="feed-breadcrumb-link">
-              <ArrowLeft size={13} />
+              <ArrowLeft weight="fill" size={13} />
               Communities
             </Link>
             <span>/</span>
@@ -276,7 +276,7 @@ export default function CommunityFeedPage() {
               onClick={() => fetchData(true)}
               disabled={isRefreshing}
             >
-              <RefreshCw size={13} className={isRefreshing ? 'spinning' : ''} />
+              <RefreshCw weight="fill" size={13} className={isRefreshing ? 'spinning' : ''} />
               Refresh
             </button>
           </div>
@@ -311,7 +311,7 @@ export default function CommunityFeedPage() {
             <h3 className="feed-sidebar-title">About</h3>
             <p className="feed-sidebar-desc">{community.description ?? 'No description provided.'}</p>
             <div className="feed-sidebar-stat">
-              <Users size={14} />
+              <Users weight="fill" size={14} />
               <span><strong>{community.member_count ?? 0}</strong> members</span>
             </div>
           </div>

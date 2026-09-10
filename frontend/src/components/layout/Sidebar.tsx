@@ -1,19 +1,19 @@
 import React from "react";
 import { Link, useLocation } from "react-router";
 import {
-  LayoutDashboard,
-  Users,
-  Store,
-  MessageSquare,
-  Settings,
-  ShieldAlert,
-  ChevronLeft,
-  ChevronRight,
-  Compass,
-  Wallet,
-  Heart,
-  Package,
-} from "lucide-react";
+  House as LayoutDashboard,
+  Users as Users,
+  Storefront,
+  ChatTeardropText as MessageSquare,
+  Gear as Settings,
+  ShieldWarning as ShieldWarning,
+  CaretLeft as ChevronLeft,
+  CaretRight as ChevronRight,
+  Compass as Compass,
+  Wallet as Wallet,
+  Heart as Heart,
+  Package as Package
+} from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
@@ -48,7 +48,7 @@ const navItems: NavItem[] = [
   {
     title: "Storefront & Items",
     href: "/app/store",
-    icon: Store,
+    icon: Storefront,
     roles: ["creator", "vendor", "admin"],
   },
   {
@@ -84,7 +84,7 @@ const navItems: NavItem[] = [
   {
     title: "Platform Admin",
     href: "/app/securegate",
-    icon: ShieldAlert,
+    icon: ShieldWarning,
     roles: ["admin"],
   },
 ];
@@ -133,7 +133,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           onClick={onToggleCollapse}
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
-          {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+          {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft weight="fill" className="h-4 w-4" />}
         </Button>
       </div>
 

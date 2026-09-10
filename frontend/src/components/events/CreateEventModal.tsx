@@ -20,7 +20,9 @@ import {
 } from "@/components/ui/select";
 import { env } from "@/config/env";
 import { ImageUploader } from "@/components/upload/ImageUploader";
-import { Calendar } from "lucide-react";
+import {
+  Calendar as Calendar
+} from "@phosphor-icons/react";
 import { getAuthToken } from "@/lib/auth/token";
 
 const API = env.VITE_API_BASE_URL;
@@ -115,11 +117,11 @@ export function CreateEventModal({ open, onClose, onCreated }: CreateEventModalP
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-2xl md:max-w-3xl max-h-[90vh] overflow-y-auto rounded-2xl p-6 sm:p-8">
+      <DialogContent className="sm:max-w-2xl md:max-w-3xl max-h-[90vh] overflow-y-auto rounded-lg p-4 sm:p-5">
         <DialogHeader>
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary border border-primary/20 shrink-0">
-              <Calendar className="h-5 w-5" />
+            <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-primary/10 text-primary border border-primary/20 shrink-0">
+              <Calendar weight="fill" className="h-5 w-5" />
             </div>
             <div>
               <DialogTitle className="text-xl font-bold">Create Event</DialogTitle>
@@ -174,7 +176,7 @@ export function CreateEventModal({ open, onClose, onCreated }: CreateEventModalP
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="event_type">Type *</Label>
+              <Label htmlFor="event_type">TextT *</Label>
               <Select
                 value={form.event_type}
                 onValueChange={(v) => setForm((f) => ({ ...f, event_type: v }))}

@@ -13,12 +13,18 @@ class Conversation extends Model
     protected $fillable = [
         'type',
         'community_id',
+        'group_id',
         'title',
     ];
 
     public function community(): BelongsTo
     {
         return $this->belongsTo(Community::class);
+    }
+
+    public function group(): BelongsTo
+    {
+        return $this->belongsTo(Group::class);
     }
 
     public function participants(): HasMany

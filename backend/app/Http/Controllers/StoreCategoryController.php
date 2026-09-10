@@ -6,7 +6,6 @@ use App\Models\StoreCategory;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
-use Illuminate\Validation\Rule;
 
 class StoreCategoryController extends Controller
 {
@@ -34,7 +33,9 @@ class StoreCategoryController extends Controller
 
     public function update(Request $request, StoreCategory $category): JsonResponse
     {
-        $this->authorize('update', $category);
+        if ($category->creator_id !== $request->user()->id) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
@@ -50,7 +51,10 @@ class StoreCategoryController extends Controller
 
     public function destroy(Request $request, StoreCategory $category): JsonResponse
     {
-        $this->authorize('delete', $category);
+        if ($category->creator_id !== $request->user()->id) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
         $category->delete();
         return response()->json(['message' => 'Category deleted.']);
     }

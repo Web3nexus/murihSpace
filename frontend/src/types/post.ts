@@ -1,6 +1,19 @@
-export type PostType = 'status' | 'announcement' | 'media';
+export type PostType = 'post' | 'status' | 'announcement' | 'poll' | 'media' | 'event' | 'product' | 'service';
 
 export type ReactionType = 'like' | 'fire' | 'clap' | 'heart';
+
+export interface PollOptionResult {
+  index: number;
+  label: string;
+  votes_count: number;
+  percentage: number;
+}
+
+export interface PollResults {
+  total_votes: number;
+  options: PollOptionResult[];
+  is_expired: boolean;
+}
 
 export interface PostReaction {
   id: number;
@@ -32,7 +45,7 @@ export interface PostComment {
 
 export interface Post {
   id: number;
-  community_id: number;
+  community_id?: number | null;
   user_id: number;
   type: PostType;
   content: string;
@@ -44,6 +57,15 @@ export interface Post {
   is_pinned: boolean;
   created_at: string;
   updated_at: string;
+  poll_question?: string;
+  poll_options?: string[];
+  poll_ends_at?: string;
+  poll_results?: PollResults;
+  user_poll_vote?: number | null;
+  location?: string;
+  hashtags?: string[];
+  privacy?: string;
+  comments_disabled?: boolean;
 
   // Relations
   author?: {
@@ -68,9 +90,16 @@ export interface Post {
 }
 
 export interface CreatePostPayload {
-  community_id: number;
+  community_id?: number | null;
   type: PostType;
   content: string;
   link_url?: string;
   media_urls?: string[];
+  poll_question?: string;
+  poll_options?: string[];
+  poll_ends_at?: string;
+  location?: string;
+  hashtags?: string[];
+  privacy?: string;
+  comments_disabled?: boolean;
 }

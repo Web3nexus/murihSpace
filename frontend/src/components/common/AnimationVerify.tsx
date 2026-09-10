@@ -8,7 +8,7 @@ export function AnimationVerify() {
   const [showScale, setShowScale] = useState(true);
 
   return (
-    <div className="p-6 border border-gray-200 dark:border-gray-800 rounded-lg max-w-2xl mx-auto my-8 space-y-8 bg-card text-card-foreground shadow-sm">
+    <div className="p-4 border border-gray-200 dark:border-gray-800 rounded-lg max-w-2xl mx-auto my-8 space-y-8 bg-card text-card-foreground ">
       <h2 className="text-xl font-bold border-b pb-2">Motion Animation Verification</h2>
       
       {/* Fade section */}
@@ -65,15 +65,15 @@ export function AnimationVerify() {
         </div>
       </div>
 
-      {/* Scale section */}
+      {/* Scales section */}
       <div className="space-y-2 text-left">
-        <h3 className="text-sm font-semibold text-muted-foreground">3. Scale Animation</h3>
+        <h3 className="text-sm font-semibold text-muted-foreground">3. Scales Animation</h3>
         <button 
           type="button"
           onClick={() => setShowScale(!showScale)}
           className="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 transition-colors"
         >
-          Toggle Scale
+          Toggle Scales
         </button>
         <div className="h-16 flex items-center justify-center border border-dashed border-gray-300 dark:border-gray-700 rounded">
           <AnimatePresence mode="wait">

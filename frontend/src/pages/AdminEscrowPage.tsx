@@ -1,6 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router';
-import { Shield, Loader2, AlertTriangle, AlertCircle } from 'lucide-react';
+import {
+  Shield as Shield,
+  Spinner as Loader2,
+  Warning as AlertTriangle,
+  WarningCircle as AlertCircle
+} from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { authFetch } from "@/lib/api/authFetch";
@@ -100,29 +105,29 @@ export function AdminEscrowPage() {
     finally { setSubmitting(false); }
   }
 
-  if (isLoading) return <div className="w-full flex items-center justify-center h-64"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>;
+  if (isLoading) return <div className="w-full flex items-center justify-center h-64"><Loader2 weight="fill" className="w-6 h-6 animate-spin text-primary" /></div>;
 
   const statusColors: Record<string, string> = { held: 'text-blue-400', released: 'text-emerald-400', refunded: 'text-amber-400', disputed: 'text-red-400' };
 
   return (
-    <div className="w-full mx-auto max-w-[1400px] space-y-6 p-6 lg:p-10">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 sm:p-8 rounded-2xl bg-gradient-to-br from-[#102840] via-[#173852] to-[#102840] text-white shadow-lg">
+    <div className="w-full mx-auto max-w-[1400px] space-y-6 p-4 lg:p-10">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 sm:p-5 rounded-lg bg-gradient-to-br from-[#102840] via-[#173852] to-[#102840] text-white shadow-lg">
         <div className="space-y-1.5">
           <span className="px-2.5 py-0.5 rounded-full bg-[#2164b6]/20 text-[#2164b6] dark:text-[#7ab0ff] text-xs font-semibold uppercase tracking-wider border border-[#2164b6]/30">Admin</span>
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">Escrow Management</h1>
+          <h1 className="text-xl sm:text-xl font-extrabold tracking-tight">Escrow Management</h1>
           <p className="text-sm text-white/70 max-w-xl">View, release, refund escrows and resolve disputes.</p>
         </div>
       </div>
 
       {fetchError && (
-        <div className="flex items-center gap-2 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-xs text-destructive">
-          <AlertCircle className="h-4 w-4 shrink-0" /> {fetchError}
+        <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-xs text-destructive">
+          <AlertCircle weight="fill" className="h-4 w-4 shrink-0" /> {fetchError}
           <button onClick={() => { setIsLoading(true); fetchEscrows(); }} className="ml-auto text-muted-foreground hover:text-foreground font-bold">Retry</button>
         </div>
       )}
 
       {message && (
-        <div className={`px-4 py-3 rounded-xl text-sm flex items-center gap-2 border ${
+        <div className={`px-4 py-3 rounded-lg text-sm flex items-center gap-2 border ${
           message.type === 'success' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border-rose-500/20'
         }`}>{message.text}</div>
       )}
@@ -136,23 +141,23 @@ export function AdminEscrowPage() {
       </div>
 
       {escrows.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-border p-12 text-center space-y-3 bg-card">
-          <Shield className="h-10 w-10 text-muted-foreground/30 mx-auto" />
+        <div className="rounded-lg border border-dashed border-border p-12 text-center space-y-3 bg-card">
+          <Shield weight="fill" className="h-10 w-10 text-muted-foreground/30 mx-auto" />
           <h3 className="text-base font-semibold text-foreground">No escrows found</h3>
         </div>
       ) : (
-        <div className="border border-border rounded-2xl bg-card overflow-hidden shadow-sm">
+        <div className="border-none rounded-lg bg-card overflow-hidden ">
           <div className="divide-y divide-border/50">
             {escrows.map(e => (
               <div key={e.id} className="px-4 py-3.5 hover:bg-muted/10 transition-colors">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3 min-w-0 flex-1">
-                    <div className="p-2 rounded-xl bg-[#2164b6]/10 text-[#2164b6] dark:text-[#7ab0ff] shrink-0"><Shield className="h-4 w-4" /></div>
+                    <div className="p-2 rounded-lg bg-[#2164b6]/10 text-[#2164b6] dark:text-[#7ab0ff] shrink-0"><Shield weight="fill" className="h-4 w-4" /></div>
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
                         <p className="text-sm font-bold text-foreground">{formatAmount(e.amount, e.currency)}</p>
                         <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${statusColors[e.status] ?? 'text-muted-foreground'}`}>{e.status}</span>
-                        {e.disputes?.length > 0 && <AlertTriangle className="h-3 w-3 text-red-500" aria-label="Has dispute" />}
+                        {e.disputes?.length > 0 && <AlertTriangle weight="fill" className="h-3 w-3 text-red-500" aria-label="Has dispute" />}
                       </div>
                       <p className="text-xs text-muted-foreground truncate">
                         #{e.order?.order_number ?? 'N/A'} · @{e.buyer?.username ?? '?'} → @{e.seller?.username ?? '?'} · {new Date(e.created_at).toLocaleDateString()}
@@ -173,7 +178,7 @@ export function AdminEscrowPage() {
                   </div>
                 </div>
                 {selectedEscrow?.id === e.id && !showDisputeDialog && (
-                  <div className="mt-3 p-3 rounded-xl bg-muted/30 text-xs text-muted-foreground space-y-1">
+                  <div className="mt-3 p-3 rounded-lg bg-muted/30 text-xs text-muted-foreground space-y-1">
                     <p><strong>Order:</strong> #{e.order?.order_number ?? 'N/A'}</p>
                     <p><strong>Buyer:</strong> @{e.buyer?.username} ({e.buyer?.name})</p>
                     <p><strong>Seller:</strong> @{e.seller?.username} ({e.seller?.name})</p>
@@ -200,17 +205,17 @@ export function AdminEscrowPage() {
 
       {lastPage > 1 && (
         <div className="flex items-center justify-center gap-2 pt-4">
-          <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1} className="px-3 py-1.5 rounded-lg text-xs font-bold border border-border bg-card hover:bg-muted disabled:opacity-40">Previous</button>
+          <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1} className="px-3 py-1.5 rounded-lg text-xs font-bold border-none bg-card hover:bg-muted disabled:opacity-40">Previous</button>
           <span className="text-xs text-muted-foreground">Page {page} of {lastPage}</span>
-          <button onClick={() => setPage(p => Math.min(lastPage, p + 1))} disabled={page >= lastPage} className="px-3 py-1.5 rounded-lg text-xs font-bold border border-border bg-card hover:bg-muted disabled:opacity-40">Next</button>
+          <button onClick={() => setPage(p => Math.min(lastPage, p + 1))} disabled={page >= lastPage} className="px-3 py-1.5 rounded-lg text-xs font-bold border-none bg-card hover:bg-muted disabled:opacity-40">Next</button>
         </div>
       )}
 
       <Dialog open={showDisputeDialog} onOpenChange={setShowDisputeDialog}>
-        <DialogContent className="sm:max-w-lg md:max-w-xl bg-card border-border shadow-2xl rounded-2xl p-6 sm:p-8">
+        <DialogContent className="sm:max-w-lg md:max-w-xl bg-card border-border shadow-2xl rounded-lg p-4 sm:p-5">
           <DialogHeader>
             <DialogTitle className="text-base font-bold text-foreground flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-red-500" /> Resolve Dispute
+              <AlertTriangle weight="fill" className="h-5 w-5 text-red-500" /> Resolve Dispute
             </DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground">
               Escrow #{selectedEscrow?.id} · {selectedEscrow && formatAmount(selectedEscrow.amount, selectedEscrow.currency)}
@@ -220,7 +225,7 @@ export function AdminEscrowPage() {
             <div>
               <label className="block text-sm text-muted-foreground mb-1">Resolution</label>
               <select value={disputeResolution} onChange={e => setDisputeResolution(e.target.value)}
-                className="w-full rounded-xl border border-border bg-card px-3 py-2 text-sm text-foreground"
+                className="w-full rounded-lg border-none bg-card px-3 py-2 text-sm text-foreground"
               >
                 <option value="resolved_buyer">Resolved — Refund to Buyer</option>
                 <option value="resolved_seller">Resolved — Release to Seller</option>
@@ -230,11 +235,11 @@ export function AdminEscrowPage() {
             <div>
               <label className="block text-sm text-muted-foreground mb-1">Resolution Note</label>
               <textarea value={disputeNote} onChange={e => setDisputeNote(e.target.value)} rows={3}
-                className="w-full rounded-xl border border-border bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground"
+                className="w-full rounded-lg border-none bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground"
                 placeholder="Optional note explaining the decision..." />
             </div>
             <Button onClick={() => selectedEscrow && resolveDispute(selectedEscrow.id)} disabled={submitting} className="w-full">
-              {submitting && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+              {submitting && <Loader2 weight="fill" className="h-4 w-4 animate-spin mr-2" />}
               Resolve Dispute
             </Button>
           </div>

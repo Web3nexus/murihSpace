@@ -2,14 +2,14 @@ import { Link } from "react-router";
 import { AnimatedPage } from "@/components/common/AnimatedPage";
 import { Button } from "@/components/ui/button";
 import {
-  Users,
-  ShoppingBag,
-  Wallet,
-  Zap,
-  Trophy,
-  ArrowRight,
-  ShieldCheck,
-} from "lucide-react";
+  Users as Users,
+  Bag as ShoppingBag,
+  Wallet as Wallet,
+  Lightning as Zap,
+  Trophy as Trophy,
+  ArrowRight as ArrowRight,
+  ShieldCheck as ShieldCheck
+} from "@phosphor-icons/react";
 
 export function HomePage() {
   return (
@@ -30,7 +30,7 @@ export function HomePage() {
             </Link>
             <Link to="/register">
               <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90 font-semibold gap-1">
-                Get Started <ArrowRight className="h-4 w-4" />
+                Get Started <ArrowRight weight="fill" className="h-4 w-4" />
               </Button>
             </Link>
           </div>
@@ -40,11 +40,11 @@ export function HomePage() {
       {/* Hero Section */}
       <section className="px-6 py-20 md:py-28 max-w-5xl mx-auto text-center space-y-8">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-secondary/30 bg-secondary/10 text-secondary text-xs font-semibold">
-          <Zap className="h-3.5 w-3.5" />
+          <Zap weight="fill" className="h-3.5 w-3.5" />
           <span>One Connected Creator Ecosystem</span>
         </div>
 
-        <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight text-foreground leading-tight">
+        <h1 className="text-xl md:text-6xl font-extrabold tracking-tight text-foreground leading-tight">
           Community, Commerce, Payments & Growth. All in One Place.
         </h1>
 
@@ -54,8 +54,8 @@ export function HomePage() {
 
         <div className="flex flex-wrap items-center justify-center gap-4 pt-4">
           <Link to="/register">
-            <Button size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90 px-8 text-base font-semibold shadow-md gap-2">
-              Launch Your Workspace <ArrowRight className="h-5 w-5" />
+            <Button size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90 px-8 text-base font-semibold  gap-2">
+              Launch Your Workspace <ArrowRight weight="fill" className="h-5 w-5" />
             </Button>
           </Link>
           <Link to="/communities">
@@ -75,7 +75,7 @@ export function HomePage() {
       <section className="px-6 py-16 bg-muted/40 border-t border-b border-border">
         <div className="w-full max-w-7xl mx-auto space-y-12">
           <div className="text-center space-y-2 max-w-xl mx-auto">
-            <h2 className="text-2xl font-bold tracking-tight text-foreground">
+            <h2 className="text-xl font-bold tracking-tight text-foreground">
               Built for Creators, Communities & Vendors
             </h2>
             <p className="text-sm text-muted-foreground">
@@ -83,11 +83,11 @@ export function HomePage() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Pillar 1 */}
-            <div className="rounded-xl border border-border bg-card p-6 shadow-sm space-y-4">
-              <div className="p-3 rounded-xl bg-secondary/10 text-secondary w-fit">
-                <Users className="h-6 w-6" />
+            <div className="rounded-lg border-none bg-card p-4  space-y-4">
+              <div className="p-3 rounded-lg bg-secondary/10 text-secondary w-fit">
+                <Users weight="fill" className="h-6 w-6" />
               </div>
               <h3 className="font-bold text-lg text-foreground">MurihSpace Community</h3>
               <p className="text-xs text-muted-foreground leading-relaxed">
@@ -96,9 +96,9 @@ export function HomePage() {
             </div>
 
             {/* Pillar 2 */}
-            <div className="rounded-xl border border-border bg-card p-6 shadow-sm space-y-4">
-              <div className="p-3 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 w-fit">
-                <ShoppingBag className="h-6 w-6" />
+            <div className="rounded-lg border-none bg-card p-4  space-y-4">
+              <div className="p-3 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 w-fit">
+                <ShoppingBag weight="fill" className="h-6 w-6" />
               </div>
               <h3 className="font-bold text-lg text-foreground">MurihStore Marketplace</h3>
               <p className="text-xs text-muted-foreground leading-relaxed">
@@ -107,9 +107,9 @@ export function HomePage() {
             </div>
 
             {/* Pillar 3 */}
-            <div className="rounded-xl border border-border bg-card p-6 shadow-sm space-y-4">
-              <div className="p-3 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 w-fit">
-                <Wallet className="h-6 w-6" />
+            <div className="rounded-lg border-none bg-card p-4  space-y-4">
+              <div className="p-3 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 w-fit">
+                <Wallet weight="fill" className="h-6 w-6" />
               </div>
               <h3 className="font-bold text-lg text-foreground">MurihPay Payments</h3>
               <p className="text-xs text-muted-foreground leading-relaxed">
@@ -118,9 +118,9 @@ export function HomePage() {
             </div>
 
             {/* Pillar 4 */}
-            <div className="rounded-xl border border-border bg-card p-6 shadow-sm space-y-4">
-              <div className="p-3 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 w-fit">
-                <Trophy className="h-6 w-6" />
+            <div className="rounded-lg border-none bg-card p-4  space-y-4">
+              <div className="p-3 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400 w-fit">
+                <Trophy weight="fill" className="h-6 w-6" />
               </div>
               <h3 className="font-bold text-lg text-foreground">MurihSpace Milestones</h3>
               <p className="text-xs text-muted-foreground leading-relaxed">
@@ -133,20 +133,20 @@ export function HomePage() {
 
       {/* Trust & Identity Banner */}
       <section className="px-6 py-16 max-w-5xl mx-auto text-center space-y-6">
-        <div className="p-8 rounded-2xl border border-border bg-card shadow-sm space-y-4">
+        <div className="p-5 rounded-lg border-none bg-card  space-y-4">
           <div className="flex justify-center">
             <div className="p-3 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-              <ShieldCheck className="h-8 w-8" />
+              <ShieldCheck weight="fill" className="h-8 w-8" />
             </div>
           </div>
-          <h2 className="text-2xl font-bold text-foreground">Financially Clear & KYC Verified</h2>
+          <h2 className="text-xl font-bold text-foreground">Financially Clear & KYC Verified</h2>
           <p className="text-sm text-muted-foreground max-w-xl mx-auto">
             All creators and vendors pass identity verification (KYC). Physical purchases are protected by escrow, ensuring safety for buyers and merchants.
           </p>
           <div className="pt-2">
             <Link to="/register">
               <Button className="bg-primary text-primary-foreground hover:bg-primary/90 font-semibold gap-2">
-                Join MurihSpace Today <ArrowRight className="h-4 w-4" />
+                Join MurihSpace Today <ArrowRight weight="fill" className="h-4 w-4" />
               </Button>
             </Link>
           </div>
@@ -160,7 +160,7 @@ export function HomePage() {
             <span className="font-bold text-foreground">MurihSpace</span>
             <span>© 2026 MurihSpace Ecosystem. All rights reserved.</span>
           </div>
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-4">
             <Link to="/help" className="hover:text-foreground">Help Center</Link>
             <Link to="/privacy" className="hover:text-foreground">Privacy Policy</Link>
             <Link to="/terms" className="hover:text-foreground">Terms of Service</Link>

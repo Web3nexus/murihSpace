@@ -2,21 +2,19 @@ import React, { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
 import { useAuth } from "@/hooks/useAuth";
 import { apiClient } from "@/lib/api/client";
-import { getLogo } from "@/lib/logoConfig";
+import { getSidebarNav } from "@/navigation/getSidebarNav";
+import { ROLE_LABELS } from "@/navigation/navTypes";
+import type { NavItem, NavGroup, UserRole } from "@/navigation/navTypes";
+import { useFeatureFlags } from "@/hooks/useFeatureFlags";
 import {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarHeader,
-  SidebarRail,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarGroup,
-  SidebarGroupLabel,
-  SidebarSeparator,
-  useSidebar,
-} from "@/components/ui/sidebar";
+  SignOut,
+  UserCircle,
+  Gear,
+  ShieldCheck,
+  Wallet,
+  Bell,
+  CaretDown,
+} from "@phosphor-icons/react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,34 +23,74 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import {
-  ChevronsUpDown,
-  LogOut,
-  UserCircle,
-  Bell,
-  Globe,
-  Wallet,
-  ShieldCheck,
-} from "lucide-react";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
-import { ChevronRight } from "lucide-react";
-import { getSidebarNav } from "@/navigation/getSidebarNav";
-import { ROLE_LABELS } from "@/navigation/navTypes";
-import type { NavItem, NavGroup, UserRole } from "@/navigation/navTypes";
-import { useFeatureFlags } from "@/hooks/useFeatureFlags";
+
+const RELATED_SECTION_PATHS: Record<string, string[]> = {
+  "/app/events": ["/app/events", "/app/my-events", "/app/audio-rooms", "/app/communities/events"],
+  "/app/communities": ["/app/communities", "/app/feed"],
+  "/app/courses": ["/app/courses", "/app/store/courses"],
+  "/app/marketing": [
+    "/app/marketing",
+    "/app/marketing/broadcasts",
+    "/app/marketing/sequences",
+    "/app/marketing/ads",
+    "/app/ads",
+  ],
+  "/app/brand-deals": [
+    "/app/brand-deals",
+    "/app/brand-deals/proposals",
+    "/app/brand-deals/media-kit",
+    "/app/brand-deals/invoicing",
+    "/app/brand-deals/invoices",
+  ],
+  "/app/store": [
+    "/app/store",
+    "/app/store/digital",
+    "/app/store/physical",
+    "/app/store/physical-products",
+    "/app/store/products",
+    "/app/store/inventory",
+    "/app/store/categories",
+    "/app/store/returns",
+    "/app/store/cart",
+    "/app/store/addresses",
+    "/app/store/orders",
+  ],
+  "/app/subscriptions": [
+    "/app/subscriptions",
+    "/app/subscriptions/my-subscriptions",
+    "/app/subscriptions/discover",
+  ],
+  "/app/wallet": ["/app/wallet", "/app/wallet/purchase-library"],
+  "/app/friends": ["/app/friends", "/app/requests/friends"],
+  "/app/link-in-bio": [
+    "/app/link-in-bio",
+    "/app/link-in-bio/domain",
+    "/app/link-in-bio/theme",
+    "/app/link-in-bio/analytics",
+  ],
+  "/app/settings": ["/app/settings", "/app/settings/profile", "/app/settings/upgrade"],
+};
 
 function isActiveRoute(item: NavItem, pathname: string, search: string): boolean {
   if (item.url.includes("?") ? pathname + search === item.url : pathname === item.url) return true;
 
+  const basePath = item.url.split("?")[0];
+
+  // Specific exceptions to prevent false positive matching on sibling paths
+  if (basePath === "/app/communities" && pathname.startsWith("/app/communities/events")) {
+    return false;
+  }
+
+  // Check mapped related paths
+  const related = RELATED_SECTION_PATHS[basePath];
+  if (related && related.some((r) => pathname === r || pathname.startsWith(r + "/"))) {
+    return true;
+  }
+
+  if (basePath !== "/app" && pathname.startsWith(basePath + "/")) return true;
+
   if (item.children) {
     if (item.children.some((child) => isActiveRoute(child, pathname, search))) return true;
-    const basePath = item.url.split("?")[0];
-    if (basePath !== "/app" && pathname.startsWith(basePath + "/")) return true;
   }
 
   return false;
@@ -64,9 +102,9 @@ function filterByFlags(nav: NavGroup[], flags: Record<string, boolean>): NavGrou
       ...group,
       items: group.items
         .map((item) => {
-          if (item.featureFlag && !flags[item.featureFlag]) return null;
+          if (item.featureFlag && flags[item.featureFlag] === false) return null;
           if (item.children) {
-            const kept = item.children.filter((c) => !c.featureFlag || flags[c.featureFlag]);
+            const kept = item.children.filter((c) => !c.featureFlag || flags[c.featureFlag] !== false);
             if (kept.length === 0) return null;
             return { ...item, children: kept };
           }
@@ -105,133 +143,45 @@ function injectBadges(nav: NavGroup[], unreadCount: number, adminCounts: AdminCo
   }));
 }
 
-function BrandLogo({ role }: { role: UserRole }) {
-  const isAdmin = role === "admin";
-  const { state } = useSidebar();
-  const collapsed = state === "collapsed";
-  
-  const collapsedLogo = getLogo(role, "sidebar-collapsed", false);
-  const fullLogo = getLogo(role, "sidebar-full", false);
-  const roleLabel = ROLE_LABELS[role];
-
-  return (
-    <Link
-      to={isAdmin ? "/app/securegate" : "/app"}
-      className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg group transition-all"
-    >
-      {collapsed ? (
-        <img
-          src={collapsedLogo.url}
-          alt={collapsedLogo.alt}
-          className="h-8 w-8 object-contain shrink-0 transition-transform group-hover:scale-105"
-        />
-      ) : (
-        <div className="flex flex-col gap-1">
-          <img
-            src={fullLogo.url}
-            alt={fullLogo.alt}
-            className="h-7 w-auto object-contain shrink-0 transition-transform group-hover:scale-105"
-          />
-          <span className="text-[9.5px] text-[#2164b6] dark:text-[#7ab0ff] font-bold uppercase tracking-widest pl-0.5">
-            {roleLabel}
-          </span>
-        </div>
-      )}
-    </Link>
-  );
+interface NavRowProps {
+  item: NavItem;
+  onNavigate?: () => void;
 }
 
-function NavRow({ item }: { item: NavItem }) {
+function NavRow({ item, onNavigate }: NavRowProps) {
   const { pathname, search } = useLocation();
-  const { state } = useSidebar();
-  const collapsed = state === "collapsed";
-
   const active = isActiveRoute(item, pathname, search);
-  const hasChildren = !!item.children?.length;
-
-  const childActive = (child: NavItem) => isActiveRoute(child, pathname, search);
-
-  if (!hasChildren) {
-    return (
-      <SidebarMenuItem>
-        <SidebarMenuButton
-          asChild
-          isActive={active}
-          tooltip={item.title}
-          className="relative group/item h-9 gap-3 rounded-lg px-3 text-[13.5px] font-medium
-            text-[#65676B] transition-all duration-150
-            hover:bg-[#F0F2F5] hover:text-[#1a2e3b]
-            data-[active=true]:bg-[#2164b6]/10 data-[active=true]:text-[#2164b6] dark:text-[#7ab0ff] data-[active=true]:font-semibold"
-        >
-          <Link to={item.url}>
-            <span className="shrink-0 opacity-60 group-hover/item:opacity-90 data-[active=true]:opacity-100 data-[active=true]:text-[#2164b6] dark:text-[#7ab0ff]">
-              {item.icon}
-            </span>
-            <span className="flex-1 truncate">{item.title}</span>
-            {item.badge != null && !collapsed && (
-              <span className="ml-auto flex h-4.5 min-w-[18px] items-center justify-center rounded-full bg-rose-500 px-1.5 text-[10px] font-bold text-white shadow-xs">
-                {item.badge}
-              </span>
-            )}
-            {active && (
-              <span className="absolute left-0 top-1/2 -translate-y-1/2 h-6 w-[3px] rounded-r-full bg-[#2164b6]" />
-            )}
-          </Link>
-        </SidebarMenuButton>
-      </SidebarMenuItem>
-    );
-  }
 
   return (
-    <Collapsible asChild defaultOpen={active} className="group/collapsible">
-      <SidebarMenuItem>
-        <CollapsibleTrigger asChild>
-          <SidebarMenuButton
-            isActive={active}
-            tooltip={item.title}
-            className="relative group/item h-9 gap-3 rounded-lg px-3 text-[13.5px] font-medium
-              text-[#65676B] transition-all duration-150
-              hover:bg-[#F0F2F5] hover:text-[#1a2e3b]
-              data-[active=true]:bg-[#2164b6]/10 data-[active=true]:text-[#2164b6] dark:text-[#7ab0ff] data-[active=true]:font-semibold"
+    <div className="flex flex-col">
+      <Link
+        to={item.url}
+        onClick={onNavigate}
+        className={`flex items-center gap-3 px-3 h-11 rounded-lg text-[14px] font-medium transition-all select-none ${
+          active
+            ? "bg-[#E7F3FF] dark:bg-[#2D3F54] text-[#2164b6] dark:text-[#7ab0ff] font-semibold shadow-2xs"
+            : "text-[#050505] dark:text-[#E4E6EB] hover:bg-[#E4E6EB]/60 dark:hover:bg-[#3A3B3C]"
+        }`}
+      >
+        {item.icon && (
+          <span
+            className={`shrink-0 text-[20px] transition-colors ${
+              active
+                ? "text-[#2164b6] dark:text-[#7ab0ff]"
+                : "text-[#65676B] dark:text-[#B0B3B8]"
+            }`}
           >
-            <span className="shrink-0 opacity-60 group-hover/item:opacity-90">{item.icon}</span>
-            <span className="flex-1 truncate">{item.title}</span>
-            {item.badge != null && !collapsed && (
-              <span className="flex h-4.5 min-w-[18px] items-center justify-center rounded-full bg-rose-500 px-1.5 text-[10px] font-bold text-white shadow-xs">
-                {item.badge}
-              </span>
-            )}
-            <ChevronRight className="size-3.5 shrink-0 opacity-40 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
-            {active && (
-              <span className="absolute left-0 top-1/2 -translate-y-1/2 h-6 w-[3px] rounded-r-full bg-[#2164b6]" />
-            )}
-          </SidebarMenuButton>
-        </CollapsibleTrigger>
-
-        <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down">
-          <div className="ml-7 mt-0.5 mb-1 border-l border-[#2164b6]/20 pl-3 space-y-0.5">
-            {item.children!.map((child) => (
-              <Link
-                key={child.title}
-                to={child.url}
-                className={`flex items-center justify-between rounded-md py-1.5 px-2 text-[12.5px] transition-colors duration-100 ${
-                  childActive(child)
-                    ? "text-[#2164b6] dark:text-[#7ab0ff] font-semibold bg-[#2164b6]/08"
-                    : "text-[#65676B] hover:text-[#1a2e3b] hover:bg-[#F0F2F5]"
-                }`}
-              >
-                <span className="truncate">{child.title}</span>
-                {child.badge && (
-                  <span className="text-[9px] px-1 rounded bg-[#2164b6]/20 text-[#2164b6] dark:text-[#7ab0ff] font-bold uppercase">
-                    {child.badge}
-                  </span>
-                )}
-              </Link>
-            ))}
-          </div>
-        </CollapsibleContent>
-      </SidebarMenuItem>
-    </Collapsible>
+            {item.icon}
+          </span>
+        )}
+        <span className="truncate flex-1 leading-none">{item.title}</span>
+        {item.badge != null && (
+          <span className="ml-auto flex h-5 min-w-[20px] items-center justify-center rounded-full bg-rose-500 px-1.5 text-[11px] font-bold text-white leading-none">
+            {item.badge}
+          </span>
+        )}
+      </Link>
+    </div>
   );
 }
 
@@ -244,126 +194,18 @@ function initials(name: string) {
     .toUpperCase();
 }
 
-function UserFooter({ role }: { role: UserRole }) {
-  const navigate = useNavigate();
-  const { isMobile } = useSidebar();
-  const { user, logout, loading } = useAuth();
-
-  const handleLogout = async () => {
-    await logout();
-    navigate("/login");
-  };
-
-  const roleSubtitle: Record<UserRole, string> = {
-    member: "Member",
-    creator: "Creator",
-    vendor: "Vendor",
-    admin: "Platform Administrator",
-  };
-
-  if (loading || !user) {
-    return (
-      <div className="space-y-2 px-1">
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton size="lg" className="h-auto gap-2.5 rounded-xl px-2 py-2">
-              <div className="h-8 w-8 rounded-lg bg-[#2164b6]/10 animate-pulse" />
-              <div className="grid flex-1 gap-1">
-                <div className="h-3 w-24 rounded bg-[#2164b6]/10 animate-pulse" />
-                <div className="h-2.5 w-16 rounded bg-[#2164b6]/10 animate-pulse" />
-              </div>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-2 px-1">
-      <SidebarMenu>
-        <SidebarMenuItem>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <SidebarMenuButton
-                size="lg"
-                className="h-auto gap-2.5 rounded-xl px-2 py-2 hover:bg-[#F0F2F5] data-[state=open]:bg-[#F0F2F5]"
-              >
-                <Avatar className="h-8 w-8 rounded-lg shrink-0">
-                  <AvatarFallback className="rounded-lg bg-[#2164b6] text-white text-xs font-bold">
-                    {initials(user.name)}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="grid flex-1 text-left leading-tight">
-                  <span className="truncate text-[13px] font-semibold text-[#1a2e3b]">{user.name}</span>
-                  <span className="truncate text-[11px] text-[#65676B]">
-                    {roleSubtitle[role]}
-                  </span>
-                </div>
-                <ChevronsUpDown className="size-3.5 shrink-0 text-[#65676B]" />
-              </SidebarMenuButton>
-            </DropdownMenuTrigger>
-
-            <DropdownMenuContent
-              className="w-56 rounded-xl"
-              side={isMobile ? "bottom" : "right"}
-              align="end"
-              sideOffset={6}
-            >
-              <DropdownMenuLabel className="p-0 font-normal">
-                <div className="flex items-center gap-2.5 px-2 py-2">
-                  <Avatar className="h-8 w-8 rounded-lg">
-                    <AvatarFallback className="rounded-lg bg-primary text-primary-foreground text-xs font-bold">
-                      {initials(user.name)}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="grid leading-tight">
-                    <span className="text-[13px] font-semibold">{user.name}</span>
-                    <span className="text-xs text-muted-foreground truncate">{user.email}</span>
-                  </div>
-                </div>
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              {role !== "admin" && (
-                <DropdownMenuItem asChild className="gap-2 cursor-pointer">
-                  <Link to="/app/link-in-bio"><Globe className="size-4" />My Link in Bio</Link>
-                </DropdownMenuItem>
-              )}
-              <DropdownMenuItem asChild className="gap-2 cursor-pointer">
-                <Link to="/app/settings/profile"><UserCircle className="size-4" />Profile & Identity</Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild className="gap-2 cursor-pointer">
-                <Link to="/app/settings/kyc"><ShieldCheck className="size-4" />KYC Verification</Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild className="gap-2 cursor-pointer">
-                <Link to="/app/wallet"><Wallet className="size-4" />MurihPay Wallet</Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild className="gap-2 cursor-pointer">
-                <Link to="/app/settings/notifications"><Bell className="size-4" />Notifications</Link>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                className="gap-2 cursor-pointer text-destructive focus:text-destructive"
-                onClick={handleLogout}
-              >
-                <LogOut className="size-4" />
-                Sign Out
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </SidebarMenuItem>
-      </SidebarMenu>
-    </div>
-  );
+interface AppSidebarProps {
+  className?: string;
+  onNavigate?: () => void;
 }
 
-type SidebarProps = Omit<React.ComponentProps<typeof Sidebar>, "variant">;
+export function AppSidebar({ className = "", onNavigate }: AppSidebarProps) {
+  const navigate = useNavigate();
+  const { user, logout, loading } = useAuth();
+  const role: UserRole = (user?.role as UserRole) ?? "member";
+  const flags = useFeatureFlags();
 
-export function AppSidebar({ ...props }: SidebarProps) {
-  const { user } = useAuth();
-  const role: UserRole = user?.role ?? "member";
-
-  const [unreadCount, setUnreadCount] = useState<number>(0);
+  const [unreadCount, setUnreadCount] = useState(0);
   const [adminCounts, setAdminCounts] = useState<AdminCounts>({
     pending_kyc: 0,
     pending_role_applications: 0,
@@ -372,121 +214,213 @@ export function AppSidebar({ ...props }: SidebarProps) {
   });
 
   useEffect(() => {
-    apiClient
-      .get("/conversations?unread_only=true")
-      .then((res) => {
-        const body = (res.data as { data?: unknown } | undefined)?.data ?? res.data;
-        const list = Array.isArray(body) ? body : (body as { data?: unknown } | undefined)?.data;
-        const total = (res.data as { total?: unknown } | undefined)?.total ?? (body as { total?: unknown } | undefined)?.total;
-        setUnreadCount(Number(total) || (Array.isArray(list) ? list.length : 0));
-      })
-      .catch(() => {});
-  }, []);
+    let unmounted = false;
 
-  useEffect(() => {
-    if (role !== "admin") return;
-    let mounted = true;
+    async function fetchCounts() {
+      try {
+        const res = await apiClient.get("/messages/unread-count");
+        if (!unmounted && res.data?.success) {
+          setUnreadCount(res.data.data?.unread_count ?? 0);
+        }
+      } catch {
+        /* ignore */
+      }
 
-    const load = () => {
-      apiClient
-        .get("/securegate/analytics/pending-counts")
-        .then((res) => {
-          if (!mounted) return;
-          const body = (res.data as { data?: unknown } | undefined)?.data ?? res.data;
-          const counts = (body ?? {}) as {
-            pending_kyc?: number;
-            pending_role_applications?: number;
-            pending_reports?: number;
-            open_tickets?: number;
-          };
-          setAdminCounts((prev) => ({
-            pending_kyc: counts.pending_kyc ?? prev.pending_kyc,
-            pending_role_applications: counts.pending_role_applications ?? prev.pending_role_applications,
-            pending_reports: counts.pending_reports ?? prev.pending_reports,
-            open_tickets: counts.open_tickets ?? prev.open_tickets,
-          }));
-        })
-        .catch(() => {});
-    };
+      if (role === "admin") {
+        try {
+          const res = await apiClient.get("/securegate/pending-counts");
+          if (!unmounted && res.data?.success) {
+            setAdminCounts(res.data.data);
+          }
+        } catch {
+          /* ignore */
+        }
+      }
+    }
 
-    load();
-    const interval = setInterval(load, 45000);
+    fetchCounts();
     return () => {
-      mounted = false;
-      clearInterval(interval);
+      unmounted = true;
     };
   }, [role]);
 
-  const flags = useFeatureFlags();
-  const nav = filterByFlags(injectBadges(getSidebarNav(role), unreadCount, adminCounts), flags);
+  const rawNav = getSidebarNav(role);
+  const filtered = filterByFlags(rawNav, flags);
+  const navGroups = injectBadges(filtered, unreadCount, adminCounts);
 
-  // Blur the sidebar for creators/vendors who haven't finished the setup wizard
-  const isSetupIncomplete =
-    (role === "creator" || role === "vendor") &&
-    user?.onboarding_completed === false;
+  const roleLabel = ROLE_LABELS[role] ?? "";
+  const userInitials = user?.name ? initials(user.name) : "U";
 
   return (
-    <Sidebar
-      collapsible="icon"
-      className="border-r border-sidebar-border shadow-[2px_0_20px_rgba(16,40,64,0.06)]"
-      {...props}
-    >
-      <SidebarHeader className="px-3 pt-3 pb-2">
-        <BrandLogo role={role} />
-      </SidebarHeader>
-
-      <SidebarSeparator className="opacity-10 mx-3 bg-[#1a2e3b]" />
-
-      <div className="relative flex flex-1 flex-col min-h-0">
-        <SidebarContent
-          {...(isSetupIncomplete ? { inert: true } : {})}
-          className={`px-2 py-1.5 gap-0 transition-all duration-300 ${
-            isSetupIncomplete ? "blur-sm pointer-events-none select-none" : ""
-          }`}
-        >
-          {nav.map((group) => (
-            <SidebarGroup key={group.title} className="p-0">
-              <SidebarGroupLabel className="px-3 py-2 text-[10.5px] font-semibold uppercase tracking-widest text-[#65676B]/70">
-                {group.title}
-              </SidebarGroupLabel>
-              <SidebarMenu className="gap-0.5">
-                {group.items.map((item) => (
-                  <NavRow key={item.title} item={item} />
-                ))}
-              </SidebarMenu>
-            </SidebarGroup>
-          ))}
-        </SidebarContent>
-
-        {isSetupIncomplete && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 z-10 bg-white/60 dark:bg-[#081826]/60 backdrop-blur-[2px] rounded-lg mx-1">
-            <div className="text-center px-4">
-              <div className="w-10 h-10 rounded-full bg-[#2164b6]/15 flex items-center justify-center mx-auto mb-2">
-                <svg className="w-5 h-5 text-[#2164b6] dark:text-[#7ab0ff]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                </svg>
-              </div>
-              <p className="text-[11px] font-semibold text-[#1a2e3b] dark:text-white leading-tight mb-3">
-                Complete your setup to unlock the dashboard
-              </p>
-              <Link
-                to="/app/onboarding"
-                className="inline-flex items-center gap-1.5 bg-[#2164b6] hover:bg-[#2a96c7] text-white text-[11px] font-bold px-3 py-1.5 rounded-lg transition-colors"
-              >
-                Start Setup Wizard
-              </Link>
+    <nav aria-label="Social Navigation" className={`flex flex-col h-full ${className}`}>
+      {/* Top: User Identity Row */}
+      {!loading && user && (
+        <div className="mb-2">
+          <Link
+            to="/app/settings/profile"
+            onClick={onNavigate}
+            className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-[#E4E6EB]/60 dark:hover:bg-[#3A3B3C] transition-colors"
+          >
+            <div className="h-9 w-9 rounded-full overflow-hidden bg-[#2164b6] flex items-center justify-center text-white font-bold text-xs shrink-0">
+              {user.avatar_url ? (
+                <img src={user.avatar_url} alt="" className="w-full h-full object-cover" />
+              ) : (
+                userInitials
+              )}
             </div>
-          </div>
-        )}
+            <div className="min-w-0 flex-1 text-left">
+              <p className="text-[14px] font-semibold text-[#050505] dark:text-[#E4E6EB] truncate leading-tight">
+                {user.name}
+              </p>
+              <p className="text-[12px] text-[#65676B] dark:text-[#B0B3B8] truncate leading-normal">
+                {user.username ? `@${user.username}` : roleLabel}
+              </p>
+            </div>
+          </Link>
+        </div>
+      )}
+
+      {/* Continuous Social Navigation List */}
+      <div className="flex-1 space-y-0.5 overflow-y-auto no-scrollbar pr-0.5">
+        {navGroups.map((group, groupIdx) => {
+          const isShortcutGroup = group.title.toLowerCase().includes("shortcut");
+          const isNamedGroup = group.title && !isShortcutGroup && role === "admin";
+
+          return (
+            <React.Fragment key={group.title || groupIdx}>
+              {groupIdx > 0 && (
+                <div className="my-2 border-t border-[#DADDE1] dark:border-[#3E4042] mx-2" />
+              )}
+
+              {isNamedGroup && (
+                <div className="px-3 pt-2 pb-1 text-[11px] font-bold text-[#65676B] dark:text-[#B0B3B8] uppercase tracking-wider">
+                  {group.title}
+                </div>
+              )}
+
+              {isShortcutGroup && (
+                <div className="px-3 pt-1 pb-1 text-[12px] font-semibold text-[#65676B] dark:text-[#B0B3B8]">
+                  Shortcuts
+                </div>
+              )}
+
+              <div className="space-y-0.5">
+                {group.items.map((item) => (
+                  <NavRow key={item.title} item={item} onNavigate={onNavigate} />
+                ))}
+              </div>
+            </React.Fragment>
+          );
+        })}
       </div>
 
-      <SidebarSeparator className="opacity-10 mx-3 bg-[#1a2e3b]" />
+      {/* Subtle Bottom User Dropdown */}
+      {!loading && user && (
+        <div className="pt-2 mt-auto border-t border-[#DADDE1] dark:border-[#3E4042]">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                className="w-full flex items-center gap-3 px-3 h-11 rounded-lg text-left hover:bg-[#E4E6EB]/60 dark:hover:bg-[#3A3B3C] transition-colors"
+              >
+                <div className="h-8 w-8 rounded-full overflow-hidden bg-[#2164b6] flex items-center justify-center text-white font-bold text-xs shrink-0">
+                  {user.avatar_url ? (
+                    <img src={user.avatar_url} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    userInitials
+                  )}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[13px] font-semibold text-[#050505] dark:text-[#E4E6EB] truncate">
+                    {user.name}
+                  </p>
+                  <p className="text-[11px] text-[#65676B] dark:text-[#B0B3B8] truncate">
+                    {user.email}
+                  </p>
+                </div>
+                <CaretDown weight="bold" className="h-3.5 w-3.5 text-[#65676B] dark:text-[#B0B3B8] shrink-0" />
+              </button>
+            </DropdownMenuTrigger>
 
-      <SidebarFooter className="p-2 pb-3">
-        <UserFooter role={role} />
-      </SidebarFooter>
+            <DropdownMenuContent
+              className="w-56 rounded-lg bg-card border border-border shadow-lg p-1 text-xs"
+              align="start"
+              side="top"
+              sideOffset={6}
+            >
+              <DropdownMenuLabel className="px-3 py-2">
+                <p className="font-bold text-foreground text-xs">{user.name}</p>
+                <p className="text-[11px] text-muted-foreground font-normal">{user.email}</p>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator className="bg-border" />
+              <DropdownMenuItem
+                onClick={() => {
+                  navigate("/app/settings/profile");
+                  onNavigate?.();
+                }}
+                className="cursor-pointer text-xs"
+              >
+                <UserCircle weight="fill" className="mr-2 h-4 w-4 text-muted-foreground" />
+                Profile Settings
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => {
+                  navigate("/app/settings");
+                  onNavigate?.();
+                }}
+                className="cursor-pointer text-xs"
+              >
+                <Gear weight="fill" className="mr-2 h-4 w-4 text-muted-foreground" />
+                Settings &amp; Privacy
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => {
+                  navigate("/app/settings/notifications");
+                  onNavigate?.();
+                }}
+                className="cursor-pointer text-xs"
+              >
+                <Bell weight="fill" className="mr-2 h-4 w-4 text-muted-foreground" />
+                Notifications
+              </DropdownMenuItem>
 
-      <SidebarRail />
-    </Sidebar>
+              {role !== "admin" && (
+                <>
+                  <DropdownMenuItem
+                    onClick={() => {
+                      navigate("/app/wallet");
+                      onNavigate?.();
+                    }}
+                    className="cursor-pointer text-xs"
+                  >
+                    <Wallet weight="fill" className="mr-2 h-4 w-4 text-muted-foreground" />
+                    MurihPay Wallet
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => {
+                      navigate("/app/kyc");
+                      onNavigate?.();
+                    }}
+                    className="cursor-pointer text-xs"
+                  >
+                    <ShieldCheck weight="fill" className="mr-2 h-4 w-4 text-muted-foreground" />
+                    KYC Verification
+                  </DropdownMenuItem>
+                </>
+              )}
+
+              <DropdownMenuSeparator className="bg-border" />
+              <DropdownMenuItem
+                onClick={() => logout()}
+                className="cursor-pointer text-xs text-destructive focus:text-destructive"
+              >
+                <SignOut weight="fill" className="mr-2 h-4 w-4 text-destructive" />
+                Sign out
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      )}
+    </nav>
   );
 }

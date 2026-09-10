@@ -20,14 +20,27 @@ class SearchController extends Controller
             'type' => ['nullable', 'string', 'in:all,users,communities,posts,messages,products'],
         ]);
 
-        $q = $request->input('q');
+        $q = trim($request->input('q'));
+        $cleanQ = ltrim($q, '@');
         $type = $request->input('type', 'all');
-        $perPage = (int) $request->input('per_page', 10);
+        $perPage = (int) $request->input('per_page', 15);
 
         $results = [];
 
+        $like = \Illuminate\Support\Facades\DB::connection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
+
         if ($type === 'all' || $type === 'users') {
-            $results['users'] = User::search($q)
+            $results['users'] = User::where(function ($query) use ($q, $cleanQ, $like) {
+                $query->where('name', $like, "%{$q}%")
+                    ->orWhere('username', $like, "%{$cleanQ}%")
+                    ->orWhere('email', $like, "%{$q}%");
+            })
+                ->whereNull('deleted_at')
+                ->orderByRaw("CASE 
+                    WHEN LOWER(username) = LOWER(?) THEN 0 
+                    WHEN LOWER(username) LIKE LOWER(?) THEN 1 
+                    WHEN LOWER(name) LIKE LOWER(?) THEN 2 
+                    ELSE 3 END", [$cleanQ, "{$cleanQ}%", "{$q}%"])
                 ->take($perPage)
                 ->get()
                 ->map(fn (User $u) => [
@@ -35,13 +48,22 @@ class SearchController extends Controller
                     'name' => $u->name,
                     'username' => $u->username,
                     'avatar' => $u->avatar,
+                    'avatar_url' => $u->avatar,
                     'bio' => $u->bio,
                     'type' => 'user',
                 ]);
         }
 
         if ($type === 'all' || $type === 'communities') {
-            $results['communities'] = Community::search($q)
+            $results['communities'] = Community::where(function ($query) use ($q, $like) {
+                $query->where('name', $like, "%{$q}%")
+                    ->orWhere('slug', $like, "%{$q}%")
+                    ->orWhere('description', $like, "%{$q}%");
+            })
+                ->orderByRaw("CASE 
+                    WHEN LOWER(name) = LOWER(?) THEN 0 
+                    WHEN LOWER(name) LIKE LOWER(?) THEN 1 
+                    ELSE 2 END", [$q, "{$q}%"])
                 ->take($perPage)
                 ->get()
                 ->map(fn (Community $c) => [
@@ -56,7 +78,8 @@ class SearchController extends Controller
         }
 
         if ($type === 'all' || $type === 'posts') {
-            $results['posts'] = Post::search($q)
+            $results['posts'] = Post::where('content', 'like', "%{$q}%")
+                ->whereNull('deleted_at')
                 ->take($perPage)
                 ->get()
                 ->load('author:id,name,username,avatar,verification_badge_status,verification_badge_expires_at', 'community:id,name,slug')
@@ -71,7 +94,8 @@ class SearchController extends Controller
         }
 
         if ($type === 'all' || $type === 'messages') {
-            $results['messages'] = Message::search($q)
+            $results['messages'] = Message::where('content', 'like', "%{$q}%")
+                ->whereNull('deleted_at')
                 ->take($perPage)
                 ->get()
                 ->load('user:id,name,username,avatar')
@@ -88,7 +112,10 @@ class SearchController extends Controller
         if ($type === 'all' || $type === 'products') {
             $products = collect();
 
-            $digital = DigitalProduct::search($q)->take($perPage)->get()
+            $digital = DigitalProduct::where(function ($query) use ($q) {
+                $query->where('title', 'like', "%{$q}%")
+                    ->orWhere('description', 'like', "%{$q}%");
+            })->take($perPage)->get()
                 ->map(fn (DigitalProduct $p) => [
                     'id' => $p->id,
                     'title' => $p->title,
@@ -99,7 +126,10 @@ class SearchController extends Controller
                 ]);
             $products = $products->concat($digital);
 
-            $physical = PhysicalProduct::search($q)->take($perPage)->get()
+            $physical = PhysicalProduct::where(function ($query) use ($q) {
+                $query->where('title', 'like', "%{$q}%")
+                    ->orWhere('description', 'like', "%{$q}%");
+            })->take($perPage)->get()
                 ->map(fn (PhysicalProduct $p) => [
                     'id' => $p->id,
                     'title' => $p->title,
@@ -117,6 +147,11 @@ class SearchController extends Controller
             'query' => $q,
             'type' => $type,
             'results' => $results,
+            'users' => $results['users'] ?? [],
+            'communities' => $results['communities'] ?? [],
+            'posts' => $results['posts'] ?? [],
+            'products' => $results['products'] ?? [],
+            'messages' => $results['messages'] ?? [],
         ]);
     }
 }

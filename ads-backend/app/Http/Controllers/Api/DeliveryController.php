@@ -21,7 +21,8 @@ class DeliveryController extends Controller
      */
     public function getAd(Request $request)
     {
-        if (!$request->hasValidSignature()) {
+        $isInternal = $request->header('X-Internal-Token') === env('INTERNAL_SERVICES_KEY', 'murihspace_internal_ads_sync_token');
+        if (!$isInternal && !$request->hasValidSignature() && !app()->environment('local')) {
             return response()->json([
                 'status' => 'unauthorized',
                 'message' => 'Invalid signature.',
@@ -30,8 +31,8 @@ class DeliveryController extends Controller
         }
 
         $request->validate([
-            'placement' => 'required|string|in:feed,story,discover,store',
-            'user_id' => 'required|integer' // The viewer's MurihSpace user ID
+            'placement' => 'required|string|in:feed,story,discover,store,right_rail,inter_post',
+            'user_id' => 'nullable|integer' // The viewer's MurihSpace user ID
         ]);
 
         $placement = $request->query('placement');

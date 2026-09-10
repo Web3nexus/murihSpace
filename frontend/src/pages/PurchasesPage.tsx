@@ -1,14 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
-  Download,
-  Package,
-  Loader2,
-  FileText,
-  Image,
-  Headphones,
-  Video,
-  Archive,
-} from 'lucide-react';
+  DownloadSimple as Download,
+  Package as Package,
+  Spinner as Loader2,
+  FileText as FileText,
+  Image as Image,
+  Headphones as Headphones,
+  VideoCamera as Video,
+  Archive as Archive
+} from "@phosphor-icons/react";
 import { Button } from '@/components/ui/button';
 import type { Purchase } from '@/types/wallet';
 import { authFetch } from "@/lib/api/authFetch";
@@ -26,12 +26,12 @@ function formatFileSize(bytes?: number): string {
 
 function categoryIcon(category?: string) {
   switch (category) {
-    case 'ebook': return <FileText className="h-4 w-4" />;
-    case 'template': return <Image className="h-4 w-4" />;
-    case 'course': return <Video className="h-4 w-4" />;
-    case 'audio': return <Headphones className="h-4 w-4" />;
-    case 'graphics': return <Image className="h-4 w-4" />;
-    default: return <Archive className="h-4 w-4" />;
+    case 'ebook': return <FileText weight="fill" className="h-4 w-4" />;
+    case 'template': return <Image weight="fill" className="h-4 w-4" />;
+    case 'course': return <Video weight="fill" className="h-4 w-4" />;
+    case 'audio': return <Headphones weight="fill" className="h-4 w-4" />;
+    case 'graphics': return <Image weight="fill" className="h-4 w-4" />;
+    default: return <Archive weight="fill" className="h-4 w-4" />;
   }
 }
 
@@ -78,17 +78,17 @@ export function PurchasesPage() {
   if (isLoading) {
     return (
       <div className="w-full flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-secondary" />
+        <Loader2 weight="fill" className="h-8 w-8 animate-spin text-secondary" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 w-full max-w-7xl mx-auto p-6 lg:p-8">
+    <div className="space-y-6 w-full max-w-7xl mx-auto p-4 lg:p-5">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-black text-foreground tracking-tight flex items-center gap-2.5">
-          <Package className="h-6 w-6 text-secondary" />
+        <h1 className="text-xl font-black text-foreground tracking-tight flex items-center gap-2.5">
+          <Package weight="fill" className="h-6 w-6 text-secondary" />
           Purchase Library
         </h1>
         <p className="text-xs text-muted-foreground mt-1">
@@ -98,7 +98,7 @@ export function PurchasesPage() {
 
       {purchases.length === 0 ? (
         <div className="p-12 text-center border border-dashed border-border rounded-3xl bg-card space-y-3">
-          <Package className="h-10 w-10 text-muted-foreground/30 mx-auto" />
+          <Package weight="fill" className="h-10 w-10 text-muted-foreground/30 mx-auto" />
           <h3 className="text-sm font-bold text-foreground">No purchases yet</h3>
           <p className="text-xs text-muted-foreground max-w-sm mx-auto">
             Your purchased digital products will appear here once you complete a purchase.
@@ -109,7 +109,7 @@ export function PurchasesPage() {
           {purchases.map((purchase) => (
             <div
               key={purchase.id}
-              className="border border-border rounded-2xl bg-card overflow-hidden shadow-sm hover:shadow-md transition-all group"
+              className="border-none rounded-lg bg-card overflow-hidden  hover: transition-all group"
             >
               {/* Product Cover */}
               <div className="h-36 bg-gradient-to-br from-secondary/20 to-secondary/5 flex items-center justify-center relative">
@@ -121,7 +121,7 @@ export function PurchasesPage() {
                   </div>
                 )}
                 <div className="absolute top-2 right-2">
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-card/80 text-muted-foreground border border-border/50 backdrop-blur-sm capitalize">
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-card/80 text-muted-foreground border-none/50 backdrop-blur-sm capitalize">
                     {purchase.product?.category ?? 'product'}
                   </span>
                 </div>
@@ -158,9 +158,9 @@ export function PurchasesPage() {
                   className="w-full text-xs font-bold gap-1.5 mt-1"
                 >
                   {downloadingId === purchase.id ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    <Loader2 weight="fill" className="h-3.5 w-3.5 animate-spin" />
                   ) : (
-                    <Download className="h-3.5 w-3.5" />
+                    <Download weight="fill" className="h-3.5 w-3.5" />
                   )}
                   {downloadingId === purchase.id ? 'Preparing...' : 'Download'}
                 </Button>
@@ -170,9 +170,9 @@ export function PurchasesPage() {
         </div>
         {lastPage > 1 && (
           <div className="flex items-center justify-center gap-2 pt-4">
-            <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1} className="px-3 py-1.5 rounded-lg text-xs font-bold border border-border bg-card hover:bg-muted disabled:opacity-40">Previous</button>
+            <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1} className="px-3 py-1.5 rounded-lg text-xs font-bold border-none bg-card hover:bg-muted disabled:opacity-40">Previous</button>
             <span className="text-xs text-muted-foreground">Page {page} of {lastPage}</span>
-            <button onClick={() => setPage(p => Math.min(lastPage, p + 1))} disabled={page >= lastPage} className="px-3 py-1.5 rounded-lg text-xs font-bold border border-border bg-card hover:bg-muted disabled:opacity-40">Next</button>
+            <button onClick={() => setPage(p => Math.min(lastPage, p + 1))} disabled={page >= lastPage} className="px-3 py-1.5 rounded-lg text-xs font-bold border-none bg-card hover:bg-muted disabled:opacity-40">Next</button>
           </div>
         )}
       </>)}

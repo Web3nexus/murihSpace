@@ -1,11 +1,44 @@
 import { getAuthToken } from "@/lib/auth/token";
 import { useState, useEffect, useCallback } from "react";
 import {
-  Settings2, Film, Link2, Users, Radio, Package, ShoppingCart, Crown,
-  Megaphone, Briefcase, BarChart3, MessageSquare, Bot, Wallet,
-  Shield, Globe, BookOpen, Calendar, Store, Heart, ShieldCheck,
-  Flag, Loader2, AlertCircle, CheckCircle2, Search, Plus, Trash2, X,
-} from "lucide-react";
+  SlidersHorizontal as SlidersHorizontal,
+  FilmStrip as FilmStrip,
+  Link as Link,
+  Users as Users,
+  Radio as Radio,
+  Package as Package,
+  ShoppingCart as ShoppingCart,
+  Crown as Crown,
+  Megaphone as Megaphone,
+  Briefcase as Briefcase,
+  ChartBar as BarChart3,
+  ChatTeardropText as MessageSquare,
+  Robot as Robot,
+  Wallet as Wallet,
+  Shield as Shield,
+  Globe as Globe,
+  BookOpen as BookOpen,
+  Calendar as Calendar,
+  CalendarCheck,
+  Storefront,
+  Heart as Heart,
+  ShieldCheck as ShieldCheck,
+  Flag as Flag,
+  Spinner as Loader2,
+  WarningCircle as AlertCircle,
+  CheckCircle as CheckCircle2,
+  MagnifyingGlass as Search,
+  Plus as Plus,
+  Trash as Trash2,
+  X as X,
+  UserPlus,
+  Gift,
+  Medal,
+  ShareNetwork,
+  HandCoins,
+  FilePdf,
+  ChartLineUp
+} from "@phosphor-icons/react";
 import { authFetch } from "@/lib/api/authFetch";
 import { refreshFeatureFlags } from "@/hooks/useFeatureFlags";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -31,9 +64,10 @@ interface FeatureDef {
 }
 
 const ALL_FEATURES: FeatureDef[] = [
-  { key: "content_studio", label: "Content Studio", description: "Video creation and editing tools", icon: Film, category: "CREATE" },
-  { key: "link_in_bio", label: "Link in Bio", description: "Custom landing page builder", icon: Link2, category: "CREATE" },
+  { key: "content_studio", label: "Content Studio", description: "Video creation and editing tools", icon: FilmStrip, category: "CREATE" },
+  { key: "link_in_bio", label: "Link in Bio", description: "Custom landing page builder", icon: Link, category: "CREATE" },
   { key: "stories", label: "Stories", description: "Ephemeral story posts", icon: Radio, category: "CREATE" },
+  { key: "content_planner", label: "Content Planner", description: "AI-powered post scheduling and calendar", icon: CalendarCheck, category: "CREATE" },
   { key: "events", label: "Events", description: "Create and host events", icon: Calendar, category: "COMMUNITY" },
   { key: "audio_rooms", label: "Audio Rooms", description: "Live voice chat rooms", icon: Radio, category: "COMMUNITY" },
   { key: "community_hub", label: "Community Hub", description: "Create and manage communities", icon: Users, category: "COMMUNITY" },
@@ -42,25 +76,36 @@ const ALL_FEATURES: FeatureDef[] = [
   { key: "digital_products", label: "Digital Products", description: "Sell digital downloads and files", icon: Package, category: "COMMERCE" },
   { key: "online_courses", label: "Online Courses", description: "Video course platform", icon: BookOpen, category: "COMMERCE" },
   { key: "coaching", label: "1:1 Coaching", description: "Booking and scheduling", icon: Users, category: "COMMERCE" },
-  { key: "physical_products", label: "Physical Products", description: "Merchandise and physical goods", icon: Store, category: "COMMERCE" },
+  { key: "physical_products", label: "Physical Products", description: "Merchandise and physical goods", icon: Storefront, category: "COMMERCE" },
   { key: "subscriptions", label: "Memberships", description: "Recurring subscription plans", icon: Crown, category: "COMMERCE" },
-  { key: "storefront", label: "Storefront", description: "Public creator store page", icon: Store, category: "COMMERCE" },
+  { key: "storefront", label: "Storefront", description: "Public creator store page", icon: Storefront, category: "COMMERCE" },
   { key: "orders", label: "Orders & Fulfilment", description: "Order management system", icon: ShoppingCart, category: "COMMERCE" },
   { key: "email_broadcasts", label: "Email Broadcasts", description: "Send marketing emails", icon: Megaphone, category: "MARKETING" },
   { key: "email_sequences", label: "Automated Sequences", description: "Email drip campaigns", icon: Megaphone, category: "MARKETING" },
   { key: "affiliates", label: "Affiliate Program", description: "Referral and affiliate system", icon: Heart, category: "MARKETING" },
+  { key: "affiliate_products", label: "Affiliate Products", description: "Promote other creators' products for commission", icon: ShareNetwork, category: "MARKETING" },
   { key: "brand_deals", label: "Brand Deals", description: "Sponsorship marketplace", icon: Briefcase, category: "MARKETING" },
+  { key: "brand_invoicing", label: "Brand Invoicing", description: "Invoice brands for deal payments", icon: FilePdf, category: "MARKETING" },
+  { key: "ad_campaigns", label: "Ad Campaigns", description: "Create and manage sponsored ad campaigns", icon: Megaphone, category: "MARKETING" },
   { key: "media_kit", label: "Media Kit", description: "Creator press kit builder", icon: Briefcase, category: "MARKETING" },
   { key: "referrals", label: "Referral Program", description: "User referral rewards", icon: Heart, category: "MARKETING" },
+  { key: "marketing_hub", label: "Marketing Hub", description: "Unified marketing tools overview", icon: ChartLineUp, category: "MARKETING" },
   { key: "inbox", label: "MurihSpace Inbox", description: "Direct messaging system", icon: MessageSquare, category: "CONNECT" },
-  { key: "ai_assistant", label: "AI Assistant", description: "AI-powered content assistant", icon: Bot, category: "AI" },
+  { key: "friends", label: "Friends System", description: "Send and accept friend connections", icon: Users, category: "CONNECT" },
+  { key: "friend_requests", label: "Friend Requests", description: "Incoming friend & community join requests", icon: UserPlus, category: "CONNECT" },
+  { key: "ai_assistant", label: "AI Assistant", description: "AI-powered content assistant", icon: Robot, category: "AI" },
   { key: "analytics", label: "Analytics", description: "Dashboard and insights", icon: BarChart3, category: "ADMIN" },
   { key: "wallet", label: "MurihPay Wallet", description: "Digital wallet and payments", icon: Wallet, category: "FINANCE" },
+  { key: "creator_wallet", label: "Creator Wallet", description: "Creator earnings and balance view", icon: Wallet, category: "FINANCE" },
+  { key: "business_wallet", label: "Business Wallet", description: "Business account wallet and transactions", icon: Wallet, category: "FINANCE" },
   { key: "payouts", label: "Payouts", description: "Creator earnings withdrawals", icon: Wallet, category: "FINANCE" },
   { key: "escrow", label: "Escrow", description: "Secure transaction escrow", icon: Shield, category: "FINANCE" },
+  { key: "donations", label: "Donations", description: "Accept one-time fan donations", icon: HandCoins, category: "FINANCE" },
+  { key: "gifts", label: "Gifts & Tips", description: "Fan gifting and tipping system", icon: Gift, category: "FINANCE" },
   { key: "kyc", label: "KYC Verification", description: "Identity verification system", icon: ShieldCheck, category: "ADMIN" },
   { key: "moderation", label: "Moderation", description: "Content moderation tools", icon: Shield, category: "ADMIN" },
-  { key: "securegate", label: "Securegate Admin", description: "Admin panel access", icon: Settings2, category: "ADMIN" },
+  { key: "milestones", label: "Creator Milestones", description: "Achievement milestones and rewards tracking", icon: Medal, category: "ADMIN" },
+  { key: "securegate", label: "Securegate Admin", description: "Admin panel access", icon: SlidersHorizontal, category: "ADMIN" },
 ];
 
 const CATEGORY_ORDER: ["CREATE", "COMMUNITY", "COMMERCE", "MARKETING", "CONNECT", "AI", "FINANCE", "ADMIN"] = [
@@ -201,37 +246,37 @@ export function AdminFeatureFlagsPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="mx-auto max-w-[1400px] space-y-6 p-6 lg:p-10">
+      <div className="mx-auto max-w-[1400px] space-y-6 p-4 lg:p-10">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-2xl bg-gradient-to-br from-[#2164b6] to-[#1a6b9e] flex items-center justify-center shadow-sm">
-                <Settings2 className="h-5 w-5 text-white" />
+              <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-[#2164b6] to-[#1a6b9e] flex items-center justify-center ">
+                <SlidersHorizontal weight="fill" className="h-5 w-5 text-white" />
               </div>
               <div>
-                <h1 className="text-2xl font-black text-foreground tracking-tight">Feature Management</h1>
+                <h1 className="text-xl font-black text-foreground tracking-tight">Feature Management</h1>
                 <p className="text-xs text-muted-foreground mt-0.5">Enable, disable, and manage all platform features</p>
               </div>
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 rounded-xl bg-muted/50 px-3 py-1.5 text-xs font-medium text-muted-foreground border border-border/50">
-              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+            <div className="flex items-center gap-2 rounded-lg bg-muted/50 px-3 py-1.5 text-xs font-medium text-muted-foreground border-none/50">
+              <CheckCircle2 weight="fill" className="h-3.5 w-3.5 text-emerald-500" />
               {enabledCount}/{ALL_FEATURES.length} features enabled
             </div>
             <button
               onClick={() => { setShowCreate(true); setMsg(null); }}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#2164b6] text-white text-xs font-bold hover:bg-[#1a5091] transition-all shadow-xs"
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[#2164b6] text-white text-xs font-bold hover:bg-[#1a5091] transition-all "
             >
-              <Plus className="h-3.5 w-3.5" /> Custom Flag
+              <Plus weight="fill" className="h-3.5 w-3.5" /> Custom Flag
             </button>
           </div>
         </div>
 
         {error && (
-          <div className="flex items-center gap-3 rounded-xl border border-destructive/30 bg-destructive/5 px-5 py-3">
-            <AlertCircle className="h-5 w-5 shrink-0 text-destructive" />
+          <div className="flex items-center gap-3 rounded-lg border border-destructive/30 bg-destructive/5 px-5 py-3">
+            <AlertCircle weight="fill" className="h-5 w-5 shrink-0 text-destructive" />
             <p className="text-xs text-destructive">{error}</p>
             <button onClick={() => setError(null)} className="ml-auto text-xs text-muted-foreground hover:text-foreground font-bold">Dismiss</button>
           </div>
@@ -240,13 +285,13 @@ export function AdminFeatureFlagsPage() {
         {/* Search & Filters */}
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60" />
+            <Search weight="fill" className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60" />
             <input
               type="search"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search features..."
-              className="w-full pl-10 pr-4 py-2.5 text-sm rounded-xl bg-muted/50 border border-border/50 outline-none focus:ring-1 focus:ring-[#2164b6]/40 focus:border-[#2164b6]/30 placeholder:text-muted-foreground/40 transition-all"
+              className="w-full pl-10 pr-4 py-2.5 text-sm rounded-lg bg-muted/50 border-none/50 outline-none focus:ring-1 focus:ring-[#2164b6]/40 focus:border-[#2164b6]/30 placeholder:text-muted-foreground/40 transition-all"
             />
           </div>
           <div className="flex gap-1.5 flex-wrap">
@@ -269,13 +314,13 @@ export function AdminFeatureFlagsPage() {
         {/* Feature List */}
         {loading ? (
           <div className="flex h-64 items-center justify-center">
-            <Loader2 className="h-8 w-8 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" />
+            <Loader2 weight="fill" className="h-8 w-8 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" />
           </div>
         ) : (
           <div className="space-y-6">
             {Object.entries(grouped).length === 0 ? (
-              <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border bg-card p-16 text-center">
-                <Settings2 className="h-10 w-10 text-muted-foreground/30" />
+              <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed border-border bg-card p-16 text-center">
+                <SlidersHorizontal weight="fill" className="h-10 w-10 text-muted-foreground/30" />
                 <h3 className="text-sm font-bold text-foreground">No features found</h3>
                 <p className="text-xs text-muted-foreground/60">Try adjusting your search or filter.</p>
               </div>
@@ -291,7 +336,7 @@ export function AdminFeatureFlagsPage() {
                     {items.map((f) => (
                       <div
                         key={f.key}
-                        className={`group relative rounded-2xl border bg-card p-4 transition-all duration-200 hover:shadow-sm ${
+                        className={`group relative rounded-lg border bg-card p-4 transition-all duration-200 hover: ${
                           f.enabled
                             ? "border-[#2164b6]/20 hover:border-[#2164b6]/40"
                             : "border-border/60 hover:border-border"
@@ -299,7 +344,7 @@ export function AdminFeatureFlagsPage() {
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex items-center gap-3 min-w-0">
-                            <div className={`h-9 w-9 rounded-xl bg-gradient-to-br ${f.enabled ? "from-[#2164b6]/15 to-[#1a6b9e]/10" : "from-muted to-muted/50"} flex items-center justify-center shrink-0 transition-all group-hover:scale-105`}>
+                            <div className={`h-9 w-9 rounded-lg bg-gradient-to-br ${f.enabled ? "from-[#2164b6]/15 to-[#1a6b9e]/10" : "from-muted to-muted/50"} flex items-center justify-center shrink-0 transition-all group-hover:scale-105`}>
                               <f.icon className={`h-4 w-4 ${f.enabled ? "text-[#2164b6] dark:text-[#7ab0ff]" : "text-muted-foreground/40"}`} />
                             </div>
                             <div className="min-w-0">
@@ -317,7 +362,7 @@ export function AdminFeatureFlagsPage() {
                                 className="opacity-0 group-hover:opacity-100 p-1 rounded-lg hover:bg-destructive/10 text-muted-foreground/30 hover:text-destructive transition-all"
                                 title="Remove flag"
                               >
-                                {deleting === f.dbFlag!.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <X className="h-3 w-3" />}
+                                {deleting === f.dbFlag!.id ? <Loader2 weight="fill" className="h-3 w-3 animate-spin" /> : <X weight="fill" className="h-3 w-3" />}
                               </button>
                             )}
                             <button
@@ -330,7 +375,7 @@ export function AdminFeatureFlagsPage() {
                               aria-checked={f.enabled}
                             >
                               <span
-                                className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
+                                className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white  ring-0 transition duration-200 ease-in-out ${
                                   f.enabled ? "translate-x-4" : "translate-x-0"
                                 }`}
                               />
@@ -356,13 +401,13 @@ export function AdminFeatureFlagsPage() {
               <h3 className="text-sm font-extrabold text-foreground tracking-tight">Custom Flags</h3>
               <div className="h-px flex-1 bg-border/40" />
             </div>
-            <div className="rounded-2xl border border-border bg-card overflow-hidden">
+            <div className="rounded-lg border-none bg-card overflow-hidden">
               <div className="divide-y divide-border">
                 {flags.filter((f) => !ALL_FEATURES.some((af) => af.key === f.key)).map((f) => (
                   <div key={f.id} className="flex items-center justify-between px-5 py-3.5 hover:bg-muted/20 transition-colors">
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
-                        <Flag className="h-4 w-4 text-muted-foreground/40" />
+                        <Flag weight="fill" className="h-4 w-4 text-muted-foreground/40" />
                         <p className="text-sm font-bold text-foreground">{f.label}</p>
                         <code className="rounded-md bg-muted px-2 py-0.5 text-[10px] font-mono text-muted-foreground">{f.key}</code>
                       </div>
@@ -376,7 +421,7 @@ export function AdminFeatureFlagsPage() {
                           f.enabled ? "bg-[#2164b6]" : "bg-muted-foreground/20"
                         } ${toggling === f.key ? "opacity-50" : ""}`}
                       >
-                        <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ${
+                        <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white  ring-0 transition duration-200 ${
                           f.enabled ? "translate-x-4" : "translate-x-0"
                         }`} />
                       </button>
@@ -385,7 +430,7 @@ export function AdminFeatureFlagsPage() {
                         disabled={deleting === f.id}
                         className="rounded-lg p-1.5 text-muted-foreground/30 hover:bg-destructive/10 hover:text-destructive transition-colors"
                       >
-                        {deleting === f.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                        {deleting === f.id ? <Loader2 weight="fill" className="h-4 w-4 animate-spin" /> : <Trash2 weight="fill" className="h-4 w-4" />}
                       </button>
                     </div>
                   </div>
@@ -400,16 +445,16 @@ export function AdminFeatureFlagsPage() {
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2 text-base font-bold text-foreground">
-                <Flag className="h-5 w-5 text-[#2164b6] dark:text-[#7ab0ff]" /> Custom Feature Flag
+                <Flag weight="fill" className="h-5 w-5 text-[#2164b6] dark:text-[#7ab0ff]" /> Custom Feature Flag
               </DialogTitle>
               <DialogDescription>Add a custom toggle for any platform feature.</DialogDescription>
             </DialogHeader>
 
             {msg && (
-              <div className={`flex items-center gap-2 rounded-xl p-3 text-xs font-bold ${
+              <div className={`flex items-center gap-2 rounded-lg p-3 text-xs font-bold ${
                 msg.type === "success" ? "bg-emerald-500/10 text-emerald-600" : "bg-destructive/10 text-destructive"
               }`}>
-                {msg.type === "success" ? <CheckCircle2 className="h-4 w-4 shrink-0" /> : <AlertCircle className="h-4 w-4 shrink-0" />}
+                {msg.type === "success" ? <CheckCircle2 className="h-4 w-4 shrink-0" /> : <AlertCircle weight="fill" className="h-4 w-4 shrink-0" />}
                 {msg.text}
               </div>
             )}
@@ -418,24 +463,24 @@ export function AdminFeatureFlagsPage() {
               <div>
                 <label className="mb-1 block text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Key</label>
                 <input name="key" placeholder="e.g. new_checkout" required
-                  className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/50 outline-none transition-colors focus:border-[#2164b6]/50 focus:ring-1 focus:ring-[#2164b6]/20" />
+                  className="w-full rounded-lg border-none bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/50 outline-none transition-colors focus:border-[#2164b6]/50 focus:ring-1 focus:ring-[#2164b6]/20" />
               </div>
               <div>
                 <label className="mb-1 block text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Label</label>
                 <input name="label" placeholder="Display label" required
-                  className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/50 outline-none transition-colors focus:border-[#2164b6]/50 focus:ring-1 focus:ring-[#2164b6]/20" />
+                  className="w-full rounded-lg border-none bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/50 outline-none transition-colors focus:border-[#2164b6]/50 focus:ring-1 focus:ring-[#2164b6]/20" />
               </div>
               <div>
                 <label className="mb-1 block text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Description</label>
                 <input name="description" placeholder="What does this flag control?"
-                  className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/50 outline-none transition-colors focus:border-[#2164b6]/50 focus:ring-1 focus:ring-[#2164b6]/20" />
+                  className="w-full rounded-lg border-none bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/50 outline-none transition-colors focus:border-[#2164b6]/50 focus:ring-1 focus:ring-[#2164b6]/20" />
               </div>
               <DialogFooter className="-mx-4 -mb-4 mt-4 flex flex-col-reverse gap-2 rounded-b-xl border-t bg-muted/50 p-4 sm:flex-row sm:justify-end">
                 <button type="button" onClick={() => { setShowCreate(false); setMsg(null); }}
-                  className="rounded-xl border border-border px-4 py-2.5 text-xs font-bold text-muted-foreground hover:text-foreground transition-colors">Cancel</button>
+                  className="rounded-lg border-none px-4 py-2.5 text-xs font-bold text-muted-foreground hover:text-foreground transition-colors">Cancel</button>
                 <button type="submit" disabled={submitting}
-                  className="rounded-xl bg-[#2164b6] px-4 py-2.5 text-xs font-bold text-white hover:bg-[#1a5091] disabled:opacity-50 shadow-xs transition-all">
-                  {submitting ? <Loader2 className="mx-auto h-4 w-4 animate-spin" /> : "Create Flag"}
+                  className="rounded-lg bg-[#2164b6] px-4 py-2.5 text-xs font-bold text-white hover:bg-[#1a5091] disabled:opacity-50  transition-all">
+                  {submitting ? <Loader2 weight="fill" className="mx-auto h-4 w-4 animate-spin" /> : "Create Flag"}
                 </button>
               </DialogFooter>
             </form>

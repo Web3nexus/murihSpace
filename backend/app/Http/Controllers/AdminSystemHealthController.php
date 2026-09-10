@@ -16,9 +16,9 @@ class AdminSystemHealthController extends Controller
         $cacheConnected = false;
         $queueResponsive = false;
 
-        try { DB::connection()->getPdo(); $dbConnected = true; } catch (\Exception $e) {}
-        try { $cacheConnected = Cache::set('health-check', true, 10); } catch (\Exception $e) {}
-        try { $queueResponsive = Queue::size() >= 0; } catch (\Exception $e) {}
+        try { DB::connection()->getPdo(); $dbConnected = true; } catch (\Throwable $e) {}
+        try { $cacheConnected = Cache::set('health-check', true, 10); } catch (\Throwable $e) {}
+        try { $queueResponsive = Queue::size() >= 0; } catch (\Throwable $e) {}
 
         return response()->json([
             'data' => [

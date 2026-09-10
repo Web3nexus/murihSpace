@@ -1,5 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
-import { RotateCcw, Loader2, CheckCircle2, XCircle, Eye } from "lucide-react";
+import {
+  ArrowCounterClockwise as RotateCcw,
+  Spinner as Loader2,
+  CheckCircle as CheckCircle2,
+  XCircle as XCircle,
+  Eye as Eye
+} from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { authFetch } from "@/lib/api/authFetch";
 
@@ -48,29 +54,29 @@ export default function ReturnsPage() {
     } finally { setProcessing(null); }
   };
 
-  if (loading) return <div className="flex justify-center py-24"><Loader2 className="h-8 w-8 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" /></div>;
+  if (loading) return <div className="flex justify-center py-24"><Loader2 weight="fill" className="h-8 w-8 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" /></div>;
 
   return (
-    <div className="w-full max-w-7xl mx-auto space-y-6 p-6 lg:p-8">
+    <div className="w-full max-w-7xl mx-auto space-y-6 p-4 lg:p-5">
       <div>
-        <h1 className="text-2xl font-black tracking-tight flex items-center gap-2.5">
-          <RotateCcw className="h-6 w-6 text-[#2164b6] dark:text-[#7ab0ff]" /> Returns Management
+        <h1 className="text-xl font-black tracking-tight flex items-center gap-2.5">
+          <RotateCcw weight="fill" className="h-6 w-6 text-[#2164b6] dark:text-[#7ab0ff]" /> Returns Management
         </h1>
         <p className="text-xs text-muted-foreground mt-1">Process customer returns and exchanges.</p>
       </div>
 
       {returns.length === 0 ? (
         <div className="p-16 text-center border border-dashed border-border rounded-3xl bg-card">
-          <RotateCcw className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
+          <RotateCcw weight="fill" className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
           <h3 className="text-sm font-bold">No return requests</h3>
         </div>
       ) : (
         <div className="space-y-3">
           {returns.map((r) => (
-            <div key={r.id} className="border border-border rounded-2xl bg-card overflow-hidden">
+            <div key={r.id} className="border-none rounded-lg bg-card overflow-hidden">
               <div className="flex items-center justify-between px-4 py-3 hover:bg-muted/10 transition-colors cursor-pointer" onClick={() => setExpanded(expanded === r.id ? null : r.id)}>
                 <div className="flex items-center gap-3 min-w-0">
-                  <RotateCcw className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <RotateCcw weight="fill" className="h-4 w-4 text-muted-foreground shrink-0" />
                   <div className="min-w-0">
                     <p className="text-sm font-bold text-foreground truncate">{r.product_name}</p>
                     <p className="text-[11px] text-muted-foreground">Order #{r.order_id} · {new Date(r.created_at).toLocaleDateString()}</p>
@@ -78,7 +84,7 @@ export default function ReturnsPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${STATUS_COLORS[r.status]}`}>{r.status}</span>
-                  <Eye className="h-4 w-4 text-muted-foreground" />
+                  <Eye weight="fill" className="h-4 w-4 text-muted-foreground" />
                 </div>
               </div>
               {expanded === r.id && (
@@ -90,10 +96,10 @@ export default function ReturnsPage() {
                   {r.status === "pending" && (
                     <div className="flex gap-2">
                       <Button size="sm" disabled={processing === r.id} onClick={() => handleAction(r.id, "approve")} className="text-[10px] h-7 gap-1">
-                        {processing === r.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle2 className="h-3 w-3" />} Approve
+                        {processing === r.id ? <Loader2 weight="fill" className="h-3 w-3 animate-spin" /> : <CheckCircle2 weight="fill" className="h-3 w-3" />} Approve
                       </Button>
                       <Button size="sm" variant="outline" disabled={processing === r.id} onClick={() => handleAction(r.id, "reject")} className="text-[10px] h-7 gap-1 text-destructive">
-                        <XCircle className="h-3 w-3" /> Reject
+                        <XCircle weight="fill" className="h-3 w-3" /> Reject
                       </Button>
                     </div>
                   )}

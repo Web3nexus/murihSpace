@@ -1,6 +1,15 @@
 import { getAuthToken } from "@/lib/auth/token";
 import { useState, useEffect, useCallback } from "react";
-import { BarChart3, Loader2, Users, ShoppingCart, CreditCard, Repeat, ArrowRight, AlertCircle } from "lucide-react";
+import {
+  ChartBar as BarChart3,
+  Spinner as Loader2,
+  Users as Users,
+  ShoppingCart as ShoppingCart,
+  CreditCard as CreditCard,
+  Repeat as Repeat,
+  ArrowRight as ArrowRight,
+  WarningCircle as AlertCircle
+} from "@phosphor-icons/react";
 import { authFetch } from "@/lib/api/authFetch";
 
 
@@ -33,7 +42,7 @@ export default function AdminConversionMetricsPage() {
 
   useEffect(() => { loadData(); }, [loadData]);
 
-  if (loading) return <div className="flex justify-center py-24"><Loader2 className="h-8 w-8 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" /></div>;
+  if (loading) return <div className="flex justify-center py-24"><Loader2 weight="fill" className="h-8 w-8 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" /></div>;
 
   const steps = [
     { label: "Visitors", value: funnel?.visitors ?? 0, icon: Users, color: "bg-blue-500" },
@@ -53,12 +62,12 @@ export default function AdminConversionMetricsPage() {
   ] : [];
 
   return (
-    <div className="w-full mx-auto max-w-[1400px] space-y-6 p-6 lg:p-10">
-      <div><h1 className="text-2xl font-black tracking-tight flex items-center gap-2.5"><BarChart3 className="h-6 w-6 text-[#2164b6] dark:text-[#7ab0ff]" /> Conversion Metrics</h1><p className="text-xs text-muted-foreground mt-1">Platform conversion funnel analytics.</p></div>
+    <div className="w-full mx-auto max-w-[1400px] space-y-6 p-4 lg:p-10">
+      <div><h1 className="text-xl font-black tracking-tight flex items-center gap-2.5"><BarChart3 weight="fill" className="h-6 w-6 text-[#2164b6] dark:text-[#7ab0ff]" /> Conversion Metrics</h1><p className="text-xs text-muted-foreground mt-1">Platform conversion funnel analytics.</p></div>
 
       {fetchError && (
-        <div className="flex items-center gap-2 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-xs text-destructive">
-          <AlertCircle className="h-4 w-4 shrink-0" /> {fetchError}
+        <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-xs text-destructive">
+          <AlertCircle weight="fill" className="h-4 w-4 shrink-0" /> {fetchError}
           <button onClick={() => { setLoading(true); loadData(); }} className="ml-auto text-muted-foreground hover:text-foreground font-bold">Retry</button>
         </div>
       )}
@@ -69,8 +78,8 @@ export default function AdminConversionMetricsPage() {
           const pct = (s.value / maxVal) * 100;
           return (
             <div key={s.label} className="relative">
-              <div className="flex items-center gap-4 px-4 py-3 border border-border rounded-2xl bg-card relative z-10">
-                <div className={`p-2 rounded-xl ${s.color}/20`}><Icon className={`h-4 w-4 ${s.color.replace('bg-', 'text-')}`} /></div>
+              <div className="flex items-center gap-4 px-4 py-3 border-none rounded-lg bg-card relative z-10">
+                <div className={`p-2 rounded-lg ${s.color}/20`}><Icon className={`h-4 w-4 ${s.color.replace('bg-', 'text-')}`} /></div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-sm font-bold text-foreground">{s.label}</span>
@@ -83,7 +92,7 @@ export default function AdminConversionMetricsPage() {
               </div>
               {i < steps.length - 1 && (
                 <div className="flex justify-center -mt-2 mb-1 relative z-0">
-                  <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                  <ArrowRight weight="fill" className="h-4 w-4 text-muted-foreground" />
                 </div>
               )}
             </div>
@@ -94,7 +103,7 @@ export default function AdminConversionMetricsPage() {
       {rateCards.length > 0 && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {rateCards.map(r => (
-            <div key={r.label} className="border border-border rounded-2xl bg-card p-4 text-center">
+            <div key={r.label} className="border-none rounded-lg bg-card p-4 text-center">
               <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">{r.label}</p>
               <p className="text-xl font-black text-[#2164b6] dark:text-[#7ab0ff]">{r.value}</p>
             </div>
@@ -103,7 +112,7 @@ export default function AdminConversionMetricsPage() {
       )}
 
       {totals && (
-        <div className="border border-border rounded-2xl bg-card p-5">
+        <div className="border-none rounded-lg bg-card p-5">
           <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-3">Totals</p>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
             <div><p className="text-xs text-muted-foreground">Users</p><p className="text-lg font-black text-foreground">{totals.total_users?.toLocaleString()}</p></div>

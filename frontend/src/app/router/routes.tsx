@@ -1,155 +1,162 @@
-import { lazy, Suspense } from "react";
+import { Suspense } from "react";
 import type { RouteObject } from "react-router";
 import { Navigate } from "react-router";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { SettingsLayout } from "@/components/layout/SettingsLayout";
 import { ChatLayout } from "@/components/layout/ChatLayout";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import { lazyWithRetry } from "@/lib/lazyWithRetry";
 
 import {
   NotFoundState,
 } from "@/components/common/UIStateComponents";
 import { RoutePaths } from "./route-paths";
 
+import { BrandPreloader } from "@/components/common/BrandPreloader";
 
+const PageLoader = () => <BrandPreloader size="md" />;
 
-import { Loader2 } from "lucide-react";
-
-const PageLoader = () => (<div className="flex h-[50vh] w-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary/50" /></div>);
-
-// Lazy-loaded pages
-const LoginPage = lazy(() => import("@/pages/LoginPage").then(module => ({ default: module.LoginPage })));
-const ForgotPasswordPage = lazy(() => import("@/pages/ForgotPasswordPage").then(module => ({ default: module.ForgotPasswordPage })));
-const ResetPasswordPage = lazy(() => import("@/pages/ResetPasswordPage").then(module => ({ default: module.ResetPasswordPage })));
-const AdminLoginPage = lazy(() => import("@/pages/AdminLoginPage").then(module => ({ default: module.AdminLoginPage })));
-const RegisterPage = lazy(() => import("@/pages/RegisterPage").then(module => ({ default: module.RegisterPage })));
-const AppPage = lazy(() => import("@/pages/AppPage").then(module => ({ default: module.AppPage })));
-const ProfilePage = lazy(() => import("@/pages/ProfilePage").then(module => ({ default: module.ProfilePage })));
-const AdminKycPage = lazy(() => import("@/pages/AdminKycPage").then(module => ({ default: module.AdminKycPage })));
-const NotFoundPage = lazy(() => import("@/pages/NotFoundPage").then(module => ({ default: module.NotFoundPage })));
-const CommunitiesPage = lazy(() => import("@/pages/CommunitiesPage").then(module => ({ default: module.CommunitiesPage })));
-const CommunityPreviewPage = lazy(() => import("@/pages/CommunityPreviewPage").then(module => ({ default: module.CommunityPreviewPage })));
-const PublicCommunitiesPage = lazy(() => import("@/pages/PublicCommunitiesPage").then(module => ({ default: module.PublicCommunitiesPage })));
-const CommunityFeedPage = lazy(() => import("@/pages/CommunityFeedPage"));
-const SearchPage = lazy(() => import("@/pages/SearchPage"));
-const EventsPage = lazy(() => import("@/pages/EventsPage").then(module => ({ default: module.EventsPage })));
-const EventDetailPage = lazy(() => import("@/pages/EventDetailPage").then(module => ({ default: module.EventDetailPage })));
-const MyEventsPage = lazy(() => import("@/pages/MyEventsPage").then(module => ({ default: module.MyEventsPage })));
-const NotificationsPage = lazy(() => import("@/pages/NotificationsPage"));
-const AppearancePage = lazy(() => import("@/pages/AppearancePage"));
-const SecurityPage = lazy(() => import("@/pages/SecurityPage"));
-const PrivacyPage = lazy(() => import("@/pages/PrivacyPage"));
-const KycSettingsPage = lazy(() => import("@/pages/KycSettingsPage"));
-const LanguagePage = lazy(() => import("@/pages/LanguagePage"));
-const AccessibilityPage = lazy(() => import("@/pages/AccessibilityPage"));
-const UpgradeAccountPage = lazy(() => import("@/pages/UpgradeAccountPage").then(module => ({ default: module.UpgradeAccountPage })));
-const AdminRoleApplicationsPage = lazy(() => import("@/pages/AdminRoleApplicationsPage").then(module => ({ default: module.AdminRoleApplicationsPage })));
-const AdminVerificationBadgesPage = lazy(() => import("@/pages/AdminVerificationBadgesPage").then(module => ({ default: module.AdminVerificationBadgesPage })));
-const CoursesPage = lazy(() => import("@/pages/CoursesPage"));
-const StoreManagementPage = lazy(() => import("@/pages/StoreManagementPage").then(module => ({ default: module.StoreManagementPage })));
-const PublicStorefrontPage = lazy(() => import("@/pages/PublicStorefrontPage").then(module => ({ default: module.PublicStorefrontPage })));
-const PublicMediaKitPage = lazy(() => import("@/pages/PublicMediaKitPage").then(module => ({ default: module.PublicMediaKitPage })));
-const DigitalProductsPage = lazy(() => import("@/pages/DigitalProductsPage").then(module => ({ default: module.DigitalProductsPage })));
-const SalesOrdersPage = lazy(() => import("@/pages/SalesOrdersPage").then(module => ({ default: module.SalesOrdersPage })));
-const AudioRoomsPage = lazy(() => import("@/pages/AudioRoomsPage").then(module => ({ default: module.AudioRoomsPage })));
-const AnalyticsPage = lazy(() => import("@/pages/AnalyticsPage").then(module => ({ default: module.AnalyticsPage })));
-const BrandDealsPage = lazy(() => import("@/pages/BrandDealsPage").then(module => ({ default: module.BrandDealsPage })));
-const BrandInvoicingPage = lazy(() => import("@/pages/BrandInvoicingPage").then(module => ({ default: module.BrandInvoicingPage })));
-const CoachingPage = lazy(() => import("@/pages/CoachingPage").then(module => ({ default: module.CoachingPage })));
-const PhysicalProductsPage = lazy(() => import("@/pages/PhysicalProductsPage").then(module => ({ default: module.PhysicalProductsPage })));
-const CartPage = lazy(() => import("@/pages/CartPage").then(module => ({ default: module.CartPage })));
-const AddressesPage = lazy(() => import("@/pages/AddressesPage").then(module => ({ default: module.AddressesPage })));
-const FulfilmentPage = lazy(() => import("@/pages/FulfilmentPage").then(module => ({ default: module.FulfilmentPage })));
-const ReviewsPage = lazy(() => import("@/pages/ReviewsPage").then(module => ({ default: module.ReviewsPage })));
-const DisputesPage = lazy(() => import("@/pages/DisputesPage").then(module => ({ default: module.DisputesPage })));
-const ShippingProfilesPage = lazy(() => import("@/pages/ShippingProfilesPage").then(module => ({ default: module.ShippingProfilesPage })));
-const PayoutsPage = lazy(() => import("@/pages/PayoutsPage").then(module => ({ default: module.PayoutsPage })));
-const MilestonesPage = lazy(() => import("@/pages/MilestonesPage").then(module => ({ default: module.MilestonesPage })));
-const MediaKitPage = lazy(() => import("@/pages/MediaKitPage").then(module => ({ default: module.MediaKitPage })));
-const ProposalsPage = lazy(() => import("@/pages/ProposalsPage").then(module => ({ default: module.ProposalsPage })));
-const ReferralsPage = lazy(() => import("@/pages/ReferralsPage").then(module => ({ default: module.ReferralsPage })));
-const SubscriptionManagementPage = lazy(() => import("@/pages/SubscriptionManagementPage").then(module => ({ default: module.SubscriptionManagementPage })));
-const BrowsePlansPage = lazy(() => import("@/pages/BrowsePlansPage").then(module => ({ default: module.BrowsePlansPage })));
-const MySubscriptionsPage = lazy(() => import("@/pages/MySubscriptionsPage").then(module => ({ default: module.MySubscriptionsPage })));
-const WalletPage = lazy(() => import("@/pages/WalletPage").then(module => ({ default: module.WalletPage })));
-const DonationsPage = lazy(() => import("@/pages/DonationsPage").then(module => ({ default: module.DonationsPage })));
-const EmailBroadcastsPage = lazy(() => import("@/pages/EmailBroadcastsPage").then(module => ({ default: module.EmailBroadcastsPage })));
-const EmailSequencesPage = lazy(() => import("@/pages/EmailSequencesPage").then(module => ({ default: module.EmailSequencesPage })));
-const EscrowPage = lazy(() => import("@/pages/EscrowPage").then(module => ({ default: module.EscrowPage })));
-const PurchasesPage = lazy(() => import("@/pages/PurchasesPage").then(module => ({ default: module.PurchasesPage })));
-const SecuregateOverviewPage = lazy(() => import("@/pages/SecuregateOverviewPage").then(module => ({ default: module.SecuregateOverviewPage })));
-const AdminUsersPage = lazy(() => import("@/pages/AdminUsersPage").then(module => ({ default: module.AdminUsersPage })));
-const AdminManagementPage = lazy(() => import("@/pages/AdminManagementPage").then(module => ({ default: module.AdminManagementPage })));
-const AdminTransactionsPage = lazy(() => import("@/pages/AdminTransactionsPage").then(module => ({ default: module.AdminTransactionsPage })));
-const AdminReconciliationPage = lazy(() => import("@/pages/AdminReconciliationPage").then(module => ({ default: module.AdminReconciliationPage })));
-const AdminReportsPage = lazy(() => import("@/pages/AdminReportsPage").then(module => ({ default: module.AdminReportsPage })));
-const AdminFeatureFlagsPage = lazy(() => import("@/pages/AdminFeatureFlagsPage").then(module => ({ default: module.AdminFeatureFlagsPage })));
-const QueueMonitorPage = lazy(() => import("@/pages/QueueMonitorPage").then(module => ({ default: module.QueueMonitorPage })));
-const AdminReviewsPage = lazy(() => import("@/pages/AdminReviewsPage").then(module => ({ default: module.AdminReviewsPage })));
-const AdminAnalyticsPage = lazy(() => import("@/pages/AdminAnalyticsPage").then(module => ({ default: module.AdminAnalyticsPage })));
-const AdminPlansPage = lazy(() => import("@/pages/AdminPlansPage").then(module => ({ default: module.AdminPlansPage })));
-const AdminCommunitiesPage = lazy(() => import("@/pages/AdminCommunitiesPage").then(module => ({ default: module.AdminCommunitiesPage })));
-const AdminEscrowPage = lazy(() => import("@/pages/AdminEscrowPage").then(module => ({ default: module.AdminEscrowPage })));
-const AdminPayoutsPage = lazy(() => import("@/pages/AdminPayoutsPage").then(module => ({ default: module.AdminPayoutsPage })));
-const AdminCmsPage = lazy(() => import("@/pages/AdminCmsPage").then(module => ({ default: module.AdminCmsPage })));
-const ContentStudioPage = lazy(() => import("@/pages/ContentStudioPage"));
-const LinkInBioPage = lazy(() => import("@/pages/LinkInBioPage"));
-const LinkInBioDomainPage = lazy(() => import("@/pages/LinkInBioDomainPage"));
-const StorePostsPage = lazy(() => import("@/pages/StorePostsPage"));
-const StoreProductsPage = lazy(() => import("@/pages/StoreProductsPage"));
-const StoreMembershipsPage = lazy(() => import("@/pages/StoreMembershipsPage"));
-const SavedAddressesPage = lazy(() => import("@/pages/SavedAddressesPage"));
-const InventoryPage = lazy(() => import("@/pages/InventoryPage"));
-const CategoriesPage = lazy(() => import("@/pages/CategoriesPage"));
-const ReturnsPage = lazy(() => import("@/pages/ReturnsPage"));
-const SupportThreadsPage = lazy(() => import("@/pages/SupportThreadsPage"));
-const StoreSettingsPage = lazy(() => import("@/pages/StoreSettingsPage"));
-const ProductPerformancePage = lazy(() => import("@/pages/ProductPerformancePage"));
-const AdminDisputesPage = lazy(() => import("@/pages/AdminDisputesPage"));
-const AdminModerationLogsPage = lazy(() => import("@/pages/AdminModerationLogsPage"));
-const AdminSystemHealthPage = lazy(() => import("@/pages/AdminSystemHealthPage"));
-const AdminAuditTrailPage = lazy(() => import("@/pages/AdminAuditTrailPage"));
-const AdminSettingsPage = lazy(() => import("@/pages/AdminSettingsPage"));
-const AdminAuthMethodsPage = lazy(() => import("@/pages/AdminAuthMethodsPage"));
-const AdminAiSettingsPage = lazy(() => import("@/pages/AdminAiSettingsPage"));
-const AdminEmailEngineSettingsPage = lazy(() => import("@/pages/AdminEmailEngineSettingsPage"));
-const AdminSmsEngineSettingsPage = lazy(() => import("@/pages/AdminSmsEngineSettingsPage"));
-const AdminEmailTemplatesPage = lazy(() => import("@/pages/AdminEmailTemplatesPage"));
-const AdminSocialLoginSettingsPage = lazy(() => import("@/pages/AdminSocialLoginSettingsPage"));
-const AdminStoragePage = lazy(() => import("@/pages/AdminStoragePage"));
-const AdminObjectStorageProvidersPage = lazy(() => import("@/pages/AdminObjectStorageProvidersPage"));
-const ConnectedAccountsPage = lazy(() => import("@/pages/ConnectedAccountsPage"));
-const AdminCreatorQualificationPage = lazy(() => import("@/pages/AdminCreatorQualificationPage"));
-const AdminQualificationEventsPage = lazy(() => import("@/pages/AdminQualificationEventsPage"));
-const AdminConversionMetricsPage = lazy(() => import("@/pages/AdminConversionMetricsPage"));
-const FeedPage = lazy(() => import("@/pages/FeedPage"));
-const ChatPage = lazy(() => import("@/pages/ChatPage"));
-const AiAssistantPage = lazy(() => import("@/pages/AiAssistantPage"));
-const AiSettingsPage = lazy(() => import("@/pages/AiSettingsPage"));
-const OnboardingPage = lazy(() => import("@/pages/OnboardingPage"));
-const RequestsPage = lazy(() => import("@/pages/RequestsPage"));
-const FriendsPage = lazy(() => import("@/pages/FriendsPage"));
-const AffiliateProductsPage = lazy(() => import("@/pages/AffiliateProductsPage"));
-const MarketingPage = lazy(() => import("@/pages/MarketingPage"));
-const PublicLinkInBioPage = lazy(() => import("@/pages/PublicLinkInBioPage"));
-const ActivityLogPage = lazy(() => import("@/pages/ActivityLogPage"));
-const ContentPlannerPage = lazy(() => import("@/pages/ContentPlannerPage"));
-const AdCampaignPage = lazy(() => import("@/pages/AdCampaignPage"));
-const GiftsPage = lazy(() => import("@/pages/GiftsPage"));
-const CreatorWalletPage = lazy(() => import("@/pages/CreatorWalletPage"));
-const BusinessWalletPage = lazy(() => import("@/pages/BusinessWalletPage"));
-const AdminFeeManagementPage = lazy(() => import("@/pages/AdminFeeManagementPage").then(module => ({ default: module.AdminFeeManagementPage })));
-const AdminAdsPage = lazy(() => import("@/pages/AdminAdsPage"));
-const AdminGiftsPage = lazy(() => import("@/pages/AdminGiftsPage"));
-const AdminCoinPacksPage = lazy(() => import("@/pages/AdminCoinPacksPage"));
-const AdminStoriesPage = lazy(() => import("@/pages/AdminStoriesPage"));
-const AdminAlgorithmPage = lazy(() => import("@/pages/AdminAlgorithmPage"));
-const SocialAuthCallbackPage = lazy(() => import("@/pages/SocialAuthCallbackPage").then(module => ({ default: module.SocialAuthCallbackPage })));
-const PrivacyPolicyPage = lazy(() => import("@/pages/PrivacyPolicyPage"));
-const TermsOfServicePage = lazy(() => import("@/pages/TermsOfServicePage"));
-const GDPRPolicyPage = lazy(() => import("@/pages/GDPRPolicyPage").then(m => ({ default: m.GDPRPolicyPage })));
-const CookiesPolicyPage = lazy(() => import("@/pages/CookiesPolicyPage"));
-const HelpCenterPage = lazy(() => import("@/pages/HelpCenterPage"));
+// Lazy-loaded pages with automated deployment chunk-retry
+const LoginPage = lazyWithRetry(() => import("@/pages/LoginPage"), "LoginPage");
+const ForgotPasswordPage = lazyWithRetry(() => import("@/pages/ForgotPasswordPage"), "ForgotPasswordPage");
+const ResetPasswordPage = lazyWithRetry(() => import("@/pages/ResetPasswordPage"), "ResetPasswordPage");
+const AdminLoginPage = lazyWithRetry(() => import("@/pages/AdminLoginPage"), "AdminLoginPage");
+const RegisterPage = lazyWithRetry(() => import("@/pages/RegisterPage"), "RegisterPage");
+const AppPage = lazyWithRetry(() => import("@/pages/AppPage"), "AppPage");
+const ProfilePage = lazyWithRetry(() => import("@/pages/ProfilePage"), "ProfilePage");
+const AdminKycPage = lazyWithRetry(() => import("@/pages/AdminKycPage"), "AdminKycPage");
+const NotFoundPage = lazyWithRetry(() => import("@/pages/NotFoundPage"), "NotFoundPage");
+const CommunitiesPage = lazyWithRetry(() => import("@/pages/CommunitiesPage"), "CommunitiesPage");
+const CommunityPreviewPage = lazyWithRetry(() => import("@/pages/CommunityPreviewPage"), "CommunityPreviewPage");
+const PublicCommunitiesPage = lazyWithRetry(() => import("@/pages/PublicCommunitiesPage"), "PublicCommunitiesPage");
+const CommunityFeedPage = lazyWithRetry(() => import("@/pages/CommunityFeedPage"));
+const GroupsPage = lazyWithRetry(() => import("@/pages/GroupsPage"), "GroupsPage");
+const GroupDetailPage = lazyWithRetry(() => import("@/pages/GroupDetailPage"), "GroupDetailPage");
+const SearchPage = lazyWithRetry(() => import("@/pages/SearchPage"));
+const EventsPage = lazyWithRetry(() => import("@/pages/EventsPage"), "EventsPage");
+const EventDetailPage = lazyWithRetry(() => import("@/pages/EventDetailPage"), "EventDetailPage");
+const MyEventsPage = lazyWithRetry(() => import("@/pages/MyEventsPage"), "MyEventsPage");
+const NotificationsPage = lazyWithRetry(() => import("@/pages/NotificationsPage"));
+const AppearancePage = lazyWithRetry(() => import("@/pages/AppearancePage"));
+const SecurityPage = lazyWithRetry(() => import("@/pages/SecurityPage"));
+const PrivacyPage = lazyWithRetry(() => import("@/pages/PrivacyPage"));
+const KycSettingsPage = lazyWithRetry(() => import("@/pages/KycSettingsPage"));
+const LanguagePage = lazyWithRetry(() => import("@/pages/LanguagePage"));
+const AccessibilityPage = lazyWithRetry(() => import("@/pages/AccessibilityPage"));
+const UpgradeAccountPage = lazyWithRetry(() => import("@/pages/UpgradeAccountPage"), "UpgradeAccountPage");
+const AdminRoleApplicationsPage = lazyWithRetry(() => import("@/pages/AdminRoleApplicationsPage"), "AdminRoleApplicationsPage");
+const AdminVerificationBadgesPage = lazyWithRetry(() => import("@/pages/AdminVerificationBadgesPage"), "AdminVerificationBadgesPage");
+const CoursesPage = lazyWithRetry(() => import("@/pages/CoursesPage"));
+const StoreManagementPage = lazyWithRetry(() => import("@/pages/StoreManagementPage"), "StoreManagementPage");
+const PublicStorefrontPage = lazyWithRetry(() => import("@/pages/PublicStorefrontPage"), "PublicStorefrontPage");
+const PublicMediaKitPage = lazyWithRetry(() => import("@/pages/PublicMediaKitPage"), "PublicMediaKitPage");
+const DigitalProductsPage = lazyWithRetry(() => import("@/pages/DigitalProductsPage"), "DigitalProductsPage");
+const SalesOrdersPage = lazyWithRetry(() => import("@/pages/SalesOrdersPage"), "SalesOrdersPage");
+const AudioRoomsPage = lazyWithRetry(() => import("@/pages/AudioRoomsPage"), "AudioRoomsPage");
+const AnalyticsPage = lazyWithRetry(() => import("@/pages/AnalyticsPage"), "AnalyticsPage");
+const BrandDealsPage = lazyWithRetry(() => import("@/pages/BrandDealsPage"), "BrandDealsPage");
+const BrandInvoicingPage = lazyWithRetry(() => import("@/pages/BrandInvoicingPage"), "BrandInvoicingPage");
+const CoachingPage = lazyWithRetry(() => import("@/pages/CoachingPage"), "CoachingPage");
+const MeetingRoomPage = lazyWithRetry(() => import("@/pages/MeetingRoomPage"), "MeetingRoomPage");
+const PhysicalProductsPage = lazyWithRetry(() => import("@/pages/PhysicalProductsPage"), "PhysicalProductsPage");
+const CartPage = lazyWithRetry(() => import("@/pages/CartPage"), "CartPage");
+const AddressesPage = lazyWithRetry(() => import("@/pages/AddressesPage"), "AddressesPage");
+const FulfilmentPage = lazyWithRetry(() => import("@/pages/FulfilmentPage"), "FulfilmentPage");
+const ReviewsPage = lazyWithRetry(() => import("@/pages/ReviewsPage"), "ReviewsPage");
+const DisputesPage = lazyWithRetry(() => import("@/pages/DisputesPage"), "DisputesPage");
+const ShippingProfilesPage = lazyWithRetry(() => import("@/pages/ShippingProfilesPage"), "ShippingProfilesPage");
+const PayoutsPage = lazyWithRetry(() => import("@/pages/PayoutsPage"), "PayoutsPage");
+const MilestonesPage = lazyWithRetry(() => import("@/pages/MilestonesPage"), "MilestonesPage");
+const MediaKitPage = lazyWithRetry(() => import("@/pages/MediaKitPage"), "MediaKitPage");
+const ProposalsPage = lazyWithRetry(() => import("@/pages/ProposalsPage"), "ProposalsPage");
+const ReferralsPage = lazyWithRetry(() => import("@/pages/ReferralsPage"), "ReferralsPage");
+const SubscriptionManagementPage = lazyWithRetry(() => import("@/pages/SubscriptionManagementPage"), "SubscriptionManagementPage");
+const BrowsePlansPage = lazyWithRetry(() => import("@/pages/BrowsePlansPage"), "BrowsePlansPage");
+const MySubscriptionsPage = lazyWithRetry(() => import("@/pages/MySubscriptionsPage"), "MySubscriptionsPage");
+const WalletPage = lazyWithRetry(() => import("@/pages/WalletPage"), "WalletPage");
+const DonationsPage = lazyWithRetry(() => import("@/pages/DonationsPage"), "DonationsPage");
+const EmailBroadcastsPage = lazyWithRetry(() => import("@/pages/EmailBroadcastsPage"), "EmailBroadcastsPage");
+const EmailSequencesPage = lazyWithRetry(() => import("@/pages/EmailSequencesPage"), "EmailSequencesPage");
+const EscrowPage = lazyWithRetry(() => import("@/pages/EscrowPage"), "EscrowPage");
+const PurchasesPage = lazyWithRetry(() => import("@/pages/PurchasesPage"), "PurchasesPage");
+const SecuregateOverviewPage = lazyWithRetry(() => import("@/pages/SecuregateOverviewPage"), "SecuregateOverviewPage");
+const AdminUsersPage = lazyWithRetry(() => import("@/pages/AdminUsersPage"), "AdminUsersPage");
+const AdminManagementPage = lazyWithRetry(() => import("@/pages/AdminManagementPage"), "AdminManagementPage");
+const AdminTransactionsPage = lazyWithRetry(() => import("@/pages/AdminTransactionsPage"), "AdminTransactionsPage");
+const AdminReconciliationPage = lazyWithRetry(() => import("@/pages/AdminReconciliationPage"), "AdminReconciliationPage");
+const AdminReportsPage = lazyWithRetry(() => import("@/pages/AdminReportsPage"), "AdminReportsPage");
+const AdminFeatureFlagsPage = lazyWithRetry(() => import("@/pages/AdminFeatureFlagsPage"), "AdminFeatureFlagsPage");
+const QueueMonitorPage = lazyWithRetry(() => import("@/pages/QueueMonitorPage"), "QueueMonitorPage");
+const AdminReviewsPage = lazyWithRetry(() => import("@/pages/AdminReviewsPage"), "AdminReviewsPage");
+const AdminAnalyticsPage = lazyWithRetry(() => import("@/pages/AdminAnalyticsPage"), "AdminAnalyticsPage");
+const AdminPlansPage = lazyWithRetry(() => import("@/pages/AdminPlansPage"), "AdminPlansPage");
+const AdminCommunitiesPage = lazyWithRetry(() => import("@/pages/AdminCommunitiesPage"), "AdminCommunitiesPage");
+const AdminEscrowPage = lazyWithRetry(() => import("@/pages/AdminEscrowPage"), "AdminEscrowPage");
+const AdminPayoutsPage = lazyWithRetry(() => import("@/pages/AdminPayoutsPage"), "AdminPayoutsPage");
+const AdminCmsPage = lazyWithRetry(() => import("@/pages/AdminCmsPage"), "AdminCmsPage");
+const ContentStudioPage = lazyWithRetry(() => import("@/pages/ContentStudioPage"));
+const LinkInBioPage = lazyWithRetry(() => import("@/pages/LinkInBioPage"));
+const LinkInBioDomainPage = lazyWithRetry(() => import("@/pages/LinkInBioDomainPage"));
+const StorePostsPage = lazyWithRetry(() => import("@/pages/StorePostsPage"));
+const StoreProductsPage = lazyWithRetry(() => import("@/pages/StoreProductsPage"));
+const StoreMembershipsPage = lazyWithRetry(() => import("@/pages/StoreMembershipsPage"));
+const SavedAddressesPage = lazyWithRetry(() => import("@/pages/SavedAddressesPage"));
+const InventoryPage = lazyWithRetry(() => import("@/pages/InventoryPage"));
+const CategoriesPage = lazyWithRetry(() => import("@/pages/CategoriesPage"));
+const ReturnsPage = lazyWithRetry(() => import("@/pages/ReturnsPage"));
+const SupportThreadsPage = lazyWithRetry(() => import("@/pages/SupportThreadsPage"));
+const StoreSettingsPage = lazyWithRetry(() => import("@/pages/StoreSettingsPage"));
+const ProductPerformancePage = lazyWithRetry(() => import("@/pages/ProductPerformancePage"));
+const AdminDisputesPage = lazyWithRetry(() => import("@/pages/AdminDisputesPage"));
+const AdminModerationLogsPage = lazyWithRetry(() => import("@/pages/AdminModerationLogsPage"));
+const AdminSystemHealthPage = lazyWithRetry(() => import("@/pages/AdminSystemHealthPage"));
+const AdminAuditTrailPage = lazyWithRetry(() => import("@/pages/AdminAuditTrailPage"));
+const AdminSettingsPage = lazyWithRetry(() => import("@/pages/AdminSettingsPage"));
+const AdminAuthMethodsPage = lazyWithRetry(() => import("@/pages/AdminAuthMethodsPage"));
+const AdminAiSettingsPage = lazyWithRetry(() => import("@/pages/AdminAiSettingsPage"));
+const AdminEmailEngineSettingsPage = lazyWithRetry(() => import("@/pages/AdminEmailEngineSettingsPage"));
+const AdminSmsEngineSettingsPage = lazyWithRetry(() => import("@/pages/AdminSmsEngineSettingsPage"));
+const AdminEmailTemplatesPage = lazyWithRetry(() => import("@/pages/AdminEmailTemplatesPage"));
+const AdminSocialLoginSettingsPage = lazyWithRetry(() => import("@/pages/AdminSocialLoginSettingsPage"));
+const AdminStoragePage = lazyWithRetry(() => import("@/pages/AdminStoragePage"));
+const AdminObjectStorageProvidersPage = lazyWithRetry(() => import("@/pages/AdminObjectStorageProvidersPage"));
+const ConnectedAccountsPage = lazyWithRetry(() => import("@/pages/ConnectedAccountsPage"));
+const AdminCreatorQualificationPage = lazyWithRetry(() => import("@/pages/AdminCreatorQualificationPage"));
+const AdminQualificationEventsPage = lazyWithRetry(() => import("@/pages/AdminQualificationEventsPage"));
+const AdminConversionMetricsPage = lazyWithRetry(() => import("@/pages/AdminConversionMetricsPage"));
+const FeedPage = lazyWithRetry(() => import("@/pages/FeedPage"));
+const ChatPage = lazyWithRetry(() => import("@/pages/ChatPage"));
+const AiAssistantPage = lazyWithRetry(() => import("@/pages/AiAssistantPage"));
+const AiSettingsPage = lazyWithRetry(() => import("@/pages/AiSettingsPage"));
+const OnboardingPage = lazyWithRetry(() => import("@/pages/OnboardingPage"));
+const RequestsPage = lazyWithRetry(() => import("@/pages/RequestsPage"));
+const FriendsPage = lazyWithRetry(() => import("@/pages/FriendsPage"));
+const AffiliateProductsPage = lazyWithRetry(() => import("@/pages/AffiliateProductsPage"));
+const MarketingPage = lazyWithRetry(() => import("@/pages/MarketingPage"));
+const PublicLinkInBioPage = lazyWithRetry(() => import("@/pages/PublicLinkInBioPage"));
+const PublicProfilePage = lazyWithRetry(() => import("@/pages/PublicProfilePage"), "PublicProfilePage");
+const ActivityLogPage = lazyWithRetry(() => import("@/pages/ActivityLogPage"));
+const ContentPlannerPage = lazyWithRetry(() => import("@/pages/ContentPlannerPage"));
+const AdCampaignPage = lazyWithRetry(() => import("@/pages/AdCampaignPage"));
+const GiftsPage = lazyWithRetry(() => import("@/pages/GiftsPage"));
+const CreatorWalletPage = lazyWithRetry(() => import("@/pages/CreatorWalletPage"));
+const BusinessWalletPage = lazyWithRetry(() => import("@/pages/BusinessWalletPage"));
+const AdminFeeManagementPage = lazyWithRetry(() => import("@/pages/AdminFeeManagementPage"), "AdminFeeManagementPage");
+const AdminAdsPage = lazyWithRetry(() => import("@/pages/AdminAdsPage"));
+const AdminGiftsPage = lazyWithRetry(() => import("@/pages/AdminGiftsPage"));
+const AdminSoundLibraryPage = lazyWithRetry(() => import("@/pages/AdminSoundLibraryPage"));
+const AdminCoinPacksPage = lazyWithRetry(() => import("@/pages/AdminCoinPacksPage"));
+const AdminStoriesPage = lazyWithRetry(() => import("@/pages/AdminStoriesPage"));
+const AdminPaymentProvidersPage = lazyWithRetry(() => import("@/pages/AdminPaymentProvidersPage"), "AdminPaymentProvidersPage");
+const AdminAccountingPage = lazyWithRetry(() => import("@/pages/AdminAccountingPage"), "AdminAccountingPage");
+const AdminAlgorithmPage = lazyWithRetry(() => import("@/pages/AdminAlgorithmPage"));
+const AdminMediaManagerPage = lazyWithRetry(() => import("@/pages/AdminMediaManagerPage"));
+const SocialAuthCallbackPage = lazyWithRetry(() => import("@/pages/SocialAuthCallbackPage"), "SocialAuthCallbackPage");
+const PrivacyPolicyPage = lazyWithRetry(() => import("@/pages/PrivacyPolicyPage"));
+const TermsOfServicePage = lazyWithRetry(() => import("@/pages/TermsOfServicePage"));
+const GDPRPolicyPage = lazyWithRetry(() => import("@/pages/GDPRPolicyPage"), "GDPRPolicyPage");
+const CookiesPolicyPage = lazyWithRetry(() => import("@/pages/CookiesPolicyPage"));
+const HelpCenterPage = lazyWithRetry(() => import("@/pages/HelpCenterPage"));
 
 export const routes: RouteObject[] = [
   // ── Public auth pages & Public Storefront ───
@@ -163,11 +170,29 @@ export const routes: RouteObject[] = [
   { path: "/store/:shortCode", element: <Suspense fallback={<PageLoader />}><PublicStorefrontPage /></Suspense> },
   { path: "/media-kit/:creatorId", element: <Suspense fallback={<PageLoader />}><PublicMediaKitPage /></Suspense> },
   { path: "/communities", element: <Suspense fallback={<PageLoader />}><PublicCommunitiesPage /></Suspense> },
+  { path: "/communities/:slug", element: <Suspense fallback={<PageLoader />}><CommunityPreviewPage /></Suspense> },
+  { path: "/c/:slug", element: <Suspense fallback={<PageLoader />}><CommunityPreviewPage /></Suspense> },
   { path: "/privacy", element: <Suspense fallback={<PageLoader />}><PrivacyPolicyPage /></Suspense> },
   { path: "/terms", element: <Suspense fallback={<PageLoader />}><TermsOfServicePage /></Suspense> },
   { path: "/gdpr", element: <Suspense fallback={<PageLoader />}><GDPRPolicyPage /></Suspense> },
   { path: "/cookies", element: <Suspense fallback={<PageLoader />}><CookiesPolicyPage /></Suspense> },
   { path: "/help", element: <Suspense fallback={<PageLoader />}><HelpCenterPage /></Suspense> },
+  { path: "/friends", element: <Navigate to="/app/friends" replace /> },
+  { path: "/friends/*", element: <Navigate to="/app/friends" replace /> },
+  { path: "/community", element: <Navigate to="/app/communities" replace /> },
+  { path: "/community/*", element: <Navigate to="/app/communities" replace /> },
+  { path: "/courses", element: <Navigate to="/app/courses" replace /> },
+  { path: "/courses/*", element: <Navigate to="/app/courses" replace /> },
+  { path: "/marketing", element: <Navigate to="/app/marketing" replace /> },
+  { path: "/marketing/*", element: <Navigate to="/app/marketing" replace /> },
+  { path: "/brand-deals", element: <Navigate to="/app/brand-deals" replace /> },
+  { path: "/brand-deals/*", element: <Navigate to="/app/brand-deals" replace /> },
+  { path: "/live-events", element: <Navigate to="/app/events" replace /> },
+  { path: "/live-events/*", element: <Navigate to="/app/events" replace /> },
+  { path: "/my-events", element: <Navigate to="/app/my-events" replace /> },
+  { path: "/audio-rooms", element: <Navigate to="/app/audio-rooms" replace /> },
+  { path: "/subscriptions", element: <Navigate to="/app/subscriptions" replace /> },
+  { path: "/subscriptions/*", element: <Navigate to="/app/subscriptions" replace /> },
 
   // ── Authenticated Dashboard (sidebar-07 shell) ─
   {
@@ -199,6 +224,26 @@ export const routes: RouteObject[] = [
         element: <Suspense fallback={<PageLoader />}><ActivityLogPage /></Suspense>,
       },
 
+      // ── 1:1 Coaching & Bookings ─────────────────
+      {
+        path: "coaching",
+        element: <Suspense fallback={<PageLoader />}><CoachingPage /></Suspense>,
+      },
+
+      // ── Video Meetings & Conferences (Google Meet Style) ──
+      {
+        path: "meetings",
+        element: <Suspense fallback={<PageLoader />}><MeetingRoomPage /></Suspense>,
+      },
+      {
+        path: "meeting/:roomCode",
+        element: <Suspense fallback={<PageLoader />}><MeetingRoomPage /></Suspense>,
+      },
+      {
+        path: "meeting/booking/:bookingId",
+        element: <Suspense fallback={<PageLoader />}><MeetingRoomPage /></Suspense>,
+      },
+
       // ── Identity Verification (KYC) ─────────────
       {
         path: "kyc",
@@ -228,11 +273,35 @@ export const routes: RouteObject[] = [
         path: "requests",
         element: <Suspense fallback={<PageLoader />}><RequestsPage /></Suspense>,
       },
+      {
+        path: "requests/friends",
+        element: <Navigate to="/app/friends?tab=requests" replace />,
+      },
 
       // ── Friends (dedicated friends manager) ──────
       {
         path: "friends",
         element: <Suspense fallback={<PageLoader />}><FriendsPage /></Suspense>,
+      },
+      {
+        path: "friends/requests",
+        element: <Suspense fallback={<PageLoader />}><FriendsPage initialTab="requests" /></Suspense>,
+      },
+      {
+        path: "friends/suggestions",
+        element: <Suspense fallback={<PageLoader />}><FriendsPage initialTab="suggestions" /></Suspense>,
+      },
+      {
+        path: "friends/birthdays",
+        element: <Suspense fallback={<PageLoader />}><FriendsPage initialTab="birthdays" /></Suspense>,
+      },
+      {
+        path: "friends/lists",
+        element: <Suspense fallback={<PageLoader />}><FriendsPage initialTab="lists" /></Suspense>,
+      },
+      {
+        path: "friends/find",
+        element: <Navigate to="/app/friends" replace />,
       },
 
       // ── Content Studio (Creator) ────────────────
@@ -259,6 +328,10 @@ export const routes: RouteObject[] = [
 
       // ── MurihStore (Digital, Courses, Coaching, Physical, Subscriptions) ─
       {
+        path: "storefront",
+        element: <Navigate to="/app/store" replace />,
+      },
+      {
         path: "store",
         element: <Suspense fallback={<PageLoader />}><StoreManagementPage /></Suspense>,
       },
@@ -276,27 +349,39 @@ export const routes: RouteObject[] = [
       },
       {
         path: "store/posts",
-        element: <ProtectedRoute requiredRole="creator"><Suspense fallback={<PageLoader />}><StorePostsPage /></Suspense></ProtectedRoute>,
+        element: <ProtectedRoute requiredRole={["creator", "vendor"]}><Suspense fallback={<PageLoader />}><StorePostsPage /></Suspense></ProtectedRoute>,
       },
       {
         path: "store/physical-products",
-        element: <ProtectedRoute requiredRole="creator"><Suspense fallback={<PageLoader />}><PhysicalProductsPage /></Suspense></ProtectedRoute>,
+        element: <ProtectedRoute requiredRole={["creator", "vendor"]}><Suspense fallback={<PageLoader />}><PhysicalProductsPage /></Suspense></ProtectedRoute>,
       },
       {
         path: "store/inventory",
-        element: <ProtectedRoute requiredRole="creator"><Suspense fallback={<PageLoader />}><InventoryPage /></Suspense></ProtectedRoute>,
+        element: <ProtectedRoute requiredRole={["creator", "vendor"]}><Suspense fallback={<PageLoader />}><InventoryPage /></Suspense></ProtectedRoute>,
       },
       {
         path: "store/categories",
-        element: <ProtectedRoute requiredRole="creator"><Suspense fallback={<PageLoader />}><CategoriesPage /></Suspense></ProtectedRoute>,
+        element: <ProtectedRoute requiredRole={["creator", "vendor"]}><Suspense fallback={<PageLoader />}><CategoriesPage /></Suspense></ProtectedRoute>,
       },
       {
         path: "store/returns",
-        element: <ProtectedRoute requiredRole="creator"><Suspense fallback={<PageLoader />}><ReturnsPage /></Suspense></ProtectedRoute>,
+        element: <ProtectedRoute requiredRole={["creator", "vendor"]}><Suspense fallback={<PageLoader />}><ReturnsPage /></Suspense></ProtectedRoute>,
       },
       {
         path: "store/digital",
         element: <Suspense fallback={<PageLoader />}><DigitalProductsPage /></Suspense>,
+      },
+      {
+        path: "courses",
+        element: <Suspense fallback={<PageLoader />}><CoursesPage /></Suspense>,
+      },
+      {
+        path: "courses/my",
+        element: <Suspense fallback={<PageLoader />}><CoursesPage /></Suspense>,
+      },
+      {
+        path: "courses/studio",
+        element: <ProtectedRoute requiredRole="creator"><Suspense fallback={<PageLoader />}><CoursesPage /></Suspense></ProtectedRoute>,
       },
       {
         path: "store/courses",
@@ -308,7 +393,7 @@ export const routes: RouteObject[] = [
       },
       {
         path: "store/physical",
-        element: <ProtectedRoute requiredRole="creator"><Suspense fallback={<PageLoader />}><PhysicalProductsPage /></Suspense></ProtectedRoute>,
+        element: <ProtectedRoute requiredRole={["creator", "vendor"]}><Suspense fallback={<PageLoader />}><PhysicalProductsPage /></Suspense></ProtectedRoute>,
       },
       {
         path: "store/cart",
@@ -320,7 +405,7 @@ export const routes: RouteObject[] = [
       },
       {
         path: "store/fulfilment",
-        element: <ProtectedRoute requiredRole="vendor"><Suspense fallback={<PageLoader />}><FulfilmentPage /></Suspense></ProtectedRoute>,
+        element: <ProtectedRoute requiredRole={["creator", "vendor"]}><Suspense fallback={<PageLoader />}><FulfilmentPage /></Suspense></ProtectedRoute>,
       },
       {
         path: "store/reviews",
@@ -332,7 +417,7 @@ export const routes: RouteObject[] = [
       },
       {
         path: "store/shipping",
-        element: <ProtectedRoute requiredRole="vendor"><Suspense fallback={<PageLoader />}><ShippingProfilesPage /></Suspense></ProtectedRoute>,
+        element: <ProtectedRoute requiredRole={["creator", "vendor"]}><Suspense fallback={<PageLoader />}><ShippingProfilesPage /></Suspense></ProtectedRoute>,
       },
       {
         path: "store/orders",
@@ -369,10 +454,14 @@ export const routes: RouteObject[] = [
         element: <ProtectedRoute requiredRole="creator"><Suspense fallback={<PageLoader />}><BrandInvoicingPage /></Suspense></ProtectedRoute>,
       },
 
-      // ── Advertising ────────────────────────────
+      // ── Advertising & Ads Manager ───────────────
       {
         path: "ads",
-        element: <ProtectedRoute requiredRole="creator"><Suspense fallback={<PageLoader />}><AdCampaignPage /></Suspense></ProtectedRoute>,
+        element: <ProtectedRoute><Suspense fallback={<PageLoader />}><AdCampaignPage /></Suspense></ProtectedRoute>,
+      },
+      {
+        path: "ads-manager",
+        element: <ProtectedRoute><Suspense fallback={<PageLoader />}><AdCampaignPage /></Suspense></ProtectedRoute>,
       },
 
       // ── Gifts & Creator Wallet ─────────────────
@@ -399,11 +488,31 @@ export const routes: RouteObject[] = [
         element: <ProtectedRoute requiredRole="creator"><Suspense fallback={<PageLoader />}><EmailSequencesPage /></Suspense></ProtectedRoute>,
       },
       {
+        path: "marketing/ads",
+        element: <ProtectedRoute requiredRole="creator"><Suspense fallback={<PageLoader />}><AdCampaignPage /></Suspense></ProtectedRoute>,
+      },
+      {
         path: "marketing/affiliates",
         element: <Suspense fallback={<PageLoader />}><AffiliateProductsPage /></Suspense>,
       },
       {
         path: "marketing/referrals",
+        element: <Suspense fallback={<PageLoader />}><ReferralsPage /></Suspense>,
+      },
+      {
+        path: "affiliate",
+        element: <Suspense fallback={<PageLoader />}><AffiliateProductsPage /></Suspense>,
+      },
+      {
+        path: "affiliates",
+        element: <Suspense fallback={<PageLoader />}><AffiliateProductsPage /></Suspense>,
+      },
+      {
+        path: "referrals",
+        element: <Suspense fallback={<PageLoader />}><ReferralsPage /></Suspense>,
+      },
+      {
+        path: "rewards",
         element: <Suspense fallback={<PageLoader />}><ReferralsPage /></Suspense>,
       },
       {
@@ -421,6 +530,14 @@ export const routes: RouteObject[] = [
         element: <Suspense fallback={<PageLoader />}><CommunitiesPage /></Suspense>,
       },
       {
+        path: "groups",
+        element: <Suspense fallback={<PageLoader />}><GroupsPage /></Suspense>,
+      },
+      {
+        path: "groups/:slug",
+        element: <Suspense fallback={<PageLoader />}><GroupDetailPage /></Suspense>,
+      },
+      {
         path: "communities/:slug",
         element: <Suspense fallback={<PageLoader />}><CommunityPreviewPage /></Suspense>,
       },
@@ -434,7 +551,7 @@ export const routes: RouteObject[] = [
       },
       {
         path: "events",
-        element: <Suspense fallback={<PageLoader />}><MyEventsPage /></Suspense>,
+        element: <Suspense fallback={<PageLoader />}><EventsPage /></Suspense>,
       },
       {
         path: "audio-rooms",
@@ -519,7 +636,11 @@ export const routes: RouteObject[] = [
         element: <Suspense fallback={<PageLoader />}><EscrowPage /></Suspense>,
       },
 
-      // ── Analytics & Sales ──────────────────────
+      // ── Analytics & Insights ──────────────────────
+      {
+        path: "insights",
+        element: <Suspense fallback={<PageLoader />}><AnalyticsPage /></Suspense>,
+      },
       {
         path: "analytics",
         element: <Suspense fallback={<PageLoader />}><AnalyticsPage /></Suspense>,
@@ -618,6 +739,14 @@ export const routes: RouteObject[] = [
       {
         path: "securegate/transactions",
         element: <ProtectedRoute requiredRole="admin"><Suspense fallback={<PageLoader />}><AdminTransactionsPage /></Suspense></ProtectedRoute>,
+      },
+      {
+        path: "securegate/payment-providers",
+        element: <ProtectedRoute requiredRole="admin"><Suspense fallback={<PageLoader />}><AdminPaymentProvidersPage /></Suspense></ProtectedRoute>,
+      },
+      {
+        path: "securegate/accounting",
+        element: <ProtectedRoute requiredRole="admin"><Suspense fallback={<PageLoader />}><AdminAccountingPage /></Suspense></ProtectedRoute>,
       },
       {
         path: "securegate/reports",
@@ -736,6 +865,10 @@ export const routes: RouteObject[] = [
         element: <ProtectedRoute requiredRole="admin"><Suspense fallback={<PageLoader />}><AdminStoragePage /></Suspense></ProtectedRoute>,
       },
       {
+        path: "securegate/media",
+        element: <ProtectedRoute requiredRole="admin"><Suspense fallback={<PageLoader />}><AdminMediaManagerPage /></Suspense></ProtectedRoute>,
+      },
+      {
         path: "securegate/storage/providers",
         element: <ProtectedRoute requiredRole="admin"><Suspense fallback={<PageLoader />}><AdminObjectStorageProvidersPage /></Suspense></ProtectedRoute>,
       },
@@ -768,6 +901,10 @@ export const routes: RouteObject[] = [
         element: <ProtectedRoute requiredRole="admin"><Suspense fallback={<PageLoader />}><AdminGiftsPage /></Suspense></ProtectedRoute>,
       },
       {
+        path: "securegate/sound-tracks",
+        element: <ProtectedRoute requiredRole="admin"><Suspense fallback={<PageLoader />}><AdminSoundLibraryPage /></Suspense></ProtectedRoute>,
+      },
+      {
         path: "securegate/coin-packs",
         element: <ProtectedRoute requiredRole="admin"><Suspense fallback={<PageLoader />}><AdminCoinPacksPage /></Suspense></ProtectedRoute>,
       },
@@ -788,8 +925,12 @@ export const routes: RouteObject[] = [
   // ── Public home → redirect to app dashboard ────
   { path: RoutePaths.HOME, element: <Navigate to="/app" replace /> },
 
-  // ── Public link-in-bio pages ─────────────────────
-  { path: ":username", element: <Suspense fallback={<PageLoader />}><PublicLinkInBioPage /></Suspense> },
+  // ── Public link-in-bio & profile pages ───────────
+  { path: "u/:username", element: <Suspense fallback={<PageLoader />}><PublicProfilePage /></Suspense> },
+  { path: "@:username", element: <Suspense fallback={<PageLoader />}><PublicProfilePage /></Suspense> },
+  { path: "l/:username", element: <Suspense fallback={<PageLoader />}><PublicLinkInBioPage /></Suspense> },
+  { path: "bio/:username", element: <Suspense fallback={<PageLoader />}><PublicLinkInBioPage /></Suspense> },
+  { path: ":username", element: <Suspense fallback={<PageLoader />}><PublicProfilePage /></Suspense> },
 
   // ── 404 ───────────────────────────────────────
   { path: "*", element: <Suspense fallback={<PageLoader />}><NotFoundPage /></Suspense> },

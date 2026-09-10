@@ -116,8 +116,10 @@ class QueueMonitorController extends Controller
         $dbConnection = config('database.default');
         $redisReady = false;
         try {
-            $redisReady = app('redis')->command('ping') === 'PONG';
-        } catch (\Exception $e) {
+            if (extension_loaded('redis') || class_exists(\Redis::class) || class_exists(\Predis\Client::class)) {
+                $redisReady = app('redis')->command('ping') === 'PONG';
+            }
+        } catch (\Throwable $e) {
             $redisReady = false;
         }
 

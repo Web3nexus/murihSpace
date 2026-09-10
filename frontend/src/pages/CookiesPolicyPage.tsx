@@ -1,10 +1,12 @@
-import { Cookie } from "lucide-react";
+import {
+  Cookie as Cookie
+} from "@phosphor-icons/react";
 import { LegalLayout } from "@/components/layout/LegalLayout";
 
 export default function CookiesPolicyPage() {
   return (
     <LegalLayout
-      icon={<Cookie className="h-6 w-6" />}
+      icon={<Cookie weight="fill" className="h-6 w-6" />}
       eyebrow="Legal"
       title="Cookies Policy"
       updated="August 4, 2026"

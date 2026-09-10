@@ -1,5 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Plus, X, Send, Loader2 } from 'lucide-react';
+import {
+  Plus as Plus,
+  X as X,
+  PaperPlaneRight as Send,
+  Spinner as Loader2
+} from "@phosphor-icons/react";
 import StoryViewer from './StoryViewer';
 import { getAuthToken } from "@/lib/auth/token";
 
@@ -104,7 +109,7 @@ export default function StoryRings() {
           className="flex-shrink-0 flex flex-col items-center gap-1"
         >
           <div className="w-16 h-16 rounded-full border-2 border-dashed border-primary flex items-center justify-center bg-muted/30 hover:bg-muted/50 transition-colors">
-            <Plus className="w-6 h-6 text-primary" />
+            <Plus weight="fill" className="w-6 h-6 text-primary" />
           </div>
           <span className="text-[10px] text-muted-foreground">Add Story</span>
         </button>
@@ -135,13 +140,13 @@ export default function StoryRings() {
 
       {composerOpen && (
         <div className="px-4 py-3 border-b border-border">
-          <div className="rounded-xl border border-border bg-card p-3 space-y-2">
+          <div className="rounded-lg border-none bg-card p-3 space-y-2">
             <textarea
               value={storyText}
               onChange={(e) => setStoryText(e.target.value)}
               placeholder="Share an update…"
               maxLength={500}
-              className="w-full h-20 p-3 text-xs rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/40 resize-none"
+              className="w-full h-20 p-3 text-xs rounded-lg border-none bg-background focus:outline-none focus:ring-2 focus:ring-primary/40 resize-none"
             />
             <div className="flex items-center justify-between">
               <span className="text-[10px] text-muted-foreground">{storyText.length}/500</span>
@@ -151,14 +156,14 @@ export default function StoryRings() {
                   className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                   aria-label="Close composer"
                 >
-                  <X className="w-4 h-4" />
+                  <X weight="fill" className="w-4 h-4" />
                 </button>
                 <button
                   onClick={handleCreateTextStory}
                   disabled={submitting || !storyText.trim()}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 disabled:opacity-50 transition-colors"
                 >
-                  {submitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                  {submitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send weight="fill" className="w-3.5 h-3.5" />}
                   Publish
                 </button>
               </div>

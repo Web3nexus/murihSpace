@@ -9,7 +9,11 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { ShieldAlert, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import {
+  ShieldWarning as ShieldWarning,
+  Warning as AlertTriangle,
+  CheckCircle as CheckCircle2
+} from "@phosphor-icons/react";
 import type { ReportReason, ReportedType } from '@/types/moderation';
 import { getAuthToken } from "@/lib/auth/token";
 
@@ -88,10 +92,10 @@ export function ReportModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-lg md:max-w-xl bg-card border-border shadow-2xl rounded-2xl p-6 sm:p-8">
+      <DialogContent className="sm:max-w-lg md:max-w-xl bg-card border-border shadow-2xl rounded-lg p-4 sm:p-5">
         <DialogHeader>
           <div className="flex items-center gap-2.5 text-destructive">
-            <ShieldAlert className="h-5 w-5" />
+            <ShieldWarning weight="fill" className="h-5 w-5" />
             <DialogTitle className="text-lg font-bold text-foreground">
               Report {reportedType === 'user' ? 'User' : reportedType === 'post' ? 'Post' : 'Comment'}
             </DialogTitle>
@@ -103,7 +107,7 @@ export function ReportModal({
 
         {isSuccess ? (
           <div className="py-8 flex flex-col items-center justify-center text-center space-y-3">
-            <CheckCircle2 className="h-12 w-12 text-emerald-500 animate-bounce" />
+            <CheckCircle2 weight="fill" className="h-12 w-12 text-emerald-500 animate-bounce" />
             <h4 className="text-base font-bold text-foreground">Report Submitted</h4>
             <p className="text-xs text-muted-foreground max-w-xs">
               Thank you for keeping our community safe. Our moderation team will review this shortly.
@@ -112,8 +116,8 @@ export function ReportModal({
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4 py-2">
             {error && (
-              <div className="p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-xs flex items-center gap-2">
-                <AlertTriangle className="h-4 w-4 shrink-0" />
+              <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-xs flex items-center gap-2">
+                <AlertTriangle weight="fill" className="h-4 w-4 shrink-0" />
                 <span>{error}</span>
               </div>
             )}
@@ -131,9 +135,9 @@ export function ReportModal({
                     role="radio"
                     aria-checked={selectedReason === r.value}
                     tabIndex={0}
-                    className={`p-3 rounded-xl border transition-all cursor-pointer flex flex-col gap-0.5 ${
+                    className={`p-3 rounded-lg border transition-all cursor-pointer flex flex-col gap-0.5 ${
                       selectedReason === r.value
-                        ? 'border-secondary bg-secondary/10 shadow-sm'
+                        ? 'border-secondary bg-secondary/10 '
                         : 'border-border hover:border-muted-foreground/30 hover:bg-muted/30'
                     }`}
                   >

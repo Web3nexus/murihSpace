@@ -1,17 +1,17 @@
 import { useState, useEffect, useCallback } from "react";
 import {
-  MessageSquare,
-  Loader2,
-  Send,
-  AlertCircle,
-  Plus,
-  ChevronLeft,
-  Star,
-  Paperclip,
-  X,
-  RotateCcw,
-  CheckCircle2,
-} from "lucide-react";
+  ChatTeardropText as MessageSquare,
+  Spinner as Loader2,
+  PaperPlaneRight as Send,
+  WarningCircle as AlertCircle,
+  Plus as Plus,
+  CaretLeft as ChevronLeft,
+  Star as Star,
+  Paperclip as Paperclip,
+  X as X,
+  ArrowCounterClockwise as RotateCcw,
+  CheckCircle as CheckCircle2
+} from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -129,7 +129,7 @@ function StarRating({ value, onChange, disabled }: { value: number; onChange?: (
           className={`transition-colors ${onChange ? "cursor-pointer hover:scale-110" : "cursor-default"} ${disabled ? "opacity-60" : ""}`}
           aria-label={`${n} star${n > 1 ? "s" : ""}`}
         >
-          <Star className={`h-5 w-5 ${n <= value ? "fill-amber-400 text-amber-400" : "text-muted-foreground/30"}`} />
+          <Star weight="fill" className={`h-5 w-5 ${n <= value ? "fill-amber-400 text-amber-400" : "text-muted-foreground/30"}`} />
         </button>
       ))}
     </div>
@@ -318,38 +318,38 @@ export default function SupportThreadsPage() {
   const canReply = detail && !["resolved", "closed"].includes(detail.status);
 
   if (loading) {
-    return <div className="flex justify-center py-24"><Loader2 className="h-8 w-8 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" /></div>;
+    return <div className="flex justify-center py-24"><Loader2 weight="fill" className="h-8 w-8 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" /></div>;
   }
 
   return (
-    <div className="w-full max-w-7xl mx-auto space-y-5 p-6 lg:p-8">
+    <div className="w-full max-w-7xl mx-auto space-y-5 p-4 lg:p-5">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black tracking-tight flex items-center gap-2.5">
-            <MessageSquare className="h-6 w-6 text-[#2164b6] dark:text-[#7ab0ff]" /> My Tickets
+          <h1 className="text-xl font-black tracking-tight flex items-center gap-2.5">
+            <MessageSquare weight="fill" className="h-6 w-6 text-[#2164b6] dark:text-[#7ab0ff]" /> My Tickets
           </h1>
           <p className="text-xs text-muted-foreground mt-1">
             Track your requests, reply to support, and rate our help.
           </p>
         </div>
         <Button size="sm" className="h-9 shrink-0" onClick={() => setShowCreateForm(true)}>
-          <Plus className="h-4 w-4 mr-1.5" /> New Ticket
+          <Plus weight="fill" className="h-4 w-4 mr-1.5" /> New Ticket
         </Button>
       </div>
 
       {fetchError && (
-        <div className="flex items-center gap-2 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-xs text-destructive">
-          <AlertCircle className="h-4 w-4 shrink-0" /> {fetchError}
+        <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-xs text-destructive">
+          <AlertCircle weight="fill" className="h-4 w-4 shrink-0" /> {fetchError}
           <button onClick={() => { setLoading(true); fetchTickets(); }} className="ml-auto text-muted-foreground hover:text-foreground font-bold">Retry</button>
         </div>
       )}
 
       {showCreateForm && (
-        <div className="border border-border rounded-2xl bg-card p-5 space-y-4">
+        <div className="border-none rounded-lg bg-card p-5 space-y-4">
           <div className="flex items-center justify-between">
             <p className="text-sm font-bold">Create a support ticket</p>
             <button onClick={() => { setShowCreateForm(false); setCreateError(null); }} className="text-muted-foreground hover:text-foreground">
-              <X className="h-4 w-4" />
+              <X weight="fill" className="h-4 w-4" />
             </button>
           </div>
 
@@ -411,7 +411,7 @@ export default function SupportThreadsPage() {
             <div className="space-y-1.5 md:col-span-2">
               <label htmlFor="ticket-attachment" className="text-xs font-semibold text-muted-foreground">Attachment (optional)</label>
               <label htmlFor="ticket-attachment" className="flex items-center gap-2 rounded-lg border border-dashed border-border px-3 py-2.5 text-xs text-muted-foreground cursor-pointer hover:bg-muted/20 transition-colors">
-                <Paperclip className="h-4 w-4 shrink-0" />
+                <Paperclip weight="fill" className="h-4 w-4 shrink-0" />
                 {createData.attachment ? createData.attachment.name : "Attach a screenshot or file (max 5MB)"}
                 <input
                   id="ticket-attachment"
@@ -435,14 +435,14 @@ export default function SupportThreadsPage() {
 
           {createError && (
             <p className="text-xs text-destructive flex items-center gap-1.5">
-              <AlertCircle className="h-3.5 w-3.5" /> {createError}
+              <AlertCircle weight="fill" className="h-3.5 w-3.5" /> {createError}
             </p>
           )}
 
           <div className="flex justify-end gap-2">
             <Button variant="ghost" size="sm" onClick={() => { setShowCreateForm(false); setCreateError(null); }}>Cancel</Button>
             <Button size="sm" onClick={createTicket} disabled={submitting}>
-              {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4 mr-1.5" />}
+              {submitting ? <Loader2 weight="fill" className="h-4 w-4 animate-spin" /> : <Send weight="fill" className="h-4 w-4 mr-1.5" />}
               {submitting ? "Submitting..." : "Submit Ticket"}
             </Button>
           </div>
@@ -465,13 +465,13 @@ export default function SupportThreadsPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
         {/* Ticket list */}
-        <div className="lg:col-span-1 border border-border rounded-2xl bg-card overflow-hidden">
+        <div className="lg:col-span-1 border-none rounded-lg bg-card overflow-hidden">
           <div className="p-3 border-b border-border">
             <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Tickets</p>
           </div>
           {tickets.length === 0 ? (
-            <div className="p-8 text-center">
-              <MessageSquare className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" />
+            <div className="p-5 text-center">
+              <MessageSquare weight="fill" className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" />
               <p className="text-xs text-muted-foreground">No tickets found</p>
             </div>
           ) : (
@@ -502,11 +502,11 @@ export default function SupportThreadsPage() {
         </div>
 
         {/* Detail */}
-        <div className="lg:col-span-2 border border-border rounded-2xl bg-card flex flex-col min-h-[480px]">
+        <div className="lg:col-span-2 border-none rounded-lg bg-card flex flex-col min-h-[480px]">
           {!selectedId || (!detailLoading && !detail) ? (
             <div className="flex-1 flex items-center justify-center p-12">
               <div className="text-center">
-                <MessageSquare className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
+                <MessageSquare weight="fill" className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
                 <p className="text-sm font-bold text-muted-foreground">
                   {selectedId && detailError ? "Could not load ticket" : "Select a ticket to view it"}
                 </p>
@@ -517,13 +517,13 @@ export default function SupportThreadsPage() {
             </div>
           ) : detailLoading ? (
             <div className="flex-1 flex items-center justify-center">
-              <Loader2 className="h-8 w-8 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" />
+              <Loader2 weight="fill" className="h-8 w-8 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" />
             </div>
           ) : detail ? (
             <>
               <div className="p-4 border-b border-border">
                 <button onClick={() => { setSelectedId(null); setDetail(null); }} className="text-[10px] text-muted-foreground hover:text-foreground mb-2 flex items-center gap-1">
-                  <ChevronLeft className="h-3 w-3" /> Back to list
+                  <ChevronLeft weight="fill" className="h-3 w-3" /> Back to list
                 </button>
                 <div className="flex flex-wrap items-center gap-2">
                   <h2 className="text-sm font-black truncate">{detail.subject}</h2>
@@ -543,14 +543,14 @@ export default function SupportThreadsPage() {
 
               {actionError && (
                 <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 m-4 mb-0 text-xs text-destructive">
-                  <AlertCircle className="h-4 w-4 shrink-0" /> {actionError}
+                  <AlertCircle weight="fill" className="h-4 w-4 shrink-0" /> {actionError}
                 </div>
               )}
 
               <div className="flex-1 p-4 space-y-3 overflow-y-auto max-h-[360px]">
                 {/* Original description */}
                 <div className="flex justify-start">
-                  <div className="max-w-[85%] p-3 rounded-2xl bg-muted text-foreground text-xs">
+                  <div className="max-w-[85%] p-3 rounded-lg bg-muted text-foreground text-xs">
                     <p className="font-bold text-[10px] text-muted-foreground mb-1">You</p>
                     <p>{detail.description}</p>
                     <p className="text-[9px] text-muted-foreground mt-1">{formatDate(detail.created_at)}</p>
@@ -559,7 +559,7 @@ export default function SupportThreadsPage() {
 
                 {detail.messages.map((m) => (
                   <div key={m.id} className={`flex ${m.author === "customer" ? "justify-start" : "justify-end"}`}>
-                    <div className={`max-w-[85%] p-3 rounded-2xl text-xs ${m.author === "customer" ? "bg-muted text-foreground" : "bg-[#2164b6]/15 text-foreground"}`}>
+                    <div className={`max-w-[85%] p-3 rounded-lg text-xs ${m.author === "customer" ? "bg-muted text-foreground" : "bg-[#2164b6]/15 text-foreground"}`}>
                       <p className="font-bold text-[10px] text-muted-foreground mb-1">
                         {m.author === "customer" ? "You" : "Support"}
                       </p>
@@ -602,7 +602,7 @@ export default function SupportThreadsPage() {
                       maxLength={1000}
                     />
                     <Button size="sm" className="h-9" disabled={sending || ratingValue === 0} onClick={submitRating}>
-                      {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Star className="h-4 w-4 mr-1.5" />}
+                      {sending ? <Loader2 weight="fill" className="h-4 w-4 animate-spin" /> : <Star weight="fill" className="h-4 w-4 mr-1.5" />}
                       Submit
                     </Button>
                   </div>
@@ -619,7 +619,7 @@ export default function SupportThreadsPage() {
                     disabled={sending}
                     onClick={() => changeStatus("closed")}
                   >
-                    <CheckCircle2 className="h-3.5 w-3.5 mr-1.5" /> Close this ticket
+                    <CheckCircle2 weight="fill" className="h-3.5 w-3.5 mr-1.5" /> Close this ticket
                   </Button>
                 )}
                 {canReopen && (
@@ -630,7 +630,7 @@ export default function SupportThreadsPage() {
                     disabled={sending}
                     onClick={() => changeStatus("reopened")}
                   >
-                    <RotateCcw className="h-3.5 w-3.5 mr-1.5" /> Reopen this ticket
+                    <RotateCcw weight="fill" className="h-3.5 w-3.5 mr-1.5" /> Reopen this ticket
                   </Button>
                 )}
                 {canReply && (
@@ -638,12 +638,12 @@ export default function SupportThreadsPage() {
                     <Input
                       value={newMsg}
                       onChange={(e) => setNewMsg(e.target.value)}
-                      placeholder="Type a reply..."
+                      placeholder="TextT a reply..."
                       className="flex-1 text-xs"
                       onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && sendMessage()}
                     />
                     <Button size="sm" disabled={sending || !newMsg.trim()} onClick={sendMessage} className="h-9 shrink-0">
-                      {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                      {sending ? <Loader2 weight="fill" className="h-4 w-4 animate-spin" /> : <Send weight="fill" className="h-4 w-4" />}
                     </Button>
                   </div>
                 )}

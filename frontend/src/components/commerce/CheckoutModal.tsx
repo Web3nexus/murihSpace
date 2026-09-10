@@ -1,15 +1,15 @@
 import { useState } from 'react';
 import {
-  ShoppingCart,
-  CreditCard,
-  CheckCircle2,
-  AlertCircle,
-  Download,
-  Loader2,
-  Package,
-  Tag,
-  Zap,
-} from 'lucide-react';
+  ShoppingCart as ShoppingCart,
+  CreditCard as CreditCard,
+  CheckCircle as CheckCircle2,
+  WarningCircle as AlertCircle,
+  DownloadSimple as Download,
+  Spinner as Loader2,
+  Package as Package,
+  Tag as Tag,
+  Lightning as Zap
+} from "@phosphor-icons/react";
 import {
   Dialog,
   DialogContent,
@@ -121,10 +121,10 @@ export function CheckoutModal({ product, open, onClose }: CheckoutModalProps) {
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-xl md:max-w-2xl bg-card border-border shadow-2xl rounded-2xl p-6 sm:p-8">
+      <DialogContent className="sm:max-w-xl md:max-w-2xl bg-card border-border shadow-2xl rounded-lg p-4 sm:p-5">
         <DialogHeader>
           <DialogTitle className="text-base font-bold text-foreground flex items-center gap-2">
-            <ShoppingCart className="h-5 w-5 text-secondary" />
+            <ShoppingCart weight="fill" className="h-5 w-5 text-secondary" />
             {step === 'success' ? 'Purchase Complete!' : 'Complete Your Purchase'}
           </DialogTitle>
           <DialogDescription className="text-xs text-muted-foreground">
@@ -138,13 +138,13 @@ export function CheckoutModal({ product, open, onClose }: CheckoutModalProps) {
         {step === 'review' && (
           <div className="space-y-4 py-2">
             {/* Product Card */}
-            <div className="flex items-center gap-3 p-3.5 rounded-2xl border border-border bg-muted/20">
-              <div className="h-12 w-12 rounded-xl overflow-hidden bg-muted shrink-0">
+            <div className="flex items-center gap-3 p-3.5 rounded-lg border-none bg-muted/20">
+              <div className="h-12 w-12 rounded-lg overflow-hidden bg-muted shrink-0">
                 {product.cover_url ? (
                   <img src={product.cover_url} alt={product.title} className="w-full h-full object-cover" />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
-                    <Package className="h-5 w-5 text-muted-foreground" />
+                    <Package weight="fill" className="h-5 w-5 text-muted-foreground" />
                   </div>
                 )}
               </div>
@@ -159,14 +159,14 @@ export function CheckoutModal({ product, open, onClose }: CheckoutModalProps) {
 
             {/* Price Breakdown */}
             {!product.is_free && (
-              <div className="p-3.5 rounded-2xl border border-border bg-muted/10 space-y-2 text-xs">
+              <div className="p-3.5 rounded-lg border-none bg-muted/10 space-y-2 text-xs">
                 <div className="flex justify-between text-muted-foreground">
                   <span>Subtotal</span>
                   <span>${subtotal.toFixed(2)} {currency}</span>
                 </div>
                 <div className="flex justify-between text-muted-foreground">
                   <span className="flex items-center gap-1">
-                    <Tag className="h-3 w-3" /> Platform fee (10%)
+                    <Tag weight="fill" className="h-3 w-3" /> Platform fee (10%)
                   </span>
                   <span>${platformFee.toFixed(2)} {currency}</span>
                 </div>
@@ -185,14 +185,14 @@ export function CheckoutModal({ product, open, onClose }: CheckoutModalProps) {
                 </span>
                 <div className="grid grid-cols-2 gap-2">
                   {[
-                    { value: 'mock' as const, label: 'Test Payment', icon: <Zap className="h-4 w-4" /> },
-                    { value: 'stripe' as const, label: 'Credit Card', icon: <CreditCard className="h-4 w-4" />, disabled: true },
+                    { value: 'mock' as const, label: 'Test Payment', icon: <Zap weight="fill" className="h-4 w-4" /> },
+                    { value: 'stripe' as const, label: 'Credit Card', icon: <CreditCard weight="fill" className="h-4 w-4" />, disabled: true },
                   ].map((opt) => (
                     <button
                       key={opt.value}
                       disabled={opt.disabled}
                       onClick={() => !opt.disabled && setProvider(opt.value)}
-                      className={`flex items-center gap-2 p-3 rounded-xl border text-xs font-semibold transition-all ${
+                      className={`flex items-center gap-2 p-3 rounded-lg border text-xs font-semibold transition-all ${
                         provider === opt.value
                           ? 'border-secondary bg-secondary/15 text-secondary'
                           : 'border-border bg-muted/20 text-muted-foreground'
@@ -209,12 +209,12 @@ export function CheckoutModal({ product, open, onClose }: CheckoutModalProps) {
 
             <Button
               onClick={handlePurchase}
-              className="w-full text-xs font-bold bg-secondary hover:bg-secondary/90 text-secondary-foreground h-10 rounded-xl shadow-md gap-2"
+              className="w-full text-xs font-bold bg-secondary hover:bg-secondary/90 text-secondary-foreground h-10 rounded-lg  gap-2"
             >
               {product.is_free ? (
-                <><Download className="h-4 w-4" /> Download Free Product</>
+                <><Download weight="fill" className="h-4 w-4" /> Download Free Product</>
               ) : (
-                <><ShoppingCart className="h-4 w-4" /> Pay ${total.toFixed(2)} {currency}</>
+                <><ShoppingCart weight="fill" className="h-4 w-4" /> Pay ${total.toFixed(2)} {currency}</>
               )}
             </Button>
           </div>
@@ -223,7 +223,7 @@ export function CheckoutModal({ product, open, onClose }: CheckoutModalProps) {
         {/* Step: Processing */}
         {step === 'processing' && (
           <div className="py-12 text-center space-y-3">
-            <Loader2 className="h-10 w-10 animate-spin text-secondary mx-auto" />
+            <Loader2 weight="fill" className="h-10 w-10 animate-spin text-secondary mx-auto" />
             <p className="text-sm font-bold text-foreground">Processing your payment…</p>
             <p className="text-xs text-muted-foreground">Please wait, do not close this window.</p>
           </div>
@@ -233,7 +233,7 @@ export function CheckoutModal({ product, open, onClose }: CheckoutModalProps) {
         {step === 'success' && (
           <div className="py-6 text-center space-y-4">
             <div className="h-16 w-16 rounded-full bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center mx-auto">
-              <CheckCircle2 className="h-8 w-8 text-emerald-500" />
+              <CheckCircle2 weight="fill" className="h-8 w-8 text-emerald-500" />
             </div>
             <div>
               <h3 className="text-base font-bold text-foreground">Order #{result?.order?.order_number}</h3>
@@ -245,14 +245,14 @@ export function CheckoutModal({ product, open, onClose }: CheckoutModalProps) {
                 href={`${API_BASE}/products/${result.order.product_id}/download`}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-secondary text-secondary-foreground text-xs font-bold shadow-md hover:bg-secondary/90 transition-colors"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-secondary text-secondary-foreground text-xs font-bold  hover:bg-secondary/90 transition-colors"
               >
-                <Download className="h-4 w-4" />
+                <Download weight="fill" className="h-4 w-4" />
                 Download Your Product
               </a>
             )}
 
-            <Button variant="outline" size="sm" onClick={handleClose} className="text-xs font-semibold w-full rounded-xl">
+            <Button variant="outline" size="sm" onClick={handleClose} className="text-xs font-semibold w-full rounded-lg">
               Close
             </Button>
           </div>
@@ -262,17 +262,17 @@ export function CheckoutModal({ product, open, onClose }: CheckoutModalProps) {
         {step === 'error' && (
           <div className="py-8 text-center space-y-4">
             <div className="h-16 w-16 rounded-full bg-destructive/10 border border-destructive/20 flex items-center justify-center mx-auto">
-              <AlertCircle className="h-8 w-8 text-destructive" />
+              <AlertCircle weight="fill" className="h-8 w-8 text-destructive" />
             </div>
             <div>
               <h3 className="text-base font-bold text-foreground">Payment Failed</h3>
               <p className="text-xs text-muted-foreground mt-1">{errorMsg}</p>
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={handleClose} className="flex-1 text-xs font-semibold rounded-xl">
+              <Button variant="outline" size="sm" onClick={handleClose} className="flex-1 text-xs font-semibold rounded-lg">
                 Cancel
               </Button>
-              <Button size="sm" onClick={() => setStep('review')} className="flex-1 text-xs font-bold bg-secondary text-secondary-foreground rounded-xl">
+              <Button size="sm" onClick={() => setStep('review')} className="flex-1 text-xs font-bold bg-secondary text-secondary-foreground rounded-lg">
                 Try Again
               </Button>
             </div>

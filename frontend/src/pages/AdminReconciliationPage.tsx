@@ -1,5 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
-import { BarChart3, Loader2, Check, AlertCircle, X, RefreshCw, Wallet, FileText, ShieldCheck } from 'lucide-react';
+import {
+  ChartBar as BarChart3,
+  Spinner as Loader2,
+  Check as Check,
+  WarningCircle as AlertCircle,
+  X as X,
+  ArrowsClockwise as RefreshCw,
+  Wallet as Wallet,
+  FileText as FileText,
+  ShieldCheck as ShieldCheck
+} from "@phosphor-icons/react";
 import { authFetch } from "@/lib/api/authFetch";
 
 
@@ -45,43 +55,43 @@ export function AdminReconciliationPage() {
   useEffect(() => { fetchSummary(); fetchAudit(); }, [fetchSummary, fetchAudit]);
 
   const StatCard = ({ label, value, color }: { label: string; value: string; color?: string }) => (
-    <div className="rounded-xl border border-border bg-card p-4">
+    <div className="rounded-lg border-none bg-card p-4">
       <p className="text-[11px] text-muted-foreground font-medium">{label}</p>
       <p className={`text-lg font-extrabold mt-1 ${color ?? 'text-foreground'}`}>{value}</p>
     </div>
   );
 
   return (
-    <div className="w-full mx-auto max-w-[1400px] space-y-6 p-6 lg:p-10">
+    <div className="w-full mx-auto max-w-[1400px] space-y-6 p-4 lg:p-10">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black tracking-tight flex items-center gap-2.5">
-            <BarChart3 className="h-6 w-6 text-[#2164b6] dark:text-[#7ab0ff]" />
+          <h1 className="text-xl font-black tracking-tight flex items-center gap-2.5">
+            <BarChart3 weight="fill" className="h-6 w-6 text-[#2164b6] dark:text-[#7ab0ff]" />
             Reconciliation & Audit
           </h1>
           <p className="text-xs text-muted-foreground mt-1">Ledger audit, wallet discrepancy detection, and escrow summary for platform ops.</p>
         </div>
-        <button onClick={() => { fetchSummary(); fetchAudit(); }} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#2164b6] text-foreground font-bold text-xs hover:bg-[#2164b6]/80 transition-all shrink-0">
-          <RefreshCw className="h-3.5 w-3.5" /> Refresh
+        <button onClick={() => { fetchSummary(); fetchAudit(); }} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#2164b6] text-foreground font-bold text-xs hover:bg-[#2164b6]/80 transition-all shrink-0">
+          <RefreshCw weight="fill" className="h-3.5 w-3.5" /> Refresh
         </button>
       </div>
 
       {message && (
-        <div className={`flex items-center gap-2 px-4 py-3 rounded-xl text-xs font-medium ${message.type === 'success' ? 'bg-green-500/10 text-green-600' : 'bg-destructive/10 text-destructive'}`}>
-          {message.type === 'success' ? <Check className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
+        <div className={`flex items-center gap-2 px-4 py-3 rounded-lg text-xs font-medium ${message.type === 'success' ? 'bg-green-500/10 text-green-600' : 'bg-destructive/10 text-destructive'}`}>
+          {message.type === 'success' ? <Check weight="fill" className="h-4 w-4" /> : <AlertCircle weight="fill" className="h-4 w-4" />}
           <span className="flex-1">{message.text}</span>
-          <button onClick={() => setMessage(null)} className="p-0.5 hover:opacity-70"><X className="h-3.5 w-3.5" /></button>
+          <button onClick={() => setMessage(null)} className="p-0.5 hover:opacity-70"><X weight="fill" className="h-3.5 w-3.5" /></button>
         </div>
       )}
 
       {/* Ledger Summary */}
       <div>
         <h2 className="text-sm font-bold text-foreground flex items-center gap-2 mb-3">
-          <FileText className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" />
+          <FileText weight="fill" className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" />
           Ledger Summary
         </h2>
         {isLoadingSummary ? (
-          <div className="py-8 text-center"><Loader2 className="h-5 w-5 animate-spin text-[#2164b6] dark:text-[#7ab0ff] mx-auto" /></div>
+          <div className="py-8 text-center"><Loader2 weight="fill" className="h-5 w-5 animate-spin text-[#2164b6] dark:text-[#7ab0ff] mx-auto" /></div>
         ) : summary ? (
           <div className="space-y-4">
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -91,13 +101,13 @@ export function AdminReconciliationPage() {
               <StatCard label="Audited At" value={audit?.audited_at ? new Date(audit.audited_at).toLocaleTimeString() : '—'} />
             </div>
 
-            {/* By Type */}
+            {/* By TextT */}
             {summary.by_type && summary.by_type.length > 0 && (
-              <div className="rounded-xl border border-border bg-card overflow-hidden">
+              <div className="rounded-lg border-none bg-card overflow-hidden">
                 <table className="w-full text-xs">
                   <thead>
                     <tr className="bg-muted/30 border-b border-border">
-                      <th className="text-left px-4 py-2 font-bold text-muted-foreground">Type</th>
+                      <th className="text-left px-4 py-2 font-bold text-muted-foreground">TextT</th>
                       <th className="text-right px-4 py-2 font-bold text-muted-foreground">Count</th>
                       <th className="text-right px-4 py-2 font-bold text-muted-foreground">Net</th>
                     </tr>
@@ -130,7 +140,7 @@ export function AdminReconciliationPage() {
             )}
           </div>
         ) : (
-          <div className="p-8 text-center border border-dashed border-border rounded-xl bg-card">
+          <div className="p-5 text-center border border-dashed border-border rounded-lg bg-card">
             <p className="text-xs text-muted-foreground">Failed to load ledger summary.</p>
           </div>
         )}
@@ -139,11 +149,11 @@ export function AdminReconciliationPage() {
       {/* Wallet Audit */}
       <div>
         <h2 className="text-sm font-bold text-foreground flex items-center gap-2 mb-3">
-          <Wallet className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" />
+          <Wallet weight="fill" className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" />
           Wallet Balance Audit
         </h2>
         {isLoadingAudit ? (
-          <div className="py-8 text-center"><Loader2 className="h-5 w-5 animate-spin text-[#2164b6] dark:text-[#7ab0ff] mx-auto" /></div>
+          <div className="py-8 text-center"><Loader2 weight="fill" className="h-5 w-5 animate-spin text-[#2164b6] dark:text-[#7ab0ff] mx-auto" /></div>
         ) : audit ? (
           <div className="space-y-3">
             <div className="grid grid-cols-3 gap-3">
@@ -153,9 +163,9 @@ export function AdminReconciliationPage() {
             </div>
 
             {audit.issues && audit.issues.length > 0 && (
-              <div className="rounded-xl border border-destructive/30 bg-destructive/5 overflow-hidden">
+              <div className="rounded-lg border border-destructive/30 bg-destructive/5 overflow-hidden">
                 <div className="px-4 py-2 border-b border-destructive/20 flex items-center gap-2">
-                  <AlertCircle className="h-3.5 w-3.5 text-destructive" />
+                  <AlertCircle weight="fill" className="h-3.5 w-3.5 text-destructive" />
                   <span className="text-xs font-bold text-destructive">Balance Discrepancies Detected</span>
                 </div>
                 <table className="w-full text-xs">
@@ -182,9 +192,9 @@ export function AdminReconciliationPage() {
             )}
 
             {audit.unbalanced_txns && audit.unbalanced_txns.length > 0 && (
-              <div className="rounded-xl border border-destructive/30 bg-destructive/5 overflow-hidden">
+              <div className="rounded-lg border border-destructive/30 bg-destructive/5 overflow-hidden">
                 <div className="px-4 py-2 border-b border-destructive/20 flex items-center gap-2">
-                  <AlertCircle className="h-3.5 w-3.5 text-destructive" />
+                  <AlertCircle weight="fill" className="h-3.5 w-3.5 text-destructive" />
                   <span className="text-xs font-bold text-destructive">Unbalanced Transactions</span>
                 </div>
                 <div className="divide-y divide-destructive/10">
@@ -202,15 +212,15 @@ export function AdminReconciliationPage() {
             )}
 
             {audit.discrepancies === 0 && audit.unbalanced_transactions === 0 && (
-              <div className="p-6 text-center border border-emerald-500/30 bg-emerald-500/5 rounded-xl">
-                <ShieldCheck className="h-8 w-8 text-emerald-500 mx-auto mb-2" />
+              <div className="p-4 text-center border border-emerald-500/30 bg-emerald-500/5 rounded-lg">
+                <ShieldCheck weight="fill" className="h-8 w-8 text-emerald-500 mx-auto mb-2" />
                 <p className="text-sm font-bold text-emerald-600">All wallets balanced</p>
                 <p className="text-xs text-muted-foreground mt-1">No discrepancies found between wallet balances and ledger entries.</p>
               </div>
             )}
           </div>
         ) : (
-          <div className="p-8 text-center border border-dashed border-border rounded-xl bg-card">
+          <div className="p-5 text-center border border-dashed border-border rounded-lg bg-card">
             <p className="text-xs text-muted-foreground">Failed to load audit data.</p>
           </div>
         )}

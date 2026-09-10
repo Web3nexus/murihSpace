@@ -1,6 +1,16 @@
 import { getAuthToken } from "@/lib/auth/token";
 import { useState, useEffect, useCallback } from 'react';
-import { FileText, Plus, Loader2, EyeOff, Eye, Trash2, AlertCircle, CheckCircle2, Save } from 'lucide-react';
+import {
+  FileText as FileText,
+  Plus as Plus,
+  Spinner as Loader2,
+  EyeSlash as EyeOff,
+  Eye as Eye,
+  Trash as Trash2,
+  WarningCircle as AlertCircle,
+  CheckCircle as CheckCircle2,
+  FloppyDisk as FloppyDisk
+} from "@phosphor-icons/react";
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -118,25 +128,25 @@ export function AdminCmsPage() {
   };
 
   return (
-    <div className="w-full mx-auto max-w-[1400px] space-y-6 p-6 lg:p-10">
+    <div className="w-full mx-auto max-w-[1400px] space-y-6 p-4 lg:p-10">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-black tracking-tight flex items-center gap-2.5">
-            <FileText className="h-6 w-6 text-[#2164b6] dark:text-[#7ab0ff]" /> Website CMS
+          <h1 className="text-xl font-black tracking-tight flex items-center gap-2.5">
+            <FileText weight="fill" className="h-6 w-6 text-[#2164b6] dark:text-[#7ab0ff]" /> Website CMS
           </h1>
           <p className="text-xs text-muted-foreground mt-1">Manage landing page sections.</p>
         </div>
-        <Button onClick={() => { setShowCreate(true); setMsg(null); }} className="text-xs font-bold gap-1.5"><Plus className="h-4 w-4" /> Add Section</Button>
+        <Button onClick={() => { setShowCreate(true); setMsg(null); }} className="text-xs font-bold gap-1.5"><Plus weight="fill" className="h-4 w-4" /> Add Section</Button>
       </div>
 
       {/* Page tabs */}
-      <div className="flex gap-1 rounded-xl bg-muted p-1 w-fit">
+      <div className="flex gap-1 rounded-lg bg-muted p-1 w-fit">
         {PAGES.map((p) => (
           <button
             key={p}
             onClick={() => { setSelectedPage(p); setLoading(true); }}
             className={`px-4 py-1.5 text-sm font-medium rounded-lg transition-colors capitalize ${
-              selectedPage === p ? 'bg-accent text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+              selectedPage === p ? 'bg-accent text-foreground ' : 'text-muted-foreground hover:text-foreground'
             }`}
           >
             {p}
@@ -144,11 +154,11 @@ export function AdminCmsPage() {
         ))}
       </div>
 
-      {loading ? <div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" /></div>
-        : sections.length === 0 ? <div className="p-12 text-center border border-dashed border-border rounded-3xl bg-card"><FileText className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" /><h3 className="text-sm font-bold">No sections for this page</h3></div>
+      {loading ? <div className="flex justify-center py-12"><Loader2 weight="fill" className="h-8 w-8 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" /></div>
+        : sections.length === 0 ? <div className="p-12 text-center border border-dashed border-border rounded-3xl bg-card"><FileText weight="fill" className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" /><h3 className="text-sm font-bold">No sections for this page</h3></div>
         : <div className="space-y-3">
             {sections.map((section, index) => (
-              <div key={section.id} className="border border-border rounded-2xl bg-card overflow-hidden shadow-sm">
+              <div key={section.id} className="border-none rounded-lg bg-card overflow-hidden ">
                 <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-card">
                   <div className="flex items-center gap-3">
                     <div className="flex flex-col gap-0.5">
@@ -165,10 +175,10 @@ export function AdminCmsPage() {
                       Edit
                     </button>
                     <button onClick={() => toggleActive(section)} className={`p-1.5 rounded-lg transition-colors ${section.is_active ? 'text-emerald-500 hover:bg-emerald-500/10' : 'text-muted-foreground hover:bg-accent'}`}>
-                      {section.is_active ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                      {section.is_active ? <Eye className="h-4 w-4" /> : <EyeOff weight="fill" className="h-4 w-4" />}
                     </button>
                     <button onClick={() => deleteSection(section.id)} className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors">
-                      <Trash2 className="h-4 w-4" />
+                      <Trash2 weight="fill" className="h-4 w-4" />
                     </button>
                   </div>
                 </div>
@@ -183,24 +193,24 @@ export function AdminCmsPage() {
 
       {/* Edit Content Dialog */}
       <Dialog open={!!editing} onOpenChange={() => { setEditing(null); setMsg(null); }}>
-        <DialogContent className="sm:max-w-2xl md:max-w-3xl max-h-[90vh] overflow-y-auto bg-card border-border shadow-2xl rounded-2xl p-6 sm:p-8">
+        <DialogContent className="sm:max-w-2xl md:max-w-3xl max-h-[90vh] overflow-y-auto bg-card border-border shadow-2xl rounded-lg p-4 sm:p-5">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-base font-bold">
-              <FileText className="h-5 w-5 text-[#2164b6] dark:text-[#7ab0ff]" /> Edit: {editing?.label}
+              <FileText weight="fill" className="h-5 w-5 text-[#2164b6] dark:text-[#7ab0ff]" /> Edit: {editing?.label}
             </DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground">Edit the JSON content for this section.</DialogDescription>
           </DialogHeader>
-          {msg && <div className={`p-3 rounded-xl text-xs font-bold flex items-center gap-2 ${msg.type === 'success' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}`}>{msg.type === 'success' ? <CheckCircle2 className="h-4 w-4 shrink-0" /> : <AlertCircle className="h-4 w-4 shrink-0" />}{msg.text}</div>}
+          {msg && <div className={`p-3 rounded-lg text-xs font-bold flex items-center gap-2 ${msg.type === 'success' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}`}>{msg.type === 'success' ? <CheckCircle2 className="h-4 w-4 shrink-0" /> : <AlertCircle weight="fill" className="h-4 w-4 shrink-0" />}{msg.text}</div>}
           <textarea
             value={editContent}
             onChange={(e) => setEditContent(e.target.value)}
-            className="w-full h-64 rounded-xl border border-border bg-muted/30 p-4 text-xs font-mono resize-y focus:outline-none focus:ring-2 focus:ring-[#2164b6]/30"
+            className="w-full h-64 rounded-lg border-none bg-muted/30 p-4 text-xs font-mono resize-y focus:outline-none focus:ring-2 focus:ring-[#2164b6]/30"
           />
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => setEditing(null)} className="text-xs">Cancel</Button>
             <Button onClick={saveContent} disabled={submitting} className="text-xs font-bold gap-1.5">
-              {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-              Save Content
+              {submitting ? <Loader2 weight="fill" className="h-4 w-4 animate-spin" /> : <FloppyDisk weight="fill" className="h-4 w-4" />}
+              FloppyDisk Content
             </Button>
           </div>
         </DialogContent>
@@ -208,17 +218,17 @@ export function AdminCmsPage() {
 
       {/* Create Section Dialog */}
       <Dialog open={showCreate} onOpenChange={() => { setShowCreate(false); setMsg(null); }}>
-        <DialogContent className="sm:max-w-lg md:max-w-xl bg-card border-border shadow-2xl rounded-2xl p-6 sm:p-8">
+        <DialogContent className="sm:max-w-lg md:max-w-xl bg-card border-border shadow-2xl rounded-lg p-4 sm:p-5">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-base font-bold"><FileText className="h-5 w-5 text-[#2164b6] dark:text-[#7ab0ff]" /> Add Section</DialogTitle>
+            <DialogTitle className="flex items-center gap-2 text-base font-bold"><FileText weight="fill" className="h-5 w-5 text-[#2164b6] dark:text-[#7ab0ff]" /> Add Section</DialogTitle>
             <DialogDescription className="text-xs">Add a new content section to the {selectedPage} page.</DialogDescription>
           </DialogHeader>
-          {msg && <div className={`p-3 rounded-xl text-xs font-bold flex items-center gap-2 ${msg.type === 'success' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}`}>{msg.type === 'success' ? <CheckCircle2 className="h-4 w-4 shrink-0" /> : <AlertCircle className="h-4 w-4 shrink-0" />}{msg.text}</div>}
+          {msg && <div className={`p-3 rounded-lg text-xs font-bold flex items-center gap-2 ${msg.type === 'success' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}`}>{msg.type === 'success' ? <CheckCircle2 className="h-4 w-4 shrink-0" /> : <AlertCircle weight="fill" className="h-4 w-4 shrink-0" />}{msg.text}</div>}
           <form onSubmit={createSection} className="space-y-3">
             <Input name="key" placeholder="Key (e.g. hero)" required className="text-sm" />
             <Input name="label" placeholder="Display label" required className="text-sm" />
-            <Input name="type" placeholder="Type (e.g. hero, features, cta)" defaultValue="text" className="text-sm" />
-            <Button type="submit" disabled={submitting} className="w-full text-sm font-bold">{submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}Create Section</Button>
+            <Input name="type" placeholder="TextT (e.g. hero, features, cta)" defaultValue="text" className="text-sm" />
+            <Button type="submit" disabled={submitting} className="w-full text-sm font-bold">{submitting ? <Loader2 weight="fill" className="h-4 w-4 animate-spin mr-2" /> : null}Create Section</Button>
           </form>
         </DialogContent>
       </Dialog>

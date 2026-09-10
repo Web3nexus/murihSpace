@@ -52,9 +52,9 @@ return [
     |
     */
 
-    'url' => env('APP_URL', 'http://localhost'),
+    'url' => env('APP_URL', 'https://api.murihspace.com'),
 
-    'frontend_url' => env('FRONTEND_URL', 'http://localhost:5173'),
+    'frontend_url' => env('FRONTEND_URL', 'https://web.murihspace.com'),
 
     'app_download_url' => env('APP_DOWNLOAD_URL', 'https://apps.apple.com/app/murihspace'),
 

@@ -1,8 +1,17 @@
 import { useState, useRef, useEffect } from "react";
 import {
-  Send, Zap, RefreshCw, TrendingUp,
-  Users, FileText, MessageCircle, ShoppingBag, Wand2, MailCheck, Loader2,
-} from "lucide-react";
+  PaperPlaneRight as Send,
+  Lightning as Zap,
+  ArrowsClockwise as RefreshCw,
+  TrendUp as TrendingUp,
+  Users as Users,
+  FileText as FileText,
+  ChatCircle as MessageCircle,
+  Bag as ShoppingBag,
+  MagicWand as MagicWand,
+  EnvelopeSimple as EnvelopeSimple,
+  Spinner as Loader2
+} from "@phosphor-icons/react";
 import { MeraIcon } from "@/components/brand/MeraIcon";
 import { authFetch } from "@/lib/api/authFetch";
 import { useAuth } from "@/hooks/useAuth";
@@ -24,7 +33,7 @@ const SUGGESTIONS = [
   { icon: FileText, label: "Write a post", query: "Help me write an engaging post about my latest project" },
   { icon: MessageCircle, label: "Message templates", query: "Give me a professional message template for reaching out to collaborators" },
   { icon: ShoppingBag, label: "Pricing advice", query: "How should I price my digital products and memberships?" },
-  { icon: Wand2, label: "Brainstorm ideas", query: "Help me brainstorm creative ideas for my brand" },
+  { icon: MagicWand, label: "Brainstorm ideas", query: "Help me brainstorm creative ideas for my brand" },
 ];
 
 function TypingDots() {
@@ -120,11 +129,11 @@ export default function AiAssistantPage() {
 
   if (user && user.email_verified === false) {
     return (
-      <div className="flex min-h-[calc(100svh-112px)] items-center justify-center bg-gradient-to-br from-[#F8FAFB] via-white to-[#E8F8FF]/40 dark:from-[#0a1a2a] dark:via-[#0f1f30] dark:to-[#0a1a2a] p-6">
-        <div className="w-full max-w-md border border-border rounded-2xl bg-card p-8 space-y-5 shadow-lg">
+      <div className="flex min-h-[calc(100svh-112px)] items-center justify-center bg-gradient-to-br from-[#F8FAFB] via-white to-[#E8F8FF]/40 dark:from-[#0a1a2a] dark:via-[#0f1f30] dark:to-[#0a1a2a] p-4">
+        <div className="w-full max-w-md border-none rounded-lg bg-card p-5 space-y-5 shadow-lg">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-2xl bg-gradient-to-br from-[#2164b6] to-[#1a6b9e] flex items-center justify-center shadow-md shadow-[#2164b6]/20">
-              <MailCheck className="h-5 w-5 text-white" />
+            <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-[#2164b6] to-[#1a6b9e] flex items-center justify-center  shadow-[#2164b6]/20">
+              <EnvelopeSimple weight="fill" className="h-5 w-5 text-white" />
             </div>
             <div>
               <h1 className="text-base font-black text-foreground tracking-tight">Verify your email</h1>
@@ -141,7 +150,7 @@ export default function AiAssistantPage() {
             onKeyDown={(e) => e.key === "Enter" && verify()}
             placeholder="6-digit code"
             inputMode="numeric"
-            className="w-full rounded-xl border border-border bg-background px-4 py-3 text-center text-2xl font-black tracking-[0.5em] text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-2 focus:ring-[#2164b6]/20"
+            className="w-full rounded-lg border-none bg-background px-4 py-3 text-center text-xl font-black tracking-[0.5em] text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-2 focus:ring-[#2164b6]/20"
           />
           {verifyMsg && (
             <p className={`text-[11px] font-semibold ${verifyMsg.ok ? "text-emerald-600" : "text-rose-500"}`}>{verifyMsg.text}</p>
@@ -149,9 +158,9 @@ export default function AiAssistantPage() {
           <button
             onClick={verify}
             disabled={verifying || !/^\d{6}$/.test(code)}
-            className="w-full py-3 rounded-xl bg-gradient-to-r from-[#2164b6] to-[#1a5091] text-white text-sm font-bold hover:from-[#1a5091] hover:to-[#154074] disabled:opacity-40 transition-all shadow-sm hover:shadow-md hover:shadow-[#2164b6]/20"
+            className="w-full py-3 rounded-lg bg-gradient-to-r from-[#2164b6] to-[#1a5091] text-white text-sm font-bold hover:from-[#1a5091] hover:to-[#154074] disabled:opacity-40 transition-all  hover: hover:shadow-[#2164b6]/20"
           >
-            {verifying ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : "Verify & unlock Mera"}
+            {verifying ? <Loader2 weight="fill" className="h-4 w-4 animate-spin mx-auto" /> : "Verify & unlock Mera"}
           </button>
           <button
             onClick={sendCode}
@@ -177,7 +186,7 @@ export default function AiAssistantPage() {
         <div className="shrink-0 px-6 pt-6 pb-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="relative">
-              <div className="h-10 w-10 rounded-2xl bg-gradient-to-br from-[#2164b6] to-[#1a6b9e] flex items-center justify-center shadow-md shadow-[#2164b6]/20">
+              <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-[#2164b6] to-[#1a6b9e] flex items-center justify-center  shadow-[#2164b6]/20">
                 <MeraIcon className="h-5 w-5" />
               </div>
               <div className="absolute -top-0.5 -right-0.5 h-3 w-3 rounded-full bg-emerald-500 border-2 border-white dark:border-[#0f1f30]" />
@@ -185,7 +194,7 @@ export default function AiAssistantPage() {
             <div>
               <h1 className="text-lg font-black text-foreground tracking-tight">AI Assistant</h1>
               <p className="text-[11px] text-muted-foreground/70 flex items-center gap-1">
-                <Zap className="h-3 w-3 text-[#2164b6] dark:text-[#7ab0ff]" />
+                <Zap weight="fill" className="h-3 w-3 text-[#2164b6] dark:text-[#7ab0ff]" />
                 Powered by advanced intelligence
               </p>
             </div>
@@ -195,7 +204,7 @@ export default function AiAssistantPage() {
               onClick={clearChat}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-semibold text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-all border border-transparent hover:border-border"
             >
-              <RefreshCw className="h-3.5 w-3.5" /> New chat
+              <RefreshCw weight="fill" className="h-3.5 w-3.5" /> New chat
             </button>
           )}
         </div>
@@ -206,10 +215,10 @@ export default function AiAssistantPage() {
             <div className="pt-8 pb-4 text-center space-y-6">
               <div className="space-y-2">
                 <div className="mx-auto w-16 h-16 rounded-3xl bg-gradient-to-br from-[#2164b6]/15 to-purple-500/15 flex items-center justify-center border border-[#2164b6]/10">
-                  <Zap className="h-7 w-7 text-[#2164b6] dark:text-[#7ab0ff]" />
+                  <Zap weight="fill" className="h-7 w-7 text-[#2164b6] dark:text-[#7ab0ff]" />
                 </div>
                 <h2 className="text-xl font-black text-foreground tracking-tight">How can I help you?</h2>
-                <p className="text-sm text-muted-foreground/60 max-w-md mx-auto">
+                <p className="text-sm text-muted-foreground/60 max-w-md mx-auto text-center">
                   Ask me anything about content creation, community management, marketing, or growing your brand.
                 </p>
               </div>
@@ -219,9 +228,9 @@ export default function AiAssistantPage() {
                   <button
                     key={s.label}
                     onClick={() => send(s.query)}
-                    className="flex items-center gap-3 px-4 py-3.5 rounded-2xl border border-border/60 bg-white dark:bg-[#102840]/60 hover:border-[#2164b6]/30 hover:bg-[#2164b6]/5 hover:shadow-sm hover:shadow-[#2164b6]/5 transition-all duration-200 text-left group"
+                    className="flex items-center gap-3 px-4 py-3.5 rounded-lg border-none/60 bg-white dark:bg-[#102840]/60 hover:border-[#2164b6]/30 hover:bg-[#2164b6]/5 hover: hover:shadow-[#2164b6]/5 transition-all duration-200 text-left group"
                   >
-                    <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-[#2164b6]/10 to-purple-500/10 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                    <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-[#2164b6]/10 to-purple-500/10 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
                       <s.icon className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" />
                     </div>
                     <div className="min-w-0">
@@ -236,18 +245,18 @@ export default function AiAssistantPage() {
 
           {messages.map((m, i) => (
             <div key={i} className={`flex gap-3 ${m.role === "user" ? "flex-row-reverse" : ""} ${m.role === "user" ? "animate-in slide-in-from-right-2 fade-in" : "animate-in slide-in-from-left-2 fade-in"} duration-200`}>
-              <div className={`h-8 w-8 rounded-xl flex items-center justify-center shrink-0 shadow-sm ${
+              <div className={`h-8 w-8 rounded-lg flex items-center justify-center shrink-0  ${
                 m.role === "assistant"
                   ? "bg-gradient-to-br from-[#2164b6] to-[#1a6b9e] text-white"
                   : "bg-gradient-to-br from-[#102840] to-[#1a2e4a] text-white"
               }`}>
-                {m.role === "assistant" ? <MeraIcon className="h-4 w-4" /> : <MessageCircle className="h-4 w-4" />}
+                {m.role === "assistant" ? <MeraIcon className="h-4 w-4" /> : <MessageCircle weight="fill" className="h-4 w-4" />}
               </div>
               <div className={`max-w-[75%] ${m.role === "user" ? "order-first" : ""}`}>
                 <div className={`px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap break-words ${
                   m.role === "assistant"
-                    ? "bg-white dark:bg-[#102840] border border-border/50 text-foreground rounded-2xl rounded-tl-sm shadow-sm"
-                    : "bg-gradient-to-r from-[#2164b6] to-[#1a5091] text-white rounded-2xl rounded-tr-sm shadow-sm shadow-[#2164b6]/10"
+                    ? "bg-white dark:bg-[#102840] border-none/50 text-foreground rounded-lg rounded-tl-sm "
+                    : "bg-gradient-to-r from-[#2164b6] to-[#1a5091] text-white rounded-lg rounded-tr-sm  shadow-[#2164b6]/10"
                 }`}>
                   {m.content}
                 </div>
@@ -260,10 +269,10 @@ export default function AiAssistantPage() {
 
           {busy && (
             <div className="flex gap-3 animate-in fade-in slide-in-from-left-2 duration-200">
-              <div className="h-8 w-8 rounded-xl bg-gradient-to-br from-[#2164b6] to-[#1a6b9e] flex items-center justify-center shrink-0 shadow-sm">
+              <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-[#2164b6] to-[#1a6b9e] flex items-center justify-center shrink-0 ">
                 <MeraIcon className="h-4 w-4" />
               </div>
-              <div className="bg-white dark:bg-[#102840] border border-border/50 rounded-2xl rounded-tl-sm px-4 py-2 shadow-sm">
+              <div className="bg-white dark:bg-[#102840] border-none/50 rounded-lg rounded-tl-sm px-4 py-2 ">
                 <TypingDots />
               </div>
             </div>
@@ -275,8 +284,8 @@ export default function AiAssistantPage() {
         {/* Composer */}
         <div className="shrink-0 px-6 pb-6 pt-2">
           <div className="relative max-w-3xl mx-auto">
-            <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-[#2164b6]/5 to-purple-500/5 blur-xl" />
-            <div className="relative flex items-center gap-2 bg-white dark:bg-[#102840] border border-border/60 rounded-2xl px-4 py-2.5 shadow-sm focus-within:border-[#2164b6]/30 focus-within:shadow-md focus-within:shadow-[#2164b6]/5 transition-all">
+            <div className="absolute inset-0 rounded-lg bg-gradient-to-r from-[#2164b6]/5 to-purple-500/5 blur-xl" />
+            <div className="relative flex items-center gap-2 bg-white dark:bg-[#102840] border-none/60 rounded-lg px-4 py-2.5  focus-within:border-[#2164b6]/30 focus-within: focus-within:shadow-[#2164b6]/5 transition-all">
               <input
                 type="text"
                 value={input}
@@ -289,9 +298,9 @@ export default function AiAssistantPage() {
                 <button
                   onClick={() => send()}
                   disabled={!input.trim() || busy}
-                  className="p-2 rounded-xl bg-gradient-to-r from-[#2164b6] to-[#1a5091] text-white hover:from-[#1a5091] hover:to-[#154074] disabled:opacity-40 transition-all shrink-0 shadow-sm hover:shadow-md hover:shadow-[#2164b6]/20 disabled:shadow-none"
+                  className="p-2 rounded-lg bg-gradient-to-r from-[#2164b6] to-[#1a5091] text-white hover:from-[#1a5091] hover:to-[#154074] disabled:opacity-40 transition-all shrink-0  hover: hover:shadow-[#2164b6]/20 disabled:shadow-none"
                 >
-                  <Send className="h-4 w-4" />
+                  <Send weight="fill" className="h-4 w-4" />
                 </button>
               </div>
             </div>

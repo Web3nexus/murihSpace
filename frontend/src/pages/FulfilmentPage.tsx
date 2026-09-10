@@ -1,4 +1,12 @@
-import { Package, Truck, Loader2, Search, Eye, MapPin, Clock } from 'lucide-react';
+import {
+  Package as Package,
+  Truck as Truck,
+  Spinner as Loader2,
+  MagnifyingGlass as Search,
+  Eye as Eye,
+  MapPin as MapPin,
+  Clock as Clock
+} from "@phosphor-icons/react";
 import { useState, useEffect, useCallback } from 'react';
 import { usePrompt } from '@/components/ui/DialogProvider';
 import { Button } from "@/components/ui/button";
@@ -167,7 +175,7 @@ export function FulfilmentPage() {
   if (isLoading) {
     return (
       <div className="w-full flex items-center justify-center h-64">
-        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+        <Loader2 weight="fill" className="w-6 h-6 animate-spin text-muted-foreground" />
       </div>
     );
   }
@@ -178,7 +186,7 @@ export function FulfilmentPage() {
 
     return (
       <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setSelected(null)}>
-        <div className="border border-border rounded-2xl bg-card p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl" onClick={e => e.stopPropagation()}>
+        <div className="border-none rounded-lg bg-card p-4 max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl" onClick={e => e.stopPropagation()}>
           <div className="flex items-center justify-between mb-4">
             <div>
               <h2 className="text-lg font-bold text-foreground">{selected.order_number}</h2>
@@ -188,9 +196,9 @@ export function FulfilmentPage() {
           </div>
 
           {selected.shipping_address && (
-            <div className="mb-4 p-4 bg-muted rounded-xl border border-border">
+            <div className="mb-4 p-4 bg-muted rounded-lg border-none">
               <div className="flex items-center gap-2 text-sm font-medium mb-2 text-foreground">
-                <MapPin className="w-4 h-4" /> Shipping Address
+                <MapPin weight="fill" className="w-4 h-4" /> Shipping Address
               </div>
               <p className="text-sm text-foreground">{selected.shipping_address.full_name}</p>
               <p className="text-sm text-muted-foreground">{selected.shipping_address.street_line1}</p>
@@ -206,12 +214,12 @@ export function FulfilmentPage() {
 
           <div className="space-y-2 mb-4">
             {selected.items.map(item => (
-              <div key={item.id} className="flex items-center gap-3 p-3 bg-muted rounded-xl border border-border">
+              <div key={item.id} className="flex items-center gap-3 p-3 bg-muted rounded-lg border-none">
                 <div className="w-10 h-10 bg-muted rounded flex items-center justify-center text-xs text-muted-foreground flex-shrink-0 overflow-hidden">
                   {item.product?.images?.[0] ? (
                     <img src={item.product.images[0]} alt="" className="w-full h-full object-cover" />
                   ) : (
-                    <Package className="w-5 h-5" />
+                    <Package weight="fill" className="w-5 h-5" />
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
@@ -235,8 +243,8 @@ export function FulfilmentPage() {
           </div>
 
           {selected.tracking_number && (
-            <div className="mt-4 p-3 bg-muted border border-border rounded-xl text-sm text-foreground">
-              <Truck className="w-4 h-4 inline mr-1" />
+            <div className="mt-4 p-3 bg-muted border-none rounded-lg text-sm text-foreground">
+              <Truck weight="fill" className="w-4 h-4 inline mr-1" />
               <strong>{selected.carrier ?? 'Carrier'}:</strong> {selected.tracking_number}
               {selected.estimated_delivery && (
                 <> &middot; Est. delivery: {selected.estimated_delivery}</>
@@ -247,11 +255,11 @@ export function FulfilmentPage() {
           {/* Tracking Timeline */}
           <div className="mt-5">
             <h3 className="text-sm font-semibold mb-3 flex items-center gap-2 text-foreground">
-              <Clock className="w-4 h-4" /> Tracking Timeline
+              <Clock weight="fill" className="w-4 h-4" /> Tracking Timeline
             </h3>
             {loadingEvents ? (
               <div className="flex items-center justify-center py-4">
-                <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                <Loader2 weight="fill" className="w-5 h-5 animate-spin text-muted-foreground" />
               </div>
             ) : trackingEvents.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-4">No tracking events yet.</p>
@@ -291,26 +299,21 @@ export function FulfilmentPage() {
   };
 
   return (
-    <div className="space-y-6 w-full max-w-7xl mx-auto p-6 lg:p-8">
+    <div className="space-y-6 w-full max-w-7xl mx-auto p-4 lg:p-5">
       {/* ── Page Header Banner ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 sm:p-8 rounded-2xl bg-gradient-to-br from-[#102840] via-[#173852] to-[#102840] text-white shadow-lg">
-        <div className="space-y-1.5">
-          <div className="flex items-center gap-2">
-            <span className="px-2.5 py-0.5 rounded-full bg-[#2164b6]/20 text-[#2164b6] dark:text-[#7ab0ff] text-xs font-semibold uppercase tracking-wider border border-[#2164b6]/30">
-              Phase 9 — Fulfilment
-            </span>
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">Fulfilment</h1>
-          <p className="text-sm text-white/70 max-w-xl">Manage sales fulfilment and track your orders.</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 sm:p-6 rounded-2xl bg-gradient-to-br from-[#102840] via-[#173852] to-[#102840] text-white shadow-md">
+        <div className="space-y-1">
+          <h1 className="text-xl sm:text-2xl font-black tracking-tight">Order Fulfilment</h1>
+          <p className="text-sm text-white/80 max-w-xl">Manage sales fulfilment, shipping tracking, and order delivery status.</p>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex p-1 bg-muted rounded-xl gap-1 w-fit">
+      <div className="flex p-1 bg-muted rounded-lg gap-1 w-fit">
         <button
           onClick={() => setTab('sales')}
           className={`flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-lg transition-all ${
-            tab === 'sales' ? 'bg-card text-foreground shadow-xs' : 'text-muted-foreground hover:text-foreground'
+            tab === 'sales' ? 'bg-card text-foreground ' : 'text-muted-foreground hover:text-foreground'
           }`}
         >
           Sales to Fulfil
@@ -318,7 +321,7 @@ export function FulfilmentPage() {
         <button
           onClick={() => setTab('orders')}
           className={`flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-lg transition-all ${
-            tab === 'orders' ? 'bg-card text-foreground shadow-xs' : 'text-muted-foreground hover:text-foreground'
+            tab === 'orders' ? 'bg-card text-foreground ' : 'text-muted-foreground hover:text-foreground'
           }`}
         >
           My Orders
@@ -326,7 +329,7 @@ export function FulfilmentPage() {
       </div>
 
       {message && (
-        <div className={`px-4 py-3 rounded-xl text-sm flex items-center gap-2 border ${
+        <div className={`px-4 py-3 rounded-lg text-sm flex items-center gap-2 border ${
           message.type === 'success' ? 'bg-emerald-50/50 text-emerald-600 border-emerald-200/50' : 'bg-destructive/10 text-destructive border-destructive/20'
         }`}>
           {message.text}
@@ -335,19 +338,19 @@ export function FulfilmentPage() {
 
       {/* Search */}
       <div className="relative">
-        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Search weight="fill" className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
           value={searchQuery}
           onChange={e => setSearchQuery(e.target.value)}
           placeholder="Search by order number or product..."
-          className="pl-10 h-10 rounded-xl bg-card border-border text-sm"
+          className="pl-10 h-10 rounded-lg bg-card border-border text-sm"
         />
       </div>
 
       {filtered.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-border p-12 text-center space-y-3 bg-card">
+        <div className="rounded-lg border border-dashed border-border p-12 text-center space-y-3 bg-card">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
-            <Package className="h-6 w-6" />
+            <Package weight="fill" className="h-6 w-6" />
           </div>
           <h3 className="text-base font-semibold text-foreground">
             {tab === 'sales' ? 'No sales yet' : 'No orders yet'}
@@ -361,7 +364,7 @@ export function FulfilmentPage() {
           {filtered.map(order => {
             const cfg = STATUS_FLOW[order.status] ?? STATUS_FLOW.pending;
             return (
-              <div key={order.id} className="rounded-2xl border border-border bg-card overflow-hidden shadow-xs hover:shadow-md hover:border-primary/30 transition-all duration-200 p-4">
+              <div key={order.id} className="rounded-lg border-none bg-card overflow-hidden  hover: hover:border-primary/30 transition-all duration-200 p-4">
                 <div className="flex items-start justify-between mb-3">
                   <div>
                     <div className="flex items-center gap-2">
@@ -371,18 +374,18 @@ export function FulfilmentPage() {
                     <p className="text-xs text-muted-foreground mt-0.5">{new Date(order.created_at).toLocaleDateString()}</p>
                   </div>
                   <Button variant="ghost" size="icon" onClick={() => openDetail(order)}>
-                    <Eye className="w-4 h-4" />
+                    <Eye weight="fill" className="w-4 h-4" />
                   </Button>
                 </div>
 
                 <div className="flex gap-3 overflow-x-auto pb-2">
                   {order.items.map(item => (
-                    <div key={item.id} className="flex items-center gap-2 bg-muted px-3 py-2 rounded-xl text-sm flex-shrink-0 border border-border">
+                    <div key={item.id} className="flex items-center gap-2 bg-muted px-3 py-2 rounded-lg text-sm flex-shrink-0 border-none">
                       <div className="w-8 h-8 bg-muted rounded flex items-center justify-center flex-shrink-0 overflow-hidden">
                         {item.product?.images?.[0] ? (
                           <img src={item.product.images[0]} alt="" className="w-full h-full object-cover" />
                         ) : (
-                          <Package className="w-4 h-4 text-muted-foreground" />
+                          <Package weight="fill" className="w-4 h-4 text-muted-foreground" />
                         )}
                       </div>
                       <div>
@@ -401,7 +404,7 @@ export function FulfilmentPage() {
                     )}
                     {order.tracking_number && (
                       <span className="text-xs flex items-center gap-1 text-muted-foreground">
-                        <Truck className="w-3 h-3" /> {order.carrier}: {order.tracking_number}
+                        <Truck weight="fill" className="w-3 h-3" /> {order.carrier}: {order.tracking_number}
                       </span>
                     )}
                   </div>

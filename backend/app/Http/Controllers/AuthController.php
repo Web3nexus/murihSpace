@@ -2,12 +2,16 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\DeviceSession;
+use App\Models\PendingLoginRequest;
 use App\Models\RegistrationSession;
 use App\Models\User;
 use App\Services\AuthMethodConfigService;
 use App\Services\AuthSessionService;
+use App\Services\DeviceSecurityService;
 use App\Services\EmailVerificationService;
 use App\Services\NotificationService;
+use App\Services\RoleTransitionService;
 use App\Services\SupportEventPublisher;
 use App\Services\TwoFactorAuthService;
 use Illuminate\Auth\Events\Registered;
@@ -15,12 +19,14 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
+use Laravel\Sanctum\PersonalAccessToken;
 
 class AuthController extends Controller
 {
     public function __construct(
         private readonly NotificationService $notifications,
         private readonly EmailVerificationService $emailVerification,
+        private readonly DeviceSecurityService $deviceSecurity,
     ) {}
 
     public function register(Request $request): JsonResponse
@@ -57,7 +63,7 @@ class AuthController extends Controller
             'mobile_number' => ['nullable', 'string', 'regex:/^\+?[1-9]\d{1,14}$/'],
             'county' => ['nullable', 'string', 'max:255'],
             'state' => ['nullable', 'string', 'max:255'],
-            'role' => ['required', 'string', 'in:member,creator,vendor'],
+            'role' => ['nullable', 'string', 'in:member,creator,vendor,user'],
             'kyc_document' => ['nullable', 'string'],
         ]);
 
@@ -81,7 +87,11 @@ class AuthController extends Controller
             }
         }
 
-        $requestedRole = $request->input('role', 'member');
+        $requestedRole = $request->input('role', 'member') ?: 'member';
+        if ($requestedRole === 'user') {
+            $requestedRole = 'member';
+        }
+        $initialRole = 'member';
         $kycStatus = $requestedRole !== 'member' ? 'not_started' : 'not_required';
 
         $user = User::create([
@@ -94,10 +104,18 @@ class AuthController extends Controller
             'phone_verified_at' => $registrationSession ? now() : null,
             'county' => $request->county,
             'state' => $request->state,
-            'role' => $requestedRole,
+            'role' => $initialRole,
             'kyc_status' => $kycStatus,
             'kyc_document' => $request->kyc_document,
         ]);
+
+        if (in_array($requestedRole, ['creator', 'vendor'], true)) {
+            try {
+                app(RoleTransitionService::class)->apply($user, $requestedRole);
+            } catch (\Throwable $e) {
+                report($e);
+            }
+        }
 
         if ($registrationSession) {
             $registrationSession->update([
@@ -124,6 +142,7 @@ class AuthController extends Controller
         }
 
         $token = app(AuthSessionService::class)->issue($user, $request)['token'];
+        $this->deviceSecurity->registerActiveSession($user, $request, $token);
 
         try {
             if ($user->email) {
@@ -151,12 +170,26 @@ class AuthController extends Controller
                 'email' => $user->email,
                 'username' => $user->username,
                 'role' => $user->role,
+                'bio' => $user->bio,
+                'avatar' => $user->avatar,
+                'avatar_url' => $user->avatar_url ?? $user->avatar,
+                'banner_url' => $user->banner_url,
+                'mobile_number' => $user->mobile_number,
+                'phone' => $user->mobile_number,
+                'birthday' => $user->birthday?->format('Y-m-d'),
+                'country' => $user->country,
+                'county' => $user->county,
+                'state' => $user->state,
                 'kyc_status' => $user->kyc_status,
                 'email_verified' => $user->hasVerifiedEmail(),
                 'phone_verified' => $user->hasVerifiedPhone(),
-                'mobile_number' => $user->mobile_number,
                 'link_in_bio_url' => $user->getLinkInBioUrl(),
-                'onboarding_completed' => $user->creatorProfile?->onboarding_completed_at !== null,
+                'posts_count' => 0,
+                'followers_count' => 0,
+                'following_count' => 0,
+                'communities_count' => 0,
+                'coins' => 0,
+                'onboarding_completed' => $user->role === 'admin' || $user->creatorProfile?->onboarding_completed_at !== null,
             ],
         ], 201);
     }
@@ -197,12 +230,41 @@ class AuthController extends Controller
             'password' => ['required', 'string'],
         ]);
 
-        $user = User::where('email', $request->email)->first();
+        $user = User::withTrashed()->where('email', $request->email)->first();
 
         if (! $user || ! Hash::check($request->password, $user->password)) {
             throw ValidationException::withMessages([
                 'email' => ['The provided credentials do not match our records.'],
             ]);
+        }
+
+        if ($user->trashed() || $user->status === 'deleted') {
+            throw ValidationException::withMessages([
+                'email' => ['This account has been deleted. If you wish to recover your account, please contact support.'],
+            ]);
+        }
+
+        if (in_array($user->status, ['banned', 'suspended'], true)) {
+            $reason = $user->suspension_reason ? ": {$user->suspension_reason}" : '.';
+            throw ValidationException::withMessages([
+                'email' => ["Your account has been {$user->status}{$reason}"],
+            ]);
+        }
+
+        if ($this->deviceSecurity->requiresDeviceApproval($user, $request)) {
+            $pending = $this->deviceSecurity->createPendingLoginRequest($user, $request);
+
+            return response()->json([
+                'status' => 'pending_device_approval',
+                'message' => 'New device login requires approval from your existing active session.',
+                'pending_request' => [
+                    'request_id' => $pending->id,
+                    'request_token' => $pending->request_token,
+                    'device_name' => $pending->device_name,
+                    'platform' => $pending->platform,
+                    'expires_at' => $pending->expires_at->toIso8601String(),
+                ],
+            ], 202);
         }
 
         $maxTokens = 5;
@@ -216,11 +278,12 @@ class AuthController extends Controller
         }
 
         $expiration = (int) config('sanctum.expiration', 43200);
-        $expiresAt  = now()->addMinutes($expiration > 0 ? $expiration : 43200);
+        $expiresAt = now()->addMinutes($expiration > 0 ? $expiration : 43200);
 
         $token = $user->createToken('auth-token', ['*'], $expiresAt)->plainTextToken;
 
         $this->trackTokenMetadata($user, $request, $token);
+        $this->deviceSecurity->registerActiveSession($user, $request, $token);
 
         return response()->json([
             'message' => 'Login successful.',
@@ -231,10 +294,25 @@ class AuthController extends Controller
                 'email' => $user->email,
                 'username' => $user->username,
                 'role' => $user->role,
+                'bio' => $user->bio,
+                'avatar' => $user->avatar,
+                'avatar_url' => $user->avatar_url ?? $user->avatar,
+                'banner_url' => $user->banner_url,
+                'mobile_number' => $user->mobile_number,
+                'phone' => $user->mobile_number,
+                'birthday' => $user->birthday?->format('Y-m-d'),
+                'country' => $user->country,
+                'county' => $user->county,
+                'state' => $user->state,
                 'kyc_status' => $user->kyc_status,
                 'email_verified' => $user->hasVerifiedEmail(),
                 'link_in_bio_url' => $user->getLinkInBioUrl(),
-                'onboarding_completed' => $user->creatorProfile?->onboarding_completed_at !== null,
+                'posts_count' => $user->posts()->count(),
+                'followers_count' => $user->followers()->count(),
+                'following_count' => $user->follows()->count(),
+                'communities_count' => $user->communities()->count(),
+                'coins' => $user->wallet?->coin_balance ?? 0,
+                'onboarding_completed' => $user->role === 'admin' || $user->creatorProfile?->onboarding_completed_at !== null,
                 'username_trial_ends_at' => $user->username_trial_ends_at?->toIso8601String(),
             ],
         ]);
@@ -404,6 +482,134 @@ class AuthController extends Controller
         $token->delete();
 
         return response()->json(['message' => 'Session revoked.']);
+    }
+
+    public function approveDeviceLogin(Request $request, int $id): JsonResponse
+    {
+        $pending = PendingLoginRequest::findOrFail($id);
+        $user = $request->user();
+
+        if ($pending->user_id !== $user->id) {
+            return response()->json(['message' => 'Unauthorized.'], 403);
+        }
+
+        if (! $pending->isPending()) {
+            return response()->json(['message' => 'Login request has expired or is no longer pending.'], 422);
+        }
+
+        $currentToken = $user->currentAccessToken();
+        $tokenId = ($currentToken instanceof PersonalAccessToken) ? $currentToken->id : null;
+
+        $currentSession = $tokenId ? DeviceSession::where('user_id', $user->id)
+            ->where('personal_access_token_id', $tokenId)
+            ->first() : null;
+
+        $this->deviceSecurity->approveLoginRequest($pending, $user, $currentSession);
+
+        return response()->json([
+            'message' => 'Device login request approved successfully.',
+            'status' => 'approved',
+        ]);
+    }
+
+    public function denyDeviceLogin(Request $request, int $id): JsonResponse
+    {
+        $pending = PendingLoginRequest::findOrFail($id);
+        $user = $request->user();
+
+        if ($pending->user_id !== $user->id) {
+            return response()->json(['message' => 'Unauthorized.'], 403);
+        }
+
+        $this->deviceSecurity->denyLoginRequest($pending, $user);
+
+        return response()->json([
+            'message' => 'Device login request denied.',
+            'status' => 'denied',
+        ]);
+    }
+
+    public function checkDeviceLoginStatus(string $token): JsonResponse
+    {
+        $pending = PendingLoginRequest::where('request_token', $token)->firstOrFail();
+
+        if ($pending->status === 'approved') {
+            try {
+                $plainToken = decrypt($pending->authorized_token);
+            } catch (\Throwable $e) {
+                return response()->json(['status' => 'failed', 'message' => 'Token decryption error.'], 500);
+            }
+
+            $user = $pending->user;
+
+            return response()->json([
+                'status' => 'approved',
+                'token' => $plainToken,
+                'user' => [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'username' => $user->username,
+                    'role' => $user->role,
+                    'avatar_url' => $user->avatar_url ?? $user->avatar,
+                    'mobile_number' => $user->mobile_number,
+                    'coins' => $user->wallet?->coin_balance ?? 0,
+                ],
+            ]);
+        }
+
+        if ($pending->status === 'denied') {
+            return response()->json([
+                'status' => 'denied',
+                'message' => 'Login request was rejected by your existing device.',
+            ], 403);
+        }
+
+        if ($pending->expires_at->isPast() || $pending->status === 'expired') {
+            return response()->json([
+                'status' => 'expired',
+                'message' => 'Login authorization request expired. Please sign in again.',
+            ], 410);
+        }
+
+        return response()->json([
+            'status' => 'pending',
+            'expires_at' => $pending->expires_at->toIso8601String(),
+        ]);
+    }
+
+    public function pendingLoginRequests(Request $request): JsonResponse
+    {
+        $requests = PendingLoginRequest::where('user_id', $request->user()->id)
+            ->where('status', 'pending')
+            ->where('expires_at', '>', now())
+            ->latest()
+            ->get();
+
+        return response()->json(['data' => $requests]);
+    }
+
+    public function revokeAllOtherSessions(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $currentToken = $user->currentAccessToken();
+        $tokenId = ($currentToken instanceof PersonalAccessToken) ? $currentToken->id : null;
+
+        if ($tokenId) {
+            // Delete all other tokens
+            $user->tokens()->where('id', '!=', $tokenId)->delete();
+
+            // Mark other sessions revoked
+            DeviceSession::where('user_id', $user->id)
+                ->where('personal_access_token_id', '!=', $tokenId)
+                ->update(['revoked_at' => now()]);
+        } else {
+            // In testing / session-based auth
+            $user->tokens()->delete();
+            DeviceSession::where('user_id', $user->id)->update(['revoked_at' => now()]);
+        }
+
+        return response()->json(['message' => 'All other active sessions have been revoked.']);
     }
 
     private function trackTokenMetadata(User $user, Request $request, string $plainToken): void

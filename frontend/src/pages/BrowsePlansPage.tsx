@@ -1,7 +1,15 @@
 import { useState, useEffect } from 'react';
-import { Crown, Loader2, Check, CreditCard, AlertCircle, X } from 'lucide-react';
+import {
+  Crown as Crown,
+  Spinner as Loader2,
+  Check as Check,
+  CreditCard as CreditCard,
+  WarningCircle as AlertCircle,
+  X as X
+} from "@phosphor-icons/react";
 import type { SubscriptionPlan } from '@/types/subscription';
 import { authFetch } from "@/lib/api/authFetch";
+import { PageSecondaryNav, type PageNavTab } from "@/components/common/PageSecondaryNav";
 
 
 
@@ -53,39 +61,43 @@ export function BrowsePlansPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <Loader2 className="h-6 w-6 animate-spin text-secondary" />
+        <Loader2 weight="fill" className="h-6 w-6 animate-spin text-secondary" />
       </div>
     );
   }
 
+  const subscriptionTabs: PageNavTab[] = [
+    { label: "Discover Plans", href: "/app/subscriptions", exact: true },
+    { label: "My Subscriptions", href: "/app/subscriptions/my-subscriptions" },
+  ];
+
   return (
-    <div className="space-y-6 w-full max-w-4xl mx-auto p-4 sm:p-6 lg:p-8">
-      <div>
-        <h1 className="text-xl font-extrabold text-foreground flex items-center gap-2">
-          <Crown className="h-5 w-5 text-amber-500" />
-          Membership Plans
-        </h1>
-        <p className="text-xs text-muted-foreground mt-1">Subscribe to creators and unlock exclusive content.</p>
-      </div>
+    <div className="space-y-6 w-full max-w-4xl mx-auto p-4 sm:p-4 lg:p-5">
+      <PageSecondaryNav
+        title="Creator Subscriptions & Memberships"
+        subtitle="Subscribe to your favorite creators, unlock exclusive tiers, and manage your recurring memberships."
+        icon={<Crown weight="fill" className="h-5 w-5 text-amber-500" />}
+        tabs={subscriptionTabs}
+      />
 
       {message && (
-        <div className={`flex items-center gap-2 px-4 py-3 rounded-xl text-xs font-medium ${message.type === 'success' ? 'bg-green-500/10 text-green-600' : 'bg-destructive/10 text-destructive'}`}>
-          {message.type === 'success' ? <Check className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
+        <div className={`flex items-center gap-2 px-4 py-3 rounded-lg text-xs font-medium ${message.type === 'success' ? 'bg-green-500/10 text-green-600' : 'bg-destructive/10 text-destructive'}`}>
+          {message.type === 'success' ? <Check weight="fill" className="h-4 w-4" /> : <AlertCircle weight="fill" className="h-4 w-4" />}
           <span className="flex-1">{message.text}</span>
-          <button onClick={() => setMessage(null)} className="p-0.5 hover:opacity-70"><X className="h-3.5 w-3.5" /></button>
+          <button onClick={() => setMessage(null)} className="p-0.5 hover:opacity-70"><X weight="fill" className="h-3.5 w-3.5" /></button>
         </div>
       )}
 
       {plans.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-border p-12 text-center">
-          <Crown className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
+        <div className="rounded-lg border border-dashed border-border p-12 text-center">
+          <Crown weight="fill" className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
           <p className="text-sm font-bold text-foreground">No plans available</p>
           <p className="text-xs text-muted-foreground mt-1">Creators haven't published any membership plans yet.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {plans.map((plan) => (
-            <div key={plan.id} className="rounded-2xl border border-border bg-card p-5 flex flex-col">
+            <div key={plan.id} className="rounded-lg border-none bg-card p-5 flex flex-col">
               {plan.creator && (
                 <div className="flex items-center gap-2 mb-3">
                   <div className="h-7 w-7 rounded-full bg-gradient-to-br from-primary to-secondary text-white text-[9px] font-bold flex items-center justify-center shrink-0">
@@ -99,14 +111,14 @@ export function BrowsePlansPage() {
                 <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{plan.description}</p>
               )}
               <div className="mt-3 mb-4">
-                <span className="text-2xl font-extrabold text-foreground">{formatPrice(plan.price, plan.currency)}</span>
+                <span className="text-xl font-extrabold text-foreground">{formatPrice(plan.price, plan.currency)}</span>
                 <span className="text-xs text-muted-foreground ml-1">{plan.billing_cycle === 'yearly' ? '/year' : '/month'}</span>
               </div>
               {plan.features && plan.features.length > 0 && (
                 <ul className="space-y-1.5 mb-4 flex-1">
                   {plan.features.map((f, i) => (
                     <li key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
-                      <Check className="h-3.5 w-3.5 text-secondary shrink-0 mt-0.5" />
+                      <Check weight="fill" className="h-3.5 w-3.5 text-secondary shrink-0 mt-0.5" />
                       {f}
                     </li>
                   ))}
@@ -115,12 +127,12 @@ export function BrowsePlansPage() {
               <button
                 onClick={() => handleSubscribe(plan.id)}
                 disabled={subscribing === plan.id}
-                className="w-full py-2.5 rounded-xl bg-secondary text-secondary-foreground font-bold text-xs hover:bg-secondary/90 disabled:opacity-50 transition-all flex items-center justify-center gap-1.5 shadow-sm"
+                className="w-full py-2.5 rounded-lg bg-secondary text-secondary-foreground font-bold text-xs hover:bg-secondary/90 disabled:opacity-50 transition-all flex items-center justify-center gap-1.5 "
               >
                 {subscribing === plan.id ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  <Loader2 weight="fill" className="h-3.5 w-3.5 animate-spin" />
                 ) : (
-                  <CreditCard className="h-3.5 w-3.5" />
+                  <CreditCard weight="fill" className="h-3.5 w-3.5" />
                 )}
                 Subscribe
               </button>

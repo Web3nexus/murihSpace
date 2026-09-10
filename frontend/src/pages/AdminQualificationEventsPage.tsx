@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
 import {
-  RefreshCwIcon,
-  SendIcon,
-  ClockIcon,
-  CheckCircle2Icon,
-  XCircleIcon,
-} from "lucide-react";
+  ArrowsClockwise as RefreshCwIcon,
+  PaperPlaneRight as SendIcon,
+  Clock as ClockIcon,
+  CheckCircle as CheckCircle2Icon,
+  XCircle as XCircleIcon
+} from "@phosphor-icons/react";
 import { toast } from "sonner";
 
 interface QualificationEvent {
@@ -83,26 +83,26 @@ export default function AdminQualificationEventsPage() {
       case "pending":
         return (
           <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400">
-            <ClockIcon className="h-3 w-3" /> Scheduled
+            <ClockIcon weight="fill" className="h-3 w-3" /> Scheduled
           </span>
         );
       case "notified":
         return (
           <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-sky-500/10 text-sky-600 dark:text-sky-400">
-            <SendIcon className="h-3 w-3" /> Notified
+            <SendIcon weight="fill" className="h-3 w-3" /> Notified
           </span>
         );
       case "accepted":
         return (
           <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-            <CheckCircle2Icon className="h-3 w-3" /> Accepted
+            <CheckCircle2Icon weight="fill" className="h-3 w-3" /> Accepted
           </span>
         );
       case "expired":
       case "declined":
         return (
           <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-muted text-muted-foreground">
-            <XCircleIcon className="h-3 w-3" /> {status}
+            <XCircleIcon weight="fill" className="h-3 w-3" /> {status}
           </span>
         );
       default:
@@ -114,7 +114,7 @@ export default function AdminQualificationEventsPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Creator Qualification Events</h1>
+          <h1 className="text-xl font-bold tracking-tight">Creator Qualification Events</h1>
           <p className="text-sm text-muted-foreground mt-1">
             Monitor automated outreach jobs triggered when users reach social follower thresholds.
           </p>
@@ -124,7 +124,7 @@ export default function AdminQualificationEventsPage() {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
+            className="rounded-lg border-none bg-background px-3 py-2 text-sm"
           >
             <option value="">All Statuses</option>
             <option value="pending">Pending</option>
@@ -134,14 +134,14 @@ export default function AdminQualificationEventsPage() {
           </select>
           <button
             onClick={fetchEvents}
-            className="p-2 rounded-lg border border-border bg-card hover:bg-muted text-muted-foreground hover:text-foreground transition"
+            className="p-2 rounded-lg border-none bg-card hover:bg-muted text-muted-foreground hover:text-foreground transition"
           >
-            <RefreshCwIcon className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+            <RefreshCwIcon weight="fill" className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
           </button>
         </div>
       </div>
 
-      <div className="rounded-xl border border-border bg-card overflow-hidden">
+      <div className="rounded-lg border-none bg-card overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-left">
             <thead className="bg-muted/50 text-xs font-medium text-muted-foreground uppercase tracking-wider border-b">
@@ -158,7 +158,7 @@ export default function AdminQualificationEventsPage() {
               {loading ? (
                 <tr>
                   <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
-                    <RefreshCwIcon className="h-5 w-5 animate-spin mx-auto mb-2" /> Loading qualification events...
+                    <RefreshCwIcon weight="fill" className="h-5 w-5 animate-spin mx-auto mb-2" /> Loading qualification events...
                   </td>
                 </tr>
               ) : events.length === 0 ? (
@@ -205,7 +205,7 @@ export default function AdminQualificationEventsPage() {
                           disabled={notifyingId === ev.id}
                           className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 hover:bg-primary/20 text-primary font-medium text-xs rounded-lg transition disabled:opacity-50"
                         >
-                          <SendIcon className="h-3.5 w-3.5" />
+                          <SendIcon weight="fill" className="h-3.5 w-3.5" />
                           {notifyingId === ev.id ? "Sending..." : "Notify Now"}
                         </button>
                       )}

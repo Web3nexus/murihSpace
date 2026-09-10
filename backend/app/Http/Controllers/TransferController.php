@@ -67,6 +67,28 @@ class TransferController extends Controller
             'ledger_transaction_id' => $ledgerTxn->id,
         ]);
 
+        // Official In-App Notification with Blue Badge
+        try {
+            $formattedAmt = number_format($validated['amount'] / 100, 2);
+            $recipient->notify(new \App\Notifications\MurihOfficialNotification(
+                type: 'money_received',
+                title: '💰 Money Received!',
+                body: "You received {$currency} {$formattedAmt} from @{$sender->username}!" . ($note ? " Note: {$note}" : ''),
+                actionUrl: \App\Services\NotificationService::link('app/wallet'),
+                actionLabel: 'View Wallet',
+                route: '/wallet',
+                metadata: [
+                    'amount' => $validated['amount'],
+                    'currency' => $currency,
+                    'sender_id' => $sender->id,
+                    'sender_username' => $sender->username,
+                    'note' => $note,
+                ]
+            ));
+        } catch (\Throwable $e) {
+            \Log::warning("Transfer in-app notification failed: {$e->getMessage()}");
+        }
+
         return response()->json([
             'message' => 'Transfer completed successfully.',
             'data' => $transfer->fresh(['sender:id,name,username', 'recipient:id,name,username']),

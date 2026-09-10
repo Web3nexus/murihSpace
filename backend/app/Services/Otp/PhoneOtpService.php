@@ -405,9 +405,9 @@ class PhoneOtpService
             ];
         }
 
-        if (in_array($user->status, ['suspended', 'banned'], true)) {
+        if (in_array($user->status, ['suspended', 'banned', 'deleted'], true) || $user->trashed()) {
             throw ValidationException::withMessages([
-                'phone' => ['This account is currently unavailable. Please contact support.'],
+                'phone' => ['This account is currently unavailable or has been deleted. Please contact support.'],
             ]);
         }
 

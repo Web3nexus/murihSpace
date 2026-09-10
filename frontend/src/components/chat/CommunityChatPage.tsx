@@ -1,14 +1,32 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import {
-  MessageCircle, Search, Send, Loader2, ArrowLeft,
-  AlertCircle, RotateCcw, Reply, Paperclip, CheckCheck, BellOff, MoreVertical, Hash,
-  FileText, Volume2,
-} from "lucide-react";
-import { formatDistanceToNow, format } from "date-fns";
+  ChatCircle as MessageCircle,
+  MagnifyingGlass as Search,
+  PaperPlaneRight as Send,
+  Spinner as Loader2,
+  ArrowLeft as ArrowLeft,
+  WarningCircle as AlertCircle,
+  ArrowCounterClockwise as RotateCcw,
+  ArrowUUpLeft as Reply,
+  Paperclip as Paperclip,
+  Checks as CheckCheck,
+  BellSlash as BellOff,
+  DotsThreeVertical as MoreVertical,
+  Hash as Hash,
+  FileText as FileText,
+  SpeakerHigh as Volume2,
+  Gift as Gift,
+  VideoCamera as Video,
+  Phone as Phone,
+  X as X
+} from "@phosphor-icons/react";
+import { safeFormatDistanceToNow, safeFormat } from "@/lib/date";
 import type { ConversationItem, ChatMessage, MessageStatus, MessageReaction } from "@/types/chat";
 import { ReplyPreviewBar } from "@/components/chat/ReplyPreviewBar";
 import { MessageReactions } from "@/components/chat/MessageReactions";
+import { IOSTypingBubble } from "@/components/chat/iOSTypingBubble";
 import { useRealtimeMessaging } from "@/hooks/useRealtimeMessaging";
+import { LiveKitVideoConference } from "@/components/video/LiveKitVideoConference";
 import { cn } from "@/lib/utils";
 import { getAuthToken } from "@/lib/auth/token";
 
@@ -51,12 +69,12 @@ function CommunityAvatar({ name, logo_url }: { name: string; logo_url?: string }
       <img
         src={logo_url}
         alt={name}
-        className="h-9 w-9 rounded-xl object-cover shrink-0 shadow-xs"
+        className="h-9 w-9 rounded-lg object-cover shrink-0 "
       />
     );
   }
   return (
-    <div className="h-9 w-9 rounded-xl flex items-center justify-center text-white font-bold text-sm shrink-0 shadow-xs bg-gradient-to-br from-[#2164b6] to-[#2563eb]">
+    <div className="h-9 w-9 rounded-lg flex items-center justify-center text-white font-bold text-sm shrink-0  bg-gradient-to-br from-[#2164b6] to-[#2563eb]">
       {initial}
     </div>
   );
@@ -68,7 +86,7 @@ function UserAvatar({ name, size = 28 }: { name?: string; size?: number }) {
     : "?";
   return (
     <div
-      className="flex items-center justify-center rounded-full bg-gradient-to-br from-[#2164b6] to-[#1a6b9e] text-white font-bold shrink-0 shadow-xs"
+      className="flex items-center justify-center rounded-full bg-gradient-to-br from-[#2164b6] to-[#1a6b9e] text-white font-bold shrink-0 "
       style={{ width: size, height: size, fontSize: size * 0.4 }}
     >
       {initials}
@@ -90,6 +108,7 @@ export default function CommunityChatPage() {
   const [uploading, setUploading] = useState(false);
   const [showHeaderMenu, setShowHeaderMenu] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
+  const [activeCallMode, setActiveCallMode] = useState<'video' | 'audio' | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -311,7 +330,7 @@ export default function CommunityChatPage() {
       <div className="flex h-[calc(100svh-112px)] items-center justify-center">
         <div className="text-center space-y-3">
           <div className="relative mx-auto h-12 w-12">
-            <Loader2 className="h-12 w-12 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" />
+            <Loader2 weight="fill" className="h-12 w-12 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" />
           </div>
           <p className="text-sm font-medium text-muted-foreground">Loading community chat...</p>
         </div>
@@ -321,10 +340,10 @@ export default function CommunityChatPage() {
 
   if (listError) {
     return (
-      <div className="flex h-[calc(100svh-112px)] items-center justify-center p-6">
+      <div className="flex h-[calc(100svh-112px)] items-center justify-center p-4">
         <div className="max-w-sm text-center space-y-4">
-          <div className="mx-auto rounded-2xl bg-destructive/10 p-4 w-fit">
-            <AlertCircle className="h-8 w-8 text-destructive" />
+          <div className="mx-auto rounded-lg bg-destructive/10 p-4 w-fit">
+            <AlertCircle weight="fill" className="h-8 w-8 text-destructive" />
           </div>
           <h3 className="text-base font-bold text-foreground">Failed to Load</h3>
           <p className="text-xs text-muted-foreground">{listError}</p>
@@ -332,7 +351,7 @@ export default function CommunityChatPage() {
             onClick={() => { setIsLoadingList(true); loadConversations(); }}
             className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#2164b6] dark:text-[#7ab0ff] hover:underline"
           >
-            <RotateCcw className="h-3.5 w-3.5" /> Try again
+            <RotateCcw weight="fill" className="h-3.5 w-3.5" /> Try again
           </button>
         </div>
       </div>
@@ -341,10 +360,10 @@ export default function CommunityChatPage() {
 
   if (conversations.length === 0 && !activeConv) {
     return (
-      <div className="flex h-[calc(100svh-112px)] items-center justify-center p-6">
+      <div className="flex h-[calc(100svh-112px)] items-center justify-center p-4">
         <div className="max-w-sm text-center space-y-4">
-          <div className="mx-auto rounded-2xl bg-[#2164b6]/10 p-4 w-fit">
-            <MessageCircle className="h-8 w-8 text-[#2164b6] dark:text-[#7ab0ff]" />
+          <div className="mx-auto rounded-lg bg-[#2164b6]/10 p-4 w-fit">
+            <MessageCircle weight="fill" className="h-8 w-8 text-[#2164b6] dark:text-[#7ab0ff]" />
           </div>
           <h3 className="text-base font-bold text-foreground">No Community Chats</h3>
           <p className="text-xs text-muted-foreground">
@@ -362,7 +381,7 @@ export default function CommunityChatPage() {
         <div className="flex items-center justify-between px-4 py-3.5 border-b border-border">
           <div className="flex items-center gap-2.5">
             <div className="h-7 w-7 rounded-lg bg-[#2164b6]/15 flex items-center justify-center">
-              <Hash className="h-3.5 w-3.5 text-[#2164b6] dark:text-[#7ab0ff]" />
+              <Hash weight="fill" className="h-3.5 w-3.5 text-[#2164b6] dark:text-[#7ab0ff]" />
             </div>
             <h2 className="text-sm font-extrabold text-foreground tracking-tight">Community Chat</h2>
           </div>
@@ -373,7 +392,7 @@ export default function CommunityChatPage() {
 
         <div className="px-3 py-2.5 border-b border-border">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+            <Search weight="fill" className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
             <input
               type="search"
               value={searchQuery}
@@ -386,15 +405,13 @@ export default function CommunityChatPage() {
 
         <div className="flex-1 overflow-y-auto divide-y divide-border/30">
           {filteredConversations.length === 0 ? (
-            <div className="p-6 text-center space-y-2">
-              <Hash className="h-6 w-6 text-muted-foreground/30 mx-auto" />
+            <div className="p-4 text-center space-y-2">
+              <Hash weight="fill" className="h-6 w-6 text-muted-foreground/30 mx-auto" />
               <p className="text-xs font-medium text-muted-foreground">No channels found</p>
             </div>
           ) : filteredConversations.map((c) => {
             const isSelected = activeConv?.id === c.id;
-            const timeFormatted = c.latest_message
-              ? formatDistanceToNow(new Date(c.latest_message.created_at), { addSuffix: false })
-              : "";
+            const timeFormatted = safeFormatDistanceToNow(c.latest_message?.created_at, { addSuffix: false });
             const communityName = c.community?.name ?? c.title;
             const logoUrl = c.community?.logo_url;
 
@@ -413,7 +430,7 @@ export default function CommunityChatPage() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-xs font-bold text-foreground truncate flex items-center gap-1.5">
-                      {c.is_muted && <BellOff className="h-3 w-3 text-muted-foreground shrink-0" />}
+                      {c.is_muted && <BellOff weight="fill" className="h-3 w-3 text-muted-foreground shrink-0" />}
                       {communityName}
                     </span>
                     {timeFormatted && (
@@ -429,7 +446,7 @@ export default function CommunityChatPage() {
                   </p>
                 </div>
                 {c.unread_count > 0 && (
-                  <span className="h-4 min-w-[18px] px-1 rounded-full bg-[#2164b6] text-white text-[10px] font-extrabold flex items-center justify-center shrink-0 shadow-xs">
+                  <span className="h-4 min-w-[18px] px-1 rounded-full bg-[#2164b6] text-white text-[10px] font-extrabold flex items-center justify-center shrink-0 ">
                     {c.unread_count}
                   </span>
                 )}
@@ -450,7 +467,7 @@ export default function CommunityChatPage() {
                   onClick={() => setActiveConv(null)}
                   className="md:hidden p-1.5 rounded-lg hover:bg-muted text-muted-foreground shrink-0"
                 >
-                  <ArrowLeft className="h-4 w-4" />
+                  <ArrowLeft weight="fill" className="h-4 w-4" />
                 </button>
                 <CommunityAvatar
                   name={activeConv.community?.name ?? activeConv.title}
@@ -458,51 +475,97 @@ export default function CommunityChatPage() {
                 />
                 <div className="min-w-0">
                   <h3 className="text-sm font-extrabold text-foreground truncate flex items-center gap-1.5">
-                    {isMuted && <BellOff className="h-3.5 w-3.5 text-muted-foreground shrink-0" />}
+                    {isMuted && <BellOff weight="fill" className="h-3.5 w-3.5 text-muted-foreground shrink-0" />}
                     {activeConv.community?.name ?? activeConv.title}
                   </h3>
                   <p className="text-[10px] text-muted-foreground/70 flex items-center gap-1">
                     <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                    {activeConv.community?.name ? `${Math.floor(Math.random() * 15 + 1)} online` : "Community channel"}
+                    {activeConv.community?.name ? `${(activeConv.community as any).members_count ?? 0} members` : "Community channel"}
                   </p>
                 </div>
               </div>
 
-              <div className="relative">
+              <div className="flex items-center gap-1">
+                {/* Audio Call button */}
                 <button
-                  onClick={() => setShowHeaderMenu((v) => !v)}
-                  className="p-1.5 rounded-lg hover:bg-muted/70 text-muted-foreground transition-colors"
+                  onClick={() => setActiveCallMode("audio")}
+                  className="p-2 rounded-lg hover:bg-muted/70 text-muted-foreground hover:text-[#1877f2] transition-colors"
+                  title="Start Audio Call"
                 >
-                  <MoreVertical className="h-4 w-4" />
+                  <Phone weight="fill" className="h-4 w-4" />
                 </button>
-                {showHeaderMenu && (
-                  <>
-                    <div className="fixed inset-0 z-40" onClick={() => setShowHeaderMenu(false)} />
-                    <div className="absolute right-0 top-8 z-50 w-44 rounded-xl border border-border bg-card shadow-xl p-1 text-xs space-y-0.5">
-                      <button
-                        onClick={handleToggleMute}
-                        className="w-full flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-muted text-foreground font-medium"
-                      >
-                        <BellOff className="h-3.5 w-3.5 text-muted-foreground" />
-                        {isMuted ? "Unmute channel" : "Mute channel"}
-                      </button>
-                    </div>
-                  </>
-                )}
+
+                {/* Video Call button */}
+                <button
+                  onClick={() => setActiveCallMode("video")}
+                  className="p-2 rounded-lg hover:bg-muted/70 text-muted-foreground hover:text-emerald-500 transition-colors"
+                  title="Start Video Call"
+                >
+                  <Video weight="fill" className="h-4 w-4" />
+                </button>
+
+                <div className="relative">
+                  <button
+                    onClick={() => setShowHeaderMenu((v) => !v)}
+                    className="p-2 rounded-lg hover:bg-muted/70 text-muted-foreground transition-colors"
+                  >
+                    <MoreVertical weight="fill" className="h-4 w-4" />
+                  </button>
+                  {showHeaderMenu && (
+                    <>
+                      <div className="fixed inset-0 z-40" onClick={() => setShowHeaderMenu(false)} />
+                      <div className="absolute right-0 top-5 z-50 w-44 rounded-lg border-none bg-card shadow-xl p-1 text-xs space-y-0.5">
+                        <button
+                          onClick={handleToggleMute}
+                          className="w-full flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-muted text-foreground font-medium"
+                        >
+                          <BellOff weight="fill" className="h-3.5 w-3.5 text-muted-foreground" />
+                          {isMuted ? "Unmute channel" : "Mute channel"}
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
+
+            {/* Active Call Overlay Modal */}
+            {activeCallMode && activeConv && (
+              <div className="p-4 bg-slate-950 border-b border-border space-y-3 relative z-30 animate-in slide-in-from-top duration-200">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-ping" />
+                    <h4 className="text-xs font-bold text-white">
+                      {activeCallMode === "video" ? "Video Call" : "Audio Call"} — {activeConv.community?.name ?? activeConv.title}
+                    </h4>
+                  </div>
+                  <button
+                    onClick={() => setActiveCallMode(null)}
+                    className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white text-xs font-bold flex items-center gap-1"
+                  >
+                    <X weight="fill" className="h-4 w-4" /> End Call
+                  </button>
+                </div>
+                <LiveKitVideoConference
+                  roomId={activeConv.id}
+                  roomTitle={`${activeConv.community?.name ?? activeConv.title} Call`}
+                  isHost={true}
+                  onLeave={() => setActiveCallMode(null)}
+                />
+              </div>
+            )}
 
             {/* Message Stream */}
             <div className="flex-1 overflow-y-auto px-4 py-4 space-y-1 bg-[#F8FAFB] dark:bg-[#0a1a2a]/60">
               {isLoadingMsgs ? (
                 <div className="py-20 text-center space-y-2">
-                  <Loader2 className="h-5 w-5 animate-spin text-[#2164b6] dark:text-[#7ab0ff] mx-auto" />
+                  <Loader2 weight="fill" className="h-5 w-5 animate-spin text-[#2164b6] dark:text-[#7ab0ff] mx-auto" />
                   <p className="text-xs text-muted-foreground font-medium">Loading messages...</p>
                 </div>
               ) : messages.length === 0 ? (
                 <div className="py-20 text-center space-y-2">
-                  <div className="mx-auto w-10 h-10 rounded-xl bg-[#2164b6]/10 flex items-center justify-center">
-                    <MessageCircle className="h-5 w-5 text-[#2164b6] dark:text-[#7ab0ff]" />
+                  <div className="mx-auto w-10 h-10 rounded-lg bg-[#2164b6]/10 flex items-center justify-center">
+                    <MessageCircle weight="fill" className="h-5 w-5 text-[#2164b6] dark:text-[#7ab0ff]" />
                   </div>
                   <p className="text-sm font-bold text-foreground">Start the conversation</p>
                   <p className="text-xs text-muted-foreground max-w-[200px] mx-auto">
@@ -537,7 +600,7 @@ export default function CommunityChatPage() {
                       )}>
                         {msg.reply_to && (
                           <div className={cn(
-                            "px-2.5 py-1.5 rounded-xl text-[11px] border-l-[3px] border-[#2164b6] bg-[#2164b6]/8 text-muted-foreground",
+                            "px-2.5 py-1.5 rounded-lg text-[11px] border-l-[3px] border-[#2164b6] bg-[#2164b6]/8 text-muted-foreground",
                             isMine ? "ml-auto" : "",
                           )}>
                             <span className="font-bold text-[#2164b6] dark:text-[#7ab0ff] text-[10px]">
@@ -549,14 +612,14 @@ export default function CommunityChatPage() {
 
                         <div
                           className={cn(
-                            "p-3 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap break-words",
+                            "p-3 rounded-lg text-sm leading-relaxed whitespace-pre-wrap break-words",
                             isMine
                               ? isFailed
                                 ? "bg-destructive/10 border border-destructive/30 text-foreground rounded-br-md"
                                 : isPending
                                   ? "bg-[#2164b6]/70 text-white rounded-br-md opacity-85"
-                                  : "bg-[#2164b6] text-white rounded-br-md shadow-sm"
-                              : "bg-white dark:bg-[#102840] border border-border/60 text-foreground rounded-bl-md shadow-sm",
+                                  : "bg-[#2164b6] text-white rounded-br-md "
+                              : "bg-white dark:bg-[#102840] border-none/60 text-foreground rounded-bl-md ",
                           )}
                         >
                           {!isMine && msg.user?.name && showAvatar && (
@@ -571,7 +634,7 @@ export default function CommunityChatPage() {
                                 <img
                                   src={msg.attachment_url}
                                   alt="attachment"
-                                  className="max-w-full rounded-xl max-h-48 object-cover"
+                                  className="max-w-full rounded-lg max-h-48 object-cover"
                                 />
                               ) : (
                                 <a
@@ -581,9 +644,9 @@ export default function CommunityChatPage() {
                                   className="flex items-center gap-2 text-xs font-semibold underline"
                                 >
                                   {msg.attachment_type === "voice" ? (
-                                    <Volume2 className="h-3.5 w-3.5" />
+                                    <Volume2 weight="fill" className="h-3.5 w-3.5" />
                                   ) : (
-                                    <FileText className="h-3.5 w-3.5" />
+                                    <FileText weight="fill" className="h-3.5 w-3.5" />
                                   )}
                                   Attachment
                                 </a>
@@ -598,15 +661,15 @@ export default function CommunityChatPage() {
                             isMine ? "text-white/70" : "text-muted-foreground/60",
                           )}>
                             <span className="text-[10px]">
-                              {format(new Date(msg.created_at), "h:mm a")}
+                              {safeFormat(msg.created_at, "h:mm a")}
                             </span>
                             {isMine && (
                               isPending ? (
-                                <Loader2 className="h-3 w-3 animate-spin" />
+                                <Loader2 weight="fill" className="h-3 w-3 animate-spin" />
                               ) : isFailed ? (
-                                <AlertCircle className="h-3 w-3 text-destructive" />
+                                <AlertCircle weight="fill" className="h-3 w-3 text-destructive" />
                               ) : (
-                                <CheckCheck className="h-3 w-3" />
+                                <CheckCheck weight="fill" className="h-3 w-3" />
                               )
                             )}
                           </div>
@@ -616,7 +679,7 @@ export default function CommunityChatPage() {
                               onClick={() => executeSendMessage(msg)}
                               className="mt-1.5 flex items-center gap-1 text-[11px] font-bold text-destructive hover:underline"
                             >
-                              <RotateCcw className="h-3 w-3" /> Retry
+                              <RotateCcw weight="fill" className="h-3 w-3" /> Retry
                             </button>
                           )}
                         </div>
@@ -637,7 +700,7 @@ export default function CommunityChatPage() {
                         className="opacity-0 group-hover:opacity-100 hover:opacity-100 transition-opacity p-1 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground shrink-0 mb-1"
                         title="Reply"
                       >
-                        <Reply className="h-3.5 w-3.5" />
+                        <Reply weight="fill" className="h-3.5 w-3.5" />
                       </button>
                     </div>
                   );
@@ -645,20 +708,7 @@ export default function CommunityChatPage() {
               )}
 
               {typingUsers.length > 0 && (
-                <div className="flex items-center gap-2.5 px-3 py-1">
-                  <div className="flex gap-1">
-                    {[0, 1, 2].map((i) => (
-                      <span
-                        key={i}
-                        className="h-2 w-2 rounded-full bg-[#2164b6] animate-bounce"
-                        style={{ animationDelay: `${i * 200}ms` }}
-                      />
-                    ))}
-                  </div>
-                  <span className="text-[11px] text-muted-foreground italic">
-                    {typingUsers.join(", ")} {typingUsers.length === 1 ? "is" : "are"} typing...
-                  </span>
-                </div>
+                <IOSTypingBubble names={typingUsers} />
               )}
               <div ref={messagesEndRef} />
             </div>
@@ -678,15 +728,25 @@ export default function CommunityChatPage() {
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploading}
-                className="p-2 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors shrink-0 disabled:opacity-50"
+                className="p-2 rounded-lg hover:bg-muted text-muted-foreground hover:text-[#2164b6] transition-colors shrink-0 disabled:opacity-50"
                 title="Attach file"
               >
                 {uploading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <Loader2 weight="fill" className="h-4 w-4 animate-spin" />
                 ) : (
-                  <Paperclip className="h-4 w-4" />
+                  <Paperclip weight="fill" className="h-4 w-4" />
                 )}
               </button>
+
+              <button
+                type="button"
+                onClick={() => window.location.href = "/gifts"}
+                className="p-2 rounded-lg hover:bg-pink-500/10 text-muted-foreground hover:text-pink-500 transition-colors shrink-0"
+                title="Send Gift"
+              >
+                <Gift weight="fill" className="h-4 w-4 text-pink-500" />
+              </button>
+
               <input
                 ref={fileInputRef}
                 type="file"
@@ -701,22 +761,22 @@ export default function CommunityChatPage() {
                 onChange={(e) => { setInputContent(e.target.value); handleTypingDebounced(); }}
                 onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) handleSendMessage(); }}
                 placeholder={`Message #${activeConv.community?.name ?? activeConv.title}...`}
-                className="flex-1 px-4 py-2.5 text-sm rounded-xl bg-muted/60 border border-border/50 outline-none focus:ring-1 focus:ring-[#2164b6]/40 focus:border-[#2164b6] placeholder:text-muted-foreground/60 transition-all"
+                className="flex-1 px-4 py-2 text-sm rounded-lg bg-muted/60 border-none/50 outline-none focus:ring-1 focus:ring-[#2164b6]/40 focus:border-[#2164b6] placeholder:text-muted-foreground/60 transition-all"
               />
 
               <button
                 type="submit"
                 disabled={!inputContent.trim() || uploading}
-                className="p-2.5 rounded-xl bg-[#2164b6] text-white font-bold hover:bg-[#1a5091] disabled:opacity-40 transition-all shrink-0 shadow-xs"
+                className="p-2.5 rounded-full bg-[#2164b6] text-white font-bold hover:bg-[#1a5091] disabled:opacity-40 transition-all shrink-0  flex items-center justify-center w-9 h-9"
               >
-                <Send className="h-4 w-4" />
+                <Send weight="fill" className="h-4 w-4" />
               </button>
             </form>
           </>
         ) : (
           <div className="flex flex-1 flex-col items-center justify-center gap-4 text-center px-6">
-            <div className="rounded-2xl bg-[#2164b6]/10 p-5 border border-[#2164b6]/20">
-              <Hash className="h-10 w-10 text-[#2164b6] dark:text-[#7ab0ff]" />
+            <div className="rounded-lg bg-[#2164b6]/10 p-5 border border-[#2164b6]/20">
+              <Hash weight="fill" className="h-10 w-10 text-[#2164b6] dark:text-[#7ab0ff]" />
             </div>
             <div className="space-y-1">
               <h3 className="text-base font-extrabold text-foreground">Community Chat</h3>

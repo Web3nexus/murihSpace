@@ -1,6 +1,18 @@
 import { getAuthToken } from "@/lib/auth/token";
 import { useEffect, useState } from "react";
-import { Loader2, Save, LinkIcon, Eye, EyeOff, Lock, CheckCircle2, AlertCircle, Globe, KeyRound, ShieldQuestion } from "lucide-react";
+import {
+  Spinner as Loader2,
+  FloppyDisk as FloppyDisk,
+  Link as LinkIcon,
+  Eye as Eye,
+  EyeSlash as EyeOff,
+  Lock as Lock,
+  CheckCircle as CheckCircle2,
+  WarningCircle as AlertCircle,
+  Globe as Globe,
+  Key as Key,
+  Question as Question
+} from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -113,7 +125,7 @@ export default function AdminSocialLoginSettingsPage() {
       }
       const res = await authFetch(`/securegate/social-login`, { method: "PUT", headers: authHeaders(), body: JSON.stringify(body) });
       const j = await res.json();
-      if (!res.ok) throw new Error(j?.message ?? "Save failed");
+      if (!res.ok) throw new Error(j?.message ?? "FloppyDisk failed");
       const d = j?.success ? j?.data?.data ?? j?.data : j;
       setProviders(d?.providers ?? providers);
       setForms((prev) => {
@@ -125,21 +137,21 @@ export default function AdminSocialLoginSettingsPage() {
       });
       toast.success("Social login settings saved.");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Save failed");
+      toast.error(e instanceof Error ? e.message : "FloppyDisk failed");
     } finally {
       setSaving(false);
     }
   };
 
   if (loading) {
-    return <div className="flex justify-center py-24"><Loader2 className="h-8 w-8 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" /></div>;
+    return <div className="flex justify-center py-24"><Loader2 weight="fill" className="h-8 w-8 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" /></div>;
   }
 
   return (
-    <div className="w-full mx-auto max-w-[860px] space-y-6 p-6 lg:p-10">
+    <div className="w-full mx-auto max-w-[860px] space-y-6 p-4 lg:p-10">
       <div>
-        <h1 className="text-2xl font-black tracking-tight flex items-center gap-2.5">
-          <LinkIcon className="h-6 w-6 text-[#2164b6] dark:text-[#7ab0ff]" /> Social Login
+        <h1 className="text-xl font-black tracking-tight flex items-center gap-2.5">
+          <LinkIcon weight="fill" className="h-6 w-6 text-[#2164b6] dark:text-[#7ab0ff]" /> Social Login
         </h1>
         <p className="text-xs text-muted-foreground mt-1">
           Configure OAuth credentials for Google and Apple. Secrets are encrypted at rest. Sign-in buttons appear on the login and register screens once a provider is configured.
@@ -151,10 +163,10 @@ export default function AdminSocialLoginSettingsPage() {
           const meta = providers[p.id];
           const configured = meta?.configured ?? false;
           return (
-            <div key={p.id} className="rounded-2xl border border-border bg-card p-4">
+            <div key={p.id} className="rounded-lg border-none bg-card p-4">
               <div className="flex items-center justify-between mb-2">
-                <div className={`h-9 w-9 rounded-xl bg-gradient-to-br ${p.color} flex items-center justify-center`}>
-                  <Globe className="h-4.5 w-4.5 text-[#2164b6] dark:text-[#7ab0ff]" />
+                <div className={`h-9 w-9 rounded-lg bg-gradient-to-br ${p.color} flex items-center justify-center`}>
+                  <Globe weight="fill" className="h-4.5 w-4.5 text-[#2164b6] dark:text-[#7ab0ff]" />
                 </div>
                 <span
                   className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
@@ -175,19 +187,19 @@ export default function AdminSocialLoginSettingsPage() {
         const meta = providers[p.id];
         const f = forms[p.id] ?? EMPTY_FORM;
         return (
-          <div key={p.id} className="border border-border rounded-2xl bg-card p-6 space-y-4">
+          <div key={p.id} className="border-none rounded-lg bg-card p-4 space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <p className="text-sm font-bold text-foreground">{p.label} credentials</p>
                 {meta?.configured && (
                   <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
-                    <CheckCircle2 className="h-3.5 w-3.5" /> Ready
+                    <CheckCircle2 weight="fill" className="h-3.5 w-3.5" /> Ready
                   </span>
                 )}
               </div>
               {meta?.client_id_from_env || meta?.secret_from_env ? (
                 <span className="inline-flex items-center gap-1 text-[10px] font-bold text-sky-600 dark:text-sky-400">
-                  <ShieldQuestion className="h-3.5 w-3.5" /> Overridden by env vars
+                  <Question weight="fill" className="h-3.5 w-3.5" /> Overridden by env vars
                 </span>
               ) : null}
             </div>
@@ -195,7 +207,7 @@ export default function AdminSocialLoginSettingsPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label htmlFor={`${p.id}-client-id`} className="text-[11px] font-bold text-muted-foreground flex items-center gap-1">
-                  <Globe className="h-3 w-3" /> Client ID
+                  <Globe weight="fill" className="h-3 w-3" /> Client ID
                 </label>
                 <Input
                   id={`${p.id}-client-id`}
@@ -208,7 +220,7 @@ export default function AdminSocialLoginSettingsPage() {
               </div>
               <div>
                 <label htmlFor={`${p.id}-client-secret`} className="text-[11px] font-bold text-muted-foreground flex items-center gap-1">
-                  <KeyRound className="h-3 w-3" /> Client Secret
+                  <Key weight="fill" className="h-3 w-3" /> Client Secret
                 </label>
                 <div className="relative mt-1">
                   <Input
@@ -225,7 +237,7 @@ export default function AdminSocialLoginSettingsPage() {
                     onClick={() => toggleReveal(p.id, "client_secret")}
                     className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                   >
-                    {isRevealed(p.id, "client_secret") ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    {isRevealed(p.id, "client_secret") ? <EyeOff className="h-4 w-4" /> : <Eye weight="fill" className="h-4 w-4" />}
                   </button>
                 </div>
               </div>
@@ -233,7 +245,7 @@ export default function AdminSocialLoginSettingsPage() {
 
             <div>
               <label htmlFor={`${p.id}-redirect`} className="text-[11px] font-bold text-muted-foreground flex items-center gap-1">
-                <LinkIcon className="h-3 w-3" /> Redirect URI
+                <LinkIcon weight="fill" className="h-3 w-3" /> Redirect URI
               </label>
               <Input
                 id={`${p.id}-redirect`}
@@ -250,9 +262,9 @@ export default function AdminSocialLoginSettingsPage() {
             </div>
 
             {p.id === "apple" && (
-              <div className="rounded-xl border border-border/60 bg-muted/30 p-4 space-y-4">
+              <div className="rounded-lg border-none/60 bg-muted/30 p-4 space-y-4">
                 <p className="text-[11px] font-bold text-foreground flex items-center gap-1">
-                  <Lock className="h-3 w-3" /> Apple Sign-In (team, key & private key)
+                  <Lock weight="fill" className="h-3 w-3" /> Apple Sign-In (team, key & private key)
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
@@ -278,7 +290,7 @@ export default function AdminSocialLoginSettingsPage() {
                 </div>
                 <div>
                   <label htmlFor={`${p.id}-private-key`} className="text-[11px] font-bold text-muted-foreground flex items-center gap-1">
-                    <Lock className="h-3 w-3" /> Private key (.p8 contents)
+                    <Lock weight="fill" className="h-3 w-3" /> Private key (.p8 contents)
                   </label>
                   <textarea
                     id={`${p.id}-private-key`}
@@ -287,7 +299,7 @@ export default function AdminSocialLoginSettingsPage() {
                     placeholder="-----BEGIN PRIVATE KEY-----&#10;...&#10;-----END PRIVATE KEY-----"
                     autoComplete="off"
                     rows={4}
-                    className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-xs font-mono text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-[#2164b6]/20"
+                    className="mt-1 w-full rounded-lg border-none bg-background px-3 py-2 text-xs font-mono text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-[#2164b6]/20"
                   />
                   <p className="text-[10px] text-muted-foreground mt-1">
                     Used to sign the ES256 JWT client secret. Never commit this key to the repository.
@@ -301,11 +313,11 @@ export default function AdminSocialLoginSettingsPage() {
 
       <div className="flex items-center gap-3">
         <Button onClick={save} disabled={saving} className="text-sm font-bold gap-1.5">
-          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-          Save social login settings
+          {saving ? <Loader2 weight="fill" className="h-4 w-4 animate-spin" /> : <FloppyDisk weight="fill" className="h-4 w-4" />}
+          FloppyDisk social login settings
         </Button>
         <p className="text-[11px] text-muted-foreground flex items-center gap-1">
-          <AlertCircle className="h-3.5 w-3.5" /> Configuring a provider enables its sign-in button on the auth screens.
+          <AlertCircle weight="fill" className="h-3.5 w-3.5" /> Configuring a provider enables its sign-in button on the auth screens.
         </p>
       </div>
     </div>

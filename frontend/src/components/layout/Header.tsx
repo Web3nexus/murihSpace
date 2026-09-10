@@ -1,5 +1,14 @@
 import React from "react";
-import { Bell, Search, Sun, Moon, ChevronDown, User, LogOut, ChevronsUpDown } from "lucide-react";
+import {
+  Bell as Bell,
+  MagnifyingGlass as Search,
+  Sun as Sun,
+  Moon as Moon,
+  CaretDown as ChevronDown,
+  User as User,
+  SignOut as LogOut,
+  CaretUpDown as ChevronsUpDown
+} from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -31,7 +40,7 @@ export const Header: React.FC<HeaderProps> = ({
       {/* Left: Search */}
       <div className="flex flex-1 items-center gap-3 max-w-sm">
         <div className="relative w-full">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Search weight="fill" className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <input
             type="search"
             placeholder="Search MurihSpace..."
@@ -52,7 +61,7 @@ export const Header: React.FC<HeaderProps> = ({
             <Button variant="outline" size="sm" className="gap-2 h-9 text-xs capitalize font-medium" id="role-switcher">
               <span className="hidden sm:inline text-muted-foreground">Role:</span>
               <span className="text-primary font-semibold capitalize">{currentRole}</span>
-              <ChevronsUpDown className="h-3 w-3 text-muted-foreground" />
+              <ChevronsUpDown weight="fill" className="h-3 w-3 text-muted-foreground" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-40">
@@ -73,7 +82,7 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Notifications */}
         <Button variant="ghost" size="icon" className="relative h-9 w-9" aria-label="Notifications" id="notifications-btn">
-          <Bell className="h-4 w-4" />
+          <Bell weight="fill" className="h-4 w-4" />
           <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-primary" aria-hidden="true" />
         </Button>
 
@@ -86,7 +95,7 @@ export const Header: React.FC<HeaderProps> = ({
           aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
           id="theme-toggle"
         >
-          {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+          {isDark ? <Sun weight="fill" className="h-4 w-4" /> : <Moon weight="fill" className="h-4 w-4" />}
         </Button>
 
         {/* User Menu */}
@@ -102,7 +111,7 @@ export const Header: React.FC<HeaderProps> = ({
               <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/20 text-primary font-semibold text-xs">
                 VN
               </div>
-              <ChevronDown className="h-3 w-3 text-muted-foreground" />
+              <ChevronDown weight="fill" className="h-3 w-3 text-muted-foreground" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
@@ -112,11 +121,11 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
             <DropdownMenuSeparator />
             <DropdownMenuItem className="gap-2 cursor-pointer" id="profile-link">
-              <User className="h-4 w-4" /> Profile
+              <User weight="fill" className="h-4 w-4" /> Profile
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem className="gap-2 cursor-pointer text-destructive focus:text-destructive" id="logout-btn">
-              <LogOut className="h-4 w-4" /> Sign Out
+              <LogOut weight="fill" className="h-4 w-4" /> Sign Out
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

@@ -2,14 +2,15 @@
 
 namespace App\Http\Controllers;
 
-use App\Events\MessageSent;
 use App\Events\MessageDeleted;
+use App\Events\MessageSent;
 use App\Events\TypingIndicator;
 use App\Models\Community;
 use App\Models\CommunityMembership;
 use App\Models\Conversation;
 use App\Models\ConversationParticipant;
 use App\Models\ConversationUserSetting;
+use App\Models\Media;
 use App\Models\Message;
 use App\Models\MessageUserState;
 use App\Models\User;
@@ -17,6 +18,7 @@ use App\Models\UserBlock;
 use App\Notifications\NewMessageNotification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 class ConversationController extends Controller
@@ -40,9 +42,6 @@ class ConversationController extends Controller
                 },
             ])
             ->withCount(['participants as member_count'])
-            ->withCount(['messages as unread_count' => function ($q) use ($userId) {
-                $q->where('user_id', '!=', $userId);
-            }])
             ->get();
 
         $settings = ConversationUserSetting::where('user_id', $userId)
@@ -50,17 +49,26 @@ class ConversationController extends Controller
             ->get()
             ->keyBy('conversation_id');
 
-        $conversations = $conversations
-            ->map(function ($conv) use ($userId, $settings) {
-                $participant = $conv->participants->first();
-                $lastReadAt = $participant ? $participant->last_read_at : null;
+        $convIds = $conversations->pluck('id');
 
-                $unreadCount = $lastReadAt
-                    ? Message::where('conversation_id', $conv->id)
-                        ->where('user_id', '!=', $userId)
-                        ->where('created_at', '>', $lastReadAt)
-                        ->count()
-                    : $conv->unread_count;
+        $unreadCounts = Message::join('conversation_participants', function ($join) use ($userId) {
+            $join->on('conversation_participants.conversation_id', '=', 'messages.conversation_id')
+                ->where('conversation_participants.user_id', '=', $userId);
+        })
+            ->whereIn('messages.conversation_id', $convIds)
+            ->where('messages.user_id', '!=', $userId)
+            ->whereNull('messages.deleted_at')
+            ->where(function ($q) {
+                $q->whereNull('conversation_participants.last_read_at')
+                    ->orWhereColumn('messages.created_at', '>', 'conversation_participants.last_read_at');
+            })
+            ->groupBy('messages.conversation_id')
+            ->select('messages.conversation_id', DB::raw('count(*) as aggregate'))
+            ->pluck('aggregate', 'conversation_id');
+
+        $conversations = $conversations
+            ->map(function ($conv) use ($userId, $settings, $unreadCounts) {
+                $unreadCount = (int) ($unreadCounts->get($conv->id) ?? 0);
 
                 // For direct conversations, resolve recipient user
                 $otherUser = null;
@@ -73,7 +81,7 @@ class ConversationController extends Controller
                 return [
                     'id' => $conv->id,
                     'type' => $conv->type,
-                    'title' => $conv->type === 'direct' ? ($otherUser ? $otherUser->name : 'Direct Message') : ($conv->type === 'saved' ? 'Saved Messages' : ($conv->community ? $conv->community->name : $conv->title)),
+                    'title' => $conv->type === 'direct' ? ($otherUser ? $otherUser->name : 'Direct Message') : ($conv->type === 'saved' ? 'Saved Messages' : ($conv->community ? $conv->community->name : ($conv->title ?: 'Conversation'))),
                     'community' => $conv->community,
                     'other_user' => $otherUser,
                     'latest_message' => $conv->latestMessage,
@@ -156,7 +164,7 @@ class ConversationController extends Controller
             ->whereIn('status', ['active', 'approved'])
             ->exists();
 
-        if (! $isMember && $community->creator_id !== $request->user()->id) {
+        if (! $isMember && $community->user_id !== $request->user()->id) {
             return response()->json(['message' => 'Must be a community member to access general chat.'], 403);
         }
 
@@ -227,7 +235,7 @@ class ConversationController extends Controller
             ->where('user_id', '!=', $request->user()->id)
             ->pluck('last_read_at')
             ->filter()
-            ->map(fn ($ts) => \Illuminate\Support\Carbon::parse($ts));
+            ->map(fn ($ts) => Carbon::parse($ts));
 
         $messages = $messages->through(function (Message $message) use ($request, $otherLastReadAt) {
             $message->read = false;
@@ -280,10 +288,10 @@ class ConversationController extends Controller
             $mediaStatus = null;
             $media = null;
             if ($validated['media_id'] ?? null) {
-                $media = \App\Models\Media::find($validated['media_id']);
+                $media = Media::find($validated['media_id']);
                 $mediaStatus = $media
-                    ? \App\Models\Message::MEDIA_STATUS_READY
-                    : \App\Models\Message::MEDIA_STATUS_FAILED;
+                    ? Message::MEDIA_STATUS_READY
+                    : Message::MEDIA_STATUS_FAILED;
             }
 
             $msg = Message::create([
@@ -366,7 +374,7 @@ class ConversationController extends Controller
                 }
             }
 
-            DB::transaction(function () use ($message, $conversation) {
+            DB::transaction(function () use ($message) {
                 $message->update(['status' => Message::STATUS_DELETED, 'content' => '', 'attachment_url' => null]);
                 $message->delete();
 
@@ -521,7 +529,7 @@ class ConversationController extends Controller
                 ->exists();
 
             $isOwner = Community::where('id', $conversation->community_id)
-                ->where('creator_id', $userId)
+                ->where('user_id', $userId)
                 ->exists();
 
             if (! $isMember && ! $isOwner) {
@@ -560,7 +568,7 @@ class ConversationController extends Controller
 
         return response()->json([
             'data' => [
-                'total_conversations' => Conversation::whereHas('participants', fn($q) => $q->where('user_id', $userId))->count(),
+                'total_conversations' => Conversation::whereHas('participants', fn ($q) => $q->where('user_id', $userId))->count(),
                 'unread_messages' => $unreadCount,
                 'total_messages_sent' => Message::where('user_id', $userId)->count(),
             ],
@@ -572,12 +580,12 @@ class ConversationController extends Controller
         $userId = $request->user()->id;
 
         $messages = Message::where('user_id', $userId)
-            ->orWhereHas('conversation.participants', fn($q) => $q->where('user_id', $userId))
+            ->orWhereHas('conversation.participants', fn ($q) => $q->where('user_id', $userId))
             ->with(['conversation', 'user'])
             ->latest()
             ->take(10)
             ->get()
-            ->map(fn($m) => [
+            ->map(fn ($m) => [
                 'id' => $m->id,
                 'conversation_id' => $m->conversation_id,
                 'conversation_title' => $m->conversation?->title ?? 'Direct Message',

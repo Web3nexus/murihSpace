@@ -29,7 +29,7 @@ class FeedController extends Controller
             });
 
         if ($feedType === 'following') {
-            $followingIds = $user->follows()->pluck('followed_user_id');
+            $followingIds = $user->follows()->pluck('following_id');
             $posts->whereIn('user_id', $followingIds);
         }
 

@@ -1,10 +1,43 @@
 import { useState, useEffect, useMemo, useRef } from "react";
-import { ChevronDown, Loader2 } from "lucide-react";
-import type { CountryItem } from "./CountrySelect";
-
+import {
+  CaretDown as ChevronDown,
+  Spinner as Loader2
+} from "@phosphor-icons/react";
 import { env } from "@/config/env";
 
 const API_BASE = env.VITE_API_BASE_URL;
+export interface CountryItem {
+  iso2: string;
+  iso3: string;
+  name: string;
+  calling_code: string;
+  flag: string;
+  currency: string;
+  state_required: boolean;
+  postal_code_required: boolean;
+}
+
+const DEFAULT_FALLBACK_COUNTRY: CountryItem = {
+  iso2: "NG",
+  iso3: "NGA",
+  name: "Nigeria",
+  calling_code: "234",
+  flag: "🇳🇬",
+  currency: "NGN",
+  state_required: false,
+  postal_code_required: true,
+};
+
+const INITIAL_COUNTRIES: CountryItem[] = [
+  DEFAULT_FALLBACK_COUNTRY,
+  { iso2: "GB", iso3: "GBR", name: "United Kingdom", calling_code: "44", flag: "🇬🇧", currency: "GBP", state_required: false, postal_code_required: true },
+  { iso2: "US", iso3: "USA", name: "United States", calling_code: "1", flag: "🇺🇸", currency: "USD", state_required: true, postal_code_required: true },
+  { iso2: "CA", iso3: "CAN", name: "Canada", calling_code: "1", flag: "🇨🇦", currency: "CAD", state_required: true, postal_code_required: true },
+  { iso2: "GH", iso3: "GHA", name: "Ghana", calling_code: "233", flag: "🇬🇭", currency: "GHS", state_required: false, postal_code_required: false },
+  { iso2: "KE", iso3: "KEN", name: "Kenya", calling_code: "254", flag: "🇰🇪", currency: "KES", state_required: false, postal_code_required: false },
+  { iso2: "ZA", iso3: "ZAF", name: "South Africa", calling_code: "27", flag: "🇿🇦", currency: "ZAR", state_required: false, postal_code_required: true },
+];
+
 interface PhoneInputProps {
   value?: string;
   countryIso2?: string;
@@ -16,15 +49,15 @@ interface PhoneInputProps {
 
 export function PhoneInput({
   value = "",
-  countryIso2 = "GB",
+  countryIso2 = "NG",
   onChange,
-  placeholder = "7911 123456",
+  placeholder = "801 234 5678",
   disabled = false,
   className = "",
 }: PhoneInputProps) {
-  const [countries, setCountries] = useState<CountryItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedIso2, setSelectedIso2] = useState(countryIso2);
+  const [countries, setCountries] = useState<CountryItem[]>(INITIAL_COUNTRIES);
+  const [loading, setLoading] = useState(false);
+  const [selectedIso2, setSelectedIso2] = useState(countryIso2 || "NG");
   const [localNumber, setLocalNumber] = useState("");
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -53,7 +86,7 @@ export function PhoneInput({
             : Array.isArray(json) 
               ? json 
               : [];
-        if (active) setCountries(list);
+        if (active && list.length > 0) setCountries(list);
       } catch (e) {
         console.error("PhoneInput fetch error:", e);
       } finally {
@@ -77,12 +110,10 @@ export function PhoneInput({
   }, []);
 
   const currentCountry = useMemo(() => {
-    return countries.find((c) => c.iso2.toLowerCase() === selectedIso2.toLowerCase()) || {
-      iso2: "GB",
-      flag: "🇬🇧",
-      calling_code: "44",
-      name: "United Kingdom",
-    };
+    const found = countries.find((c) => c.iso2.toLowerCase() === selectedIso2.toLowerCase());
+    if (found) return found;
+    if (selectedIso2.toUpperCase() === "NG") return DEFAULT_FALLBACK_COUNTRY;
+    return INITIAL_COUNTRIES.find((c) => c.iso2.toLowerCase() === selectedIso2.toLowerCase()) || DEFAULT_FALLBACK_COUNTRY;
   }, [selectedIso2, countries]);
 
   // Parse incoming initial value if it starts with +
@@ -122,7 +153,7 @@ export function PhoneInput({
   };
 
   return (
-    <div className={`relative flex items-center rounded-xl border border-border bg-card text-foreground focus-within:border-[#2164b6]/50 transition-colors ${className}`}>
+    <div className={`relative flex items-center rounded-lg border-none bg-card text-foreground focus-within:border-[#2164b6]/50 transition-colors ${className}`}>
       {/* Country calling code picker */}
       <div ref={dropdownRef} className="relative shrink-0">
         <button
@@ -132,24 +163,24 @@ export function PhoneInput({
           className="flex items-center gap-1.5 px-3 py-2.5 border-r border-border bg-muted/30 text-xs font-bold text-foreground hover:bg-muted/60 transition-colors rounded-l-xl"
         >
           {loading ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
+            <Loader2 weight="fill" className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
           ) : (
             <>
               <span className="text-base leading-none">{currentCountry.flag || "🌐"}</span>
               <span className="font-mono text-muted-foreground">+{currentCountry.calling_code}</span>
-              <ChevronDown className="h-3 w-3 text-muted-foreground" />
+              <ChevronDown weight="fill" className="h-3 w-3 text-muted-foreground" />
             </>
           )}
         </button>
 
         {dropdownOpen && (
-          <div className="absolute top-full left-0 z-50 mt-1 w-64 max-h-60 overflow-y-auto rounded-2xl border border-border bg-card shadow-xl p-1 space-y-0.5 scrollbar-thin">
+          <div className="absolute top-full left-0 z-50 mt-1 w-64 max-h-60 overflow-y-auto rounded-lg border-none bg-card shadow-xl p-1 space-y-0.5 scrollbar-thin">
             {countries.map((c) => (
               <button
                 key={c.iso2}
                 type="button"
                 onClick={() => handleCountrySelect(c)}
-                className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-colors ${
+                className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
                   selectedIso2.toLowerCase() === c.iso2.toLowerCase()
                     ? "bg-[#2164b6]/10 text-[#2164b6] dark:text-[#7ab0ff] font-bold"
                     : "hover:bg-muted/50 text-foreground"

@@ -16,7 +16,12 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
-import { MoreHorizontalIcon, FolderIcon, ArrowRightIcon, Trash2Icon } from "lucide-react"
+import {
+  DotsThree as MoreHorizontalIcon,
+  Folder as FolderIcon,
+  ArrowRight as ArrowRightIcon,
+  Trash as Trash2Icon
+} from "@phosphor-icons/react";
 
 export function NavProjects({
   projects,
@@ -47,7 +52,7 @@ export function NavProjects({
                   showOnHover
                   className="aria-expanded:bg-muted"
                 >
-                  <MoreHorizontalIcon
+                  <MoreHorizontalIcon weight="fill"
                   />
                   <span className="sr-only">More</span>
                 </SidebarMenuAction>
@@ -58,18 +63,18 @@ export function NavProjects({
                 align={isMobile ? "end" : "start"}
               >
                 <DropdownMenuItem>
-                  <FolderIcon
+                  <FolderIcon weight="fill"
                   />
                   <span>View Project</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem>
-                  <ArrowRightIcon
+                  <ArrowRightIcon weight="fill"
                   />
                   <span>Share Project</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem variant="destructive">
-                  <Trash2Icon
+                  <Trash2Icon weight="fill"
                   />
                   <span>Delete Project</span>
                 </DropdownMenuItem>
@@ -79,7 +84,7 @@ export function NavProjects({
         ))}
         <SidebarMenuItem>
           <SidebarMenuButton className="text-sidebar-foreground/70">
-            <MoreHorizontalIcon className="text-sidebar-foreground/70" />
+            <MoreHorizontalIcon weight="fill" className="text-sidebar-foreground/70" />
             <span>More</span>
           </SidebarMenuButton>
         </SidebarMenuItem>

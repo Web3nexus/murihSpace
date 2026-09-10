@@ -121,4 +121,75 @@ class RoleUpgradeTest extends TestCase
         $this->assertEquals('member', $user->fresh()->role);
         $this->assertEquals('rejected', $app->fresh()->status);
     }
+
+    public function test_user_can_cancel_and_reapply(): void
+    {
+        $user = User::factory()->create(['role' => 'member']);
+
+        $app = AccountRoleHistory::create([
+            'user_id' => $user->id,
+            'previous_role' => 'member',
+            'requested_role' => 'creator',
+            'status' => 'pending',
+            'requested_at' => now(),
+        ]);
+
+        // User cancels
+        $cancelRes = $this->actingAs($user)
+            ->deleteJson('/api/v1/role/apply');
+
+        $cancelRes->assertStatus(200)
+            ->assertJson(['success' => true]);
+
+        $this->assertEquals('cancelled', $app->fresh()->status);
+
+        // User re-applies
+        $reapplyRes = $this->actingAs($user)
+            ->postJson('/api/v1/role/apply', [
+                'requested_role' => 'creator',
+            ]);
+
+        $reapplyRes->assertStatus(201)
+            ->assertJson(['success' => true]);
+
+        $this->assertDatabaseHas('account_role_history', [
+            'user_id' => $user->id,
+            'status' => 'pending',
+            'requested_role' => 'creator',
+        ]);
+    }
+
+    public function test_admin_can_request_kyc_and_list_applications(): void
+    {
+        $user = User::factory()->create(['role' => 'member', 'kyc_status' => 'not_started']);
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $app = AccountRoleHistory::create([
+            'user_id' => $user->id,
+            'previous_role' => 'member',
+            'requested_role' => 'creator',
+            'status' => 'pending',
+            'requested_at' => now(),
+        ]);
+
+        // Admin requests KYC
+        $kycRes = $this->actingAs($admin)
+            ->patchJson("/api/v1/securegate/role-applications/{$app->id}/request-kyc", [
+                'note' => 'Please provide a valid government passport or national ID.',
+            ]);
+
+        $kycRes->assertStatus(200)
+            ->assertJson(['success' => true]);
+
+        $updatedApp = $app->fresh();
+        $this->assertTrue($updatedApp->metadata['kyc_requested'] ?? false);
+        $this->assertEquals('Please provide a valid government passport or national ID.', $updatedApp->metadata['kyc_request_note']);
+
+        // Admin lists pending applications
+        $listRes = $this->actingAs($admin)
+            ->getJson('/api/v1/securegate/role-applications?status=pending');
+
+        $listRes->assertStatus(200)
+            ->assertJson(['success' => true]);
+    }
 }
