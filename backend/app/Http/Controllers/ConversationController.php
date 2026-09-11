@@ -135,8 +135,25 @@ class ConversationController extends Controller
             })
             ->first();
 
+        $targetUser = User::find($targetId);
+        $userPayload = $targetUser ? [
+            'id' => $targetUser->id,
+            'name' => $targetUser->name,
+            'username' => $targetUser->username,
+            'avatar_url' => $targetUser->avatar_url ?? $targetUser->avatar,
+        ] : null;
+
         if ($existing) {
-            return response()->json(['data' => $existing]);
+            return response()->json([
+                'data' => [
+                    'id' => $existing->id,
+                    'type' => 'direct',
+                    'title' => $targetUser?->name ?: 'Direct Message',
+                    'other_user' => $userPayload,
+                    'unread_count' => 0,
+                    'updated_at' => $existing->updated_at,
+                ],
+            ]);
         }
 
         // Create new direct conversation
@@ -148,7 +165,16 @@ class ConversationController extends Controller
             return $conv;
         });
 
-        return response()->json(['data' => $conversation], 201);
+        return response()->json([
+            'data' => [
+                'id' => $conversation->id,
+                'type' => 'direct',
+                'title' => $targetUser?->name ?: 'Direct Message',
+                'other_user' => $userPayload,
+                'unread_count' => 0,
+                'updated_at' => $conversation->updated_at,
+            ],
+        ], 201);
     }
 
     /**
@@ -214,8 +240,17 @@ class ConversationController extends Controller
      */
     public function messages(Request $request, int $id): JsonResponse
     {
-        $conversation = Conversation::findOrFail($id);
+        $conversation = $this->resolveConversation($request, $id);
+        if (! $conversation) {
+            return response()->json([
+                'data' => [],
+                'current_page' => 1,
+                'last_page' => 1,
+                'total' => 0,
+            ]);
+        }
         $this->authorizeParticipant($request, $conversation);
+        $id = $conversation->id;
 
         $messages = Message::where('conversation_id', $id)
             ->visible()
@@ -256,7 +291,10 @@ class ConversationController extends Controller
      */
     public function sendMessage(Request $request, int $id): JsonResponse
     {
-        $conversation = Conversation::findOrFail($id);
+        $conversation = $this->resolveConversation($request, $id);
+        if (! $conversation) {
+            return response()->json(['message' => 'Conversation not found.'], 404);
+        }
         $this->authorizeParticipant($request, $conversation);
 
         $validated = $request->validate([
@@ -264,7 +302,7 @@ class ConversationController extends Controller
             'client_uuid' => ['nullable', 'string', 'max:64'],
             'reply_to_id' => ['nullable', 'integer', 'exists:messages,id'],
             'attachment_url' => ['nullable', 'string', 'max:2000'],
-            'attachment_type' => ['nullable', 'string', 'in:image,file,voice'],
+            'attachment_type' => ['nullable', 'string', 'in:image,file,voice,poll,location,contact'],
             'media_id' => ['nullable', 'integer', 'exists:media,id'],
             'media_status' => ['nullable', 'string', 'in:uploading,processing,ready,failed,rejected'],
         ]);
@@ -483,7 +521,10 @@ class ConversationController extends Controller
      */
     public function markRead(Request $request, int $id): JsonResponse
     {
-        $conversation = Conversation::findOrFail($id);
+        $conversation = $this->resolveConversation($request, $id);
+        if (! $conversation) {
+            return response()->json(['message' => 'Conversation marked as read.']);
+        }
         $this->authorizeParticipant($request, $conversation);
 
         ConversationParticipant::where('conversation_id', $conversation->id)
@@ -498,7 +539,10 @@ class ConversationController extends Controller
      */
     public function typing(Request $request, int $id): JsonResponse
     {
-        $conversation = Conversation::findOrFail($id);
+        $conversation = $this->resolveConversation($request, $id);
+        if (! $conversation) {
+            return response()->json(['ok' => true]);
+        }
         $this->authorizeParticipant($request, $conversation);
 
         $validated = $request->validate([
@@ -513,6 +557,43 @@ class ConversationController extends Controller
         ));
 
         return response()->json(['ok' => true]);
+    }
+
+    /**
+     * Resolve conversation by ID, or seamlessly resolve synthetic direct ID (e.g. 9000 + userId).
+     */
+    private function resolveConversation(Request $request, int $id): ?Conversation
+    {
+        $conversation = Conversation::find($id);
+        if ($conversation) {
+            return $conversation;
+        }
+
+        // If ID is synthetic fallback (e.g. 9000 + userId)
+        if ($id >= 9000 && $id < 100000) {
+            $targetUserId = $id - 9000;
+            $authId = $request->user()->id;
+
+            if ($targetUserId !== $authId && User::where('id', $targetUserId)->exists()) {
+                $existing = Conversation::where('type', 'direct')
+                    ->whereHas('participants', fn ($q) => $q->where('user_id', $authId))
+                    ->whereHas('participants', fn ($q) => $q->where('user_id', $targetUserId))
+                    ->first();
+
+                if ($existing) {
+                    return $existing;
+                }
+
+                return DB::transaction(function () use ($authId, $targetUserId) {
+                    $c = Conversation::create(['type' => 'direct']);
+                    ConversationParticipant::create(['conversation_id' => $c->id, 'user_id' => $authId, 'last_read_at' => now()]);
+                    ConversationParticipant::create(['conversation_id' => $c->id, 'user_id' => $targetUserId]);
+                    return $c;
+                });
+            }
+        }
+
+        return null;
     }
 
     /**
