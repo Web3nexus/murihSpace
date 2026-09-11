@@ -24,6 +24,7 @@ import { safeFormatDistanceToNow, safeFormat } from "@/lib/date";
 import type { ConversationItem, ChatMessage, MessageStatus, MessageReaction } from "@/types/chat";
 import { ReplyPreviewBar } from "@/components/chat/ReplyPreviewBar";
 import { MessageReactions } from "@/components/chat/MessageReactions";
+import { EmojiPickerPopover } from "@/components/chat/EmojiPickerPopover";
 import { IOSTypingBubble } from "@/components/chat/iOSTypingBubble";
 import { useRealtimeMessaging } from "@/hooks/useRealtimeMessaging";
 import { LiveKitVideoConference } from "@/components/video/LiveKitVideoConference";
@@ -746,6 +747,11 @@ export default function CommunityChatPage() {
               >
                 <Gift weight="fill" className="h-4 w-4 text-pink-500" />
               </button>
+
+              <EmojiPickerPopover
+                onSelect={(emoji) => setInputContent((prev) => prev + emoji)}
+                align="left"
+              />
 
               <input
                 ref={fileInputRef}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useLocation, useNavigate } from "react-router";
 import {
   ChatTeardropText,
@@ -18,6 +18,7 @@ import { useRealtimeMessaging } from "@/hooks/useRealtimeMessaging";
 import { apiClient } from "@/lib/api/client";
 import type { ChatMessage } from "@/types/chat";
 import { safeFormatDistanceToNow, safeFormat } from "@/lib/date";
+import { EmojiPickerPopover } from "@/components/chat/EmojiPickerPopover";
 
 export function PopChatWidget() {
   const { user, isAuthenticated } = useAuth();
@@ -417,6 +418,11 @@ export function PopChatWidget() {
               onKeyDown={handleKeyDown}
               disabled={sending}
               className="flex-1 h-9 px-3 text-xs rounded-xl bg-muted/60 border border-border/60 outline-none focus:ring-1 focus:ring-primary focus:bg-background transition-all"
+            />
+            <EmojiPickerPopover
+              onSelect={(emoji) => setInputText((prev) => prev + emoji)}
+              align="right"
+              buttonClassName="h-9 w-9 rounded-xl"
             />
             <button
               type="submit"
