@@ -315,9 +315,9 @@ class ConversationController extends Controller
         if ($clientUuid) {
             $existing = Message::where('client_uuid', $clientUuid)->first();
             if ($existing) {
-                return response()->json([
-                    'data' => $existing->load('user:id,name,username,avatar'),
-                ]);
+                return response()->json(
+                    $existing->load('user:id,name,username,avatar')
+                );
             }
         }
 
@@ -385,9 +385,7 @@ class ConversationController extends Controller
                 }
             });
 
-        return response()->json([
-            'data' => $loadedMessage,
-        ], 201);
+        return response()->json($loadedMessage, 201);
     }
 
     /**
