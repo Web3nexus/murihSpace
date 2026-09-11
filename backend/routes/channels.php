@@ -15,6 +15,14 @@ Broadcast::channel('App.Models.User.{id}', function ($user, $id) {
     return (int) $user->id === (int) $id;
 });
 
+Broadcast::channel('user.{id}', function ($user, $id) {
+    return (int) $user->id === (int) $id;
+});
+
+Broadcast::channel('call.{roomName}', function ($user, $roomName) {
+    return true;
+});
+
 Broadcast::channel('conversation.{id}', function ($user, $id) {
     $conversation = Conversation::find($id);
     if (! $conversation) {

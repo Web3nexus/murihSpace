@@ -48,6 +48,7 @@ use App\Http\Controllers\BrandDealController;
 use App\Http\Controllers\BrandDealMilestoneController;
 use App\Http\Controllers\BrandDealProposalController;
 use App\Http\Controllers\BrandInvoiceController;
+use App\Http\Controllers\CallController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\ChatMediaController;
 use App\Http\Controllers\ChatRoomController;
@@ -587,6 +588,7 @@ Route::prefix('v1')->group(function () {
             Route::delete('/block', [BlockController::class, 'unblock']);
             Route::post('/mute', [BlockController::class, 'mute']);
             Route::delete('/mute', [BlockController::class, 'unmute']);
+            Route::get('/mutual-communities', [ConversationController::class, 'mutualCommunities']);
         });
 
         Route::get('/blocked-users', [BlockController::class, 'blocked']);
@@ -613,6 +615,7 @@ Route::prefix('v1')->group(function () {
             Route::get('/saved', [ConversationController::class, 'getSavedMessages']);
             Route::get('/{id}/messages', [ConversationController::class, 'messages']);
             Route::post('/{id}/messages', [ConversationController::class, 'sendMessage']);
+            Route::delete('/{id}/messages', [ConversationController::class, 'clearMessages']);
             Route::post('/{id}/read', [ConversationController::class, 'markRead']);
             // Sprint 12
             Route::post('/{id}/typing', [ConversationController::class, 'typing']);
@@ -620,6 +623,15 @@ Route::prefix('v1')->group(function () {
             Route::put('/{id}/settings', [ConversationSettingsController::class, 'update']);
             // Message deletion
             Route::delete('/{conversationId}/messages/{messageId}', [ConversationController::class, 'deleteMessage']);
+        });
+
+        // ── Real-Time Audio & Video Calls ──────────────────────────────────
+        Route::prefix('calls')->group(function () {
+            Route::post('/initiate', [CallController::class, 'initiate']);
+            Route::get('/{id}', [CallController::class, 'show']);
+            Route::post('/{id}/accept', [CallController::class, 'accept']);
+            Route::post('/{id}/decline', [CallController::class, 'decline']);
+            Route::post('/{id}/end', [CallController::class, 'end']);
         });
 
         // ── Sprint 11-12: Messages, Reactions, Attachments, Push Tokens ──

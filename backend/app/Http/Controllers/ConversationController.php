@@ -10,6 +10,8 @@ use App\Models\CommunityMembership;
 use App\Models\Conversation;
 use App\Models\ConversationParticipant;
 use App\Models\ConversationUserSetting;
+use App\Models\Group;
+use App\Models\GroupMember;
 use App\Models\Media;
 use App\Models\Message;
 use App\Models\MessageUserState;
@@ -436,6 +438,134 @@ class ConversationController extends Controller
         );
 
         return response()->json(['message' => 'Message hidden.']);
+    }
+
+    /**
+     * Clear all messages in a conversation (for me or for everyone).
+     */
+    public function clearMessages(Request $request, int $conversationId): JsonResponse
+    {
+        $conversation = Conversation::findOrFail($conversationId);
+        $this->authorizeParticipant($request, $conversation);
+
+        $mode = $request->input('mode', 'me');
+
+        if ($mode === 'everyone') {
+            if ($conversation->type === 'direct') {
+                // In direct chat, either participant can clear for everyone
+                $messages = Message::where('conversation_id', $conversationId)->get();
+                DB::transaction(function () use ($messages) {
+                    foreach ($messages as $msg) {
+                        $msg->update(['status' => Message::STATUS_DELETED, 'content' => '', 'attachment_url' => null]);
+                        $msg->delete();
+                    }
+                });
+                return response()->json(['message' => 'Chat history cleared for everyone.']);
+            } else {
+                $isMod = CommunityMembership::where('community_id', $conversation->community_id)
+                    ->where('user_id', $request->user()->id)
+                    ->whereIn('role', ['admin', 'moderator'])
+                    ->exists();
+
+                if (! $isMod && $conversation->creator_id !== $request->user()->id) {
+                    return response()->json(['message' => 'Only admins can clear chat for everyone in groups.'], 403);
+                }
+
+                $messages = Message::where('conversation_id', $conversationId)->get();
+                DB::transaction(function () use ($messages) {
+                    foreach ($messages as $msg) {
+                        $msg->update(['status' => Message::STATUS_DELETED, 'content' => '', 'attachment_url' => null]);
+                        $msg->delete();
+                    }
+                });
+                return response()->json(['message' => 'Chat history cleared for everyone.']);
+            }
+        }
+
+        // Delete for me: hide all messages for this user
+        $messageIds = Message::where('conversation_id', $conversationId)->pluck('id');
+        $userId = $request->user()->id;
+
+        DB::transaction(function () use ($messageIds, $userId) {
+            foreach ($messageIds as $msgId) {
+                MessageUserState::updateOrCreate(
+                    ['message_id' => $msgId, 'user_id' => $userId],
+                    ['is_hidden' => true]
+                );
+            }
+        });
+
+        return response()->json(['message' => 'Chat history cleared for you.']);
+    }
+
+    /**
+     * Get mutual groups and communities shared between auth user and target user.
+     */
+    public function mutualCommunities(Request $request, int $userId): JsonResponse
+    {
+        $authId = $request->user()->id;
+        $targetUser = User::findOrFail($userId);
+
+        // Find common communities
+        $authCommunityIds = CommunityMembership::where('user_id', $authId)
+            ->whereIn('status', ['active', 'approved'])
+            ->pluck('community_id');
+
+        $targetCommunityIds = CommunityMembership::where('user_id', $userId)
+            ->whereIn('status', ['active', 'approved'])
+            ->pluck('community_id');
+
+        $mutualCommunityIds = $authCommunityIds->intersect($targetCommunityIds);
+
+        $communities = Community::whereIn('id', $mutualCommunityIds)
+            ->withCount('memberships as members_count')
+            ->get()
+            ->map(function ($c) {
+                return [
+                    'id' => $c->id,
+                    'type' => 'community',
+                    'name' => $c->name,
+                    'slug' => $c->slug,
+                    'description' => $c->description,
+                    'logo_url' => $c->logo_url ?? $c->cover_url,
+                    'tag' => '#' . ($c->category ?? 'Community'),
+                    'members_count' => $c->members_count ?? 1,
+                ];
+            });
+
+        // Find common groups
+        $authGroupIds = GroupMember::where('user_id', $authId)
+            ->where('status', 'active')
+            ->pluck('group_id');
+
+        $targetGroupIds = GroupMember::where('user_id', $userId)
+            ->where('status', 'active')
+            ->pluck('group_id');
+
+        $mutualGroupIds = $authGroupIds->intersect($targetGroupIds);
+
+        $groups = Group::whereIn('id', $mutualGroupIds)
+            ->withCount('members as members_count')
+            ->get()
+            ->map(function ($g) {
+                return [
+                    'id' => $g->id,
+                    'type' => 'group',
+                    'name' => $g->name,
+                    'slug' => (string) $g->id,
+                    'description' => $g->description,
+                    'logo_url' => $g->avatar_url,
+                    'tag' => '#PrivateGroup',
+                    'members_count' => $g->members_count ?? 2,
+                ];
+            });
+
+        $items = $communities->concat($groups)->values();
+
+        return response()->json([
+            'communities' => $items,
+            'count' => $items->count(),
+        ]);
     }
 
     /**
