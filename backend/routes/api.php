@@ -389,6 +389,8 @@ Route::prefix('v1')->group(function () {
 
         Route::get('/user', function (Request $request) {
             $user = $request->user();
+            $user->loadMissing('creatorProfile');
+            $isOnboarded = $user->role === 'admin' || $user->creatorProfile?->onboarding_completed_at !== null;
 
             return response()->json([
                 'id' => $user->id,
@@ -409,6 +411,8 @@ Route::prefix('v1')->group(function () {
                 'permissions' => $user->permissions(),
                 'kyc_status' => $user->kyc_status,
                 'email_verified' => $user->hasVerifiedEmail(),
+                'onboarding_completed' => $isOnboarded,
+                'ai_onboarding_completed' => $isOnboarded,
                 'posts_count' => $user->posts()->count(),
                 'followers_count' => $user->followers()->count(),
                 'following_count' => $user->follows()->count(),

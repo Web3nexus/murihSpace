@@ -166,6 +166,10 @@ class OnboardingController extends Controller
 
         $storefront->update($attributes);
 
+        // Mark vendor onboarding completed
+        $profile = CreatorProfile::firstOrCreate(['user_id' => $user->id]);
+        $profile->update(['onboarding_completed_at' => now()]);
+
         AiMemory::remember($user->id, 'vendor_business', $data);
 
         return response()->json(['data' => $storefront->fresh()]);
@@ -399,10 +403,51 @@ class OnboardingController extends Controller
 
     public function complete(Request $request): JsonResponse
     {
-        $profile = CreatorProfile::firstOrCreate(['user_id' => $request->user()->id]);
-        $profile->update(['onboarding_completed_at' => now()]);
+        $user = $request->user();
+        $profile = CreatorProfile::firstOrCreate(['user_id' => $user->id]);
 
-        return response()->json(['data' => $this->profilePayload($profile->fresh())]);
+        $updateData = [
+            'onboarding_completed_at' => now(),
+        ];
+
+        if ($request->filled('headline') || $request->filled('about')) {
+            $text = $request->input('headline') ?: $request->input('about');
+            $updateData['about'] = $text;
+            if (empty($user->bio)) {
+                $user->update(['bio' => $text]);
+            }
+        }
+
+        if ($request->filled('interests') && is_array($request->input('interests'))) {
+            $interests = $request->input('interests');
+            $updateData['community_interests'] = $interests;
+            $updateData['content_interests'] = $interests;
+        }
+
+        if ($request->filled('niche')) {
+            $updateData['niche'] = $request->input('niche');
+        }
+
+        $profile->update($updateData);
+
+        if ($request->filled('social_link')) {
+            $link = trim($request->input('social_link'));
+            $platform = str_contains($link, 'instagram') ? 'instagram' : (str_contains($link, 'twitter') || str_contains($link, 'x.com') ? 'x' : (str_contains($link, 'youtube') ? 'youtube' : 'other'));
+            LinkInBioSocialLink::updateOrCreate(
+                ['user_id' => $user->id, 'platform' => $platform],
+                ['url' => $link, 'sort_order' => 1]
+            );
+        }
+
+        AiMemory::forget($user->id, 'onboarding_progress');
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Onboarding completed and recorded successfully.',
+            'data' => array_merge($this->profilePayload($profile->fresh()), [
+                'onboarding_completed' => true,
+            ]),
+        ]);
     }
 
     private function profilePayload(CreatorProfile $profile): array
