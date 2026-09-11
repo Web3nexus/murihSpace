@@ -394,7 +394,7 @@ export function PublicStorefrontPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {filteredProducts.map((p) => {
                 const isPhys = p.product_type === "physical";
-                const img = (p.images && p.images[0]) || ('cover_url' in p ? (p as any).cover_url : '') || "";
+                const img = (p.images && p.images[0]) || ("cover_url" in p ? (p as { cover_url?: string }).cover_url : "") || "";
                 const priceFormatted = `${p.currency === "NGN" ? "₦" : "$"}${(Number(p.price) / (isPhys ? 100 : 1)).toFixed(2)}`;
 
                 return (

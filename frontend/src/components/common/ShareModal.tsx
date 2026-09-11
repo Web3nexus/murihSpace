@@ -60,7 +60,7 @@ export function ShareModal({
   };
 
   const handleNativeShare = async () => {
-    if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
+    if (typeof navigator.share === "function") {
       try {
         await navigator.share({
           title,
@@ -394,3 +394,4 @@ export function ShareModal({
     </div>
   );
 }
+

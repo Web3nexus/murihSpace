@@ -130,8 +130,8 @@ export function PageSecondaryNav({
                 key={tabKey}
                 type="button"
                 onClick={() => {
-                  if (tab.onClick) tab.onClick();
-                  if (onTabChange) onTabChange(tabKey);
+                  tab.onClick?.();
+                  onTabChange?.(tabKey);
                 }}
                 className={tabClasses}
               >
@@ -144,3 +144,4 @@ export function PageSecondaryNav({
     </div>
   );
 }
+
