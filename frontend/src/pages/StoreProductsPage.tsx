@@ -13,13 +13,16 @@ import {
   EyeSlash as EyeOff,
   WarningCircle as AlertCircle,
   ArrowCounterClockwise as RotateCcw,
-  ShieldCheck as ShieldCheck
+  ShieldCheck as ShieldCheck,
+  ShareNetwork as ShareNetwork,
+  ArrowSquareOut as ArrowSquareOut
 } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { authFetch } from "@/lib/api/authFetch";
 import { ActionTooltip } from "@/components/ui/action-tooltip";
 import { safeArray } from "@/lib/api/cacheStore";
+import { ShareModal } from "@/components/common/ShareModal";
 
 interface StoreProduct {
   id: number;
@@ -45,6 +48,7 @@ export default function StoreProductsPage() {
 
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<StoreProduct | null>(null);
+  const [sharingProduct, setSharingProduct] = useState<StoreProduct | null>(null);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [page, setPage] = useState(1);
@@ -342,6 +346,18 @@ export default function StoreProductsPage() {
                             {p.status === 'published' ? <EyeOff className="h-4 w-4" /> : <Eye weight="fill" className="h-4 w-4" />}
                           </Button>
                         </ActionTooltip>
+                        <ActionTooltip content="Preview product">
+                          <a href={`/p/${p.id}`} target="_blank" rel="noreferrer">
+                            <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground">
+                              <ArrowSquareOut weight="bold" className="h-4 w-4" />
+                            </Button>
+                          </a>
+                        </ActionTooltip>
+                        <ActionTooltip content="Share product link">
+                          <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-primary hover:bg-primary/10" onClick={() => setSharingProduct(p)}>
+                            <ShareNetwork weight="fill" className="h-4 w-4" />
+                          </Button>
+                        </ActionTooltip>
                         <ActionTooltip content="Edit product">
                           <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => { setEditing(p); setTitle(p.title); setPrice(String(p.price / 100)); setCurrency(p.currency); setProductType(p.type); setShowForm(true); setMsg(null); }}>
                             <Edit weight="fill" className="h-4 w-4 text-muted-foreground hover:text-foreground" />
@@ -370,6 +386,19 @@ export default function StoreProductsPage() {
             <button onClick={() => setPage(p => Math.min(lastPage, p + 1))} disabled={page >= lastPage} className="px-3 py-1.5 rounded-lg text-xs font-bold border-none bg-card hover:bg-muted disabled:opacity-40 transition-colors">Next</button>
           </div>
         </div>
+      )}
+
+      {/* Share Modal */}
+      {sharingProduct && (
+        <ShareModal
+          isOpen={!!sharingProduct}
+          onClose={() => setSharingProduct(null)}
+          title={sharingProduct.title}
+          description={`View ${sharingProduct.title} on MurihSpace for ${sharingProduct.currency} ${(sharingProduct.price / 100).toFixed(2)}`}
+          url={`${window.location.origin}/p/${sharingProduct.id}`}
+          type="product"
+          badge={sharingProduct.type === "digital" ? "Digital Download" : "Physical Product"}
+        />
       )}
     </div>
   );

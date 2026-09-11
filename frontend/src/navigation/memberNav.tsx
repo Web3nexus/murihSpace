@@ -1,15 +1,12 @@
 import {
-  CalendarCheck,
   Compass,
   Users,
   ChatCircleDots,
   Rss,
   VideoCamera,
   Crown,
-  BookOpen,
   MapPin,
   ChatCircle,
-  ChatTeardropText,
   Wallet,
   UserCircle,
   ShieldCheck,
@@ -50,32 +47,10 @@ export const memberNav: NavGroup[] = [
         featureFlag: "events",
       },
       {
-        title: "Meetings & Consultations",
-        url: "/app/coaching",
-        icon: <CalendarCheck weight="fill" className="h-5 w-5" />,
-      },
-      {
         title: "Friends",
         url: "/app/friends",
         icon: <Users weight="fill" className="h-5 w-5" />,
         featureFlag: "friends",
-      },
-      {
-        title: "MurihSpace Inbox",
-        url: "/app/messages",
-        icon: <ChatTeardropText weight="fill" className="h-5 w-5" />,
-        featureFlag: "inbox",
-      },
-      {
-        title: "Subscriptions",
-        url: "/app/subscriptions",
-        icon: <Crown weight="fill" className="h-5 w-5" />,
-        featureFlag: "subscriptions",
-      },
-      {
-        title: "Purchase Library",
-        url: "/app/wallet/purchase-library",
-        icon: <BookOpen weight="fill" className="h-5 w-5" />,
       },
       {
         title: "Saved Addresses",

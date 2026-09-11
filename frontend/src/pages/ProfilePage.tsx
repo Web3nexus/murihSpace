@@ -12,12 +12,12 @@ import {
   UploadSimple as Upload,
   SealCheck as BadgeCheck,
   ShareNetwork as Share2,
-  Check as Check,
   ArrowSquareOut as ArrowSquareOut,
   Star as Star
 } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
 import { ImageUploader } from "@/components/upload/ImageUploader";
+import { ShareModal } from "@/components/common/ShareModal";
 
 export function ProfilePage() {
   const { profile, loading, updating, error, fieldErrors, updateProfile, submitKyc } = useProfile();
@@ -34,32 +34,10 @@ export function ProfilePage() {
   const [kycDocInput, setKycDocInput] = useState("");
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [avatar, setAvatar] = useState("");
-  const [copied, setCopied] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
 
-  const handleShareProfile = async () => {
-    const cleanUser = username || profile?.username;
-    if (!cleanUser) return;
-    const shareUrl = `${window.location.origin}/u/${cleanUser}`;
-    const shareData = {
-      title: `${name || cleanUser} on MurihSpace`,
-      text: `Check out my profile on MurihSpace`,
-      url: shareUrl,
-    };
-    if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
-      try {
-        await navigator.share(shareData);
-        return;
-      } catch {
-        // Fallback to clipboard
-      }
-    }
-    try {
-      await navigator.clipboard.writeText(shareUrl);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2500);
-    } catch {
-      // Ignore
-    }
+  const handleShareProfile = () => {
+    setShowShareModal(true);
   };
 
   useEffect(() => {
@@ -148,7 +126,11 @@ export function ProfilePage() {
             </div>
             <div className="flex items-center gap-2 pb-1 flex-wrap">
               {(username || profile?.username) && (
-                <Link to={`/u/${username || profile?.username}`}>
+                <a
+                  href={`/u/${username || profile?.username}`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
                   <Button
                     type="button"
                     variant="outline"
@@ -156,9 +138,9 @@ export function ProfilePage() {
                     className="h-8 gap-1.5 text-xs font-semibold"
                   >
                     <ArrowSquareOut weight="bold" className="h-3.5 w-3.5" />
-                    Public View
+                    Preview Public Profile
                   </Button>
-                </Link>
+                </a>
               )}
               <Button
                 type="button"
@@ -167,8 +149,8 @@ export function ProfilePage() {
                 onClick={handleShareProfile}
                 className="h-8 gap-1.5 text-xs font-semibold"
               >
-                {copied ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Share2 weight="fill" className="h-3.5 w-3.5" />}
-                {copied ? "Link Copied!" : "Share Profile"}
+                <Share2 weight="fill" className="h-3.5 w-3.5 text-secondary" />
+                Share Profile
               </Button>
               <span className="px-3 py-1 rounded-full bg-[#2164b6]/10 text-[#2164b6] dark:text-[#7ab0ff] text-xs font-bold capitalize">
                 {profile?.role || "Member"} Mode
@@ -422,6 +404,18 @@ export function ProfilePage() {
           </form>
         </div>
       )}
+
+      {/* Share Profile Modal */}
+      <ShareModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        title={name || username || "User Profile"}
+        description={bio || `Check out ${name || username}'s profile on MurihSpace`}
+        url={`${window.location.origin}/u/${username || profile?.username}`}
+        type="profile"
+        imageUrl={avatar}
+        badge={profile?.role}
+      />
     </div>
   );
 }

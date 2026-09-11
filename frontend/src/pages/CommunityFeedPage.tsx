@@ -74,20 +74,45 @@ export default function CommunityFeedPage() {
     if (!quiet) setIsLoading(true);
     else setIsRefreshing(true);
     setError(null);
+    setPostError(null);
 
     try {
-      const [comm, postsRes] = await Promise.all([
-        apiFetch<{ data: Community }>(`/communities/${slug}`),
+      const [commRes, postsRes] = await Promise.all([
+        apiFetch(`/communities/${slug}`),
         apiFetch<{ data: Post[] }>(`/communities/${slug}/posts`),
       ]);
-      const envelope = comm as unknown as { success?: boolean; data: { data: Community } };
-      const commData = envelope.success ? envelope.data.data : (comm as unknown as Community);
-      setCommunity(commData);
-      const postsEnvelope = postsRes as unknown as { success?: boolean; data: { data: Post[] } };
-      const rawPosts = postsEnvelope.success ? postsEnvelope.data.data : [];
-      setPosts(Array.isArray(rawPosts) ? rawPosts : []);
+
+      // Handle community response - check for success flag or extract data
+      let commData: Community | null = null;
+      if (commRes && typeof commRes === 'object') {
+        const commObj = commRes as any;
+        if (commObj.success && commObj.data?.data) {
+          commData = commObj.data.data;
+        } else if (commObj.data && typeof commObj.data === 'object') {
+          commData = commObj.data as Community;
+        } else if (Array.isArray(commObj.data)) {
+          commData = commObj.data[0] as Community;
+        }
+      }
+      setCommunity(commData ?? null);
+
+      // Handle posts response
+      let rawPosts: Post[] = [];
+      if (postsRes && typeof postsRes === 'object') {
+        const postsObj = postsRes as any;
+        if (postsObj.success && postsObj.data?.data) {
+          rawPosts = postsObj.data.data;
+        } else if (Array.isArray(postsObj.data)) {
+          rawPosts = postsObj.data;
+        } else if (Array.isArray(postsRes)) {
+          rawPosts = postsRes as Post[];
+        }
+      }
+      setPosts(rawPosts);
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Failed to load community');
+      const errorMessage = e instanceof Error ? e.message : 'Failed to load community';
+      setError(errorMessage);
+      console.error('Community feed error:', e);
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);

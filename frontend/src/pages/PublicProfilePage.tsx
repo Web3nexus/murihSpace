@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { SEOHead } from "@/components/common/SEOHead";
 import { OpenInAppBanner } from "@/components/common/OpenInAppBanner";
 import { AuthPromptModal } from "@/components/auth/AuthPromptModal";
+import { ShareModal } from "@/components/common/ShareModal";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -22,7 +23,6 @@ import {
   Spinner as Loader2,
   Warning as AlertTriangle,
   ArrowLeft as ArrowLeft,
-  Check as Check,
   Star as Star,
   CheckCircle as CheckCircle
 } from "@phosphor-icons/react";
@@ -103,7 +103,7 @@ export default function PublicProfilePage() {
   const [profile, setProfile] = React.useState<PublicUserProfile | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [notFound, setNotFound] = React.useState(false);
-  const [copied, setCopied] = React.useState(false);
+  const [showShareModal, setShowShareModal] = React.useState(false);
 
   // Reviews & ratings
   const [reviews, setReviews] = React.useState<PublicReview[]>([]);
@@ -173,30 +173,8 @@ export default function PublicProfilePage() {
     loadReviews();
   }, [loadProfile, loadReviews]);
 
-  const handleShare = async () => {
-    const url = `${window.location.origin}/u/${cleanUsername}`;
-    const shareData = {
-      title: `${profile?.name || cleanUsername} on MurihSpace`,
-      text: `Check out ${profile?.name || cleanUsername}'s profile on MurihSpace`,
-      url,
-    };
-
-    if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
-      try {
-        await navigator.share(shareData);
-        return;
-      } catch {
-        // Fallback to clipboard
-      }
-    }
-
-    try {
-      await navigator.clipboard.writeText(url);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2500);
-    } catch {
-      // Ignore
-    }
+  const handleShare = () => {
+    setShowShareModal(true);
   };
 
   const handleFollowClick = async () => {
@@ -283,9 +261,26 @@ export default function PublicProfilePage() {
         subtitle="Open in app for full profile, messaging, and community audio"
       />
 
-      {/* Top Navbar */}
-      <header className="border-b border-border bg-card/60 backdrop-blur-md sticky top-0 z-40">
-        <div className="max-w-4xl mx-auto px-4 h-14 flex items-center justify-between">
+      {/* ── Profile Preview Banner for Self ── */}
+      {isSelf && (
+        <div className="sticky top-0 z-50 bg-secondary/15 text-secondary-foreground border-b border-secondary/30 px-4 py-2 backdrop-blur-md flex items-center justify-between text-xs font-semibold">
+          <div className="flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full bg-secondary animate-pulse" />
+            <span>
+              <strong>Profile Preview Mode</strong> — You are viewing your public profile as visitors see it.
+            </span>
+          </div>
+          <Link to="/app/settings/profile">
+            <Button size="sm" variant="outline" className="h-7 text-xs font-bold rounded-lg bg-card hover:bg-muted">
+              Edit Profile
+            </Button>
+          </Link>
+        </div>
+      )}
+
+      {/* Top Bar */}
+      <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-md border-b border-border">
+        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
           <Link
             to={isAuthenticated ? "/app" : "/"}
             className="flex items-center gap-2 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors"
@@ -301,8 +296,8 @@ export default function PublicProfilePage() {
               onClick={handleShare}
               className="h-8 gap-1.5 text-xs font-semibold"
             >
-              {copied ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Share2 weight="fill" className="h-3.5 w-3.5" />}
-              {copied ? "Link Copied!" : "Share"}
+              <Share2 weight="fill" className="h-3.5 w-3.5" />
+              Share
             </Button>
 
             {!isAuthenticated && (
@@ -406,6 +401,18 @@ export default function PublicProfilePage() {
                       <MessageSquare weight="fill" className="h-3.5 w-3.5 text-secondary" /> Message
                     </Button>
                   </>
+                )}
+
+                {profile.storefront && (
+                  <Link to={`/store/${profile.storefront.short_code}`}>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      className="h-9 text-xs font-bold gap-1.5"
+                    >
+                      <Storefront weight="fill" className="h-3.5 w-3.5" /> Store
+                    </Button>
+                  </Link>
                 )}
 
                 <Button
@@ -777,6 +784,18 @@ export default function PublicProfilePage() {
         onOpenChange={setIsAuthModalOpen}
         title={authModalReason.title}
         description={authModalReason.desc}
+      />
+
+      {/* Share Modal */}
+      <ShareModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        title={profile.name || `@${cleanUsername}`}
+        description={profile.bio || `Check out ${profile.name || cleanUsername}'s profile on MurihSpace`}
+        url={`${window.location.origin}/u/${cleanUsername}`}
+        type="profile"
+        imageUrl={profile.avatar_url || profile.avatar}
+        badge={profile.role}
       />
     </div>
   );

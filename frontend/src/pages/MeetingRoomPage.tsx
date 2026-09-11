@@ -4,10 +4,10 @@ import {
   VideoCamera,
   Plus,
   ArrowRight,
-  Sparkle,
   WarningCircle,
   CalendarCheck,
   Spinner,
+  Users,
 } from "@phosphor-icons/react";
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -123,9 +123,9 @@ export function MeetingRoomPage() {
         {/* Instant Meeting */}
         <div className="p-6 sm:p-8 rounded-3xl border border-border/80 bg-card shadow-sm hover:shadow-md transition-all flex flex-col justify-between space-y-6">
           <div className="space-y-3">
-            <div className="h-12 w-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center">
-              <Sparkle weight="fill" className="h-6 w-6" />
-            </div>
+<div className="h-12 w-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center">
+                  <Users weight="fill" className="h-6 w-6" />
+                </div>
             <h2 className="text-xl font-bold text-foreground">Start an Instant Meeting</h2>
             <p className="text-xs text-muted-foreground leading-relaxed">
               Launch a meeting room right now. You'll get a shareable link that anyone with a MurihSpace account can join instantly.

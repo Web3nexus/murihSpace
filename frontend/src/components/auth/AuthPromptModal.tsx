@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import {
   SignIn as SignIn,
   UserPlus as UserPlus,
-  Sparkle as Sparkle
+  Users as Users,
 } from "@phosphor-icons/react";
 
 interface AuthPromptModalProps {
@@ -44,40 +44,36 @@ export function AuthPromptModal({
       <DialogContent className="sm:max-w-md p-4 overflow-hidden">
         <div className="flex flex-col items-center text-center space-y-4 pt-2">
           <div className="h-14 w-14 rounded-lg bg-gradient-to-tr from-[#2164b6] to-[#102840] flex items-center justify-center text-white shadow-lg shadow-[#2164b6]/20">
-            <Sparkle weight="fill" className="h-7 w-7 text-white animate-pulse" />
+            <Users weight="fill" className="h-7 w-7 text-white" />
           </div>
 
           <DialogHeader className="space-y-1.5">
             <DialogTitle className="text-xl font-extrabold text-foreground tracking-tight">
               {title}
             </DialogTitle>
-            <DialogDescription className="text-xs text-muted-foreground max-w-sm mx-auto leading-relaxed">
+            <DialogDescription className="text-sm text-muted-foreground">
               {description}
             </DialogDescription>
           </DialogHeader>
 
-          <div className="flex flex-col w-full gap-2.5 pt-2">
+          <div className="flex flex-col items-center gap-4">
             <Button
-              onClick={handleRegister}
-              className="w-full h-10 font-bold text-xs bg-secondary text-secondary-foreground hover:bg-secondary/90  gap-2"
+              type="button"
+              onClick={() => handleLogin()}
+              className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-border hover:bg-muted/50 text-sm font-semibold transition-colors"
             >
-              <UserPlus weight="fill" className="h-4 w-4" />
-              Create Free Account
+              <SignIn weight="fill" className="h-4 w-4 mr-2" />
+              Sign in with email
             </Button>
-
             <Button
-              variant="outline"
-              onClick={handleLogin}
-              className="w-full h-10 font-semibold text-xs border-border hover:bg-muted gap-2"
+              type="button"
+              onClick={() => handleRegister()}
+              className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground"
             >
-              <SignIn weight="fill" className="h-4 w-4 text-secondary" />
-              Sign In to Your Account
+              <UserPlus weight="fill" className="h-4 w-4 mr-2" />
+              Create account
             </Button>
           </div>
-
-          <p className="text-[11px] text-muted-foreground/75 pt-1">
-            Free forever. No credit card required to start.
-          </p>
         </div>
       </DialogContent>
     </Dialog>

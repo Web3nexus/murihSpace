@@ -10,7 +10,6 @@ import {
   CaretLeft as ChevronLeft,
   CaretRight as ChevronRight,
   Faders as Faders,
-  Sparkle as Sparkle,
   Bag as ShoppingBag,
   ShieldWarning as ShieldWarning,
   ShieldCheck as ShieldCheck,
@@ -289,7 +288,7 @@ export function AdminRoleApplicationsPage() {
                           <span className="text-xs text-muted-foreground">→</span>
                           <span className="flex items-center gap-1 rounded bg-primary/10 px-2 py-0.5 text-xs font-semibold capitalize text-primary">
                             {app.requested_role === "creator" ? (
-                              <Sparkle weight="fill" className="h-3 w-3" />
+                              <CheckCircle2 weight="fill" className="h-3 w-3" />
                             ) : (
                               <ShoppingBag weight="fill" className="h-3 w-3" />
                             )}

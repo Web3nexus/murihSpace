@@ -187,7 +187,7 @@ export function MediaUploader({
             url: m.url,
             stream_url: m.stream_url,
             thumbnail_url: m.thumbnail_url,
-            media_type: m.media_type,
+            media_type: m.media_type ?? "image",
             original_name: m.original_name,
             size_bytes: m.size_bytes,
           };

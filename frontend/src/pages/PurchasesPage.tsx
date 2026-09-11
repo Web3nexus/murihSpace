@@ -98,11 +98,12 @@ export function PurchasesPage() {
 
       {purchases.length === 0 ? (
         <div className="p-12 text-center border border-dashed border-border rounded-3xl bg-card space-y-3">
-          <Package weight="fill" className="h-10 w-10 text-muted-foreground/30 mx-auto" />
+          <Package weight="fill" className="h-12 w-12 mx-auto text-primary" />
           <h3 className="text-sm font-bold text-foreground">No purchases yet</h3>
-          <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+          <p className="text-xs text-muted-foreground mt-2">
             Your purchased digital products will appear here once you complete a purchase.
           </p>
+          <p className="text-xs text-muted-foreground opacity-60">Browse digital products in the store</p>
         </div>
       ) : (<>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -129,7 +130,7 @@ export function PurchasesPage() {
 
               {/* Info */}
               <div className="p-4 space-y-2.5">
-                <h3 className="text-sm font-bold text-foreground truncate" title={purchase.product?.title}>
+                <h3 className="text-sm font-bold text-foreground truncate text-center" title={purchase.product?.title}>
                   {purchase.product?.title ?? 'Unknown Product'}
                 </h3>
 

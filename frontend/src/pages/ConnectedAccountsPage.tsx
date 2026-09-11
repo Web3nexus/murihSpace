@@ -4,9 +4,9 @@ import {
   Plus as PlusIcon,
   Trash as Trash2Icon,
   ArrowsClockwise as RefreshCwIcon,
-  Sparkle as SparklesIcon,
   ArrowSquareOut as ExternalLinkIcon,
-  SealCheck as BadgeCheckIcon
+  SealCheck as BadgeCheckIcon,
+  Users
 } from "@phosphor-icons/react";
 import { Link } from "react-router";
 import { toast } from "sonner";
@@ -180,7 +180,7 @@ export default function ConnectedAccountsPage() {
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2">
-              <SparklesIcon weight="fill" className="h-5 w-5 text-primary" />
+              <Users weight="fill" className="h-5 w-5 text-primary" />
               <h3 className="font-semibold text-foreground">Combined Creator Qualification</h3>
             </div>
             <p className="text-sm text-muted-foreground mt-1">

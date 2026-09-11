@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
 import {
-  Sparkle as Sparkle,
   ArrowUpRight as ArrowUpRight,
   Clock as Clock,
-  ArrowsClockwise as RefreshCw
+  ArrowsClockwise as RefreshCw,
+  CheckCircle as CheckCircle2
 } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { apiClient } from "@/lib/api/client";
@@ -90,7 +90,7 @@ export default function CreatorWalletPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
-            <Sparkle weight="fill" className="h-6 w-6 text-purple-500" /> Creator Earnings Wallet
+              <CheckCircle2 weight="fill" className="h-6 w-6 text-purple-500" /> Creator Earnings Wallet
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
             Receives conference gifts, live tips, membership earnings, and creator services.
