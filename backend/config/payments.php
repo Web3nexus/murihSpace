@@ -6,7 +6,7 @@ return [
     | Default Currency and Minor Unit Conversion
     |--------------------------------------------------------------------------
     */
-    'default_currency' => env('DEFAULT_CURRENCY', 'NGN'),
+    'default_currency' => env('DEFAULT_CURRENCY', 'USD'),
 
     /*
     |--------------------------------------------------------------------------

@@ -60,40 +60,8 @@ class CurrencyConverter
 
     public function getRate(string $from, string $to): ?float
     {
-        $from = strtoupper($from);
-        $to = strtoupper($to);
-
-        if ($from === $to) {
-            return 1.0;
-        }
-
-        $cacheKey = "exchange_rate:{$from}:{$to}";
-
-        return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($from, $to) {
-            $direct = $this->lookup($from, $to);
-            if ($direct !== null) {
-                return $direct;
-            }
-
-            if ($from !== 'USD' && $to !== 'USD') {
-                $viaUsdFrom = $this->lookup($from, 'USD');
-                $viaUsdTo = $this->lookup('USD', $to);
-                if ($viaUsdFrom !== null && $viaUsdTo !== null) {
-                    return $viaUsdFrom * $viaUsdTo;
-                }
-            }
-
-            return null;
-        });
-    }
-
-    private function lookup(string $from, string $to): ?float
-    {
-        $rate = CurrencyExchangeRate::where('from_currency', $from)
-            ->where('to_currency', $to)
-            ->first();
-
-        return $rate ? (float) $rate->rate : null;
+        $rateService = app(\App\Services\Payment\LiveExchangeRateService::class);
+        return $rateService->getRate($from, $to);
     }
 
     public function getSupportedCurrencies(): array

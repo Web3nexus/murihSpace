@@ -17,7 +17,32 @@ class CoinPackController extends Controller
 
     public function catalogue(Request $request): JsonResponse
     {
-        $packs = CoinPack::active()->get();
+        $targetCurrency = strtoupper($request->query('currency', 'NGN'));
+        $rateService = app(\App\Services\Payment\LiveExchangeRateService::class);
+        $rate = $rateService->getRate('USD', $targetCurrency);
+
+        $packs = CoinPack::active()->orderBy('sort_order')->get()->map(function ($pack) use ($targetCurrency, $rate, $rateService) {
+            $priceUsd = $pack->price / 100.0;
+            $localPrice = round($priceUsd * $rate, 2);
+
+            return [
+                'id' => $pack->id,
+                'name' => $pack->name,
+                'coins' => $pack->coins,
+                'bonus_coins' => $pack->bonus_coins,
+                'total_coins' => $pack->coins + $pack->bonus_coins,
+                'price' => $pack->price, // in USD cents
+                'currency' => 'USD',
+                'price_usd' => $priceUsd,
+                'formatted_usd' => '$' . number_format($priceUsd, 2),
+                'local_currency' => $targetCurrency,
+                'local_price' => $localPrice,
+                'local_formatted' => $rateService->format($localPrice, $targetCurrency),
+                'badge' => $pack->badge,
+                'is_active' => $pack->is_active,
+                'sort_order' => $pack->sort_order,
+            ];
+        });
 
         return response()->json($packs);
     }

@@ -58,19 +58,65 @@ class WithdrawalController extends Controller
             return response()->json(['message' => 'Insufficient withdrawable balance.', 'code' => 'INSUFFICIENT_BALANCE'], 422);
         }
 
-        $currency = $validated['currency'] ?? 'NGN';
+        $destCurrency = strtoupper($validated['currency'] ?? 'NGN');
+        $rateService = app(\App\Services\Payment\LiveExchangeRateService::class);
+        $rate = $rateService->getRate('USD', $destCurrency);
+        $estimatedLocal = round(($validated['amount'] / 100.0) * $rate, 2);
 
         $withdrawal = WithdrawalRequest::create([
-            'user_id' => $request->user()->id,
-            'amount' => $validated['amount'],
-            'currency' => $currency,
-            'status' => 'pending',
+            'user_id'  => $request->user()->id,
+            'amount'   => $validated['amount'], // in USD cents
+            'currency' => $destCurrency,
+            'status'   => 'pending',
         ]);
 
         return response()->json([
             'message' => 'Withdrawal request submitted for review.',
-            'data' => $withdrawal,
+            'data' => array_merge($withdrawal->toArray(), [
+                'amount_usd' => $validated['amount'] / 100.0,
+                'exchange_rate' => $rate,
+                'estimated_payout_amount' => $estimatedLocal,
+                'estimated_payout_formatted' => $rateService->format($estimatedLocal, $destCurrency),
+            ]),
         ], 201);
+    }
+
+    public function preview(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'amount'               => ['required', 'integer', 'min:100'], // in USD cents
+            'destination_currency' => ['nullable', 'string', 'size:3'],
+            'wallet_type'          => ['nullable', 'string', 'in:system,creator,business'],
+        ]);
+
+        $user = $request->user();
+        $targetCurrency = strtoupper($validated['destination_currency'] ?? 'NGN');
+        $amountUsdCents = (int) $validated['amount'];
+        $amountUsd = $amountUsdCents / 100.0;
+
+        $feeUsd = max(1.0, round($amountUsd * 0.015, 2));
+        $netUsd = max(0.0, $amountUsd - $feeUsd);
+
+        $rateService = app(\App\Services\Payment\LiveExchangeRateService::class);
+        $rate = $rateService->getRate('USD', $targetCurrency);
+        $estimatedLocalPayout = round($netUsd * $rate, 2);
+
+        $wallet = $this->walletService->getOrCreateWallet($user, $validated['wallet_type'] ?? 'creator');
+
+        return response()->json([
+            'success'                    => true,
+            'amount_usd_cents'           => $amountUsdCents,
+            'amount_usd'                 => $amountUsd,
+            'fee_usd'                    => $feeUsd,
+            'net_usd'                    => $netUsd,
+            'wallet_withdrawable_usd'    => $wallet->withdrawable / 100.0,
+            'has_sufficient_balance'     => $wallet->withdrawable >= $amountUsdCents,
+            'rate'                       => $rate,
+            'destination_currency'       => $targetCurrency,
+            'estimated_payout_amount'    => $estimatedLocalPayout,
+            'estimated_payout_formatted' => $rateService->format($estimatedLocalPayout, $targetCurrency),
+            'quote_expires_in_seconds'   => 900,
+        ]);
     }
 
     public function myRequests(Request $request): JsonResponse

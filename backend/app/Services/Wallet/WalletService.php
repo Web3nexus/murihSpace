@@ -15,7 +15,7 @@ class WalletService
      * - 'vendor'               -> System Wallet + Business Wallet
      * - 'admin'                -> System Wallet
      */
-    public function provisionForUser(User $user, string $currency = 'NGN'): Collection
+    public function provisionForUser(User $user, string $currency = 'USD'): Collection
     {
         $types = ['system'];
 
@@ -39,7 +39,7 @@ class WalletService
     /**
      * Get or create a specific wallet type for a user.
      */
-    public function getOrCreateWallet(User $user, string $walletType = 'system', string $currency = 'NGN'): Wallet
+    public function getOrCreateWallet(User $user, string $walletType = 'system', string $currency = 'USD'): Wallet
     {
         return Wallet::firstOrCreate(
             ['user_id' => $user->id, 'wallet_type' => $walletType],

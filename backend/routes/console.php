@@ -30,3 +30,6 @@ Schedule::command('verification-badges:process')->hourly();
 
 // Clean up expired phone registration sessions (hourly)
 Schedule::command('auth:clean-registration-sessions')->hourly();
+
+// Sync live market exchange rates against USD (hourly)
+Schedule::command('currency:update-rates')->hourly();

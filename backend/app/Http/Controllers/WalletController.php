@@ -29,10 +29,11 @@ class WalletController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $user    = $request->user();
-        $wallets = $this->walletService->getUserWallets($user);
+        $user           = $request->user();
+        $targetCurrency = strtoupper($request->query('currency', 'NGN'));
+        $wallets        = $this->walletService->getUserWallets($user);
 
-        $data = $wallets->map(fn (Wallet $w) => $this->formatWalletData($w));
+        $data = $wallets->map(fn (Wallet $w) => $this->formatWalletData($w, $targetCurrency));
 
         return response()->json([
             'data' => $data,
@@ -45,11 +46,12 @@ class WalletController extends Controller
      */
     public function showByType(Request $request, string $type = 'system'): JsonResponse
     {
-        $user   = $request->user();
-        $wallet = $this->walletService->getOrCreateWallet($user, $type);
+        $user           = $request->user();
+        $targetCurrency = strtoupper($request->query('currency', 'NGN'));
+        $wallet         = $this->walletService->getOrCreateWallet($user, $type);
 
         return response()->json([
-            'data' => $this->formatWalletData($wallet),
+            'data' => $this->formatWalletData($wallet, $targetCurrency),
         ]);
     }
 
@@ -368,35 +370,55 @@ class WalletController extends Controller
         return $this->showByType($request, 'system');
     }
 
-    private function formatWalletData(Wallet $w): array
+    private function formatWalletData(Wallet $w, string $targetCurrency = 'NGN'): array
     {
+        $rateService = app(\App\Services\Payment\LiveExchangeRateService::class);
+        $localRate = $rateService->getRate($w->currency, $targetCurrency);
+
+        $availableUsd = $w->available / 100.0;
+        $localEstimatedAvailable = round($availableUsd * $localRate, 2);
+
         return [
-            'id'               => $w->id,
-            'wallet_type'      => $w->wallet_type,
-            'available'        => $w->available,
-            'pending'          => $w->pending,
-            'reserved'         => $w->reserved,
-            'escrow'           => $w->escrow,
-            'withdrawable'     => $w->withdrawable,
-            'non_withdrawable' => $w->non_withdrawable,
-            'disputed'         => $w->disputed,
-            'total'            => $w->totalBalance(),
-            'currency'         => $w->currency,
-            'formatted'        => [
+            'id'                       => $w->id,
+            'wallet_type'              => $w->wallet_type,
+            'available'                => $w->available,
+            'pending'                  => $w->pending,
+            'reserved'                 => $w->reserved,
+            'escrow'                   => $w->escrow,
+            'withdrawable'             => $w->withdrawable,
+            'non_withdrawable'         => $w->non_withdrawable,
+            'disputed'                 => $w->disputed,
+            'total'                    => $w->totalBalance(),
+            'currency'                 => $w->currency,
+            'amount_usd'               => $availableUsd,
+            'coins'                    => $w->available, // 100 coins = $1.00 USD peg (1 cent = 1 coin)
+            'local_currency'           => $targetCurrency,
+            'local_rate'               => $localRate,
+            'local_estimated_available'=> $localEstimatedAvailable,
+            'local_formatted'          => $rateService->format($localEstimatedAvailable, $targetCurrency),
+            'formatted'                => [
                 'available'    => $this->formatAmount($w->available, $w->currency),
                 'pending'      => $this->formatAmount($w->pending, $w->currency),
                 'reserved'     => $this->formatAmount($w->reserved, $w->currency),
                 'escrow'       => $this->formatAmount($w->escrow, $w->currency),
                 'total'        => $this->formatAmount($w->totalBalance(), $w->currency),
             ],
-            'has_pin'          => $w->hasPin(),
-            'status'           => $w->status,
+            'has_pin'                  => $w->hasPin(),
+            'status'                   => $w->status,
         ];
     }
 
     private function formatAmount(int $amount, string $currency): string
     {
-        $symbols = ['NGN' => '₦', 'USD' => '$', 'GBP' => '£', 'EUR' => '€'];
+        $symbols = [
+            'USD' => '$',
+            'NGN' => '₦',
+            'GBP' => '£',
+            'EUR' => '€',
+            'GHS' => 'GH₵',
+            'KES' => 'KSh',
+            'ZAR' => 'R',
+        ];
         $symbol  = $symbols[$currency] ?? $currency . ' ';
 
         return $symbol . number_format($amount / 100, 2);

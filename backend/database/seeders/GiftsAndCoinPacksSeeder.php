@@ -57,10 +57,10 @@ class GiftsAndCoinPacksSeeder extends Seeder
 
         if (CoinPack::count() === 0) {
             $packs = [
-                ['name' => 'Starter',  'coins' => 100,  'bonus_coins' => 0,   'price' => 999,   'currency' => 'NGN', 'badge' => null,       'sort_order' => 1],
-                ['name' => 'Popular',  'coins' => 500,  'bonus_coins' => 50,  'price' => 4499,  'currency' => 'NGN', 'badge' => 'Popular',  'sort_order' => 2],
-                ['name' => 'Pro',      'coins' => 1000, 'bonus_coins' => 150, 'price' => 7999,  'currency' => 'NGN', 'badge' => 'Best value', 'sort_order' => 3],
-                ['name' => 'Legend',   'coins' => 5000, 'bonus_coins' => 1000,'price' => 34999, 'currency' => 'NGN', 'badge' => 'Legend',     'sort_order' => 4],
+                ['name' => 'Starter',  'coins' => 100,  'bonus_coins' => 0,    'price' => 100,   'currency' => 'USD', 'badge' => null,         'sort_order' => 1],
+                ['name' => 'Popular',  'coins' => 500,  'bonus_coins' => 50,   'price' => 500,   'currency' => 'USD', 'badge' => 'Popular',    'sort_order' => 2],
+                ['name' => 'Pro',      'coins' => 1000, 'bonus_coins' => 150,  'price' => 1000,  'currency' => 'USD', 'badge' => 'Best value', 'sort_order' => 3],
+                ['name' => 'Legend',   'coins' => 5000, 'bonus_coins' => 1000, 'price' => 5000,  'currency' => 'USD', 'badge' => 'Legend',     'sort_order' => 4],
             ];
 
             foreach ($packs as $pack) {

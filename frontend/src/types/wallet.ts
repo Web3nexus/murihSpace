@@ -3,6 +3,11 @@ export interface Wallet {
   balance: number;
   currency: string;
   formatted: string;
+  amount_usd?: number;
+  coins?: number;
+  local_currency?: string;
+  local_rate?: number;
+  local_formatted?: string;
   has_pin: boolean;
   status: string;
 }

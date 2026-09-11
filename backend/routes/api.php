@@ -1195,6 +1195,7 @@ Route::prefix('v1')->group(function () {
             Route::post('/purchases/{id}/download', [PurchaseController::class, 'download']);
 
             // Withdrawals
+            Route::post('/withdrawals/preview', [WithdrawalController::class, 'preview'])->middleware('kyc');
             Route::post('/withdrawals', [WithdrawalController::class, 'request'])->middleware('kyc');
             Route::get('/withdrawals', [WithdrawalController::class, 'myRequests']);
 

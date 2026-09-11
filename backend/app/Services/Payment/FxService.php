@@ -42,24 +42,12 @@ class FxService
             ]);
         }
 
-        // Look up validated market rate from currency_exchange_rates table
-        $rateRecord = CurrencyExchangeRate::where('from_currency', $src)
-            ->where('to_currency', $dst)
-            ->first();
+        // Look up validated market rate from LiveExchangeRateService
+        $rateService = app(LiveExchangeRateService::class);
+        $baseRate = $rateService->getRate($src, $dst);
 
-        $baseRate = $rateRecord ? (float) $rateRecord->rate : null;
-
-        if (! $baseRate) {
-            // Check inverse
-            $inverse = CurrencyExchangeRate::where('from_currency', $dst)
-                ->where('to_currency', $src)
-                ->first();
-
-            if ($inverse && (float) $inverse->rate > 0) {
-                $baseRate = 1 / (float) $inverse->rate;
-            } else {
-                throw new PaymentException("Exchange rate from {$src} to {$dst} is currently unavailable.");
-            }
+        if ($baseRate <= 0) {
+            throw new PaymentException("Exchange rate from {$src} to {$dst} is currently unavailable.");
         }
 
         // Apply controlled platform markup

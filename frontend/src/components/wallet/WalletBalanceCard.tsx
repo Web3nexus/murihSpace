@@ -19,6 +19,11 @@ interface WalletBalanceData {
   disputed: number;
   total: number;
   currency: string;
+  amount_usd?: number;
+  coins?: number;
+  local_currency?: string;
+  local_rate?: number;
+  local_formatted?: string;
   formatted: {
     available: string;
     pending: string;
@@ -63,7 +68,17 @@ export function WalletBalanceCard({ wallet, onDeposit, onTransfer, onWithdraw }:
           </span>
           <div className="mt-3">
             <p className="text-xs text-white/70 font-medium uppercase tracking-wider">Available Balance</p>
-            <h2 className="text-xl sm:text-xl font-extrabold tracking-tight mt-0.5">{wallet.formatted.available}</h2>
+            <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight mt-0.5">{wallet.formatted.available}</h2>
+            {wallet.local_formatted && wallet.currency === 'USD' && (
+              <p className="text-xs text-white/75 font-medium mt-0.5">
+                ≈ {wallet.local_formatted}
+              </p>
+            )}
+            {wallet.coins !== undefined && isSystem && (
+              <p className="text-xs text-amber-300/90 font-medium mt-0.5">
+                🪙 {wallet.coins.toLocaleString()} MSH Coins (100 coins = $1.00)
+              </p>
+            )}
           </div>
         </div>
 
