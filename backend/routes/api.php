@@ -467,7 +467,7 @@ Route::prefix('v1')->group(function () {
         // My Communities
         Route::prefix('my-communities')->group(function () {
             Route::get('/', [CommunityController::class, 'myCommunities']);
-            Route::post('/', [CommunityController::class, 'store'])->middleware('creator');
+            Route::post('/', [CommunityController::class, 'store'])->middleware('store.owner');
             Route::put('/{community}', [CommunityController::class, 'update']);
             Route::delete('/{community}', [CommunityController::class, 'destroy']);
         });

@@ -36,10 +36,40 @@ class MembershipController extends Controller
 
         if ($existing) {
             if ($existing->status === 'active') {
-                return response()->json(['message' => 'You are already a member of this community.', 'membership' => $existing]);
+                return response()->json([
+                    'success' => true,
+                    'message' => 'You are already a member of this community.',
+                    'status' => 'active',
+                    'is_member' => true,
+                    'is_pending' => false,
+                    'role' => $existing->role,
+                    'membership' => $existing,
+                    'data' => [
+                        'status' => 'active',
+                        'is_member' => true,
+                        'is_pending' => false,
+                        'role' => $existing->role,
+                        'membership' => $existing,
+                    ],
+                ]);
             }
             if ($existing->status === 'pending') {
-                return response()->json(['message' => 'Your join request is pending approval.', 'membership' => $existing]);
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Your join request is pending approval.',
+                    'status' => 'pending',
+                    'is_member' => false,
+                    'is_pending' => true,
+                    'role' => $existing->role,
+                    'membership' => $existing,
+                    'data' => [
+                        'status' => 'pending',
+                        'is_member' => false,
+                        'is_pending' => true,
+                        'role' => $existing->role,
+                        'membership' => $existing,
+                    ],
+                ]);
             }
         }
 
@@ -130,11 +160,20 @@ class MembershipController extends Controller
         }
 
         return response()->json([
+            'success' => true,
             'message' => $status === 'active'
                 ? 'Successfully joined the community!'
                 : 'Your join request has been submitted to the creator for approval.',
             'status' => $status,
+            'is_member' => $status === 'active',
+            'is_pending' => $status === 'pending',
             'membership' => $membership,
+            'data' => [
+                'status' => $status,
+                'is_member' => $status === 'active',
+                'is_pending' => $status === 'pending',
+                'membership' => $membership,
+            ],
         ]);
     }
 
@@ -224,7 +263,16 @@ class MembershipController extends Controller
         $membership->delete();
 
         return response()->json([
+            'success' => true,
             'message' => 'Successfully left the community.',
+            'status' => 'none',
+            'is_member' => false,
+            'is_pending' => false,
+            'data' => [
+                'status' => 'none',
+                'is_member' => false,
+                'is_pending' => false,
+            ],
         ]);
     }
 
@@ -234,15 +282,46 @@ class MembershipController extends Controller
     public function status(Request $request, int $communityId): JsonResponse
     {
         $user = $request->user();
+        $community = Community::find($communityId);
+        $isCreator = $community && $community->user_id === $user->id;
+
+        if ($isCreator) {
+            return response()->json([
+                'success' => true,
+                'is_member' => true,
+                'is_pending' => false,
+                'role' => 'owner',
+                'status' => 'active',
+                'data' => [
+                    'is_member' => true,
+                    'is_pending' => false,
+                    'role' => 'owner',
+                    'status' => 'active',
+                ],
+            ]);
+        }
+
         $membership = CommunityMembership::where('community_id', $communityId)
             ->where('user_id', $user->id)
             ->first();
 
+        $isMember = $membership && $membership->status === 'active';
+        $isPending = $membership && $membership->status === 'pending';
+        $role = $membership ? $membership->role : null;
+        $status = $membership ? $membership->status : 'none';
+
         return response()->json([
-            'is_member' => $membership && $membership->status === 'active',
-            'is_pending' => $membership && $membership->status === 'pending',
-            'role' => $membership ? $membership->role : null,
-            'status' => $membership ? $membership->status : 'none',
+            'success' => true,
+            'is_member' => $isMember,
+            'is_pending' => $isPending,
+            'role' => $role,
+            'status' => $status,
+            'data' => [
+                'is_member' => $isMember,
+                'is_pending' => $isPending,
+                'role' => $role,
+                'status' => $status,
+            ],
         ]);
     }
 

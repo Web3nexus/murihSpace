@@ -14,7 +14,7 @@ class CommunityPolicy
 
     public function create(User $user): bool
     {
-        return in_array($user->role, ['creator', 'admin']);
+        return in_array($user->role, ['creator', 'vendor', 'admin']);
     }
 
     public function update(User $user, Community $community): bool

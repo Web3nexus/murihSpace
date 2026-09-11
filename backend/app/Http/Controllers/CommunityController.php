@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Community;
+use App\Models\CommunityMembership;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -90,8 +91,39 @@ class CommunityController extends Controller
             return response()->json(['message' => 'Community not found.'], 404);
         }
 
+        $user = request()->user('sanctum') ?? request()->user();
+        $membership = null;
+        if ($user) {
+            if ($community->user_id === $user->id) {
+                $membership = [
+                    'is_member' => true,
+                    'is_pending' => false,
+                    'role' => 'owner',
+                    'status' => 'active',
+                ];
+            } else {
+                $m = CommunityMembership::where('community_id', $community->id)
+                    ->where('user_id', $user->id)
+                    ->first();
+                if ($m) {
+                    $membership = [
+                        'is_member' => $m->status === 'active',
+                        'is_pending' => $m->status === 'pending',
+                        'role' => $m->role,
+                        'status' => $m->status,
+                    ];
+                }
+            }
+        }
+
         return response()->json([
+            'success' => true,
             'community' => $community,
+            'membership' => $membership,
+            'data' => [
+                'community' => $community,
+                'membership' => $membership,
+            ],
         ]);
     }
 
@@ -140,11 +172,32 @@ class CommunityController extends Controller
             'members_count' => 1,
         ]);
 
+        CommunityMembership::firstOrCreate(
+            ['community_id' => $community->id, 'user_id' => $request->user()->id],
+            ['role' => 'owner', 'status' => 'active', 'joined_at' => now()]
+        );
+
         $community->load('creator:id,name,username,avatar');
 
         return response()->json([
+            'success' => true,
             'message' => 'Community created successfully.',
             'community' => $community,
+            'membership' => [
+                'is_member' => true,
+                'is_pending' => false,
+                'role' => 'owner',
+                'status' => 'active',
+            ],
+            'data' => [
+                'community' => $community,
+                'membership' => [
+                    'is_member' => true,
+                    'is_pending' => false,
+                    'role' => 'owner',
+                    'status' => 'active',
+                ],
+            ],
         ], 201);
     }
 
@@ -155,16 +208,18 @@ class CommunityController extends Controller
             return response()->json(['success' => true, 'communities' => [], 'data' => []]);
         }
 
-        $created = Community::where('user_id', $user->id)
+        $created = Community::with('creator:id,name,username,avatar')
+            ->where('user_id', $user->id)
             ->latest()
             ->get();
 
-        $joined = Community::whereIn('id', function ($q) use ($user) {
-            $q->select('community_id')
-                ->from('community_memberships')
-                ->where('user_id', $user->id)
-                ->where('status', 'active');
-        })->latest()->get();
+        $joined = Community::with('creator:id,name,username,avatar')
+            ->whereIn('id', function ($q) use ($user) {
+                $q->select('community_id')
+                    ->from('community_memberships')
+                    ->where('user_id', $user->id)
+                    ->where('status', 'active');
+            })->latest()->get();
 
         $all = $created->merge($joined)->unique('id')->values()->sortByDesc('created_at')->values();
 
