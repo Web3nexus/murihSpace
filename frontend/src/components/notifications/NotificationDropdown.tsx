@@ -188,15 +188,32 @@ export function NotificationDropdown() {
                           <span className="text-[10px] text-muted-foreground shrink-0">{timeAgo}</span>
                         </div>
                         <p className="text-muted-foreground text-[11px] line-clamp-2 leading-relaxed">
-                          {n.data?.message ?? 'You have a new update.'}
+                          {n.data?.message ?? n.data?.body ?? 'You have a new update.'}
                         </p>
+                        {n.data?.code && (
+                          <div className="mt-1.5 p-2 rounded-md bg-amber-500/10 border border-amber-500/20 flex items-center justify-between">
+                            <span className="font-mono text-sm font-extrabold tracking-widest text-amber-600 dark:text-amber-400">
+                              {n.data.code}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigator.clipboard.writeText(String(n.data.code));
+                              }}
+                              className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500 text-white hover:bg-amber-600 transition"
+                            >
+                              Copy Code
+                            </button>
+                          </div>
+                        )}
                         {n.data?.action_url && (
                           <Link
                             to={n.data.action_url}
                             onClick={() => setIsOpen(false)}
                             className="inline-flex items-center gap-1 text-[10px] font-semibold text-secondary hover:underline pt-1"
                           >
-                            <span>View</span>
+                            <span>{n.data.action_label ?? 'View'}</span>
                             <ExternalLink weight="fill" className="h-2.5 w-2.5" />
                           </Link>
                         )}

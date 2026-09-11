@@ -29,3 +29,4 @@ class UpdateExchangeRatesCommand extends Command
         return self::SUCCESS;
     }
 }
+

@@ -256,12 +256,14 @@ class AuthController extends Controller
 
             return response()->json([
                 'status' => 'pending_device_approval',
-                'message' => 'New device login requires approval from your existing active session.',
+                'delivery_channel' => 'in_app_active_device',
+                'message' => 'A 6-digit verification code was sent to your active logged-in device (Web or Mobile).',
                 'pending_request' => [
                     'request_id' => $pending->id,
                     'request_token' => $pending->request_token,
                     'device_name' => $pending->device_name,
                     'platform' => $pending->platform,
+                    'delivery_channel' => 'in_app_active_device',
                     'expires_at' => $pending->expires_at->toIso8601String(),
                 ],
             ], 202);
@@ -576,6 +578,42 @@ class AuthController extends Controller
             'status' => 'pending',
             'expires_at' => $pending->expires_at->toIso8601String(),
         ]);
+    }
+
+    public function verifyDeviceLoginCode(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'request_token' => ['required', 'string'],
+            'code' => ['required', 'string', 'min:6', 'max:6'],
+        ]);
+
+        $result = $this->deviceSecurity->verifyCode($validated['request_token'], $validated['code']);
+
+        if ($result['status'] === 'approved') {
+            $user = $result['user'];
+            return response()->json([
+                'status' => 'approved',
+                'token' => $result['token'],
+                'user' => [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'username' => $user->username,
+                    'role' => $user->role,
+                    'avatar_url' => $user->avatar_url ?? $user->avatar,
+                    'mobile_number' => $user->mobile_number,
+                    'coins' => $user->wallet?->coin_balance ?? 0,
+                ],
+            ]);
+        }
+
+        $statusCode = match ($result['status']) {
+            'expired' => 410,
+            'too_many_attempts' => 429,
+            default => 422,
+        };
+
+        return response()->json($result, $statusCode);
     }
 
     public function pendingLoginRequests(Request $request): JsonResponse

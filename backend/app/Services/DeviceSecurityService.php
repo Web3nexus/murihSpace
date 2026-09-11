@@ -2,9 +2,11 @@
 
 namespace App\Services;
 
+use App\Events\NotificationBroadcast;
 use App\Models\DeviceSession;
 use App\Models\PendingLoginRequest;
 use App\Models\User;
+use App\Notifications\MurihOfficialNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
@@ -65,10 +67,14 @@ class DeviceSecurityService
         $deviceId = $this->resolveDeviceId($request);
         $deviceName = $request->input('device_name') ?? $this->inferDeviceName($request);
         $platform = $request->input('platform') ?? $this->inferPlatform($request);
+        $code = str_pad((string) random_int(100000, 999999), 6, '0', STR_PAD_LEFT);
 
         $pending = PendingLoginRequest::create([
             'user_id' => $user->id,
             'request_token' => Str::random(64),
+            'verification_code_hash' => hash('sha256', $code),
+            'attempts' => 0,
+            'delivery_channel' => 'in_app_active_device',
             'device_id' => $deviceId,
             'device_name' => $deviceName,
             'platform' => $platform,
@@ -78,22 +84,41 @@ class DeviceSecurityService
             'expires_at' => now()->addMinutes(5),
         ]);
 
-        // Send real-time notification to active devices
+        // Send real-time in-app notification & websocket broadcast to active devices
         try {
-            $this->notifications->push(
-                userId: $user->id,
-                title: 'New Login Attempt',
-                body: "A new {$platform} device ({$deviceName}) is attempting to log into your account.",
-                data: [
-                    'type' => 'new_device_login_request',
+            $user->notify(new MurihOfficialNotification(
+                type: 'device_login_code',
+                title: '🔐 MurihSpace Login Verification Code',
+                body: "Your login verification code is {$code}. A new {$platform} device ({$deviceName}) is attempting to sign in. Enter this code on your other device to approve.",
+                actionUrl: "/auth/device-approval/{$pending->id}/approve",
+                actionLabel: 'Approve Login',
+                metadata: [
+                    'type' => 'device_login_code',
+                    'code' => $code,
                     'request_id' => $pending->id,
+                    'request_token' => $pending->request_token,
                     'device_name' => $deviceName,
                     'platform' => $platform,
                     'ip' => $request->ip(),
-                    'requested_at' => $pending->created_at->toIso8601String(),
                     'expires_at' => $pending->expires_at->toIso8601String(),
+                ]
+            ));
+
+            NotificationBroadcast::dispatch($user->id, [
+                'id' => (string) Str::uuid(),
+                'type' => 'device_login_code',
+                'is_official' => true,
+                'title' => '🔐 MurihSpace Login Verification Code',
+                'body' => "Your login verification code is {$code}. A new {$platform} device ({$deviceName}) is attempting to sign in.",
+                'code' => $code,
+                'metadata' => [
+                    'code' => $code,
+                    'request_id' => $pending->id,
+                    'request_token' => $pending->request_token,
+                    'device_name' => $deviceName,
+                    'platform' => $platform,
                 ],
-            );
+            ]);
         } catch (\Throwable $e) {
             report($e);
         }
@@ -227,4 +252,73 @@ class DeviceSecurityService
         if (str_contains($ua, 'windows')) return 'windows';
         return 'web';
     }
+
+    /**
+     * Verifies the 6-digit code submitted by the new device attempting login.
+     */
+    public function verifyCode(string $requestToken, string $code): array
+    {
+        $pending = PendingLoginRequest::where('request_token', $requestToken)->first();
+
+        if (! $pending || ! $pending->isPending()) {
+            return [
+                'status' => 'expired',
+                'message' => 'This login request has expired. Please sign in again.',
+            ];
+        }
+
+        if ($pending->attempts >= 5) {
+            $pending->update(['status' => 'cancelled']);
+            return [
+                'status' => 'too_many_attempts',
+                'message' => 'Too many failed attempts. Please request a new login.',
+            ];
+        }
+
+        if (! hash_equals((string) $pending->verification_code_hash, hash('sha256', (string) $code))) {
+            $pending->increment('attempts');
+            $remaining = max(0, 5 - $pending->attempts);
+            return [
+                'status' => 'invalid_code',
+                'message' => "Invalid verification code. {$remaining} attempts remaining.",
+                'attempts_remaining' => $remaining,
+            ];
+        }
+
+        // Code matches! Approve login and issue token
+        $user = $pending->user;
+        $expiration = (int) config('sanctum.expiration', 43200);
+        $expiresAt = now()->addMinutes($expiration > 0 ? $expiration : 43200);
+        $plainToken = $user->createToken('auth-token', ['*'], $expiresAt)->plainTextToken;
+
+        $tokenRecord = $user->tokens()->where('token', hash('sha256', explode('|', $plainToken)[1] ?? $plainToken))->first();
+
+        try {
+            DeviceSession::create([
+                'user_id' => $user->id,
+                'device_id' => $pending->device_id,
+                'device_name' => $pending->device_name,
+                'platform' => $pending->platform,
+                'ip' => $pending->ip,
+                'personal_access_token_id' => $tokenRecord?->id,
+                'is_trusted' => true,
+                'last_active_at' => now(),
+            ]);
+        } catch (\Throwable $e) {
+            report($e);
+        }
+
+        $pending->update([
+            'status' => 'approved',
+            'approved_at' => now(),
+            'authorized_token' => encrypt($plainToken),
+        ]);
+
+        return [
+            'status' => 'approved',
+            'token' => $plainToken,
+            'user' => $user,
+        ];
+    }
 }
+

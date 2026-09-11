@@ -2,11 +2,14 @@
 
 namespace App\Services\Otp;
 
+use App\Events\NotificationBroadcast;
 use App\Jobs\SendSecurityLoginAlert;
 use App\Models\Country;
+use App\Models\DeviceSession;
 use App\Models\PhoneOtpRequest;
 use App\Models\RegistrationSession;
 use App\Models\User;
+use App\Notifications\MurihOfficialNotification;
 use App\Services\AuthMethodConfigService;
 use App\Services\AuthSessionService;
 use Illuminate\Http\Request;
@@ -58,8 +61,92 @@ class PhoneOtpService
             ]);
         }
 
-        $driver = $this->driver();
         $requiresChallenge = $this->requiresChallenge($request);
+        $forceSms = (bool) ($input['force_sms'] ?? false);
+        $activeDeviceUser = null;
+
+        if (! $forceSms && $intent === 'login') {
+            $userCandidate = User::where('mobile_number', $phone)->first();
+            if ($userCandidate) {
+                $hasActiveSession = DeviceSession::where('user_id', $userCandidate->id)
+                    ->whereNull('revoked_at')
+                    ->where('is_trusted', true)
+                    ->where('last_active_at', '>=', now()->subDays(30))
+                    ->exists();
+
+                if ($hasActiveSession) {
+                    $activeDeviceUser = $userCandidate;
+                }
+            }
+        }
+
+        if ($activeDeviceUser) {
+            $code = str_pad((string) random_int(100000, 999999), 6, '0', STR_PAD_LEFT);
+            $ttlMinutes = (int) config('services.twilio.code_ttl', 10);
+
+            $row = PhoneOtpRequest::create([
+                'phone_e164' => $phone,
+                'country_iso2' => $countryIso2,
+                'intent' => $intent,
+                'driver' => 'in_app_active_device',
+                'code_hash' => hash('sha256', $code),
+                'code_expires_at' => now()->addMinutes($ttlMinutes),
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'device_id' => $input['device_id'] ?? null,
+                'status' => 'requested',
+                'metadata' => [
+                    'channel' => 'in_app_active_device',
+                    'requires_challenge' => $requiresChallenge,
+                ],
+            ]);
+
+            Cache::put('phone-otp:dev:'.$row->id, $code, now()->addMinutes($ttlMinutes));
+
+            try {
+                $activeDeviceUser->notify(new MurihOfficialNotification(
+                    type: 'auth_login_otp',
+                    title: '🔐 MurihSpace Login Verification Code',
+                    body: "Your MurihSpace login verification code is {$code}. Enter this code on your device to sign in.",
+                    actionLabel: 'Copy Code',
+                    metadata: [
+                        'type' => 'auth_login_otp',
+                        'code' => $code,
+                        'intent' => 'login',
+                        'phone' => $row->maskedPhone(),
+                    ]
+                ));
+
+                NotificationBroadcast::dispatch($activeDeviceUser->id, [
+                    'id' => (string) Str::uuid(),
+                    'type' => 'auth_login_otp',
+                    'is_official' => true,
+                    'title' => '🔐 MurihSpace Login Verification Code',
+                    'body' => "Your MurihSpace login verification code is {$code}. Enter this code to sign in.",
+                    'code' => $code,
+                    'metadata' => [
+                        'code' => $code,
+                        'intent' => 'login',
+                    ],
+                ]);
+            } catch (\Throwable) {
+                // notification resilience
+            }
+
+            $this->bumpRequestCounters($phone, $request);
+
+            return [
+                'masked_phone' => $row->maskedPhone(),
+                'verification_status' => 'pending',
+                'expires_in_seconds' => $ttlMinutes * 60,
+                'resend_after_seconds' => (int) config('services.twilio.resend_cooldown', 60),
+                'channel' => 'in_app_active_device',
+                'delivery_message' => 'Verification code sent to your active logged-in device (Web / Mobile).',
+                'requires_challenge' => $requiresChallenge,
+            ];
+        }
+
+        $driver = $this->driver();
 
         $row = PhoneOtpRequest::create([
             'phone_e164' => $phone,
@@ -137,8 +224,12 @@ class PhoneOtpService
         );
         $this->bump('otp:ver:num:'.$row->phone_e164, 3600);
 
-        $driver = $this->driver();
-        $result = $driver->check($row, (string) $input['code']);
+        if ($row->code_hash && hash_equals((string) $row->code_hash, hash('sha256', (string) $input['code']))) {
+            $result = ['status' => 'approved'];
+        } else {
+            $driver = $this->driver();
+            $result = $driver->check($row, (string) $input['code']);
+        }
 
         if (($result['status'] ?? 'denied') !== 'approved') {
             $row->increment('attempts');

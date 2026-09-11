@@ -9,6 +9,7 @@ use App\Http\Controllers\AdminAdController;
 use App\Http\Controllers\AdminAiSettingsController;
 use App\Http\Controllers\AdminAnalyticsController;
 use App\Http\Controllers\AdminAuthMethodController;
+use App\Http\Controllers\AdminBroadcastController;
 use App\Http\Controllers\AdminConversionMetricsController;
 use App\Http\Controllers\AdminDashboardController;
 use App\Http\Controllers\AdminEmailTemplateController;
@@ -132,6 +133,7 @@ use App\Http\Controllers\StorePostController;
 use App\Http\Controllers\StoreReturnController;
 use App\Http\Controllers\StoreSettingsController;
 use App\Http\Controllers\StoryController;
+use App\Http\Controllers\SystemBroadcastController;
 use App\Http\Controllers\SubscriptionController;
 use App\Http\Controllers\SubscriptionPlanController;
 use App\Http\Controllers\SupportController;
@@ -219,8 +221,9 @@ Route::prefix('v1')->group(function () {
             Route::match(['get', 'post'], '/{provider}/callback', [SocialAuthController::class, 'callback']);
         });
 
-        // Device approval status check (Public for Device B)
+        // Device approval status check & code verification (Public for Device B)
         Route::get('/device-approval/check-status/{token}', [AuthController::class, 'checkDeviceLoginStatus']);
+        Route::post('/device-approval/verify-code', [AuthController::class, 'verifyDeviceLoginCode']);
 
         Route::middleware('auth:sanctum')->group(function () {
             Route::post('/logout', [AuthController::class, 'logout']);
@@ -589,7 +592,8 @@ Route::prefix('v1')->group(function () {
         Route::get('/blocked-users', [BlockController::class, 'blocked']);
         Route::get('/muted-users', [BlockController::class, 'muted']);
 
-        // ── Sprint 9: Notifications ────────────────────────────────────────
+        // ── Sprint 9: Notifications & Broadcasts ───────────────────────────
+        Route::get('/system-broadcasts', [SystemBroadcastController::class, 'index']);
         Route::prefix('notifications')->group(function () {
             Route::get('/', [NotificationController::class, 'index']);
             Route::post('/read-all', [NotificationController::class, 'markAllRead']);
@@ -1503,7 +1507,7 @@ Route::prefix('v1')->group(function () {
                 Route::get('/', [EventController::class, 'adminIndex']);
             });
 
-            // ── Sprint 18: CMS Page Sections ─────────────────────────────────
+            // ── Sprint 18: CMS Page Sections & Broadcasts ────────────────────
             Route::prefix('cms')->group(function () {
                 Route::get('/', [PageSectionController::class, 'index']);
                 Route::post('/', [PageSectionController::class, 'store']);
@@ -1511,6 +1515,12 @@ Route::prefix('v1')->group(function () {
                 Route::put('/{id}', [PageSectionController::class, 'update']);
                 Route::delete('/{id}', [PageSectionController::class, 'destroy']);
                 Route::post('/reorder', [PageSectionController::class, 'reorder']);
+            });
+
+            Route::prefix('broadcasts')->group(function () {
+                Route::get('/', [AdminBroadcastController::class, 'index']);
+                Route::post('/', [AdminBroadcastController::class, 'store']);
+                Route::delete('/{id}', [AdminBroadcastController::class, 'destroy']);
             });
 
             // ── Sprint 33: Disputes Management ────────────────────────────────

@@ -39,6 +39,7 @@ export interface AppNotification {
     sender_avatar?: string;
     is_official?: boolean;
     is_verified?: boolean;
+    code?: string;
     metadata?: Record<string, any>;
   };
   read_at: string | null;

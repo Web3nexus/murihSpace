@@ -220,3 +220,4 @@ class LiveExchangeRateService
         return 1.0;
     }
 }
+
