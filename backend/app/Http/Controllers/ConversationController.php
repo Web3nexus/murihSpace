@@ -68,21 +68,46 @@ class ConversationController extends Controller
             ->select('messages.conversation_id', DB::raw('count(*) as aggregate'))
             ->pluck('aggregate', 'conversation_id');
 
+        // Query all active/held escrows involving this user
+        $activeEscrows = DB::table('escrows')
+            ->where(function ($q) use ($userId) {
+                $q->where('buyer_id', $userId)->orWhere('seller_id', $userId);
+            })
+            ->whereIn('status', ['held', 'disputed', 'pending', 'active'])
+            ->get();
+
         $conversations = $conversations
-            ->map(function ($conv) use ($userId, $settings, $unreadCounts) {
+            ->map(function ($conv) use ($userId, $settings, $unreadCounts, $activeEscrows) {
                 $unreadCount = (int) ($unreadCounts->get($conv->id) ?? 0);
 
                 // For direct conversations, resolve recipient user
                 $otherUser = null;
+                $hasActiveEscrow = false;
+                $escrowAmount = null;
+                $escrowCurrency = 'USD';
+
                 if ($conv->type === 'direct') {
                     $otherUser = $conv->users->firstWhere('id', '!=', $userId);
+
+                    if ($otherUser) {
+                        $matchEscrow = $activeEscrows->first(function ($e) use ($userId, $otherUser) {
+                            return ($e->buyer_id == $userId && $e->seller_id == $otherUser->id)
+                                || ($e->buyer_id == $otherUser->id && $e->seller_id == $userId);
+                        });
+
+                        if ($matchEscrow) {
+                            $hasActiveEscrow = true;
+                            $escrowAmount = $matchEscrow->amount / 100.0;
+                            $escrowCurrency = $matchEscrow->currency ?? 'NGN';
+                        }
+                    }
                 }
 
                 $setting = $settings->get($conv->id);
 
                 return [
                     'id' => $conv->id,
-                    'type' => $conv->type,
+                    'type' => $hasActiveEscrow && $conv->type === 'direct' ? 'marketplace' : $conv->type,
                     'title' => $conv->type === 'direct' ? ($otherUser ? $otherUser->name : 'Direct Message') : ($conv->type === 'saved' ? 'Saved Messages' : ($conv->community ? $conv->community->name : ($conv->title ?: 'Conversation'))),
                     'community' => $conv->community,
                     'other_user' => $otherUser,
@@ -92,12 +117,17 @@ class ConversationController extends Controller
                     'is_archived' => $setting?->is_archived ?? false,
                     'is_muted' => $setting?->is_muted ?? false,
                     'member_count' => $conv->type === 'community' ? $conv->member_count : null,
+                    'has_active_escrow' => $hasActiveEscrow,
+                    'escrow_amount' => $escrowAmount,
+                    'escrow_currency' => $escrowCurrency,
+                    'is_financial' => $hasActiveEscrow,
+                    'tags' => $hasActiveEscrow ? ['#Business: Escrow Deal', '#Financial'] : [],
                 ];
             })
             ->sortByDesc('updated_at')
             ->values();
 
-        return response()->json(['data' => $conversations]);
+        return response()->json($conversations);
     }
 
     /**
@@ -234,7 +264,7 @@ class ConversationController extends Controller
             });
         }
 
-        return response()->json(['data' => $conv]);
+        return response()->json($conv);
     }
 
     /**
@@ -298,6 +328,28 @@ class ConversationController extends Controller
             return response()->json(['message' => 'Conversation not found.'], 404);
         }
         $this->authorizeParticipant($request, $conversation);
+
+        // Financial chat speed limit check ("manage illegal speed from admin")
+        $isFinancialChat = $conversation->type === 'marketplace'
+            || DB::table('escrows')->where(function ($q) use ($conversation) {
+                $userIds = $conversation->participants()->pluck('user_id');
+                $q->whereIn('buyer_id', $userIds)->whereIn('seller_id', $userIds);
+            })->exists();
+
+        if ($isFinancialChat) {
+            $speedKey = "chat_speed:{$conversation->id}:{$request->user()->id}";
+            $maxMessages = (int) cache()->get('admin_chat_speed_max_messages', 5);
+            $windowSeconds = (int) cache()->get('admin_chat_speed_window_seconds', 5);
+            $msgCount = (int) cache()->get($speedKey, 0);
+
+            if ($msgCount >= $maxMessages) {
+                return response()->json([
+                    'message' => 'Speed limit reached in financial deal chat. High-frequency messaging is restricted to protect transaction security and prevent bot exploits. Please wait a few seconds.',
+                ], 429);
+            }
+
+            cache()->put($speedKey, $msgCount + 1, now()->addSeconds($windowSeconds));
+        }
 
         $validated = $request->validate([
             'content' => ['required_without:attachment_url', 'nullable', 'string', 'max:5000'],
@@ -447,6 +499,31 @@ class ConversationController extends Controller
         $this->authorizeParticipant($request, $conversation);
 
         $mode = $request->input('mode', 'me');
+
+        // ── Financial / escrow chat hard-delete protection ───────────────────
+        // Commerce/creator chats tagged as marketplace or with an active escrow
+        // deal must NEVER be hard-deleted. All records remain in the database
+        // for audit compliance, dispute arbitration, and fund verification.
+        // Users may only soft-clear their own view (mode=me).
+        if ($mode === 'everyone') {
+            $participantIds = $conversation->participants()->pluck('user_id');
+            $isFinancial = $conversation->type === 'marketplace'
+                || DB::table('escrows')
+                    ->where(function ($q) use ($participantIds) {
+                        $q->whereIn('buyer_id', $participantIds)
+                          ->whereIn('seller_id', $participantIds);
+                    })
+                    ->whereIn('status', ['held', 'active', 'pending', 'disputed'])
+                    ->exists();
+
+            if ($isFinancial) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Financial and escrow deal chats cannot be permanently deleted. All records are legally preserved for audit compliance, dispute arbitration, and fund verification. You can soft-clear your personal view only.',
+                    'can_soft_clear' => true,
+                ], 403);
+            }
+        }
 
         if ($mode === 'everyone') {
             if ($conversation->type === 'direct') {
@@ -805,5 +882,89 @@ class ConversationController extends Controller
             ]);
 
         return response()->json(['data' => $messages]);
+    }
+
+    /**
+     * Audit Archive — Admin/compliance endpoint.
+     * Retrieves the full preserved message history for a financial/escrow conversation,
+     * even if users have soft-cleared their view. Only accessible by platform admins.
+     */
+    public function auditArchive(Request $request, int $conversationId): JsonResponse
+    {
+        $authUser = $request->user();
+
+        $isAdmin = $authUser->hasRole('admin')
+            || $authUser->hasRole('super_admin')
+            || CommunityMembership::where('user_id', $authUser->id)
+                ->whereIn('role', ['admin', 'moderator'])
+                ->exists();
+
+        if (! $isAdmin) {
+            return response()->json(['message' => 'Access denied. Audit archive requires admin privileges.'], 403);
+        }
+
+        $conversation = Conversation::findOrFail($conversationId);
+
+        // Fetch ALL messages including soft-deleted — ignore MessageUserState hidden flags
+        $messages = Message::withTrashed()
+            ->where('conversation_id', $conversationId)
+            ->with(['user:id,name,username,avatar_url', 'attachments'])
+            ->orderBy('created_at', 'asc')
+            ->get()
+            ->map(fn ($m) => [
+                'id'              => $m->id,
+                'conversation_id' => $m->conversation_id,
+                'sender_id'       => $m->user_id,
+                'sender_name'     => $m->user?->name,
+                'sender_username' => $m->user?->username,
+                'content'         => $m->content,
+                'type'            => $m->type ?? 'text',
+                'status'          => $m->status,
+                'created_at'      => $m->created_at?->toIso8601String(),
+                'deleted_at'      => $m->deleted_at?->toIso8601String(),
+                'attachments'     => $m->attachments ?? [],
+            ]);
+
+        return response()->json([
+            'conversation_id'    => $conversationId,
+            'conversation_type'  => $conversation->type,
+            'audit_retrieved_by' => $authUser->id,
+            'audit_retrieved_at' => now()->toIso8601String(),
+            'total_messages'     => $messages->count(),
+            'messages'           => $messages,
+        ]);
+    }
+
+    /**
+     * Admin speed control — Anti-bot / illegal-speed rate limit for financial chats.
+     * POST /conversations/speed-control
+     * Body: { max_messages: int, window_seconds: int }
+     */
+    public function updateSpeedControl(Request $request): JsonResponse
+    {
+        $authUser = $request->user();
+        if (! $authUser->hasRole('admin') && ! $authUser->hasRole('super_admin')) {
+            return response()->json(['message' => 'Only platform admins can update speed control settings.'], 403);
+        }
+
+        $validated = $request->validate([
+            'max_messages'   => 'required|integer|min:1|max:100',
+            'window_seconds' => 'required|integer|min:1|max:60',
+        ]);
+
+        DB::table('admin_settings')->updateOrInsert(
+            ['key' => 'chat_speed_max_messages'],
+            ['value' => $validated['max_messages'], 'updated_at' => now()]
+        );
+        DB::table('admin_settings')->updateOrInsert(
+            ['key' => 'chat_speed_window_seconds'],
+            ['value' => $validated['window_seconds'], 'updated_at' => now()]
+        );
+
+        return response()->json([
+            'message'        => 'Financial chat speed control updated successfully.',
+            'max_messages'   => $validated['max_messages'],
+            'window_seconds' => $validated['window_seconds'],
+        ]);
     }
 }

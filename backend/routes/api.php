@@ -623,6 +623,10 @@ Route::prefix('v1')->group(function () {
             Route::put('/{id}/settings', [ConversationSettingsController::class, 'update']);
             // Message deletion
             Route::delete('/{conversationId}/messages/{messageId}', [ConversationController::class, 'deleteMessage']);
+            // Audit archive (admin only) — retrieves full preserved history for financial/escrow chats
+            Route::get('/{id}/audit-archive', [ConversationController::class, 'auditArchive']);
+            // Admin speed control — anti-bot rate limiting for financial chats
+            Route::post('/speed-control', [ConversationController::class, 'updateSpeedControl']);
         });
 
         // ── Real-Time Audio & Video Calls ──────────────────────────────────
