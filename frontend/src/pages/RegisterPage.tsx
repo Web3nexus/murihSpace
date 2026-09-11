@@ -217,6 +217,10 @@ export function RegisterPage() {
   };
 
   const handleRegister = async () => {
+    if (!verifiedPhone) {
+      setOtpError("Phone number must be verified before registration.");
+      return;
+    }
     const success = await register({
       name, email: "", username, role: "member", password, passwordConfirmation,
       registrationSessionId,

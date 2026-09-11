@@ -16,13 +16,16 @@ import {
   Eye as Eye,
   EyeSlash as EyeOff,
   ArrowCounterClockwise as RotateCcw,
-  Sparkle as Sparkle,
-  ShieldCheck as ShieldCheck
+  ShieldCheck as ShieldCheck,
+  ShareNetwork as ShareNetwork,
+  ArrowSquareOut as ArrowSquareOut,
+  CheckCircle as CheckCircle2
 } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MultiImageUploader } from "@/components/upload/ImageUploader";
 import { authFetch } from "@/lib/api/authFetch";
+import { ShareModal } from "@/components/common/ShareModal";
 import { PageHeader } from '@/components/ui/PageHeader';
 import { SuccessBanner } from '@/components/ui/SuccessBanner';
 import { FormErrorSummary } from '@/components/ui/FormErrorSummary';
@@ -77,6 +80,7 @@ export function PhysicalProductsPage() {
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<PhysicalProduct | null>(null);
+  const [sharingProduct, setSharingProduct] = useState<PhysicalProduct | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [page, setPage] = useState(1);
   const [lastPage, setLastPage] = useState(1);
@@ -282,8 +286,8 @@ export function PhysicalProductsPage() {
       {role === 'creator' && (
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-500 text-xs">
           <div className="flex items-center gap-2.5">
-            <Sparkle weight="fill" className="h-4 w-4 shrink-0 text-amber-500" />
-            <span>
+              <CheckCircle2 weight="fill" className="h-4 w-4 shrink-0 text-amber-500" />
+              <span>
               <strong>Creator Note:</strong> Creators publish Digital Products (eBooks, templates, courses). Physical merchandise & shipping inventory are managed by Vendors.
             </span>
           </div>
@@ -411,6 +415,18 @@ export function PhysicalProductsPage() {
                 <div className="flex items-center gap-1">
                   <ActionTooltip content="Edit product">
                     <Button onClick={() => openEdit(p)} variant="ghost" size="sm" className="p-2"><Edit weight="fill" className="h-4 w-4" /></Button>
+                  </ActionTooltip>
+                  <ActionTooltip content="Preview public product">
+                    <a href={`/p/${p.id}`} target="_blank" rel="noreferrer">
+                      <Button variant="ghost" size="sm" className="p-2 text-muted-foreground hover:text-foreground">
+                        <ArrowSquareOut weight="bold" className="h-4 w-4" />
+                      </Button>
+                    </a>
+                  </ActionTooltip>
+                  <ActionTooltip content="Share product link">
+                    <Button onClick={() => setSharingProduct(p)} variant="ghost" size="sm" className="p-2 text-primary hover:bg-primary/10">
+                      <ShareNetwork weight="fill" className="h-4 w-4" />
+                    </Button>
                   </ActionTooltip>
                   <ActionTooltip content="Delete product">
                     <Button onClick={() => handleDelete(p.id)} variant="ghost" size="sm" className="p-2 text-destructive hover:bg-destructive/10"><Trash2 weight="fill" className="h-4 w-4" /></Button>
@@ -571,6 +587,20 @@ export function PhysicalProductsPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Share Modal */}
+      {sharingProduct && (
+        <ShareModal
+          isOpen={!!sharingProduct}
+          onClose={() => setSharingProduct(null)}
+          title={sharingProduct.title}
+          description={sharingProduct.description || `Buy ${sharingProduct.title} on MurihSpace. Escrow-protected checkout.`}
+          url={`${window.location.origin}/p/${sharingProduct.id}`}
+          type="product"
+          imageUrl={sharingProduct.images && sharingProduct.images[0] ? sharingProduct.images[0] : undefined}
+          badge="Physical Product"
+        />
       )}
     </div>
   );

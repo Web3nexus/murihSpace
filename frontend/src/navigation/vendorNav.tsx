@@ -75,7 +75,7 @@ export const vendorNav: NavGroup[] = [
         featureFlag: "moderation",
       },
       {
-        title: "MurihSpace Inbox",
+        title: "MurihChat",
         url: "/app/messages",
         icon: <ChatTeardropText weight="fill" className="h-5 w-5" />,
         featureFlag: "inbox",

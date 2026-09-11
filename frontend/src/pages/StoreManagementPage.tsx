@@ -19,7 +19,7 @@ import { Button } from '@/components/ui/button';
 import type { StorefrontLink } from '@/types/storefront';
 import { authFetch } from "@/lib/api/authFetch";
 import { PageSecondaryNav, type PageNavTab } from "@/components/common/PageSecondaryNav";
-
+import { ShareModal } from "@/components/common/ShareModal";
 
 const SITE_BASE = window.location.origin;
 
@@ -30,6 +30,7 @@ export function StoreManagementPage() {
   const [isTogglingPublish, setIsTogglingPublish] = useState(false);
   const [copied, setCopied] = useState(false);
   const [showQrModal, setShowQrModal] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -201,6 +202,16 @@ export function StoreManagementPage() {
               />
               {storefront?.is_published ? 'Published' : 'Draft'}
             </button>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowShareModal(true)}
+              className="h-8 text-xs font-semibold gap-1.5 rounded-lg border-primary/40 text-primary hover:bg-primary/10"
+            >
+              <Share2 weight="fill" className="h-3.5 w-3.5" />
+              Share Store
+            </Button>
 
             <Button
               variant="outline"
@@ -414,14 +425,25 @@ export function StoreManagementPage() {
               <Eye weight="fill" className="h-3.5 w-3.5 text-[#2164b6] dark:text-[#7ab0ff]" />
               Live Storefront Preview
             </span>
-            <a
-              href={publicUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="text-xs font-bold text-[#2164b6] dark:text-[#7ab0ff] hover:bg-[#2164b6]/10 px-3 py-1 rounded-lg border border-[#2164b6]/30 transition-all flex items-center gap-1.5 "
-            >
-              Open Public Page <ExternalLink weight="fill" className="h-3.5 w-3.5" />
-            </a>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setShowShareModal(true)}
+                className="h-7 text-xs font-semibold gap-1 rounded-lg"
+              >
+                <Share2 weight="fill" className="h-3 w-3" /> Share
+              </Button>
+              <a
+                href={`${publicUrl}${storefront?.is_published ? '' : '?preview=true'}`}
+                target="_blank"
+                rel="noreferrer"
+                className="text-xs font-bold text-[#2164b6] dark:text-[#7ab0ff] hover:bg-[#2164b6]/10 px-2.5 py-1 rounded-lg border border-[#2164b6]/30 transition-all flex items-center gap-1.5"
+              >
+                {storefront?.is_published ? 'Open Store' : 'Preview Store'} <ExternalLink weight="fill" className="h-3.5 w-3.5" />
+              </a>
+            </div>
           </div>
 
           {/* Card Mockup */}
@@ -520,6 +542,18 @@ export function StoreManagementPage() {
           </div>
         </div>
       )}
+
+      {/* Share Modal */}
+      <ShareModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        title={displayName || "Creator Storefront"}
+        description={tagline || bio || "Explore my official creator storefront on MurihSpace"}
+        url={publicUrl}
+        type="store"
+        imageUrl={avatarUrl || coverUrl}
+        badge={storefront?.is_published ? "Storefront" : "Draft Store"}
+      />
     </div>
   );
 }

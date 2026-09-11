@@ -49,6 +49,7 @@ const AdminVerificationBadgesPage = lazyWithRetry(() => import("@/pages/AdminVer
 const CoursesPage = lazyWithRetry(() => import("@/pages/CoursesPage"));
 const StoreManagementPage = lazyWithRetry(() => import("@/pages/StoreManagementPage"), "StoreManagementPage");
 const PublicStorefrontPage = lazyWithRetry(() => import("@/pages/PublicStorefrontPage"), "PublicStorefrontPage");
+const PublicProductPage = lazyWithRetry(() => import("@/pages/PublicProductPage"), "PublicProductPage");
 const PublicMediaKitPage = lazyWithRetry(() => import("@/pages/PublicMediaKitPage"), "PublicMediaKitPage");
 const DigitalProductsPage = lazyWithRetry(() => import("@/pages/DigitalProductsPage"), "DigitalProductsPage");
 const SalesOrdersPage = lazyWithRetry(() => import("@/pages/SalesOrdersPage"), "SalesOrdersPage");
@@ -168,6 +169,9 @@ export const routes: RouteObject[] = [
   { path: RoutePaths.REGISTER, element: <Suspense fallback={<PageLoader />}><RegisterPage /></Suspense> },
   { path: "/social/callback", element: <Suspense fallback={<PageLoader />}><SocialAuthCallbackPage /></Suspense> },
   { path: "/store/:shortCode", element: <Suspense fallback={<PageLoader />}><PublicStorefrontPage /></Suspense> },
+  { path: "/store/:shortCode/p/:id", element: <Suspense fallback={<PageLoader />}><PublicProductPage /></Suspense> },
+  { path: "/p/:id", element: <Suspense fallback={<PageLoader />}><PublicProductPage /></Suspense> },
+  { path: "/products/:id", element: <Suspense fallback={<PageLoader />}><PublicProductPage /></Suspense> },
   { path: "/media-kit/:creatorId", element: <Suspense fallback={<PageLoader />}><PublicMediaKitPage /></Suspense> },
   { path: "/communities", element: <Suspense fallback={<PageLoader />}><PublicCommunitiesPage /></Suspense> },
   { path: "/communities/:slug", element: <Suspense fallback={<PageLoader />}><CommunityPreviewPage /></Suspense> },

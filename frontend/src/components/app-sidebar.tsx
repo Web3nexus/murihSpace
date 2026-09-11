@@ -126,7 +126,7 @@ function injectBadges(nav: NavGroup[], unreadCount: number, adminCounts: AdminCo
   return nav.map((group) => ({
     ...group,
     items: group.items.map((item) => {
-      if (item.title === "MurihSpace Inbox" && unreadCount > 0) {
+      if (item.title === "MurihChat" && unreadCount > 0) {
         return { ...item, badge: unreadCount };
       }
       if (item.title === "KYC Queue") {

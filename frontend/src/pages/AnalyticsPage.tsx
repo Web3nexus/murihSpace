@@ -12,7 +12,6 @@ import {
   CaretDown,
   Plus,
   Handshake,
-  Sparkle,
   Spinner,
   WarningCircle,
   Clock,
@@ -490,7 +489,7 @@ export function AnalyticsPage() {
           {hasZeroActivity && (
             <div className="bg-white dark:bg-[#242526] rounded-lg shadow-xs p-8 text-center space-y-3 flex flex-col items-center justify-center">
               <div className="h-12 w-12 rounded-full bg-[#2164b6]/10 text-[#2164b6] flex items-center justify-center mx-auto">
-                <Sparkle weight="fill" className="h-6 w-6" />
+                <Users weight="fill" className="h-6 w-6" />
               </div>
               <h3 className="text-base font-bold text-[#050505] dark:text-[#E4E6EB] text-center">
                 No performance data yet

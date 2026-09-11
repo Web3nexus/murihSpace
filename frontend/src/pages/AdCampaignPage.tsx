@@ -21,11 +21,11 @@ import {
   Radio as Radio,
   FileText as FileText,
   ArrowSquareOut,
-  Sparkle,
   Database,
   ShieldCheck,
   X,
-  MagnifyingGlass as Search
+  MagnifyingGlass as Search,
+  CheckCircle as CheckCircle2
 } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -290,8 +290,8 @@ export default function AdCampaignPage() {
           <div className="space-y-1.5 max-w-2xl">
             <div className="flex items-center flex-wrap gap-2">
               <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#2164b6] text-white">
-                <Sparkle weight="fill" className="w-3 h-3" />
-                Dedicated Ads Studio
+                  <CheckCircle2 weight="fill" className="w-3 h-3" />
+                  Dedicated Ads Studio
               </span>
               <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
                 <Database weight="fill" className="w-3 h-3" />

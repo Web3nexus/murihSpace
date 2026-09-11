@@ -10,9 +10,9 @@ import {
   SealCheck as BadgeCheck,
   Coins as Coins,
   DeviceMobile as Smartphone,
+  DeviceMobile,
   QrCode as QrCode,
   Copy as Copy,
-  Sparkle as Sparkle
 } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { apiClient } from "@/lib/api/client";
@@ -521,7 +521,7 @@ export default function KycSettingsPage() {
             <div className="flex flex-col items-center">
               <KycQrCode content={kycQrUrl} size={190} />
               <p className="text-[11px] font-bold text-muted-foreground mt-2.5 flex items-center gap-1.5">
-                <Sparkle weight="fill" className="h-3.5 w-3.5 text-primary" /> Scan with your phone camera
+                <DeviceMobile weight="fill" className="h-3.5 w-3.5 text-primary" /> Scan with your phone camera
               </p>
             </div>
 

@@ -3,7 +3,6 @@ import { Link } from "react-router";
 import {
   Rocket as Rocket,
   UserCircle as UserCircle,
-  Sparkle as Sparkle,
   Gift as Gift,
   Wallet as Wallet,
   Users as Users,
@@ -39,7 +38,7 @@ import { MeraIcon } from "@/components/brand/MeraIcon";
 const CATEGORY_ICONS: Record<string, React.ReactNode> = {
   "getting-started": <Rocket weight="fill" className="h-4.5 w-4.5" />,
   account: <UserCircle weight="fill" className="h-4.5 w-4.5" />,
-  creators: <Sparkle weight="fill" className="h-4.5 w-4.5" />,
+  creators: <Users weight="fill" className="h-4.5 w-4.5" />,
   gifting: <Gift weight="fill" className="h-4.5 w-4.5" />,
   murihpay: <Wallet weight="fill" className="h-4.5 w-4.5" />,
   communities: <Users weight="fill" className="h-4.5 w-4.5" />,

@@ -15,12 +15,15 @@ import {
   CloudArrowUp as CloudArrowUp,
   WarningCircle as AlertCircle,
   ArrowCounterClockwise as RotateCcw,
-  Sparkle as Sparkle,
   Truck as Truck,
-  ShieldCheck as ShieldCheck
+  ShieldCheck as ShieldCheck,
+  ShareNetwork as ShareNetwork,
+  ArrowSquareOut as ArrowSquareOut,
+  CheckCircle as CheckCircle2
 } from "@phosphor-icons/react";
 import { ImageUploader } from '@/components/upload/ImageUploader';
 import { Button } from '@/components/ui/button';
+import { ShareModal } from '@/components/common/ShareModal';
 import {
   Dialog,
   DialogContent,
@@ -68,6 +71,7 @@ export function DigitalProductsPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [showModal, setShowModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<DigitalProduct | null>(null);
+  const [sharingProduct, setSharingProduct] = useState<DigitalProduct | null>(null);
   const [page, setPage] = useState(1);
   const [lastPage, setLastPage] = useState(1);
 
@@ -328,8 +332,8 @@ export function DigitalProductsPage() {
       {/* Role Guidance Banner if Creator */}
       {role === 'creator' && (
         <div className="flex items-center gap-2.5 p-3.5 rounded-lg bg-[#1877f2]/10 border border-[#1877f2]/20 text-[#1877f2] text-xs font-medium">
-          <Sparkle weight="fill" className="h-4 w-4 shrink-0 text-[#1877f2]" />
-          <span>
+                  <CheckCircle2 weight="fill" className="h-4 w-4 shrink-0 text-[#1877f2]" />
+                  <span>
             <strong>Creator Store:</strong> Publish digital products, eBooks, downloadable templates, and course files for instant download by your audience.
           </span>
         </div>
@@ -478,6 +482,21 @@ export function DigitalProductsPage() {
               {/* Action Buttons */}
               <div className="p-3 bg-muted/20 border-t border-border flex items-center justify-between gap-2">
                 <div className="flex items-center gap-1">
+                  <ActionTooltip content="Preview product">
+                    <a href={`/p/${p.id}`} target="_blank" rel="noreferrer">
+                      <button className="p-2 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors">
+                        <ArrowSquareOut weight="bold" className="h-4 w-4" />
+                      </button>
+                    </a>
+                  </ActionTooltip>
+                  <ActionTooltip content="Share product link">
+                    <button
+                      onClick={() => setSharingProduct(p)}
+                      className="p-2 rounded-lg hover:bg-primary/10 text-primary transition-colors"
+                    >
+                      <ShareNetwork weight="fill" className="h-4 w-4" />
+                    </button>
+                  </ActionTooltip>
                   <ActionTooltip content="Edit product">
                     <button
                       onClick={() => openEditModal(p)}
@@ -703,6 +722,20 @@ export function DigitalProductsPage() {
           <span className="text-xs text-muted-foreground">Page {page} of {lastPage}</span>
           <button onClick={() => setPage(p => Math.min(lastPage, p + 1))} disabled={page >= lastPage} className="px-3 py-1.5 rounded-lg text-xs font-bold border-none bg-card hover:bg-muted disabled:opacity-40">Next</button>
         </div>
+      )}
+
+      {/* Share Modal */}
+      {sharingProduct && (
+        <ShareModal
+          isOpen={!!sharingProduct}
+          onClose={() => setSharingProduct(null)}
+          title={sharingProduct.title}
+          description={sharingProduct.description || `Download ${sharingProduct.title} on MurihSpace`}
+          url={`${window.location.origin}/p/${sharingProduct.id}`}
+          type="product"
+          imageUrl={sharingProduct.cover_url}
+          badge="Digital Product"
+        />
       )}
     </div>
   );

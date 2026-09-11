@@ -89,25 +89,30 @@ class StorefrontController extends Controller
 
     /**
      * Public endpoint: fetch a creator's public storefront by short code or username.
+     * Supports previewing drafts for the authenticated store owner.
      */
-    public function show(string $shortCode): JsonResponse
+    public function show(Request $request, string $shortCode): JsonResponse
     {
-        $store = Storefront::where('short_code', $shortCode)
-            ->where('is_published', true)
-            ->first();
+        $authUser = auth('sanctum')->user() ?? $request->user();
+
+        $store = Storefront::where('short_code', $shortCode)->first();
 
         if (! $store) {
             // Fallback: try matching username
             $user = User::where('username', $shortCode)->first();
             if ($user) {
-                $store = Storefront::where('user_id', $user->id)
-                    ->where('is_published', true)
-                    ->first();
+                $store = Storefront::where('user_id', $user->id)->first();
             }
         }
 
         if (! $store) {
-            return response()->json(['message' => 'Public storefront not found or unpublished.'], 404);
+            return response()->json(['message' => 'Storefront not found.'], 404);
+        }
+
+        $isOwnerOrAdmin = $authUser && ($authUser->id === $store->user_id || $authUser->isAdmin());
+
+        if (! $store->is_published && ! $isOwnerOrAdmin) {
+            return response()->json(['message' => 'This storefront is currently unpublished or offline.'], 404);
         }
 
         $creator = User::find($store->user_id);
@@ -118,20 +123,44 @@ class StorefrontController extends Controller
             ->select('id', 'name', 'slug', 'description', 'members_count')
             ->get();
 
+        // Fetch creator/vendor active products
+        $physicalProducts = \App\Models\PhysicalProduct::where('creator_id', $store->user_id)
+            ->active()
+            ->latest()
+            ->take(12)
+            ->get(['id', 'title', 'description', 'sku', 'price', 'currency', 'category', 'images', 'stock_quantity']);
+
+        $digitalProducts = \App\Models\DigitalProduct::where('creator_id', $store->user_id)
+            ->where('status', 'published')
+            ->latest()
+            ->take(12)
+            ->get(['id', 'title', 'description', 'price', 'currency', 'category', 'cover_url']);
+
         return response()->json([
             'data' => [
+                'id' => $store->id,
                 'display_name' => $store->display_name,
                 'tagline' => $store->tagline,
                 'bio' => $store->bio,
                 'cover_url' => $store->cover_url,
                 'avatar_url' => $store->avatar_url ?? $creator?->avatar_url,
                 'short_code' => $store->short_code,
+                'is_published' => (bool) $store->is_published,
+                'is_preview' => ! $store->is_published || $request->boolean('preview'),
+                'is_owner' => (bool) ($authUser && $authUser->id === $store->user_id),
                 'links' => $store->links ?? [],
                 'creator' => [
+                    'id' => $creator?->id,
                     'name' => $creator?->name,
                     'username' => $creator?->username,
+                    'avatar' => $creator?->avatar,
+                    'avatar_url' => $creator?->avatar_url,
+                    'role' => $creator?->role,
+                    'is_verified' => $creator?->has_active_verification_badge ?? false,
                 ],
                 'communities' => $communities,
+                'physical_products' => $physicalProducts,
+                'digital_products' => $digitalProducts,
             ],
         ]);
     }

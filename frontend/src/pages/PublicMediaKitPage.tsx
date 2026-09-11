@@ -7,8 +7,7 @@ import {
   Eye as Eye,
   ChartBar as BarChart3,
   Globe as Globe,
-  ShieldCheck as ShieldCheck,
-  Sparkle as Sparkle
+  ShieldCheck as ShieldCheck
 } from "@phosphor-icons/react";
 
 
@@ -94,8 +93,8 @@ export function PublicMediaKitPage() {
         <header className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-2 text-sm font-bold text-foreground">
             <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              <Sparkle weight="fill" className="h-4 w-4" />
-            </span>
+                  <Users weight="fill" className="h-4 w-4" />
+                </span>
             MurihSpace
           </div>
           <Link to="/" className="text-xs font-semibold text-secondary hover:underline">Explore MurihSpace</Link>

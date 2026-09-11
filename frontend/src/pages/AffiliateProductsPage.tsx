@@ -15,8 +15,8 @@ import {
   ToggleLeft as ToggleLeft,
   ToggleRight as ToggleRight,
   ChartBar as BarChart3,
-  Sparkle as Sparkle,
-  ArrowSquareOut as ExternalLink
+  ArrowSquareOut as ExternalLink,
+  CheckCircle as CheckCircle2
 } from "@phosphor-icons/react";
 import { authFetch } from "@/lib/api/authFetch";
 import { useConfirm } from "@/components/ui/DialogProvider";
@@ -154,8 +154,8 @@ export default function AffiliateProductsPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-20">
         <div className="space-y-2">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#2164b6]/10 text-[#2164b6] dark:text-[#7ab0ff] text-xs font-bold mb-2">
-            <Sparkle weight="fill" className="w-3.5 h-3.5" />
-            Monetization
+              <CheckCircle2 weight="fill" className="w-3.5 h-3.5" />
+              Monetization
           </div>
           <h1 className="text-xl md:text-xl font-black tracking-tight text-foreground flex items-center gap-3">
             Affiliate Products

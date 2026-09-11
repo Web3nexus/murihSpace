@@ -10,11 +10,11 @@ import {
   Trash as Trash2,
   Check as Check,
   ArrowSquareOut as ExternalLink,
-  Sparkle as Sparkle,
   Image as ImageIcon,
   Briefcase as Briefcase,
   FileText as FileText,
-  CurrencyDollar as DollarSign
+  CurrencyDollar as DollarSign,
+  CheckCircle as CheckCircle2
 } from "@phosphor-icons/react";
 import { ImageUploader } from "@/components/upload/ImageUploader";
 import { authFetch } from "@/lib/api/authFetch";
@@ -247,7 +247,7 @@ export function MediaKitPage() {
                   />
                   {f.sug != null && f.sug > 0 && (
                     <button type="button" onClick={() => setKit({ ...kit, [f.key]: f.sug })} className="text-[10px] font-bold text-[#2164b6] hover:underline flex items-center gap-1">
-                      <Sparkle weight="fill" className="w-3 h-3" /> Auto-fill: {Number(f.sug).toLocaleString()}
+                      <CheckCircle2 weight="fill" className="w-3 h-3" /> Auto-fill: {Number(f.sug).toLocaleString()}
                     </button>
                   )}
                 </div>

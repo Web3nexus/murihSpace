@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
 import {
-  Sparkle as Sparkle,
   Bag as ShoppingBag,
   Clock as Clock,
   CheckCircle as CheckCircle2,
@@ -230,7 +229,7 @@ export function UpgradeAccountPage() {
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2.5">
                 <div className="rounded-lg bg-primary/10 p-2.5 text-primary">
-                  <Sparkle weight="fill" className="h-6 w-6" />
+                  <CheckCircle2 weight="fill" className="h-6 w-6" />
                 </div>
                 <div>
                   <h3 className="font-bold text-lg text-foreground">Creator Role</h3>

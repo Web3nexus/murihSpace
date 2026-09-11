@@ -8,7 +8,6 @@ import {
   Globe as Globe,
   ArrowRight as ArrowRight,
   Spinner as Loader2,
-  Sparkle as Sparkle
 } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 
@@ -113,8 +112,8 @@ export function PublicCommunitiesPage() {
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(255,255,255,0.08),transparent)] pointer-events-none" />
         <div className="relative max-w-2xl mx-auto space-y-4">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-white/20 bg-white/10 text-white/90 text-xs font-semibold backdrop-blur-sm">
-            <Sparkle weight="fill" className="h-3.5 w-3.5" />
-            Public Communities
+              <Users weight="fill" className="h-3.5 w-3.5" />
+              Public Communities
           </div>
           <h1 className="text-xl md:text-xl font-extrabold tracking-tight">
             Discover Communities to Join

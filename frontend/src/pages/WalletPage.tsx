@@ -11,7 +11,7 @@ import {
   Clock as Clock,
   ShieldCheck as ShieldCheck,
   Buildings as Building2,
-  Sparkle as Sparkle
+  CheckCircle as CheckCircle2,
 } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { apiClient, type ApiError } from "@/lib/api/client";
@@ -360,7 +360,7 @@ export function WalletPage() {
                 : "bg-card border-none text-muted-foreground hover:text-foreground"
             }`}
           >
-            <Sparkle weight="fill" className="h-4 w-4" /> Creator Earnings
+            <CheckCircle2 weight="fill" className="h-4 w-4" /> Creator Earnings
           </button>
         )}
 

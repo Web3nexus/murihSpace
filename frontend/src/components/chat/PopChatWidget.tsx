@@ -43,6 +43,7 @@ export function PopChatWidget() {
   const [inputText, setInputText] = useState("");
   const [sending, setSending] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -104,6 +105,28 @@ export function PopChatWidget() {
       messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
   }, [messages, isMinimized, isOpen]);
+
+  // Handle user query param to boot up friend profile
+  useEffect(() => {
+    const search = window.location.search;
+    const params = new URLSearchParams(search);
+    const userId = params.get("user") ? parseInt(params.get("user") ?? "0", 10) : null;
+    if (userId) {
+      setSelectedUserId(userId);
+    }
+  }, []);
+
+  // Select conversation based on selected user ID
+  useEffect(() => {
+    if (selectedUserId) {
+      const conv = conversations.find(
+        (c) => c.other_user && c.other_user.id === selectedUserId
+      );
+      if (conv) {
+        selectConversation(conv);
+      }
+    }
+  }, [selectedUserId, conversations, selectConversation]);
 
   // Focus input when conversation opens
   useEffect(() => {

@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
 import {
-  Sparkle as SparklesIcon,
   FloppyDisk as SaveIcon,
   ArrowsClockwise as RefreshCwIcon,
   Envelope as MailIcon,
   CheckCircle as CheckCircle2Icon,
   Sliders as SlidersIcon,
-  Clock as ClockIcon
+  Clock as ClockIcon,
+  Users
 } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { apiClient } from "@/lib/api/client";
@@ -135,7 +135,7 @@ export default function AdminCreatorQualificationPage() {
         <div className="p-4 rounded-lg border-none bg-card space-y-4">
           <div className="flex items-center justify-between border-b pb-4">
             <div className="flex items-center gap-2">
-              <SparklesIcon weight="fill" className="h-5 w-5 text-primary" />
+              <Users weight="fill" className="h-5 w-5 text-primary" />
               <h2 className="font-semibold text-foreground">Qualification Workflow</h2>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
