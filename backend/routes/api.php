@@ -628,6 +628,8 @@ Route::prefix('v1')->group(function () {
             Route::get('/{id}/audit-archive', [ConversationController::class, 'auditArchive']);
             // Admin speed control — anti-bot rate limiting for financial chats
             Route::post('/speed-control', [ConversationController::class, 'updateSpeedControl']);
+            // Admin chat pin limit (default 3, admin-configurable)
+            Route::post('/pin-config', [ConversationController::class, 'updatePinConfig']);
         });
 
         // ── Real-Time Audio & Video Calls ──────────────────────────────────
@@ -641,6 +643,7 @@ Route::prefix('v1')->group(function () {
 
         // ── Sprint 11-12: Messages, Reactions, Attachments, Push Tokens ──
         Route::prefix('messages')->group(function () {
+            Route::get('/unread-count', [ConversationController::class, 'unreadCount']);
             Route::post('/attachments', [MessageAttachmentController::class, 'upload']);
             Route::post('/{id}/reactions', [MessageReactionController::class, 'toggle']);
             Route::get('/{id}/reactions', [MessageReactionController::class, 'index']);
@@ -650,6 +653,7 @@ Route::prefix('v1')->group(function () {
         // Secure chat media access
         Route::prefix('chat')->group(function () {
             Route::get('/media/{media}', [ChatMediaController::class, 'show']);
+            Route::get('/config', [ConversationController::class, 'chatConfig']);
         });
 
         Route::prefix('push-tokens')->group(function () {

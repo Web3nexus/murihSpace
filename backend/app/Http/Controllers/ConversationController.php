@@ -10,6 +10,7 @@ use App\Models\CommunityMembership;
 use App\Models\Conversation;
 use App\Models\ConversationParticipant;
 use App\Models\ConversationUserSetting;
+use App\Models\AdminSetting;
 use App\Models\Group;
 use App\Models\GroupMember;
 use App\Models\Media;
@@ -114,6 +115,7 @@ class ConversationController extends Controller
                     'latest_message' => $conv->latestMessage,
                     'unread_count' => $unreadCount,
                     'updated_at' => $conv->updated_at,
+                    'is_pinned' => (bool) $setting?->pinned_at,
                     'is_archived' => $setting?->is_archived ?? false,
                     'is_muted' => $setting?->is_muted ?? false,
                     'member_count' => $conv->type === 'community' ? $conv->member_count : null,
@@ -124,10 +126,74 @@ class ConversationController extends Controller
                     'tags' => $hasActiveEscrow ? ['#Business: Escrow Deal', '#Financial'] : [],
                 ];
             })
-            ->sortByDesc('updated_at')
+            ->sort(function ($a, $b) {
+                if ((bool) $a['is_pinned'] !== (bool) $b['is_pinned']) {
+                    return $a['is_pinned'] ? -1 : 1;
+                }
+                $aT = $a['updated_at'] instanceof Carbon ? $a['updated_at']->getTimestamp() : strtotime((string) $a['updated_at']);
+                $bT = $b['updated_at'] instanceof Carbon ? $b['updated_at']->getTimestamp() : strtotime((string) $b['updated_at']);
+
+                return $bT <=> $aT;
+            })
             ->values();
 
         return response()->json($conversations);
+    }
+
+    /**
+     * Total unread message count across all conversations for the user.
+     */
+    public function unreadCount(Request $request): JsonResponse
+    {
+        $userId = $request->user()->id;
+
+        $count = Message::join('conversation_participants', function ($join) use ($userId) {
+            $join->on('conversation_participants.conversation_id', '=', 'messages.conversation_id')
+                ->where('conversation_participants.user_id', '=', $userId);
+        })
+            ->where('messages.user_id', '!=', $userId)
+            ->whereNull('messages.deleted_at')
+            ->where(function ($q) {
+                $q->whereNull('conversation_participants.last_read_at')
+                    ->orWhereColumn('messages.created_at', '>', 'conversation_participants.last_read_at');
+            })
+            ->count();
+
+        return response()->json(['unread_count' => $count]);
+    }
+
+    /**
+     * Public chat configuration for clients (pin limit, etc.).
+     */
+    public function chatConfig(Request $request): JsonResponse
+    {
+        return response()->json([
+            'max_pinned_chats' => (int) AdminSetting::get('max_pinned_chats', 3),
+        ]);
+    }
+
+    /**
+     * Admin chat configuration update.
+     * POST /conversations/pin-config
+     * Body: { max_pinned_chats: int }
+     */
+    public function updatePinConfig(Request $request): JsonResponse
+    {
+        $authUser = $request->user();
+        if (! $authUser->hasRole('admin') && ! $authUser->hasRole('super_admin')) {
+            return response()->json(['message' => 'Only platform admins can update chat pin settings.'], 403);
+        }
+
+        $validated = $request->validate([
+            'max_pinned_chats' => 'required|integer|min:1|max:50',
+        ]);
+
+        AdminSetting::set('max_pinned_chats', $validated['max_pinned_chats']);
+
+        return response()->json([
+            'message' => 'Chat pin limit updated successfully.',
+            'max_pinned_chats' => $validated['max_pinned_chats'],
+        ]);
     }
 
     /**

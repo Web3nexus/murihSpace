@@ -12,11 +12,13 @@ class ConversationUserSetting extends Model
         'user_id',
         'is_muted',
         'is_archived',
+        'pinned_at',
     ];
 
     protected $casts = [
         'is_muted' => 'boolean',
         'is_archived' => 'boolean',
+        'pinned_at' => 'datetime',
     ];
 
     public function conversation(): BelongsTo
