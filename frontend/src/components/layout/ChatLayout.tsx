@@ -25,6 +25,7 @@ import {
   TrashSimple as Trash,
   X as X
 } from "@phosphor-icons/react";
+import { toast } from 'sonner';
 import { safeFormatDistanceToNow, safeFormat } from '@/lib/date';
 import { extractMessages } from '@/lib/chatMessages';
 import type { ConversationItem, ChatMessage, MessageStatus, MessageReaction } from '@/types/chat';
@@ -144,50 +145,6 @@ export function ChatLayout() {
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  useRealtimeMessaging(activeConv?.id ?? null, currentUserId, {
-    onMessageReceived: useCallback((msg: ChatMessage) => {
-      setMessages((prev) => {
-        if (prev.some((m) => m.client_uuid && m.client_uuid === msg.client_uuid)) return prev;
-        if (prev.some((m) => m.id && m.id === msg.id)) return prev;
-        return [...prev, { ...msg, status: 'sent' }];
-      });
-      setConversations((prev) => prev.map((c) =>
-        c.id === msg.conversation_id
-          ? { ...c, latest_message: msg, updated_at: msg.created_at, unread_count: c.id === activeConv?.id ? 0 : (c.unread_count ?? 0) + 1 }
-          : c,
-      ));
-    }, [activeConv?.id]),
-    onTyping: useCallback((data) => {
-      if (data.is_typing) {
-        setTypingUsers((prev) => prev.includes(data.user_name) ? prev : [...prev, data.user_name]);
-      } else {
-        setTypingUsers((prev) => prev.filter((n) => n !== data.user_name));
-      }
-    }, []),
-    onReaction: useCallback((data) => {
-      setMessages((prev) => prev.map((m) =>
-        m.id === data.message_id ? { ...m, reactions: data.reactions } : m,
-      ));
-    }, []),
-  });
-
-  const loadConversations = useCallback(async () => {
-    try {
-      const res = await apiFetch<{ data: ConversationItem[] } | ConversationItem[]>('/conversations');
-      const list = 'data' in res ? res.data : res;
-      setConversations(Array.isArray(list) ? list : []);
-    } catch (e) { console.error('Failed to load conversations', e);
-    } finally {
-      setIsLoadingList(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    loadConversations();
-  }, [loadConversations]);
-  useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
-
   const loadConvSettings = async (convId: number) => {
     try {
       const res = await apiFetch<{ data: { is_muted: boolean; is_archived: boolean } }>(`/conversations/${convId}/settings`);
@@ -221,6 +178,60 @@ export function ChatLayout() {
 
     loadConvSettings(conv.id);
   };
+
+  useRealtimeMessaging(activeConv?.id ?? null, currentUserId, {
+    onMessageReceived: useCallback((msg: ChatMessage) => {
+      setMessages((prev) => {
+        if (prev.some((m) => m.client_uuid && m.client_uuid === msg.client_uuid)) return prev;
+        if (prev.some((m) => m.id && m.id === msg.id)) return prev;
+        return [...prev, { ...msg, status: 'sent' }];
+      });
+      setConversations((prev) => prev.map((c) =>
+        c.id === msg.conversation_id
+          ? { ...c, latest_message: msg, updated_at: msg.created_at, unread_count: c.id === activeConv?.id ? 0 : (c.unread_count ?? 0) + 1 }
+          : c,
+      ));
+      if (msg.conversation_id !== activeConv?.id) {
+        const conv = conversations.find((c) => c.id === msg.conversation_id);
+        const sender = msg.user?.name ?? conv?.title ?? 'New message';
+        toast(sender, {
+          description: msg.content || 'Sent an attachment',
+          action: conv
+            ? { label: 'View', onClick: () => selectConversation(conv) }
+            : { label: 'Open', onClick: () => navigate('/app/messages') },
+        });
+      }
+    }, [activeConv?.id, currentUserId, conversations, navigate, selectConversation]),
+    onTyping: useCallback((data) => {
+      if (data.is_typing) {
+        setTypingUsers((prev) => prev.includes(data.user_name) ? prev : [...prev, data.user_name]);
+      } else {
+        setTypingUsers((prev) => prev.filter((n) => n !== data.user_name));
+      }
+    }, []),
+    onReaction: useCallback((data) => {
+      setMessages((prev) => prev.map((m) =>
+        m.id === data.message_id ? { ...m, reactions: data.reactions } : m,
+      ));
+    }, []),
+  });
+
+  const loadConversations = useCallback(async () => {
+    try {
+      const res = await apiFetch<{ data: ConversationItem[] } | ConversationItem[]>('/conversations');
+      const list = 'data' in res ? res.data : res;
+      setConversations(Array.isArray(list) ? list : []);
+    } catch (e) { console.error('Failed to load conversations', e);
+    } finally {
+      setIsLoadingList(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    loadConversations();
+  }, [loadConversations]);
+  useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
 
   const openSavedMessages = async () => {
     try {
@@ -533,7 +544,7 @@ export function ChatLayout() {
         {activeConv ? (
           <>
             {/* Header */}
-            <div className="px-4 py-3 border-b border-border bg-card flex items-center justify-between">
+            <div className="px-4 py-3 border-b border-border bg-card flex items-center justify-between shrink-0">
               <div className="flex items-center gap-3">
                 <button onClick={() => setActiveConv(null)} className="md:hidden p-1.5 rounded-lg hover:bg-muted text-muted-foreground"><ArrowLeft weight="fill" className="h-5 w-5" /></button>
                 {activeConv.type === 'saved' ? <div className="h-9 w-9 rounded-full bg-amber-500/20 text-amber-500 flex items-center justify-center shrink-0"><Bookmark weight="fill" className="h-4 w-4" /></div>
@@ -698,7 +709,7 @@ export function ChatLayout() {
             {replyingTo && <ReplyPreviewBar replyingTo={replyingTo} onDismiss={() => setReplyingTo(null)} />}
 
             {/* Composer */}
-            <form onSubmit={handleSendMessage} className="p-3 border-t border-border bg-card flex items-center gap-2">
+            <form onSubmit={handleSendMessage} className="p-3 border-t border-border bg-card flex items-center gap-2 shrink-0">
               {/* Attachment button */}
               <button
                 type="button"

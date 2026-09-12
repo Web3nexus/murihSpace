@@ -22,6 +22,7 @@ import { WebLockedPage } from "@/components/WebLockedPage";
 import { getAuthToken } from "@/lib/auth/token";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { PopChatWidget } from "@/components/chat/PopChatWidget";
+import { RealtimeNotificationsHost } from "@/hooks/useGlobalRealtimeNotifications";
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? "http://localhost:8000/api/v1";
 
@@ -158,6 +159,9 @@ export function DashboardLayout() {
       {/* 100vw Impersonation banner at the very top */}
       <ImpersonationBanner />
 
+      {/* Global live notification + badge listeners */}
+      <RealtimeNotificationsHost />
+
       {/* 100vw Edge-to-edge Global Social Header */}
       <SiteHeader onOpenMobileSidebar={() => setMobileMenuOpen(true)} />
 
@@ -174,7 +178,7 @@ export function DashboardLayout() {
         {/* Main Content Area */}
         <main
           id="main-content"
-          className="flex-1 min-w-0 min-h-[calc(100vh-3.5rem)] flex flex-col pb-16 md:pb-0"
+          className="flex-1 min-w-0 h-[calc(100dvh-3.5rem)] flex flex-col pb-16 md:pb-0"
         >
           <Outlet />
         </main>

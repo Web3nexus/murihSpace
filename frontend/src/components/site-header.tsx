@@ -28,6 +28,7 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { apiClient } from "@/lib/api/client";
 import { getLogo } from "@/lib/logoConfig";
+import { subscribeUnreadCount, getUnreadCount } from "@/lib/chatUnread";
 import type { UserRole } from "@/navigation/navTypes";
 import {
   DropdownMenu,
@@ -58,27 +59,19 @@ export function SiteHeader({ onOpenMobileSidebar }: SiteHeaderProps) {
   const [notifCount, setNotifCount] = useState(0);
   const [msgCount, setMsgCount] = useState(0);
 
+  // Live, authoritative unread total — same store as the sidebar & chat layout
+  useEffect(() => subscribeUnreadCount(() => setMsgCount(getUnreadCount())), []);
+
+  // Live-update badges as realtime notifications/messages arrive
   useEffect(() => {
-    const countTotal = (res: { data?: unknown }): number => {
-      const body = (res.data as Record<string, unknown> | undefined)?.data ?? res.data;
-      const list = Array.isArray(body) ? body : (body as Record<string, unknown> | undefined)?.data;
-      const total = (body as Record<string, unknown> | undefined)?.total;
-      return Number(total) || (Array.isArray(list) ? list.length : 0);
+    const bumpNotifs = () => setNotifCount((c) => c + 1);
+    const bumpMsgs = () => setMsgCount((c) => c + 1);
+    window.addEventListener("murih:notification", bumpNotifs);
+    window.addEventListener("murih:message", bumpMsgs);
+    return () => {
+      window.removeEventListener("murih:notification", bumpNotifs);
+      window.removeEventListener("murih:message", bumpMsgs);
     };
-
-    apiClient
-      .get("/notifications?unread_only=true&per_page=1")
-      .then((res) => {
-        setNotifCount(countTotal(res));
-      })
-      .catch(() => {});
-
-    apiClient
-      .get("/conversations?unread_only=true&per_page=1")
-      .then((res) => {
-        setMsgCount(countTotal(res));
-      })
-      .catch(() => {});
   }, []);
 
   // Debounced search suggestions
@@ -364,7 +357,7 @@ export function SiteHeader({ onOpenMobileSidebar }: SiteHeaderProps) {
             >
               <MessageSquare weight="fill" className="h-5 w-5" />
               {msgCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 h-4 min-w-[16px] px-1 rounded-full bg-rose-500 text-white text-[10px] font-bold flex items-center justify-center leading-none">
+                <span className="absolute -top-0.5 -right-0.5 h-4 min-w-[16px] px-1 rounded-full bg-secondary text-white text-[10px] font-bold flex items-center justify-center leading-none">
                   {msgCount > 9 ? "9+" : msgCount}
                 </span>
               )}
@@ -380,7 +373,7 @@ export function SiteHeader({ onOpenMobileSidebar }: SiteHeaderProps) {
           >
             <Bell weight="fill" className="h-5 w-5" />
             {notifCount > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 h-4 min-w-[16px] px-1 rounded-full bg-rose-500 text-white text-[10px] font-bold flex items-center justify-center leading-none">
+              <span className="absolute -top-0.5 -right-0.5 h-4 min-w-[16px] px-1 rounded-full bg-secondary text-white text-[10px] font-bold flex items-center justify-center leading-none">
                 {notifCount > 9 ? "9+" : notifCount}
               </span>
             )}

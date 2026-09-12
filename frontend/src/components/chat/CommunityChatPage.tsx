@@ -32,6 +32,8 @@ import { useRealtimeMessaging } from "@/hooks/useRealtimeMessaging";
 import { LiveKitVideoConference } from "@/components/video/LiveKitVideoConference";
 import { cn } from "@/lib/utils";
 import { getAuthToken } from "@/lib/auth/token";
+import { useNavigate } from "react-router";
+import { toast } from "sonner";
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? "http://localhost:8000/api/v1";
 
@@ -94,6 +96,7 @@ function UserAvatar({ size = 28 }: { name?: string; size?: number }) {
 }
 
 export default function CommunityChatPage() {
+  const navigate = useNavigate();
   const [conversations, setConversations] = useState<ConversationItem[]>([]);
   const [activeConv, setActiveConv] = useState<ConversationItem | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -115,6 +118,37 @@ export default function CommunityChatPage() {
   const currentUserData = getUserData();
   const currentUserId = (currentUserData?.id as number | undefined) ?? undefined;
 
+  const loadConvSettings = async (convId: number) => {
+    try {
+      const res = await apiFetch<{ data: { is_muted: boolean } }>(`/conversations/${convId}/settings`);
+      setIsMuted(res.data?.is_muted ?? false);
+    } catch { /* ignore */ }
+  };
+
+  const selectConversation = async (conv: ConversationItem) => {
+    setActiveConv(conv);
+    setReplyingTo(null);
+    setIsLoadingMsgs(true);
+    setTypingUsers([]);
+
+    try {
+      const res = await apiFetch(`/conversations/${conv.id}/messages`);
+      const list = extractMessages(res);
+      setMessages(list.map((m) => ({ ...m, status: "sent" as MessageStatus })));
+
+      if (conv.unread_count > 0) {
+        await apiFetch(`/conversations/${conv.id}/read`, { method: "POST" });
+        setConversations((prev) => prev.map((c) => (c.id === conv.id ? { ...c, unread_count: 0 } : c)));
+      }
+    } catch {
+      setMessages([]);
+    } finally {
+      setIsLoadingMsgs(false);
+    }
+
+    loadConvSettings(conv.id);
+  };
+
   const onMessageReceived = useCallback((msg: ChatMessage) => {
     setMessages((prev) => {
       if (prev.some((m) => m.client_uuid && m.client_uuid === msg.client_uuid)) return prev;
@@ -126,7 +160,17 @@ export default function CommunityChatPage() {
         ? { ...c, latest_message: msg, updated_at: msg.created_at, unread_count: c.id === activeConv?.id ? 0 : (c.unread_count ?? 0) + 1 }
         : c,
     ));
-  }, [activeConv?.id]);
+    if (msg.conversation_id !== activeConv?.id) {
+      const conv = conversations.find((c) => c.id === msg.conversation_id);
+      const sender = msg.user?.name ?? conv?.title ?? "New message";
+      toast(sender, {
+        description: msg.content || "Sent an attachment",
+        action: conv
+          ? { label: "View", onClick: () => selectConversation(conv) }
+          : { label: "Open messages", onClick: () => navigate("/app/messages") },
+      });
+    }
+  }, [activeConv?.id, currentUserId, conversations, selectConversation, navigate]);
 
   const onTyping = useCallback((data: { user_id: number; user_name: string; is_typing: boolean }) => {
     if (data.is_typing) {
@@ -168,37 +212,6 @@ export default function CommunityChatPage() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
-
-  const loadConvSettings = async (convId: number) => {
-    try {
-      const res = await apiFetch<{ data: { is_muted: boolean } }>(`/conversations/${convId}/settings`);
-      setIsMuted(res.data?.is_muted ?? false);
-    } catch { /* ignore */ }
-  };
-
-  const selectConversation = async (conv: ConversationItem) => {
-    setActiveConv(conv);
-    setReplyingTo(null);
-    setIsLoadingMsgs(true);
-    setTypingUsers([]);
-
-    try {
-      const res = await apiFetch(`/conversations/${conv.id}/messages`);
-      const list = extractMessages(res);
-      setMessages(list.map((m) => ({ ...m, status: "sent" as MessageStatus })));
-
-      if (conv.unread_count > 0) {
-        await apiFetch(`/conversations/${conv.id}/read`, { method: "POST" });
-        setConversations((prev) => prev.map((c) => (c.id === conv.id ? { ...c, unread_count: 0 } : c)));
-      }
-    } catch {
-      setMessages([]);
-    } finally {
-      setIsLoadingMsgs(false);
-    }
-
-    loadConvSettings(conv.id);
-  };
 
   const executeSendMessage = async (msg: ChatMessage) => {
     if (!activeConv) return;
@@ -326,7 +339,7 @@ export default function CommunityChatPage() {
 
   if (isLoadingList) {
     return (
-      <div className="flex h-[calc(100svh-112px)] items-center justify-center">
+      <div className="flex flex-1 min-h-0 w-full items-center justify-center">
         <div className="text-center space-y-3">
           <div className="relative mx-auto h-12 w-12">
             <Loader2 weight="fill" className="h-12 w-12 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" />
@@ -339,7 +352,7 @@ export default function CommunityChatPage() {
 
   if (listError) {
     return (
-      <div className="flex h-[calc(100svh-112px)] items-center justify-center p-4">
+      <div className="flex flex-1 min-h-0 w-full items-center justify-center p-4">
         <div className="max-w-sm text-center space-y-4">
           <div className="mx-auto rounded-lg bg-destructive/10 p-4 w-fit">
             <AlertCircle weight="fill" className="h-8 w-8 text-destructive" />
@@ -359,7 +372,7 @@ export default function CommunityChatPage() {
 
   if (conversations.length === 0 && !activeConv) {
     return (
-      <div className="flex h-[calc(100svh-112px)] items-center justify-center p-4">
+      <div className="flex flex-1 min-h-0 w-full items-center justify-center p-4">
         <div className="max-w-sm text-center space-y-4">
           <div className="mx-auto rounded-lg bg-[#2164b6]/10 p-4 w-fit">
             <MessageCircle weight="fill" className="h-8 w-8 text-[#2164b6] dark:text-[#7ab0ff]" />
@@ -374,7 +387,7 @@ export default function CommunityChatPage() {
   }
 
   return (
-    <div className="flex h-[calc(100vh-3.5rem)] w-full overflow-hidden bg-background">
+    <div className="flex flex-1 min-h-0 w-full overflow-hidden bg-background">
       {/* Sidebar */}
       <aside className={`${activeConv ? "hidden md:flex" : "flex"} w-full md:w-[320px] shrink-0 flex-col border-r border-border bg-card`}>
         <div className="flex items-center justify-between px-4 py-3.5 border-b border-border">

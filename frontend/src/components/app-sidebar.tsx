@@ -2,6 +2,10 @@ import React, { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
 import { useAuth } from "@/hooks/useAuth";
 import { apiClient } from "@/lib/api/client";
+import {
+  getUnreadCount,
+  subscribeUnreadCount,
+} from "@/lib/chatUnread";
 import { getSidebarNav } from "@/navigation/getSidebarNav";
 import { ROLE_LABELS } from "@/navigation/navTypes";
 import type { NavItem, NavGroup, UserRole } from "@/navigation/navTypes";
@@ -177,7 +181,7 @@ function NavRow({ item, onNavigate }: NavRowProps) {
         )}
         <span className="truncate flex-1 leading-none">{item.title}</span>
         {item.badge != null && (
-          <span className="ml-auto flex h-5 min-w-[20px] items-center justify-center rounded-full bg-rose-500 px-1.5 text-[11px] font-bold text-white leading-none">
+          <span className="ml-auto flex h-5 min-w-[20px] items-center justify-center rounded-full bg-secondary px-1.5 text-[11px] font-bold text-white leading-none">
             {item.badge}
           </span>
         )}
@@ -197,7 +201,10 @@ export function AppSidebar({ className = "", onNavigate }: AppSidebarProps) {
   const role: UserRole = (user?.role as UserRole) ?? "member";
   const flags = useFeatureFlags();
 
-  const [unreadCount, setUnreadCount] = useState(0);
+  // Live unread total — same authoritative store as the site header & chat
+  // layout, so badge stays correct after reading/opening a conversation.
+  const [unreadCount, setUnreadCount] = useState(getUnreadCount());
+  useEffect(() => subscribeUnreadCount(() => setUnreadCount(getUnreadCount())), []);
   const [adminCounts, setAdminCounts] = useState<AdminCounts>({
     pending_kyc: 0,
     pending_role_applications: 0,
