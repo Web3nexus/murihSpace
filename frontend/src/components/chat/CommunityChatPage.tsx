@@ -22,6 +22,7 @@ import {
   User as UserIcon
 } from "@phosphor-icons/react";
 import { safeFormatDistanceToNow, safeFormat } from "@/lib/date";
+import { extractMessages } from "@/lib/chatMessages";
 import type { ConversationItem, ChatMessage, MessageStatus, MessageReaction } from "@/types/chat";
 import { ReplyPreviewBar } from "@/components/chat/ReplyPreviewBar";
 import { MessageReactions } from "@/components/chat/MessageReactions";
@@ -182,9 +183,9 @@ export default function CommunityChatPage() {
     setTypingUsers([]);
 
     try {
-      const res = await apiFetch<{ data: ChatMessage[] }>(`/conversations/${conv.id}/messages`);
-      const list = res && "data" in res ? res.data : Array.isArray(res) ? res : [];
-      setMessages((Array.isArray(list) ? list : []).map((m) => ({ ...m, status: "sent" as MessageStatus })));
+      const res = await apiFetch(`/conversations/${conv.id}/messages`);
+      const list = extractMessages(res);
+      setMessages(list.map((m) => ({ ...m, status: "sent" as MessageStatus })));
 
       if (conv.unread_count > 0) {
         await apiFetch(`/conversations/${conv.id}/read`, { method: "POST" });

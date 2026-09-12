@@ -26,6 +26,7 @@ import {
   X as X
 } from "@phosphor-icons/react";
 import { safeFormatDistanceToNow, safeFormat } from '@/lib/date';
+import { extractMessages } from '@/lib/chatMessages';
 import type { ConversationItem, ChatMessage, MessageStatus, MessageReaction } from '@/types/chat';
 import { ReplyPreviewBar } from '@/components/chat/ReplyPreviewBar';
 import { MessageReactions } from '@/components/chat/MessageReactions';
@@ -202,21 +203,9 @@ export function ChatLayout() {
     setTypingUsers([]);
 
     try {
-      const res = await apiFetch<{ data: unknown } | ChatMessage[]>(
-        `/conversations/${conv.id}/messages`,
-      );
-      let list: ChatMessage[] = [];
-      if (Array.isArray(res)) {
-        list = res;
-      } else if (res && 'data' in res) {
-        const inner = res.data;
-        if (Array.isArray(inner)) {
-          list = inner;
-        } else if (inner && typeof inner === 'object' && Array.isArray((inner as { data?: unknown }).data)) {
-          list = (inner as { data: ChatMessage[] }).data;
-        }
-      }
-      const formatted = list.map((m: ChatMessage) => ({ ...m, status: 'sent' as MessageStatus }));
+      const res = await apiFetch(`/conversations/${conv.id}/messages`);
+      const list = extractMessages(res);
+      const formatted = list.map((m) => ({ ...m, status: 'sent' as MessageStatus }));
       setMessages(formatted);
 
       if (conv.unread_count > 0) {

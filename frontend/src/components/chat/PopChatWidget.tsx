@@ -16,6 +16,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { usePopChat } from "@/context/PopChatContext";
 import { useRealtimeMessaging } from "@/hooks/useRealtimeMessaging";
 import { apiClient } from "@/lib/api/client";
+import { extractMessages } from "@/lib/chatMessages";
 import type { ChatMessage } from "@/types/chat";
 import { safeFormatDistanceToNow, safeFormat } from "@/lib/date";
 import { EmojiPickerPopover } from "@/components/chat/EmojiPickerPopover";
@@ -82,10 +83,10 @@ export function PopChatWidget() {
     setLoadingMessages(true);
 
     apiClient
-      .get<{ data: ChatMessage[] }>(`/conversations/${activeConv.id}/messages`)
+      .get(`/conversations/${activeConv.id}/messages`)
       .then((res) => {
         if (cancelled) return;
-        const list = Array.isArray(res.data?.data) ? res.data.data : [];
+        const list = extractMessages(res.data);
         setMessages(list);
         // Mark conversation as read
         apiClient.post(`/conversations/${activeConv.id}/read`).catch(() => {});
