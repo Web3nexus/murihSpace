@@ -16,7 +16,8 @@ import {
   X as X,
   Check as Check,
   UserCheck as UserCheck,
-  Globe as Globe
+  Globe as Globe,
+  User as UserIcon
 } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -107,7 +108,7 @@ function RoomCard({ room, onAction, currentUserId }: { room: AudioRoom; onAction
         {room.creator && (
           <div className="flex items-center gap-2 mb-3 pt-2 border-t border-border/50">
             <div className="h-6 w-6 rounded-full bg-[#1877f2] text-white text-[9px] font-black flex items-center justify-center shrink-0 overflow-hidden">
-              {room.creator.avatar_url ? <img src={room.creator.avatar_url} alt="" className="w-full h-full object-cover" /> : room.creator.name.charAt(0)}
+              {room.creator.avatar_url ? <img src={room.creator.avatar_url} alt="" className="w-full h-full object-cover" /> : <UserIcon weight="fill" className="text-white/90" style={{ width: 14, height: 14 }} />}
             </div>
             <span className="text-[11px] font-bold text-foreground">by {room.creator.name}</span>
           </div>
@@ -501,7 +502,7 @@ export function AudioRoomsPage() {
               <div className="p-4 space-y-6 bg-muted/10">
                 <div className="flex items-center gap-3 p-3 rounded-lg bg-card border-none ">
                   <div className="h-10 w-10 rounded-full bg-[#1877f2] text-white font-bold flex items-center justify-center shrink-0 overflow-hidden">
-                    {user?.avatar_url ? <img src={user.avatar_url} alt="" className="w-full h-full object-cover" /> : user?.name?.charAt(0)}
+                    {user?.avatar_url ? <img src={user.avatar_url} alt="" className="w-full h-full object-cover" /> : <UserIcon weight="fill" className="text-white/90" style={{ width: 20, height: 20 }} />}
                   </div>
                   <div className="min-w-0">
                     <h4 className="text-xs font-bold text-foreground truncate">{user?.name}</h4>

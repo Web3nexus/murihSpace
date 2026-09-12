@@ -13,6 +13,7 @@ import {
   CaretRight as ChevronRight,
   CaretLeft as ChevronLeft,
   Play as Play,
+  User as UserIcon,
   SealCheck as BadgeCheck,
   Rss as Rss,
   PaperPlaneRight as Send,
@@ -429,11 +430,11 @@ export default function FeedPage() {
 
         <div className="bg-card border-none  rounded-lg p-4 sm:p-5 space-y-4">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-full bg-[#1877f2] flex items-center justify-center text-white font-black text-sm shrink-0 overflow-hidden ">
+            <div className="h-10 w-10 rounded-full bg-[#1877f2] flex items-center justify-center text-white shrink-0 overflow-hidden">
               {user?.avatar_url ? (
                 <img src={user.avatar_url} alt="" className="w-full h-full object-cover" />
               ) : (
-                user?.name?.charAt(0)?.toUpperCase() ?? "U"
+                <UserIcon weight="fill" className="text-white/90" style={{ width: 20, height: 20 }} />
               )}
             </div>
             <div
@@ -751,8 +752,8 @@ export default function FeedPage() {
                       <div className="space-y-2.5">
                         {post.commentList.map((cmt) => (
                           <div key={cmt.id} className="flex items-start gap-2.5 text-xs p-2.5 rounded-lg bg-slate-50 dark:bg-muted/40">
-                            <div className="h-7 w-7 rounded-full bg-[#1877f2] flex items-center justify-center text-white font-bold text-[10px] shrink-0">
-                              {cmt.avatar_url ? <img src={cmt.avatar_url} alt="" className="w-full h-full rounded-full object-cover" /> : cmt.user_name.charAt(0)}
+                            <div className="h-7 w-7 rounded-full bg-[#1877f2] flex items-center justify-center text-white shrink-0">
+                              {cmt.avatar_url ? <img src={cmt.avatar_url} alt="" className="w-full h-full rounded-full object-cover" /> : <UserIcon weight="fill" className="text-white/90" style={{ width: 14, height: 14 }} />}
                             </div>
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center justify-between">

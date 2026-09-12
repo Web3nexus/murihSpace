@@ -20,6 +20,7 @@ import {
   ArrowsClockwise,
   Broadcast,
   Spinner,
+  User as UserIcon,
 } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -642,7 +643,7 @@ export function EventsPage() {
                             {event.creator?.avatar ? (
                               <img src={event.creator.avatar} alt="" className="w-full h-full object-cover" />
                             ) : (
-                              event.creator?.name?.charAt(0) || "M"
+                              <UserIcon weight="fill" className="text-muted-foreground/60" style={{ width: 12, height: 12 }} />
                             )}
                           </div>
                           <span className="text-xs text-muted-foreground truncate">
@@ -915,7 +916,7 @@ export function EventsPage() {
                         <div className="h-10 w-10 rounded-full bg-muted overflow-hidden flex items-center justify-center font-bold text-foreground shrink-0 border border-border/60">
                           {room.creator?.avatar_url
                             ? <img src={room.creator.avatar_url} alt="" className="w-full h-full object-cover" />
-                            : room.creator?.name?.charAt(0) || "C"}
+                            : <UserIcon weight="fill" className="text-muted-foreground/60" style={{ width: 20, height: 20 }} />}
                         </div>
                         <div className="min-w-0">
                           <h4 className="text-xs font-bold text-foreground truncate">{room.creator?.name || "Host"}</h4>
@@ -1075,7 +1076,7 @@ export function EventsPage() {
               <div className="p-5 space-y-5 bg-muted/10">
                 <div className="flex items-center gap-3 p-3 rounded-xl bg-card border border-border/60">
                   <div className="h-10 w-10 rounded-full bg-primary text-primary-foreground font-bold flex items-center justify-center shrink-0 overflow-hidden">
-                    {user?.avatar_url ? <img src={user.avatar_url} alt="" className="w-full h-full object-cover" /> : user?.name?.charAt(0)}
+                    {user?.avatar_url ? <img src={user.avatar_url} alt="" className="w-full h-full object-cover" /> : <UserIcon weight="fill" className="text-primary-foreground/80" style={{ width: 20, height: 20 }} />}
                   </div>
                   <div className="min-w-0">
                     <h4 className="text-xs font-bold text-foreground truncate">{user?.name}</h4>

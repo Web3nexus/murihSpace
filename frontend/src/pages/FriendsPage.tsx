@@ -27,6 +27,7 @@ import {
   Trash,
   SealCheck,
   Heart,
+  User,
 } from "@phosphor-icons/react";
 import { apiClient } from "@/lib/api/client";
 import { useConfirm } from "@/components/ui/DialogProvider";
@@ -153,7 +154,6 @@ function Avatar({
   size?: number;
   className?: string;
 }) {
-  const initial = (name || "U").charAt(0).toUpperCase();
   if (url) {
     return (
       <img
@@ -166,10 +166,10 @@ function Avatar({
   }
   return (
     <div
-      className={`rounded-full bg-gradient-to-br from-[#2164b6] to-[#1a6b9e] text-white font-bold flex items-center justify-center shrink-0 select-none ${className}`}
-      style={{ width: size, height: size, fontSize: Math.max(size * 0.38, 11) }}
+      className={`rounded-full bg-gradient-to-br from-[#2164b6] to-[#1a6b9e] text-white flex items-center justify-center shrink-0 select-none ${className}`}
+      style={{ width: size, height: size }}
     >
-      {initial}
+      <User weight="fill" className="text-white/90" style={{ width: size * 0.55, height: size * 0.55 }} />
     </div>
   );
 }

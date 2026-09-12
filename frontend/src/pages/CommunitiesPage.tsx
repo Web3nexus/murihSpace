@@ -16,7 +16,8 @@ import {
   Heart as Heart,
   ChatCircle as MessageCircle,
   ShareNetwork as Share2,
-  CaretRight as ChevronRight
+  CaretRight as ChevronRight,
+  User as UserIcon
 } from "@phosphor-icons/react";
 import type { Community } from "@/types/community";
 
@@ -243,7 +244,7 @@ export function CommunitiesPage() {
                           <img src={post.community_avatar} alt="" className="w-full h-full object-cover" />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center bg-[#1877f2] text-white font-bold text-sm">
-                            {post.community_name.charAt(0)}
+                            <UserIcon weight="fill" className="text-white/90" style={{ width: 20, height: 20 }} />
                           </div>
                         )}
                       </div>
@@ -253,7 +254,7 @@ export function CommunitiesPage() {
                           <img src={post.avatar_url} alt="" className="w-full h-full object-cover" />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center bg-[#1877f2] text-white text-[8px] font-bold">
-                            {post.author.charAt(0)}
+                            <UserIcon weight="fill" className="text-white/90" style={{ width: 12, height: 12 }} />
                           </div>
                         )}
                       </div>
@@ -399,7 +400,7 @@ export function CommunitiesPage() {
                         <div className="h-12 w-12 rounded-lg border-2 border-card  overflow-hidden bg-[#1877f2] flex items-center justify-center text-white font-black text-base">
                           {c.logo_url
                             ? <img src={c.logo_url} alt="" className="w-full h-full object-cover" />
-                            : c.name.charAt(0).toUpperCase()
+                            : <UserIcon weight="fill" className="text-white/90" style={{ width: 24, height: 24 }} />
                           }
                         </div>
                         <div className="flex-1 min-w-0 mt-7">
@@ -484,7 +485,7 @@ export function CommunitiesPage() {
                 <div className="h-12 w-12 rounded-lg overflow-hidden bg-[#1877f2] flex items-center justify-center text-white font-black text-base shrink-0">
                   {c.logo_url
                     ? <img src={c.logo_url} alt="" className="w-full h-full object-cover" />
-                    : c.name.charAt(0).toUpperCase()
+                    : <UserIcon weight="fill" className="text-white/90" style={{ width: 24, height: 24 }} />
                   }
                 </div>
                 <div className="flex-1 min-w-0">
@@ -611,7 +612,7 @@ export function CommunitiesPage() {
                   <div className="h-10 w-10 rounded-lg overflow-hidden bg-[#1877f2] flex items-center justify-center text-white font-bold text-sm shrink-0">
                     {c.logo_url
                       ? <img src={c.logo_url} alt="" className="w-full h-full object-cover" />
-                      : c.name.charAt(0).toUpperCase()
+                      : <UserIcon weight="fill" className="text-white/90" style={{ width: 20, height: 20 }} />
                     }
                   </div>
                   <div className="flex-1 min-w-0">

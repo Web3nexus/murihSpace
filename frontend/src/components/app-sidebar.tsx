@@ -9,6 +9,7 @@ import { useFeatureFlags } from "@/hooks/useFeatureFlags";
 import {
   SignOut,
   UserCircle,
+  User,
   Gear,
   ShieldCheck,
   Wallet,
@@ -185,15 +186,6 @@ function NavRow({ item, onNavigate }: NavRowProps) {
   );
 }
 
-function initials(name: string) {
-  return name
-    .split(" ")
-    .slice(0, 2)
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase();
-}
-
 interface AppSidebarProps {
   className?: string;
   onNavigate?: () => void;
@@ -249,7 +241,6 @@ export function AppSidebar({ className = "", onNavigate }: AppSidebarProps) {
   const navGroups = injectBadges(filtered, unreadCount, adminCounts);
 
   const roleLabel = ROLE_LABELS[role] ?? "";
-  const userInitials = user?.name ? initials(user.name) : "U";
 
   return (
     <nav aria-label="Social Navigation" className={`flex flex-col h-full ${className}`}>
@@ -261,11 +252,11 @@ export function AppSidebar({ className = "", onNavigate }: AppSidebarProps) {
             onClick={onNavigate}
             className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-[#E4E6EB]/60 dark:hover:bg-[#3A3B3C] transition-colors"
           >
-            <div className="h-9 w-9 rounded-full overflow-hidden bg-[#2164b6] flex items-center justify-center text-white font-bold text-xs shrink-0">
+            <div className="h-9 w-9 rounded-full overflow-hidden bg-[#2164b6] flex items-center justify-center text-white shrink-0">
               {user.avatar_url ? (
                 <img src={user.avatar_url} alt="" className="w-full h-full object-cover" />
               ) : (
-                userInitials
+                <User weight="fill" className="text-white/90" style={{ width: 18, height: 18 }} />
               )}
             </div>
             <div className="min-w-0 flex-1 text-left">
@@ -323,11 +314,11 @@ export function AppSidebar({ className = "", onNavigate }: AppSidebarProps) {
                 type="button"
                 className="w-full flex items-center gap-3 px-3 h-11 rounded-lg text-left hover:bg-[#E4E6EB]/60 dark:hover:bg-[#3A3B3C] transition-colors"
               >
-                <div className="h-8 w-8 rounded-full overflow-hidden bg-[#2164b6] flex items-center justify-center text-white font-bold text-xs shrink-0">
+                <div className="h-8 w-8 rounded-full overflow-hidden bg-[#2164b6] flex items-center justify-center text-white shrink-0">
                   {user.avatar_url ? (
                     <img src={user.avatar_url} alt="" className="w-full h-full object-cover" />
                   ) : (
-                    userInitials
+                    <User weight="fill" className="text-white/90" style={{ width: 16, height: 16 }} />
                   )}
                 </div>
                 <div className="min-w-0 flex-1">

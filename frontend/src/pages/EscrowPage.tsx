@@ -6,7 +6,8 @@ import {
   Check as Check,
   X as X,
   WarningCircle as AlertCircle,
-  CaretRight as ChevronRight
+  CaretRight as ChevronRight,
+  User as UserIcon
 } from "@phosphor-icons/react";
 import { authFetch } from "@/lib/api/authFetch";
 
@@ -170,7 +171,7 @@ export function EscrowPage() {
               >
                 <div className="flex items-center gap-3 min-w-0">
                   <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary to-secondary text-white text-[10px] font-bold flex items-center justify-center shrink-0">
-                    {escrow.buyer?.name?.charAt(0) ?? '?'}{escrow.seller?.name?.charAt(0) ?? '?'}
+                    <UserIcon weight="fill" className="text-white/90" style={{ width: 20, height: 20 }} />
                   </div>
                   <div className="min-w-0">
                     <p className="text-xs font-bold text-foreground truncate">

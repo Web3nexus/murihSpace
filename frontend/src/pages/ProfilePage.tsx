@@ -13,7 +13,8 @@ import {
   SealCheck as BadgeCheck,
   ShareNetwork as Share2,
   ArrowSquareOut as ArrowSquareOut,
-  Star as Star
+  Star as Star,
+  User as UserIcon
 } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
 import { ImageUploader } from "@/components/upload/ImageUploader";
@@ -107,11 +108,11 @@ export function ProfilePage() {
         <div className="px-6 pb-6 pt-0 relative">
           <div className="flex flex-col sm:flex-row sm:items-end justify-between -mt-12 mb-4 gap-4">
             <div className="flex items-end gap-4">
-              <div className="w-24 h-24 rounded-full border-4 border-card bg-muted flex items-center justify-center overflow-hidden text-xl font-black text-foreground  shrink-0">
+              <div className="w-24 h-24 rounded-full border-4 border-card bg-[#2164b6] flex items-center justify-center overflow-hidden shrink-0">
                 {avatar ? (
                   <img src={avatar} alt="" className="w-full h-full object-cover" />
                 ) : (
-                  (name || "U").charAt(0).toUpperCase()
+                  <UserIcon weight="fill" className="text-white/90" style={{ width: 48, height: 48 }} />
                 )}
               </div>
               <div className="pb-1">

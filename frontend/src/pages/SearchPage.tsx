@@ -7,7 +7,8 @@ import {
   ChatTeardropText as MessageSquare,
   FileText as FileText,
   Package as Package,
-  User as User
+  User as User,
+  User as UserIcon,
 } from "@phosphor-icons/react";
 import { authFetch } from "@/lib/api/authFetch";
 
@@ -142,7 +143,7 @@ export default function SearchPage() {
               {results.users.map((user) => (
                 <Link key={user.id} to={`/app/profile/${user.id}`} className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted/50 transition-colors">
                   <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-sm font-bold text-muted-foreground overflow-hidden flex-shrink-0">
-                    {user.avatar ? <img src={user.avatar} alt="" className="w-full h-full object-cover" /> : user.name.charAt(0).toUpperCase()}
+                    {user.avatar ? <img src={user.avatar} alt="" className="w-full h-full object-cover" /> : <UserIcon weight="fill" className="text-muted-foreground/70" style={{ width: 20, height: 20 }} />}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">{user.name}</p>
@@ -159,7 +160,7 @@ export default function SearchPage() {
               {results.communities.map((c) => (
                 <Link key={c.id} to={`/app/communities/${c.slug}`} className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted/50 transition-colors">
                   <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center text-sm font-bold text-muted-foreground overflow-hidden flex-shrink-0">
-                    {c.logo_url ? <img src={c.logo_url} alt="" className="w-full h-full object-cover" /> : c.name.charAt(0).toUpperCase()}
+                    {c.logo_url ? <img src={c.logo_url} alt="" className="w-full h-full object-cover" /> : <UserIcon weight="fill" className="text-muted-foreground/70" style={{ width: 20, height: 20 }} />}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">{c.name}</p>

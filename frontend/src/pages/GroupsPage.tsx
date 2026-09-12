@@ -11,6 +11,7 @@ import {
   Compass,
   UserCheck,
   ArrowRight,
+  User as UserIcon,
 } from "@phosphor-icons/react";
 import { apiClient } from "@/lib/api/client";
 import { Button } from "@/components/ui/button";
@@ -351,7 +352,7 @@ export function GroupsPage() {
                               className="w-full h-full object-cover"
                             />
                           ) : (
-                            group.name.charAt(0).toUpperCase()
+                            <UserIcon weight="fill" className="text-primary/70" style={{ width: 28, height: 28 }} />
                           )}
                         </div>
 
@@ -442,7 +443,7 @@ export function GroupsPage() {
                               className="w-full h-full object-cover"
                             />
                           ) : (
-                            group.name.charAt(0).toUpperCase()
+                            <UserIcon weight="fill" className="text-primary/70" style={{ width: 28, height: 28 }} />
                           )}
                         </div>
 
@@ -529,7 +530,7 @@ export function GroupsPage() {
                       {inv.group?.avatar_url ? (
                         <img src={inv.group.avatar_url} alt={inv.group.name} className="w-full h-full object-cover" />
                       ) : (
-                        inv.group?.name?.charAt(0) || "G"
+                        <UserIcon weight="fill" className="text-primary/70" style={{ width: 24, height: 24 }} />
                       )}
                     </div>
                     <div>

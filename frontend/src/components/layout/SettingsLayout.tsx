@@ -85,11 +85,11 @@ export function SettingsLayout() {
         <aside className="lg:col-span-4 space-y-4">
           {/* Card 0: Profile Header Card */}
           <div className="p-4 rounded-3xl bg-card border-none/80  flex items-center gap-3">
-            <div className="h-14 w-14 rounded-full bg-[#2164b6] text-white font-black text-lg flex items-center justify-center shrink-0  overflow-hidden">
+            <div className="h-14 w-14 rounded-full bg-[#2164b6] text-white flex items-center justify-center shrink-0 overflow-hidden">
               {user?.avatar_url || user?.avatar ? (
                 <img src={user.avatar_url || user.avatar || ''} alt="" className="w-full h-full object-cover" />
               ) : (
-                user?.name ? user.name.slice(0, 2).toUpperCase() : "US"
+                <User weight="fill" className="text-white/90" style={{ width: 28, height: 28 }} />
               )}
             </div>
             <div className="flex-1 min-w-0">

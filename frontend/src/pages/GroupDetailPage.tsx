@@ -23,6 +23,7 @@ import {
   MapPin,
   Warning,
   Image as ImageIcon,
+  User as UserIcon,
 } from "@phosphor-icons/react";
 import { useAuth } from "@/hooks/useAuth";
 import { apiClient } from "@/lib/api/client";
@@ -440,7 +441,7 @@ export function GroupDetailPage() {
                 />
               ) : (
                 <div className="w-full h-full bg-primary/10 text-primary flex items-center justify-center font-bold text-3xl">
-                  {group.name.charAt(0).toUpperCase()}
+                  <UserIcon weight="fill" className="text-primary/70" style={{ width: 48, height: 48 }} />
                 </div>
               )}
             </div>
@@ -647,7 +648,7 @@ export function GroupDetailPage() {
                       {(user as any)?.avatar ? (
                         <img src={(user as any).avatar} alt={user?.name} className="w-full h-full object-cover" />
                       ) : (
-                        user?.name?.charAt(0) || "U"
+                        <UserIcon weight="fill" className="text-primary/60" style={{ width: 20, height: 20 }} />
                       )}
                     </div>
                     <Textarea
@@ -799,7 +800,7 @@ export function GroupDetailPage() {
                               {m.user?.avatar ? (
                                 <img src={m.user.avatar} alt={m.user.name} className="w-full h-full object-cover" />
                               ) : (
-                                m.user?.name?.charAt(0) || "U"
+                                <UserIcon weight="fill" className="text-muted-foreground/60" style={{ width: 20, height: 20 }} />
                               )}
                             </div>
                             <div>
@@ -868,7 +869,7 @@ export function GroupDetailPage() {
                             {req.user?.avatar ? (
                               <img src={req.user.avatar} alt={req.user.name} className="w-full h-full object-cover" />
                             ) : (
-                              req.user?.name?.charAt(0) || "U"
+                              <UserIcon weight="fill" className="text-muted-foreground/60" style={{ width: 20, height: 20 }} />
                             )}
                           </div>
                           <div>

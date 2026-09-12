@@ -24,7 +24,8 @@ import {
   Warning as AlertTriangle,
   ArrowLeft as ArrowLeft,
   Star as Star,
-  CheckCircle as CheckCircle
+  CheckCircle as CheckCircle,
+  User as UserIcon
 } from "@phosphor-icons/react";
 
 interface PublicCommunity {
@@ -336,7 +337,7 @@ export default function PublicProfilePage() {
             <div className="flex flex-col sm:flex-row sm:items-end justify-between -mt-16 sm:-mt-20 mb-4 gap-4">
               {/* Avatar + Basic Names */}
               <div className="flex items-end gap-4">
-                <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-3xl border-4 border-card bg-primary text-primary-foreground flex items-center justify-center overflow-hidden text-xl font-black shadow-xl shrink-0">
+                <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-3xl border-4 border-card bg-[#2164b6] flex items-center justify-center overflow-hidden shadow-xl shrink-0">
                   {profile.avatar_url || profile.avatar ? (
                     <img
                       src={profile.avatar_url || profile.avatar}
@@ -344,7 +345,7 @@ export default function PublicProfilePage() {
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    (profile.name || "U").charAt(0).toUpperCase()
+                    <UserIcon weight="fill" className="text-white/90" style={{ width: 60, height: 60 }} />
                   )}
                 </div>
 
@@ -546,11 +547,11 @@ export default function PublicProfilePage() {
                   to={`/c/${comm.slug}`}
                   className="group rounded-lg border-none bg-card p-4 hover:border-secondary/50 hover: transition flex items-center gap-3.5"
                 >
-                  <div className="h-14 w-14 rounded-lg bg-primary text-primary-foreground font-bold flex items-center justify-center overflow-hidden shrink-0">
+                  <div className="h-14 w-14 rounded-lg bg-[#2164b6] flex items-center justify-center overflow-hidden shrink-0">
                     {comm.logo_url ? (
                       <img src={comm.logo_url} alt={comm.name} className="w-full h-full object-cover" />
                     ) : (
-                      comm.name.charAt(0).toUpperCase()
+                      <UserIcon weight="fill" className="text-white/90" style={{ width: 28, height: 28 }} />
                     )}
                   </div>
                   <div className="min-w-0 flex-1">
@@ -653,7 +654,7 @@ export default function PublicProfilePage() {
                   <div key={rev.id} className="rounded-2xl bg-card border border-border/60 p-4 sm:p-5 space-y-3">
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex items-center gap-3">
-                        <div className="h-9 w-9 rounded-full bg-primary text-primary-foreground font-bold text-xs flex items-center justify-center overflow-hidden shrink-0">
+                        <div className="h-9 w-9 rounded-full bg-[#2164b6] flex items-center justify-center overflow-hidden shrink-0">
                           {rev.buyer?.avatar_url || rev.buyer?.avatar ? (
                             <img
                               src={rev.buyer.avatar_url || rev.buyer.avatar}
@@ -661,7 +662,7 @@ export default function PublicProfilePage() {
                               className="w-full h-full object-cover"
                             />
                           ) : (
-                            (rev.buyer?.name || "B").charAt(0).toUpperCase()
+                            <UserIcon weight="fill" className="text-white/90" style={{ width: 18, height: 18 }} />
                           )}
                         </div>
                         <div>

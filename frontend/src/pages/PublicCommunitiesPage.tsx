@@ -8,6 +8,7 @@ import {
   Globe as Globe,
   ArrowRight as ArrowRight,
   Spinner as Loader2,
+  User as UserIcon,
 } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 
@@ -199,7 +200,7 @@ export function PublicCommunitiesPage() {
                       )}
                       {!community.logo_url && (
                         <div className="absolute -bottom-5 left-4 h-12 w-12 rounded-lg bg-white dark:bg-card border-2 border-white  flex items-center justify-center text-[#2164b6] dark:text-[#7ab0ff] font-black text-xl">
-                          {community.name.charAt(0).toUpperCase()}
+                          <UserIcon weight="fill" className="text-[#2164b6] dark:text-[#7ab0ff]" style={{ width: 24, height: 24 }} />
                         </div>
                       )}
                     </div>

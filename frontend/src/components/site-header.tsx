@@ -15,6 +15,7 @@ import {
   Wallet,
   List,
   UserCircle,
+  User,
   Gear,
   ShieldCheck,
   SignOut,
@@ -397,7 +398,7 @@ export function SiteHeader({ onOpenMobileSidebar }: SiteHeaderProps) {
               {user?.avatar_url ? (
                 <img src={user.avatar_url} alt="" className="w-full h-full object-cover" />
               ) : (
-                user?.name?.charAt(0)?.toUpperCase() ?? "U"
+                <User weight="fill" className="text-white/90" style={{ width: 18, height: 18 }} />
               )}
             </button>
           </DropdownMenuTrigger>

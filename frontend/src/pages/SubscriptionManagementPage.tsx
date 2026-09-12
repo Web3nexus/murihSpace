@@ -11,7 +11,8 @@ import {
   Calendar as Calendar,
   Eye as Eye,
   EyeSlash as EyeOff,
-  WarningCircle as AlertCircle
+  WarningCircle as AlertCircle,
+  User as UserIcon
 } from "@phosphor-icons/react";
 import type { SubscriptionPlan, SubscriptionStats, CreatePlanPayload } from '@/types/subscription';
 import { authFetch } from "@/lib/api/authFetch";
@@ -262,7 +263,7 @@ export function SubscriptionManagementPage() {
             {stats.recent_subscriptions.map((rs) => (
               <div key={rs.id} className="flex items-center gap-3 px-4 py-3">
                 <div className="h-8 w-8 rounded-full bg-gradient-to-br from-primary to-secondary text-white text-[10px] font-bold flex items-center justify-center shrink-0">
-                  {rs.subscriber.name.charAt(0)}
+                  <UserIcon weight="fill" className="text-white/90" style={{ width: 16, height: 16 }} />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-bold text-foreground truncate">{rs.subscriber.name}</p>

@@ -10,7 +10,8 @@ import {
   Spinner as Loader2,
   UserCheck as UserCheck,
   Prohibit as Prohibit,
-  SignIn as SignIn
+  SignIn as SignIn,
+  User as UserIcon
 } from "@phosphor-icons/react";
 import { authFetch } from "@/lib/api/authFetch";
 
@@ -50,14 +51,13 @@ interface CommunityRequest {
 }
 
 function Avatar({ name, url, size = 40 }: { name: string; url?: string; size?: number }) {
-  const initial = name.charAt(0).toUpperCase();
   if (url) return <img src={url} alt={name} className="rounded-full object-cover shrink-0" style={{ width: size, height: size }} />;
   return (
     <div
-      className="rounded-full bg-gradient-to-br from-[#2164b6] to-[#1a6b9e] text-white font-bold flex items-center justify-center shrink-0"
-      style={{ width: size, height: size, fontSize: size * 0.4 }}
+      className="rounded-full bg-gradient-to-br from-[#2164b6] to-[#1a6b9e] text-white flex items-center justify-center shrink-0"
+      style={{ width: size, height: size }}
     >
-      {initial}
+      <UserIcon weight="fill" className="text-white/90" style={{ width: size * 0.55, height: size * 0.55 }} />
     </div>
   );
 }

@@ -5,7 +5,8 @@ import {
   CheckCircle as CheckCircle2,
   XCircle as XCircle,
   Calendar as Calendar,
-  Prohibit as Prohibit
+  Prohibit as Prohibit,
+  User as UserIcon
 } from "@phosphor-icons/react";
 import type { Subscription } from '@/types/subscription';
 import { formatDistanceToNow } from 'date-fns';
@@ -95,7 +96,7 @@ export function MySubscriptionsPage() {
               <div className="flex items-start justify-between gap-4">
                 <div className="flex items-center gap-3 min-w-0">
                   <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary to-secondary text-white text-xs font-bold flex items-center justify-center shrink-0">
-                    {sub.creator?.name?.charAt(0) ?? '?'}
+                    <UserIcon weight="fill" className="text-white/90" style={{ width: 20, height: 20 }} />
                   </div>
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">

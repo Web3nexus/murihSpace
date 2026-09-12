@@ -13,7 +13,8 @@ import {
   HandGrabbing as HandGrabbing,
   ShieldWarning as ShieldWarning,
   UserMinus as UserMinus,
-  SealCheck as BadgeCheck
+  SealCheck as BadgeCheck,
+  User as UserIcon
 } from "@phosphor-icons/react";
 import type { Post, ReactionType } from '@/types/post';
 import { ReportModal } from '@/components/moderation/ReportModal';
@@ -46,10 +47,6 @@ const TYPE_LABELS: Record<string, { label: string; color: string }> = {
 };
 
 function Avatar({ name, src, size = 36 }: { name?: string; src?: string; size?: number }) {
-  const initials = name
-    ? name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
-    : '?';
-
   if (src) {
     return (
       <img
@@ -62,10 +59,10 @@ function Avatar({ name, src, size = 36 }: { name?: string; src?: string; size?: 
 
   return (
     <div
-      className="post-card-avatar-fallback"
-      style={{ width: size, height: size, fontSize: size * 0.35 }}
+      className="post-card-avatar-fallback flex items-center justify-center"
+      style={{ width: size, height: size }}
     >
-      {initials}
+      <UserIcon weight="fill" className="text-white/90" style={{ width: size * 0.55, height: size * 0.55 }} />
     </div>
   );
 }

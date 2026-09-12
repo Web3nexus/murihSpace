@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/sidebar";
 import {
   CaretUpDown as ChevronsUpDownIcon,
+  User as UserIcon,
   UserCircle as UserCircle,
   ShieldCheck as ShieldCheck,
   Bell as Bell,
@@ -35,15 +36,6 @@ interface NavUserProps {
     email: string;
     avatar: string;
   };
-}
-
-function initials(name: string) {
-  return name
-    .split(" ")
-    .slice(0, 2)
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase();
 }
 
 export function NavUser({ user }: NavUserProps) {
@@ -70,8 +62,8 @@ export function NavUser({ user }: NavUserProps) {
             >
               <Avatar className="h-8 w-8 rounded-lg">
                 <AvatarImage src={user.avatar} alt={user.name} />
-                <AvatarFallback className="rounded-lg bg-sidebar-primary text-sidebar-primary-foreground text-xs font-semibold">
-                  {initials(user.name)}
+                <AvatarFallback className="rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
+                  <UserIcon weight="fill" className="size-4" />
                 </AvatarFallback>
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
@@ -93,8 +85,8 @@ export function NavUser({ user }: NavUserProps) {
               <div className="flex items-center gap-2 px-2 py-1.5 text-left text-sm">
                 <Avatar className="h-8 w-8 rounded-lg">
                   <AvatarImage src={user.avatar} alt={user.name} />
-                  <AvatarFallback className="rounded-lg bg-primary text-primary-foreground text-xs font-semibold">
-                    {initials(user.name)}
+                  <AvatarFallback className="rounded-lg bg-primary text-primary-foreground">
+                    <UserIcon weight="fill" className="size-4" />
                   </AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 leading-tight">

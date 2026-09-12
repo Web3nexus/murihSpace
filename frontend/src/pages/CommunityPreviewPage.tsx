@@ -29,7 +29,8 @@ import {
   CaretRight as ChevronRight,
   Spinner as Loader2,
   BookOpen as BookOpen,
-  Check as Check
+  Check as Check,
+  User as UserIcon
 } from "@phosphor-icons/react";
 import type { Community, CommunityMembership } from "@/types/community";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -387,7 +388,7 @@ export function CommunityPreviewPage() {
                     className="h-full w-full object-cover"
                   />
                 ) : (
-                  community.name.charAt(0).toUpperCase()
+                  <UserIcon weight="fill" className="text-primary-foreground/80" style={{ width: 48, height: 48 }} />
                 )}
               </div>
 
@@ -712,7 +713,7 @@ export function CommunityPreviewPage() {
                         <AvatarImage src={m.user.avatar} alt={m.user?.name ?? "Member"} />
                       ) : null}
                       <AvatarFallback className="bg-secondary/15 text-secondary text-sm font-bold">
-                        {(m.user?.name ?? "?").charAt(0).toUpperCase()}
+                        <UserIcon weight="fill" className="text-secondary" style={{ width: 20, height: 20 }} />
                       </AvatarFallback>
                     </Avatar>
                     <div className="min-w-0 flex-1">

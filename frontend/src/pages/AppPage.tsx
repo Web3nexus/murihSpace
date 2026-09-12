@@ -28,6 +28,7 @@ import {
   CaretDown as ChevronDown,
   Rss as Rss,
   WarningCircle as AlertCircle,
+  User as UserIcon,
 } from "@phosphor-icons/react";
 
 interface CommentItem {
@@ -546,11 +547,11 @@ export function AppPage() {
 
           <div className="bg-white dark:bg-[#242526] rounded-lg shadow-xs p-3.5 sm:p-4 space-y-3">
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-full bg-[#2164b6] flex items-center justify-center text-white font-bold text-sm shrink-0 overflow-hidden">
+              <div className="h-10 w-10 rounded-full bg-[#2164b6] flex items-center justify-center text-white shrink-0 overflow-hidden">
                 {user?.avatar_url ? (
                   <img src={user.avatar_url} alt="" className="w-full h-full object-cover" />
                 ) : (
-                  user?.name?.charAt(0)?.toUpperCase() ?? "U"
+                  <UserIcon weight="fill" className="text-white/90" style={{ width: 20, height: 20 }} />
                 )}
               </div>
               <button
@@ -912,8 +913,8 @@ export function AppPage() {
                         <div className="space-y-2.5">
                           {post.commentList.map((cmt) => (
                             <div key={cmt.id} className="flex items-start gap-2.5 text-xs p-2.5 rounded-lg bg-slate-50 dark:bg-muted/40">
-                              <div className="h-7 w-7 rounded-full bg-[#1877f2] flex items-center justify-center text-white font-bold text-[10px] shrink-0">
-                                {cmt.avatar_url ? <img src={cmt.avatar_url} alt="" className="w-full h-full rounded-full object-cover" /> : cmt.user_name.charAt(0)}
+                              <div className="h-7 w-7 rounded-full bg-[#1877f2] flex items-center justify-center text-white shrink-0">
+                                {cmt.avatar_url ? <img src={cmt.avatar_url} alt="" className="w-full h-full rounded-full object-cover" /> : <UserIcon weight="fill" className="text-white/90" style={{ width: 14, height: 14 }} />}
                               </div>
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center justify-between">
@@ -991,10 +992,10 @@ export function AppPage() {
               <div className="space-y-2.5">
                 {requestItems.map((item) => (
                   <div key={`${item.kind}-${item.id}`} className="flex items-center gap-2.5 min-w-0">
-                    <div className="h-8 w-8 rounded-full shrink-0 overflow-hidden bg-[#2164b6] flex items-center justify-center text-white font-bold text-xs">
+                    <div className="h-8 w-8 rounded-full shrink-0 overflow-hidden bg-[#2164b6] flex items-center justify-center text-white">
                       {item.avatarUrl
                         ? <img src={item.avatarUrl} alt="" className="w-full h-full object-cover" />
-                        : item.initials}
+                        : <UserIcon weight="fill" className="text-white/90" style={{ width: 16, height: 16 }} />}
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-[12px] font-semibold text-[#050505] dark:text-[#E4E6EB] truncate leading-snug">{item.name}</p>
@@ -1053,11 +1054,11 @@ export function AppPage() {
               <div className="space-y-2.5">
                 {suggestedCommunities.map((comm) => (
                   <div key={comm.id} className="flex items-center gap-2.5 min-w-0">
-                    <div className="h-9 w-9 rounded-lg shrink-0 overflow-hidden bg-[#2164b6]/10 text-[#2164b6] flex items-center justify-center text-xs font-bold">
+                    <div className="h-9 w-9 rounded-lg shrink-0 overflow-hidden bg-[#2164b6]/10 text-[#2164b6] flex items-center justify-center">
                       {comm.logo_url ? (
                         <img src={comm.logo_url} alt="" className="w-full h-full object-cover" />
                       ) : (
-                        comm.name.charAt(0)
+                        <UserIcon weight="fill" className="text-white/90" style={{ width: 18, height: 18 }} />
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
