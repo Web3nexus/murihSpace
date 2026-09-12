@@ -40,8 +40,11 @@ export function PopChatProvider({ children }: { children: React.ReactNode }) {
     if (!isAuthenticated) return;
     try {
       const res = await apiClient.get<{ data: ConversationItem[] }>("/conversations");
-      const list = Array.isArray(res.data?.data) ? res.data.data : [];
-      setConversations(list);
+      const body = res.data as unknown;
+      const list = body && typeof body === 'object' && 'data' in (body as any)
+        ? (body as any).data
+        : Array.isArray(body) ? body : [];
+      setConversations(Array.isArray(list) ? list : []);
     } catch {
       // Silent error in background
     }
@@ -118,8 +121,8 @@ export function PopChatProvider({ children }: { children: React.ReactNode }) {
 
       // Start direct chat with server
       const res = await apiClient.post("/conversations/direct", { user_id: targetUserId });
-      const conv = res.data?.data;
-      if (conv) {
+      const conv = (res.data?.data as ConversationItem) ?? (res.data as ConversationItem);
+      if (conv && conv.id) {
         setActiveConv(conv);
         setConversations((prev) => [conv, ...prev.filter((c) => c.id !== conv.id)]);
       }

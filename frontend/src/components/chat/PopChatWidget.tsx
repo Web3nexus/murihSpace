@@ -168,8 +168,8 @@ export function PopChatWidget() {
         content,
         client_uuid: clientUuid,
       });
-      const created = res.data?.data;
-      if (created) {
+      const created = (res.data?.data as ChatMessage) ?? (res.data as ChatMessage);
+      if (created?.id) {
         setMessages((prev) =>
           prev.map((m) => (m.client_uuid === clientUuid ? { ...created, status: "sent" } : m))
         );

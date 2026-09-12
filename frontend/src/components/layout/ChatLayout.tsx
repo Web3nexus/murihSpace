@@ -15,7 +15,8 @@ import {
   DotsThreeVertical as MoreVertical,
   ArrowUUpLeft as Reply,
   Paperclip as Paperclip,
-  Checks as CheckCheck
+  Checks as CheckCheck,
+  User as UserIcon
 } from "@phosphor-icons/react";
 import { safeFormatDistanceToNow, safeFormat } from '@/lib/date';
 import type { ConversationItem, ChatMessage, MessageStatus, MessageReaction } from '@/types/chat';
@@ -58,11 +59,10 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
 }
 
 function Avatar({ name, src, size = 36 }: { name?: string; src?: string; size?: number }) {
-  const initials = name ? name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase() : '?';
   if (src) return <img src={src} alt={name} style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />;
   return (
-    <div className="flex items-center justify-center rounded-full bg-gradient-to-br from-primary to-secondary text-white font-bold shrink-0 " style={{ width: size, height: size, fontSize: size * 0.35 }}>
-      {initials}
+    <div className="flex items-center justify-center rounded-full bg-gradient-to-br from-primary to-secondary text-white shrink-0" style={{ width: size, height: size }}>
+      <UserIcon weight="fill" className="text-white/90" style={{ width: size * 0.55, height: size * 0.55 }} />
     </div>
   );
 }
@@ -75,6 +75,7 @@ export function ChatLayout() {
   const [isLoadingList, setIsLoadingList] = useState(true);
   const [isLoadingMsgs, setIsLoadingMsgs] = useState(false);
   const [filterTab, setFilterTab] = useState<'all' | 'channels' | 'direct'>('all');
+  const [showSaved, setShowSaved] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [inputContent, setInputContent] = useState('');
   const [replyingTo, setReplyingTo] = useState<ChatMessage | null>(null);
@@ -145,8 +146,9 @@ export function ChatLayout() {
 
   const loadConversations = useCallback(async () => {
     try {
-      const res = await apiFetch<{ data: ConversationItem[] }>('/conversations');
-      setConversations(Array.isArray(res.data) ? res.data : []);
+      const res = await apiFetch<{ data: ConversationItem[] } | ConversationItem[]>('/conversations');
+      const list = 'data' in res ? res.data : res;
+      setConversations(Array.isArray(list) ? list : []);
     } catch (e) { console.error('Failed to load conversations', e);
     } finally {
       setIsLoadingList(false);
@@ -195,8 +197,8 @@ export function ChatLayout() {
 
   const openSavedMessages = async () => {
     try {
-      const res = await apiFetch<{ data: Pick<ConversationItem, 'id' | 'updated_at'> }>('/conversations/saved');
-      const conv = res.data;
+      const res = await apiFetch<{ data: Pick<ConversationItem, 'id' | 'updated_at'> } | Pick<ConversationItem, 'id' | 'updated_at'>>('/conversations/saved');
+      const conv = 'data' in res ? res.data : res;
       const fullItem: ConversationItem = { id: conv.id, type: 'saved', title: 'Saved Messages', unread_count: 0, updated_at: conv.updated_at };
       selectConversation(fullItem);
       loadConversations();
@@ -220,6 +222,7 @@ export function ChatLayout() {
       const serverMsg = 'data' in res ? res.data : res;
       setMessages((prev) => prev.map((m) => m.client_uuid === msg.client_uuid ? { ...serverMsg, status: 'sent', client_uuid: msg.client_uuid } : m));
       setConversations((prev) => prev.map((c) => c.id === activeConv.id ? { ...c, latest_message: serverMsg, updated_at: serverMsg.created_at } : c));
+      loadConversations();
     } catch (e) {
       console.error('Failed to send message', e);
       setMessages((prev) => prev.map((m) => (m.client_uuid === msg.client_uuid ? { ...m, status: 'failed' } : m)));
@@ -326,6 +329,8 @@ export function ChatLayout() {
 
   const filteredConversations = conversations.filter((c) => {
     if (!c) return false;
+    if (showSaved) return c.type === 'saved';
+    if (c.type === 'saved') return false;
     if (filterTab === 'channels' && c.type !== 'community') return false;
     if (filterTab === 'direct' && c.type !== 'direct') return false;
     if (searchQuery.trim()) {
@@ -361,6 +366,14 @@ export function ChatLayout() {
           {(['all', 'channels', 'direct'] as const).map((tab) => (
             <button key={tab} onClick={() => setFilterTab(tab)} className={`px-3 py-1 text-xs font-semibold rounded-lg capitalize transition-all ${filterTab === tab ? 'bg-secondary text-secondary-foreground ' : 'text-muted-foreground hover:bg-muted'}`}>{tab}</button>
           ))}
+          <button
+            key="saved"
+            onClick={() => setShowSaved((v) => !v)}
+            className={`flex items-center gap-1 px-3 py-1 text-xs font-semibold rounded-lg capitalize transition-all ${showSaved ? 'bg-amber-500/20 text-amber-500 border border-amber-500/30' : 'text-muted-foreground hover:bg-muted'}`}
+          >
+            <Bookmark weight="fill" className="h-3 w-3" />
+            Saved
+          </button>
         </div>
 
         <div className="flex-1 overflow-y-auto divide-y divide-border/40 pb-16">

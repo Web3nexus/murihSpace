@@ -18,7 +18,8 @@ import {
   Gift as Gift,
   VideoCamera as Video,
   Phone as Phone,
-  X as X
+  X as X,
+  User as UserIcon
 } from "@phosphor-icons/react";
 import { safeFormatDistanceToNow, safeFormat } from "@/lib/date";
 import type { ConversationItem, ChatMessage, MessageStatus, MessageReaction } from "@/types/chat";
@@ -64,7 +65,6 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
 }
 
 function CommunityAvatar({ name, logo_url }: { name: string; logo_url?: string }) {
-  const initial = name.charAt(0).toUpperCase();
   if (logo_url) {
     return (
       <img
@@ -75,22 +75,19 @@ function CommunityAvatar({ name, logo_url }: { name: string; logo_url?: string }
     );
   }
   return (
-    <div className="h-9 w-9 rounded-lg flex items-center justify-center text-white font-bold text-sm shrink-0  bg-gradient-to-br from-[#2164b6] to-[#2563eb]">
-      {initial}
+    <div className="h-9 w-9 rounded-lg flex items-center justify-center text-white shrink-0  bg-gradient-to-br from-[#2164b6] to-[#2563eb]">
+      <UserIcon weight="fill" className="text-white/90" style={{ width: 17, height: 17 }} />
     </div>
   );
 }
 
-function UserAvatar({ name, size = 28 }: { name?: string; size?: number }) {
-  const initials = name
-    ? name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()
-    : "?";
+function UserAvatar({ size = 28 }: { name?: string; size?: number }) {
   return (
     <div
-      className="flex items-center justify-center rounded-full bg-gradient-to-br from-[#2164b6] to-[#1a6b9e] text-white font-bold shrink-0 "
-      style={{ width: size, height: size, fontSize: size * 0.4 }}
+      className="flex items-center justify-center rounded-full bg-gradient-to-br from-[#2164b6] to-[#1a6b9e] text-white shrink-0 "
+      style={{ width: size, height: size }}
     >
-      {initials}
+      <UserIcon weight="fill" className="text-white/90" style={{ width: size * 0.55, height: size * 0.55 }} />
     </div>
   );
 }
@@ -153,9 +150,9 @@ export default function CommunityChatPage() {
   const loadConversations = useCallback(async () => {
     setListError(null);
     try {
-      const res = await apiFetch<{ data: ConversationItem[] }>("/conversations");
-      const list = Array.isArray(res.data) ? res.data : [];
-      setConversations(list.filter((c) => c.type === "community"));
+      const res = await apiFetch<{ data: ConversationItem[] } | ConversationItem[]>("/conversations");
+      const list = 'data' in res ? res.data : res;
+      setConversations((Array.isArray(list) ? list : []).filter((c) => c.type === "community"));
     } catch (e) {
       setListError(e instanceof Error ? e.message : "Failed to load communities");
     } finally {
