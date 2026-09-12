@@ -153,6 +153,14 @@ code {
   background: var(--code-bg);
 }
 
+@utility no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 @theme inline {
   --font-heading: 'Inter Variable', system-ui, -apple-system, sans-serif;
   --font-sans: 'Inter Variable', system-ui, -apple-system, sans-serif;

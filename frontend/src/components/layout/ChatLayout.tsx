@@ -453,7 +453,7 @@ export function ChatLayout() {
           </div>
         </div>
 
-        <div className="flex items-center gap-1 px-3 py-2 border-b border-border bg-muted/10 overflow-x-auto">
+        <div className="flex items-center gap-1 px-3 py-2 border-b border-border bg-muted/10 overflow-x-auto no-scrollbar">
           <button
             key="saved"
             onClick={() => setShowSaved((v) => !v)}
