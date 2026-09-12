@@ -22,9 +22,20 @@ class MessageSent implements ShouldBroadcastNow
 
     public function broadcastOn(): array
     {
-        return [
+        $channels = [
             new PrivateChannel('conversation.'.$this->message->conversation_id),
         ];
+
+        // Broadcast to each participant's private channel so they receive messages
+        // in real-time even when viewing other screens/tabs in the app
+        $participantIds = \App\Models\ConversationParticipant::where('conversation_id', $this->message->conversation_id)
+            ->pluck('user_id');
+
+        foreach ($participantIds as $userId) {
+            $channels[] = new PrivateChannel('user.'.$userId);
+        }
+
+        return $channels;
     }
 
     public function broadcastWith(): array

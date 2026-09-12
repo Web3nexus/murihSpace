@@ -177,14 +177,12 @@ class ConversationController extends Controller
 
         if ($existing) {
             return response()->json([
-                'data' => [
-                    'id' => $existing->id,
-                    'type' => 'direct',
-                    'title' => $targetUser?->name ?: 'Direct Message',
-                    'other_user' => $userPayload,
-                    'unread_count' => 0,
-                    'updated_at' => $existing->updated_at,
-                ],
+                'id' => $existing->id,
+                'type' => 'direct',
+                'title' => $targetUser?->name ?: 'Direct Message',
+                'other_user' => $userPayload,
+                'unread_count' => 0,
+                'updated_at' => $existing->updated_at,
             ]);
         }
 
@@ -198,14 +196,12 @@ class ConversationController extends Controller
         });
 
         return response()->json([
-            'data' => [
-                'id' => $conversation->id,
-                'type' => 'direct',
-                'title' => $targetUser?->name ?: 'Direct Message',
-                'other_user' => $userPayload,
-                'unread_count' => 0,
-                'updated_at' => $conversation->updated_at,
-            ],
+            'id' => $conversation->id,
+            'type' => 'direct',
+            'title' => $targetUser?->name ?: 'Direct Message',
+            'other_user' => $userPayload,
+            'unread_count' => 0,
+            'updated_at' => $conversation->updated_at,
         ], 201);
     }
 
@@ -239,7 +235,7 @@ class ConversationController extends Controller
 
         $conv->load('community:id,name,slug,logo_url');
 
-        return response()->json(['data' => $conv]);
+        return response()->json($conv);
     }
 
     /**
@@ -356,7 +352,7 @@ class ConversationController extends Controller
             'client_uuid' => ['nullable', 'string', 'max:64'],
             'reply_to_id' => ['nullable', 'integer', 'exists:messages,id'],
             'attachment_url' => ['nullable', 'string', 'max:2000'],
-            'attachment_type' => ['nullable', 'string', 'in:image,file,voice,poll,location,contact'],
+            'attachment_type' => ['nullable', 'string', 'in:image,file,voice,poll,location,contact,gift'],
             'media_id' => ['nullable', 'integer', 'exists:media,id'],
             'media_status' => ['nullable', 'string', 'in:uploading,processing,ready,failed,rejected'],
         ]);
@@ -722,7 +718,7 @@ class ConversationController extends Controller
     }
 
     /**
-     * Mark conversation as read.
+     * Mark conversation as read and broadcast read receipts.
      */
     public function markRead(Request $request, int $id): JsonResponse
     {
@@ -736,7 +732,52 @@ class ConversationController extends Controller
             ->where('user_id', $request->user()->id)
             ->update(['last_read_at' => now()]);
 
+        // Mark all messages from other participants as 'read'
+        Message::where('conversation_id', $conversation->id)
+            ->where('user_id', '!=', $request->user()->id)
+            ->whereIn('status', [Message::STATUS_SENT, Message::STATUS_DELIVERED])
+            ->update(['status' => Message::STATUS_READ]);
+
+        // Broadcast real-time read receipt to the conversation channel
+        event(new \App\Events\MessageRead($conversation->id, $request->user()->id));
+
         return response()->json(['message' => 'Conversation marked as read.']);
+    }
+
+    /**
+     * Mark message(s) as delivered upon receipt by the other user's client.
+     */
+    public function markDelivered(Request $request, int $id): JsonResponse
+    {
+        $conversation = $this->resolveConversation($request, $id);
+        if (! $conversation) {
+            return response()->json(['message' => 'Conversation not found.'], 404);
+        }
+        $this->authorizeParticipant($request, $conversation);
+
+        $validated = $request->validate([
+            'message_ids' => ['required', 'array'],
+            'message_ids.*' => ['integer', 'exists:messages,id'],
+        ]);
+
+        $messageIds = $validated['message_ids'];
+
+        // Only mark messages sent by other participants that are currently 'sent'
+        $updatedCount = Message::where('conversation_id', $conversation->id)
+            ->whereIn('id', $messageIds)
+            ->where('user_id', '!=', $request->user()->id)
+            ->where('status', Message::STATUS_SENT)
+            ->update(['status' => Message::STATUS_DELIVERED]);
+
+        if ($updatedCount > 0) {
+            event(new \App\Events\MessageDelivered($conversation->id, $messageIds));
+        }
+
+        return response()->json([
+            'message' => 'Messages marked as delivered.',
+            'count' => $updatedCount,
+            'message_ids' => $messageIds,
+        ]);
     }
 
     /**

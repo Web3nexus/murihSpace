@@ -180,5 +180,49 @@ class ChatAndThreadingFeatureTest extends TestCase
         $this->assertEquals($msgId, $fwdData['forwarded_from_message_id']);
         $this->assertEquals('Top secret announcement', $fwdData['content']);
     }
+
+    public function test_delivery_and_read_receipts_broadcasting(): void
+    {
+        \Illuminate\Support\Facades\Event::fake([
+            \App\Events\MessageDelivered::class,
+            \App\Events\MessageRead::class,
+            \App\Events\MessageSent::class,
+        ]);
+
+        Sanctum::actingAs($this->alice);
+
+        $res = $this->postJson('/api/v1/conversations/direct', ['user_id' => $this->bob->id]);
+        $convId = $res->json('data.data.id') ?? $res->json('data.id');
+
+        // Alice sends message
+        $msgRes = $this->postJson("/api/v1/conversations/{$convId}/messages", ['content' => 'Hey Bob']);
+        $msgRes->assertStatus(201);
+        $msgId = $msgRes->json('data.data.id') ?? $msgRes->json('data.id');
+
+        // Bob's device receives it and acknowledges delivery
+        Sanctum::actingAs($this->bob);
+        $delivRes = $this->postJson("/api/v1/conversations/{$convId}/delivered", [
+            'message_ids' => [$msgId],
+        ]);
+        $delivRes->assertOk();
+
+        \Illuminate\Support\Facades\Event::assertDispatched(\App\Events\MessageDelivered::class, function ($e) use ($convId, $msgId) {
+            return $e->conversationId === $convId && in_array($msgId, $e->messageIds);
+        });
+
+        // Verify message status in DB is now 'delivered'
+        $this->assertEquals('delivered', Message::find($msgId)->status);
+
+        // Bob opens the conversation and marks as read
+        $readRes = $this->postJson("/api/v1/conversations/{$convId}/read");
+        $readRes->assertOk();
+
+        \Illuminate\Support\Facades\Event::assertDispatched(\App\Events\MessageRead::class, function ($e) use ($convId) {
+            return $e->conversationId === $convId && $e->readerId === $this->bob->id;
+        });
+
+        // Verify message status in DB is now 'read'
+        $this->assertEquals('read', Message::find($msgId)->status);
+    }
 }
 

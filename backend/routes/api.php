@@ -617,6 +617,7 @@ Route::prefix('v1')->group(function () {
             Route::post('/{id}/messages', [ConversationController::class, 'sendMessage']);
             Route::delete('/{id}/messages', [ConversationController::class, 'clearMessages']);
             Route::post('/{id}/read', [ConversationController::class, 'markRead']);
+            Route::post('/{id}/delivered', [ConversationController::class, 'markDelivered']);
             // Sprint 12
             Route::post('/{id}/typing', [ConversationController::class, 'typing']);
             Route::get('/{id}/settings', [ConversationSettingsController::class, 'show']);
