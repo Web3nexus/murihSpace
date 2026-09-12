@@ -1,4 +1,4 @@
-export type ConversationType = 'direct' | 'community' | 'saved';
+export type ConversationType = 'direct' | 'app' | 'community' | 'saved' | 'group' | 'marketplace' | 'spam';
 
 export type MessageStatus = 'pending' | 'sent' | 'failed';
 
@@ -56,4 +56,7 @@ export interface ConversationItem {
   updated_at: string;
   is_muted?: boolean;
   is_archived?: boolean;
+  has_active_escrow?: boolean;
+  member_count?: number;
+  escrow_amount?: number;
 }

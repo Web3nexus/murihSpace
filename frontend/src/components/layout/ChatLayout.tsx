@@ -16,7 +16,14 @@ import {
   ArrowUUpLeft as Reply,
   Paperclip as Paperclip,
   Checks as CheckCheck,
-  User as UserIcon
+  User as UserIcon,
+  ChatCircleDots as ChatBubble,
+  Storefront as Storefront,
+  UserPlus as UserPlus,
+  Shield as Shield,
+  Copy as Copy,
+  TrashSimple as Trash,
+  X as X
 } from "@phosphor-icons/react";
 import { safeFormatDistanceToNow, safeFormat } from '@/lib/date';
 import type { ConversationItem, ChatMessage, MessageStatus, MessageReaction } from '@/types/chat';
@@ -67,6 +74,20 @@ function Avatar({ name, src, size = 36 }: { name?: string; src?: string; size?: 
   );
 }
 
+const QUICK_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🔥'];
+
+type FilterTab = 'all' | 'app' | 'communities' | 'marketplace' | 'spam';
+type FilterTabDef = { id: FilterTab | 'requests'; label: string; icon: React.ReactNode | null };
+
+const FILTER_TABS: FilterTabDef[] = [
+  { id: 'all', label: 'All', icon: null },
+  { id: 'app', label: 'App', icon: <ChatBubble weight="fill" className="h-3 w-3" /> },
+  { id: 'communities', label: 'Communities', icon: <Users weight="fill" className="h-3 w-3" /> },
+  { id: 'marketplace', label: 'Marketplace', icon: <Storefront weight="fill" className="h-3 w-3" /> },
+  { id: 'requests', label: 'Requests', icon: <UserPlus weight="fill" className="h-3 w-3" /> },
+  { id: 'spam', label: 'Spam', icon: <Shield weight="fill" className="h-3 w-3" /> },
+];
+
 export function ChatLayout() {
   const navigate = useNavigate();
   const [conversations, setConversations] = useState<ConversationItem[]>([]);
@@ -74,7 +95,7 @@ export function ChatLayout() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoadingList, setIsLoadingList] = useState(true);
   const [isLoadingMsgs, setIsLoadingMsgs] = useState(false);
-  const [filterTab, setFilterTab] = useState<'all' | 'channels' | 'direct'>('all');
+  const [filterTab, setFilterTab] = useState<FilterTab>('all');
   const [showSaved, setShowSaved] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [inputContent, setInputContent] = useState('');
@@ -89,6 +110,11 @@ export function ChatLayout() {
   const [callMode, setCallMode] = useState<CallMode>('video');
   const [isCreateStoryOpen, setIsCreateStoryOpen] = useState(false);
   const [storiesList, setStoriesList] = useState<StoryUser[]>([]);
+  const [actionMenu, setActionMenu] = useState<{ msg: ChatMessage; x: number; y: number } | null>(null);
+  const [emojiMenu, setEmojiMenu] = useState<{ msg: ChatMessage; x: number; y: number } | null>(null);
+  const [forwardMsg, setForwardMsg] = useState<ChatMessage | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<ChatMessage | null>(null);
+  const dragStartRef = useRef<{ id?: number; x: number; dragged?: boolean } | null>(null);
 
   const { user } = useAuth();
   const currentUserId = user?.id;
@@ -176,9 +202,21 @@ export function ChatLayout() {
     setTypingUsers([]);
 
     try {
-      const res = await apiFetch<{ data: ChatMessage[] }>(`/conversations/${conv.id}/messages`);
-      const list = res && 'data' in res ? res.data : Array.isArray(res) ? res : [];
-      const formatted = (Array.isArray(list) ? list : []).map((m: ChatMessage) => ({ ...m, status: 'sent' as MessageStatus }));
+      const res = await apiFetch<{ data: unknown } | ChatMessage[]>(
+        `/conversations/${conv.id}/messages`,
+      );
+      let list: ChatMessage[] = [];
+      if (Array.isArray(res)) {
+        list = res;
+      } else if (res && 'data' in res) {
+        const inner = res.data;
+        if (Array.isArray(inner)) {
+          list = inner;
+        } else if (inner && typeof inner === 'object' && Array.isArray((inner as { data?: unknown }).data)) {
+          list = (inner as { data: ChatMessage[] }).data;
+        }
+      }
+      const formatted = list.map((m: ChatMessage) => ({ ...m, status: 'sent' as MessageStatus }));
       setMessages(formatted);
 
       if (conv.unread_count > 0) {
@@ -327,19 +365,83 @@ export function ChatLayout() {
     setMessages((prev) => prev.map((m) => (m.id === messageId ? { ...m, reactions: updated } : m)));
   };
 
+  const toggleMessageReaction = async (messageId: number, emoji: string) => {
+    try {
+      const res = await apiFetch<{ data?: { reactions?: MessageReaction[] } } | { reactions?: MessageReaction[] }>(
+        `/messages/${messageId}/reactions`,
+        { method: 'POST', body: JSON.stringify({ emoji }) },
+      );
+      const reactions = res && 'data' in res && res.data
+        ? (res.data.reactions ?? [])
+        : (res && 'reactions' in res ? (res.reactions ?? []) : []);
+      setMessages((prev) => prev.map((m) => (m.id === messageId ? { ...m, reactions } : m)));
+    } catch (e) { console.error('Failed to react to message', e); }
+  };
+
+  const copyMessage = async (msg: ChatMessage) => {
+    try { await navigator.clipboard.writeText(msg.content ?? ''); } catch (e) { console.error('Failed to copy message', e); }
+  };
+
+  const deleteMessage = async (msg: ChatMessage, mode: 'me' | 'everyone') => {
+    try {
+      await apiFetch(`/conversations/${msg.conversation_id}/messages/${msg.id}`, {
+        method: 'DELETE',
+        body: JSON.stringify({ mode }),
+      });
+      setMessages((prev) => prev.filter((m) => m.id !== msg.id && m.client_uuid !== msg.client_uuid));
+    } catch (e) { console.error('Failed to delete message', e); }
+  };
+
+  const forwardMessage = async (msg: ChatMessage, toConversationId: number) => {
+    try {
+      await apiFetch(`/messages/${msg.id}/forward`, {
+        method: 'POST',
+        body: JSON.stringify({ to_conversation_id: toConversationId }),
+      });
+      setForwardMsg(null);
+      loadConversations();
+    } catch (e) { console.error('Failed to forward message', e); }
+  };
+
   const filteredConversations = conversations.filter((c) => {
     if (!c) return false;
     if (showSaved) return c.type === 'saved';
     if (c.type === 'saved') return false;
-    if (filterTab === 'channels' && c.type !== 'community') return false;
-    if (filterTab === 'direct' && c.type !== 'direct') return false;
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       const title = (c.title || c.other_user?.name || '').toLowerCase();
       const content = (c.latest_message?.content || '').toLowerCase();
-      return title.includes(q) || content.includes(q);
+      const matched = title.includes(q) || content.includes(q);
+      if (!matched) return false;
     }
-    return true;
+    switch (filterTab) {
+      case 'app':
+        return (
+          (c.type === 'direct' || c.type === 'app') &&
+          !c.has_active_escrow &&
+          !c.community &&
+          (c.member_count == null || c.member_count <= 2)
+        );
+      case 'communities':
+        return (
+          c.type === 'community' ||
+          c.type === 'group' ||
+          !!c.community ||
+          (c.member_count != null && c.member_count > 2)
+        );
+      case 'marketplace':
+        return (
+          c.type === 'marketplace' ||
+          !!c.has_active_escrow ||
+          (c.escrow_amount != null && c.escrow_amount > 0) ||
+          /order|deal|product|store|escrow|seller|buyer/i.test(c.title || '')
+        );
+      case 'spam':
+        return !!c.is_muted || c.type === 'spam';
+      case 'all':
+      default:
+        return true;
+    }
   });
 
   return (
@@ -362,18 +464,36 @@ export function ChatLayout() {
           </div>
         </div>
 
-        <div className="flex gap-1 px-3 py-2 border-b border-border bg-muted/10">
-          {(['all', 'channels', 'direct'] as const).map((tab) => (
-            <button key={tab} onClick={() => setFilterTab(tab)} className={`px-3 py-1 text-xs font-semibold rounded-lg capitalize transition-all ${filterTab === tab ? 'bg-secondary text-secondary-foreground ' : 'text-muted-foreground hover:bg-muted'}`}>{tab}</button>
-          ))}
+        <div className="flex items-center gap-1 px-3 py-2 border-b border-border bg-muted/10 overflow-x-auto">
           <button
             key="saved"
             onClick={() => setShowSaved((v) => !v)}
-            className={`flex items-center gap-1 px-3 py-1 text-xs font-semibold rounded-lg capitalize transition-all ${showSaved ? 'bg-amber-500/20 text-amber-500 border border-amber-500/30' : 'text-muted-foreground hover:bg-muted'}`}
+            className={`flex items-center gap-1 px-3 py-1 text-xs font-semibold rounded-lg capitalize transition-all shrink-0 ${showSaved ? 'bg-amber-500/20 text-amber-500 border border-amber-500/30' : 'text-muted-foreground hover:bg-muted'}`}
           >
             <Bookmark weight="fill" className="h-3 w-3" />
             Saved
           </button>
+          <div className="w-px h-5 bg-border mx-1 shrink-0" />
+          {FILTER_TABS.map((tab) => {
+            const isRequests = tab.id === 'requests';
+            const selected = !isRequests && filterTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => {
+                  if (tab.id === 'requests') {
+                    navigate('/app/friends');
+                    return;
+                  }
+                  setFilterTab(tab.id);
+                }}
+                className={`flex items-center gap-1 px-3 py-1 text-xs font-semibold rounded-lg capitalize transition-all shrink-0 ${selected ? 'bg-secondary text-secondary-foreground ' : 'text-muted-foreground hover:bg-muted'}`}
+              >
+                {tab.icon}
+                {tab.label}
+              </button>
+            );
+          })}
         </div>
 
         <div className="flex-1 overflow-y-auto divide-y divide-border/40 pb-16">
@@ -485,7 +605,28 @@ export function ChatLayout() {
                   <div key={msg.client_uuid || msg.id} className={`group flex items-end gap-2 ${isMine ? 'justify-end' : 'justify-start'} mb-1`}>
                     {!isMine && <Avatar name={msg.user?.name} src={msg.user?.avatar_url} size={28} />}
 
-                    <div className="max-w-[75%] sm:max-w-[65%] space-y-1">
+                    <div
+                      className={`max-w-[75%] sm:max-w-[65%] space-y-1 cursor-default ${dragStartRef.current?.id === msg.id ? 'opacity-80' : ''}`}
+                      onPointerDown={(e) => { dragStartRef.current = { id: msg.id, x: e.clientX }; }}
+                      onPointerUp={(e) => {
+                        const drag = dragStartRef.current;
+                        if (drag && drag.id === msg.id) {
+                          const dx = e.clientX - drag.x;
+                          if (Math.abs(dx) > 60) { drag.dragged = true; setReplyingTo(msg); }
+                          dragStartRef.current = null;
+                        }
+                      }}
+                      onPointerLeave={() => { if (dragStartRef.current?.id === msg.id) dragStartRef.current = null; }}
+                      onClick={(e) => {
+                        if ((e.target as HTMLElement).closest('button')) return;
+                        if (dragStartRef.current?.dragged) return;
+                        setEmojiMenu({ msg, x: Math.min(e.clientX, window.innerWidth - 150), y: e.clientY });
+                      }}
+                      onContextMenu={(e) => {
+                        e.preventDefault();
+                        setActionMenu({ msg, x: Math.min(e.clientX, window.innerWidth - 190), y: e.clientY });
+                      }}
+                    >
                       {/* Reply context */}
                       {msg.reply_to && (
                         <div className={`px-2.5 py-1.5 rounded-lg text-[10px] border-l-2 border-secondary bg-secondary/10 text-muted-foreground ${isMine ? 'ml-auto' : ''}`}>
@@ -526,13 +667,25 @@ export function ChatLayout() {
                       )}
                     </div>
 
-                    {/* Reply button (shows on hover) */}
+                    {/* Action buttons (show on hover) */}
                     <button
                       onClick={() => setReplyingTo(msg)}
                       className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground shrink-0 mb-1"
                       title="Reply"
                     >
                       <Reply weight="fill" className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        const r = e.currentTarget.getBoundingClientRect();
+                        const x = isMine ? r.left - 172 : r.right + 8;
+                        setActionMenu({ msg, x: Math.max(4, Math.min(x, window.innerWidth - 190)), y: r.top });
+                      }}
+                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground shrink-0 mb-1"
+                      title="More actions"
+                      aria-label="More actions"
+                    >
+                      <MoreVertical weight="fill" className="h-3.5 w-3.5" />
                     </button>
                   </div>
                 );
@@ -626,6 +779,157 @@ export function ChatLayout() {
         isOpen={isCreateStoryOpen}
         onClose={() => setIsCreateStoryOpen(false)}
       />
+
+      {/* Click-to-react emoji bubble */}
+      {emojiMenu && (
+        <div className="fixed inset-0 z-50" onClick={() => setEmojiMenu(null)} role="presentation" onKeyDown={(e) => e.key === 'Enter' && setEmojiMenu(null)} />
+      )}
+      {emojiMenu && (
+        <div
+          className="fixed z-50 flex items-center gap-1 p-1.5 rounded-xl bg-card shadow-xl border border-border animate-in fade-in zoom-in-95"
+          style={{ left: emojiMenu.x, top: Math.max(8, emojiMenu.y - 52) }}
+        >
+          {QUICK_EMOJIS.map((emoji) => (
+            <button
+              key={emoji}
+              type="button"
+              onClick={() => { if (!emojiMenu.msg.id) return; toggleMessageReaction(emojiMenu.msg.id, emoji); setEmojiMenu(null); }}
+              className="text-lg h-9 w-9 flex items-center justify-center rounded-lg hover:bg-muted transition-colors"
+              title={`React ${emoji}`}
+            >
+              {emoji}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Right-click / more actions menu */}
+      {actionMenu && (
+        <div className="fixed inset-0 z-50" onClick={() => setActionMenu(null)} role="presentation" onKeyDown={(e) => e.key === 'Enter' && setActionMenu(null)} />
+      )}
+      {actionMenu && (
+        <div
+          className="fixed z-50 w-52 rounded-xl bg-card shadow-xl border border-border p-1.5 animate-in fade-in zoom-in-95"
+          style={{ left: actionMenu.x, top: Math.max(8, actionMenu.y - 40) }}
+        >
+          <div className="flex items-center justify-around gap-1 p-1 mb-1 border-b border-border">
+            {QUICK_EMOJIS.map((emoji) => (
+              <button
+                key={emoji}
+                type="button"
+                onClick={() => { if (!actionMenu.msg.id) return; toggleMessageReaction(actionMenu.msg.id, emoji); setActionMenu(null); }}
+                className="text-base h-8 w-8 flex items-center justify-center rounded-lg hover:bg-muted transition-colors"
+              >
+                {emoji}
+              </button>
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={() => { setReplyingTo(actionMenu.msg); setActionMenu(null); }}
+            className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs font-bold text-foreground hover:bg-muted transition-colors"
+          >
+            <Reply weight="fill" className="h-4 w-4" /> Reply
+          </button>
+          <button
+            type="button"
+            onClick={() => { setForwardMsg(actionMenu.msg); setActionMenu(null); }}
+            className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs font-bold text-foreground hover:bg-muted transition-colors"
+          >
+            <Send weight="fill" className="h-4 w-4" /> Forward
+          </button>
+          <button
+            type="button"
+            onClick={() => { copyMessage(actionMenu.msg); setActionMenu(null); }}
+            className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs font-bold text-foreground hover:bg-muted transition-colors"
+          >
+            <Copy className="h-4 w-4" /> Copy
+          </button>
+          <button
+            type="button"
+            onClick={() => { setActionMenu(null); setPendingDelete(actionMenu.msg); }}
+            className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs font-bold text-red-500 hover:bg-red-500/10 transition-colors"
+          >
+            <Trash className="h-4 w-4" /> Delete
+          </button>
+        </div>
+      )}
+
+      {/* Delete confirmation */}
+      {pendingDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/40" onClick={() => setPendingDelete(null)} role="presentation" />
+          <div className="relative w-full max-w-sm rounded-xl bg-card shadow-xl p-4">
+            <h3 className="text-sm font-extrabold text-foreground mb-1">Delete message</h3>
+            <p className="text-xs text-muted-foreground mb-4">
+              {pendingDelete.user_id === currentUserId
+                ? 'Delete this message for yourself or for everyone?'
+                : 'Remove this message from your view?'}
+            </p>
+            <div className="flex flex-col gap-2">
+              <button
+                type="button"
+                onClick={() => { deleteMessage(pendingDelete, 'me'); setPendingDelete(null); }}
+                className="w-full px-3 py-2 rounded-lg bg-foreground text-background text-xs font-extrabold hover:opacity-90 transition-opacity"
+              >
+                Delete for me
+              </button>
+              {pendingDelete.user_id === currentUserId && (
+                <button
+                  type="button"
+                  onClick={() => { deleteMessage(pendingDelete, 'everyone'); setPendingDelete(null); }}
+                  className="w-full px-3 py-2 rounded-lg bg-red-500/10 text-red-500 text-xs font-extrabold hover:bg-red-500/20 transition-colors"
+                >
+                  Delete for everyone
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setPendingDelete(null)}
+                className="w-full px-3 py-2 rounded-lg text-xs font-bold text-muted-foreground hover:bg-muted transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Forward picker */}
+      {forwardMsg && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/40" onClick={() => setForwardMsg(null)} role="presentation" />
+          <div className="relative w-full max-w-md rounded-xl bg-card shadow-xl p-4 max-h-[75vh] overflow-hidden flex flex-col">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-extrabold text-foreground">Forward message</h3>
+              <button type="button" onClick={() => setForwardMsg(null)} className="p-1 rounded-lg hover:bg-muted text-muted-foreground" aria-label="Close">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="overflow-y-auto divide-y divide-border/40">
+              {conversations.filter((c) => c.id !== activeConv?.id && c.type !== 'saved').length === 0 ? (
+                <p className="py-8 text-center text-xs text-muted-foreground">No other conversations to forward to.</p>
+              ) : conversations.filter((c) => c.id !== activeConv?.id && c.type !== 'saved').map((c) => (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => forwardMessage(forwardMsg, c.id)}
+                  className="w-full flex items-center gap-3 px-2 py-2.5 text-left hover:bg-muted transition-colors"
+                >
+                  {c.type === 'community' ? (
+                    <div className="h-8 w-8 rounded-full bg-secondary/20 text-secondary flex items-center justify-center shrink-0">
+                      <Users weight="fill" className="h-3.5 w-3.5" />
+                    </div>
+                  ) : (
+                    <Avatar name={c.other_user?.name ?? c.title} src={c.other_user?.avatar_url} size={32} />
+                  )}
+                  <span className="text-xs font-bold text-foreground truncate">{c.title || c.other_user?.name || 'Conversation'}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

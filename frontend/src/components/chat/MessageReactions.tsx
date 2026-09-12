@@ -31,7 +31,7 @@ export function MessageReactions({ messageId, reactions, onReactionToggle }: Mes
       });
       if (res.ok) {
         const json = await res.json();
-        onReactionToggle(messageId, json.reactions ?? []);
+        onReactionToggle(messageId, json?.data?.reactions ?? json?.reactions ?? []);
       }
     } catch (e) { console.error('Failed to add reaction', e); }
   };
