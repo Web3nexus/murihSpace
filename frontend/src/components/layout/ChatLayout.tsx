@@ -28,6 +28,7 @@ import {
 import { toast } from 'sonner';
 import { safeFormatDistanceToNow, safeFormat } from '@/lib/date';
 import { extractMessages } from '@/lib/chatMessages';
+import { refreshUnreadCount } from '@/lib/chatUnread';
 import type { ConversationItem, ChatMessage, MessageStatus, MessageReaction } from '@/types/chat';
 import { ReplyPreviewBar } from '@/components/chat/ReplyPreviewBar';
 import { MessageReactions } from '@/components/chat/MessageReactions';
@@ -167,6 +168,9 @@ export function ChatLayout() {
 
       if (conv.unread_count > 0) {
         await apiFetch(`/conversations/${conv.id}/read`, { method: 'POST' });
+        // Let the shared unread store re-sync so the badge clears everywhere
+        // (header + sidebar + here) the instant this chat is opened.
+        refreshUnreadCount().catch(() => {});
         setConversations((prev) => prev.map((c) => (c.id === conv.id ? { ...c, unread_count: 0 } : c)));
       }
     } catch (e) {
