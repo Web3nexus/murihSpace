@@ -30,6 +30,11 @@ class MessageDelivered implements ShouldBroadcastNow
         ];
     }
 
+    public function broadcastAs(): string
+    {
+        return 'MessageDelivered';
+    }
+
     public function broadcastWith(): array
     {
         return [

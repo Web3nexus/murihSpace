@@ -38,6 +38,11 @@ class MessageSent implements ShouldBroadcastNow
         return $channels;
     }
 
+    public function broadcastAs(): string
+    {
+        return 'MessageSent';
+    }
+
     public function broadcastWith(): array
     {
         $replyTo = $this->message->relationLoaded('replyTo') && $this->message->replyTo

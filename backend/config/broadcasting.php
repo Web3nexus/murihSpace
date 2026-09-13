@@ -38,8 +38,8 @@ return [
             'options' => [
                 'host' => env('REVERB_HOST'),
                 'port' => env('REVERB_PORT', 443),
-                'scheme' => env('REVERB_SCHEME', 'https'),
-                'useTLS' => env('REVERB_SCHEME', 'https') === 'https',
+                'scheme' => in_array(env('REVERB_HOST'), ['localhost', '127.0.0.1', '0.0.0.0']) ? env('REVERB_SCHEME', 'http') : env('REVERB_SCHEME', 'https'),
+                'useTLS' => in_array(env('REVERB_HOST'), ['localhost', '127.0.0.1', '0.0.0.0']) ? (env('REVERB_SCHEME') === 'https') : (env('REVERB_SCHEME', 'https') === 'https'),
             ],
             'client_options' => [
                 // Guzzle client options: https://docs.guzzlephp.org/en/stable/request-options.html

@@ -29,6 +29,11 @@ class MessageReacted implements ShouldBroadcastNow
         ];
     }
 
+    public function broadcastAs(): string
+    {
+        return 'MessageReacted';
+    }
+
     public function broadcastWith(): array
     {
         return [

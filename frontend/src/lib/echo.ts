@@ -31,8 +31,13 @@ export function getEcho(): EchoInstance {
   }
 
   const host = env.VITE_REVERB_HOST;
-  const port = env.VITE_REVERB_PORT;  
-  const scheme = env.VITE_REVERB_SCHEME;
+  const rawScheme = env.VITE_REVERB_SCHEME;
+  const isHttps = rawScheme === 'https' || (typeof window !== 'undefined' && window.location.protocol === 'https:');
+  const isLocal = host === 'localhost' || host === '127.0.0.1';
+  const port = isHttps && !isLocal && (env.VITE_REVERB_PORT === 8080 || !env.VITE_REVERB_PORT)
+    ? 443
+    : env.VITE_REVERB_PORT;
+  const scheme = isHttps ? 'https' : rawScheme;
 
   echoToken = token;
 
@@ -43,7 +48,7 @@ export function getEcho(): EchoInstance {
     wsPort: port,
     wssPort: port,
     scheme,
-    forceTLS: scheme === 'https',
+    forceTLS: isHttps,
     enabledTransports: ['ws', 'wss'],
     authEndpoint: `${env.VITE_API_BASE_URL.replace('/api/v1', '')}/broadcasting/auth`,
     auth: {
