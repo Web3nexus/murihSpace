@@ -20,7 +20,7 @@ NIXPACKS_PHP_FALLBACK_PATH = '/index.php'
 IS_LARAVEL = 'true'
 
 [start]
-cmd = '/assets/start.sh'
+cmd = ['/assets/start.sh']
 
 [staticAssets]
 "start.sh" = '''
