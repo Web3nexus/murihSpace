@@ -77,10 +77,48 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
   const remoteAudioRef = useRef<HTMLAudioElement | null>(null);
   const durationTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  const [outgoingPhase, setOutgoingPhase] = useState<'connecting' | 'ringing'>('connecting');
+  const previewStreamRef = useRef<MediaStream | null>(null);
+  const outgoingPreviewVideoRef = useRef<HTMLVideoElement | null>(null);
+
   // Synchronize state from props
   useEffect(() => {
     setMode(initialMode);
+    if (initialMode === 'outgoing') {
+      setOutgoingPhase('connecting');
+      const timer = setTimeout(() => {
+        setOutgoingPhase('ringing');
+      }, 1400);
+      return () => clearTimeout(timer);
+    }
   }, [initialMode]);
+
+  // Turn on local camera preview immediately for outgoing video calls
+  useEffect(() => {
+    if (isOpen && mode === 'outgoing' && callType === 'video') {
+      let isMounted = true;
+      navigator.mediaDevices?.getUserMedia({ video: { facingMode: 'user' }, audio: false })
+        .then((stream) => {
+          if (!isMounted) {
+            stream.getTracks().forEach((t) => t.stop());
+            return;
+          }
+          previewStreamRef.current = stream;
+          if (outgoingPreviewVideoRef.current) {
+            outgoingPreviewVideoRef.current.srcObject = stream;
+          }
+        })
+        .catch(() => {});
+
+      return () => {
+        isMounted = false;
+        if (previewStreamRef.current) {
+          previewStreamRef.current.getTracks().forEach((t) => t.stop());
+          previewStreamRef.current = null;
+        }
+      };
+    }
+  }, [isOpen, mode, callType]);
 
   useEffect(() => {
     if (initialToken) setActiveToken(initialToken);
@@ -88,14 +126,14 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
     if (initialRoomName) setActiveRoomName(initialRoomName);
   }, [initialToken, initialHost, initialRoomName]);
 
-  // Ringtone / Ringback sound management
+  // Ringtone / Ringback sound management: only ring once connected to recipient
   useEffect(() => {
     if (!isOpen) {
       stopCallSounds();
       return;
     }
 
-    if (mode === 'outgoing') {
+    if (mode === 'outgoing' && outgoingPhase === 'ringing') {
       const stop = startOutgoingRingback();
       return () => {
         stop();
@@ -110,7 +148,7 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
     } else {
       stopCallSounds();
     }
-  }, [isOpen, mode]);
+  }, [isOpen, mode, outgoingPhase]);
 
   // Duration timer when call is connected
   useEffect(() => {
@@ -279,13 +317,18 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
 
         // Publish local camera if video call
         if (callType === 'video') {
-          await room.localParticipant.setCameraEnabled(true);
+          if (previewStreamRef.current) {
+            previewStreamRef.current.getTracks().forEach((t) => t.stop());
+            previewStreamRef.current = null;
+          }
+
+          const camPub = await room.localParticipant.setCameraEnabled(true);
           setIsVideoOn(true);
 
           // Attach local preview
-          const videoTrackPub = Array.from(room.localParticipant.videoTrackPublications.values())[0];
-          if (videoTrackPub?.videoTrack && localVideoRef.current) {
-            videoTrackPub.videoTrack.attach(localVideoRef.current);
+          const camTrack = (camPub?.track || room.localParticipant.getTrackPublication(Track.Source.Camera)?.track) as any;
+          if (camTrack && localVideoRef.current) {
+            camTrack.attach(localVideoRef.current);
           }
         }
       } catch (err: any) {
@@ -400,16 +443,30 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-xl text-white overflow-hidden animate-in fade-in duration-300">
       <audio ref={remoteAudioRef} autoPlay />
 
-      {/* ── State 1: OUTGOING RINGING ──────────────────────────────────────── */}
+      {/* ── State 1: OUTGOING (Connecting -> Ringing) ──────────────────────── */}
       {mode === 'outgoing' && (
-        <div className="relative w-full h-full max-w-md flex flex-col justify-between p-6 text-center">
-          <div className="pt-12 space-y-4">
-            <span className="inline-block px-3 py-1 rounded-full bg-white/10 text-xs font-semibold uppercase tracking-wider text-slate-300">
+        <div className="relative w-full h-full max-w-md flex flex-col justify-between p-6 text-center overflow-hidden">
+          {/* Local Camera Preview Background for Video Calls */}
+          {callType === 'video' && (
+            <div className="absolute inset-0 z-0">
+              <video
+                ref={outgoingPreviewVideoRef}
+                autoPlay
+                playsInline
+                muted
+                className="w-full h-full object-cover scale-x-[-1]"
+              />
+              <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/30 to-black/80" />
+            </div>
+          )}
+
+          <div className="relative z-10 pt-12 space-y-4">
+            <span className="inline-block px-3 py-1 rounded-full bg-white/10 backdrop-blur-md text-xs font-semibold uppercase tracking-wider text-slate-200 border border-white/10">
               {callType === 'video' ? 'Outgoing Video Call' : 'Outgoing Audio Call'}
             </span>
-            <div className="relative mx-auto w-32 h-32">
+            <div className="relative mx-auto w-28 h-28">
               <div className="absolute inset-0 rounded-full bg-primary/30 animate-ping" />
-              <div className="relative w-32 h-32 rounded-full overflow-hidden border-4 border-white/20 shadow-2xl mx-auto bg-slate-800">
+              <div className="relative w-28 h-28 rounded-full overflow-hidden border-4 border-white/30 shadow-2xl mx-auto bg-slate-800">
                 {contactAvatar ? (
                   <img src={contactAvatar} alt={contactName} className="w-full h-full object-cover" />
                 ) : (
@@ -419,11 +476,18 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
                 )}
               </div>
             </div>
-            <h2 className="text-2xl font-bold text-white tracking-tight">{contactName}</h2>
-            <p className="text-sm text-slate-300 animate-pulse">Ringing...</p>
+            <h2 className="text-2xl font-bold text-white tracking-tight drop-shadow-md">{contactName}</h2>
+            <div className="flex items-center justify-center gap-2">
+              {outgoingPhase === 'connecting' && (
+                <Spinner className="h-4 w-4 animate-spin text-slate-300" />
+              )}
+              <p className="text-sm text-slate-200 font-medium drop-shadow animate-pulse">
+                {outgoingPhase === 'connecting' ? 'Connecting...' : 'Ringing...'}
+              </p>
+            </div>
           </div>
 
-          <div className="pb-12 flex justify-center">
+          <div className="relative z-10 pb-12 flex justify-center">
             <button
               type="button"
               onClick={handleEndCall}
