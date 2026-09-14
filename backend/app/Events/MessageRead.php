@@ -25,9 +25,20 @@ class MessageRead implements ShouldBroadcastNow
 
     public function broadcastOn(): array
     {
-        return [
+        $channels = [
             new PrivateChannel('conversation.'.$this->conversationId),
         ];
+
+        // Broadcast to each participant's private channel so read status updates
+        // instantly across all tabs, conversation lists, and background clients
+        $participantIds = \App\Models\ConversationParticipant::where('conversation_id', $this->conversationId)
+            ->pluck('user_id');
+
+        foreach ($participantIds as $userId) {
+            $channels[] = new PrivateChannel('user.'.$userId);
+        }
+
+        return $channels;
     }
 
     public function broadcastAs(): string
