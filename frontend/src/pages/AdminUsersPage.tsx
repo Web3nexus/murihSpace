@@ -174,7 +174,7 @@ export function AdminUsersPage() {
       }
       setImpersonationToken(data.token, data.user);
       toast.success(`Impersonating ${data.user?.name || u.name}...`);
-      window.location.assign('/app');
+      window.open('/app', '_blank');
     } catch {
       setMsg({ type: 'error', text: 'Impersonation failed.' });
       toast.error('Impersonation failed. Please try again.');
