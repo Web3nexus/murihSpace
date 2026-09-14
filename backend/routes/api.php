@@ -52,6 +52,7 @@ use App\Http\Controllers\CallController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\ChatMediaController;
 use App\Http\Controllers\ChatRoomController;
+use App\Http\Controllers\ChatSettingsController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\CoachingBookingController;
 use App\Http\Controllers\CoachingServiceController;
@@ -630,6 +631,13 @@ Route::prefix('v1')->group(function () {
             Route::post('/speed-control', [ConversationController::class, 'updateSpeedControl']);
             // Admin chat pin limit (default 3, admin-configurable)
             Route::post('/pin-config', [ConversationController::class, 'updatePinConfig']);
+        });
+
+        // ── Chat Settings & Presence ─────────────────────────────────────────
+        Route::prefix('settings/chat')->group(function () {
+            Route::get('/', [ChatSettingsController::class, 'show']);
+            Route::put('/', [ChatSettingsController::class, 'update']);
+            Route::post('/heartbeat', [ChatSettingsController::class, 'heartbeat']);
         });
 
         // ── Real-Time Audio & Video Calls ──────────────────────────────────

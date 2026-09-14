@@ -30,6 +30,7 @@ use App\Services\PermissionService;
     'two_factor_secret', 'two_factor_recovery_codes', 'two_factor_confirmed_at',
     'provider', 'provider_id', 'email_verify_code_hash', 'email_verify_code_expires_at',
     'phone_verified_at',
+    'last_seen_at', 'show_online_status', 'read_receipts_enabled', 'chat_sounds_enabled',
 ])]
 #[Hidden(['password', 'remember_token', 'provider_id', 'kyc_document', 'kyc_rejection_reason', 'username_trial_ends_at', 'two_factor_secret', 'two_factor_recovery_codes'])]
 class User extends Authenticatable implements MustVerifyEmail
@@ -62,7 +63,37 @@ class User extends Authenticatable implements MustVerifyEmail
             'verification_badge_expires_at' => 'datetime',
             'verification_badge_purchased_at' => 'datetime',
             'verification_badge_auto_renew' => 'boolean',
+            'last_seen_at' => 'datetime',
+            'show_online_status' => 'boolean',
+            'read_receipts_enabled' => 'boolean',
+            'chat_sounds_enabled' => 'boolean',
         ];
+    }
+
+    public function isOnline(): bool
+    {
+        if ($this->show_online_status === false) {
+            return false;
+        }
+
+        return $this->last_seen_at !== null && $this->last_seen_at->greaterThanOrEqualTo(now()->subMinutes(3));
+    }
+
+    public function lastSeenForHuman(): ?string
+    {
+        if ($this->show_online_status === false) {
+            return null;
+        }
+
+        if ($this->isOnline()) {
+            return 'online';
+        }
+
+        if (! $this->last_seen_at) {
+            return 'last seen recently';
+        }
+
+        return 'last seen '.$this->last_seen_at->diffForHumans();
     }
 
     /**

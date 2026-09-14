@@ -11,6 +11,8 @@ import {
   MagnifyingGlass,
   SpinnerGap,
   Users,
+  Checks as CheckCheck,
+  Check as CheckIcon,
 } from "@phosphor-icons/react";
 import { useAuth } from "@/hooks/useAuth";
 import { usePopChat } from "@/context/PopChatContext";
@@ -20,6 +22,7 @@ import { extractMessages } from "@/lib/chatMessages";
 import type { ChatMessage } from "@/types/chat";
 import { safeFormatDistanceToNow, safeFormat } from "@/lib/date";
 import { EmojiPickerPopover } from "@/components/chat/EmojiPickerPopover";
+import { playMessageReceivedSound } from "@/lib/sound";
 
 export function PopChatWidget() {
   const { user, isAuthenticated } = useAuth();
@@ -51,13 +54,32 @@ export function PopChatWidget() {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const onMessageReceived = useCallback((msg: ChatMessage) => {
+    playMessageReceivedSound();
     setMessages((prev) => {
       if (prev.some((m) => m.client_uuid && m.client_uuid === msg.client_uuid)) return prev;
       if (prev.some((m) => m.id && m.id === msg.id)) return prev;
       return [...prev, { ...msg, status: "sent" }];
     });
+    if (activeConv?.id === msg.conversation_id) {
+      apiClient.post(`/conversations/${msg.conversation_id}/read`).catch(() => {});
+    }
     refreshConversations();
-  }, [refreshConversations]);
+  }, [activeConv?.id, refreshConversations]);
+
+  const onMessageRead = useCallback((data: { conversation_id: number; reader_id: number }) => {
+    if (data.reader_id !== user?.id) {
+      setMessages((prev) => prev.map((m) =>
+        m.user_id === user?.id && m.status !== 'read' ? { ...m, status: 'read' } : m,
+      ));
+    }
+  }, [user?.id]);
+
+  const onMessageDelivered = useCallback((data: { conversation_id: number; message_ids: number[] }) => {
+    const ids = new Set(data.message_ids);
+    setMessages((prev) => prev.map((m) =>
+      m.id !== undefined && ids.has(m.id) && m.status === 'sent' ? { ...m, status: 'delivered' } : m,
+    ));
+  }, []);
 
   const onTyping = useCallback(() => {}, []);
   const onReaction = useCallback(() => {}, []);
@@ -70,6 +92,8 @@ export function PopChatWidget() {
     onMessageReceived,
     onTyping,
     onReaction,
+    onMessageRead,
+    onMessageDelivered,
   });
 
   // Fetch messages when active conversation changes
@@ -299,15 +323,23 @@ export function PopChatWidget() {
                     activeRecipient?.name?.charAt(0) || "C"
                   )}
                 </div>
-                <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-card" />
+                {activeRecipient?.is_online && (
+                  <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-[#34C759] ring-2 ring-card shadow-xs" />
+                )}
               </div>
 
               <div className="min-w-0">
                 <h4 className="text-xs font-bold text-foreground truncate">
                   {activeRecipient?.name || activeConv.title}
                 </h4>
-                <p className="text-[10px] text-muted-foreground truncate">
-                  {activeConv.type === "community" ? "Community Channel" : "Active now"}
+                <p className="text-[10px] text-muted-foreground truncate flex items-center gap-1">
+                  {activeConv.type === "community" ? "Community Channel" : (
+                    activeRecipient?.is_online ? (
+                      <span className="text-[#34C759] font-bold">online</span>
+                    ) : (
+                      <span>{activeRecipient?.last_seen || "offline"}</span>
+                    )
+                  )}
                 </p>
               </div>
             </>
@@ -393,10 +425,23 @@ export function PopChatWidget() {
                     >
                       {msg.content}
                     </div>
-                    <span className="text-[9px] text-muted-foreground mt-0.5 px-1">
-                      {msg.status === "pending"
-                        ? "Sending..."
-                        : safeFormat(msg.created_at, "h:mm a")}
+                    <span className="text-[9px] text-muted-foreground mt-0.5 px-1 flex items-center gap-1">
+                      <span>{msg.status === "pending" ? "Sending..." : safeFormat(msg.created_at, "h:mm a")}</span>
+                      {isMe && (
+                        msg.status === 'read' ? (
+                          <span title="Read" className="text-[#34C759] dark:text-[#30D158] inline-flex items-center">
+                            <CheckCheck weight="bold" className="h-3 w-3" />
+                          </span>
+                        ) : msg.status === 'delivered' ? (
+                          <span title="Delivered" className="opacity-75 inline-flex items-center">
+                            <CheckCheck weight="bold" className="h-3 w-3" />
+                          </span>
+                        ) : (
+                          <span title="Sent" className="opacity-75 inline-flex items-center">
+                            <CheckIcon weight="bold" className="h-3 w-3" />
+                          </span>
+                        )
+                      )}
                     </span>
                   </div>
                 );
@@ -483,6 +528,9 @@ export function PopChatWidget() {
                       </div>
                       {isUnread && (
                         <span className="absolute top-0 right-0 h-2.5 w-2.5 rounded-full bg-primary ring-2 ring-card" />
+                      )}
+                      {c.other_user?.is_online && (
+                        <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-[#34C759] ring-2 ring-card shadow-xs" />
                       )}
                     </div>
 

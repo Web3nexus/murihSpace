@@ -31,14 +31,16 @@ class ConversationController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $userId = $request->user()->id;
+        $user = $request->user();
+        $userId = $user->id;
+        $user->forceFill(['last_seen_at' => now()])->saveQuietly();
 
         $conversations = Conversation::whereHas('participants', function ($q) use ($userId) {
             $q->where('user_id', $userId);
         })
             ->with([
                 'latestMessage.user:id,name,username,avatar',
-                'users:id,name,username,avatar',
+                'users:id,name,username,avatar,last_seen_at,show_online_status',
                 'community:id,name,slug,logo_url',
                 'participants' => function ($q) use ($userId) {
                     $q->where('user_id', $userId);
@@ -106,12 +108,20 @@ class ConversationController extends Controller
 
                 $setting = $settings->get($conv->id);
 
+                $otherUserPayload = null;
+                if ($otherUser) {
+                    $otherUserPayload = array_merge($otherUser->toArray(), [
+                        'is_online' => $otherUser->isOnline(),
+                        'last_seen' => $otherUser->lastSeenForHuman(),
+                    ]);
+                }
+
                 return [
                     'id' => $conv->id,
                     'type' => $hasActiveEscrow && $conv->type === 'direct' ? 'marketplace' : $conv->type,
                     'title' => $conv->type === 'direct' ? ($otherUser ? $otherUser->name : 'Direct Message') : ($conv->type === 'saved' ? 'Saved Messages' : ($conv->community ? $conv->community->name : ($conv->title ?: 'Conversation'))),
                     'community' => $conv->community,
-                    'other_user' => $otherUser,
+                    'other_user' => $otherUserPayload,
                     'latest_message' => $conv->latestMessage,
                     'unread_count' => $unreadCount,
                     'updated_at' => $conv->updated_at,
@@ -239,6 +249,8 @@ class ConversationController extends Controller
             'name' => $targetUser->name,
             'username' => $targetUser->username,
             'avatar_url' => $targetUser->avatar_url ?? $targetUser->avatar,
+            'is_online' => $targetUser->isOnline(),
+            'last_seen' => $targetUser->lastSeenForHuman(),
         ] : null;
 
         if ($existing) {
@@ -390,6 +402,7 @@ class ConversationController extends Controller
             return response()->json(['message' => 'Conversation not found.'], 404);
         }
         $this->authorizeParticipant($request, $conversation);
+        $request->user()->forceFill(['last_seen_at' => now()])->saveQuietly();
 
         // Financial chat speed limit check ("manage illegal speed from admin")
         $isFinancialChat = $conversation->type === 'marketplace'
@@ -794,18 +807,25 @@ class ConversationController extends Controller
         }
         $this->authorizeParticipant($request, $conversation);
 
+        $user = $request->user();
+        $user->forceFill(['last_seen_at' => now()])->saveQuietly();
+
         ConversationParticipant::where('conversation_id', $conversation->id)
-            ->where('user_id', $request->user()->id)
+            ->where('user_id', $user->id)
             ->update(['last_read_at' => now()]);
 
-        // Mark all messages from other participants as 'read'
-        Message::where('conversation_id', $conversation->id)
-            ->where('user_id', '!=', $request->user()->id)
-            ->whereIn('status', [Message::STATUS_SENT, Message::STATUS_DELIVERED])
-            ->update(['status' => Message::STATUS_READ]);
+        $readReceiptsEnabled = (bool) ($user->read_receipts_enabled ?? true);
 
-        // Broadcast real-time read receipt to the conversation channel
-        event(new \App\Events\MessageRead($conversation->id, $request->user()->id));
+        if ($readReceiptsEnabled) {
+            // Mark all messages from other participants as 'read'
+            Message::where('conversation_id', $conversation->id)
+                ->where('user_id', '!=', $user->id)
+                ->whereIn('status', [Message::STATUS_SENT, Message::STATUS_DELIVERED])
+                ->update(['status' => Message::STATUS_READ]);
+
+            // Broadcast real-time read receipt to the conversation channel
+            event(new \App\Events\MessageRead($conversation->id, $user->id));
+        }
 
         return response()->json(['message' => 'Conversation marked as read.']);
     }

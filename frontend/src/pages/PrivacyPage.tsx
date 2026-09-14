@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Lock as Lock,
   Eye as Eye,
@@ -7,15 +7,22 @@ import {
   Users as Users,
   DownloadSimple as Download,
   Trash as Trash2,
-  Check as Check
+  Check as Check,
+  ChatCircleDots,
+  Checks as CheckCheck,
+  SpeakerHigh,
 } from "@phosphor-icons/react";
 import { apiClient } from "@/lib/api/client";
+import { playMessageReceivedSound, isChatSoundEnabled, setChatSoundEnabled } from "@/lib/sound";
 
 export default function PrivacyPage() {
   const [profileVisibility, setProfileVisibility] = useState<"public" | "members" | "private">("public");
   const [showEmail, setShowEmail] = useState(false);
   const [showDonations, setShowDonations] = useState(true);
   const [allowTagging, setAllowTagging] = useState(true);
+  const [showOnlineStatus, setShowOnlineStatus] = useState(true);
+  const [readReceipts, setReadReceipts] = useState(true);
+  const [chatSounds, setChatSounds] = useState(() => isChatSoundEnabled());
   const [dataDownloading, setDataDownloading] = useState(false);
   const [downloadMsg, setDownloadMsg] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
@@ -23,15 +30,39 @@ export default function PrivacyPage() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
+  useEffect(() => {
+    apiClient.get("/settings/chat")
+      .then((res) => {
+        const d = res.data?.data || res.data;
+        if (d) {
+          if (typeof d.show_online_status === "boolean") setShowOnlineStatus(d.show_online_status);
+          if (typeof d.read_receipts_enabled === "boolean") setReadReceipts(d.read_receipts_enabled);
+          if (typeof d.chat_sounds_enabled === "boolean") {
+            setChatSounds(d.chat_sounds_enabled);
+            setChatSoundEnabled(d.chat_sounds_enabled);
+          }
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   const handleSave = async () => {
     setSaving(true);
     try {
-      await apiClient.put("/settings/privacy", {
-        profile_visibility: profileVisibility,
-        show_email: showEmail,
-        show_donations: showDonations,
-        allow_tagging: allowTagging,
-      });
+      await Promise.all([
+        apiClient.put("/settings/privacy", {
+          profile_visibility: profileVisibility,
+          show_email: showEmail,
+          show_donations: showDonations,
+          allow_tagging: allowTagging,
+        }).catch(() => {}),
+        apiClient.put("/settings/chat", {
+          show_online_status: showOnlineStatus,
+          read_receipts_enabled: readReceipts,
+          chat_sounds_enabled: chatSounds,
+        }).catch(() => {}),
+      ]);
+      setChatSoundEnabled(chatSounds);
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     } catch {
@@ -160,6 +191,92 @@ export default function PrivacyPage() {
               </button>
             </label>
           ))}
+        </div>
+      </section>
+
+      {/* ── Chat & Messaging Settings ── */}
+      <section className="rounded-lg border-none bg-card p-5 shadow-2xs space-y-4">
+        <h3 className="font-bold text-foreground text-xs flex items-center gap-2">
+          <ChatCircleDots weight="fill" className="h-3.5 w-3.5 text-secondary" /> Chat &amp; Messaging
+        </h3>
+        <div className="space-y-2">
+
+          {/* Show Online Status */}
+          <label className="flex items-center justify-between p-3 rounded-lg border-none bg-muted/30 cursor-pointer hover:border-muted-foreground/30 transition-all">
+            <div className="space-y-0.5">
+              <p className="text-xs font-bold text-foreground flex items-center gap-2">
+                <span className={`w-2 h-2 rounded-full ${showOnlineStatus ? 'bg-[#34C759]' : 'bg-muted-foreground/40'}`} />
+                Show Online Status
+              </p>
+              <p className="text-[10px] text-muted-foreground">
+                When on, others see a green dot when you are active. When off, you appear offline to everyone.
+              </p>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={showOnlineStatus}
+              onClick={() => setShowOnlineStatus((v) => !v)}
+              className={`relative h-6 w-11 rounded-full p-0.5 transition-colors shrink-0 ${showOnlineStatus ? 'bg-[#34C759]' : 'bg-muted-foreground/30'}`}
+            >
+              <div className={`h-5 w-5 rounded-full bg-white transition-transform ${showOnlineStatus ? 'translate-x-5' : 'translate-x-0'}`} />
+            </button>
+          </label>
+
+          {/* Read Receipts */}
+          <label className="flex items-center justify-between p-3 rounded-lg border-none bg-muted/30 cursor-pointer hover:border-muted-foreground/30 transition-all">
+            <div className="space-y-0.5">
+              <p className="text-xs font-bold text-foreground flex items-center gap-2">
+                <CheckCheck weight="bold" className={`h-3.5 w-3.5 ${readReceipts ? 'text-[#34C759]' : 'text-muted-foreground/50'}`} />
+                Read Receipts
+              </p>
+              <p className="text-[10px] text-muted-foreground">
+                Show the sender two green marks (✓✓) when you read their message. When off, your reads stay private.
+              </p>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={readReceipts}
+              onClick={() => setReadReceipts((v) => !v)}
+              className={`relative h-6 w-11 rounded-full p-0.5 transition-colors shrink-0 ${readReceipts ? 'bg-secondary' : 'bg-muted-foreground/30'}`}
+            >
+              <div className={`h-5 w-5 rounded-full bg-white transition-transform ${readReceipts ? 'translate-x-5' : 'translate-x-0'}`} />
+            </button>
+          </label>
+
+          {/* Chat Sounds */}
+          <label className="flex items-center justify-between p-3 rounded-lg border-none bg-muted/30 cursor-pointer hover:border-muted-foreground/30 transition-all">
+            <div className="space-y-0.5">
+              <p className="text-xs font-bold text-foreground flex items-center gap-2">
+                <SpeakerHigh weight="fill" className={`h-3.5 w-3.5 ${chatSounds ? 'text-secondary' : 'text-muted-foreground/50'}`} />
+                Message &amp; Notification Sounds
+              </p>
+              <p className="text-[10px] text-muted-foreground">
+                Play a soft chime when you receive a new message or notification.
+              </p>
+            </div>
+            <div className="flex items-center gap-3 shrink-0">
+              {chatSounds && (
+                <button
+                  type="button"
+                  onClick={(e) => { e.preventDefault(); playMessageReceivedSound(); }}
+                  className="text-[10px] text-secondary font-semibold hover:underline"
+                >
+                  Preview
+                </button>
+              )}
+              <button
+                type="button"
+                role="switch"
+                aria-checked={chatSounds}
+                onClick={() => setChatSounds((v) => !v)}
+                className={`relative h-6 w-11 rounded-full p-0.5 transition-colors ${chatSounds ? 'bg-secondary' : 'bg-muted-foreground/30'}`}
+              >
+                <div className={`h-5 w-5 rounded-full bg-white transition-transform ${chatSounds ? 'translate-x-5' : 'translate-x-0'}`} />
+              </button>
+            </div>
+          </label>
         </div>
       </section>
 

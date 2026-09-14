@@ -1,12 +1,14 @@
 export type ConversationType = 'direct' | 'app' | 'community' | 'saved' | 'group' | 'marketplace' | 'spam';
 
-export type MessageStatus = 'pending' | 'sent' | 'failed';
+export type MessageStatus = 'pending' | 'sent' | 'failed' | 'delivered' | 'read';
 
 export interface ChatUser {
   id: number;
   name: string;
   username: string;
   avatar_url?: string;
+  is_online?: boolean;
+  last_seen?: string | null;
 }
 
 export interface MessageReaction {

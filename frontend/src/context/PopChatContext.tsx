@@ -8,6 +8,8 @@ interface PopChatRecipient {
   name: string;
   avatar?: string;
   username?: string;
+  is_online?: boolean;
+  last_seen?: string | null;
 }
 
 interface PopChatContextType {
@@ -90,6 +92,8 @@ export function PopChatProvider({ children }: { children: React.ReactNode }) {
       id: conv.id,
       name: conv.title,
       avatar: conv.other_user?.avatar_url || conv.community?.logo_url || (conv as any).avatar_url,
+      is_online: conv.other_user?.is_online,
+      last_seen: conv.other_user?.last_seen,
     });
     setIsMinimized(false);
   }, []);

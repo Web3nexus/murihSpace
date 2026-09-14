@@ -15,6 +15,7 @@ import {
   DotsThreeVertical as MoreVertical,
   ArrowUUpLeft as Reply,
   Paperclip as Paperclip,
+  Check as CheckIcon,
   Checks as CheckCheck,
   User as UserIcon,
   ChatCircleDots as ChatBubble,
@@ -39,6 +40,7 @@ import { CallOverlayModal, type CallMode } from '@/components/video/CallOverlayM
 import { useRealtimeMessaging } from '@/hooks/useRealtimeMessaging';
 import { useAuth } from '@/hooks/useAuth';
 import { getAuthToken } from "@/lib/auth/token";
+import { playMessageReceivedSound, playMessageSentSound } from '@/lib/sound';
 import {
   Plus as Plus,
   VideoCamera as Video
@@ -185,11 +187,15 @@ export function ChatLayout() {
 
   useRealtimeMessaging(activeConv?.id ?? null, currentUserId, {
     onMessageReceived: useCallback((msg: ChatMessage) => {
+      playMessageReceivedSound();
       setMessages((prev) => {
         if (prev.some((m) => m.client_uuid && m.client_uuid === msg.client_uuid)) return prev;
         if (prev.some((m) => m.id && m.id === msg.id)) return prev;
         return [...prev, { ...msg, status: 'sent' }];
       });
+      if (msg.conversation_id === activeConv?.id) {
+        apiFetch(`/conversations/${msg.conversation_id}/read`, { method: 'POST' }).catch(() => {});
+      }
       setConversations((prev) => prev.map((c) =>
         c.id === msg.conversation_id
           ? { ...c, latest_message: msg, updated_at: msg.created_at, unread_count: c.id === activeConv?.id ? 0 : (c.unread_count ?? 0) + 1 }
@@ -206,6 +212,19 @@ export function ChatLayout() {
         });
       }
     }, [activeConv?.id, currentUserId, conversations, navigate, selectConversation]),
+    onMessageRead: useCallback((data) => {
+      if (data.reader_id !== currentUserId) {
+        setMessages((prev) => prev.map((m) =>
+          m.user_id === currentUserId && m.status !== 'read' ? { ...m, status: 'read' } : m,
+        ));
+      }
+    }, [currentUserId]),
+    onMessageDelivered: useCallback((data) => {
+      const ids = new Set(data.message_ids);
+      setMessages((prev) => prev.map((m) =>
+        m.id !== undefined && ids.has(m.id) && m.status === 'sent' ? { ...m, status: 'delivered' } : m,
+      ));
+    }, []),
     onTyping: useCallback((data) => {
       if (data.is_typing) {
         setTypingUsers((prev) => prev.includes(data.user_name) ? prev : [...prev, data.user_name]);
@@ -264,6 +283,7 @@ export function ChatLayout() {
       const serverMsg = 'data' in res ? res.data : res;
       setMessages((prev) => prev.map((m) => m.client_uuid === msg.client_uuid ? { ...serverMsg, status: 'sent', client_uuid: msg.client_uuid } : m));
       setConversations((prev) => prev.map((c) => c.id === activeConv.id ? { ...c, latest_message: serverMsg, updated_at: serverMsg.created_at } : c));
+      playMessageSentSound();
       loadConversations();
     } catch (e) {
       console.error('Failed to send message', e);
@@ -513,7 +533,14 @@ export function ChatLayout() {
               <button key={c.id} onClick={() => selectConversation(c)} className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors ${isSelected ? 'bg-secondary/15 border-l-4 border-secondary' : 'hover:bg-muted/40'}`}>
                 {c.type === 'saved' ? <div className="h-9 w-9 rounded-full bg-amber-500/20 text-amber-500 flex items-center justify-center shrink-0"><Bookmark weight="fill" className="h-4 w-4" /></div>
                   : c.type === 'community' ? <div className="h-9 w-9 rounded-full bg-secondary/20 text-secondary flex items-center justify-center shrink-0"><Users weight="fill" className="h-4 w-4" /></div>
-                  : <Avatar name={c.other_user?.name ?? title} src={c.other_user?.avatar_url} size={36} />}
+                  : (
+                    <div className="relative shrink-0">
+                      <Avatar name={c.other_user?.name ?? title} src={c.other_user?.avatar_url} size={36} />
+                      {c.other_user?.is_online && (
+                        <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-[#34C759] border-2 border-background shadow-xs ring-1 ring-[#34C759]/30" />
+                      )}
+                    </div>
+                  )}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-foreground truncate flex items-center gap-1">
@@ -553,15 +580,33 @@ export function ChatLayout() {
                 <button onClick={() => setActiveConv(null)} className="md:hidden p-1.5 rounded-lg hover:bg-muted text-muted-foreground"><ArrowLeft weight="fill" className="h-5 w-5" /></button>
                 {activeConv.type === 'saved' ? <div className="h-9 w-9 rounded-full bg-amber-500/20 text-amber-500 flex items-center justify-center shrink-0"><Bookmark weight="fill" className="h-4 w-4" /></div>
                   : activeConv.type === 'community' ? <div className="h-9 w-9 rounded-full bg-secondary/20 text-secondary flex items-center justify-center shrink-0"><Users weight="fill" className="h-4 w-4" /></div>
-                  : <Avatar name={activeConv.other_user?.name ?? activeConv.title ?? 'Conversation'} src={activeConv.other_user?.avatar_url} size={36} />}
+                  : (
+                    <div className="relative shrink-0">
+                      <Avatar name={activeConv.other_user?.name ?? activeConv.title ?? 'Conversation'} src={activeConv.other_user?.avatar_url} size={36} />
+                      {activeConv.other_user?.is_online && (
+                        <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-[#34C759] border-2 border-background shadow-xs ring-1 ring-[#34C759]/30" />
+                      )}
+                    </div>
+                  )}
                 <div>
                   <h3 className="text-xs sm:text-sm font-extrabold text-foreground flex items-center gap-1.5">
                     {isMuted && <BellOff weight="fill" className="h-3.5 w-3.5 text-muted-foreground" />}
                     {activeConv.title || activeConv.other_user?.name || 'Conversation'}
                   </h3>
-                  <span className="text-[10px] text-muted-foreground capitalize">
-                    {activeConv.type === 'community' ? 'Community General Channel' : activeConv.type === 'saved' ? 'Personal Notes' : 'Direct Message'}
-                  </span>
+                  <div className="flex items-center gap-1.5">
+                    {activeConv.type === 'direct' && activeConv.other_user ? (
+                      <span className="flex items-center gap-1 text-[10px]">
+                        <span className={`w-1.5 h-1.5 rounded-full ${activeConv.other_user.is_online ? 'bg-[#34C759] animate-pulse' : 'bg-muted-foreground/40'}`} />
+                        <span className={activeConv.other_user.is_online ? 'text-[#34C759] font-bold' : 'text-muted-foreground'}>
+                          {activeConv.other_user.is_online ? 'online' : (activeConv.other_user.last_seen ?? 'offline')}
+                        </span>
+                      </span>
+                    ) : (
+                      <span className="text-[10px] text-muted-foreground capitalize">
+                        {activeConv.type === 'community' ? 'Community General Channel' : 'Personal Notes'}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -653,7 +698,25 @@ export function ChatLayout() {
 
                         <div className="flex items-center justify-end gap-1 text-[9px] opacity-80 pt-0.5">
                           <span>{safeFormat(msg.created_at, 'h:mm a')}</span>
-                          {isMine && (isPending ? <Loader2 weight="fill" className="h-2.5 w-2.5 animate-spin" /> : isFailed ? <AlertCircle weight="fill" className="h-2.5 w-2.5 text-destructive" /> : <CheckCheck weight="fill" className="h-2.5 w-2.5" />)}
+                          {isMine && (
+                            isPending ? (
+                              <Loader2 weight="fill" className="h-2.5 w-2.5 animate-spin" />
+                            ) : isFailed ? (
+                              <AlertCircle weight="fill" className="h-2.5 w-2.5 text-destructive" />
+                            ) : msg.status === 'read' ? (
+                              <span title="Read" className="inline-flex items-center text-[#34C759] dark:text-[#30D158]">
+                                <CheckCheck weight="bold" className="h-3.5 w-3.5" />
+                              </span>
+                            ) : msg.status === 'delivered' ? (
+                              <span title="Delivered" className="inline-flex items-center opacity-85 text-foreground/80">
+                                <CheckCheck weight="bold" className="h-3.5 w-3.5" />
+                              </span>
+                            ) : (
+                              <span title="Sent" className="inline-flex items-center opacity-85 text-foreground/80">
+                                <CheckIcon weight="bold" className="h-3.5 w-3.5" />
+                              </span>
+                            )
+                          )}
                         </div>
 
                         {isFailed && (

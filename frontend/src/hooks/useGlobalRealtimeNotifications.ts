@@ -3,6 +3,7 @@ import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { useLocation } from 'react-router';
 import { getEcho } from '@/lib/echo';
+import { playMessageReceivedSound, playNotificationSound } from '@/lib/sound';
 
 export const NOTIFICATION_EVENT_NAME = 'murih:notification';
 export const MESSAGE_EVENT_NAME = 'murih:message';
@@ -30,6 +31,7 @@ export function RealtimeNotificationsHost() {
     const userChannel = echo.private(`user.${user.id}`);
 
     const onNotification = (e: Record<string, unknown>) => {
+      playNotificationSound();
       const title = String(e.title ?? 'New notification');
       const message = String(e.message ?? e.body ?? 'You have a new update.');
       const actionUrl = e.action_url ? String(e.action_url) : undefined;
@@ -57,6 +59,7 @@ export function RealtimeNotificationsHost() {
     }) => {
       window.dispatchEvent(new CustomEvent(MESSAGE_EVENT_NAME, { detail: e }));
       if (e.user_id === user.id) return;
+      playMessageReceivedSound();
       // The chat hub already surfaces toasts for messages outside the active
       // conversation, so skip the global toast while on the messages page.
       if (pathname.startsWith('/app/messages')) return;

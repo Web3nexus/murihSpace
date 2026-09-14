@@ -13,6 +13,8 @@ export interface RealtimeEvents {
     action: 'added' | 'removed';
     reactions: MessageReaction[];
   }) => void;
+  onMessageRead?: (data: { conversation_id: number; reader_id: number; read_at: string }) => void;
+  onMessageDelivered?: (data: { conversation_id: number; message_ids: number[]; delivered_at: string }) => void;
 }
 
 export function useRealtimeMessaging(
@@ -68,14 +70,26 @@ export function useRealtimeMessaging(
       eventsRef.current.onReaction(e);
     };
 
+    const handleRead = (e: { conversation_id: number; reader_id: number; read_at: string }) => {
+      eventsRef.current.onMessageRead?.(e);
+    };
+
+    const handleDelivered = (e: { conversation_id: number; message_ids: number[]; delivered_at: string }) => {
+      eventsRef.current.onMessageDelivered?.(e);
+    };
+
     channel.listen('.MessageSent', handleMessage);
     channel.listen('.typing', handleTyping);
     channel.listen('.MessageReacted', handleReaction);
+    channel.listen('.MessageRead', handleRead);
+    channel.listen('.MessageDelivered', handleDelivered);
 
     cleanup.current = () => {
       channel.stopListening('.MessageSent', handleMessage);
       channel.stopListening('.typing', handleTyping);
       channel.stopListening('.MessageReacted', handleReaction);
+      channel.stopListening('.MessageRead', handleRead);
+      channel.stopListening('.MessageDelivered', handleDelivered);
       echo.leave(channelName);
     };
 
