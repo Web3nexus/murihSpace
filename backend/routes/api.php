@@ -643,6 +643,7 @@ Route::prefix('v1')->group(function () {
         // ── Real-Time Audio & Video Calls ──────────────────────────────────
         Route::prefix('calls')->group(function () {
             Route::post('/initiate', [CallController::class, 'initiate']);
+            Route::get('/incoming/active', [CallController::class, 'activeIncoming']);
             Route::get('/{id}', [CallController::class, 'show']);
             Route::get('/{id}/token', [CallController::class, 'token']);
             Route::post('/{id}/accept', [CallController::class, 'accept']);

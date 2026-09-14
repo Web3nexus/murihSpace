@@ -1,7 +1,19 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { getEcho } from '@/lib/echo';
+import { getAuthToken } from '@/lib/auth/token';
 import { CallOverlayModal, type CallType } from '@/components/video/CallOverlayModal';
+
+const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? 'https://api-staging.murihspace.com/api/v1';
+
+function getAuthHeaders() {
+  const token = getAuthToken();
+  return {
+    'Content-Type': 'application/json',
+    Accept: 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+}
 
 interface IncomingCallData {
   id: number;
@@ -39,6 +51,7 @@ export function GlobalCallReceiver() {
     }
 
     const userChannel = echo.private(`user.${user.id}`);
+    const appUserChannel = echo.private(`App.Models.User.${user.id}`);
 
     const onCallIncoming = (data: any) => {
       // Don't ring if we are the caller
@@ -57,7 +70,7 @@ export function GlobalCallReceiver() {
 
     const onCallEnded = (data: any) => {
       const current = incomingCallRef.current;
-      // Dismiss if: no current call (shouldn't happen), no id in data, or ids match
+      // Dismiss if: no current call, no id in data, or ids match
       if (!current || !data?.id || String(current.id) === String(data.id)) {
         setIsModalOpen(false);
         setIncomingCall(null);
@@ -72,22 +85,56 @@ export function GlobalCallReceiver() {
       }
     };
 
-    userChannel.listen('.call.incoming', onCallIncoming);
-    userChannel.listen('.call.ended', onCallEnded);
-    userChannel.listen('.call.declined', onCallDeclined);
-    userChannel.listen('CallIncoming', onCallIncoming);
-    userChannel.listen('CallEnded', onCallEnded);
-    userChannel.listen('CallDeclined', onCallDeclined);
+    // Listen on both user.{id} and App.Models.User.{id}
+    [userChannel, appUserChannel].forEach((channel) => {
+      channel.listen('.call.incoming', onCallIncoming);
+      channel.listen('.call.ended', onCallEnded);
+      channel.listen('.call.declined', onCallDeclined);
+      channel.listen('CallIncoming', onCallIncoming);
+      channel.listen('CallEnded', onCallEnded);
+      channel.listen('CallDeclined', onCallDeclined);
+    });
+
+    // ── Resilient Polling Heartbeat (Fallback for dropped/delayed WS events) ──
+    const pollInterval = setInterval(() => {
+      const current = incomingCallRef.current;
+      fetch(`${API_BASE}/calls/incoming/active`, { headers: getAuthHeaders() })
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (!data) return;
+
+          if (data.call && data.call.status === 'ringing') {
+            // New incoming call detected via polling
+            if (!current || current.id !== data.call.id) {
+              onCallIncoming({
+                id: data.call.id,
+                caller_id: data.call.caller_id,
+                caller: data.caller || data.call.caller,
+                type: data.call.type,
+                room_name: data.room_name || data.call.room_name,
+                livekit_host: data.livekit_host,
+              });
+            }
+          } else if (current && (!data.call || data.call.id !== current.id)) {
+            // Caller cancelled or call ended while ringing
+            setIsModalOpen(false);
+            setIncomingCall(null);
+          }
+        })
+        .catch(() => {});
+    }, 2500);
 
     return () => {
-      userChannel.stopListening('.call.incoming', onCallIncoming);
-      userChannel.stopListening('.call.ended', onCallEnded);
-      userChannel.stopListening('.call.declined', onCallDeclined);
-      userChannel.stopListening('CallIncoming', onCallIncoming);
-      userChannel.stopListening('CallEnded', onCallEnded);
-      userChannel.stopListening('CallDeclined', onCallDeclined);
+      clearInterval(pollInterval);
+      [userChannel, appUserChannel].forEach((channel) => {
+        channel.stopListening('.call.incoming', onCallIncoming);
+        channel.stopListening('.call.ended', onCallEnded);
+        channel.stopListening('.call.declined', onCallDeclined);
+        channel.stopListening('CallIncoming', onCallIncoming);
+        channel.stopListening('CallEnded', onCallEnded);
+        channel.stopListening('CallDeclined', onCallDeclined);
+      });
     };
-    // Only re-subscribe when user id changes — the ref handles the live state
   }, [user?.id]);
 
   const handleClose = useCallback(() => {

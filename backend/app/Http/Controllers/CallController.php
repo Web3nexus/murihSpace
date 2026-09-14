@@ -105,7 +105,7 @@ class CallController extends Controller
         $call->load(['caller:id,name,username,avatar', 'recipient:id,name,username,avatar']);
 
         // Broadcast real-time incoming call event to recipient
-        broadcast(new CallIncoming($call))->toOthers();
+        broadcast(new CallIncoming($call));
 
         // Generate LiveKit token for caller
         $livekitToken = null;
@@ -160,7 +160,7 @@ class CallController extends Controller
 
         $call->load(['caller:id,name,username,avatar', 'recipient:id,name,username,avatar']);
 
-        broadcast(new CallAccepted($call))->toOthers();
+        broadcast(new CallAccepted($call));
 
         $livekitToken = null;
         $service = $this->resolveLivekitService();
@@ -254,7 +254,7 @@ class CallController extends Controller
             'ended_at' => now(),
         ]);
 
-        broadcast(new CallDeclined($call))->toOthers();
+        broadcast(new CallDeclined($call));
 
         // Save missed/declined call in conversation chat history
         $this->logCallMessage($call, 'declined', 0);
@@ -292,7 +292,7 @@ class CallController extends Controller
             'duration_seconds' => $duration,
         ]);
 
-        broadcast(new CallEnded($call))->toOthers();
+        broadcast(new CallEnded($call));
 
         // Save call summary in conversation chat history
         $this->logCallMessage($call, $status, $duration);
@@ -372,6 +372,43 @@ class CallController extends Controller
     }
 
     /**
+     * Check if the authenticated user has any active incoming (ringing) call.
+     */
+    public function activeIncoming(Request $request): JsonResponse
+    {
+        $userId = $request->user()->id;
+
+        $call = Call::with(['caller:id,name,username,avatar'])
+            ->where('recipient_id', $userId)
+            ->where('status', 'ringing')
+            ->where('created_at', '>=', now()->subSeconds(75))
+            ->latest()
+            ->first();
+
+        if (! $call) {
+            return response()->json(['call' => null]);
+        }
+
+        $caller = $call->caller;
+
+        return response()->json([
+            'call' => $call,
+            'id' => $call->id,
+            'caller_id' => $call->caller_id,
+            'caller' => $caller ? [
+                'id' => $caller->id,
+                'name' => $caller->name,
+                'username' => $caller->username,
+                'avatar' => $caller->avatar,
+                'avatar_url' => $caller->avatar_url ?? $caller->avatar,
+            ] : null,
+            'type' => $call->type,
+            'room_name' => $call->room_name,
+            'livekit_host' => $this->getLivekitHost(),
+        ]);
+    }
+
+    /**
      * Get details of a call.
      */
     public function show(Request $request, int $id): JsonResponse
@@ -383,8 +420,37 @@ class CallController extends Controller
             return response()->json(['message' => 'Unauthorized.'], 403);
         }
 
+        $livekitToken = null;
+        if ($call->status === 'accepted' || $call->status === 'ringing') {
+            $service = $this->resolveLivekitService();
+            if ($service) {
+                try {
+                    $livekitToken = $service->generateToken(
+                        identity: 'user_' . $request->user()->id,
+                        roomName: $call->room_name,
+                        metadata: json_encode([
+                            'user_id' => $request->user()->id,
+                            'name' => $request->user()->name,
+                            'call_id' => $call->id,
+                            'type' => $call->type,
+                        ]),
+                        canPublish: true,
+                        canSubscribe: true,
+                        name: $request->user()->name,
+                    );
+                } catch (\Throwable $e) {
+                    Log::warning('[CallController] show LiveKit token generation failed: ' . $e->getMessage());
+                }
+            }
+        }
+
         return response()->json([
             'call' => $call,
+            'status' => $call->status,
+            'room_name' => $call->room_name,
+            'livekit_token' => $livekitToken,
+            'livekit_host' => $this->getLivekitHost(),
         ]);
     }
 }
+

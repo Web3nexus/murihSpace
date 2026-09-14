@@ -258,6 +258,45 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
     };
   }, [isOpen, callId, activeRoomName, user?.id]);
 
+  // Outgoing call status polling heartbeat: ensures that when recipient picks up on mobile,
+  // the caller on web immediately switches to connected even if websocket event is delayed.
+  useEffect(() => {
+    if (!isOpen || mode !== 'outgoing' || !callId) return;
+
+    const pollInterval = setInterval(() => {
+      fetch(`${API_BASE}/calls/${callId}`, { headers: getAuthHeaders() })
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (!data?.call) return;
+          const status = data.call.status;
+          if (status === 'accepted') {
+            stopCallSounds();
+            if (data.livekit_token) setActiveToken(data.livekit_token);
+            if (data.livekit_host) setActiveHost(data.livekit_host);
+            if (data.room_name) setActiveRoomName(data.room_name);
+            setMode('connected');
+          } else if (status === 'declined') {
+            stopCallSounds();
+            setConnectionStatus('Call declined');
+            setTimeout(() => {
+              if (roomRef.current) { roomRef.current.disconnect(); roomRef.current = null; }
+              onClose();
+            }, 1500);
+          } else if (status === 'ended') {
+            stopCallSounds();
+            setConnectionStatus('Call ended');
+            setTimeout(() => {
+              if (roomRef.current) { roomRef.current.disconnect(); roomRef.current = null; }
+              onClose();
+            }, 1200);
+          }
+        })
+        .catch(() => {});
+    }, 1500);
+
+    return () => clearInterval(pollInterval);
+  }, [isOpen, mode, callId]);
+
   // Fetch token if connected but token not yet present
   useEffect(() => {
     if (mode === 'connected' && (!activeToken || !activeHost) && callId) {
