@@ -33,10 +33,20 @@ class CallAccepted implements ShouldBroadcastNow
 
     public function broadcastWith(): array
     {
+        $host = (string) config('livekit.host', 'https://live-staging.murihspace.com');
+        $host = rtrim($host, '/');
+        if (str_starts_with($host, 'https://')) {
+            $host = 'wss://' . substr($host, 8);
+        } elseif (str_starts_with($host, 'http://')) {
+            $host = 'ws://' . substr($host, 7);
+        }
+
         return [
             'id' => $this->call->id,
             'status' => $this->call->status,
+            'type' => $this->call->type,
             'room_name' => $this->call->room_name,
+            'livekit_host' => $host,
             'started_at' => $this->call->started_at?->toIso8601String(),
         ];
     }

@@ -644,6 +644,7 @@ Route::prefix('v1')->group(function () {
         Route::prefix('calls')->group(function () {
             Route::post('/initiate', [CallController::class, 'initiate']);
             Route::get('/{id}', [CallController::class, 'show']);
+            Route::get('/{id}/token', [CallController::class, 'token']);
             Route::post('/{id}/accept', [CallController::class, 'accept']);
             Route::post('/{id}/decline', [CallController::class, 'decline']);
             Route::post('/{id}/end', [CallController::class, 'end']);

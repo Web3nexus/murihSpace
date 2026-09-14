@@ -36,6 +36,14 @@ class CallIncoming implements ShouldBroadcastNow
     {
         $caller = $this->call->caller;
 
+        $host = (string) config('livekit.host', 'https://live-staging.murihspace.com');
+        $host = rtrim($host, '/');
+        if (str_starts_with($host, 'https://')) {
+            $host = 'wss://' . substr($host, 8);
+        } elseif (str_starts_with($host, 'http://')) {
+            $host = 'ws://' . substr($host, 7);
+        }
+
         return [
             'id' => $this->call->id,
             'caller_id' => $this->call->caller_id,
@@ -44,6 +52,7 @@ class CallIncoming implements ShouldBroadcastNow
             'type' => $this->call->type,
             'status' => $this->call->status,
             'room_name' => $this->call->room_name,
+            'livekit_host' => $host,
             'created_at' => $this->call->created_at?->toIso8601String(),
             'caller' => $caller ? [
                 'id' => $caller->id,

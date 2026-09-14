@@ -12,6 +12,7 @@ use App\Models\UserBlock;
 use App\Services\LiveKitService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class CallController extends Controller
@@ -19,6 +20,32 @@ class CallController extends Controller
     public function __construct(
         private readonly ?LiveKitService $liveKitService = null,
     ) {}
+
+    private function getLivekitHost(): string
+    {
+        $host = (string) config('livekit.host', 'https://live-staging.murihspace.com');
+        $host = rtrim($host, '/');
+        if (str_starts_with($host, 'https://')) {
+            return 'wss://' . substr($host, 8);
+        }
+        if (str_starts_with($host, 'http://')) {
+            return 'ws://' . substr($host, 7);
+        }
+        return $host;
+    }
+
+    private function resolveLivekitService(): ?LiveKitService
+    {
+        if ($this->liveKitService) {
+            return $this->liveKitService;
+        }
+
+        try {
+            return app(LiveKitService::class);
+        } catch (\Throwable $e) {
+            return null;
+        }
+    }
 
     /**
      * Initiate a new audio or video call.
@@ -66,19 +93,26 @@ class CallController extends Controller
         // Broadcast real-time incoming call event to recipient
         broadcast(new CallIncoming($call))->toOthers();
 
-        // Optional LiveKit token for caller
+        // Generate LiveKit token for caller
         $livekitToken = null;
-        if ($this->liveKitService) {
+        $service = $this->resolveLivekitService();
+        if ($service) {
             try {
-                $livekitToken = $this->liveKitService->generateToken(
+                $livekitToken = $service->generateToken(
+                    identity: 'user_' . $callerId,
                     roomName: $roomName,
-                    participantIdentity: 'user_' . $callerId,
-                    participantName: $request->user()->name,
+                    metadata: json_encode([
+                        'user_id' => $callerId,
+                        'name' => $request->user()->name,
+                        'call_id' => $call->id,
+                        'type' => $callType,
+                    ]),
                     canPublish: true,
                     canSubscribe: true,
+                    name: $request->user()->name,
                 );
             } catch (\Throwable $e) {
-                // Non-fatal if LiveKit not configured
+                Log::warning('[CallController] LiveKit token generation failed: ' . $e->getMessage());
             }
         }
 
@@ -86,7 +120,7 @@ class CallController extends Controller
             'call' => $call,
             'room_name' => $roomName,
             'livekit_token' => $livekitToken,
-            'livekit_host' => config('livekit.host'),
+            'livekit_host' => $this->getLivekitHost(),
         ], 201);
     }
 
@@ -110,27 +144,83 @@ class CallController extends Controller
             'started_at' => now(),
         ]);
 
+        $call->load(['caller:id,name,username,avatar', 'recipient:id,name,username,avatar']);
+
         broadcast(new CallAccepted($call))->toOthers();
 
         $livekitToken = null;
-        if ($this->liveKitService) {
+        $service = $this->resolveLivekitService();
+        if ($service) {
             try {
-                $livekitToken = $this->liveKitService->generateToken(
+                $livekitToken = $service->generateToken(
+                    identity: 'user_' . $request->user()->id,
                     roomName: $call->room_name,
-                    participantIdentity: 'user_' . $request->user()->id,
-                    participantName: $request->user()->name,
+                    metadata: json_encode([
+                        'user_id' => $request->user()->id,
+                        'name' => $request->user()->name,
+                        'call_id' => $call->id,
+                        'type' => $call->type,
+                    ]),
                     canPublish: true,
                     canSubscribe: true,
+                    name: $request->user()->name,
                 );
             } catch (\Throwable $e) {
-                // Non-fatal
+                Log::warning('[CallController] LiveKit token generation failed: ' . $e->getMessage());
             }
         }
 
         return response()->json([
             'call' => $call,
+            'room_name' => $call->room_name,
             'livekit_token' => $livekitToken,
-            'livekit_host' => config('livekit.host'),
+            'livekit_host' => $this->getLivekitHost(),
+        ]);
+    }
+
+    /**
+     * Get or refresh a LiveKit token for the authenticated participant of a call.
+     */
+    public function token(Request $request, int $id): JsonResponse
+    {
+        $call = Call::findOrFail($id);
+        $user = $request->user();
+
+        if ($call->recipient_id !== $user->id && $call->caller_id !== $user->id) {
+            return response()->json(['message' => 'Unauthorized.'], 403);
+        }
+
+        if (in_array($call->status, ['ended', 'declined'])) {
+            return response()->json(['message' => 'Call has already ended.'], 400);
+        }
+
+        $service = $this->resolveLivekitService();
+        $token = null;
+        if ($service) {
+            try {
+                $token = $service->generateToken(
+                    identity: 'user_' . $user->id,
+                    roomName: $call->room_name,
+                    metadata: json_encode([
+                        'user_id' => $user->id,
+                        'name' => $user->name,
+                        'call_id' => $call->id,
+                        'type' => $call->type,
+                    ]),
+                    canPublish: true,
+                    canSubscribe: true,
+                    name: $user->name,
+                );
+            } catch (\Throwable $e) {
+                Log::warning('[CallController] LiveKit token generation failed: ' . $e->getMessage());
+            }
+        }
+
+        return response()->json([
+            'call' => $call,
+            'room_name' => $call->room_name,
+            'livekit_token' => $token,
+            'livekit_host' => $this->getLivekitHost(),
         ]);
     }
 
