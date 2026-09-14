@@ -202,7 +202,9 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
       stopCallSounds();
       setConnectionStatus('Call declined');
       setTimeout(() => {
-        handleEndCall();
+        // Cleanup without re-posting to API (remote side already ended)
+        if (roomRef.current) { roomRef.current.disconnect(); roomRef.current = null; }
+        onClose();
       }, 1500);
     };
 
@@ -211,7 +213,9 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
       stopCallSounds();
       setConnectionStatus('Call ended');
       setTimeout(() => {
-        handleEndCall();
+        // Cleanup without re-posting to API (remote side already ended)
+        if (roomRef.current) { roomRef.current.disconnect(); roomRef.current = null; }
+        onClose();
       }, 1200);
     };
 
@@ -298,12 +302,17 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
               track.attach(remoteVideoRef.current);
               setHasRemoteVideo(true);
             } else if (track.kind === Track.Kind.Audio) {
+              let audioEl: HTMLAudioElement;
               if (remoteAudioRef.current) {
                 track.attach(remoteAudioRef.current);
+                audioEl = remoteAudioRef.current;
               } else {
-                const el = track.attach();
-                el.autoplay = true;
+                audioEl = track.attach() as HTMLAudioElement;
+                audioEl.autoplay = true;
+                document.body.appendChild(audioEl);
               }
+              // Explicitly call play() to bypass browser autoplay policy
+              audioEl.play().catch(() => {});
             }
           }
         );
@@ -320,7 +329,7 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
         room.on(RoomEvent.ParticipantDisconnected, () => {
           setConnectionStatus('Other participant left');
           setTimeout(() => {
-            handleEndCall();
+            cleanupAndClose();
           }, 1500);
         });
 
@@ -414,7 +423,17 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
     }
   };
 
-  // End / Hang up call
+  // Internal cleanup: disconnect LiveKit and close modal WITHOUT posting to API
+  const cleanupAndClose = () => {
+    stopCallSounds();
+    if (roomRef.current) {
+      roomRef.current.disconnect();
+      roomRef.current = null;
+    }
+    onClose();
+  };
+
+  // End / Hang up call — user-initiated, posts to API then cleans up
   const handleEndCall = async () => {
     stopCallSounds();
     if (roomRef.current) {
@@ -430,7 +449,7 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
     onClose();
   };
 
-  // Decline call
+  // Decline call — user-initiated
   const handleDeclineCall = async () => {
     stopCallSounds();
     if (callId) {
@@ -442,7 +461,7 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
     onClose();
   };
 
-  // Answer call
+  // Answer call — posts accept, transitions to connected only if accepted
   const handleAnswerCall = async () => {
     stopCallSounds();
     if (callId) {
@@ -452,14 +471,25 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
           headers: getAuthHeaders(),
         });
         const data = await res.json();
+        if (!res.ok) {
+          // Call may have been cancelled by caller already
+          setConnectionStatus(data?.message || 'Call no longer available');
+          setTimeout(() => cleanupAndClose(), 1500);
+          return;
+        }
         if (data.livekit_token) setActiveToken(data.livekit_token);
         if (data.livekit_host) setActiveHost(data.livekit_host);
         if (data.room_name) setActiveRoomName(data.room_name);
-      } catch {}
+      } catch {
+        setConnectionStatus('Failed to connect');
+        setTimeout(() => cleanupAndClose(), 1500);
+        return;
+      }
     }
     setMode('connected');
     if (onAnswer) onAnswer();
   };
+
 
   const formatTimer = (totalSec: number) => {
     const mins = Math.floor(totalSec / 60);

@@ -453,7 +453,7 @@ export default function CommunityChatPage() {
                   </div>
                   <p className="text-[11px] text-muted-foreground/80 truncate mt-0.5">
                     {c.latest_message
-                      ? c.latest_message.content
+                      ? (() => { if (c.latest_message.type === 'call') { try { const d = JSON.parse(c.latest_message.content); const missed = d.status === 'missed' || d.status === 'declined'; if (missed) return d.call_type === 'video' ? '📹 Missed Video Call' : '📞 Missed Call'; if (d.duration > 0) { const m = Math.floor(d.duration / 60); const s = d.duration % 60; return d.call_type === 'video' ? `📹 Video Call · ${m > 0 ? m + 'm ' : ''}${s}s` : `📞 Voice Call · ${m > 0 ? m + 'm ' : ''}${s}s`; } return d.call_type === 'video' ? '📹 Video Call' : '📞 Voice Call'; } catch { return '📞 Call'; } } return c.latest_message.content; })()
                       : "No messages yet"}
                   </p>
                 </div>
