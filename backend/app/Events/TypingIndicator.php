@@ -2,6 +2,7 @@
 
 namespace App\Events;
 
+use App\Models\ConversationParticipant;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
@@ -30,9 +31,20 @@ class TypingIndicator implements ShouldBroadcastNow
 
     public function broadcastOn(): array
     {
-        return [
+        $channels = [
             new PrivateChannel('conversation.'.$this->conversationId),
         ];
+
+        // Also broadcast to each participant's personal channel
+        $participantIds = ConversationParticipant::where('conversation_id', $this->conversationId)
+            ->where('user_id', '!=', $this->userId)
+            ->pluck('user_id');
+
+        foreach ($participantIds as $pId) {
+            $channels[] = new PrivateChannel('user.'.$pId);
+        }
+
+        return $channels;
     }
 
     public function broadcastAs(): string
@@ -43,6 +55,7 @@ class TypingIndicator implements ShouldBroadcastNow
     public function broadcastWith(): array
     {
         return [
+            'conversation_id' => $this->conversationId,
             'user_id' => $this->userId,
             'user_name' => $this->userName,
             'is_typing' => $this->isTyping,

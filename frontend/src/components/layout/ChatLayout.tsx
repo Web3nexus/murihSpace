@@ -180,6 +180,7 @@ export function ChatLayout() {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastTypingSentRef = useRef<number>(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const loadConvSettings = async (convId: number) => {
@@ -355,11 +356,18 @@ export function ChatLayout() {
 
   const handleTypingDebounced = async () => {
     if (!activeConv) return;
+    const now = Date.now();
     try {
-      await apiFetch(`/conversations/${activeConv.id}/typing`, { method: 'POST', body: JSON.stringify({ is_typing: true }) });
+      if (now - lastTypingSentRef.current > 2000) {
+        lastTypingSentRef.current = now;
+        await apiFetch(`/conversations/${activeConv.id}/typing`, { method: 'POST', body: JSON.stringify({ is_typing: true }) });
+      }
       if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
       typingTimeoutRef.current = setTimeout(async () => {
-        try { await apiFetch(`/conversations/${activeConv.id}/typing`, { method: 'POST', body: JSON.stringify({ is_typing: false }) }); } catch (e) { console.error('Failed to stop typing', e); }
+        try {
+          lastTypingSentRef.current = 0;
+          await apiFetch(`/conversations/${activeConv.id}/typing`, { method: 'POST', body: JSON.stringify({ is_typing: false }) });
+        } catch (e) { console.error('Failed to stop typing', e); }
       }, 2500);
     } catch (e) { console.error('Failed to send typing indicator', e); }
   };
@@ -367,6 +375,12 @@ export function ChatLayout() {
   const handleSendMessage = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!activeConv || !inputContent.trim()) return;
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+      typingTimeoutRef.current = null;
+    }
+    lastTypingSentRef.current = 0;
+    apiFetch(`/conversations/${activeConv.id}/typing`, { method: 'POST', body: JSON.stringify({ is_typing: false }) }).catch(() => {});
     const contentText = inputContent.trim();
     setInputContent('');
     const clientUuid = crypto.randomUUID ? crypto.randomUUID() : `uuid-${Date.now()}`;
