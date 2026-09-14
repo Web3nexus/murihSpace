@@ -67,11 +67,17 @@ export function GlobalCallReceiver() {
     userChannel.listen('.call.incoming', onCallIncoming);
     userChannel.listen('.call.ended', onCallEnded);
     userChannel.listen('.call.declined', onCallDeclined);
+    userChannel.listen('CallIncoming', onCallIncoming);
+    userChannel.listen('CallEnded', onCallEnded);
+    userChannel.listen('CallDeclined', onCallDeclined);
 
     return () => {
       userChannel.stopListening('.call.incoming', onCallIncoming);
       userChannel.stopListening('.call.ended', onCallEnded);
       userChannel.stopListening('.call.declined', onCallDeclined);
+      userChannel.stopListening('CallIncoming', onCallIncoming);
+      userChannel.stopListening('CallEnded', onCallEnded);
+      userChannel.stopListening('CallDeclined', onCallDeclined);
     };
   }, [user?.id, incomingCall]);
 

@@ -6,12 +6,17 @@ use App\Events\CallAccepted;
 use App\Events\CallDeclined;
 use App\Events\CallEnded;
 use App\Events\CallIncoming;
+use App\Events\MessageSent;
 use App\Models\Call;
+use App\Models\Conversation;
+use App\Models\ConversationParticipant;
+use App\Models\Message;
 use App\Models\User;
 use App\Models\UserBlock;
 use App\Services\LiveKitService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
@@ -79,10 +84,19 @@ class CallController extends Controller
         $callType = $validated['type'] ?? 'audio';
         $roomName = 'call_' . $callerId . '_' . $recipientId . '_' . time() . '_' . Str::lower(Str::random(6));
 
+        $conversationId = $validated['conversation_id'] ?? null;
+        if (! $conversationId) {
+            $existingConv = Conversation::where('type', 'direct')
+                ->whereHas('participants', fn ($q) => $q->where('user_id', $callerId))
+                ->whereHas('participants', fn ($q) => $q->where('user_id', $recipientId))
+                ->first();
+            $conversationId = $existingConv?->id;
+        }
+
         $call = Call::create([
             'caller_id' => $callerId,
             'recipient_id' => $recipientId,
-            'conversation_id' => $validated['conversation_id'] ?? null,
+            'conversation_id' => $conversationId,
             'type' => $callType,
             'status' => 'ringing',
             'room_name' => $roomName,
@@ -242,6 +256,9 @@ class CallController extends Controller
 
         broadcast(new CallDeclined($call))->toOthers();
 
+        // Save missed/declined call in conversation chat history
+        $this->logCallMessage($call, 'declined', 0);
+
         return response()->json([
             'call' => $call,
             'message' => 'Call declined.',
@@ -260,9 +277,14 @@ class CallController extends Controller
         }
 
         $duration = 0;
-        if ($call->started_at) {
-            $duration = max(0, now()->diffInSeconds($call->started_at));
+        if ($request->filled('duration') || $request->filled('duration_seconds')) {
+            $duration = (int) ($request->input('duration') ?? $request->input('duration_seconds'));
+        } elseif ($call->started_at) {
+            $duration = max(0, (int) abs(now()->diffInSeconds($call->started_at)));
         }
+
+        $wasConnected = ($call->status === 'accepted' || $call->started_at !== null);
+        $status = $wasConnected ? 'ended' : 'missed';
 
         $call->update([
             'status' => 'ended',
@@ -272,10 +294,81 @@ class CallController extends Controller
 
         broadcast(new CallEnded($call))->toOthers();
 
+        // Save call summary in conversation chat history
+        $this->logCallMessage($call, $status, $duration);
+
         return response()->json([
             'call' => $call,
             'message' => 'Call ended.',
         ]);
+    }
+
+    /**
+     * Resolve or find the direct conversation for a call.
+     */
+    private function resolveConversationForCall(Call $call): ?Conversation
+    {
+        if ($call->conversation_id) {
+            return Conversation::find($call->conversation_id);
+        }
+
+        $existing = Conversation::where('type', 'direct')
+            ->whereHas('participants', fn ($q) => $q->where('user_id', $call->caller_id))
+            ->whereHas('participants', fn ($q) => $q->where('user_id', $call->recipient_id))
+            ->first();
+
+        if (! $existing) {
+            $existing = DB::transaction(function () use ($call) {
+                $conv = Conversation::create(['type' => 'direct']);
+                ConversationParticipant::create(['conversation_id' => $conv->id, 'user_id' => $call->caller_id, 'last_read_at' => now()]);
+                ConversationParticipant::create(['conversation_id' => $conv->id, 'user_id' => $call->recipient_id]);
+                return $conv;
+            });
+        }
+
+        if ($existing && ! $call->conversation_id) {
+            $call->update(['conversation_id' => $existing->id]);
+        }
+
+        return $existing;
+    }
+
+    /**
+     * Store a call summary message in the conversation thread and broadcast to participants.
+     */
+    private function logCallMessage(Call $call, string $status, int $durationSeconds = 0): ?Message
+    {
+        try {
+            $conversation = $this->resolveConversationForCall($call);
+            if (! $conversation) {
+                return null;
+            }
+
+            $payload = [
+                'call_id' => $call->id,
+                'call_type' => $call->type ?? 'audio',
+                'status' => $status, // 'ended', 'missed', 'declined'
+                'duration' => $durationSeconds,
+            ];
+
+            $message = Message::create([
+                'conversation_id' => $conversation->id,
+                'user_id' => $call->caller_id,
+                'content' => json_encode($payload),
+                'type' => 'call',
+                'status' => Message::STATUS_SENT,
+            ]);
+
+            $conversation->touch();
+
+            $loadedMessage = $message->load(['user:id,name,username,avatar']);
+            event(new MessageSent($loadedMessage));
+
+            return $loadedMessage;
+        } catch (\Throwable $e) {
+            Log::warning('[CallController] Failed to log call message: ' . $e->getMessage());
+            return null;
+        }
     }
 
     /**

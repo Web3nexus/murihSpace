@@ -5,6 +5,7 @@ import { MotionProvider } from "./MotionProvider";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { DialogProvider } from "@/components/ui/DialogProvider";
 import { PopChatProvider } from "@/context/PopChatContext";
+import { GlobalCallReceiver } from "@/components/video/GlobalCallReceiver";
 import { Toaster } from "sonner";
 
 interface AppProvidersProps {
@@ -21,6 +22,7 @@ export function AppProviders({ children }: AppProvidersProps) {
               <DialogProvider>
                 <PopChatProvider>
                   {children}
+                  <GlobalCallReceiver />
                   <Toaster richColors position="top-right" toastOptions={{ duration: 4000 }} />
                 </PopChatProvider>
               </DialogProvider>

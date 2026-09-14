@@ -114,6 +114,40 @@ class CallSignalingAndChatActionsTest extends TestCase
             'id' => $call->id,
             'status' => 'declined',
         ]);
+
+        $this->assertDatabaseHas('messages', [
+            'type' => 'call',
+            'user_id' => $this->user1->id,
+        ]);
+    }
+
+    public function test_call_end_creates_chat_message_with_duration(): void
+    {
+        $call = Call::create([
+            'caller_id' => $this->user1->id,
+            'recipient_id' => $this->user2->id,
+            'type' => 'video',
+            'status' => 'accepted',
+            'room_name' => 'call_test_ended',
+            'started_at' => now()->subSeconds(145),
+        ]);
+
+        Sanctum::actingAs($this->user1);
+        $response = $this->postJson("/api/v1/calls/{$call->id}/end");
+
+        $response->assertOk();
+
+        $this->assertDatabaseHas('messages', [
+            'type' => 'call',
+            'user_id' => $this->user1->id,
+        ]);
+
+        $msg = Message::where('type', 'call')->latest('id')->first();
+        $this->assertNotNull($msg);
+        $payload = json_decode($msg->content, true);
+        $this->assertEquals('video', $payload['call_type']);
+        $this->assertEquals('ended', $payload['status']);
+        $this->assertGreaterThanOrEqual(145, $payload['duration']);
     }
 
     public function test_user_can_clear_chat_for_everyone(): void

@@ -25,6 +25,7 @@ import {
   Copy as Copy,
   TrashSimple as Trash,
   Phone,
+  VideoCamera,
   X as X
 } from "@phosphor-icons/react";
 import { toast } from 'sonner';
@@ -778,7 +779,47 @@ export function ChatLayout() {
                             : <a href={msg.attachment_url} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-xs font-semibold underline"><Paperclip weight="fill" className="h-3.5 w-3.5" /> Attachment</a>
                         )}
 
-                        <p className="leading-relaxed whitespace-pre-wrap break-words font-normal">{msg.content}</p>
+                        {/* Call Message Card */}
+                        {msg.type === 'call' ? (() => {
+                          let callData: any = {};
+                          try {
+                            callData = JSON.parse(msg.content);
+                          } catch {
+                            callData = { status: 'ended', call_type: 'audio', duration: 0 };
+                          }
+                          const isVideo = callData.call_type === 'video';
+                          const isMissed = callData.status === 'missed' || callData.status === 'declined';
+                          const dur = Number(callData.duration) || 0;
+                          const durStr = dur > 0
+                            ? `${Math.floor(dur / 60)}m ${dur % 60}s`
+                            : (isMissed ? (callData.status === 'declined' ? 'Call declined' : 'Missed call') : 'Call ended');
+
+                          return (
+                            <div className="flex items-center gap-3 py-1 min-w-[200px]">
+                              <div className={`p-2 rounded-full shrink-0 ${isMissed ? 'bg-red-500/20 text-red-500' : 'bg-emerald-500/20 text-emerald-400'}`}>
+                                {isVideo ? <VideoCamera weight="fill" className="h-4 w-4" /> : <Phone weight="fill" className="h-4 w-4" />}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className={`font-semibold text-xs truncate ${isMissed ? 'text-red-400' : ''}`}>
+                                  {isMissed ? (isVideo ? 'Missed Video Call' : 'Missed Voice Call') : (isVideo ? 'Video Call' : 'Voice Call')}
+                                </p>
+                                <p className="text-[10px] opacity-75">{durStr}</p>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  startCall(isVideo ? 'video' : 'audio');
+                                }}
+                                className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-primary text-primary-foreground hover:opacity-90 transition-opacity shrink-0"
+                              >
+                                Call
+                              </button>
+                            </div>
+                          );
+                        })() : (
+                          <p className="leading-relaxed whitespace-pre-wrap break-words font-normal">{msg.content}</p>
+                        )}
 
                         <div className="flex items-center justify-end gap-1 text-[9px] opacity-80 pt-0.5">
                           <span>{safeFormat(msg.created_at, 'h:mm a')}</span>

@@ -14,6 +14,7 @@ import { Room, RoomEvent, Track, RemoteTrack, RemoteTrackPublication, Participan
 import { startOutgoingRingback, startIncomingRingtone, stopCallSounds } from '@/lib/sound';
 import { getEcho } from '@/lib/echo';
 import { getAuthToken } from '@/lib/auth/token';
+import { useAuth } from '@/hooks/useAuth';
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? 'https://api-staging.murihspace.com/api/v1';
 
@@ -171,6 +172,8 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
     };
   }, [mode]);
 
+  const { user } = useAuth();
+
   // Listen to call events via Echo for this specific room / call
   useEffect(() => {
     if (!isOpen || !callId) return;
@@ -184,15 +187,18 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
 
     const channelName = activeRoomName ? `call.${activeRoomName}` : null;
     const callChannel = channelName ? echo.private(channelName) : null;
+    const userChannel = user?.id ? echo.private(`user.${user.id}`) : null;
 
     const handleCallAccepted = (data: any) => {
+      if (data && callId && data.id && Number(data.id) !== Number(callId)) return;
       stopCallSounds();
-      if (data.livekit_host) setActiveHost(data.livekit_host);
-      if (data.room_name) setActiveRoomName(data.room_name);
+      if (data?.livekit_host) setActiveHost(data.livekit_host);
+      if (data?.room_name) setActiveRoomName(data.room_name);
       setMode('connected');
     };
 
-    const handleCallDeclined = () => {
+    const handleCallDeclined = (data?: any) => {
+      if (data && callId && data.id && Number(data.id) !== Number(callId)) return;
       stopCallSounds();
       setConnectionStatus('Call declined');
       setTimeout(() => {
@@ -200,7 +206,8 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
       }, 1500);
     };
 
-    const handleCallEnded = () => {
+    const handleCallEnded = (data?: any) => {
+      if (data && callId && data.id && Number(data.id) !== Number(callId)) return;
       stopCallSounds();
       setConnectionStatus('Call ended');
       setTimeout(() => {
@@ -212,6 +219,18 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
       callChannel.listen('.call.accepted', handleCallAccepted);
       callChannel.listen('.call.declined', handleCallDeclined);
       callChannel.listen('.call.ended', handleCallEnded);
+      callChannel.listen('CallAccepted', handleCallAccepted);
+      callChannel.listen('CallDeclined', handleCallDeclined);
+      callChannel.listen('CallEnded', handleCallEnded);
+    }
+
+    if (userChannel) {
+      userChannel.listen('.call.accepted', handleCallAccepted);
+      userChannel.listen('.call.declined', handleCallDeclined);
+      userChannel.listen('.call.ended', handleCallEnded);
+      userChannel.listen('CallAccepted', handleCallAccepted);
+      userChannel.listen('CallDeclined', handleCallDeclined);
+      userChannel.listen('CallEnded', handleCallEnded);
     }
 
     return () => {
@@ -219,10 +238,21 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
         callChannel.stopListening('.call.accepted', handleCallAccepted);
         callChannel.stopListening('.call.declined', handleCallDeclined);
         callChannel.stopListening('.call.ended', handleCallEnded);
+        callChannel.stopListening('CallAccepted', handleCallAccepted);
+        callChannel.stopListening('CallDeclined', handleCallDeclined);
+        callChannel.stopListening('CallEnded', handleCallEnded);
         echo.leave(channelName);
       }
+      if (userChannel && user?.id) {
+        userChannel.stopListening('.call.accepted', handleCallAccepted);
+        userChannel.stopListening('.call.declined', handleCallDeclined);
+        userChannel.stopListening('.call.ended', handleCallEnded);
+        userChannel.stopListening('CallAccepted', handleCallAccepted);
+        userChannel.stopListening('CallDeclined', handleCallDeclined);
+        userChannel.stopListening('CallEnded', handleCallEnded);
+      }
     };
-  }, [isOpen, callId, activeRoomName]);
+  }, [isOpen, callId, activeRoomName, user?.id]);
 
   // Fetch token if connected but token not yet present
   useEffect(() => {

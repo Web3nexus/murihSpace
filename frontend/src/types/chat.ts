@@ -23,7 +23,7 @@ export interface ChatMessage {
   conversation_id: number;
   user_id: number;
   content: string;
-  type: 'text' | 'image' | 'file' | 'voice';
+  type: 'text' | 'image' | 'file' | 'voice' | 'call' | string;
   client_uuid?: string;
   status?: MessageStatus;
   reply_to_id?: number;

@@ -23,7 +23,6 @@ import { getAuthToken } from "@/lib/auth/token";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { PopChatWidget } from "@/components/chat/PopChatWidget";
 import { RealtimeNotificationsHost } from "@/hooks/useGlobalRealtimeNotifications";
-import { GlobalCallReceiver } from "@/components/video/GlobalCallReceiver";
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? "http://localhost:8000/api/v1";
 
@@ -162,7 +161,6 @@ export function DashboardLayout() {
 
       {/* Global live notification + badge listeners */}
       <RealtimeNotificationsHost />
-      <GlobalCallReceiver />
 
       {/* 100vw Edge-to-edge Global Social Header */}
       <SiteHeader onOpenMobileSidebar={() => setMobileMenuOpen(true)} />
