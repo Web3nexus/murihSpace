@@ -61,7 +61,14 @@ export function PopChatWidget() {
       return [...prev, { ...msg, status: "sent" }];
     });
     if (activeConv?.id === msg.conversation_id) {
+      // Mark as read (we're looking at it)
       apiClient.post(`/conversations/${msg.conversation_id}/read`).catch(() => {});
+      // Also mark as delivered so the sender gets double-grey ticks
+      if (msg.id) {
+        apiClient.post(`/conversations/${msg.conversation_id}/delivered`, {
+          message_ids: [msg.id],
+        }).catch(() => {});
+      }
     }
     refreshConversations();
   }, [activeConv?.id, refreshConversations]);
@@ -111,9 +118,20 @@ export function PopChatWidget() {
       .then((res) => {
         if (cancelled) return;
         const list = extractMessages(res.data);
-        setMessages(list);
-        // Mark conversation as read
+        // Initialize status from backend 'read' flag so ticks show correctly on load
+        const formatted = list.map((m: any) => ({
+          ...m,
+          status: m.read === true ? 'read' : (m.status && m.status !== 'sent' ? m.status : 'sent'),
+        }));
+        setMessages(formatted);
+        // Mark conversation as read & clear global badge
         apiClient.post(`/conversations/${activeConv.id}/read`).catch(() => {});
+        import('@/lib/chatUnread').then(({ getUnreadCount, setUnreadCount, refreshUnreadCount }) => {
+          const conv = activeConv as any;
+          const unread = conv?.unread_count ?? 0;
+          if (unread > 0) setUnreadCount(Math.max(0, getUnreadCount() - unread));
+          refreshUnreadCount().catch(() => {});
+        });
       })
       .catch(() => {})
       .finally(() => {

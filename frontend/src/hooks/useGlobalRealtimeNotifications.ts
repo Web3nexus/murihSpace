@@ -4,6 +4,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useLocation } from 'react-router';
 import { getEcho } from '@/lib/echo';
 import { playMessageReceivedSound, playNotificationSound } from '@/lib/sound';
+import { getUnreadCount, setUnreadCount, refreshUnreadCount } from '@/lib/chatUnread';
 
 export const NOTIFICATION_EVENT_NAME = 'murih:notification';
 export const MESSAGE_EVENT_NAME = 'murih:message';
@@ -59,10 +60,19 @@ export function RealtimeNotificationsHost() {
     }) => {
       window.dispatchEvent(new CustomEvent(MESSAGE_EVENT_NAME, { detail: e }));
       if (e.user_id === user.id) return;
+
+      // Bump the global unread badge immediately so the header icon updates
+      // before the next server poll, but only if not currently viewing messages.
+      if (!pathname.startsWith('/app/messages')) {
+        setUnreadCount(getUnreadCount() + 1);
+      }
+
       playMessageReceivedSound();
+
       // The chat hub already surfaces toasts for messages outside the active
       // conversation, so skip the global toast while on the messages page.
       if (pathname.startsWith('/app/messages')) return;
+
       const sender = e.user?.name ?? 'New message';
       toast(sender, {
         description: e.content || (e.attachment_type ? 'Sent an attachment' : 'Sent a message'),
@@ -76,12 +86,25 @@ export function RealtimeNotificationsHost() {
       });
     };
 
+    // When any participant reads a conversation, server-sync the badge so
+    // the header count stays accurate across tabs and page navigations.
+    const onMessageRead = (e: { conversation_id?: number; reader_id?: number }) => {
+      if (e.reader_id !== user.id) {
+        // Someone else read a message — no badge change needed for us.
+        return;
+      }
+      // We read the messages (from another tab/device), re-sync badge.
+      refreshUnreadCount().catch(() => {});
+    };
+
     notificationChannel.listen('.notification', onNotification);
     userChannel.listen('.MessageSent', onMessageSent);
+    userChannel.listen('.MessageRead', onMessageRead);
 
     return () => {
       notificationChannel.stopListening('.notification', onNotification);
       userChannel.stopListening('.MessageSent', onMessageSent);
+      userChannel.stopListening('.MessageRead', onMessageRead);
       echo.leave(`App.Models.User.${user.id}`);
       echo.leave(`user.${user.id}`);
     };

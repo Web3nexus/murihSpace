@@ -165,13 +165,23 @@ export function ChatLayout() {
     try {
       const res = await apiFetch(`/conversations/${conv.id}/messages`);
       const list = extractMessages(res);
-      const formatted = list.map((m) => ({ ...m, status: 'sent' as MessageStatus }));
+      const formatted = list.map((m) => ({
+        ...m,
+        // Use the 'read' boolean the backend computes from last_read_at so
+        // messages sent by me show the correct tick (read vs sent) on load.
+        status: ((m as any).read === true
+          ? 'read'
+          : (m.status && m.status !== 'sent' ? m.status : 'sent')) as MessageStatus,
+      }));
       setMessages(formatted);
 
       if (conv.unread_count > 0) {
         await apiFetch(`/conversations/${conv.id}/read`, { method: 'POST' });
-        // Let the shared unread store re-sync so the badge clears everywhere
-        // (header + sidebar + here) the instant this chat is opened.
+        // Clear the global badge immediately (optimistic) so the header icon
+        // updates before the next server poll completes.
+        const { getUnreadCount, setUnreadCount } = await import('@/lib/chatUnread');
+        setUnreadCount(Math.max(0, getUnreadCount() - conv.unread_count));
+        // Then do a proper server sync to get the authoritative count.
         refreshUnreadCount().catch(() => {});
         setConversations((prev) => prev.map((c) => (c.id === conv.id ? { ...c, unread_count: 0 } : c)));
       }
@@ -194,7 +204,15 @@ export function ChatLayout() {
         return [...prev, { ...msg, status: 'sent' }];
       });
       if (msg.conversation_id === activeConv?.id) {
+        // Mark as read (we're looking at it)
         apiFetch(`/conversations/${msg.conversation_id}/read`, { method: 'POST' }).catch(() => {});
+        // Also mark as delivered so the sender gets double-grey ticks
+        if (msg.id) {
+          apiFetch(`/conversations/${msg.conversation_id}/delivered`, {
+            method: 'POST',
+            body: JSON.stringify({ message_ids: [msg.id] }),
+          }).catch(() => {});
+        }
       }
       setConversations((prev) => prev.map((c) =>
         c.id === msg.conversation_id
