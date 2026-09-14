@@ -209,15 +209,24 @@ export function ChatLayout() {
       }));
       setMessages(formatted);
 
-      if (conv.unread_count > 0) {
-        await apiFetch(`/conversations/${conv.id}/read`, { method: 'POST' });
-        // Clear the global badge immediately (optimistic) so the header icon
-        // updates before the next server poll completes.
-        const { getUnreadCount, setUnreadCount } = await import('@/lib/chatUnread');
+      // Always mark as read and refresh unread badges
+      apiFetch(`/conversations/${conv.id}/read`, { method: 'POST' }).catch(() => {});
+      const { getUnreadCount, setUnreadCount, refreshUnreadCount: refreshGlobalUnread } = await import('@/lib/chatUnread');
+      if (conv.unread_count && conv.unread_count > 0) {
         setUnreadCount(Math.max(0, getUnreadCount() - conv.unread_count));
-        // Then do a proper server sync to get the authoritative count.
-        refreshUnreadCount().catch(() => {});
-        setConversations((prev) => prev.map((c) => (c.id === conv.id ? { ...c, unread_count: 0 } : c)));
+      }
+      refreshGlobalUnread().catch(() => {});
+      setConversations((prev) => prev.map((c) => (c.id === conv.id ? { ...c, unread_count: 0 } : c)));
+
+      // Acknowledge delivered for received messages
+      const unacknowledged = formatted
+        .filter((m) => m.user_id !== currentUserId && m.status === 'sent' && m.id)
+        .map((m) => m.id as number);
+      if (unacknowledged.length > 0) {
+        apiFetch(`/conversations/${conv.id}/delivered`, {
+          method: 'POST',
+          body: JSON.stringify({ message_ids: unacknowledged }),
+        }).catch(() => {});
       }
     } catch (e) {
       console.error('Failed to select conversation', e);
@@ -235,7 +244,7 @@ export function ChatLayout() {
       setMessages((prev) => {
         if (prev.some((m) => m.client_uuid && m.client_uuid === msg.client_uuid)) return prev;
         if (prev.some((m) => m.id && m.id === msg.id)) return prev;
-        return [...prev, { ...msg, status: 'sent' }];
+        return [...prev, { ...msg, status: (msg.status as MessageStatus) || 'sent' }];
       });
       if (msg.conversation_id === activeConv?.id) {
         // Mark as read (we're looking at it)
@@ -247,6 +256,7 @@ export function ChatLayout() {
             body: JSON.stringify({ message_ids: [msg.id] }),
           }).catch(() => {});
         }
+        refreshUnreadCount().catch(() => {});
       }
       setConversations((prev) => prev.map((c) =>
         c.id === msg.conversation_id

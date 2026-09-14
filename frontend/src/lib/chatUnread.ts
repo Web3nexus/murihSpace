@@ -24,9 +24,10 @@ export async function refreshUnreadCount(): Promise<void> {
   inflight = (async () => {
     try {
       const res = await apiClient.get("/messages/unread-count");
-      const data = (res.data as Record<string, unknown> | undefined)?.data;
-      const next = Number((data as Record<string, unknown> | undefined)?.unread_count ?? 0);
-      if (Number.isFinite(next) && next !== unreadCount) {
+      const raw = res.data as Record<string, unknown> | undefined;
+      const data = (raw?.data && typeof raw.data === 'object' ? raw.data : raw) as Record<string, unknown> | undefined;
+      const next = Number(data?.unread_count ?? raw?.unread_count ?? 0);
+      if (Number.isFinite(next)) {
         unreadCount = next;
         notify();
       }

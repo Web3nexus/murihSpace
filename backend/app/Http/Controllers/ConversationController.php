@@ -384,6 +384,9 @@ class ConversationController extends Controller
                 $message->read = $otherLastReadAt->contains(
                     fn ($readAt) => $message->created_at->lessThanOrEqualTo($readAt)
                 );
+                if ($message->read) {
+                    $message->status = Message::STATUS_READ;
+                }
             }
 
             return $message;

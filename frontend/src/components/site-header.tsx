@@ -60,17 +60,17 @@ export function SiteHeader({ onOpenMobileSidebar }: SiteHeaderProps) {
   const [msgCount, setMsgCount] = useState(0);
 
   // Live, authoritative unread total — same store as the sidebar & chat layout
-  useEffect(() => subscribeUnreadCount(() => setMsgCount(getUnreadCount())), []);
+  useEffect(() => {
+    setMsgCount(getUnreadCount());
+    return subscribeUnreadCount(() => setMsgCount(getUnreadCount()));
+  }, []);
 
-  // Live-update badges as realtime notifications/messages arrive
+  // Live-update notification badges as realtime notifications arrive
   useEffect(() => {
     const bumpNotifs = () => setNotifCount((c) => c + 1);
-    const bumpMsgs = () => setMsgCount((c) => c + 1);
     window.addEventListener("murih:notification", bumpNotifs);
-    window.addEventListener("murih:message", bumpMsgs);
     return () => {
       window.removeEventListener("murih:notification", bumpNotifs);
-      window.removeEventListener("murih:message", bumpMsgs);
     };
   }, []);
 

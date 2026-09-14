@@ -67,6 +67,7 @@ class MessageSent implements ShouldBroadcastNow
             'user_id' => $this->message->user_id,
             'content' => $this->message->content,
             'type' => $this->message->type,
+            'status' => $this->message->status ?? 'sent',
             'client_uuid' => $this->message->client_uuid,
             'reply_to_id' => $this->message->reply_to_id,
             'reply_to' => $replyTo,
