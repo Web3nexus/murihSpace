@@ -134,3 +134,107 @@ export function playMessageSentSound(): void {
     // Ignore
   }
 }
+
+let activeRingbackTimer: ReturnType<typeof setInterval> | null = null;
+let activeRingtoneTimer: ReturnType<typeof setInterval> | null = null;
+
+/**
+ * Stops any actively looping call ringtone or ringback sound.
+ */
+export function stopCallSounds(): void {
+  if (activeRingbackTimer) {
+    clearInterval(activeRingbackTimer);
+    activeRingbackTimer = null;
+  }
+  if (activeRingtoneTimer) {
+    clearInterval(activeRingtoneTimer);
+    activeRingtoneTimer = null;
+  }
+}
+
+/**
+ * Outgoing telecom ringback tone (North American / European dual frequency 440+480Hz).
+ * Beeps for 1.8s every 4s until stopped.
+ */
+export function startOutgoingRingback(): () => void {
+  stopCallSounds();
+  if (!isChatSoundEnabled()) return () => {};
+
+  const playBurst = () => {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+    try {
+      const now = ctx.currentTime;
+      const osc1 = ctx.createOscillator();
+      const osc2 = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc1.type = 'sine';
+      osc1.frequency.setValueAtTime(440, now);
+      osc2.type = 'sine';
+      osc2.frequency.setValueAtTime(480, now);
+
+      gain.gain.setValueAtTime(0.08, now);
+      gain.gain.setValueAtTime(0.08, now + 1.6);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 1.8);
+
+      osc1.connect(gain);
+      osc2.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc1.start(now);
+      osc2.start(now);
+      osc1.stop(now + 1.8);
+      osc2.stop(now + 1.8);
+    } catch {
+      // Ignore
+    }
+  };
+
+  playBurst();
+  activeRingbackTimer = setInterval(playBurst, 4000);
+  return stopCallSounds;
+}
+
+/**
+ * Incoming call melodic ringtone (C5 -> E5 -> G5 -> C6 marimba chime).
+ * Loops every 2.8 seconds until accepted or declined.
+ */
+export function startIncomingRingtone(): () => void {
+  stopCallSounds();
+  if (!isChatSoundEnabled()) return () => {};
+
+  const playChime = () => {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+    try {
+      const notes = [523.25, 659.25, 783.99, 1046.5]; // C5, E5, G5, C6
+      const baseNow = ctx.currentTime;
+
+      notes.forEach((freq, idx) => {
+        const noteTime = baseNow + idx * 0.12;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, noteTime);
+
+        gain.gain.setValueAtTime(0.12, noteTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, noteTime + 0.35);
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        osc.start(noteTime);
+        osc.stop(noteTime + 0.35);
+      });
+    } catch {
+      // Ignore
+    }
+  };
+
+  playChime();
+  activeRingtoneTimer = setInterval(playChime, 2800);
+  return stopCallSounds;
+}
+

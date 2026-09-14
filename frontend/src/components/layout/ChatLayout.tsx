@@ -24,6 +24,7 @@ import {
   Shield as Shield,
   Copy as Copy,
   TrashSimple as Trash,
+  Phone,
   X as X
 } from "@phosphor-icons/react";
 import { toast } from 'sonner';
@@ -36,7 +37,7 @@ import { MessageReactions } from '@/components/chat/MessageReactions';
 import { StoriesCarousel, type StoryUser } from '../chat/StoriesCarousel';
 import { StoryCreateModal } from '../story/StoryCreateModal';
 import { NewChatModal } from '@/components/chat/NewChatModal';
-import { CallOverlayModal, type CallMode } from '@/components/video/CallOverlayModal';
+import { CallOverlayModal } from '@/components/video/CallOverlayModal';
 import { useRealtimeMessaging } from '@/hooks/useRealtimeMessaging';
 import { useAuth } from '@/hooks/useAuth';
 import { getAuthToken } from "@/lib/auth/token";
@@ -112,7 +113,40 @@ export function ChatLayout() {
   const [uploading, setUploading] = useState(false);
   const [isNewModalOpen, setIsNewModalOpen] = useState(false);
   const [isCallModalOpen, setIsCallModalOpen] = useState(false);
-  const [callMode, setCallMode] = useState<CallMode>('video');
+  const [callSession, setCallSession] = useState<{
+    callId?: number;
+    roomName?: string;
+    livekitToken?: string;
+    livekitHost?: string;
+    type: 'audio' | 'video';
+  } | null>(null);
+
+  const startCall = async (type: 'audio' | 'video') => {
+    if (!activeConv?.other_user?.id) {
+      toast.error('Direct contact is required to place a call.');
+      return;
+    }
+    try {
+      const res = await apiFetch<any>('/calls/initiate', {
+        method: 'POST',
+        body: JSON.stringify({
+          recipient_id: activeConv.other_user.id,
+          type,
+          conversation_id: activeConv.id,
+        }),
+      });
+      setCallSession({
+        callId: res.call?.id,
+        roomName: res.room_name,
+        livekitToken: res.livekit_token,
+        livekitHost: res.livekit_host,
+        type,
+      });
+      setIsCallModalOpen(true);
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to initiate call.');
+    }
+  };
   const [isCreateStoryOpen, setIsCreateStoryOpen] = useState(false);
   const [storiesList, setStoriesList] = useState<StoryUser[]>([]);
   const [actionMenu, setActionMenu] = useState<{ msg: ChatMessage; x: number; y: number } | null>(null);
@@ -632,7 +666,15 @@ export function ChatLayout() {
               <div className="flex items-center gap-1.5">
                 <button
                   type="button"
-                  onClick={() => { setCallMode('video'); setIsCallModalOpen(true); }}
+                  onClick={() => startCall('audio')}
+                  className="p-2 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                  title="Start Voice Call"
+                >
+                  <Phone weight="fill" className="h-4.5 w-4.5 text-emerald-500" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => startCall('video')}
                   className="p-2 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
                   title="Start Video Call"
                 >
@@ -853,10 +895,18 @@ export function ChatLayout() {
 
       <CallOverlayModal
         isOpen={isCallModalOpen}
-        callMode={callMode}
-        callerName={activeConv?.title ?? 'Unknown contact'}
-        callerAvatar={activeConv?.other_user?.avatar_url}
-        onClose={() => setIsCallModalOpen(false)}
+        callId={callSession?.callId}
+        callType={callSession?.type ?? 'video'}
+        callMode="outgoing"
+        contactName={activeConv?.other_user?.name ?? activeConv?.title ?? 'Contact'}
+        contactAvatar={activeConv?.other_user?.avatar_url}
+        roomName={callSession?.roomName}
+        livekitToken={callSession?.livekitToken}
+        livekitHost={callSession?.livekitHost}
+        onClose={() => {
+          setIsCallModalOpen(false);
+          setCallSession(null);
+        }}
         onOpenChat={() => setIsCallModalOpen(false)}
       />
 
