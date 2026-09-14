@@ -342,25 +342,25 @@ Route::prefix('v1')->group(function () {
         try {
             DB::connection()->getPdo();
             $dbConnected = true;
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             $dbConnected = false;
         }
 
         try {
             $cacheConnected = Cache::set('health-check', true, 10);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             $cacheConnected = false;
         }
 
         try {
             $queueResponsive = Queue::size() >= 0;
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             $queueResponsive = false;
         }
 
         try {
-            $redisConnected = app('redis')->command('ping') === 'PONG';
-        } catch (Exception $e) {
+            $redisConnected = class_exists(\Redis::class) && app('redis')->command('ping') === 'PONG';
+        } catch (\Throwable $e) {
             $redisConnected = false;
         }
 
