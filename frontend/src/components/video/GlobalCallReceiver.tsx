@@ -35,6 +35,7 @@ export function GlobalCallReceiver() {
   const { user } = useAuth();
   const [incomingCall, setIncomingCall] = useState<IncomingCallData | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const isAnsweredRef = useRef(false);
 
   // Use a ref so event-listener callbacks always see the latest incomingCall
   // without needing to re-subscribe on every state change (stale closure fix).
@@ -63,6 +64,9 @@ export function GlobalCallReceiver() {
       // Don't ring if we are the caller
       if (callerId === user.id) return;
 
+      // Reset answered state for new incoming call
+      isAnsweredRef.current = false;
+
       // Acknowledge receipt to backend immediately so the caller knows the recipient device is alive and actively ringing
       if (id > 0) {
         fetch(`${API_BASE}/calls/${id}/ringing`, {
@@ -89,6 +93,7 @@ export function GlobalCallReceiver() {
       const id = data?.id ?? raw?.id;
       // Dismiss if: no current call, no id in data, or ids match
       if (!current || !id || String(current.id) === String(id)) {
+        isAnsweredRef.current = false;
         setIsModalOpen(false);
         setIncomingCall(null);
       }
@@ -99,6 +104,7 @@ export function GlobalCallReceiver() {
       const data = raw?.data ?? raw;
       const id = data?.id ?? raw?.id;
       if (!current || !id || String(current.id) === String(id)) {
+        isAnsweredRef.current = false;
         setIsModalOpen(false);
         setIncomingCall(null);
       }
@@ -116,11 +122,14 @@ export function GlobalCallReceiver() {
 
     // ── Resilient Polling Heartbeat (Fallback for dropped/delayed WS events) ──
     const pollInterval = setInterval(() => {
+      // If the user has answered the call, do NOT poll incoming active calls or auto-dismiss
+      if (isAnsweredRef.current) return;
+
       const current = incomingCallRef.current;
       fetch(`${API_BASE}/calls/incoming/active`, { headers: getAuthHeaders() })
         .then((res) => (res.ok ? res.json() : null))
         .then((raw) => {
-          if (!raw) return;
+          if (!raw || isAnsweredRef.current) return;
           const data = raw?.data ?? raw;
           const call = data.call || (data.id ? data : null);
 
@@ -137,8 +146,9 @@ export function GlobalCallReceiver() {
                 livekit_token: call.livekit_token || data.livekit_token,
               });
             }
-          } else if (current && (!call || call.id !== current.id)) {
+          } else if (current && !isAnsweredRef.current && (!call || call.id !== current.id)) {
             // Caller cancelled or call ended while ringing
+            isAnsweredRef.current = false;
             setIsModalOpen(false);
             setIncomingCall(null);
           }
@@ -160,6 +170,7 @@ export function GlobalCallReceiver() {
   }, [user?.id]);
 
   const handleClose = useCallback(() => {
+    isAnsweredRef.current = false;
     setIsModalOpen(false);
     setIncomingCall(null);
   }, []);
@@ -178,6 +189,9 @@ export function GlobalCallReceiver() {
       livekitHost={incomingCall.livekit_host}
       livekitToken={incomingCall.livekit_token}
       onClose={handleClose}
+      onAnswer={() => {
+        isAnsweredRef.current = true;
+      }}
     />
   );
 }

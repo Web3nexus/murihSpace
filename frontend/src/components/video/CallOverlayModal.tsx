@@ -85,9 +85,11 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
 
   // Synchronize state from props
   useEffect(() => {
-    setMode(initialMode);
-    if (initialMode === 'outgoing') {
-      setOutgoingPhase('connecting');
+    if (mode !== 'connected') {
+      setMode(initialMode);
+      if (initialMode === 'outgoing') {
+        setOutgoingPhase('connecting');
+      }
     }
   }, [initialMode]);
 
@@ -157,7 +159,7 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
 
   // Duration timer: synchronized with server started_at timestamp across participants
   useEffect(() => {
-    if (mode === 'connected') {
+    if (isOpen && mode === 'connected') {
       const updateDuration = () => {
         if (startedAt) {
           const startTime = new Date(startedAt).getTime();
@@ -183,7 +185,26 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
         durationTimerRef.current = null;
       }
     };
-  }, [mode, startedAt]);
+  }, [isOpen, mode, startedAt]);
+
+  // Thorough cleanup whenever modal is closed
+  useEffect(() => {
+    if (!isOpen) {
+      stopCallSounds();
+      if (durationTimerRef.current) {
+        clearInterval(durationTimerRef.current);
+        durationTimerRef.current = null;
+      }
+      setDurationSeconds(0);
+      setStartedAt(null);
+      setMode(initialMode);
+      setConnectionStatus('');
+      if (roomRef.current) {
+        roomRef.current.disconnect();
+        roomRef.current = null;
+      }
+    }
+  }, [isOpen, initialMode]);
 
   // 45-second ringing timeout limit for unanswered calls
   useEffect(() => {
@@ -228,6 +249,7 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
     const channelName = activeRoomName ? `call.${activeRoomName}` : null;
     const callChannel = channelName ? echo.private(channelName) : null;
     const userChannel = user?.id ? echo.private(`user.${user.id}`) : null;
+    const appUserChannel = user?.id ? echo.private(`App.Models.User.${user.id}`) : null;
 
     const handleCallRinging = (raw?: any) => {
       const data = raw?.call || raw?.data?.call || raw?.data || raw;
@@ -257,11 +279,13 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
       const id = data?.id || raw?.id;
       if (id && callId && Number(id) !== Number(callId)) return;
       stopCallSounds();
+      if (durationTimerRef.current) {
+        clearInterval(durationTimerRef.current);
+        durationTimerRef.current = null;
+      }
       setConnectionStatus('Call declined');
       setTimeout(() => {
-        // Cleanup without re-posting to API (remote side already ended)
-        if (roomRef.current) { roomRef.current.disconnect(); roomRef.current = null; }
-        onClose();
+        cleanupAndClose();
       }, 1500);
     };
 
@@ -270,65 +294,50 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
       const id = data?.id || raw?.id;
       if (id && callId && Number(id) !== Number(callId)) return;
       stopCallSounds();
+      if (durationTimerRef.current) {
+        clearInterval(durationTimerRef.current);
+        durationTimerRef.current = null;
+      }
       setConnectionStatus('Call ended');
       setTimeout(() => {
-        // Cleanup without re-posting to API (remote side already ended)
-        if (roomRef.current) { roomRef.current.disconnect(); roomRef.current = null; }
-        onClose();
+        cleanupAndClose();
       }, 1200);
     };
 
-    if (callChannel) {
-      callChannel.listen('.call.ringing', handleCallRinging);
-      callChannel.listen('CallRinging', handleCallRinging);
-      callChannel.listen('.call.accepted', handleCallAccepted);
-      callChannel.listen('.call.declined', handleCallDeclined);
-      callChannel.listen('.call.ended', handleCallEnded);
-      callChannel.listen('CallAccepted', handleCallAccepted);
-      callChannel.listen('CallDeclined', handleCallDeclined);
-      callChannel.listen('CallEnded', handleCallEnded);
-    }
-
-    if (userChannel) {
-      userChannel.listen('.call.ringing', handleCallRinging);
-      userChannel.listen('CallRinging', handleCallRinging);
-      userChannel.listen('.call.accepted', handleCallAccepted);
-      userChannel.listen('.call.declined', handleCallDeclined);
-      userChannel.listen('.call.ended', handleCallEnded);
-      userChannel.listen('CallAccepted', handleCallAccepted);
-      userChannel.listen('CallDeclined', handleCallDeclined);
-      userChannel.listen('CallEnded', handleCallEnded);
-    }
+    [callChannel, userChannel, appUserChannel].forEach((channel) => {
+      if (!channel) return;
+      channel.listen('.call.ringing', handleCallRinging);
+      channel.listen('CallRinging', handleCallRinging);
+      channel.listen('.call.accepted', handleCallAccepted);
+      channel.listen('.call.declined', handleCallDeclined);
+      channel.listen('.call.ended', handleCallEnded);
+      channel.listen('CallAccepted', handleCallAccepted);
+      channel.listen('CallDeclined', handleCallDeclined);
+      channel.listen('CallEnded', handleCallEnded);
+    });
 
     return () => {
+      [callChannel, userChannel, appUserChannel].forEach((channel) => {
+        if (!channel) return;
+        channel.stopListening('.call.ringing', handleCallRinging);
+        channel.stopListening('CallRinging', handleCallRinging);
+        channel.stopListening('.call.accepted', handleCallAccepted);
+        channel.stopListening('.call.declined', handleCallDeclined);
+        channel.stopListening('.call.ended', handleCallEnded);
+        channel.stopListening('CallAccepted', handleCallAccepted);
+        channel.stopListening('CallDeclined', handleCallDeclined);
+        channel.stopListening('CallEnded', handleCallEnded);
+      });
       if (callChannel && channelName) {
-        callChannel.stopListening('.call.ringing', handleCallRinging);
-        callChannel.stopListening('CallRinging', handleCallRinging);
-        callChannel.stopListening('.call.accepted', handleCallAccepted);
-        callChannel.stopListening('.call.declined', handleCallDeclined);
-        callChannel.stopListening('.call.ended', handleCallEnded);
-        callChannel.stopListening('CallAccepted', handleCallAccepted);
-        callChannel.stopListening('CallDeclined', handleCallDeclined);
-        callChannel.stopListening('CallEnded', handleCallEnded);
         echo.leave(channelName);
-      }
-      if (userChannel && user?.id) {
-        userChannel.stopListening('.call.ringing', handleCallRinging);
-        userChannel.stopListening('CallRinging', handleCallRinging);
-        userChannel.stopListening('.call.accepted', handleCallAccepted);
-        userChannel.stopListening('.call.declined', handleCallDeclined);
-        userChannel.stopListening('.call.ended', handleCallEnded);
-        userChannel.stopListening('CallAccepted', handleCallAccepted);
-        userChannel.stopListening('CallDeclined', handleCallDeclined);
-        userChannel.stopListening('CallEnded', handleCallEnded);
       }
     };
   }, [isOpen, callId, activeRoomName, user?.id]);
 
-  // Outgoing call status polling heartbeat: ensures that when recipient picks up on mobile,
-  // the caller on web immediately switches to connected even if websocket event is delayed.
+  // Call status polling heartbeat: ensures that when recipient picks up or remote party hangs up,
+  // the client on web immediately synchronizes state even if WebSocket event is delayed.
   useEffect(() => {
-    if (!isOpen || mode !== 'outgoing' || !callId) return;
+    if (!isOpen || !callId || (mode !== 'outgoing' && mode !== 'connected')) return;
 
     const pollInterval = setInterval(() => {
       fetch(`${API_BASE}/calls/${callId}`, { headers: getAuthHeaders() })
@@ -339,37 +348,58 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
           const call = data?.call || (data?.id ? data : null);
           if (!call) return;
           const status = call.status;
-          if (status === 'ringing') {
-            setOutgoingPhase('ringing');
-          } else if (status === 'accepted') {
-            stopCallSounds();
-            const token = data.livekit_token || call.livekit_token;
-            const host = data.livekit_host || call.livekit_host;
-            const room = data.room_name || call.room_name;
-            const startedAtTime = data.started_at || call.started_at;
-            if (startedAtTime) setStartedAt(startedAtTime);
-            if (token) setActiveToken(token);
-            if (host) setActiveHost(host);
-            if (room) setActiveRoomName(room);
-            setMode('connected');
-          } else if (status === 'declined') {
-            stopCallSounds();
-            setConnectionStatus('Call declined');
-            setTimeout(() => {
-              if (roomRef.current) { roomRef.current.disconnect(); roomRef.current = null; }
-              onClose();
-            }, 1500);
-          } else if (status === 'ended') {
-            stopCallSounds();
-            setConnectionStatus('Call ended');
-            setTimeout(() => {
-              if (roomRef.current) { roomRef.current.disconnect(); roomRef.current = null; }
-              onClose();
-            }, 1200);
+
+          if (mode === 'outgoing') {
+            if (status === 'ringing') {
+              setOutgoingPhase('ringing');
+            } else if (status === 'accepted') {
+              stopCallSounds();
+              const token = data.livekit_token || call.livekit_token;
+              const host = data.livekit_host || call.livekit_host;
+              const room = data.room_name || call.room_name;
+              const startedAtTime = data.started_at || call.started_at;
+              if (startedAtTime) setStartedAt(startedAtTime);
+              if (token) setActiveToken(token);
+              if (host) setActiveHost(host);
+              if (room) setActiveRoomName(room);
+              setMode('connected');
+            } else if (status === 'declined') {
+              stopCallSounds();
+              if (durationTimerRef.current) {
+                clearInterval(durationTimerRef.current);
+                durationTimerRef.current = null;
+              }
+              setConnectionStatus('Call declined');
+              setTimeout(() => {
+                cleanupAndClose();
+              }, 1500);
+            } else if (status === 'ended') {
+              stopCallSounds();
+              if (durationTimerRef.current) {
+                clearInterval(durationTimerRef.current);
+                durationTimerRef.current = null;
+              }
+              setConnectionStatus('Call ended');
+              setTimeout(() => {
+                cleanupAndClose();
+              }, 1200);
+            }
+          } else if (mode === 'connected') {
+            if (status === 'ended' || status === 'declined') {
+              stopCallSounds();
+              if (durationTimerRef.current) {
+                clearInterval(durationTimerRef.current);
+                durationTimerRef.current = null;
+              }
+              setConnectionStatus('Call ended');
+              setTimeout(() => {
+                cleanupAndClose();
+              }, 1200);
+            }
           }
         })
         .catch(() => {});
-    }, 1500);
+    }, 2000);
 
     return () => clearInterval(pollInterval);
   }, [isOpen, mode, callId]);
@@ -449,9 +479,25 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
         // Participant disconnected
         room.on(RoomEvent.ParticipantDisconnected, () => {
           setConnectionStatus('Other participant left');
+          if (durationTimerRef.current) {
+            clearInterval(durationTimerRef.current);
+            durationTimerRef.current = null;
+          }
           setTimeout(() => {
             cleanupAndClose();
           }, 1500);
+        });
+
+        // Room disconnected
+        room.on(RoomEvent.Disconnected, () => {
+          setConnectionStatus('Call ended');
+          if (durationTimerRef.current) {
+            clearInterval(durationTimerRef.current);
+            durationTimerRef.current = null;
+          }
+          setTimeout(() => {
+            cleanupAndClose();
+          }, 1200);
         });
 
         // Normalize host URL
@@ -544,9 +590,16 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
     }
   };
 
-  // Internal cleanup: disconnect LiveKit and close modal WITHOUT posting to API
+  // Internal cleanup: disconnect LiveKit, reset state, and close modal WITHOUT posting to API
   const cleanupAndClose = () => {
     stopCallSounds();
+    if (durationTimerRef.current) {
+      clearInterval(durationTimerRef.current);
+      durationTimerRef.current = null;
+    }
+    setDurationSeconds(0);
+    setStartedAt(null);
+    setMode(initialMode);
     if (roomRef.current) {
       roomRef.current.disconnect();
       roomRef.current = null;
@@ -557,6 +610,13 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
   // End / Hang up call — user-initiated, posts to API then cleans up
   const handleEndCall = async () => {
     stopCallSounds();
+    if (durationTimerRef.current) {
+      clearInterval(durationTimerRef.current);
+      durationTimerRef.current = null;
+    }
+    setDurationSeconds(0);
+    setStartedAt(null);
+    setMode(initialMode);
     if (roomRef.current) {
       roomRef.current.disconnect();
       roomRef.current = null;
