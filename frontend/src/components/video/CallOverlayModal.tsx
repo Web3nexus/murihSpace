@@ -10,11 +10,34 @@ import {
   Spinner,
   Monitor,
 } from "@phosphor-icons/react";
-import { Room, RoomEvent, Track, RemoteTrack, RemoteTrackPublication, Participant } from 'livekit-client';
+import { Room, RoomEvent, Track, RemoteTrack, RemoteTrackPublication, Participant, ConnectionState } from 'livekit-client';
 import { startOutgoingRingback, startIncomingRingtone, stopCallSounds } from '@/lib/sound';
 import { getEcho } from '@/lib/echo';
 import { getAuthToken } from '@/lib/auth/token';
 import { useAuth } from '@/hooks/useAuth';
+
+function RemoteVideoTrackElement({ track }: { track: Track }) {
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+
+  useEffect(() => {
+    const el = videoRef.current;
+    if (el && track) {
+      track.attach(el);
+      return () => {
+        track.detach(el);
+      };
+    }
+  }, [track]);
+
+  return (
+    <video
+      ref={videoRef}
+      autoPlay
+      playsInline
+      className="w-full h-full object-cover transition-opacity duration-300"
+    />
+  );
+}
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? 'https://api-staging.murihspace.com/api/v1';
 
@@ -66,6 +89,7 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
   const [durationSeconds, setDurationSeconds] = useState(0);
   const [connectionStatus, setConnectionStatus] = useState<string>('Connecting...');
   const [hasRemoteVideo, setHasRemoteVideo] = useState(false);
+  const [remoteVideoTrack, setRemoteVideoTrack] = useState<RemoteTrack | null>(null);
   const [remoteParticipantName, setRemoteParticipantName] = useState<string>('');
 
   const [activeToken, setActiveToken] = useState<string | undefined>(initialToken);
@@ -93,15 +117,15 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
     }
   }, [initialMode]);
 
-  // Pre-warm microphone (and camera for video) immediately when outgoing call starts
-  // so browser permission is obtained under active user gesture, allowing LiveKit to publish cleanly
+  // Pre-warm camera preview immediately when outgoing video call starts
+  // Note: audio is NOT captured here to prevent local microphone loopback/echo
   useEffect(() => {
-    if (isOpen && mode === 'outgoing') {
+    if (isOpen && mode === 'outgoing' && callType === 'video') {
       let isMounted = true;
       navigator.mediaDevices
         ?.getUserMedia({
-          audio: true,
-          video: callType === 'video' ? { facingMode: 'user' } : false,
+          audio: false,
+          video: { facingMode: 'user' },
         })
         .then((stream) => {
           if (!isMounted) {
@@ -109,12 +133,13 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
             return;
           }
           previewStreamRef.current = stream;
-          if (callType === 'video' && outgoingPreviewVideoRef.current) {
+          if (outgoingPreviewVideoRef.current) {
+            outgoingPreviewVideoRef.current.muted = true;
             outgoingPreviewVideoRef.current.srcObject = stream;
           }
         })
         .catch((err) => {
-          console.warn('[CallOverlayModal] Pre-warm media error:', err);
+          console.warn('[CallOverlayModal] Pre-warm camera preview error:', err);
         });
 
       return () => {
@@ -455,15 +480,48 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
         });
         roomRef.current = room;
 
+        // Signaling connected
+        room.on(RoomEvent.SignalConnected, () => {
+          console.log('[LiveKit] 📡 Signaling connected to SFU');
+        });
+
+        // Room connected
+        room.on(RoomEvent.Connected, () => {
+          console.log('[LiveKit] 🔗 Connected to room:', room.name);
+        });
+
+        // Connection state changed
+        room.on(RoomEvent.ConnectionStateChanged, (state: ConnectionState) => {
+          console.log('[LiveKit] 📶 ConnectionStateChanged:', state);
+          if (state === ConnectionState.Connecting) {
+            setConnectionStatus('Connecting media...');
+          } else if (state === ConnectionState.Connected) {
+            setConnectionStatus('Connected');
+          } else if (state === ConnectionState.Reconnecting) {
+            setConnectionStatus('Reconnecting...');
+          } else if (state === ConnectionState.Disconnected) {
+            setConnectionStatus('Disconnected');
+          }
+        });
+
+        // Track published by local participant
+        room.on(RoomEvent.TrackPublished, (publication, participant) => {
+          console.log(`[LiveKit] 📤 TrackPublished: kind=${publication.kind}, participant=${participant.identity}`);
+        });
+
         // Remote track subscribed
         room.on(
           RoomEvent.TrackSubscribed,
           (track: RemoteTrack, _publication: RemoteTrackPublication, participant: Participant) => {
+            console.log(`[LiveKit] 📥 TrackSubscribed: kind=${track.kind}, sid=${track.sid}, from=${participant.identity}`);
             setRemoteParticipantName(participant.name || contactName);
 
-            if (track.kind === Track.Kind.Video && remoteVideoRef.current) {
-              track.attach(remoteVideoRef.current);
+            if (track.kind === Track.Kind.Video) {
+              setRemoteVideoTrack(track);
               setHasRemoteVideo(true);
+              if (remoteVideoRef.current) {
+                track.attach(remoteVideoRef.current);
+              }
             } else if (track.kind === Track.Kind.Audio) {
               let audioEl: HTMLAudioElement;
               if (remoteAudioRef.current) {
@@ -483,8 +541,10 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
 
         // Remote track unsubscribed
         room.on(RoomEvent.TrackUnsubscribed, (track: RemoteTrack) => {
+          console.log(`[LiveKit] 📴 TrackUnsubscribed: kind=${track.kind}, sid=${track.sid}`);
           track.detach();
           if (track.kind === Track.Kind.Video) {
+            setRemoteVideoTrack(null);
             setHasRemoteVideo(false);
           }
         });
@@ -551,6 +611,7 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
         room.remoteParticipants.forEach((participant) => {
           participant.trackPublications.forEach((pub) => {
             if (pub.isSubscribed && pub.track) {
+              console.log(`[LiveKit] 📥 Attaching pre-existing track: kind=${pub.track.kind}, sid=${pub.track.sid}`);
               if (pub.track.kind === Track.Kind.Audio) {
                 if (remoteAudioRef.current) {
                   pub.track.attach(remoteAudioRef.current);
@@ -561,9 +622,12 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
                   document.body.appendChild(el);
                   el.play().catch(() => {});
                 }
-              } else if (pub.track.kind === Track.Kind.Video && remoteVideoRef.current) {
-                pub.track.attach(remoteVideoRef.current);
+              } else if (pub.track.kind === Track.Kind.Video) {
+                setRemoteVideoTrack(pub.track);
                 setHasRemoteVideo(true);
+                if (remoteVideoRef.current) {
+                  pub.track.attach(remoteVideoRef.current);
+                }
               }
             }
           });
@@ -870,15 +934,19 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
           <div className="absolute inset-0 z-0 bg-slate-900 flex items-center justify-center overflow-hidden">
             {callType === 'video' ? (
               <>
-                <video
-                  ref={remoteVideoRef}
-                  autoPlay
-                  playsInline
-                  className={`w-full h-full object-cover transition-opacity duration-300 ${
-                    hasRemoteVideo ? 'opacity-100' : 'opacity-0'
-                  }`}
-                />
-                {!hasRemoteVideo && (
+                {remoteVideoTrack ? (
+                  <RemoteVideoTrackElement track={remoteVideoTrack} />
+                ) : (
+                  <video
+                    ref={remoteVideoRef}
+                    autoPlay
+                    playsInline
+                    className={`w-full h-full object-cover transition-opacity duration-300 ${
+                      hasRemoteVideo ? 'opacity-100' : 'opacity-0'
+                    }`}
+                  />
+                )}
+                {!hasRemoteVideo && !remoteVideoTrack && (
                   <div className="absolute inset-0 flex flex-col items-center justify-center space-y-4 bg-slate-950">
                     <div className="w-28 h-28 rounded-full overflow-hidden border-2 border-white/20 shadow-2xl bg-slate-800">
                       {contactAvatar ? (
