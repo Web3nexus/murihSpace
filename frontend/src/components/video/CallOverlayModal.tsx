@@ -9,6 +9,7 @@ import {
   ChatTeardropText as MessageSquare,
   Spinner,
   Monitor,
+  Lock,
 } from "@phosphor-icons/react";
 import { Room, RoomEvent, Track, RemoteTrack, RemoteTrackPublication, Participant, ConnectionState } from 'livekit-client';
 import { startOutgoingRingback, startIncomingRingtone, stopCallSounds } from '@/lib/sound';
@@ -291,15 +292,20 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
       const id = data?.id || raw?.id;
       if (id && callId && Number(id) !== Number(callId)) return;
       stopCallSounds();
-      const token = data?.livekit_token || raw?.livekit_token;
-      const host = data?.livekit_host || raw?.livekit_host;
-      const room = data?.room_name || raw?.room_name;
       const startedAtTime = data?.started_at || raw?.started_at || raw?.call?.started_at;
       if (startedAtTime) setStartedAt(startedAtTime);
-      if (token) setActiveToken(token);
-      if (host) setActiveHost(host);
-      if (room) setActiveRoomName(room);
-      setMode('connected');
+
+      // Only the CALLER adopts token/host/room from CallAccepted.
+      // Callee already has their own unique recipient token.
+      if (mode === 'outgoing') {
+        const token = data?.livekit_token || raw?.livekit_token;
+        const host = data?.livekit_host || raw?.livekit_host;
+        const room = data?.room_name || raw?.room_name;
+        if (token) setActiveToken(token);
+        if (host) setActiveHost(host);
+        if (room) setActiveRoomName(room);
+        setMode('connected');
+      }
     };
 
     const handleCallDeclined = (raw?: any) => {
@@ -454,6 +460,9 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
   // Connect to LiveKit SFU when in 'connected' mode and token is ready
   useEffect(() => {
     if (!isOpen || mode !== 'connected' || !activeToken || !activeHost) return;
+    if (roomRef.current && (roomRef.current.state === ConnectionState.Connected || roomRef.current.state === ConnectionState.Connecting)) {
+      return;
+    }
 
     let isCancelled = false;
     let room: Room;
@@ -525,15 +534,12 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
             } else if (track.kind === Track.Kind.Audio) {
               let audioEl: HTMLAudioElement;
               if (remoteAudioRef.current) {
-                track.attach(remoteAudioRef.current);
                 audioEl = remoteAudioRef.current;
+                track.attach(audioEl);
               } else {
-                audioEl = track.attach() as HTMLAudioElement;
-                audioEl.autoplay = true;
+                audioEl = track.attach();
                 document.body.appendChild(audioEl);
               }
-              // Unlock browser audio context & start playback
-              room.startAudio().catch(() => {});
               audioEl.play().catch(() => {});
             }
           }
@@ -549,15 +555,18 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
           }
         });
 
-        // Autoplay status unlock handler
-        room.on(RoomEvent.AudioPlaybackStatusChanged, () => {
+        // Participant joined
+        room.on(RoomEvent.ParticipantConnected, (participant: Participant) => {
+          console.log('[LiveKit] 👤 ParticipantConnected:', participant.identity, participant.name);
+          setRemoteParticipantName(participant.name || contactName);
           if (!room.canPlaybackAudio) {
             room.startAudio().catch(() => {});
           }
         });
 
-        // Participant disconnected — apply grace period in case of network handover
-        room.on(RoomEvent.ParticipantDisconnected, () => {
+        // Participant disconnected — apply 8s grace period in case of network handover
+        room.on(RoomEvent.ParticipantDisconnected, (participant: Participant) => {
+          console.log('[LiveKit] 👤 ParticipantDisconnected:', participant.identity);
           if (isCancelled || roomRef.current !== room) return;
           setTimeout(() => {
             if (isCancelled || roomRef.current !== room) return;
@@ -569,11 +578,12 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
               }
               cleanupAndClose();
             }
-          }, 4000);
+          }, 8000);
         });
 
         // Room disconnected
-        room.on(RoomEvent.Disconnected, () => {
+        room.on(RoomEvent.Disconnected, (reason) => {
+          console.warn('[LiveKit] ⚠️ Room Disconnected, reason:', reason);
           // If this room instance was superseded, cancelled, or cleaned up by React, do NOT close modal
           if (isCancelled || roomRef.current !== room) return;
           setConnectionStatus('Call ended');
@@ -863,6 +873,10 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
                 {outgoingPhase === 'connecting' ? 'Connecting...' : 'Ringing...'}
               </p>
             </div>
+            <div className="flex items-center justify-center gap-1.5 text-xs text-white/50 pt-1">
+              <Lock weight="bold" className="w-3.5 h-3.5 text-emerald-400" />
+              <span>End-to-End Encrypted</span>
+            </div>
           </div>
 
           <div className="relative z-10 pb-12 flex justify-center">
@@ -899,6 +913,10 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
             </div>
             <h2 className="text-2xl font-bold text-white tracking-tight">{contactName}</h2>
             <p className="text-sm text-slate-300 animate-pulse">is calling you...</p>
+            <div className="flex items-center justify-center gap-1.5 text-xs text-white/50 pt-1">
+              <Lock weight="bold" className="w-3.5 h-3.5 text-emerald-400" />
+              <span>End-to-End Encrypted</span>
+            </div>
           </div>
 
           <div className="pb-12 flex items-center justify-center gap-12">
@@ -986,6 +1004,10 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
                   <p className="text-sm font-semibold text-emerald-400 font-mono tracking-wider">
                     {formatTimer(durationSeconds)}
                   </p>
+                  <div className="flex items-center justify-center gap-1.5 text-[11px] font-medium text-white/50 pt-1">
+                    <Lock weight="bold" className="w-3 h-3 text-emerald-400" />
+                    <span>End-to-End Encrypted</span>
+                  </div>
                 </div>
               </div>
             )}
@@ -994,11 +1016,15 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
 
           {/* Top Bar: Contact Name, Call Duration, & PIP Local Video */}
           <div className="relative z-10 flex items-start justify-between p-2">
-            <div className="flex items-center gap-3 bg-black/40 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-white/10">
+            <div className="flex items-center gap-2.5 bg-black/40 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-white/10">
               <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse" />
               <span className="text-xs font-semibold text-white">{remoteParticipantName || contactName}</span>
               <span className="text-xs text-slate-300 font-mono border-l border-white/20 pl-2">
                 {formatTimer(durationSeconds)}
+              </span>
+              <span className="flex items-center gap-1 text-[10px] text-emerald-400 font-medium border-l border-white/20 pl-2">
+                <Lock weight="fill" className="w-2.5 h-2.5" />
+                <span>Encrypted</span>
               </span>
             </div>
 
