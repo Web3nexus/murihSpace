@@ -71,6 +71,7 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
   const [activeToken, setActiveToken] = useState<string | undefined>(initialToken);
   const [activeHost, setActiveHost] = useState<string | undefined>(initialHost);
   const [activeRoomName, setActiveRoomName] = useState<string | undefined>(initialRoomName);
+  const [startedAt, setStartedAt] = useState<string | null>(null);
 
   const roomRef = useRef<Room | null>(null);
   const localVideoRef = useRef<HTMLVideoElement | null>(null);
@@ -90,22 +91,29 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
     }
   }, [initialMode]);
 
-  // Turn on local camera preview immediately for outgoing video calls
+  // Pre-warm microphone (and camera for video) immediately when outgoing call starts
+  // so browser permission is obtained under active user gesture, allowing LiveKit to publish cleanly
   useEffect(() => {
-    if (isOpen && mode === 'outgoing' && callType === 'video') {
+    if (isOpen && mode === 'outgoing') {
       let isMounted = true;
-      navigator.mediaDevices?.getUserMedia({ video: { facingMode: 'user' }, audio: false })
+      navigator.mediaDevices
+        ?.getUserMedia({
+          audio: true,
+          video: callType === 'video' ? { facingMode: 'user' } : false,
+        })
         .then((stream) => {
           if (!isMounted) {
             stream.getTracks().forEach((t) => t.stop());
             return;
           }
           previewStreamRef.current = stream;
-          if (outgoingPreviewVideoRef.current) {
+          if (callType === 'video' && outgoingPreviewVideoRef.current) {
             outgoingPreviewVideoRef.current.srcObject = stream;
           }
         })
-        .catch(() => {});
+        .catch((err) => {
+          console.warn('[CallOverlayModal] Pre-warm media error:', err);
+        });
 
       return () => {
         isMounted = false;
@@ -123,14 +131,14 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
     if (initialRoomName) setActiveRoomName(initialRoomName);
   }, [initialToken, initialHost, initialRoomName]);
 
-  // Ringtone / Ringback sound management: only ring once connected to recipient
+  // Ringtone / Ringback sound management: play ringback immediately on outgoing call
   useEffect(() => {
     if (!isOpen) {
       stopCallSounds();
       return;
     }
 
-    if (mode === 'outgoing' && outgoingPhase === 'ringing') {
+    if (mode === 'outgoing') {
       const stop = startOutgoingRingback();
       return () => {
         stop();
@@ -145,20 +153,29 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
     } else {
       stopCallSounds();
     }
-  }, [isOpen, mode, outgoingPhase]);
+  }, [isOpen, mode]);
 
-  // Duration timer when call is connected
+  // Duration timer: synchronized with server started_at timestamp across participants
   useEffect(() => {
     if (mode === 'connected') {
-      setDurationSeconds(0);
-      durationTimerRef.current = setInterval(() => {
-        setDurationSeconds((s) => s + 1);
-      }, 1000);
+      const updateDuration = () => {
+        if (startedAt) {
+          const startTime = new Date(startedAt).getTime();
+          const now = Date.now();
+          setDurationSeconds(Math.max(0, Math.floor((now - startTime) / 1000)));
+        } else {
+          setDurationSeconds((s) => s + 1);
+        }
+      };
+
+      updateDuration();
+      durationTimerRef.current = setInterval(updateDuration, 1000);
     } else {
       if (durationTimerRef.current) {
         clearInterval(durationTimerRef.current);
         durationTimerRef.current = null;
       }
+      setDurationSeconds(0);
     }
     return () => {
       if (durationTimerRef.current) {
@@ -166,7 +183,7 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
         durationTimerRef.current = null;
       }
     };
-  }, [mode]);
+  }, [mode, startedAt]);
 
   // 45-second ringing timeout limit for unanswered calls
   useEffect(() => {
@@ -227,6 +244,8 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
       const token = data?.livekit_token || raw?.livekit_token;
       const host = data?.livekit_host || raw?.livekit_host;
       const room = data?.room_name || raw?.room_name;
+      const startedAtTime = data?.started_at || raw?.started_at || raw?.call?.started_at;
+      if (startedAtTime) setStartedAt(startedAtTime);
       if (token) setActiveToken(token);
       if (host) setActiveHost(host);
       if (room) setActiveRoomName(room);
@@ -327,6 +346,8 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
             const token = data.livekit_token || call.livekit_token;
             const host = data.livekit_host || call.livekit_host;
             const room = data.room_name || call.room_name;
+            const startedAtTime = data.started_at || call.started_at;
+            if (startedAtTime) setStartedAt(startedAtTime);
             if (token) setActiveToken(token);
             if (host) setActiveHost(host);
             if (room) setActiveRoomName(room);
@@ -582,6 +603,8 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
         const token = data?.livekit_token || call?.livekit_token;
         const host = data?.livekit_host || call?.livekit_host;
         const room = data?.room_name || call?.room_name;
+        const startedAtTime = data?.started_at || call?.started_at;
+        if (startedAtTime) setStartedAt(startedAtTime);
 
         if (token) setActiveToken(token);
         if (host) setActiveHost(host);
