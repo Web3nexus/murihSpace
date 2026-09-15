@@ -517,6 +517,28 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
 
         setConnectionStatus('Connected');
 
+        // Attach any tracks that were already published before this client connected
+        room.remoteParticipants.forEach((participant) => {
+          participant.trackPublications.forEach((pub) => {
+            if (pub.isSubscribed && pub.track) {
+              if (pub.track.kind === Track.Kind.Audio) {
+                if (remoteAudioRef.current) {
+                  pub.track.attach(remoteAudioRef.current);
+                  remoteAudioRef.current.play().catch(() => {});
+                } else {
+                  const el = pub.track.attach() as HTMLAudioElement;
+                  el.autoplay = true;
+                  document.body.appendChild(el);
+                  el.play().catch(() => {});
+                }
+              } else if (pub.track.kind === Track.Kind.Video && remoteVideoRef.current) {
+                pub.track.attach(remoteVideoRef.current);
+                setHasRemoteVideo(true);
+              }
+            }
+          });
+        });
+
         // Publish local mic
         await room.localParticipant.setMicrophoneEnabled(true);
         setIsMuted(false);
