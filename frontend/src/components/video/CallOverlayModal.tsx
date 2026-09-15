@@ -157,17 +157,20 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
     }
   }, [isOpen, mode]);
 
-  // Duration timer: synchronized with server started_at timestamp across participants
+  // Duration timer: runs steadily while connected for synchronous display
   useEffect(() => {
     if (isOpen && mode === 'connected') {
       const updateDuration = () => {
         if (startedAt) {
           const startTime = new Date(startedAt).getTime();
           const now = Date.now();
-          setDurationSeconds(Math.max(0, Math.floor((now - startTime) / 1000)));
-        } else {
-          setDurationSeconds((s) => s + 1);
+          const diff = Math.floor((now - startTime) / 1000);
+          if (diff >= 0 && diff < 86400) {
+            setDurationSeconds(diff);
+            return;
+          }
         }
+        setDurationSeconds((s) => s + 1);
       };
 
       updateDuration();
@@ -434,6 +437,15 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
       try {
         setConnectionStatus('Connecting to audio/video server...');
 
+        // CRITICAL: Stop and release any pre-warm mic/camera streams immediately
+        // so WebRTC does not hit device resource contention or mute on the microphone
+        if (previewStreamRef.current) {
+          try {
+            previewStreamRef.current.getTracks().forEach((t) => t.stop());
+          } catch (_) {}
+          previewStreamRef.current = null;
+        }
+
         room = new Room({
           adaptiveStream: true,
           dynacast: true,
@@ -462,7 +474,8 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
                 audioEl.autoplay = true;
                 document.body.appendChild(audioEl);
               }
-              // Explicitly call play() to bypass browser autoplay policy
+              // Unlock browser audio context & start playback
+              room.startAudio().catch(() => {});
               audioEl.play().catch(() => {});
             }
           }
@@ -476,26 +489,40 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
           }
         });
 
-        // Participant disconnected
-        room.on(RoomEvent.ParticipantDisconnected, () => {
-          setConnectionStatus('Other participant left');
-          if (durationTimerRef.current) {
-            clearInterval(durationTimerRef.current);
-            durationTimerRef.current = null;
+        // Autoplay status unlock handler
+        room.on(RoomEvent.AudioPlaybackStatusChanged, () => {
+          if (!room.canPlaybackAudio) {
+            room.startAudio().catch(() => {});
           }
+        });
+
+        // Participant disconnected — apply grace period in case of network handover
+        room.on(RoomEvent.ParticipantDisconnected, () => {
+          if (isCancelled || roomRef.current !== room) return;
           setTimeout(() => {
-            cleanupAndClose();
-          }, 1500);
+            if (isCancelled || roomRef.current !== room) return;
+            if (!room.remoteParticipants || room.remoteParticipants.size === 0) {
+              setConnectionStatus('Other participant left');
+              if (durationTimerRef.current) {
+                clearInterval(durationTimerRef.current);
+                durationTimerRef.current = null;
+              }
+              cleanupAndClose();
+            }
+          }, 4000);
         });
 
         // Room disconnected
         room.on(RoomEvent.Disconnected, () => {
+          // If this room instance was superseded, cancelled, or cleaned up by React, do NOT close modal
+          if (isCancelled || roomRef.current !== room) return;
           setConnectionStatus('Call ended');
           if (durationTimerRef.current) {
             clearInterval(durationTimerRef.current);
             durationTimerRef.current = null;
           }
           setTimeout(() => {
+            if (isCancelled || roomRef.current !== room) return;
             cleanupAndClose();
           }, 1200);
         });
@@ -516,6 +543,9 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
         }
 
         setConnectionStatus('Connected');
+
+        // Unlock browser audio playback right after connection
+        await room.startAudio().catch(() => {});
 
         // Attach any tracks that were already published before this client connected
         room.remoteParticipants.forEach((participant) => {
@@ -545,11 +575,6 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
 
         // Publish local camera if video call
         if (callType === 'video') {
-          if (previewStreamRef.current) {
-            previewStreamRef.current.getTracks().forEach((t) => t.stop());
-            previewStreamRef.current = null;
-          }
-
           const camPub = await room.localParticipant.setCameraEnabled(true);
           setIsVideoOn(true);
 
@@ -570,10 +595,10 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
 
     return () => {
       isCancelled = true;
-      if (roomRef.current) {
-        roomRef.current.disconnect();
+      if (roomRef.current === room) {
         roomRef.current = null;
       }
+      room?.disconnect();
     };
   }, [isOpen, mode, activeToken, activeHost, callType, contactName]);
 
@@ -664,9 +689,19 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
     onClose();
   };
 
-  // Answer call — posts accept, transitions to connected only if accepted
+  // Answer call — posts accept, transitions to connected immediately
   const handleAnswerCall = async () => {
     stopCallSounds();
+    if (onAnswer) onAnswer();
+
+    // Free pre-warm media streams immediately
+    if (previewStreamRef.current) {
+      try {
+        previewStreamRef.current.getTracks().forEach((t) => t.stop());
+      } catch (_) {}
+      previewStreamRef.current = null;
+    }
+
     if (callId) {
       try {
         const res = await fetch(`${API_BASE}/calls/${callId}/accept`, {
@@ -676,7 +711,13 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
         const raw = await res.json();
         const data = raw?.data ?? raw;
         if (!res.ok) {
-          // Call may have been cancelled by caller already
+          // If status is 400 because call was already accepted, continue if credentials present
+          if (res.status === 400 && (activeToken || data?.livekit_token)) {
+            const token = data?.livekit_token || data?.call?.livekit_token;
+            if (token) setActiveToken(token);
+            setMode('connected');
+            return;
+          }
           setConnectionStatus(data?.message || 'Call no longer available');
           setTimeout(() => cleanupAndClose(), 1500);
           return;
@@ -691,14 +732,16 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
         if (token) setActiveToken(token);
         if (host) setActiveHost(host);
         if (room) setActiveRoomName(room);
-      } catch {
-        setConnectionStatus('Failed to connect');
-        setTimeout(() => cleanupAndClose(), 1500);
-        return;
+      } catch (err) {
+        console.warn('[CallOverlayModal] accept error:', err);
+        if (!activeToken || !activeHost) {
+          setConnectionStatus('Failed to connect');
+          setTimeout(() => cleanupAndClose(), 1500);
+          return;
+        }
       }
     }
     setMode('connected');
-    if (onAnswer) onAnswer();
   };
 
 

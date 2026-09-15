@@ -90,9 +90,8 @@ export function GlobalCallReceiver() {
     const onCallEnded = (raw: any) => {
       const current = incomingCallRef.current;
       const data = raw?.data ?? raw;
-      const id = data?.id ?? raw?.id;
-      // Dismiss if: no current call, no id in data, or ids match
-      if (!current || !id || String(current.id) === String(id)) {
+      const id = Number(data?.id || raw?.id || 0);
+      if (current && id > 0 && Number(current.id) === id) {
         isAnsweredRef.current = false;
         setIsModalOpen(false);
         setIncomingCall(null);
@@ -102,8 +101,8 @@ export function GlobalCallReceiver() {
     const onCallDeclined = (raw: any) => {
       const current = incomingCallRef.current;
       const data = raw?.data ?? raw;
-      const id = data?.id ?? raw?.id;
-      if (!current || !id || String(current.id) === String(id)) {
+      const id = Number(data?.id || raw?.id || 0);
+      if (current && id > 0 && Number(current.id) === id) {
         isAnsweredRef.current = false;
         setIsModalOpen(false);
         setIncomingCall(null);
@@ -120,37 +119,28 @@ export function GlobalCallReceiver() {
       channel.listen('CallDeclined', onCallDeclined);
     });
 
-    // ── Resilient Polling Heartbeat (Fallback for dropped/delayed WS events) ──
+    // ── Resilient Polling Heartbeat (Fallback for detecting missed incoming calls) ──
     const pollInterval = setInterval(() => {
-      // If the user has answered the call, do NOT poll incoming active calls or auto-dismiss
-      if (isAnsweredRef.current) return;
+      // Only poll when no call is currently active/ringing to avoid race conditions
+      if (isAnsweredRef.current || incomingCallRef.current) return;
 
-      const current = incomingCallRef.current;
       fetch(`${API_BASE}/calls/incoming/active`, { headers: getAuthHeaders() })
         .then((res) => (res.ok ? res.json() : null))
         .then((raw) => {
-          if (!raw || isAnsweredRef.current) return;
+          if (!raw || isAnsweredRef.current || incomingCallRef.current) return;
           const data = raw?.data ?? raw;
           const call = data.call || (data.id ? data : null);
 
           if (call && (call.status === 'ringing' || call.status === 'connecting')) {
-            // New incoming call detected via polling
-            if (!current || current.id !== call.id) {
-              onCallIncoming({
-                id: call.id,
-                caller_id: call.caller_id,
-                caller: call.caller || data.caller,
-                type: call.type,
-                room_name: call.room_name || data.room_name,
-                livekit_host: call.livekit_host || data.livekit_host,
-                livekit_token: call.livekit_token || data.livekit_token,
-              });
-            }
-          } else if (current && !isAnsweredRef.current && (!call || call.id !== current.id)) {
-            // Caller cancelled or call ended while ringing
-            isAnsweredRef.current = false;
-            setIsModalOpen(false);
-            setIncomingCall(null);
+            onCallIncoming({
+              id: call.id,
+              caller_id: call.caller_id,
+              caller: call.caller || data.caller,
+              type: call.type,
+              room_name: call.room_name || data.room_name,
+              livekit_host: call.livekit_host || data.livekit_host,
+              livekit_token: call.livekit_token || data.livekit_token,
+            });
           }
         })
         .catch(() => {});
