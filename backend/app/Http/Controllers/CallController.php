@@ -6,6 +6,7 @@ use App\Events\CallAccepted;
 use App\Events\CallDeclined;
 use App\Events\CallEnded;
 use App\Events\CallIncoming;
+use App\Events\CallRinging;
 use App\Events\MessageSent;
 use App\Models\Call;
 use App\Models\Conversation;
@@ -93,12 +94,15 @@ class CallController extends Controller
             $conversationId = $existingConv?->id;
         }
 
+        $recipient = User::find($recipientId);
+        $isOnline = $recipient && $recipient->last_seen_at && $recipient->last_seen_at->greaterThanOrEqualTo(now()->subMinutes(5));
+
         $call = Call::create([
             'caller_id' => $callerId,
             'recipient_id' => $recipientId,
             'conversation_id' => $conversationId,
             'type' => $callType,
-            'status' => 'ringing',
+            'status' => 'connecting',
             'room_name' => $roomName,
         ]);
 
@@ -135,7 +139,31 @@ class CallController extends Controller
             'room_name' => $roomName,
             'livekit_token' => $livekitToken,
             'livekit_host' => $this->getLivekitHost(),
+            'is_recipient_online' => (bool) $isOnline,
         ], 201);
+    }
+
+    /**
+     * Mark call as ringing on recipient device (acknowledgment of incoming signal).
+     */
+    public function ringing(Request $request, int $id): JsonResponse
+    {
+        $call = Call::findOrFail($id);
+
+        if ($call->recipient_id !== $request->user()->id && $call->caller_id !== $request->user()->id) {
+            return response()->json(['message' => 'Unauthorized.'], 403);
+        }
+
+        if ($call->status === 'connecting') {
+            $call->update(['status' => 'ringing']);
+            broadcast(new CallRinging($call));
+        }
+
+        return response()->json([
+            'call' => $call,
+            'status' => $call->status,
+            'message' => 'Call is ringing.',
+        ]);
     }
 
     /**
@@ -149,8 +177,15 @@ class CallController extends Controller
             return response()->json(['message' => 'Unauthorized to accept this call.'], 403);
         }
 
-        if ($call->status !== 'ringing') {
-            return response()->json(['message' => 'Call is no longer ringing.', 'status' => $call->status], 400);
+        if (! in_array($call->status, ['connecting', 'ringing'])) {
+            return response()->json(['message' => 'Call is no longer active.', 'status' => $call->status], 400);
+        }
+
+        if ($call->created_at && $call->created_at->lt(now()->subSeconds(45))) {
+            $call->update(['status' => 'ended', 'ended_at' => now(), 'duration_seconds' => 0]);
+            broadcast(new CallEnded($call));
+            $this->logCallMessage($call, 'missed', 0);
+            return response()->json(['message' => 'Call timed out.', 'status' => 'ended'], 400);
         }
 
         $call->update([
@@ -380,8 +415,8 @@ class CallController extends Controller
 
         $call = Call::with(['caller:id,name,username,avatar'])
             ->where('recipient_id', $userId)
-            ->where('status', 'ringing')
-            ->where('created_at', '>=', now()->subSeconds(75))
+            ->whereIn('status', ['connecting', 'ringing'])
+            ->where('created_at', '>=', now()->subSeconds(45))
             ->latest()
             ->first();
 
@@ -418,6 +453,12 @@ class CallController extends Controller
 
         if ($call->recipient_id !== $request->user()->id && $call->caller_id !== $request->user()->id) {
             return response()->json(['message' => 'Unauthorized.'], 403);
+        }
+
+        if ($call->status === 'ringing' && $call->created_at && $call->created_at->lt(now()->subSeconds(45))) {
+            $call->update(['status' => 'ended', 'ended_at' => now(), 'duration_seconds' => 0]);
+            broadcast(new CallEnded($call));
+            $this->logCallMessage($call, 'missed', 0);
         }
 
         $livekitToken = null;

@@ -9,7 +9,7 @@ use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
-class CallEnded implements ShouldBroadcastNow
+class CallRinging implements ShouldBroadcastNow
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
@@ -21,29 +21,25 @@ class CallEnded implements ShouldBroadcastNow
     {
         return [
             new PrivateChannel('call.' . $this->call->room_name),
-            // Mobile + web (both channel name formats)
             new PrivateChannel('user.' . $this->call->caller_id),
             new PrivateChannel('App.Models.User.' . $this->call->caller_id),
-            new PrivateChannel('user.' . $this->call->recipient_id),
-            new PrivateChannel('App.Models.User.' . $this->call->recipient_id),
         ];
     }
 
     public function broadcastAs(): string
     {
-        return 'call.ended';
+        return 'call.ringing';
     }
 
     public function broadcastWith(): array
     {
         return [
-            'id'               => $this->call->id,
-            'status'           => $this->call->status,
-            'room_name'        => $this->call->room_name,
-            'caller_id'        => $this->call->caller_id,
-            'recipient_id'     => $this->call->recipient_id,
-            'duration_seconds' => $this->call->duration_seconds,
-            'ended_at'         => $this->call->ended_at?->toIso8601String(),
+            'id' => $this->call->id,
+            'status' => 'ringing',
+            'room_name' => $this->call->room_name,
+            'caller_id' => $this->call->caller_id,
+            'recipient_id' => $this->call->recipient_id,
         ];
     }
 }
+

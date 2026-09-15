@@ -647,6 +647,7 @@ Route::prefix('v1')->group(function () {
             Route::get('/{id}', [CallController::class, 'show']);
             Route::get('/{id}/token', [CallController::class, 'token']);
             Route::post('/{id}/accept', [CallController::class, 'accept']);
+            Route::post('/{id}/ringing', [CallController::class, 'ringing']);
             Route::post('/{id}/decline', [CallController::class, 'decline']);
             Route::post('/{id}/end', [CallController::class, 'end']);
         });

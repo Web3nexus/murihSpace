@@ -434,7 +434,7 @@ class ConversationController extends Controller
             'client_uuid' => ['nullable', 'string', 'max:64'],
             'reply_to_id' => ['nullable', 'integer', 'exists:messages,id'],
             'attachment_url' => ['nullable', 'string', 'max:2000'],
-            'attachment_type' => ['nullable', 'string', 'in:image,file,voice,poll,location,contact,gift'],
+            'attachment_type' => ['nullable', 'string', 'in:image,file,voice,poll,location,contact,gift,community,video,audio'],
             'media_id' => ['nullable', 'integer', 'exists:media,id'],
             'media_status' => ['nullable', 'string', 'in:uploading,processing,ready,failed,rejected'],
         ]);

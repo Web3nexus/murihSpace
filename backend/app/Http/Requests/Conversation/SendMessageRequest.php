@@ -18,7 +18,7 @@ class SendMessageRequest extends FormRequest
             'client_uuid' => ['nullable', 'string', 'max:64'],
             'reply_to_id' => ['nullable', 'integer', 'exists:messages,id'],
             'attachment_url' => ['nullable', 'string', 'max:2000'],
-            'attachment_type' => ['nullable', 'string', 'in:image,file,voice'],
+            'attachment_type' => ['nullable', 'string', 'in:image,file,voice,poll,location,contact,gift,community,video,audio'],
         ];
     }
 
@@ -26,7 +26,7 @@ class SendMessageRequest extends FormRequest
     {
         return [
             'content.required_without' => 'A message must contain text or an attachment.',
-            'attachment_type.in' => 'Attachment type must be one of: image, file, voice.',
+            'attachment_type.in' => 'Attachment type must be a valid supported attachment type.',
         ];
     }
 }

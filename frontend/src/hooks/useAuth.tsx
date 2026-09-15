@@ -119,6 +119,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const response = await apiClient.post("/auth/login", { email, password });
       const envelope = response.data;
       const responseData = envelope.success ? envelope.data : envelope;
+
+      if (responseData.status === "pending_device_approval" || response.status === 202) {
+        const msg = responseData.message || "A verification code was sent to your active logged-in device.";
+        setError(msg);
+        toast.info(msg);
+        return null;
+      }
+
       const token = responseData.token;
       const userProfile = responseData.user as UserProfile;
       if (!token || !userProfile) {

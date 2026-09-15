@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { useLocation } from 'react-router';
@@ -17,6 +17,8 @@ export const MESSAGE_EVENT_NAME = 'murih:message';
 export function RealtimeNotificationsHost() {
   const { user } = useAuth();
   const { pathname } = useLocation();
+  const pathnameRef = useRef(pathname);
+  pathnameRef.current = pathname;
 
   useEffect(() => {
     if (!user?.id) return;
@@ -63,7 +65,8 @@ export function RealtimeNotificationsHost() {
 
       // Bump the global unread badge immediately so the header icon updates
       // before the next server poll, but only if not currently viewing messages.
-      if (!pathname.startsWith('/app/messages')) {
+      const currentPath = pathnameRef.current;
+      if (!currentPath.startsWith('/app/messages')) {
         setUnreadCount(getUnreadCount() + 1);
       }
 
@@ -71,7 +74,7 @@ export function RealtimeNotificationsHost() {
 
       // The chat hub already surfaces toasts for messages outside the active
       // conversation, so skip the global toast while on the messages page.
-      if (pathname.startsWith('/app/messages')) return;
+      if (currentPath.startsWith('/app/messages')) return;
 
       const sender = e.user?.name ?? 'New message';
       toast(sender, {
@@ -105,10 +108,8 @@ export function RealtimeNotificationsHost() {
       notificationChannel.stopListening('.notification', onNotification);
       userChannel.stopListening('.MessageSent', onMessageSent);
       userChannel.stopListening('.MessageRead', onMessageRead);
-      echo.leave(`App.Models.User.${user.id}`);
-      echo.leave(`user.${user.id}`);
     };
-  }, [user?.id, pathname]);
+  }, [user?.id]);
 
   return null;
 }

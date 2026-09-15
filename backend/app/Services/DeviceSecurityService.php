@@ -22,6 +22,11 @@ class DeviceSecurityService
     public function requiresDeviceApproval(User $user, Request $request): bool
     {
         try {
+            // Admin accounts manage the platform from the web portal and must not be locked out by device session checks
+            if ($user->isAdmin()) {
+                return false;
+            }
+
             $deviceId = $this->resolveDeviceId($request);
 
             // Check if there is an active trusted session for THIS exact device

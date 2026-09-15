@@ -30,4 +30,15 @@ class Gift extends Model
     {
         return $query->where('is_active', true)->orderBy('sort_order');
     }
+
+    public function getIconUrlAttribute(?string $value): ?string
+    {
+        if (empty($value)) {
+            return null;
+        }
+        if (str_starts_with($value, 'http://') || str_starts_with($value, 'https://')) {
+            return $value;
+        }
+        return url($value);
+    }
 }

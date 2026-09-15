@@ -128,7 +128,7 @@ export function ChatLayout() {
       return;
     }
     try {
-      const res = await apiFetch<any>('/calls/initiate', {
+      const raw = await apiFetch<any>('/calls/initiate', {
         method: 'POST',
         body: JSON.stringify({
           recipient_id: activeConv.other_user.id,
@@ -136,11 +136,13 @@ export function ChatLayout() {
           conversation_id: activeConv.id,
         }),
       });
+      const data = raw?.data ?? raw;
+      const call = data?.call || (data?.id ? data : null);
       setCallSession({
-        callId: res.call?.id,
-        roomName: res.room_name,
-        livekitToken: res.livekit_token,
-        livekitHost: res.livekit_host,
+        callId: call?.id ?? data?.id,
+        roomName: data.room_name || call?.room_name,
+        livekitToken: data.livekit_token || call?.livekit_token,
+        livekitHost: data.livekit_host || call?.livekit_host,
         type,
       });
       setIsCallModalOpen(true);

@@ -28,6 +28,7 @@ interface IncomingCallData {
   type: CallType;
   room_name: string;
   livekit_host?: string;
+  livekit_token?: string;
 }
 
 export function GlobalCallReceiver() {
@@ -53,33 +54,51 @@ export function GlobalCallReceiver() {
     const userChannel = echo.private(`user.${user.id}`);
     const appUserChannel = echo.private(`App.Models.User.${user.id}`);
 
-    const onCallIncoming = (data: any) => {
+    const onCallIncoming = (raw: any) => {
+      const data = raw?.call || raw?.data?.call || raw?.data || raw;
+      const caller = data.caller || raw.caller || data.caller_user;
+      const id = Number(data.id || raw.id || 0);
+      const callerId = Number(data.caller_id || raw.caller_id || 0);
+
       // Don't ring if we are the caller
-      if (data.caller_id === user.id) return;
+      if (callerId === user.id) return;
+
+      // Acknowledge receipt to backend immediately so the caller knows the recipient device is alive and actively ringing
+      if (id > 0) {
+        fetch(`${API_BASE}/calls/${id}/ringing`, {
+          method: 'POST',
+          headers: getAuthHeaders(),
+        }).catch(() => {});
+      }
 
       setIncomingCall({
-        id: data.id,
-        caller_id: data.caller_id,
-        caller: data.caller,
-        type: data.type === 'video' ? 'video' : 'audio',
-        room_name: data.room_name,
-        livekit_host: data.livekit_host,
+        id,
+        caller_id: callerId,
+        caller,
+        type: (data.type || raw.type) === 'video' ? 'video' : 'audio',
+        room_name: data.room_name || raw.room_name,
+        livekit_host: data.livekit_host || raw.livekit_host,
+        livekit_token: data.livekit_token || raw.livekit_token,
       });
       setIsModalOpen(true);
     };
 
-    const onCallEnded = (data: any) => {
+    const onCallEnded = (raw: any) => {
       const current = incomingCallRef.current;
+      const data = raw?.data ?? raw;
+      const id = data?.id ?? raw?.id;
       // Dismiss if: no current call, no id in data, or ids match
-      if (!current || !data?.id || String(current.id) === String(data.id)) {
+      if (!current || !id || String(current.id) === String(id)) {
         setIsModalOpen(false);
         setIncomingCall(null);
       }
     };
 
-    const onCallDeclined = (data: any) => {
+    const onCallDeclined = (raw: any) => {
       const current = incomingCallRef.current;
-      if (!current || !data?.id || String(current.id) === String(data.id)) {
+      const data = raw?.data ?? raw;
+      const id = data?.id ?? raw?.id;
+      if (!current || !id || String(current.id) === String(id)) {
         setIsModalOpen(false);
         setIncomingCall(null);
       }
@@ -100,22 +119,25 @@ export function GlobalCallReceiver() {
       const current = incomingCallRef.current;
       fetch(`${API_BASE}/calls/incoming/active`, { headers: getAuthHeaders() })
         .then((res) => (res.ok ? res.json() : null))
-        .then((data) => {
-          if (!data) return;
+        .then((raw) => {
+          if (!raw) return;
+          const data = raw?.data ?? raw;
+          const call = data.call || (data.id ? data : null);
 
-          if (data.call && data.call.status === 'ringing') {
+          if (call && (call.status === 'ringing' || call.status === 'connecting')) {
             // New incoming call detected via polling
-            if (!current || current.id !== data.call.id) {
+            if (!current || current.id !== call.id) {
               onCallIncoming({
-                id: data.call.id,
-                caller_id: data.call.caller_id,
-                caller: data.caller || data.call.caller,
-                type: data.call.type,
-                room_name: data.room_name || data.call.room_name,
-                livekit_host: data.livekit_host,
+                id: call.id,
+                caller_id: call.caller_id,
+                caller: call.caller || data.caller,
+                type: call.type,
+                room_name: call.room_name || data.room_name,
+                livekit_host: call.livekit_host || data.livekit_host,
+                livekit_token: call.livekit_token || data.livekit_token,
               });
             }
-          } else if (current && (!data.call || data.call.id !== current.id)) {
+          } else if (current && (!call || call.id !== current.id)) {
             // Caller cancelled or call ended while ringing
             setIsModalOpen(false);
             setIncomingCall(null);
@@ -154,6 +176,7 @@ export function GlobalCallReceiver() {
       contactAvatar={incomingCall.caller?.avatar_url || incomingCall.caller?.avatar}
       roomName={incomingCall.room_name}
       livekitHost={incomingCall.livekit_host}
+      livekitToken={incomingCall.livekit_token}
       onClose={handleClose}
     />
   );

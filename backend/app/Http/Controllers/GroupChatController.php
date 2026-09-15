@@ -98,7 +98,7 @@ class GroupChatController extends Controller
         $validated = $request->validate([
             'content' => 'required_without_any:attachment_url,media_id|nullable|string|max:5000',
             'attachment_url' => 'nullable|url|max:500',
-            'attachment_type' => 'nullable|string|in:image,video,audio,file',
+            'attachment_type' => 'nullable|string|in:image,video,audio,file,voice,poll,location,contact,gift,community',
             'media_id' => 'nullable|exists:media,id',
             'reply_to_id' => 'nullable|exists:messages,id',
             'client_uuid' => 'nullable|string|max:64',

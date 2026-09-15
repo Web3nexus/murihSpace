@@ -87,10 +87,6 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
     setMode(initialMode);
     if (initialMode === 'outgoing') {
       setOutgoingPhase('connecting');
-      const timer = setTimeout(() => {
-        setOutgoingPhase('ringing');
-      }, 1400);
-      return () => clearTimeout(timer);
     }
   }, [initialMode]);
 
@@ -172,6 +168,33 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
     };
   }, [mode]);
 
+  // 45-second ringing timeout limit for unanswered calls
+  useEffect(() => {
+    if (!isOpen || mode === 'connected') return;
+
+    const ringTimeout = setTimeout(() => {
+      stopCallSounds();
+      const statusText = mode === 'outgoing' ? 'No answer' : 'Missed call';
+      setConnectionStatus(statusText);
+      if (callId) {
+        fetch(`${API_BASE}/calls/${callId}/end`, {
+          method: 'POST',
+          headers: getAuthHeaders(),
+          body: JSON.stringify({ duration_seconds: 0 }),
+        }).catch(() => {});
+      }
+      setTimeout(() => {
+        if (roomRef.current) {
+          roomRef.current.disconnect();
+          roomRef.current = null;
+        }
+        onClose();
+      }, 1500);
+    }, 45000);
+
+    return () => clearTimeout(ringTimeout);
+  }, [isOpen, mode, callId, onClose]);
+
   const { user } = useAuth();
 
   // Listen to call events via Echo for this specific room / call
@@ -189,16 +212,31 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
     const callChannel = channelName ? echo.private(channelName) : null;
     const userChannel = user?.id ? echo.private(`user.${user.id}`) : null;
 
-    const handleCallAccepted = (data: any) => {
-      if (data && callId && data.id && Number(data.id) !== Number(callId)) return;
+    const handleCallRinging = (raw?: any) => {
+      const data = raw?.call || raw?.data?.call || raw?.data || raw;
+      const id = data?.id || raw?.id;
+      if (id && callId && Number(id) !== Number(callId)) return;
+      setOutgoingPhase('ringing');
+    };
+
+    const handleCallAccepted = (raw: any) => {
+      const data = raw?.call || raw?.data?.call || raw?.data || raw;
+      const id = data?.id || raw?.id;
+      if (id && callId && Number(id) !== Number(callId)) return;
       stopCallSounds();
-      if (data?.livekit_host) setActiveHost(data.livekit_host);
-      if (data?.room_name) setActiveRoomName(data.room_name);
+      const token = data?.livekit_token || raw?.livekit_token;
+      const host = data?.livekit_host || raw?.livekit_host;
+      const room = data?.room_name || raw?.room_name;
+      if (token) setActiveToken(token);
+      if (host) setActiveHost(host);
+      if (room) setActiveRoomName(room);
       setMode('connected');
     };
 
-    const handleCallDeclined = (data?: any) => {
-      if (data && callId && data.id && Number(data.id) !== Number(callId)) return;
+    const handleCallDeclined = (raw?: any) => {
+      const data = raw?.call || raw?.data?.call || raw?.data || raw;
+      const id = data?.id || raw?.id;
+      if (id && callId && Number(id) !== Number(callId)) return;
       stopCallSounds();
       setConnectionStatus('Call declined');
       setTimeout(() => {
@@ -208,8 +246,10 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
       }, 1500);
     };
 
-    const handleCallEnded = (data?: any) => {
-      if (data && callId && data.id && Number(data.id) !== Number(callId)) return;
+    const handleCallEnded = (raw?: any) => {
+      const data = raw?.call || raw?.data?.call || raw?.data || raw;
+      const id = data?.id || raw?.id;
+      if (id && callId && Number(id) !== Number(callId)) return;
       stopCallSounds();
       setConnectionStatus('Call ended');
       setTimeout(() => {
@@ -220,6 +260,8 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
     };
 
     if (callChannel) {
+      callChannel.listen('.call.ringing', handleCallRinging);
+      callChannel.listen('CallRinging', handleCallRinging);
       callChannel.listen('.call.accepted', handleCallAccepted);
       callChannel.listen('.call.declined', handleCallDeclined);
       callChannel.listen('.call.ended', handleCallEnded);
@@ -229,6 +271,8 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
     }
 
     if (userChannel) {
+      userChannel.listen('.call.ringing', handleCallRinging);
+      userChannel.listen('CallRinging', handleCallRinging);
       userChannel.listen('.call.accepted', handleCallAccepted);
       userChannel.listen('.call.declined', handleCallDeclined);
       userChannel.listen('.call.ended', handleCallEnded);
@@ -239,6 +283,8 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
 
     return () => {
       if (callChannel && channelName) {
+        callChannel.stopListening('.call.ringing', handleCallRinging);
+        callChannel.stopListening('CallRinging', handleCallRinging);
         callChannel.stopListening('.call.accepted', handleCallAccepted);
         callChannel.stopListening('.call.declined', handleCallDeclined);
         callChannel.stopListening('.call.ended', handleCallEnded);
@@ -248,6 +294,8 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
         echo.leave(channelName);
       }
       if (userChannel && user?.id) {
+        userChannel.stopListening('.call.ringing', handleCallRinging);
+        userChannel.stopListening('CallRinging', handleCallRinging);
         userChannel.stopListening('.call.accepted', handleCallAccepted);
         userChannel.stopListening('.call.declined', handleCallDeclined);
         userChannel.stopListening('.call.ended', handleCallEnded);
@@ -266,14 +314,22 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
     const pollInterval = setInterval(() => {
       fetch(`${API_BASE}/calls/${callId}`, { headers: getAuthHeaders() })
         .then((res) => (res.ok ? res.json() : null))
-        .then((data) => {
-          if (!data?.call) return;
-          const status = data.call.status;
-          if (status === 'accepted') {
+        .then((raw) => {
+          if (!raw) return;
+          const data = raw?.data ?? raw;
+          const call = data?.call || (data?.id ? data : null);
+          if (!call) return;
+          const status = call.status;
+          if (status === 'ringing') {
+            setOutgoingPhase('ringing');
+          } else if (status === 'accepted') {
             stopCallSounds();
-            if (data.livekit_token) setActiveToken(data.livekit_token);
-            if (data.livekit_host) setActiveHost(data.livekit_host);
-            if (data.room_name) setActiveRoomName(data.room_name);
+            const token = data.livekit_token || call.livekit_token;
+            const host = data.livekit_host || call.livekit_host;
+            const room = data.room_name || call.room_name;
+            if (token) setActiveToken(token);
+            if (host) setActiveHost(host);
+            if (room) setActiveRoomName(room);
             setMode('connected');
           } else if (status === 'declined') {
             stopCallSounds();
@@ -302,10 +358,15 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
     if (mode === 'connected' && (!activeToken || !activeHost) && callId) {
       fetch(`${API_BASE}/calls/${callId}/token`, { headers: getAuthHeaders() })
         .then((res) => res.json())
-        .then((data) => {
-          if (data.livekit_token) setActiveToken(data.livekit_token);
-          if (data.livekit_host) setActiveHost(data.livekit_host);
-          if (data.room_name) setActiveRoomName(data.room_name);
+        .then((raw) => {
+          const data = raw?.data ?? raw;
+          const call = data?.call || data;
+          const token = data?.livekit_token || call?.livekit_token;
+          const host = data?.livekit_host || call?.livekit_host;
+          const room = data?.room_name || call?.room_name;
+          if (token) setActiveToken(token);
+          if (host) setActiveHost(host);
+          if (room) setActiveRoomName(room);
         })
         .catch(() => {});
     }
@@ -509,16 +570,22 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
           method: 'POST',
           headers: getAuthHeaders(),
         });
-        const data = await res.json();
+        const raw = await res.json();
+        const data = raw?.data ?? raw;
         if (!res.ok) {
           // Call may have been cancelled by caller already
           setConnectionStatus(data?.message || 'Call no longer available');
           setTimeout(() => cleanupAndClose(), 1500);
           return;
         }
-        if (data.livekit_token) setActiveToken(data.livekit_token);
-        if (data.livekit_host) setActiveHost(data.livekit_host);
-        if (data.room_name) setActiveRoomName(data.room_name);
+        const call = data?.call || data;
+        const token = data?.livekit_token || call?.livekit_token;
+        const host = data?.livekit_host || call?.livekit_host;
+        const room = data?.room_name || call?.room_name;
+
+        if (token) setActiveToken(token);
+        if (host) setActiveHost(host);
+        if (room) setActiveRoomName(room);
       } catch {
         setConnectionStatus('Failed to connect');
         setTimeout(() => cleanupAndClose(), 1500);
