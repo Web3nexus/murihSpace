@@ -10,6 +10,7 @@ import {
   Spinner,
   Monitor,
   Lock,
+  SpeakerSlash as VolumeX,
 } from "@phosphor-icons/react";
 import { Room, RoomEvent, Track, RemoteTrack, RemoteTrackPublication, Participant, ConnectionState } from 'livekit-client';
 import { startOutgoingRingback, startIncomingRingtone, stopCallSounds } from '@/lib/sound';
@@ -97,6 +98,7 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
   const [activeHost, setActiveHost] = useState<string | undefined>(initialHost);
   const [activeRoomName, setActiveRoomName] = useState<string | undefined>(initialRoomName);
   const [startedAt, setStartedAt] = useState<string | null>(null);
+  const [audioPlaybackBlocked, setAudioPlaybackBlocked] = useState(false);
 
   const roomRef = useRef<Room | null>(null);
   const localVideoRef = useRef<HTMLVideoElement | null>(null);
@@ -483,6 +485,18 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
         room = new Room({
           adaptiveStream: true,
           dynacast: true,
+          audioCaptureDefaults: {
+            autoGainControl: true,
+            echoCancellation: true,
+            noiseSuppression: true,
+          },
+          publishDefaults: {
+            dtx: false,
+            red: true,
+            audioPreset: {
+              maxBitrate: 32000,
+            },
+          },
           videoCaptureDefaults: {
             resolution: { width: 1280, height: 720, frameRate: 30 },
           },
@@ -497,6 +511,12 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
         // Room connected
         room.on(RoomEvent.Connected, () => {
           console.log('[LiveKit] 🔗 Connected to room:', room.name);
+        });
+
+        // Audio playback status changed
+        room.on(RoomEvent.AudioPlaybackStatusChanged, () => {
+          console.log('[LiveKit] 🔊 AudioPlaybackStatusChanged: canPlaybackAudio =', room.canPlaybackAudio);
+          setAudioPlaybackBlocked(!room.canPlaybackAudio);
         });
 
         // Connection state changed
@@ -540,7 +560,14 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
                 audioEl = track.attach();
                 document.body.appendChild(audioEl);
               }
-              audioEl.play().catch(() => {});
+              audioEl.muted = false;
+              audioEl.volume = 1.0;
+              audioEl.play().then(() => {
+                setAudioPlaybackBlocked(false);
+              }).catch((e) => {
+                console.warn('[LiveKit] 🔇 Audio autoplay blocked by browser:', e);
+                setAudioPlaybackBlocked(true);
+              });
             }
           }
         );
@@ -615,7 +642,10 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
         setConnectionStatus('Connected');
 
         // Unlock browser audio playback right after connection
-        await room.startAudio().catch(() => {});
+        try {
+          await room.startAudio();
+        } catch (_) {}
+        setAudioPlaybackBlocked(!room.canPlaybackAudio);
 
         // Attach any tracks that were already published before this client connected
         room.remoteParticipants.forEach((participant) => {
@@ -623,15 +653,22 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
             if (pub.isSubscribed && pub.track) {
               console.log(`[LiveKit] 📥 Attaching pre-existing track: kind=${pub.track.kind}, sid=${pub.track.sid}`);
               if (pub.track.kind === Track.Kind.Audio) {
+                let audioEl: HTMLAudioElement;
                 if (remoteAudioRef.current) {
-                  pub.track.attach(remoteAudioRef.current);
-                  remoteAudioRef.current.play().catch(() => {});
+                  audioEl = remoteAudioRef.current;
+                  pub.track.attach(audioEl);
                 } else {
-                  const el = pub.track.attach() as HTMLAudioElement;
-                  el.autoplay = true;
-                  document.body.appendChild(el);
-                  el.play().catch(() => {});
+                  audioEl = pub.track.attach() as HTMLAudioElement;
+                  document.body.appendChild(audioEl);
                 }
+                audioEl.muted = false;
+                audioEl.volume = 1.0;
+                audioEl.play().then(() => {
+                  setAudioPlaybackBlocked(false);
+                }).catch((e) => {
+                  console.warn('[LiveKit] 🔇 Pre-existing audio track playback blocked:', e);
+                  setAudioPlaybackBlocked(true);
+                });
               } else if (pub.track.kind === Track.Kind.Video) {
                 setRemoteVideoTrack(pub.track);
                 setHasRemoteVideo(true);
@@ -675,6 +712,18 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
       room?.disconnect();
     };
   }, [isOpen, mode, activeToken, activeHost, callType, contactName]);
+
+  // Browser Audio Autoplay Unblock Handler
+  const handleUnblockAudio = async () => {
+    if (roomRef.current) {
+      try {
+        await roomRef.current.startAudio();
+        setAudioPlaybackBlocked(!roomRef.current.canPlaybackAudio);
+      } catch (e) {
+        console.warn('[LiveKit] Failed to start audio on user action:', e);
+      }
+    }
+  };
 
   // Mute / Unmute
   const toggleMute = async () => {
@@ -947,7 +996,27 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
 
       {/* ── State 3: CONNECTED REAL CALL ──────────────────────────────────── */}
       {mode === 'connected' && (
-        <div className="relative w-full h-full max-w-4xl max-h-[92vh] flex flex-col justify-between p-4 bg-slate-950 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden mx-4">
+        <div
+          onClick={() => {
+            if (audioPlaybackBlocked) handleUnblockAudio();
+          }}
+          className="relative w-full h-full max-w-4xl max-h-[92vh] flex flex-col justify-between p-4 bg-slate-950 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden mx-4"
+        >
+          {/* Autoplay Audio Unblock Banner */}
+          {audioPlaybackBlocked && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleUnblockAudio();
+              }}
+              className="absolute top-16 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold rounded-full shadow-lg transition-all animate-bounce cursor-pointer"
+            >
+              <VolumeX weight="bold" className="w-4 h-4" />
+              <span>Click anywhere to unmute audio</span>
+            </button>
+          )}
+
           {/* Main Remote Video or Audio Avatar Area */}
           <div className="absolute inset-0 z-0 bg-slate-900 flex items-center justify-center overflow-hidden">
             {callType === 'video' ? (
