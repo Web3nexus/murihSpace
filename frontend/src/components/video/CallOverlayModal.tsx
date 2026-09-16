@@ -15,7 +15,7 @@ import {
   X,
   MagnifyingGlass as Search,
 } from "@phosphor-icons/react";
-import { Room, RoomEvent, Track, RemoteTrack, RemoteTrackPublication, Participant, ConnectionState } from 'livekit-client';
+import { Room, RoomEvent, Track, RemoteTrack, RemoteTrackPublication, Participant, ConnectionState, AudioPresets } from 'livekit-client';
 import { startOutgoingRingback, startIncomingRingtone, stopCallSounds } from '@/lib/sound';
 import { getEcho } from '@/lib/echo';
 import { getAuthToken } from '@/lib/auth/token';
@@ -106,7 +106,7 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
   const roomRef = useRef<Room | null>(null);
   const localVideoRef = useRef<HTMLVideoElement | null>(null);
   const remoteVideoRef = useRef<HTMLVideoElement | null>(null);
-  const remoteAudioRef = useRef<HTMLAudioElement | null>(null);
+  const attachedAudioElementsRef = useRef<Map<string, HTMLAudioElement>>(new Map());
   const durationTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const [remoteParticipants, setRemoteParticipants] = useState<Participant[]>([]);
@@ -603,9 +603,7 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
           publishDefaults: {
             dtx: false,
             red: true,
-            audioPreset: {
-              maxBitrate: 32000,
-            },
+            audioPreset: AudioPresets.speech,
           },
           videoCaptureDefaults: {
             resolution: { width: 1280, height: 720, frameRate: 30 },
@@ -662,16 +660,14 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
                 track.attach(remoteVideoRef.current);
               }
             } else if (track.kind === Track.Kind.Audio) {
-              let audioEl: HTMLAudioElement;
-              if (remoteAudioRef.current) {
-                audioEl = remoteAudioRef.current;
-                track.attach(audioEl);
-              } else {
-                audioEl = track.attach();
-                document.body.appendChild(audioEl);
-              }
+              const audioKey = track.sid || participant.identity;
+              const audioEl = track.attach();
               audioEl.muted = false;
               audioEl.volume = 1.0;
+              audioEl.setAttribute('data-livekit-call-audio', audioKey);
+              document.body.appendChild(audioEl);
+              attachedAudioElementsRef.current.set(audioKey, audioEl);
+
               audioEl.play().then(() => {
                 setAudioPlaybackBlocked(false);
               }).catch((e) => {
@@ -686,7 +682,20 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
         // Remote track unsubscribed
         room.on(RoomEvent.TrackUnsubscribed, (track: RemoteTrack) => {
           console.log(`[LiveKit] 📴 TrackUnsubscribed: kind=${track.kind}, sid=${track.sid}`);
-          track.detach();
+          track.detach().forEach((el) => {
+            try {
+              (el as HTMLAudioElement).pause();
+              el.remove();
+            } catch (_) {}
+          });
+          if (track.sid && attachedAudioElementsRef.current.has(track.sid)) {
+            const el = attachedAudioElementsRef.current.get(track.sid);
+            try {
+              el?.pause();
+              el?.remove();
+            } catch (_) {}
+            attachedAudioElementsRef.current.delete(track.sid);
+          }
           if (track.kind === Track.Kind.Video) {
             setRemoteVideoTrack(null);
             setHasRemoteVideo(false);
@@ -767,22 +776,22 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
             if (pub.isSubscribed && pub.track) {
               console.log(`[LiveKit] 📥 Attaching pre-existing track: kind=${pub.track.kind}, sid=${pub.track.sid}`);
               if (pub.track.kind === Track.Kind.Audio) {
-                let audioEl: HTMLAudioElement;
-                if (remoteAudioRef.current) {
-                  audioEl = remoteAudioRef.current;
-                  pub.track.attach(audioEl);
-                } else {
-                  audioEl = pub.track.attach() as HTMLAudioElement;
+                const audioKey = pub.track.sid || participant.identity;
+                if (!attachedAudioElementsRef.current.has(audioKey)) {
+                  const audioEl = pub.track.attach() as HTMLAudioElement;
+                  audioEl.muted = false;
+                  audioEl.volume = 1.0;
+                  audioEl.setAttribute('data-livekit-call-audio', audioKey);
                   document.body.appendChild(audioEl);
+                  attachedAudioElementsRef.current.set(audioKey, audioEl);
+
+                  audioEl.play().then(() => {
+                    setAudioPlaybackBlocked(false);
+                  }).catch((e) => {
+                    console.warn('[LiveKit] 🔇 Pre-existing audio track playback blocked:', e);
+                    setAudioPlaybackBlocked(true);
+                  });
                 }
-                audioEl.muted = false;
-                audioEl.volume = 1.0;
-                audioEl.play().then(() => {
-                  setAudioPlaybackBlocked(false);
-                }).catch((e) => {
-                  console.warn('[LiveKit] 🔇 Pre-existing audio track playback blocked:', e);
-                  setAudioPlaybackBlocked(true);
-                });
               } else if (pub.track.kind === Track.Kind.Video) {
                 setRemoteVideoTrack(pub.track);
                 setHasRemoteVideo(true);
@@ -821,12 +830,34 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
 
     return () => {
       isCancelled = true;
+      cleanupAttachedAudio();
       if (roomRef.current === room) {
         roomRef.current = null;
       }
       room?.disconnect();
     };
   }, [isOpen, mode, activeToken, activeHost, callType]);
+
+  // Clean up all dynamically attached audio elements from the DOM
+  const cleanupAttachedAudio = () => {
+    attachedAudioElementsRef.current.forEach((el) => {
+      try {
+        el.pause();
+        el.srcObject = null;
+        el.remove();
+      } catch (_) {}
+    });
+    attachedAudioElementsRef.current.clear();
+    if (typeof document !== 'undefined') {
+      document.querySelectorAll('audio[data-livekit-call-audio]').forEach((el) => {
+        try {
+          (el as HTMLAudioElement).pause();
+          (el as HTMLAudioElement).srcObject = null;
+          el.remove();
+        } catch (_) {}
+      });
+    }
+  };
 
   // Browser Audio Autoplay Unblock Handler
   const handleUnblockAudio = async () => {
@@ -838,16 +869,14 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
         console.warn('[LiveKit] Failed to start audio on user action:', e);
       }
     }
-    if (remoteAudioRef.current) {
+    attachedAudioElementsRef.current.forEach((el) => {
       try {
-        remoteAudioRef.current.muted = false;
-        remoteAudioRef.current.volume = 1.0;
-        await remoteAudioRef.current.play();
-        setAudioPlaybackBlocked(false);
-      } catch (e) {
-        console.warn('[LiveKit] Failed to play remote audio element:', e);
-      }
-    }
+        el.muted = false;
+        el.volume = 1.0;
+        el.play().catch(() => {});
+      } catch (_) {}
+    });
+    setAudioPlaybackBlocked(false);
   };
 
   // Mute / Unmute
@@ -888,6 +917,7 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
   // Internal cleanup: disconnect LiveKit, reset state, and close modal WITHOUT posting to API
   const cleanupAndClose = () => {
     stopCallSounds();
+    cleanupAttachedAudio();
     if (durationTimerRef.current) {
       clearInterval(durationTimerRef.current);
       durationTimerRef.current = null;
@@ -905,6 +935,7 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
   // End / Hang up call — user-initiated, posts to API then cleans up
   const handleEndCall = async () => {
     stopCallSounds();
+    cleanupAttachedAudio();
     if (durationTimerRef.current) {
       clearInterval(durationTimerRef.current);
       durationTimerRef.current = null;
@@ -1002,9 +1033,14 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-xl text-white overflow-hidden animate-in fade-in duration-300">
-      <audio ref={remoteAudioRef} autoPlay playsInline />
-
+    <div
+      onClick={() => {
+        if (roomRef.current && (!roomRef.current.canPlaybackAudio || audioPlaybackBlocked)) {
+          handleUnblockAudio();
+        }
+      }}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-xl text-white overflow-hidden animate-in fade-in duration-300"
+    >
       {/* ── State 1: OUTGOING (Connecting -> Ringing) ──────────────────────── */}
       {mode === 'outgoing' && (
         <div className="relative w-full h-full max-w-md flex flex-col justify-between p-6 text-center overflow-hidden">
