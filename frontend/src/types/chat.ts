@@ -28,7 +28,7 @@ export interface ChatMessage {
   status?: MessageStatus;
   reply_to_id?: number;
   attachment_url?: string;
-  attachment_type?: 'image' | 'file' | 'voice';
+  attachment_type?: 'image' | 'file' | 'voice' | 'call' | string;
   reactions?: MessageReaction[];
   reply_to?: {
     id: number;

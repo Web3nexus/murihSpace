@@ -13,6 +13,8 @@ import {
   Users,
   Checks as CheckCheck,
   Check as CheckIcon,
+  Phone,
+  VideoCamera,
 } from "@phosphor-icons/react";
 import { useAuth } from "@/hooks/useAuth";
 import { usePopChat } from "@/context/PopChatContext";
@@ -23,6 +25,44 @@ import type { ChatMessage } from "@/types/chat";
 import { safeFormatDistanceToNow, safeFormat } from "@/lib/date";
 import { EmojiPickerPopover } from "@/components/chat/EmojiPickerPopover";
 import { playMessageReceivedSound } from "@/lib/sound";
+
+export function formatMessagePreview(msg?: { content?: string; type?: string; attachment_type?: string } | null): string {
+  if (!msg || !msg.content) return "No messages yet";
+  const content = typeof msg.content === "string" ? msg.content.trim() : "";
+  const isCall =
+    msg.type === "call" ||
+    msg.attachment_type === "call" ||
+    content.startsWith('{"call_id"') ||
+    (content.startsWith("{") && content.includes('"call_id"'));
+
+  if (isCall) {
+    try {
+      const d = JSON.parse(content);
+      const isVideo = d.call_type === "video";
+      const isMissed = d.status === "missed" || d.status === "declined";
+      const dur = Number(d.duration) || 0;
+      if (isMissed) {
+        return isVideo ? "📹 Missed Video Call" : "📞 Missed Call";
+      }
+      if (dur > 0) {
+        const m = Math.floor(dur / 60);
+        const s = dur % 60;
+        const ds = m > 0 ? `${m}m ${s}s` : `${s}s`;
+        return isVideo ? `📹 Video Call · ${ds}` : `📞 Voice Call · ${ds}`;
+      }
+      return isVideo ? "📹 Video Call" : "📞 Voice Call";
+    } catch {
+      return "📞 Call";
+    }
+  }
+
+  if (msg.attachment_type === "image" || msg.type === "image") return "📷 Photo";
+  if (msg.attachment_type === "video" || msg.type === "video") return "🎬 Video";
+  if (msg.attachment_type === "voice" || msg.type === "voice") return "🎤 Voice message";
+  if (msg.attachment_type === "file" || msg.type === "file") return "📎 File";
+
+  return msg.content;
+}
 
 export function PopChatWidget() {
   const { user, isAuthenticated } = useAuth();
@@ -237,9 +277,10 @@ export function PopChatWidget() {
   const filteredConversations = conversations.filter((c) => {
     if (!searchQuery.trim()) return true;
     const q = searchQuery.toLowerCase();
+    const preview = formatMessagePreview(c.latest_message).toLowerCase();
     return (
       c.title?.toLowerCase().includes(q) ||
-      c.latest_message?.content?.toLowerCase().includes(q)
+      preview.includes(q)
     );
   });
 
@@ -429,23 +470,78 @@ export function PopChatWidget() {
             ) : (
               messages.map((msg, i) => {
                 const isMe = msg.user_id === user?.id;
+                const content = typeof msg.content === "string" ? msg.content.trim() : "";
+                const isCall =
+                  msg.type === "call" ||
+                  msg.attachment_type === "call" ||
+                  content.startsWith('{"call_id"') ||
+                  (content.startsWith("{") && content.includes('"call_id"'));
+
+                let callData: any = null;
+                if (isCall) {
+                  try {
+                    callData = JSON.parse(content);
+                  } catch {
+                    callData = { status: "ended", call_type: "audio", duration: 0 };
+                  }
+                }
+
+                const isVideo = callData?.call_type === "video";
+                const isMissed = callData?.status === "missed" || callData?.status === "declined";
+                const dur = Number(callData?.duration) || 0;
+                const durStr = dur > 0
+                  ? `${Math.floor(dur / 60)}m ${dur % 60}s`
+                  : (isMissed ? (callData?.status === "declined" ? "Call declined" : "Missed call") : "Call ended");
+
                 return (
                   <div
                     key={msg.id || msg.client_uuid || i}
                     className={`flex flex-col ${isMe ? "items-end" : "items-start"}`}
                   >
                     <div
-                      className={`max-w-[78%] px-3.5 py-2 rounded-2xl text-xs leading-relaxed shadow-2xs break-words ${
-                        isMe
+                      className={`max-w-[85%] px-3.5 py-2 rounded-2xl text-xs leading-relaxed shadow-2xs break-words ${
+                        isCall
+                          ? isMissed
+                            ? "bg-red-500/10 text-red-400 border border-red-500/20"
+                            : "bg-card text-foreground border border-border/80"
+                          : isMe
                           ? "bg-primary text-primary-foreground rounded-br-xs"
                           : "bg-card text-foreground border border-border/80 rounded-bl-xs"
                       }`}
                     >
-                      {msg.content}
+                      {isCall ? (
+                        <div className="flex items-center gap-2.5 py-0.5 min-w-[160px]">
+                          <div
+                            className={`p-2 rounded-full shrink-0 ${
+                              isMissed ? "bg-red-500/20 text-red-500" : "bg-emerald-500/20 text-emerald-400"
+                            }`}
+                          >
+                            {isVideo ? (
+                              <VideoCamera weight="fill" className="h-4 w-4" />
+                            ) : (
+                              <Phone weight="fill" className="h-4 w-4" />
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className={`font-semibold text-xs truncate ${isMissed ? "text-red-400" : "text-foreground"}`}>
+                              {isMissed
+                                ? isVideo
+                                  ? "Missed Video Call"
+                                  : "Missed Voice Call"
+                                : isVideo
+                                ? "Video Call"
+                                : "Voice Call"}
+                            </p>
+                            <p className="text-[10px] text-muted-foreground">{durStr}</p>
+                          </div>
+                        </div>
+                      ) : (
+                        msg.content
+                      )}
                     </div>
                     <span className="text-[9px] text-muted-foreground mt-0.5 px-1 flex items-center gap-1">
                       <span>{msg.status === "pending" ? "Sending..." : safeFormat(msg.created_at, "h:mm a")}</span>
-                      {isMe && (
+                      {isMe && !isCall && (
                         msg.status === 'read' ? (
                           <span title="Read" className="text-[#34C759] dark:text-[#30D158] inline-flex items-center">
                             <CheckCheck weight="bold" className="h-3 w-3" />
@@ -564,7 +660,7 @@ export function PopChatWidget() {
                         )}
                       </div>
                       <p className={`text-[11px] truncate ${isUnread ? "font-semibold text-foreground" : "text-muted-foreground"}`}>
-                        {c.latest_message?.content || "No messages yet"}
+                        {formatMessagePreview(c.latest_message)}
                       </p>
                     </div>
 

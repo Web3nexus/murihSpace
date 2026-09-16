@@ -68,3 +68,4 @@ class CallParticipantInvited implements ShouldBroadcastNow
         ];
     }
 }
+

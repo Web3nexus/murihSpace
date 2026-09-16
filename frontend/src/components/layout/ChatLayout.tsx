@@ -628,7 +628,7 @@ export function ChatLayout() {
                     </span>
                     {timeFormatted && <span className="text-[10px] text-muted-foreground shrink-0 ml-1">{timeFormatted}</span>}
                   </div>
-                  <p className="text-[11px] text-muted-foreground truncate mt-0.5">{c.latest_message ? (() => { if (c.latest_message.type === 'call') { try { const d = JSON.parse(c.latest_message.content); const missed = d.status === 'missed' || d.status === 'declined'; if (missed) return d.call_type === 'video' ? '📹 Missed Video Call' : '📞 Missed Call'; if (d.duration > 0) { const m = Math.floor(d.duration / 60); const s = d.duration % 60; const ds = m > 0 ? `${m}m ${s}s` : `${s}s`; return d.call_type === 'video' ? `📹 Video Call · ${ds}` : `📞 Voice Call · ${ds}`; } return d.call_type === 'video' ? '📹 Video Call' : '📞 Voice Call'; } catch { return '📞 Call'; } } return c.latest_message.content; })() : 'No messages yet'}</p>
+                  <p className="text-[11px] text-muted-foreground truncate mt-0.5">{c.latest_message ? (() => { const isCall = c.latest_message.type === 'call' || (typeof c.latest_message.content === 'string' && (c.latest_message.content.trim().startsWith('{"call_id"') || (c.latest_message.content.trim().startsWith('{') && c.latest_message.content.includes('"call_id"')))); if (isCall) { try { const d = JSON.parse(c.latest_message.content); const missed = d.status === 'missed' || d.status === 'declined'; if (missed) return d.call_type === 'video' ? '📹 Missed Video Call' : '📞 Missed Call'; if (d.duration > 0) { const m = Math.floor(d.duration / 60); const s = d.duration % 60; const ds = m > 0 ? `${m}m ${s}s` : `${s}s`; return d.call_type === 'video' ? `📹 Video Call · ${ds}` : `📞 Voice Call · ${ds}`; } return d.call_type === 'video' ? '📹 Video Call' : '📞 Voice Call'; } catch { return '📞 Call'; } } return c.latest_message.content; })() : 'No messages yet'}</p>
                 </div>
                 {c.unread_count > 0 && <span className="h-4 min-w-4 px-1 rounded-full bg-secondary text-secondary-foreground text-[10px] font-extrabold flex items-center justify-center shrink-0 ">{c.unread_count}</span>}
               </button>
@@ -782,7 +782,7 @@ export function ChatLayout() {
                         )}
 
                         {/* Call Message Card */}
-                        {msg.type === 'call' ? (() => {
+                        {msg.type === 'call' || (typeof msg.content === 'string' && (msg.content.trim().startsWith('{"call_id"') || (msg.content.trim().startsWith('{') && msg.content.includes('"call_id"')))) ? (() => {
                           let callData: any = {};
                           try {
                             callData = JSON.parse(msg.content);
