@@ -426,6 +426,28 @@ class CallController extends Controller
 
         $caller = $call->caller;
 
+        $livekitToken = null;
+        $service = $this->resolveLivekitService();
+        if ($service) {
+            try {
+                $livekitToken = $service->generateToken(
+                    identity: 'user_' . $userId,
+                    roomName: $call->room_name,
+                    metadata: json_encode([
+                        'user_id' => $userId,
+                        'name' => $request->user()->name,
+                        'call_id' => $call->id,
+                        'type' => $call->type,
+                    ]),
+                    canPublish: true,
+                    canSubscribe: true,
+                    name: $request->user()->name,
+                );
+            } catch (\Throwable $e) {
+                Log::warning('[CallController] activeIncoming LiveKit token generation failed: ' . $e->getMessage());
+            }
+        }
+
         return response()->json([
             'call' => $call,
             'id' => $call->id,
@@ -440,6 +462,7 @@ class CallController extends Controller
             'type' => $call->type,
             'room_name' => $call->room_name,
             'livekit_host' => $this->getLivekitHost(),
+            'livekit_token' => $livekitToken,
         ]);
     }
 
