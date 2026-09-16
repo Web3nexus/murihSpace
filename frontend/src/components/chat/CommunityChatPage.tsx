@@ -558,8 +558,11 @@ export default function CommunityChatPage() {
                     <X weight="fill" className="h-4 w-4" /> End Call
                   </button>
                 </div>
+                {/* Use tokenEndpoint so the server generates a LiveKit token for this
+                    specific conversation room. All community members who click the
+                    call button join the same deterministic room: conv_call_{id}. */}
                 <LiveKitVideoConference
-                  roomId={activeConv.id}
+                  tokenEndpoint={`/conversations/${activeConv.id}/call-token`}
                   roomTitle={`${activeConv.community?.name ?? activeConv.title} Call`}
                   isHost={true}
                   onLeave={() => setActiveCallMode(null)}

@@ -17,7 +17,7 @@ return new class extends Migration
             $table->foreignId('recipient_id')->constrained('users')->cascadeOnDelete();
             $table->foreignId('conversation_id')->nullable()->constrained('conversations')->nullOnDelete();
             $table->string('type', 16)->default('audio'); // 'audio', 'video'
-            $table->string('status', 24)->default('ringing'); // 'ringing', 'accepted', 'declined', 'ended', 'missed'
+            $table->string('status', 24)->default('connecting'); // 'connecting', 'ringing', 'accepted', 'declined', 'ended', 'missed'
             $table->string('room_name', 128)->unique();
             $table->timestamp('started_at')->nullable();
             $table->timestamp('ended_at')->nullable();

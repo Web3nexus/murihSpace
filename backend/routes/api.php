@@ -634,6 +634,8 @@ Route::prefix('v1')->group(function () {
             Route::post('/speed-control', [ConversationController::class, 'updateSpeedControl']);
             // Admin chat pin limit (default 3, admin-configurable)
             Route::post('/pin-config', [ConversationController::class, 'updatePinConfig']);
+            // Community / group voice+video call token (generates LiveKit room token per conversation)
+            Route::get('/{id}/call-token', [CallController::class, 'conversationCallToken']);
         });
 
         // ── Chat Settings & Presence ─────────────────────────────────────────

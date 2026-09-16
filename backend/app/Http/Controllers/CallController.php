@@ -53,6 +53,7 @@ class CallController extends Controller
         try {
             return app(LiveKitService::class);
         } catch (\Throwable $e) {
+            Log::error('[CallController] Failed to resolve LiveKitService: ' . $e->getMessage());
             return null;
         }
     }
@@ -134,7 +135,7 @@ class CallController extends Controller
                     name: $request->user()->name,
                 );
             } catch (\Throwable $e) {
-                Log::warning('[CallController] LiveKit token generation failed: ' . $e->getMessage());
+                Log::error('[CallController] LiveKit token generation FAILED for call ' . ($call->id ?? 'unknown') . ' — check LIVEKIT_API_KEY, LIVEKIT_API_SECRET, LIVEKIT_HOST in .env. Error: ' . $e->getMessage());
             }
         }
 
@@ -301,7 +302,7 @@ class CallController extends Controller
                     name: $request->user()->name,
                 );
             } catch (\Throwable $e) {
-                Log::warning('[CallController] LiveKit token generation failed: ' . $e->getMessage());
+                Log::error('[CallController] LiveKit token generation FAILED for call ' . ($call->id ?? 'unknown') . ' — check LIVEKIT_API_KEY, LIVEKIT_API_SECRET, LIVEKIT_HOST in .env. Error: ' . $e->getMessage());
             }
         }
 
@@ -347,7 +348,7 @@ class CallController extends Controller
                     name: $user->name,
                 );
             } catch (\Throwable $e) {
-                Log::warning('[CallController] LiveKit token generation failed: ' . $e->getMessage());
+                Log::error('[CallController] LiveKit token generation FAILED for call ' . ($call->id ?? 'unknown') . ' — check LIVEKIT_API_KEY, LIVEKIT_API_SECRET, LIVEKIT_HOST in .env. Error: ' . $e->getMessage());
             }
         }
 
@@ -557,7 +558,7 @@ class CallController extends Controller
                     name: $request->user()->name,
                 );
             } catch (\Throwable $e) {
-                Log::warning('[CallController] activeIncoming LiveKit token generation failed: ' . $e->getMessage());
+                Log::error('[CallController] LiveKit token generation FAILED for call ' . ($call->id ?? 'unknown') . ' — check LIVEKIT_API_KEY, LIVEKIT_API_SECRET, LIVEKIT_HOST in .env. Error: ' . $e->getMessage());
             }
         }
 
@@ -614,7 +615,7 @@ class CallController extends Controller
                         name: $request->user()->name,
                     );
                 } catch (\Throwable $e) {
-                    Log::warning('[CallController] show LiveKit token generation failed: ' . $e->getMessage());
+                    Log::error('[CallController] LiveKit token generation FAILED for call ' . ($call->id ?? 'unknown') . ' — check LIVEKIT_API_KEY, LIVEKIT_API_SECRET, LIVEKIT_HOST in .env. Error: ' . $e->getMessage());
                 }
             }
         }
@@ -627,5 +628,70 @@ class CallController extends Controller
             'livekit_host' => $this->getLivekitHost(),
         ]);
     }
-}
 
+    /**
+     * Generate a LiveKit token for a community/group conversation call.
+     * All participants of the conversation join the same LiveKit room.
+     * Room name is deterministically derived from the conversation ID.
+     */
+    public function conversationCallToken(Request $request, int $id): JsonResponse
+    {
+        $user = $request->user();
+
+        // Verify the user is a participant in this conversation
+        $isParticipant = ConversationParticipant::where('conversation_id', $id)
+            ->where('user_id', $user->id)
+            ->exists();
+
+        $conversation = Conversation::find($id);
+
+        if (!$conversation || !$isParticipant) {
+            return response()->json(['message' => 'Conversation not found or access denied.'], 403);
+        }
+
+        $roomName = 'conv_call_' . $id;
+        $livekitToken = null;
+        $service = $this->resolveLivekitService();
+
+        if ($service) {
+            try {
+                $livekitToken = $service->generateToken(
+                    identity: 'user_' . $user->id,
+                    roomName: $roomName,
+                    metadata: json_encode([
+                        'user_id' => $user->id,
+                        'name' => $user->name,
+                        'conversation_id' => $id,
+                    ]),
+                    canPublish: true,
+                    canSubscribe: true,
+                    name: $user->name,
+                );
+            } catch (\Throwable $e) {
+                Log::error('[CallController] conversationCallToken FAILED for conversation ' . $id . ' — check LIVEKIT_API_KEY, LIVEKIT_API_SECRET, LIVEKIT_HOST in .env. Error: ' . $e->getMessage());
+                return response()->json([
+                    'message' => 'Call service is not available. Please contact support.',
+                    'livekit_token' => null,
+                    'livekit_host' => null,
+                    'room' => null,
+                ], 503);
+            }
+        } else {
+            Log::error('[CallController] conversationCallToken: LiveKit service unavailable for conversation ' . $id . ' — LIVEKIT_API_KEY/LIVEKIT_API_SECRET not set in .env');
+            return response()->json([
+                'message' => 'Call service is not configured. Please contact support.',
+                'livekit_token' => null,
+                'livekit_host' => null,
+                'room' => null,
+            ], 503);
+        }
+
+        return response()->json([
+            'token' => $livekitToken,
+            'livekit_token' => $livekitToken,
+            'host' => $this->getLivekitHost(),
+            'livekit_host' => $this->getLivekitHost(),
+            'room' => $roomName,
+        ]);
+    }
+}

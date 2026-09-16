@@ -88,6 +88,9 @@ export function GlobalCallReceiver() {
     };
 
     const onCallEnded = (raw: any) => {
+      // If this device has already answered the call, ignore ended/declined events
+      // for a grace period — the CallOverlayModal manages its own lifecycle once connected.
+      if (isAnsweredRef.current) return;
       const current = incomingCallRef.current;
       const data = raw?.data ?? raw;
       const id = Number(data?.id || raw?.id || 0);
@@ -99,6 +102,8 @@ export function GlobalCallReceiver() {
     };
 
     const onCallDeclined = (raw: any) => {
+      // Same guard — once answered, GlobalCallReceiver stops managing this call.
+      if (isAnsweredRef.current) return;
       const current = incomingCallRef.current;
       const data = raw?.data ?? raw;
       const id = Number(data?.id || raw?.id || 0);

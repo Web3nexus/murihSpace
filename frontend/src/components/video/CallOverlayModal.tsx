@@ -108,6 +108,7 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
   const remoteVideoRef = useRef<HTMLVideoElement | null>(null);
   const attachedAudioElementsRef = useRef<Map<string, HTMLAudioElement>>(new Map());
   const durationTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const isAnsweringRef = useRef(false);
 
   const [remoteParticipants, setRemoteParticipants] = useState<Participant[]>([]);
   const [isAddParticipantOpen, setIsAddParticipantOpen] = useState(false);
@@ -260,6 +261,7 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
     if (!isOpen || mode === 'connected') return;
 
     const ringTimeout = setTimeout(() => {
+      if (isAnsweringRef.current) return;  // User is answering — don't timeout
       stopCallSounds();
       const statusText = mode === 'outgoing' ? 'No answer' : 'Missed call';
       setConnectionStatus(statusText);
@@ -970,8 +972,20 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
 
   // Answer call — posts accept, transitions to connected immediately
   const handleAnswerCall = async () => {
+    isAnsweringRef.current = true;  // Prevent ringing timeout
     stopCallSounds();
     if (onAnswer) onAnswer();
+
+    // Unlock browser audio policy immediately on this user gesture,
+    // before any async work. This is the earliest possible moment.
+    try {
+      const AudioContextClass = (window.AudioContext || (window as any).webkitAudioContext) as typeof AudioContext | undefined;
+      if (AudioContextClass) {
+        const ctx = new AudioContextClass();
+        await ctx.resume();
+        ctx.close();
+      }
+    } catch (_) {}
 
     // Free pre-warm media streams immediately
     if (previewStreamRef.current) {
