@@ -33,9 +33,21 @@ export function NotificationDropdown() {
       });
       if (res.ok) {
         const json = await res.json();
-        const rawList = json.data?.data ?? json.data ?? [];
-        setNotifications(Array.isArray(rawList) ? rawList : []);
-        setUnreadCount(json.unread ?? 0);
+        const root = json.data ?? json;
+        let rawList: AppNotification[] = [];
+        if (Array.isArray(root?.notifications)) {
+          rawList = root.notifications;
+        } else if (Array.isArray(root?.data?.data)) {
+          rawList = root.data.data;
+        } else if (Array.isArray(root?.data)) {
+          rawList = root.data;
+        } else if (Array.isArray(root)) {
+          rawList = root;
+        } else if (Array.isArray(json?.data?.data?.data)) {
+          rawList = json.data.data.data;
+        }
+        setNotifications(rawList);
+        setUnreadCount(root?.unread ?? json.unread ?? 0);
       }
     } catch {
       // Ignore network errors silently for header popover

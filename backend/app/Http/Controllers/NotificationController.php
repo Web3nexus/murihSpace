@@ -20,6 +20,13 @@ class NotificationController extends Controller
         $unread = $request->user()->unreadNotifications()->count();
 
         return response()->json([
+            'notifications' => $notifications->items(),
+            'pagination' => [
+                'current_page' => $notifications->currentPage(),
+                'last_page' => $notifications->lastPage(),
+                'per_page' => $notifications->perPage(),
+                'total' => $notifications->total(),
+            ],
             'data' => $notifications,
             'unread' => $unread,
         ]);
