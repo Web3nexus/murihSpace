@@ -723,6 +723,16 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
         console.warn('[LiveKit] Failed to start audio on user action:', e);
       }
     }
+    if (remoteAudioRef.current) {
+      try {
+        remoteAudioRef.current.muted = false;
+        remoteAudioRef.current.volume = 1.0;
+        await remoteAudioRef.current.play();
+        setAudioPlaybackBlocked(false);
+      } catch (e) {
+        console.warn('[LiveKit] Failed to play remote audio element:', e);
+      }
+    }
   };
 
   // Mute / Unmute
@@ -878,7 +888,7 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-xl text-white overflow-hidden animate-in fade-in duration-300">
-      <audio ref={remoteAudioRef} autoPlay />
+      <audio ref={remoteAudioRef} autoPlay playsInline />
 
       {/* ── State 1: OUTGOING (Connecting -> Ringing) ──────────────────────── */}
       {mode === 'outgoing' && (
