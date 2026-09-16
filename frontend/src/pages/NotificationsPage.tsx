@@ -30,6 +30,7 @@ import type {
   NotificationChannel,
 } from '@/types/notification';
 import { authFetch } from "@/lib/api/authFetch";
+import { NOTIFICATION_EVENT_NAME } from '@/hooks/useGlobalRealtimeNotifications';
 
 const TYPE_CONFIG: Record<
   NotificationType,
@@ -137,6 +138,41 @@ const TYPE_CONFIG: Record<
   },
 };
 
+function formatNotificationMessage(content: unknown, fallback = 'You have a new notification.'): string {
+  if (!content) return fallback;
+  if (typeof content === 'object') {
+    const obj = content as Record<string, any>;
+    if (obj.call_id !== undefined || obj.status !== undefined) {
+      const type = obj.call_type === 'video' ? 'Video' : 'Audio';
+      if (obj.status === 'missed') return `Missed ${type} Call`;
+      if (obj.status === 'declined') return `${type} Call Declined`;
+      if (obj.status === 'ended') {
+        const dur = Number(obj.duration) || 0;
+        if (dur > 0) {
+          const mins = Math.floor(dur / 60);
+          const secs = dur % 60;
+          const formatted = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+          return `${type} Call Ended • ${formatted}`;
+        }
+        return `${type} Call Ended`;
+      }
+      return `${type} Call`;
+    }
+    return String(obj.message || obj.body || obj.text || fallback);
+  }
+
+  const str = String(content).trim();
+  if (str.startsWith('{') && str.endsWith('}')) {
+    try {
+      const parsed = JSON.parse(str);
+      return formatNotificationMessage(parsed, fallback);
+    } catch {
+      return str;
+    }
+  }
+  return str;
+}
+
 function getDayLabel(dateStr: string): string {
   try {
     const date = new Date(dateStr);
@@ -197,36 +233,57 @@ export default function NotificationsPage() {
         const json = await res.json();
         const root = json.data ?? json;
 
-        let rawList: AppNotification[] = [];
+        let rawList: any[] = [];
         if (Array.isArray(root?.notifications)) {
           rawList = root.notifications;
         } else if (Array.isArray(root?.data?.data)) {
           rawList = root.data.data;
         } else if (Array.isArray(root?.data)) {
           rawList = root.data;
+        } else if (Array.isArray(root?.items)) {
+          rawList = root.items;
         } else if (Array.isArray(root)) {
           rawList = root;
         } else if (Array.isArray(json?.data?.data?.data)) {
           rawList = json.data.data.data;
         }
 
+        const normalizedList: AppNotification[] = rawList.map((item: any) => {
+          let itemData = item.data;
+          if (typeof itemData === 'string') {
+            try {
+              itemData = JSON.parse(itemData);
+            } catch (_) {
+              itemData = { message: itemData };
+            }
+          }
+          return {
+            ...item,
+            data: itemData || {},
+          };
+        });
+
         const unread = typeof root?.unread === 'number'
           ? root.unread
           : (typeof json?.unread === 'number' ? json.unread : 0);
 
-        const paginator = root?.data ?? root?.pagination;
-        const total = typeof paginator?.total === 'number'
-          ? paginator.total
-          : (typeof root?.total === 'number' ? root.total : rawList.length);
+        const paginator = root?.pagination ?? root?.data;
+        const total = typeof root?.total === 'number'
+          ? root.total
+          : (typeof paginator?.total === 'number'
+              ? paginator.total
+              : (typeof json?.total === 'number' ? json.total : normalizedList.length));
 
-        const lastPage = typeof paginator?.last_page === 'number' ? paginator.last_page : 1;
+        const lastPage = typeof root?.pagination?.last_page === 'number'
+          ? root.pagination.last_page
+          : (typeof paginator?.last_page === 'number' ? paginator.last_page : 1);
 
         if (targetPage === 1) {
-          setNotifications(rawList);
+          setNotifications(normalizedList);
         } else {
           setNotifications((prev) => {
             const existingIds = new Set(prev.map((n) => n.id));
-            const newItems = rawList.filter((n) => !existingIds.has(n.id));
+            const newItems = normalizedList.filter((n) => !existingIds.has(n.id));
             return [...prev, ...newItems];
           });
         }
@@ -269,6 +326,16 @@ export default function NotificationsPage() {
 
   useEffect(() => {
     fetchNotifications();
+  }, [fetchNotifications]);
+
+  useEffect(() => {
+    const handleLiveNotif = () => {
+      fetchNotifications(true, 1);
+    };
+    window.addEventListener(NOTIFICATION_EVENT_NAME, handleLiveNotif);
+    return () => {
+      window.removeEventListener(NOTIFICATION_EVENT_NAME, handleLiveNotif);
+    };
   }, [fetchNotifications]);
 
   useEffect(() => {
@@ -645,7 +712,7 @@ export default function NotificationsPage() {
                               )}
 
                               <p className="text-xs sm:text-[13px] text-muted-foreground leading-relaxed break-words pt-0.5">
-                                {n.data?.body ?? n.data?.message ?? 'You have a new notification.'}
+                                {formatNotificationMessage(n.data?.body ?? n.data?.message ?? (n.data as any)?.content)}
                               </p>
 
                               {/* Telegram-style Inline Action Pill */}

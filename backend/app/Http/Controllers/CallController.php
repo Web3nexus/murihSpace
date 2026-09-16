@@ -181,7 +181,7 @@ class CallController extends Controller
             return response()->json(['message' => 'Call is no longer active.', 'status' => $call->status], 400);
         }
 
-        if ($call->created_at && $call->created_at->lt(now()->subSeconds(45))) {
+        if ($call->created_at && $call->created_at->lt(now()->subSeconds(90))) {
             $call->update(['status' => 'ended', 'ended_at' => now(), 'duration_seconds' => 0]);
             broadcast(new CallEnded($call));
             $this->logCallMessage($call, 'missed', 0);
@@ -476,12 +476,6 @@ class CallController extends Controller
 
         if ($call->recipient_id !== $request->user()->id && $call->caller_id !== $request->user()->id) {
             return response()->json(['message' => 'Unauthorized.'], 403);
-        }
-
-        if ($call->status === 'ringing' && $call->created_at && $call->created_at->lt(now()->subSeconds(45))) {
-            $call->update(['status' => 'ended', 'ended_at' => now(), 'duration_seconds' => 0]);
-            broadcast(new CallEnded($call));
-            $this->logCallMessage($call, 'missed', 0);
         }
 
         $livekitToken = null;

@@ -303,9 +303,9 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
         const token = data?.livekit_token || raw?.livekit_token;
         const host = data?.livekit_host || raw?.livekit_host;
         const room = data?.room_name || raw?.room_name;
-        if (token) setActiveToken(token);
-        if (host) setActiveHost(host);
-        if (room) setActiveRoomName(room);
+        if (token && !activeToken) setActiveToken(token);
+        if (host && !activeHost) setActiveHost(host);
+        if (room && !activeRoomName) setActiveRoomName(room);
         setMode('connected');
       }
     };
@@ -395,9 +395,9 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
               const room = data.room_name || call.room_name;
               const startedAtTime = data.started_at || call.started_at;
               if (startedAtTime) setStartedAt(startedAtTime);
-              if (token) setActiveToken(token);
-              if (host) setActiveHost(host);
-              if (room) setActiveRoomName(room);
+              if (token && !activeToken) setActiveToken(token);
+              if (host && !activeHost) setActiveHost(host);
+              if (room && !activeRoomName) setActiveRoomName(room);
               setMode('connected');
             } else if (status === 'declined') {
               stopCallSounds();
@@ -711,7 +711,7 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
       }
       room?.disconnect();
     };
-  }, [isOpen, mode, activeToken, activeHost, callType, contactName]);
+  }, [isOpen, mode, activeToken, activeHost, callType]);
 
   // Browser Audio Autoplay Unblock Handler
   const handleUnblockAudio = async () => {

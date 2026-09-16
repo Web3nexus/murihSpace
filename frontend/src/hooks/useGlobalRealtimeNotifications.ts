@@ -1,10 +1,10 @@
 import { useEffect, useRef } from 'react';
-import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { useLocation } from 'react-router';
 import { getEcho } from '@/lib/echo';
 import { playMessageReceivedSound, playNotificationSound } from '@/lib/sound';
 import { getUnreadCount, setUnreadCount, refreshUnreadCount } from '@/lib/chatUnread';
+import { showWebInAppNotification } from '@/components/notifications/WebInAppNotification';
 
 export const NOTIFICATION_EVENT_NAME = 'murih:notification';
 export const MESSAGE_EVENT_NAME = 'murih:message';
@@ -33,32 +33,76 @@ export function RealtimeNotificationsHost() {
     const notificationChannel = echo.private(`App.Models.User.${user.id}`);
     const userChannel = echo.private(`user.${user.id}`);
 
+function parseNotificationContent(content: unknown, fallback = 'You have a new update.'): string {
+  if (!content) return fallback;
+  if (typeof content === 'object') {
+    const obj = content as Record<string, any>;
+    if (obj.call_id !== undefined || obj.status !== undefined) {
+      const type = obj.call_type === 'video' ? 'Video' : 'Audio';
+      if (obj.status === 'missed') return `Missed ${type} Call`;
+      if (obj.status === 'declined') return `${type} Call Declined`;
+      if (obj.status === 'ended') {
+        const dur = Number(obj.duration) || 0;
+        if (dur > 0) {
+          const mins = Math.floor(dur / 60);
+          const secs = dur % 60;
+          const formatted = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+          return `${type} Call Ended • ${formatted}`;
+        }
+        return `${type} Call Ended`;
+      }
+      return `${type} Call`;
+    }
+    return String(obj.message || obj.body || obj.text || fallback);
+  }
+
+  const str = String(content).trim();
+  if (str.startsWith('{') && str.endsWith('}')) {
+    try {
+      const parsed = JSON.parse(str);
+      return parseNotificationContent(parsed, fallback);
+    } catch {
+      return str;
+    }
+  }
+  return str;
+}
+
     const onNotification = (e: Record<string, unknown>) => {
       playNotificationSound();
-      const title = String(e.title ?? 'New notification');
-      const message = String(e.message ?? e.body ?? 'You have a new update.');
-      const actionUrl = e.action_url ? String(e.action_url) : undefined;
-      toast(title, {
-        description: message,
-        duration: 5000,
-        action: actionUrl
-          ? {
-              label: String(e.action_label ?? 'View'),
-              onClick: () => {
-                window.location.href = actionUrl;
-              },
-            }
-          : undefined,
+      const rawData = (e.data && typeof e.data === 'object' ? e.data : {}) as Record<string, any>;
+      const title = String(e.title ?? rawData.title ?? 'New notification');
+      const rawMessage = e.message ?? e.body ?? rawData.message ?? rawData.body ?? rawData.content;
+      const message = parseNotificationContent(rawMessage, 'You have a new update.');
+      const actionUrl = e.action_url ? String(e.action_url) : (rawData.action_url ? String(rawData.action_url) : undefined);
+      const senderName = e.sender_name ? String(e.sender_name) : (rawData.sender_name ? String(rawData.sender_name) : undefined);
+      const senderAvatar = e.sender_avatar ? String(e.sender_avatar) : (e.avatar ? String(e.avatar) : (rawData.sender_avatar ? String(rawData.sender_avatar) : undefined));
+      const type = e.type ? String(e.type) : (rawData.type ? String(rawData.type) : undefined);
+      const isOfficial = Boolean(e.is_official ?? rawData.is_official ?? false);
+      const isVerified = Boolean(e.is_verified ?? rawData.is_verified ?? isOfficial);
+
+      showWebInAppNotification({
+        title,
+        message,
+        actionUrl,
+        actionLabel: e.action_label ? String(e.action_label) : (rawData.action_label ? String(rawData.action_label) : 'View'),
+        senderName,
+        senderAvatar,
+        type,
+        isOfficial,
+        isVerified,
       });
+
       window.dispatchEvent(new CustomEvent(NOTIFICATION_EVENT_NAME, { detail: e }));
     };
 
     const onMessageSent = (e: {
       conversation_id?: number;
       user_id?: number;
-      user?: { name?: string };
+      user?: { name?: string; avatar?: string; avatar_url?: string };
       content?: string;
       attachment_type?: string;
+      type?: string;
     }) => {
       window.dispatchEvent(new CustomEvent(MESSAGE_EVENT_NAME, { detail: e }));
       if (e.user_id === user.id) return;
@@ -77,15 +121,25 @@ export function RealtimeNotificationsHost() {
       if (currentPath.startsWith('/app/messages')) return;
 
       const sender = e.user?.name ?? 'New message';
-      toast(sender, {
-        description: e.content || (e.attachment_type ? 'Sent an attachment' : 'Sent a message'),
-        duration: 4500,
-        action: {
-          label: 'Open',
-          onClick: () => {
-            window.location.href = '/app/messages';
-          },
-        },
+      const senderAvatar = e.user?.avatar_url || e.user?.avatar;
+
+      let notifType = e.type || (e.attachment_type === 'call' ? 'call' : 'message');
+      const cleanMessage = parseNotificationContent(
+        e.content,
+        e.attachment_type ? 'Sent an attachment' : 'Sent a message'
+      );
+      if (cleanMessage.includes('Call')) {
+        notifType = 'call';
+      }
+
+      showWebInAppNotification({
+        title: sender,
+        message: cleanMessage,
+        actionUrl: '/app/messages',
+        actionLabel: 'Open',
+        senderName: sender,
+        senderAvatar,
+        type: notifType,
       });
     };
 
