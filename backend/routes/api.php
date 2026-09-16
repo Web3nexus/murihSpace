@@ -600,7 +600,10 @@ Route::prefix('v1')->group(function () {
         Route::prefix('notifications')->group(function () {
             Route::get('/', [NotificationController::class, 'index']);
             Route::post('/read-all', [NotificationController::class, 'markAllRead']);
+            Route::delete('/clear-all', [NotificationController::class, 'destroyAll']);
             Route::post('/{id}/read', [NotificationController::class, 'markRead']);
+            Route::post('/{id}/unread', [NotificationController::class, 'markUnread']);
+            Route::delete('/{id}', [NotificationController::class, 'destroy']);
         });
 
         Route::prefix('notification-preferences')->group(function () {

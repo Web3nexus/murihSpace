@@ -1,26 +1,42 @@
 import { getAuthToken } from "@/lib/auth/token";
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
-  Bell as Bell,
+  Bell,
   Checks as CheckCheck,
-  ShieldWarning as ShieldWarning,
-  ShieldCheck as ShieldCheck,
+  ShieldWarning,
+  ShieldCheck,
   ChatTeardropText as MessageSquare,
-  UserPlus as UserPlus,
+  UserPlus,
   Lightning as Zap,
-  Sliders as Sliders,
-  Check as Check,
+  Sliders,
+  Check,
   Spinner as Loader2,
   ArrowsClockwise as RefreshCw,
-  ArrowRight as ArrowRight,
-  Lifebuoy as Lifebuoy,
+  ArrowRight,
+  Lifebuoy,
   Medal as Award,
-  Gift as Gift,
-  Wallet as Wallet,
+  Gift,
+  Wallet,
   CheckCircle as CheckCircle2,
-  PaperPlaneTilt as PaperPlaneTilt,
+  PaperPlaneTilt,
+  Trash,
+  CaretDown,
+  CaretUp,
+  CaretLeft,
+  CaretRight,
+  MagnifyingGlass,
+  EnvelopeSimple,
+  X as XIcon,
 } from "@phosphor-icons/react";
 import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import { formatDistanceToNow } from 'date-fns';
 import { Link } from 'react-router';
 import type {
@@ -138,6 +154,29 @@ const TYPE_CONFIG: Record<
   },
 };
 
+const CATEGORY_GROUPS: Record<string, { label: string; types: NotificationType[] }> = {
+  all: {
+    label: 'All Categories',
+    types: Object.keys(TYPE_CONFIG) as NotificationType[],
+  },
+  community: {
+    label: 'Community',
+    types: ['new_post', 'new_comment', 'new_reaction', 'new_member', 'join_request', 'join_approved', 'moderation_action'],
+  },
+  support: {
+    label: 'Support Tickets',
+    types: ['ticket_created', 'ticket_reply', 'ticket_status_changed', 'ticket_info_requested', 'ticket_resolved', 'ticket_reopened'],
+  },
+  account: {
+    label: 'Account & KYC',
+    types: ['role_upgrade_approved', 'role_upgrade_rejected', 'kyc_approved', 'kyc_rejected', 'kyc_requested'],
+  },
+  wallet: {
+    label: 'Wallet & Gifts',
+    types: ['gift_received', 'money_received'],
+  },
+};
+
 function formatNotificationMessage(content: unknown, fallback = 'You have a new notification.'): string {
   if (!content) return fallback;
   if (typeof content === 'object') {
@@ -192,6 +231,19 @@ function getDayLabel(dateStr: string): string {
   }
 }
 
+function getPageNumbers(current: number, total: number): (number | '...')[] {
+  if (total <= 7) {
+    return Array.from({ length: total }, (_, i) => i + 1);
+  }
+  if (current <= 4) {
+    return [1, 2, 3, 4, 5, '...', total];
+  }
+  if (current >= total - 3) {
+    return [1, '...', total - 4, total - 3, total - 2, total - 1, total];
+  }
+  return [1, '...', current - 1, current, current + 1, '...', total];
+}
+
 export default function NotificationsPage() {
   const [activeTab, setActiveTab] = useState<'all' | 'preferences'>('all');
   const [activeFeedFilter, setActiveFeedFilter] = useState<'all' | 'unread'>('all');
@@ -200,11 +252,20 @@ export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
+  const [totalAllCount, setTotalAllCount] = useState(0);
   const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(false);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [lastPage, setLastPage] = useState(1);
+  const [perPage, setPerPage] = useState(15);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Accordion state (set of expanded notification IDs)
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+
+  // Deletion state
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [isClearingAll, setIsClearingAll] = useState(false);
 
   // Preferences state
   const [preferences, setPreferences] = useState<Partial<NotificationPreferencesMap>>({});
@@ -213,92 +274,115 @@ export default function NotificationsPage() {
   const [isSavingPref, setIsSavingPref] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
-  const fetchNotifications = useCallback(async (quiet = false, targetPage = 1) => {
-    if (targetPage === 1) {
+  // Preferences pagination & search state
+  const [selectedPrefGroup, setSelectedPrefGroup] = useState<string>('all');
+  const [prefSearchQuery, setPrefSearchQuery] = useState('');
+  const [prefPage, setPrefPage] = useState(1);
+  const prefPerPage = 7;
+
+  const toggleAccordion = (id: string, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const fetchNotifications = useCallback(
+    async (quiet = false, targetPage = 1, currentFilter = activeFeedFilter, limit = perPage) => {
       if (!quiet) setIsLoading(true);
       else setIsRefreshing(true);
-    } else {
-      setIsLoadingMore(true);
-    }
 
-    const token = getAuthToken();
-    try {
-      const res = await authFetch(`/notifications?page=${targetPage}`, {
-        headers: {
-          Accept: 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-      });
-      if (res.ok) {
-        const json = await res.json();
-        const root = json.data ?? json;
-
-        let rawList: any[] = [];
-        if (Array.isArray(root?.notifications)) {
-          rawList = root.notifications;
-        } else if (Array.isArray(root?.data?.data)) {
-          rawList = root.data.data;
-        } else if (Array.isArray(root?.data)) {
-          rawList = root.data;
-        } else if (Array.isArray(root?.items)) {
-          rawList = root.items;
-        } else if (Array.isArray(root)) {
-          rawList = root;
-        } else if (Array.isArray(json?.data?.data?.data)) {
-          rawList = json.data.data.data;
-        }
-
-        const normalizedList: AppNotification[] = rawList.map((item: any) => {
-          let itemData = item.data;
-          if (typeof itemData === 'string') {
-            try {
-              itemData = JSON.parse(itemData);
-            } catch (_) {
-              itemData = { message: itemData };
-            }
+      const token = getAuthToken();
+      try {
+        const res = await authFetch(
+          `/notifications?page=${targetPage}&per_page=${limit}&filter=${currentFilter}`,
+          {
+            headers: {
+              Accept: 'application/json',
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
           }
-          return {
-            ...item,
-            data: itemData || {},
-          };
-        });
+        );
+        if (res.ok) {
+          const json = await res.json();
+          const root = json.data ?? json;
 
-        const unread = typeof root?.unread === 'number'
-          ? root.unread
-          : (typeof json?.unread === 'number' ? json.unread : 0);
+          let rawList: any[] = [];
+          if (Array.isArray(root?.notifications)) {
+            rawList = root.notifications;
+          } else if (Array.isArray(root?.data?.data)) {
+            rawList = root.data.data;
+          } else if (Array.isArray(root?.data)) {
+            rawList = root.data;
+          } else if (Array.isArray(root?.items)) {
+            rawList = root.items;
+          } else if (Array.isArray(root)) {
+            rawList = root;
+          }
 
-        const paginator = root?.pagination ?? root?.data;
-        const total = typeof root?.total === 'number'
-          ? root.total
-          : (typeof paginator?.total === 'number'
-              ? paginator.total
-              : (typeof json?.total === 'number' ? json.total : normalizedList.length));
-
-        const lastPage = typeof root?.pagination?.last_page === 'number'
-          ? root.pagination.last_page
-          : (typeof paginator?.last_page === 'number' ? paginator.last_page : 1);
-
-        if (targetPage === 1) {
-          setNotifications(normalizedList);
-        } else {
-          setNotifications((prev) => {
-            const existingIds = new Set(prev.map((n) => n.id));
-            const newItems = normalizedList.filter((n) => !existingIds.has(n.id));
-            return [...prev, ...newItems];
+          const normalizedList: AppNotification[] = rawList.map((item: any) => {
+            let itemData = item.data;
+            if (typeof itemData === 'string') {
+              try {
+                itemData = JSON.parse(itemData);
+              } catch (_) {
+                itemData = { message: itemData };
+              }
+            }
+            return {
+              ...item,
+              data: itemData || {},
+            };
           });
-        }
 
-        setPage(targetPage);
-        setHasMore(targetPage < lastPage);
-        setUnreadCount(unread);
-        setTotalCount(total);
+          const unread =
+            typeof root?.unread === 'number'
+              ? root.unread
+              : typeof json?.unread === 'number'
+              ? json.unread
+              : 0;
+
+          const paginator = root?.pagination ?? root?.data;
+          const total =
+            typeof root?.total === 'number'
+              ? root.total
+              : typeof paginator?.total === 'number'
+              ? paginator.total
+              : typeof json?.total === 'number'
+              ? json.total
+              : normalizedList.length;
+
+          const totalAll =
+            typeof root?.total_all === 'number'
+              ? root.total_all
+              : typeof json?.total_all === 'number'
+              ? json.total_all
+              : total;
+
+          const lp =
+            typeof root?.pagination?.last_page === 'number'
+              ? root.pagination.last_page
+              : typeof paginator?.last_page === 'number'
+              ? paginator.last_page
+              : Math.max(1, Math.ceil(total / limit));
+
+          setNotifications(normalizedList);
+          setPage(targetPage);
+          setLastPage(Math.max(1, lp));
+          setUnreadCount(unread);
+          setTotalCount(total);
+          setTotalAllCount(totalAll);
+        }
+      } finally {
+        setIsLoading(false);
+        setIsRefreshing(false);
       }
-    } finally {
-      setIsLoading(false);
-      setIsRefreshing(false);
-      setIsLoadingMore(false);
-    }
-  }, []);
+    },
+    [activeFeedFilter, perPage]
+  );
 
   const fetchPreferences = useCallback(async () => {
     setIsPrefLoading(true);
@@ -325,24 +409,42 @@ export default function NotificationsPage() {
   }, []);
 
   useEffect(() => {
-    fetchNotifications();
-  }, [fetchNotifications]);
+    fetchNotifications(false, 1, activeFeedFilter);
+  }, [fetchNotifications, activeFeedFilter]);
 
   useEffect(() => {
     const handleLiveNotif = () => {
-      fetchNotifications(true, 1);
+      fetchNotifications(true, 1, activeFeedFilter);
     };
     window.addEventListener(NOTIFICATION_EVENT_NAME, handleLiveNotif);
     return () => {
       window.removeEventListener(NOTIFICATION_EVENT_NAME, handleLiveNotif);
     };
-  }, [fetchNotifications]);
+  }, [fetchNotifications, activeFeedFilter]);
 
   useEffect(() => {
     if (activeTab === 'preferences') {
       fetchPreferences();
     }
   }, [activeTab, fetchPreferences]);
+
+  const handleFilterChange = (filter: 'all' | 'unread') => {
+    if (filter === activeFeedFilter) return;
+    setActiveFeedFilter(filter);
+    setPage(1);
+  };
+
+  const handlePageChange = (newPage: number) => {
+    if (newPage < 1 || newPage > lastPage || newPage === page) return;
+    fetchNotifications(false, newPage, activeFeedFilter);
+    window.scrollTo({ top: 120, behavior: 'smooth' });
+  };
+
+  const handlePerPageChange = (newLimit: number) => {
+    setPerPage(newLimit);
+    setPage(1);
+    fetchNotifications(false, 1, activeFeedFilter, newLimit);
+  };
 
   const handleMarkAllRead = async () => {
     const token = getAuthToken();
@@ -358,12 +460,16 @@ export default function NotificationsPage() {
         prev.map((n) => ({ ...n, read_at: n.read_at ?? new Date().toISOString() }))
       );
       setUnreadCount(0);
+      if (activeFeedFilter === 'unread') {
+        fetchNotifications(true, 1, 'unread');
+      }
     } catch (e) {
       console.error('Failed to mark all read', e);
     }
   };
 
-  const handleMarkSingleRead = async (id: string) => {
+  const handleMarkSingleRead = async (id: string, e?: React.MouseEvent) => {
+    e?.stopPropagation();
     const token = getAuthToken();
     try {
       await authFetch(`/notifications/${id}/read`, {
@@ -377,11 +483,90 @@ export default function NotificationsPage() {
         prev.map((n) => (n.id === id ? { ...n, read_at: n.read_at ?? new Date().toISOString() } : n))
       );
       setUnreadCount((prev) => Math.max(0, prev - 1));
+      if (activeFeedFilter === 'unread') {
+        setNotifications((prev) => prev.filter((n) => n.id !== id));
+        setTotalCount((prev) => Math.max(0, prev - 1));
+      }
     } catch (e) {
       console.error('Failed to mark notification read', e);
     }
   };
 
+  const handleMarkSingleUnread = async (id: string, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    const token = getAuthToken();
+    try {
+      await authFetch(`/notifications/${id}/unread`, {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === id ? { ...n, read_at: null } : n))
+      );
+      setUnreadCount((prev) => prev + 1);
+    } catch (e) {
+      console.error('Failed to mark notification unread', e);
+    }
+  };
+
+  const handleDeleteSingle = async (id: string, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setDeletingId(id);
+    const token = getAuthToken();
+    try {
+      const res = await authFetch(`/notifications/${id}`, {
+        method: 'DELETE',
+        headers: {
+          Accept: 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+      if (res.ok) {
+        const deletedNotif = notifications.find((n) => n.id === id);
+        if (deletedNotif && !deletedNotif.read_at) {
+          setUnreadCount((prev) => Math.max(0, prev - 1));
+        }
+        setNotifications((prev) => prev.filter((n) => n.id !== id));
+        setTotalCount((prev) => Math.max(0, prev - 1));
+        setTotalAllCount((prev) => Math.max(0, prev - 1));
+      }
+    } catch (e) {
+      console.error('Failed to delete notification', e);
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const handleClearAll = async () => {
+    setIsClearingAll(true);
+    const token = getAuthToken();
+    try {
+      const res = await authFetch(`/notifications/clear-all`, {
+        method: 'DELETE',
+        headers: {
+          Accept: 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+      if (res.ok) {
+        setNotifications([]);
+        setUnreadCount(0);
+        setTotalCount(0);
+        setTotalAllCount(0);
+        setLastPage(1);
+        setShowClearConfirm(false);
+      }
+    } catch (e) {
+      console.error('Failed to clear notifications', e);
+    } finally {
+      setIsClearingAll(false);
+    }
+  };
+
+  // Preferences toggles
   const handleTogglePref = (type: NotificationType, channel: NotificationChannel) => {
     setPreferences((prev) => {
       const currentVal = prev[type]?.[channel] ?? true;
@@ -392,6 +577,19 @@ export default function NotificationsPage() {
           [channel]: !currentVal,
         },
       };
+    });
+  };
+
+  const handleBulkToggleChannel = (channel: NotificationChannel, enabled: boolean) => {
+    setPreferences((prev) => {
+      const next = { ...prev };
+      currentPrefTypes.forEach((type) => {
+        next[type] = {
+          ...(next[type] ?? { in_app: true, email: true, push: true }),
+          [channel]: enabled,
+        };
+      });
+      return next;
     });
   };
 
@@ -432,19 +630,11 @@ export default function NotificationsPage() {
     }
   };
 
-  // Filtered notifications
-  const displayedNotifications = useMemo(() => {
-    if (activeFeedFilter === 'unread') {
-      return notifications.filter((n) => !n.read_at);
-    }
-    return notifications;
-  }, [notifications, activeFeedFilter]);
-
   // Grouped by day (Telegram style)
   const groupedNotifications = useMemo(() => {
     const map = new Map<string, AppNotification[]>();
 
-    for (const n of displayedNotifications) {
+    for (const n of notifications) {
       const day = getDayLabel(n.created_at);
       if (!map.has(day)) {
         map.set(day, []);
@@ -457,7 +647,39 @@ export default function NotificationsPage() {
       groups.push({ day, items });
     }
     return groups;
-  }, [displayedNotifications]);
+  }, [notifications]);
+
+  // Filtered preference categories for pagination & search
+  const filteredPrefTypes = useMemo(() => {
+    let types =
+      selectedPrefGroup === 'all'
+        ? (Object.keys(TYPE_CONFIG) as NotificationType[])
+        : CATEGORY_GROUPS[selectedPrefGroup]?.types || [];
+
+    if (prefSearchQuery.trim()) {
+      const q = prefSearchQuery.toLowerCase();
+      types = types.filter((type) => {
+        const cfg = TYPE_CONFIG[type];
+        return (
+          cfg.label.toLowerCase().includes(q) ||
+          cfg.description.toLowerCase().includes(q) ||
+          type.toLowerCase().includes(q)
+        );
+      });
+    }
+    return types;
+  }, [selectedPrefGroup, prefSearchQuery]);
+
+  const prefTotalPages = Math.max(1, Math.ceil(filteredPrefTypes.length / prefPerPage));
+
+  useEffect(() => {
+    setPrefPage(1);
+  }, [selectedPrefGroup, prefSearchQuery]);
+
+  const currentPrefTypes = useMemo(() => {
+    const start = (prefPage - 1) * prefPerPage;
+    return filteredPrefTypes.slice(start, start + prefPerPage);
+  }, [filteredPrefTypes, prefPage, prefPerPage]);
 
   return (
     <div className="space-y-6 w-full max-w-4xl mx-auto p-4 sm:p-6 lg:p-8">
@@ -489,9 +711,9 @@ export default function NotificationsPage() {
               <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-[#0088cc] text-white shadow-sm">
                 {unreadCount}
               </span>
-            ) : totalCount > 0 ? (
+            ) : totalAllCount > 0 ? (
               <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-muted text-muted-foreground">
-                {totalCount}
+                {totalAllCount}
               </span>
             ) : null}
           </button>
@@ -513,24 +735,24 @@ export default function NotificationsPage() {
       {/* ── TAB 1: Activity Feed ────────────────────────────────────────────── */}
       {activeTab === 'all' && (
         <div className="space-y-4">
-          {/* Sub-toolbar with Telegram Filters & Actions */}
+          {/* Sub-toolbar with Telegram Filters & Bulk Actions */}
           <div className="flex flex-wrap items-center justify-between gap-3 px-1 py-1">
             {/* Filter Pills */}
             <div className="flex items-center gap-1.5 p-1 rounded-xl bg-muted/50 border border-border/40">
               <button
                 type="button"
-                onClick={() => setActiveFeedFilter('all')}
+                onClick={() => handleFilterChange('all')}
                 className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
                   activeFeedFilter === 'all'
                     ? 'bg-card text-foreground shadow-sm'
                     : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
-                All {totalCount > 0 && `(${totalCount})`}
+                All {totalAllCount > 0 && `(${totalAllCount})`}
               </button>
               <button
                 type="button"
-                onClick={() => setActiveFeedFilter('unread')}
+                onClick={() => handleFilterChange('unread')}
                 className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
                   activeFeedFilter === 'unread'
                     ? 'bg-card text-foreground shadow-sm'
@@ -559,10 +781,21 @@ export default function NotificationsPage() {
                   <span>Mark All Read</span>
                 </Button>
               )}
+              {totalCount > 0 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowClearConfirm(true)}
+                  className="h-8 rounded-xl text-xs font-semibold gap-1.5 border-border/60 text-destructive/85 hover:text-destructive hover:border-destructive/40 hover:bg-destructive/10"
+                >
+                  <Trash weight="bold" className="h-3.5 w-3.5 text-destructive" />
+                  <span className="hidden sm:inline">Clear All</span>
+                </Button>
+              )}
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => fetchNotifications(true, 1)}
+                onClick={() => fetchNotifications(true, page, activeFeedFilter)}
                 disabled={isRefreshing}
                 className="h-8 rounded-xl text-xs font-semibold gap-1.5 text-muted-foreground hover:text-foreground"
               >
@@ -578,7 +811,7 @@ export default function NotificationsPage() {
               <Loader2 weight="fill" className="h-8 w-8 animate-spin text-[#0088cc] mx-auto" />
               <p className="text-xs text-muted-foreground font-medium">Loading notifications…</p>
             </div>
-          ) : displayedNotifications.length === 0 ? (
+          ) : notifications.length === 0 ? (
             /* Telegram-Style Centered Empty State */
             <div className="py-16 px-6 text-center border border-dashed border-border/70 rounded-3xl bg-card/40 space-y-4 max-w-lg mx-auto shadow-sm">
               <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-[#0088cc]/20 to-[#2AABEE]/10 flex items-center justify-center mx-auto ring-8 ring-[#0088cc]/10 shadow-inner">
@@ -596,18 +829,18 @@ export default function NotificationsPage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => fetchNotifications(true, 1)}
+                  onClick={() => fetchNotifications(true, 1, activeFeedFilter)}
                   disabled={isRefreshing}
                   className="rounded-xl text-xs font-semibold gap-1.5 border-border/80 hover:bg-muted"
                 >
                   <RefreshCw weight="bold" className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
                   Refresh Feed
                 </Button>
-                {activeFeedFilter === 'unread' && notifications.length > 0 && (
+                {activeFeedFilter === 'unread' && totalAllCount > 0 && (
                   <Button
                     variant="default"
                     size="sm"
-                    onClick={() => setActiveFeedFilter('all')}
+                    onClick={() => handleFilterChange('all')}
                     className="rounded-xl text-xs font-semibold bg-[#0088cc] hover:bg-[#0077b5] text-white"
                   >
                     View All History
@@ -644,13 +877,25 @@ export default function NotificationsPage() {
                       const isVerified = n.data?.is_verified || isOfficial;
                       const channelName = isOfficial ? 'Murih Notifications Official' : (n.data?.sender_name ?? 'Notification');
 
+                      const bodyText = formatNotificationMessage(n.data?.body ?? n.data?.message ?? (n.data as any)?.content);
+                      const hasExtraMeta = Boolean(
+                        n.data?.reason ||
+                        n.data?.admin_note ||
+                        n.data?.details ||
+                        n.data?.ticket_id ||
+                        n.data?.ticket_code ||
+                        n.data?.amount
+                      );
+                      const isLong = bodyText.length > 130 || bodyText.includes('\n') || hasExtraMeta;
+                      const isExpanded = expandedIds.has(n.id);
+
                       return (
                         <div
                           key={n.id}
                           onClick={() => {
                             if (!n.read_at) handleMarkSingleRead(n.id);
                           }}
-                          className={`relative p-4 sm:p-5 rounded-2xl border transition-all duration-200 cursor-pointer ${
+                          className={`relative p-4 sm:p-5 rounded-2xl border transition-all duration-200 cursor-pointer group/card ${
                             isUnread
                               ? 'bg-card border-[#0088cc]/40 dark:border-[#0088cc]/30 shadow-sm shadow-[#0088cc]/5 hover:border-[#0088cc]/60'
                               : 'bg-card/70 border-border/60 hover:bg-card hover:border-border'
@@ -688,7 +933,7 @@ export default function NotificationsPage() {
                             </div>
 
                             {/* Main Content */}
-                            <div className="flex-1 min-w-0 space-y-1 pr-4">
+                            <div className="flex-1 min-w-0 space-y-1 pr-6 sm:pr-8">
                               <div className="flex items-center gap-2 flex-wrap">
                                 <span
                                   className={`text-xs sm:text-sm font-bold truncate ${
@@ -711,9 +956,68 @@ export default function NotificationsPage() {
                                 </h4>
                               )}
 
-                              <p className="text-xs sm:text-[13px] text-muted-foreground leading-relaxed break-words pt-0.5">
-                                {formatNotificationMessage(n.data?.body ?? n.data?.message ?? (n.data as any)?.content)}
-                              </p>
+                              {/* Accordion / Message Body */}
+                              <div className="pt-0.5">
+                                <p
+                                  className={`text-xs sm:text-[13px] text-muted-foreground leading-relaxed break-words ${
+                                    !isExpanded && isLong ? 'line-clamp-2' : 'whitespace-pre-line'
+                                  }`}
+                                >
+                                  {bodyText}
+                                </p>
+
+                                {/* Accordion extra details when expanded */}
+                                {isExpanded && hasExtraMeta && (
+                                  <div className="mt-2.5 p-3 rounded-xl bg-muted/60 border border-border/50 text-xs space-y-1.5 animate-in fade-in-50 duration-200">
+                                    {n.data?.reason && (
+                                      <div className="text-muted-foreground">
+                                        <span className="font-bold text-foreground">Reason: </span>
+                                        {String(n.data.reason)}
+                                      </div>
+                                    )}
+                                    {n.data?.admin_note && (
+                                      <div className="text-muted-foreground">
+                                        <span className="font-bold text-foreground">Admin Note: </span>
+                                        {String(n.data.admin_note)}
+                                      </div>
+                                    )}
+                                    {(n.data?.ticket_id || n.data?.ticket_code) && (
+                                      <div className="text-muted-foreground">
+                                        <span className="font-bold text-foreground">Reference: </span>
+                                        #{String(n.data.ticket_code || n.data.ticket_id)}
+                                      </div>
+                                    )}
+                                    {n.data?.amount && (
+                                      <div className="text-muted-foreground">
+                                        <span className="font-bold text-foreground">Amount: </span>
+                                        {String(n.data.amount)} {n.data.currency || ''}
+                                      </div>
+                                    )}
+                                    {n.data?.details && typeof n.data.details === 'string' && (
+                                      <div className="text-muted-foreground">
+                                        <span className="font-bold text-foreground">Details: </span>
+                                        {String(n.data.details)}
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+
+                                {/* Accordion Toggle Trigger Button */}
+                                {isLong && (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => toggleAccordion(n.id, e)}
+                                    className="inline-flex items-center gap-1 mt-1.5 text-xs font-semibold text-[#0088cc] hover:text-[#0077b5] dark:text-[#38bdf8] dark:hover:text-[#7dd3fc] transition-colors group cursor-pointer"
+                                  >
+                                    <span>{isExpanded ? 'Show less' : 'Show full details'}</span>
+                                    {isExpanded ? (
+                                      <CaretUp weight="bold" className="w-3.5 h-3.5 group-hover:-translate-y-0.5 transition-transform" />
+                                    ) : (
+                                      <CaretDown weight="bold" className="w-3.5 h-3.5 group-hover:translate-y-0.5 transition-transform" />
+                                    )}
+                                  </button>
+                                )}
+                              </div>
 
                               {/* Telegram-style Inline Action Pill */}
                               {n.data?.action_url && (
@@ -736,18 +1040,62 @@ export default function NotificationsPage() {
                                 </div>
                               )}
 
-                              {/* Bottom Timestamp & Read Receipts */}
-                              <div className="flex items-center justify-end gap-1.5 pt-1 text-[11px] text-muted-foreground">
-                                <span>{timeAgo}</span>
-                                {isUnread ? (
-                                  <span title="Delivered">
-                                    <Check weight="bold" className="w-3.5 h-3.5 text-muted-foreground/60" />
-                                  </span>
-                                ) : (
-                                  <span title="Read">
-                                    <CheckCheck weight="bold" className="w-3.5 h-3.5 text-[#0088cc]" />
-                                  </span>
-                                )}
+                              {/* Bottom Timestamp & Actions (Read/Unread + Delete) */}
+                              <div className="flex items-center justify-between gap-2 pt-2 text-[11px] text-muted-foreground border-t border-border/30 mt-2">
+                                <div className="flex items-center gap-1.5">
+                                  <span>{timeAgo}</span>
+                                  {isUnread ? (
+                                    <span title="Delivered">
+                                      <Check weight="bold" className="w-3.5 h-3.5 text-muted-foreground/60" />
+                                    </span>
+                                  ) : (
+                                    <span title="Read">
+                                      <CheckCheck weight="bold" className="w-3.5 h-3.5 text-[#0088cc]" />
+                                    </span>
+                                  )}
+                                </div>
+
+                                {/* Action Buttons: Mark as Read/Unread & Delete */}
+                                <div
+                                  className="flex items-center gap-1 opacity-80 group-hover/card:opacity-100 transition-opacity"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  {isUnread ? (
+                                    <button
+                                      type="button"
+                                      title="Mark as read"
+                                      onClick={(e) => handleMarkSingleRead(n.id, e)}
+                                      className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium text-muted-foreground hover:text-[#0088cc] hover:bg-[#0088cc]/10 transition-colors"
+                                    >
+                                      <Check weight="bold" className="w-3.5 h-3.5" />
+                                      <span className="hidden sm:inline">Mark read</span>
+                                    </button>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      title="Mark as unread"
+                                      onClick={(e) => handleMarkSingleUnread(n.id, e)}
+                                      className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium text-muted-foreground hover:text-amber-500 hover:bg-amber-500/10 transition-colors"
+                                    >
+                                      <EnvelopeSimple weight="bold" className="w-3.5 h-3.5" />
+                                      <span className="hidden sm:inline">Unread</span>
+                                    </button>
+                                  )}
+
+                                  <button
+                                    type="button"
+                                    title="Delete notification"
+                                    disabled={deletingId === n.id}
+                                    onClick={(e) => handleDeleteSingle(n.id, e)}
+                                    className="p-1 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-40"
+                                  >
+                                    {deletingId === n.id ? (
+                                      <Loader2 weight="fill" className="w-3.5 h-3.5 animate-spin text-destructive" />
+                                    ) : (
+                                      <Trash weight="bold" className="w-3.5 h-3.5" />
+                                    )}
+                                  </button>
+                                </div>
                               </div>
                             </div>
                           </div>
@@ -758,25 +1106,84 @@ export default function NotificationsPage() {
                 </div>
               ))}
 
-              {/* Load More Button */}
-              {hasMore && (
-                <div className="flex justify-center pt-2 pb-4">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => fetchNotifications(true, page + 1)}
-                    disabled={isLoadingMore}
-                    className="rounded-xl text-xs font-semibold gap-2 border-border/80 hover:bg-muted px-6"
-                  >
-                    {isLoadingMore ? (
-                      <>
-                        <Loader2 weight="fill" className="w-3.5 h-3.5 animate-spin" />
-                        <span>Loading older notifications…</span>
-                      </>
-                    ) : (
-                      <span>Load older notifications</span>
-                    )}
-                  </Button>
+              {/* ── Activity Feed Numbered Pagination ────────────────────────────── */}
+              {totalCount > 0 && (
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-border/50 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <div>
+                      Showing <span className="font-bold text-foreground">{(page - 1) * perPage + 1}</span>–
+                      <span className="font-bold text-foreground">{Math.min(page * perPage, totalCount)}</span> of{' '}
+                      <span className="font-bold text-foreground">{totalCount}</span> notifications
+                    </div>
+
+                    <div className="flex items-center gap-1 text-[11px] bg-muted/40 px-2 py-0.5 rounded-lg border border-border/40">
+                      <span className="text-muted-foreground">Per page:</span>
+                      {[10, 15, 25, 50].map((size) => (
+                        <button
+                          key={size}
+                          type="button"
+                          onClick={() => handlePerPageChange(size)}
+                          className={`px-1.5 py-0.5 rounded font-bold transition-all ${
+                            perPage === size
+                              ? 'bg-[#0088cc] text-white shadow-xs'
+                              : 'text-muted-foreground hover:text-foreground'
+                          }`}
+                        >
+                          {size}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-1.5 flex-wrap justify-center">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={page <= 1 || isLoading}
+                      onClick={() => handlePageChange(page - 1)}
+                      className="h-8 px-2.5 rounded-xl text-xs gap-1 border-border/60 disabled:opacity-40"
+                    >
+                      <CaretLeft weight="bold" className="w-3.5 h-3.5" />
+                      <span>Prev</span>
+                    </Button>
+
+                    {getPageNumbers(page, lastPage).map((p, idx) => {
+                      if (p === '...') {
+                        return (
+                          <span key={`notif-ellipsis-${idx}`} className="px-1 text-muted-foreground">
+                            …
+                          </span>
+                        );
+                      }
+                      const isCurrent = p === page;
+                      return (
+                        <button
+                          key={`notif-page-${p}`}
+                          type="button"
+                          onClick={() => handlePageChange(p as number)}
+                          disabled={isLoading}
+                          className={`w-8 h-8 rounded-xl text-xs font-bold transition-all ${
+                            isCurrent
+                              ? 'bg-[#0088cc] text-white shadow-sm'
+                              : 'bg-muted/50 hover:bg-muted text-foreground border border-border/40'
+                          }`}
+                        >
+                          {p}
+                        </button>
+                      );
+                    })}
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={page >= lastPage || isLoading}
+                      onClick={() => handlePageChange(page + 1)}
+                      className="h-8 px-2.5 rounded-xl text-xs gap-1 border-border/60 disabled:opacity-40"
+                    >
+                      <span>Next</span>
+                      <CaretRight weight="bold" className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
                 </div>
               )}
             </div>
@@ -792,8 +1199,53 @@ export default function NotificationsPage() {
             <div className="space-y-1">
               <h4 className="text-xs font-bold text-foreground">Notification Channels</h4>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Control how and where you receive notifications. Toggles apply immediately to in-app popovers, emails, and mobile push.
+                Control how and where you receive notifications. Toggles apply to in-app popovers, emails, and mobile push.
               </p>
+            </div>
+          </div>
+
+          {/* Preferences Category Filter & Search Bar */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+            {/* Category Pills */}
+            <div className="flex items-center gap-1 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
+              {Object.entries(CATEGORY_GROUPS).map(([key, group]) => {
+                const isSelected = selectedPrefGroup === key;
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setSelectedPrefGroup(key)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
+                      isSelected
+                        ? 'bg-[#0088cc] text-white shadow-sm'
+                        : 'bg-muted/60 text-muted-foreground hover:text-foreground hover:bg-muted'
+                    }`}
+                  >
+                    {group.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Search Input */}
+            <div className="relative min-w-[200px] sm:w-64">
+              <MagnifyingGlass weight="bold" className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+              <input
+                type="text"
+                placeholder="Filter categories…"
+                value={prefSearchQuery}
+                onChange={(e) => setPrefSearchQuery(e.target.value)}
+                className="w-full pl-9 pr-8 py-1.5 rounded-xl text-xs bg-card border border-border/70 text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-[#0088cc]/30"
+              />
+              {prefSearchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setPrefSearchQuery('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  <XIcon className="w-3.5 h-3.5" />
+                </button>
+              )}
             </div>
           </div>
 
@@ -802,86 +1254,202 @@ export default function NotificationsPage() {
               <Loader2 weight="fill" className="h-8 w-8 animate-spin text-[#0088cc] mx-auto" />
               <p className="text-xs text-muted-foreground font-medium">Loading preferences…</p>
             </div>
+          ) : filteredPrefTypes.length === 0 ? (
+            <div className="p-8 text-center rounded-2xl border border-dashed border-border/80 space-y-2">
+              <p className="text-xs font-bold text-foreground">No matching categories found</p>
+              <p className="text-xs text-muted-foreground">Try clearing your search or selecting a different category.</p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setPrefSearchQuery('');
+                  setSelectedPrefGroup('all');
+                }}
+                className="rounded-xl text-xs"
+              >
+                Reset Filters
+              </Button>
+            </div>
           ) : (
-            <div className="border border-border/60 rounded-2xl bg-card overflow-hidden divide-y divide-border/60 shadow-sm">
-              {/* Header row */}
-              <div className="p-4 bg-muted/40 grid grid-cols-12 gap-2 text-xs font-bold text-foreground uppercase tracking-wider">
-                <div className="col-span-6 sm:col-span-7">Notification Category</div>
-                <div className="col-span-2 sm:col-span-1 text-center">In-App</div>
-                <div className="col-span-2 sm:col-span-2 text-center">Email</div>
-                <div className="col-span-2 sm:col-span-2 text-center">Push</div>
+            <div className="space-y-4">
+              <div className="border border-border/60 rounded-2xl bg-card overflow-hidden divide-y divide-border/60 shadow-sm">
+                {/* Header row with bulk controls */}
+                <div className="p-4 bg-muted/40 grid grid-cols-12 gap-2 text-xs font-bold text-foreground uppercase tracking-wider items-center">
+                  <div className="col-span-6 sm:col-span-6">Notification Category</div>
+                  <div className="col-span-2 sm:col-span-2 text-center flex flex-col items-center">
+                    <span>In-App</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const anyOff = currentPrefTypes.some((t) => !(preferences[t]?.in_app ?? true));
+                        handleBulkToggleChannel('in_app', anyOff);
+                      }}
+                      className="text-[10px] text-[#0088cc] hover:underline normal-case font-normal mt-0.5"
+                    >
+                      toggle page
+                    </button>
+                  </div>
+                  <div className="col-span-2 sm:col-span-2 text-center flex flex-col items-center">
+                    <span>Email</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const anyOff = currentPrefTypes.some((t) => !(preferences[t]?.email ?? true));
+                        handleBulkToggleChannel('email', anyOff);
+                      }}
+                      className="text-[10px] text-[#0088cc] hover:underline normal-case font-normal mt-0.5"
+                    >
+                      toggle page
+                    </button>
+                  </div>
+                  <div className="col-span-2 sm:col-span-2 text-center flex flex-col items-center">
+                    <span>Push</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const anyOff = currentPrefTypes.some((t) => !(preferences[t]?.push ?? true));
+                        handleBulkToggleChannel('push', anyOff);
+                      }}
+                      className="text-[10px] text-[#0088cc] hover:underline normal-case font-normal mt-0.5"
+                    >
+                      toggle page
+                    </button>
+                  </div>
+                </div>
+
+                {/* Rows for the current page */}
+                {currentPrefTypes.map((type) => {
+                  const cfg = TYPE_CONFIG[type];
+                  const inApp = preferences[type]?.in_app ?? true;
+                  const email = preferences[type]?.email ?? true;
+                  const push = preferences[type]?.push ?? true;
+
+                  return (
+                    <div key={type} className="p-4 grid grid-cols-12 gap-2 items-center hover:bg-muted/20 transition-colors">
+                      <div className="col-span-6 sm:col-span-6 space-y-0.5">
+                        <div className="flex items-center gap-2">
+                          {cfg.icon}
+                          <span className="text-xs font-bold text-foreground">{cfg.label}</span>
+                        </div>
+                        <p className="text-[11px] text-muted-foreground line-clamp-1">{cfg.description}</p>
+                      </div>
+
+                      {/* In-App Toggle */}
+                      <div className="col-span-2 sm:col-span-2 flex justify-center">
+                        <button
+                          type="button"
+                          onClick={() => handleTogglePref(type, 'in_app')}
+                          className={`w-9 h-5 rounded-full p-0.5 transition-colors duration-200 cursor-pointer ${
+                            inApp ? 'bg-[#0088cc]' : 'bg-muted-foreground/30'
+                          }`}
+                        >
+                          <div
+                            className={`w-4 h-4 rounded-full bg-white transition-transform duration-200 ${
+                              inApp ? 'translate-x-4' : 'translate-x-0'
+                            }`}
+                          />
+                        </button>
+                      </div>
+
+                      {/* Email Toggle */}
+                      <div className="col-span-2 sm:col-span-2 flex justify-center">
+                        <button
+                          type="button"
+                          onClick={() => handleTogglePref(type, 'email')}
+                          className={`w-9 h-5 rounded-full p-0.5 transition-colors duration-200 cursor-pointer ${
+                            email ? 'bg-[#0088cc]' : 'bg-muted-foreground/30'
+                          }`}
+                        >
+                          <div
+                            className={`w-4 h-4 rounded-full bg-white transition-transform duration-200 ${
+                              email ? 'translate-x-4' : 'translate-x-0'
+                            }`}
+                          />
+                        </button>
+                      </div>
+
+                      {/* Push Toggle */}
+                      <div className="col-span-2 sm:col-span-2 flex justify-center">
+                        <button
+                          type="button"
+                          onClick={() => handleTogglePref(type, 'push')}
+                          className={`w-9 h-5 rounded-full p-0.5 transition-colors duration-200 cursor-pointer ${
+                            push ? 'bg-[#0088cc]' : 'bg-muted-foreground/30'
+                          }`}
+                        >
+                          <div
+                            className={`w-4 h-4 rounded-full bg-white transition-transform duration-200 ${
+                              push ? 'translate-x-4' : 'translate-x-0'
+                            }`}
+                          />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
 
-              {/* Rows */}
-              {(Object.keys(TYPE_CONFIG) as NotificationType[]).map((type) => {
-                const cfg = TYPE_CONFIG[type];
-                const inApp = preferences[type]?.in_app ?? true;
-                const email = preferences[type]?.email ?? true;
-                const push = preferences[type]?.push ?? true;
-
-                return (
-                  <div key={type} className="p-4 grid grid-cols-12 gap-2 items-center hover:bg-muted/20 transition-colors">
-                    <div className="col-span-6 sm:col-span-7 space-y-0.5">
-                      <div className="flex items-center gap-2">
-                        {cfg.icon}
-                        <span className="text-xs font-bold text-foreground">{cfg.label}</span>
-                      </div>
-                      <p className="text-[11px] text-muted-foreground line-clamp-1">{cfg.description}</p>
-                    </div>
-
-                    {/* In-App Toggle */}
-                    <div className="col-span-2 sm:col-span-1 flex justify-center">
-                      <button
-                        type="button"
-                        onClick={() => handleTogglePref(type, 'in_app')}
-                        className={`w-9 h-5 rounded-full p-0.5 transition-colors duration-200 ${
-                          inApp ? 'bg-[#0088cc]' : 'bg-muted-foreground/30'
-                        }`}
-                      >
-                        <div
-                          className={`w-4 h-4 rounded-full bg-white transition-transform duration-200 ${
-                            inApp ? 'translate-x-4' : 'translate-x-0'
-                          }`}
-                        />
-                      </button>
-                    </div>
-
-                    {/* Email Toggle */}
-                    <div className="col-span-2 sm:col-span-2 flex justify-center">
-                      <button
-                        type="button"
-                        onClick={() => handleTogglePref(type, 'email')}
-                        className={`w-9 h-5 rounded-full p-0.5 transition-colors duration-200 ${
-                          email ? 'bg-[#0088cc]' : 'bg-muted-foreground/30'
-                        }`}
-                      >
-                        <div
-                          className={`w-4 h-4 rounded-full bg-white transition-transform duration-200 ${
-                            email ? 'translate-x-4' : 'translate-x-0'
-                          }`}
-                        />
-                      </button>
-                    </div>
-
-                    {/* Push Toggle */}
-                    <div className="col-span-2 sm:col-span-2 flex justify-center">
-                      <button
-                        type="button"
-                        onClick={() => handleTogglePref(type, 'push')}
-                        className={`w-9 h-5 rounded-full p-0.5 transition-colors duration-200 ${
-                          push ? 'bg-[#0088cc]' : 'bg-muted-foreground/30'
-                        }`}
-                      >
-                        <div
-                          className={`w-4 h-4 rounded-full bg-white transition-transform duration-200 ${
-                            push ? 'translate-x-4' : 'translate-x-0'
-                          }`}
-                        />
-                      </button>
-                    </div>
+              {/* ── Preferences Numbered Pagination ─────────────────────────────────── */}
+              {filteredPrefTypes.length > prefPerPage && (
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 text-xs text-muted-foreground">
+                  <div>
+                    Showing <span className="font-bold text-foreground">{(prefPage - 1) * prefPerPage + 1}</span>–
+                    <span className="font-bold text-foreground">
+                      {Math.min(prefPage * prefPerPage, filteredPrefTypes.length)}
+                    </span>{' '}
+                    of <span className="font-bold text-foreground">{filteredPrefTypes.length}</span> categories
                   </div>
-                );
-              })}
+
+                  <div className="flex items-center gap-1.5 flex-wrap justify-center">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={prefPage <= 1}
+                      onClick={() => setPrefPage((p) => Math.max(1, p - 1))}
+                      className="h-8 px-2.5 rounded-xl text-xs gap-1 border-border/60 disabled:opacity-40"
+                    >
+                      <CaretLeft weight="bold" className="w-3.5 h-3.5" />
+                      <span>Prev</span>
+                    </Button>
+
+                    {getPageNumbers(prefPage, prefTotalPages).map((p, idx) => {
+                      if (p === '...') {
+                        return (
+                          <span key={`pref-ellipsis-${idx}`} className="px-1 text-muted-foreground">
+                            …
+                          </span>
+                        );
+                      }
+                      const isCurrent = p === prefPage;
+                      return (
+                        <button
+                          key={`pref-page-${p}`}
+                          type="button"
+                          onClick={() => setPrefPage(p as number)}
+                          className={`w-8 h-8 rounded-xl text-xs font-bold transition-all ${
+                            isCurrent
+                              ? 'bg-[#0088cc] text-white shadow-sm'
+                              : 'bg-muted/50 hover:bg-muted text-foreground border border-border/40'
+                          }`}
+                        >
+                          {p}
+                        </button>
+                      );
+                    })}
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={prefPage >= prefTotalPages}
+                      onClick={() => setPrefPage((p) => Math.min(prefTotalPages, p + 1))}
+                      className="h-8 px-2.5 rounded-xl text-xs gap-1 border-border/60 disabled:opacity-40"
+                    >
+                      <span>Next</span>
+                      <CaretRight weight="bold" className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -901,6 +1469,48 @@ export default function NotificationsPage() {
           </div>
         </div>
       )}
+
+      {/* ── Clear All Confirmation Dialog ──────────────────────────────────── */}
+      <Dialog open={showClearConfirm} onOpenChange={setShowClearConfirm}>
+        <DialogContent className="sm:max-w-md rounded-2xl">
+          <DialogHeader className="space-y-2">
+            <div className="w-10 h-10 rounded-xl bg-destructive/15 text-destructive flex items-center justify-center">
+              <Trash weight="bold" className="w-5 h-5" />
+            </div>
+            <DialogTitle className="text-base font-bold">Clear all notifications?</DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground leading-relaxed">
+              This will permanently delete all notifications from your activity feed. This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex gap-2 sm:gap-0 mt-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowClearConfirm(false)}
+              disabled={isClearingAll}
+              className="rounded-xl text-xs"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={handleClearAll}
+              disabled={isClearingAll}
+              className="rounded-xl text-xs gap-1.5"
+            >
+              {isClearingAll ? (
+                <>
+                  <Loader2 weight="fill" className="w-3.5 h-3.5 animate-spin" />
+                  <span>Clearing…</span>
+                </>
+              ) : (
+                <span>Yes, clear all</span>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

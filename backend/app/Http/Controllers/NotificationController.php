@@ -12,12 +12,20 @@ class NotificationController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $notifications = $request->user()
-            ->notifications()
-            ->latest()
-            ->paginate(30);
+        $perPage = (int) $request->input('per_page', 15);
+        $perPage = max(5, min($perPage, 50));
 
+        $filter = $request->input('filter', 'all');
+
+        $query = $request->user()->notifications()->latest();
+
+        if ($filter === 'unread') {
+            $query = $request->user()->unreadNotifications()->latest();
+        }
+
+        $notifications = $query->paginate($perPage);
         $unread = $request->user()->unreadNotifications()->count();
+        $totalAll = $request->user()->notifications()->count();
 
         return response()->json([
             'notifications' => $notifications->items(),
@@ -30,6 +38,7 @@ class NotificationController extends Controller
                 'total' => $notifications->total(),
             ],
             'total' => $notifications->total(),
+            'total_all' => $totalAll,
             'unread' => $unread,
         ]);
     }
@@ -45,7 +54,27 @@ class NotificationController extends Controller
 
         $notification->markAsRead();
 
-        return response()->json(['message' => 'Marked as read.']);
+        return response()->json([
+            'message' => 'Marked as read.',
+            'unread' => $request->user()->unreadNotifications()->count(),
+        ]);
+    }
+
+    /**
+     * Mark a single notification as unread.
+     */
+    public function markUnread(Request $request, string $id): JsonResponse
+    {
+        $notification = $request->user()
+            ->notifications()
+            ->findOrFail($id);
+
+        $notification->markAsUnread();
+
+        return response()->json([
+            'message' => 'Marked as unread.',
+            'unread' => $request->user()->unreadNotifications()->count(),
+        ]);
     }
 
     /**
@@ -55,6 +84,41 @@ class NotificationController extends Controller
     {
         $request->user()->unreadNotifications()->update(['read_at' => now()]);
 
-        return response()->json(['message' => 'All notifications marked as read.']);
+        return response()->json([
+            'message' => 'All notifications marked as read.',
+            'unread' => 0,
+        ]);
+    }
+
+    /**
+     * Delete a single notification.
+     */
+    public function destroy(Request $request, string $id): JsonResponse
+    {
+        $notification = $request->user()
+            ->notifications()
+            ->findOrFail($id);
+
+        $notification->delete();
+
+        return response()->json([
+            'message' => 'Notification deleted.',
+            'unread' => $request->user()->unreadNotifications()->count(),
+            'total' => $request->user()->notifications()->count(),
+        ]);
+    }
+
+    /**
+     * Delete all notifications for the authenticated user.
+     */
+    public function destroyAll(Request $request): JsonResponse
+    {
+        $request->user()->notifications()->delete();
+
+        return response()->json([
+            'message' => 'All notifications deleted.',
+            'unread' => 0,
+            'total' => 0,
+        ]);
     }
 }

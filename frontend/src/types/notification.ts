@@ -41,6 +41,7 @@ export interface AppNotification {
     is_verified?: boolean;
     code?: string;
     metadata?: Record<string, any>;
+    [key: string]: any;
   };
   read_at: string | null;
   created_at: string;
