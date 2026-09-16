@@ -1,5 +1,5 @@
 import { getAuthToken } from "@/lib/auth/token";
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   Bell,
   Checks as CheckCheck,
@@ -262,6 +262,11 @@ export default function NotificationsPage() {
   // Accordion state (set of expanded notification IDs)
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
 
+  // Scroll frame state
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [hasScrolled, setHasScrolled] = useState(false);
+  const [canScrollDown, setCanScrollDown] = useState(false);
+
   // Deletion state
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
@@ -280,6 +285,29 @@ export default function NotificationsPage() {
   const [prefPage, setPrefPage] = useState(1);
   const prefPerPage = 7;
 
+  const checkScroll = useCallback(() => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    const isTop = el.scrollTop > 16;
+    const isBottom = el.scrollHeight - el.scrollTop - el.clientHeight <= 16;
+    const hasOverflow = el.scrollHeight > el.clientHeight;
+    setHasScrolled(isTop);
+    setCanScrollDown(hasOverflow && !isBottom);
+  }, []);
+
+  const handleScroll = () => {
+    checkScroll();
+  };
+
+  const scrollToTop = () => {
+    scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    const timer = setTimeout(checkScroll, 120);
+    return () => clearTimeout(timer);
+  }, [notifications, checkScroll]);
+
   const toggleAccordion = (id: string, e?: React.MouseEvent) => {
     e?.stopPropagation();
     setExpandedIds((prev) => {
@@ -288,6 +316,8 @@ export default function NotificationsPage() {
       else next.add(id);
       return next;
     });
+    // Check scroll geometry after height change
+    setTimeout(checkScroll, 200);
   };
 
   const fetchNotifications = useCallback(
@@ -432,18 +462,20 @@ export default function NotificationsPage() {
     if (filter === activeFeedFilter) return;
     setActiveFeedFilter(filter);
     setPage(1);
+    scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handlePageChange = (newPage: number) => {
     if (newPage < 1 || newPage > lastPage || newPage === page) return;
     fetchNotifications(false, newPage, activeFeedFilter);
-    window.scrollTo({ top: 120, behavior: 'smooth' });
+    scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handlePerPageChange = (newLimit: number) => {
     setPerPage(newLimit);
     setPage(1);
     fetchNotifications(false, 1, activeFeedFilter, newLimit);
+    scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleMarkAllRead = async () => {
@@ -732,11 +764,11 @@ export default function NotificationsPage() {
         </div>
       </div>
 
-      {/* ── TAB 1: Activity Feed ────────────────────────────────────────────── */}
+      {/* ── TAB 1: Activity Feed Framed Container with Scroll Effect ────────── */}
       {activeTab === 'all' && (
-        <div className="space-y-4">
-          {/* Sub-toolbar with Telegram Filters & Bulk Actions */}
-          <div className="flex flex-wrap items-center justify-between gap-3 px-1 py-1">
+        <div className="rounded-3xl border border-border/70 bg-card/40 backdrop-blur-md shadow-md overflow-hidden flex flex-col">
+          {/* Framed Header Toolbar (Pinned at Top) */}
+          <div className="px-4 sm:px-6 py-3.5 border-b border-border/50 bg-card/80 backdrop-blur-md flex flex-wrap items-center justify-between gap-3 shrink-0 z-20">
             {/* Filter Pills */}
             <div className="flex items-center gap-1.5 p-1 rounded-xl bg-muted/50 border border-border/40">
               <button
@@ -805,387 +837,423 @@ export default function NotificationsPage() {
             </div>
           </div>
 
-          {/* Loading State */}
-          {isLoading ? (
-            <div className="py-20 text-center space-y-3">
-              <Loader2 weight="fill" className="h-8 w-8 animate-spin text-[#0088cc] mx-auto" />
-              <p className="text-xs text-muted-foreground font-medium">Loading notifications…</p>
-            </div>
-          ) : notifications.length === 0 ? (
-            /* Telegram-Style Centered Empty State */
-            <div className="py-16 px-6 text-center border border-dashed border-border/70 rounded-3xl bg-card/40 space-y-4 max-w-lg mx-auto shadow-sm">
-              <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-[#0088cc]/20 to-[#2AABEE]/10 flex items-center justify-center mx-auto ring-8 ring-[#0088cc]/10 shadow-inner">
-                <PaperPlaneTilt weight="fill" className="w-9 h-9 text-[#0088cc]" />
-              </div>
-              <div className="space-y-1.5">
-                <h3 className="text-base font-bold text-foreground">All caught up!</h3>
-                <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed max-w-sm mx-auto">
-                  {activeFeedFilter === 'unread'
-                    ? "You don't have any unread notifications right now."
-                    : "You don't have any notifications right now. Activity in your communities and official updates will appear here."}
-                </p>
-              </div>
-              <div className="pt-2 flex items-center justify-center gap-3">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => fetchNotifications(true, 1, activeFeedFilter)}
-                  disabled={isRefreshing}
-                  className="rounded-xl text-xs font-semibold gap-1.5 border-border/80 hover:bg-muted"
-                >
-                  <RefreshCw weight="bold" className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
-                  Refresh Feed
-                </Button>
-                {activeFeedFilter === 'unread' && totalAllCount > 0 && (
-                  <Button
-                    variant="default"
-                    size="sm"
-                    onClick={() => handleFilterChange('all')}
-                    className="rounded-xl text-xs font-semibold bg-[#0088cc] hover:bg-[#0077b5] text-white"
-                  >
-                    View All History
-                  </Button>
-                )}
-              </div>
-            </div>
-          ) : (
-            /* Telegram-Style Message Cards List */
-            <div className="space-y-6">
-              {groupedNotifications.map((group) => (
-                <div key={group.day} className="space-y-3">
-                  {/* Centered Telegram Date Pill */}
-                  <div className="flex items-center justify-center sticky top-2 z-10 my-2">
-                    <span className="px-3.5 py-1 rounded-full text-[11px] font-semibold bg-muted/85 backdrop-blur-md text-muted-foreground shadow-sm border border-border/50">
-                      {group.day}
-                    </span>
+          {/* Framed Scrollable Area with Gradient Fade Effects */}
+          <div className="relative flex-1 min-h-0">
+            {/* Top Fade Shadow (appears when scrolled down) */}
+            <div
+              className={`pointer-events-none absolute top-0 left-0 right-0 h-6 bg-gradient-to-b from-card/90 via-card/30 to-transparent z-10 transition-opacity duration-200 ${
+                hasScrolled ? 'opacity-100' : 'opacity-0'
+              }`}
+            />
+
+            {/* Scrollable Viewport */}
+            <div
+              ref={scrollContainerRef}
+              onScroll={handleScroll}
+              className="overflow-y-auto max-h-[580px] sm:max-h-[640px] min-h-[360px] p-4 sm:p-6 space-y-6 scroll-smooth [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-muted-foreground/20 hover:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/40 [&::-webkit-scrollbar-thumb]:rounded-full"
+              style={{ scrollbarGutter: 'stable' }}
+            >
+              {isLoading ? (
+                <div className="py-24 text-center space-y-3">
+                  <Loader2 weight="fill" className="h-8 w-8 animate-spin text-[#0088cc] mx-auto" />
+                  <p className="text-xs text-muted-foreground font-medium">Loading notifications…</p>
+                </div>
+              ) : notifications.length === 0 ? (
+                /* Telegram-Style Centered Empty State */
+                <div className="py-16 px-6 text-center border border-dashed border-border/70 rounded-3xl bg-card/40 space-y-4 max-w-lg mx-auto shadow-sm my-6">
+                  <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-[#0088cc]/20 to-[#2AABEE]/10 flex items-center justify-center mx-auto ring-8 ring-[#0088cc]/10 shadow-inner">
+                    <PaperPlaneTilt weight="fill" className="w-9 h-9 text-[#0088cc]" />
                   </div>
+                  <div className="space-y-1.5">
+                    <h3 className="text-base font-bold text-foreground">All caught up!</h3>
+                    <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed max-w-sm mx-auto">
+                      {activeFeedFilter === 'unread'
+                        ? "You don't have any unread notifications right now."
+                        : "You don't have any notifications right now. Activity in your communities and official updates will appear here."}
+                    </p>
+                  </div>
+                  <div className="pt-2 flex items-center justify-center gap-3">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => fetchNotifications(true, 1, activeFeedFilter)}
+                      disabled={isRefreshing}
+                      className="rounded-xl text-xs font-semibold gap-1.5 border-border/80 hover:bg-muted"
+                    >
+                      <RefreshCw weight="bold" className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+                      Refresh Feed
+                    </Button>
+                    {activeFeedFilter === 'unread' && totalAllCount > 0 && (
+                      <Button
+                        variant="default"
+                        size="sm"
+                        onClick={() => handleFilterChange('all')}
+                        className="rounded-xl text-xs font-semibold bg-[#0088cc] hover:bg-[#0077b5] text-white"
+                      >
+                        View All History
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                /* Telegram-Style Message Cards List */
+                groupedNotifications.map((group) => (
+                  <div key={group.day} className="space-y-3">
+                    {/* Sticky Telegram Date Pill */}
+                    <div className="flex items-center justify-center sticky top-0 z-10 py-1">
+                      <span className="px-3.5 py-1 rounded-full text-[11px] font-semibold bg-muted/90 backdrop-blur-md text-muted-foreground shadow-xs border border-border/60">
+                        {group.day}
+                      </span>
+                    </div>
 
-                  {/* Group Items */}
-                  <div className="space-y-2.5">
-                    {group.items.map((n) => {
-                      const isUnread = !n.read_at;
-                      const timeAgo = formatDistanceToNow(new Date(n.created_at), { addSuffix: true });
-                      const config = TYPE_CONFIG[n.data?.type as NotificationType] ?? {
-                        label: 'Notification',
-                        description: '',
-                        icon: <Bell weight="fill" className="h-4 w-4 text-[#0088cc]" />,
-                      };
-                      const isOfficial =
-                        n.data?.is_official ||
-                        n.data?.sender_name === 'Murih Notifications Official' ||
-                        ['role_upgrade_approved', 'role_upgrade_rejected', 'kyc_approved', 'kyc_rejected', 'kyc_requested', 'gift_received', 'money_received'].includes(n.data?.type || n.type);
-                      const isVerified = n.data?.is_verified || isOfficial;
-                      const channelName = isOfficial ? 'Murih Notifications Official' : (n.data?.sender_name ?? 'Notification');
+                    {/* Group Items */}
+                    <div className="space-y-3">
+                      {group.items.map((n) => {
+                        const isUnread = !n.read_at;
+                        const timeAgo = formatDistanceToNow(new Date(n.created_at), { addSuffix: true });
+                        const config = TYPE_CONFIG[n.data?.type as NotificationType] ?? {
+                          label: 'Notification',
+                          description: '',
+                          icon: <Bell weight="fill" className="h-4 w-4 text-[#0088cc]" />,
+                        };
+                        const isOfficial =
+                          n.data?.is_official ||
+                          n.data?.sender_name === 'Murih Notifications Official' ||
+                          ['role_upgrade_approved', 'role_upgrade_rejected', 'kyc_approved', 'kyc_rejected', 'kyc_requested', 'gift_received', 'money_received'].includes(n.data?.type || n.type);
+                        const isVerified = n.data?.is_verified || isOfficial;
+                        const channelName = isOfficial ? 'Murih Notifications Official' : (n.data?.sender_name ?? 'Notification');
 
-                      const bodyText = formatNotificationMessage(n.data?.body ?? n.data?.message ?? (n.data as any)?.content);
-                      const hasExtraMeta = Boolean(
-                        n.data?.reason ||
-                        n.data?.admin_note ||
-                        n.data?.details ||
-                        n.data?.ticket_id ||
-                        n.data?.ticket_code ||
-                        n.data?.amount
-                      );
-                      const isLong = bodyText.length > 130 || bodyText.includes('\n') || hasExtraMeta;
-                      const isExpanded = expandedIds.has(n.id);
+                        const bodyText = formatNotificationMessage(n.data?.body ?? n.data?.message ?? (n.data as any)?.content);
+                        const hasExtraMeta = Boolean(
+                          n.data?.reason ||
+                          n.data?.admin_note ||
+                          n.data?.details ||
+                          n.data?.ticket_id ||
+                          n.data?.ticket_code ||
+                          n.data?.amount
+                        );
+                        const isLong = bodyText.length > 130 || bodyText.includes('\n') || hasExtraMeta;
+                        const isExpanded = expandedIds.has(n.id);
 
-                      return (
-                        <div
-                          key={n.id}
-                          onClick={() => {
-                            if (!n.read_at) handleMarkSingleRead(n.id);
-                          }}
-                          className={`relative p-4 sm:p-5 rounded-2xl border transition-all duration-200 cursor-pointer group/card ${
-                            isUnread
-                              ? 'bg-card border-[#0088cc]/40 dark:border-[#0088cc]/30 shadow-sm shadow-[#0088cc]/5 hover:border-[#0088cc]/60'
-                              : 'bg-card/70 border-border/60 hover:bg-card hover:border-border'
-                          }`}
-                        >
-                          {/* Telegram Unread Pulse Dot */}
-                          {isUnread && (
-                            <span className="absolute top-4 right-4 flex h-2.5 w-2.5" title="Unread">
-                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#0088cc] opacity-75" />
-                              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#0088cc]" />
-                            </span>
-                          )}
+                        return (
+                          <div
+                            key={n.id}
+                            onClick={() => {
+                              if (!n.read_at) handleMarkSingleRead(n.id);
+                            }}
+                            className={`relative p-4 sm:p-5 rounded-2xl border transition-all duration-200 cursor-pointer group/card ${
+                              isUnread
+                                ? 'bg-card border-[#0088cc]/40 dark:border-[#0088cc]/30 shadow-sm shadow-[#0088cc]/5 hover:border-[#0088cc]/60'
+                                : 'bg-card/70 border-border/60 hover:bg-card hover:border-border'
+                            }`}
+                          >
+                            {/* Telegram Unread Pulse Dot */}
+                            {isUnread && (
+                              <span className="absolute top-4 right-4 flex h-2.5 w-2.5" title="Unread">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#0088cc] opacity-75" />
+                                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#0088cc]" />
+                              </span>
+                            )}
 
-                          <div className="flex items-start gap-3.5 sm:gap-4">
-                            {/* Left Telegram Avatar / Badge */}
-                            <div className="relative shrink-0">
-                              <div
-                                className={`w-11 h-11 rounded-2xl flex items-center justify-center shadow-sm ${
-                                  isOfficial
-                                    ? 'bg-gradient-to-br from-[#0088cc] to-[#006699] text-white'
-                                    : 'bg-muted text-foreground'
-                                }`}
-                              >
-                                {isOfficial ? (
-                                  <Bell weight="fill" className="w-5 h-5 text-white" />
-                                ) : (
-                                  config.icon
-                                )}
-                              </div>
-                              {isVerified && (
-                                <div className="absolute -bottom-1 -right-1 bg-background rounded-full p-0.5 shadow">
-                                  <CheckCircle2 weight="fill" className="w-3.5 h-3.5 fill-[#0088cc] text-white" />
+                            <div className="flex items-start gap-3.5 sm:gap-4">
+                              {/* Left Telegram Avatar / Badge */}
+                              <div className="relative shrink-0">
+                                <div
+                                  className={`w-11 h-11 rounded-2xl flex items-center justify-center shadow-sm ${
+                                    isOfficial
+                                      ? 'bg-gradient-to-br from-[#0088cc] to-[#006699] text-white'
+                                      : 'bg-muted text-foreground'
+                                  }`}
+                                >
+                                  {isOfficial ? (
+                                    <Bell weight="fill" className="w-5 h-5 text-white" />
+                                  ) : (
+                                    config.icon
+                                  )}
                                 </div>
-                              )}
-                            </div>
-
-                            {/* Main Content */}
-                            <div className="flex-1 min-w-0 space-y-1 pr-6 sm:pr-8">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <span
-                                  className={`text-xs sm:text-sm font-bold truncate ${
-                                    isOfficial ? 'text-[#0088cc] dark:text-[#38bdf8]' : 'text-foreground'
-                                  }`}
-                                >
-                                  {channelName}
-                                </span>
                                 {isVerified && (
-                                  <CheckCircle2 weight="fill" className="h-3.5 w-3.5 fill-[#0088cc] text-white shrink-0 -ml-1" />
+                                  <div className="absolute -bottom-1 -right-1 bg-background rounded-full p-0.5 shadow">
+                                    <CheckCircle2 weight="fill" className="w-3.5 h-3.5 fill-[#0088cc] text-white" />
+                                  </div>
                                 )}
-                                <span className="text-[10px] sm:text-[11px] px-2 py-0.5 rounded-md bg-muted/70 text-muted-foreground font-medium">
-                                  {config.label}
-                                </span>
                               </div>
 
-                              {n.data?.title && n.data?.title !== channelName && (
-                                <h4 className="text-xs sm:text-sm font-bold text-foreground pt-0.5">
-                                  {n.data.title}
-                                </h4>
-                              )}
+                              {/* Main Content */}
+                              <div className="flex-1 min-w-0 space-y-1 pr-6 sm:pr-8">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span
+                                    className={`text-xs sm:text-sm font-bold truncate ${
+                                      isOfficial ? 'text-[#0088cc] dark:text-[#38bdf8]' : 'text-foreground'
+                                    }`}
+                                  >
+                                    {channelName}
+                                  </span>
+                                  {isVerified && (
+                                    <CheckCircle2 weight="fill" className="h-3.5 w-3.5 fill-[#0088cc] text-white shrink-0 -ml-1" />
+                                  )}
+                                  <span className="text-[10px] sm:text-[11px] px-2 py-0.5 rounded-md bg-muted/70 text-muted-foreground font-medium">
+                                    {config.label}
+                                  </span>
+                                </div>
 
-                              {/* Accordion / Message Body */}
-                              <div className="pt-0.5">
-                                <p
-                                  className={`text-xs sm:text-[13px] text-muted-foreground leading-relaxed break-words ${
-                                    !isExpanded && isLong ? 'line-clamp-2' : 'whitespace-pre-line'
-                                  }`}
-                                >
-                                  {bodyText}
-                                </p>
+                                {n.data?.title && n.data?.title !== channelName && (
+                                  <h4 className="text-xs sm:text-sm font-bold text-foreground pt-0.5">
+                                    {n.data.title}
+                                  </h4>
+                                )}
 
-                                {/* Accordion extra details when expanded */}
-                                {isExpanded && hasExtraMeta && (
-                                  <div className="mt-2.5 p-3 rounded-xl bg-muted/60 border border-border/50 text-xs space-y-1.5 animate-in fade-in-50 duration-200">
-                                    {n.data?.reason && (
-                                      <div className="text-muted-foreground">
-                                        <span className="font-bold text-foreground">Reason: </span>
-                                        {String(n.data.reason)}
-                                      </div>
-                                    )}
-                                    {n.data?.admin_note && (
-                                      <div className="text-muted-foreground">
-                                        <span className="font-bold text-foreground">Admin Note: </span>
-                                        {String(n.data.admin_note)}
-                                      </div>
-                                    )}
-                                    {(n.data?.ticket_id || n.data?.ticket_code) && (
-                                      <div className="text-muted-foreground">
-                                        <span className="font-bold text-foreground">Reference: </span>
-                                        #{String(n.data.ticket_code || n.data.ticket_id)}
-                                      </div>
-                                    )}
-                                    {n.data?.amount && (
-                                      <div className="text-muted-foreground">
-                                        <span className="font-bold text-foreground">Amount: </span>
-                                        {String(n.data.amount)} {n.data.currency || ''}
-                                      </div>
-                                    )}
-                                    {n.data?.details && typeof n.data.details === 'string' && (
-                                      <div className="text-muted-foreground">
-                                        <span className="font-bold text-foreground">Details: </span>
-                                        {String(n.data.details)}
-                                      </div>
-                                    )}
+                                {/* Accordion / Message Body */}
+                                <div className="pt-0.5">
+                                  <p
+                                    className={`text-xs sm:text-[13px] text-muted-foreground leading-relaxed break-words ${
+                                      !isExpanded && isLong ? 'line-clamp-2' : 'whitespace-pre-line'
+                                    }`}
+                                  >
+                                    {bodyText}
+                                  </p>
+
+                                  {/* Accordion extra details when expanded */}
+                                  {isExpanded && hasExtraMeta && (
+                                    <div className="mt-2.5 p-3 rounded-xl bg-muted/60 border border-border/50 text-xs space-y-1.5 animate-in fade-in-50 duration-200">
+                                      {n.data?.reason && (
+                                        <div className="text-muted-foreground">
+                                          <span className="font-bold text-foreground">Reason: </span>
+                                          {String(n.data.reason)}
+                                        </div>
+                                      )}
+                                      {n.data?.admin_note && (
+                                        <div className="text-muted-foreground">
+                                          <span className="font-bold text-foreground">Admin Note: </span>
+                                          {String(n.data.admin_note)}
+                                        </div>
+                                      )}
+                                      {(n.data?.ticket_id || n.data?.ticket_code) && (
+                                        <div className="text-muted-foreground">
+                                          <span className="font-bold text-foreground">Reference: </span>
+                                          #{String(n.data.ticket_code || n.data.ticket_id)}
+                                        </div>
+                                      )}
+                                      {n.data?.amount && (
+                                        <div className="text-muted-foreground">
+                                          <span className="font-bold text-foreground">Amount: </span>
+                                          {String(n.data.amount)} {n.data.currency || ''}
+                                        </div>
+                                      )}
+                                      {n.data?.details && typeof n.data.details === 'string' && (
+                                        <div className="text-muted-foreground">
+                                          <span className="font-bold text-foreground">Details: </span>
+                                          {String(n.data.details)}
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
+
+                                  {/* Accordion Toggle Trigger Button */}
+                                  {isLong && (
+                                    <button
+                                      type="button"
+                                      onClick={(e) => toggleAccordion(n.id, e)}
+                                      className="inline-flex items-center gap-1 mt-1.5 text-xs font-semibold text-[#0088cc] hover:text-[#0077b5] dark:text-[#38bdf8] dark:hover:text-[#7dd3fc] transition-colors group cursor-pointer"
+                                    >
+                                      <span>{isExpanded ? 'Show less' : 'Show full details'}</span>
+                                      {isExpanded ? (
+                                        <CaretUp weight="bold" className="w-3.5 h-3.5 group-hover:-translate-y-0.5 transition-transform" />
+                                      ) : (
+                                        <CaretDown weight="bold" className="w-3.5 h-3.5 group-hover:translate-y-0.5 transition-transform" />
+                                      )}
+                                    </button>
+                                  )}
+                                </div>
+
+                                {/* Telegram-style Inline Action Pill */}
+                                {n.data?.action_url && (
+                                  <div className="pt-2">
+                                    <Link
+                                      to={
+                                        n.data.action_url.startsWith('http')
+                                          ? n.data.action_url.replace(/https?:\/\/[^/]+/, '')
+                                          : n.data.action_url
+                                      }
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (!n.read_at) handleMarkSingleRead(n.id);
+                                      }}
+                                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#0088cc]/10 hover:bg-[#0088cc]/20 text-[#0088cc] dark:text-[#38bdf8] text-xs font-semibold border border-[#0088cc]/25 transition-all active:scale-95 shadow-sm"
+                                    >
+                                      <span>{n.data?.action_label ?? 'View Details'}</span>
+                                      <ArrowRight weight="bold" className="w-3 h-3" />
+                                    </Link>
                                   </div>
                                 )}
 
-                                {/* Accordion Toggle Trigger Button */}
-                                {isLong && (
-                                  <button
-                                    type="button"
-                                    onClick={(e) => toggleAccordion(n.id, e)}
-                                    className="inline-flex items-center gap-1 mt-1.5 text-xs font-semibold text-[#0088cc] hover:text-[#0077b5] dark:text-[#38bdf8] dark:hover:text-[#7dd3fc] transition-colors group cursor-pointer"
-                                  >
-                                    <span>{isExpanded ? 'Show less' : 'Show full details'}</span>
-                                    {isExpanded ? (
-                                      <CaretUp weight="bold" className="w-3.5 h-3.5 group-hover:-translate-y-0.5 transition-transform" />
+                                {/* Bottom Timestamp & Actions (Read/Unread + Delete) */}
+                                <div className="flex items-center justify-between gap-2 pt-2 text-[11px] text-muted-foreground border-t border-border/30 mt-2">
+                                  <div className="flex items-center gap-1.5">
+                                    <span>{timeAgo}</span>
+                                    {isUnread ? (
+                                      <span title="Delivered">
+                                        <Check weight="bold" className="w-3.5 h-3.5 text-muted-foreground/60" />
+                                      </span>
                                     ) : (
-                                      <CaretDown weight="bold" className="w-3.5 h-3.5 group-hover:translate-y-0.5 transition-transform" />
+                                      <span title="Read">
+                                        <CheckCheck weight="bold" className="w-3.5 h-3.5 text-[#0088cc]" />
+                                      </span>
                                     )}
-                                  </button>
-                                )}
-                              </div>
+                                  </div>
 
-                              {/* Telegram-style Inline Action Pill */}
-                              {n.data?.action_url && (
-                                <div className="pt-2">
-                                  <Link
-                                    to={
-                                      n.data.action_url.startsWith('http')
-                                        ? n.data.action_url.replace(/https?:\/\/[^/]+/, '')
-                                        : n.data.action_url
-                                    }
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      if (!n.read_at) handleMarkSingleRead(n.id);
-                                    }}
-                                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#0088cc]/10 hover:bg-[#0088cc]/20 text-[#0088cc] dark:text-[#38bdf8] text-xs font-semibold border border-[#0088cc]/25 transition-all active:scale-95 shadow-sm"
+                                  {/* Action Buttons: Mark as Read/Unread & Delete */}
+                                  <div
+                                    className="flex items-center gap-1 opacity-80 group-hover/card:opacity-100 transition-opacity"
+                                    onClick={(e) => e.stopPropagation()}
                                   >
-                                    <span>{n.data?.action_label ?? 'View Details'}</span>
-                                    <ArrowRight weight="bold" className="w-3 h-3" />
-                                  </Link>
-                                </div>
-                              )}
+                                    {isUnread ? (
+                                      <button
+                                        type="button"
+                                        title="Mark as read"
+                                        onClick={(e) => handleMarkSingleRead(n.id, e)}
+                                        className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium text-muted-foreground hover:text-[#0088cc] hover:bg-[#0088cc]/10 transition-colors cursor-pointer"
+                                      >
+                                        <Check weight="bold" className="w-3.5 h-3.5" />
+                                        <span className="hidden sm:inline">Mark read</span>
+                                      </button>
+                                    ) : (
+                                      <button
+                                        type="button"
+                                        title="Mark as unread"
+                                        onClick={(e) => handleMarkSingleUnread(n.id, e)}
+                                        className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium text-muted-foreground hover:text-amber-500 hover:bg-amber-500/10 transition-colors cursor-pointer"
+                                      >
+                                        <EnvelopeSimple weight="bold" className="w-3.5 h-3.5" />
+                                        <span className="hidden sm:inline">Unread</span>
+                                      </button>
+                                    )}
 
-                              {/* Bottom Timestamp & Actions (Read/Unread + Delete) */}
-                              <div className="flex items-center justify-between gap-2 pt-2 text-[11px] text-muted-foreground border-t border-border/30 mt-2">
-                                <div className="flex items-center gap-1.5">
-                                  <span>{timeAgo}</span>
-                                  {isUnread ? (
-                                    <span title="Delivered">
-                                      <Check weight="bold" className="w-3.5 h-3.5 text-muted-foreground/60" />
-                                    </span>
-                                  ) : (
-                                    <span title="Read">
-                                      <CheckCheck weight="bold" className="w-3.5 h-3.5 text-[#0088cc]" />
-                                    </span>
-                                  )}
-                                </div>
-
-                                {/* Action Buttons: Mark as Read/Unread & Delete */}
-                                <div
-                                  className="flex items-center gap-1 opacity-80 group-hover/card:opacity-100 transition-opacity"
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  {isUnread ? (
                                     <button
                                       type="button"
-                                      title="Mark as read"
-                                      onClick={(e) => handleMarkSingleRead(n.id, e)}
-                                      className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium text-muted-foreground hover:text-[#0088cc] hover:bg-[#0088cc]/10 transition-colors"
+                                      title="Delete notification"
+                                      disabled={deletingId === n.id}
+                                      onClick={(e) => handleDeleteSingle(n.id, e)}
+                                      className="p-1 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-40 cursor-pointer"
                                     >
-                                      <Check weight="bold" className="w-3.5 h-3.5" />
-                                      <span className="hidden sm:inline">Mark read</span>
+                                      {deletingId === n.id ? (
+                                        <Loader2 weight="fill" className="w-3.5 h-3.5 animate-spin text-destructive" />
+                                      ) : (
+                                        <Trash weight="bold" className="w-3.5 h-3.5" />
+                                      )}
                                     </button>
-                                  ) : (
-                                    <button
-                                      type="button"
-                                      title="Mark as unread"
-                                      onClick={(e) => handleMarkSingleUnread(n.id, e)}
-                                      className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium text-muted-foreground hover:text-amber-500 hover:bg-amber-500/10 transition-colors"
-                                    >
-                                      <EnvelopeSimple weight="bold" className="w-3.5 h-3.5" />
-                                      <span className="hidden sm:inline">Unread</span>
-                                    </button>
-                                  )}
-
-                                  <button
-                                    type="button"
-                                    title="Delete notification"
-                                    disabled={deletingId === n.id}
-                                    onClick={(e) => handleDeleteSingle(n.id, e)}
-                                    className="p-1 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-40"
-                                  >
-                                    {deletingId === n.id ? (
-                                      <Loader2 weight="fill" className="w-3.5 h-3.5 animate-spin text-destructive" />
-                                    ) : (
-                                      <Trash weight="bold" className="w-3.5 h-3.5" />
-                                    )}
-                                  </button>
+                                  </div>
                                 </div>
                               </div>
                             </div>
                           </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
-
-              {/* ── Activity Feed Numbered Pagination ────────────────────────────── */}
-              {totalCount > 0 && (
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-border/50 text-xs text-muted-foreground">
-                  <div className="flex items-center gap-3 flex-wrap">
-                    <div>
-                      Showing <span className="font-bold text-foreground">{(page - 1) * perPage + 1}</span>–
-                      <span className="font-bold text-foreground">{Math.min(page * perPage, totalCount)}</span> of{' '}
-                      <span className="font-bold text-foreground">{totalCount}</span> notifications
-                    </div>
-
-                    <div className="flex items-center gap-1 text-[11px] bg-muted/40 px-2 py-0.5 rounded-lg border border-border/40">
-                      <span className="text-muted-foreground">Per page:</span>
-                      {[10, 15, 25, 50].map((size) => (
-                        <button
-                          key={size}
-                          type="button"
-                          onClick={() => handlePerPageChange(size)}
-                          className={`px-1.5 py-0.5 rounded font-bold transition-all ${
-                            perPage === size
-                              ? 'bg-[#0088cc] text-white shadow-xs'
-                              : 'text-muted-foreground hover:text-foreground'
-                          }`}
-                        >
-                          {size}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-1.5 flex-wrap justify-center">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={page <= 1 || isLoading}
-                      onClick={() => handlePageChange(page - 1)}
-                      className="h-8 px-2.5 rounded-xl text-xs gap-1 border-border/60 disabled:opacity-40"
-                    >
-                      <CaretLeft weight="bold" className="w-3.5 h-3.5" />
-                      <span>Prev</span>
-                    </Button>
-
-                    {getPageNumbers(page, lastPage).map((p, idx) => {
-                      if (p === '...') {
-                        return (
-                          <span key={`notif-ellipsis-${idx}`} className="px-1 text-muted-foreground">
-                            …
-                          </span>
                         );
-                      }
-                      const isCurrent = p === page;
-                      return (
-                        <button
-                          key={`notif-page-${p}`}
-                          type="button"
-                          onClick={() => handlePageChange(p as number)}
-                          disabled={isLoading}
-                          className={`w-8 h-8 rounded-xl text-xs font-bold transition-all ${
-                            isCurrent
-                              ? 'bg-[#0088cc] text-white shadow-sm'
-                              : 'bg-muted/50 hover:bg-muted text-foreground border border-border/40'
-                          }`}
-                        >
-                          {p}
-                        </button>
-                      );
-                    })}
+                      })}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
 
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={page >= lastPage || isLoading}
-                      onClick={() => handlePageChange(page + 1)}
-                      className="h-8 px-2.5 rounded-xl text-xs gap-1 border-border/60 disabled:opacity-40"
-                    >
-                      <span>Next</span>
-                      <CaretRight weight="bold" className="w-3.5 h-3.5" />
-                    </Button>
+            {/* Bottom Fade Shadow (indicates more content below) */}
+            <div
+              className={`pointer-events-none absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-card/90 via-card/30 to-transparent z-10 transition-opacity duration-200 ${
+                canScrollDown ? 'opacity-100' : 'opacity-0'
+              }`}
+            />
+
+            {/* Floating Scroll to Top Button */}
+            {hasScrolled && (
+              <button
+                type="button"
+                onClick={scrollToTop}
+                className="absolute bottom-4 right-5 z-20 p-2.5 rounded-full bg-[#0088cc] hover:bg-[#0077b5] text-white shadow-lg transition-all duration-200 hover:scale-105 active:scale-95 flex items-center justify-center cursor-pointer ring-4 ring-card/80"
+                title="Scroll to top"
+              >
+                <CaretUp weight="bold" className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+
+          {/* Framed Footer with Numbered Pagination (Pinned at Bottom) */}
+          {totalCount > 0 && (
+            <div className="px-4 sm:px-6 py-3.5 border-t border-border/50 bg-card/80 backdrop-blur-md shrink-0 z-20">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted-foreground">
+                <div className="flex items-center gap-3 flex-wrap">
+                  <div>
+                    Showing <span className="font-bold text-foreground">{(page - 1) * perPage + 1}</span>–
+                    <span className="font-bold text-foreground">{Math.min(page * perPage, totalCount)}</span> of{' '}
+                    <span className="font-bold text-foreground">{totalCount}</span> notifications
+                  </div>
+
+                  <div className="flex items-center gap-1 text-[11px] bg-muted/40 px-2 py-0.5 rounded-lg border border-border/40">
+                    <span className="text-muted-foreground">Per page:</span>
+                    {[10, 15, 25, 50].map((size) => (
+                      <button
+                        key={size}
+                        type="button"
+                        onClick={() => handlePerPageChange(size)}
+                        className={`px-1.5 py-0.5 rounded font-bold transition-all ${
+                          perPage === size
+                            ? 'bg-[#0088cc] text-white shadow-xs'
+                            : 'text-muted-foreground hover:text-foreground'
+                        }`}
+                      >
+                        {size}
+                      </button>
+                    ))}
                   </div>
                 </div>
-              )}
+
+                <div className="flex items-center gap-1.5 flex-wrap justify-center">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={page <= 1 || isLoading}
+                    onClick={() => handlePageChange(page - 1)}
+                    className="h-8 px-2.5 rounded-xl text-xs gap-1 border-border/60 disabled:opacity-40"
+                  >
+                    <CaretLeft weight="bold" className="w-3.5 h-3.5" />
+                    <span>Prev</span>
+                  </Button>
+
+                  {getPageNumbers(page, lastPage).map((p, idx) => {
+                    if (p === '...') {
+                      return (
+                        <span key={`notif-ellipsis-${idx}`} className="px-1 text-muted-foreground">
+                          …
+                        </span>
+                      );
+                    }
+                    const isCurrent = p === page;
+                    return (
+                      <button
+                        key={`notif-page-${p}`}
+                        type="button"
+                        onClick={() => handlePageChange(p as number)}
+                        disabled={isLoading}
+                        className={`w-8 h-8 rounded-xl text-xs font-bold transition-all ${
+                          isCurrent
+                            ? 'bg-[#0088cc] text-white shadow-sm'
+                            : 'bg-muted/50 hover:bg-muted text-foreground border border-border/40'
+                        }`}
+                      >
+                        {p}
+                      </button>
+                    );
+                  })}
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={page >= lastPage || isLoading}
+                    onClick={() => handlePageChange(page + 1)}
+                    className="h-8 px-2.5 rounded-xl text-xs gap-1 border-border/60 disabled:opacity-40"
+                  >
+                    <span>Next</span>
+                    <CaretRight weight="bold" className="w-3.5 h-3.5" />
+                  </Button>
+                </div>
+              </div>
             </div>
           )}
         </div>
@@ -1193,7 +1261,7 @@ export default function NotificationsPage() {
 
       {/* ── TAB 2: Preferences Matrix ──────────────────────────────────────── */}
       {activeTab === 'preferences' && (
-        <div className="space-y-6">
+        <div className="rounded-3xl border border-border/70 bg-card/40 backdrop-blur-md shadow-md overflow-hidden p-4 sm:p-6 space-y-6">
           <div className="p-4 rounded-2xl bg-[#0088cc]/10 border border-[#0088cc]/20 flex items-start gap-3">
             <Sliders weight="fill" className="h-5 w-5 text-[#0088cc] shrink-0 mt-0.5" />
             <div className="space-y-1">
@@ -1284,7 +1352,7 @@ export default function NotificationsPage() {
                         const anyOff = currentPrefTypes.some((t) => !(preferences[t]?.in_app ?? true));
                         handleBulkToggleChannel('in_app', anyOff);
                       }}
-                      className="text-[10px] text-[#0088cc] hover:underline normal-case font-normal mt-0.5"
+                      className="text-[10px] text-[#0088cc] hover:underline normal-case font-normal mt-0.5 cursor-pointer"
                     >
                       toggle page
                     </button>
@@ -1297,7 +1365,7 @@ export default function NotificationsPage() {
                         const anyOff = currentPrefTypes.some((t) => !(preferences[t]?.email ?? true));
                         handleBulkToggleChannel('email', anyOff);
                       }}
-                      className="text-[10px] text-[#0088cc] hover:underline normal-case font-normal mt-0.5"
+                      className="text-[10px] text-[#0088cc] hover:underline normal-case font-normal mt-0.5 cursor-pointer"
                     >
                       toggle page
                     </button>
@@ -1310,7 +1378,7 @@ export default function NotificationsPage() {
                         const anyOff = currentPrefTypes.some((t) => !(preferences[t]?.push ?? true));
                         handleBulkToggleChannel('push', anyOff);
                       }}
-                      className="text-[10px] text-[#0088cc] hover:underline normal-case font-normal mt-0.5"
+                      className="text-[10px] text-[#0088cc] hover:underline normal-case font-normal mt-0.5 cursor-pointer"
                     >
                       toggle page
                     </button>
