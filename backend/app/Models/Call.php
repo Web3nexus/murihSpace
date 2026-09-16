@@ -24,6 +24,9 @@ class Call extends Model
     ];
 
     protected $casts = [
+        'caller_id' => 'integer',
+        'recipient_id' => 'integer',
+        'conversation_id' => 'integer',
         'started_at' => 'datetime',
         'ended_at' => 'datetime',
         'duration_seconds' => 'integer',
@@ -54,12 +57,12 @@ class Call extends Model
      */
     public function allParticipantUserIds(): array
     {
-        $ids = [$this->caller_id, $this->recipient_id];
-        $extraIds = $this->participants()
+        $ids = array_map('intval', array_filter([(int) $this->caller_id, (int) $this->recipient_id]));
+        $extraIds = array_map('intval', $this->participants()
             ->whereIn('status', ['ringing', 'accepted'])
             ->pluck('user_id')
-            ->toArray();
+            ->toArray());
 
-        return array_values(array_unique(array_filter(array_merge($ids, $extraIds))));
+        return array_values(array_unique(array_merge($ids, $extraIds)));
     }
 }

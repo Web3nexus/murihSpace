@@ -981,6 +981,9 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
       previewStreamRef.current = null;
     }
 
+    // Immediately transition to connected mode so the modal remains open and media connects
+    setMode('connected');
+
     if (callId) {
       try {
         const res = await fetch(`${API_BASE}/calls/${callId}/accept`, {
@@ -990,16 +993,20 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
         const raw = await res.json();
         const data = raw?.data ?? raw;
         if (!res.ok) {
-          // If status is 400 because call was already accepted, continue if credentials present
-          if (res.status === 400 && (activeToken || data?.livekit_token)) {
+          console.warn('[CallOverlayModal] accept returned non-OK status:', res.status, data);
+          // If credentials are already present or returned, remain connected
+          if (activeToken || data?.livekit_token) {
             const token = data?.livekit_token || data?.call?.livekit_token;
             if (token) setActiveToken(token);
             setMode('connected');
             return;
           }
-          setConnectionStatus(data?.message || 'Call no longer available');
-          setTimeout(() => cleanupAndClose(), 1500);
-          return;
+          // Only close if status is explicitly ended or declined
+          if (res.status === 400 && (data?.status === 'ended' || data?.status === 'declined')) {
+            setConnectionStatus(data?.message || 'Call no longer active');
+            setTimeout(() => cleanupAndClose(), 1500);
+            return;
+          }
         }
         const call = data?.call || data;
         const token = data?.livekit_token || call?.livekit_token;
@@ -1013,14 +1020,8 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
         if (room) setActiveRoomName(room);
       } catch (err) {
         console.warn('[CallOverlayModal] accept error:', err);
-        if (!activeToken || !activeHost) {
-          setConnectionStatus('Failed to connect');
-          setTimeout(() => cleanupAndClose(), 1500);
-          return;
-        }
       }
     }
-    setMode('connected');
   };
 
 

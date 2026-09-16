@@ -154,7 +154,7 @@ class CallController extends Controller
     {
         $call = Call::findOrFail($id);
 
-        if ($call->recipient_id !== $request->user()->id && $call->caller_id !== $request->user()->id) {
+        if ((int) $call->recipient_id !== (int) $request->user()->id && (int) $call->caller_id !== (int) $request->user()->id) {
             return response()->json(['message' => 'Unauthorized.'], 403);
         }
 
@@ -242,9 +242,9 @@ class CallController extends Controller
     public function accept(Request $request, int $id): JsonResponse
     {
         $call = Call::findOrFail($id);
-        $userId = $request->user()->id;
+        $userId = (int) $request->user()->id;
 
-        $isPrimaryRecipient = $call->recipient_id === $userId;
+        $isPrimaryRecipient = (int) $call->recipient_id === $userId;
         $participant = CallParticipant::where('call_id', $call->id)
             ->where('user_id', $userId)
             ->first();
@@ -263,7 +263,11 @@ class CallController extends Controller
                 'joined_at' => now(),
             ]);
             $participant->load(['user:id,name,username,avatar']);
-            broadcast(new CallParticipantJoined($call, $participant));
+            try {
+                broadcast(new CallParticipantJoined($call, $participant));
+            } catch (\Throwable $e) {
+                Log::warning('[CallController] broadcast CallParticipantJoined failed: ' . $e->getMessage());
+            }
         }
 
         if ($call->status !== 'accepted') {
@@ -272,7 +276,11 @@ class CallController extends Controller
                 'started_at' => now(),
             ]);
             $call->load(['caller:id,name,username,avatar', 'recipient:id,name,username,avatar']);
-            broadcast(new CallAccepted($call));
+            try {
+                broadcast(new CallAccepted($call));
+            } catch (\Throwable $e) {
+                Log::warning('[CallController] broadcast CallAccepted failed: ' . $e->getMessage());
+            }
         }
 
         $livekitToken = null;
@@ -375,7 +383,7 @@ class CallController extends Controller
             ]);
         }
 
-        if ($call->recipient_id !== $userId && $call->caller_id !== $userId) {
+        if ((int) $call->recipient_id !== $userId && (int) $call->caller_id !== $userId) {
             return response()->json(['message' => 'Unauthorized.'], 403);
         }
 
@@ -401,8 +409,9 @@ class CallController extends Controller
     public function end(Request $request, int $id): JsonResponse
     {
         $call = Call::findOrFail($id);
+        $userId = (int) $request->user()->id;
 
-        if ($call->recipient_id !== $request->user()->id && $call->caller_id !== $request->user()->id) {
+        if (! in_array($userId, $call->allParticipantUserIds())) {
             return response()->json(['message' => 'Unauthorized.'], 403);
         }
 

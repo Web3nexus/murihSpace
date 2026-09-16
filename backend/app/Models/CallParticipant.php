@@ -20,6 +20,9 @@ class CallParticipant extends Model
     ];
 
     protected $casts = [
+        'call_id' => 'integer',
+        'user_id' => 'integer',
+        'invited_by_id' => 'integer',
         'joined_at' => 'datetime',
         'left_at' => 'datetime',
     ];
