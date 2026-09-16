@@ -11,6 +11,9 @@ import {
   Monitor,
   Lock,
   SpeakerSlash as VolumeX,
+  UserPlus,
+  X,
+  MagnifyingGlass as Search,
 } from "@phosphor-icons/react";
 import { Room, RoomEvent, Track, RemoteTrack, RemoteTrackPublication, Participant, ConnectionState } from 'livekit-client';
 import { startOutgoingRingback, startIncomingRingtone, stopCallSounds } from '@/lib/sound';
@@ -106,9 +109,24 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
   const remoteAudioRef = useRef<HTMLAudioElement | null>(null);
   const durationTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  const [remoteParticipants, setRemoteParticipants] = useState<Participant[]>([]);
+  const [isAddParticipantOpen, setIsAddParticipantOpen] = useState(false);
+  const [participantSearchQuery, setParticipantSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [isSearchingUsers, setIsSearchingUsers] = useState(false);
+  const [invitingUserIds, setInvitingUserIds] = useState<Record<number, boolean>>({});
+  const [invitedUserIds, setInvitedUserIds] = useState<Record<number, boolean>>({});
+  const [inviteFeedback, setInviteFeedback] = useState<{ message: string; isError?: boolean } | null>(null);
+
   const [outgoingPhase, setOutgoingPhase] = useState<'connecting' | 'ringing'>('connecting');
   const previewStreamRef = useRef<MediaStream | null>(null);
   const outgoingPreviewVideoRef = useRef<HTMLVideoElement | null>(null);
+
+  const refreshParticipants = () => {
+    if (!roomRef.current) return;
+    const remotes = Array.from(roomRef.current.remoteParticipants.values());
+    setRemoteParticipants(remotes);
+  };
 
   // Synchronize state from props
   useEffect(() => {
@@ -266,6 +284,72 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
 
   const { user } = useAuth();
 
+  // Load friends or search results for adding participants
+  useEffect(() => {
+    if (!isAddParticipantOpen) {
+      setParticipantSearchQuery('');
+      setSearchResults([]);
+      setInviteFeedback(null);
+      return;
+    }
+
+    let isMounted = true;
+    setIsSearchingUsers(true);
+
+    const timer = setTimeout(() => {
+      const q = participantSearchQuery.trim();
+      const url = q ? `${API_BASE}/friends/search?q=${encodeURIComponent(q)}` : `${API_BASE}/friends`;
+
+      fetch(url, { headers: getAuthHeaders() })
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (!isMounted || !data) return;
+          const rawList = Array.isArray(data.data) ? data.data : Array.isArray(data) ? data : [];
+          const normalized = rawList
+            .map((item: any) => {
+              if (item.friend) return item.friend;
+              if (item.sender && item.sender.id !== user?.id) return item.sender;
+              return item;
+            })
+            .filter((u: any) => u && u.id && u.id !== user?.id);
+          setSearchResults(normalized);
+        })
+        .catch(() => {})
+        .finally(() => {
+          if (isMounted) setIsSearchingUsers(false);
+        });
+    }, 300);
+
+    return () => {
+      isMounted = false;
+      clearTimeout(timer);
+    };
+  }, [isAddParticipantOpen, participantSearchQuery, user?.id]);
+
+  const handleInviteUser = async (targetUser: any) => {
+    if (!callId) return;
+    setInvitingUserIds((prev) => ({ ...prev, [targetUser.id]: true }));
+    setInviteFeedback(null);
+    try {
+      const res = await fetch(`${API_BASE}/calls/${callId}/invite`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ user_id: targetUser.id }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setInviteFeedback({ message: data.message || 'Failed to invite user', isError: true });
+      } else {
+        setInvitedUserIds((prev) => ({ ...prev, [targetUser.id]: true }));
+        setInviteFeedback({ message: `Invitation sent to ${targetUser.name || 'user'}` });
+      }
+    } catch (e: any) {
+      setInviteFeedback({ message: e.message || 'Network error sending invite', isError: true });
+    } finally {
+      setInvitingUserIds((prev) => ({ ...prev, [targetUser.id]: false }));
+    }
+  };
+
   // Listen to call events via Echo for this specific room / call
   useEffect(() => {
     if (!isOpen || !callId) return;
@@ -340,6 +424,20 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
       }, 1200);
     };
 
+    const handleParticipantInvited = (raw?: any) => {
+      console.log('[LiveKit] Participant invited:', raw);
+    };
+
+    const handleParticipantJoined = (raw?: any) => {
+      console.log('[LiveKit] Participant joined:', raw);
+      refreshParticipants();
+    };
+
+    const handleParticipantLeft = (raw?: any) => {
+      console.log('[LiveKit] Participant left:', raw);
+      refreshParticipants();
+    };
+
     [callChannel, userChannel, appUserChannel].forEach((channel) => {
       if (!channel) return;
       channel.listen('.call.ringing', handleCallRinging);
@@ -350,6 +448,12 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
       channel.listen('CallAccepted', handleCallAccepted);
       channel.listen('CallDeclined', handleCallDeclined);
       channel.listen('CallEnded', handleCallEnded);
+      channel.listen('.call.participant.invited', handleParticipantInvited);
+      channel.listen('CallParticipantInvited', handleParticipantInvited);
+      channel.listen('.call.participant.joined', handleParticipantJoined);
+      channel.listen('CallParticipantJoined', handleParticipantJoined);
+      channel.listen('.call.participant.left', handleParticipantLeft);
+      channel.listen('CallParticipantLeft', handleParticipantLeft);
     });
 
     return () => {
@@ -363,6 +467,12 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
         channel.stopListening('CallAccepted', handleCallAccepted);
         channel.stopListening('CallDeclined', handleCallDeclined);
         channel.stopListening('CallEnded', handleCallEnded);
+        channel.stopListening('.call.participant.invited', handleParticipantInvited);
+        channel.stopListening('CallParticipantInvited', handleParticipantInvited);
+        channel.stopListening('.call.participant.joined', handleParticipantJoined);
+        channel.stopListening('CallParticipantJoined', handleParticipantJoined);
+        channel.stopListening('.call.participant.left', handleParticipantLeft);
+        channel.stopListening('CallParticipantLeft', handleParticipantLeft);
       });
       if (callChannel && channelName) {
         echo.leave(channelName);
@@ -569,6 +679,7 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
                 setAudioPlaybackBlocked(true);
               });
             }
+            refreshParticipants();
           }
         );
 
@@ -580,12 +691,14 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
             setRemoteVideoTrack(null);
             setHasRemoteVideo(false);
           }
+          refreshParticipants();
         });
 
         // Participant joined
         room.on(RoomEvent.ParticipantConnected, (participant: Participant) => {
           console.log('[LiveKit] 👤 ParticipantConnected:', participant.identity, participant.name);
           setRemoteParticipantName(participant.name || contactName);
+          refreshParticipants();
           if (!room.canPlaybackAudio) {
             room.startAudio().catch(() => {});
           }
@@ -594,6 +707,7 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
         // Participant disconnected — apply 8s grace period in case of network handover
         room.on(RoomEvent.ParticipantDisconnected, (participant: Participant) => {
           console.log('[LiveKit] 👤 ParticipantDisconnected:', participant.identity);
+          refreshParticipants();
           if (isCancelled || roomRef.current !== room) return;
           setTimeout(() => {
             if (isCancelled || roomRef.current !== room) return;
@@ -679,6 +793,7 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
             }
           });
         });
+        refreshParticipants();
 
         // Publish local mic
         await room.localParticipant.setMicrophoneEnabled(true);
@@ -1029,7 +1144,53 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
 
           {/* Main Remote Video or Audio Avatar Area */}
           <div className="absolute inset-0 z-0 bg-slate-900 flex items-center justify-center overflow-hidden">
-            {callType === 'video' ? (
+            {remoteParticipants.length > 1 ? (
+              /* Multi-Participant Grid View */
+              <div className="w-full h-full p-4 grid grid-cols-2 gap-3 items-center justify-center auto-rows-fr">
+                {remoteParticipants.map((p) => {
+                  const videoPub = Array.from(p.videoTrackPublications.values()).find(
+                    (pub) => pub.track && pub.isSubscribed && !pub.isMuted
+                  );
+                  const audioPub = Array.from(p.audioTrackPublications.values()).find(
+                    (pub) => pub.track && pub.isSubscribed
+                  );
+                  const isPeerMuted = !audioPub || audioPub.isMuted;
+                  const displayName = p.name || p.identity;
+
+                  return (
+                    <div
+                      key={p.identity}
+                      className="relative w-full h-full min-h-[160px] bg-slate-800/90 rounded-2xl overflow-hidden border border-white/10 shadow-lg flex items-center justify-center"
+                    >
+                      {videoPub?.track ? (
+                        <RemoteVideoTrackElement track={videoPub.track} />
+                      ) : (
+                        <div className="flex flex-col items-center justify-center space-y-2">
+                          <div className="w-16 h-16 rounded-full bg-primary/80 border-2 border-white/20 flex items-center justify-center text-xl font-bold text-white shadow-md">
+                            {displayName.slice(0, 2).toUpperCase()}
+                          </div>
+                          <span className="text-xs font-medium text-slate-300">{displayName}</span>
+                        </div>
+                      )}
+
+                      {/* Participant Overlay Info */}
+                      <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between pointer-events-none">
+                        <span className="bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-lg text-xs font-semibold text-white border border-white/10 truncate max-w-[70%]">
+                          {displayName}
+                        </span>
+                        <span
+                          className={`p-1.5 rounded-lg backdrop-blur-md ${
+                            isPeerMuted ? 'bg-red-500/80 text-white' : 'bg-black/40 text-emerald-400'
+                          }`}
+                        >
+                          {isPeerMuted ? <MicOff className="w-3.5 h-3.5" /> : <Mic weight="fill" className="w-3.5 h-3.5" />}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : callType === 'video' ? (
               <>
                 {remoteVideoTrack ? (
                   <RemoteVideoTrackElement track={remoteVideoTrack} />
@@ -1097,7 +1258,11 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
           <div className="relative z-10 flex items-start justify-between p-2">
             <div className="flex items-center gap-2.5 bg-black/40 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-white/10">
               <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="text-xs font-semibold text-white">{remoteParticipantName || contactName}</span>
+              <span className="text-xs font-semibold text-white">
+                {remoteParticipants.length > 1
+                  ? `${remoteParticipants.length + 1} Participants`
+                  : remoteParticipantName || contactName}
+              </span>
               <span className="text-xs text-slate-300 font-mono border-l border-white/20 pl-2">
                 {formatTimer(durationSeconds)}
               </span>
@@ -1126,6 +1291,113 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
               </div>
             )}
           </div>
+
+          {/* Add Participant Modal Overlay */}
+          {isAddParticipantOpen && (
+            <div className="absolute inset-0 z-30 bg-black/60 backdrop-blur-md flex items-center justify-center p-4">
+              <div className="w-full max-w-sm bg-slate-900 border border-white/20 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[85%] animate-in fade-in zoom-in-95 duration-200">
+                {/* Header */}
+                <div className="flex items-center justify-between p-4 border-b border-white/10">
+                  <div className="flex items-center gap-2">
+                    <UserPlus weight="bold" className="w-5 h-5 text-primary" />
+                    <h3 className="font-semibold text-white text-sm">Add Person to Call</h3>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsAddParticipantOpen(false)}
+                    className="p-1 rounded-full text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+                  >
+                    <X weight="bold" className="w-4 h-4" />
+                  </button>
+                </div>
+
+                {/* Search Input */}
+                <div className="p-3 border-b border-white/10">
+                  <div className="relative">
+                    <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input
+                      type="text"
+                      value={participantSearchQuery}
+                      onChange={(e) => setParticipantSearchQuery(e.target.value)}
+                      placeholder="Search friends by name or username..."
+                      className="w-full pl-9 pr-4 py-2 bg-slate-800 border border-white/10 rounded-xl text-xs text-white placeholder-slate-400 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                      autoFocus
+                    />
+                  </div>
+                </div>
+
+                {/* Feedback Message */}
+                {inviteFeedback && (
+                  <div
+                    className={`px-4 py-2 text-xs font-medium ${
+                      inviteFeedback.isError
+                        ? 'bg-red-500/20 text-red-300 border-b border-red-500/30'
+                        : 'bg-emerald-500/20 text-emerald-300 border-b border-emerald-500/30'
+                    }`}
+                  >
+                    {inviteFeedback.message}
+                  </div>
+                )}
+
+                {/* Friends / Users List */}
+                <div className="flex-1 overflow-y-auto p-2 space-y-1 divide-y divide-white/5">
+                  {isSearchingUsers ? (
+                    <div className="py-8 flex flex-col items-center justify-center text-slate-400 text-xs">
+                      <Spinner className="w-5 h-5 animate-spin mb-2 text-primary" />
+                      Searching contacts...
+                    </div>
+                  ) : searchResults.length === 0 ? (
+                    <div className="py-8 text-center text-slate-400 text-xs">
+                      {participantSearchQuery ? 'No matching contacts found' : 'No friends found to invite'}
+                    </div>
+                  ) : (
+                    searchResults.map((u) => {
+                      const isInviting = invitingUserIds[u.id];
+                      const isInvited = invitedUserIds[u.id];
+                      const avatar = u.avatar_url || u.avatar;
+                      return (
+                        <div
+                          key={u.id}
+                          className="pt-1.5 first:pt-0 flex items-center justify-between p-2 rounded-xl hover:bg-white/5 transition-colors"
+                        >
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div className="w-9 h-9 rounded-full overflow-hidden bg-slate-800 flex-shrink-0 border border-white/10">
+                              {avatar ? (
+                                <img src={avatar} alt={u.name} className="w-full h-full object-cover" />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center text-xs font-bold text-white bg-primary">
+                                  {(u.name || 'U').slice(0, 2).toUpperCase()}
+                                </div>
+                              )}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-xs font-medium text-white truncate">{u.name}</p>
+                              <p className="text-[10px] text-slate-400 truncate">@{u.username || 'user'}</p>
+                            </div>
+                          </div>
+
+                          <button
+                            type="button"
+                            disabled={isInviting || isInvited}
+                            onClick={() => handleInviteUser(u)}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                              isInvited
+                                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                                : isInviting
+                                ? 'bg-primary/50 text-white cursor-wait'
+                                : 'bg-primary hover:bg-primary/90 text-white active:scale-95 shadow-md'
+                            }`}
+                          >
+                            {isInvited ? 'Invited' : isInviting ? 'Inviting...' : 'Invite'}
+                          </button>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Bottom Floating Control Bar */}
           <div className="relative z-10 w-full pb-2">
@@ -1169,6 +1441,18 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
                   <Monitor weight="fill" className="h-5 w-5" />
                 </button>
               )}
+
+              {/* Add Participant Button */}
+              <button
+                type="button"
+                onClick={() => setIsAddParticipantOpen(true)}
+                className={`p-3.5 rounded-full transition-all ${
+                  isAddParticipantOpen ? 'bg-primary text-white' : 'bg-white/15 text-white hover:bg-white/25'
+                }`}
+                title="Add person to call"
+              >
+                <UserPlus weight="bold" className="h-5 w-5" />
+              </button>
 
               {/* Chat button */}
               {onOpenChat && (

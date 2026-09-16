@@ -16,16 +16,19 @@ class CallIncoming implements ShouldBroadcastNow
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     public function __construct(
-        public Call $call
+        public Call $call,
+        public ?int $targetUserId = null,
     ) {
         $this->call->loadMissing(['caller:id,name,username,avatar', 'recipient:id,name,username,avatar']);
     }
 
     public function broadcastOn(): array
     {
+        $targetId = $this->targetUserId ?? $this->call->recipient_id;
+
         return [
-            new PrivateChannel('user.' . $this->call->recipient_id),
-            new PrivateChannel('App.Models.User.' . $this->call->recipient_id),
+            new PrivateChannel('user.' . $targetId),
+            new PrivateChannel('App.Models.User.' . $targetId),
         ];
     }
 
@@ -37,6 +40,7 @@ class CallIncoming implements ShouldBroadcastNow
     public function broadcastWith(): array
     {
         $caller = $this->call->caller;
+        $targetId = $this->targetUserId ?? $this->call->recipient_id;
 
         $host = (string) config('livekit.host', 'https://live-staging.murihspace.com');
         $host = rtrim($host, '/');
@@ -53,19 +57,19 @@ class CallIncoming implements ShouldBroadcastNow
         $recipientToken = null;
         try {
             $service = app(LiveKitService::class);
-            $recipient = $this->call->recipient;
+            $targetUser = \App\Models\User::find($targetId);
             $recipientToken = $service->generateToken(
-                identity: 'user_' . $this->call->recipient_id,
+                identity: 'user_' . $targetId,
                 roomName: $this->call->room_name,
                 metadata: json_encode([
-                    'user_id' => $this->call->recipient_id,
-                    'name'    => $recipient?->name ?? 'Callee',
+                    'user_id' => $targetId,
+                    'name'    => $targetUser?->name ?? 'Participant',
                     'call_id' => $this->call->id,
                     'type'    => $this->call->type,
                 ]),
                 canPublish: true,
                 canSubscribe: true,
-                name: $recipient?->name ?? 'Callee',
+                name: $targetUser?->name ?? 'Participant',
             );
         } catch (\Throwable $e) {
             Log::warning('[CallIncoming] Could not generate recipient LiveKit token: ' . $e->getMessage());
@@ -74,7 +78,7 @@ class CallIncoming implements ShouldBroadcastNow
         return [
             'id'            => $this->call->id,
             'caller_id'     => $this->call->caller_id,
-            'recipient_id'  => $this->call->recipient_id,
+            'recipient_id'  => $targetId,
             'conversation_id' => $this->call->conversation_id,
             'type'          => $this->call->type,
             'status'        => $this->call->status,

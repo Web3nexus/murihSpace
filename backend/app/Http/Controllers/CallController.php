@@ -6,9 +6,13 @@ use App\Events\CallAccepted;
 use App\Events\CallDeclined;
 use App\Events\CallEnded;
 use App\Events\CallIncoming;
+use App\Events\CallParticipantInvited;
+use App\Events\CallParticipantJoined;
+use App\Events\CallParticipantLeft;
 use App\Events\CallRinging;
 use App\Events\MessageSent;
 use App\Models\Call;
+use App\Models\CallParticipant;
 use App\Models\Conversation;
 use App\Models\ConversationParticipant;
 use App\Models\Message;
@@ -167,45 +171,119 @@ class CallController extends Controller
     }
 
     /**
+     * Invite / add another user to an ongoing call session.
+     */
+    public function invite(Request $request, int $id): JsonResponse
+    {
+        $call = Call::with(['caller', 'recipient', 'participants.user'])->findOrFail($id);
+
+        if (in_array($call->status, ['ended', 'declined'])) {
+            return response()->json(['message' => 'Cannot add participants to an ended call.'], 400);
+        }
+
+        $allParticipantIds = $call->allParticipantUserIds();
+        if (! in_array($request->user()->id, $allParticipantIds)) {
+            return response()->json(['message' => 'Unauthorized.'], 403);
+        }
+
+        $validated = $request->validate([
+            'user_id' => ['required', 'integer', 'exists:users,id'],
+        ]);
+
+        $invitedUserId = (int) $validated['user_id'];
+
+        if ($invitedUserId === $request->user()->id) {
+            return response()->json(['message' => 'You cannot invite yourself.'], 422);
+        }
+
+        if (in_array($invitedUserId, $allParticipantIds)) {
+            return response()->json(['message' => 'User is already part of this call.'], 422);
+        }
+
+        // Check if either party blocked the other
+        $isBlocked = UserBlock::where(function ($q) use ($request, $invitedUserId) {
+            $q->where('user_id', $request->user()->id)->where('blocked_id', $invitedUserId);
+        })->orWhere(function ($q) use ($request, $invitedUserId) {
+            $q->where('user_id', $invitedUserId)->where('blocked_id', $request->user()->id);
+        })->exists();
+
+        if ($isBlocked) {
+            return response()->json(['message' => 'Cannot invite this user.'], 403);
+        }
+
+        $participant = CallParticipant::updateOrCreate(
+            ['call_id' => $call->id, 'user_id' => $invitedUserId],
+            [
+                'invited_by_id' => $request->user()->id,
+                'status' => 'ringing',
+                'joined_at' => null,
+                'left_at' => null,
+            ]
+        );
+
+        $participant->load(['user:id,name,username,avatar', 'invitedBy:id,name,username,avatar']);
+
+        // 1. Notify the invited user with incoming call alert & LiveKit credentials
+        broadcast(new CallIncoming($call, $invitedUserId));
+
+        // 2. Notify other call participants that a new participant was invited
+        broadcast(new CallParticipantInvited($call, $participant));
+
+        return response()->json([
+            'message' => 'Participant invited successfully.',
+            'participant' => $participant,
+            'call' => $call,
+        ], 201);
+    }
+
+    /**
      * Accept an incoming call.
      */
     public function accept(Request $request, int $id): JsonResponse
     {
         $call = Call::findOrFail($id);
+        $userId = $request->user()->id;
 
-        if ($call->recipient_id !== $request->user()->id) {
+        $isPrimaryRecipient = $call->recipient_id === $userId;
+        $participant = CallParticipant::where('call_id', $call->id)
+            ->where('user_id', $userId)
+            ->first();
+
+        if (! $isPrimaryRecipient && ! $participant) {
             return response()->json(['message' => 'Unauthorized to accept this call.'], 403);
         }
 
-        if (! in_array($call->status, ['connecting', 'ringing'])) {
+        if (in_array($call->status, ['ended', 'declined'])) {
             return response()->json(['message' => 'Call is no longer active.', 'status' => $call->status], 400);
         }
 
-        if ($call->created_at && $call->created_at->lt(now()->subSeconds(90))) {
-            $call->update(['status' => 'ended', 'ended_at' => now(), 'duration_seconds' => 0]);
-            broadcast(new CallEnded($call));
-            $this->logCallMessage($call, 'missed', 0);
-            return response()->json(['message' => 'Call timed out.', 'status' => 'ended'], 400);
+        if ($participant) {
+            $participant->update([
+                'status' => 'accepted',
+                'joined_at' => now(),
+            ]);
+            $participant->load(['user:id,name,username,avatar']);
+            broadcast(new CallParticipantJoined($call, $participant));
         }
 
-        $call->update([
-            'status' => 'accepted',
-            'started_at' => now(),
-        ]);
-
-        $call->load(['caller:id,name,username,avatar', 'recipient:id,name,username,avatar']);
-
-        broadcast(new CallAccepted($call));
+        if ($call->status !== 'accepted') {
+            $call->update([
+                'status' => 'accepted',
+                'started_at' => now(),
+            ]);
+            $call->load(['caller:id,name,username,avatar', 'recipient:id,name,username,avatar']);
+            broadcast(new CallAccepted($call));
+        }
 
         $livekitToken = null;
         $service = $this->resolveLivekitService();
         if ($service) {
             try {
                 $livekitToken = $service->generateToken(
-                    identity: 'user_' . $request->user()->id,
+                    identity: 'user_' . $userId,
                     roomName: $call->room_name,
                     metadata: json_encode([
-                        'user_id' => $request->user()->id,
+                        'user_id' => $userId,
                         'name' => $request->user()->name,
                         'call_id' => $call->id,
                         'type' => $call->type,
@@ -235,7 +313,7 @@ class CallController extends Controller
         $call = Call::findOrFail($id);
         $user = $request->user();
 
-        if ($call->recipient_id !== $user->id && $call->caller_id !== $user->id) {
+        if (! in_array($user->id, $call->allParticipantUserIds())) {
             return response()->json(['message' => 'Unauthorized.'], 403);
         }
 
@@ -279,8 +357,25 @@ class CallController extends Controller
     public function decline(Request $request, int $id): JsonResponse
     {
         $call = Call::findOrFail($id);
+        $userId = $request->user()->id;
 
-        if ($call->recipient_id !== $request->user()->id && $call->caller_id !== $request->user()->id) {
+        $participant = CallParticipant::where('call_id', $call->id)
+            ->where('user_id', $userId)
+            ->first();
+
+        if ($participant) {
+            $participant->update([
+                'status' => 'declined',
+                'left_at' => now(),
+            ]);
+            broadcast(new CallParticipantLeft($call, $participant, 'declined'));
+            return response()->json([
+                'call' => $call,
+                'message' => 'Call invitation declined.',
+            ]);
+        }
+
+        if ($call->recipient_id !== $userId && $call->caller_id !== $userId) {
             return response()->json(['message' => 'Unauthorized.'], 403);
         }
 
@@ -413,10 +508,19 @@ class CallController extends Controller
     {
         $userId = $request->user()->id;
 
-        $call = Call::with(['caller:id,name,username,avatar'])
-            ->where('recipient_id', $userId)
-            ->whereIn('status', ['connecting', 'ringing'])
-            ->where('created_at', '>=', now()->subSeconds(45))
+        $call = Call::with(['caller:id,name,username,avatar', 'recipient:id,name,username,avatar'])
+            ->where(function ($q) use ($userId) {
+                $q->where(function ($sub) use ($userId) {
+                    $sub->where('recipient_id', $userId)
+                        ->whereIn('status', ['connecting', 'ringing'])
+                        ->where('created_at', '>=', now()->subSeconds(45));
+                })->orWhereHas('participants', function ($sub) use ($userId) {
+                    $sub->where('user_id', $userId)
+                        ->where('status', 'ringing')
+                        ->where('updated_at', '>=', now()->subSeconds(45));
+                });
+            })
+            ->whereNotIn('status', ['ended', 'declined'])
             ->latest()
             ->first();
 
@@ -471,10 +575,14 @@ class CallController extends Controller
      */
     public function show(Request $request, int $id): JsonResponse
     {
-        $call = Call::with(['caller:id,name,username,avatar', 'recipient:id,name,username,avatar'])
-            ->findOrFail($id);
+        $call = Call::with([
+            'caller:id,name,username,avatar',
+            'recipient:id,name,username,avatar',
+            'participants.user:id,name,username,avatar',
+            'participants.invitedBy:id,name,username',
+        ])->findOrFail($id);
 
-        if ($call->recipient_id !== $request->user()->id && $call->caller_id !== $request->user()->id) {
+        if (! in_array($request->user()->id, $call->allParticipantUserIds())) {
             return response()->json(['message' => 'Unauthorized.'], 403);
         }
 

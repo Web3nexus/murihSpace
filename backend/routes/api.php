@@ -650,6 +650,7 @@ Route::prefix('v1')->group(function () {
             Route::post('/{id}/ringing', [CallController::class, 'ringing']);
             Route::post('/{id}/decline', [CallController::class, 'decline']);
             Route::post('/{id}/end', [CallController::class, 'end']);
+            Route::post('/{id}/invite', [CallController::class, 'invite']);
         });
 
         // ── Sprint 11-12: Messages, Reactions, Attachments, Push Tokens ──
