@@ -367,7 +367,7 @@ class ConversationController extends Controller
                 'replyTo.user:id,name,username',
                 'reactions',
             ])
-            ->orderBy('created_at', 'asc')
+            ->orderBy('created_at', 'desc')
             ->paginate(50);
 
         // Read receipts: a message I sent is "read" when another participant
