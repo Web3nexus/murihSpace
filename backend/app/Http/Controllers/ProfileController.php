@@ -348,4 +348,20 @@ class ProfileController extends Controller
             'created_at' => $user->created_at?->toISOString(),
         ]);
     }
+
+    /**
+     * Update the authenticated user's FCM token.
+     */
+    public function updateFcmToken(Request $request): JsonResponse
+    {
+        $request->validate([
+            'fcm_token' => 'required|string',
+        ]);
+
+        $request->user()->update([
+            'fcm_token' => $request->input('fcm_token'),
+        ]);
+
+        return response()->json(['message' => 'FCM token updated successfully.']);
+    }
 }

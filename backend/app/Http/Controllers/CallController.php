@@ -24,6 +24,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Kreait\Firebase\Messaging\AndroidConfig;
+use Kreait\Firebase\Messaging\ApnsConfig;
+use Kreait\Firebase\Messaging\CloudMessage;
 
 class CallController extends Controller
 {
@@ -115,6 +118,30 @@ class CallController extends Controller
 
         // Broadcast real-time incoming call event to recipient
         broadcast(new CallIncoming($call));
+
+        // Dispatch FCM Push Notification to wake up device if locked
+        if (!empty($recipient->fcm_token)) {
+            try {
+                $messaging = app('firebase.messaging');
+                $message = CloudMessage::withTarget('token', $recipient->fcm_token)
+                    ->withData([
+                        'type' => 'incoming_call',
+                        'call_id' => (string) $call->id,
+                        'room_name' => $roomName,
+                        'caller_name' => $request->user()->name ?? 'Unknown Caller',
+                        'caller_avatar' => $request->user()->avatar_url ?? '',
+                        'is_video' => $callType === 'video' ? 'true' : 'false',
+                        'livekit_host' => $this->getLivekitHost() ?? '',
+                    ])
+                    ->withApnsConfig(ApnsConfig::new()->withApsField('content-available', 1))
+                    ->withAndroidConfig(AndroidConfig::new()->withHighPriority());
+
+                $messaging->send($message);
+                Log::info('[CallController] FCM push sent to user ' . $recipient->id);
+            } catch (\Throwable $e) {
+                Log::error('[CallController] FCM push failed for user ' . $recipient->id . ': ' . $e->getMessage());
+            }
+        }
 
         // Generate LiveKit token for caller
         $livekitToken = null;
