@@ -29,7 +29,7 @@ use App\Services\PermissionService;
     'verification_badge_purchased_at', 'verification_badge_auto_renew',
     'two_factor_secret', 'two_factor_recovery_codes', 'two_factor_confirmed_at',
     'provider', 'provider_id', 'email_verify_code_hash', 'email_verify_code_expires_at',
-    'phone_verified_at',
+    'phone_verified_at', 'fcm_token',
     'last_seen_at', 'show_online_status', 'read_receipts_enabled', 'chat_sounds_enabled',
 ])]
 #[Hidden(['password', 'remember_token', 'provider_id', 'kyc_document', 'kyc_rejection_reason', 'username_trial_ends_at', 'two_factor_secret', 'two_factor_recovery_codes'])]
