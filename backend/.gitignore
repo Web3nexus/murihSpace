@@ -32,3 +32,8 @@ _ide_helper.php
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# Firebase and Apple Keys
+firebase-auth.json
+*.p8
+
