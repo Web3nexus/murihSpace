@@ -512,23 +512,20 @@ class ConversationController extends Controller
                         $request->user(),
                     ));
 
-                    // Dispatch standard Push Notification for Chat Message
+                    // Dispatch standard Push Notification for Chat Message via FcmService
                     if (!empty($participant->user->fcm_token)) {
                         try {
-                            $messaging = app('firebase.messaging');
                             $preview = mb_substr($loadedMessage->content ?? 'Sent an attachment', 0, 120);
-                            $fcmMessage = \Kreait\Firebase\Messaging\CloudMessage::withTarget('token', $participant->user->fcm_token)
-                                ->withNotification(\Kreait\Firebase\Messaging\Notification::create(
-                                    $request->user()->name,
-                                    $preview
-                                ))
-                                ->withData([
-                                    'type' => 'new_message',
+                            \App\Services\FcmService::sendToToken(
+                                $participant->user->fcm_token,
+                                $request->user()->name,
+                                $preview,
+                                [
+                                    'type'            => 'new_message',
                                     'conversation_id' => (string) $conversation->id,
-                                ])
-                                ->withAndroidConfig(\Kreait\Firebase\Messaging\AndroidConfig::new()->withHighPriority())
-                                ->withApnsConfig(\Kreait\Firebase\Messaging\ApnsConfig::new()->withApsField('mutable-content', 1));
-                            $messaging->send($fcmMessage);
+                                    'sender_name'     => $request->user()->name,
+                                ]
+                            );
                         } catch (\Throwable $e) {
                             \Illuminate\Support\Facades\Log::error('[ConversationController] FCM push failed for user ' . $participant->user->id . ': ' . $e->getMessage());
                         }
