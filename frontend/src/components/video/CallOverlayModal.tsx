@@ -1241,7 +1241,7 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
                   );
                 })}
               </div>
-            ) : callType === 'video' ? (
+            ) : (callType === 'video' || isVideoOn || hasRemoteVideo || remoteVideoTrack) ? (
               <>
                 {remoteVideoTrack ? (
                   <RemoteVideoTrackElement track={remoteVideoTrack} />
@@ -1323,8 +1323,8 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
               </span>
             </div>
 
-            {/* Inset Self Video Preview (Video calls only) */}
-            {callType === 'video' && (
+            {/* Inset Self Video Preview */}
+            {(callType === 'video' || isVideoOn) && (
               <div className="h-32 w-24 rounded-xl overflow-hidden border-2 border-white/30 shadow-2xl bg-black relative">
                 <video
                   ref={localVideoRef}
@@ -1465,33 +1465,29 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
                 {isMuted ? <MicOff className="h-5 w-5" /> : <Mic weight="fill" className="h-5 w-5" />}
               </button>
 
-              {/* Video Camera Toggle (only for video calls) */}
-              {callType === 'video' && (
-                <button
-                  type="button"
-                  onClick={toggleVideo}
-                  className={`p-3.5 rounded-full transition-all ${
-                    !isVideoOn ? 'bg-red-500 text-white' : 'bg-white/15 text-white hover:bg-white/25'
-                  }`}
-                  title={isVideoOn ? 'Turn off camera' : 'Turn on camera'}
-                >
-                  {isVideoOn ? <Video weight="fill" className="h-5 w-5" /> : <VideoCameraSlash weight="fill" className="h-5 w-5" />}
-                </button>
-              )}
+              {/* Video Camera Toggle (available for all calls now) */}
+              <button
+                type="button"
+                onClick={toggleVideo}
+                className={`p-3.5 rounded-full transition-all ${
+                  !isVideoOn ? 'bg-red-500 text-white' : 'bg-white/15 text-white hover:bg-white/25'
+                }`}
+                title={isVideoOn ? 'Turn camera off' : 'Turn camera on'}
+              >
+                {isVideoOn ? <Video weight="fill" className="h-5 w-5" /> : <VideoCameraSlash weight="fill" className="h-5 w-5" />}
+              </button>
 
-              {/* Screen Share (video calls) */}
-              {callType === 'video' && (
-                <button
-                  type="button"
-                  onClick={toggleScreenShare}
-                  className={`p-3.5 rounded-full transition-all ${
-                    isScreenSharing ? 'bg-primary text-white' : 'bg-white/15 text-white hover:bg-white/25'
-                  }`}
-                  title={isScreenSharing ? 'Stop sharing screen' : 'Share screen'}
-                >
-                  <Monitor weight="fill" className="h-5 w-5" />
-                </button>
-              )}
+              {/* Screen Share (available for all calls now) */}
+              <button
+                type="button"
+                onClick={toggleScreenShare}
+                className={`p-3.5 rounded-full transition-all ${
+                  isScreenSharing ? 'bg-primary text-white' : 'bg-white/15 text-white hover:bg-white/25'
+                }`}
+                title={isScreenSharing ? 'Stop sharing screen' : 'Share screen'}
+              >
+                <MonitorUp weight={isScreenSharing ? 'fill' : 'regular'} className="h-5 w-5" />
+              </button>
 
               {/* Add Participant Button */}
               <button
