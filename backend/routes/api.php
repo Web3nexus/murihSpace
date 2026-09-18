@@ -467,7 +467,7 @@ Route::prefix('v1')->group(function () {
             Route::put('/', [ProfileController::class, 'update']);
             Route::post('/kyc', [ProfileController::class, 'submitKyc']);
             Route::post('/switch-role', [ProfileController::class, 'switchRole']);
-            Route::put('/fcm-token', [ProfileController::class, 'updateFcmToken']);
+            Route::match(['put', 'post'], '/fcm-token', [ProfileController::class, 'updateFcmToken']);
         });
 
         // My Communities

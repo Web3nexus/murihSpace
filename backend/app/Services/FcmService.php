@@ -205,3 +205,4 @@ if (! function_exists('base64url_encode')) {
         return rtrim(strtr(base64_encode($data), '+/', '-_'), '=');
     }
 }
+
