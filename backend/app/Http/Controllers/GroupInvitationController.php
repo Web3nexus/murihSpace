@@ -32,22 +32,29 @@ class GroupInvitationController extends Controller
             return response()->json(['error' => 'Only admins can invite new members to this group.'], 403);
         }
 
-        $validated = $request->validate([
-            'user_id' => 'nullable|exists:users,id',
-            'username' => 'nullable|string|exists:users,username',
-        ]);
+        $userIdInput = $request->input('user_id');
+        $rawUsername = trim($request->input('username') ?? '');
+        $cleanUsername = ltrim($rawUsername, '@');
 
         $invitee = null;
-        if (!empty($validated['user_id'])) {
-            $invitee = User::findOrFail($validated['user_id']);
-        } elseif (!empty($validated['username'])) {
-            $invitee = User::where('username', $validated['username'])->firstOrFail();
+        if (!empty($userIdInput) && is_numeric($userIdInput)) {
+            $invitee = User::find($userIdInput);
+        } elseif (!empty($cleanUsername)) {
+            $invitee = User::whereRaw('LOWER(username) = ?', [strtolower($cleanUsername)])->first();
         } else {
-            return response()->json(['error' => 'Please provide a user ID or username.'], 422);
+            return response()->json(['error' => 'Please provide a username or user ID.'], 422);
+        }
+
+        if (!$invitee) {
+            return response()->json(['error' => "User @{$cleanUsername} not found on MurihSpace."], 404);
+        }
+
+        if ((int)$invitee->id === (int)$user->id) {
+            return response()->json(['error' => 'You are already in this group (cannot invite yourself).'], 400);
         }
 
         if ($group->isMember($invitee->id)) {
-            return response()->json(['message' => 'User is already a member of this group.'], 400);
+            return response()->json(['error' => "{$invitee->name} (@{$invitee->username}) is already a member of this group."], 400);
         }
 
         // Check for existing pending invitation
@@ -57,7 +64,7 @@ class GroupInvitationController extends Controller
             ->first();
 
         if ($existing) {
-            return response()->json(['message' => 'An invitation is already pending for this user.'], 200);
+            return response()->json(['error' => "An invitation is already pending for @{$invitee->username}."], 400);
         }
 
         $invitation = GroupInvitation::create([
@@ -71,7 +78,7 @@ class GroupInvitationController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => "Invitation sent to {$invitee->name}.",
+            'message' => "Invitation sent to {$invitee->name} (@{$invitee->username}).",
             'data' => $invitation,
         ], 201);
     }
@@ -112,10 +119,13 @@ class GroupInvitationController extends Controller
             ]);
         }
 
+        // Use the public web frontend URL, never the internal/backend API domain
+        $frontendUrl = rtrim(config('app.frontend_url') ?: env('FRONTEND_URL', 'https://staging.murihspace.com'), '/');
+
         return response()->json([
             'success' => true,
             'code' => $link->code,
-            'invite_url' => url("/app/groups/join/{$link->code}"),
+            'invite_url' => "{$frontendUrl}/app/groups/join/{$link->code}",
             'expires_at' => $link->expires_at,
         ]);
     }
