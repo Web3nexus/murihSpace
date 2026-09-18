@@ -31,8 +31,12 @@ class CaptureRequestAndEnvelopeResponse
         if ($response instanceof JsonResponse) {
             $originalData = $response->getData(true);
 
-            // If the response is already enveloped (has keys success, request_id, data, etc.), skip re-enveloping
-            if (is_array($originalData) && array_key_exists('success', $originalData) && array_key_exists('request_id', $originalData)) {
+            // If the response is already enveloped (has keys success and data or request_id), skip re-enveloping
+            if (is_array($originalData) && array_key_exists('success', $originalData) && (array_key_exists('request_id', $originalData) || array_key_exists('data', $originalData))) {
+                if (!isset($originalData['request_id'])) {
+                    $originalData['request_id'] = $requestId;
+                    $response->setData($originalData);
+                }
                 return $response;
             }
 
