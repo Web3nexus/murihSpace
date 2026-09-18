@@ -575,7 +575,17 @@ export function GroupsPage() {
         open={createModalOpen}
         onOpenChange={setCreateModalOpen}
         onCreated={(newGroup) => {
-          navigate(`/app/groups/${newGroup.slug}`);
+          const targetSlug =
+            newGroup?.slug ||
+            (newGroup as any)?.data?.slug ||
+            (newGroup as any)?.data?.data?.slug ||
+            (newGroup as any)?.id;
+          if (targetSlug) {
+            navigate(`/app/groups/${targetSlug}`);
+          } else {
+            fetchMyGroups();
+            setActiveTab("my");
+          }
         }}
       />
     </div>

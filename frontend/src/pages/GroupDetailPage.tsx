@@ -11,19 +11,19 @@ import {
   Users,
   Info,
   UserPlus,
-  Crown,
   Check,
   Copy,
   Trash,
-  Megaphone,
   SpinnerGap,
   Hourglass,
   ArrowLeft,
-  CalendarBlank,
   MapPin,
   Warning,
-  Image as ImageIcon,
   User as UserIcon,
+  ShareNetwork,
+  Sparkle,
+  MagnifyingGlass,
+  PaperPlaneTilt,
 } from "@phosphor-icons/react";
 import { useAuth } from "@/hooks/useAuth";
 import { apiClient } from "@/lib/api/client";
@@ -31,7 +31,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { ImageUploader } from "@/components/upload/ImageUploader";
 import {
   Dialog,
   DialogContent,
@@ -69,6 +68,9 @@ export function GroupDetailPage() {
   const [copiedLink, setCopiedLink] = React.useState(false);
   const [inviteUsername, setInviteUsername] = React.useState("");
   const [inviteStatus, setInviteStatus] = React.useState<string | null>(null);
+
+  // Share pill feedback
+  const [copiedShareLink, setCopiedShareLink] = React.useState(false);
 
   // Feed State
   const [posts, setPosts] = React.useState<Post[]>([]);
@@ -118,24 +120,39 @@ export function GroupDetailPage() {
       setLoading(true);
       setError(null);
       const res = await apiClient.get(`/groups/${slug}`);
-      const data = res.data?.data;
-      setGroup(data);
-      if (data) {
-        setSettingsForm({
-          name: data.name || "",
-          description: data.description || "",
-          category: data.category || "General",
-          privacy: data.privacy || "public",
-          avatar_url: data.avatar_url || "",
-          cover_url: data.cover_url || "",
-          rules: data.rules || "",
-          who_can_post: data.settings?.who_can_post || "all_members",
-          who_can_chat: data.settings?.who_can_chat || "all_members",
-          who_can_invite: data.settings?.who_can_invite || "all_members",
-        });
+      const raw = res.data;
+
+      // Extract cleanly across any wrapping layer
+      const data: Group | null =
+        raw?.data?.data && typeof raw.data.data === "object" && raw.data.data.slug
+          ? raw.data.data
+          : raw?.data && typeof raw.data === "object" && raw.data.slug
+          ? raw.data
+          : raw?.group && typeof raw.group === "object" && raw.group.slug
+          ? raw.group
+          : raw?.slug
+          ? raw
+          : null;
+
+      if (!data) {
+        throw new Error(raw?.message || "Group not found or unavailable.");
       }
+
+      setGroup(data);
+      setSettingsForm({
+        name: data.name || "",
+        description: data.description || "",
+        category: data.category || "General",
+        privacy: data.privacy || "public",
+        avatar_url: data.avatar_url || "",
+        cover_url: data.cover_url || "",
+        rules: data.rules || "",
+        who_can_post: data.settings?.who_can_post || "all_members",
+        who_can_chat: data.settings?.who_can_chat || "all_members",
+        who_can_invite: data.settings?.who_can_invite || "all_members",
+      });
     } catch (err: any) {
-      setError(err.response?.data?.message || "Failed to load group.");
+      setError(err.response?.data?.message || err.message || "Failed to load group.");
     } finally {
       setLoading(false);
     }
@@ -151,47 +168,77 @@ export function GroupDetailPage() {
     try {
       setLoadingFeed(true);
       const res = await apiClient.get(`/groups/${group.id}/posts`);
-      const rawPosts = res.data?.posts || res.data?.data?.data || [];
-      setPosts(rawPosts);
+      const raw = res.data;
+      const list = Array.isArray(raw)
+        ? raw
+        : Array.isArray(raw?.data)
+        ? raw.data
+        : Array.isArray(raw?.data?.data)
+        ? raw.data.data
+        : [];
+      setPosts(list);
     } catch (err) {
       console.error("Failed to load group posts", err);
+      setPosts([]);
     } finally {
       setLoadingFeed(false);
     }
-  }, [group?.id]);
+  }, [group]);
 
   React.useEffect(() => {
-    if (activeTab === "feed" && group?.is_member) {
+    if (activeTab === "feed" && group?.id) {
       fetchPosts();
     }
-  }, [activeTab, group?.is_member, fetchPosts]);
+  }, [activeTab, group?.id, fetchPosts]);
 
-  // Fetch Members
+  // Fetch Members & Join Requests
   const fetchMembers = React.useCallback(async () => {
     if (!group) return;
     try {
       setLoadingMembers(true);
-      const params = new URLSearchParams();
-      if (memberSearch.trim()) params.set("search", memberSearch.trim());
-      const res = await apiClient.get(`/groups/${group.id}/members?${params}`);
-      setMembers(res.data?.members || res.data?.data?.data || []);
+      const res = await apiClient.get(`/groups/${group.id}/members`);
+      const raw = res.data;
+      const list = Array.isArray(raw)
+        ? raw
+        : Array.isArray(raw?.data)
+        ? raw.data
+        : Array.isArray(raw?.data?.data)
+        ? raw.data.data
+        : [];
+      setMembers(list);
 
       if (group.is_admin_or_owner) {
         const reqRes = await apiClient.get(`/groups/${group.id}/join-requests`);
-        setJoinRequests(reqRes.data?.data || []);
+        const reqRaw = reqRes.data;
+        const reqList = Array.isArray(reqRaw)
+          ? reqRaw
+          : Array.isArray(reqRaw?.data)
+          ? reqRaw.data
+          : Array.isArray(reqRaw?.data?.data)
+          ? reqRaw.data.data
+          : [];
+        setJoinRequests(reqList);
       }
     } catch (err) {
       console.error("Failed to load members", err);
     } finally {
       setLoadingMembers(false);
     }
-  }, [group?.id, group?.is_admin_or_owner, memberSearch]);
+  }, [group]);
 
   React.useEffect(() => {
-    if (activeTab === "members" && group) {
+    if (activeTab === "members" && group?.id) {
       fetchMembers();
     }
-  }, [activeTab, group, fetchMembers]);
+  }, [activeTab, group?.id, fetchMembers]);
+
+  // Handle Share Group
+  const handleShareGroup = () => {
+    const url = window.location.href;
+    navigator.clipboard.writeText(url);
+    setCopiedShareLink(true);
+    setTimeout(() => setCopiedShareLink(false), 2500);
+  };
 
   // Join Group Action
   const handleJoin = async () => {
@@ -205,7 +252,7 @@ export function GroupDetailPage() {
         setGroup((prev) => (prev ? { ...prev, has_pending_request: true } : prev));
       }
     } catch (err: any) {
-      alert(err.response?.data?.error || err.response?.data?.message || "Failed to join.");
+      alert(err.response?.data?.error || err.response?.data?.message || "Failed to join group.");
     } finally {
       setActionLoading(false);
     }
@@ -214,13 +261,13 @@ export function GroupDetailPage() {
   // Leave Group Action
   const handleLeave = async () => {
     if (!group) return;
-    if (!confirm("Are you sure you want to leave this group?")) return;
+    if (!confirm("Are you sure you want to leave this community space?")) return;
     try {
       setActionLoading(true);
       await apiClient.post(`/groups/${group.id}/leave`);
       fetchGroup();
     } catch (err: any) {
-      alert(err.response?.data?.error || "Failed to leave group.");
+      alert(err.response?.data?.error || err.response?.data?.message || "Failed to leave group.");
     } finally {
       setActionLoading(false);
     }
@@ -230,59 +277,56 @@ export function GroupDetailPage() {
   const handleOpenInvite = async () => {
     if (!group) return;
     setInviteModalOpen(true);
+    setInviteStatus(null);
     try {
       const res = await apiClient.get(`/groups/${group.id}/invite-link`);
-      setInviteUrl(res.data?.invite_url || null);
+      const raw = res.data;
+      const link = raw?.invite_url || raw?.data?.invite_url || raw?.url || raw?.data?.url;
+      setInviteUrl(link || null);
     } catch (err) {
-      console.error("Failed to generate invite link", err);
+      console.error("Failed to fetch invite link", err);
     }
   };
 
-  const handleCopyInvite = () => {
-    if (!inviteUrl) return;
-    navigator.clipboard.writeText(inviteUrl);
-    setCopiedLink(true);
-    setTimeout(() => setCopiedLink(false), 2000);
-  };
-
+  // Send Direct Invitation
   const handleSendInvite = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!group || !inviteUsername.trim()) return;
     try {
-      setInviteStatus("Sending invitation...");
+      setInviteStatus("sending");
       await apiClient.post(`/groups/${group.id}/invitations`, {
         username: inviteUsername.trim(),
       });
-      setInviteStatus(`Invitation successfully sent to @${inviteUsername.trim()}!`);
+      setInviteStatus("success");
       setInviteUsername("");
     } catch (err: any) {
-      setInviteStatus(err.response?.data?.error || err.response?.data?.message || "Failed to send invite.");
+      setInviteStatus(err.response?.data?.error || "Failed to send invitation.");
     }
   };
 
-  // Feed: Create Post
-  const [newPostImage, setNewPostImage] = React.useState<string>("");
-  const [showImageUploader, setShowImageUploader] = React.useState<boolean>(false);
+  // Copy Invite Link
+  const handleCopyInviteLink = () => {
+    if (!inviteUrl) return;
+    navigator.clipboard.writeText(inviteUrl);
+    setCopiedLink(true);
+    setTimeout(() => setCopiedLink(false), 2500);
+  };
 
+  // Feed: Submit New Post
   const handleCreatePost = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!group || (!newPostContent.trim() && !newPostImage)) return;
+    if (!group || !newPostContent.trim()) return;
     try {
       setSubmittingPost(true);
-      const res = await apiClient.post(`/groups/${group.id}/posts`, {
+      await apiClient.post(`/groups/${group.id}/posts`, {
         content: newPostContent.trim(),
-        type: newPostType,
-        media_url: newPostImage || undefined,
+        post_type: newPostType,
       });
-      const created = res.data?.data;
-      if (created) {
-        setPosts((prev) => [created, ...prev]);
-        setNewPostContent("");
-        setNewPostImage("");
-        setShowImageUploader(false);
-      }
+      setNewPostContent("");
+      setNewPostType("post");
+      fetchPosts();
     } catch (err: any) {
-      alert(err.response?.data?.error || "Failed to publish post.");
+      alert(err.response?.data?.error || "Failed to create post.");
     } finally {
       setSubmittingPost(false);
     }
@@ -331,7 +375,6 @@ export function GroupDetailPage() {
     try {
       setSavingSettings(true);
       setSettingsSuccess(false);
-      // Update details
       await apiClient.put(`/groups/${group.id}`, {
         name: settingsForm.name,
         description: settingsForm.description,
@@ -342,7 +385,6 @@ export function GroupDetailPage() {
         rules: settingsForm.rules || undefined,
       });
 
-      // Update settings permissions
       await apiClient.put(`/groups/${group.id}/settings`, {
         who_can_post: settingsForm.who_can_post,
         who_can_chat: settingsForm.who_can_chat,
@@ -375,36 +417,60 @@ export function GroupDetailPage() {
     }
   };
 
+  // Loading State
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3">
-        <SpinnerGap className="h-8 w-8 animate-spin text-primary" />
-        <span className="text-sm font-medium text-muted-foreground">Loading group...</span>
+      <div className="min-h-[70vh] flex flex-col items-center justify-center gap-4 text-center px-4">
+        <div className="relative">
+          <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary animate-pulse">
+            <UsersThree weight="fill" className="h-7 w-7" />
+          </div>
+          <div className="absolute -inset-1 rounded-2xl border-2 border-primary/30 border-t-primary animate-spin" />
+        </div>
+        <div className="space-y-1">
+          <h3 className="font-bold text-base text-foreground">Loading Community Space...</h3>
+          <p className="text-xs text-muted-foreground">Preparing real-time discussions & feed posts</p>
+        </div>
       </div>
     );
   }
 
+  // Error / Not Found State
   if (error || !group) {
     return (
-      <div className="max-w-xl mx-auto py-20 px-4 text-center">
-        <div className="h-16 w-16 rounded-full bg-destructive/10 text-destructive flex items-center justify-center mx-auto mb-4">
-          <Warning className="h-8 w-8" />
+      <div className="max-w-lg mx-auto py-24 px-4 text-center space-y-6">
+        <div className="h-20 w-20 rounded-3xl bg-destructive/10 text-destructive flex items-center justify-center mx-auto shadow-xs">
+          <Warning className="h-10 w-10" />
         </div>
-        <h2 className="text-2xl font-bold mb-2">Group Not Found</h2>
-        <p className="text-muted-foreground text-sm mb-6">
-          {error || "This group may have been removed or does not exist."}
-        </p>
-        <Button onClick={() => navigate("/app/groups")} className="rounded-xl">
-          Back to Groups
-        </Button>
+        <div className="space-y-2">
+          <h2 className="text-2xl font-bold tracking-tight text-foreground">Community Space Not Found</h2>
+          <p className="text-muted-foreground text-sm leading-relaxed">
+            {error || "This group may have been renamed, archived, or is currently inaccessible."}
+          </p>
+        </div>
+        <div className="flex items-center justify-center gap-3 pt-2">
+          <Button
+            onClick={() => fetchGroup()}
+            variant="outline"
+            className="rounded-xl px-5 h-10 text-xs font-semibold"
+          >
+            Retry Loading
+          </Button>
+          <Button
+            onClick={() => navigate("/app/groups")}
+            className="rounded-xl px-5 h-10 text-xs font-semibold bg-primary text-primary-foreground"
+          >
+            Explore All Groups
+          </Button>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background pb-20">
-      {/* Hero Cover Banner */}
-      <div className="relative w-full h-48 sm:h-64 md:h-72 bg-gradient-to-r from-primary/30 via-secondary/20 to-primary/10 overflow-hidden">
+    <div className="min-h-screen bg-background text-foreground pb-24">
+      {/* 1. HERO COVER BANNER */}
+      <div className="relative w-full h-52 sm:h-64 md:h-80 bg-gradient-to-r from-primary/30 via-secondary/20 to-primary/10 overflow-hidden border-b border-border/40">
         {group.cover_url ? (
           <img
             src={group.cover_url}
@@ -412,27 +478,55 @@ export function GroupDetailPage() {
             className="w-full h-full object-cover"
           />
         ) : (
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-background to-secondary/30" />
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/25 via-background/40 to-primary/15 flex items-center justify-center">
+            <div className="text-center space-y-1 opacity-40">
+              <UsersThree weight="duotone" className="h-16 w-16 mx-auto text-primary" />
+              <span className="text-xs font-semibold tracking-wider uppercase text-foreground">
+                MurihSpace Community
+              </span>
+            </div>
+          </div>
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/20 to-transparent" />
 
-        <div className="absolute top-4 left-4 z-10">
+        {/* Backdrop Fade & Glass Top Controls */}
+        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/25 to-black/30" />
+
+        <div className="absolute top-4 left-4 right-4 z-10 max-w-6xl mx-auto flex items-center justify-between">
           <Link
             to="/app/groups"
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-background/80 backdrop-blur-md border border-border/80 text-xs font-semibold hover:bg-background transition-all shadow-sm"
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-background/80 backdrop-blur-md border border-border/80 text-xs font-bold text-foreground hover:bg-background transition-all shadow-sm"
           >
             <ArrowLeft weight="bold" className="h-3.5 w-3.5" />
-            All Groups
+            <span>Groups Directory</span>
           </Link>
+
+          <button
+            type="button"
+            onClick={handleShareGroup}
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-background/80 backdrop-blur-md border border-border/80 text-xs font-bold text-foreground hover:bg-background transition-all shadow-sm cursor-pointer"
+          >
+            {copiedShareLink ? (
+              <>
+                <Check className="h-3.5 w-3.5 text-emerald-500" />
+                <span className="text-emerald-500">Link Copied!</span>
+              </>
+            ) : (
+              <>
+                <ShareNetwork className="h-3.5 w-3.5 text-primary" />
+                <span>Share</span>
+              </>
+            )}
+          </button>
         </div>
       </div>
 
-      {/* Group Header Info */}
+      {/* 2. GROUP HEADER & PROFILE BAR */}
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
-        <div className="relative -mt-16 sm:-mt-20 flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4 pb-6 border-b border-border/70">
-          {/* Avatar & Title */}
-          <div className="flex items-end gap-4">
-            <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-3xl overflow-hidden bg-background border-4 border-background shadow-xl flex-shrink-0">
+        <div className="relative -mt-16 sm:-mt-20 flex flex-col md:flex-row items-start md:items-end justify-between gap-6 pb-6 border-b border-border/70">
+          {/* Avatar & Title Row */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-end gap-5">
+            {/* Avatar Frame */}
+            <div className="relative w-28 h-28 sm:w-32 sm:h-32 rounded-3xl overflow-hidden bg-background border-4 border-background shadow-2xl flex-shrink-0 ring-1 ring-border/80">
               {group.avatar_url ? (
                 <img
                   src={group.avatar_url}
@@ -440,19 +534,21 @@ export function GroupDetailPage() {
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <div className="w-full h-full bg-primary/10 text-primary flex items-center justify-center font-bold text-3xl">
-                  <UserIcon weight="fill" className="text-primary/70" style={{ width: 48, height: 48 }} />
+                <div className="w-full h-full bg-primary/10 text-primary flex items-center justify-center font-bold text-4xl">
+                  <UsersThree weight="fill" className="h-14 w-14 text-primary" />
                 </div>
               )}
             </div>
 
-            <div className="space-y-1 mb-1">
+            {/* Title & Metadata Badges */}
+            <div className="space-y-2 mb-1">
               <div className="flex flex-wrap items-center gap-2">
-                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+                <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
                   {group.name}
                 </h1>
+
                 {/* Privacy Badge */}
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-muted border border-border/60 text-muted-foreground">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-muted/80 border border-border/70 text-foreground">
                   {group.privacy === "public" ? (
                     <>
                       <Globe className="h-3.5 w-3.5 text-emerald-500" /> Public
@@ -467,23 +563,31 @@ export function GroupDetailPage() {
                     </>
                   )}
                 </span>
-                <span className="text-xs px-2.5 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
+
+                {/* Category Pill */}
+                <span className="text-xs px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary font-bold">
                   {group.category}
                 </span>
               </div>
 
-              <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                <span className="flex items-center gap-1 font-medium text-foreground">
+              {/* Sub-meta metrics */}
+              <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground font-medium">
+                <span className="flex items-center gap-1.5 font-bold text-foreground">
                   <UsersThree weight="fill" className="h-4 w-4 text-primary" />
-                  {group.members_count} {group.members_count === 1 ? "member" : "members"}
+                  <span>
+                    {group.members_count} {group.members_count === 1 ? "member" : "members"}
+                  </span>
                 </span>
                 <span>•</span>
-                <span>Created by @{group.creator?.username || "creator"}</span>
+                <span>
+                  Created by <span className="text-foreground font-semibold">@{group.creator?.username || "creator"}</span>
+                </span>
                 {group.location && (
                   <>
                     <span>•</span>
                     <span className="flex items-center gap-1">
-                      <MapPin className="h-3.5 w-3.5" /> {group.location}
+                      <MapPin className="h-3.5 w-3.5 text-primary" />
+                      <span>{group.location}</span>
                     </span>
                   </>
                 )}
@@ -491,14 +595,14 @@ export function GroupDetailPage() {
             </div>
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex items-center gap-2.5 w-full sm:w-auto">
+          {/* Action Buttons Row */}
+          <div className="flex items-center gap-2.5 w-full md:w-auto">
             {group.is_member ? (
               <>
                 <Button
                   onClick={handleOpenInvite}
                   variant="outline"
-                  className="rounded-2xl gap-1.5 h-11 border-border/80 shadow-xs flex-1 sm:flex-none"
+                  className="rounded-2xl gap-2 h-11 border-border/80 shadow-xs flex-1 md:flex-none text-xs font-bold"
                 >
                   <UserPlus weight="bold" className="h-4 w-4 text-primary" />
                   <span>Invite</span>
@@ -508,57 +612,55 @@ export function GroupDetailPage() {
                   <Button
                     onClick={() => setActiveTab("settings")}
                     variant="outline"
-                    className="rounded-2xl gap-1.5 h-11 border-border/80 shadow-xs"
-                    title="Group Settings"
+                    className="rounded-2xl h-11 w-11 p-0 border-border/80 shadow-xs"
+                    title="Community Admin Settings"
                   >
                     <Gear weight="bold" className="h-4 w-4" />
                   </Button>
                 )}
 
-                <div className="relative group/leave">
-                  <Button
-                    variant="secondary"
-                    className="rounded-2xl gap-1.5 h-11 bg-primary/10 hover:bg-destructive/10 hover:text-destructive text-primary font-semibold transition-all"
-                    onClick={handleLeave}
-                    disabled={actionLoading}
-                  >
-                    <Check weight="bold" className="h-4 w-4" />
-                    <span>Joined</span>
-                  </Button>
-                </div>
+                <Button
+                  variant="secondary"
+                  className="rounded-2xl gap-2 h-11 bg-primary/10 hover:bg-destructive/10 hover:text-destructive text-primary font-bold transition-all text-xs"
+                  onClick={handleLeave}
+                  disabled={actionLoading}
+                >
+                  <Check weight="bold" className="h-4 w-4" />
+                  <span>Joined</span>
+                </Button>
               </>
             ) : group.has_pending_request ? (
               <Button
                 variant="secondary"
                 disabled
-                className="rounded-2xl gap-1.5 h-11 opacity-80"
+                className="rounded-2xl gap-2 h-11 opacity-80 text-xs font-bold"
               >
                 <Hourglass className="h-4 w-4 animate-spin" />
-                <span>Pending Approval</span>
+                <span>Approval Pending</span>
               </Button>
             ) : (
               <Button
                 onClick={handleJoin}
                 disabled={actionLoading}
-                className="rounded-2xl gap-1.5 h-11 px-6 bg-primary text-primary-foreground font-semibold hover:bg-primary/90 shadow-sm flex-1 sm:flex-none"
+                className="rounded-2xl gap-2 h-11 px-7 bg-primary text-primary-foreground font-bold hover:bg-primary/90 shadow-sm flex-1 md:flex-none text-xs"
               >
                 {actionLoading ? (
                   <SpinnerGap className="h-4 w-4 animate-spin" />
                 ) : (
                   <UserPlus weight="bold" className="h-4 w-4" />
                 )}
-                <span>{group.privacy === "public" ? "Join Group" : "Request to Join"}</span>
+                <span>{group.privacy === "public" ? "Join Space" : "Request to Join"}</span>
               </Button>
             )}
           </div>
         </div>
 
-        {/* Tab Navigation */}
+        {/* 3. SEGMENTED TAB NAVIGATION */}
         <div className="flex items-center gap-1 sm:gap-2 border-b border-border/70 overflow-x-auto py-1 mt-2">
           <button
             type="button"
             onClick={() => setActiveTab("chat")}
-            className={`flex items-center gap-2 py-3 px-4 font-semibold text-sm border-b-2 transition-all cursor-pointer whitespace-nowrap ${
+            className={`flex items-center gap-2 py-3 px-4 font-bold text-xs sm:text-sm border-b-2 transition-all cursor-pointer whitespace-nowrap ${
               activeTab === "chat"
                 ? "border-primary text-primary"
                 : "border-transparent text-muted-foreground hover:text-foreground"
@@ -571,20 +673,20 @@ export function GroupDetailPage() {
           <button
             type="button"
             onClick={() => setActiveTab("feed")}
-            className={`flex items-center gap-2 py-3 px-4 font-semibold text-sm border-b-2 transition-all cursor-pointer whitespace-nowrap ${
+            className={`flex items-center gap-2 py-3 px-4 font-bold text-xs sm:text-sm border-b-2 transition-all cursor-pointer whitespace-nowrap ${
               activeTab === "feed"
                 ? "border-primary text-primary"
                 : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
           >
             <Newspaper weight="fill" className="h-4 w-4" />
-            <span>Group Feed</span>
+            <span>Community Feed</span>
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab("members")}
-            className={`flex items-center gap-2 py-3 px-4 font-semibold text-sm border-b-2 transition-all cursor-pointer whitespace-nowrap ${
+            className={`flex items-center gap-2 py-3 px-4 font-bold text-xs sm:text-sm border-b-2 transition-all cursor-pointer whitespace-nowrap ${
               activeTab === "members"
                 ? "border-primary text-primary"
                 : "border-transparent text-muted-foreground hover:text-foreground"
@@ -592,18 +694,18 @@ export function GroupDetailPage() {
           >
             <Users weight="fill" className="h-4 w-4" />
             <span>Members</span>
-            <span className="text-xs px-2 py-0.5 rounded-full bg-muted font-normal">
+            <span className="text-[11px] px-2 py-0.5 rounded-full bg-muted font-bold text-muted-foreground">
               {group.members_count}
             </span>
             {group.is_admin_or_owner && joinRequests.length > 0 && (
-              <span className="h-2 w-2 rounded-full bg-destructive" />
+              <span className="h-2 w-2 rounded-full bg-destructive animate-pulse" />
             )}
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab("about")}
-            className={`flex items-center gap-2 py-3 px-4 font-semibold text-sm border-b-2 transition-all cursor-pointer whitespace-nowrap ${
+            className={`flex items-center gap-2 py-3 px-4 font-bold text-xs sm:text-sm border-b-2 transition-all cursor-pointer whitespace-nowrap ${
               activeTab === "about"
                 ? "border-primary text-primary"
                 : "border-transparent text-muted-foreground hover:text-foreground"
@@ -617,7 +719,7 @@ export function GroupDetailPage() {
             <button
               type="button"
               onClick={() => setActiveTab("settings")}
-              className={`flex items-center gap-2 py-3 px-4 font-semibold text-sm border-b-2 transition-all cursor-pointer whitespace-nowrap ${
+              className={`flex items-center gap-2 py-3 px-4 font-bold text-xs sm:text-sm border-b-2 transition-all cursor-pointer whitespace-nowrap ${
                 activeTab === "settings"
                   ? "border-primary text-primary"
                   : "border-transparent text-muted-foreground hover:text-foreground"
@@ -629,257 +731,241 @@ export function GroupDetailPage() {
           )}
         </div>
 
-        {/* Tab Content Panes */}
+        {/* 4. TAB CONTENTS & SIDEBAR */}
         <div className="pt-6">
           {/* TAB 1: REAL-TIME GROUP CHAT */}
-          {activeTab === "chat" && <GroupChatView group={group} />}
-
-          {/* TAB 2: GROUP FEED */}
-          {activeTab === "feed" && (
-            <div className="max-w-2xl mx-auto space-y-6">
-              {/* Feed Post Composer */}
-              {group.is_member && group.can_post && (
-                <form
-                  onSubmit={handleCreatePost}
-                  className="p-5 rounded-3xl border border-border/80 bg-card/60 backdrop-blur-sm shadow-xs space-y-3"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-primary/10 overflow-hidden flex items-center justify-center font-bold text-primary flex-shrink-0">
-                      {(user as any)?.avatar ? (
-                        <img src={(user as any).avatar} alt={user?.name} className="w-full h-full object-cover" />
-                      ) : (
-                        <UserIcon weight="fill" className="text-primary/60" style={{ width: 20, height: 20 }} />
-                      )}
-                    </div>
-                    <Textarea
-                      placeholder={`Post an update in ${group.name}...`}
-                      value={newPostContent}
-                      onChange={(e) => setNewPostContent(e.target.value)}
-                      rows={2}
-                      className="rounded-2xl bg-muted/40 border-border/60 resize-none text-sm"
-                    />
+          {activeTab === "chat" && (
+            <div>
+              {group.is_member ? (
+                <GroupChatView group={group} />
+              ) : (
+                <div className="p-12 text-center rounded-3xl border border-border/80 bg-card/50 max-w-xl mx-auto space-y-4">
+                  <div className="h-16 w-16 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mx-auto">
+                    <ChatCircleDots weight="fill" className="h-8 w-8" />
                   </div>
-
-                  {showImageUploader && (
-                    <div className="pt-2 border-t border-border/40">
-                      <ImageUploader
-                        value={newPostImage}
-                        onChange={(url) => setNewPostImage(url)}
-                        folder="groups/posts"
-                        label="Attach Photo"
-                      />
-                    </div>
-                  )}
-
-                  <div className="flex items-center justify-between pt-1 border-t border-border/50">
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setNewPostType(newPostType === "announcement" ? "post" : "announcement")}
-                        className={`text-xs px-3 py-1.5 rounded-full border transition-all flex items-center gap-1.5 ${
-                          newPostType === "announcement"
-                            ? "bg-amber-500/15 border-amber-500/30 text-amber-600 dark:text-amber-400 font-semibold"
-                            : "border-border/60 text-muted-foreground hover:bg-muted"
-                        }`}
-                      >
-                        <Megaphone className="h-3.5 w-3.5" />
-                        Announcement
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => setShowImageUploader(!showImageUploader)}
-                        className={`text-xs px-3 py-1.5 rounded-full border transition-all flex items-center gap-1.5 ${
-                          showImageUploader || newPostImage
-                            ? "bg-primary/15 border-primary/30 text-primary font-semibold"
-                            : "border-border/60 text-muted-foreground hover:bg-muted"
-                        }`}
-                      >
-                        <ImageIcon className="h-3.5 w-3.5" />
-                        <span>Photo</span>
-                      </button>
-                    </div>
-
-                    <Button
-                      type="submit"
-                      disabled={submittingPost || (!newPostContent.trim() && !newPostImage)}
-                      className="rounded-xl px-5 h-9 bg-primary text-primary-foreground text-xs font-semibold"
-                    >
-                      {submittingPost ? "Publishing..." : "Post"}
-                    </Button>
-                  </div>
-                </form>
-              )}
-
-              {/* Feed Posts List */}
-              {loadingFeed ? (
-                <div className="py-12 flex justify-center text-muted-foreground">
-                  <SpinnerGap className="h-6 w-6 animate-spin text-primary" />
-                </div>
-              ) : posts.length === 0 ? (
-                <div className="flex flex-col items-center justify-center text-center p-12 rounded-3xl border border-dashed border-border/80 text-muted-foreground space-y-2">
-                  <Newspaper className="h-10 w-10 mx-auto text-muted-foreground/60" />
-                  <div className="flex flex-col items-center justify-center text-center space-y-1 w-full">
-                    <h4 className="font-semibold text-foreground text-center">No group posts yet</h4>
-                    <p className="text-xs text-muted-foreground max-w-sm text-center mx-auto">
-                      Be the first to share an update, announcement, or question in this group.
+                  <div className="space-y-1.5">
+                    <h3 className="font-bold text-lg text-foreground">Member Chat Locked</h3>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      Join {group.name} to participate in live discussions, share media, and chat with members.
                     </p>
                   </div>
+                  <Button
+                    onClick={handleJoin}
+                    className="rounded-xl px-6 bg-primary text-primary-foreground font-semibold"
+                  >
+                    Join to Chat
+                  </Button>
                 </div>
-              ) : (
-                posts.map((post) => (
-                  <PostCard
-                    key={post.id}
-                    post={post}
-                    isModerator={group.is_admin_or_owner}
-                  />
-                ))
               )}
             </div>
           )}
 
-          {/* TAB 3: MEMBERS */}
-          {activeTab === "members" && (
-            <div className="max-w-3xl mx-auto space-y-6">
-              {/* Member Subnav for Admins */}
-              {group.is_admin_or_owner && (
-                <div className="flex items-center gap-2 pb-2">
-                  <button
-                    type="button"
-                    onClick={() => setMembersTab("all")}
-                    className={`text-xs px-4 py-2 rounded-xl font-semibold transition-all ${
-                      membersTab === "all"
-                        ? "bg-primary text-primary-foreground shadow-xs"
-                        : "bg-muted text-muted-foreground hover:text-foreground"
-                    }`}
+          {/* TAB 2: GROUP FEED (With Sticky Info Sidebar) */}
+          {activeTab === "feed" && (
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+              {/* Feed Column */}
+              <div className="lg:col-span-8 space-y-6">
+                {/* Post Composer */}
+                {group.is_member && group.can_post && (
+                  <form
+                    onSubmit={handleCreatePost}
+                    className="p-5 rounded-3xl border border-border/80 bg-card/60 backdrop-blur-sm shadow-xs space-y-4"
                   >
-                    Active Members ({group.members_count})
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setMembersTab("requests")}
-                    className={`text-xs px-4 py-2 rounded-xl font-semibold transition-all flex items-center gap-1.5 ${
-                      membersTab === "requests"
-                        ? "bg-primary text-primary-foreground shadow-xs"
-                        : "bg-muted text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    Join Requests
-                    {joinRequests.length > 0 && (
-                      <span className="px-1.5 py-0.2 rounded-full bg-destructive text-destructive-foreground text-[10px]">
-                        {joinRequests.length}
-                      </span>
-                    )}
-                  </button>
-                </div>
-              )}
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-2xl bg-primary/10 overflow-hidden flex items-center justify-center font-bold text-primary flex-shrink-0">
+                        {(user as any)?.avatar ? (
+                          <img
+                            src={(user as any).avatar}
+                            alt={user?.name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <UserIcon className="h-5 w-5" />
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <span className="text-xs font-bold text-foreground">
+                          Post to {group.name}
+                        </span>
+                      </div>
+                      {group.is_admin_or_owner && (
+                        <select
+                          value={newPostType}
+                          onChange={(e) => setNewPostType(e.target.value as any)}
+                          className="text-xs rounded-xl bg-muted border border-border/80 px-2.5 py-1 font-semibold focus:outline-none"
+                        >
+                          <option value="post">Standard Post</option>
+                          <option value="announcement">📢 Announcement</option>
+                        </select>
+                      )}
+                    </div>
 
-              {membersTab === "all" ? (
-                <div className="space-y-4">
+                    <Textarea
+                      placeholder={`Share an update, question, or thought with ${group.name}...`}
+                      value={newPostContent}
+                      onChange={(e) => setNewPostContent(e.target.value)}
+                      rows={3}
+                      className="rounded-2xl resize-none bg-background border-border/70 text-sm p-3.5 focus-visible:ring-primary"
+                    />
+
+                    <div className="flex items-center justify-between pt-1">
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                        <Sparkle className="h-3.5 w-3.5 text-primary" />
+                        <span>Visible to community members</span>
+                      </div>
+                      <Button
+                        type="submit"
+                        disabled={submittingPost || !newPostContent.trim()}
+                        className="rounded-xl px-5 h-9 bg-primary text-primary-foreground font-bold text-xs"
+                      >
+                        {submittingPost ? "Publishing..." : "Publish Post"}
+                      </Button>
+                    </div>
+                  </form>
+                )}
+
+                {/* Posts List */}
+                {loadingFeed ? (
+                  <div className="py-16 text-center text-xs text-muted-foreground">
+                    <SpinnerGap className="h-6 w-6 animate-spin mx-auto text-primary mb-2" />
+                    <span>Loading community feed...</span>
+                  </div>
+                ) : posts.length === 0 ? (
+                  <div className="p-12 rounded-3xl border border-dashed border-border text-center space-y-3">
+                    <Newspaper className="h-10 w-10 text-muted-foreground/50 mx-auto" />
+                    <h3 className="font-bold text-base text-foreground">No posts yet</h3>
+                    <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+                      Be the first to share an update, thought, or discussion topic with fellow members.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {posts.map((post) => (
+                      <PostCard key={post.id} post={post} />
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Sidebar Column */}
+              <div className="lg:col-span-4 space-y-6">
+                {/* About Quick Card */}
+                <div className="p-6 rounded-3xl border border-border/80 bg-card/60 backdrop-blur-sm space-y-4 shadow-xs">
+                  <div className="flex items-center gap-2 font-bold text-sm text-foreground">
+                    <Info weight="fill" className="h-4 w-4 text-primary" />
+                    <span>About this Space</span>
+                  </div>
+
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    {group.description || "No description provided for this community yet."}
+                  </p>
+
+                  <div className="space-y-2 pt-2 border-t border-border/60 text-xs text-muted-foreground">
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium">Category</span>
+                      <span className="font-bold text-foreground">{group.category}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium">Total Members</span>
+                      <span className="font-bold text-foreground">{group.members_count}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium">Access</span>
+                      <span className="capitalize font-bold text-foreground">{group.privacy}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Quick Share Invite */}
+                <div className="p-6 rounded-3xl border border-primary/20 bg-primary/5 space-y-3">
+                  <div className="flex items-center gap-2 font-bold text-sm text-foreground">
+                    <UserPlus weight="bold" className="h-4 w-4 text-primary" />
+                    <span>Grow this Community</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Invite collaborators and peers to join discussions and build this space together.
+                  </p>
+                  <Button
+                    onClick={handleOpenInvite}
+                    className="w-full rounded-xl h-10 bg-primary text-primary-foreground font-bold text-xs"
+                  >
+                    Send Community Invites
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 3: MEMBERS & MODERATION */}
+          {activeTab === "members" && (
+            <div className="space-y-6 max-w-4xl">
+              {/* Member Filter Bar */}
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+                <div className="relative flex-1">
+                  <MagnifyingGlass className="h-4 w-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
                   <Input
-                    placeholder="Search members by name or @username..."
+                    placeholder="Search members by name or username..."
                     value={memberSearch}
                     onChange={(e) => setMemberSearch(e.target.value)}
-                    className="h-11 rounded-2xl bg-card border-border/80"
+                    className="pl-10 h-11 rounded-2xl bg-background border-border/80 text-xs"
                   />
-
-                  {loadingMembers ? (
-                    <div className="py-8 flex justify-center text-muted-foreground">
-                      <SpinnerGap className="h-6 w-6 animate-spin text-primary" />
-                    </div>
-                  ) : members.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center text-center p-8 text-muted-foreground text-sm rounded-2xl border border-dashed border-border/80">
-                      No members found matching your search.
-                    </div>
-                  ) : (
-                    <div className="divide-y divide-border/60 rounded-3xl border border-border/80 bg-card/60 overflow-hidden shadow-xs">
-                      {members.map((m) => (
-                        <div key={m.id} className="p-4 flex items-center justify-between gap-3">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full overflow-hidden bg-muted flex items-center justify-center font-bold text-muted-foreground text-sm">
-                              {m.user?.avatar ? (
-                                <img src={m.user.avatar} alt={m.user.name} className="w-full h-full object-cover" />
-                              ) : (
-                                <UserIcon weight="fill" className="text-muted-foreground/60" style={{ width: 20, height: 20 }} />
-                              )}
-                            </div>
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <span className="font-semibold text-sm text-foreground">{m.user?.name}</span>
-                                {m.role === "owner" ? (
-                                  <span className="flex items-center gap-0.5 text-[10px] px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 font-bold">
-                                    <Crown weight="fill" className="h-3 w-3" /> Owner
-                                  </span>
-                                ) : m.role === "admin" ? (
-                                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/15 text-primary font-bold">
-                                    Admin
-                                  </span>
-                                ) : m.role === "moderator" ? (
-                                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-secondary/30 text-secondary-foreground font-semibold">
-                                    Moderator
-                                  </span>
-                                ) : null}
-                              </div>
-                              <span className="text-xs text-muted-foreground">@{m.user?.username}</span>
-                            </div>
-                          </div>
-
-                          {/* Admin Moderation Controls */}
-                          {group.is_admin_or_owner && m.role !== "owner" && m.user_id !== user?.id && (
-                            <div className="flex items-center gap-2">
-                              <select
-                                value={m.role}
-                                onChange={(e) => handleMemberRole(m.id, e.target.value as any)}
-                                className="h-8 rounded-lg bg-background border border-border text-xs px-2"
-                              >
-                                <option value="member">Member</option>
-                                <option value="moderator">Moderator</option>
-                                {group.user_role === "owner" && <option value="admin">Admin</option>}
-                              </select>
-                              <button
-                                type="button"
-                                onClick={() => handleRemoveMember(m.id, false)}
-                                className="p-1.5 hover:bg-destructive/10 text-muted-foreground hover:text-destructive rounded-lg transition-colors"
-                                title="Remove member"
-                              >
-                                <Trash className="h-4 w-4" />
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
                 </div>
-              ) : (
-                /* Join Requests Subtab */
+
+                {group.is_admin_or_owner && joinRequests.length > 0 && (
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      variant={membersTab === "all" ? "default" : "outline"}
+                      onClick={() => setMembersTab("all")}
+                      className="rounded-xl text-xs h-9"
+                    >
+                      Active ({members.length})
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={membersTab === "requests" ? "default" : "outline"}
+                      onClick={() => setMembersTab("requests")}
+                      className="rounded-xl text-xs h-9 gap-1.5"
+                    >
+                      <span>Join Requests</span>
+                      <span className="h-5 px-1.5 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center">
+                        {joinRequests.length}
+                      </span>
+                    </Button>
+                  </div>
+                )}
+              </div>
+
+              {/* Members List */}
+              {loadingMembers ? (
+                <div className="py-16 text-center text-xs text-muted-foreground">
+                  <SpinnerGap className="h-6 w-6 animate-spin mx-auto text-primary mb-2" />
+                  <span>Loading members directory...</span>
+                </div>
+              ) : membersTab === "requests" ? (
+                /* Join Requests View */
                 <div className="space-y-3">
                   {joinRequests.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center text-center p-8 text-muted-foreground text-sm rounded-2xl border border-dashed border-border/80">
+                    <div className="p-8 text-center text-xs text-muted-foreground">
                       No pending join requests.
                     </div>
                   ) : (
                     joinRequests.map((req) => (
                       <div
                         key={req.id}
-                        className="p-4 rounded-2xl border border-border/80 bg-card/60 flex items-center justify-between gap-3 shadow-xs"
+                        className="p-4 rounded-2xl border border-border bg-card flex items-center justify-between gap-4"
                       >
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full overflow-hidden bg-muted flex items-center justify-center font-bold text-muted-foreground">
+                          <div className="w-10 h-10 rounded-xl bg-primary/10 overflow-hidden flex items-center justify-center font-bold text-primary">
                             {req.user?.avatar ? (
                               <img src={req.user.avatar} alt={req.user.name} className="w-full h-full object-cover" />
                             ) : (
-                              <UserIcon weight="fill" className="text-muted-foreground/60" style={{ width: 20, height: 20 }} />
+                              <UserIcon className="h-5 w-5" />
                             )}
                           </div>
                           <div>
-                            <div className="font-semibold text-sm">{req.user?.name}</div>
-                            <div className="text-xs text-muted-foreground">@{req.user?.username}</div>
-                            {req.note && (
-                              <p className="text-xs text-muted-foreground mt-1 italic">
-                                "{req.note}"
-                              </p>
-                            )}
+                            <span className="font-bold text-sm block">{req.user?.name}</span>
+                            <span className="text-xs text-muted-foreground">@{req.user?.username}</span>
                           </div>
                         </div>
 
@@ -887,7 +973,7 @@ export function GroupDetailPage() {
                           <Button
                             size="sm"
                             onClick={() => handleReviewRequest(req.id, "approve")}
-                            className="rounded-xl h-8 text-xs bg-emerald-600 hover:bg-emerald-700 text-white"
+                            className="rounded-xl h-8 px-3 text-xs bg-primary text-primary-foreground font-bold"
                           >
                             Approve
                           </Button>
@@ -895,7 +981,7 @@ export function GroupDetailPage() {
                             size="sm"
                             variant="outline"
                             onClick={() => handleReviewRequest(req.id, "reject")}
-                            className="rounded-xl h-8 text-xs"
+                            className="rounded-xl h-8 px-3 text-xs"
                           >
                             Decline
                           </Button>
@@ -904,68 +990,129 @@ export function GroupDetailPage() {
                     ))
                   )}
                 </div>
+              ) : (
+                /* Active Members Grid */
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {members
+                    .filter((m) =>
+                      m.user?.name?.toLowerCase().includes(memberSearch.toLowerCase()) ||
+                      m.user?.username?.toLowerCase().includes(memberSearch.toLowerCase())
+                    )
+                    .map((m) => (
+                      <div
+                        key={m.id}
+                        className="p-4 rounded-2xl border border-border/80 bg-card/60 backdrop-blur-sm flex items-center justify-between gap-3 shadow-xs"
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-10 h-10 rounded-2xl bg-primary/10 overflow-hidden flex items-center justify-center font-bold text-primary flex-shrink-0">
+                            {m.user?.avatar ? (
+                              <img src={m.user.avatar} alt={m.user.name} className="w-full h-full object-cover" />
+                            ) : (
+                              <UserIcon className="h-5 w-5" />
+                            )}
+                          </div>
+                          <div className="min-w-0">
+                            <span className="font-bold text-sm text-foreground truncate block">
+                              {m.user?.name}
+                            </span>
+                            <span className="text-xs text-muted-foreground truncate block">
+                              @{m.user?.username}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          {group.is_admin_or_owner && m.role !== "owner" ? (
+                            <select
+                              value={m.role}
+                              onChange={(e) => handleMemberRole(m.id, e.target.value as any)}
+                              className="text-[10px] uppercase font-bold px-2 py-1 rounded-lg bg-muted border border-border/80 text-foreground cursor-pointer focus:outline-none"
+                            >
+                              <option value="member">Member</option>
+                              <option value="moderator">Moderator</option>
+                              <option value="admin">Admin</option>
+                            </select>
+                          ) : (
+                            <span
+                              className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-md ${
+                                m.role === "owner"
+                                  ? "bg-amber-500/15 text-amber-500 border border-amber-500/30"
+                                  : m.role === "admin"
+                                  ? "bg-primary/15 text-primary border border-primary/30"
+                                  : "bg-muted text-muted-foreground"
+                              }`}
+                            >
+                              {m.role}
+                            </span>
+                          )}
+
+                          {group.is_admin_or_owner && m.role !== "owner" && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleRemoveMember(m.id)}
+                              className="h-8 w-8 p-0 rounded-lg text-muted-foreground hover:text-destructive"
+                              title="Remove member"
+                            >
+                              <Trash className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                </div>
               )}
             </div>
           )}
 
-          {/* TAB 4: ABOUT & RULES */}
+          {/* TAB 4: ABOUT & GUIDELINES */}
           {activeTab === "about" && (
-            <div className="max-w-3xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="md:col-span-2 space-y-6">
-                {/* Description Card */}
-                <div className="p-6 rounded-3xl border border-border/80 bg-card/60 shadow-xs space-y-3">
-                  <h3 className="font-bold text-base text-foreground">About This Group</h3>
-                  <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
-                    {group.description || "No description provided for this group."}
-                  </p>
-                </div>
-
-                {/* Rules Card */}
-                <div className="p-6 rounded-3xl border border-border/80 bg-card/60 shadow-xs space-y-3">
-                  <h3 className="font-bold text-base text-foreground">Group Rules & Guidelines</h3>
-                  {group.rules ? (
-                    <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
-                      {group.rules}
-                    </p>
-                  ) : (
-                    <p className="text-sm text-muted-foreground italic">
-                      Standard MurihSpace community guidelines apply. Be respectful and collaborative.
-                    </p>
-                  )}
-                </div>
+            <div className="max-w-3xl space-y-8">
+              {/* Description Card */}
+              <div className="p-6 sm:p-8 rounded-3xl border border-border/80 bg-card/60 backdrop-blur-sm space-y-3 shadow-xs">
+                <h3 className="font-bold text-base text-foreground flex items-center gap-2">
+                  <Info weight="fill" className="h-4 w-4 text-primary" />
+                  <span>Community Purpose & Overview</span>
+                </h3>
+                <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">
+                  {group.description || "No detailed description has been added for this space."}
+                </p>
               </div>
 
-              {/* Sidebar Info Card */}
-              <div className="space-y-4">
-                <div className="p-5 rounded-3xl border border-border/80 bg-card/60 shadow-xs space-y-4 text-xs">
-                  <h4 className="font-bold uppercase tracking-wider text-muted-foreground">
-                    Group Details
-                  </h4>
-
-                  <div className="flex items-center gap-2 text-foreground">
-                    <Globe className="h-4 w-4 text-primary" />
-                    <span className="capitalize">{group.privacy} Group</span>
+              {/* Guidelines & Rules Card */}
+              <div className="p-6 sm:p-8 rounded-3xl border border-border/80 bg-card/60 backdrop-blur-sm space-y-4 shadow-xs">
+                <h3 className="font-bold text-base text-foreground flex items-center gap-2">
+                  <ShieldCheck weight="fill" className="h-5 w-5 text-primary" />
+                  <span>Community Rules & Conduct</span>
+                </h3>
+                {group.rules ? (
+                  <div className="p-4 rounded-2xl bg-muted/40 border border-border/60 text-xs text-foreground leading-relaxed whitespace-pre-line font-mono">
+                    {group.rules}
                   </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    Standard MurihSpace community conduct rules apply. Please maintain respectful, collaborative communication.
+                  </p>
+                )}
+              </div>
 
-                  <div className="flex items-center gap-2 text-foreground">
-                    <CalendarBlank className="h-4 w-4 text-primary" />
-                    <span>Created {new Date(group.created_at).toLocaleDateString()}</span>
-                  </div>
-
-                  <div className="flex items-center gap-2 text-foreground">
-                    <UsersThree className="h-4 w-4 text-primary" />
-                    <span>{group.members_count} active members</span>
-                  </div>
-
-                  <div className="pt-3 border-t border-border/60">
-                    <span className="font-medium text-muted-foreground block mb-1">
-                      Group Owner
-                    </span>
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold text-foreground">{group.creator?.name}</span>
-                      <span className="text-muted-foreground">@{group.creator?.username}</span>
-                    </div>
-                  </div>
+              {/* Meta details card */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                <div className="p-4 rounded-2xl border border-border/70 bg-card/40 space-y-1">
+                  <span className="text-muted-foreground block text-[11px]">Primary Category</span>
+                  <span className="font-bold text-foreground">{group.category}</span>
+                </div>
+                <div className="p-4 rounded-2xl border border-border/70 bg-card/40 space-y-1">
+                  <span className="text-muted-foreground block text-[11px]">Total Members</span>
+                  <span className="font-bold text-foreground">{group.members_count}</span>
+                </div>
+                <div className="p-4 rounded-2xl border border-border/70 bg-card/40 space-y-1">
+                  <span className="text-muted-foreground block text-[11px]">Privacy Level</span>
+                  <span className="font-bold text-foreground capitalize">{group.privacy}</span>
+                </div>
+                <div className="p-4 rounded-2xl border border-border/70 bg-card/40 space-y-1">
+                  <span className="text-muted-foreground block text-[11px]">Location</span>
+                  <span className="font-bold text-foreground">{group.location || "Global Remote"}</span>
                 </div>
               </div>
             </div>
@@ -973,125 +1120,71 @@ export function GroupDetailPage() {
 
           {/* TAB 5: ADMIN SETTINGS */}
           {activeTab === "settings" && group.is_admin_or_owner && (
-            <div className="max-w-2xl mx-auto space-y-8">
-              {settingsSuccess && (
-                <div className="p-4 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 font-semibold text-sm flex items-center gap-2">
-                  <Check weight="bold" className="h-4 w-4" />
-                  Group settings saved successfully.
-                </div>
-              )}
-
-              <form onSubmit={handleSaveSettings} className="p-6 sm:p-8 rounded-3xl border border-border/80 bg-card/60 shadow-xs space-y-6">
-                <h3 className="text-lg font-bold">General Settings</h3>
-
-                <div className="space-y-2">
-                  <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    Group Name
-                  </Label>
-                  <Input
-                    value={settingsForm.name}
-                    onChange={(e) => setSettingsForm({ ...settingsForm, name: e.target.value })}
-                    className="h-11 rounded-xl bg-background border-border"
-                  />
+            <div className="max-w-2xl space-y-8">
+              <form onSubmit={handleSaveSettings} className="p-6 sm:p-8 rounded-3xl border border-border/80 bg-card/60 backdrop-blur-sm space-y-6 shadow-xs">
+                <div className="flex items-center justify-between pb-4 border-b border-border/60">
+                  <div className="space-y-1">
+                    <h3 className="font-bold text-base text-foreground">Community Settings</h3>
+                    <p className="text-xs text-muted-foreground">Update community details, permissions, and appearance</p>
+                  </div>
+                  {settingsSuccess && (
+                    <span className="text-xs font-bold text-emerald-500 bg-emerald-500/10 px-3 py-1 rounded-full flex items-center gap-1">
+                      <Check className="h-3.5 w-3.5" /> Saved
+                    </span>
+                  )}
                 </div>
 
-                <div className="space-y-2">
-                  <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    Category
-                  </Label>
-                  <Input
-                    value={settingsForm.category}
-                    onChange={(e) => setSettingsForm({ ...settingsForm, category: e.target.value })}
-                    className="h-11 rounded-xl bg-background border-border"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    Description
-                  </Label>
-                  <Textarea
-                    value={settingsForm.description}
-                    onChange={(e) => setSettingsForm({ ...settingsForm, description: e.target.value })}
-                    rows={3}
-                    className="rounded-xl bg-background border-border"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    Group Rules
-                  </Label>
-                  <Textarea
-                    value={settingsForm.rules}
-                    onChange={(e) => setSettingsForm({ ...settingsForm, rules: e.target.value })}
-                    rows={3}
-                    className="rounded-xl bg-background border-border"
-                  />
-                </div>
-
-                {/* Visuals: Avatar & Cover Uploads */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      Group Avatar (Icon / Logo)
-                    </Label>
-                    <ImageUploader
-                      value={settingsForm.avatar_url || ""}
-                      onChange={(url) => setSettingsForm({ ...settingsForm, avatar_url: url })}
-                      folder="groups/avatars"
-                      label="Upload Group Avatar"
+                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Group Name</Label>
+                    <Input
+                      value={settingsForm.name}
+                      onChange={(e) => setSettingsForm({ ...settingsForm, name: e.target.value })}
+                      required
+                      className="rounded-2xl h-11 bg-background"
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      Group Cover Banner
-                    </Label>
-                    <ImageUploader
-                      value={settingsForm.cover_url || ""}
-                      onChange={(url) => setSettingsForm({ ...settingsForm, cover_url: url })}
-                      folder="groups/covers"
-                      label="Upload Cover Banner"
+                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Description</Label>
+                    <Textarea
+                      value={settingsForm.description}
+                      onChange={(e) => setSettingsForm({ ...settingsForm, description: e.target.value })}
+                      rows={3}
+                      className="rounded-2xl bg-background resize-none text-xs"
                     />
                   </div>
-                </div>
 
-                <div className="pt-4 border-t border-border/60 space-y-4">
-                  <h4 className="text-sm font-bold">Permissions & Moderation</h4>
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Who can post in feed?</Label>
+                    <select
+                      value={settingsForm.who_can_post}
+                      onChange={(e) => setSettingsForm({ ...settingsForm, who_can_post: e.target.value as any })}
+                      className="w-full h-11 rounded-2xl bg-background border border-border px-3 text-xs focus:outline-none"
+                    >
+                      <option value="all_members">All active members</option>
+                      <option value="admins_only">Admins and moderators only</option>
+                    </select>
+                  </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-                    <div className="space-y-1">
-                      <Label>Who can post to feed?</Label>
-                      <select
-                        value={settingsForm.who_can_post}
-                        onChange={(e) => setSettingsForm({ ...settingsForm, who_can_post: e.target.value as any })}
-                        className="w-full h-10 rounded-xl bg-background border border-border px-3"
-                      >
-                        <option value="all_members">All Members</option>
-                        <option value="admins_only">Admins Only</option>
-                      </select>
-                    </div>
-
-                    <div className="space-y-1">
-                      <Label>Who can send chat messages?</Label>
-                      <select
-                        value={settingsForm.who_can_chat}
-                        onChange={(e) => setSettingsForm({ ...settingsForm, who_can_chat: e.target.value as any })}
-                        className="w-full h-10 rounded-xl bg-background border border-border px-3"
-                      >
-                        <option value="all_members">All Members</option>
-                        <option value="admins_only">Admins Only</option>
-                      </select>
-                    </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Who can chat?</Label>
+                    <select
+                      value={settingsForm.who_can_chat}
+                      onChange={(e) => setSettingsForm({ ...settingsForm, who_can_chat: e.target.value as any })}
+                      className="w-full h-11 rounded-2xl bg-background border border-border px-3 text-xs focus:outline-none"
+                    >
+                      <option value="all_members">All active members</option>
+                      <option value="admins_only">Admins only</option>
+                    </select>
                   </div>
                 </div>
 
-                <div className="pt-4 flex justify-end">
+                <div className="pt-2 flex justify-end">
                   <Button
                     type="submit"
                     disabled={savingSettings}
-                    className="rounded-xl px-6 bg-primary text-primary-foreground font-semibold"
+                    className="rounded-xl px-6 h-10 bg-primary text-primary-foreground font-bold text-xs"
                   >
                     {savingSettings ? "Saving..." : "Save Settings"}
                   </Button>
@@ -1099,81 +1192,103 @@ export function GroupDetailPage() {
               </form>
 
               {/* Danger Zone */}
-              {group.user_role === "owner" && (
-                <div className="p-6 rounded-3xl border border-destructive/30 bg-destructive/5 space-y-4">
-                  <h4 className="text-sm font-bold text-destructive">Danger Zone</h4>
+              <div className="p-6 sm:p-8 rounded-3xl border border-destructive/30 bg-destructive/5 space-y-4">
+                <div className="space-y-1">
+                  <h4 className="font-bold text-sm text-destructive">Danger Zone</h4>
                   <p className="text-xs text-muted-foreground">
-                    Permanently delete this group, its chat history, and its member list. This action cannot be undone.
+                    Permanently delete this community, all messages, feed posts, and member affiliations.
                   </p>
-                  <Button
-                    variant="destructive"
-                    onClick={handleDeleteGroup}
-                    className="rounded-xl text-xs font-semibold"
-                  >
-                    Delete Group
-                  </Button>
                 </div>
-              )}
+                <Button
+                  type="button"
+                  variant="destructive"
+                  onClick={handleDeleteGroup}
+                  className="rounded-xl text-xs font-bold h-10 px-5"
+                >
+                  Permanently Delete Group
+                </Button>
+              </div>
             </div>
           )}
         </div>
       </div>
 
-      {/* Invite Modal */}
+      {/* 5. INVITE MEMBERS MODAL */}
       <Dialog open={inviteModalOpen} onOpenChange={setInviteModalOpen}>
-        <DialogContent className="max-w-md rounded-3xl p-6">
-          <DialogHeader className="text-left space-y-1">
-            <DialogTitle className="text-xl font-bold">Invite Members</DialogTitle>
+        <DialogContent className="max-w-md p-6 sm:p-8 rounded-3xl bg-background border-border/80 shadow-2xl">
+          <DialogHeader className="space-y-1">
+            <div className="flex items-center gap-2 text-primary font-bold text-xs uppercase tracking-wider">
+              <UserPlus weight="bold" className="h-4 w-4" />
+              <span>Invite to Community</span>
+            </div>
+            <DialogTitle className="text-xl font-bold">Invite to {group.name}</DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground">
-              Share the invite link or invite specific users by @username to join {group.name}.
+              Share an instant join link or invite registered users directly by their handle.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-5 pt-2">
-            {/* Shareable Link */}
+          <div className="space-y-6 pt-2">
+            {/* Shareable Link Box */}
             <div className="space-y-2">
-              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Shareable Invite Link
+              <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                Instant Invite Link
               </Label>
               <div className="flex items-center gap-2">
                 <Input
                   readOnly
                   value={inviteUrl || "Generating invite link..."}
-                  className="h-10 rounded-xl bg-muted text-xs font-mono"
+                  className="h-11 rounded-2xl bg-muted/60 text-xs font-mono select-all"
                 />
                 <Button
-                  onClick={handleCopyInvite}
+                  type="button"
+                  onClick={handleCopyInviteLink}
                   disabled={!inviteUrl}
-                  className="rounded-xl h-10 px-4 gap-1.5 flex-shrink-0"
+                  className="rounded-2xl h-11 px-4 bg-primary text-primary-foreground font-bold text-xs gap-1.5 flex-shrink-0"
                 >
-                  {copiedLink ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                  <span>{copiedLink ? "Copied" : "Copy"}</span>
+                  {copiedLink ? (
+                    <>
+                      <Check className="h-4 w-4" />
+                      <span>Copied</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="h-4 w-4" />
+                      <span>Copy</span>
+                    </>
+                  )}
                 </Button>
               </div>
             </div>
 
             {/* Direct Username Invite */}
-            <form onSubmit={handleSendInvite} className="space-y-2 pt-3 border-t border-border/60">
-              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            <form onSubmit={handleSendInvite} className="space-y-3 pt-2 border-t border-border/60">
+              <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
                 Invite by Username
               </Label>
               <div className="flex items-center gap-2">
                 <Input
-                  placeholder="e.g. adeyemi"
+                  placeholder="Enter username (e.g. alex)"
                   value={inviteUsername}
                   onChange={(e) => setInviteUsername(e.target.value)}
-                  className="h-10 rounded-xl bg-background"
+                  className="h-11 rounded-2xl bg-background text-xs"
                 />
                 <Button
                   type="submit"
-                  disabled={!inviteUsername.trim()}
-                  className="rounded-xl h-10 px-4"
+                  disabled={inviteStatus === "sending" || !inviteUsername.trim()}
+                  className="rounded-2xl h-11 px-4 bg-primary text-primary-foreground font-bold text-xs gap-1.5 flex-shrink-0"
                 >
-                  Send
+                  <PaperPlaneTilt className="h-4 w-4" />
+                  <span>Send</span>
                 </Button>
               </div>
-              {inviteStatus && (
-                <p className="text-xs text-primary font-medium mt-1">{inviteStatus}</p>
+
+              {inviteStatus === "success" && (
+                <p className="text-xs font-semibold text-emerald-500 flex items-center gap-1">
+                  <Check className="h-3.5 w-3.5" /> Invitation sent successfully!
+                </p>
+              )}
+              {inviteStatus && inviteStatus !== "sending" && inviteStatus !== "success" && (
+                <p className="text-xs font-semibold text-destructive">{inviteStatus}</p>
               )}
             </form>
           </div>

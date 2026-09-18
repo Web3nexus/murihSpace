@@ -1486,7 +1486,7 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
                 }`}
                 title={isScreenSharing ? 'Stop sharing screen' : 'Share screen'}
               >
-                <MonitorUp weight={isScreenSharing ? 'fill' : 'regular'} className="h-5 w-5" />
+                <Monitor weight={isScreenSharing ? 'fill' : 'regular'} className="h-5 w-5" />
               </button>
 
               {/* Add Participant Button */}
