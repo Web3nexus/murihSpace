@@ -112,6 +112,17 @@ export function GroupDetailPage() {
   });
   const [savingSettings, setSavingSettings] = React.useState(false);
   const [settingsSuccess, setSettingsSuccess] = React.useState(false);
+  const [settingsModalOpen, setSettingsModalOpen] = React.useState(false);
+
+  const isOwnerOrAdmin = Boolean(
+    group?.is_admin_or_owner ||
+    (user?.id && (
+      (group?.creator_id && Number(group.creator_id) === Number(user.id)) ||
+      (group?.creator?.id && Number(group.creator.id) === Number(user.id))
+    )) ||
+    group?.user_role === "owner" ||
+    group?.user_role === "admin"
+  );
 
   // Fetch Group Data
   const fetchGroup = React.useCallback(async () => {
@@ -292,15 +303,21 @@ export function GroupDetailPage() {
   const handleSendInvite = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!group || !inviteUsername.trim()) return;
+    const cleanUsername = inviteUsername.trim().replace(/^@/, "");
     try {
       setInviteStatus("sending");
-      await apiClient.post(`/groups/${group.id}/invitations`, {
-        username: inviteUsername.trim(),
+      const res = await apiClient.post(`/groups/${group.id}/invitations`, {
+        username: cleanUsername,
       });
-      setInviteStatus("success");
+      const successMsg = res.data?.message || res.data?.data?.message || "Invitation sent successfully!";
+      setInviteStatus(successMsg);
       setInviteUsername("");
     } catch (err: any) {
-      setInviteStatus(err.response?.data?.error || "Failed to send invitation.");
+      setInviteStatus(
+        err.response?.data?.error ||
+        err.response?.data?.message ||
+        "Failed to send invitation."
+      );
     }
   };
 
@@ -608,12 +625,12 @@ export function GroupDetailPage() {
                   <span>Invite</span>
                 </Button>
 
-                {group.is_admin_or_owner && (
+                {isOwnerOrAdmin && (
                   <Button
-                    onClick={() => setActiveTab("settings")}
+                    onClick={() => setSettingsModalOpen(true)}
                     variant="outline"
-                    className="rounded-2xl h-11 w-11 p-0 border-border/80 shadow-xs"
-                    title="Community Admin Settings"
+                    className="rounded-2xl h-11 w-11 p-0 border-border/80 shadow-xs hover:bg-muted cursor-pointer"
+                    title="Group Settings"
                   >
                     <Gear weight="bold" className="h-4 w-4" />
                   </Button>
@@ -680,7 +697,7 @@ export function GroupDetailPage() {
             }`}
           >
             <Newspaper weight="fill" className="h-4 w-4" />
-            <span>Community Feed</span>
+            <span>Group Feed</span>
           </button>
 
           <button
@@ -697,7 +714,7 @@ export function GroupDetailPage() {
             <span className="text-[11px] px-2 py-0.5 rounded-full bg-muted font-bold text-muted-foreground">
               {group.members_count}
             </span>
-            {group.is_admin_or_owner && joinRequests.length > 0 && (
+            {isOwnerOrAdmin && joinRequests.length > 0 && (
               <span className="h-2 w-2 rounded-full bg-destructive animate-pulse" />
             )}
           </button>
@@ -715,7 +732,7 @@ export function GroupDetailPage() {
             <span>About & Rules</span>
           </button>
 
-          {group.is_admin_or_owner && (
+          {isOwnerOrAdmin && (
             <button
               type="button"
               onClick={() => setActiveTab("settings")}
@@ -726,7 +743,7 @@ export function GroupDetailPage() {
               }`}
             >
               <Gear weight="fill" className="h-4 w-4" />
-              <span>Admin Settings</span>
+              <span>Group Settings</span>
             </button>
           )}
         </div>
@@ -811,7 +828,7 @@ export function GroupDetailPage() {
                     <div className="flex items-center justify-between pt-1">
                       <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                         <Sparkle className="h-3.5 w-3.5 text-primary" />
-                        <span>Visible to community members</span>
+                        <span>Visible to group members</span>
                       </div>
                       <Button
                         type="submit"
@@ -828,7 +845,7 @@ export function GroupDetailPage() {
                 {loadingFeed ? (
                   <div className="py-16 text-center text-xs text-muted-foreground">
                     <SpinnerGap className="h-6 w-6 animate-spin mx-auto text-primary mb-2" />
-                    <span>Loading community feed...</span>
+                    <span>Loading group feed...</span>
                   </div>
                 ) : posts.length === 0 ? (
                   <div className="p-12 rounded-3xl border border-dashed border-border text-center space-y-3">
@@ -1267,7 +1284,7 @@ export function GroupDetailPage() {
               </Label>
               <div className="flex items-center gap-2">
                 <Input
-                  placeholder="Enter username (e.g. alex)"
+                  placeholder="Enter username (e.g. web3nexus or @web3nexus)"
                   value={inviteUsername}
                   onChange={(e) => setInviteUsername(e.target.value)}
                   className="h-11 rounded-2xl bg-background text-xs"
@@ -1282,16 +1299,156 @@ export function GroupDetailPage() {
                 </Button>
               </div>
 
-              {inviteStatus === "success" && (
+              {inviteStatus && inviteStatus.includes("Invitation sent") && (
                 <p className="text-xs font-semibold text-emerald-500 flex items-center gap-1">
-                  <Check className="h-3.5 w-3.5" /> Invitation sent successfully!
+                  <Check className="h-3.5 w-3.5" /> {inviteStatus}
                 </p>
               )}
-              {inviteStatus && inviteStatus !== "sending" && inviteStatus !== "success" && (
+              {inviteStatus && !inviteStatus.includes("Invitation sent") && inviteStatus !== "sending" && (
                 <p className="text-xs font-semibold text-destructive">{inviteStatus}</p>
               )}
             </form>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* 6. DEDICATED GROUP SETTINGS MODAL */}
+      <Dialog open={settingsModalOpen} onOpenChange={setSettingsModalOpen}>
+        <DialogContent className="max-w-xl max-h-[85vh] overflow-y-auto p-6 sm:p-8 rounded-3xl bg-background border-border/80 shadow-2xl">
+          <DialogHeader className="space-y-1">
+            <div className="flex items-center gap-2 text-primary font-bold text-xs uppercase tracking-wider">
+              <Gear weight="bold" className="h-4 w-4" />
+              <span>Admin Center</span>
+            </div>
+            <DialogTitle className="text-2xl font-bold">Group Settings</DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              Manage community details, guidelines, and member permissions.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleSaveSettings} className="space-y-5 pt-2">
+            {settingsSuccess && (
+              <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-2">
+                <Check className="h-4 w-4" />
+                <span>Group settings updated successfully!</span>
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                Group Name
+              </Label>
+              <Input
+                value={settingsForm.name}
+                onChange={(e) => setSettingsForm({ ...settingsForm, name: e.target.value })}
+                required
+                className="rounded-2xl h-11 bg-background text-sm font-semibold"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                Category
+              </Label>
+              <select
+                value={settingsForm.category}
+                onChange={(e) => setSettingsForm({ ...settingsForm, category: e.target.value })}
+                className="w-full h-11 rounded-2xl bg-background border border-border px-3 text-xs focus:outline-none"
+              >
+                <option value="Technology">Technology & Code</option>
+                <option value="Creative & Art">Creative & Art</option>
+                <option value="Business & Career">Business & Career</option>
+                <option value="Gaming">Gaming & Esports</option>
+                <option value="Education & Study">Education & Study</option>
+                <option value="Fitness & Health">Fitness & Health</option>
+                <option value="Lifestyle & Hobbies">Lifestyle & Hobbies</option>
+                <option value="General">General Discussion</option>
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                About / Description
+              </Label>
+              <Textarea
+                value={settingsForm.description}
+                onChange={(e) => setSettingsForm({ ...settingsForm, description: e.target.value })}
+                rows={3}
+                className="rounded-2xl bg-background resize-none text-xs leading-relaxed"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                Who can post in Group Feed?
+              </Label>
+              <select
+                value={settingsForm.who_can_post}
+                onChange={(e) => setSettingsForm({ ...settingsForm, who_can_post: e.target.value as any })}
+                className="w-full h-11 rounded-2xl bg-background border border-border px-3 text-xs focus:outline-none"
+              >
+                <option value="all_members">All active members</option>
+                <option value="admins_only">Admins and moderators only</option>
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                Who can chat in Group Chat?
+              </Label>
+              <select
+                value={settingsForm.who_can_chat}
+                onChange={(e) => setSettingsForm({ ...settingsForm, who_can_chat: e.target.value as any })}
+                className="w-full h-11 rounded-2xl bg-background border border-border px-3 text-xs focus:outline-none"
+              >
+                <option value="all_members">All active members</option>
+                <option value="admins_only">Admins only</option>
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                Group Guidelines & Rules
+              </Label>
+              <Textarea
+                value={settingsForm.rules}
+                onChange={(e) => setSettingsForm({ ...settingsForm, rules: e.target.value })}
+                rows={3}
+                placeholder="1. Be kind and respectful&#10;2. No spam or self-promo"
+                className="rounded-2xl bg-background resize-none text-xs leading-relaxed font-mono"
+              />
+            </div>
+
+            <div className="pt-3 flex items-center justify-between border-t border-border/60">
+              <Button
+                type="button"
+                variant="destructive"
+                size="sm"
+                onClick={handleDeleteGroup}
+                className="rounded-xl text-xs font-bold"
+              >
+                Delete Group
+              </Button>
+
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => setSettingsModalOpen(false)}
+                  className="rounded-xl text-xs"
+                >
+                  Close
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={savingSettings}
+                  className="rounded-xl px-6 bg-primary text-primary-foreground font-bold text-xs"
+                >
+                  {savingSettings ? "Saving..." : "Save Changes"}
+                </Button>
+              </div>
+            </div>
+          </form>
         </DialogContent>
       </Dialog>
     </div>
