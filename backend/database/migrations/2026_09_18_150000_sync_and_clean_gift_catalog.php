@@ -69,10 +69,11 @@ return new class extends Migration
         }
 
         // 3. Upsert canonical gifts mapped cleanly to each asset
+        $now = now();
         foreach ($canonicalGifts as $giftData) {
-            $existing = Gift::where('icon_url', $giftData['icon_url'])->first();
-            if ($existing) {
-                $existing->update([
+            DB::table('gifts')->updateOrInsert(
+                ['icon_url' => $giftData['icon_url']],
+                [
                     'name' => $giftData['name'],
                     'coin_price' => $giftData['coin_price'],
                     'creator_earns' => $giftData['creator_earns'],
@@ -80,19 +81,9 @@ return new class extends Migration
                     'category' => $giftData['category'],
                     'sort_order' => $giftData['sort_order'],
                     'is_active' => true,
-                ]);
-            } else {
-                Gift::create([
-                    'name' => $giftData['name'],
-                    'icon_url' => $giftData['icon_url'],
-                    'coin_price' => $giftData['coin_price'],
-                    'creator_earns' => $giftData['creator_earns'],
-                    'platform_commission' => $giftData['platform_commission'],
-                    'category' => $giftData['category'],
-                    'sort_order' => $giftData['sort_order'],
-                    'is_active' => true,
-                ]);
-            }
+                    'updated_at' => $now,
+                ]
+            );
         }
     }
 
