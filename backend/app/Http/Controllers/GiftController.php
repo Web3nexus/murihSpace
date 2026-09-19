@@ -30,7 +30,7 @@ class GiftController extends Controller
 
     public function catalogue(Request $request): JsonResponse
     {
-        $gifts = Gift::active()->get();
+        $gifts = Gift::active()->orderBy('sort_order', 'asc')->orderBy('id', 'asc')->get();
 
         return response()->json($gifts);
     }
@@ -296,6 +296,200 @@ class GiftController extends Controller
             'total_coins' => $totalCoins,
             'top_supporters' => $topSupporters,
             'gifts' => $gifts,
+        ]);
+    }
+
+    // ── Administrative Gift Endpoints (/securegate/gifts) ──────────────────
+
+    public function adminGifts(Request $request): JsonResponse
+    {
+        $query = Gift::query();
+        if ($request->filled('category') && $request->category !== 'all') {
+            $query->where('category', $request->category);
+        }
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where('name', 'ilike', "%{$search}%");
+        }
+        $gifts = $query->orderBy('sort_order', 'asc')->orderBy('id', 'asc')->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $gifts,
+            'gifts' => $gifts,
+        ]);
+    }
+
+    public function adminStoreGift(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:100'],
+            'coin_price' => ['required', 'integer', 'min:1'],
+            'creator_earns' => ['required', 'integer', 'min:0'],
+            'platform_commission' => ['required', 'integer', 'min:0'],
+            'category' => ['nullable', 'string', 'max:50'],
+            'icon_url' => ['nullable', 'string', 'max:500'],
+            'animation_url' => ['nullable', 'string', 'max:500'],
+            'sort_order' => ['nullable', 'integer', 'min:0'],
+            'is_active' => ['nullable', 'boolean'],
+        ]);
+
+        $gift = Gift::create([
+            'name' => $validated['name'],
+            'coin_price' => $validated['coin_price'],
+            'creator_earns' => $validated['creator_earns'],
+            'platform_commission' => $validated['platform_commission'],
+            'category' => $validated['category'] ?? 'standard',
+            'icon_url' => $validated['icon_url'] ?? null,
+            'animation_url' => $validated['animation_url'] ?? null,
+            'sort_order' => $validated['sort_order'] ?? 0,
+            'is_active' => $validated['is_active'] ?? true,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Gift created successfully.',
+            'data' => $gift,
+        ], 201);
+    }
+
+    public function adminUpdateGift(Request $request, $id): JsonResponse
+    {
+        $gift = Gift::findOrFail($id);
+
+        $validated = $request->validate([
+            'name' => ['sometimes', 'required', 'string', 'max:100'],
+            'coin_price' => ['sometimes', 'required', 'integer', 'min:1'],
+            'creator_earns' => ['sometimes', 'required', 'integer', 'min:0'],
+            'platform_commission' => ['sometimes', 'required', 'integer', 'min:0'],
+            'category' => ['nullable', 'string', 'max:50'],
+            'icon_url' => ['nullable', 'string', 'max:500'],
+            'animation_url' => ['nullable', 'string', 'max:500'],
+            'sort_order' => ['nullable', 'integer', 'min:0'],
+            'is_active' => ['sometimes', 'boolean'],
+        ]);
+
+        $gift->update($validated);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Gift updated successfully.',
+            'data' => $gift->fresh(),
+        ]);
+    }
+
+    public function adminDeleteGift(Request $request, $id): JsonResponse
+    {
+        $gift = Gift::findOrFail($id);
+        $gift->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Gift deleted successfully.',
+        ]);
+    }
+
+    public function adminReorderGifts(Request $request): JsonResponse
+    {
+        $rawOrders = $request->input('orders', $request->input('order', []));
+        if (!is_array($rawOrders) || empty($rawOrders)) {
+            return response()->json(['message' => 'No orders provided.'], 422);
+        }
+
+        foreach ($rawOrders as $item) {
+            if (isset($item['id'], $item['sort_order'])) {
+                Gift::where('id', (int) $item['id'])->update(['sort_order' => (int) $item['sort_order']]);
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Gifts reordered successfully.',
+        ]);
+    }
+
+    public function adminStats(Request $request): JsonResponse
+    {
+        $totalGifts = Gift::count();
+        $activeGifts = Gift::where('is_active', true)->count();
+        $totalSentCount = GiftTransaction::where('status', 'completed')->count();
+        $totalCoinsSent = (int) GiftTransaction::where('status', 'completed')->sum('coin_price');
+        $totalCreatorEarned = (int) GiftTransaction::where('status', 'completed')->sum('creator_earns');
+        $totalPlatformCommission = (int) GiftTransaction::where('status', 'completed')->sum('platform_commission');
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'total_gifts' => $totalGifts,
+                'active_gifts' => $activeGifts,
+                'total_sent_count' => $totalSentCount,
+                'total_transactions' => $totalSentCount,
+                'total_coins_sent' => $totalCoinsSent,
+                'total_creator_earned' => $totalCreatorEarned,
+                'total_platform_commission' => $totalPlatformCommission,
+                'total_commission' => $totalPlatformCommission,
+            ],
+        ]);
+    }
+
+    public function adminToggleGifting(Request $request, $userId): JsonResponse
+    {
+        $wallet = \App\Models\CreatorWallet::firstOrCreate(['user_id' => $userId]);
+        $wallet->gifting_enabled = !$wallet->gifting_enabled;
+        $wallet->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Gifting status toggled successfully.',
+            'gifting_enabled' => $wallet->gifting_enabled,
+        ]);
+    }
+
+    public function adminPayouts(Request $request): JsonResponse
+    {
+        $payouts = \App\Models\CreatorPayout::with('user:id,name,username,avatar')
+            ->latest()
+            ->paginate(20);
+
+        return response()->json([
+            'success' => true,
+            'data' => $payouts,
+        ]);
+    }
+
+    public function adminApprovePayout(Request $request, $id): JsonResponse
+    {
+        $payout = \App\Models\CreatorPayout::findOrFail($id);
+        $payout->update(['status' => 'approved']);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Payout approved.',
+            'data' => $payout,
+        ]);
+    }
+
+    public function adminRejectPayout(Request $request, $id): JsonResponse
+    {
+        $payout = \App\Models\CreatorPayout::findOrFail($id);
+        $payout->update(['status' => 'rejected', 'rejection_reason' => $request->input('reason', 'Rejected by admin')]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Payout rejected.',
+            'data' => $payout,
+        ]);
+    }
+
+    public function adminMarkPaid(Request $request, $id): JsonResponse
+    {
+        $payout = \App\Models\CreatorPayout::findOrFail($id);
+        $payout->update(['status' => 'paid', 'paid_at' => now()]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Payout marked as paid.',
+            'data' => $payout,
         ]);
     }
 }

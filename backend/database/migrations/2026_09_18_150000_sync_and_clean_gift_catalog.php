@@ -1,16 +1,14 @@
 <?php
 
-namespace Database\Seeders;
-
-use App\Models\CoinPack;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Support\Facades\DB;
 use App\Models\Gift;
-use Illuminate\Database\Seeder;
 
-class GiftsAndCoinPacksSeeder extends Seeder
+return new class extends Migration
 {
-    public function run(): void
+    public function up(): void
     {
-        $gifts = [
+        $canonicalGifts = [
             ['name' => 'Love',                 'icon_url' => '/gifts/love.png',            'coin_price' => 10,    'creator_earns' => 8,     'platform_commission' => 2,    'category' => 'standard',  'sort_order' => 1],
             ['name' => 'Legit',                'icon_url' => '/gifts/legit.png',           'coin_price' => 20,    'creator_earns' => 17,    'platform_commission' => 3,    'category' => 'standard',  'sort_order' => 2],
             ['name' => 'Legit Gold',           'icon_url' => '/gifts/legit2.png',          'coin_price' => 40,    'creator_earns' => 34,    'platform_commission' => 6,    'category' => 'standard',  'sort_order' => 3],
@@ -43,22 +41,64 @@ class GiftsAndCoinPacksSeeder extends Seeder
             ['name' => 'Mansion',              'icon_url' => '/gifts/mansion.png',         'coin_price' => 10000, 'creator_earns' => 8500,  'platform_commission' => 1500, 'category' => 'exclusive', 'sort_order' => 30],
         ];
 
-        foreach ($gifts as $gift) {
-            Gift::updateOrCreate(['icon_url' => $gift['icon_url']], $gift);
+        // 1. Consolidate duplicate records sharing the same icon_url
+        $allIcons = array_column($canonicalGifts, 'icon_url');
+        foreach ($allIcons as $icon) {
+            $existing = DB::table('gifts')->where('icon_url', $icon)->orderBy('id', 'asc')->get();
+            if ($existing->count() > 1) {
+                $primary = $existing->first();
+                $duplicates = $existing->slice(1);
+                foreach ($duplicates as $dup) {
+                    DB::table('gift_transactions')->where('gift_id', $dup->id)->update(['gift_id' => $primary->id]);
+                    DB::table('gifts')->where('id', $dup->id)->delete();
+                }
+            }
         }
 
-        if (CoinPack::count() === 0) {
-            $packs = [
-                ['name' => 'Starter',  'coins' => 100,  'bonus_coins' => 0,    'price' => 100,   'currency' => 'USD', 'badge' => null,         'sort_order' => 1],
-                ['name' => 'Popular',  'coins' => 500,  'bonus_coins' => 50,   'price' => 500,   'currency' => 'USD', 'badge' => 'Popular',    'sort_order' => 2],
-                ['name' => 'Pro',      'coins' => 1000, 'bonus_coins' => 150,  'price' => 1000,  'currency' => 'USD', 'badge' => 'Best value', 'sort_order' => 3],
-                ['name' => 'Legend',   'coins' => 5000, 'bonus_coins' => 1000, 'price' => 5000,  'currency' => 'USD', 'badge' => 'Legend',     'sort_order' => 4],
-            ];
+        // 2. Remove obsolete dummy rows with mismatched names
+        $obsoleteNames = ['Rose', 'Heart', 'Handshake', 'Lion', 'Rocket', 'Lamborghini', 'Diamond Ring', 'Crown'];
+        foreach ($obsoleteNames as $name) {
+            $orphans = DB::table('gifts')
+                ->where('name', $name)
+                ->whereNotIn('icon_url', $allIcons)
+                ->get();
+            foreach ($orphans as $orphan) {
+                DB::table('gift_transactions')->where('gift_id', $orphan->id)->delete();
+                DB::table('gifts')->where('id', $orphan->id)->delete();
+            }
+        }
 
-            foreach ($packs as $pack) {
-                CoinPack::create($pack);
+        // 3. Upsert canonical gifts mapped cleanly to each asset
+        foreach ($canonicalGifts as $giftData) {
+            $existing = Gift::where('icon_url', $giftData['icon_url'])->first();
+            if ($existing) {
+                $existing->update([
+                    'name' => $giftData['name'],
+                    'coin_price' => $giftData['coin_price'],
+                    'creator_earns' => $giftData['creator_earns'],
+                    'platform_commission' => $giftData['platform_commission'],
+                    'category' => $giftData['category'],
+                    'sort_order' => $giftData['sort_order'],
+                    'is_active' => true,
+                ]);
+            } else {
+                Gift::create([
+                    'name' => $giftData['name'],
+                    'icon_url' => $giftData['icon_url'],
+                    'coin_price' => $giftData['coin_price'],
+                    'creator_earns' => $giftData['creator_earns'],
+                    'platform_commission' => $giftData['platform_commission'],
+                    'category' => $giftData['category'],
+                    'sort_order' => $giftData['sort_order'],
+                    'is_active' => true,
+                ]);
             }
         }
     }
-}
+
+    public function down(): void
+    {
+        // No destructive reversal needed
+    }
+};
 
