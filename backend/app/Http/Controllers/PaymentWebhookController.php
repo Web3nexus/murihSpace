@@ -42,6 +42,14 @@ class PaymentWebhookController extends Controller
     }
 
     /**
+     * Dedicated webhook handler for Paddle.
+     */
+    public function paddle(Request $request): JsonResponse
+    {
+        return $this->handleWebhook($request, 'paddle');
+    }
+
+    /**
      * Unified secure webhook processing pipeline.
      */
     protected function handleWebhook(Request $request, string $providerCode): JsonResponse

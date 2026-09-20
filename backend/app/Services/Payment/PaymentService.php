@@ -3,10 +3,17 @@
 namespace App\Services\Payment;
 
 use App\Enums\PaymentStatus;
+use App\Http\Controllers\CoinPackController as CoinPackControllerAlias;
+use App\Models\CoinPurchase;
+use App\Models\DepositTransaction;
+use App\Models\Gift;
+use App\Models\GiftTransaction;
 use App\Models\IdempotencyKey;
 use App\Models\Order;
 use App\Models\Payment;
 use App\Models\PaymentAttempt;
+use App\Models\User;
+use App\Models\Wallet;
 use App\Services\Payment\Contracts\CollectionProviderInterface;
 use App\Services\Payment\DTO\PaymentIntentRequest;
 use App\Services\Payment\DTO\PaymentVerificationResult;
@@ -72,7 +79,8 @@ class PaymentService
             currency: $currency,
             country: $country,
             paymentMethod: $paymentMethod,
-            amount: $amount
+            amount: $amount,
+            businessType: $data['business_type'] ?? ($transactionType === 'order' ? 'commerce' : $transactionType)
         );
 
         if (! ($provider instanceof CollectionProviderInterface)) {
@@ -246,30 +254,7 @@ class PaymentService
      */
     protected function onPaymentSuccessful(Payment $payment): void
     {
-        // 1. Post to double-entry ledger
-        try {
-            if ($payment->user_id) {
-                // If it's a creator sale, record gross, fees, and creator net credit
-                $this->ledgerService->recordTransaction(
-                    type: 'payment',
-                    amount: $payment->amount,
-                    currency: $payment->currency,
-                    description: "Payment for {$payment->transaction_type} [Ref: {$payment->public_reference}]",
-                    metadata: [
-                        'payment_id' => $payment->id,
-                        'public_reference' => $payment->public_reference,
-                        'provider' => $payment->provider,
-                        'fees' => $payment->fees,
-                        'net_amount' => $payment->net_amount,
-                    ],
-                    initiatedBy: $payment->customer_id ?? $payment->user_id
-                );
-            }
-        } catch (Exception $e) {
-            Log::error("Failed to record ledger entry for payment {$payment->public_reference}: {$e->getMessage()}");
-        }
-
-        // 2. Fulfill Orders if linked
+        // 1. Fulfill Orders if linked
         if (isset($payment->metadata['order_id'])) {
             $order = Order::find($payment->metadata['order_id']);
             if ($order && $order->status !== 'completed') {
@@ -279,5 +264,241 @@ class PaymentService
                 }
             }
         }
+
+        // 2. Fulfill business streams (coins/gifts/top-ups) confirmed via webhook.
+        //    These were previously only handled by the synchronous mock controllers.
+        try {
+            if (($payment->metadata['coin_pack_id'] ?? $payment->metadata['coin_pack_type'] ?? null)
+                || ($payment->metadata['coin_custom'] ?? false)) {
+                $this->fulfillCoinPurchase($payment);
+            }
+
+            if ($payment->metadata['wallet_topup'] ?? false) {
+                $this->fulfillWalletTopup($payment);
+            }
+
+            if (isset($payment->metadata['gift_id'])) {
+                $this->fulfillGiftPurchase($payment);
+            }
+        } catch (Exception $e) {
+            Log::critical("Fulfillment failed for payment {$payment->public_reference}: {$e->getMessage()}", [
+                'payment_id' => $payment->id,
+                'transaction_type' => $payment->transaction_type,
+            ]);
+        }
+    }
+
+    /**
+     * Credit coins after a confirmed coin-pack or custom-amount purchase.
+     */
+    protected function fulfillCoinPurchase(Payment $payment): void
+    {
+        $coinRate = CoinPackControllerAlias::coinConversionRate();
+        $usdMinor = $payment->amount;
+
+        $pack = null;
+        if (! empty($payment->metadata['coin_pack_id'])) {
+            $pack = \App\Models\CoinPack::find($payment->metadata['coin_pack_id']);
+        }
+
+        if ($pack) {
+            $coins = (int) $pack->coins;
+            $bonus = (int) $pack->bonus_coins;
+            $totalCoins = $coins + $bonus;
+        } else {
+            $coins = (int) round(($usdMinor / 100.0) * $coinRate);
+            $bonus = 0;
+            $totalCoins = $coins;
+        }
+
+        if ($totalCoins < 1) {
+            return;
+        }
+
+        $user = $payment->user_id ? User::find($payment->user_id) : null;
+        if (! $user) {
+            return;
+        }
+
+        $this->ledgerService->credit(
+            user: $user,
+            amount: $totalCoins,
+            currency: 'USD',
+            walletType: 'system',
+            balanceCategory: 'available',
+            type: 'coin_purchase',
+            description: "Coins purchased via {$payment->provider} [Ref: {$payment->public_reference}]",
+            idempotencyKey: 'COIN_'.$payment->idempotency_key,
+            metadata: ['payment_id' => $payment->id, 'provider' => $payment->provider, 'coin_conversion_rate' => $coinRate],
+        );
+
+        $metadata = $payment->metadata;
+        CoinPurchase::create([
+            'user_id' => $user->id,
+            'coin_pack_id' => $pack?->id,
+            'coins' => $coins,
+            'bonus_coins' => $bonus,
+            'amount_paid' => $usdMinor,
+            'currency' => 'USD',
+            'status' => 'completed',
+            'provider' => $payment->provider,
+            'reference' => $payment->public_reference,
+            'tax' => $metadata['tax'] ?? null,
+            'total_charged' => $metadata['total_charged'] ?? $usdMinor,
+            'tax_rate' => isset($metadata['tax_rate']) ? (float) $metadata['tax_rate'] : null,
+            'tax_country_code' => $metadata['tax_country_code'] ?? null,
+            'tax_type' => $metadata['tax_type'] ?? 'provider_handled',
+            'tax_name' => $metadata['tax_name'] ?? null,
+        ]);
+    }
+
+    /**
+     * Credit a system wallet after a confirmed cash top-up.
+     */
+    protected function fulfillWalletTopup(Payment $payment): void
+    {
+        $user = $payment->user_id ? User::find($payment->user_id) : null;
+        if (! $user || $payment->amount < 1) {
+            return;
+        }
+
+        $this->ledgerService->credit(
+            user: $user,
+            amount: $payment->amount,
+            currency: $payment->currency,
+            walletType: 'system',
+            balanceCategory: 'available',
+            type: 'deposit',
+            description: "Wallet top-up via {$payment->provider} [Ref: {$payment->public_reference}]",
+            idempotencyKey: 'DEP_'.$payment->idempotency_key,
+            metadata: [
+                'payment_id' => $payment->id,
+                'provider' => $payment->provider,
+                'gross' => $payment->amount,
+                'fee' => 0,
+            ],
+        );
+
+        $metadata = $payment->metadata;
+        DepositTransaction::create([
+            'user_id' => $user->id,
+            'wallet_type' => 'system',
+            'idempotency_key' => $payment->idempotency_key,
+            'payment_gateway' => $payment->provider,
+            'gateway_reference' => $payment->public_reference,
+            'amount' => $payment->amount,
+            'fee_amount' => 0,
+            'net_amount' => $payment->amount,
+            'tax' => $metadata['tax'] ?? null,
+            'total_charged' => $metadata['total_charged'] ?? $payment->amount,
+            'tax_rate' => isset($metadata['tax_rate']) ? (float) $metadata['tax_rate'] : null,
+            'tax_country_code' => $metadata['tax_country_code'] ?? null,
+            'tax_type' => $metadata['tax_type'] ?? 'provider_handled',
+            'tax_name' => $metadata['tax_name'] ?? null,
+            'currency' => $payment->currency,
+            'status' => 'completed',
+            'wallet_credited_at' => now(),
+        ]);
+    }
+
+    /**
+     * Convert a confirmed direct-money gift payment into the sender's coin balance
+     * and settle the underlying gift transfer (sender system -> recipient creator wallet).
+     */
+    protected function fulfillGiftPurchase(Payment $payment): void
+    {
+        $gift = Gift::find($payment->metadata['gift_id'] ?? 0);
+        $sender = $payment->user_id ? User::find($payment->user_id) : null;
+        $recipientId = (int) ($payment->metadata['recipient_id'] ?? 0);
+        $recipient = $recipientId ? User::find($recipientId) : null;
+
+        if (! $gift || ! $gift->is_active || ! $sender || ! $recipient) {
+            return;
+        }
+
+        $coinRate = CoinPackControllerAlias::coinConversionRate();
+        $grossCoins = (int) round(($payment->amount / 100.0) * $coinRate);
+        $giftPrice = (int) $gift->coin_price;
+
+        if ($grossCoins < $giftPrice) {
+            Log::warning("Gift payment {$giftPrice} exceeds funded coins {$grossCoins} for payment {$payment->public_reference}");
+
+            return;
+        }
+
+        // Fee split mirrors GiftController::send
+        $feeRes = app(\App\Services\Wallet\FeeCalculatorService::class)->calculate('GIFT_RECEIVING', $giftPrice, 'USD');
+        $feeAmt = (int) $feeRes['fee_amount'];
+        $netEarns = (int) $feeRes['net_amount'];
+
+        DB::transaction(function () use ($payment, $sender, $recipient, $gift, $grossCoins, $giftPrice, $feeAmt, $netEarns, $coinRate) {
+            // 1. Fund the sender's coin balance with the priced amount
+            $this->ledgerService->credit(
+                user: $sender,
+                amount: $grossCoins,
+                currency: 'USD',
+                walletType: 'system',
+                balanceCategory: 'available',
+                type: 'coin_purchase',
+                description: "Coins purchased via {$payment->provider} for gift [Ref: {$payment->public_reference}]",
+                idempotencyKey: 'COIN_'.$payment->idempotency_key,
+                metadata: ['payment_id' => $payment->id, 'provider' => $payment->provider, 'coin_conversion_rate' => $coinRate],
+            );
+
+            // 2. Debit the gift price from the sender's system wallet
+            $this->ledgerService->debit(
+                user: $sender,
+                amount: $giftPrice,
+                currency: 'USD',
+                walletType: 'system',
+                balanceCategory: 'available',
+                type: 'donation_out',
+                description: "Gift sent to @{$recipient->username}: {$gift->name}",
+                idempotencyKey: 'GIFT_'.$payment->idempotency_key.'-debit',
+            );
+
+            // 3. Credit recipient creator wallet (net of platform fee)
+            $this->ledgerService->credit(
+                user: $recipient,
+                amount: $netEarns,
+                currency: 'USD',
+                walletType: 'creator',
+                balanceCategory: 'available',
+                type: 'creator_gift_receipt',
+                description: "Gift received from @{$sender->username}: {$gift->name} (Net: {$netEarns}, Fee: {$feeAmt})",
+                idempotencyKey: 'GIFT_'.$payment->idempotency_key.'-credit',
+                metadata: ['sender_id' => $sender->id, 'gift_id' => $gift->id, 'fee_amount' => $feeAmt],
+            );
+
+            // 4. Credit platform revenue with the receiving fee
+            if ($feeAmt > 0) {
+                $this->ledgerService->creditPlatformRevenue(
+                    amount: $feeAmt,
+                    currency: 'USD',
+                    description: "Gift receiving fee for gift #{$gift->id} (paid via {$payment->provider})",
+                    idempotencyKey: 'GIFT_'.$payment->idempotency_key.'-fee',
+                    metadata: ['sender_id' => $sender->id, 'recipient_id' => $recipient->id, 'gift_id' => $gift->id],
+                );
+            }
+
+            GiftTransaction::create([
+                'sender_id' => $sender->id,
+                'recipient_id' => $recipient->id,
+                'community_id' => $payment->metadata['community_id'] ?? null,
+                'gift_id' => $gift->id,
+                'giftable_type' => $payment->metadata['giftable_type'] ?? null,
+                'giftable_id' => $payment->metadata['giftable_id'] ?? null,
+                'session_id' => $payment->metadata['session_id'] ?? null,
+                'coin_price' => $giftPrice,
+                'creator_earns' => $netEarns,
+                'platform_commission' => $feeAmt,
+                'status' => 'completed',
+                'is_anonymous' => (bool) ($payment->metadata['is_anonymous'] ?? false),
+                'sender_display_name' => $payment->metadata['sender_display_name'] ?? $sender->name,
+                'message' => $payment->metadata['message'] ?? null,
+                'is_public' => (bool) ($payment->metadata['is_public'] ?? true),
+                'idempotency_key' => 'PAY_GIFT_'.$payment->idempotency_key,
+            ]);
+        });
     }
 }

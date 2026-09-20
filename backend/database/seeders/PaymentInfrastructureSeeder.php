@@ -47,6 +47,22 @@ class PaymentInfrastructureSeeder extends Seeder
             ]
         );
 
+        $paddle = PaymentProvider::updateOrCreate(
+            ['code' => 'paddle'],
+            [
+                'name' => 'Paddle (Merchant of Record)',
+                'is_enabled' => (bool) config('payments.providers.paddle.enabled', true),
+                'environment' => config('payments.providers.paddle.environment', 'sandbox'),
+                'priority' => 40,
+                'health_status' => ProviderHealthStatus::Healthy,
+                'config' => [
+                    'handles_tax' => (bool) config('payments.providers.paddle.handles_tax', true),
+                    'vendor_id' => (string) config('payments.providers.paddle.vendor_id', ''),
+                    'client_token' => (string) config('payments.providers.paddle.client_token', ''),
+                ],
+            ]
+        );
+
         // 2. Seed Capabilities with Official Verification Statuses
         $capabilities = [
             // Paystack Capabilities
@@ -81,6 +97,13 @@ class PaymentInfrastructureSeeder extends Seeder
             ['provider_id' => $airwallex->id, 'capability' => 'payout', 'country' => '*', 'currency' => 'GBP', 'status' => CapabilityStatus::Confirmed],
             ['provider_id' => $airwallex->id, 'capability' => 'refund', 'country' => '*', 'currency' => '*', 'status' => CapabilityStatus::Confirmed],
             ['provider_id' => $airwallex->id, 'capability' => 'mobile_money', 'country' => '*', 'currency' => '*', 'status' => CapabilityStatus::NotAvailable],
+
+            // Paddle Capabilities (Merchant of Record - digital, global cards)
+            ['provider_id' => $paddle->id, 'capability' => 'card', 'country' => '*', 'currency' => 'USD', 'status' => CapabilityStatus::Confirmed],
+            ['provider_id' => $paddle->id, 'capability' => 'card', 'country' => '*', 'currency' => 'EUR', 'status' => CapabilityStatus::Confirmed],
+            ['provider_id' => $paddle->id, 'capability' => 'card', 'country' => '*', 'currency' => 'GBP', 'status' => CapabilityStatus::Confirmed],
+            ['provider_id' => $paddle->id, 'capability' => 'payout', 'country' => '*', 'currency' => '*', 'status' => CapabilityStatus::NotAvailable],
+            ['provider_id' => $paddle->id, 'capability' => 'refund', 'country' => '*', 'currency' => '*', 'status' => CapabilityStatus::Confirmed],
         ];
 
         foreach ($capabilities as $cap) {
@@ -174,6 +197,41 @@ class PaymentInfrastructureSeeder extends Seeder
                 'primary_provider_id' => $airwallex->id,
                 'fallback_provider_id' => null,
                 'priority' => 20,
+                'is_active' => true,
+            ],
+            // Paddle business routes: coins, gifts and wallet top-ups are collected
+            // by Paddle as Merchant of Record (handles VAT/GST itself).
+            [
+                'name' => 'Coin Packs & Custom Purchases via Paddle',
+                'transaction_type' => 'coin_pack',
+                'country_code' => '*',
+                'currency' => 'USD',
+                'payment_method' => 'card',
+                'primary_provider_id' => $paddle->id,
+                'fallback_provider_id' => null,
+                'priority' => 10,
+                'is_active' => true,
+            ],
+            [
+                'name' => 'Gifts via Paddle',
+                'transaction_type' => 'gift',
+                'country_code' => '*',
+                'currency' => 'USD',
+                'payment_method' => 'card',
+                'primary_provider_id' => $paddle->id,
+                'fallback_provider_id' => null,
+                'priority' => 10,
+                'is_active' => true,
+            ],
+            [
+                'name' => 'Wallet Top-ups via Paddle',
+                'transaction_type' => 'wallet_topup',
+                'country_code' => '*',
+                'currency' => 'USD',
+                'payment_method' => 'card',
+                'primary_provider_id' => $paddle->id,
+                'fallback_provider_id' => null,
+                'priority' => 10,
                 'is_active' => true,
             ],
         ];

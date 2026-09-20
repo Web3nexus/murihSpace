@@ -6,6 +6,10 @@ use App\Models\AdminSetting;
 use App\Models\CoinPack;
 use App\Models\CoinPurchase;
 use App\Services\Accounting\AccountingStreamService;
+use App\Services\Payment\Contracts\CollectionProviderInterface;
+use App\Services\Payment\Exceptions\RoutingException;
+use App\Services\Payment\PaymentService;
+use App\Services\Payment\Router\ProviderRouter;
 use App\Services\Tax\TaxCalculationService;
 use App\Services\Wallet\LedgerService;
 use Illuminate\Http\JsonResponse;
@@ -18,7 +22,60 @@ class CoinPackController extends Controller
         private LedgerService $ledgerService,
         private TaxCalculationService $taxService,
         private AccountingStreamService $accounting,
+        private ProviderRouter $router,
+        private PaymentService $paymentService,
     ) {}
+
+    /**
+     * Attempt to run a coin purchase through an external payment provider
+     * (e.g. Paddle as Merchant of Record). Returns an async checkout payload or null
+     * when no business route / usable provider exists (then the caller uses mock flow).
+     */
+    private function startExternalCheckout(Request $request, string $businessType, array $data): ?array
+    {
+        $country = $data['country_code'] ?? $request->user()->country;
+
+        try {
+            $provider = $this->router->resolve(
+                transactionType: 'payment',
+                currency: 'USD',
+                country: $country,
+                paymentMethod: 'card',
+                amount: (int) $data['amount_minor'],
+                businessType: $businessType
+            );
+        } catch (RoutingException $e) {
+            return null;
+        }
+
+        if (! $provider instanceof CollectionProviderInterface || ! $provider->isAvailable()) {
+            return null;
+        }
+
+        try {
+            return $this->paymentService->initializePayment([
+                'amount' => (int) $data['amount_minor'],
+                'currency' => 'USD',
+                'customer_id' => $request->user()->id,
+                'user_id' => $request->user()->id,
+                'customer_email' => $request->user()->email,
+                'customer_name' => $request->user()->name,
+                'country' => $country,
+                'payment_method' => 'card',
+                'transaction_type' => $businessType,
+                'idempotency_key' => $data['reference'],
+                'return_url' => $data['return_url'] ?? null,
+                'business_type' => $businessType,
+                'metadata' => $data['metadata'] ?? [],
+            ]);
+        } catch (\Exception $e) {
+            Log::warning("External checkout init failed for {$businessType}: {$e->getMessage()}", [
+                'reference' => $data['reference'],
+            ]);
+
+            return null;
+        }
+    }
 
     /**
      * Number of MSH coins credited per 1 USD. Editable by admins.
@@ -178,6 +235,28 @@ class CoinPackController extends Controller
         $taxCents = (int) $taxInfo['tax_amount_cents'];
         $totalCharged = (int) $pack->price + $taxCents;
 
+        // External provider flow (Paddle MoR handles tax itself, so we charge pre-tax gross).
+        $async = $this->startExternalCheckout($request, 'coin_pack', [
+            'amount_minor' => (int) $pack->price,
+            'country_code' => $request->input('country_code'),
+            'reference' => $reference,
+            'return_url' => $request->input('return_url'),
+            'metadata' => [
+                'coin_pack_id' => $pack->id,
+                'coin_pack_type' => 'pack',
+                'amount_usd_minor' => (int) $pack->price,
+                'tax' => 0,
+                'total_charged' => (int) $pack->price,
+                'tax_rate' => 0.0,
+                'tax_type' => 'provider_handled',
+                'coin_conversion_rate' => self::coinConversionRate(),
+            ],
+        ]);
+
+        if ($async !== null) {
+            return response()->json($async, 202);
+        }
+
         $purchase = \Illuminate\Support\Facades\DB::transaction(function () use ($user, $pack, $reference, $totalCoins, $taxInfo, $taxCents, $totalCharged) {
             $this->ledgerService->credit(
                 user: $user->id,
@@ -261,6 +340,27 @@ class CoinPackController extends Controller
         $taxInfo = $this->purchaseTaxInfo($request, $amountMinor);
         $taxCents = (int) $taxInfo['tax_amount_cents'];
         $totalCharged = $amountMinor + $taxCents;
+
+        // External provider flow (Paddle MoR handles tax itself, so we charge pre-tax gross).
+        $async = $this->startExternalCheckout($request, 'coin_pack', [
+            'amount_minor' => $amountMinor,
+            'country_code' => $request->input('country_code'),
+            'reference' => $reference,
+            'return_url' => $request->input('return_url'),
+            'metadata' => [
+                'coin_custom' => true,
+                'amount_usd_minor' => $amountMinor,
+                'tax' => 0,
+                'total_charged' => $amountMinor,
+                'tax_rate' => 0.0,
+                'tax_type' => 'provider_handled',
+                'coin_conversion_rate' => $coinRate,
+            ],
+        ]);
+
+        if ($async !== null) {
+            return response()->json($async, 202);
+        }
 
         $purchase = \Illuminate\Support\Facades\DB::transaction(function () use ($user, $reference, $totalCoins, $amountMinor, $taxInfo, $taxCents, $totalCharged) {
             $this->ledgerService->credit(

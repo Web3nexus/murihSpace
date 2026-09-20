@@ -52,6 +52,12 @@ class ProcessPaymentWebhookJob implements ShouldQueue
                 $resourceRef = $data['id'] ?? $data['merchant_order_id'] ?? null;
             } elseif ($event->provider === 'flutterwave') {
                 $resourceRef = $payload['data']['tx_ref'] ?? null;
+            } elseif ($event->provider === 'paddle') {
+                // Prefer the internal reference we attached at checkout, then the transaction id.
+                $resourceRef = $payload['data']['custom_data']['internal_reference']
+                    ?? $payload['data']['custom_data']['public_reference']
+                    ?? $payload['data']['id']
+                    ?? null;
             }
 
             if ($resourceRef) {

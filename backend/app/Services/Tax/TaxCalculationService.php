@@ -2,6 +2,7 @@
 
 namespace App\Services\Tax;
 
+use App\Models\AdminSetting;
 use App\Models\Country;
 use App\Models\TaxLiability;
 use App\Models\TaxRate;
@@ -10,6 +11,13 @@ use Illuminate\Support\Facades\DB;
 
 class TaxCalculationService
 {
+    /**
+     * Whether the global VAT toggle is on.
+     */
+    public function chargeVatEnabled(): bool
+    {
+        return (bool) AdminSetting::get('charge_vat', true);
+    }
     /**
      * Normalise a country code to ISO 3166-1 alpha-3.
      * Accepts ISO2 or ISO3 (lower/upper case).
@@ -73,8 +81,22 @@ class TaxCalculationService
         int $amountCents,
         ?string $buyerCountryCode,
         ?float $storefrontRatePercentage = null,
-        string $streamType = 'commerce'
+        string $streamType = 'commerce',
+        ?bool $chargeVat = null
     ): array {
+        // Global master toggle: VAT off (or a Merchant-of-Record provider already remits).
+        if (($chargeVat ?? $this->chargeVatEnabled()) === false) {
+            return [
+                'tax_amount_cents'    => 0,
+                'tax_rate_percentage' => 0.0,
+                'tax_name'            => null,
+                'tax_type'            => 'vat_disabled',
+                'tax_rate_id'         => null,
+                'country_code'        => $this->normalizeCountryCode($buyerCountryCode),
+                'taxable_base_cents'  => $amountCents,
+            ];
+        }
+
         $iso3 = $this->normalizeCountryCode($buyerCountryCode);
         $taxRate = $iso3
             ? TaxRate::where('country_code', $iso3)->where('is_active', true)->first()

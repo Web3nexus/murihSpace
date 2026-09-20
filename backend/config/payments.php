@@ -47,6 +47,23 @@ return [
             'base_url' => 'https://api.flutterwave.com/v3',
             'timeout' => (int) env('FLUTTERWAVE_TIMEOUT', 30),
         ],
+
+        'paddle' => [
+            'enabled' => env('PADDLE_ENABLED', false),
+            'environment' => env('PADDLE_ENV', 'sandbox'), // sandbox or production
+            // Paddle "Merchant of Record": when true the provider collects/remits
+            // VAT/sales tax itself, so MurihSpace must NOT compute its own tax.
+            'handles_tax' => (bool) env('PADDLE_HANDLES_TAX', true),
+            'vendor_id' => env('PADDLE_VENDOR_ID'),
+            'client_token' => env('PADDLE_CLIENT_TOKEN'), // Client-side token (checkout SDK)
+            'api_key' => env('PADDLE_API_KEY'),
+            'webhook_secret' => env('PADDLE_WEBHOOK_SECRET'),
+            'webhook_public_key' => env('PADDLE_WEBHOOK_PUBLIC_KEY'),
+            'base_url' => env('PADDLE_ENV', 'sandbox') === 'production'
+                ? 'https://api.paddle.com'
+                : 'https://sandbox-api.paddle.com',
+            'timeout' => (int) env('PADDLE_TIMEOUT', 30),
+        ],
     ],
 
     /*

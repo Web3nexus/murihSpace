@@ -48,6 +48,7 @@ class AdminSettingsController extends Controller
                 'admin_notify_email' => AdminSetting::get('admin_notify_email', ''),
                 'telegram_bot_configured' => AdminSetting::get('admin_notify_telegram_bot_token', '') !== '',
                 'admin_notify_telegram_chat_id' => AdminSetting::get('admin_notify_telegram_chat_id', ''),
+                'charge_vat' => (bool) AdminSetting::get('charge_vat', true),
             ],
         ]);
     }
@@ -66,6 +67,7 @@ class AdminSettingsController extends Controller
             'admin_notify_email' => ['nullable', 'email'],
             'admin_notify_telegram_bot_token' => ['nullable', 'string'],
             'admin_notify_telegram_chat_id' => ['nullable', 'string'],
+            'charge_vat' => ['sometimes', 'boolean'],
         ]);
 
         if (isset($validated['maintenance_mode'])) {
@@ -104,6 +106,10 @@ class AdminSettingsController extends Controller
             AdminSetting::set('admin_notify_telegram_chat_id', $validated['admin_notify_telegram_chat_id'] ?? '');
         }
 
+        if (isset($validated['charge_vat'])) {
+            AdminSetting::set('charge_vat', (bool) $validated['charge_vat']);
+        }
+
         return response()->json([
             'message' => 'Settings updated.',
             'data' => [
@@ -117,6 +123,7 @@ class AdminSettingsController extends Controller
                 'admin_notify_email' => AdminSetting::get('admin_notify_email', ''),
                 'admin_notify_telegram_bot_token' => AdminSetting::get('admin_notify_telegram_bot_token', ''),
                 'admin_notify_telegram_chat_id' => AdminSetting::get('admin_notify_telegram_chat_id', ''),
+                'charge_vat' => (bool) AdminSetting::get('charge_vat', true),
             ],
         ]);
     }

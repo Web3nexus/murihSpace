@@ -12,6 +12,14 @@ import {
 } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { authFetch } from "@/lib/api/authFetch";
+
+function currencySymbol(curr: string): string {
+  const symbols: Record<string, string> = {
+    NGN: "₦", USD: "$", EUR: "€", GBP: "£",
+    KES: "KSh", GHS: "GH₵", UGX: "USh", ZAR: "R",
+  };
+  return symbols[curr.toUpperCase()] ?? curr + " ";
+}
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -345,7 +353,7 @@ export function AdminFeeManagementPage() {
                     <td className="px-4 py-3.5 text-xs font-bold">
                       {rule.fee_type === "fixed" && (
                         <span className="px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-500 border border-blue-500/20">
-                          {rule.currency === "USD" ? "$" : "₦"}{(rule.fixed_amount / 100).toFixed(2)} Fixed
+                          {currencySymbol(rule.currency)}{(rule.fixed_amount / 100).toFixed(2)} Fixed
                         </span>
                       )}
                       {rule.fee_type === "percentage" && (
@@ -355,14 +363,14 @@ export function AdminFeeManagementPage() {
                       )}
                       {rule.fee_type === "fixed_plus_percentage" && (
                         <span className="px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-500 border border-amber-500/20">
-                          {rule.currency === "USD" ? "$" : "₦"}{(rule.fixed_amount / 100).toFixed(2)} + {rule.percentage}%
+                          {currencySymbol(rule.currency)}{(rule.fixed_amount / 100).toFixed(2)} + {rule.percentage}%
                         </span>
                       )}
                     </td>
 
                     <td className="px-4 py-3.5 text-xs font-mono text-muted-foreground">
-                      <div>Min: {rule.currency === "USD" ? "$" : "₦"}{(rule.minimum_fee / 100).toFixed(2)}</div>
-                      <div>Max: {rule.maximum_fee ? `${rule.currency === "USD" ? "$" : "₦"}${(rule.maximum_fee / 100).toFixed(2)}` : "None"}</div>
+                      <div>Min: {currencySymbol(rule.currency)}{(rule.minimum_fee / 100).toFixed(2)}</div>
+                      <div>Max: {rule.maximum_fee ? `${currencySymbol(rule.currency)}${(rule.maximum_fee / 100).toFixed(2)}` : "None"}</div>
                     </td>
 
                     <td className="px-4 py-3.5 text-xs capitalize text-muted-foreground">
@@ -452,7 +460,7 @@ export function AdminFeeManagementPage() {
                 <Label className="text-xs font-bold">Fee Type *</Label>
                 <select
                   value={feeType}
-                  onChange={(e) => setFeeType(e.target.value as any)}
+                  onChange={(e) => setFeeType(e.target.value as "fixed" | "percentage" | "fixed_plus_percentage")}
                   className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                 >
                   <option value="percentage">Percentage (%)</option>
@@ -508,7 +516,7 @@ export function AdminFeeManagementPage() {
 
               {(feeType === "fixed" || feeType === "fixed_plus_percentage") && (
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-bold">Fixed Amount ({currency === "USD" ? "$" : "₦"})</Label>
+                  <Label className="text-xs font-bold">Fixed Amount ({currencySymbol(currency)})</Label>
                   <Input
                     type="number"
                     step="0.01"
@@ -523,7 +531,7 @@ export function AdminFeeManagementPage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label className="text-xs font-bold">Minimum Fee ({currency === "USD" ? "$" : "₦"})</Label>
+                <Label className="text-xs font-bold">Minimum Fee ({currencySymbol(currency)})</Label>
                 <Input
                   type="number"
                   step="0.01"
@@ -535,7 +543,7 @@ export function AdminFeeManagementPage() {
               </div>
 
               <div className="space-y-1.5">
-                <Label className="text-xs font-bold">Maximum Fee Cap ({currency === "USD" ? "$" : "₦"})</Label>
+                <Label className="text-xs font-bold">Maximum Fee Cap ({currencySymbol(currency)})</Label>
                 <Input
                   type="number"
                   step="0.01"
@@ -558,6 +566,12 @@ export function AdminFeeManagementPage() {
                 >
                   <option value="NGN">NGN (₦)</option>
                   <option value="USD">USD ($)</option>
+                  <option value="EUR">EUR (€)</option>
+                  <option value="GBP">GBP (£)</option>
+                  <option value="KES">KES (KSh)</option>
+                  <option value="GHS">GHS (GH₵)</option>
+                  <option value="UGX">UGX (USh)</option>
+                  <option value="ZAR">ZAR (R)</option>
                 </select>
               </div>
 

@@ -185,6 +185,7 @@ Route::prefix('v1')->group(function () {
     Route::post('/webhooks/airwallex', [PaymentWebhookController::class, 'airwallex'])->middleware('throttle:60,1');
     Route::post('/webhooks/paystack', [PaymentWebhookController::class, 'paystack'])->middleware('throttle:60,1');
     Route::post('/webhooks/flutterwave', [PaymentWebhookController::class, 'flutterwave'])->middleware('throttle:60,1');
+    Route::post('/webhooks/paddle', [PaymentWebhookController::class, 'paddle'])->middleware('throttle:60,1');
 
     // Internal Services Accounting Synchronization (web/ads-backend -> web/backend)
     Route::post('/internal/accounting/sync-ad-revenue', [InternalAccountingSyncController::class, 'syncAdRevenue'])->middleware('throttle:120,1');

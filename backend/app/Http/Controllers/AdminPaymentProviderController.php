@@ -67,6 +67,9 @@ class AdminPaymentProviderController extends Controller
                 $hasSecret = ! empty(config("{$configKey}.secret_key")) || ! empty($cfg['secret_key']);
             } elseif ($p->code === 'flutterwave') {
                 $hasSecret = ! empty(config("{$configKey}.secret_key")) || ! empty($cfg['secret_key']);
+            } elseif ($p->code === 'paddle') {
+                $hasSecret = ! empty(config("{$configKey}.api_key")) || ! empty($cfg['api_key'])
+                    || ! empty(config("{$configKey}.webhook_public_key")) || ! empty($cfg['webhook_public_key']);
             } elseif ($p->code === 'stripe') {
                 $hasSecret = ! empty(config('stripe.secret')) || ! empty($cfg['secret_key']);
             } else {
@@ -89,6 +92,8 @@ class AdminPaymentProviderController extends Controller
                 'credential_status' => $credentialStatus,
                 'has_credentials' => $hasSecret,
                 'public_key_preview' => $publicKeyPreview,
+                'handles_tax' => (bool) ($cfg['handles_tax']
+                    ?? config("payments.providers.{$p->code}.handles_tax", true)),
                 'last_health_check_at' => $p->last_health_check_at?->toISOString(),
                 'last_successful_request_at' => $p->last_successful_request_at?->toISOString(),
                 'last_failed_request_at' => $p->last_failed_request_at?->toISOString(),
@@ -128,13 +133,20 @@ class AdminPaymentProviderController extends Controller
             'client_id' => ['nullable', 'string', 'max:500'],
             'api_key' => ['nullable', 'string', 'max:500'],
             'webhook_secret' => ['nullable', 'string', 'max:500'],
+            'client_token' => ['nullable', 'string', 'max:500'],
+            'vendor_id' => ['nullable', 'string', 'max:500'],
+            'webhook_public_key' => ['nullable', 'string', 'max:1000'],
+            'handles_tax' => ['nullable', 'boolean'],
         ]);
 
         $config = [];
-        foreach (['public_key', 'secret_key', 'client_id', 'api_key', 'webhook_secret'] as $field) {
+        foreach (['public_key', 'secret_key', 'client_id', 'api_key', 'webhook_secret', 'client_token', 'vendor_id', 'webhook_public_key'] as $field) {
             if (! empty($validated[$field])) {
                 $config[$field] = $validated[$field];
             }
+        }
+        if (array_key_exists('handles_tax', $validated)) {
+            $config['handles_tax'] = (bool) $validated['handles_tax'];
         }
 
         $code = strtolower(trim($validated['code']));
@@ -187,6 +199,10 @@ class AdminPaymentProviderController extends Controller
             'client_id' => ['nullable', 'string', 'max:500'],
             'api_key' => ['nullable', 'string', 'max:500'],
             'webhook_secret' => ['nullable', 'string', 'max:500'],
+            'client_token' => ['nullable', 'string', 'max:500'],
+            'vendor_id' => ['nullable', 'string', 'max:500'],
+            'webhook_public_key' => ['nullable', 'string', 'max:1000'],
+            'handles_tax' => ['nullable', 'boolean'],
         ]);
 
         $oldValues = $provider->only(['is_enabled', 'environment', 'priority', 'name']);
@@ -205,10 +221,13 @@ class AdminPaymentProviderController extends Controller
         }
 
         $currentConfig = $provider->config ?? [];
-        foreach (['public_key', 'secret_key', 'client_id', 'api_key', 'webhook_secret'] as $field) {
+        foreach (['public_key', 'secret_key', 'client_id', 'api_key', 'webhook_secret', 'client_token', 'vendor_id', 'webhook_public_key'] as $field) {
             if (array_key_exists($field, $validated) && ! empty($validated[$field])) {
                 $currentConfig[$field] = $validated[$field];
             }
+        }
+        if (array_key_exists('handles_tax', $validated)) {
+            $currentConfig['handles_tax'] = (bool) $validated['handles_tax'];
         }
         $provider->config = $currentConfig;
         $provider->save();
@@ -266,7 +285,7 @@ class AdminPaymentProviderController extends Controller
         $this->authorizeSuperAdmin($request);
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:100'],
-            'transaction_type' => ['required', 'string', 'in:payment,payout,refund'],
+            'transaction_type' => ['required', 'string', 'in:payment,payout,refund,coin_pack,gift,wallet_topup,order,digital_product,subscription'],
             'country_code' => ['required', 'string', 'max:5'],
             'currency' => ['required', 'string', 'max:5'],
             'payment_method' => ['required', 'string', 'max:40'],
@@ -312,11 +331,12 @@ class AdminPaymentProviderController extends Controller
     {
         $this->authorizeSuperAdmin($request);
         $validated = $request->validate([
-            'transaction_type' => ['required', 'string', 'in:payment,payout,refund'],
+            'transaction_type' => ['required', 'string', 'in:payment,payout,refund,coin_pack,gift,wallet_topup,order,digital_product,subscription'],
             'country' => ['nullable', 'string', 'size:2'],
             'currency' => ['required', 'string', 'size:3'],
             'payment_method' => ['required', 'string'],
             'amount' => ['nullable', 'integer'],
+            'business_type' => ['nullable', 'string', 'in:coin_pack,gift,wallet_topup,order,commerce'],
         ]);
 
         try {
@@ -325,7 +345,8 @@ class AdminPaymentProviderController extends Controller
                 currency: $validated['currency'],
                 country: $validated['country'] ?? null,
                 paymentMethod: $validated['payment_method'],
-                amount: $validated['amount'] ?? null
+                amount: $validated['amount'] ?? null,
+                businessType: $validated['business_type'] ?? null
             );
 
             return response()->json([
