@@ -14,6 +14,9 @@ import {
   Globe,
   Coins,
   Spinner,
+  MagnifyingGlass as Search,
+  CaretRight as ChevronRight,
+  CaretLeft as ChevronLeft,
 } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -93,6 +96,10 @@ export default function AdminAccountingPage() {
   const [metrics, setMetrics] = useState<OverviewMetrics | null>(null);
   const [streams, setStreams] = useState<StreamSummary[]>([]);
   const [taxRates, setTaxRates] = useState<TaxRateRule[]>([]);
+  const [ratesLoading, setRatesLoading] = useState<boolean>(true);
+  const [rateSearch, setRateSearch] = useState<string>("");
+  const [ratePage, setRatePage] = useState<number>(1);
+  const [rateLastPage, setRateLastPage] = useState<number>(1);
   const [taxLiabilities, setTaxLiabilities] = useState<TaxLiabilityItem[]>([]);
   const [taxTotals, setTaxTotals] = useState<{
     total_taxable_base_cents: number;
@@ -144,14 +151,6 @@ export default function AdminAccountingPage() {
         setTaxLiabilities(tPayload.liabilities || []);
         setByCountry(tPayload.by_country || []);
       }
-
-      // 3. Tax Rates
-      const ratesRes = await authFetch("/securegate/tax/rates");
-      if (ratesRes.ok) {
-        const rData = await ratesRes.json();
-        const rPayload = rData.data || rData;
-        setTaxRates(rPayload.rates || []);
-      }
     } catch (e) {
       console.error("Failed to load accounting data:", e);
       toast.error("Failed to load accounting & tax data.");
@@ -159,6 +158,36 @@ export default function AdminAccountingPage() {
       setLoading(false);
     }
   }, [currency]);
+
+  const loadRates = useCallback(async () => {
+    setRatesLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (rateSearch) params.set("search", rateSearch);
+      params.set("page", String(ratePage));
+      params.set("per_page", "25");
+      const res = await authFetch(`/securegate/tax/rates?${params.toString()}`);
+      if (res.ok) {
+        const rData = await res.json();
+        const rPayload = rData.data || rData;
+        setTaxRates(rPayload.rates || []);
+        const meta = rPayload.meta ?? rPayload.pagination ?? {};
+        setRateLastPage(meta.last_page ?? 1);
+      }
+    } catch (e) {
+      console.error("Failed to load tax rates:", e);
+    } finally {
+      setRatesLoading(false);
+    }
+  }, [rateSearch, ratePage]);
+
+  useEffect(() => {
+    loadRates();
+  }, [loadRates]);
+
+  useEffect(() => {
+    setRatePage(1);
+  }, [rateSearch]);
 
   useEffect(() => {
     loadData();
@@ -746,13 +775,24 @@ export default function AdminAccountingPage() {
                 Statutory VAT and Withholding Tax rules applied automatically across checkouts and creator payouts.
               </p>
             </div>
-            <Button
-              onClick={() => setShowAddRate(true)}
-              className="bg-[#2164b6] hover:bg-[#2d94c2] text-white font-bold h-10 px-4 rounded-xl shadow-md gap-2"
-            >
-              <Plus weight="bold" className="h-4 w-4" />
-              Add Country Tax Rule
-            </Button>
+            <div className="flex flex-col sm:flex-row items-stretch gap-3">
+              <div className="relative w-full sm:w-72">
+                <Search weight="fill" className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  value={rateSearch}
+                  onChange={(e) => setRateSearch(e.target.value)}
+                  placeholder="Search country, code, or tax name..."
+                  className="h-10 pl-9 rounded-xl border-border bg-card text-sm shadow-sm"
+                />
+              </div>
+              <Button
+                onClick={() => setShowAddRate(true)}
+                className="bg-[#2164b6] hover:bg-[#2d94c2] text-white font-bold h-10 px-4 rounded-xl shadow-md gap-2"
+              >
+                <Plus weight="bold" className="h-4 w-4" />
+                Add Country Tax Rule
+              </Button>
+            </div>
           </div>
 
           <div className="rounded-2xl border border-border/50 bg-card overflow-hidden shadow-sm">
@@ -769,7 +809,7 @@ export default function AdminAccountingPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/30">
-                  {loading ? (
+                  {ratesLoading ? (
                     <tr>
                       <td colSpan={6} className="px-5 py-16 text-center text-muted-foreground">
                         <div className="flex flex-col items-center gap-2">
@@ -784,7 +824,9 @@ export default function AdminAccountingPage() {
                         <div className="flex flex-col items-center gap-2">
                           <Globe weight="fill" className="h-10 w-10 text-muted-foreground/30" />
                           <p className="text-sm font-bold text-foreground">No tax rules configured</p>
-                          <p className="text-xs text-muted-foreground">Click &quot;Add Country Tax Rule&quot; to set up country VAT & WHT rates.</p>
+                          <p className="text-xs text-muted-foreground">
+                            {rateSearch ? "No rules match your search." : "Click \"Add Country Tax Rule\" to set up country VAT & WHT rates."}
+                          </p>
                         </div>
                       </td>
                     </tr>
@@ -829,6 +871,31 @@ export default function AdminAccountingPage() {
                 </tbody>
               </table>
             </div>
+            {rateLastPage > 1 && (
+              <div className="flex items-center justify-between gap-3 px-5 py-3 border-t border-border/40 bg-muted/20">
+                <span className="text-xs text-muted-foreground">
+                  Page {ratePage} of {rateLastPage}
+                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setRatePage((p) => Math.max(1, p - 1))}
+                    disabled={ratePage <= 1 || ratesLoading}
+                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold border-none bg-card hover:bg-muted disabled:opacity-40 transition-colors"
+                  >
+                    <ChevronLeft weight="bold" className="h-3.5 w-3.5" />
+                    Previous
+                  </button>
+                  <button
+                    onClick={() => setRatePage((p) => Math.min(rateLastPage, p + 1))}
+                    disabled={ratePage >= rateLastPage || ratesLoading}
+                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold border-none bg-card hover:bg-muted disabled:opacity-40 transition-colors"
+                  >
+                    Next
+                    <ChevronRight weight="bold" className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Add Tax Rate Dialog */}

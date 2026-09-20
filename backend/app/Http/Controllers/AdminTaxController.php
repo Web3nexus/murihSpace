@@ -72,14 +72,39 @@ class AdminTaxController extends Controller
 
     /**
      * GET /api/v1/admin/tax/rates
-     * List all country tax rates.
+     * List all country tax rates (paginated, searchable).
      */
-    public function rates(): JsonResponse
+    public function rates(Request $request): JsonResponse
     {
-        $rates = TaxRate::orderBy('country_code')->get();
+        $validated = $request->validate([
+            'search' => ['nullable', 'string', 'max:100'],
+            'page'   => ['nullable', 'integer', 'min:1'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:200'],
+        ]);
+
+        $query = TaxRate::query();
+
+        if (! empty($validated['search'])) {
+            $search = trim($validated['search']);
+            $term = '%'.mb_strtolower($search).'%';
+            $query->where(function ($q) use ($term) {
+                $q->whereRaw('LOWER(country_code) LIKE ?', [$term])
+                    ->orWhereRaw('LOWER(country_name) LIKE ?', [$term])
+                    ->orWhereRaw('LOWER(tax_name) LIKE ?', [$term]);
+            });
+        }
+
+        $perPage = $validated['per_page'] ?? 25;
+        $paginator = $query->orderBy('country_name')->paginate($perPage);
 
         return response()->json([
-            'rates' => $rates,
+            'rates' => $paginator->items(),
+            'meta'  => [
+                'current_page' => $paginator->currentPage(),
+                'last_page'    => $paginator->lastPage(),
+                'per_page'     => $paginator->perPage(),
+                'total'        => $paginator->total(),
+            ],
         ]);
     }
 
