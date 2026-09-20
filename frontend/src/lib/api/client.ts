@@ -1,6 +1,6 @@
 import axios, { type AxiosError, type AxiosResponse, type InternalAxiosRequestConfig } from "axios";
 import { env } from "@/config/env";
-import { getAuthToken } from "@/lib/auth/token";
+import { getAuthToken, getAdminToken } from "@/lib/auth/token";
 
 export interface ApiError {
   message: string;
@@ -24,7 +24,8 @@ export const apiClient = axios.create({
 // Request interceptor
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    const token = getAuthToken();
+    const isAdminEndpoint = config.url?.includes("/securegate") || config.url?.startsWith("securegate");
+    const token = isAdminEndpoint ? (getAdminToken() || getAuthToken()) : getAuthToken();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
