@@ -45,6 +45,7 @@ class AdminSettingsController extends Controller
                 'kyc_providers_available' => $this->getAvailableProviders(),
                 'max_upload_size_mb' => 100,
                 'web_disabled_roles' => json_decode((string) AdminSetting::get('web_disabled_roles', '[]'), true),
+                'web_purchases_enabled' => (bool) AdminSetting::get('web_purchases_enabled', true),
                 'admin_notify_email' => AdminSetting::get('admin_notify_email', ''),
                 'telegram_bot_configured' => AdminSetting::get('admin_notify_telegram_bot_token', '') !== '',
                 'admin_notify_telegram_chat_id' => AdminSetting::get('admin_notify_telegram_chat_id', ''),
@@ -68,6 +69,7 @@ class AdminSettingsController extends Controller
             'admin_notify_telegram_bot_token' => ['nullable', 'string'],
             'admin_notify_telegram_chat_id' => ['nullable', 'string'],
             'charge_vat' => ['sometimes', 'boolean'],
+            'web_purchases_enabled' => ['sometimes', 'boolean'],
         ]);
 
         if (isset($validated['maintenance_mode'])) {
@@ -110,6 +112,10 @@ class AdminSettingsController extends Controller
             AdminSetting::set('charge_vat', (bool) $validated['charge_vat']);
         }
 
+        if (isset($validated['web_purchases_enabled'])) {
+            AdminSetting::set('web_purchases_enabled', (bool) $validated['web_purchases_enabled']);
+        }
+
         return response()->json([
             'message' => 'Settings updated.',
             'data' => [
@@ -117,6 +123,7 @@ class AdminSettingsController extends Controller
                 'registration_open' => (bool) AdminSetting::get('registration_open', !config('app.disable_registration')),
                 'default_currency' => AdminSetting::get('default_currency', config('app.currency', 'USD')),
                 'web_disabled_roles' => json_decode((string) AdminSetting::get('web_disabled_roles', '[]'), true),
+                'web_purchases_enabled' => (bool) AdminSetting::get('web_purchases_enabled', true),
                 'kyc_providers' => json_decode((string) AdminSetting::get('kyc_providers', '[]'), true),
                 'kyc_credentials' => $this->getCredentialsStatus(),
                 'kyc_providers_available' => $this->getAvailableProviders(),

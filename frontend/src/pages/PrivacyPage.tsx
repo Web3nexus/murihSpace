@@ -348,12 +348,12 @@ export default function PrivacyPage() {
                 />
               </div>
               <div className="space-y-1">
-                <p className="text-xs font-bold text-red-600">TextT <span className="font-mono bg-red-500/10 px-1 rounded">DELETE</span> to confirm</p>
+                <p className="text-xs font-bold text-red-600">Type <span className="font-mono bg-red-500/10 px-1 rounded">DELETE</span> to confirm</p>
                 <input
                   type="text"
                   value={deleteText}
                   onChange={(e) => setDeleteText(e.target.value)}
-                  placeholder="TextT DELETE to confirm"
+                  placeholder="Type DELETE to confirm"
                   className="w-full rounded-lg border border-red-500/30 bg-card px-3 py-2 text-xs text-foreground focus:outline-none focus:border-red-500"
                 />
               </div>
@@ -370,7 +370,7 @@ export default function PrivacyPage() {
         </div>
       </section>
 
-      {/* ── FloppyDisk ── */}
+      {/* ── Save ── */}
       <div className="flex items-center justify-end gap-3">
         {saved && (
           <span className="text-xs font-semibold text-emerald-500 flex items-center gap-1">
@@ -383,7 +383,7 @@ export default function PrivacyPage() {
           disabled={saving}
           className="px-6 py-2 rounded-lg bg-secondary text-secondary-foreground text-xs font-bold hover:bg-secondary/90 disabled:opacity-50 transition-all "
         >
-          {saving ? "Saving..." : "FloppyDisk Preferences"}
+          {saving ? "Saving..." : "Save Preferences"}
         </button>
       </div>
     </div>

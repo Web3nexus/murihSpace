@@ -290,7 +290,7 @@ export function ProposalsPage() {
             
             <div className="flex justify-end pt-4 border-t border-border/50">
               <button type="submit" className="px-8 py-3 rounded-lg bg-[#2164b6] text-white text-sm font-bold hover:bg-[#1a5091] hover:shadow-lg transition-all duration-300">
-                FloppyDisk to Pipeline
+                Save to Pipeline
               </button>
             </div>
           </form>

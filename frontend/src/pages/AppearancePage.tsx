@@ -172,7 +172,7 @@ export default function AppearancePage() {
         </div>
       </section>
 
-      {/* ── FloppyDisk ── */}
+      {/* ── Save ── */}
       <div className="flex items-center justify-end gap-3">
         {saved && (
           <span className="text-xs font-semibold text-emerald-500 flex items-center gap-1">
@@ -184,7 +184,7 @@ export default function AppearancePage() {
           onClick={handleSave}
           className="px-6 py-2 rounded-lg bg-secondary text-secondary-foreground text-xs font-bold hover:bg-secondary/90 transition-all "
         >
-          FloppyDisk Preferences
+          Save Preferences
         </button>
       </div>
     </div>

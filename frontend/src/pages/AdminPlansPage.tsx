@@ -399,7 +399,7 @@ function FeesTab() {
                         <X weight="fill" className="h-3.5 w-3.5" /> Cancel
                       </Button>
                       <Button size="sm" onClick={() => saveEdit(fee.id)} className="h-8 gap-1 bg-emerald-600 hover:bg-emerald-500 text-white">
-                        <FloppyDisk weight="fill" className="h-3.5 w-3.5" /> FloppyDisk
+                        <FloppyDisk weight="fill" className="h-3.5 w-3.5" /> Save
                       </Button>
                     </>
                   ) : (

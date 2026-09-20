@@ -101,13 +101,13 @@ export function AdminReconciliationPage() {
               <StatCard label="Audited At" value={audit?.audited_at ? new Date(audit.audited_at).toLocaleTimeString() : '—'} />
             </div>
 
-            {/* By TextT */}
+            {/* By Type */}
             {summary.by_type && summary.by_type.length > 0 && (
               <div className="rounded-lg border-none bg-card overflow-hidden">
                 <table className="w-full text-xs">
                   <thead>
                     <tr className="bg-muted/30 border-b border-border">
-                      <th className="text-left px-4 py-2 font-bold text-muted-foreground">TextT</th>
+                      <th className="text-left px-4 py-2 font-bold text-muted-foreground">Type</th>
                       <th className="text-right px-4 py-2 font-bold text-muted-foreground">Count</th>
                       <th className="text-right px-4 py-2 font-bold text-muted-foreground">Net</th>
                     </tr>

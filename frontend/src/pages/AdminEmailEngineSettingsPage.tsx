@@ -117,16 +117,16 @@ export default function AdminEmailEngineSettingsPage() {
         resend_key: secrets.resend_key,
         sendmail_path: settings.sendmail.path,
       };
-      const res = await authFetch(`/securegate/mail-settings`, { method: "PUT", headers: authHeaders(), body: JSON.stringify(body) });
+      const res = await authFetch(`/securegate/mail-settings`, { method: "PUT", body: JSON.stringify(body) });
       const j = await res.json();
-      if (!res.ok) throw new Error(j?.message ?? "FloppyDisk failed");
+      if (!res.ok) throw new Error(j?.message ?? "Save failed");
       const d = j?.success ? j?.data?.data ?? j?.data : j;
       setSettings(((d?.config ?? d) ?? settings));
       setSecrets({});
       setTestResult(null);
       toast.success("Envelope engine configuration saved.");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "FloppyDisk failed");
+      toast.error(e instanceof Error ? e.message : "Save failed");
     } finally {
       setSaving(false);
     }
@@ -143,7 +143,6 @@ export default function AdminEmailEngineSettingsPage() {
     try {
       const res = await authFetch(`/securegate/mail-settings/test`, {
         method: "POST",
-        headers: authHeaders(),
         body: JSON.stringify({ to }),
       });
       const j = await res.json();
@@ -356,11 +355,11 @@ export default function AdminEmailEngineSettingsPage() {
         </div>
       )}
 
-      {/* FloppyDisk + test */}
+      {/* Save + test */}
       <div className="flex flex-col sm:flex-row sm:items-center gap-3 justify-between border-none rounded-lg bg-card p-5">
         <Button onClick={save} disabled={saving} className="text-sm font-bold gap-1.5">
           {saving ? <Loader2 weight="fill" className="h-4 w-4 animate-spin" /> : <FloppyDisk weight="fill" className="h-4 w-4" />}
-          FloppyDisk mail engine
+          Save mail engine
         </Button>
         <div className="flex flex-col sm:flex-row sm:items-center gap-2">
           <Input

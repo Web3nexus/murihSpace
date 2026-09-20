@@ -48,11 +48,11 @@ export default function StoreSettingsPage() {
         body: JSON.stringify({ name, description, default_currency: currency }),
       });
       const j = await res.json();
-      if (!res.ok) throw new Error(j?.message ?? "FloppyDisk failed");
+      if (!res.ok) throw new Error(j?.message ?? "Save failed");
       setMsg("Settings saved!");
       setTimeout(() => setMsg(null), 2000);
     } catch (e) {
-      setMsg(e instanceof Error ? e.message : "FloppyDisk failed");
+      setMsg(e instanceof Error ? e.message : "Save failed");
     } finally { setSaving(false); }
   };
 
@@ -91,7 +91,7 @@ export default function StoreSettingsPage() {
         </div>
         {msg && <p className={`text-xs font-bold ${msg === 'Settings saved!' ? 'text-emerald-400' : 'text-rose-400'}`}>{msg}</p>}
         <Button onClick={handleSave} disabled={saving} className="text-sm font-bold gap-1.5">
-          {saving ? <Loader2 weight="fill" className="h-4 w-4 animate-spin" /> : <FloppyDisk weight="fill" className="h-4 w-4" />} FloppyDisk Settings
+          {saving ? <Loader2 weight="fill" className="h-4 w-4 animate-spin" /> : <FloppyDisk weight="fill" className="h-4 w-4" />} Save Settings
         </Button>
       </div>
     </div>

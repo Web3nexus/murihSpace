@@ -11,7 +11,8 @@ import {
   X as X,
   ClockCounterClockwise as ClockCounterClockwise,
   Bag as ShoppingBag,
-  Globe as Globe
+  Globe as Globe,
+  DeviceMobile as Smartphone
 } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,6 +22,7 @@ import { ActionTooltip } from "@/components/ui/action-tooltip";
 import { authFetch } from "@/lib/api/authFetch";
 import { getCachedData, setCachedData } from "@/lib/api/cacheStore";
 import { useAuth } from "@/hooks/useAuth";
+import { usePlatformConfig } from "@/hooks/usePlatformConfig";
 import { GiftAnimationOverlay, type GiftAnimationData } from "@/components/gifting/GiftAnimationOverlay";
 
 interface GiftItem {
@@ -108,6 +110,7 @@ const CACHE_KEY_TRANSACTIONS = "gifts_transactions";
 const CACHE_KEY_BALANCE = "user_wallet_balance";
 
 export default function GiftsPage() {
+  const { web_purchases_enabled: webPurchasesEnabled, app_download_url: appDownloadUrl } = usePlatformConfig();
   const [gifts, setGifts] = useState<GiftItem[]>(() => getCachedData<GiftItem[]>(CACHE_KEY_GIFTS) ?? []);
   const [packs, setPacks] = useState<CoinPack[]>(() => getCachedData<CoinPack[]>(CACHE_KEY_PACKS) ?? []);
   const [transactions, setTransactions] = useState<any[]>(() => getCachedData<any[]>(CACHE_KEY_TRANSACTIONS) ?? []);
@@ -383,14 +386,26 @@ export default function GiftsPage() {
             </div>
           </div>
 
-          <ActionTooltip content="Purchase MSH coins to send gifts">
-            <Button
-              onClick={() => setShowCoinShop(true)}
-              className="bg-[#1877f2] hover:bg-[#166fe5] text-white font-bold h-10 px-4 rounded-lg gap-2 "
+          {webPurchasesEnabled ? (
+            <ActionTooltip content="Purchase MSH coins to send gifts">
+              <Button
+                onClick={() => setShowCoinShop(true)}
+                className="bg-[#1877f2] hover:bg-[#166fe5] text-white font-bold h-10 px-4 rounded-lg gap-2 "
+              >
+                <Plus weight="fill" className="w-4 h-4" /> Buy Coins
+              </Button>
+            </ActionTooltip>
+          ) : (
+            <a
+              href={appDownloadUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 rounded-lg border border-border/70 bg-muted/30 px-3 py-2 text-[10px] font-bold text-muted-foreground hover:text-foreground hover:border-foreground/20"
             >
-              <Plus weight="fill" className="w-4 h-4" /> Buy Coins
-            </Button>
-          </ActionTooltip>
+              <Smartphone weight="fill" className="w-4 h-4 text-[#1877f2]" />
+              Buying coins is app-only &middot; get the app
+            </a>
+          )}
         </div>
       </div>
 
@@ -419,7 +434,7 @@ export default function GiftsPage() {
                   : "text-muted-foreground hover:bg-muted hover:text-foreground"
               }`}
             >
-              <ClockCounterClockwise weight="fill" className="w-4 h-4" /> Transaction ClockCounterClockwise
+              <ClockCounterClockwise weight="fill" className="w-4 h-4" /> Transaction History
             </button>
           </ActionTooltip>
         </div>
@@ -610,7 +625,7 @@ export default function GiftsPage() {
         </div>
       )}
 
-      {/* ClockCounterClockwise Tab */}
+      {/* History Tab */}
       {tab === "history" && (
         <div className="bg-card border-none rounded-lg  overflow-hidden">
           <div className="px-5 py-4 border-b border-border bg-muted/20">

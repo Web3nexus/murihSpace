@@ -446,11 +446,11 @@ export function WalletPage() {
         onTransfer={() => setShowInternalTransfer(true)}
       />
 
-      {/* Transaction ClockCounterClockwise Section */}
+      {/* Transaction History Section */}
       <div className="p-4 rounded-lg border-none bg-card space-y-4 ">
         <div className="flex items-center justify-between border-b border-border pb-3">
           <h2 className="text-base font-bold text-foreground flex items-center gap-2">
-            <Clock weight="fill" className="h-5 w-5 text-primary" /> Double-Entry Ledger ClockCounterClockwise ({activeTab.toUpperCase()})
+            <Clock weight="fill" className="h-5 w-5 text-primary" /> Double-Entry Ledger History ({activeTab.toUpperCase()})
           </h2>
           <span className="text-xs text-muted-foreground">Real-time audited records</span>
         </div>
@@ -464,7 +464,7 @@ export function WalletPage() {
             <table className="w-full text-left text-sm">
               <thead>
                 <tr className="border-b border-border text-xs uppercase tracking-wider text-muted-foreground bg-muted/20">
-                  <th className="px-4 py-3 font-semibold">TextT</th>
+                  <th className="px-4 py-3 font-semibold">Type</th>
                   <th className="px-4 py-3 font-semibold">Category</th>
                   <th className="px-4 py-3 font-semibold">Description</th>
                   <th className="px-4 py-3 font-semibold">Amount</th>

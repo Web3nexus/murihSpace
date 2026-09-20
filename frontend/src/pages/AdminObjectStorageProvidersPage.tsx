@@ -406,7 +406,7 @@ export default function AdminObjectStorageProvidersPage() {
             </Button>
             <Button type="button" onClick={save} disabled={saving} className="gap-1">
               {saving ? <Loader2 weight="fill" className="h-4 w-4 animate-spin" /> : <FloppyDisk weight="fill" className="h-4 w-4" />}
-              {saving ? "Saving..." : "FloppyDisk"}
+              {saving ? "Saving..." : "Save"}
             </Button>
           </div>
         </div>

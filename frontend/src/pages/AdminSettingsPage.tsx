@@ -1,4 +1,3 @@
-import { getAuthToken } from "@/lib/auth/token";
 import { useState, useEffect, useCallback } from "react";
 import {
   Gear as Settings,
@@ -68,11 +67,6 @@ const CURRENCY_SYMBOLS: Record<string, string> = {
 
 const SUPPORTED_CURRENCIES = ["NGN", "USD", "GBP", "EUR", "GHS", "KES", "ZAR", "XOF"];
 
-function authHeaders() {
-  const t = getAuthToken();
-  return { Accept: "application/json", "Content-Type": "application/json", ...(t ? { Authorization: `Bearer ${t}` } : {}) };
-}
-
 export default function AdminSettingsPage() {
   const [platformName, setPlatformName] = useState("MurihSpace");
   const [supportEmail, setSupportEmail] = useState("support@murihspace.com");
@@ -84,6 +78,8 @@ export default function AdminSettingsPage() {
   const [telegramBotConfigured, setTelegramBotConfigured] = useState(false);
   const [adminNotifyTelegramChatId, setAdminNotifyTelegramChatId] = useState("");
   const [kycEnabled, setKycEnabled] = useState(true);
+  const [chargeVat, setChargeVat] = useState(true);
+  const [webPurchasesEnabled, setWebPurchasesEnabled] = useState(true);
   const [kycProviders, setKycProviders] = useState<string[]>(["manual"]);
   const [kycProviderStatus, setKycProviderStatus] = useState<Record<string, boolean>>({});
   const [kycCredentialsStatus, setKycCredentialsStatus] = useState<Record<string, Record<string, boolean>>>({});
@@ -98,7 +94,7 @@ export default function AdminSettingsPage() {
   const fetchSettings = useCallback(async () => {
     setFetchError(null);
     try {
-      const res = await authFetch(`/securegate/settings`, { headers: authHeaders() });
+      const res = await authFetch(`/securegate/settings`);
       if (!res.ok) throw new Error("Failed to load settings");
       const j = await res.json();
       const d = j?.data?.data ?? j?.data ?? j;
@@ -111,6 +107,8 @@ export default function AdminSettingsPage() {
       if (d?.telegram_bot_configured !== undefined) setTelegramBotConfigured(d.telegram_bot_configured);
       if (d?.admin_notify_telegram_chat_id !== undefined) setAdminNotifyTelegramChatId(d.admin_notify_telegram_chat_id);
       if (d?.kyc_enabled !== undefined) setKycEnabled(Boolean(d.kyc_enabled));
+      if (d?.charge_vat !== undefined) setChargeVat(Boolean(d.charge_vat));
+      if (d?.web_purchases_enabled !== undefined) setWebPurchasesEnabled(Boolean(d.web_purchases_enabled));
       if (Array.isArray(d?.kyc_providers) && d.kyc_providers.length > 0) setKycProviders(d.kyc_providers);
       if (d?.kyc_credentials && typeof d.kyc_credentials === "object") setKycCredentialsStatus(d.kyc_credentials);
       if (Array.isArray(d?.kyc_providers_available)) {
@@ -132,9 +130,10 @@ export default function AdminSettingsPage() {
         support_email: supportEmail,
         maintenance_mode: maintenanceMode,
         default_currency: defaultCurrency,
-        web_disabled_roles: webDisabledRoles,
+web_disabled_roles: webDisabledRoles,
         kyc_enabled: kycEnabled,
-        kyc_providers: kycProviders,
+        charge_vat: chargeVat,
+        web_purchases_enabled: webPurchasesEnabled,
         admin_notify_email: adminNotifyEmail,
       };
 
@@ -161,11 +160,10 @@ export default function AdminSettingsPage() {
 
       const res = await authFetch(`/securegate/settings`, {
         method: "PUT",
-        headers: authHeaders(),
         body: JSON.stringify(payload),
       });
       const j = await res.json();
-      if (!res.ok) throw new Error(j?.message ?? "FloppyDisk failed");
+      if (!res.ok) throw new Error(j?.message ?? "Save failed");
 
       const d = j?.data?.data ?? j?.data ?? j;
       if (d) {
@@ -183,7 +181,7 @@ export default function AdminSettingsPage() {
       toast.success("Settings saved successfully.");
       setTimeout(() => setMsg(null), 3000);
     } catch (e) {
-      const m = e instanceof Error ? e.message : "FloppyDisk failed";
+      const m = e instanceof Error ? e.message : "Save failed";
       setMsg(m);
       toast.error(m);
     } finally { setSaving(false); }
@@ -225,6 +223,24 @@ export default function AdminSettingsPage() {
           <div><p className="text-xs font-bold text-foreground">Maintenance Mode</p><p className="text-[10px] text-muted-foreground">Block all user access except admins</p></div>
           <button onClick={() => setMaintenanceMode(!maintenanceMode)} role="switch" aria-checked={maintenanceMode} aria-label="Toggle maintenance mode" className={`w-10 h-5 rounded-full transition-colors ${maintenanceMode ? 'bg-rose-500' : 'bg-muted'}`}>
             <div className={`w-4 h-4 rounded-full bg-white  transition-transform ${maintenanceMode ? 'translate-x-5' : 'translate-x-0.5'}`} />
+          </button>
+        </div>
+        <div className="flex items-center justify-between p-3 rounded-lg border-none">
+          <div>
+            <p className="text-xs font-bold text-foreground">Charge VAT / Sales Tax</p>
+            <p className="text-[10px] text-muted-foreground">Add platform VAT/GST on non-MoR sales (Paystack, Flutterwave, Airwallex). Merchant-of-Record providers like Paddle remit tax themselves and are always exempt.</p>
+          </div>
+          <button onClick={() => setChargeVat(!chargeVat)} role="switch" aria-checked={chargeVat} aria-label="Toggle charging VAT" className={`w-10 h-5 rounded-full transition-colors shrink-0 ${chargeVat ? 'bg-emerald-500' : 'bg-muted'}`}>
+            <div className={`w-4 h-4 rounded-full bg-white  transition-transform ${chargeVat ? 'translate-x-5' : 'translate-x-0.5'}`} />
+          </button>
+        </div>
+        <div className="flex items-center justify-between p-3 rounded-lg border-none">
+          <div>
+            <p className="text-xs font-bold text-foreground">Web Purchases</p>
+            <p className="text-[10px] text-muted-foreground">When off, coins and wallet top-ups can only be bought inside the native app (Apple Pay / Google Pay web billing is automatically hidden on the dashboard).</p>
+          </div>
+          <button onClick={() => setWebPurchasesEnabled(!webPurchasesEnabled)} role="switch" aria-checked={webPurchasesEnabled} aria-label="Toggle web purchases" className={`w-10 h-5 rounded-full transition-colors shrink-0 ${webPurchasesEnabled ? 'bg-emerald-500' : 'bg-rose-500'}`}>
+            <div className={`w-4 h-4 rounded-full bg-white  transition-transform ${webPurchasesEnabled ? 'translate-x-5' : 'translate-x-0.5'}`} />
           </button>
         </div>
         <div className="rounded-lg border-none p-3 space-y-2">
@@ -453,7 +469,7 @@ export default function AdminSettingsPage() {
         </div>
 
         {msg && <p className={`text-xs font-bold ${msg === 'Settings saved!' ? 'text-emerald-400' : 'text-rose-400'}`}>{msg}</p>}
-        <Button onClick={handleSave} disabled={saving} className="text-sm font-bold gap-1.5">{saving ? <Loader2 weight="fill" className="h-4 w-4 animate-spin" /> : <FloppyDisk weight="fill" className="h-4 w-4" />} FloppyDisk Settings</Button>
+        <Button onClick={handleSave} disabled={saving} className="text-sm font-bold gap-1.5">{saving ? <Loader2 weight="fill" className="h-4 w-4 animate-spin" /> : <FloppyDisk weight="fill" className="h-4 w-4" />} Save Settings</Button>
       </div>
     </div>
   );

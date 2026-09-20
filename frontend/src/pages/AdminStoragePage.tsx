@@ -238,7 +238,7 @@ export default function AdminStoragePage() {
         <div className="flex justify-end">
           <Button type="button" onClick={save} disabled={saving} className="gap-2">
             {saving ? <Loader2 weight="fill" className="h-4 w-4 animate-spin" /> : <FloppyDisk weight="fill" className="h-4 w-4" />}
-            {saving ? "Saving..." : "FloppyDisk Configuration"}
+            {saving ? "Saving..." : "Save Configuration"}
           </Button>
         </div>
 

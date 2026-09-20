@@ -6,6 +6,7 @@ use App\Models\DepositTransaction;
 use App\Models\LedgerEntry;
 use App\Models\Wallet;
 use App\Services\Accounting\AccountingStreamService;
+use App\Services\PurchaseGate;
 use App\Services\Tax\TaxCalculationService;
 use App\Services\Wallet\FeeCalculatorService;
 use App\Services\Wallet\LedgerService;
@@ -74,6 +75,15 @@ class WalletController extends Controller
         ]);
 
         $user     = $request->user();
+
+        // Web purchases are togglable by admins; when disabled only the native
+        // app may top up a wallet.
+        if (app(PurchaseGate::class)->blocksWebPurchase($request)) {
+            return response()->json([
+                'message' => 'Purchases are currently only available in the MurihSpace app.',
+                'code' => 'WEB_PURCHASES_DISABLED',
+            ], 403);
+        }
 
         // Safety gate: direct deposits bypass the payment gateway.
         // Restrict to local/testing environments until the webhook confirmation

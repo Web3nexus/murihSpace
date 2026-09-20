@@ -17,6 +17,7 @@ export interface AuthMethodsPublic {
 export interface PlatformConfig {
   platform_name: string;
   web_disabled_roles: Array<"member" | "creator" | "vendor">;
+  web_purchases_enabled: boolean;
   app_download_url: string;
   app_qr_content: string;
   auth_methods: AuthMethodsPublic;
@@ -37,6 +38,7 @@ const DEFAULT_METHODS: AuthMethodsPublic = {
 const EMPTY: Omit<PlatformConfig, "loading"> = {
   platform_name: "MurihSpace",
   web_disabled_roles: [],
+  web_purchases_enabled: true,
   app_download_url: "https://apps.apple.com/app/murihspace",
   app_qr_content: "https://apps.apple.com/app/murihspace",
   auth_methods: DEFAULT_METHODS,
@@ -81,6 +83,7 @@ export function usePlatformConfig(): PlatformConfig {
         setCfg({
           platform_name: d.platform_name || EMPTY.platform_name,
           web_disabled_roles: Array.isArray(d.web_disabled_roles) ? d.web_disabled_roles : [],
+          web_purchases_enabled: typeof d.web_purchases_enabled === "boolean" ? d.web_purchases_enabled : true,
           app_download_url: d.app_download_url || EMPTY.app_download_url,
           app_qr_content: d.app_qr_content || d.app_download_url || EMPTY.app_qr_content,
           auth_methods: normalizeMethods(d.auth_methods),

@@ -345,7 +345,7 @@ export default function MarketingPage() {
                 <input value={cfName} onChange={(e) => setCfName(e.target.value)} required placeholder="e.g. Summer Special Offer" className="w-full rounded-lg border-none bg-background px-4 py-2.5 text-xs font-medium text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-[#2164b6] transition-colors" />
               </div>
               <div>
-                <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-1.5">Campaign TextT</label>
+                <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-1.5">Campaign Type</label>
                 <select value={cfType} onChange={(e) => setCfType(e.target.value)} className="w-full rounded-lg border-none bg-background px-4 py-2.5 text-xs font-medium text-foreground focus:outline-none focus:border-[#2164b6] transition-colors">
                   <option value="email">Email Campaign</option>
                   <option value="social">Social Media Post</option>

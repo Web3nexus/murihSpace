@@ -137,9 +137,9 @@ export default function AdminAiSettingsPage() {
         if (keys[p.id]?.trim()) body[`${p.id}_key`] = keys[p.id].trim();
         if (models[p.id]?.trim()) body[`${p.id}_model`] = models[p.id].trim();
       }
-      const res = await authFetch(`/securegate/ai-settings`, { method: "PUT", headers: authHeaders(), body: JSON.stringify(body) });
+      const res = await authFetch(`/securegate/ai-settings`, { method: "PUT", body: JSON.stringify(body) });
       const j = await res.json();
-      if (!res.ok) throw new Error(j?.message ?? "FloppyDisk failed");
+      if (!res.ok) throw new Error(j?.message ?? "Save failed");
       const d = j?.success ? j?.data?.data ?? j?.data : j;
       setProviders(d?.providers ?? providers);
       setProvider(d?.provider ?? provider);
@@ -157,7 +157,7 @@ export default function AdminAiSettingsPage() {
       setTestResult({});
       toast.success("AI settings saved.");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "FloppyDisk failed");
+      toast.error(e instanceof Error ? e.message : "Save failed");
     } finally {
       setSaving(false);
     }
@@ -169,7 +169,6 @@ export default function AdminAiSettingsPage() {
     try {
       const res = await authFetch(`/securegate/ai-settings/test`, {
         method: "POST",
-        headers: authHeaders(),
         body: JSON.stringify({ provider: id }),
       });
       const j = await res.json();
@@ -414,7 +413,7 @@ export default function AdminAiSettingsPage() {
       <div className="flex items-center gap-3">
         <Button onClick={save} disabled={saving} className="text-sm font-bold gap-1.5">
           {saving ? <Loader2 weight="fill" className="h-4 w-4 animate-spin" /> : <FloppyDisk weight="fill" className="h-4 w-4" />}
-          FloppyDisk AI settings
+          Save AI settings
         </Button>
         <p className="text-[11px] text-muted-foreground">
           Changing the active provider takes effect on the next AI request. Guardrails apply platform-wide.

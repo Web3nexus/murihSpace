@@ -337,7 +337,7 @@ export default function SecurityPage() {
             <div className="p-4 rounded-lg bg-amber-500/10 border border-amber-500/20 space-y-2">
               <p className="text-xs font-bold text-amber-600 dark:text-amber-400">Recovery Codes</p>
               <p className="text-[10px] text-amber-600/70 dark:text-amber-400/70">
-                FloppyDisk these codes in a secure place. Each code can be used once if you lose access to your authenticator app.
+                Save these codes in a secure place. Each code can be used once if you lose access to your authenticator app.
               </p>
               <div className="grid grid-cols-2 gap-1.5">
                 {tfaSetup.recovery_codes.map((code, i) => (

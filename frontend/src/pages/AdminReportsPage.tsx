@@ -165,9 +165,9 @@ export function AdminReportsPage() {
         ))}
       </div>
 
-      {/* TextT Faders */}
+      {/* Type Filters */}
       <div className="flex items-center gap-2">
-        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">TextT:</span>
+        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Type:</span>
         {typeTabs.map((t) => (
           <button
             key={t}

@@ -250,7 +250,7 @@ export default function StoreProductsPage() {
               <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Product title" required className="h-10 rounded-lg" />
             </div>
             <div className="space-y-1">
-              <label className="font-bold text-foreground uppercase tracking-wider">TextT</label>
+              <label className="font-bold text-foreground uppercase tracking-wider">Type</label>
               <select value={productType} onChange={(e) => setProductType(e.target.value as "digital" | "physical")} className="w-full rounded-lg border-none bg-card p-2.5 text-xs font-bold text-foreground">
                 <option value="digital">Digital Download</option>
                 <option value="physical">Physical Product</option>
@@ -312,7 +312,7 @@ export default function StoreProductsPage() {
             <table className="w-full text-xs">
               <thead className="bg-muted/30 border-b border-border font-bold text-muted-foreground uppercase tracking-wider">
                 <tr className="text-left">
-                  {["Product", "TextT", "Price", "Sales / Downloads", "Status", "Actions"].map((h) => (
+                  {["Product", "Type", "Price", "Sales / Downloads", "Status", "Actions"].map((h) => (
                     <th key={h} className="px-5 py-3.5">{h}</th>
                   ))}
                 </tr>

@@ -176,7 +176,7 @@ export default function AccessibilityPage() {
           onClick={applySettings}
           className="px-6 py-2 rounded-lg bg-secondary text-secondary-foreground text-xs font-bold hover:bg-secondary/90 transition-all "
         >
-          FloppyDisk Preferences
+          Save Preferences
         </button>
       </div>
     </div>

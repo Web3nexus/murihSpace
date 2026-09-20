@@ -176,7 +176,7 @@ export function CreateEventModal({ open, onClose, onCreated }: CreateEventModalP
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="event_type">TextT *</Label>
+              <Label htmlFor="event_type">Event Type *</Label>
               <Select
                 value={form.event_type}
                 onValueChange={(v) => setForm((f) => ({ ...f, event_type: v }))}

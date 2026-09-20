@@ -98,10 +98,17 @@ class PaymentInfrastructureSeeder extends Seeder
             ['provider_id' => $airwallex->id, 'capability' => 'refund', 'country' => '*', 'currency' => '*', 'status' => CapabilityStatus::Confirmed],
             ['provider_id' => $airwallex->id, 'capability' => 'mobile_money', 'country' => '*', 'currency' => '*', 'status' => CapabilityStatus::NotAvailable],
 
-            // Paddle Capabilities (Merchant of Record - digital, global cards)
+            // Paddle Capabilities (Merchant of Record - digital, global cards
+            // plus Apple Pay / Google Pay wallets presented by the hosted checkout)
             ['provider_id' => $paddle->id, 'capability' => 'card', 'country' => '*', 'currency' => 'USD', 'status' => CapabilityStatus::Confirmed],
             ['provider_id' => $paddle->id, 'capability' => 'card', 'country' => '*', 'currency' => 'EUR', 'status' => CapabilityStatus::Confirmed],
             ['provider_id' => $paddle->id, 'capability' => 'card', 'country' => '*', 'currency' => 'GBP', 'status' => CapabilityStatus::Confirmed],
+            ['provider_id' => $paddle->id, 'capability' => 'apple_pay', 'country' => '*', 'currency' => 'USD', 'status' => CapabilityStatus::Confirmed],
+            ['provider_id' => $paddle->id, 'capability' => 'apple_pay', 'country' => '*', 'currency' => 'EUR', 'status' => CapabilityStatus::Confirmed],
+            ['provider_id' => $paddle->id, 'capability' => 'apple_pay', 'country' => '*', 'currency' => 'GBP', 'status' => CapabilityStatus::Confirmed],
+            ['provider_id' => $paddle->id, 'capability' => 'google_pay', 'country' => '*', 'currency' => 'USD', 'status' => CapabilityStatus::Confirmed],
+            ['provider_id' => $paddle->id, 'capability' => 'google_pay', 'country' => '*', 'currency' => 'EUR', 'status' => CapabilityStatus::Confirmed],
+            ['provider_id' => $paddle->id, 'capability' => 'google_pay', 'country' => '*', 'currency' => 'GBP', 'status' => CapabilityStatus::Confirmed],
             ['provider_id' => $paddle->id, 'capability' => 'payout', 'country' => '*', 'currency' => '*', 'status' => CapabilityStatus::NotAvailable],
             ['provider_id' => $paddle->id, 'capability' => 'refund', 'country' => '*', 'currency' => '*', 'status' => CapabilityStatus::Confirmed],
         ];
@@ -200,41 +207,34 @@ class PaymentInfrastructureSeeder extends Seeder
                 'is_active' => true,
             ],
             // Paddle business routes: coins, gifts and wallet top-ups are collected
-            // by Paddle as Merchant of Record (handles VAT/GST itself).
-            [
-                'name' => 'Coin Packs & Custom Purchases via Paddle',
-                'transaction_type' => 'coin_pack',
-                'country_code' => '*',
-                'currency' => 'USD',
-                'payment_method' => 'card',
-                'primary_provider_id' => $paddle->id,
-                'fallback_provider_id' => null,
-                'priority' => 10,
-                'is_active' => true,
-            ],
-            [
-                'name' => 'Gifts via Paddle',
-                'transaction_type' => 'gift',
-                'country_code' => '*',
-                'currency' => 'USD',
-                'payment_method' => 'card',
-                'primary_provider_id' => $paddle->id,
-                'fallback_provider_id' => null,
-                'priority' => 10,
-                'is_active' => true,
-            ],
-            [
-                'name' => 'Wallet Top-ups via Paddle',
-                'transaction_type' => 'wallet_topup',
-                'country_code' => '*',
-                'currency' => 'USD',
-                'payment_method' => 'card',
-                'primary_provider_id' => $paddle->id,
-                'fallback_provider_id' => null,
-                'priority' => 10,
-                'is_active' => true,
-            ],
+            // by Paddle as Merchant of Record (handles VAT/GST itself). Card, Apple Pay
+            // and Google Pay are all presented by Paddle's hosted checkout, so each
+            // business type gets one route per wallet method (card stays the legacy
+            // route used before the wallet-method rollout).
         ];
+
+        $businessTypes = [
+            'coin_pack' => 'Coin Packs & Custom Purchases',
+            'gift' => 'Gifts',
+            'wallet_topup' => 'Wallet Top-ups',
+        ];
+        $businessMethods = ['card', 'apple_pay', 'google_pay'];
+
+        foreach ($businessTypes as $businessType => $businessLabel) {
+            foreach ($businessMethods as $businessMethod) {
+                $routes[] = [
+                    'name' => $businessLabel.' via Paddle'.($businessMethod === 'card' ? '' : ' ('.ucfirst(str_replace('_', '-', $businessMethod)).')'),
+                    'transaction_type' => $businessType,
+                    'country_code' => '*',
+                    'currency' => 'USD',
+                    'payment_method' => $businessMethod,
+                    'primary_provider_id' => $paddle->id,
+                    'fallback_provider_id' => null,
+                    'priority' => 10,
+                    'is_active' => true,
+                ];
+            }
+        }
 
         foreach ($routes as $route) {
             ProviderRoute::updateOrCreate(

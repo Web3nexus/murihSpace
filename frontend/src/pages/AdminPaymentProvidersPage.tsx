@@ -30,7 +30,6 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { authFetch } from '@/lib/api/authFetch';
-import { getAuthToken } from '@/lib/auth/token';
 
 interface ProviderCapability {
   id: number;
@@ -53,6 +52,7 @@ interface PaymentProvider {
   credential_status: 'Configured' | 'Not configured';
   has_credentials?: boolean;
   public_key_preview?: string | null;
+  handles_tax?: boolean;
   last_health_check_at: string | null;
   last_successful_request_at: string | null;
   last_failed_request_at: string | null;
@@ -83,14 +83,6 @@ interface PaymentStats {
   provider_distribution: Array<{ provider: string; count: number; total_amount: number }>;
 }
 
-const authHeaders = () => {
-  const token = getAuthToken();
-  return {
-    Accept: 'application/json',
-    'Content-Type': 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
-};
 
 export function AdminPaymentProvidersPage() {
   const [providers, setProviders] = useState<PaymentProvider[]>([]);
@@ -113,6 +105,10 @@ export function AdminPaymentProvidersPage() {
   const [providerClientId, setProviderClientId] = useState<string>('');
   const [providerApiKey, setProviderApiKey] = useState<string>('');
   const [providerWebhookSecret, setProviderWebhookSecret] = useState<string>('');
+  const [providerClientToken, setProviderClientToken] = useState<string>('');
+  const [providerVendorId, setProviderVendorId] = useState<string>('');
+  const [providerWebhookPublicKey, setProviderWebhookPublicKey] = useState<string>('');
+  const [providerHandlesTax, setProviderHandlesTax] = useState<boolean>(true);
   const [savingProvider, setSavingProvider] = useState(false);
 
   // New Route Modal state
@@ -141,9 +137,9 @@ export function AdminPaymentProvidersPage() {
     setActionMsg(null);
     try {
       const [resProv, resRoutes, resStats] = await Promise.all([
-        authFetch('/securegate/payment-providers', { headers: authHeaders() }),
-        authFetch('/securegate/payment-routes', { headers: authHeaders() }),
-        authFetch('/securegate/payments/stats', { headers: authHeaders() }).catch(() => null),
+        authFetch('/securegate/payment-providers'),
+        authFetch('/securegate/payment-routes'),
+        authFetch('/securegate/payments/stats').catch(() => null),
       ]);
 
       if (resProv.ok) {
@@ -177,7 +173,6 @@ export function AdminPaymentProvidersPage() {
     try {
       const res = await authFetch(`/securegate/payment-providers/${code}/test-connection`, {
         method: 'POST',
-        headers: authHeaders(),
       });
       const j = await res.json();
       if (res.ok && j.result?.status === 'healthy') {
@@ -198,7 +193,6 @@ export function AdminPaymentProvidersPage() {
     try {
       const res = await authFetch(`/securegate/payment-providers/${provider.code}`, {
         method: 'PUT',
-        headers: authHeaders(),
         body: JSON.stringify({
           is_enabled: nextState,
           reason: `Admin toggled provider ${provider.code} to ${nextState ? 'enabled' : 'disabled'}`,
@@ -223,7 +217,6 @@ export function AdminPaymentProvidersPage() {
     try {
       const res = await authFetch(`/securegate/payment-providers/${provider.code}`, {
         method: 'PUT',
-        headers: authHeaders(),
         body: JSON.stringify({
           environment: nextEnv,
           reason: `Admin switched environment to ${nextEnv}`,
@@ -247,17 +240,22 @@ export function AdminPaymentProvidersPage() {
       setProviderName(p.name);
       setProviderEnv(p.environment || 'sandbox');
       setProviderPriority(p.priority || 10);
+      setProviderHandlesTax(typeof p.handles_tax === 'boolean' ? p.handles_tax : true);
     } else {
       setEditingCode('paystack');
       setProviderName('Paystack Payments');
       setProviderEnv('sandbox');
       setProviderPriority(10);
+      setProviderHandlesTax(true);
     }
     setProviderPublicKey('');
     setProviderSecretKey('');
     setProviderClientId('');
     setProviderApiKey('');
     setProviderWebhookSecret('');
+    setProviderClientToken('');
+    setProviderVendorId('');
+    setProviderWebhookPublicKey('');
     setConfigModalOpen(true);
   };
 
@@ -278,10 +276,13 @@ export function AdminPaymentProvidersPage() {
       if (providerClientId) payload.client_id = providerClientId;
       if (providerApiKey) payload.api_key = providerApiKey;
       if (providerWebhookSecret) payload.webhook_secret = providerWebhookSecret;
+      if (providerClientToken) payload.client_token = providerClientToken;
+      if (providerVendorId) payload.vendor_id = providerVendorId;
+      if (providerWebhookPublicKey) payload.webhook_public_key = providerWebhookPublicKey;
+      payload.handles_tax = providerHandlesTax;
 
       const res = await authFetch('/securegate/payment-providers', {
         method: 'POST',
-        headers: authHeaders(),
         body: JSON.stringify(payload),
       });
 
@@ -310,7 +311,6 @@ export function AdminPaymentProvidersPage() {
     try {
       const res = await authFetch('/securegate/payment-routes', {
         method: 'POST',
-        headers: authHeaders(),
         body: JSON.stringify({
           name: routeName.trim(),
           transaction_type: routeTxType,
@@ -344,7 +344,6 @@ export function AdminPaymentProvidersPage() {
     try {
       const res = await authFetch(`/securegate/payment-routes/${id}`, {
         method: 'DELETE',
-        headers: authHeaders(),
       });
       if (res.ok) {
         setActionMsg({ ok: true, text: 'Routing rule deleted.' });
@@ -355,20 +354,25 @@ export function AdminPaymentProvidersPage() {
     }
   };
 
+  const businessTypes = new Set(['coin_pack', 'gift', 'wallet_topup']);
+
   const handleSimulate = async () => {
     setSimulating(true);
     setSimResult(null);
     try {
+      const payload: Record<string, unknown> = {
+        transaction_type: simType,
+        country: simCountry,
+        currency: simCurrency,
+        payment_method: simMethod,
+        amount: parseInt(simAmount, 10) || 500000,
+      };
+      if (businessTypes.has(simType)) {
+        payload.business_type = simType;
+      }
       const res = await authFetch('/securegate/payment-routes/simulate', {
         method: 'POST',
-        headers: authHeaders(),
-        body: JSON.stringify({
-          transaction_type: simType,
-          country: simCountry,
-          currency: simCurrency,
-          payment_method: simMethod,
-          amount: parseInt(simAmount, 10) || 500000,
-        }),
+        body: JSON.stringify(payload),
       });
       const j = await res.json();
       setSimResult(j);
@@ -633,6 +637,13 @@ export function AdminPaymentProvidersPage() {
                         </span>
                       </div>
 
+                      <div className="flex justify-between py-1 border-b border-border/50">
+                        <span className="text-muted-foreground">Handles Tax (MoR):</span>
+                        <span className={'font-semibold ' + (p.handles_tax ? 'text-emerald-500' : 'text-amber-500')}>
+                          {p.handles_tax === false ? 'No - Platform adds' : 'Yes - Provider remits'}
+                        </span>
+                      </div>
+
                       {p.public_key_preview && (
                         <div className="flex justify-between py-1 border-b border-border/50">
                           <span className="text-muted-foreground">Public Key:</span>
@@ -822,6 +833,9 @@ export function AdminPaymentProvidersPage() {
                 <option value="payment">Payment Collection (Checkout)</option>
                 <option value="payout">Creator Payout</option>
                 <option value="refund">Refund</option>
+                <option value="coin_pack">Coin Packs / Custom Coins</option>
+                <option value="gift">Gifts</option>
+                <option value="wallet_topup">Wallet Top-ups</option>
               </select>
             </div>
 
@@ -853,6 +867,8 @@ export function AdminPaymentProvidersPage() {
                 className="w-full bg-background border border-border rounded-lg p-2 text-xs"
               >
                 <option value="card">Card</option>
+                <option value="apple_pay">Apple Pay (WebKit)</option>
+                <option value="google_pay">Google Pay</option>
                 <option value="bank_transfer">Bank Transfer / Virtual Account</option>
                 <option value="mobile_money">Mobile Money (M-Pesa, MTN, etc.)</option>
               </select>
@@ -927,6 +943,7 @@ export function AdminPaymentProvidersPage() {
                   else if (code === 'flutterwave') setProviderName('Flutterwave for Business');
                   else if (code === 'airwallex') setProviderName('Airwallex Global Payments');
                   else if (code === 'stripe') setProviderName('Stripe Payments');
+                  else if (code === 'paddle') setProviderName('Paddle (Merchant of Record)');
                   else setProviderName('Custom Gateway');
                 }}
                 className="w-full bg-background border border-border rounded-lg p-2 text-xs"
@@ -935,6 +952,7 @@ export function AdminPaymentProvidersPage() {
                 <option value="flutterwave">Flutterwave (Pan-Africa / Mobile Money / Cards)</option>
                 <option value="airwallex">Airwallex (Global USD / EUR / GBP Multi-Currency)</option>
                 <option value="stripe">Stripe (Global Credit/Debit Cards)</option>
+                <option value="paddle">Paddle (Merchant of Record - Coins, Gifts & Top-ups)</option>
                 <option value="custom">Custom / Other Gateway</option>
               </select>
             </div>
@@ -1027,6 +1045,51 @@ export function AdminPaymentProvidersPage() {
               </>
             )}
 
+            {editingCode === 'paddle' && (
+              <>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="font-semibold block mb-1">Vendor ID</label>
+                    <Input
+                      value={providerVendorId}
+                      onChange={(e) => setProviderVendorId(e.target.value)}
+                      placeholder="Paddle vendor ID"
+                      className="h-8 text-xs font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="font-semibold block mb-1">Client Token</label>
+                    <Input
+                      value={providerClientToken}
+                      onChange={(e) => setProviderClientToken(e.target.value)}
+                      placeholder="Paddle client-side token"
+                      className="h-8 text-xs font-mono"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="font-semibold block mb-1">Paddle API Key (Server-to-Server)</label>
+                  <Input
+                    type="password"
+                    value={providerApiKey}
+                    onChange={(e) => setProviderApiKey(e.target.value)}
+                    placeholder="pdl_... or a sandbox API key"
+                    className="h-8 text-xs font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="font-semibold block mb-1">Webhook Public Key (Ed25519)</label>
+                  <Input
+                    type="password"
+                    value={providerWebhookPublicKey}
+                    onChange={(e) => setProviderWebhookPublicKey(e.target.value)}
+                    placeholder="Paste public key from Paddle dashboard"
+                    className="h-8 text-xs font-mono"
+                  />
+                </div>
+              </>
+            )}
+
             <div>
               <label className="font-semibold block mb-1">Webhook Secret (Optional)</label>
               <Input
@@ -1036,6 +1099,25 @@ export function AdminPaymentProvidersPage() {
                 placeholder="Secret used to sign webhook events"
                 className="h-8 text-xs font-mono"
               />
+            </div>
+
+            <div className="flex items-start gap-3 rounded-lg border border-border/60 bg-muted/20 p-3">
+              <input
+                id="handles_tax"
+                type="checkbox"
+                checked={providerHandlesTax}
+                onChange={(e) => setProviderHandlesTax(e.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-border"
+              />
+              <label htmlFor="handles_tax" className="text-xs space-y-1">
+                <span className="font-semibold block text-foreground">
+                  This provider collects & remits tax (Merchant of Record)
+                </span>
+                <span className="text-muted-foreground leading-relaxed">
+                  When enabled, the platform does not add its own VAT/GST on top. CloudCommerce coin packs, gifts and wallet
+                  top-ups sent through Paddle are always MoR-handled.
+                </span>
+              </label>
             </div>
           </div>
 
@@ -1090,6 +1172,10 @@ export function AdminPaymentProvidersPage() {
                   <option value="payment">Payment Collection</option>
                   <option value="payout">Creator Payout</option>
                   <option value="refund">Refund</option>
+                  <option value="coin_pack">Coin Packs / Custom Coins</option>
+                  <option value="gift">Gifts</option>
+                  <option value="wallet_topup">Wallet Top-ups</option>
+                  <option value="order">Commerce Orders</option>
                 </select>
               </div>
 
@@ -1124,6 +1210,8 @@ export function AdminPaymentProvidersPage() {
                 >
                   <option value="*">Any Method (*)</option>
                   <option value="card">Card Only</option>
+                  <option value="apple_pay">Apple Pay (WebKit)</option>
+                  <option value="google_pay">Google Pay</option>
                   <option value="bank_transfer">Bank Transfer</option>
                   <option value="mobile_money">Mobile Money</option>
                 </select>

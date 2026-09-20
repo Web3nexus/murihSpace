@@ -10,11 +10,13 @@ use App\Services\Payment\Contracts\CollectionProviderInterface;
 use App\Services\Payment\Exceptions\RoutingException;
 use App\Services\Payment\PaymentService;
 use App\Services\Payment\Router\ProviderRouter;
+use App\Services\PurchaseGate;
 use App\Services\Tax\TaxCalculationService;
 use App\Services\Wallet\LedgerService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class CoinPackController extends Controller
 {
@@ -24,6 +26,7 @@ class CoinPackController extends Controller
         private AccountingStreamService $accounting,
         private ProviderRouter $router,
         private PaymentService $paymentService,
+        private PurchaseGate $purchaseGate,
     ) {}
 
     /**
@@ -31,7 +34,7 @@ class CoinPackController extends Controller
      * (e.g. Paddle as Merchant of Record). Returns an async checkout payload or null
      * when no business route / usable provider exists (then the caller uses mock flow).
      */
-    private function startExternalCheckout(Request $request, string $businessType, array $data): ?array
+    private function startExternalCheckout(Request $request, string $businessType, array $data, string $paymentMethod = 'card'): ?array
     {
         $country = $data['country_code'] ?? $request->user()->country;
 
@@ -40,7 +43,7 @@ class CoinPackController extends Controller
                 transactionType: 'payment',
                 currency: 'USD',
                 country: $country,
-                paymentMethod: 'card',
+                paymentMethod: $paymentMethod,
                 amount: (int) $data['amount_minor'],
                 businessType: $businessType
             );
@@ -61,7 +64,7 @@ class CoinPackController extends Controller
                 'customer_email' => $request->user()->email,
                 'customer_name' => $request->user()->name,
                 'country' => $country,
-                'payment_method' => 'card',
+                'payment_method' => $paymentMethod,
                 'transaction_type' => $businessType,
                 'idempotency_key' => $data['reference'],
                 'return_url' => $data['return_url'] ?? null,
@@ -219,7 +222,15 @@ class CoinPackController extends Controller
             'coin_pack_id' => ['required', 'integer', 'exists:coin_packs,id'],
             'reference' => ['nullable', 'string', 'max:64'],
             'country_code' => ['nullable', 'string', 'max:3', 'alpha'],
+            'payment_method' => ['nullable', 'string', Rule::in(['card', 'apple_pay', 'google_pay'])],
         ]);
+
+        if ($this->purchaseGate->blocksWebPurchase($request)) {
+            return response()->json([
+                'message' => 'Purchases are currently only available in the MurihSpace app.',
+                'code' => 'WEB_PURCHASES_DISABLED',
+            ], 403);
+        }
 
         $pack = CoinPack::findOrFail($validated['coin_pack_id']);
 
@@ -244,6 +255,7 @@ class CoinPackController extends Controller
             'metadata' => [
                 'coin_pack_id' => $pack->id,
                 'coin_pack_type' => 'pack',
+                'payment_method' => $validated['payment_method'] ?? 'card',
                 'amount_usd_minor' => (int) $pack->price,
                 'tax' => 0,
                 'total_charged' => (int) $pack->price,
@@ -251,7 +263,7 @@ class CoinPackController extends Controller
                 'tax_type' => 'provider_handled',
                 'coin_conversion_rate' => self::coinConversionRate(),
             ],
-        ]);
+        ], $validated['payment_method'] ?? 'card');
 
         if ($async !== null) {
             return response()->json($async, 202);
@@ -311,7 +323,15 @@ class CoinPackController extends Controller
             'amount_minor' => ['nullable', 'integer', 'min:1'],
             'reference' => ['nullable', 'string', 'max:64'],
             'country_code' => ['nullable', 'string', 'max:3', 'alpha'],
+            'payment_method' => ['nullable', 'string', Rule::in(['card', 'apple_pay', 'google_pay'])],
         ]);
+
+        if ($this->purchaseGate->blocksWebPurchase($request)) {
+            return response()->json([
+                'message' => 'Purchases are currently only available in the MurihSpace app.',
+                'code' => 'WEB_PURCHASES_DISABLED',
+            ], 403);
+        }
 
         $amountMinor = isset($validated['amount_minor']) && $validated['amount_minor'] > 0
             ? (int) $validated['amount_minor']
@@ -349,6 +369,7 @@ class CoinPackController extends Controller
             'return_url' => $request->input('return_url'),
             'metadata' => [
                 'coin_custom' => true,
+                'payment_method' => $validated['payment_method'] ?? 'card',
                 'amount_usd_minor' => $amountMinor,
                 'tax' => 0,
                 'total_charged' => $amountMinor,
@@ -356,7 +377,7 @@ class CoinPackController extends Controller
                 'tax_type' => 'provider_handled',
                 'coin_conversion_rate' => $coinRate,
             ],
-        ]);
+        ], $validated['payment_method'] ?? 'card');
 
         if ($async !== null) {
             return response()->json($async, 202);
@@ -440,6 +461,8 @@ class CoinPackController extends Controller
             'badge' => ['nullable', 'string', 'max:100'],
             'is_active' => ['nullable', 'boolean'],
             'sort_order' => ['nullable', 'integer', 'min:0'],
+            'store_product_ios' => ['nullable', 'string', 'max:191'],
+            'store_product_android' => ['nullable', 'string', 'max:191'],
         ]);
 
         $pack = CoinPack::create($validated);
@@ -459,6 +482,8 @@ class CoinPackController extends Controller
             'badge' => ['nullable', 'string', 'max:100'],
             'is_active' => ['sometimes', 'boolean'],
             'sort_order' => ['nullable', 'integer', 'min:0'],
+            'store_product_ios' => ['nullable', 'string', 'max:191'],
+            'store_product_android' => ['nullable', 'string', 'max:191'],
         ]);
 
         $pack->update($validated);

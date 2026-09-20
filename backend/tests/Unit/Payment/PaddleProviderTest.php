@@ -177,4 +177,15 @@ class PaddleProviderTest extends TestCase
         $this->assertFalse($provider->supports('card', 'NGN'));
         $this->assertSame(['USD', 'EUR', 'GBP'], $provider->supportedCurrencies());
     }
+
+    public function test_supports_apple_pay_and_google_pay_wallets(): void
+    {
+        $provider = new PaddleProvider();
+
+        $this->assertTrue($provider->supports('apple_pay', 'USD'));
+        $this->assertTrue($provider->supports('apple_pay', 'EUR'));
+        $this->assertTrue($provider->supports('google_pay', 'GBP'));
+        $this->assertFalse($provider->supports('apple_pay', 'NGN'));
+        $this->assertFalse($provider->supports('bank_transfer', 'USD'));
+    }
 }

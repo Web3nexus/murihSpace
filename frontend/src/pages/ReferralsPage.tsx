@@ -247,7 +247,7 @@ export function ReferralsPage() {
             <form onSubmit={saveProgram} className="space-y-6 max-w-3xl">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-sm font-bold text-foreground">Reward TextT</label>
+                  <label className="text-sm font-bold text-foreground">Reward Type</label>
                   <div className="relative">
                     <select 
                       value={program?.reward_type ?? 'percentage'}
@@ -313,7 +313,7 @@ export function ReferralsPage() {
                   className="px-8 py-3 rounded-lg bg-gradient-to-r from-[#2164b6] to-[#1a5091] text-white text-sm font-bold hover:shadow-lg hover:shadow-[#2164b6]/25 transition-all duration-300 disabled:opacity-50 hover:-translate-y-0.5 active:translate-y-0 flex items-center gap-2"
                 >
                   {saving ? <Loader2 weight="fill" className="h-4 w-4 animate-spin" /> : <Check weight="fill" className="h-4 w-4" />} 
-                  FloppyDisk Configuration
+                  Save Configuration
                 </button>
               </div>
             </form>

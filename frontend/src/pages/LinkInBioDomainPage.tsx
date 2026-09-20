@@ -142,7 +142,7 @@ export default function LinkInBioDomainPage() {
           <table className="w-full text-xs">
             <thead>
               <tr className="text-left border-b border-border">
-                <th className="pb-2 font-bold text-muted-foreground">TextT</th>
+                <th className="pb-2 font-bold text-muted-foreground">Type</th>
                 <th className="pb-2 font-bold text-muted-foreground">Name</th>
                 <th className="pb-2 font-bold text-muted-foreground">Value</th>
               </tr>

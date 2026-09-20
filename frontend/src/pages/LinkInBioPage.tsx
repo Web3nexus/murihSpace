@@ -665,7 +665,7 @@ export default function LinkInBioPage() {
                       </div>
                     </div>
                     <div>
-                      <label className="text-[10px] font-bold text-muted-foreground">TextT</label>
+                      <label className="text-[10px] font-bold text-muted-foreground">Product Type</label>
                       <div className="flex gap-1">
                         <button type="button" onClick={() => setProdType("digital")} className={`flex-1 px-2 py-1.5 rounded-lg text-[10px] font-bold ${prodType === "digital" ? "bg-[#2164b6] text-white" : "bg-muted text-muted-foreground"}`}>Digital</button>
                         <button type="button" onClick={() => setProdType("physical")} className={`flex-1 px-2 py-1.5 rounded-lg text-[10px] font-bold ${prodType === "physical" ? "bg-[#2164b6] text-white" : "bg-muted text-muted-foreground"}`}>Physical</button>

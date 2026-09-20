@@ -416,10 +416,10 @@ export function UpgradeAccountPage() {
         </div>
       </div>
 
-      {/* Role ClockCounterClockwise */}
+      {/* Role History */}
       {history.length > 0 && (
         <div className="rounded-lg border-none bg-card p-4 space-y-4">
-          <h3 className="font-semibold text-base text-foreground">Application ClockCounterClockwise</h3>
+          <h3 className="font-semibold text-base text-foreground">Application History</h3>
           <div className="divide-y divide-border rounded-lg border-none overflow-hidden">
             {history.map((record) => (
               <div key={record.id} className="flex items-center justify-between p-4 text-sm bg-background/30">

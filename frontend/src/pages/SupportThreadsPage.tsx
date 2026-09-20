@@ -638,7 +638,7 @@ export default function SupportThreadsPage() {
                     <Input
                       value={newMsg}
                       onChange={(e) => setNewMsg(e.target.value)}
-                      placeholder="TextT a reply..."
+                      placeholder="Type a reply..."
                       className="flex-1 text-xs"
                       onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && sendMessage()}
                     />

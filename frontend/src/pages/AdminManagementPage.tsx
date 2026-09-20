@@ -518,7 +518,7 @@ export function AdminManagementPage() {
 
               <div className="flex items-center gap-2 pt-1">
                 <Button type="submit" disabled={saving} className="bg-[#2164b6] hover:bg-[#2d94c2] text-white font-bold text-sm">
-                  {saving ? <Loader2 weight="fill" className="h-4 w-4 animate-spin" /> : <CheckCircle2 weight="fill" className="h-4 w-4" />} FloppyDisk Changes
+                  {saving ? <Loader2 weight="fill" className="h-4 w-4 animate-spin" /> : <CheckCircle2 weight="fill" className="h-4 w-4" />} Save Changes
                 </Button>
                 <Button type="button" variant="outline" onClick={() => setEditing(null)}>Cancel</Button>
               </div>

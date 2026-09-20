@@ -123,9 +123,9 @@ export default function AdminSocialLoginSettingsPage() {
         }
         (body.providers as Record<string, unknown>)[p.id] = entry;
       }
-      const res = await authFetch(`/securegate/social-login`, { method: "PUT", headers: authHeaders(), body: JSON.stringify(body) });
+      const res = await authFetch(`/securegate/social-login`, { method: "PUT", body: JSON.stringify(body) });
       const j = await res.json();
-      if (!res.ok) throw new Error(j?.message ?? "FloppyDisk failed");
+      if (!res.ok) throw new Error(j?.message ?? "Save failed");
       const d = j?.success ? j?.data?.data ?? j?.data : j;
       setProviders(d?.providers ?? providers);
       setForms((prev) => {
@@ -137,7 +137,7 @@ export default function AdminSocialLoginSettingsPage() {
       });
       toast.success("Social login settings saved.");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "FloppyDisk failed");
+      toast.error(e instanceof Error ? e.message : "Save failed");
     } finally {
       setSaving(false);
     }
@@ -314,7 +314,7 @@ export default function AdminSocialLoginSettingsPage() {
       <div className="flex items-center gap-3">
         <Button onClick={save} disabled={saving} className="text-sm font-bold gap-1.5">
           {saving ? <Loader2 weight="fill" className="h-4 w-4 animate-spin" /> : <FloppyDisk weight="fill" className="h-4 w-4" />}
-          FloppyDisk social login settings
+          Save social login settings
         </Button>
         <p className="text-[11px] text-muted-foreground flex items-center gap-1">
           <AlertCircle weight="fill" className="h-3.5 w-3.5" /> Configuring a provider enables its sign-in button on the auth screens.

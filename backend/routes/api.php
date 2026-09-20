@@ -56,6 +56,8 @@ use App\Http\Controllers\ChatSettingsController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\CoachingBookingController;
 use App\Http\Controllers\CoachingServiceController;
+use App\Http\Controllers\NativeStoreController;
+use App\Http\Controllers\NativeStoreWebhookController;
 use App\Http\Controllers\CoinPackController;
 use App\Http\Controllers\CommunityController;
 use App\Http\Controllers\ContentItemController;
@@ -186,6 +188,10 @@ Route::prefix('v1')->group(function () {
     Route::post('/webhooks/paystack', [PaymentWebhookController::class, 'paystack'])->middleware('throttle:60,1');
     Route::post('/webhooks/flutterwave', [PaymentWebhookController::class, 'flutterwave'])->middleware('throttle:60,1');
     Route::post('/webhooks/paddle', [PaymentWebhookController::class, 'paddle'])->middleware('throttle:60,1');
+
+    // App Store / Google Play server notifications (refund/revoke reconciliation)
+    Route::post('/webhooks/apple-store', [NativeStoreWebhookController::class, 'apple'])->middleware('throttle:120,1');
+    Route::post('/webhooks/google-play', [NativeStoreWebhookController::class, 'google'])->middleware('throttle:120,1');
 
     // Internal Services Accounting Synchronization (web/ads-backend -> web/backend)
     Route::post('/internal/accounting/sync-ad-revenue', [InternalAccountingSyncController::class, 'syncAdRevenue'])->middleware('throttle:120,1');
@@ -964,6 +970,8 @@ Route::prefix('v1')->group(function () {
             Route::post('/purchase-estimate', [CoinPackController::class, 'estimate']);
             Route::post('/purchase', [CoinPackController::class, 'purchase']);
             Route::post('/purchase-custom', [CoinPackController::class, 'purchaseCustom']);
+            Route::post('/native-intent', [NativeStoreController::class, 'intent']);
+            Route::post('/native-verify', [NativeStoreController::class, 'verify']);
             Route::get('/purchases', [CoinPackController::class, 'purchases']);
         });
 

@@ -87,7 +87,7 @@ export function StoreManagementPage() {
       const res = await authFetch(`/storefront`, {
         method: 'PUT',
         headers: {
-          'Content-TextT': 'application/json',
+          'Content-Type': 'application/json',
           Accept: 'application/json',
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
@@ -124,7 +124,7 @@ export function StoreManagementPage() {
       const res = await authFetch(`/storefront/publish`, {
         method: 'POST',
         headers: {
-          'Content-TextT': 'application/json',
+          'Content-Type': 'application/json',
           Accept: 'application/json',
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },

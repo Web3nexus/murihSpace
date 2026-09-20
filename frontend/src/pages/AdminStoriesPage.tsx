@@ -165,7 +165,7 @@ export default function AdminStoriesPage() {
           className="px-5 py-2 rounded-lg bg-[#2164b6] hover:bg-[#1a5091] disabled:opacity-50 text-white font-bold text-xs transition-colors flex items-center gap-1.5 "
         >
           {saving ? <Loader2 weight="fill" className="h-3.5 w-3.5 animate-spin" /> : <FloppyDisk weight="fill" className="h-3.5 w-3.5" />}
-          FloppyDisk Changes
+          Save Changes
         </button>
       </div>
     </AnimatedPage>

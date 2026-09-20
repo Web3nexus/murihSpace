@@ -167,7 +167,7 @@ export default function AdminAlgorithmPage() {
       {tab === "weights" && (
         <div>
           <div className="flex items-center gap-3 mb-4">
-            <label className="text-sm font-medium">Feed TextT:</label>
+            <label className="text-sm font-medium">Feed Type:</label>
             <select value={feedType} onChange={e => setFeedType(e.target.value)} className="border rounded-lg px-3 py-1.5 text-sm">
               {FEED_TYPES.map(ft => <option key={ft} value={ft}>{ft.charAt(0).toUpperCase() + ft.slice(1)}</option>)}
             </select>
@@ -236,7 +236,7 @@ export default function AdminAlgorithmPage() {
           {showBoostForm && (
             <form onSubmit={handleCreateBoost} className="bg-white border rounded-lg p-4 mb-4 space-y-3">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <Input placeholder="Boostable TextT (e.g. posts)" value={boostForm.boostable_type} onChange={e => setBoostForm(f => ({ ...f, boostable_type: e.target.value }))} required />
+                <Input placeholder="Boostable Type (e.g. posts)" value={boostForm.boostable_type} onChange={e => setBoostForm(f => ({ ...f, boostable_type: e.target.value }))} required />
                 <Input type="number" placeholder="Boostable ID" value={boostForm.boostable_id} onChange={e => setBoostForm(f => ({ ...f, boostable_id: e.target.value }))} required />
                 <Input type="number" step="0.1" placeholder="Factor (e.g. 2)" value={boostForm.boost_factor} onChange={e => setBoostForm(f => ({ ...f, boost_factor: e.target.value }))} required />
                 <Input type="date" value={boostForm.ends_at} onChange={e => setBoostForm(f => ({ ...f, ends_at: e.target.value }))} />

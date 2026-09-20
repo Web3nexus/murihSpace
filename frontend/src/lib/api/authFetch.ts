@@ -7,6 +7,7 @@ export function getAuthHeaders() {
   return {
     'Content-Type': 'application/json',
     Accept: 'application/json',
+    'X-Client-Platform': 'web',
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
   };
 }
@@ -30,11 +31,24 @@ export async function authFetch(path: string, options: RequestInit = {}): Promis
     headers.set('Accept', 'application/json');
   }
   
+  // Inject all requests with the client platform so the backend can enforce
+  // "app-only" purchase toggles (web dashboards are tagged `web`, native apps `app`).
+  if (!headers.has('X-Client-Platform')) {
+    headers.set('X-Client-Platform', 'web');
+  }
+
   // Inject Auth Token (prefer admin token for securegate admin routes)
   const isAdminEndpoint = path.includes('/securegate') || path.startsWith('securegate');
-  const token = isAdminEndpoint ? (getAdminToken() || getAuthToken()) : getAuthToken();
-  if (token && !headers.has('Authorization')) {
-    headers.set('Authorization', `Bearer ${token}`);
+  const adminToken = getAdminToken();
+  if (isAdminEndpoint && adminToken) {
+    // For admin endpoints, always enforce the admin session token even if a
+    // caller mistakenly passed a regular user token via manual headers
+    headers.set('Authorization', `Bearer ${adminToken}`);
+  } else if (!headers.has('Authorization')) {
+    const token = isAdminEndpoint ? (adminToken || getAuthToken()) : getAuthToken();
+    if (token) {
+      headers.set('Authorization', `Bearer ${token}`);
+    }
   }
   
   return fetch(url, {

@@ -125,13 +125,13 @@ export default function AdminAuthMethodsPage() {
           display_order: config.methods[k].display_order,
         };
       }
-      const res = await authFetch(`/securegate/auth/methods`, { method: "PUT", headers: authHeaders(), body: JSON.stringify(body) });
+      const res = await authFetch(`/securegate/auth/methods`, { method: "PUT", body: JSON.stringify(body) });
       const j = await res.json();
       if (!res.ok) {
         const errors = j?.errors;
         const msg = errors && typeof errors === "object"
-          ? (Object.values(errors as Record<string, string[]>).flat()[0] ?? j?.message ?? "FloppyDisk failed")
-          : (j?.message ?? "FloppyDisk failed");
+          ? (Object.values(errors as Record<string, string[]>).flat()[0] ?? j?.message ?? "Save failed")
+          : (j?.message ?? "Save failed");
         throw new Error(msg);
       }
       const d = j?.success ? j?.data?.data ?? j?.data : j;
@@ -139,7 +139,7 @@ export default function AdminAuthMethodsPage() {
       setDirty(false);
       toast.success("Authentication methods saved.");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "FloppyDisk failed");
+      toast.error(e instanceof Error ? e.message : "Save failed");
     } finally {
       setSaving(false);
     }
@@ -253,7 +253,7 @@ export default function AdminAuthMethodsPage() {
       <div className="flex items-center gap-3">
         <Button onClick={save} disabled={saving || !dirty} className="text-sm font-bold gap-1.5">
           {saving ? <Loader2 weight="fill" className="h-4 w-4 animate-spin" /> : <FloppyDisk weight="fill" className="h-4 w-4" />}
-          FloppyDisk changes
+          Save changes
         </Button>
         {!dirty && <p className="text-[11px] text-muted-foreground flex items-center gap-1"><CheckCircle2 weight="fill" className="h-3.5 w-3.5" /> All changes saved</p>}
       </div>

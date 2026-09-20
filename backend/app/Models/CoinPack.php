@@ -13,6 +13,7 @@ class CoinPack extends Model
     protected $fillable = [
         'name', 'coins', 'bonus_coins', 'price', 'currency',
         'badge', 'is_active', 'sort_order',
+        'store_product_ios', 'store_product_android',
     ];
 
     protected $casts = [

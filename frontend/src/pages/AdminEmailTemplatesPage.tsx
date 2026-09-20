@@ -88,9 +88,8 @@ export default function AdminEmailTemplatesPage() {
     if (!draft || !selectedKey) return;
     setSaving(true);
     try {
-      const res = await authFetch(`/securegate/email-templates/${selectedKey}`, {
+      const res = await authFetch(`/securegate/email-templates/${draft.key}`, {
         method: "PUT",
-        headers: authHeaders(),
         body: JSON.stringify({
           name: draft.name,
           description: draft.description,
@@ -100,12 +99,12 @@ export default function AdminEmailTemplatesPage() {
         }),
       });
       const j = await res.json();
-      if (!res.ok) throw new Error(j?.message ?? "FloppyDisk failed");
+      if (!res.ok) throw new Error(j?.message ?? "Save failed");
       const updated = unwrap<EmailTemplate>(j);
       setTemplates((prev) => prev.map((t) => (t.key === updated.key ? updated : t)));
       toast.success("Email template saved.");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "FloppyDisk failed");
+      toast.error(e instanceof Error ? e.message : "Save failed");
     } finally {
       setSaving(false);
     }
@@ -235,7 +234,7 @@ export default function AdminEmailTemplatesPage() {
             <div className="flex items-center gap-3 flex-wrap">
               <Button onClick={save} disabled={saving} className="text-sm font-bold gap-1.5">
                 {saving ? <Loader2 weight="fill" className="h-4 w-4 animate-spin" /> : <FloppyDisk weight="fill" className="h-4 w-4" />}
-                FloppyDisk template
+                Save template
               </Button>
               <Button
                 variant="outline"

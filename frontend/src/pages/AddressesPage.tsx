@@ -186,7 +186,7 @@ export function AddressesPage() {
               </select>
             </div>
             <div>
-              <label className="block text-sm text-muted-foreground mb-1">TextT</label>
+              <label className="block text-sm text-muted-foreground mb-1">Address Type</label>
               <select value={form.type} onChange={e => setForm(p => ({ ...p, type: e.target.value }))}
                 className="w-full rounded-lg border-border bg-card px-3 py-2 text-sm text-foreground">
                 <option value="both">Shipping & Billing</option>

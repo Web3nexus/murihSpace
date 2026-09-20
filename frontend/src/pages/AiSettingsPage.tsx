@@ -135,7 +135,7 @@ export default function AiSettingsPage() {
               </p>
             </section>
 
-            {/* FloppyDisk */}
+            {/* Save */}
             <div className="flex items-center gap-3">
               <button
                 onClick={save}
@@ -143,7 +143,7 @@ export default function AiSettingsPage() {
                 className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-gradient-to-r from-[#2164b6] to-[#1a5091] text-white text-sm font-bold hover:from-[#1a5091] hover:to-[#154074] disabled:opacity-50 transition-all  hover: hover:shadow-[#2164b6]/20"
               >
                 {saving ? <Loader2 weight="fill" className="h-4 w-4 animate-spin" /> : <FloppyDisk weight="fill" className="h-4 w-4" />}
-                FloppyDisk behavior
+                Save behavior
               </button>
               {status && (
                 <span

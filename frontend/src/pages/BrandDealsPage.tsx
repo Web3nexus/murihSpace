@@ -192,7 +192,7 @@ export function BrandDealsPage() {
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold text-foreground">Deal TextT</Label>
+              <Label className="text-xs font-semibold text-foreground">Deal Type</Label>
               <Select value={form.deal_type} onValueChange={v => setForm({ ...form, deal_type: v })}>
                 <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
                 <SelectContent>

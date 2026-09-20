@@ -160,7 +160,7 @@ export default function ContentStudioPage() {
               <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="My content title" required />
             </div>
             <div className="space-y-2">
-              <label className="text-xs font-bold text-muted-foreground">TextT</label>
+              <label className="text-xs font-bold text-muted-foreground">Content Type</label>
               <select value={contentType} onChange={(e) => setContentType(e.target.value as ContentItem["type"])} className="w-full rounded-lg border-none bg-card p-2.5 text-sm font-medium text-foreground">
                 <option value="video">Video</option>
                 <option value="article">Article</option>

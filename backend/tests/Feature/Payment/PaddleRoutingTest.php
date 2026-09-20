@@ -179,4 +179,69 @@ class PaddleRoutingTest extends TestCase
         $resolved = $router->resolve('payment', 'NGN', 'NG', 'card', 5000, 'wallet_topup');
         $this->assertSame('paystack', $resolved->providerCode());
     }
+
+    public function test_apple_pay_and_google_pay_wallet_routes_resolve_to_paddle_for_business_types(): void
+    {
+        $paddle = $this->provider('paddle');
+        foreach (['card', 'apple_pay', 'google_pay'] as $method) {
+            $this->capability($paddle, $method, 'USD');
+        }
+
+        foreach (['coin_pack', 'gift', 'wallet_topup'] as $i => $businessType) {
+            ProviderRoute::create([
+                'name' => "{$businessType} via Paddle (Apple Pay)",
+                'transaction_type' => $businessType,
+                'country_code' => '*',
+                'currency' => 'USD',
+                'payment_method' => 'apple_pay',
+                'primary_provider_id' => $paddle->id,
+                'fallback_provider_id' => null,
+                'priority' => 10,
+                'is_active' => true,
+            ]);
+        }
+
+        $router = $this->router(
+            $this->availableMock('paddle'),
+            null,
+            null
+        );
+
+        $apple = $router->resolve('payment', 'USD', null, 'apple_pay', 2500, 'coin_pack');
+        $this->assertSame('paddle', $apple->providerCode());
+
+        $google = $router->resolve('payment', 'USD', 'US', 'google_pay', 2500, 'gift');
+        $this->assertSame('paddle', $google->providerCode());
+    }
+
+    public function test_seeded_business_routes_cover_card_apple_pay_and_google_pay(): void
+    {
+        $this->seed(\Database\Seeders\PaymentInfrastructureSeeder::class);
+
+        foreach (['coin_pack', 'gift', 'wallet_topup'] as $businessType) {
+            foreach (['card', 'apple_pay', 'google_pay'] as $method) {
+                $this->assertDatabaseHas('provider_routes', [
+                    'transaction_type' => $businessType,
+                    'payment_method' => $method,
+                ]);
+
+                $route = ProviderRoute::where('transaction_type', $businessType)
+                    ->where('payment_method', $method)
+                    ->first();
+
+                $this->assertSame('paddle', $route->primaryProvider->code);
+            }
+        }
+
+        $this->assertDatabaseHas('provider_capabilities', [
+            'capability' => 'apple_pay',
+            'currency' => 'USD',
+            'status' => CapabilityStatus::Confirmed,
+        ]);
+        $this->assertDatabaseHas('provider_capabilities', [
+            'capability' => 'google_pay',
+            'currency' => 'GBP',
+            'status' => CapabilityStatus::Confirmed,
+        ]);
+    }
 }

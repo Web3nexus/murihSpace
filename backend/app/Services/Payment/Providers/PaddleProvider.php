@@ -321,8 +321,10 @@ class PaddleProvider implements CollectionProviderInterface, ProviderWebhookInte
 
     public function supports(string $capability, string $currency, ?string $country = null): bool
     {
+        // The hosted checkout presents card, Apple Pay (WebKit) and Google Pay
+        // wallets itself, so all three collect capabilities are supported.
         return in_array(strtoupper($currency), ['USD', 'EUR', 'GBP'])
-            && in_array($capability, ['card', 'wallet']);
+            && in_array($capability, ['card', 'apple_pay', 'google_pay', 'wallet']);
     }
 
     public function supportedCurrencies(): array

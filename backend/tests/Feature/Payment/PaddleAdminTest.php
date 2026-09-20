@@ -114,12 +114,12 @@ class PaddleAdminTest extends TestCase
         AdminSetting::set('charge_vat', true);
 
         $show = $this->actingAs($this->adminUser)->getJson('/api/v1/securegate/settings');
-        $show->assertOk()->assertJsonPath('data.charge_vat', true);
+        $show->assertOk()->assertJsonPath('data.data.charge_vat', true);
 
         $update = $this->actingAs($this->adminUser)->putJson('/api/v1/securegate/settings', [
             'charge_vat' => false,
         ]);
-        $update->assertOk()->assertJsonPath('data.charge_vat', false);
+        $update->assertOk()->assertJsonPath('data.data.charge_vat', false);
 
         $this->assertFalse((bool) AdminSetting::get('charge_vat', true));
     }

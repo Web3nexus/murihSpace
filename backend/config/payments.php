@@ -68,6 +68,44 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Native Store (In-App Purchase) Billing
+    |--------------------------------------------------------------------------
+    | In-app purchases are verified server-to-server against the app stores and
+    | NEVER route through an online payment provider (Paddle has no role here):
+    |   - Apple: App Store receipt validation (verifyReceipt) with sandbox fallback.
+    |   - Google: Play Developer API (androidpublisher) purchases.products.get.
+    | Coin packs map to a store product id: pack->store_product_<platform> or
+    | the configured prefix + total coins (e.g. com.murihspace.coins.275).
+    */
+    'stores' => [
+        'product_prefix' => env('NATIVE_STORE_PRODUCT_PREFIX', 'com.murihspace.coins.'),
+
+        'apple' => [
+            'enabled' => (bool) env('APPLE_STORE_ENABLED', false),
+            'environment' => env('APPLE_STORE_ENV', 'sandbox'), // sandbox or production
+            'bundle_id' => env('APPLE_STORE_BUNDLE_ID', 'com.murihspace.app'),
+            'shared_secret' => env('APPLE_STORE_SHARED_SECRET'), // App Store Connect shared secret (verifyReceipt)
+            'verify_receipt_url' => 'https://buy.itunes.apple.com/verifyReceipt',
+            'verify_receipt_sandbox_url' => 'https://sandbox.itunes.apple.com/verifyReceipt',
+            'webhook_token' => env('APPLE_WEBHOOK_TOKEN'),
+            'timeout' => (int) env('APPLE_STORE_TIMEOUT', 30),
+        ],
+
+        'google' => [
+            'enabled' => (bool) env('GOOGLE_PLAY_ENABLED', false),
+            'package_name' => env('GOOGLE_PLAY_PACKAGE_NAME', 'com.murihspace.app'),
+            'client_email' => env('GOOGLE_PLAY_CLIENT_EMAIL'),
+            'private_key' => env('GOOGLE_PLAY_PRIVATE_KEY'), // escaped PEM, or path via service_account_json
+            'service_account_json' => env('GOOGLE_PLAY_SERVICE_ACCOUNT_JSON'), // path or inline JSON
+            'token_url' => 'https://oauth2.googleapis.com/token',
+            'publisher_api_base' => 'https://androidpublisher.googleapis.com/androidpublisher/v3',
+            'webhook_token' => env('GOOGLE_PLAY_WEBHOOK_TOKEN'),
+            'timeout' => (int) env('GOOGLE_PLAY_TIMEOUT', 30),
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Webhooks & Security
     |--------------------------------------------------------------------------
     */

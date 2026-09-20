@@ -31,6 +31,8 @@ interface CoinPack {
   badge: string | null;
   is_active: boolean;
   sort_order: number;
+  store_product_ios?: string | null;
+  store_product_android?: string | null;
 }
 
 function safeArray<T = any>(val: any): T[] {
@@ -51,7 +53,7 @@ export default function AdminCoinPacksPage() {
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
-  const [form, setForm] = useState({ name: "", coins: "", bonus_coins: "", price: "", currency: "NGN", badge: "", sort_order: "" });
+  const [form, setForm] = useState({ name: "", coins: "", bonus_coins: "", price: "", currency: "USD", badge: "", sort_order: "", store_product_ios: "", store_product_android: "" });
 
   const [rate, setRate] = useState<string>("10");
   const [rateSavable, setRateSavable] = useState<boolean>(false);
@@ -86,7 +88,7 @@ export default function AdminCoinPacksPage() {
     fetchPacks(Boolean(getCachedData(CACHE_KEY_ADMIN_PACKS)));
   }, [fetchPacks]);
 
-  const resetForm = () => setForm({ name: "", coins: "", bonus_coins: "", price: "", currency: "NGN", badge: "", sort_order: "" });
+  const resetForm = () => setForm({ name: "", coins: "", bonus_coins: "", price: "", currency: "USD", badge: "", sort_order: "", store_product_ios: "", store_product_android: "" });
 
   const handleSaveRate = async () => {
     setRateSaving(true); setMsg(null);
@@ -146,7 +148,7 @@ export default function AdminCoinPacksPage() {
   };
 
   const handleEdit = (pack: CoinPack) => {
-    setForm({ name: pack.name, coins: String(pack.coins), bonus_coins: String(pack.bonus_coins || 0), price: String(pack.price), currency: pack.currency || "NGN", badge: pack.badge || "", sort_order: String(pack.sort_order) });
+    setForm({ name: pack.name, coins: String(pack.coins), bonus_coins: String(pack.bonus_coins || 0), price: String(pack.price), currency: pack.currency || "NGN", badge: pack.badge || "", sort_order: String(pack.sort_order), store_product_ios: pack.store_product_ios || "", store_product_android: pack.store_product_android || "" });
     setEditing(pack); setShowForm(true);
   };
 
@@ -278,6 +280,8 @@ export default function AdminCoinPacksPage() {
             <div className="space-y-1"><Label className="text-xs font-bold">Currency</Label><Input value={form.currency} maxLength={3} onChange={e => setForm(f => ({ ...f, currency: e.target.value.toUpperCase() }))} className="h-10 rounded-lg" /></div>
             <div className="space-y-1"><Label className="text-xs font-bold">Badge</Label><Input value={form.badge} onChange={e => setForm(f => ({ ...f, badge: e.target.value }))} placeholder="e.g. Popular, Best value" className="h-10 rounded-lg" /></div>
             <div className="space-y-1"><Label className="text-xs font-bold">Sort Order</Label><Input type="number" min="0" value={form.sort_order} onChange={e => setForm(f => ({ ...f, sort_order: e.target.value }))} className="h-10 rounded-lg" /></div>
+            <div className="space-y-1"><Label className="text-xs font-bold">App Store Product ID</Label><Input value={form.store_product_ios} onChange={e => setForm(f => ({ ...f, store_product_ios: e.target.value }))} placeholder="e.g. com.murihspace.coins.275" className="h-10 rounded-lg" /></div>
+            <div className="space-y-1"><Label className="text-xs font-bold">Play Store Product ID</Label><Input value={form.store_product_android} onChange={e => setForm(f => ({ ...f, store_product_android: e.target.value }))} placeholder="e.g. com.murihspace.coins.275" className="h-10 rounded-lg" /></div>
             <div className="md:col-span-3 flex gap-3 pt-2">
               <Button type="submit" disabled={saving} className="bg-[#1877f2] hover:bg-[#166fe5] text-white font-bold h-10 px-5 rounded-lg">
                 {saving ? <Loader2 weight="fill" className="w-4 h-4 mr-2 animate-spin" /> : null}{editing ? "Update" : "Create"}
@@ -331,6 +335,11 @@ export default function AdminCoinPacksPage() {
                     <p className="text-[11px] text-muted-foreground truncate font-medium">
                       {(pack.coins || 0).toLocaleString()} coins{pack.bonus_coins ? ` + ${pack.bonus_coins} bonus` : ""} &middot; {formatPrice(pack)}
                     </p>
+                    {(pack.store_product_ios || pack.store_product_android) && (
+                      <p className="text-[10px] text-muted-foreground/70 truncate font-medium">
+                        ios: {pack.store_product_ios || "—"} &middot; android: {pack.store_product_android || "—"}
+                      </p>
+                    )}
                   </div>
                 </div>
                 <div className="flex items-center gap-1 shrink-0 ml-4">

@@ -178,7 +178,7 @@ export function MilestonesPage() {
                 </div>
               </div>
               <div>
-                <label className="block text-sm text-gray-600 mb-1">Reward TextT</label>
+                <label className="block text-sm text-gray-600 mb-1">Reward Type</label>
                 <select value={fReward} onChange={e => setFReward(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm">
                   <option value="">No reward</option>
                   <option value="badge">Badge</option>
