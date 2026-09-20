@@ -36,6 +36,28 @@ class AdminTaxController extends Controller
         $totalWhtWithheld = $liabilities->sum('wht_withheld_cents');
         $totalTaxableBase = $liabilities->sum('taxable_base_cents');
 
+        // Per-country aggregate for easy jurisdictional filing.
+        $byCountry = $liabilities
+            ->groupBy(fn ($l) => $l->country_code.'|'.$l->currency)
+            ->map(function ($rows) {
+                $collected = $rows->sum('tax_collected_cents');
+                $wht = $rows->sum('wht_withheld_cents');
+
+                return [
+                    'country_code' => $rows->first()->country_code,
+                    'currency' => $rows->first()->currency,
+                    'period_count' => $rows->count(),
+                    'taxable_base_cents' => $rows->sum('taxable_base_cents'),
+                    'tax_collected_cents' => $collected,
+                    'wht_withheld_cents' => $wht,
+                    'total_payable_cents' => $collected + $wht,
+                ];
+            })
+            ->values()
+            ->sortByDesc('total_payable_cents')
+            ->values()
+            ->all();
+
         return response()->json([
             'totals' => [
                 'total_taxable_base_cents' => $totalTaxableBase,
@@ -43,6 +65,7 @@ class AdminTaxController extends Controller
                 'total_wht_withheld_cents' => $totalWhtWithheld,
                 'net_liability_cents' => $totalCollected + $totalWhtWithheld,
             ],
+            'by_country' => $byCountry,
             'liabilities' => $liabilities,
         ]);
     }

@@ -5,9 +5,11 @@ import {
   Plus as Plus,
   Minus as Minus,
   Spinner as Loader2,
-  Bag as ShoppingBag
+  Bag as ShoppingBag,
+  CreditCard as CreditCard
 } from "@phosphor-icons/react";
 import { authFetch } from "@/lib/api/authFetch";
+import { PhysicalCheckoutModal } from "@/components/commerce/PhysicalCheckoutModal";
 
 
 
@@ -45,6 +47,7 @@ export function CartPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [updating, setUpdating] = useState<number | null>(null);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [showCheckout, setShowCheckout] = useState(false);
 
   const fetchCart = useCallback(async () => {
     try {
@@ -231,8 +234,25 @@ export function CartPage() {
             <span className="text-sm font-semibold text-muted-foreground">Total</span>
             <span className="font-bold text-xl text-foreground">{formatPrice(cart.total)}</span>
           </div>
+          <div className="mt-4 flex justify-end">
+            <button
+              onClick={() => setShowCheckout(true)}
+              className="inline-flex items-center gap-2 rounded-lg bg-secondary text-white font-bold text-sm px-6 py-2.5 shadow hover:opacity-90 transition-opacity"
+            >
+              <CreditCard weight="fill" className="h-4 w-4" /> Proceed to Checkout
+            </button>
+          </div>
+          <p className="mt-2 text-right text-[11px] text-muted-foreground">
+            VAT/GST is calculated at checkout based on your shipping country.
+          </p>
         </div>
       </div>
+
+      <PhysicalCheckoutModal
+        open={showCheckout}
+        onClose={() => setShowCheckout(false)}
+        onPlaced={fetchCart}
+      />
     </div>
   );
 }

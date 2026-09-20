@@ -16,6 +16,9 @@ class Order extends Model
         'platform_fee',
         'tax',
         'tax_rate',
+        'tax_country_code',
+        'tax_type',
+        'tax_name',
         'total',
         'currency',
         'status',
@@ -35,6 +38,11 @@ class Order extends Model
     ];
 
     public const STATUSES = ['pending', 'processing', 'completed', 'failed', 'refunded'];
+
+    public function scopeCompleted($query)
+    {
+        return $query->where('status', 'completed');
+    }
 
     public function buyer(): BelongsTo
     {

@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\DepositTransaction;
 use App\Models\LedgerEntry;
 use App\Models\Wallet;
+use App\Services\Accounting\AccountingStreamService;
+use App\Services\Tax\TaxCalculationService;
 use App\Services\Wallet\FeeCalculatorService;
 use App\Services\Wallet\LedgerService;
 use App\Services\Wallet\WalletService;
@@ -21,6 +23,8 @@ class WalletController extends Controller
         private readonly LedgerService $ledgerService,
         private readonly WalletService $walletService,
         private readonly FeeCalculatorService $feeCalculator,
+        private readonly TaxCalculationService $taxService,
+        private readonly AccountingStreamService $accounting,
     ) {}
 
     /**
@@ -66,6 +70,7 @@ class WalletController extends Controller
             'currency'          => ['nullable', 'string', 'size:3', 'alpha'],
             'payment_gateway'   => ['nullable', 'string', 'in:paystack,flutterwave,stripe'],
             'idempotency_key'   => ['nullable', 'string', 'max:100'],
+            'country_code'      => ['nullable', 'string', 'max:3', 'alpha'],
         ]);
 
         $user     = $request->user();
@@ -103,6 +108,11 @@ class WalletController extends Controller
         $feeAmt   = $feeRes['fee_amount'];
         $netAmt   = $feeRes['net_amount'];
 
+        // Statutory tax (VAT/GST) on the top-up, based on the buyer's country.
+        $taxInfo      = $this->taxService->resolveCheckoutTax($gross, $validated['country_code'] ?? $user->country, null, 'commerce');
+        $taxCents     = (int) $taxInfo['tax_amount_cents'];
+        $totalCharged = $gross + $taxCents;
+
         // Idempotency: return early for any existing row regardless of status
         $existing = DepositTransaction::where('idempotency_key', $idemKey)->first();
         if ($existing) {
@@ -115,7 +125,7 @@ class WalletController extends Controller
         $gatewayRef = 'REF-' . Str::upper(Str::random(12));
 
         try {
-            $deposit = DB::transaction(function () use ($user, $idemKey, $gateway, $gatewayRef, $gross, $feeAmt, $netAmt, $currency) {
+            $deposit = DB::transaction(function () use ($user, $idemKey, $gateway, $gatewayRef, $gross, $feeAmt, $netAmt, $currency, $taxInfo, $taxCents, $totalCharged) {
                 $deposit = DepositTransaction::create([
                     'user_id'            => $user->id,
                     'wallet_type'        => 'system',
@@ -125,6 +135,12 @@ class WalletController extends Controller
                     'amount'             => $gross,
                     'fee_amount'         => $feeAmt,
                     'net_amount'         => $netAmt,
+                    'tax'                => $taxCents,
+                    'total_charged'      => $totalCharged,
+                    'tax_rate'           => $taxInfo['tax_rate_percentage'],
+                    'tax_country_code'   => $taxInfo['country_code'],
+                    'tax_type'           => $taxInfo['tax_type'],
+                    'tax_name'           => $taxInfo['tax_name'],
                     'currency'           => $currency,
                     'status'             => 'completed',
                     'wallet_credited_at' => now(),
@@ -160,13 +176,59 @@ class WalletController extends Controller
 
         $wallet = $this->walletService->getOrCreateWallet($user, 'system', $currency);
 
+        // Journal the deposit into the ledger + accumulate tax liability.
+        $this->accounting->recordCreditSale(
+            referenceKey: 'DEP_'.$idemKey,
+            sourceId: $deposit->id,
+            streamType: 'commerce',
+            currency: $currency,
+            grossCents: $gross,
+            taxCents: $taxCents,
+            taxRate: (float) $taxInfo['tax_rate_percentage'],
+            taxType: $taxInfo['tax_type'],
+            taxName: $taxInfo['tax_name'],
+            countryCode: $taxInfo['country_code'],
+            metadata: ['gateway' => $gateway, 'gateway_reference' => $gatewayRef, 'idempotency_key' => $idemKey],
+        );
+
         return response()->json([
             'message' => 'Deposit successful.',
             'data'    => [
                 'deposit' => $deposit,
                 'wallet'  => $this->formatWalletData($wallet->fresh()),
+                'tax'     => $taxCents,
+                'tax_rate' => (float) $taxInfo['tax_rate_percentage'],
+                'total_charged' => $totalCharged,
             ],
         ], 201);
+    }
+
+    /**
+     * POST /api/v1/wallet/deposit-estimate
+     * Live tax preview for a wallet top-up, based on the buyer's country.
+     */
+    public function depositEstimate(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'amount'       => ['required', 'integer', 'min:100'],
+            'country_code' => ['nullable', 'string', 'max:3', 'alpha'],
+        ]);
+
+        $user   = $request->user();
+        $gross  = (int) $validated['amount'];
+        $taxInfo = $this->taxService->resolveCheckoutTax($gross, $validated['country_code'] ?? $user->country, null, 'commerce');
+
+        return response()->json([
+            'data' => [
+                'amount'        => $gross,
+                'tax'           => (int) $taxInfo['tax_amount_cents'],
+                'tax_rate'      => (float) $taxInfo['tax_rate_percentage'],
+                'tax_name'      => $taxInfo['tax_name'],
+                'tax_type'      => $taxInfo['tax_type'],
+                'tax_country_code' => $taxInfo['country_code'],
+                'total_charged' => $gross + (int) $taxInfo['tax_amount_cents'],
+            ],
+        ]);
     }
 
     /**

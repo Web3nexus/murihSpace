@@ -49,15 +49,32 @@ class GiftsAndCoinPacksSeeder extends Seeder
 
         if (CoinPack::count() === 0) {
             $packs = [
-                ['name' => 'Starter',  'coins' => 100,  'bonus_coins' => 0,    'price' => 100,   'currency' => 'USD', 'badge' => null,         'sort_order' => 1],
-                ['name' => 'Popular',  'coins' => 500,  'bonus_coins' => 50,   'price' => 500,   'currency' => 'USD', 'badge' => 'Popular',    'sort_order' => 2],
-                ['name' => 'Pro',      'coins' => 1000, 'bonus_coins' => 150,  'price' => 1000,  'currency' => 'USD', 'badge' => 'Best value', 'sort_order' => 3],
-                ['name' => 'Legend',   'coins' => 5000, 'bonus_coins' => 1000, 'price' => 5000,  'currency' => 'USD', 'badge' => 'Legend',     'sort_order' => 4],
+                ['name' => 'Starter',  'coins' => 100,   'bonus_coins' => 0,     'price' => 1000,  'currency' => 'USD', 'badge' => null,         'sort_order' => 1],
+                ['name' => 'Popular',  'coins' => 250,   'bonus_coins' => 15,    'price' => 2500,  'currency' => 'USD', 'badge' => 'Popular',    'sort_order' => 2],
+                ['name' => 'Pro',      'coins' => 500,   'bonus_coins' => 50,    'price' => 5000,  'currency' => 'USD', 'badge' => 'Best value', 'sort_order' => 3],
+                ['name' => 'Legend',   'coins' => 1000,  'bonus_coins' => 150,   'price' => 10000, 'currency' => 'USD', 'badge' => 'Legend',     'sort_order' => 4],
+                ['name' => 'Royal',    'coins' => 5000,  'bonus_coins' => 1000,  'price' => 50000, 'currency' => 'USD', 'badge' => 'Royal',      'sort_order' => 5],
+                ['name' => 'Elite',    'coins' => 10000, 'bonus_coins' => 2500,  'price' => 100000,'currency' => 'USD', 'badge' => 'Elite',      'sort_order' => 6],
             ];
 
             foreach ($packs as $pack) {
                 CoinPack::create($pack);
             }
+        } else {
+            $packs = [
+                ['name' => 'Starter',  'coins' => 100,   'bonus_coins' => 0,     'price' => 1000,  'currency' => 'USD', 'badge' => null,         'sort_order' => 1],
+                ['name' => 'Popular',  'coins' => 250,   'bonus_coins' => 15,    'price' => 2500,  'currency' => 'USD', 'badge' => 'Popular',    'sort_order' => 2],
+                ['name' => 'Pro',      'coins' => 500,   'bonus_coins' => 50,    'price' => 5000,  'currency' => 'USD', 'badge' => 'Best value', 'sort_order' => 3],
+                ['name' => 'Legend',   'coins' => 1000,  'bonus_coins' => 150,   'price' => 10000, 'currency' => 'USD', 'badge' => 'Legend',     'sort_order' => 4],
+                ['name' => 'Royal',    'coins' => 5000,  'bonus_coins' => 1000,  'price' => 50000, 'currency' => 'USD', 'badge' => 'Royal',      'sort_order' => 5],
+                ['name' => 'Elite',    'coins' => 10000, 'bonus_coins' => 2500,  'price' => 100000,'currency' => 'USD', 'badge' => 'Elite',      'sort_order' => 6],
+            ];
+
+            foreach ($packs as $pack) {
+                CoinPack::updateOrCreate(['name' => $pack['name']], $pack);
+            }
+
+            CoinPack::whereNotIn('id', CoinPack::whereIn('name', array_column($packs, 'name'))->pluck('id'))->delete();
         }
     }
 }

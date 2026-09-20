@@ -16,11 +16,20 @@ class AccountingStreamService
     ) {}
 
     /**
-     * Record an immutable revenue journal entry into the accounting system.
+     * Record an immutable revenue journal entry into the accounting system and
+     * accumulate the associated tax liability per country & period.
      */
     public function recordRevenueEntry(array $data): RevenueStreamEntry
     {
         return DB::transaction(function () use ($data) {
+            // Prevent duplicate journaling if a caller retries (reference is unique).
+            if (! empty($data['reference'])) {
+                $duplicate = RevenueStreamEntry::where('reference', $data['reference'])->first();
+                if ($duplicate) {
+                    return $duplicate;
+                }
+            }
+
             $streamType = $data['stream_type'] ?? 'other';
             $grossAmount = (int) ($data['gross_amount_cents'] ?? 0);
             $countryCode = isset($data['country_code']) ? strtoupper($data['country_code']) : null;
@@ -88,6 +97,93 @@ class AccountingStreamService
 
             return $entry;
         });
+    }
+
+    /**
+     * Journal a commerce sale (digital order / physical fulfilment order) into the
+     * ledger and accumulate VAT liability per country & period.
+     *
+     * Idempotent by order number reference.
+     */
+    public function recordCommerceSale(
+        string $orderNumber,
+        int $sourceId,
+        string $currency,
+        int $grossCents,
+        int $taxCents,
+        float $taxRate,
+        ?string $taxType,
+        ?string $taxName,
+        ?string $countryCode,
+        int $platformFeeCents,
+        array $metadata = []
+    ): ?RevenueStreamEntry {
+        if ($grossCents <= 0 && $taxCents <= 0) {
+            return null;
+        }
+
+        return $this->recordRevenueEntry([
+            'reference'                  => 'COMMERCE_'.$orderNumber,
+            'stream_type'                => 'commerce',
+            'source_system'              => 'backend',
+            'source_id'                  => (string) $sourceId,
+            'currency'                   => strtoupper($currency),
+            'gross_amount_cents'         => $grossCents,
+            'platform_fee_cents'         => $platformFeeCents,
+            'creator_vendor_amount_cents'=> max(0, $grossCents - $platformFeeCents),
+            'gateway_fee_cents'          => 0,
+            'tax_amount_cents'           => $taxCents,
+            'tax_rate_applied'           => $taxCents > 0 ? $taxRate : 0.0,
+            'tax_type'                   => $taxType ?? 'vat',
+            'country_code'               => $countryCode,
+            'net_platform_revenue_cents' => $platformFeeCents,
+            'metadata'                   => array_merge(['tax_name' => $taxName], $metadata),
+        ]);
+    }
+
+    /**
+     * Journal a credit issuance sale (coin pack / wallet top-up) into the ledger
+     * and accumulate VAT liability per country & period.
+     *
+     * The platform keeps the full proceeds (it owes the issued credits as a
+     * liability), so the whole gross is recognized on the platform side.
+     *
+     * Idempotent by reference.
+     */
+    public function recordCreditSale(
+        string $referenceKey,
+        int $sourceId,
+        string $streamType,
+        string $currency,
+        int $grossCents,
+        int $taxCents,
+        float $taxRate,
+        ?string $taxType,
+        ?string $taxName,
+        ?string $countryCode,
+        array $metadata = []
+    ): ?RevenueStreamEntry {
+        if ($grossCents <= 0 && $taxCents <= 0) {
+            return null;
+        }
+
+        return $this->recordRevenueEntry([
+            'reference'                   => $referenceKey,
+            'stream_type'                 => $streamType,
+            'source_system'               => 'backend',
+            'source_id'                   => (string) $sourceId,
+            'currency'                    => strtoupper($currency),
+            'gross_amount_cents'          => $grossCents,
+            'platform_fee_cents'          => $grossCents,
+            'creator_vendor_amount_cents' => 0,
+            'gateway_fee_cents'           => 0,
+            'tax_amount_cents'            => $taxCents,
+            'tax_rate_applied'            => $taxCents > 0 ? $taxRate : 0.0,
+            'tax_type'                    => $taxType ?? 'vat',
+            'country_code'                => $countryCode,
+            'net_platform_revenue_cents'  => $grossCents,
+            'metadata'                    => array_merge(['tax_name' => $taxName], $metadata),
+        ]);
     }
 
     /**

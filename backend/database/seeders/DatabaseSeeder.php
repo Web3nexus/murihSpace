@@ -62,5 +62,7 @@ class DatabaseSeeder extends Seeder
 
         $this->call(GiftsAndCoinPacksSeeder::class);
         $this->call(FeatureFlagSeeder::class);
+        $this->call(CountrySeeder::class);
+        $this->call(TaxRateSeeder::class);
     }
 }

@@ -12,6 +12,7 @@ import {
   ShieldCheck as ShieldCheck,
   Buildings as Building2,
   CheckCircle as CheckCircle2,
+  Globe as Globe,
 } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { apiClient, type ApiError } from "@/lib/api/client";
@@ -41,6 +42,22 @@ interface WalletItem {
   };
   has_pin: boolean;
   status: string;
+}
+
+interface CountryOption {
+  iso2: string;
+  name: string;
+  flag?: string;
+}
+
+interface DepositTaxPreview {
+  amount: number;
+  tax: number;
+  tax_rate: number | null;
+  tax_name: string | null;
+  tax_type: string | null;
+  tax_country_code: string | null;
+  total_charged: number;
 }
 
 interface TransactionItem {
@@ -76,6 +93,9 @@ export function WalletPage() {
   const [depositLoading, setDepositLoading] = useState(false);
   const [depositFeePreview, setDepositFeePreview] = useState<any>(null);
   const [feePreviewLoading, setFeePreviewLoading] = useState(false);
+  const [depositCountries, setDepositCountries] = useState<CountryOption[]>([]);
+  const [depositCountry, setDepositCountry] = useState("");
+  const [depositTaxPreview, setDepositTaxPreview] = useState<DepositTaxPreview | null>(null);
 
   // Send Form
   const [sendRecipient, setSendRecipient] = useState("");
@@ -156,6 +176,46 @@ export function WalletPage() {
     return () => clearTimeout(timer);
   }, [depositAmount, depositGateway, showDeposit, fetchDepositFeePreview]);
 
+  // Live VAT/GST preview for the top-up amount based on billing country.
+  const taxPreviewRequestRef = useRef(0);
+  const fetchDepositTax = useCallback(async (amountStr: string, countryCode: string) => {
+    const requestId = ++taxPreviewRequestRef.current;
+    const minor = Math.round((parseFloat(amountStr) || 0) * 100);
+    if (minor < 100) { setDepositTaxPreview(null); return; }
+    try {
+      const res = await apiClient.post("/wallet/deposit-estimate", {
+        amount: minor,
+        ...(countryCode ? { country_code: countryCode } : {}),
+      });
+      if (requestId !== taxPreviewRequestRef.current) return;
+      setDepositTaxPreview(res.data?.data?.data || res.data?.data || null);
+    } catch {
+      if (requestId === taxPreviewRequestRef.current) setDepositTaxPreview(null);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!showDeposit) return;
+    const timer = setTimeout(() => fetchDepositTax(depositAmount, depositCountry), 400);
+    return () => clearTimeout(timer);
+  }, [depositAmount, depositCountry, showDeposit, fetchDepositTax]);
+
+  const loadDepositCountries = useCallback(async () => {
+    try {
+      const res = await apiClient.get("/countries");
+      const raw = res.data?.data;
+      const list = Array.isArray(raw) ? raw : Array.isArray(res.data) ? res.data : [];
+      const mapped = list.map((c: { iso2?: string; flag?: string; name?: string }) => ({ iso2: c.iso2 ?? "", flag: c.flag, name: c.name ?? c.iso2 ?? "" }));
+      setDepositCountries((prev) => (mapped.length ? mapped : prev));
+    } catch {
+      // country list is optional; backend falls back to the profile country
+    }
+  }, []);
+
+  useEffect(() => {
+    if (showDeposit) loadDepositCountries();
+  }, [showDeposit, loadDepositCountries]);
+
   // Handle Cash Deposit into System Wallet
   const handleDepositSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -171,6 +231,7 @@ export function WalletPage() {
         amount: minorAmount,
         payment_gateway: depositGateway,
         currency: "NGN",
+        ...(depositCountry ? { country_code: depositCountry } : {}),
       });
 
       if (res.data) {
@@ -506,6 +567,24 @@ export function WalletPage() {
               </select>
             </div>
 
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
+                <Globe weight="fill" className="inline h-3.5 w-3.5 mr-1" /> Billing Country
+              </label>
+              <select
+                value={depositCountry}
+                onChange={(e) => setDepositCountry(e.target.value)}
+                className="w-full rounded-lg border-none bg-background px-3.5 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary"
+              >
+                <option value="">Use my profile country</option>
+                {depositCountries.map((c) => (
+                  <option key={c.iso2} value={c.iso2}>
+                    {c.flag ? `${c.flag} ` : ""}{c.name} ({c.iso2})
+                  </option>
+                ))}
+              </select>
+            </div>
+
             {/* Live fee preview */}
             {depositFeePreview && (
               <FeePreviewCard preview={depositFeePreview} type="deposit" />
@@ -513,6 +592,31 @@ export function WalletPage() {
             {feePreviewLoading && (
               <div className="text-xs text-muted-foreground flex items-center gap-1.5">
                 <Loader2 weight="fill" className="h-3.5 w-3.5 animate-spin" /> Calculating fees...
+              </div>
+            )}
+
+            {depositTaxPreview && (
+              <div className="rounded-lg bg-muted/40 border border-border px-3.5 py-2.5 text-xs space-y-1">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground font-medium">Amount</span>
+                  <span className="font-bold">{(depositTaxPreview.amount / 100).toLocaleString(undefined, { style: "currency", currency: "NGN" })}</span>
+                </div>
+                {depositTaxPreview.tax > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground font-medium">{depositTaxPreview.tax_name ?? "VAT"} ({Number(depositTaxPreview.tax_rate ?? 0)}%)</span>
+                    <span className="font-bold">{(depositTaxPreview.tax / 100).toLocaleString(undefined, { style: "currency", currency: "NGN" })}</span>
+                  </div>
+                )}
+                {depositTaxPreview.tax === 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-emerald-600 font-medium">{depositTaxPreview.tax_rate === 0 ? "Zero-rated" : "No VAT"}</span>
+                    <span className="font-bold">₦0.00</span>
+                  </div>
+                )}
+                <div className="flex justify-between border-t border-border pt-1.5">
+                  <span className="text-muted-foreground font-bold">Total Charged</span>
+                  <span className="font-black text-primary">{(depositTaxPreview.total_charged / 100).toLocaleString(undefined, { style: "currency", currency: "NGN" })}</span>
+                </div>
               </div>
             )}
 

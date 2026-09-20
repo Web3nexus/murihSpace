@@ -76,6 +76,16 @@ interface TaxLiabilityItem {
   filing_reference: string | null;
 }
 
+interface TaxByCountryItem {
+  country_code: string;
+  currency: string;
+  period_count: number;
+  taxable_base_cents: number;
+  tax_collected_cents: number;
+  wht_withheld_cents: number;
+  total_payable_cents: number;
+}
+
 export default function AdminAccountingPage() {
   const [activeTab, setActiveTab] = useState<"streams" | "tax" | "rates" | "exports">("streams");
   const [currency, setCurrency] = useState<string>("USD");
@@ -90,6 +100,7 @@ export default function AdminAccountingPage() {
     total_wht_withheld_cents: number;
     net_liability_cents: number;
   } | null>(null);
+  const [byCountry, setByCountry] = useState<TaxByCountryItem[]>([]);
 
   // New rate modal state
   const [showAddRate, setShowAddRate] = useState<boolean>(false);
@@ -131,6 +142,7 @@ export default function AdminAccountingPage() {
         const tPayload = tData.data || tData;
         setTaxTotals(tPayload.totals || null);
         setTaxLiabilities(tPayload.liabilities || []);
+        setByCountry(tPayload.by_country || []);
       }
 
       // 3. Tax Rates
@@ -546,6 +558,78 @@ export default function AdminAccountingPage() {
       {/* TAB 2: TAX LIABILITIES */}
       {activeTab === "tax" && (
         <div className="space-y-6">
+          {/* Per-country aggregate totals for jurisdiction filing */}
+          <div className="rounded-2xl border border-border/50 bg-card overflow-hidden shadow-sm">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-5 border-b border-border/40 bg-muted/20">
+              <div>
+                <h2 className="text-base font-bold text-foreground flex items-center gap-2">
+                  <Globe weight="fill" className="h-4 w-4 text-[#2164b6]" />
+                  Tax per Country &amp; Currency
+                </h2>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Aggregated totals per jurisdiction — ready for per-country tax filing.
+                </p>
+              </div>
+
+              {byCountry.length > 0 && (
+                <span className="px-3 py-1 rounded-xl bg-primary/10 text-primary border border-primary/20 text-xs font-bold">
+                  {byCountry.length} jurisdiction{byCountry.length === 1 ? "" : "s"}
+                </span>
+              )}
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm text-left">
+                <thead className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground bg-muted/30 border-b border-border/40">
+                  <tr>
+                    <th className="px-5 py-3.5">Country</th>
+                    <th className="px-4 py-3.5">Currency</th>
+                    <th className="px-4 py-3.5 text-center">Filing Periods</th>
+                    <th className="px-4 py-3.5 text-right">Taxable Base</th>
+                    <th className="px-4 py-3.5 text-right">VAT Collected</th>
+                    <th className="px-4 py-3.5 text-right">WHT Withheld</th>
+                    <th className="px-5 py-3.5 text-right">Total Payable</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/30">
+                  {byCountry.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="px-5 py-12 text-center text-muted-foreground text-xs font-medium">
+                        No tax collected yet. Liabilities accrue as orders are placed.
+                      </td>
+                    </tr>
+                  ) : (
+                    byCountry.map((item) => (
+                      <tr key={`${item.country_code}|${item.currency}`} className="hover:bg-muted/15 transition-colors">
+                        <td className="px-5 py-3.5 font-bold flex items-center gap-2">
+                          <Building2 weight="fill" className="h-4 w-4 text-[#2164b6]" />
+                          {item.country_code}
+                        </td>
+                        <td className="px-4 py-3.5 text-muted-foreground text-xs font-medium font-mono">
+                          {item.currency}
+                        </td>
+                        <td className="px-4 py-3.5 text-center text-xs font-semibold">
+                          {item.period_count}
+                        </td>
+                        <td className="px-4 py-3.5 text-right font-mono text-xs text-muted-foreground">
+                          {formatCurrency(item.taxable_base_cents, item.currency)}
+                        </td>
+                        <td className="px-4 py-3.5 text-right font-mono text-xs text-amber-500 font-bold">
+                          {formatCurrency(item.tax_collected_cents, item.currency)}
+                        </td>
+                        <td className="px-4 py-3.5 text-right font-mono text-xs text-purple-500 font-bold">
+                          {formatCurrency(item.wht_withheld_cents, item.currency)}
+                        </td>
+                        <td className="px-5 py-3.5 text-right font-mono font-black text-foreground">
+                          {formatCurrency(item.total_payable_cents, item.currency)}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
           <div className="rounded-2xl border border-border/50 bg-card overflow-hidden shadow-sm">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-5 border-b border-border/40 bg-muted/20">
               <div>

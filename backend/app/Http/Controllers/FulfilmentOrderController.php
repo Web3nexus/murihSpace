@@ -8,7 +8,10 @@ use App\Models\FulfilmentOrder;
 use App\Models\FulfilmentOrderItem;
 use App\Models\FulfilmentPayout;
 use App\Models\ShippingProfile;
+use App\Models\Storefront;
 use App\Models\TrackingEvent;
+use App\Services\Accounting\AccountingStreamService;
+use App\Services\Tax\TaxCalculationService;
 use App\Services\Wallet\LedgerService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -21,7 +24,81 @@ class FulfilmentOrderController extends Controller
 
     public function __construct(
         private LedgerService $ledgerService,
+        private TaxCalculationService $taxService,
+        private AccountingStreamService $accountingService,
     ) {}
+
+    /**
+     * POST /api/v1/store/fulfilment/checkout-estimate
+     * Live totals preview (incl. destination-based VAT) before placing a physical order.
+     */
+    public function checkoutEstimate(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'shipping_address_id' => ['required', 'integer', 'exists:addresses,id'],
+            'shipping_profile_id' => ['nullable', 'integer', 'exists:shipping_profiles,id'],
+        ]);
+
+        $userId = $request->user()->id;
+
+        $cart = Cart::where('user_id', $userId)->with('items.physicalProduct')->first();
+
+        if (! $cart || $cart->items->isEmpty()) {
+            return response()->json(['message' => 'Cart is empty.'], 400);
+        }
+
+        $address = \App\Models\Address::where('user_id', $userId)
+            ->findOrFail($validated['shipping_address_id']);
+
+        $subtotal = 0;
+        foreach ($cart->items as $item) {
+            $product = $item->physicalProduct;
+            if (! $product || ! $product->is_active) {
+                return response()->json(['message' => 'One of your cart items is no longer available.'], 409);
+            }
+            $subtotal += $product->price * $item->quantity;
+        }
+
+        $creatorIds = $cart->items->pluck('physicalProduct.creator_id')->unique();
+        if ($creatorIds->count() > 1) {
+            return response()->json(['message' => 'All items must be from the same creator.'], 400);
+        }
+
+        $itemCount = $cart->items->sum('quantity');
+
+        $shippingCost = 0;
+        if (isset($validated['shipping_profile_id'])) {
+            $creatorId = $creatorIds->first();
+            $profile = ShippingProfile::where('creator_id', $creatorId)
+                ->where('id', $validated['shipping_profile_id'])
+                ->active()
+                ->first();
+            if ($profile) {
+                $shippingCost = $profile->calculateCost($itemCount);
+            }
+        }
+
+        $platformFee = (int) round($subtotal * self::PLATFORM_FEE_RATE);
+
+        $storefront = Storefront::where('user_id', $creatorIds->first())->first();
+        $storefrontRate = $storefront ? (float) $storefront->tax_rate : 0.0;
+        $taxInfo = $this->taxService->resolveCheckoutTax($subtotal, $address->country, $storefrontRate, 'commerce');
+
+        return response()->json([
+            'data' => [
+                'subtotal'         => (int) $subtotal,
+                'shipping_cost'    => (int) $shippingCost,
+                'platform_fee'     => (int) $platformFee,
+                'tax'              => (int) $taxInfo['tax_amount_cents'],
+                'tax_rate'         => (float) $taxInfo['tax_rate_percentage'],
+                'tax_name'         => $taxInfo['tax_name'],
+                'tax_type'         => $taxInfo['tax_type'],
+                'tax_country_code' => $taxInfo['country_code'],
+                'currency'         => 'NGN',
+                'total'            => (int) ($subtotal + $shippingCost + $platformFee + $taxInfo['tax_amount_cents']),
+            ],
+        ]);
+    }
 
     public function checkout(Request $request): JsonResponse
     {
@@ -86,9 +163,16 @@ class FulfilmentOrderController extends Controller
         }
 
         $platformFee = (int) round($subtotal * self::PLATFORM_FEE_RATE);
-        $total = $subtotal + $shippingCost + $platformFee;
 
-        $order = DB::transaction(function () use ($userId, $creatorId, $address, $cart, $subtotal, $shippingCost, $platformFee, $total) {
+        // Destination-based VAT charged against the buyer shipping country.
+        $storefront = Storefront::where('user_id', $creatorId)->first();
+        $storefrontRate = $storefront ? (float) $storefront->tax_rate : 0.0;
+        $taxInfo = $this->taxService->resolveCheckoutTax($subtotal, $address->country, $storefrontRate, 'commerce');
+        $tax = $taxInfo['tax_amount_cents'];
+
+        $total = $subtotal + $shippingCost + $platformFee + $tax;
+
+        $order = DB::transaction(function () use ($userId, $creatorId, $address, $cart, $subtotal, $shippingCost, $platformFee, $tax, $taxInfo, $total) {
             $order = FulfilmentOrder::create([
                 'buyer_id' => $userId,
                 'shipping_address_id' => $address->id,
@@ -96,6 +180,10 @@ class FulfilmentOrderController extends Controller
                 'subtotal' => $subtotal,
                 'shipping_cost' => $shippingCost,
                 'platform_fee' => $platformFee,
+                'tax' => $tax,
+                'tax_rate' => $taxInfo['tax_rate_percentage'],
+                'tax_country_code' => $taxInfo['country_code'],
+                'tax_type' => $taxInfo['tax_type'],
                 'total' => $total,
                 'currency' => 'NGN',
                 'status' => 'pending',
@@ -134,6 +222,25 @@ class FulfilmentOrderController extends Controller
         });
 
         $order->load(['items.physicalProduct.creator:id,name,username', 'shippingAddress']);
+
+        $this->accountingService->recordCommerceSale(
+            orderNumber: $order->order_number,
+            sourceId: $order->id,
+            currency: $order->currency,
+            grossCents: (int) $order->subtotal,
+            taxCents: (int) $order->tax,
+            taxRate: (float) $order->tax_rate,
+            taxType: $order->tax_type,
+            taxName: null,
+            countryCode: $order->tax_country_code,
+            platformFeeCents: (int) $order->platform_fee,
+            metadata: [
+                'order_id' => $order->id,
+                'buyer_id' => $order->buyer_id,
+                'creator_id' => $creatorId,
+                'fulfilment' => true,
+            ],
+        );
 
         return response()->json([
             'message' => 'Order placed successfully.',
@@ -411,6 +518,10 @@ class FulfilmentOrderController extends Controller
             'subtotal' => $order->subtotal,
             'shipping_cost' => $order->shipping_cost,
             'platform_fee' => $order->platform_fee,
+            'tax' => $order->tax,
+            'tax_rate' => $order->tax_rate,
+            'tax_country_code' => $order->tax_country_code,
+            'tax_type' => $order->tax_type,
             'total' => $order->total,
             'currency' => $order->currency,
             'tracking_number' => $order->tracking_number,

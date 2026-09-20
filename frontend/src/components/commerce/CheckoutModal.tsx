@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   ShoppingCart as ShoppingCart,
   CreditCard as CreditCard,
@@ -8,8 +8,9 @@ import {
   Spinner as Loader2,
   Package as Package,
   Tag as Tag,
-  Lightning as Zap
-} from "@phosphor-icons/react";
+  Lightning as Zap,
+  Globe as Globe
+} from '@phosphor-icons/react';
 import {
   Dialog,
   DialogContent,
@@ -19,11 +20,18 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import type { DigitalProduct } from '@/types/digitalProduct';
-import type { CheckoutResult, PaymentProvider } from '@/types/order';
-import { getAuthToken } from "@/lib/auth/token";
+import type { CheckoutEstimate, CheckoutResult, PaymentProvider } from '@/types/order';
+import { getAuthToken } from '@/lib/auth/token';
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? 'http://localhost:8000/api/v1';
 const PLATFORM_FEE_RATE = 0.10;
+
+interface CountryOption {
+  iso2: string;
+  iso3: string;
+  name: string;
+  flag?: string;
+}
 
 interface CheckoutModalProps {
   product: DigitalProduct;
@@ -33,16 +41,92 @@ interface CheckoutModalProps {
 
 type Step = 'review' | 'processing' | 'success' | 'error';
 
+function formatMoney(value: number | undefined, currency: string): string {
+  const amount = Number(value ?? 0);
+  if (isNaN(amount)) return `${currency} 0.00`;
+  return `${currency} ${amount.toFixed(2)}`;
+}
+
 export function CheckoutModal({ product, open, onClose }: CheckoutModalProps) {
   const [step, setStep] = useState<Step>('review');
   const [provider, setProvider] = useState<PaymentProvider>('mock');
   const [result, setResult] = useState<CheckoutResult | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [countries, setCountries] = useState<CountryOption[]>([]);
+  const [countryCode, setCountryCode] = useState<string>('');
+  const [estimate, setEstimate] = useState<CheckoutEstimate | null>(null);
+  const [estimating, setEstimating] = useState(false);
 
-  const subtotal = product.is_free ? 0 : Number(product.price);
-  const platformFee = product.is_free ? 0 : Math.round(subtotal * PLATFORM_FEE_RATE * 100) / 100;
-  const total = product.is_free ? 0 : Math.round((subtotal + platformFee) * 100) / 100;
   const currency = product.currency ?? 'USD';
+
+  const clientSubtotal = product.is_free ? 0 : Number(product.price);
+  const clientPlatformFee = product.is_free ? 0 : Math.round(clientSubtotal * PLATFORM_FEE_RATE * 100) / 100;
+  const clientTotal = product.is_free ? 0 : Math.round((clientSubtotal + clientPlatformFee) * 100) / 100;
+
+  const hasServerEstimate = !product.is_free && !!estimate;
+  const subtotal = hasServerEstimate ? estimate.subtotal : clientSubtotal;
+  const platformFee = hasServerEstimate ? estimate.platform_fee : clientPlatformFee;
+  const taxAmount = hasServerEstimate ? (estimate.tax ?? 0) : 0;
+  const total = hasServerEstimate ? estimate.total : clientTotal;
+
+  const loadCountries = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_BASE}/countries`, {
+        headers: { Accept: 'application/json' },
+      });
+      if (!res.ok) return;
+      const json = await res.json();
+      const data = Array.isArray(json?.data) ? json.data : [];
+      setCountries(
+        data.map((c: CountryOption) => ({
+          iso2: c.iso2,
+          iso3: c.iso3,
+          name: c.name,
+          flag: c.flag,
+        }))
+      );
+    } catch {
+      // Countries are optional; server falls back to the buyer's profile country.
+    }
+  }, []);
+
+  const fetchEstimate = useCallback(
+    async (code: string) => {
+      setEstimating(true);
+      try {
+        const token = getAuthToken();
+        const res = await fetch(`${API_BASE}/checkout/estimate`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify({ product_id: product.id, country_code: code }),
+        });
+        if (!res.ok) return;
+        const json = await res.json();
+        setEstimate(json?.data?.data ?? null);
+      } catch {
+        // Fall back to client-side fee calc if the estimate is unreachable.
+      } finally {
+        setEstimating(false);
+      }
+    },
+    [product.id]
+  );
+
+  useEffect(() => {
+    if (open) {
+      loadCountries();
+    }
+  }, [open, loadCountries]);
+
+  useEffect(() => {
+    if (open && !product.is_free && countryCode) {
+      fetchEstimate(countryCode);
+    }
+  }, [open, product.is_free, countryCode, fetchEstimate]);
 
   const handlePurchase = async () => {
     setStep('processing');
@@ -64,19 +148,21 @@ export function CheckoutModal({ product, open, onClose }: CheckoutModalProps) {
           product_id: product.id,
           payment_provider: provider,
           idempotency_key: idempotencyKey,
+          country_code: countryCode || undefined,
         }),
       });
 
       const intentJson = await intentRes.json();
       if (!intentRes.ok) throw new Error(intentJson.message ?? 'Checkout failed.');
 
-      if (intentJson.is_free) {
-        setResult(intentJson);
+      const payload = intentJson.data ?? {};
+      if (payload.is_free) {
+        setResult({ order: payload.order, is_free: true });
         setStep('success');
         return;
       }
 
-      const orderId = intentJson.data?.order?.id;
+      const orderId = payload?.data?.order?.id ?? payload?.order?.id;
       if (!orderId) throw new Error('Order ID missing from intent response.');
 
       // Step 2: Complete mock payment (test mode)
@@ -103,7 +189,7 @@ export function CheckoutModal({ product, open, onClose }: CheckoutModalProps) {
         });
 
         const receiptJson = await receiptRes.json();
-        setResult({ order: receiptJson.data, breakdown: intentJson.data?.breakdown });
+        setResult({ order: receiptJson.data, breakdown: payload.data?.breakdown ?? payload.breakdown });
         setStep('success');
       }
     } catch (err: unknown) {
@@ -116,6 +202,7 @@ export function CheckoutModal({ product, open, onClose }: CheckoutModalProps) {
     setStep('review');
     setResult(null);
     setErrorMsg(null);
+    setEstimate(null);
     onClose();
   };
 
@@ -130,7 +217,7 @@ export function CheckoutModal({ product, open, onClose }: CheckoutModalProps) {
           <DialogDescription className="text-xs text-muted-foreground">
             {step === 'success'
               ? 'Your digital product is ready to download.'
-              : 'Review your order and complete checkout securely.'}
+              : 'Review your order and complete checkout securely. VAT/GST is applied based on your billing country.'}
           </DialogDescription>
         </DialogHeader>
 
@@ -153,28 +240,78 @@ export function CheckoutModal({ product, open, onClose }: CheckoutModalProps) {
                 <span className="text-[10px] font-semibold text-secondary capitalize">{product.category}</span>
               </div>
               <span className="text-sm font-black text-foreground shrink-0">
-                {product.is_free ? 'FREE' : `$${subtotal.toFixed(2)}`}
+                {product.is_free ? 'FREE' : formatMoney(clientSubtotal, currency)}
               </span>
             </div>
 
-            {/* Price Breakdown */}
+            {/* Price Breakdown (with country-based VAT) */}
             {!product.is_free && (
-              <div className="p-3.5 rounded-lg border-none bg-muted/10 space-y-2 text-xs">
-                <div className="flex justify-between text-muted-foreground">
-                  <span>Subtotal</span>
-                  <span>${subtotal.toFixed(2)} {currency}</span>
+              <>
+                {/* Billing Country */}
+                <div className="space-y-1.5">
+                  <label
+                    htmlFor="checkout-billing-country"
+                    className="flex items-center gap-1.5 text-xs font-bold text-foreground uppercase tracking-wider"
+                  >
+                    <Globe weight="fill" className="h-3.5 w-3.5 text-secondary" /> Billing Country
+                  </label>
+                  <select
+                    id="checkout-billing-country"
+                    value={countryCode}
+                    onChange={(e) => {
+                      setCountryCode(e.target.value);
+                      setEstimate(null);
+                    }}
+                    className="w-full h-10 px-3 rounded-lg border border-border bg-background text-xs font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-secondary/50"
+                  >
+                    <option value="">Select a country…</option>
+                    {countries.map((c) => (
+                      <option key={c.iso2} value={c.iso2}>
+                        {c.flag ? `${c.flag} ` : ''}{c.name} ({c.iso2})
+                      </option>
+                    ))}
+                    {countryCode && !countries.some((c) => c.iso2 === countryCode) && (
+                      <option value={countryCode}>{countryCode}</option>
+                    )}
+                  </select>
+                  <p className="text-[10px] text-muted-foreground">
+                    Tax is calculated at the statutory rate for this country. Leave empty to use your profile country.
+                  </p>
                 </div>
-                <div className="flex justify-between text-muted-foreground">
-                  <span className="flex items-center gap-1">
-                    <Tag weight="fill" className="h-3 w-3" /> Platform fee (10%)
-                  </span>
-                  <span>${platformFee.toFixed(2)} {currency}</span>
+
+                {/* Breakdown */}
+                <div className="p-3.5 rounded-lg border-none bg-muted/10 space-y-2 text-xs">
+                  <div className="flex justify-between text-muted-foreground">
+                    <span>Subtotal</span>
+                    <span>{formatMoney(subtotal, currency)}</span>
+                  </div>
+                  <div className="flex justify-between text-muted-foreground">
+                    <span className="flex items-center gap-1">
+                      <Tag weight="fill" className="h-3 w-3" /> Platform fee (10%)
+                    </span>
+                    <span>{formatMoney(platformFee, currency)}</span>
+                  </div>
+                  {estimating && (
+                    <div className="flex justify-between text-muted-foreground">
+                      <span>Calculating tax…</span>
+                      <span className="animate-pulse">—</span>
+                    </div>
+                  )}
+                  {!estimating && hasServerEstimate && estimate.tax != null && (estimate.tax !== 0 || estimate.tax_name) && (
+                    <div className="flex justify-between text-muted-foreground">
+                      <span className="flex items-center gap-1">
+                        <Tag weight="fill" className="h-3 w-3" />
+                        {estimate.tax_name ?? 'Tax'}{estimate.tax_rate != null ? ` (${Number(estimate.tax_rate)}%)` : ''}
+                      </span>
+                      <span>{formatMoney(taxAmount, currency)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between font-extrabold text-foreground border-t border-border pt-2">
+                    <span>Total</span>
+                    <span className="text-secondary">{formatMoney(total, currency)}</span>
+                  </div>
                 </div>
-                <div className="flex justify-between font-extrabold text-foreground border-t border-border pt-2">
-                  <span>Total</span>
-                  <span className="text-secondary">${total.toFixed(2)} {currency}</span>
-                </div>
-              </div>
+              </>
             )}
 
             {/* Payment Method Selector */}
@@ -209,12 +346,12 @@ export function CheckoutModal({ product, open, onClose }: CheckoutModalProps) {
 
             <Button
               onClick={handlePurchase}
-              className="w-full text-xs font-bold bg-secondary hover:bg-secondary/90 text-secondary-foreground h-10 rounded-lg  gap-2"
+              className="w-full text-xs font-bold bg-secondary hover:bg-secondary/90 text-secondary-foreground h-10 rounded-lg gap-2"
             >
               {product.is_free ? (
                 <><Download weight="fill" className="h-4 w-4" /> Download Free Product</>
               ) : (
-                <><ShoppingCart weight="fill" className="h-4 w-4" /> Pay ${total.toFixed(2)} {currency}</>
+                <><ShoppingCart weight="fill" className="h-4 w-4" /> Pay {formatMoney(total, currency)}</>
               )}
             </Button>
           </div>
@@ -238,6 +375,11 @@ export function CheckoutModal({ product, open, onClose }: CheckoutModalProps) {
             <div>
               <h3 className="text-base font-bold text-foreground">Order #{result?.order?.order_number}</h3>
               <p className="text-xs text-muted-foreground mt-1">{product.title}</p>
+              {result?.order?.tax != null && result.order.tax > 0 && (
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  {result.order.tax_name ?? 'VAT'} ({Number(result.order.tax_rate)}%) applied: {formatMoney(result.order.tax, result.order.currency ?? currency)}
+                </p>
+              )}
             </div>
 
             {result?.order?.download_url && (
@@ -245,7 +387,7 @@ export function CheckoutModal({ product, open, onClose }: CheckoutModalProps) {
                 href={`${API_BASE}/products/${result.order.product_id}/download`}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-secondary text-secondary-foreground text-xs font-bold  hover:bg-secondary/90 transition-colors"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-secondary text-secondary-foreground text-xs font-bold hover:bg-secondary/90 transition-colors"
               >
                 <Download weight="fill" className="h-4 w-4" />
                 Download Your Product

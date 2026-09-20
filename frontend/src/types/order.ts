@@ -9,6 +9,11 @@ export interface Order {
   product_id: number;
   subtotal: number;
   platform_fee: number;
+  tax?: number;
+  tax_rate?: number;
+  tax_country_code?: string | null;
+  tax_name?: string | null;
+  tax_type?: string | null;
   total: number;
   currency: string;
   status: OrderStatus;
@@ -37,14 +42,22 @@ export interface CheckoutIntentPayload {
   product_id: number;
   payment_provider?: PaymentProvider;
   idempotency_key: string;
+  country_code?: string;
 }
 
 export interface CheckoutBreakdown {
   subtotal: number;
   platform_fee: number;
+  tax?: number;
+  tax_rate?: number;
+  tax_name?: string | null;
+  tax_type?: string | null;
+  tax_country_code?: string | null;
   total: number;
   currency: string;
 }
+
+export type CheckoutEstimate = Omit<CheckoutBreakdown, 'total' | 'currency'> & { total: number; currency: string };
 
 export interface CheckoutResult {
   order: Order;

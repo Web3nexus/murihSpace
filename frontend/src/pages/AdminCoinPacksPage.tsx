@@ -53,20 +53,33 @@ export default function AdminCoinPacksPage() {
 
   const [form, setForm] = useState({ name: "", coins: "", bonus_coins: "", price: "", currency: "NGN", badge: "", sort_order: "" });
 
-  const fetchPacks = useCallback(async (isSilent = false) => {
+  const [rate, setRate] = useState<string>("10");
+  const [rateSavable, setRateSavable] = useState<boolean>(false);
+  const [rateSaving, setRateSaving] = useState(false);
+  const [rateMin, setRateMin] = useState<string>("1");
+  const [rateMax, setRateMax] = useState<string>("10000");
+
+  const fetchPacks = useCallback((isSilent = false) => {
     if (!isSilent && !getCachedData(CACHE_KEY_ADMIN_PACKS)) {
       setLoading(true);
     }
-    try {
-      const res = await authFetch(`/securegate/coin-packs`, {});
-      if (res.ok) {
+    authFetch(`/securegate/coin-packs`, {})
+      .then(async (res) => {
+        if (!res.ok) return;
         const j = await res.json();
         const parsed = safeArray<CoinPack>(j);
         setPacks(parsed);
         setCachedData(CACHE_KEY_ADMIN_PACKS, parsed);
-      }
-    } catch { /* ignore */ }
-    finally { setLoading(false); }
+        const d = j?.data ?? j;
+        if (d && typeof d.coin_conversion_rate !== 'undefined') {
+          setRate(String(d.coin_conversion_rate));
+          setRateMin(String(d.min_purchase_usd ?? 1));
+          setRateMax(String(d.max_purchase_usd ?? 10000));
+          setRateSavable(false);
+        }
+      })
+      .catch(() => { /* ignore */ })
+      .finally(() => setLoading(false));
   }, []);
 
   useEffect(() => {
@@ -74,6 +87,34 @@ export default function AdminCoinPacksPage() {
   }, [fetchPacks]);
 
   const resetForm = () => setForm({ name: "", coins: "", bonus_coins: "", price: "", currency: "NGN", badge: "", sort_order: "" });
+
+  const handleSaveRate = async () => {
+    setRateSaving(true); setMsg(null);
+    try {
+      const res = await authFetch(`/securegate/coin-packs/rate`, {
+        method: "PUT",
+        body: JSON.stringify({
+          coin_conversion_rate: parseFloat(rate),
+          coin_min_purchase_usd: parseFloat(rateMin),
+          coin_max_purchase_usd: parseFloat(rateMax),
+        }),
+      });
+      if (res.ok) {
+        const j = await res.json();
+        const d = j?.data ?? j;
+        setMsg({ ok: true, text: "Conversion rate saved." });
+        setRate(String(d.coin_conversion_rate ?? rate));
+        setRateMin(String(d.min_purchase_usd ?? rateMin));
+        setRateMax(String(d.max_purchase_usd ?? rateMax));
+        setRateSavable(false);
+        fetchPacks(true);
+      } else {
+        const j = await res.json().catch(() => ({}));
+        setMsg({ ok: false, text: j.message || "Failed to save rate." });
+      }
+    } catch { setMsg({ ok: false, text: "Error saving rate." }); }
+    finally { setRateSaving(false); }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -183,6 +224,45 @@ export default function AdminCoinPacksPage() {
           {msg.ok ? <Check weight="fill" className="h-4 w-4" /> : <AlertCircle weight="fill" className="h-4 w-4" />}{msg.text}
         </div>
       )}
+
+      {/* ── Coin Conversion Rate Settings ─────────────────────────────── */}
+      <div className="rounded-lg border-none bg-card p-4 sm:p-5">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <Percent weight="bold" className="h-4 w-4 text-amber-500" />
+              <h2 className="text-sm font-bold text-foreground">USD → MSH Coin Conversion Rate</h2>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Coins credited per 1 USD. Used for coin packs and custom (manual) amounts.
+              Current: <span className="font-bold text-foreground">1 USD = {rate} MSH</span>
+            </p>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 w-full lg:w-auto">
+            <div className="space-y-1">
+              <Label className="text-xs font-bold">Coins per $1</Label>
+              <Input type="number" min="0.01" step="0.01" value={rate} onChange={e => { setRate(e.target.value); setRateSavable(true); }} className="h-9 rounded-lg" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs font-bold">Min ($)</Label>
+              <Input type="number" min="0.5" step="0.5" value={rateMin} onChange={e => { setRateMin(e.target.value); setRateSavable(true); }} className="h-9 rounded-lg" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs font-bold">Max ($)</Label>
+              <Input type="number" min="1" step="1" value={rateMax} onChange={e => { setRateMax(e.target.value); setRateSavable(true); }} className="h-9 rounded-lg" />
+            </div>
+            <div className="flex items-end">
+              <Button
+                onClick={handleSaveRate}
+                disabled={!rateSavable || rateSaving || !parseFloat(rate) || parseFloat(rate) <= 0}
+                className="bg-[#1877f2] hover:bg-[#166fe5] text-white font-bold h-9 px-4 rounded-lg w-full"
+              >
+                {rateSaving ? <Loader2 weight="fill" className="w-4 h-4 mr-2 animate-spin" /> : null}Save
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {showForm && (
         <div className="rounded-lg border-none bg-card p-4 ">

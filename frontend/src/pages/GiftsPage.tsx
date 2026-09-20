@@ -10,7 +10,8 @@ import {
   Plus as Plus,
   X as X,
   ClockCounterClockwise as ClockCounterClockwise,
-  Bag as ShoppingBag
+  Bag as ShoppingBag,
+  Globe as Globe
 } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +20,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ActionTooltip } from "@/components/ui/action-tooltip";
 import { authFetch } from "@/lib/api/authFetch";
 import { getCachedData, setCachedData } from "@/lib/api/cacheStore";
+import { useAuth } from "@/hooks/useAuth";
 import { GiftAnimationOverlay, type GiftAnimationData } from "@/components/gifting/GiftAnimationOverlay";
 
 interface GiftItem {
@@ -42,6 +44,20 @@ interface CoinPack {
   badge: string | null;
   is_active: boolean;
   sort_order: number;
+}
+
+interface CoinEstimate {
+  amount_minor: number;
+  tax: number;
+  tax_rate: number | null;
+  tax_name: string | null;
+  total_minor: number;
+}
+
+interface CountryOption {
+  iso2: string;
+  flag?: string;
+  name: string;
 }
 
 function getAssetUrl(path: string | null | undefined): string {
@@ -110,6 +126,10 @@ export default function GiftsPage() {
   const [buying, setBuying] = useState<number | null>(null);
   const [category, setCategory] = useState<string>("all");
   const [animData, setAnimData] = useState<GiftAnimationData | null>(null);
+  const { user } = useAuth();
+  const [coinCountries, setCoinCountries] = useState<CountryOption[]>([]);
+  const [buyCountry, setBuyCountry] = useState<string>(() => user?.country ?? "");
+  const [coinEstimates, setCoinEstimates] = useState<Record<number, CoinEstimate>>({});
 
   const fetchData = useCallback(async (isSilent = false) => {
     if (!isSilent && !getCachedData(CACHE_KEY_GIFTS)) {
@@ -154,6 +174,66 @@ export default function GiftsPage() {
     fetchData(Boolean(getCachedData(CACHE_KEY_GIFTS)));
   }, [fetchData]);
 
+  const loadCoinCountries = useCallback(async () => {
+    if (coinCountries.length > 0) return;
+    try {
+      const res = await authFetch(`/countries`, {});
+      if (res.ok) {
+        const j = await res.json();
+        const list = Array.isArray(j?.data) ? j.data : Array.isArray(j) ? j : [];
+        setCoinCountries(list.map((c: { iso2?: string; flag?: string; name?: string }) => ({ iso2: c.iso2 ?? "", flag: c.flag, name: c.name ?? c.iso2 ?? "" })));
+      }
+    } catch {
+      // country list is optional; backend falls back to the profile country
+    }
+  }, [coinCountries.length]);
+
+  const fetchEstimates = useCallback(async (country: string) => {
+    if (!country) {
+      setCoinEstimates({});
+      return;
+    }
+    const list = safeArray<CoinPack>(packs);
+    const results: Record<number, CoinEstimate> = {};
+    await Promise.all(
+      list.map(async (pack) => {
+        try {
+          const res = await authFetch(`/coins/purchase-estimate`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ coin_pack_id: pack.id, country_code: country }),
+          });
+          if (res.ok) {
+            const j = await res.json();
+            const d = j?.data?.data ?? j?.data ?? null;
+            if (d) {
+              results[pack.id] = {
+                amount_minor: d.amount_minor,
+                tax: d.tax,
+                tax_rate: d.tax_rate ?? null,
+                tax_name: d.tax_name ?? null,
+                total_minor: d.total_minor,
+              };
+            }
+          }
+        } catch {
+          // keep existing estimate if any
+        }
+      })
+    );
+    setCoinEstimates(results);
+  }, [packs]);
+
+  useEffect(() => {
+    if (showCoinShop) loadCoinCountries();
+  }, [showCoinShop, loadCoinCountries]);
+
+  useEffect(() => {
+    if (showCoinShop && buyCountry) {
+      fetchEstimates(buyCountry);
+    }
+  }, [showCoinShop, buyCountry, fetchEstimates]);
+
   // Optimistic Coin Pack Purchase
   const buyPack = async (pack: CoinPack) => {
     setBuying(pack.id);
@@ -170,7 +250,8 @@ export default function GiftsPage() {
     try {
       const res = await authFetch(`/coins/purchase`, {
         method: "POST",
-        body: JSON.stringify({ coin_pack_id: pack.id, reference: crypto.randomUUID() }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ coin_pack_id: pack.id, reference: crypto.randomUUID(), country_code: buyCountry || undefined }),
       });
       if (res.ok) {
         setMsg({ ok: true, text: `Added ${totalCoins.toLocaleString()} coins to your wallet!` });
@@ -592,8 +673,32 @@ export default function GiftsPage() {
               </ActionTooltip>
             </div>
 
+            <div className="space-y-1.5">
+              <label htmlFor="gifts-billing-country" className="flex items-center gap-1.5 text-xs font-bold text-foreground uppercase tracking-wider">
+                <Globe weight="fill" className="w-3.5 h-3.5 text-amber-500" /> Billing Country
+              </label>
+              <select
+                id="gifts-billing-country"
+                value={buyCountry}
+                onChange={(e) => { setBuyCountry(e.target.value); setCoinEstimates({}); }}
+                className="w-full h-10 px-3 rounded-lg border border-border bg-background text-xs font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+              >
+                <option value="">Use my profile country</option>
+                {coinCountries.map((c) => (
+                  <option key={c.iso2} value={c.iso2}>
+                    {c.flag ? `${c.flag} ` : ""}{c.name} ({c.iso2})
+                  </option>
+                ))}
+              </select>
+              <p className="text-[10px] text-muted-foreground">VAT/GST is calculated for your billing country.</p>
+            </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {safePacksList.map(pack => (
+              {safePacksList.map(pack => {
+                const est = coinEstimates[pack.id];
+                const estTax = est?.tax ?? 0;
+                const payTotal = est ? est.total_minor : pack.price;
+                return (
                 <div
                   key={pack.id}
                   className={`relative border rounded-lg p-4 flex flex-col justify-between transition-all ${
@@ -614,6 +719,17 @@ export default function GiftsPage() {
                       <span className="text-emerald-500 text-[11px] font-bold block">+{pack.bonus_coins} bonus coins</span>
                     )}
                     <p className="text-xs text-muted-foreground font-medium pt-1">{formatPrice(pack)}</p>
+                    {buyCountry && !est && (
+                      <p className="text-[10px] text-muted-foreground animate-pulse">Calculating tax…</p>
+                    )}
+                    {buyCountry && est && estTax > 0 && (
+                      <p className="text-[10px] text-muted-foreground font-medium">
+                        +{((estTax / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }))} {est.tax_name ?? "VAT"} ({Number(est.tax_rate ?? 0)}%)
+                      </p>
+                    )}
+                    {buyCountry && est && estTax === 0 && (
+                      <p className="text-[10px] text-emerald-600 font-medium">{est.tax_rate === 0 ? "Zero-rated" : "No VAT"}</p>
+                    )}
                   </div>
                   <Button
                     size="sm"
@@ -622,10 +738,11 @@ export default function GiftsPage() {
                     className="w-full bg-[#1877f2] hover:bg-[#166fe5] text-white font-bold rounded-lg h-9"
                   >
                     {buying === pack.id ? <Loader2 weight="fill" className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <Plus weight="fill" className="w-3.5 h-3.5 mr-1.5" />}
-                    Purchase
+                    Buy ${(payTotal / 100).toFixed(2)}
                   </Button>
                 </div>
-              ))}
+                );
+              })}
             </div>
             {safePacksList.length === 0 && (
               <p className="text-xs text-muted-foreground text-center py-6">No coin packs available right now.</p>

@@ -11,7 +11,8 @@ class FulfilmentOrder extends Model
 {
     protected $fillable = [
         'buyer_id', 'shipping_address_id', 'order_number',
-        'subtotal', 'shipping_cost', 'platform_fee', 'total', 'currency',
+        'subtotal', 'shipping_cost', 'platform_fee', 'tax', 'tax_rate', 'tax_country_code', 'tax_type',
+        'total', 'currency',
         'status', 'tracking_number', 'carrier',
         'estimated_delivery', 'shipped_at', 'delivered_at', 'notes',
     ];
@@ -23,6 +24,8 @@ class FulfilmentOrder extends Model
         'subtotal' => 'integer',
         'shipping_cost' => 'integer',
         'platform_fee' => 'integer',
+        'tax' => 'integer',
+        'tax_rate' => 'decimal:2',
         'total' => 'integer',
     ];
 

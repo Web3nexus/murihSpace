@@ -6,9 +6,11 @@ use App\Models\DigitalProduct;
 use App\Models\Order;
 use App\Models\PaymentWebhook;
 use App\Models\Storefront;
+use App\Services\Accounting\AccountingStreamService;
 use App\Services\Payment\MockPaymentProvider;
 use App\Services\Payment\PaymentProviderInterface;
 use App\Services\Payment\StripePaymentProvider;
+use App\Services\Tax\TaxCalculationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -21,8 +23,33 @@ class CheckoutController extends Controller
      */
     public const PLATFORM_FEE_RATE = 0.10;
 
+    public function __construct(
+        protected TaxCalculationService $taxService,
+        protected AccountingStreamService $accountingService,
+    ) {}
+
+    /**
+     * Preview server-calculated totals (incl. VAT) before placing the order.
+     * Used by checkout UIs to display the VAT line and final amount.
+     */
+    public function estimate(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'product_id' => ['required', 'integer', 'exists:digital_products,id'],
+            'country_code' => ['nullable', 'string', 'max:3'],
+        ]);
+
+        $product = DigitalProduct::findOrFail($validated['product_id']);
+        $countryCode = $this->buyerCountry($request, $validated['country_code'] ?? null);
+
+        return response()->json([
+            'data' => $this->computePricing($product, $countryCode),
+        ]);
+    }
+
     /**
      * Create a checkout intent with server-calculated totals.
+     * VAT is charged against the buyer's country rate and captured on the order.
      * Idempotency key prevents double-order creation on retry.
      */
     public function createIntent(Request $request): JsonResponse
@@ -31,6 +58,7 @@ class CheckoutController extends Controller
             'product_id' => ['required', 'integer', 'exists:digital_products,id'],
             'payment_provider' => ['nullable', 'string', 'in:stripe,mock'],
             'idempotency_key' => ['required', 'string', 'max:128'],
+            'country_code' => ['nullable', 'string', 'max:3'],
         ]);
 
         // Idempotency: return existing order for same key
@@ -43,6 +71,7 @@ class CheckoutController extends Controller
         }
 
         $product = DigitalProduct::findOrFail($validated['product_id']);
+        $countryCode = $this->buyerCountry($request, $validated['country_code'] ?? null);
 
         // Free products don't need a payment intent
         if ($product->is_free) {
@@ -73,30 +102,24 @@ class CheckoutController extends Controller
         }
 
         // Server-calculated totals (never trust client-side price)
-        $subtotal = round((float) $product->price, 2);
-        $platformFee = round($subtotal * self::PLATFORM_FEE_RATE, 2);
-
-        $taxRate = 0;
-        $storefront = Storefront::where('user_id', $product->creator_id)->first();
-        if ($storefront && $storefront->tax_rate > 0) {
-            $taxRate = $storefront->tax_rate;
-        }
-        $tax = round($subtotal * ($taxRate / 100), 2);
-        $total = round($subtotal + $platformFee + $tax, 2);
+        $pricing = $this->computePricing($product, $countryCode);
 
         $provider = $this->resolveProvider($validated['payment_provider'] ?? 'mock');
 
-        $order = DB::transaction(function () use ($product, $request, $validated, $subtotal, $platformFee, $tax, $taxRate, $total, $provider) {
+        $order = DB::transaction(function () use ($product, $request, $validated, $pricing, $provider) {
             return Order::create([
                 'order_number' => $this->generateOrderNumber(),
                 'buyer_id' => $request->user()->id,
                 'creator_id' => $product->creator_id,
                 'product_id' => $product->id,
-                'subtotal' => $subtotal,
-                'platform_fee' => $platformFee,
-                'tax' => $tax,
-                'tax_rate' => $taxRate,
-                'total' => $total,
+                'subtotal' => $pricing['subtotal'],
+                'platform_fee' => $pricing['platform_fee'],
+                'tax' => $pricing['tax'],
+                'tax_rate' => $pricing['tax_rate'],
+                'tax_country_code' => $pricing['tax_country_code'],
+                'tax_type' => $pricing['tax_type'],
+                'tax_name' => $pricing['tax_name'],
+                'total' => $pricing['total'],
                 'currency' => $product->currency,
                 'status' => 'pending',
                 'payment_provider' => $provider->providerName(),
@@ -113,14 +136,7 @@ class CheckoutController extends Controller
             'data' => [
                 'order' => $order->fresh()->load(['product', 'creator']),
                 'intent' => $intentData,
-                'breakdown' => [
-                    'subtotal' => $subtotal,
-                    'platform_fee' => $platformFee,
-                    'tax' => $tax,
-                    'tax_rate' => $taxRate,
-                    'total' => $total,
-                    'currency' => $product->currency,
-                ],
+                'breakdown' => $pricing,
             ],
         ], 201);
     }
@@ -145,6 +161,8 @@ class CheckoutController extends Controller
 
         $order->update(['status' => 'completed', 'paid_at' => now()]);
         $order->product()->increment('download_count');
+
+        $this->recordOrderRevenue($order);
 
         return response()->json([
             'message' => 'Mock purchase completed successfully.',
@@ -187,6 +205,8 @@ class CheckoutController extends Controller
             if ($order) {
                 $order->update(['status' => 'completed', 'paid_at' => now()]);
                 $order->product()->increment('download_count');
+
+                $this->recordOrderRevenue($order);
             }
         }
 
@@ -198,6 +218,78 @@ class CheckoutController extends Controller
         }
 
         return response()->json(['message' => 'Webhook processed.', 'event_id' => $event['event_id']]);
+    }
+
+    /**
+     * Determine the buyer's country: explicit checkout input, then profile country.
+     * Accepts ISO2 or ISO3; normalised upstream in the tax service.
+     */
+    private function buyerCountry(Request $request, ?string $countryCode): ?string
+    {
+        if (! empty($countryCode)) {
+            return $countryCode;
+        }
+
+        if ($request->user()?->country) {
+            return $request->user()->country;
+        }
+
+        return null;
+    }
+
+    /**
+     * Compute ground-truth checkout pricing (subtotal + platform fee + VAT).
+     */
+    private function computePricing(DigitalProduct $product, ?string $buyerCountryCode): array
+    {
+        $subtotal = round((float) $product->price, 2);
+        $subtotalCents = (int) round($subtotal * 100);
+        $platformFee = round($subtotal * self::PLATFORM_FEE_RATE, 2);
+
+        $storefront = Storefront::where('user_id', $product->creator_id)->first();
+        $storefrontRate = $storefront ? (float) $storefront->tax_rate : 0.0;
+
+        $taxInfo = $this->taxService->resolveCheckoutTax($subtotalCents, $buyerCountryCode, $storefrontRate, 'commerce');
+        $tax = round($taxInfo['tax_amount_cents'] / 100, 2);
+        $total = round($subtotal + $platformFee + $tax, 2);
+
+        return [
+            'subtotal' => $subtotal,
+            'platform_fee' => $platformFee,
+            'tax' => $tax,
+            'tax_rate' => $taxInfo['tax_rate_percentage'],
+            'tax_name' => $taxInfo['tax_name'],
+            'tax_type' => $taxInfo['tax_type'],
+            'tax_country_code' => $taxInfo['country_code'],
+            'total' => $total,
+            'currency' => $product->currency,
+        ];
+    }
+
+    /**
+     * Journal the paid order into the accounting ledger + accumulate VAT liability.
+     * Idempotent: the ledger entry reference is unique per order number.
+     */
+    private function recordOrderRevenue(Order $order): void
+    {
+        $this->accountingService->recordCommerceSale(
+            orderNumber: $order->order_number,
+            sourceId: $order->id,
+            currency: $order->currency,
+            grossCents: (int) round(((float) $order->subtotal) * 100),
+            taxCents: (int) round(((float) $order->tax) * 100),
+            taxRate: (float) $order->tax_rate,
+            taxType: $order->tax_type,
+            taxName: $order->tax_name,
+            countryCode: $order->tax_country_code,
+            platformFeeCents: (int) round(((float) $order->platform_fee) * 100),
+            metadata: [
+                'order_id' => $order->id,
+                'buyer_id' => $order->buyer_id,
+                'creator_id' => $order->creator_id,
+                'product_id' => $order->product_id,
+            ],
+        );
     }
 
     private function resolveProvider(string $name): PaymentProviderInterface

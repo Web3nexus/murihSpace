@@ -774,6 +774,7 @@ Route::prefix('v1')->group(function () {
 
         // ── Fulfilment & Shipping ────────────────────────────────────
         Route::prefix('store/fulfilment')->group(function () {
+            Route::post('/checkout-estimate', [FulfilmentOrderController::class, 'checkoutEstimate']);
             Route::post('/checkout', [FulfilmentOrderController::class, 'checkout']);
             Route::get('/orders', [FulfilmentOrderController::class, 'myOrders']);
             Route::get('/sales', [FulfilmentOrderController::class, 'sales']);
@@ -959,7 +960,9 @@ Route::prefix('v1')->group(function () {
         // ── Coin Packs (buy coins for wallet) ───────────────────────
         Route::prefix('coins')->middleware('verified')->group(function () {
             Route::get('/packs', [CoinPackController::class, 'catalogue']);
+            Route::post('/purchase-estimate', [CoinPackController::class, 'estimate']);
             Route::post('/purchase', [CoinPackController::class, 'purchase']);
+            Route::post('/purchase-custom', [CoinPackController::class, 'purchaseCustom']);
             Route::get('/purchases', [CoinPackController::class, 'purchases']);
         });
 
@@ -1199,6 +1202,7 @@ Route::prefix('v1')->group(function () {
 
         // ── Sprint 15: Checkout & Orders ───────────────────────────────────
         Route::prefix('checkout')->middleware('verified')->group(function () {
+            Route::post('/estimate', [CheckoutController::class, 'estimate']);
             Route::post('/intent', [CheckoutController::class, 'createIntent']);
             Route::post('/complete-mock', [CheckoutController::class, 'completeMock']);
         });
@@ -1215,6 +1219,7 @@ Route::prefix('v1')->group(function () {
             Route::get('/list', [WalletController::class, 'index']);
             Route::get('/type/{type}', [WalletController::class, 'showByType'])->whereIn('type', ['system', 'creator', 'business']);
             Route::post('/deposit', [WalletController::class, 'deposit']);
+            Route::post('/deposit-estimate', [WalletController::class, 'depositEstimate']);
             Route::post('/internal-transfer', [WalletController::class, 'internalTransfer']);
             Route::post('/fees/preview', [FeeController::class, 'preview']);
             Route::post('/pin/setup', [WalletController::class, 'setupPin']);
@@ -1757,6 +1762,8 @@ Route::prefix('v1')->group(function () {
             Route::prefix('coin-packs')->group(function () {
                 Route::get('/', [CoinPackController::class, 'adminIndex']);
                 Route::post('/', [CoinPackController::class, 'adminStore']);
+                Route::get('/rate', [CoinPackController::class, 'adminRate']);
+                Route::put('/rate', [CoinPackController::class, 'adminUpdateRate']);
                 Route::put('/{id}', [CoinPackController::class, 'adminUpdate']);
                 Route::delete('/{id}', [CoinPackController::class, 'adminDelete']);
                 Route::post('/reorder', [CoinPackController::class, 'adminReorder']);
