@@ -277,9 +277,18 @@ class PaymentService
                 $this->fulfillWalletTopup($payment);
             }
 
+            // Commerce / fulfilment orders: money captured into escrow (held
+            // for the seller) once Paddle confirms the payment.
+            $fulfilmentOrderId = $payment->metadata['fulfilment_order_id']
+                ?? (($payment->metadata['order_type'] ?? null) === 'fulfilment' ? ($payment->metadata['order_id'] ?? null) : null);
+            if ($fulfilmentOrderId) {
+                $this->captureFulfilmentEscrow($payment, (int) $fulfilmentOrderId);
+            }
+
             if (isset($payment->metadata['gift_id'])) {
                 $this->fulfillGiftPurchase($payment);
             }
+
         } catch (Exception $e) {
             Log::critical("Fulfillment failed for payment {$payment->public_reference}: {$e->getMessage()}", [
                 'payment_id' => $payment->id,
@@ -501,4 +510,36 @@ class PaymentService
             ]);
         });
     }
+
+    /**
+     * Capture funds into escrow when Paddle confirms a fulfilment order's
+     * payment. Journal-only — EscrowService books a balanced escrow_hold event
+     * in the ORDER currency; no wallet movement occurs.
+     */
+    protected function captureFulfilmentEscrow(Payment $payment, int $fulfilmentOrderId): void
+    {
+        $order = \App\Models\FulfilmentOrder::find($fulfilmentOrderId);
+        $escrow = $order ? $order->escrow : \App\Models\Escrow::where('fulfilment_order_id', $fulfilmentOrderId)->first();
+        if (! $escrow) {
+            Log::warning("No escrow found for fulfilment order #{$fulfilmentOrderId}; skipping escrow capture.");
+            return;
+        }
+
+        app(\App\Services\Escrow\EscrowService::class)->capture($escrow);
+    }
+
+    /**
+     * Alias for {@see captureFulfilmentEscrow()} used by orders resolved via
+     * metadata rather than a dedicated fulfilment_order_id.
+     */
+    protected function captureFulfilmentOrderEscrow(Payment $payment): void
+    {
+        $fulfilmentOrderId = (int) ($payment->metadata['fulfilment_order_id'] ?? 0);
+        if ($fulfilmentOrderId < 1) {
+            return;
+        }
+
+        $this->captureFulfilmentEscrow($payment, $fulfilmentOrderId);
+    }
+
 }
