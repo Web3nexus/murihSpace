@@ -1378,6 +1378,7 @@ Route::prefix('v1')->group(function () {
             Route::post('/{id}/like', [LiveStreamController::class, 'like']);
             Route::post('/{id}/chat', [LiveStreamController::class, 'sendMessage']);
             Route::post('/{id}/gift', [LiveStreamController::class, 'sendGift']);
+            Route::post('/{id}/purchase', [LiveStreamController::class, 'purchase']);
             Route::post('/{id}/end', [LiveStreamController::class, 'end']);
         });
 

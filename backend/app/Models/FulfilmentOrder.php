@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 class FulfilmentOrder extends Model
 {
     protected $fillable = [
-        'buyer_id', 'shipping_address_id', 'order_number',
+        'buyer_id', 'shipping_address_id', 'order_number', 'idempotency_key',
         'subtotal', 'shipping_cost', 'platform_fee', 'tax', 'tax_rate', 'tax_country_code', 'tax_type',
         'total', 'currency',
         'status', 'tracking_number', 'carrier',

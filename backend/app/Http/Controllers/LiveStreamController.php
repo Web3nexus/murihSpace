@@ -2,14 +2,23 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\DigitalProduct;
+use App\Models\Escrow;
+use App\Models\FulfilmentOrder;
+use App\Models\FulfilmentOrderItem;
 use App\Models\Gift;
 use App\Models\LiveStream;
 use App\Models\LiveStreamLike;
 use App\Models\LiveStreamMessage;
 use App\Models\LiveStreamParticipant;
+use App\Models\Order;
+use App\Models\PhysicalProduct;
+use App\Models\Storefront;
 use App\Models\Wallet;
+use App\Services\Accounting\AccountingStreamService;
 use App\Services\LiveKitService;
 use App\Services\NotificationService;
+use App\Services\Tax\TaxCalculationService;
 use App\Services\Wallet\FeeCalculatorService;
 use App\Services\Wallet\LedgerService;
 use App\Services\Wallet\WalletService;
@@ -20,12 +29,17 @@ use Illuminate\Support\Str;
 
 class LiveStreamController extends Controller
 {
+    public const DIGITAL_FEE_RATE = 0.10;
+    public const PHYSICAL_FEE_RATE = 0.05;
+
     public function __construct(
         private readonly LiveKitService $liveKitService,
         private readonly NotificationService $notifications,
         private readonly WalletService $walletService,
         private readonly LedgerService $ledgerService,
         private readonly FeeCalculatorService $feeCalculator,
+        private readonly TaxCalculationService $taxService,
+        private readonly AccountingStreamService $accountingService,
     ) {}
 
     /**
@@ -123,6 +137,7 @@ class LiveStreamController extends Controller
         return response()->json([
             'message' => 'Live stream started successfully.',
             'stream' => $stream->load(['host:id,name,username,avatar,avatar_url,role', 'community:id,name,slug,avatar,avatar_url']),
+            'pinned_product' => $this->pinnedProductPayload($stream),
             'livekit' => [
                 'token' => $token,
                 'room' => $roomName,
@@ -150,6 +165,7 @@ class LiveStreamController extends Controller
         return response()->json([
             'stream' => $stream,
             'active_viewers' => $activeViewers,
+            'pinned_product' => $this->pinnedProductPayload($stream),
         ]);
     }
 
@@ -210,6 +226,7 @@ class LiveStreamController extends Controller
         return response()->json([
             'message' => 'Joined live stream successfully.',
             'stream' => $stream->fresh(['host:id,name,username,avatar,avatar_url,role', 'community:id,name,slug,avatar,avatar_url']),
+            'pinned_product' => $this->pinnedProductPayload($stream),
             'livekit' => [
                 'token' => $token,
                 'room' => $stream->livekit_room,
@@ -397,6 +414,384 @@ class LiveStreamController extends Controller
             'sender_balance' => $senderWallet->fresh()->available,
             'stream_total_coins' => $stream->fresh()->total_coins_earned,
         ]);
+    }
+
+    /**
+     * Purchase the pinned product directly inside an active live stream.
+     *
+     * Funds are processed in-app: digital products are fulfilled instantly
+     * (auto-completed mock payment), while physical products create a
+     * fulfilment order whose value is held in escrow until delivered.
+     */
+    public function purchase(Request $request, int $id): JsonResponse
+    {
+        $stream = LiveStream::with('host')->findOrFail($id);
+
+        if ($stream->status !== 'live') {
+            return response()->json([
+                'message' => 'This live stream has ended.',
+                'code' => 'STREAM_ENDED',
+            ], 410);
+        }
+
+        $validated = $request->validate([
+            'product_id' => ['required', 'integer'],
+            'product_type' => ['nullable', 'string', 'in:physical,digital'],
+            'quantity' => ['nullable', 'integer', 'min:1', 'max:100'],
+            'idempotency_key' => ['required', 'string', 'max:128'],
+        ]);
+
+        $buyer = $request->user();
+
+        if ($buyer->id === $stream->user_id) {
+            return response()->json([
+                'message' => 'Hosts cannot purchase from their own live stream.',
+                'code' => 'SELF_PURCHASE_PROHIBITED',
+            ], 422);
+        }
+
+        // Only the product the host pinned for this stream is purchasable here.
+        if (! $stream->pinned_product_id || (int) $stream->pinned_product_id !== (int) $validated['product_id']) {
+            return response()->json([
+                'message' => 'This product is not pinned for sale on this stream.',
+                'code' => 'PRODUCT_NOT_PINNED',
+            ], 422);
+        }
+
+        $productId = (int) $validated['product_id'];
+        $requestedType = $validated['product_type'] ?? null;
+
+        // Physical ids and digital ids live in separate tables, so an explicit
+        // product_type from the client disambiguates a numeric id collision.
+        $physical = $requestedType === 'digital' ? null : PhysicalProduct::find($productId);
+        $digital = $physical ? null : ($requestedType === 'physical' ? null : DigitalProduct::find($productId));
+
+        if (! $physical && ! $digital) {
+            return response()->json(['message' => 'Product not found.'], 404);
+        }
+
+        if ($physical) {
+            return $this->purchasePhysical($stream, $buyer, $physical, $validated);
+        }
+
+        return $this->purchaseDigital($stream, $buyer, $digital, $validated);
+    }
+
+    private function purchasePhysical(
+        LiveStream $stream,
+        \App\Models\User $buyer,
+        PhysicalProduct $product,
+        array $validated
+    ): JsonResponse {
+        if (! $product->is_active) {
+            return response()->json([
+                'message' => 'This product is no longer available.',
+                'code' => 'PRODUCT_UNAVAILABLE',
+            ], 409);
+        }
+
+        $quantity = (int) ($validated['quantity'] ?? 1);
+
+        if ($product->track_inventory && $product->stock_quantity < $quantity) {
+            return response()->json([
+                'message' => 'Insufficient stock for this product.',
+                'code' => 'OUT_OF_STOCK',
+                'available' => $product->stock_quantity,
+            ], 409);
+        }
+
+        // Idempotency scoped to the buyer: reuse an existing order for the same key.
+        $existing = FulfilmentOrder::where('idempotency_key', $validated['idempotency_key'])
+            ->where('buyer_id', $buyer->id)
+            ->first();
+        if ($existing) {
+            return response()->json([
+                'message' => 'Existing order returned (idempotent).',
+                'product_type' => 'physical',
+                'order' => $existing->load(['items.physicalProduct']),
+            ]);
+        }
+
+        $subtotal = $product->price * $quantity;
+        $platformFee = (int) round($subtotal * self::PHYSICAL_FEE_RATE);
+
+        // Destination-based VAT when the buyer's country is known.
+        $storefront = Storefront::where('user_id', $product->creator_id)->first();
+        $storefrontRate = $storefront ? (float) $storefront->tax_rate : 0.0;
+        $taxInfo = $this->taxService->resolveCheckoutTax($subtotal, $buyer->country, $storefrontRate, 'commerce');
+        $tax = $taxInfo['tax_amount_cents'];
+        $total = $subtotal + $platformFee + $tax;
+
+        $order = DB::transaction(function () use ($stream, $buyer, $product, $quantity, $subtotal, $platformFee, $tax, $taxInfo, $total, $validated) {
+            $order = FulfilmentOrder::create([
+                'buyer_id' => $buyer->id,
+                'shipping_address_id' => null,
+                'order_number' => $this->generateOrderNumber('FO-'),
+                'subtotal' => $subtotal,
+                'shipping_cost' => 0,
+                'platform_fee' => $platformFee,
+                'tax' => $tax,
+                'tax_rate' => $taxInfo['tax_rate_percentage'],
+                'tax_country_code' => $taxInfo['country_code'],
+                'tax_type' => $taxInfo['tax_type'],
+                'total' => $total,
+                'currency' => $product->currency,
+                'status' => 'confirmed',
+                'idempotency_key' => $validated['idempotency_key'],
+            ]);
+
+            FulfilmentOrderItem::create([
+                'fulfilment_order_id' => $order->id,
+                'physical_product_id' => $product->id,
+                'quantity' => $quantity,
+                'unit_price' => $product->price,
+                'currency' => $product->currency,
+            ]);
+
+            if ($product->track_inventory) {
+                $product->decrement('stock_quantity', $quantity);
+            }
+
+            // Hold only the seller's share. Tax is collected by the platform
+            // and must not be released to the seller on settlement.
+            Escrow::create([
+                'fulfilment_order_id' => $order->id,
+                'buyer_id' => $buyer->id,
+                'seller_id' => $product->creator_id,
+                'amount' => $subtotal,
+                'currency' => $product->currency,
+                'status' => 'held',
+                'release_window_days' => 7,
+            ]);
+
+            return $order;
+        });
+
+        $this->accountingService->recordCommerceSale(
+            orderNumber: $order->order_number,
+            sourceId: $order->id,
+            currency: $order->currency,
+            grossCents: (int) $order->subtotal,
+            taxCents: (int) $order->tax,
+            taxRate: (float) $order->tax_rate,
+            taxType: $order->tax_type,
+            taxName: null,
+            countryCode: $order->tax_country_code,
+            platformFeeCents: (int) $order->platform_fee,
+            metadata: [
+                'order_id' => $order->id,
+                'buyer_id' => $order->buyer_id,
+                'creator_id' => $product->creator_id,
+                'product_id' => $product->id,
+                'live_stream_id' => $stream->id,
+                'fulfilment' => true,
+            ],
+        );
+
+        return response()->json([
+            'message' => 'Purchase successful. Your order is being processed.',
+            'product_type' => 'physical',
+            'order' => $order->load(['items.physicalProduct']),
+        ], 201);
+    }
+
+    private function purchaseDigital(
+        LiveStream $stream,
+        \App\Models\User $buyer,
+        DigitalProduct $product,
+        array $validated
+    ): JsonResponse {
+        // Idempotency scoped to the buyer: reuse an already-created order for the same key.
+        $existing = Order::where('idempotency_key', $validated['idempotency_key'])
+            ->where('buyer_id', $buyer->id)
+            ->first();
+        if ($existing) {
+            return response()->json([
+                'message' => 'Existing order returned (idempotent).',
+                'product_type' => 'digital',
+                'order' => $existing->load(['product', 'creator']),
+                'download_url' => $this->digitalDownloadUrl($product),
+            ]);
+        }
+
+        // Free products are unlocked instantly.
+        if ($product->is_free) {
+            $order = DB::transaction(function () use ($buyer, $product, $validated) {
+                return Order::create([
+                    'order_number' => $this->generateOrderNumber('ORD-'),
+                    'buyer_id' => $buyer->id,
+                    'creator_id' => $product->creator_id,
+                    'product_id' => $product->id,
+                    'subtotal' => 0.00,
+                    'platform_fee' => 0.00,
+                    'total' => 0.00,
+                    'currency' => $product->currency,
+                    'status' => 'completed',
+                    'payment_provider' => 'mock',
+                    'idempotency_key' => $validated['idempotency_key'],
+                    'paid_at' => now(),
+                ]);
+            });
+
+            $product->increment('download_count');
+
+            return response()->json([
+                'message' => 'Free product unlocked.',
+                'product_type' => 'digital',
+                'order' => $order->load(['product', 'creator']),
+                'download_url' => $this->digitalDownloadUrl($product),
+            ], 201);
+        }
+
+        $pricing = $this->computeLiveDigitalPricing($product, $buyer->country);
+
+        $order = DB::transaction(function () use ($buyer, $product, $pricing, $validated) {
+            return Order::create([
+                'order_number' => $this->generateOrderNumber('ORD-'),
+                'buyer_id' => $buyer->id,
+                'creator_id' => $product->creator_id,
+                'product_id' => $product->id,
+                'subtotal' => $pricing['subtotal'],
+                'platform_fee' => $pricing['platform_fee'],
+                'tax' => $pricing['tax'],
+                'tax_rate' => $pricing['tax_rate'],
+                'tax_country_code' => $pricing['tax_country_code'],
+                'tax_type' => $pricing['tax_type'],
+                'tax_name' => $pricing['tax_name'],
+                'total' => $pricing['total'],
+                'currency' => $product->currency,
+                'status' => 'completed',
+                'payment_provider' => 'mock',
+                'idempotency_key' => $validated['idempotency_key'],
+                'paid_at' => now(),
+            ]);
+        });
+
+        $product->increment('download_count');
+
+        $this->accountingService->recordCommerceSale(
+            orderNumber: $order->order_number,
+            sourceId: $order->id,
+            currency: $order->currency,
+            grossCents: (int) round(((float) $order->subtotal) * 100),
+            taxCents: (int) round(((float) $order->tax) * 100),
+            taxRate: (float) $order->tax_rate,
+            taxType: $order->tax_type,
+            taxName: $order->tax_name,
+            countryCode: $order->tax_country_code,
+            platformFeeCents: (int) round(((float) $order->platform_fee) * 100),
+            metadata: [
+                'order_id' => $order->id,
+                'buyer_id' => $order->buyer_id,
+                'creator_id' => $order->creator_id,
+                'product_id' => $order->product_id,
+                'live_stream_id' => $stream->id,
+            ],
+        );
+
+        return response()->json([
+            'message' => 'Purchase successful!',
+            'product_type' => 'digital',
+            'order' => $order->fresh()->load(['product', 'creator']),
+            'download_url' => $this->digitalDownloadUrl($product),
+        ], 201);
+    }
+
+    private function computeLiveDigitalPricing(DigitalProduct $product, ?string $buyerCountryCode): array
+    {
+        $subtotal = round((float) $product->price, 2);
+        $subtotalCents = (int) round($subtotal * 100);
+        $platformFee = round($subtotal * self::DIGITAL_FEE_RATE, 2);
+
+        $storefront = Storefront::where('user_id', $product->creator_id)->first();
+        $storefrontRate = $storefront ? (float) $storefront->tax_rate : 0.0;
+
+        $taxInfo = $this->taxService->resolveCheckoutTax($subtotalCents, $buyerCountryCode, $storefrontRate, 'commerce');
+        $tax = round($taxInfo['tax_amount_cents'] / 100, 2);
+        $total = round($subtotal + $platformFee + $tax, 2);
+
+        return [
+            'subtotal' => $subtotal,
+            'platform_fee' => $platformFee,
+            'tax' => $tax,
+            'tax_rate' => $taxInfo['tax_rate_percentage'],
+            'tax_name' => $taxInfo['tax_name'],
+            'tax_type' => $taxInfo['tax_type'],
+            'tax_country_code' => $taxInfo['country_code'],
+            'total' => $total,
+            'currency' => $product->currency,
+        ];
+    }
+
+    /**
+     * Resolve the product pinned to a stream into a display-ready payload
+     * so hosts and viewers can render the buy card without extra requests.
+     */
+    private function pinnedProductPayload(LiveStream $stream): ?array
+    {
+        if (! $stream->pinned_product_id) {
+            return null;
+        }
+
+        $physical = PhysicalProduct::find($stream->pinned_product_id);
+        if ($physical) {
+            $images = is_array($physical->images) && count($physical->images) > 0
+                ? array_values($physical->images)
+                : [];
+
+            return [
+                'id' => $physical->id,
+                'product_type' => 'physical',
+                'title' => $physical->title,
+                'description' => $physical->description,
+                'price' => (float) $physical->price,
+                'currency' => $physical->currency,
+                'symbol' => $this->currencySymbol($physical->currency),
+                'images' => $images,
+                'cover_url' => $images[0] ?? null,
+                'in_stock' => $physical->inStock(),
+                'stock_quantity' => $physical->stock_quantity,
+            ];
+        }
+
+        $digital = DigitalProduct::find($stream->pinned_product_id);
+        if ($digital) {
+            return [
+                'id' => $digital->id,
+                'product_type' => 'digital',
+                'title' => $digital->title,
+                'description' => $digital->description,
+                'price' => (float) $digital->price,
+                'currency' => $digital->currency,
+                'symbol' => $this->currencySymbol($digital->currency),
+                'images' => $digital->cover_url ? [$digital->cover_url] : [],
+                'cover_url' => $digital->cover_url,
+                'in_stock' => true,
+                'is_free' => (bool) $digital->is_free,
+            ];
+        }
+
+        return null;
+    }
+
+    private function currencySymbol(?string $currency): string
+    {
+        return match ($currency) {
+            'NGN' => '₦',
+            'EUR' => '€',
+            'GBP' => '£',
+            default => '$',
+        };
+    }
+
+    private function digitalDownloadUrl(DigitalProduct $product): string
+    {
+        return url('/api/v1/products/' . $product->id . '/download');
+    }
+
+    private function generateOrderNumber(string $prefix): string
+    {
+        return $prefix . now()->format('Ymd') . '-' . strtoupper(Str::random(6));
     }
 
     /**

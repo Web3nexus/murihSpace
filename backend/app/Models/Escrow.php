@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Escrow extends Model
 {
     protected $fillable = [
-        'order_id', 'buyer_id', 'seller_id', 'ledger_transaction_id',
+        'order_id', 'fulfilment_order_id', 'buyer_id', 'seller_id', 'ledger_transaction_id',
         'amount', 'currency', 'status', 'release_window_days', 'released_at',
     ];
 
