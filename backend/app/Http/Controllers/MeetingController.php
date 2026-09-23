@@ -46,6 +46,7 @@ class MeetingController extends Controller
                 'title' => $title,
                 'token' => $token,
                 'host' => config('livekit.host'),
+                'host_user_id' => $user->id,
                 'is_host' => true,
                 'meeting_url' => "/app/meeting/{$code}",
             ]);

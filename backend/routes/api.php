@@ -48,6 +48,7 @@ use App\Http\Controllers\BrandDealController;
 use App\Http\Controllers\BrandDealMilestoneController;
 use App\Http\Controllers\BrandDealProposalController;
 use App\Http\Controllers\BrandInvoiceController;
+use App\Http\Controllers\BroadcastChannelController;
 use App\Http\Controllers\CallController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\ChatMediaController;
@@ -644,6 +645,15 @@ Route::prefix('v1')->group(function () {
             Route::post('/pin-config', [ConversationController::class, 'updatePinConfig']);
             // Community / group voice+video call token (generates LiveKit room token per conversation)
             Route::get('/{id}/call-token', [CallController::class, 'conversationCallToken']);
+        });
+
+        // ── Broadcast Channels (linked to owned page/group/community) ─────
+        Route::prefix('broadcast-channels')->group(function () {
+            Route::get('/', [BroadcastChannelController::class, 'index']);
+            Route::post('/', [BroadcastChannelController::class, 'store']);
+            Route::get('/{channel}', [BroadcastChannelController::class, 'show']);
+            Route::get('/{channel}/members', [BroadcastChannelController::class, 'members']);
+            Route::delete('/{channel}', [BroadcastChannelController::class, 'destroy']);
         });
 
         // ── Chat Settings & Presence ─────────────────────────────────────────

@@ -13,6 +13,8 @@ import {
   Hand,
   Clock,
   WarningCircle,
+  ChatCircle,
+  PaperPlaneTilt,
 } from "@phosphor-icons/react";
 import {
   Room,
@@ -20,13 +22,19 @@ import {
   LocalParticipant,
   Track,
   Participant,
+  RemoteParticipant,
+  DataPacket_Kind,
 } from 'livekit-client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { getAuthToken } from '@/lib/auth/token';
 import { mapApplicationError } from '@/lib/errorMapper';
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? 'http://localhost:8000/api/v1';
+// Resolve the API against the environment the web app is served from (same
+// origin in production/staging) instead of a hardcoded fallback host.
+const API_BASE =
+  (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ??
+  `${window.location.origin}/api/v1`;
 
 function getAuthHeaders() {
   const token = getAuthToken();
@@ -50,6 +58,22 @@ interface ParticipantTrackState {
   audioTrack?: Track;
 }
 
+interface MeetingChatMessage {
+  sender: string;
+  text: string;
+  mine: boolean;
+  time: number;
+}
+
+interface MeetingEmojiReaction {
+  id: number;
+  emoji: string;
+  dx: number; // 0..100 (%)
+  delay: number; // ms
+}
+
+const QUICK_EMOJIS = ['👍', '❤️', '😂', '🔥', '🎉', '🙌', '✋', '👏'];
+
 export function LiveKitVideoConference({
   roomId,
   tokenEndpoint,
@@ -71,9 +95,70 @@ export function LiveKitVideoConference({
   const [activeSpeaker, setActiveSpeaker] = useState<string | null>(null);
   const [connectionError, setConnectionError] = useState<{ title: string; message: string; suggestion?: string } | null>(null);
 
+  // In-meeting chat + emoji reactions + raise-hand broadcast
+  const [chatOpen, setChatOpen] = useState(false);
+  const [chatInput, setChatInput] = useState('');
+  const [chatMessages, setChatMessages] = useState<MeetingChatMessage[]>([]);
+  const [unreadChat, setUnreadChat] = useState(0);
+  const [reactions, setReactions] = useState<MeetingEmojiReaction[]>([]);
+  const [raisedByIdentity, setRaisedByIdentity] = useState<Set<string>>(new Set());
+  const [myName, setMyName] = useState('You');
+
   const roomRef = useRef<Room | null>(null);
   const localVideoRef = useRef<HTMLVideoElement | null>(null);
   const previewStreamRef = useRef<MediaStream | null>(null);
+  const reactionSeq = useRef(0);
+  const chatScrollRef = useRef<HTMLDivElement | null>(null);
+
+  // Broadcast a JSON payload to every participant in the room over the
+  // LiveKit data channel (chat, emoji reactions, raise-hand events).
+  const publishData = (payload: Record<string, unknown>) => {
+    const room = roomRef.current;
+    if (!room?.localParticipant) return;
+    try {
+      const bytes = new TextEncoder().encode(JSON.stringify(payload));
+      room.localParticipant.publishData(bytes, { reliable: true });
+    } catch (e) {
+      console.error('[Meeting] publishData error', e);
+    }
+  };
+
+  const addReaction = (emoji: string) => {
+    const id = reactionSeq.current++;
+    setReactions((prev) => [...prev.slice(-18), { id, emoji, dx: 8 + Math.random() * 84, delay: Math.random() * 140 }]);
+    window.setTimeout(() => {
+      setReactions((prev) => prev.filter((r) => r.id !== id));
+    }, 2400);
+  };
+
+  const handleDataReceived: (payload: Uint8Array, participant?: RemoteParticipant, kind?: DataPacket_Kind) => void = (payload, participant) => {
+    try {
+      const data = JSON.parse(new TextDecoder().decode(payload)) as Record<string, unknown>;
+      const from = (data.from as string) || participant?.name || 'Guest';
+      switch (data.type) {
+        case 'chat':
+          setChatMessages((m) => [...m, { sender: from, text: String(data.text ?? ''), mine: false, time: Date.now() }]);
+          setUnreadChat((u) => u + 1);
+          break;
+        case 'reaction':
+          addReaction(String(data.emoji ?? '👍'));
+          break;
+        case 'raise': {
+          const identity = participant?.identity ?? '';
+          setRaisedByIdentity((prev) => {
+            const next = new Set(prev);
+            if (data.state === true) next.add(identity);
+            else next.delete(identity);
+            return next;
+          });
+          if (data.state === true) addReaction('✋');
+          break;
+        }
+      }
+    } catch {
+      // Ignore non-JSON / unknown payloads
+    }
+  };
 
   // Pre-join camera preview stream
   useEffect(() => {
@@ -198,6 +283,7 @@ export function LiveKitVideoConference({
       room.on(RoomEvent.ParticipantDisconnected, updateParticipantsState);
       room.on(RoomEvent.TrackSubscribed, updateParticipantsState);
       room.on(RoomEvent.TrackUnsubscribed, updateParticipantsState);
+      room.on(RoomEvent.DataReceived, handleDataReceived);
       room.on(RoomEvent.ActiveSpeakersChanged, (speakers) => {
         if (speakers.length > 0) setActiveSpeaker(speakers[0].identity);
         else setActiveSpeaker(null);
@@ -205,6 +291,8 @@ export function LiveKitVideoConference({
 
       await room.connect(host, token);
       roomRef.current = room;
+
+      setMyName(room.localParticipant?.name || 'You');
 
       // Apply initial mic/camera states
       await room.localParticipant.setMicrophoneEnabled(isMicOn);
@@ -232,6 +320,40 @@ export function LiveKitVideoConference({
     }
     setStage('prejoin');
     if (onLeave) onLeave();
+  };
+
+  // Auto-scroll chat to the newest message
+  useEffect(() => {
+    if (chatScrollRef.current) {
+      chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
+    }
+  }, [chatMessages, chatOpen]);
+
+  // Reset the unread badge whenever the chat panel is opened
+  const toggleChat = () => {
+    setChatOpen((v) => !v);
+    if (!chatOpen) setUnreadChat(0);
+  };
+
+  const sendChatMessage = (e?: React.FormEvent) => {
+    e?.preventDefault();
+    const text = chatInput.trim();
+    if (!text) return;
+    setChatMessages((m) => [...m, { sender: myName, text, mine: true, time: Date.now() }]);
+    publishData({ type: 'chat', from: myName, text });
+    setChatInput('');
+  };
+
+  const sendReaction = (emoji: string) => {
+    addReaction(emoji);
+    publishData({ type: 'reaction', from: myName, emoji });
+  };
+
+  const toggleRaiseHand = () => {
+    const next = !isHandRaised;
+    setIsHandRaised(next);
+    publishData({ type: 'raise', from: myName, state: next });
+    if (next) addReaction('✋');
   };
 
   const toggleMic = async () => {
@@ -420,6 +542,23 @@ export function LiveKitVideoConference({
   // ── CONNECTED GOOGLE MEET EXPERIENCE ────────────────────────────────────
   return (
     <div className="relative w-full h-[700px] bg-[#131314] text-white rounded-3xl overflow-hidden border border-[#3c4043] flex flex-col shadow-2xl select-none">
+      <style>{`
+        @keyframes meeting-emoji-rise {
+          0% { opacity: 0; transform: translateY(16px) scale(0.55) rotate(-12deg); }
+          12% { opacity: 1; }
+          100% { opacity: 0; transform: translateY(-240px) scale(1.2) rotate(14deg); }
+        }
+        @keyframes meeting-slide-right {
+          from { opacity: 0.5; transform: translateX(24px); }
+          to { opacity: 1; transform: translateX(0); }
+        }
+        .meeting-emoji-bubble {
+          animation: meeting-emoji-rise 2.3s cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+        }
+        .meeting-slide-right {
+          animation: meeting-slide-right 0.2s ease-out forwards;
+        }
+      `}</style>
       {/* Top Header Bar */}
       <div className="flex items-center justify-between px-6 py-3.5 bg-[#1e1f20]/90 border-b border-[#3c4043]/80 backdrop-blur-md z-10">
         <div className="flex items-center gap-3 min-w-0">
@@ -447,6 +586,25 @@ export function LiveKitVideoConference({
             {participants.length} {participants.length === 1 ? 'Person' : 'People'}
           </Badge>
 
+          <button
+            type="button"
+            onClick={toggleChat}
+            className={`h-8 px-3 rounded-full text-xs font-semibold gap-1.5 flex items-center border transition-colors ${
+              chatOpen
+                ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300'
+                : 'border-[#3c4043] text-neutral-300 hover:text-white'
+            }`}
+            title="Open in-meeting chat"
+          >
+            <ChatCircle weight="bold" className="w-3.5 h-3.5" />
+            <span>{chatOpen ? 'Hide Chat' : 'Chat'}</span>
+            {unreadChat > 0 && !chatOpen && (
+              <span className="min-w-4 h-4 px-1 rounded-full bg-emerald-500 text-[10px] font-bold text-slate-950 flex items-center justify-center">
+                {unreadChat}
+              </span>
+            )}
+          </button>
+
           <Button
             variant="outline"
             size="sm"
@@ -460,22 +618,25 @@ export function LiveKitVideoConference({
         </div>
       </div>
 
-      {/* Main Video / Participant Grid */}
-      <div
-        className="flex-1 p-4 grid gap-4 auto-rows-fr overflow-y-auto"
-        style={{
-          gridTemplateColumns:
-            participants.length <= 1
-              ? '1fr'
-              : participants.length === 2
-                ? 'repeat(auto-fit, minmax(340px, 1fr))'
-                : 'repeat(auto-fit, minmax(280px, 1fr))',
-        }}
-      >
+      {/* Main Video / Participant Grid + Reactions + Chat */}
+      <div className="flex-1 flex min-h-0">
+        <div className="flex-1 relative min-w-0">
+          <div
+            className="absolute inset-0 p-4 grid gap-4 auto-rows-fr overflow-y-auto"
+            style={{
+              gridTemplateColumns:
+                participants.length <= 1
+                  ? '1fr'
+                  : participants.length === 2
+                    ? 'repeat(auto-fit, minmax(340px, 1fr))'
+                    : 'repeat(auto-fit, minmax(280px, 1fr))',
+            }}
+          >
         {participants.map((pState, idx) => {
           const isSpeaking = activeSpeaker === pState.participant.identity;
           const isLocal = pState.participant instanceof LocalParticipant;
           const participantName = isLocal ? 'You' : (pState.participant.name || `Guest #${pState.participant.identity.slice(-4)}`);
+          const raisedHand = isLocal ? isHandRaised : raisedByIdentity.has(pState.participant.identity);
 
           return (
             <div
@@ -507,6 +668,7 @@ export function LiveKitVideoConference({
 
               {/* Participant Name Overlay Badge (Google Meet style) */}
               <div className="absolute bottom-3 left-3 bg-[#202124]/85 backdrop-blur-md px-3 py-1 rounded-full border border-[#3c4043] text-xs font-semibold flex items-center gap-2 text-white">
+                {raisedHand && <span title="Raised hand">✋</span>}
                 <span>{participantName}</span>
                 {isSpeaking ? (
                   <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
@@ -514,9 +676,95 @@ export function LiveKitVideoConference({
                   !pState.audioTrack && <MicOff weight="fill" className="w-3 h-3 text-red-400" />
                 )}
               </div>
+
+              {/* Raised-hand badge */}
+              {raisedHand && (
+                <div className="absolute top-3 right-3 bg-amber-500 text-slate-950 text-[10px] font-extrabold px-2 py-0.5 rounded-full shadow-lg flex items-center gap-1">
+                  <Hand weight="fill" className="w-3 h-3" />
+                  HAND UP
+                </div>
+              )}
             </div>
           );
         })}
+          </div>
+          {/* Floating emoji reaction overlay (reactions + raise-hand) */}
+          <div className="absolute inset-0 pointer-events-none overflow-hidden z-20">
+            {reactions.map((r) => (
+              <MeetingEmojiBubble key={r.id} emoji={r.emoji} dx={r.dx} delay={r.delay} />
+            ))}
+          </div>
+        </div>
+
+        {/* In-meeting Chat Panel */}
+        {chatOpen && (
+          <div className="w-80 shrink-0 border-l border-[#3c4043]/80 bg-[#1e1f20] flex flex-col min-h-0 meeting-slide-right">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-[#3c4043]/60">
+              <div className="flex items-center gap-2 text-white text-sm font-bold">
+                <ChatCircle weight="fill" className="w-4 h-4 text-emerald-400" />
+                In-Meeting Chat
+              </div>
+              <button
+                type="button"
+                onClick={() => setChatOpen(false)}
+                className="h-7 w-7 rounded-full text-neutral-400 hover:text-white hover:bg-[#3c4043] flex items-center justify-center transition-colors"
+                title="Close chat"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div ref={chatScrollRef} className="flex-1 overflow-y-auto px-3 py-3 space-y-2">
+              {chatMessages.length === 0 && (
+                <p className="text-center text-[11px] text-neutral-500 pt-8">
+                  No messages yet. Say hello! 👋
+                </p>
+              )}
+              {chatMessages.map((msg, i) => (
+                <div key={i} className={`flex ${msg.mine ? 'justify-end' : 'justify-start'}`}>
+                  <div className={`max-w-[85%] px-3 py-1.5 rounded-2xl text-xs ${
+                    msg.mine ? 'bg-[#1877f2] text-white' : 'bg-[#3c4043] text-neutral-100'
+                  }`}>
+                    {!msg.mine && <div className="text-[10px] font-bold text-emerald-300 mb-0.5">{msg.sender}</div>}
+                    <div className="leading-snug">{msg.text}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Quick emoji reactions */}
+            <div className="px-3 pt-2 flex items-center gap-1.5 flex-wrap">
+              {QUICK_EMOJIS.map((emoji) => (
+                <button
+                  key={emoji}
+                  type="button"
+                  onClick={() => sendReaction(emoji)}
+                  className="h-8 w-8 rounded-lg bg-[#3c4043] hover:bg-[#4a4e51] transition-colors text-[15px]"
+                  title={`Send ${emoji}`}
+                >
+                  {emoji}
+                </button>
+              ))}
+            </div>
+
+            <form onSubmit={sendChatMessage} className="p-3 flex items-center gap-2">
+              <input
+                value={chatInput}
+                onChange={(e) => setChatInput(e.target.value)}
+                placeholder="Type a message…"
+                className="flex-1 h-9 bg-[#3c4043] border border-[#3c4043] focus:border-[#1877f2] rounded-full px-3 text-xs text-white outline-none placeholder:text-neutral-500"
+              />
+              <button
+                type="submit"
+                disabled={!chatInput.trim()}
+                className="h-9 w-9 rounded-full bg-[#1877f2] text-white flex items-center justify-center disabled:opacity-40 transition-colors hover:bg-[#166fe5]"
+                title="Send message"
+              >
+                <PaperPlaneTilt weight="fill" className="w-4 h-4" />
+              </button>
+            </form>
+          </div>
+        )}
       </div>
 
       {/* Floating Bottom Control Dock (Google Meet Style) */}
@@ -575,7 +823,7 @@ export function LiveKitVideoConference({
           {/* Raise Hand */}
           <button
             type="button"
-            onClick={() => setIsHandRaised(!isHandRaised)}
+            onClick={toggleRaiseHand}
             className={`h-12 w-12 rounded-full flex items-center justify-center transition-all ${
               isHandRaised
                 ? 'bg-amber-500 text-slate-950 font-bold'
@@ -637,6 +885,18 @@ function ParticipantVideoElement({ track, isLocal }: { track: Track; isLocal?: b
       playsInline
       muted={isLocal}
     />
+  );
+}
+
+// Floating emoji particle used for reactions and raise-hand animations
+function MeetingEmojiBubble({ emoji, dx, delay }: { emoji: string; dx: number; delay: number }) {
+  return (
+    <span
+      className="meeting-emoji-bubble absolute bottom-20 select-none pointer-events-none"
+      style={{ left: `${dx}%`, animationDelay: `${delay}ms`, fontSize: '2rem', lineHeight: 1 }}
+    >
+      {emoji}
+    </span>
   );
 }
 
