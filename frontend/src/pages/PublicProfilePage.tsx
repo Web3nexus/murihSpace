@@ -96,6 +96,17 @@ interface PublicUserProfile {
   created_at?: string;
 }
 
+function getInitials(nameStr: string): string {
+  const parts = nameStr.trim().split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) {
+    return (parts[0][0] + parts[1][0]).toUpperCase();
+  }
+  if (parts.length === 1 && parts[0].length > 0) {
+    return parts[0].slice(0, 2).toUpperCase();
+  }
+  return "U";
+}
+
 export default function PublicProfilePage() {
   const { username } = useParams<{ username: string }>();
   const cleanUsername = (username ?? "").replace(/^@/, "");
@@ -323,13 +334,20 @@ export default function PublicProfilePage() {
       {/* Main Container */}
       <main className="flex-1 max-w-4xl w-full mx-auto px-4 py-6 space-y-6">
         {/* Profile Header Card */}
-        <div className="overflow-hidden rounded-3xl border-none bg-card ">
+        <div className="overflow-hidden rounded-3xl border border-border bg-card shadow-sm">
           {/* Banner */}
-          <div className="h-40 sm:h-52 w-full bg-gradient-to-r from-[#102840] via-[#173852] to-[#2164b6]/40 relative overflow-hidden">
-            {profile.banner_url && (
+          <div className="h-40 sm:h-52 w-full bg-[#131b26] dark:bg-[#0d131d] relative overflow-hidden border-b border-border/80">
+            {profile.banner_url ? (
               <img src={profile.banner_url} alt="" className="w-full h-full object-cover" />
+            ) : (
+              <div 
+                className="absolute inset-0 opacity-[0.06]"
+                style={{
+                  backgroundImage: `radial-gradient(circle at 1px 1px, #ffffff 1px, transparent 0)`,
+                  backgroundSize: '24px 24px'
+                }}
+              />
             )}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
           </div>
 
           {/* Profile Meta Area */}
@@ -337,7 +355,7 @@ export default function PublicProfilePage() {
             <div className="flex flex-col sm:flex-row sm:items-end justify-between -mt-16 sm:-mt-20 mb-4 gap-4">
               {/* Avatar + Basic Names */}
               <div className="flex items-end gap-4">
-                <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-3xl border-4 border-card bg-[#2164b6] flex items-center justify-center overflow-hidden shadow-xl shrink-0">
+                <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-3xl border-4 border-card bg-slate-800 dark:bg-slate-700 text-white flex items-center justify-center overflow-hidden shadow-xl shrink-0 font-black text-2xl sm:text-3xl select-none">
                   {profile.avatar_url || profile.avatar ? (
                     <img
                       src={profile.avatar_url || profile.avatar}
@@ -345,7 +363,7 @@ export default function PublicProfilePage() {
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    <UserIcon weight="fill" className="text-white/90" style={{ width: 60, height: 60 }} />
+                    <span>{getInitials(profile.name || profile.username || "User")}</span>
                   )}
                 </div>
 
@@ -355,7 +373,7 @@ export default function PublicProfilePage() {
                       {profile.name}
                     </h1>
                     {(profile.has_active_verification_badge || profile.kyc_status === "verified") && (
-                      <BadgeCheck weight="fill" className="h-5 w-5 text-secondary fill-secondary/20 shrink-0" />
+                      <BadgeCheck weight="fill" className="h-5 w-5 text-sky-500 fill-sky-500/20 shrink-0" />
                     )}
                   </div>
                   <p className="text-xs font-mono text-muted-foreground">@{profile.username}</p>
@@ -399,7 +417,7 @@ export default function PublicProfilePage() {
                       onClick={handleMessageClick}
                       className="h-9 text-xs font-semibold gap-1.5 border-border hover:bg-muted"
                     >
-                      <MessageSquare weight="fill" className="h-3.5 w-3.5 text-secondary" /> Message
+                      <MessageSquare weight="fill" className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" /> Message
                     </Button>
                   </>
                 )}
@@ -429,8 +447,8 @@ export default function PublicProfilePage() {
 
             {/* Role & Badges */}
             <div className="flex flex-wrap items-center gap-2 mb-4">
-              <span className="px-2.5 py-0.5 rounded-full bg-secondary/10 text-secondary text-[11px] font-bold capitalize">
-                {profile.role || "Member"}
+              <span className="px-2.5 py-0.5 rounded-full bg-blue-500/10 text-blue-700 dark:text-blue-300 border border-blue-500/30 text-[11px] font-bold tracking-wide">
+                {profile.role === "member" || !profile.role ? "Community Member" : profile.role === "creator" ? "Creator" : profile.role === "vendor" ? "Storefront Owner" : profile.role}
               </span>
               {(profile.average_rating || (reviewStats?.total ?? 0) > 0) && (
                 <span className="flex items-center gap-1 text-xs font-bold text-amber-500 bg-amber-500/10 px-2.5 py-0.5 rounded-full">

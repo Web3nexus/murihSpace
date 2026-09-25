@@ -28,6 +28,17 @@ import { useAuth } from "@/hooks/useAuth";
 import { useTheme } from "@/hooks/useTheme";
 import { apiClient } from "@/lib/api/client";
 
+function getInitials(nameStr: string): string {
+  const parts = nameStr.trim().split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) {
+    return (parts[0][0] + parts[1][0]).toUpperCase();
+  }
+  if (parts.length === 1 && parts[0].length > 0) {
+    return parts[0].slice(0, 2).toUpperCase();
+  }
+  return "U";
+}
+
 export function SettingsLayout() {
   const { user } = useAuth();
   const { theme } = useTheme();
@@ -56,16 +67,16 @@ export function SettingsLayout() {
 
   const roleBadgeColor =
     user?.role === "admin"
-      ? "bg-purple-500/15 text-purple-600 dark:text-purple-400 border-purple-500/30"
+      ? "bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-500/30"
       : user?.role === "creator"
       ? (isKycVerified
-          ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
+          ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30"
           : isKycPending
-          ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30"
-          : "bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30")
+          ? "bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30"
+          : "bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-500/30")
       : user?.role === "vendor"
-      ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
-      : "bg-secondary/15 text-secondary border-secondary/30";
+      ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30"
+      : "bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-500/30";
 
   const themeLabel = theme === "system" ? "Auto" : theme.charAt(0).toUpperCase() + theme.slice(1);
 
@@ -85,12 +96,12 @@ export function SettingsLayout() {
         {/* ── Left Sidebar (4 Cols) ───────────────────── */}
         <aside className="lg:col-span-4 space-y-4">
           {/* Card 0: Profile Header Card */}
-          <div className="p-4 rounded-3xl bg-card border-none/80  flex items-center gap-3">
-            <div className="h-14 w-14 rounded-full bg-[#2164b6] text-white flex items-center justify-center shrink-0 overflow-hidden">
+          <div className="p-4 rounded-3xl bg-card border border-border shadow-sm flex items-center gap-3">
+            <div className="h-14 w-14 rounded-full bg-slate-800 dark:bg-slate-700 text-white flex items-center justify-center shrink-0 overflow-hidden font-black text-lg select-none">
               {user?.avatar_url || user?.avatar ? (
                 <img src={user.avatar_url || user.avatar || ''} alt="" className="w-full h-full object-cover" />
               ) : (
-                <User weight="fill" className="text-white/90" style={{ width: 28, height: 28 }} />
+                <span>{getInitials(user?.name ?? user?.username ?? "User")}</span>
               )}
             </div>
             <div className="flex-1 min-w-0">

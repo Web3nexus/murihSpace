@@ -13,7 +13,6 @@ import {
   ShareNetwork as Share2,
   ArrowSquareOut,
   Star,
-  User as UserIcon,
   Camera,
   FloppyDisk,
   DeviceMobile as Smartphone,
@@ -26,6 +25,17 @@ import { cn } from "@/lib/utils";
 import { ShareModal } from "@/components/common/ShareModal";
 import { authFetch } from "@/lib/api/authFetch";
 import { toast } from "sonner";
+
+function getInitials(nameStr: string): string {
+  const parts = nameStr.trim().split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) {
+    return (parts[0][0] + parts[1][0]).toUpperCase();
+  }
+  if (parts.length === 1 && parts[0].length > 0) {
+    return parts[0].slice(0, 2).toUpperCase();
+  }
+  return "U";
+}
 
 export function ProfilePage() {
   const { profile, loading, updating, error, fieldErrors, updateProfile, submitKyc } = useProfile();
@@ -212,11 +222,23 @@ export function ProfilePage() {
       {/* ── PROFILE HERO CARD ──────────────────────────────────── */}
       <div className="overflow-hidden rounded-3xl border border-border bg-card shadow-sm">
         {/* Banner with Edit Cover Button */}
-        <div className="h-40 sm:h-48 w-full bg-gradient-to-r from-primary/20 via-primary/10 to-muted/40 border-b border-border/80 relative overflow-hidden group">
+        <div className="h-40 sm:h-48 w-full bg-[#131b26] dark:bg-[#0d131d] border-b border-border/80 relative overflow-hidden group">
           {bannerUrl ? (
             <img src={bannerUrl} alt="Profile Cover" className="w-full h-full object-cover" />
           ) : (
-            <div className="absolute inset-0 bg-gradient-to-br from-primary/15 via-transparent to-muted/30" />
+            <div className="absolute inset-0 bg-[#131b26] dark:bg-[#0d131d] flex items-center justify-end pr-8">
+              {/* Subtle minimal geometric grid pattern for depth without looking like generic AI gradient */}
+              <div
+                className="absolute inset-0 opacity-[0.06]"
+                style={{
+                  backgroundImage: `radial-gradient(circle at 1px 1px, #ffffff 1px, transparent 0)`,
+                  backgroundSize: '24px 24px',
+                }}
+              />
+              <div className="relative text-right hidden sm:block select-none opacity-20 pointer-events-none">
+                <span className="text-3xl font-black text-white/50 tracking-widest uppercase">MURIH</span>
+              </div>
+            </div>
           )}
 
           {/* Banner Upload Trigger Button */}
@@ -243,14 +265,14 @@ export function ProfilePage() {
               <div className="relative group self-start">
                 <div
                   onClick={() => avatarInputRef.current?.click()}
-                  className="w-28 h-28 rounded-full border-4 border-card bg-muted/90 flex items-center justify-center overflow-hidden shrink-0 shadow-lg cursor-pointer relative"
+                  className="w-28 h-28 rounded-full border-4 border-card bg-slate-800 dark:bg-slate-700 flex items-center justify-center overflow-hidden shrink-0 shadow-lg cursor-pointer relative"
                   title="Click to change profile photo"
                 >
                   {avatar ? (
                     <img src={avatar} alt={name} className="w-full h-full object-cover" />
                   ) : (
-                    <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/40 flex items-center justify-center text-primary">
-                      <UserIcon weight="fill" className="w-14 h-14" />
+                    <div className="w-full h-full bg-slate-800 dark:bg-slate-700 text-white flex items-center justify-center font-black text-2xl tracking-wider select-none">
+                      {getInitials(name || username || "User")}
                     </div>
                   )}
 
@@ -292,9 +314,23 @@ export function ProfilePage() {
                   {(profile?.has_active_verification_badge || profile?.kyc_status === "verified") && (
                     <BadgeCheck weight="fill" className="h-5 w-5 text-sky-500 fill-sky-500/10 shrink-0" />
                   )}
-                  <span className="px-2.5 py-0.5 rounded-full bg-primary/10 text-primary text-[11px] font-bold uppercase tracking-wider">
-                    {profile?.role || "Member"}
-                  </span>
+                  {profile?.role === "admin" ? (
+                    <span className="px-2.5 py-0.5 rounded-full bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30 text-[11px] font-bold tracking-wide">
+                      Platform Admin
+                    </span>
+                  ) : profile?.role === "creator" ? (
+                    <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 text-[11px] font-bold tracking-wide">
+                      Creator
+                    </span>
+                  ) : profile?.role === "vendor" ? (
+                    <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 text-[11px] font-bold tracking-wide">
+                      Storefront Owner
+                    </span>
+                  ) : (
+                    <span className="px-2.5 py-0.5 rounded-full bg-blue-500/10 text-blue-700 dark:text-blue-300 border border-blue-500/30 text-[11px] font-bold tracking-wide">
+                      Community Member
+                    </span>
+                  )}
                 </div>
                 <p className="text-xs font-semibold text-muted-foreground">
                   @{username || "username"}
