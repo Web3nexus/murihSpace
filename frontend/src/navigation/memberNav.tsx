@@ -4,6 +4,7 @@ import {
   ChatCircleDots,
   Rss,
   VideoCamera,
+  VideoConference,
   Crown,
   MapPin,
   ChatCircle,
@@ -45,6 +46,11 @@ export const memberNav: NavGroup[] = [
         url: "/app/events",
         icon: <VideoCamera weight="fill" className="h-5 w-5" />,
         featureFlag: "events",
+      },
+      {
+        title: "Meetings",
+        url: "/app/meetings",
+        icon: <VideoConference weight="fill" className="h-5 w-5" />,
       },
       {
         title: "Friends",

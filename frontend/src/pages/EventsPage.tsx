@@ -21,6 +21,7 @@ import {
   Broadcast,
   Spinner,
   User as UserIcon,
+  VideoConference,
 } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -419,7 +420,17 @@ export function EventsPage() {
             Discover upcoming events, workshops, live sessions and community experiences.
           </p>
         </div>
-        <div className="flex items-center gap-2.5 shrink-0 pl-14 md:pl-0">
+        <div className="flex items-center gap-2.5 shrink-0 pl-14 md:pl-0 flex-wrap">
+          <Button
+            asChild
+            variant="outline"
+            className="h-10 px-4 rounded-xl text-sm font-semibold gap-2 border-border/80 hover:bg-muted/60"
+          >
+            <Link to="/app/meetings">
+              <VideoConference weight="fill" className="h-4 w-4 text-indigo-500" />
+              Join / Start Meeting
+            </Link>
+          </Button>
           <Button
             variant="outline"
             onClick={() => setActiveTab("my-events")}

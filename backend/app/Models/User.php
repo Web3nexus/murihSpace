@@ -31,6 +31,7 @@ use App\Services\PermissionService;
     'provider', 'provider_id', 'email_verify_code_hash', 'email_verify_code_expires_at',
     'phone_verified_at', 'fcm_token',
     'last_seen_at', 'show_online_status', 'read_receipts_enabled', 'chat_sounds_enabled',
+    'greeting_message_enabled', 'greeting_message', 'away_message_enabled', 'away_message',
 ])]
 #[Hidden(['password', 'remember_token', 'provider_id', 'kyc_document', 'kyc_rejection_reason', 'username_trial_ends_at', 'two_factor_secret', 'two_factor_recovery_codes'])]
 class User extends Authenticatable implements MustVerifyEmail
@@ -67,6 +68,8 @@ class User extends Authenticatable implements MustVerifyEmail
             'show_online_status' => 'boolean',
             'read_receipts_enabled' => 'boolean',
             'chat_sounds_enabled' => 'boolean',
+            'greeting_message_enabled' => 'boolean',
+            'away_message_enabled' => 'boolean',
         ];
     }
 

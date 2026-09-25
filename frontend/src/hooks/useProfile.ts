@@ -9,6 +9,7 @@ export interface UserProfileData {
   role: "member" | "creator" | "vendor" | "admin";
   bio?: string | null;
   avatar?: string | null;
+  avatar_url?: string | null;
   banner_url?: string | null;
   country?: string | null;
   county?: string | null;

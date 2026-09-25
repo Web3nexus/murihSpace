@@ -25,10 +25,12 @@ class Message extends Model
         'attachment_url',
         'attachment_type',
         'media_id',
+        'is_automated',
         'edited_at',
     ];
 
     protected $casts = [
+        'is_automated' => 'boolean',
         'edited_at' => 'datetime',
     ];
 

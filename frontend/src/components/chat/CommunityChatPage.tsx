@@ -19,7 +19,9 @@ import {
   VideoCamera as Video,
   Phone as Phone,
   X as X,
-  User as UserIcon
+  User as UserIcon,
+  Sparkle,
+  ChatCircleDots
 } from "@phosphor-icons/react";
 import { safeFormatDistanceToNow, safeFormat } from "@/lib/date";
 import { extractMessages } from "@/lib/chatMessages";
@@ -217,7 +219,7 @@ export default function CommunityChatPage() {
     if (!activeConv) return;
     setMessages((prev) => prev.map((m) => m.client_uuid === msg.client_uuid ? { ...m, status: "pending" as MessageStatus } : m));
     try {
-      const res = await apiFetch<{ data: ChatMessage } | ChatMessage>(`/conversations/${activeConv.id}/messages`, {
+      const res = await apiFetch<any>(`/conversations/${activeConv.id}/messages`, {
         method: "POST",
         body: JSON.stringify({
           content: msg.content,
@@ -227,9 +229,21 @@ export default function CommunityChatPage() {
           attachment_type: msg.attachment_type ?? null,
         }),
       });
-      const serverMsg = "data" in res ? res.data : res;
-      setMessages((prev) => prev.map((m) => m.client_uuid === msg.client_uuid ? { ...serverMsg, status: "sent" as MessageStatus, client_uuid: msg.client_uuid } : m));
-      setConversations((prev) => prev.map((c) => c.id === activeConv.id ? { ...c, latest_message: serverMsg, updated_at: serverMsg.created_at } : c));
+      const serverMsg: ChatMessage = res?.data?.id ? res.data : (res?.id ? res : res?.data);
+      const automatedMsg: ChatMessage | undefined = res?.automated_message ?? res?.data?.automated_message;
+
+      setMessages((prev) => {
+        let updated = prev.map((m) => m.client_uuid === msg.client_uuid ? { ...serverMsg, status: "sent" as MessageStatus, client_uuid: msg.client_uuid } : m);
+        if (automatedMsg && !updated.some((m) => (automatedMsg.id && m.id === automatedMsg.id) || (automatedMsg.client_uuid && m.client_uuid === automatedMsg.client_uuid))) {
+          updated = [...updated, automatedMsg];
+        }
+        return updated;
+      });
+
+      const latestMsg = automatedMsg ?? serverMsg;
+      if (latestMsg) {
+        setConversations((prev) => prev.map((c) => c.id === activeConv.id ? { ...c, latest_message: latestMsg, updated_at: latestMsg.created_at } : c));
+      }
     } catch {
       setMessages((prev) => prev.map((m) => m.client_uuid === msg.client_uuid ? { ...m, status: "failed" as MessageStatus } : m));
     }
@@ -534,6 +548,16 @@ export default function CommunityChatPage() {
                           <BellOff weight="fill" className="h-3.5 w-3.5 text-muted-foreground" />
                           {isMuted ? "Unmute channel" : "Mute channel"}
                         </button>
+                        <button
+                          onClick={() => {
+                            setShowHeaderMenu(false);
+                            navigate("/app/settings/automated-replies");
+                          }}
+                          className="w-full flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-muted text-foreground font-medium"
+                        >
+                          <ChatCircleDots weight="fill" className="h-3.5 w-3.5 text-primary" />
+                          Automated Replies
+                        </button>
                       </div>
                     </>
                   )}
@@ -641,6 +665,20 @@ export default function CommunityChatPage() {
                             <span className="block text-[10px] font-bold text-[#2164b6] dark:text-[#7ab0ff] mb-1">
                               {msg.user.name}
                             </span>
+                          )}
+
+                          {msg.is_automated && (
+                            <div className="mb-1.5">
+                              <span className={cn(
+                                "inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded",
+                                isMine
+                                  ? "bg-white/20 text-white"
+                                  : "bg-[#2164b6]/10 dark:bg-[#7ab0ff]/15 text-[#2164b6] dark:text-[#7ab0ff]"
+                              )}>
+                                <Sparkle weight="fill" className="h-2.5 w-2.5" />
+                                Automated Greeting
+                              </span>
+                            </div>
                           )}
 
                           {msg.attachment_url && (

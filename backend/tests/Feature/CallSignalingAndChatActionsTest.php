@@ -52,7 +52,7 @@ class CallSignalingAndChatActionsTest extends TestCase
         $response->assertCreated();
         $response->assertJsonPath('data.call.caller_id', $this->user1->id);
         $response->assertJsonPath('data.call.recipient_id', $this->user2->id);
-        $response->assertJsonPath('data.call.status', 'ringing');
+        $response->assertJsonPath('data.call.status', 'connecting');
 
         Event::assertDispatched(CallIncoming::class, function ($event) {
             return $event->call->recipient_id === $this->user2->id;
@@ -62,6 +62,28 @@ class CallSignalingAndChatActionsTest extends TestCase
             'caller_id' => $this->user1->id,
             'recipient_id' => $this->user2->id,
             'type' => 'audio',
+            'status' => 'connecting',
+        ]);
+    }
+
+    public function test_recipient_can_mark_call_as_ringing(): void
+    {
+        $call = Call::create([
+            'caller_id' => $this->user1->id,
+            'recipient_id' => $this->user2->id,
+            'type' => 'audio',
+            'status' => 'connecting',
+            'room_name' => 'call_test_ringing',
+        ]);
+
+        Sanctum::actingAs($this->user2);
+        $response = $this->postJson("/api/v1/calls/{$call->id}/ringing");
+
+        $response->assertOk();
+        $response->assertJsonPath('data.call.status', 'ringing');
+
+        $this->assertDatabaseHas('calls', [
+            'id' => $call->id,
             'status' => 'ringing',
         ]);
     }

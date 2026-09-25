@@ -5,6 +5,7 @@ import {
   UsersThree,
   ChatCircleDots,
   VideoCamera,
+  VideoConference,
   GraduationCap,
   CalendarCheck,
   Megaphone,
@@ -56,6 +57,11 @@ export const creatorNav: NavGroup[] = [
         url: "/app/events",
         icon: <VideoCamera weight="fill" className="h-5 w-5" />,
         featureFlag: "events",
+      },
+      {
+        title: "Video Meetings",
+        url: "/app/meetings",
+        icon: <VideoConference weight="fill" className="h-5 w-5" />,
       },
       {
         title: "Online Courses",

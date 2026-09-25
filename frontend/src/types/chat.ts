@@ -26,6 +26,7 @@ export interface ChatMessage {
   type: 'text' | 'image' | 'file' | 'voice' | 'call' | string;
   client_uuid?: string;
   status?: MessageStatus;
+  is_automated?: boolean;
   reply_to_id?: number;
   attachment_url?: string;
   attachment_type?: 'image' | 'file' | 'voice' | 'call' | string;

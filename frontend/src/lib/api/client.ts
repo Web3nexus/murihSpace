@@ -1,6 +1,7 @@
 import axios, { type AxiosError, type AxiosResponse, type InternalAxiosRequestConfig } from "axios";
 import { env } from "@/config/env";
 import { getAuthToken, getAdminToken } from "@/lib/auth/token";
+import { getLiveSessionId, isLiveRequest } from "@/lib/live/liveSession";
 
 export interface ApiError {
   message: string;
@@ -28,6 +29,15 @@ apiClient.interceptors.request.use(
     const token = isAdminEndpoint ? (getAdminToken() || getAuthToken()) : getAuthToken();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+    }
+    if (!config.headers["X-Client-Platform"]) {
+      config.headers["X-Client-Platform"] = "web";
+    }
+    if (isLiveRequest(config.url ?? "") && !config.headers["X-Live-Session-ID"]) {
+      const liveSessionId = getLiveSessionId();
+      if (liveSessionId) {
+        config.headers["X-Live-Session-ID"] = liveSessionId;
+      }
     }
     return config;
   },

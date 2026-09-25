@@ -15,6 +15,14 @@ class MeetingController extends Controller
     public function instant(Request $request): JsonResponse
     {
         $user = $request->user();
+
+        if (! $user || ! $user->isCreatorOrAdmin()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Only creators and administrators can host meetings. Normal members can join meetings using an invite link or room code.',
+            ], 403);
+        }
+
         $title = $request->input('title') ?: ($user->name . "'s Meeting");
         
         // Generate a Google Meet style code (e.g. abc-defg-hij)
@@ -39,13 +47,27 @@ class MeetingController extends Controller
                 name: $user->name,
             );
 
-            return response()->json([
-                'success' => true,
+            $host = config('livekit.host') ?: env('LIVEKIT_HOST', 'http://localhost:7880');
+
+            $data = [
                 'code' => $code,
                 'room' => $roomName,
                 'title' => $title,
                 'token' => $token,
-                'host' => config('livekit.host'),
+                'host' => $host,
+                'host_user_id' => $user->id,
+                'is_host' => true,
+                'meeting_url' => "/app/meeting/{$code}",
+            ];
+
+            return response()->json([
+                'success' => true,
+                'data' => $data,
+                'code' => $code,
+                'room' => $roomName,
+                'title' => $title,
+                'token' => $token,
+                'host' => $host,
                 'host_user_id' => $user->id,
                 'is_host' => true,
                 'meeting_url' => "/app/meeting/{$code}",
@@ -79,12 +101,23 @@ class MeetingController extends Controller
                 name: $user->name,
             );
 
-            return response()->json([
-                'success' => true,
+            $host = config('livekit.host') ?: env('LIVEKIT_HOST', 'http://localhost:7880');
+
+            $data = [
                 'code' => $code,
                 'room' => $roomName,
                 'token' => $token,
-                'host' => config('livekit.host'),
+                'host' => $host,
+                'is_host' => false,
+            ];
+
+            return response()->json([
+                'success' => true,
+                'data' => $data,
+                'code' => $code,
+                'room' => $roomName,
+                'token' => $token,
+                'host' => $host,
                 'is_host' => false,
             ]);
         } catch (\RuntimeException $e) {

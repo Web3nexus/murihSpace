@@ -251,6 +251,8 @@ class ConversationController extends Controller
             'avatar_url' => $targetUser->avatar_url ?? $targetUser->avatar,
             'is_online' => $targetUser->isOnline(),
             'last_seen' => $targetUser->lastSeenForHuman(),
+            'greeting_message_enabled' => (bool) $targetUser->greeting_message_enabled,
+            'greeting_message' => $targetUser->greeting_message_enabled ? $targetUser->greeting_message : null,
         ] : null;
 
         if ($existing) {
@@ -533,7 +535,106 @@ class ConversationController extends Controller
                 }
             });
 
-        return response()->json($loadedMessage, 201);
+        // ── Automated Greeting & Away Message Handling ─────────────────
+        $automatedMessage = null;
+        if ($conversation->type === 'direct') {
+            $otherParticipant = $conversation->participants()
+                ->where('user_id', '!=', $request->user()->id)
+                ->with('user')
+                ->first();
+
+            $recipientUser = $otherParticipant?->user;
+            if ($recipientUser) {
+                $shouldSendGreeting = false;
+                $autoContent = null;
+
+                // 1. Check Greeting Message
+                if ($recipientUser->greeting_message_enabled && !empty(trim((string) $recipientUser->greeting_message))) {
+                    // Check if recipient has ever sent a message in this conversation, or if all messages were > 14 days ago
+                    $lastRecipientMsg = Message::where('conversation_id', $conversation->id)
+                        ->where('user_id', $recipientUser->id)
+                        ->latest('created_at')
+                        ->first();
+
+                    if (! $lastRecipientMsg || $lastRecipientMsg->created_at->lt(now()->subDays(14))) {
+                        $shouldSendGreeting = true;
+                        $autoContent = trim($recipientUser->greeting_message);
+                    }
+                }
+
+                // 2. Check Away Message (if greeting not triggered, recipient is away/offline)
+                if (! $shouldSendGreeting && $recipientUser->away_message_enabled && !empty(trim((string) $recipientUser->away_message))) {
+                    if (! $recipientUser->isOnline()) {
+                        $recentAway = Message::where('conversation_id', $conversation->id)
+                            ->where('user_id', $recipientUser->id)
+                            ->where('is_automated', true)
+                            ->where('created_at', '>=', now()->subHours(24))
+                            ->exists();
+
+                        if (! $recentAway) {
+                            $autoContent = trim($recipientUser->away_message);
+                        }
+                    }
+                }
+
+                // If greeting or away message is qualified, create and dispatch it
+                if ($autoContent !== null) {
+                    $autoMsg = Message::create([
+                        'conversation_id' => $conversation->id,
+                        'user_id' => $recipientUser->id,
+                        'content' => $autoContent,
+                        'type' => 'text',
+                        'status' => Message::STATUS_SENT,
+                        'is_automated' => true,
+                        'client_uuid' => (string) \Illuminate\Support\Str::uuid(),
+                    ]);
+
+                    $conversation->touch();
+
+                    $loadedAutoMsg = $autoMsg->load([
+                        'user:id,name,username,avatar',
+                        'replyTo:id,user_id,content,attachment_type',
+                        'replyTo.user:id,name,username',
+                    ]);
+
+                    event(new MessageSent($loadedAutoMsg));
+
+                    $request->user()->notify(new NewMessageNotification(
+                        $loadedAutoMsg,
+                        $conversation,
+                        $recipientUser
+                    ));
+
+                    if (!empty($request->user()->fcm_token)) {
+                        try {
+                            $preview = mb_substr($loadedAutoMsg->content ?? 'Sent an automated reply', 0, 120);
+                            \App\Services\FcmService::sendToToken(
+                                $request->user()->fcm_token,
+                                $recipientUser->name,
+                                $preview,
+                                [
+                                    'type'            => 'new_message',
+                                    'conversation_id' => (string) $conversation->id,
+                                    'sender_name'     => $recipientUser->name,
+                                    'is_automated'    => '1',
+                                ]
+                            );
+                        } catch (\Throwable $e) {
+                            \Illuminate\Support\Facades\Log::error('[ConversationController] FCM push for auto message failed for user ' . $request->user()->id . ': ' . $e->getMessage());
+                        }
+                    }
+
+                    $automatedMessage = $loadedAutoMsg;
+                }
+            }
+        }
+
+        $responseData = $loadedMessage->toArray();
+        if ($automatedMessage) {
+            $responseData['automated_message'] = $automatedMessage;
+        }
+
+        return response()->json($responseData, 201);
     }
 
     /**

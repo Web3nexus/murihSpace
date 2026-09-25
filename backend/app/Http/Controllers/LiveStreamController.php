@@ -7,6 +7,7 @@ use App\Models\Escrow;
 use App\Models\FulfilmentOrder;
 use App\Models\FulfilmentOrderItem;
 use App\Models\Gift;
+use App\Models\GiftTransaction;
 use App\Models\LiveStream;
 use App\Models\LiveStreamLike;
 use App\Models\LiveStreamMessage;
@@ -14,9 +15,11 @@ use App\Models\LiveStreamParticipant;
 use App\Models\Order;
 use App\Models\PhysicalProduct;
 use App\Models\Storefront;
+use App\Models\User;
 use App\Models\Wallet;
 use App\Services\Accounting\AccountingStreamService;
 use App\Services\LiveKitService;
+use App\Services\LiveStreamAttributionService;
 use App\Services\NotificationService;
 use App\Services\Tax\TaxCalculationService;
 use App\Services\Wallet\FeeCalculatorService;
@@ -30,10 +33,12 @@ use Illuminate\Support\Str;
 class LiveStreamController extends Controller
 {
     public const DIGITAL_FEE_RATE = 0.10;
+
     public const PHYSICAL_FEE_RATE = 0.05;
 
     public function __construct(
         private readonly LiveKitService $liveKitService,
+        private readonly LiveStreamAttributionService $liveAttributions,
         private readonly NotificationService $notifications,
         private readonly WalletService $walletService,
         private readonly LedgerService $ledgerService,
@@ -56,6 +61,189 @@ class LiveStreamController extends Controller
         return response()->json($streams);
     }
 
+    public function resolve(Request $request, string $token): JsonResponse
+    {
+        $stream = $this->findLiveStreamByToken($token);
+        if (! $stream) {
+            return response()->json(['message' => 'Live stream not found.'], 404);
+        }
+
+        $stream->loadMissing([
+            'host:id,name,username,avatar,avatar_url,role',
+            'community:id,name,slug,avatar,avatar_url',
+        ]);
+
+        $attribution = $this->liveAttributions->record($request, $stream, 'click');
+        $legacy = $stream->tracking_id !== $token;
+
+        return response()->json([
+            'stream' => $this->publicStreamPayload($stream),
+            'canonical_url' => $this->liveAttributions->canonicalUrl($stream),
+            'legacy' => $legacy,
+            'attribution' => [
+                'session_id' => $attribution->session_id,
+                'event' => 'click',
+            ],
+        ]);
+    }
+
+    public function recordAttribution(Request $request, int $id): JsonResponse
+    {
+        $validated = $request->validate([
+            'event' => ['required', 'string', 'in:heartbeat'],
+        ]);
+
+        $stream = LiveStream::findOrFail($id);
+        if ($stream->status !== 'live') {
+            return response()->json(['message' => 'This live stream has ended.'], 410);
+        }
+
+        $isActiveParticipant = LiveStreamParticipant::query()
+            ->where('live_stream_id', $stream->id)
+            ->where('user_id', $request->user()->id)
+            ->where('is_active', true)
+            ->exists();
+
+        if (! $isActiveParticipant) {
+            return response()->json(['message' => 'Join the live stream before sending attribution heartbeats.'], 403);
+        }
+
+        $attribution = $this->liveAttributions->record($request, $stream, $validated['event']);
+
+        return response()->json([
+            'message' => 'Live attribution recorded.',
+            'attribution' => [
+                'session_id' => $attribution->session_id,
+                'event' => $validated['event'],
+                'recorded_at' => $attribution->last_seen_at,
+            ],
+        ]);
+    }
+
+    public function analytics(Request $request, int $id): JsonResponse
+    {
+        $stream = LiveStream::findOrFail($id);
+        $this->ensureHost($request, $stream);
+
+        $attributions = $stream->attributions();
+        $recent = (clone $attributions)
+            ->with('user:id,name,username,avatar,avatar_url')
+            ->latest('last_seen_at')
+            ->limit(100)
+            ->get()
+            ->map(fn ($attribution): array => [
+                'session_id' => $attribution->session_id,
+                'user_id' => $attribution->user_id,
+                'user' => $attribution->user ? [
+                    'id' => $attribution->user->id,
+                    'name' => $attribution->user->name,
+                    'username' => $attribution->user->username,
+                    'avatar_url' => $attribution->user->avatar_url ?? $attribution->user->avatar,
+                ] : null,
+                'source' => $attribution->source,
+                'click_count' => $attribution->click_count,
+                'join_count' => $attribution->join_count,
+                'leave_count' => $attribution->leave_count,
+                'first_seen_at' => $attribution->first_seen_at?->toIso8601String(),
+                'last_seen_at' => $attribution->last_seen_at?->toIso8601String(),
+            ]);
+
+        $bySource = (clone $attributions)
+            ->select('source', DB::raw('COUNT(*) as sessions'), DB::raw('SUM(click_count) as clicks'))
+            ->groupBy('source')
+            ->orderByDesc('sessions')
+            ->get();
+
+        return response()->json([
+            'stream' => [
+                'id' => $stream->id,
+                'tracking_id' => $stream->tracking_id,
+                'title' => $stream->title,
+                'host_user_id' => $stream->user_id,
+            ],
+            'summary' => [
+                'sessions' => (clone $attributions)->count(),
+                'unique_accounts' => (clone $attributions)->whereNotNull('user_id')->distinct()->count('user_id'),
+                'authenticated_sessions' => (clone $attributions)->whereNotNull('user_id')->count(),
+                'clicks' => (int) ((clone $attributions)->sum('click_count') ?? 0),
+                'joined_sessions' => (clone $attributions)->where('join_count', '>', 0)->count(),
+                'left_sessions' => (clone $attributions)->where('leave_count', '>', 0)->count(),
+            ],
+            'by_source' => $bySource,
+            'recent_sessions' => $recent,
+        ]);
+    }
+
+    private function findLiveStreamByToken(string $token): ?LiveStream
+    {
+        $stream = LiveStream::where('tracking_id', $token)->first();
+        if ($stream) {
+            return $stream;
+        }
+
+        if (ctype_digit($token)) {
+            return LiveStream::find((int) $token);
+        }
+
+        $encoded = strtr(trim($token), '-_', '+/');
+        $encoded .= str_repeat('=', (4 - strlen($encoded) % 4) % 4);
+        $decoded = base64_decode($encoded, true);
+        if ($decoded === false) {
+            return null;
+        }
+
+        $parts = explode(':', trim($decoded));
+        if (! isset($parts[0]) || ! ctype_digit($parts[0])) {
+            return null;
+        }
+
+        $stream = LiveStream::find((int) $parts[0]);
+        if (! $stream) {
+            return null;
+        }
+
+        if (isset($parts[1]) && $parts[1] !== '' && (! ctype_digit($parts[1]) || (int) $parts[1] !== $stream->user_id)) {
+            return null;
+        }
+
+        return $stream;
+    }
+
+    private function publicStreamPayload(LiveStream $stream): array
+    {
+        $host = $stream->host;
+
+        return [
+            'id' => $stream->id,
+            'tracking_id' => $stream->tracking_id,
+            'title' => $stream->title,
+            'description' => $stream->description,
+            'stream_mode' => $stream->stream_mode,
+            'status' => $stream->status,
+            'viewers_count' => $stream->viewers_count,
+            'started_at' => $stream->started_at?->toIso8601String(),
+            'host' => $host ? [
+                'id' => $host->id,
+                'name' => $host->name,
+                'username' => $host->username,
+                'avatar_url' => $host->avatar_url ?? $host->avatar,
+            ] : null,
+            'community' => $stream->community ? [
+                'id' => $stream->community->id,
+                'name' => $stream->community->name,
+                'slug' => $stream->community->slug,
+            ] : null,
+        ];
+    }
+
+    private function ensureHost(Request $request, LiveStream $stream): void
+    {
+        $user = $request->user();
+        if ($stream->user_id !== $user->id && $user->role !== 'admin') {
+            abort(403, 'Only the broadcast host can view live attribution.');
+        }
+    }
+
     /**
      * Start a new live broadcast (Host only).
      */
@@ -73,7 +261,7 @@ class LiveStreamController extends Controller
         $user = $request->user();
 
         // Enforce KYC verification before going live
-        if (!in_array($user->kyc_status, ['verified', 'approved'], true)) {
+        if (! in_array($user->kyc_status, ['verified', 'approved'], true)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Identity verification (KYC) is required before going live. Please verify your identity first.',
@@ -90,7 +278,7 @@ class LiveStreamController extends Controller
                 'ended_at' => now(),
             ]);
 
-        $roomName = 'live_stream_' . Str::uuid();
+        $roomName = 'live_stream_'.Str::uuid();
 
         $stream = LiveStream::create([
             'user_id' => $user->id,
@@ -120,7 +308,7 @@ class LiveStreamController extends Controller
 
         // Generate Host LiveKit publisher token (canPublish: true)
         $token = $this->liveKitService->generateToken(
-            identity: 'user_' . $user->id,
+            identity: 'user_'.$user->id,
             roomName: $roomName,
             metadata: json_encode([
                 'user_id' => $user->id,
@@ -207,9 +395,11 @@ class LiveStreamController extends Controller
             'peak_viewers' => max($stream->peak_viewers, $activeCount),
         ]);
 
+        $this->liveAttributions->record($request, $stream, 'join');
+
         // Generate LiveKit token
         $token = $this->liveKitService->generateToken(
-            identity: 'user_' . $user->id,
+            identity: 'user_'.$user->id,
             roomName: $stream->livekit_room,
             metadata: json_encode([
                 'user_id' => $user->id,
@@ -253,6 +443,7 @@ class LiveStreamController extends Controller
 
         $activeCount = $stream->activeParticipants()->count();
         $stream->update(['viewers_count' => $activeCount]);
+        $this->liveAttributions->record($request, $stream, 'leave');
 
         return response()->json([
             'message' => 'Left live stream.',
@@ -390,7 +581,7 @@ class LiveStreamController extends Controller
             $stream->increment('total_coins_earned', $coinPrice);
 
             // Record gift transaction
-            return \App\Models\GiftTransaction::create([
+            return GiftTransaction::create([
                 'sender_id' => $user->id,
                 'recipient_id' => $host->id,
                 'gift_id' => $gift->id,
@@ -403,7 +594,7 @@ class LiveStreamController extends Controller
                 'is_anonymous' => $validated['is_anonymous'] ?? false,
                 'sender_display_name' => ($validated['is_anonymous'] ?? false) ? 'Anonymous Fan' : $user->name,
                 'message' => $validated['message'] ?? null,
-                'idempotency_key' => 'LIVE-GIFT-' . Str::uuid(),
+                'idempotency_key' => 'LIVE-GIFT-'.Str::uuid(),
             ]);
         });
 
@@ -479,7 +670,7 @@ class LiveStreamController extends Controller
 
     private function purchasePhysical(
         LiveStream $stream,
-        \App\Models\User $buyer,
+        User $buyer,
         PhysicalProduct $product,
         array $validated
     ): JsonResponse {
@@ -522,7 +713,12 @@ class LiveStreamController extends Controller
         $tax = $taxInfo['tax_amount_cents'];
         $total = $subtotal + $platformFee + $tax;
 
-        $order = DB::transaction(function () use ($stream, $buyer, $product, $quantity, $subtotal, $platformFee, $tax, $taxInfo, $total, $validated) {
+        $order = DB::transaction(function () use ($buyer, $product, $quantity, $subtotal, $platformFee, $tax, $taxInfo, $total, $validated) {
+            $lockedProduct = PhysicalProduct::where('id', $product->id)->lockForUpdate()->first();
+            if ($lockedProduct && $lockedProduct->track_inventory && $lockedProduct->stock_quantity < $quantity) {
+                abort(409, 'Insufficient stock for this product.');
+            }
+
             $order = FulfilmentOrder::create([
                 'buyer_id' => $buyer->id,
                 'shipping_address_id' => null,
@@ -548,8 +744,8 @@ class LiveStreamController extends Controller
                 'currency' => $product->currency,
             ]);
 
-            if ($product->track_inventory) {
-                $product->decrement('stock_quantity', $quantity);
+            if ($lockedProduct && $lockedProduct->track_inventory) {
+                $lockedProduct->decrement('stock_quantity', $quantity);
             }
 
             // Hold only the seller's share. Tax is collected by the platform
@@ -597,7 +793,7 @@ class LiveStreamController extends Controller
 
     private function purchaseDigital(
         LiveStream $stream,
-        \App\Models\User $buyer,
+        User $buyer,
         DigitalProduct $product,
         array $validated
     ): JsonResponse {
@@ -786,12 +982,12 @@ class LiveStreamController extends Controller
 
     private function digitalDownloadUrl(DigitalProduct $product): string
     {
-        return url('/api/v1/products/' . $product->id . '/download');
+        return url('/api/v1/products/'.$product->id.'/download');
     }
 
     private function generateOrderNumber(string $prefix): string
     {
-        return $prefix . now()->format('Ymd') . '-' . strtoupper(Str::random(6));
+        return $prefix.now()->format('Ymd').'-'.strtoupper(Str::random(6));
     }
 
     /**

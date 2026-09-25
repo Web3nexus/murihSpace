@@ -27,6 +27,7 @@ class AudioRoomAndLiveKitFeatureTest extends TestCase
             'username' => 'hostuser',
             'role' => 'creator',
             'email_verified_at' => now(),
+            'kyc_status' => 'verified',
         ]);
         $this->listener = User::factory()->create([
             'name' => 'Listener User',

@@ -22,12 +22,18 @@ class Storefront extends Model
         'tax_rate',
         'shipping_policy',
         'return_policy',
+        'greeting_message_enabled',
+        'greeting_message',
+        'away_message_enabled',
+        'away_message',
     ];
 
     protected $casts = [
         'is_published' => 'boolean',
         'links' => 'array',
         'tax_rate' => 'decimal:2',
+        'greeting_message_enabled' => 'boolean',
+        'away_message_enabled' => 'boolean',
     ];
 
     public function user(): BelongsTo

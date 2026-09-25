@@ -51,6 +51,7 @@ const StoreManagementPage = lazyWithRetry(() => import("@/pages/StoreManagementP
 const PublicStorefrontPage = lazyWithRetry(() => import("@/pages/PublicStorefrontPage"), "PublicStorefrontPage");
 const PublicProductPage = lazyWithRetry(() => import("@/pages/PublicProductPage"), "PublicProductPage");
 const PublicMediaKitPage = lazyWithRetry(() => import("@/pages/PublicMediaKitPage"), "PublicMediaKitPage");
+const PublicLivePage = lazyWithRetry(() => import("@/pages/PublicLivePage"), "PublicLivePage");
 const DigitalProductsPage = lazyWithRetry(() => import("@/pages/DigitalProductsPage"), "DigitalProductsPage");
 const SalesOrdersPage = lazyWithRetry(() => import("@/pages/SalesOrdersPage"), "SalesOrdersPage");
 const AudioRoomsPage = lazyWithRetry(() => import("@/pages/AudioRoomsPage"), "AudioRoomsPage");
@@ -107,6 +108,7 @@ const CategoriesPage = lazyWithRetry(() => import("@/pages/CategoriesPage"));
 const ReturnsPage = lazyWithRetry(() => import("@/pages/ReturnsPage"));
 const SupportThreadsPage = lazyWithRetry(() => import("@/pages/SupportThreadsPage"));
 const StoreSettingsPage = lazyWithRetry(() => import("@/pages/StoreSettingsPage"));
+const AutomatedRepliesPage = lazyWithRetry(() => import("@/pages/AutomatedRepliesPage"));
 const ProductPerformancePage = lazyWithRetry(() => import("@/pages/ProductPerformancePage"));
 const AdminDisputesPage = lazyWithRetry(() => import("@/pages/AdminDisputesPage"));
 const AdminModerationLogsPage = lazyWithRetry(() => import("@/pages/AdminModerationLogsPage"));
@@ -173,6 +175,7 @@ export const routes: RouteObject[] = [
   { path: "/p/:id", element: <Suspense fallback={<PageLoader />}><PublicProductPage /></Suspense> },
   { path: "/products/:id", element: <Suspense fallback={<PageLoader />}><PublicProductPage /></Suspense> },
   { path: "/media-kit/:creatorId", element: <Suspense fallback={<PageLoader />}><PublicMediaKitPage /></Suspense> },
+  { path: "/live/:trackingId", element: <Suspense fallback={<PageLoader />}><PublicLivePage /></Suspense> },
   { path: "/communities", element: <Suspense fallback={<PageLoader />}><PublicCommunitiesPage /></Suspense> },
   { path: "/communities/:slug", element: <Suspense fallback={<PageLoader />}><CommunityPreviewPage /></Suspense> },
   { path: "/c/:slug", element: <Suspense fallback={<PageLoader />}><CommunityPreviewPage /></Suspense> },
@@ -719,6 +722,10 @@ export const routes: RouteObject[] = [
           {
             path: "accessibility",
             element: <Suspense fallback={<PageLoader />}><AccessibilityPage /></Suspense>,
+          },
+          {
+            path: "automated-replies",
+            element: <Suspense fallback={<PageLoader />}><AutomatedRepliesPage /></Suspense>,
           },
           {
             path: "help",

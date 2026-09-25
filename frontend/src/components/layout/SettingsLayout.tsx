@@ -21,7 +21,8 @@ import {
   Link as Link,
   Package as Package,
   Truck as Truck,
-  ArrowCounterClockwise as RotateCcw
+  ArrowCounterClockwise as RotateCcw,
+  ChatCircleDots
 } from "@phosphor-icons/react";
 import { useAuth } from "@/hooks/useAuth";
 import { useTheme } from "@/hooks/useTheme";
@@ -341,6 +342,25 @@ export function SettingsLayout() {
                   <Folder weight="fill" className="h-4 w-4" />
                 </div>
                 <span>Community Chat Channels</span>
+              </div>
+              <ChevronRight weight="fill" className="h-4 w-4 text-muted-foreground" />
+            </NavLink>
+
+            <NavLink
+              to="/app/settings/automated-replies"
+              className={({ isActive }) =>
+                `w-full flex items-center justify-between p-3.5 transition-colors text-xs font-bold ${
+                  isActive
+                    ? "bg-[#2164b6]/15 text-[#2164b6] dark:text-[#7ab0ff]"
+                    : "text-foreground hover:bg-muted/50"
+                }`
+              }
+            >
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-emerald-600 text-white shrink-0">
+                  <ChatCircleDots weight="fill" className="h-4 w-4" />
+                </div>
+                <span>Automated Greeting &amp; Replies</span>
               </div>
               <ChevronRight weight="fill" className="h-4 w-4 text-muted-foreground" />
             </NavLink>

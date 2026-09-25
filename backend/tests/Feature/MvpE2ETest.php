@@ -283,7 +283,7 @@ class MvpE2ETest extends TestCase
             'user_id' => $userB->id,
         ]);
         $startRes->assertStatus(201);
-        $convId = $startRes->json('data.data.id');
+        $convId = $startRes->json('data.id') ?? $startRes->json('id');
 
         // 5b. User A sends a message
         $msgRes = $this->postJson("/api/v1/conversations/{$convId}/messages", [

@@ -38,6 +38,10 @@ const SOCIAL_PROVIDERS = [
 interface LocationState {
   phoneE164?: string;
   countryIso2?: string;
+  from?: {
+    pathname?: string;
+    search?: string;
+  };
 }
 
 export function RegisterPage() {
@@ -48,6 +52,9 @@ export function RegisterPage() {
   const cfg = usePlatformConfig();
 
   const [step, setStep] = useState<Step>(1);
+  const postRegistrationPath = initialState.from?.pathname?.startsWith("/live/")
+    ? `${initialState.from.pathname}${initialState.from.search ?? ""}`
+    : "/app/onboarding";
 
   // Step 1-2: Phone + OTP
   const countryIso2 = initialState.countryIso2 || "NG";
@@ -226,7 +233,7 @@ export function RegisterPage() {
       registrationSessionId,
     });
     if (success) {
-      navigate("/app/onboarding", { replace: true });
+      navigate(postRegistrationPath, { replace: true });
     }
   };
 

@@ -1,6 +1,6 @@
 import { authFetch } from "@/lib/api/authFetch";
 import React, { useState, useEffect, useRef } from "react";
-import { Link, useNavigate } from "react-router";
+import { Link, useNavigate, useLocation } from "react-router";
 import { useAuth } from "@/hooks/useAuth";
 import { usePlatformConfig } from "@/hooks/usePlatformConfig";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
@@ -30,6 +30,11 @@ export function LoginPage() {
   const { login, requestOtp, verifyOtp, logout, loading, error, fieldErrors } = useAuth();
   const cfg = usePlatformConfig();
   const navigate = useNavigate();
+  const location = useLocation();
+  const fromLocation = (location.state as { from?: { pathname?: string; search?: string } } | null)?.from;
+  const postAuthPath = fromLocation?.pathname?.startsWith("/live/")
+    ? `${fromLocation.pathname}${fromLocation.search ?? ""}`
+    : "/app";
 
   const methods = cfg.auth_methods.methods;
   const phoneLoginEnabled = methods.phone_otp.login;
@@ -120,7 +125,7 @@ export function LoginPage() {
       setMemberBlocked(true);
       return;
     }
-    navigate("/app");
+    navigate(postAuthPath);
   };
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
@@ -135,7 +140,7 @@ export function LoginPage() {
         await logout();
         setMemberBlocked(true);
       } else {
-        navigate("/app");
+        navigate(postAuthPath);
       }
     }
   };
@@ -160,7 +165,12 @@ export function LoginPage() {
   };
 
   const goToRegister = () => {
-    navigate("/register", { state: phoneE164 ? { phoneE164, countryIso2: DEFAULT_COUNTRY } : undefined });
+    navigate("/register", {
+      state: {
+        ...(phoneE164 ? { phoneE164, countryIso2: DEFAULT_COUNTRY } : {}),
+        ...(fromLocation ? { from: fromLocation } : {}),
+      },
+    });
   };
 
   const resend = () => {

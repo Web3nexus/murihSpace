@@ -251,6 +251,7 @@ class WalletController extends Controller
             'from_wallet_type' => ['required', 'string', 'in:creator,business'],
             'to_wallet_type'   => ['nullable', 'string', 'in:system'],
             'amount'           => ['required', 'integer', 'min:100'],
+            'currency'         => ['nullable', 'string', 'size:3'],
             'idempotency_key'   => ['nullable', 'string', 'max:100'],
             'pin'              => ['nullable', 'string', 'digits:4'],
         ]);
@@ -261,8 +262,11 @@ class WalletController extends Controller
         $amount         = (int) $validated['amount'];
         $idemKey        = $validated['idempotency_key'] ?? ('ITX-' . Str::uuid());
 
+        $sourceWallet = Wallet::where('user_id', $user->id)->where('wallet_type', $fromWalletType)->first();
+        $currency     = strtoupper($validated['currency'] ?? $sourceWallet?->currency ?? 'USD');
+
         // Verify PIN if set on system wallet
-        $systemWallet = $this->walletService->getOrCreateWallet($user, 'system');
+        $systemWallet = $this->walletService->getOrCreateWallet($user, 'system', $currency);
         if ($systemWallet->hasPin()) {
             if (empty($validated['pin']) || ! $systemWallet->verifyPin($validated['pin'])) {
                 return response()->json(['message' => 'Invalid transaction PIN.', 'code' => 'INVALID_TRANSACTION_PIN'], 403);
@@ -270,7 +274,7 @@ class WalletController extends Controller
         }
 
         // Fee calculation for internal transfer
-        $feeRes = $this->feeCalculator->calculate('INTERNAL_TRANSFER', $amount, $systemWallet->currency);
+        $feeRes = $this->feeCalculator->calculate('INTERNAL_TRANSFER', $amount, $currency);
         $feeAmt = $feeRes['fee_amount'];
 
         try {
@@ -280,7 +284,7 @@ class WalletController extends Controller
                 toWalletType: $toWalletType,
                 amount: $amount,
                 feeAmount: $feeAmt,
-                currency: $systemWallet->currency,
+                currency: $currency,
                 idempotencyKey: $idemKey
             );
 

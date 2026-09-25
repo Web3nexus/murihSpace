@@ -1,6 +1,8 @@
+import { env } from "@/config/env";
 import { getAuthToken, getAdminToken } from "@/lib/auth/token";
+import { getLiveSessionId, isLiveRequest } from "@/lib/live/liveSession";
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? 'http://localhost:8000/api/v1';
+const API_BASE = env.VITE_API_BASE_URL;
 
 export function getAuthHeaders() {
   const token = getAuthToken();
@@ -35,6 +37,13 @@ export async function authFetch(path: string, options: RequestInit = {}): Promis
   // "app-only" purchase toggles (web dashboards are tagged `web`, native apps `app`).
   if (!headers.has('X-Client-Platform')) {
     headers.set('X-Client-Platform', 'web');
+  }
+
+  if (isLiveRequest(path) && !headers.has('X-Live-Session-ID')) {
+    const liveSessionId = getLiveSessionId();
+    if (liveSessionId) {
+      headers.set('X-Live-Session-ID', liveSessionId);
+    }
   }
 
   // Inject Auth Token (prefer admin token for securegate admin routes)

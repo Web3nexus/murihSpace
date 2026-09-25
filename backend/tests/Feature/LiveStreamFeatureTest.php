@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Gift;
 use App\Models\LiveStream;
+use App\Models\LiveStreamParticipant;
 use App\Models\User;
 use App\Models\Wallet;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -36,6 +37,10 @@ class LiveStreamFeatureTest extends TestCase
             ->assertJsonPath('data.stream.title', 'My Live Podcast')
             ->assertJsonPath('data.stream.status', 'live')
             ->assertJsonPath('data.livekit.is_publisher', true);
+
+        $trackingId = $res->json('data.stream.tracking_id');
+        $this->assertNotEmpty($trackingId);
+        $this->assertSame(36, strlen($trackingId));
 
         $this->assertDatabaseHas('live_streams', [
             'user_id' => $host->id,
@@ -78,7 +83,7 @@ class LiveStreamFeatureTest extends TestCase
             'started_at' => now(),
         ]);
 
-        \App\Models\LiveStreamParticipant::create([
+        LiveStreamParticipant::create([
             'live_stream_id' => $stream->id,
             'user_id' => $host->id,
             'role' => 'host',
@@ -183,6 +188,294 @@ class LiveStreamFeatureTest extends TestCase
         $this->assertEquals(4000, $viewerWallet->fresh()->available);
         $this->assertEquals(800, $hostWallet->fresh()->available);
         $this->assertEquals(1000, $stream->fresh()->total_coins_earned);
+    }
+
+    public function test_public_tracking_link_records_a_session_click(): void
+    {
+        $host = User::factory()->create(['name' => 'Tracked Host']);
+        $stream = LiveStream::create([
+            'user_id' => $host->id,
+            'title' => 'Tracked Broadcast',
+            'stream_mode' => 'video',
+            'status' => 'live',
+            'livekit_room' => 'room_tracked_broadcast',
+            'viewers_count' => 1,
+            'started_at' => now(),
+        ]);
+
+        $response = $this
+            ->withHeader('X-Live-Session-ID', 'visitor-session-001')
+            ->getJson("/api/v1/live/resolve/{$stream->tracking_id}?utm_source=newsletter");
+
+        $response->assertStatus(200)
+            ->assertJsonPath('data.stream.id', $stream->id)
+            ->assertJsonPath('data.stream.tracking_id', $stream->tracking_id)
+            ->assertJsonPath('data.attribution.session_id', 'visitor-session-001')
+            ->assertJsonPath('data.attribution.event', 'click');
+
+        $this->assertDatabaseHas('live_stream_attributions', [
+            'live_stream_id' => $stream->id,
+            'session_id' => 'visitor-session-001',
+            'click_count' => 1,
+            'utm_source' => 'newsletter',
+        ]);
+    }
+
+    public function test_live_tracking_ids_are_unique_and_legacy_links_resolve(): void
+    {
+        $host = User::factory()->create();
+        $first = LiveStream::create([
+            'user_id' => $host->id,
+            'title' => 'First Broadcast',
+            'status' => 'live',
+            'livekit_room' => 'room_first_tracking',
+        ]);
+        $second = LiveStream::create([
+            'user_id' => $host->id,
+            'title' => 'Second Broadcast',
+            'status' => 'live',
+            'livekit_room' => 'room_second_tracking',
+        ]);
+
+        $this->assertNotSame($first->tracking_id, $second->tracking_id);
+
+        $legacyToken = rtrim(strtr(base64_encode("{$first->id}:{$host->id}"), '+/', '-_'), '=');
+        $response = $this->getJson("/api/v1/live/{$legacyToken}/resolve");
+
+        $response->assertStatus(200)
+            ->assertJsonPath('data.stream.id', $first->id)
+            ->assertJsonPath('data.legacy', true);
+    }
+
+    public function test_authenticated_join_preserves_anonymous_first_touch_attribution(): void
+    {
+        $host = User::factory()->create();
+        $viewer = User::factory()->create();
+        $stream = LiveStream::create([
+            'user_id' => $host->id,
+            'title' => 'First Touch Broadcast',
+            'status' => 'live',
+            'livekit_room' => 'room_first_touch',
+        ]);
+        $session = 'visitor-session-first-touch';
+
+        $this->withHeader('X-Live-Session-ID', $session)
+            ->withHeader('X-Client-Platform', 'web')
+            ->getJson("/api/v1/live/resolve/{$stream->tracking_id}?utm_source=newsletter&utm_campaign=launch")
+            ->assertOk();
+
+        $this->withHeader('X-Live-Session-ID', $session)
+            ->actingAs($viewer)
+            ->postJson("/api/v1/live/{$stream->id}/join")
+            ->assertOk();
+
+        $attribution = $stream->attributions()->where('session_id', $session)->firstOrFail();
+        $this->assertSame($viewer->id, $attribution->user_id);
+        $this->assertSame('web', $attribution->source);
+        $this->assertSame('newsletter', $attribution->utm_source);
+        $this->assertSame('launch', $attribution->utm_campaign);
+        $this->assertSame(1, $attribution->click_count);
+        $this->assertSame(1, $attribution->join_count);
+        $this->assertNull($attribution->left_at);
+    }
+
+    public function test_leave_before_join_does_not_count_as_a_lifecycle_transition(): void
+    {
+        $host = User::factory()->create();
+        $viewer = User::factory()->create();
+        $stream = LiveStream::create([
+            'user_id' => $host->id,
+            'title' => 'Lifecycle Guard Broadcast',
+            'status' => 'live',
+            'livekit_room' => 'room_lifecycle_guard',
+        ]);
+        $session = 'visitor-session-leave-guard';
+
+        $this->withHeader('X-Live-Session-ID', $session)
+            ->actingAs($viewer)
+            ->postJson("/api/v1/live/{$stream->id}/leave")
+            ->assertOk();
+
+        $attribution = $stream->attributions()->where('session_id', $session)->firstOrFail();
+        $this->assertSame(0, $attribution->join_count);
+        $this->assertSame(0, $attribution->leave_count);
+        $this->assertNull($attribution->left_at);
+
+        $this->withHeader('X-Live-Session-ID', $session)
+            ->actingAs($viewer)
+            ->postJson("/api/v1/live/{$stream->id}/join")
+            ->assertOk();
+
+        $attribution->refresh();
+        $this->assertSame(1, $attribution->join_count);
+        $this->assertSame(0, $attribution->leave_count);
+        $this->assertNull($attribution->left_at);
+    }
+
+    public function test_heartbeat_accepts_a_sanctum_bearer_token_for_an_active_participant(): void
+    {
+        $host = User::factory()->create();
+        $viewer = User::factory()->create();
+        $stream = LiveStream::create([
+            'user_id' => $host->id,
+            'title' => 'Bearer Broadcast',
+            'status' => 'live',
+            'livekit_room' => 'room_bearer_guard',
+        ]);
+        $token = $viewer->createToken('live-test')->plainTextToken;
+        $session = 'visitor-session-bearer';
+
+        $this->withHeader('Authorization', 'Bearer '.$token)
+            ->withHeader('X-Live-Session-ID', $session)
+            ->postJson("/api/v1/live/{$stream->id}/join")
+            ->assertOk();
+        $this->withHeader('Authorization', 'Bearer '.$token)
+            ->withHeader('X-Live-Session-ID', $session)
+            ->postJson("/api/v1/live/{$stream->id}/attribution", ['event' => 'heartbeat'])
+            ->assertOk()
+            ->assertJsonPath('data.attribution.event', 'heartbeat');
+    }
+
+    public function test_heartbeat_rejects_an_ended_stream(): void
+    {
+        $viewer = User::factory()->create();
+        $stream = LiveStream::create([
+            'user_id' => $viewer->id,
+            'title' => 'Ended Broadcast',
+            'status' => 'ended',
+            'livekit_room' => 'room_ended_guard',
+        ]);
+
+        $this->actingAs($viewer, 'sanctum')
+            ->postJson("/api/v1/live/{$stream->id}/attribution", ['event' => 'heartbeat'])
+            ->assertStatus(410);
+
+        $this->assertDatabaseMissing('live_stream_attributions', [
+            'live_stream_id' => $stream->id,
+        ]);
+    }
+
+    public function test_lifecycle_attribution_counts_only_state_transitions(): void
+    {
+        $host = User::factory()->create();
+        $viewer = User::factory()->create();
+        $stream = LiveStream::create([
+            'user_id' => $host->id,
+            'title' => 'Lifecycle Broadcast',
+            'status' => 'live',
+            'livekit_room' => 'room_lifecycle_broadcast',
+        ]);
+        LiveStreamParticipant::create([
+            'live_stream_id' => $stream->id,
+            'user_id' => $host->id,
+            'role' => 'host',
+            'is_active' => true,
+            'joined_at' => now(),
+        ]);
+
+        $session = 'visitor-session-lifecycle';
+        $this->withHeader('X-Live-Session-ID', $session)
+            ->actingAs($viewer)
+            ->postJson("/api/v1/live/{$stream->id}/join")
+            ->assertOk();
+        $this->withHeader('X-Live-Session-ID', $session)
+            ->actingAs($viewer)
+            ->postJson("/api/v1/live/{$stream->id}/join")
+            ->assertOk();
+        $this->withHeader('X-Live-Session-ID', $session)
+            ->actingAs($viewer)
+            ->postJson("/api/v1/live/{$stream->id}/leave")
+            ->assertOk();
+        $this->withHeader('X-Live-Session-ID', $session)
+            ->actingAs($viewer)
+            ->postJson("/api/v1/live/{$stream->id}/leave")
+            ->assertOk();
+        $this->withHeader('X-Live-Session-ID', $session)
+            ->actingAs($viewer)
+            ->postJson("/api/v1/live/{$stream->id}/join")
+            ->assertOk();
+
+        $attribution = $stream->attributions()->where('session_id', $session)->firstOrFail();
+        $this->assertSame(2, $attribution->join_count);
+        $this->assertSame(1, $attribution->leave_count);
+        $this->assertSame($viewer->id, $attribution->user_id);
+    }
+
+    public function test_attribution_endpoint_rejects_forged_lifecycle_events_and_inactive_heartbeats(): void
+    {
+        $host = User::factory()->create();
+        $viewer = User::factory()->create();
+        $stream = LiveStream::create([
+            'user_id' => $host->id,
+            'title' => 'Attribution Guard Broadcast',
+            'status' => 'live',
+            'livekit_room' => 'room_attribution_guard',
+        ]);
+        LiveStreamParticipant::create([
+            'live_stream_id' => $stream->id,
+            'user_id' => $host->id,
+            'role' => 'host',
+            'is_active' => true,
+            'joined_at' => now(),
+        ]);
+
+        $this->actingAs($viewer, 'sanctum')
+            ->postJson("/api/v1/live/{$stream->id}/attribution", ['event' => 'join'])
+            ->assertStatus(422);
+        $this->actingAs($viewer, 'sanctum')
+            ->postJson("/api/v1/live/{$stream->id}/attribution", ['event' => 'leave'])
+            ->assertStatus(422);
+        $this->actingAs($viewer, 'sanctum')
+            ->postJson("/api/v1/live/{$stream->id}/attribution", ['event' => 'heartbeat'])
+            ->assertStatus(403);
+
+        $this->actingAs($viewer, 'sanctum')
+            ->postJson("/api/v1/live/{$stream->id}/join")
+            ->assertOk();
+        $this->withHeader('X-Live-Session-ID', 'bearer-session-guard')
+            ->actingAs($viewer, 'sanctum')
+            ->postJson("/api/v1/live/{$stream->id}/attribution", ['event' => 'heartbeat'])
+            ->assertOk()
+            ->assertJsonPath('data.attribution.event', 'heartbeat');
+    }
+
+    public function test_host_can_view_live_attribution_analytics(): void
+    {
+        $host = User::factory()->create();
+        $viewer = User::factory()->create();
+        $stream = LiveStream::create([
+            'user_id' => $host->id,
+            'title' => 'Analytics Broadcast',
+            'status' => 'live',
+            'livekit_room' => 'room_analytics_broadcast',
+        ]);
+
+        $this->withHeader('X-Live-Session-ID', 'visitor-session-analytics')
+            ->getJson("/api/v1/live/resolve/{$stream->tracking_id}?utm_source=newsletter");
+
+        $this->withHeader('X-Live-Session-ID', 'viewer-session-analytics')
+            ->actingAs($viewer)
+            ->postJson("/api/v1/live/{$stream->id}/join");
+
+        $this->withHeader('X-Live-Session-ID', 'visitor-session-analytics')
+            ->actingAs($viewer)
+            ->postJson("/api/v1/live/{$stream->id}/attribution", ['event' => 'heartbeat']);
+
+        $this->assertDatabaseHas('live_stream_attributions', [
+            'live_stream_id' => $stream->id,
+            'session_id' => 'visitor-session-analytics',
+            'utm_source' => 'newsletter',
+            'click_count' => 1,
+        ]);
+
+        $response = $this->actingAs($host)->getJson("/api/v1/live/{$stream->id}/analytics");
+
+        $response->assertStatus(200)
+            ->assertJsonPath('data.summary.sessions', 2)
+            ->assertJsonPath('data.summary.unique_accounts', 1)
+            ->assertJsonPath('data.summary.clicks', 1)
+            ->assertJsonPath('data.summary.joined_sessions', 1)
+            ->assertJsonCount(2, 'data.recent_sessions');
     }
 
     public function test_host_can_end_live_stream(): void

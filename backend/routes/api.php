@@ -2,7 +2,6 @@
 
 use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\AdController;
-use App\Http\Controllers\AdsSsoController;
 use App\Http\Controllers\AddressController;
 use App\Http\Controllers\AdminAccountingController;
 use App\Http\Controllers\AdminAdController;
@@ -33,6 +32,7 @@ use App\Http\Controllers\AdminSystemHealthController;
 use App\Http\Controllers\AdminTaxController;
 use App\Http\Controllers\AdminUserController;
 use App\Http\Controllers\AdminWalletController;
+use App\Http\Controllers\AdsSsoController;
 use App\Http\Controllers\AffiliateProductController;
 use App\Http\Controllers\AiChatController;
 use App\Http\Controllers\AiSettingsController;
@@ -57,8 +57,6 @@ use App\Http\Controllers\ChatSettingsController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\CoachingBookingController;
 use App\Http\Controllers\CoachingServiceController;
-use App\Http\Controllers\NativeStoreController;
-use App\Http\Controllers\NativeStoreWebhookController;
 use App\Http\Controllers\CoinPackController;
 use App\Http\Controllers\CommunityController;
 use App\Http\Controllers\ContentItemController;
@@ -96,11 +94,14 @@ use App\Http\Controllers\LiveStreamController;
 use App\Http\Controllers\MarketingCampaignController;
 use App\Http\Controllers\MarketplaceController;
 use App\Http\Controllers\MediaKitController;
+use App\Http\Controllers\MeetingController;
 use App\Http\Controllers\MembershipController;
 use App\Http\Controllers\MessageAttachmentController;
 use App\Http\Controllers\MessageReactionController;
 use App\Http\Controllers\MilestoneController;
 use App\Http\Controllers\ModerationController;
+use App\Http\Controllers\NativeStoreController;
+use App\Http\Controllers\NativeStoreWebhookController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\NotificationPreferenceController;
 use App\Http\Controllers\OnboardingController;
@@ -138,10 +139,10 @@ use App\Http\Controllers\StorePostController;
 use App\Http\Controllers\StoreReturnController;
 use App\Http\Controllers\StoreSettingsController;
 use App\Http\Controllers\StoryController;
-use App\Http\Controllers\SystemBroadcastController;
 use App\Http\Controllers\SubscriptionController;
 use App\Http\Controllers\SubscriptionPlanController;
 use App\Http\Controllers\SupportController;
+use App\Http\Controllers\SystemBroadcastController;
 use App\Http\Controllers\TicketProxyController;
 use App\Http\Controllers\TransferController;
 use App\Http\Controllers\UploadController;
@@ -302,6 +303,9 @@ Route::prefix('v1')->group(function () {
     Route::get('/s/{code}', [ShortLinkController::class, 'redirect'])->middleware('throttle:60,1');
     Route::get('/public/products/{slug}', [DigitalProductController::class, 'publicShow']);
 
+    Route::get('/live/resolve/{token}', [LiveStreamController::class, 'resolve'])->middleware('throttle:120,1');
+    Route::get('/live/{token}/resolve', [LiveStreamController::class, 'resolve'])->middleware('throttle:120,1');
+
     // Sprint 15: Public payment webhook (no auth — provider calls this)
     Route::post('/checkout/webhooks/{provider}', [CheckoutController::class, 'handleWebhook'])->middleware('throttle:30,1');
 
@@ -350,25 +354,25 @@ Route::prefix('v1')->group(function () {
         try {
             DB::connection()->getPdo();
             $dbConnected = true;
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             $dbConnected = false;
         }
 
         try {
             $cacheConnected = Cache::set('health-check', true, 10);
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             $cacheConnected = false;
         }
 
         try {
             $queueResponsive = Queue::size() >= 0;
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             $queueResponsive = false;
         }
 
         try {
-            $redisConnected = class_exists(\Redis::class) && app('redis')->command('ping') === 'PONG';
-        } catch (\Throwable $e) {
+            $redisConnected = class_exists(Redis::class) && app('redis')->command('ping') === 'PONG';
+        } catch (Throwable $e) {
             $redisConnected = false;
         }
 
@@ -1326,8 +1330,8 @@ Route::prefix('v1')->group(function () {
 
         // ── Native Video Meetings & Conferences (Google Meet Style) ────────
         Route::prefix('meetings')->group(function () {
-            Route::post('/instant', [\App\Http\Controllers\MeetingController::class, 'instant']);
-            Route::get('/{code}/token', [\App\Http\Controllers\MeetingController::class, 'token']);
+            Route::post('/instant', [MeetingController::class, 'instant'])->middleware('creator');
+            Route::get('/{code}/token', [MeetingController::class, 'token']);
         });
 
         // ── Sprint 20: Events ──────────────────────────────────────────────
@@ -1390,6 +1394,8 @@ Route::prefix('v1')->group(function () {
             Route::post('/{id}/gift', [LiveStreamController::class, 'sendGift']);
             Route::post('/{id}/purchase', [LiveStreamController::class, 'purchase']);
             Route::post('/{id}/end', [LiveStreamController::class, 'end']);
+            Route::post('/{id}/attribution', [LiveStreamController::class, 'recordAttribution']);
+            Route::get('/{id}/analytics', [LiveStreamController::class, 'analytics']);
         });
 
         // ── Sprint 17: Core Administration (securegate) ────────────────────
