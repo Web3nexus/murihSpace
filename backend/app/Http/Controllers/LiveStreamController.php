@@ -306,21 +306,29 @@ class LiveStreamController extends Controller
             'joined_at' => now(),
         ]);
 
-        // Generate Host LiveKit publisher token (canPublish: true)
-        $token = $this->liveKitService->generateToken(
-            identity: 'user_'.$user->id,
-            roomName: $roomName,
-            metadata: json_encode([
+        // Generate Host LiveKit publisher token safely (canPublish: true)
+        $token = null;
+        try {
+            $token = $this->liveKitService->generateToken(
+                identity: 'user_'.$user->id,
+                roomName: $roomName,
+                metadata: json_encode([
+                    'user_id' => $user->id,
+                    'name' => $user->name,
+                    'username' => $user->username,
+                    'avatar_url' => $user->avatar_url ?? $user->avatar,
+                    'role' => 'host',
+                ]),
+                canPublish: true,
+                canSubscribe: true,
+                name: $user->name,
+            );
+        } catch (\Throwable $e) {
+            \Log::warning('[LiveStreamController] Host LiveKit token generation failed: '.$e->getMessage(), [
                 'user_id' => $user->id,
-                'name' => $user->name,
-                'username' => $user->username,
-                'avatar_url' => $user->avatar_url ?? $user->avatar,
-                'role' => 'host',
-            ]),
-            canPublish: true,
-            canSubscribe: true,
-            name: $user->name,
-        );
+                'stream_id' => $stream->id,
+            ]);
+        }
 
         return response()->json([
             'message' => 'Live stream started successfully.',
@@ -397,21 +405,29 @@ class LiveStreamController extends Controller
 
         $this->liveAttributions->record($request, $stream, 'join');
 
-        // Generate LiveKit token
-        $token = $this->liveKitService->generateToken(
-            identity: 'user_'.$user->id,
-            roomName: $stream->livekit_room,
-            metadata: json_encode([
+        // Generate LiveKit token safely
+        $token = null;
+        try {
+            $token = $this->liveKitService->generateToken(
+                identity: 'user_'.$user->id,
+                roomName: $stream->livekit_room,
+                metadata: json_encode([
+                    'user_id' => $user->id,
+                    'name' => $user->name,
+                    'username' => $user->username,
+                    'avatar_url' => $user->avatar_url ?? $user->avatar,
+                    'role' => $isHost ? 'host' : 'viewer',
+                ]),
+                canPublish: $isHost,
+                canSubscribe: true,
+                name: $user->name,
+            );
+        } catch (\Throwable $e) {
+            \Log::warning('[LiveStreamController] Viewer LiveKit token generation failed: '.$e->getMessage(), [
                 'user_id' => $user->id,
-                'name' => $user->name,
-                'username' => $user->username,
-                'avatar_url' => $user->avatar_url ?? $user->avatar,
-                'role' => $isHost ? 'host' : 'viewer',
-            ]),
-            canPublish: $isHost,
-            canSubscribe: true,
-            name: $user->name,
-        );
+                'stream_id' => $stream->id,
+            ]);
+        }
 
         return response()->json([
             'message' => 'Joined live stream successfully.',

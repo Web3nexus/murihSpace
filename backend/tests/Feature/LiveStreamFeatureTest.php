@@ -499,4 +499,34 @@ class LiveStreamFeatureTest extends TestCase
 
         $this->assertEquals('ended', $stream->fresh()->status);
     }
+
+    public function test_live_stream_starts_and_joins_gracefully_even_when_livekit_token_generation_fails(): void
+    {
+        // Force LiveKit credentials to fail
+        $mockService = $this->createMock(\App\Services\LiveKitService::class);
+        $mockService->method('generateToken')
+            ->willThrowException(new \RuntimeException('LiveKit credentials not configured.'));
+        $this->app->instance(\App\Services\LiveKitService::class, $mockService);
+
+        $host = User::factory()->create(['kyc_status' => 'verified']);
+        $viewer = User::factory()->create();
+
+        // Host starts stream - should succeed with status 201 without 500 error
+        $startRes = $this->actingAs($host)->postJson('/api/v1/live/start', [
+            'title' => 'Resilient Stream',
+            'stream_mode' => 'video',
+        ]);
+
+        $startRes->assertStatus(201)
+            ->assertJsonPath('data.stream.title', 'Resilient Stream')
+            ->assertJsonPath('data.livekit.token', null);
+
+        $streamId = $startRes->json('data.stream.id');
+
+        // Viewer joins stream - should succeed with status 200 without 500 error
+        $joinRes = $this->actingAs($viewer)->postJson("/api/v1/live/{$streamId}/join");
+        $joinRes->assertStatus(200)
+            ->assertJsonPath('data.livekit.token', null)
+            ->assertJsonPath('data.stream.viewers_count', 2);
+    }
 }
