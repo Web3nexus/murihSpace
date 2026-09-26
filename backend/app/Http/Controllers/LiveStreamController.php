@@ -579,7 +579,7 @@ class LiveStreamController extends Controller
     {
         $messages = LiveStreamMessage::with('user:id,name,username,avatar,role')
             ->where('live_stream_id', $id)
-            ->latest()
+            ->orderBy('id', 'desc')
             ->limit(50)
             ->get()
             ->reverse()
