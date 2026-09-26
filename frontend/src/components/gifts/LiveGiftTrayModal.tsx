@@ -24,7 +24,8 @@ interface LiveGiftTrayModalProps {
   recipientId: number;
   recipientName: string;
   sessionId?: string;
-  onGiftSent?: () => void;
+  streamId?: number;
+  onGiftSent?: (gift?: GiftItem, amount?: number) => void;
 }
 
 export function LiveGiftTrayModal({
@@ -33,6 +34,7 @@ export function LiveGiftTrayModal({
   recipientId,
   recipientName,
   sessionId,
+  streamId,
   onGiftSent,
 }: LiveGiftTrayModalProps) {
   const [gifts, setGifts] = useState<GiftItem[]>([]);
@@ -99,15 +101,22 @@ export function LiveGiftTrayModal({
 
     setSending(true);
     try {
-      await apiClient.post("/gifts/send", {
-        gift_id: selectedGift.id,
-        recipient_id: recipientId,
-        session_id: sessionId,
-        wallet_type: "system",
-      });
+      if (streamId) {
+        await apiClient.post(`/live/${streamId}/gift`, {
+          gift_id: selectedGift.id,
+          message: `Sent ${selectedGift.name}`,
+        });
+      } else {
+        await apiClient.post("/gifts/send", {
+          gift_id: selectedGift.id,
+          recipient_id: recipientId,
+          session_id: sessionId,
+          wallet_type: "system",
+        });
+      }
 
       toast.success(`Sent ${selectedGift.name} to ${recipientName}!`);
-      if (onGiftSent) onGiftSent();
+      if (onGiftSent) onGiftSent(selectedGift, selectedGift.coin_price);
       onClose();
     } catch (err: unknown) {
       const apiErr = err as ApiError;

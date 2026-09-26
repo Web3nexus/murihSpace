@@ -641,7 +641,7 @@ class LiveStreamController extends Controller
             $stream->increment('total_coins_earned', $coinPrice);
 
             // Record gift transaction
-            return GiftTransaction::create([
+            $giftTx = GiftTransaction::create([
                 'sender_id' => $user->id,
                 'recipient_id' => $host->id,
                 'gift_id' => $gift->id,
@@ -656,6 +656,16 @@ class LiveStreamController extends Controller
                 'message' => $validated['message'] ?? null,
                 'idempotency_key' => 'LIVE-GIFT-'.Str::uuid(),
             ]);
+
+            // Broadcast gift celebration message to live chat
+            $displayName = ($validated['is_anonymous'] ?? false) ? 'Someone' : $user->name;
+            LiveStreamMessage::create([
+                'live_stream_id' => $stream->id,
+                'user_id' => $user->id,
+                'message' => "🎁 {$displayName} sent {$gift->name}!",
+            ]);
+
+            return $giftTx;
         });
 
         return response()->json([

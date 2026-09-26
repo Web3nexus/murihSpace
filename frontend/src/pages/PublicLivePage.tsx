@@ -22,7 +22,7 @@ import { AuthPromptModal } from "@/components/auth/AuthPromptModal";
 import { BrandPreloader } from "@/components/common/BrandPreloader";
 import { SEOHead } from "@/components/common/SEOHead";
 import { Button } from "@/components/ui/button";
-import { LiveKitVideoConference } from "@/components/video/LiveKitVideoConference";
+import { PublicLiveStage } from "@/components/live/PublicLiveStage";
 import { useAuth } from "@/hooks/useAuth";
 import { authFetch } from "@/lib/api/authFetch";
 
@@ -383,28 +383,22 @@ export function PublicLivePage() {
     );
   }
 
-  if (liveKitAccess) {
+  if (liveKitAccess && stream) {
     return (
-      <div className="min-h-screen bg-[#131314] text-white">
-        <SEOHead title={`${stream.title} · Live`} description={seoDescription} image={stream.host?.avatar_url ?? undefined} url={shareUrl} type="video.other" />
-        <div className="mx-auto max-w-6xl px-4 py-5 sm:px-6">
-          <div className="mb-5 flex items-center justify-between gap-4">
-            <div className="min-w-0">
-              <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#69a9ff]">Now live</p>
-              <h1 className="mt-1 truncate text-lg font-bold text-white">{stream.title}</h1>
-            </div>
-            <Button variant="outline" size="sm" onClick={handleLeave} className="border-white/20 bg-white/5 text-white hover:bg-white/10 hover:text-white">
-              Back to details
-            </Button>
-          </div>
-          <LiveKitVideoConference
-            directToken={liveKitAccess}
-            roomTitle={stream.title}
-            isHost={user?.id === stream.host?.id}
-            isPublisher={liveKitAccess.isPublisher}
-            onLeave={handleLeave}
-          />
-        </div>
+      <div className="min-h-screen bg-[#0A0D14] text-white">
+        <SEOHead
+          title={`${stream.title} · Live on MurihSpace`}
+          description={seoDescription}
+          image={stream.host?.avatar_url ?? undefined}
+          url={shareUrl}
+          type="video.other"
+        />
+        <PublicLiveStage
+          stream={stream}
+          liveKitAccess={liveKitAccess}
+          isHost={user?.id === stream.host?.id}
+          onLeave={handleLeave}
+        />
       </div>
     );
   }
