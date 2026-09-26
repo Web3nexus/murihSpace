@@ -75,7 +75,7 @@ class AdminSettingsController extends Controller
         ]);
 
         if (isset($validated['commission_rates'])) {
-            app(\App\Services\Commission\CommissionService::class)->updateRates($validated['commission_rates'], $request->user());
+            app(\App\Services\Commission\CommissionService::class)->updateRates($validated['commission_rates'], $request->user(), $request->ip(), $request->userAgent());
         }
 
         if (isset($validated['maintenance_mode'])) {

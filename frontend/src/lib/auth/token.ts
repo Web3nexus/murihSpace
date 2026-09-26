@@ -9,6 +9,41 @@ const AUTH_TOKEN_KEY = "auth_token";
 // 15-minute inactivity idle timeout
 export const IMPERSONATION_IDLE_TIMEOUT_MS = 15 * 60 * 1000;
 
+// ── Activity listener management (lazy attach / detach) ───────────────────────
+let activityListenersAttached = false;
+let throttleTimer: number | null = null;
+
+function onActivity() {
+  if (!throttleTimer) {
+    updateImpersonationActivity();
+    throttleTimer = window.setTimeout(() => {
+      throttleTimer = null;
+    }, 5000); // throttle updates to at most once per 5 seconds
+  }
+}
+
+function attachActivityListeners() {
+  if (activityListenersAttached || typeof window === "undefined") return;
+  window.addEventListener("pointerdown", onActivity, { passive: true });
+  window.addEventListener("keydown", onActivity, { passive: true });
+  window.addEventListener("scroll", onActivity, { passive: true });
+  activityListenersAttached = true;
+}
+
+function detachActivityListeners() {
+  if (!activityListenersAttached || typeof window === "undefined") return;
+  window.removeEventListener("pointerdown", onActivity);
+  window.removeEventListener("keydown", onActivity);
+  window.removeEventListener("scroll", onActivity);
+  activityListenersAttached = false;
+  if (throttleTimer) {
+    window.clearTimeout(throttleTimer);
+    throttleTimer = null;
+  }
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
 export function updateImpersonationActivity(): void {
   if (isImpersonating()) {
     const now = Date.now().toString();
@@ -17,6 +52,11 @@ export function updateImpersonationActivity(): void {
   }
 }
 
+/**
+ * Checks if the impersonation session has gone idle beyond the 15-min limit.
+ * Returns true if timed out and cleared. Should be called on a timer or on
+ * explicit user action — NOT inside getAuthToken() to avoid side-effects.
+ */
 export function checkImpersonationTimeout(): boolean {
   if (!isImpersonating()) return false;
 
@@ -25,6 +65,7 @@ export function checkImpersonationTimeout(): boolean {
     localStorage.getItem(IMPERSONATION_LAST_ACTIVITY_KEY);
 
   if (!lastActivityStr) {
+    // Session just started — seed the timestamp
     updateImpersonationActivity();
     return false;
   }
@@ -40,8 +81,8 @@ export function checkImpersonationTimeout(): boolean {
 }
 
 export function getAuthToken(): string | null {
-  checkImpersonationTimeout();
-
+  // Pure getter — no side-effects. Timeout is checked by the idle interval
+  // (set up in setImpersonationToken) and by activity listeners.
   return (
     sessionStorage.getItem(IMPERSONATION_TOKEN_KEY) ||
     localStorage.getItem(IMPERSONATION_TOKEN_KEY) ||
@@ -82,6 +123,9 @@ export function setImpersonationToken(token: string, user?: unknown): void {
     sessionStorage.setItem(IMPERSONATED_USER_KEY, userStr);
     localStorage.setItem(IMPERSONATED_USER_KEY, userStr);
   }
+
+  // Lazily attach activity listeners now that we're impersonating
+  attachActivityListeners();
 }
 
 export function clearImpersonationToken(): void {
@@ -101,6 +145,9 @@ export function clearImpersonationToken(): void {
     localStorage.setItem(MURIHSPACE_TOKEN_KEY, adminOriginal);
     localStorage.removeItem(ADMIN_ORIGINAL_TOKEN_KEY);
   }
+
+  // Detach listeners — no longer impersonating
+  detachActivityListeners();
 }
 
 export async function stopImpersonatingSession(redirectUrl: string = "/app/securegate/users"): Promise<void> {
@@ -109,10 +156,17 @@ export async function stopImpersonatingSession(redirectUrl: string = "/app/secur
     localStorage.getItem(IMPERSONATION_TOKEN_KEY);
 
   if (token) {
+    // Use env-based API base URL (avoids hardcoded /api/v1 path)
+    const apiBase = ((import.meta.env.VITE_API_BASE_URL as string) ?? "").replace(/\/$/, "");
+    const url = `${apiBase}/auth/stop-impersonate`;
+
+    // Abort after 3 seconds so the user is never left hanging
+    const controller = new AbortController();
+    const tid = window.setTimeout(() => controller.abort(), 3000);
     try {
-      // Notify backend to invalidate token immediately and log audit trail
-      await fetch("/api/v1/auth/stop-impersonate", {
+      await fetch(url, {
         method: "POST",
+        signal: controller.signal,
         headers: {
           Authorization: `Bearer ${token}`,
           Accept: "application/json",
@@ -120,7 +174,9 @@ export async function stopImpersonatingSession(redirectUrl: string = "/app/secur
         },
       });
     } catch {
-      // Continue client cleanup even if network fails
+      // Continue client-side cleanup even if network fails or times out
+    } finally {
+      window.clearTimeout(tid);
     }
   }
 
@@ -155,19 +211,12 @@ export function clearAuthTokens(): void {
   localStorage.removeItem(AUTH_TOKEN_KEY);
 }
 
-// Attach user activity listeners to automatically track activity while impersonating
+// ── Idle timeout interval ─────────────────────────────────────────────────────
+// Runs every 30s to detect idle timeout even when no events fire (e.g. tab is backgrounded).
 if (typeof window !== "undefined") {
-  let throttleTimer: number | null = null;
-  const onActivity = () => {
-    if (!throttleTimer) {
-      updateImpersonationActivity();
-      throttleTimer = window.setTimeout(() => {
-        throttleTimer = null;
-      }, 5000); // throttle updates to at most once per 5 seconds
+  window.setInterval(() => {
+    if (isImpersonating()) {
+      checkImpersonationTimeout();
     }
-  };
-
-  window.addEventListener("pointerdown", onActivity, { passive: true });
-  window.addEventListener("keydown", onActivity, { passive: true });
-  window.addEventListener("scroll", onActivity, { passive: true });
+  }, 30_000);
 }

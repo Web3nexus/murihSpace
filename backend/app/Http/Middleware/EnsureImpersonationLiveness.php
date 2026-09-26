@@ -84,7 +84,7 @@ class EnsureImpersonationLiveness
 
         if ($adminId) {
             $admin = User::find($adminId);
-            if (! $admin || $admin->status !== 'active' || $admin->role !== 'admin') {
+            if (! $admin || $admin->status !== 'active' || $admin->role !== 'admin' || empty($admin->admin_role)) {
                 $token->delete();
                 Cache::forget($sessionKey);
 

@@ -7,6 +7,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class AuditLog extends Model
 {
+    protected $appends = [
+        'admin_role',
+        'admin_permissions',
+    ];
+
     protected $fillable = [
         'user_id', 'action', 'resource_type', 'resource_id',
         'metadata', 'ip_address', 'user_agent',
@@ -17,23 +22,30 @@ class AuditLog extends Model
     ];
 
     public const ACTIONS = [
+        // User lifecycle
         'user.created', 'user.updated', 'user.suspended', 'user.activated', 'user.banned',
+        // KYC
         'kyc.approved', 'kyc.rejected',
+        // Finance
         'withdrawal.approved', 'withdrawal.rejected',
+        // Content
         'report.actioned', 'report.dismissed',
+        // Feature flags & settings
         'feature_flag.created', 'feature_flag.updated', 'feature_flag.deleted',
         'settings.updated',
+        // Admin management
+        'admin.created', 'admin.updated', 'admin.removed',
+        // Impersonation
+        'user.impersonated', 'user.impersonation_stopped',
+        'user.impersonation_timed_out', 'user.impersonation_revoked',
+        // Commission & platform fees
+        'commission.updated',
     ];
 
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
-
-    protected $appends = [
-        'admin_role',
-        'admin_permissions',
-    ];
 
     public function getAdminRoleAttribute(): ?string
     {

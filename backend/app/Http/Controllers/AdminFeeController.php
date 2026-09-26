@@ -147,6 +147,9 @@ class AdminFeeController extends Controller
         $rule = FeeRule::findOrFail($id);
         $rule->delete();
 
+        return response()->json(['message' => 'Fee rule deleted.']);
+    }
+
     /**
      * GET /api/v1/securegate/fees/commission
      * Get platform commission percentage rates.
@@ -173,7 +176,7 @@ class AdminFeeController extends Controller
             'rates.escrow'     => ['nullable', 'numeric', 'min:0', 'max:100'],
         ]);
 
-        $updated = $commissionService->updateRates($validated['rates'], $request->user());
+        $updated = $commissionService->updateRates($validated['rates'], $request->user(), $request->ip(), $request->userAgent());
 
         return response()->json([
             'message' => 'Platform commission percentage rates updated successfully.',

@@ -61,7 +61,7 @@ class AdminManagementController extends Controller
     {
         $validated = $request->validate([
             'search' => ['nullable', 'string', 'max:100'],
-            'admin_role' => ['nullable', 'string'],
+            'admin_role' => ['nullable', 'string', 'in:all,' . implode(',', array_keys(self::ROLES))],
             'status' => ['nullable', 'string', 'in:active,suspended,all'],
             'per_page' => ['nullable', 'integer', 'min:10', 'max:100'],
         ]);
@@ -306,6 +306,7 @@ class AdminManagementController extends Controller
             ->where('role', 'admin')
             ->where('status', 'active')
             ->orderBy('id', 'asc')
+            ->limit(500)
             ->get();
 
         return response()->json([
@@ -322,10 +323,10 @@ class AdminManagementController extends Controller
     public function internalVerify(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'user_id' => ['nullable', 'integer'],
-            'email' => ['nullable', 'string', 'email'],
-            'permission' => ['nullable', 'string'],
-            'role' => ['nullable', 'string'],
+            'user_id' => ['nullable', 'integer', 'min:1', 'required_without:email'],
+            'email' => ['nullable', 'string', 'email', 'required_without:user_id'],
+            'permission' => ['nullable', 'string', 'in:' . implode(',', array_keys(self::PERMISSIONS))],
+            'role' => ['nullable', 'string', 'in:' . implode(',', array_keys(self::ROLES))],
         ]);
 
         $query = User::where('role', 'admin')->where('status', 'active');

@@ -1488,7 +1488,7 @@ Route::prefix('v1')->group(function () {
             Route::get('/orders', [OrderController::class, 'adminIndex']);
 
             // Audit Logs
-            Route::prefix('audit-logs')->group(function () {
+            Route::prefix('audit-logs')->middleware('admin.permission:analytics')->group(function () {
                 Route::get('/', [AuditLogController::class, 'index']);
                 Route::get('/{id}', [AuditLogController::class, 'show']);
             });

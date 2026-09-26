@@ -113,7 +113,7 @@ class CommissionService
     /**
      * Update commission rates (Admin only).
      */
-    public function updateRates(array $newPercentages, ?User $admin = null): array
+    public function updateRates(array $newPercentages, ?User $admin = null, ?string $ipAddress = null, ?string $userAgent = null): array
     {
         $updated = [];
         $ruleCodeMap = [
@@ -167,8 +167,8 @@ class CommissionService
                     'admin_role'        => $admin->admin_role ?? 'super_admin',
                     'admin_permissions' => $admin->admin_permissions ?? ['fees', 'settings'],
                 ],
-                'ip_address'    => request()->ip(),
-                'user_agent'    => request()->userAgent(),
+                'ip_address'    => $ipAddress,
+                'user_agent'    => $userAgent,
             ]);
         }
 

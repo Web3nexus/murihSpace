@@ -267,7 +267,7 @@ export function PopChatWidget() {
           role="button"
           tabIndex={0}
           onClick={toggleMinimize}
-          onKeyDown={(e) => e.key === "Enter" && toggleMinimize()}
+          onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && toggleMinimize()}
           className="h-12 px-3.5 rounded-t-xl bg-card border border-b-0 border-border/80 shadow-2xl flex items-center gap-2.5 cursor-pointer hover:bg-muted/50 transition-all select-none min-w-[180px] max-w-[260px]"
         >
           {/* Avatar */}
