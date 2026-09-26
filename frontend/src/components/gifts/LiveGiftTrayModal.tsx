@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 interface GiftItem {
   id: number;
   name: string;
-  coin_price: number; // in minor units (kobo)
+  coin_price: number; // in MSH Coins
   icon?: string;
   category?: string;
 }
@@ -95,7 +95,7 @@ export function LiveGiftTrayModal({
     if (!selectedGift) return;
 
     if (systemBalance !== null && systemBalance < selectedGift.coin_price) {
-      toast.error("Insufficient System Wallet available balance. Please deposit funds first.");
+      toast.error("Insufficient MSH Coins balance. Please top up your wallet first.");
       return;
     }
 
@@ -126,7 +126,7 @@ export function LiveGiftTrayModal({
     }
   };
 
-  const formattedBalance = systemBalance !== null ? (systemBalance / 100).toFixed(2) : "0.00";
+  const formattedBalance = systemBalance !== null ? systemBalance.toLocaleString() : "0";
 
   return (
     <Dialog open={isOpen} onOpenChange={(val) => !val && onClose()}>
@@ -136,16 +136,18 @@ export function LiveGiftTrayModal({
             <Sparkle weight="fill" className="h-5 w-5 text-purple-500" /> Send Live Gift to {recipientName}
           </DialogTitle>
           <DialogDescription>
-            Gifts are debited from your <strong className="text-foreground">System Wallet</strong> and credited directly to the creator's <strong className="text-foreground">Creator Wallet</strong>.
+            Gifts are debited in <strong className="text-foreground">MSH Coins (🪙)</strong> from your available balance and credited directly to the creator.
           </DialogDescription>
         </DialogHeader>
 
         {/* Sender Balance Info Banner */}
         <div className="p-3 rounded-lg bg-muted/40 border flex items-center justify-between text-xs">
           <span className="flex items-center gap-1.5 font-medium text-muted-foreground">
-            <Wallet weight="fill" className="h-4 w-4 text-primary" /> System Wallet Available:
+            <Wallet weight="fill" className="h-4 w-4 text-primary" /> MSH Coins Available:
           </span>
-          <strong className="text-foreground text-sm font-bold">₦{formattedBalance}</strong>
+          <strong className="text-foreground text-sm font-bold flex items-center gap-1">
+            <span>🪙</span> {formattedBalance} MSH
+          </strong>
         </div>
 
         {loading ? (
@@ -170,8 +172,8 @@ export function LiveGiftTrayModal({
                   >
                     <span className="text-xl mb-1">{gift.icon || "🎁"}</span>
                     <span className="text-xs font-bold truncate w-full">{gift.name}</span>
-                    <span className="text-[11px] font-semibold text-muted-foreground mt-0.5">
-                      ₦{(gift.coin_price / 100).toFixed(2)}
+                    <span className="text-[11px] font-semibold text-muted-foreground mt-0.5 flex items-center justify-center gap-0.5">
+                      <span>🪙</span> {gift.coin_price.toLocaleString()} MSH
                     </span>
                   </button>
                 );
@@ -196,7 +198,7 @@ export function LiveGiftTrayModal({
                 disabled={sending || !selectedGift}
                 className="flex-1 py-2.5 rounded-lg bg-purple-600 hover:bg-purple-700 text-white font-bold text-sm shadow transition disabled:opacity-50 inline-flex items-center justify-center gap-1.5"
               >
-                {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Send weight="fill" className="h-4 w-4" /> Send Gift</>}
+                {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Send weight="fill" className="h-4 w-4" /> Send Gift ({selectedGift ? `${selectedGift.coin_price.toLocaleString()} MSH` : ""})</>}
               </button>
             </div>
           </div>

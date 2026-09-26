@@ -81,9 +81,9 @@ export function LiveGiftOverlay({ giftEvent, onAnimationComplete }: LiveGiftOver
             <span className="text-white/80 font-normal">sent a</span>
             <span className="text-amber-300 font-extrabold">{activeGift.gift.name}</span>
           </div>
-          <div className="text-xs text-white/60 flex items-center gap-1 mt-0.5">
+          <div className="text-xs text-white/80 flex items-center gap-1.5 mt-0.5 font-bold">
             <Flame weight="fill" className="h-3.5 w-3.5 text-orange-400" />
-            <span>₦{(activeGift.amount / 100).toFixed(2)} contribution</span>
+            <span>🪙 {activeGift.amount.toLocaleString()} MSH</span>
           </div>
         </div>
 

@@ -82,7 +82,7 @@ export function TopGiftersLeaderboard({ sessionId }: TopGiftersLeaderboardProps)
 
               <div className="flex items-center gap-1 font-bold text-amber-600 dark:text-amber-400">
                 <Gift weight="fill" className="h-3 w-3" />
-                <span>₦{(g.total_sent / 100).toFixed(2)}</span>
+                <span>🪙 {g.total_sent.toLocaleString()} MSH</span>
               </div>
             </div>
           );
