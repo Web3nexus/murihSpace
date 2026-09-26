@@ -55,7 +55,7 @@ return [
     'url' => env('APP_URL', 'https://api.murihspace.com'),
 
     'frontend_url' => env('FRONTEND_URL', 'https://web.murihspace.com'),
-    'live_public_url' => env('LIVE_PUBLIC_URL', 'https://murihspace.com'),
+    'live_public_url' => env('LIVE_PUBLIC_URL', env('FRONTEND_URL', 'https://murihspace.com')),
 
     'app_download_url' => env('APP_DOWNLOAD_URL', 'https://apps.apple.com/app/murihspace'),
 

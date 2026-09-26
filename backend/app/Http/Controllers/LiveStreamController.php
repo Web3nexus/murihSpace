@@ -76,10 +76,40 @@ class LiveStreamController extends Controller
         $attribution = $this->liveAttributions->record($request, $stream, 'click');
         $legacy = $stream->tracking_id !== $token;
 
+        $livekit = null;
+        if ($stream->status === 'live') {
+            $user = $request->user('sanctum') ?? $request->user();
+            $guestId = $user ? 'user_'.$user->id : 'guest_'.Str::random(12);
+            $guestName = $user ? $user->name : 'Viewer';
+            try {
+                $livekitToken = $this->liveKitService->generateToken(
+                    identity: $guestId,
+                    roomName: $stream->livekit_room,
+                    metadata: json_encode([
+                        'user_id' => $user?->id,
+                        'name' => $guestName,
+                        'role' => 'viewer',
+                    ]),
+                    canPublish: false,
+                    canSubscribe: true,
+                    name: $guestName,
+                );
+                $livekit = [
+                    'token' => $livekitToken,
+                    'room' => $stream->livekit_room,
+                    'host' => $this->getLivekitHost(),
+                    'is_publisher' => false,
+                ];
+            } catch (\Throwable $e) {
+                \Log::warning('[LiveStreamController] Public LiveKit token generation failed: '.$e->getMessage());
+            }
+        }
+
         return response()->json([
             'stream' => $this->publicStreamPayload($stream),
             'canonical_url' => $this->liveAttributions->canonicalUrl($stream),
             'legacy' => $legacy,
+            'livekit' => $livekit,
             'attribution' => [
                 'session_id' => $attribution->session_id,
                 'event' => 'click',
@@ -236,6 +266,20 @@ class LiveStreamController extends Controller
         ];
     }
 
+    private function getLivekitHost(): string
+    {
+        $defaultHost = app()->environment('production')
+            ? 'https://live.murihspace.com'
+            : 'https://live-staging.murihspace.com';
+
+        $host = (string) config('livekit.host', $defaultHost);
+        if (empty($host) || str_contains($host, 'localhost') || str_contains($host, '127.0.0.1')) {
+            $host = $defaultHost;
+        }
+
+        return rtrim($host, '/');
+    }
+
     private function ensureHost(Request $request, LiveStream $stream): void
     {
         $user = $request->user();
@@ -337,7 +381,7 @@ class LiveStreamController extends Controller
             'livekit' => [
                 'token' => $token,
                 'room' => $roomName,
-                'host' => config('livekit.host', 'http://localhost:7880'),
+                'host' => $this->getLivekitHost(),
                 'is_publisher' => true,
             ],
         ], 201);
@@ -436,7 +480,7 @@ class LiveStreamController extends Controller
             'livekit' => [
                 'token' => $token,
                 'room' => $stream->livekit_room,
-                'host' => config('livekit.host', 'http://localhost:7880'),
+                'host' => $this->getLivekitHost(),
                 'is_publisher' => $isHost,
             ],
         ]);

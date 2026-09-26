@@ -56,6 +56,12 @@ interface ResolveData {
   stream: LiveStream;
   canonical_url: string;
   legacy: boolean;
+  livekit?: {
+    token: string;
+    host: string;
+    room?: string;
+    is_publisher: boolean;
+  } | null;
 }
 
 interface JoinData {
@@ -200,6 +206,21 @@ export function PublicLivePage() {
         if (resolved.legacy && resolved.canonical_url) {
           updateCanonicalAddress(resolved.canonical_url);
         }
+
+        if (resolved.stream.status === "live" && resolved.livekit?.token && resolved.livekit?.host) {
+          let host = resolved.livekit.host;
+          if (!host || host.includes("localhost") || host.includes("127.0.0.1")) {
+            host = window.location.hostname.includes("murihspace.com")
+              ? "https://live-staging.murihspace.com"
+              : host;
+          }
+          setLiveKitAccess({
+            token: resolved.livekit.token,
+            host,
+            room: resolved.livekit.room,
+            isPublisher: resolved.livekit.is_publisher === true,
+          });
+        }
       })
       .catch((requestError: unknown) => {
         if (!active) {
@@ -260,11 +281,18 @@ export function PublicLivePage() {
         throw new Error("The live room did not return an access token.");
       }
 
+      let host = access.host;
+      if (!host || host.includes("localhost") || host.includes("127.0.0.1")) {
+        host = window.location.hostname.includes("murihspace.com")
+          ? "https://live-staging.murihspace.com"
+          : host;
+      }
+
       leaveSentRef.current = false;
       joinedRef.current = true;
       setLiveKitAccess({
         token: access.token,
-        host: access.host,
+        host,
         room: access.room,
         isPublisher: access.is_publisher === true,
       });
