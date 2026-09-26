@@ -238,6 +238,7 @@ Route::prefix('v1')->group(function () {
 
         Route::middleware('auth:sanctum')->group(function () {
             Route::post('/logout', [AuthController::class, 'logout']);
+            Route::post('/stop-impersonate', [AdminUserController::class, 'stopImpersonate']);
             Route::post('/email/send-code', [VerificationController::class, 'sendCode']);
             Route::post('/email/verify-code', [VerificationController::class, 'verifyCode']);
             Route::post('/email/resend', [VerificationController::class, 'resend']);
@@ -1414,6 +1415,7 @@ Route::prefix('v1')->group(function () {
                 Route::post('/{id}/ban', [AdminUserController::class, 'ban']);
                 Route::post('/{id}/restore', [AdminUserController::class, 'restore']);
                 Route::post('/{id}/impersonate', [AdminUserController::class, 'impersonate']);
+                Route::post('/stop-impersonate', [AdminUserController::class, 'stopImpersonate']);
                 Route::post('/{id}/verify-kyc', [AdminUserController::class, 'verifyKyc']);
             });
 
@@ -1433,8 +1435,10 @@ Route::prefix('v1')->group(function () {
                 Route::post('/{id}/adjust', [AdminWalletController::class, 'adjust']);
             });
 
-            // Platform Fee Rules
+            // Platform Fee Rules & Commission
             Route::prefix('fees')->middleware('admin.permission:fees')->group(function () {
+                Route::get('/commission', [AdminFeeController::class, 'getCommissionRates']);
+                Route::put('/commission', [AdminFeeController::class, 'updateCommissionRates']);
                 Route::get('/', [AdminFeeController::class, 'index']);
                 Route::post('/', [AdminFeeController::class, 'store']);
                 Route::put('/{id}', [AdminFeeController::class, 'update']);

@@ -29,4 +29,23 @@ class AuditLog extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    protected $appends = [
+        'admin_role',
+        'admin_permissions',
+    ];
+
+    public function getAdminRoleAttribute(): ?string
+    {
+        return $this->metadata['admin_role']
+            ?? $this->user?->admin_role
+            ?? ($this->user?->role === 'admin' ? 'super_admin' : null);
+    }
+
+    public function getAdminPermissionsAttribute(): array
+    {
+        return $this->metadata['admin_permissions']
+            ?? $this->user?->admin_permissions
+            ?? [];
+    }
 }

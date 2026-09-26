@@ -193,8 +193,8 @@ export function DashboardLayout() {
         </SheetContent>
       </Sheet>
 
-      {/* Floating Pop Chat widget (docked bottom-right Facebook Messenger style) */}
-      <PopChatWidget />
+      {/* Floating Pop Chat widget — user-side only, docked bottom-right, only shows when a chat is open */}
+      {!isAdmin && <PopChatWidget />}
 
       {!isAdmin && <MobileBottomNav />}
     </div>

@@ -13,22 +13,30 @@ class AuditLogController extends Controller
         $validated = $request->validate([
             'action' => ['nullable', 'string'],
             'search' => ['nullable', 'string', 'max:100'],
+            'admin_role' => ['nullable', 'string'],
             'from' => ['nullable', 'date'],
             'to' => ['nullable', 'date'],
             'per_page' => ['nullable', 'integer', 'min:10', 'max:200'],
         ]);
 
-        $query = AuditLog::with('user:id,name')
+        $query = AuditLog::with('user:id,name,email,username,role,admin_role,admin_permissions')
             ->latest();
 
         if (! empty($validated['action'])) {
             $query->where('action', $validated['action']);
         }
+        if (! empty($validated['admin_role']) && $validated['admin_role'] !== 'all') {
+            $role = $validated['admin_role'];
+            $query->where(function ($q) use ($role) {
+                $q->where('metadata->admin_role', $role)
+                    ->orWhereHas('user', fn($uq) => $uq->where('admin_role', $role));
+            });
+        }
         if (! empty($validated['search'])) {
             $s = $validated['search'];
             $query->where(function ($q) use ($s) {
                 $q->where('action', 'like', "%{$s}%")
-                    ->orWhereHas('user', fn($uq) => $uq->where('name', 'like', "%{$s}%"));
+                    ->orWhereHas('user', fn($uq) => $uq->where('name', 'like', "%{$s}%")->orWhere('email', 'like', "%{$s}%"));
             });
         }
         if (! empty($validated['from'])) {

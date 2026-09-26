@@ -18,24 +18,33 @@ class AdminManagementController extends Controller
     public const ROLES = [
         'super_admin' => 'Super Admin',
         'finance_admin' => 'Finance & Accounting Admin',
-        'content_admin' => 'Content Admin',
-        'commerce_admin' => 'Commerce Admin',
-        'support_admin' => 'Support Admin',
+        'support_admin' => 'Customer Support Admin',
+        'commerce_admin' => 'Commerce & Marketplace Admin',
+        'content_admin' => 'Content Moderation Admin',
+        'ads_admin' => 'Advertisements & Campaigns Admin',
+        'marketing_admin' => 'Marketing & Growth Admin',
+        'compliance_admin' => 'Compliance & Risk Admin',
+        'operations_admin' => 'Operations & Staff Admin',
+        'support_staff' => 'Support Representative / Staff',
+        'moderator' => 'Content Moderator / Staff',
     ];
 
     public const PERMISSIONS = [
-        'users' => 'User management',
-        'kyc' => 'KYC verification',
-        'content' => 'Content moderation',
-        'commerce' => 'Commerce & orders',
+        'users' => 'User management & impersonation',
+        'kyc' => 'KYC verification & identity audits',
+        'content' => 'Content moderation & reporting',
+        'commerce' => 'Commerce & orders management',
         'accounting' => 'Accounting & revenue streams',
         'tax' => 'Tax management & compliance',
-        'payouts' => 'Payouts & escrow',
-        'analytics' => 'Analytics & reports',
-        'settings' => 'Platform settings',
-        'admins' => 'Admin management',
+        'payouts' => 'Payouts & escrow management',
+        'analytics' => 'Analytics & platform reports',
+        'settings' => 'Platform settings & configuration',
+        'admins' => 'Admin & staff access management',
         'wallets' => 'Wallet & ledger adjustment',
-        'fees' => 'Platform fee rules',
+        'fees' => 'Platform fee rules & commission percentage',
+        'ads' => 'Advertisements & sponsor campaigns',
+        'marketing' => 'Marketing & customer engagement',
+        'support' => 'Customer support & tickets',
     ];
 
     public function roles(): JsonResponse
@@ -52,6 +61,8 @@ class AdminManagementController extends Controller
     {
         $validated = $request->validate([
             'search' => ['nullable', 'string', 'max:100'],
+            'admin_role' => ['nullable', 'string'],
+            'status' => ['nullable', 'string', 'in:active,suspended,all'],
             'per_page' => ['nullable', 'integer', 'min:10', 'max:100'],
         ]);
 
@@ -67,6 +78,14 @@ class AdminManagementController extends Controller
                     ->orWhere('email', 'like', "%{$s}%")
                     ->orWhere('username', 'like', "%{$s}%");
             });
+        }
+
+        if (! empty($validated['admin_role']) && $validated['admin_role'] !== 'all') {
+            $query->where('admin_role', $validated['admin_role']);
+        }
+
+        if (! empty($validated['status']) && $validated['status'] !== 'all') {
+            $query->where('status', $validated['status']);
         }
 
         $query->orderByRaw("CASE WHEN admin_role = 'super_admin' THEN 0 ELSE 1 END")
@@ -127,12 +146,21 @@ class AdminManagementController extends Controller
             ]);
         }
 
+        $requestingUser = $request->user();
         AuditLog::create([
-            'user_id' => $request->user()->id,
+            'user_id' => $requestingUser->id,
             'action' => 'admin.created',
             'resource_type' => 'user',
             'resource_id' => (string) $user->id,
-            'metadata' => ['admin_role' => $validated['admin_role'], 'permissions' => $permissions],
+            'metadata' => [
+                'admin_role' => $requestingUser->admin_role ?? 'super_admin',
+                'admin_permissions' => $requestingUser->admin_permissions ?? ['admins'],
+                'target_admin_role' => $validated['admin_role'],
+                'target_permissions' => $permissions,
+                'target_email' => $user->email,
+            ],
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
         ]);
 
         $this->notifications->actionEmail(
@@ -191,7 +219,15 @@ class AdminManagementController extends Controller
             'action' => 'admin.updated',
             'resource_type' => 'user',
             'resource_id' => (string) $user->id,
-            'metadata' => ['admin_role' => $validated['admin_role'], 'permissions' => $permissions],
+            'metadata' => [
+                'admin_role' => $requestingUser->admin_role ?? 'super_admin',
+                'admin_permissions' => $requestingUser->admin_permissions ?? ['admins'],
+                'target_admin_role' => $validated['admin_role'],
+                'target_permissions' => $permissions,
+                'target_status' => $validated['status'] ?? $user->status,
+            ],
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
         ]);
 
         $this->notifications->actionEmail(
@@ -238,6 +274,13 @@ class AdminManagementController extends Controller
             'action' => 'admin.removed',
             'resource_type' => 'user',
             'resource_id' => (string) $user->id,
+            'metadata' => [
+                'admin_role' => $requestingUser->admin_role ?? 'super_admin',
+                'admin_permissions' => $requestingUser->admin_permissions ?? ['admins'],
+                'target_email' => $user->email,
+            ],
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
         ]);
 
         $this->notifications->actionEmail(
@@ -248,6 +291,65 @@ class AdminManagementController extends Controller
         );
 
         return response()->json(['message' => 'Admin removed.']);
+    }
+
+    /**
+     * Internal endpoint for satellite services (e.g. ads-backend, marketing-backend)
+     * to fetch and sync active admin & staff members from the single source of truth database.
+     */
+    public function internalList(Request $request): JsonResponse
+    {
+        $admins = User::select([
+            'id', 'name', 'email', 'username', 'role', 'admin_role', 'admin_permissions',
+            'status', 'created_at',
+        ])
+            ->where('role', 'admin')
+            ->where('status', 'active')
+            ->orderBy('id', 'asc')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $admins,
+            'synced_at' => now()->toIso8601String(),
+            'total' => $admins->count(),
+        ]);
+    }
+
+    /**
+     * Internal endpoint to verify if a user has admin/staff access with specific role/permission.
+     */
+    public function internalVerify(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'user_id' => ['nullable', 'integer'],
+            'email' => ['nullable', 'string', 'email'],
+            'permission' => ['nullable', 'string'],
+            'role' => ['nullable', 'string'],
+        ]);
+
+        $query = User::where('role', 'admin')->where('status', 'active');
+        if (! empty($validated['user_id'])) {
+            $query->where('id', $validated['user_id']);
+        } elseif (! empty($validated['email'])) {
+            $query->where('email', $validated['email']);
+        } else {
+            return response()->json(['success' => false, 'message' => 'user_id or email required.'], 422);
+        }
+
+        $admin = $query->first();
+        if (! $admin) {
+            return response()->json(['authorized' => false, 'message' => 'Admin not found or inactive.'], 404);
+        }
+
+        $isSuper = $admin->admin_role === 'super_admin';
+        $roleMatch = empty($validated['role']) || $admin->admin_role === $validated['role'] || $isSuper;
+        $permissionMatch = empty($validated['permission']) || $isSuper || in_array($validated['permission'], $admin->admin_permissions ?? [], true);
+
+        return response()->json([
+            'authorized' => $roleMatch && $permissionMatch,
+            'admin' => $this->present($admin),
+        ]);
     }
 
     private function present(User $user): array

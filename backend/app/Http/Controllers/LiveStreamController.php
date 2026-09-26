@@ -45,6 +45,7 @@ class LiveStreamController extends Controller
         private readonly FeeCalculatorService $feeCalculator,
         private readonly TaxCalculationService $taxService,
         private readonly AccountingStreamService $accountingService,
+        private readonly \App\Services\Commission\CommissionService $commissionService,
     ) {}
 
     /**
@@ -774,7 +775,7 @@ class LiveStreamController extends Controller
         }
 
         $subtotal = $product->price * $quantity;
-        $platformFee = (int) round($subtotal * self::PHYSICAL_FEE_RATE);
+        $platformFee = (int) round($this->commissionService->calculateFee($subtotal, 'physical'));
 
         // Destination-based VAT when the buyer's country is known.
         $storefront = Storefront::where('user_id', $product->creator_id)->first();
@@ -967,7 +968,7 @@ class LiveStreamController extends Controller
     {
         $subtotal = round((float) $product->price, 2);
         $subtotalCents = (int) round($subtotal * 100);
-        $platformFee = round($subtotal * self::DIGITAL_FEE_RATE, 2);
+        $platformFee = $this->commissionService->calculateFee($subtotal, 'digital');
 
         $storefront = Storefront::where('user_id', $product->creator_id)->first();
         $storefrontRate = $storefront ? (float) $storefront->tax_rate : 0.0;

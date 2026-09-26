@@ -31,7 +31,8 @@ class AdminFeeController extends Controller
         $rules = $query->get();
 
         return response()->json([
-            'data' => $rules,
+            'data'             => $rules,
+            'commission_rates' => app(\App\Services\Commission\CommissionService::class)->getAllRates(),
         ]);
     }
 
@@ -146,8 +147,37 @@ class AdminFeeController extends Controller
         $rule = FeeRule::findOrFail($id);
         $rule->delete();
 
+    /**
+     * GET /api/v1/securegate/fees/commission
+     * Get platform commission percentage rates.
+     */
+    public function getCommissionRates(\App\Services\Commission\CommissionService $commissionService): JsonResponse
+    {
         return response()->json([
-            'message' => 'Fee rule deleted.',
+            'data' => $commissionService->getAllRates(),
+        ]);
+    }
+
+    /**
+     * PUT /api/v1/securegate/fees/commission
+     * Update platform commission percentage rates.
+     */
+    public function updateCommissionRates(Request $request, \App\Services\Commission\CommissionService $commissionService): JsonResponse
+    {
+        $validated = $request->validate([
+            'rates'            => ['required', 'array'],
+            'rates.general'    => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'rates.digital'    => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'rates.physical'   => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'rates.gifts'      => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'rates.escrow'     => ['nullable', 'numeric', 'min:0', 'max:100'],
+        ]);
+
+        $updated = $commissionService->updateRates($validated['rates'], $request->user());
+
+        return response()->json([
+            'message' => 'Platform commission percentage rates updated successfully.',
+            'data'    => $updated,
         ]);
     }
 }

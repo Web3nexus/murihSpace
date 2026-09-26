@@ -48,8 +48,8 @@ class AdminSettingsController extends Controller
                 'web_purchases_enabled' => (bool) AdminSetting::get('web_purchases_enabled', true),
                 'admin_notify_email' => AdminSetting::get('admin_notify_email', ''),
                 'telegram_bot_configured' => AdminSetting::get('admin_notify_telegram_bot_token', '') !== '',
-                'admin_notify_telegram_chat_id' => AdminSetting::get('admin_notify_telegram_chat_id', ''),
                 'charge_vat' => (bool) AdminSetting::get('charge_vat', true),
+                'commission_rates' => app(\App\Services\Commission\CommissionService::class)->getAllRates(),
             ],
         ]);
     }
@@ -70,7 +70,13 @@ class AdminSettingsController extends Controller
             'admin_notify_telegram_chat_id' => ['nullable', 'string'],
             'charge_vat' => ['sometimes', 'boolean'],
             'web_purchases_enabled' => ['sometimes', 'boolean'],
+            'commission_rates' => ['sometimes', 'array'],
+            'commission_rates.*' => ['numeric', 'min:0', 'max:100'],
         ]);
+
+        if (isset($validated['commission_rates'])) {
+            app(\App\Services\Commission\CommissionService::class)->updateRates($validated['commission_rates'], $request->user());
+        }
 
         if (isset($validated['maintenance_mode'])) {
             AdminSetting::set('maintenance_mode', $validated['maintenance_mode']);

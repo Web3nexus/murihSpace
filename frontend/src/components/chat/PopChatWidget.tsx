@@ -2,15 +2,12 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useLocation, useNavigate } from "react-router";
 import {
   ChatTeardropText,
-  ChatCircleDots,
   X,
   Minus,
   ArrowLeft,
   ArrowSquareOut,
   PaperPlaneRight,
-  MagnifyingGlass,
   SpinnerGap,
-  Users,
   Checks as CheckCheck,
   Check as CheckIcon,
   Phone,
@@ -22,7 +19,7 @@ import { useRealtimeMessaging } from "@/hooks/useRealtimeMessaging";
 import { apiClient } from "@/lib/api/client";
 import { extractMessages } from "@/lib/chatMessages";
 import type { ChatMessage } from "@/types/chat";
-import { safeFormatDistanceToNow, safeFormat } from "@/lib/date";
+import { safeFormat } from "@/lib/date";
 import { EmojiPickerPopover } from "@/components/chat/EmojiPickerPopover";
 import { playMessageReceivedSound } from "@/lib/sound";
 
@@ -73,22 +70,15 @@ export function PopChatWidget() {
     isMinimized,
     activeConv,
     activeRecipient,
-    conversations,
-    unreadCount,
-    openPopChat,
     closePopChat,
     toggleMinimize,
-    selectConversation,
     refreshConversations,
-    backToList,
   } = usePopChat();
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [inputText, setInputText] = useState("");
   const [sending, setSending] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -101,9 +91,7 @@ export function PopChatWidget() {
       return [...prev, { ...msg, status: "sent" }];
     });
     if (activeConv?.id === msg.conversation_id) {
-      // Mark as read (we're looking at it)
       apiClient.post(`/conversations/${msg.conversation_id}/read`).catch(() => {});
-      // Also mark as delivered so the sender gets double-grey ticks
       if (msg.id) {
         apiClient.post(`/conversations/${msg.conversation_id}/delivered`, {
           message_ids: [msg.id],
@@ -115,26 +103,31 @@ export function PopChatWidget() {
 
   const onMessageRead = useCallback((data: { conversation_id: number; reader_id: number }) => {
     if (data.reader_id !== user?.id) {
-      setMessages((prev) => prev.map((m) =>
-        m.user_id === user?.id && m.status !== 'read' ? { ...m, status: 'read' } : m,
-      ));
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.user_id === user?.id && m.status !== "read" ? { ...m, status: "read" } : m,
+        ),
+      );
     }
   }, [user?.id]);
 
   const onMessageDelivered = useCallback((data: { conversation_id: number; message_ids: number[] }) => {
     const ids = new Set(data.message_ids);
-    setMessages((prev) => prev.map((m) =>
-      m.id !== undefined && ids.has(m.id) && m.status === 'sent' ? { ...m, status: 'delivered' } : m,
-    ));
+    setMessages((prev) =>
+      prev.map((m) =>
+        m.id !== undefined && ids.has(m.id) && m.status === "sent" ? { ...m, status: "delivered" } : m,
+      ),
+    );
   }, []);
 
   const onTyping = useCallback(() => {}, []);
   const onReaction = useCallback(() => {}, []);
 
-  const isFullChatPage = pathname.startsWith("/app/messages");
-  const realtimeConvId = (!isAuthenticated || isFullChatPage) ? null : (activeConv?.id ?? null);
+  // Suppress realtime on chat page or if not open
+  const isOnChatPage = pathname.startsWith("/app/messages");
+  const isAdminPage = pathname.startsWith("/app/securegate");
+  const realtimeConvId = (!isAuthenticated || isOnChatPage || isAdminPage || !isOpen) ? null : (activeConv?.id ?? null);
 
-  // Real-time messaging subscription for active pop-chat conversation
   useRealtimeMessaging(realtimeConvId, user?.id, {
     onMessageReceived,
     onTyping,
@@ -145,7 +138,7 @@ export function PopChatWidget() {
 
   // Fetch messages when active conversation changes
   useEffect(() => {
-    if (!activeConv || !isAuthenticated || isFullChatPage) {
+    if (!activeConv || !isAuthenticated || isOnChatPage) {
       setMessages([]);
       return;
     }
@@ -158,15 +151,13 @@ export function PopChatWidget() {
       .then((res) => {
         if (cancelled) return;
         const list = extractMessages(res.data);
-        // Initialize status from backend 'read' flag so ticks show correctly on load
         const formatted = list.map((m: any) => ({
           ...m,
-          status: m.read === true ? 'read' : (m.status && m.status !== 'sent' ? m.status : 'sent'),
+          status: m.read === true ? "read" : (m.status && m.status !== "sent" ? m.status : "sent"),
         }));
         setMessages(formatted);
-        // Mark conversation as read & clear global badge
         apiClient.post(`/conversations/${activeConv.id}/read`).catch(() => {});
-        import('@/lib/chatUnread').then(({ getUnreadCount, setUnreadCount, refreshUnreadCount }) => {
+        import("@/lib/chatUnread").then(({ getUnreadCount, setUnreadCount, refreshUnreadCount }) => {
           const conv = activeConv as any;
           const unread = conv?.unread_count ?? 0;
           if (unread > 0) setUnreadCount(Math.max(0, getUnreadCount() - unread));
@@ -190,29 +181,7 @@ export function PopChatWidget() {
     }
   }, [messages, isMinimized, isOpen]);
 
-  // Handle user query param to boot up friend profile
-  useEffect(() => {
-    const search = window.location.search;
-    const params = new URLSearchParams(search);
-    const userId = params.get("user") ? parseInt(params.get("user") ?? "0", 10) : null;
-    if (userId) {
-      setSelectedUserId(userId);
-    }
-  }, []);
-
-  // Select conversation based on selected user ID
-  useEffect(() => {
-    if (selectedUserId) {
-      const conv = conversations.find(
-        (c) => c.other_user && c.other_user.id === selectedUserId
-      );
-      if (conv) {
-        selectConversation(conv);
-      }
-    }
-  }, [selectedUserId, conversations, selectConversation]);
-
-  // Focus input when conversation opens
+  // Focus input when conversation opens / unminimizes
   useEffect(() => {
     if (activeConv && !isMinimized && isOpen) {
       setTimeout(() => inputRef.current?.focus(), 150);
@@ -254,13 +223,13 @@ export function PopChatWidget() {
       const created = (res.data?.data as ChatMessage) ?? (res.data as ChatMessage);
       if (created?.id) {
         setMessages((prev) =>
-          prev.map((m) => (m.client_uuid === clientUuid ? { ...created, status: "sent" } : m))
+          prev.map((m) => (m.client_uuid === clientUuid ? { ...created, status: "sent" } : m)),
         );
       }
       refreshConversations();
     } catch {
       setMessages((prev) =>
-        prev.map((m) => (m.client_uuid === clientUuid ? { ...m, status: "failed" } : m))
+        prev.map((m) => (m.client_uuid === clientUuid ? { ...m, status: "failed" } : m)),
       );
     } finally {
       setSending(false);
@@ -274,44 +243,23 @@ export function PopChatWidget() {
     }
   };
 
-  const filteredConversations = conversations.filter((c) => {
-    if (!searchQuery.trim()) return true;
-    const q = searchQuery.toLowerCase();
-    const preview = formatMessagePreview(c.latest_message).toLowerCase();
-    return (
-      c.title?.toLowerCase().includes(q) ||
-      preview.includes(q)
-    );
-  });
-
-  // Hide popup widget if user is currently on the full /app/messages page or not authenticated
-  if (!isAuthenticated || isFullChatPage) {
+  // ── Visibility rules ──────────────────────────────────────────────────────
+  // 1. Must be authenticated
+  // 2. Must NOT be on the full chat / messages page (user already has full UI there)
+  // 3. Must NOT be on admin pages (securegate)
+  // 4. Must be explicitly opened (isOpen) — no permanent floating button
+  // 5. Must have an active conversation selected (no generic chat list pop-in)
+  if (
+    !isAuthenticated ||
+    isOnChatPage ||
+    isAdminPage ||
+    !isOpen ||
+    !activeConv
+  ) {
     return null;
   }
 
-  // ── 1. Floating Launcher Button (Closed state) ───────────────────────────
-  if (!isOpen) {
-    return (
-      <div className="fixed bottom-20 md:bottom-6 right-6 z-40">
-        <button
-          type="button"
-          onClick={() => openPopChat()}
-          className="relative h-14 w-14 rounded-full bg-[#2164b6] hover:bg-[#1a5091] text-white shadow-2xl flex items-center justify-center hover:scale-105 active:scale-95 transition-all cursor-pointer ring-4 ring-[#2164b6]/20"
-          title="Open Messages"
-          aria-label="Open Chat"
-        >
-          <ChatCircleDots weight="fill" className="h-7 w-7" />
-          {unreadCount > 0 && (
-            <span className="absolute -top-1 -right-1 h-5 min-w-5 px-1.5 rounded-full bg-rose-500 text-white font-bold text-[11px] flex items-center justify-center shadow-md ring-2 ring-background animate-pulse">
-              {unreadCount > 99 ? "99+" : unreadCount}
-            </span>
-          )}
-        </button>
-      </div>
-    );
-  }
-
-  // ── 2. Minimized Dock Bar (Bottom Right) ─────────────────────────────────
+  // ── Minimized: Facebook-style square tab docked at bottom-right ───────────
   if (isMinimized) {
     return (
       <div className="fixed bottom-14 md:bottom-0 right-4 sm:right-10 z-50 flex items-end">
@@ -319,34 +267,35 @@ export function PopChatWidget() {
           role="button"
           tabIndex={0}
           onClick={toggleMinimize}
-          className="h-11 px-4 rounded-t-2xl bg-card border border-b-0 border-border/80 shadow-2xl flex items-center gap-3 cursor-pointer hover:bg-muted/50 transition-all select-none"
+          onKeyDown={(e) => e.key === "Enter" && toggleMinimize()}
+          className="h-12 px-3.5 rounded-t-xl bg-card border border-b-0 border-border/80 shadow-2xl flex items-center gap-2.5 cursor-pointer hover:bg-muted/50 transition-all select-none min-w-[180px] max-w-[260px]"
         >
-          <div className="relative flex items-center gap-2">
-            <div className="w-6 h-6 rounded-full bg-primary/10 overflow-hidden flex items-center justify-center font-bold text-xs text-primary flex-shrink-0">
+          {/* Avatar */}
+          <div className="relative flex-shrink-0">
+            <div className="w-7 h-7 rounded-md bg-primary/10 overflow-hidden flex items-center justify-center font-bold text-xs text-primary">
               {activeRecipient?.avatar ? (
                 <img src={activeRecipient.avatar} alt="" className="w-full h-full object-cover" />
               ) : (
-                <ChatTeardropText weight="fill" className="h-3.5 w-3.5" />
+                activeRecipient?.name?.charAt(0) || <ChatTeardropText weight="fill" className="h-3.5 w-3.5" />
               )}
             </div>
-            <span className="text-xs font-bold text-foreground max-w-[140px] truncate">
-              {activeRecipient?.name || "Chats"}
-            </span>
-            {unreadCount > 0 && (
-              <span className="h-4 min-w-4 px-1 rounded-full bg-rose-500 text-white text-[10px] font-bold flex items-center justify-center">
-                {unreadCount}
-              </span>
+            {activeRecipient?.is_online && (
+              <span className="absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full bg-[#34C759] ring-1 ring-card" />
             )}
           </div>
 
-          <div className="flex items-center gap-1 text-muted-foreground ml-2">
+          <span className="text-xs font-bold text-foreground truncate flex-1">
+            {activeRecipient?.name || "Chat"}
+          </span>
+
+          <div className="flex items-center gap-0.5 text-muted-foreground ml-1">
             <button
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
                 closePopChat();
               }}
-              className="p-1 hover:text-foreground rounded-lg"
+              className="p-1 hover:text-foreground rounded-md hover:bg-muted/60 transition-colors"
               title="Close"
             >
               <X className="h-3.5 w-3.5" />
@@ -357,84 +306,69 @@ export function PopChatWidget() {
     );
   }
 
-  // ── 3. Docked Floating Chat Window (Facebook Style) ───────────────────────
+  // ── Expanded: square-cornered Facebook Messenger-style chat window ─────────
   return (
-    <div className="fixed bottom-14 md:bottom-0 right-2 sm:right-10 z-50 w-[360px] max-w-[calc(100vw-1rem)] h-[520px] max-h-[calc(100vh-4.5rem)] rounded-t-3xl bg-card border border-b-0 border-border/80 shadow-2xl flex flex-col overflow-hidden backdrop-blur-xl animate-in slide-in-from-bottom-5 duration-200">
-      {/* ── Header ── */}
-      <div className="h-14 px-3.5 bg-card/90 border-b border-border/70 flex items-center justify-between flex-shrink-0">
+    <div className="fixed bottom-14 md:bottom-0 right-2 sm:right-10 z-50 w-[340px] max-w-[calc(100vw-1rem)] h-[480px] max-h-[calc(100vh-4.5rem)] rounded-t-xl bg-card border border-b-0 border-border/80 shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom-4 duration-200">
+
+      {/* ── Header (square, not rounded) ── */}
+      <div className="h-12 px-3 bg-[#2164b6] flex items-center justify-between flex-shrink-0">
         <div className="flex items-center gap-2.5 min-w-0">
-          {activeConv ? (
-            <>
-              <button
-                type="button"
-                onClick={backToList}
-                className="p-1.5 -ml-1 text-muted-foreground hover:text-foreground hover:bg-muted rounded-xl transition-all"
-                title="Back to conversations"
-              >
-                <ArrowLeft className="h-4 w-4" />
-              </button>
+          <button
+            type="button"
+            onClick={closePopChat}
+            className="p-1 -ml-1 text-white/70 hover:text-white hover:bg-white/10 rounded-md transition-all"
+            title="Close chat"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </button>
 
-              <div className="relative flex-shrink-0">
-                <div className="w-8 h-8 rounded-full bg-primary/10 overflow-hidden flex items-center justify-center font-bold text-xs text-primary">
-                  {activeRecipient?.avatar ? (
-                    <img src={activeRecipient.avatar} alt="" className="w-full h-full object-cover" />
-                  ) : (
-                    activeRecipient?.name?.charAt(0) || "C"
-                  )}
-                </div>
-                {activeRecipient?.is_online && (
-                  <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-[#34C759] ring-2 ring-card shadow-xs" />
-                )}
-              </div>
-
-              <div className="min-w-0">
-                <h4 className="text-xs font-bold text-foreground truncate">
-                  {activeRecipient?.name || activeConv.title}
-                </h4>
-                <p className="text-[10px] text-muted-foreground truncate flex items-center gap-1">
-                  {activeConv.type === "community" ? "Community Channel" : (
-                    activeRecipient?.is_online ? (
-                      <span className="text-[#34C759] font-bold">online</span>
-                    ) : (
-                      <span>{activeRecipient?.last_seen || "offline"}</span>
-                    )
-                  )}
-                </p>
-              </div>
-            </>
-          ) : (
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
-                <ChatCircleDots weight="fill" className="h-4 w-4" />
-              </div>
-              <div>
-                <h4 className="text-xs font-bold text-foreground">Messages</h4>
-                <p className="text-[10px] text-muted-foreground">Recent chats</p>
-              </div>
+          <div className="relative flex-shrink-0">
+            <div className="w-7 h-7 rounded-md bg-white/20 overflow-hidden flex items-center justify-center font-bold text-xs text-white">
+              {activeRecipient?.avatar ? (
+                <img src={activeRecipient.avatar} alt="" className="w-full h-full object-cover" />
+              ) : (
+                activeRecipient?.name?.charAt(0) || "C"
+              )}
             </div>
-          )}
+            {activeRecipient?.is_online && (
+              <span className="absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full bg-[#34C759] ring-1 ring-[#2164b6] shadow-xs" />
+            )}
+          </div>
+
+          <div className="min-w-0">
+            <h4 className="text-xs font-bold text-white truncate">
+              {activeRecipient?.name || activeConv.title}
+            </h4>
+            <p className="text-[10px] truncate text-white/70">
+              {activeConv.type === "community" ? "Community Channel" : (
+                activeRecipient?.is_online ? (
+                  <span className="text-[#4ade80] font-semibold">Active now</span>
+                ) : (
+                  <span>{activeRecipient?.last_seen || "offline"}</span>
+                )
+              )}
+            </p>
+          </div>
         </div>
 
-        {/* Header Action Buttons */}
-        <div className="flex items-center gap-1 text-muted-foreground">
-          {activeConv && (
-            <button
-              type="button"
-              onClick={() => {
-                closePopChat();
-                navigate(`/app/messages?c=${activeConv.id}`);
-              }}
-              className="p-1.5 hover:text-foreground hover:bg-muted rounded-lg transition-all"
-              title="Open in full screen"
-            >
-              <ArrowSquareOut className="h-4 w-4" />
-            </button>
-          )}
+        {/* Header actions */}
+        <div className="flex items-center gap-0.5 text-white/70">
+          <button
+            type="button"
+            onClick={() => {
+              closePopChat();
+              navigate(`/app/messages?c=${activeConv.id}`);
+            }}
+            className="p-1.5 hover:text-white hover:bg-white/10 rounded-md transition-all"
+            title="Open full screen"
+          >
+            <ArrowSquareOut className="h-4 w-4" />
+          </button>
 
           <button
             type="button"
             onClick={toggleMinimize}
-            className="p-1.5 hover:text-foreground hover:bg-muted rounded-lg transition-all"
+            className="p-1.5 hover:text-white hover:bg-white/10 rounded-md transition-all"
             title="Minimize"
           >
             <Minus className="h-4 w-4" />
@@ -443,7 +377,7 @@ export function PopChatWidget() {
           <button
             type="button"
             onClick={closePopChat}
-            className="p-1.5 hover:text-foreground hover:bg-muted rounded-lg transition-all"
+            className="p-1.5 hover:text-white hover:bg-white/10 rounded-md transition-all"
             title="Close"
           >
             <X className="h-4 w-4" />
@@ -451,246 +385,153 @@ export function PopChatWidget() {
         </div>
       </div>
 
-      {/* ── Body: Conversation List OR Active Messages ── */}
-      {activeConv ? (
-        /* ── Active Conversation Stream ── */
-        <div className="flex-1 flex flex-col min-h-0 bg-background/50">
-          <div className="flex-1 overflow-y-auto p-3.5 space-y-2.5">
-            {loadingMessages ? (
-              <div className="py-16 flex flex-col items-center justify-center text-muted-foreground gap-2">
-                <SpinnerGap className="h-6 w-6 animate-spin text-primary" />
-                <span className="text-xs font-medium">Loading messages...</span>
-              </div>
-            ) : messages.length === 0 ? (
-              <div className="py-16 flex flex-col items-center justify-center text-center text-muted-foreground gap-2 px-4">
-                <ChatTeardropText weight="fill" className="h-10 w-10 text-muted-foreground/30" />
-                <p className="text-xs font-bold text-foreground">No messages yet</p>
-                <p className="text-[11px] text-muted-foreground">Send a wave to start the conversation!</p>
-              </div>
-            ) : (
-              messages.map((msg, i) => {
-                const isMe = msg.user_id === user?.id;
-                const content = typeof msg.content === "string" ? msg.content.trim() : "";
-                const isCall =
-                  msg.type === "call" ||
-                  msg.attachment_type === "call" ||
-                  content.startsWith('{"call_id"') ||
-                  (content.startsWith("{") && content.includes('"call_id"'));
-
-                let callData: any = null;
-                if (isCall) {
-                  try {
-                    callData = JSON.parse(content);
-                  } catch {
-                    callData = { status: "ended", call_type: "audio", duration: 0 };
-                  }
-                }
-
-                const isVideo = callData?.call_type === "video";
-                const isMissed = callData?.status === "missed" || callData?.status === "declined";
-                const dur = Number(callData?.duration) || 0;
-                const durStr = dur > 0
-                  ? `${Math.floor(dur / 60)}m ${dur % 60}s`
-                  : (isMissed ? (callData?.status === "declined" ? "Call declined" : "Missed call") : "Call ended");
-
-                return (
-                  <div
-                    key={msg.id || msg.client_uuid || i}
-                    className={`flex flex-col ${isMe ? "items-end" : "items-start"}`}
-                  >
-                    <div
-                      className={`max-w-[85%] px-3.5 py-2 rounded-2xl text-xs leading-relaxed shadow-2xs break-words ${
-                        isCall
-                          ? isMissed
-                            ? "bg-red-500/10 text-red-400 border border-red-500/20"
-                            : "bg-card text-foreground border border-border/80"
-                          : isMe
-                          ? "bg-primary text-primary-foreground rounded-br-xs"
-                          : "bg-card text-foreground border border-border/80 rounded-bl-xs"
-                      }`}
-                    >
-                      {isCall ? (
-                        <div className="flex items-center gap-2.5 py-0.5 min-w-[160px]">
-                          <div
-                            className={`p-2 rounded-full shrink-0 ${
-                              isMissed ? "bg-red-500/20 text-red-500" : "bg-emerald-500/20 text-emerald-400"
-                            }`}
-                          >
-                            {isVideo ? (
-                              <VideoCamera weight="fill" className="h-4 w-4" />
-                            ) : (
-                              <Phone weight="fill" className="h-4 w-4" />
-                            )}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className={`font-semibold text-xs truncate ${isMissed ? "text-red-400" : "text-foreground"}`}>
-                              {isMissed
-                                ? isVideo
-                                  ? "Missed Video Call"
-                                  : "Missed Voice Call"
-                                : isVideo
-                                ? "Video Call"
-                                : "Voice Call"}
-                            </p>
-                            <p className="text-[10px] text-muted-foreground">{durStr}</p>
-                          </div>
-                        </div>
-                      ) : (
-                        msg.content
-                      )}
-                    </div>
-                    <span className="text-[9px] text-muted-foreground mt-0.5 px-1 flex items-center gap-1">
-                      <span>{msg.status === "pending" ? "Sending..." : safeFormat(msg.created_at, "h:mm a")}</span>
-                      {isMe && !isCall && (
-                        msg.status === 'read' ? (
-                          <span title="Read" className="text-[#34C759] dark:text-[#30D158] inline-flex items-center">
-                            <CheckCheck weight="bold" className="h-3 w-3" />
-                          </span>
-                        ) : msg.status === 'delivered' ? (
-                          <span title="Delivered" className="opacity-75 inline-flex items-center">
-                            <CheckCheck weight="bold" className="h-3 w-3" />
-                          </span>
-                        ) : (
-                          <span title="Sent" className="opacity-75 inline-flex items-center">
-                            <CheckIcon weight="bold" className="h-3 w-3" />
-                          </span>
-                        )
-                      )}
-                    </span>
-                  </div>
-                );
-              })
-            )}
-            <div ref={messagesEndRef} />
-          </div>
-
-          {/* Composer Footer */}
-          <form
-            onSubmit={handleSendMessage}
-            className="p-2.5 bg-card border-t border-border/70 flex items-center gap-2"
-          >
-            <input
-              ref={inputRef}
-              type="text"
-              placeholder={`Message ${activeRecipient?.name || ""}...`}
-              value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
-              onKeyDown={handleKeyDown}
-              disabled={sending}
-              className="flex-1 h-9 px-3 text-xs rounded-xl bg-muted/60 border border-border/60 outline-none focus:ring-1 focus:ring-primary focus:bg-background transition-all"
-            />
-            <EmojiPickerPopover
-              onSelect={(emoji) => setInputText((prev) => prev + emoji)}
-              align="right"
-              buttonClassName="h-9 w-9 rounded-xl"
-            />
-            <button
-              type="submit"
-              disabled={!inputText.trim() || sending}
-              className="h-9 w-9 rounded-xl bg-primary text-primary-foreground flex items-center justify-center disabled:opacity-40 hover:bg-primary/90 active:scale-95 transition-all flex-shrink-0"
-            >
-              <PaperPlaneRight weight="fill" className="h-4 w-4" />
-            </button>
-          </form>
-        </div>
-      ) : (
-        /* ── Conversations List ── */
-        <div className="flex-1 flex flex-col min-h-0 bg-background/50">
-          {/* Search Bar */}
-          <div className="p-2.5 border-b border-border/60 bg-card/60">
-            <div className="relative">
-              <MagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-              <input
-                type="text"
-                placeholder="Search chats..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full h-8 pl-8 pr-3 text-xs rounded-xl bg-muted/60 border-none outline-none focus:ring-1 focus:ring-primary placeholder:text-muted-foreground"
-              />
+      {/* ── Message stream ── */}
+      <div className="flex-1 flex flex-col min-h-0 bg-background/50">
+        <div className="flex-1 overflow-y-auto p-3 space-y-2">
+          {loadingMessages ? (
+            <div className="py-16 flex flex-col items-center justify-center text-muted-foreground gap-2">
+              <SpinnerGap className="h-6 w-6 animate-spin text-primary" />
+              <span className="text-xs font-medium">Loading messages...</span>
             </div>
-          </div>
+          ) : messages.length === 0 ? (
+            <div className="py-16 flex flex-col items-center justify-center text-center text-muted-foreground gap-2 px-4">
+              <ChatTeardropText weight="fill" className="h-10 w-10 text-muted-foreground/30" />
+              <p className="text-xs font-bold text-foreground">No messages yet</p>
+              <p className="text-[11px] text-muted-foreground">Say hi to start the conversation!</p>
+            </div>
+          ) : (
+            messages.map((msg, i) => {
+              const isMe = msg.user_id === user?.id;
+              const content = typeof msg.content === "string" ? msg.content.trim() : "";
+              const isCall =
+                msg.type === "call" ||
+                msg.attachment_type === "call" ||
+                content.startsWith('{"call_id"') ||
+                (content.startsWith("{") && content.includes('"call_id"'));
 
-          {/* List items */}
-          <div className="flex-1 overflow-y-auto divide-y divide-border/40">
-            {filteredConversations.length === 0 ? (
-              <div className="py-16 text-center space-y-2 px-4">
-                <Users weight="fill" className="h-8 w-8 text-muted-foreground/30 mx-auto" />
-                <p className="text-xs font-bold text-foreground">No conversations found</p>
-                <p className="text-[11px] text-muted-foreground">
-                  Connect with friends or visit community channels.
-                </p>
-              </div>
-            ) : (
-              filteredConversations.map((c) => {
-                const isUnread = (c.unread_count || 0) > 0;
-                const timeStr = safeFormatDistanceToNow(c.latest_message?.created_at, { addSuffix: false });
+              let callData: any = null;
+              if (isCall) {
+                try {
+                  callData = JSON.parse(content);
+                } catch {
+                  callData = { status: "ended", call_type: "audio", duration: 0 };
+                }
+              }
 
-                return (
-                  <button
-                    key={c.id}
-                    type="button"
-                    onClick={() => selectConversation(c)}
-                    className="w-full p-3 flex items-center gap-3 text-left hover:bg-muted/50 transition-colors cursor-pointer group"
+              const isVideo = callData?.call_type === "video";
+              const isMissed = callData?.status === "missed" || callData?.status === "declined";
+              const dur = Number(callData?.duration) || 0;
+              const durStr =
+                dur > 0
+                  ? `${Math.floor(dur / 60)}m ${dur % 60}s`
+                  : isMissed
+                  ? callData?.status === "declined"
+                    ? "Call declined"
+                    : "Missed call"
+                  : "Call ended";
+
+              return (
+                <div
+                  key={msg.id || msg.client_uuid || i}
+                  className={`flex flex-col ${isMe ? "items-end" : "items-start"}`}
+                >
+                  <div
+                    className={`max-w-[85%] px-3 py-2 rounded-2xl text-xs leading-relaxed shadow-2xs break-words ${
+                      isCall
+                        ? isMissed
+                          ? "bg-red-500/10 text-red-400 border border-red-500/20"
+                          : "bg-card text-foreground border border-border/80"
+                        : isMe
+                        ? "bg-[#2164b6] text-white rounded-br-sm"
+                        : "bg-card text-foreground border border-border/70 rounded-bl-sm"
+                    }`}
                   >
-                    <div className="relative flex-shrink-0">
-                      <div className="w-10 h-10 rounded-full bg-primary/10 overflow-hidden flex items-center justify-center font-bold text-xs text-primary">
-                        {(c.other_user?.avatar_url || c.community?.logo_url || (c as any).avatar_url) ? (
-                          <img src={c.other_user?.avatar_url || c.community?.logo_url || (c as any).avatar_url} alt="" className="w-full h-full object-cover" />
-                        ) : (
-                          c.title?.charAt(0) || "C"
-                        )}
+                    {isCall ? (
+                      <div className="flex items-center gap-2.5 py-0.5 min-w-[150px]">
+                        <div
+                          className={`p-2 rounded-full shrink-0 ${
+                            isMissed ? "bg-red-500/20 text-red-500" : "bg-emerald-500/20 text-emerald-400"
+                          }`}
+                        >
+                          {isVideo ? (
+                            <VideoCamera weight="fill" className="h-4 w-4" />
+                          ) : (
+                            <Phone weight="fill" className="h-4 w-4" />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className={`font-semibold text-xs truncate ${isMissed ? "text-red-400" : "text-foreground"}`}>
+                            {isMissed
+                              ? isVideo
+                                ? "Missed Video Call"
+                                : "Missed Voice Call"
+                              : isVideo
+                              ? "Video Call"
+                              : "Voice Call"}
+                          </p>
+                          <p className="text-[10px] text-muted-foreground">{durStr}</p>
+                        </div>
                       </div>
-                      {isUnread && (
-                        <span className="absolute top-0 right-0 h-2.5 w-2.5 rounded-full bg-primary ring-2 ring-card" />
-                      )}
-                      {c.other_user?.is_online && (
-                        <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-[#34C759] ring-2 ring-card shadow-xs" />
-                      )}
-                    </div>
-
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-1 mb-0.5">
-                        <span className={`text-xs truncate ${isUnread ? "font-bold text-foreground" : "font-medium text-foreground/90"}`}>
-                          {c.title}
-                        </span>
-                        {timeStr && (
-                          <span className="text-[10px] text-muted-foreground/70 flex-shrink-0">
-                            {timeStr}
-                          </span>
-                        )}
-                      </div>
-                      <p className={`text-[11px] truncate ${isUnread ? "font-semibold text-foreground" : "text-muted-foreground"}`}>
-                        {formatMessagePreview(c.latest_message)}
-                      </p>
-                    </div>
-
-                    {isUnread && (
-                      <span className="h-4 min-w-4 px-1 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center flex-shrink-0">
-                        {c.unread_count}
-                      </span>
+                    ) : (
+                      msg.content
                     )}
-                  </button>
-                );
-              })
-            )}
-          </div>
-
-          {/* Footer to open full messages page */}
-          <div className="p-2 border-t border-border/60 bg-card flex justify-center">
-            <button
-              type="button"
-              onClick={() => {
-                closePopChat();
-                navigate("/app/messages");
-              }}
-              className="text-xs font-semibold text-primary hover:underline flex items-center gap-1.5 py-1"
-            >
-              <span>See all in MurihSpace Inbox</span>
-              <ArrowSquareOut className="h-3.5 w-3.5" />
-            </button>
-          </div>
+                  </div>
+                  <span className="text-[9px] text-muted-foreground mt-0.5 px-1 flex items-center gap-1">
+                    <span>
+                      {msg.status === "pending" ? "Sending..." : safeFormat(msg.created_at, "h:mm a")}
+                    </span>
+                    {isMe && !isCall && (
+                      msg.status === "read" ? (
+                        <span title="Read" className="text-[#34C759] dark:text-[#30D158] inline-flex items-center">
+                          <CheckCheck weight="bold" className="h-3 w-3" />
+                        </span>
+                      ) : msg.status === "delivered" ? (
+                        <span title="Delivered" className="opacity-75 inline-flex items-center">
+                          <CheckCheck weight="bold" className="h-3 w-3" />
+                        </span>
+                      ) : (
+                        <span title="Sent" className="opacity-75 inline-flex items-center">
+                          <CheckIcon weight="bold" className="h-3 w-3" />
+                        </span>
+                      )
+                    )}
+                  </span>
+                </div>
+              );
+            })
+          )}
+          <div ref={messagesEndRef} />
         </div>
-      )}
+
+        {/* ── Composer ── */}
+        <form
+          onSubmit={handleSendMessage}
+          className="p-2.5 bg-card border-t border-border/70 flex items-center gap-2"
+        >
+          <input
+            ref={inputRef}
+            type="text"
+            placeholder={`Message ${activeRecipient?.name || ""}...`}
+            value={inputText}
+            onChange={(e) => setInputText(e.target.value)}
+            onKeyDown={handleKeyDown}
+            disabled={sending}
+            className="flex-1 h-9 px-3 text-xs rounded-lg bg-muted/60 border border-border/60 outline-none focus:ring-1 focus:ring-[#2164b6] focus:bg-background transition-all"
+          />
+          <EmojiPickerPopover
+            onSelect={(emoji) => setInputText((prev) => prev + emoji)}
+            align="right"
+            buttonClassName="h-9 w-9 rounded-lg"
+          />
+          <button
+            type="submit"
+            disabled={!inputText.trim() || sending}
+            className="h-9 w-9 rounded-lg bg-[#2164b6] text-white flex items-center justify-center disabled:opacity-40 hover:bg-[#1a5091] active:scale-95 transition-all flex-shrink-0"
+          >
+            <PaperPlaneRight weight="fill" className="h-4 w-4" />
+          </button>
+        </form>
+      </div>
     </div>
   );
 }

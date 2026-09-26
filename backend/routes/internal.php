@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AdminManagementController;
 use App\Http\Controllers\Internal\SupportInternalController;
 use Illuminate\Support\Facades\Route;
 
@@ -9,7 +10,7 @@ use Illuminate\Support\Facades\Route;
 |--------------------------------------------------------------------------
 |
 | Restricted service-to-service endpoints consumed by trusted internal
-| services (e.g. marketing-backend). Protected by the `internal` middleware:
+| services (e.g. marketing-backend, ads-backend, support-backend). Protected by the `internal` middleware:
 | shared token + timestamp window + nonce replay protection + rate limit.
 | Never expose these publicly.
 |
@@ -26,4 +27,10 @@ Route::prefix('support')->group(function () {
     Route::get('/transactions/{transaction}/summary', [SupportInternalController::class, 'transactionSummary']);
     Route::get('/orders/{order}', [SupportInternalController::class, 'orderSummary']);
     Route::post('/notifications', [SupportInternalController::class, 'notifyCustomer']);
+});
+
+// Admin & Staff Synchronization across all platform dashboards / services
+Route::prefix('admin-staff')->group(function () {
+    Route::get('/', [AdminManagementController::class, 'internalList']);
+    Route::post('/verify', [AdminManagementController::class, 'internalVerify']);
 });

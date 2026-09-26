@@ -6,6 +6,7 @@ use App\Http\Middleware\CachePublicResponse;
 use App\Http\Middleware\CaptureRequestAndEnvelopeResponse;
 use App\Http\Middleware\EnsureAdminPermission;
 use App\Http\Middleware\EnsureEmailIsVerified;
+use App\Http\Middleware\EnsureImpersonationLiveness;
 use App\Http\Middleware\EnsureInternalRequest;
 use App\Http\Middleware\IsAdmin;
 use App\Http\Middleware\IsCreator;
@@ -49,6 +50,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->api(append: [
             ActivityLogMiddleware::class,
+            EnsureImpersonationLiveness::class,
         ]);
 
         $middleware->alias([

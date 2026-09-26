@@ -26,6 +26,7 @@ class CheckoutController extends Controller
     public function __construct(
         protected TaxCalculationService $taxService,
         protected AccountingStreamService $accountingService,
+        protected \App\Services\Commission\CommissionService $commissionService,
     ) {}
 
     /**
@@ -244,7 +245,7 @@ class CheckoutController extends Controller
     {
         $subtotal = round((float) $product->price, 2);
         $subtotalCents = (int) round($subtotal * 100);
-        $platformFee = round($subtotal * self::PLATFORM_FEE_RATE, 2);
+        $platformFee = $this->commissionService->calculateFee($subtotal, 'digital');
 
         $storefront = Storefront::where('user_id', $product->creator_id)->first();
         $storefrontRate = $storefront ? (float) $storefront->tax_rate : 0.0;

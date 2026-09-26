@@ -176,29 +176,84 @@ class AdminUserController extends Controller
 
         $target->tokens()->where('name', 'impersonation-token')->delete();
 
-        $token = $target->createToken(
+        // Issue token capped at 2 hours max, linked to admin session & 15m idle timeout
+        $tokenResult = $target->createToken(
             'impersonation-token',
             ['*', 'impersonate'],
-            now()->addDays(7)
-        )->plainTextToken;
+            now()->addHours(2)
+        );
+        $tokenId = $tokenResult->accessToken->id;
+        $plainTextToken = $tokenResult->plainTextToken;
+
+        $adminTokenId = $admin->currentAccessToken()?->id;
+
+        \Illuminate\Support\Facades\Cache::put("impersonation_session_{$tokenId}", [
+            'admin_id'             => $admin->id,
+            'admin_email'          => $admin->email,
+            'admin_token_id'       => $adminTokenId,
+            'target_id'            => $target->id,
+            'target_email'         => $target->email,
+            'started_at'           => now()->timestamp,
+            'last_activity_at'     => now()->timestamp,
+            'idle_timeout_seconds' => 900, // 15 minutes of inactivity triggers automatic timeout
+        ], now()->addHours(2));
 
         AuditLog::create([
-            'user_id' => $admin->id,
-            'action' => 'user.impersonated',
+            'user_id'       => $admin->id,
+            'action'        => 'user.impersonated',
             'resource_type' => 'user',
-            'resource_id' => (string) $target->id,
-            'metadata' => ['target_role' => $target->role],
+            'resource_id'   => (string) $target->id,
+            'metadata'      => [
+                'target_role'       => $target->role,
+                'target_email'      => $target->email,
+                'admin_role'        => $admin->admin_role ?? 'super_admin',
+                'admin_permissions' => $admin->admin_permissions ?? ['users'],
+                'idle_timeout_min'  => 15,
+            ],
+            'ip_address'    => $request->ip(),
+            'user_agent'    => $request->userAgent(),
         ]);
 
         return response()->json([
-            'token' => $token,
-            'user' => [
-                'id' => $target->id,
-                'name' => $target->name,
-                'email' => $target->email,
+            'token' => $plainTextToken,
+            'idle_timeout_seconds' => 900,
+            'user'  => [
+                'id'       => $target->id,
+                'name'     => $target->name,
+                'email'    => $target->email,
                 'username' => $target->username,
-                'role' => $target->role,
+                'role'     => $target->role,
             ],
+        ]);
+    }
+
+    /**
+     * Stop impersonation session immediately.
+     */
+    public function stopImpersonate(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $token = $user?->currentAccessToken();
+
+        if ($token && ($token->name === 'impersonation-token' || $token->can('impersonate'))) {
+            \Illuminate\Support\Facades\Cache::forget("impersonation_session_{$token->id}");
+            $token->delete();
+
+            try {
+                AuditLog::create([
+                    'user_id'       => $user->id,
+                    'action'        => 'user.impersonation_stopped',
+                    'resource_type' => 'user',
+                    'resource_id'   => (string) $user->id,
+                    'ip_address'    => $request->ip(),
+                    'user_agent'    => $request->userAgent(),
+                ]);
+            } catch (\Throwable) {}
+        }
+
+        return response()->json([
+            'message' => 'Impersonation ended successfully.',
+            'status'  => 'success',
         ]);
     }
 

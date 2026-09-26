@@ -1,6 +1,6 @@
 import axios, { type AxiosError, type AxiosResponse, type InternalAxiosRequestConfig } from "axios";
 import { env } from "@/config/env";
-import { getAuthToken, getAdminToken } from "@/lib/auth/token";
+import { getAuthToken, getAdminToken, updateImpersonationActivity, isImpersonating, clearImpersonationToken } from "@/lib/auth/token";
 import { getLiveSessionId, isLiveRequest } from "@/lib/live/liveSession";
 
 export interface ApiError {
@@ -25,6 +25,9 @@ export const apiClient = axios.create({
 // Request interceptor
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
+    if (isImpersonating()) {
+      updateImpersonationActivity();
+    }
     const isAdminEndpoint = config.url?.includes("/securegate") || config.url?.startsWith("securegate");
     const token = isAdminEndpoint ? (getAdminToken() || getAuthToken()) : getAuthToken();
     if (token) {
@@ -78,7 +81,13 @@ apiClient.interceptors.response.use(
       switch (status) {
         case 401:
           apiError.code = apiError.code === "UNKNOWN_ERROR" ? "UNAUTHORIZED" : apiError.code;
-          console.warn("[API Client] 401 Unauthorized detected. Session reset hook prepared.");
+          if (isImpersonating()) {
+            console.warn("[API Client] 401 while impersonating. Inactive session or admin timeout.");
+            clearImpersonationToken();
+            if (typeof window !== "undefined" && !window.location.pathname.startsWith("/app/securegate")) {
+              window.location.assign("/app/securegate/users");
+            }
+          }
           break;
         case 403:
           apiError.code = "FORBIDDEN";

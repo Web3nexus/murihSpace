@@ -26,6 +26,7 @@ class FulfilmentOrderController extends Controller
         private LedgerService $ledgerService,
         private TaxCalculationService $taxService,
         private AccountingStreamService $accountingService,
+        private \App\Services\Commission\CommissionService $commissionService,
     ) {}
 
     /**
@@ -78,7 +79,7 @@ class FulfilmentOrderController extends Controller
             }
         }
 
-        $platformFee = (int) round($subtotal * self::PLATFORM_FEE_RATE);
+        $platformFee = (int) round($this->commissionService->calculateFee($subtotal, 'physical'));
 
         $storefront = Storefront::where('user_id', $creatorIds->first())->first();
         $storefrontRate = $storefront ? (float) $storefront->tax_rate : 0.0;
@@ -162,7 +163,7 @@ class FulfilmentOrderController extends Controller
             }
         }
 
-        $platformFee = (int) round($subtotal * self::PLATFORM_FEE_RATE);
+        $platformFee = (int) round($this->commissionService->calculateFee($subtotal, 'physical'));
 
         // Destination-based VAT charged against the buyer shipping country.
         $storefront = Storefront::where('user_id', $creatorId)->first();

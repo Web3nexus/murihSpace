@@ -1,8 +1,9 @@
 import {
   SignOut as LogOut,
-  ShieldWarning as ShieldWarning
+  ShieldWarning as ShieldWarning,
+  Clock as Clock
 } from "@phosphor-icons/react";
-import { clearImpersonationToken, isImpersonating, getImpersonatedUser } from '@/lib/auth/token';
+import { stopImpersonatingSession, isImpersonating, getImpersonatedUser } from '@/lib/auth/token';
 
 export function ImpersonationBanner() {
   const active = isImpersonating();
@@ -10,9 +11,8 @@ export function ImpersonationBanner() {
 
   if (!active || !user) return null;
 
-  const stopImpersonating = () => {
-    clearImpersonationToken();
-    window.location.assign('/app/securegate/users');
+  const handleStop = () => {
+    stopImpersonatingSession('/app/securegate/users');
   };
 
   const handle = user.username ? `@${user.username}` : user.email ? `(${user.email})` : '';
@@ -24,9 +24,12 @@ export function ImpersonationBanner() {
         <span className="truncate">
           Impersonating <strong className="underline decoration-white/40">{user.name}</strong> {handle && <span className="opacity-90">{handle}</span>} &mdash; <span className="uppercase font-black text-[10px] tracking-wider bg-white/20 px-1.5 py-0.5 rounded-sm">{user.role}</span>
         </span>
+        <span className="hidden md:inline-flex items-center gap-1 text-[11px] font-medium text-amber-100/80 bg-black/15 px-2 py-0.5 rounded-full ml-1">
+          <Clock weight="fill" className="h-3 w-3" /> Auto-expires after 15m inactivity
+        </span>
       </div>
       <button
-        onClick={stopImpersonating}
+        onClick={handleStop}
         className="flex items-center gap-1.5 shrink-0 rounded-lg bg-white/20 hover:bg-white/30 px-3 py-1 text-xs font-bold text-white transition-all active:scale-95 cursor-pointer shadow-sm"
       >
         <LogOut weight="fill" className="h-3.5 w-3.5" /> Stop Impersonating
