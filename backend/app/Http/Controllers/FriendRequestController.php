@@ -21,17 +21,24 @@ class FriendRequestController extends Controller
      */
     private function userPayload(User $user): array
     {
+        $avatar = $user->avatar_url ?? $user->avatar;
+        if ($avatar && !str_starts_with($avatar, 'http')) {
+            $avatar = url(str_starts_with($avatar, '/') ? $avatar : '/storage/' . ltrim($avatar, '/'));
+        }
+
         return [
             'id' => $user->id,
             'name' => $user->name,
             'username' => $user->username,
-            'avatar' => $user->avatar_url ?? $user->avatar,
-            'avatar_url' => $user->avatar_url ?? $user->avatar,
+            'avatar' => $avatar,
+            'avatar_url' => $avatar,
             'banner_url' => $user->banner_url ?? null,
             'bio' => $user->bio,
             'birthday' => $user->birthday ? $user->birthday->format('Y-m-d') : null,
             'role' => $user->role,
             'has_active_verification_badge' => (bool) $user->has_active_verification_badge,
+            'is_online' => $user->isOnline(),
+            'last_seen' => $user->lastSeenForHuman(),
         ];
     }
 

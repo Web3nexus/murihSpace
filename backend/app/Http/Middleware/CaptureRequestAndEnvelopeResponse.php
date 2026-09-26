@@ -21,6 +21,15 @@ class CaptureRequestAndEnvelopeResponse
         // 2. Attach to request headers
         $request->headers->set('X-Request-ID', $requestId);
 
+        // Keep authenticated user's online presence fresh (last_seen_at throttled to once a minute)
+        try {
+            if ($user = $request->user()) {
+                if (!$user->last_seen_at || $user->last_seen_at->diffInSeconds(now()) > 60) {
+                    $user->forceFill(['last_seen_at' => now()])->saveQuietly();
+                }
+            }
+        } catch (\Throwable) {}
+
         // 3. Process Request
         $response = $next($request);
 

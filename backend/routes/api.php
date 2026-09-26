@@ -583,6 +583,7 @@ Route::prefix('v1')->group(function () {
         // Stories
         Route::prefix('stories')->group(function () {
             Route::get('/', [StoryController::class, 'index']);
+            Route::get('/feed', [StoryController::class, 'index']);
             Route::post('/', [StoryController::class, 'store']);
             Route::delete('/{id}', [StoryController::class, 'destroy']);
         });

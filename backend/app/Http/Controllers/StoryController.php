@@ -12,30 +12,55 @@ class StoryController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
+        $currentUserId = $request->user('sanctum')?->id ?? $request->user()?->id;
+
         $stories = Story::with(['user:id,name,username,avatar'])
             ->active()
             ->orderBy('created_at', 'desc')
             ->get()
             ->groupBy('user_id')
-            ->map(function ($items) {
+            ->map(function ($items) use ($currentUserId) {
                 $user = $items->first()->user;
+                if (!$user) return null;
+
+                $avatar = $user->avatar;
+                if ($avatar && !str_starts_with($avatar, 'http')) {
+                    $avatar = url(str_starts_with($avatar, '/') ? $avatar : '/storage/' . ltrim($avatar, '/'));
+                }
+
+                $storyItems = $items->map(function ($s) {
+                    $media = $s->media_url;
+                    if ($media && !str_starts_with($media, 'http')) {
+                        $media = url(str_starts_with($media, '/') ? $media : '/storage/' . ltrim($media, '/'));
+                    }
+                    return [
+                        'id' => (string) $s->id,
+                        'media_url' => $media,
+                        'media_type' => $s->media_type ?? 'image',
+                        'caption' => $s->caption,
+                        'created_at' => $s->created_at?->toIso8601String(),
+                        'expires_at' => $s->expires_at?->toIso8601String(),
+                    ];
+                })->values();
+
                 return [
+                    'user_id' => (string) $user->id,
+                    'user_name' => $user->name,
+                    'user_avatar' => $avatar,
+                    'is_my_story' => $currentUserId && $user->id === $currentUserId,
                     'user' => [
                         'id' => $user->id,
                         'name' => $user->name,
                         'username' => $user->username,
-                        'avatar' => $user->avatar,
+                        'avatar' => $avatar,
+                        'avatar_url' => $avatar,
+                        'is_online' => $user->isOnline(),
+                        'last_seen' => $user->lastSeenForHuman(),
                     ],
-                    'stories' => $items->map(fn ($s) => [
-                        'id' => $s->id,
-                        'media_url' => $s->media_url,
-                        'media_type' => $s->media_type,
-                        'caption' => $s->caption,
-                        'created_at' => $s->created_at,
-                        'expires_at' => $s->expires_at,
-                    ])->values(),
+                    'stories' => $storyItems,
                 ];
             })
+            ->filter()
             ->values();
 
         return response()->json($stories->values()->toArray());
@@ -44,16 +69,17 @@ class StoryController extends Controller
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'media_url' => ['nullable', 'string', 'url'],
-            'media_type' => ['required', Rule::in(['image', 'text', 'video'])],
+            'media_url' => ['nullable', 'string', 'max:2048'],
+            'media_type' => ['nullable', Rule::in(['image', 'text', 'video'])],
             'caption' => ['nullable', 'string', 'max:500'],
         ]);
 
-        $settingKey = 'story_type_' . $validated['media_type'] . '_enabled';
+        $mediaType = $validated['media_type'] ?? 'image';
+        $settingKey = 'story_type_' . $mediaType . '_enabled';
         $enabled = AdminSetting::get($settingKey, '1');
 
         if ($enabled !== '1') {
-            $label = ucfirst($validated['media_type']);
+            $label = ucfirst($mediaType);
             return response()->json([
                 'message' => "{$label} stories are currently disabled by the platform administrator.",
             ], 403);
@@ -62,7 +88,7 @@ class StoryController extends Controller
         $story = Story::create([
             'user_id' => $request->user()->id,
             'media_url' => $validated['media_url'] ?? null,
-            'media_type' => $validated['media_type'],
+            'media_type' => $mediaType,
             'caption' => $validated['caption'] ?? null,
             'expires_at' => now()->addHours(24),
         ]);
