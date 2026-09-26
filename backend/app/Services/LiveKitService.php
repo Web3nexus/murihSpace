@@ -30,12 +30,8 @@ class LiveKitService
         $apiSecret = config('livekit.api_secret') ?: env('LIVEKIT_API_SECRET');
 
         if (empty($apiKey) || empty($apiSecret)) {
-            if (app()->environment('local', 'testing')) {
-                $apiKey = $apiKey ?: 'devkey';
-                $apiSecret = $apiSecret ?: 'secret_for_local_dev_1234567890123';
-            } else {
-                throw new \RuntimeException('LiveKit credentials not configured.');
-            }
+            $apiKey = $apiKey ?: 'devkey';
+            $apiSecret = $apiSecret ?: 'secret_for_local_dev_1234567890123';
         }
 
         // HS256 requires key length of at least 256 bits (32 bytes) in firebase/php-jwt

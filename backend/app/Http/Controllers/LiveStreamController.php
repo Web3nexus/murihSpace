@@ -52,7 +52,7 @@ class LiveStreamController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $streams = LiveStream::with(['host:id,name,username,avatar,avatar_url,role', 'community:id,name,slug,avatar,avatar_url'])
+        $streams = LiveStream::with(['host:id,name,username,avatar,role', 'community:id,name,slug,logo_url,cover_url'])
             ->where('status', 'live')
             ->orderBy('viewers_count', 'desc')
             ->orderBy('created_at', 'desc')
@@ -69,8 +69,8 @@ class LiveStreamController extends Controller
         }
 
         $stream->loadMissing([
-            'host:id,name,username,avatar,avatar_url,role',
-            'community:id,name,slug,avatar,avatar_url',
+            'host:id,name,username,avatar,role',
+            'community:id,name,slug,logo_url,cover_url',
         ]);
 
         $attribution = $this->liveAttributions->record($request, $stream, 'click');
@@ -127,7 +127,7 @@ class LiveStreamController extends Controller
 
         $attributions = $stream->attributions();
         $recent = (clone $attributions)
-            ->with('user:id,name,username,avatar,avatar_url')
+            ->with('user:id,name,username,avatar,role')
             ->latest('last_seen_at')
             ->limit(100)
             ->get()
@@ -332,7 +332,7 @@ class LiveStreamController extends Controller
 
         return response()->json([
             'message' => 'Live stream started successfully.',
-            'stream' => $stream->load(['host:id,name,username,avatar,avatar_url,role', 'community:id,name,slug,avatar,avatar_url']),
+            'stream' => $stream->load(['host:id,name,username,avatar,role', 'community:id,name,slug,logo_url,cover_url']),
             'pinned_product' => $this->pinnedProductPayload($stream),
             'livekit' => [
                 'token' => $token,
@@ -349,12 +349,12 @@ class LiveStreamController extends Controller
     public function show(int $id): JsonResponse
     {
         $stream = LiveStream::with([
-            'host:id,name,username,avatar,avatar_url,role',
-            'community:id,name,slug,avatar,avatar_url',
+            'host:id,name,username,avatar,role',
+            'community:id,name,slug,logo_url,cover_url',
         ])->findOrFail($id);
 
         $activeViewers = $stream->activeParticipants()
-            ->with('user:id,name,username,avatar,avatar_url')
+            ->with('user:id,name,username,avatar,role')
             ->limit(30)
             ->get();
 
@@ -431,7 +431,7 @@ class LiveStreamController extends Controller
 
         return response()->json([
             'message' => 'Joined live stream successfully.',
-            'stream' => $stream->fresh(['host:id,name,username,avatar,avatar_url,role', 'community:id,name,slug,avatar,avatar_url']),
+            'stream' => $stream->fresh(['host:id,name,username,avatar,role', 'community:id,name,slug,logo_url,cover_url']),
             'pinned_product' => $this->pinnedProductPayload($stream),
             'livekit' => [
                 'token' => $token,
@@ -524,7 +524,7 @@ class LiveStreamController extends Controller
 
         return response()->json([
             'message' => 'Message sent.',
-            'data' => $msg->load('user:id,name,username,avatar,avatar_url,role'),
+            'data' => $msg->load('user:id,name,username,avatar,role'),
         ], 201);
     }
 
@@ -533,7 +533,7 @@ class LiveStreamController extends Controller
      */
     public function getMessages(int $id): JsonResponse
     {
-        $messages = LiveStreamMessage::with('user:id,name,username,avatar,avatar_url,role')
+        $messages = LiveStreamMessage::with('user:id,name,username,avatar,role')
             ->where('live_stream_id', $id)
             ->latest()
             ->limit(50)

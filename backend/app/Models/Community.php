@@ -14,6 +14,21 @@ class Community extends Model
 {
     use HasFactory, Searchable, SoftDeletes;
 
+    protected $appends = [
+        'avatar',
+        'avatar_url',
+    ];
+
+    public function getAvatarAttribute(): ?string
+    {
+        return $this->attributes['avatar'] ?? $this->logo_url ?? null;
+    }
+
+    public function getAvatarUrlAttribute(): ?string
+    {
+        return $this->attributes['avatar_url'] ?? $this->logo_url ?? null;
+    }
+
     protected $fillable = [
         'user_id',
         'name',
