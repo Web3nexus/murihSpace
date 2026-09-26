@@ -94,8 +94,13 @@ interface ChatMessage {
 
 interface FloatingHeartItem {
   id: number;
-  x: number;
+  rightOffset: number;
   color: string;
+  sway1: number;
+  sway2: number;
+  rot1: number;
+  rot2: number;
+  size: number;
 }
 
 interface Props {
@@ -463,14 +468,22 @@ export function PublicLiveStage({ stream, liveKitAccess, isHost, onLeave }: Prop
     }
   };
 
-  // Spawn floating heart
-  const handleLike = async () => {
+  // Spawn TikTok-style floating heart rising vertically upwards
+  const handleLike = async (customRight?: number) => {
     const id = Date.now() + Math.random();
-    const x = Math.floor(Math.random() * 60) + 20; // 20% to 80% width
-    const colors = ["#ef4444", "#ec4899", "#f59e0b", "#8b5cf6", "#06b6d4"];
+    const rightOffset = customRight !== undefined ? customRight : Math.floor(Math.random() * 50) + 24;
+    const colors = ["#ff2d55", "#ff375f", "#ff9500", "#ffcc00", "#af52de", "#5856d6", "#30d158", "#007aff"];
     const color = colors[Math.floor(Math.random() * colors.length)];
+    const sway1 = Math.floor(Math.random() * 20 - 10);
+    const sway2 = Math.floor(Math.random() * 24 - 12);
+    const rot1 = Math.floor(Math.random() * 16 - 8);
+    const rot2 = Math.floor(Math.random() * 20 - 10);
+    const size = Math.floor(Math.random() * 10) + 28;
 
-    setFloatingHearts((prev) => [...prev.slice(-15), { id, x, color }]);
+    setFloatingHearts((prev) => [
+      ...prev.slice(-20),
+      { id, rightOffset, color, sway1, sway2, rot1, rot2, size },
+    ]);
     setLikesCount((prev) => prev + 1);
 
     setTimeout(() => {
@@ -518,7 +531,10 @@ export function PublicLiveStage({ stream, liveKitAccess, isHost, onLeave }: Prop
   const hostUsername = stream.host?.username ? `@${stream.host.username}` : stream.host?.name;
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] min-h-[600px] w-full flex-col overflow-hidden bg-[#0A0D14] text-white lg:flex-row">
+    <div
+      ref={stageContainerRef}
+      className="relative flex h-[calc(100vh-4rem)] min-h-[600px] w-full flex-col overflow-hidden bg-black text-white select-none"
+    >
       {/* Gift celebration animation overlay */}
       <LiveGiftOverlay
         giftEvent={celebrationGift}
@@ -557,376 +573,366 @@ export function PublicLiveStage({ stream, liveKitAccess, isHost, onLeave }: Prop
       {/* Audio element for remote sound */}
       <audio ref={audioRef} autoPlay />
 
-      {/* LEFT COLUMN: LIVE BROADCAST STAGE */}
-      <div
-        ref={stageContainerRef}
-        className="relative flex flex-1 flex-col overflow-hidden bg-black"
-      >
-        {/* TOP VIDEO OVERLAY: Host Profile, LIVE badge, and stats */}
-        <div className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between bg-gradient-to-b from-black/80 via-black/40 to-transparent p-4">
-          <div className="flex items-center gap-3">
-            <Avatar className="h-10 w-10 border-2 border-red-500 shadow-md shadow-red-500/30">
-              <AvatarImage src={stream.host?.avatar_url ?? undefined} alt={stream.host?.name} />
-              <AvatarFallback className="bg-primary/20 text-xs font-bold text-primary">
-                {stream.host?.name?.slice(0, 2).toUpperCase() || "LV"}
-              </AvatarFallback>
-            </Avatar>
-            <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="truncate text-sm font-bold text-white">{stream.host?.name}</span>
-                <Badge variant="destructive" className="flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-wider animate-pulse">
-                  <span className="h-1.5 w-1.5 rounded-full bg-white" />
-                  LIVE
-                </Badge>
-              </div>
-              <p className="truncate text-xs font-medium text-white/70">{hostUsername}</p>
+      {/* TOP VIDEO OVERLAY: Host Profile, LIVE badge, and stats */}
+      <div className="absolute top-0 left-0 right-0 z-30 flex items-center justify-between bg-gradient-to-b from-black/85 via-black/35 to-transparent p-4">
+        <div className="flex items-center gap-3">
+          <Avatar className="h-10 w-10 border-2 border-red-500 shadow-md shadow-red-500/30">
+            <AvatarImage src={stream.host?.avatar_url ?? undefined} alt={stream.host?.name} />
+            <AvatarFallback className="bg-primary/20 text-xs font-bold text-primary">
+              {stream.host?.name?.slice(0, 2).toUpperCase() || "LV"}
+            </AvatarFallback>
+          </Avatar>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="truncate text-sm font-bold text-white">{stream.host?.name}</span>
+              <Badge variant="destructive" className="flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-wider animate-pulse">
+                <span className="h-1.5 w-1.5 rounded-full bg-white" />
+                LIVE
+              </Badge>
             </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            {/* Viewer Count Badge */}
-            <div className="flex items-center gap-1.5 rounded-full bg-black/60 px-3 py-1 text-xs font-semibold backdrop-blur-md border border-white/10">
-              <Users weight="fill" className="h-3.5 w-3.5 text-blue-400" />
-              <span>{viewerCount}</span>
-            </div>
-
-            {/* Total Likes Badge */}
-            <div className="flex items-center gap-1.5 rounded-full bg-black/60 px-3 py-1 text-xs font-semibold backdrop-blur-md border border-white/10">
-              <Heart weight="fill" className="h-3.5 w-3.5 text-rose-500" />
-              <span>{likesCount}</span>
-            </div>
-
-            {/* Total Coins Earned Badge */}
-            <div className="hidden sm:flex items-center gap-1.5 rounded-full bg-amber-500/20 border border-amber-500/40 px-3 py-1 text-xs font-bold text-amber-300 backdrop-blur-md">
-              <GiftIcon weight="fill" className="h-3.5 w-3.5 text-amber-400" />
-              <span>{totalCoins} Coins</span>
-            </div>
-
-            {/* Share Button */}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleShare}
-              className="h-8 rounded-full border-white/20 bg-black/50 text-white hover:bg-white/20 hover:text-white"
-            >
-              {shareCopied ? <Check weight="bold" className="h-3.5 w-3.5 text-emerald-400" /> : <ShareNetwork weight="bold" className="h-3.5 w-3.5" />}
-            </Button>
+            <p className="truncate text-xs font-medium text-white/70">{hostUsername}</p>
           </div>
         </div>
 
-        {/* MAIN VIDEO / AUDIO CANVAS */}
-        <div className="relative flex flex-1 items-center justify-center overflow-hidden bg-[#0c1017]">
-          {connecting && (
-            <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-black/70 backdrop-blur-sm">
-              <Spinner weight="bold" className="h-8 w-8 animate-spin text-primary" />
-              <p className="text-sm font-semibold text-white/80">Connecting to live broadcast…</p>
-            </div>
-          )}
+        <div className="flex items-center gap-2">
+          {/* Viewer Count Badge */}
+          <div className="flex items-center gap-1.5 rounded-full bg-black/60 px-3 py-1 text-xs font-semibold backdrop-blur-md border border-white/10">
+            <Users weight="fill" className="h-3.5 w-3.5 text-blue-400" />
+            <span>{viewerCount}</span>
+          </div>
 
-          {connectionError && (
-            <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-black/80 px-6 text-center">
-              <WarningCircle weight="fill" className="h-10 w-10 text-red-500" />
-              <p className="max-w-md text-sm text-red-200">{connectionError}</p>
-              <Button size="sm" variant="outline" onClick={onLeave} className="mt-2 border-white/20 text-white">
-                Back to Details
-              </Button>
-            </div>
-          )}
+          {/* Total Likes Badge */}
+          <div className="flex items-center gap-1.5 rounded-full bg-black/60 px-3 py-1 text-xs font-semibold backdrop-blur-md border border-white/10">
+            <Heart weight="fill" className="h-3.5 w-3.5 text-rose-500" />
+            <span>{likesCount}</span>
+          </div>
 
-          {/* Autoplay Audio Blocked Banner */}
-          {audioBlocked && (
-            <div className="absolute top-16 z-30 mx-auto flex items-center gap-3 rounded-full bg-red-600 px-5 py-2.5 text-sm font-bold text-white shadow-xl shadow-red-600/30 animate-bounce">
-              <SpeakerSimpleSlash weight="fill" className="h-5 w-5" />
-              <span>Audio is muted by your browser</span>
-              <button
-                onClick={handleUnmuteAudio}
-                className="rounded-full bg-white px-3 py-1 text-xs font-extrabold text-red-700 hover:bg-white/90"
-              >
-                Click to Unmute 🔊
-              </button>
-            </div>
-          )}
+          {/* Total Coins Earned Badge */}
+          <div className="hidden sm:flex items-center gap-1.5 rounded-full bg-amber-500/20 border border-amber-500/40 px-3 py-1 text-xs font-bold text-amber-300 backdrop-blur-md">
+            <GiftIcon weight="fill" className="h-3.5 w-3.5 text-amber-400" />
+            <span>{totalCoins} Coins</span>
+          </div>
 
-          {/* Video Player */}
-          {stream.stream_mode !== "audio" ? (
-            <video
-              ref={videoRef}
-              autoPlay
-              playsInline
-              muted={isHost}
-              className="h-full w-full object-contain"
-            />
-          ) : (
-            /* Audio Room Stage Visualizer */
-            <div className="flex flex-col items-center justify-center gap-5">
-              <div className="relative flex items-center justify-center">
-                <div className="absolute h-40 w-40 rounded-full bg-primary/20 animate-ping" />
-                <div className="absolute h-32 w-32 rounded-full bg-primary/30 animate-pulse" />
-                <Avatar className="h-24 w-24 border-4 border-primary shadow-2xl">
-                  <AvatarImage src={stream.host?.avatar_url ?? undefined} alt={stream.host?.name} />
-                  <AvatarFallback className="bg-primary/30 text-2xl font-bold text-white">
-                    {stream.host?.name?.slice(0, 2).toUpperCase() || "AU"}
-                  </AvatarFallback>
-                </Avatar>
+          {/* Share Button */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleShare}
+            className="h-8 rounded-full border-white/20 bg-black/50 text-white hover:bg-white/20 hover:text-white"
+          >
+            {shareCopied ? <Check weight="bold" className="h-3.5 w-3.5 text-emerald-400" /> : <ShareNetwork weight="bold" className="h-3.5 w-3.5" />}
+          </Button>
+        </div>
+      </div>
+
+      {/* MAIN VIDEO / AUDIO CANVAS */}
+      <div
+        className="relative flex flex-1 items-center justify-center overflow-hidden bg-[#0c1017] cursor-pointer"
+        onClick={() => handleLike()}
+      >
+        {connecting && (
+          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-black/70 backdrop-blur-sm">
+            <Spinner weight="bold" className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-sm font-semibold text-white/80">Connecting to live broadcast…</p>
+          </div>
+        )}
+
+        {connectionError && (
+          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-black/80 px-6 text-center">
+            <WarningCircle weight="fill" className="h-10 w-10 text-red-500" />
+            <p className="max-w-md text-sm text-red-200">{connectionError}</p>
+            <Button size="sm" variant="outline" onClick={onLeave} className="mt-2 border-white/20 text-white">
+              Back to Details
+            </Button>
+          </div>
+        )}
+
+        {/* Autoplay Audio Blocked Banner */}
+        {audioBlocked && (
+          <div className="absolute top-16 z-30 mx-auto flex items-center gap-3 rounded-full bg-red-600 px-5 py-2.5 text-sm font-bold text-white shadow-xl shadow-red-600/30 animate-bounce">
+            <SpeakerSimpleSlash weight="fill" className="h-5 w-5" />
+            <span>Audio is muted by your browser</span>
+            <button
+              onClick={handleUnmuteAudio}
+              className="rounded-full bg-white px-3 py-1 text-xs font-extrabold text-red-700 hover:bg-white/90"
+            >
+              Click to Unmute 🔊
+            </button>
+          </div>
+        )}
+
+        {/* Video Player */}
+        {stream.stream_mode !== "audio" ? (
+          <video
+            ref={videoRef}
+            autoPlay
+            playsInline
+            muted={isHost}
+            className="h-full w-full object-contain"
+          />
+        ) : (
+          /* Audio Room Stage Visualizer */
+          <div className="flex flex-col items-center justify-center gap-5">
+            <div className="relative flex items-center justify-center">
+              <div className="absolute h-40 w-40 rounded-full bg-primary/20 animate-ping" />
+              <div className="absolute h-32 w-32 rounded-full bg-primary/30 animate-pulse" />
+              <Avatar className="h-24 w-24 border-4 border-primary shadow-2xl">
+                <AvatarImage src={stream.host?.avatar_url ?? undefined} alt={stream.host?.name} />
+                <AvatarFallback className="bg-primary/30 text-2xl font-bold text-white">
+                  {stream.host?.name?.slice(0, 2).toUpperCase() || "AU"}
+                </AvatarFallback>
+              </Avatar>
+            </div>
+            <div className="text-center">
+              <h2 className="text-lg font-bold text-white">{stream.title}</h2>
+              <p className="text-xs text-white/60">Live Audio Broadcast</p>
+            </div>
+          </div>
+        )}
+
+        {/* TikTok Floating Hearts Animation Canvas - Ascending UP on right side */}
+        <div className="pointer-events-none absolute inset-0 z-30 overflow-hidden">
+          {floatingHearts.map((heart) => (
+            <div
+              key={heart.id}
+              className="absolute bottom-20 animate-tiktok-float-heart"
+              style={{
+                right: `${heart.rightOffset}px`,
+                color: heart.color,
+                // @ts-expect-error custom css variables
+                "--sway-1": `${heart.sway1}px`,
+                "--sway-2": `${heart.sway2}px`,
+                "--rot-1": `${heart.rot1}deg`,
+                "--rot-2": `${heart.rot2}deg`,
+              }}
+            >
+              <Heart
+                weight="fill"
+                style={{ width: `${heart.size}px`, height: `${heart.size}px` }}
+                className="drop-shadow-lg"
+              />
+            </div>
+          ))}
+        </div>
+
+        {/* Pinned Product Card (if available) */}
+        {pinnedProduct && (
+          <div
+            className="absolute top-20 left-4 z-20 max-w-xs rounded-xl border border-white/20 bg-black/60 p-2.5 backdrop-blur-xl shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-2.5">
+              {pinnedProduct.image_url ? (
+                <img src={pinnedProduct.image_url} alt={pinnedProduct.title} className="h-10 w-10 rounded-lg object-cover" />
+              ) : (
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/20 text-primary">
+                  <ShoppingBag weight="fill" className="h-5 w-5" />
+                </div>
+              )}
+              <div className="min-w-0 flex-1">
+                <span className="text-[9px] font-bold uppercase tracking-wider text-amber-400">Featured Item</span>
+                <h4 className="truncate text-xs font-bold text-white">{pinnedProduct.title}</h4>
+                <p className="text-xs font-extrabold text-emerald-400">₦{(pinnedProduct.price / 100).toLocaleString()}</p>
               </div>
-              <div className="text-center">
-                <h2 className="text-lg font-bold text-white">{stream.title}</h2>
-                <p className="text-xs text-white/60">Live Audio Broadcast</p>
-              </div>
-            </div>
-          )}
-
-          {/* Floating Hearts Animation Canvas */}
-          <div className="pointer-events-none absolute inset-0 z-20 overflow-hidden">
-            {floatingHearts.map((heart) => (
-              <div
-                key={heart.id}
-                className="absolute bottom-16 animate-float-heart"
-                style={{
-                  left: `${heart.x}%`,
-                  color: heart.color,
+              <Button
+                size="sm"
+                className="h-7 bg-emerald-600 px-2.5 text-xs font-bold text-white hover:bg-emerald-500"
+                onClick={() => {
+                  toast.info(`Purchasing ${pinnedProduct.title}…`);
+                  void apiClient.post(`/live/${stream.id}/purchase`, { product_id: pinnedProduct.id }).then(() => {
+                    toast.success("Order placed successfully!");
+                  }).catch(() => {
+                    toast.error("Could not complete order.");
+                  });
                 }}
               >
-                <Heart weight="fill" className="h-7 w-7 drop-shadow-md" />
-              </div>
-            ))}
-          </div>
-
-          {/* Pinned Product Card (if available) */}
-          {pinnedProduct && (
-            <div className="absolute bottom-20 left-4 z-20 max-w-sm rounded-xl border border-white/20 bg-black/80 p-3 backdrop-blur-xl shadow-2xl">
-              <div className="flex items-center gap-3">
-                {pinnedProduct.image_url ? (
-                  <img src={pinnedProduct.image_url} alt={pinnedProduct.title} className="h-12 w-12 rounded-lg object-cover" />
-                ) : (
-                  <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/20 text-primary">
-                    <ShoppingBag weight="fill" className="h-6 w-6" />
-                  </div>
-                )}
-                <div className="min-w-0 flex-1">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400">Featured Item</span>
-                  <h4 className="truncate text-xs font-bold text-white">{pinnedProduct.title}</h4>
-                  <p className="text-xs font-extrabold text-emerald-400">₦{(pinnedProduct.price / 100).toLocaleString()}</p>
-                </div>
-                <Button
-                  size="sm"
-                  className="h-8 bg-emerald-600 px-3 text-xs font-bold text-white hover:bg-emerald-500"
-                  onClick={() => {
-                    toast.info(`Purchasing ${pinnedProduct.title}…`);
-                    void apiClient.post(`/live/${stream.id}/purchase`, { product_id: pinnedProduct.id }).then(() => {
-                      toast.success("Order placed successfully!");
-                    }).catch(() => {
-                      toast.error("Could not complete order.");
-                    });
-                  }}
-                >
-                  Buy
-                </Button>
-              </div>
+                Buy
+              </Button>
             </div>
-          )}
-        </div>
-
-        {/* BOTTOM VIDEO CONTROLS BAR */}
-        <div className="z-20 flex items-center justify-between border-t border-white/10 bg-black/90 px-4 py-3 backdrop-blur-md">
-          <div className="flex items-center gap-2">
-            <h3 className="truncate text-sm font-semibold text-white/90 max-w-[280px] sm:max-w-md">
-              {stream.title}
-            </h3>
           </div>
+        )}
 
-          <div className="flex items-center gap-2">
-            {/* Host Controls */}
-            {isHost && (
-              <>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={toggleMic}
-                  className={`h-9 w-9 rounded-full p-0 ${isMicOn ? "bg-white/10 text-white border-white/20" : "bg-red-600 text-white border-red-500 hover:bg-red-500"}`}
-                  title={isMicOn ? "Mute Microphone" : "Unmute Microphone"}
-                >
-                  {isMicOn ? <Microphone weight="bold" className="h-4 w-4" /> : <MicrophoneSlash weight="bold" className="h-4 w-4" />}
-                </Button>
+        {/* TikTok-Style Live Chat Feed Overlay (Floating over bottom-left, transparent, popping below) */}
+        <div
+          className="pointer-events-auto absolute bottom-20 left-4 z-20 flex w-[320px] sm:w-[380px] max-h-[250px] flex-col justify-end"
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            maskImage: "linear-gradient(to bottom, transparent 0%, black 18%, black 100%)",
+            WebkitMaskImage: "linear-gradient(to bottom, transparent 0%, black 18%, black 100%)",
+          }}
+        >
+          <div
+            ref={chatScrollRef}
+            className="flex max-h-[250px] flex-col space-y-2 overflow-y-auto no-scrollbar py-1"
+          >
+            {chatMessages.length === 0 ? (
+              <div className="inline-flex self-start items-center gap-2 rounded-2xl bg-black/35 px-3 py-1.5 text-xs text-white/70 backdrop-blur-md border border-white/10">
+                <Radio weight="fill" className="h-3.5 w-3.5 text-primary animate-pulse" />
+                <span>Welcome to the live chat! Say hello.</span>
+              </div>
+            ) : (
+              chatMessages.map((msg) => {
+                const isHostMsg = msg.user.id === stream.host?.id;
 
-                {stream.stream_mode !== "audio" && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={toggleCam}
-                    className={`h-9 w-9 rounded-full p-0 ${isCamOn ? "bg-white/10 text-white border-white/20" : "bg-red-600 text-white border-red-500 hover:bg-red-500"}`}
-                    title={isCamOn ? "Turn Camera Off" : "Turn Camera On"}
-                  >
-                    {isCamOn ? <VideoCamera weight="bold" className="h-4 w-4" /> : <VideoCameraSlash weight="bold" className="h-4 w-4" />}
-                  </Button>
-                )}
+                if (msg.is_gift) {
+                  return (
+                    <div key={msg.id} className="animate-live-message-pop flex items-start self-start">
+                      <div className="inline-flex max-w-full items-center gap-2 rounded-2xl bg-gradient-to-r from-amber-500/35 via-purple-500/35 to-amber-500/25 px-3 py-1.5 backdrop-blur-md border border-amber-500/40 text-xs text-amber-200 shadow-md">
+                        <span className="text-base">🎁</span>
+                        <span className="font-extrabold text-amber-300">{msg.user.name}:</span>
+                        <span className="font-semibold text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
+                          {msg.message}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                }
 
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={handleEndStream}
-                  disabled={isEndingStream}
-                  className="h-9 gap-1.5 rounded-full px-3 text-xs font-bold"
-                >
-                  {isEndingStream ? <Spinner weight="bold" className="h-3.5 w-3.5 animate-spin" /> : <PhoneSlash weight="bold" className="h-3.5 w-3.5" />}
-                  End Stream
-                </Button>
-              </>
+                return (
+                  <div key={msg.id} className="animate-live-message-pop flex items-start self-start">
+                    <div className="inline-flex max-w-full items-start gap-1.5 rounded-2xl bg-black/35 px-3 py-1.5 backdrop-blur-md border border-white/10 text-xs shadow-md">
+                      <span className={`shrink-0 font-extrabold ${isHostMsg ? "text-amber-400" : "text-sky-400"}`}>
+                        {msg.user.name}
+                        {isHostMsg && (
+                          <span className="ml-1 rounded bg-amber-500/30 px-1 py-0.2 text-[9px] font-black uppercase text-amber-300">
+                            Host
+                          </span>
+                        )}
+                        :
+                      </span>
+                      <span className="break-words font-medium text-white/95 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] leading-relaxed">
+                        {msg.message}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })
             )}
-
-            {/* Viewer Controls */}
-            {!isHost && (
-              <>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setIsAudioMuted(!isAudioMuted)}
-                  className="h-9 w-9 rounded-full border-white/20 bg-white/10 p-0 text-white hover:bg-white/20"
-                  title={isAudioMuted ? "Unmute" : "Mute"}
-                >
-                  {isAudioMuted ? <SpeakerSimpleSlash weight="bold" className="h-4 w-4" /> : <SpeakerHigh weight="bold" className="h-4 w-4" />}
-                </Button>
-
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={onLeave}
-                  className="h-9 rounded-full border-white/20 bg-white/10 px-3 text-xs font-semibold text-white hover:bg-white/20"
-                >
-                  Leave
-                </Button>
-              </>
-            )}
-
-            {/* Fullscreen Button */}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={toggleFullscreen}
-              className="h-9 w-9 rounded-full border-white/20 bg-white/10 p-0 text-white hover:bg-white/20"
-              title="Toggle Fullscreen"
-            >
-              {isFullscreen ? <ArrowsIn weight="bold" className="h-4 w-4" /> : <ArrowsOut weight="bold" className="h-4 w-4" />}
-            </Button>
           </div>
         </div>
       </div>
 
-      {/* RIGHT COLUMN: DEDICATED LIVE CHAT & GIFTING SIDEBAR */}
-      <div className="flex h-80 w-full flex-col border-t border-white/10 bg-[#0F141C] lg:h-full lg:w-96 lg:border-t-0 lg:border-l">
-        {/* Chat Header */}
-        <div className="flex items-center justify-between border-b border-white/10 px-4 py-3 bg-[#131822]">
-          <div className="flex items-center gap-2">
-            <Radio weight="fill" className="h-4 w-4 text-primary" />
-            <h2 className="text-xs font-bold uppercase tracking-wider text-white">Live Stream Chat</h2>
-          </div>
-          <span className="text-[11px] font-semibold text-white/50">{chatMessages.length} messages</span>
-        </div>
-
-        {/* Chat Messages Feed (auto-scrolled to bottom) */}
-        <div
-          ref={chatScrollRef}
-          className="flex-1 overflow-y-auto px-4 py-3 space-y-2.5 scrollbar-thin scrollbar-thumb-white/10"
-        >
-          {chatMessages.length === 0 ? (
-            <div className="flex h-full flex-col items-center justify-center text-center text-xs text-white/50">
-              <Radio weight="fill" className="h-6 w-6 text-white/20 mb-2" />
-              <span>Welcome to the live chat!</span>
-              <span className="mt-0.5 text-[11px] text-white/30">Say hello to the host and viewers.</span>
-            </div>
-          ) : (
-            chatMessages.map((msg) => {
-              const isHostMsg = msg.user.id === stream.host?.id;
-
-              if (msg.is_gift) {
-                return (
-                  <div
-                    key={msg.id}
-                    className="flex items-center gap-2.5 rounded-xl border border-amber-500/40 bg-gradient-to-r from-amber-500/20 via-purple-500/20 to-amber-500/10 p-2.5 text-xs text-amber-200 shadow-md"
-                  >
-                    <span className="text-lg">🎁</span>
-                    <div className="min-w-0 flex-1">
-                      <span className="font-extrabold text-amber-300">{msg.user.name}</span>
-                      <p className="text-white font-medium">{msg.message}</p>
-                    </div>
-                  </div>
-                );
-              }
-
-              return (
-                <div key={msg.id} className="flex items-start gap-2.5 text-xs">
-                  <Avatar className="h-6 w-6 shrink-0 mt-0.5">
-                    <AvatarImage src={msg.user.avatar ?? undefined} alt={msg.user.name} />
-                    <AvatarFallback className="bg-white/10 text-[9px] font-bold text-white">
-                      {msg.user.name.slice(0, 1).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-1.5">
-                      <span className={`font-bold ${isHostMsg ? "text-red-400 font-extrabold" : "text-blue-400"}`}>
-                        {msg.user.name}
-                      </span>
-                      {isHostMsg && (
-                        <span className="rounded bg-red-500/20 px-1 py-0.2 text-[9px] font-black uppercase text-red-400">
-                          HOST
-                        </span>
-                      )}
-                    </div>
-                    <p className="mt-0.5 break-words font-normal text-white/90 leading-relaxed">
-                      {msg.message}
-                    </p>
-                  </div>
-                </div>
-              );
-            })
-          )}
-        </div>
-
-        {/* Chat Action Footer: Text Input, Gift Button, Like Button */}
-        <div className="border-t border-white/10 bg-[#131822] p-3 space-y-2">
-          {/* Quick Reaction & Gift Bar */}
-          <div className="flex items-center justify-between gap-2">
-            {/* SEND GIFT BUTTON (Prominent & Glowing) */}
-            {!isHost && (
-              <Button
-                type="button"
-                onClick={() => setIsGiftModalOpen(true)}
-                className="flex-1 h-9 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 font-extrabold text-xs text-white shadow-lg shadow-amber-500/20 hover:brightness-110 gap-1.5"
-              >
-                <GiftIcon weight="fill" className="h-4 w-4 animate-bounce" />
-                <span>Send Gift</span>
-              </Button>
-            )}
-
-            {/* SEND LIKE / HEART BUTTON */}
-            <Button
-              type="button"
-              onClick={handleLike}
-              className={`h-9 rounded-xl bg-rose-600/20 border border-rose-500/40 text-rose-400 hover:bg-rose-600/30 gap-1.5 px-3 font-bold text-xs ${isHost ? "w-full justify-center" : ""}`}
-            >
-              <Heart weight="fill" className="h-4 w-4 text-rose-500" />
-              <span>{likesCount}</span>
-            </Button>
-          </div>
-
-          {/* Chat Form */}
-          <form onSubmit={handleSendChat} className="flex items-center gap-2">
-            <input
-              type="text"
-              value={chatInput}
-              onChange={(e) => setChatInput(e.target.value)}
-              placeholder="Say something live…"
-              className="flex-1 rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-xs font-medium text-white placeholder-white/40 focus:border-primary focus:bg-white/10 focus:outline-none"
-            />
+      {/* BOTTOM VIDEO CONTROLS BAR (Translucent Glassmorphic, floating over bottom) */}
+      <div
+        className="absolute bottom-0 left-0 right-0 z-20 flex items-center justify-between gap-3 bg-gradient-to-t from-black/90 via-black/45 to-transparent px-4 py-3 backdrop-blur-sm"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Chat Form */}
+        <form onSubmit={handleSendChat} className="flex flex-1 max-w-xs sm:max-w-md items-center gap-2">
+          <input
+            type="text"
+            value={chatInput}
+            onChange={(e) => setChatInput(e.target.value)}
+            placeholder="Say something live…"
+            className="flex-1 rounded-full border border-white/20 bg-black/40 px-4 py-2 text-xs font-medium text-white placeholder-white/50 backdrop-blur-md focus:border-primary focus:bg-black/60 focus:outline-none"
+          />
+          {chatInput.trim() && (
             <Button
               type="submit"
               size="sm"
-              disabled={!chatInput.trim() || sendingChat}
-              className="h-8 w-8 rounded-xl p-0 bg-primary hover:bg-primary/90 text-primary-foreground"
+              disabled={sendingChat}
+              className="h-8 w-8 rounded-full p-0 bg-primary hover:bg-primary/90 text-primary-foreground shrink-0 shadow-md"
             >
               {sendingChat ? <Spinner weight="bold" className="h-3.5 w-3.5 animate-spin" /> : <PaperPlaneRight weight="fill" className="h-3.5 w-3.5" />}
             </Button>
-          </form>
+          )}
+        </form>
+
+        {/* Action Buttons */}
+        <div className="flex items-center gap-2">
+          {/* Host Controls */}
+          {isHost && (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={toggleMic}
+                className={`h-9 w-9 rounded-full p-0 backdrop-blur-md ${isMicOn ? "bg-black/40 text-white border-white/20 hover:bg-black/60" : "bg-red-600 text-white border-red-500 hover:bg-red-500"}`}
+                title={isMicOn ? "Mute Microphone" : "Unmute Microphone"}
+              >
+                {isMicOn ? <Microphone weight="bold" className="h-4 w-4" /> : <MicrophoneSlash weight="bold" className="h-4 w-4" />}
+              </Button>
+
+              {stream.stream_mode !== "audio" && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={toggleCam}
+                  className={`h-9 w-9 rounded-full p-0 backdrop-blur-md ${isCamOn ? "bg-black/40 text-white border-white/20 hover:bg-black/60" : "bg-red-600 text-white border-red-500 hover:bg-red-500"}`}
+                  title={isCamOn ? "Turn Camera Off" : "Turn Camera On"}
+                >
+                  {isCamOn ? <VideoCamera weight="bold" className="h-4 w-4" /> : <VideoCameraSlash weight="bold" className="h-4 w-4" />}
+                </Button>
+              )}
+
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={handleEndStream}
+                disabled={isEndingStream}
+                className="h-9 gap-1.5 rounded-full px-3 text-xs font-bold shadow-lg"
+              >
+                {isEndingStream ? <Spinner weight="bold" className="h-3.5 w-3.5 animate-spin" /> : <PhoneSlash weight="bold" className="h-3.5 w-3.5" />}
+                End Stream
+              </Button>
+            </>
+          )}
+
+          {/* Viewer Controls: Gifting & Like Hearts */}
+          {!isHost && (
+            <>
+              <Button
+                type="button"
+                onClick={() => setIsGiftModalOpen(true)}
+                className="h-9 rounded-full bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 font-extrabold text-xs text-white shadow-lg shadow-amber-500/25 hover:brightness-110 gap-1.5 px-3 sm:px-4"
+              >
+                <GiftIcon weight="fill" className="h-4 w-4 animate-bounce" />
+                <span className="hidden sm:inline">Gift</span>
+              </Button>
+
+              <Button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleLike();
+                }}
+                className="h-9 rounded-full bg-black/40 border border-rose-500/40 text-rose-400 hover:bg-rose-500/20 backdrop-blur-md gap-1.5 px-3 font-bold text-xs"
+              >
+                <Heart weight="fill" className="h-4 w-4 text-rose-500 animate-pulse" />
+                <span>{likesCount}</span>
+              </Button>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsAudioMuted(!isAudioMuted)}
+                className="h-9 w-9 rounded-full border-white/20 bg-black/40 p-0 text-white hover:bg-black/60 backdrop-blur-md"
+                title={isAudioMuted ? "Unmute" : "Mute"}
+              >
+                {isAudioMuted ? <SpeakerSimpleSlash weight="bold" className="h-4 w-4" /> : <SpeakerHigh weight="bold" className="h-4 w-4" />}
+              </Button>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onLeave}
+                className="h-9 rounded-full border-white/20 bg-black/40 px-3 text-xs font-semibold text-white hover:bg-black/60 backdrop-blur-md"
+              >
+                Leave
+              </Button>
+            </>
+          )}
+
+          {/* Fullscreen Button */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={toggleFullscreen}
+            className="h-9 w-9 rounded-full border-white/20 bg-black/40 p-0 text-white hover:bg-black/60 backdrop-blur-md"
+            title="Toggle Fullscreen"
+          >
+            {isFullscreen ? <ArrowsIn weight="bold" className="h-4 w-4" /> : <ArrowsOut weight="bold" className="h-4 w-4" />}
+          </Button>
         </div>
       </div>
     </div>

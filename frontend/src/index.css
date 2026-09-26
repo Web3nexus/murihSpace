@@ -237,3 +237,45 @@ code {
 .animate-murih-shimmer {
   animation: murih-shimmer 1.5s ease-in-out infinite;
 }
+
+@keyframes tiktok-float-heart {
+  0% {
+    transform: translateY(0) translateX(0) scale(0.3) rotate(0deg);
+    opacity: 0;
+  }
+  12% {
+    transform: translateY(-45px) translateX(var(--sway-1, 8px)) scale(1.18) rotate(var(--rot-1, 6deg));
+    opacity: 1;
+  }
+  45% {
+    transform: translateY(-170px) translateX(var(--sway-2, -10px)) scale(1) rotate(var(--rot-2, -6deg));
+    opacity: 0.95;
+  }
+  75% {
+    transform: translateY(-290px) translateX(var(--sway-1, 6px)) scale(0.92) rotate(var(--rot-1, 4deg));
+    opacity: 0.8;
+  }
+  100% {
+    transform: translateY(-400px) translateX(var(--sway-2, -4px)) scale(0.7) rotate(0deg);
+    opacity: 0;
+  }
+}
+
+.animate-tiktok-float-heart {
+  animation: tiktok-float-heart 2s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+@keyframes live-message-pop {
+  0% {
+    opacity: 0;
+    transform: translateY(12px) scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-live-message-pop {
+  animation: live-message-pop 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
