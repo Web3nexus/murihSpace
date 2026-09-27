@@ -11,9 +11,14 @@ interface PaymentProviderInterface
      * Create a checkout session / payment intent with the provider.
      * Returns provider-specific data including a redirect URL or client secret.
      *
+     * @param  string|null  $returnUrl  Where to send the customer once the
+     *                                    payment settles. Pass the resolved
+     *                                    value; never null, or the customer is
+     *                                    stranded on a provider page.
+     *
      * @return array{provider: string, intent_id: string, client_secret: string|null, redirect_url: string|null}
      */
-    public function createCheckoutIntent(Order $order): array;
+    public function createCheckoutIntent(Order $order, ?string $returnUrl = null): array;
 
     /**
      * Verify and parse an inbound webhook from the provider.

@@ -4,16 +4,20 @@ namespace App\Http\Controllers;
 
 use App\Models\DigitalProduct;
 use App\Models\Order;
+use App\Models\PaymentProvider;
 use App\Models\PaymentWebhook;
 use App\Models\Storefront;
 use App\Services\Accounting\AccountingStreamService;
 use App\Services\Payment\MockPaymentProvider;
 use App\Services\Payment\PaymentProviderInterface;
 use App\Services\Payment\StripePaymentProvider;
+use App\Services\Payment\Support\ReturnUrlResolver;
 use App\Services\Tax\TaxCalculationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Str;
 
 class CheckoutController extends Controller
@@ -60,6 +64,7 @@ class CheckoutController extends Controller
             'payment_provider' => ['nullable', 'string', 'in:stripe,mock'],
             'idempotency_key' => ['required', 'string', 'max:128'],
             'country_code' => ['nullable', 'string', 'max:3'],
+            'return_url' => ['nullable', 'string', 'url', 'max:2048'],
         ]);
 
         // Idempotency: return existing order for same key
@@ -105,7 +110,10 @@ class CheckoutController extends Controller
         // Server-calculated totals (never trust client-side price)
         $pricing = $this->computePricing($product, $countryCode);
 
-        $provider = $this->resolveProvider($validated['payment_provider'] ?? 'mock');
+        $requestedProvider = $validated['payment_provider'] ?? 'mock';
+        $this->guardProviderIsEnabled($requestedProvider);
+
+        $provider = $this->resolveProvider($requestedProvider);
 
         $order = DB::transaction(function () use ($product, $request, $validated, $pricing, $provider) {
             return Order::create([
@@ -128,8 +136,15 @@ class CheckoutController extends Controller
             ]);
         });
 
-        // Create provider payment intent
-        $intentData = $provider->createCheckoutIntent($order);
+        // Create provider payment intent. The return URL is resolved server-side
+        // (and falls back to a configured default) so the customer always lands
+        // back in the app; the legacy Stripe path used to hardcode null.
+        $returnUrl = ReturnUrlResolver::resolve(
+            $validated['return_url'] ?? null,
+            (string) $order->order_number,
+        );
+
+        $intentData = $provider->createCheckoutIntent($order, $returnUrl);
         $order->update(['payment_intent_id' => $intentData['intent_id'], 'status' => 'processing']);
 
         return response()->json([
@@ -299,6 +314,47 @@ class CheckoutController extends Controller
             'stripe' => new StripePaymentProvider,
             default => new MockPaymentProvider,
         };
+    }
+
+    /**
+     * Honour the admin enable/disable toggle on the checkout path.
+     *
+     * The routed providers were already gated through isAvailable(); this path
+     * builds the provider directly, so a provider an admin had switched off was
+     * still accepted from a client-supplied `payment_provider`. Providers with
+     * no admin record (not managed, e.g. the local mock provider) are allowed.
+     *
+     * Deliberately NOT enforced in resolveProvider(): webhook ingestion resolves
+     * providers through the same factory, and a provider disabled after a
+     * customer already paid must still be allowed to settle that payment.
+     * Disabling a provider stops new checkouts, it does not void in-flight ones.
+     *
+     * @throws \Illuminate\Validation\ValidationException
+     */
+    private function guardProviderIsEnabled(string $name): void
+    {
+        try {
+            $row = PaymentProvider::where('code', $name)->first();
+        } catch (\Throwable $e) {
+            // A missing record (null) means "not admin-managed" and is allowed.
+            // A thrown query is a different case: the table is unreachable
+            // (fresh install, mid-migration, database blip). Failing closed there
+            // would take every checkout offline, so this fails open — but the
+            // unavailability is logged rather than swallowed, otherwise a
+            // disabled provider would look enforced when it is not.
+            Log::warning('Payment provider availability check failed; allowing checkout', [
+                'provider' => $name,
+                'error' => $e->getMessage(),
+            ]);
+
+            return;
+        }
+
+        if ($row !== null && ! $row->is_enabled) {
+            throw ValidationException::withMessages([
+                'payment_provider' => "The {$name} payment method is currently unavailable.",
+            ]);
+        }
     }
 
     private function generateOrderNumber(): string

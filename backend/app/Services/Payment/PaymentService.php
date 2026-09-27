@@ -19,6 +19,7 @@ use App\Services\Payment\DTO\PaymentIntentRequest;
 use App\Services\Payment\DTO\PaymentVerificationResult;
 use App\Services\Payment\Exceptions\PaymentException;
 use App\Services\Payment\Router\ProviderRouter;
+use App\Services\Payment\Support\ReturnUrlResolver;
 use App\Services\Wallet\LedgerService;
 use Exception;
 use Illuminate\Support\Facades\DB;
@@ -115,7 +116,7 @@ class PaymentService
             paymentMethod: $paymentMethod,
             customerEmail: $data['customer_email'],
             customerName: $data['customer_name'] ?? null,
-            returnUrl: $data['return_url'] ?? null,
+            returnUrl: $this->resolveReturnUrl($data['return_url'] ?? null, $payment->internal_reference),
             metadata: array_merge($data['metadata'] ?? [], [
                 'payment_id' => $payment->id,
             ]),
@@ -183,6 +184,30 @@ class PaymentService
 
             throw $e;
         }
+    }
+
+    /**
+     * Resolve where the provider should return the customer after checkout.
+     *
+     * Priority:
+     *   1. A client-supplied `return_url` (validated as a URL by the controller).
+     *   2. `PAYMENT_RETURN_URL` from the environment.
+     *   3. A `FRONTEND_URL`-derived fallback.
+     *
+     * Without the fallback every provider is handed a null URL, so a customer
+     * who completes payment is stranded on a provider-hosted page with no route
+     * back into the product. `{reference}` in the configured URL is replaced
+     * with the internal payment reference so the landing page can look the
+     * payment up.
+     */
+    protected function resolveReturnUrl(?string $clientUrl, string $internalReference): string
+    {
+        // Shared with the digital-product checkout flow so the precedence rules
+        // and the {reference} placeholder are defined in exactly one place.
+        // An empty string (rather than null) is returned when nothing is
+        // configured, so providers that validate the field reject it loudly at
+        // intent time instead of silently stranding the customer.
+        return ReturnUrlResolver::resolve($clientUrl, $internalReference) ?? '';
     }
 
     /**

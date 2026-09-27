@@ -20,6 +20,7 @@ use App\Services\Payment\DTO\RefundRequest;
 use App\Services\Payment\DTO\RefundResponse;
 use App\Services\Payment\Exceptions\PaymentException;
 use App\Services\Payment\Exceptions\ProviderUnavailableException;
+use App\Services\Payment\Support\ProviderConfigResolver;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
@@ -35,15 +36,18 @@ class FlutterwaveProvider implements CollectionProviderInterface, PayoutProvider
 
     protected ?string $webhookSecretHash;
 
+    protected bool $enabled;
+
     protected int $timeout;
 
     public function __construct()
     {
-        $cfg = config('payments.providers.flutterwave', []);
+        $cfg = ProviderConfigResolver::resolve('flutterwave');
         $this->baseUrl = rtrim((string) ($cfg['base_url'] ?? 'https://api.flutterwave.com/v3'), '/');
         $this->publicKey = $cfg['public_key'] ?? null;
         $this->secretKey = $cfg['secret_key'] ?? null;
         $this->webhookSecretHash = $cfg['webhook_secret_hash'] ?? null;
+        $this->enabled = (bool) ($cfg['enabled'] ?? false);
         $this->timeout = (int) ($cfg['timeout'] ?? 30);
     }
 
@@ -59,8 +63,7 @@ class FlutterwaveProvider implements CollectionProviderInterface, PayoutProvider
 
     public function isAvailable(): bool
     {
-        return (bool) config('payments.providers.flutterwave.enabled', false)
-            && ! empty($this->secretKey);
+        return $this->enabled && ! empty($this->secretKey);
     }
 
     public function testConnection(): array

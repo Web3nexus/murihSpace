@@ -20,6 +20,7 @@ use App\Services\Payment\DTO\RefundRequest;
 use App\Services\Payment\DTO\RefundResponse;
 use App\Services\Payment\Exceptions\PaymentException;
 use App\Services\Payment\Exceptions\ProviderUnavailableException;
+use App\Services\Payment\Support\ProviderConfigResolver;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
@@ -33,14 +34,17 @@ class PaystackProvider implements CollectionProviderInterface, PayoutProviderInt
 
     protected ?string $secretKey;
 
+    protected bool $enabled;
+
     protected int $timeout;
 
     public function __construct()
     {
-        $cfg = config('payments.providers.paystack', []);
+        $cfg = ProviderConfigResolver::resolve('paystack');
         $this->baseUrl = rtrim((string) ($cfg['base_url'] ?? 'https://api.paystack.co'), '/');
         $this->publicKey = $cfg['public_key'] ?? null;
         $this->secretKey = $cfg['secret_key'] ?? null;
+        $this->enabled = (bool) ($cfg['enabled'] ?? false);
         $this->timeout = (int) ($cfg['timeout'] ?? 30);
     }
 
@@ -56,8 +60,7 @@ class PaystackProvider implements CollectionProviderInterface, PayoutProviderInt
 
     public function isAvailable(): bool
     {
-        return (bool) config('payments.providers.paystack.enabled', false)
-            && ! empty($this->secretKey);
+        return $this->enabled && ! empty($this->secretKey);
     }
 
     public function testConnection(): array

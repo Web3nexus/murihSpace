@@ -20,6 +20,7 @@ use App\Services\Payment\DTO\RefundRequest;
 use App\Services\Payment\DTO\RefundResponse;
 use App\Services\Payment\Exceptions\PaymentException;
 use App\Services\Payment\Exceptions\ProviderUnavailableException;
+use App\Services\Payment\Support\ProviderConfigResolver;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Http\Request;
@@ -37,15 +38,18 @@ class AirwallexProvider implements CollectionProviderInterface, PayoutProviderIn
 
     protected ?string $webhookSecret;
 
+    protected bool $enabled;
+
     protected int $timeout;
 
     public function __construct()
     {
-        $cfg = config('payments.providers.airwallex', []);
+        $cfg = ProviderConfigResolver::resolve('airwallex');
         $this->baseUrl = rtrim((string) ($cfg['base_url'] ?? 'https://api-demo.airwallex.com/api/v1'), '/');
         $this->clientId = $cfg['client_id'] ?? null;
         $this->apiKey = $cfg['api_key'] ?? null;
         $this->webhookSecret = $cfg['webhook_secret'] ?? null;
+        $this->enabled = (bool) ($cfg['enabled'] ?? false);
         $this->timeout = (int) ($cfg['timeout'] ?? 30);
     }
 
@@ -61,9 +65,7 @@ class AirwallexProvider implements CollectionProviderInterface, PayoutProviderIn
 
     public function isAvailable(): bool
     {
-        return (bool) config('payments.providers.airwallex.enabled', false)
-            && ! empty($this->clientId)
-            && ! empty($this->apiKey);
+        return $this->enabled && ! empty($this->clientId) && ! empty($this->apiKey);
     }
 
     public function testConnection(): array

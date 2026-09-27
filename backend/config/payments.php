@@ -10,6 +10,23 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Post-Payment Return URL
+    |--------------------------------------------------------------------------
+    | Where a customer is sent once the provider checkout completes. Sent to the
+    | provider as Flutterwave `redirect_url`, Paystack `callback_url`, Paddle
+    | `return_url` and Airwallex `return_url`.
+    |
+    | A per-request `return_url` from the client overrides this. The fallback
+    | matters: without it every provider receives a null URL and a customer who
+    | pays is stranded on a provider-hosted page with no way back into the app.
+    | Use {reference} to interpolate the internal payment reference.
+    */
+    'return_url' => env('PAYMENT_RETURN_URL'),
+
+    'return_url_fallback' => rtrim((string) env('FRONTEND_URL', ''), '/').'/wallet?payment=return',
+
+    /*
+    |--------------------------------------------------------------------------
     | Provider Configurations
     |--------------------------------------------------------------------------
     | Sensitive credentials MUST be loaded strictly via environment variables.

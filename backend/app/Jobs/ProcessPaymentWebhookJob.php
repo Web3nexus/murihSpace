@@ -6,6 +6,7 @@ use App\Models\Payment;
 use App\Models\PaymentWebhookEvent;
 use App\Services\Payment\Contracts\CollectionProviderInterface;
 use App\Services\Payment\DTO\PaymentVerificationResult;
+use App\Services\Payment\Exceptions\RoutingException;
 use App\Services\Payment\PaymentService;
 use App\Services\Payment\Router\ProviderRouter;
 use Exception;
@@ -40,7 +41,14 @@ class ProcessPaymentWebhookJob implements ShouldQueue
         $event->update(['processing_status' => 'processing', 'attempts' => $event->attempts + 1]);
 
         try {
-            $provider = $router->getProvider($event->provider);
+            // Stripe is handled by the legacy order flow and is not registered
+            // in ProviderRouter, so a lookup failure is expected, not fatal.
+            $provider = null;
+            try {
+                $provider = $router->getProvider($event->provider);
+            } catch (RoutingException) {
+                $provider = null;
+            }
             $payload = $event->payload ?? [];
 
             // Extract resource reference from provider payload
@@ -58,13 +66,25 @@ class ProcessPaymentWebhookJob implements ShouldQueue
                     ?? $payload['data']['custom_data']['public_reference']
                     ?? $payload['data']['id']
                     ?? null;
+            } elseif ($event->provider === 'stripe') {
+                $resourceRef = $payload['data']['object']['id'] ?? null;
             }
 
             if ($resourceRef) {
-                // Find matching internal payment record
-                $payment = Payment::where('public_reference', $resourceRef)
-                    ->orWhere('provider_reference', $resourceRef)
-                    ->orWhere('internal_reference', $resourceRef)
+                // Find matching internal payment record. The provider column must
+                // be part of the match, and the reference alternatives grouped,
+                // otherwise a reference reused by another gateway could settle
+                // the wrong payment (SQL binds AND tighter than OR).
+                // provider_transaction_id matters for providers whose webhook
+                // carries the gateway's own id (Stripe intent id, Paystack
+                // numeric id) rather than the reference attached at checkout.
+                $payment = Payment::where('provider', $event->provider)
+                    ->where(function ($query) use ($resourceRef) {
+                        $query->where('public_reference', $resourceRef)
+                            ->orWhere('provider_reference', $resourceRef)
+                            ->orWhere('provider_transaction_id', $resourceRef)
+                            ->orWhere('internal_reference', $resourceRef);
+                    })
                     ->first();
 
                 if ($payment) {
@@ -72,6 +92,30 @@ class ProcessPaymentWebhookJob implements ShouldQueue
                     if ($provider instanceof CollectionProviderInterface) {
                         $verificationId = $payload['data']['id'] ?? $resourceRef;
                         $verificationResult = $provider->verifyPayment((string) $verificationId);
+                    } elseif ($event->provider === 'stripe') {
+                        // Only terminal PaymentIntent events may move a payment
+                        // to a final state. Stripe also sends non-terminal ones
+                        // (payment_intent.created, .processing, charge.*, ...) and
+                        // treating those as a failure would wrongly fail a
+                        // payment that is still in flight.
+                        $verificationResult = match ($event->event_type) {
+                            'payment_intent.succeeded' => new PaymentVerificationResult(
+                                isSuccessful: true,
+                                status: \App\Enums\PaymentStatus::Successful,
+                                providerReference: $resourceRef
+                            ),
+                            'payment_intent.payment_failed' => new PaymentVerificationResult(
+                                isSuccessful: false,
+                                status: \App\Enums\PaymentStatus::Failed,
+                                providerReference: $resourceRef
+                            ),
+                            'payment_intent.canceled' => new PaymentVerificationResult(
+                                isSuccessful: false,
+                                status: \App\Enums\PaymentStatus::Cancelled,
+                                providerReference: $resourceRef
+                            ),
+                            default => null,
+                        };
                     } else {
                         $verificationResult = new PaymentVerificationResult(
                             isSuccessful: true,
@@ -80,7 +124,9 @@ class ProcessPaymentWebhookJob implements ShouldQueue
                         );
                     }
 
-                    $paymentService->finalizePayment($payment, $verificationResult);
+                    if ($verificationResult !== null) {
+                        $paymentService->finalizePayment($payment, $verificationResult);
+                    }
                 }
             }
 

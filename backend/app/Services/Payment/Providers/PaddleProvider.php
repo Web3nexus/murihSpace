@@ -12,6 +12,7 @@ use App\Services\Payment\DTO\PaymentIntentResponse;
 use App\Services\Payment\DTO\PaymentVerificationResult;
 use App\Services\Payment\Exceptions\PaymentException;
 use App\Services\Payment\Exceptions\ProviderUnavailableException;
+use App\Services\Payment\Support\ProviderConfigResolver;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
@@ -41,7 +42,7 @@ class PaddleProvider implements CollectionProviderInterface, ProviderWebhookInte
 
     public function __construct()
     {
-        $cfg = config('payments.providers.paddle', []);
+        $cfg = ProviderConfigResolver::resolve('paddle');
         $this->baseUrl = rtrim((string) ($cfg['base_url'] ?? 'https://sandbox-api.paddle.com'), '/');
         $this->apiKey = $cfg['api_key'] ?? null;
         $this->clientToken = $cfg['client_token'] ?? null;

@@ -88,6 +88,42 @@ class PaymentWebhookTest extends TestCase
         $this->assertEquals(1, PaymentWebhookEvent::where('provider', 'paystack')->where('provider_event_id', '888777')->count());
     }
 
+    public function test_queue_failure_does_not_swallow_a_provider_retry(): void
+    {
+        // The shared pipeline feeds Airwallex/Paystack/Flutterwave/Paddle. If a
+        // queue dispatch throws, the ingested record must be rolled back:
+        // otherwise the provider's retry hits the dedupe guard, gets a 200, and
+        // the payment is never processed. Same invariant the Stripe path relies
+        // on, so it is asserted against the shared code both share.
+        $queue = \Mockery::mock(\Illuminate\Queue\QueueManager::class);
+        $queue->shouldReceive('connection')->andThrow(new \RuntimeException('broker down'));
+        $this->app->instance('queue', $queue);
+
+        $payload = json_encode([
+            'event' => 'charge.success',
+            'data' => [
+                'id' => 991222,
+                'reference' => 'PAY-2026-RETRY1',
+                'amount' => 500000,
+                'currency' => 'NGN',
+                'status' => 'success',
+            ],
+        ]);
+        $signature = hash_hmac('sha512', $payload, 'sk_test_paystack_secret');
+
+        $this->withHeaders([
+            'x-paystack-signature' => $signature,
+            'Content-Type' => 'application/json',
+        ])->postJson('/api/v1/webhooks/paystack', json_decode($payload, true))
+            ->assertStatus(500);
+
+        $this->assertSame(
+            0,
+            PaymentWebhookEvent::where('provider', 'paystack')->count(),
+            'Orphaned record must be removed so a retry can re-ingest and re-queue it.'
+        );
+    }
+
     public function test_rejects_unauthorized_tampered_webhooks(): void
     {
         $payload = ['event' => 'charge.success'];
