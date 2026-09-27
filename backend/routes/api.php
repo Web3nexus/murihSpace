@@ -185,11 +185,12 @@ Route::prefix('v1')->group(function () {
     // Didit KYC webhook (public, signature-verified)
     Route::post('/webhooks/didit', fn (Request $r) => app(KycController::class)->webhook($r, app(KycProviderManager::class), 'didit'))->middleware('throttle:30,1');
 
-    // Dedicated Webhooks for Airwallex, Paystack, Flutterwave
+    // Dedicated Webhooks for Airwallex, Paystack, Flutterwave, Paddle, Stripe
     Route::post('/webhooks/airwallex', [PaymentWebhookController::class, 'airwallex'])->middleware('throttle:60,1');
     Route::post('/webhooks/paystack', [PaymentWebhookController::class, 'paystack'])->middleware('throttle:60,1');
     Route::post('/webhooks/flutterwave', [PaymentWebhookController::class, 'flutterwave'])->middleware('throttle:60,1');
     Route::post('/webhooks/paddle', [PaymentWebhookController::class, 'paddle'])->middleware('throttle:60,1');
+    Route::post('/webhooks/stripe', [PaymentWebhookController::class, 'stripe'])->middleware('throttle:60,1');
 
     // App Store / Google Play server notifications (refund/revoke reconciliation)
     Route::post('/webhooks/apple-store', [NativeStoreWebhookController::class, 'apple'])->middleware('throttle:120,1');
@@ -203,8 +204,10 @@ Route::prefix('v1')->group(function () {
     Route::get('/payments/{reference}/status', [PaymentController::class, 'status']);
     Route::post('/payments/initialize', [PaymentController::class, 'initialize'])->middleware('auth:sanctum');
 
-    // Public platform config (used by login/registration + app-lock screens)
-    Route::get('/platform', [PlatformController::class, 'config'])->middleware('cache.public:30');
+    // Public platform config (used by login/registration + app-lock screens).
+    // TTL is in seconds. Kept short: auth_methods is admin-controlled and must
+    // not stay stale in a browser/CDN cache after a method is switched off.
+    Route::get('/platform', [PlatformController::class, 'config'])->middleware('cache.public:15');
 
     // Authentication Routes
     Route::prefix('auth')->group(function () {
@@ -213,8 +216,9 @@ Route::prefix('v1')->group(function () {
         Route::get('/check-username/{username}', [AuthController::class, 'checkUsername'])->middleware('throttle:60,1');
 
         // Public authentication-method config (no secrets) used to render login/registration.
+        // Short TTL (seconds) so disabling a method takes effect promptly.
         Route::get('/methods', [AuthMethodConfigController::class, 'publicConfig'])
-            ->middleware('cache.public:30');
+            ->middleware('cache.public:15');
 
         // Phone OTP verification (Twilio Verify in production).
         Route::prefix('otp')->group(function () {
@@ -273,7 +277,7 @@ Route::prefix('v1')->group(function () {
     Route::get('/countries/{iso2}/states', [CountryController::class, 'states']);
 
     // Public Community, Membership & Feed Endpoints
-    Route::prefix('communities')->middleware('cache.public:10')->group(function () {
+    Route::prefix('communities')->middleware('cache.public:600')->group(function () {
         Route::get('/', [CommunityController::class, 'index']);
         Route::get('/{slug}', [CommunityController::class, 'show']);
         Route::get('/{id}/members', [MembershipController::class, 'members']);
@@ -281,18 +285,18 @@ Route::prefix('v1')->group(function () {
         Route::get('/{id}/posts', [PostController::class, 'index']);
     });
 
-    Route::get('/feed', [PostController::class, 'globalFeed'])->middleware('cache.public:5');
+    Route::get('/feed', [PostController::class, 'globalFeed'])->middleware('cache.public:300');
 
     // Public Storefront Profile Endpoint
-    Route::get('/stores/{shortCode}', [StorefrontController::class, 'show'])->middleware('cache.public:10');
-    Route::get('/stores/{shortCode}/posts', [StorePostController::class, 'publicPosts'])->middleware('cache.public:5');
+    Route::get('/stores/{shortCode}', [StorefrontController::class, 'show'])->middleware('cache.public:600');
+    Route::get('/stores/{shortCode}/posts', [StorePostController::class, 'publicPosts'])->middleware('cache.public:300');
 
     // Public User Profile Endpoint
-    Route::get('/users/{username}/public', [ProfileController::class, 'publicProfile'])->middleware('cache.public:10');
+    Route::get('/users/{username}/public', [ProfileController::class, 'publicProfile'])->middleware('cache.public:600');
     Route::get('/users/{username}/reviews', [ProductReviewController::class, 'userReviews']);
 
     // Public Link-in-Bio Page
-    Route::get('/l/{username}', [LinkInBioController::class, 'publicPage'])->middleware('cache.public:10');
+    Route::get('/l/{username}', [LinkInBioController::class, 'publicPage'])->middleware('cache.public:600');
 
     // Link in Bio Click Redirect (public)
     Route::get('/l/click/{linkId}', [LinkInBioController::class, 'redirectClick'])->middleware('throttle:60,1');

@@ -8,13 +8,19 @@ use Symfony\Component\HttpFoundation\Response;
 
 class CachePublicResponse
 {
-    public function handle(Request $request, Closure $next, int $minutes = 5): Response
+    /**
+     * The middleware argument is a TTL in seconds, matching Laravel's own
+     * `cache.headers` convention. It used to be treated as minutes and
+     * multiplied by 60, so every `cache.public:30` silently cached for 30
+     * minutes instead of 30 seconds.
+     */
+    public function handle(Request $request, Closure $next, int $seconds = 60): Response
     {
         $response = $next($request);
 
         if ($response->isSuccessful() && $request->isMethod('GET')) {
-            $response->setCache(['public' => true, 'max_age' => $minutes * 60]);
-            $response->headers->set('X-Cache-TTL', "{$minutes}m");
+            $response->setCache(['public' => true, 'max_age' => $seconds]);
+            $response->headers->set('X-Cache-TTL', "{$seconds}s");
         }
 
         return $response;

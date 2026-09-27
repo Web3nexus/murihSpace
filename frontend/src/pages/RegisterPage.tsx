@@ -3,6 +3,7 @@ import React, { useState, useCallback, useRef, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router";
 import { useAuth } from "@/hooks/useAuth";
 import { usePlatformConfig } from "@/hooks/usePlatformConfig";
+import { isRegistrationOpen } from "@/lib/authMethods";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -261,19 +262,68 @@ export function RegisterPage() {
       socialLoading === prov ? "opacity-50" : "hover:border-[#2164b6]/50 hover:bg-muted/50"
     } border-border bg-card text-foreground`;
 
+  const registrationClosed = !cfg.loading && !isRegistrationOpen(cfg.auth_methods.methods);
+  const phoneRegistrationEnabled = cfg.auth_methods.methods.phone_otp.registration;
+
   const title =
-    step === 1 ? "Verify your number"
+    step === 1 ? (phoneRegistrationEnabled ? "Verify your number" : "Create your account")
     : step === 2 ? "Enter the code"
     : step === 3 ? "Claim your space"
     : step === 7 ? "Welcome aboard"
     : "Create your account";
 
   const subtitle =
-    step === 1 ? "We'll text you a code to verify your number."
+    step === 1 ? (phoneRegistrationEnabled
+      ? "We'll text you a code to verify your number."
+      : "Sign up with an account you already have.")
     : step === 2 ? `We sent a 6-digit code to ${maskedPhone}.`
     : step === 3 ? "Choose your unique username to get started."
     : step === 7 ? "One last step — grab the app to unlock your dashboard."
     : "Fill in your details to complete registration.";
+
+  if (registrationClosed) {
+    return (
+      <AuthLayout>
+        <div className="w-full max-w-md mx-auto text-center space-y-3">
+          <h1 className="text-xl font-black tracking-tight">Registration is closed</h1>
+          <p className="text-xs text-muted-foreground">
+            Creating a new account is currently unavailable. Please sign in to your existing account.
+          </p>
+          <Link
+            to="/login"
+            className="inline-flex items-center gap-1.5 text-xs font-bold text-[#2164b6] dark:text-[#7ab0ff] hover:underline"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" /> Go to sign in
+          </Link>
+        </div>
+      </AuthLayout>
+    );
+  }
+
+  const socialProviders = SOCIAL_PROVIDERS.filter(
+    (p) => cfg.auth_methods.methods[p.id as "google" | "apple"]?.registration,
+  );
+
+  // Rendered at step 3 for the normal phone flow, and on its own at step 1 when
+  // an admin has switched phone sign-ups off but left a social provider on —
+  // otherwise social-only visitors would be pushed into a phone OTP step the
+  // API will reject.
+  const socialSignup = socialProviders.length > 0 && (
+    <>
+      <div className="relative">
+        <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-border" /></div>
+        <div className="relative flex justify-center"><span className="bg-card px-2 text-[10px] text-muted-foreground">or sign up with</span></div>
+      </div>
+      <div className="flex gap-2">
+        {socialProviders.map((p) => (
+          <button key={p.id} type="button" onClick={() => handleSocialLogin(p.id)} disabled={socialLoading !== null} className={socialBtnClass(p.id)}>
+            {socialLoading === p.id ? <Loader2 weight="fill" className="h-4 w-4 animate-spin" /> : <span className="font-bold text-base">{p.icon}</span>}
+            <span className="hidden sm:inline">{p.label}</span>
+          </button>
+        ))}
+      </div>
+    </>
+  );
 
   return (
     <AuthLayout>
@@ -284,14 +334,16 @@ export function RegisterPage() {
         </div>
 
         {/* Step Progress */}
-        <div className="flex items-center justify-center gap-1.5">
-          {[1, 2, 3, 4, 5].map((s) => (
-            <div key={s} className={`h-1.5 w-7 rounded-full transition-colors ${s <= step ? "bg-[#2164b6]" : "bg-muted"}`} />
-          ))}
-        </div>
+        {phoneRegistrationEnabled && (
+          <div className="flex items-center justify-center gap-1.5">
+            {[1, 2, 3, 4, 5].map((s) => (
+              <div key={s} className={`h-1.5 w-7 rounded-full transition-colors ${s <= step ? "bg-[#2164b6]" : "bg-muted"}`} />
+            ))}
+          </div>
+        )}
 
         {/* Step 1: Phone */}
-        {step === 1 && (
+        {step === 1 && phoneRegistrationEnabled && (
           <form onSubmit={handleRequestOtp} className="space-y-4">
             <FieldGroup>
               <FieldLabel>Mobile number</FieldLabel>
@@ -320,6 +372,17 @@ export function RegisterPage() {
               Already have an account? <Link to="/login" className="text-[#2164b6] dark:text-[#7ab0ff] font-bold hover:underline">Sign in</Link>
             </p>
           </form>
+        )}
+
+        {/* Step 1 (social-only): phone sign-ups are disabled but a social
+            provider is available, so offer it instead of the phone form. */}
+        {step === 1 && !phoneRegistrationEnabled && (
+          <div className="space-y-4">
+            {socialSignup}
+            <p className="text-center text-[10px] text-muted-foreground">
+              Already have an account? <Link to="/login" className="text-[#2164b6] dark:text-[#7ab0ff] font-bold hover:underline">Sign in</Link>
+            </p>
+          </div>
         )}
 
         {/* Step 2: OTP */}
@@ -392,24 +455,7 @@ export function RegisterPage() {
               Claim Username <ArrowRight weight="fill" className="h-4 w-4 ml-1" />
             </Button>
 
-            {SOCIAL_PROVIDERS.filter((p) => cfg.auth_methods?.methods?.[p.id as "google" | "apple"]?.registration).length > 0 && (
-              <>
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-border" /></div>
-                  <div className="relative flex justify-center"><span className="bg-card px-2 text-[10px] text-muted-foreground">or sign up with</span></div>
-                </div>
-                <div className="flex gap-2">
-                  {SOCIAL_PROVIDERS.filter(
-                    (p) => cfg.auth_methods.methods[p.id as "google" | "apple"].registration
-                  ).map((p) => (
-                    <button key={p.id} type="button" onClick={() => handleSocialLogin(p.id)} disabled={socialLoading !== null} className={socialBtnClass(p.id)}>
-                      {socialLoading === p.id ? <Loader2 weight="fill" className="h-4 w-4 animate-spin" /> : <span className="font-bold text-base">{p.icon}</span>}
-                      <span className="hidden sm:inline">{p.label}</span>
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
+            {socialSignup}
 
             <div className="flex gap-2">
               <Button type="button" variant="ghost" onClick={() => setStep(2)} className="text-sm"><ArrowLeft weight="fill" className="h-4 w-4 mr-1" /> Back</Button>

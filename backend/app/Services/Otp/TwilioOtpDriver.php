@@ -40,6 +40,13 @@ class TwilioOtpDriver implements OtpDriverInterface
         $authToken = (string) config('services.twilio.auth_token');
 
         if ($serviceSid === '' || $accountSid === '' || $authToken === '') {
+            Log::error('[phone-otp] Twilio Verify is not configured', [
+                'has_account_sid' => $accountSid !== '',
+                'has_auth_token' => $authToken !== '',
+                'has_verify_service_sid' => $serviceSid !== '',
+                'otp_driver' => (string) config('services.twilio.otp_driver'),
+            ]);
+
             throw new OtpProviderException('Twilio Verify is not configured.');
         }
 
@@ -74,6 +81,13 @@ class TwilioOtpDriver implements OtpDriverInterface
         $authToken = (string) config('services.twilio.auth_token');
 
         if ($serviceSid === '' || $accountSid === '' || $authToken === '') {
+            Log::error('[phone-otp] Twilio Verify is not configured', [
+                'has_account_sid' => $accountSid !== '',
+                'has_auth_token' => $authToken !== '',
+                'has_verify_service_sid' => $serviceSid !== '',
+                'otp_driver' => (string) config('services.twilio.otp_driver'),
+            ]);
+
             throw new OtpProviderException('Twilio Verify is not configured.');
         }
 
