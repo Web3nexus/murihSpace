@@ -171,7 +171,7 @@ export function PublicStorefrontPage() {
   return (
     <div className="min-h-screen bg-background text-foreground pb-20">
       <SEOHead
-        title={`${store.display_name} | Official Storefront`}
+        title={`${store.display_name} · Official Storefront`}
         description={store.bio || store.tagline || `Shop digital products and merchandise from ${store.display_name} on MurihSpace.`}
         image={store.avatar_url || store.cover_url}
         url={shareUrl}

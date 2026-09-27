@@ -1,4 +1,5 @@
 import * as React from "react";
+import { claimPageTitle, composePageTitle, releasePageTitle } from "@/lib/pageTitle";
 
 interface SEOHeadProps {
   title: string;
@@ -18,7 +19,9 @@ export function SEOHead({
   jsonLd,
 }: SEOHeadProps) {
   React.useEffect(() => {
-    document.title = `${title} | MurihSpace`;
+    const composed = composePageTitle(title);
+    const pathname = window.location.pathname;
+    claimPageTitle(pathname, composed);
 
     const setMeta = (name: string, content: string, isProperty = false) => {
       const attr = isProperty ? `property="${name}"` : `name="${name}"`;
@@ -61,6 +64,7 @@ export function SEOHead({
     return () => {
       const el = document.querySelector("#seo-json-ld");
       if (el) el.remove();
+      releasePageTitle(pathname);
     };
   }, [title, description, image, url, type, jsonLd]);
 

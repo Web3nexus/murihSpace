@@ -22,6 +22,7 @@ import {
   Storefront as Storefront,
   UserPlus as UserPlus,
   Shield as Shield,
+  Lock,
   Copy as Copy,
   TrashSimple as Trash,
   Phone,
@@ -37,6 +38,7 @@ import { ReplyPreviewBar } from '@/components/chat/ReplyPreviewBar';
 import { MessageReactions } from '@/components/chat/MessageReactions';
 import { StoriesCarousel, type StoryUser } from '../chat/StoriesCarousel';
 import { StoryCreateModal } from '../story/StoryCreateModal';
+import { ChatPatternSurface } from './ChatPatternSurface';
 import { NewChatModal } from '@/components/chat/NewChatModal';
 import { CallOverlayModal } from '@/components/video/CallOverlayModal';
 import { useRealtimeMessaging } from '@/hooks/useRealtimeMessaging';
@@ -727,7 +729,8 @@ export function ChatLayout() {
             </div>
 
             {/* Message Stream */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-1 bg-muted/10">
+            <ChatPatternSurface>
+              <div className="h-full overflow-y-auto p-4 space-y-1 bg-muted/10">
               {isLoadingMsgs ? (
                 <div className="py-20 text-center space-y-2"><Loader2 weight="fill" className="h-6 w-6 animate-spin text-secondary mx-auto" /><p className="text-xs text-muted-foreground">Loading message history…</p></div>
               ) : messages.length === 0 ? (
@@ -897,7 +900,8 @@ export function ChatLayout() {
                 </div>
               )}
               <div ref={messagesEndRef} />
-            </div>
+              </div>
+            </ChatPatternSurface>
 
             {/* Reply preview bar */}
             {replyingTo && <ReplyPreviewBar replyingTo={replyingTo} onDismiss={() => setReplyingTo(null)} />}
@@ -936,11 +940,21 @@ export function ChatLayout() {
           </>
         ) : (
           <div className="flex flex-1 flex-col items-center justify-center gap-4 text-center px-6">
-            <div className="rounded-lg bg-secondary/10 p-5 text-secondary border border-secondary/20"><MessageSquare weight="fill" className="h-10 w-10" /></div>
-            <div className="space-y-1">
-              <h3 className="text-base font-extrabold text-foreground">Your Messages Hub</h3>
-              <p className="text-xs text-muted-foreground max-w-sm">Select a conversation or open Saved Messages to start chatting.</p>
-            </div>
+            <img
+              src="/logos/member-icon-light.png"
+              alt="MurihSpace"
+              className="h-16 w-16 object-contain dark:hidden"
+            />
+            <img
+              src="/logos/member-icon-dark.png"
+              alt="MurihSpace"
+              className="h-16 w-16 object-contain hidden dark:block"
+            />
+            <h3 className="text-base font-extrabold text-foreground">MurihSpace</h3>
+            <p className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
+              <Lock weight="bold" className="w-3.5 h-3.5 text-emerald-500" aria-hidden="true" />
+              Messages secured in transit
+            </p>
           </div>
         )}
       </main>

@@ -3,6 +3,7 @@
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/inter";
 @import "./styles/feed.css";
+@import "./styles/chat.css";
 
 @custom-variant dark (&:is(.dark *));
 

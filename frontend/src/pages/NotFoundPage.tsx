@@ -1,9 +1,15 @@
 import { Link } from "react-router";
 import { AnimatedPage } from "@/components/common/AnimatedPage";
+import { SEOHead } from "@/components/common/SEOHead";
 
 export function NotFoundPage() {
   return (
-    <AnimatedPage className="flex flex-col items-center justify-center min-h-[60vh] px-4 py-8">
+    <>
+      <SEOHead
+        title="Page Not Found"
+        description="The page you are looking for does not exist or has been moved."
+      />
+      <AnimatedPage className="flex flex-col items-center justify-center min-h-[60vh] px-4 py-8">
       <h1 className="text-6xl font-extrabold text-blue-600">404</h1>
       <h2 className="text-xl font-bold tracking-tight text-gray-950 dark:text-white mt-4">
         Page not found
@@ -19,6 +25,7 @@ export function NotFoundPage() {
           ← Go back home
         </Link>
       </div>
-    </AnimatedPage>
+      </AnimatedPage>
+    </>
   );
 }
