@@ -141,6 +141,36 @@ export function PublicLiveStage({ stream, liveKitAccess, isHost, onLeave }: Prop
   const stageContainerRef = useRef<HTMLDivElement>(null);
   const chatScrollRef = useRef<HTMLDivElement>(null);
   const seenGiftIdsRef = useRef<Set<number | string>>(new Set());
+  // Mirrors isAudioMuted so the LiveKit connect effect (which must not depend on
+  // mute state) can honour the current choice when it attaches audio tracks.
+  const isAudioMutedRef = useRef(false);
+  // Audio elements this room created. LiveKit attaches remote audio to audioRef
+  // when one is available, but otherwise creates its own element and appends it
+  // to <body>; those fallbacks are tracked here so muting this stream never
+  // reaches audio elements owned by other players on the page.
+  const ownedAudioElsRef = useRef<Set<HTMLAudioElement>>(new Set());
+
+  // Applies the mute state to the audio elements this room has attached.
+  const applyAudioMute = useCallback((muted: boolean, resumePlayback = false) => {
+    isAudioMutedRef.current = muted;
+
+    const elements = Array.from(ownedAudioElsRef.current);
+    if (audioRef.current && !elements.includes(audioRef.current)) {
+      elements.push(audioRef.current);
+    }
+
+    elements.forEach((el) => {
+      el.muted = muted;
+    });
+
+    if (!muted && resumePlayback) {
+      elements.forEach((el) => {
+        void el.play().catch(() => {
+          // Autoplay policy can still block; the audioBlocked banner handles it.
+        });
+      });
+    }
+  }, []);
 
   // Auto-scroll chat to bottom
   const scrollToBottom = useCallback((smooth = true) => {
@@ -264,11 +294,15 @@ export function PublicLiveStage({ stream, liveKitAccess, isHost, onLeave }: Prop
           if (track.kind === Track.Kind.Audio) {
             if (audioRef.current) {
               track.attach(audioRef.current);
+              ownedAudioElsRef.current.add(audioRef.current);
             } else {
               const el = track.attach();
               el.autoplay = true;
               document.body.appendChild(el);
+              ownedAudioElsRef.current.add(el);
             }
+            // Honour a mute chosen before this track arrived.
+            applyAudioMute(isAudioMutedRef.current);
           }
         };
 
@@ -373,8 +407,23 @@ export function PublicLiveStage({ stream, liveKitAccess, isHost, onLeave }: Prop
       if (currentRoom) {
         currentRoom.disconnect().catch(() => {});
       }
+      // Detach and remove any audio elements this room appended to <body>.
+      ownedAudioElsRef.current.forEach((el) => {
+        if (el !== audioRef.current) {
+          el.pause();
+          el.remove();
+        }
+      });
+      ownedAudioElsRef.current.clear();
     };
-  }, [isHost, liveKitAccess, stream.stream_mode]);
+  }, [applyAudioMute, isHost, liveKitAccess, stream.stream_mode]);
+
+  // Toggle viewer mute
+  const toggleMute = () => {
+    const next = !isAudioMuted;
+    setIsAudioMuted(next);
+    applyAudioMute(next, !next);
+  };
 
   // Handle Unmute Audio Banner click
   const handleUnmuteAudio = async () => {
@@ -383,6 +432,7 @@ export function PublicLiveStage({ stream, liveKitAccess, isHost, onLeave }: Prop
         await room.startAudio();
         setAudioBlocked(false);
         setIsAudioMuted(false);
+        applyAudioMute(false, true);
         toast.success("Audio unmuted!");
       } catch (err) {
         console.error("Audio playback error:", err);
@@ -791,7 +841,7 @@ export function PublicLiveStage({ stream, liveKitAccess, isHost, onLeave }: Prop
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setIsAudioMuted(!isAudioMuted)}
+                  onClick={toggleMute}
                   className="h-9 w-9 rounded-full border-white/20 bg-white/10 p-0 text-white hover:bg-white/20"
                   title={isAudioMuted ? "Unmute" : "Mute"}
                 >
