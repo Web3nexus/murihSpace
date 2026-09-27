@@ -92,9 +92,17 @@ export function getAuthToken(): string | null {
 }
 
 export function getAdminToken(): string | null {
+  // The saved original token is only meaningful while an impersonation session is
+  // active. Preferring it unconditionally made every /securegate call 401 after a
+  // logout/login cycle left a stale value behind.
+  if (isImpersonating()) {
+    const original =
+      localStorage.getItem(ADMIN_ORIGINAL_TOKEN_KEY) ||
+      sessionStorage.getItem(ADMIN_ORIGINAL_TOKEN_KEY);
+    if (original) return original;
+  }
+
   return (
-    localStorage.getItem(ADMIN_ORIGINAL_TOKEN_KEY) ||
-    sessionStorage.getItem(ADMIN_ORIGINAL_TOKEN_KEY) ||
     localStorage.getItem(MURIHSPACE_TOKEN_KEY) ||
     localStorage.getItem(AUTH_TOKEN_KEY)
   );
@@ -129,6 +137,12 @@ export function setImpersonationToken(token: string, user?: unknown): void {
 }
 
 export function clearImpersonationToken(): void {
+  // Capture the admin's original token BEFORE clearing any keys, otherwise the
+  // restore below is always null and the admin is left logged out.
+  const adminOriginal =
+    localStorage.getItem(ADMIN_ORIGINAL_TOKEN_KEY) ||
+    sessionStorage.getItem(ADMIN_ORIGINAL_TOKEN_KEY);
+
   sessionStorage.removeItem(IMPERSONATION_TOKEN_KEY);
   sessionStorage.removeItem(IS_IMPERSONATING_KEY);
   sessionStorage.removeItem(IMPERSONATED_USER_KEY);
@@ -139,8 +153,8 @@ export function clearImpersonationToken(): void {
   localStorage.removeItem(IS_IMPERSONATING_KEY);
   localStorage.removeItem(IMPERSONATED_USER_KEY);
   localStorage.removeItem(IMPERSONATION_LAST_ACTIVITY_KEY);
+  localStorage.removeItem(ADMIN_ORIGINAL_TOKEN_KEY);
 
-  const adminOriginal = localStorage.getItem(ADMIN_ORIGINAL_TOKEN_KEY);
   if (adminOriginal) {
     localStorage.setItem(MURIHSPACE_TOKEN_KEY, adminOriginal);
     localStorage.removeItem(ADMIN_ORIGINAL_TOKEN_KEY);

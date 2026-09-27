@@ -423,11 +423,13 @@ export function PublicLivePage() {
 
       <header className="sticky top-0 z-30 border-b border-border/80 bg-background/85 backdrop-blur-xl">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
-          <Link to="/" className="flex min-w-0 items-center gap-2.5 text-sm font-extrabold tracking-tight transition-opacity hover:opacity-80">
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-lg shadow-primary/15">
-              <Radio weight="fill" className="h-4 w-4" />
-            </span>
-            <span>MurihSpace</span>
+          <Link to="/" className="flex min-w-0 items-center gap-2.5 transition-opacity hover:opacity-80">
+            <img
+              src="/assets/murihspace-live-logo.png"
+              alt="MurihSpace LIVE"
+              className="h-8 w-auto object-contain"
+              draggable={false}
+            />
           </Link>
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" onClick={handleShare} className="gap-1.5 font-semibold">
@@ -469,8 +471,21 @@ export function PublicLivePage() {
                   <p className="mt-5 max-w-2xl text-sm leading-7 text-muted-foreground sm:text-base">{stream.description || `${hostName} is live on MurihSpace. Settle in, say hello, and join the conversation.`}</p>
 
                   <div className="mt-8 flex items-center gap-3">
-                    <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-2xl bg-primary text-primary-foreground">
-                      {stream.host?.avatar_url ? <img src={stream.host.avatar_url} alt="" className="h-full w-full object-cover" /> : <UserCircle weight="fill" className="h-6 w-6" />}
+                    {/* TikTok-style animated LIVE ring around host avatar */}
+                    <div className="relative shrink-0">
+                      <div className={`absolute inset-0 rounded-full ${isLive ? "animate-spin-slow bg-gradient-to-tr from-red-500 via-rose-400 to-orange-400" : "bg-muted"}`} style={{ padding: "2.5px", borderRadius: "9999px" }}>
+                        <div className="h-full w-full rounded-full bg-background" />
+                      </div>
+                      <div className="relative h-11 w-11 overflow-hidden rounded-full ring-2 ring-background">
+                        {stream.host?.avatar_url
+                          ? <img src={stream.host.avatar_url} alt="" className="h-full w-full object-cover" />
+                          : <UserCircle weight="fill" className="h-full w-full text-primary" />}
+                      </div>
+                      {isLive && (
+                        <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 rounded-full bg-red-500 px-1.5 py-0 text-[9px] font-black uppercase leading-4 tracking-wide text-white shadow ring-1 ring-background">
+                          LIVE
+                        </span>
+                      )}
                     </div>
                     <div>
                       <p className="text-sm font-bold text-foreground">{hostName}</p>

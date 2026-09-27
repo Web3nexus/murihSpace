@@ -17,6 +17,36 @@ class EnsureImpersonationLiveness
      */
     public const DEFAULT_IDLE_TIMEOUT_SECONDS = 900; // 15 minutes
 
+    public const IMPERSONATION_TOKEN_NAME = 'impersonation-token';
+
+    /**
+     * Determine whether the given token is an impersonation token.
+     *
+     * NOTE: never use $token->can('impersonate') for this. Every regular login
+     * token is issued with the wildcard '*' ability (see AuthController,
+     * AuthSessionService, SocialAuthController, DeviceSecurityService), and
+     * Sanctum's PersonalAccessToken::can() returns true for '*'. That made this
+     * middleware treat ordinary sessions as impersonations, delete the valid
+     * token and 401 every subsequent request for every user.
+     *
+     * The token name is the only reliable discriminator, with an explicit
+     * non-wildcard 'impersonate' ability as a secondary signal.
+     */
+    public static function isImpersonationToken(?PersonalAccessToken $token): bool
+    {
+        if (! $token) {
+            return false;
+        }
+
+        if ($token->name === self::IMPERSONATION_TOKEN_NAME) {
+            return true;
+        }
+
+        $abilities = $token->abilities ?? [];
+
+        return is_array($abilities) && in_array('impersonate', $abilities, true);
+    }
+
     public function handle(Request $request, Closure $next): Response
     {
         $user = $request->user();
@@ -30,7 +60,7 @@ class EnsureImpersonationLiveness
         }
 
         // Only enforce on impersonation tokens
-        if ($token->name !== 'impersonation-token' && ! $token->can('impersonate')) {
+        if (! self::isImpersonationToken($token)) {
             return $next($request);
         }
 

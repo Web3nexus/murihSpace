@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Middleware\EnsureImpersonationLiveness;
 use App\Models\AuditLog;
 use App\Models\User;
 use App\Services\NotificationService;
@@ -235,7 +236,7 @@ class AdminUserController extends Controller
         $user = $request->user();
         $token = $user?->currentAccessToken();
 
-        if ($token && ($token->name === 'impersonation-token' || $token->can('impersonate'))) {
+        if ($token && EnsureImpersonationLiveness::isImpersonationToken($token)) {
             \Illuminate\Support\Facades\Cache::forget("impersonation_session_{$token->id}");
             $token->delete();
 
