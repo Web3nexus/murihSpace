@@ -95,7 +95,7 @@ class AdminController extends Controller
     public function getCampaignStats()
     {
         $total = Campaign::count();
-        $active = Campaign::where('status', 'ACTIVE')->count();
+        $active = Campaign::where('status', 'active')->count();
         $pending = Campaign::where('review_status', 'pending')->count();
         
         return response()->json([
@@ -111,7 +111,7 @@ class AdminController extends Controller
     public function getRevenue()
     {
         $totalSpendCents = AdLedgerTransaction::where('type', 'debit')->sum('amount');
-        $activeCampaigns = Campaign::where('status', 'ACTIVE')->count();
+        $activeCampaigns = Campaign::where('status', 'active')->count();
 
         return response()->json([
             'total_revenue' => abs($totalSpendCents) / 100,
@@ -137,11 +137,13 @@ class AdminController extends Controller
         
         if (in_array($action, ['approve', 'reject', 'suspend'])) {
             if ($action === 'suspend') {
-                $campaign->status = 'PAUSED';
+                // Lowercase to match the delivery auction (AuctionService
+                // serves campaigns with status === 'active').
+                $campaign->status = 'paused';
             }
             if ($action === 'approve') {
                 $campaign->review_status = 'approved';
-                $campaign->status = 'ACTIVE';
+                $campaign->status = 'active';
             }
             if ($action === 'reject') {
                 $campaign->review_status = 'rejected';

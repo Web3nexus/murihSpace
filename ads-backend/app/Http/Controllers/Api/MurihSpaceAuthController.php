@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\Advertiser;
 use App\Models\AdAccount;
+use App\Models\AdAccountMember;
 use App\Models\AdWallet;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
@@ -120,7 +121,16 @@ class MurihSpaceAuthController extends Controller
             ]
         );
 
-        // 5. Generate Sanctum API bearer token
+        // 5. Link the MurihSpace user to the ad account. Catalog sync, wallet
+        //    lookups and analytics rely on this membership to resolve the real
+        //    core user id — previously absent, which made every sync fall back
+        //    to a hardcoded core user instead of the actual creator/vendor.
+        AdAccountMember::firstOrCreate(
+            ['ad_account_id' => $adAccount->id, 'murihspace_user_id' => $murihUserId],
+            ['role' => 'owner']
+        );
+
+        // 6. Generate Sanctum API bearer token
         $sanctumToken = $user->createToken('murihspace-ads-session', ['*'])->plainTextToken;
 
         return response()->json([

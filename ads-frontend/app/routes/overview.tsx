@@ -4,9 +4,11 @@ import { Calendar, ChevronDown, Download, HelpCircle } from "lucide-react";
 import { Area, AreaChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 import { useEffect, useState } from "react";
+import { getAdvertiserId } from "../lib/advertiser";
 
 export default function Overview() {
   const [loading, setLoading] = useState(true);
+  const advertiserId = getAdvertiserId();
   const [metrics, setMetrics] = useState({
     spend: 0,
     impressions: 0,
@@ -20,7 +22,7 @@ export default function Overview() {
     fetch(`${import.meta.env.VITE_ADS_API_URL}/api/analytics/report`, {
       headers: {
         'Accept': 'application/json',
-        'X-Advertiser-ID': '1'
+        'X-Advertiser-ID': advertiserId
       }
     })
       .then(res => res.json())

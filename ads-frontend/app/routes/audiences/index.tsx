@@ -3,6 +3,7 @@ import { Link } from "react-router";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Search, Filter, MoreHorizontal, Plus, Users } from "lucide-react";
+import { getAdvertiserId } from "../../lib/advertiser";
 
 export default function AudiencesIndex() {
   const [audiences, setAudiences] = useState<any[]>([]);
@@ -10,7 +11,7 @@ export default function AudiencesIndex() {
 
   useEffect(() => {
     const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-    const advertiserId = typeof window !== 'undefined' ? localStorage.getItem('advertiser_id') || '1' : '1';
+    const advertiserId = getAdvertiserId();
 
     fetch(`${import.meta.env.VITE_ADS_API_URL}/api/audiences`, {
       headers: {

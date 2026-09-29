@@ -26,6 +26,7 @@ class AdminAdController extends Controller
             'reviewed_at' => now(),
             'review_notes' => $request->input('notes'),
         ]);
+        app(\App\Services\Ads\AdsSyncService::class)->syncCampaignToAdsDb($campaign);
         return response()->json(['message' => 'Campaign approved.', 'campaign' => $campaign]);
     }
 
@@ -43,6 +44,7 @@ class AdminAdController extends Controller
             'reviewed_at' => now(),
             'review_notes' => $validated['reason'],
         ]);
+        app(\App\Services\Ads\AdsSyncService::class)->syncCampaignToAdsDb($campaign);
         return response()->json(['message' => 'Campaign rejected.', 'campaign' => $campaign]);
     }
 
@@ -54,6 +56,7 @@ class AdminAdController extends Controller
             'status' => 'paused',
             'review_notes' => $request->input('reason'),
         ]);
+        app(\App\Services\Ads\AdsSyncService::class)->syncCampaignToAdsDb($campaign);
         return response()->json(['message' => 'Campaign suspended.']);
     }
 
@@ -64,6 +67,7 @@ class AdminAdController extends Controller
             'review_status' => 'removed',
             'status' => 'cancelled',
         ]);
+        app(\App\Services\Ads\AdsSyncService::class)->syncCampaignToAdsDb($campaign);
         $campaign->delete();
         return response()->json(['message' => 'Campaign removed permanently.']);
     }

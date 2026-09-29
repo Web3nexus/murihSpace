@@ -14,8 +14,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { authFetch } from "@/lib/api/authFetch";
 
-// Use the Ads backend for moderation routes
-const ADS_API_BASE = import.meta.env.VITE_ADS_API_URL || "https://ads.murihspace.com/api";
+// Moderate campaigns through the main backend (it owns AdCampaign and
+// mirrors every change into the dedicated ads DB via AdsSyncService).
+const ADS_API_BASE = "/admin/ads";
 
 
 
@@ -47,9 +48,9 @@ export default function AdminAdsPage() {
     setLoading(true);
     try {
       const [cRes, sRes, rRes] = await Promise.all([
-        authFetch(`${ADS_API_BASE}/admin/ads`, {  }),
-        authFetch(`${ADS_API_BASE}/admin/ads/stats`, {  }),
-        authFetch(`${ADS_API_BASE}/admin/ads/revenue`, {  }),
+        authFetch(`${ADS_API_BASE}`, { }),
+        authFetch(`${ADS_API_BASE}/stats`, { }),
+        authFetch(`${ADS_API_BASE}/revenue`, { }),
       ]);
       if (cRes.ok) {
         const j = await cRes.json();
@@ -83,7 +84,7 @@ export default function AdminAdsPage() {
     if (action === "remove" && !await confirm({ title: "Remove Campaign", message: "Permanently remove this campaign?", variant: "destructive" })) return;
 
     try {
-      const url = `${ADS_API_BASE}/admin/ads/${id}/${action}`;
+      const url = `${ADS_API_BASE}/${id}/${action}`;
       const opts: RequestInit = { method: action === "remove" ? "DELETE" : "POST",  };
       if (reason) opts.body = JSON.stringify({ reason });
       const res = await authFetch(url, opts);

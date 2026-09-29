@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router";
 import { Button } from "../../components/ui/button";
 import { ArrowLeft, Code, Activity, Search, Copy, CheckCircle } from "lucide-react";
 import { Input } from "../../components/ui/input";
+import { getAdvertiserId } from "../../lib/advertiser";
 
 export default function PixelDetails() {
   const { id } = useParams();
@@ -10,13 +11,14 @@ export default function PixelDetails() {
   const [events, setEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
+  const advertiserId = getAdvertiserId();
 
   useEffect(() => {
     // Fetch pixel details
     fetch(`${import.meta.env.VITE_ADS_API_URL}/api/pixels/${id}`, {
       headers: { 
         'Accept': 'application/json',
-        'X-Advertiser-ID': '1'
+        'X-Advertiser-ID': advertiserId
       }
     })
       .then(res => res.json())
@@ -33,7 +35,7 @@ export default function PixelDetails() {
     fetch(`${import.meta.env.VITE_ADS_API_URL}/api/pixels/${id}/events`, {
       headers: { 
         'Accept': 'application/json',
-        'X-Advertiser-ID': '1'
+        'X-Advertiser-ID': advertiserId
       }
     })
       .then(res => res.json())

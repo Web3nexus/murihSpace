@@ -5,10 +5,12 @@ import { Input } from "../../components/ui/input";
 import { Search, Plus, ShoppingBag, Store, MoreHorizontal } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "../../components/ui/dialog";
 import { Label } from "../../components/ui/label";
+import { getAdvertiserId } from "../../lib/advertiser";
 
 export default function CatalogsIndex() {
   const [catalogs, setCatalogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const advertiserId = getAdvertiserId();
 
   // Create catalog state
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -24,7 +26,7 @@ export default function CatalogsIndex() {
     fetch(`${import.meta.env.VITE_ADS_API_URL}/api/catalogs`, {
       headers: { 
         'Accept': 'application/json',
-        'X-Advertiser-ID': '1'
+        'X-Advertiser-ID': advertiserId
       }
     })
       .then(res => res.json())
@@ -49,10 +51,9 @@ export default function CatalogsIndex() {
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
-          'X-Advertiser-ID': '1'
+          'X-Advertiser-ID': advertiserId
         },
         body: JSON.stringify({
-          advertiser_id: 1,
           name: newCatalogName
         })
       });

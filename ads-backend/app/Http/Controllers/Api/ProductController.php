@@ -44,12 +44,17 @@ class ProductController extends Controller
             'description' => 'nullable|string',
             'image_url' => 'nullable|url',
             'product_url' => 'nullable|url',
-            'price' => 'nullable|integer',
+            'price' => 'nullable|numeric|min:0',
             'currency' => 'nullable|string|max:3',
             'in_stock' => 'nullable|boolean',
         ]);
 
         $validated['product_catalog_id'] = $catalog->id;
+        // Prices are stored in minor units (cents/kobo); the Ads Studio entry
+        // form submits whole units, so convert before persisting.
+        if (array_key_exists('price', $validated)) {
+            $validated['price'] = (int) round((float) $validated['price'] * 100);
+        }
 
         $product = Product::create($validated);
 
@@ -85,10 +90,14 @@ class ProductController extends Controller
             'description' => 'nullable|string',
             'image_url' => 'nullable|url',
             'product_url' => 'nullable|url',
-            'price' => 'nullable|integer',
+            'price' => 'nullable|numeric|min:0',
             'currency' => 'nullable|string|max:3',
             'in_stock' => 'nullable|boolean',
         ]);
+
+        if (array_key_exists('price', $validated)) {
+            $validated['price'] = (int) round((float) $validated['price'] * 100);
+        }
 
         $product->update($validated);
 

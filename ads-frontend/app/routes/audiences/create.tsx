@@ -4,9 +4,11 @@ import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { ArrowLeft, Users, Filter, Target } from "lucide-react";
+import { getAdvertiserId } from "../../lib/advertiser";
 
 export default function CreateAudience() {
   const navigate = useNavigate();
+  const advertiserId = getAdvertiserId();
   const [name, setName] = useState("");
   const [type, setType] = useState("custom_list");
   const [sourceAudienceId, setSourceAudienceId] = useState("");
@@ -18,7 +20,7 @@ export default function CreateAudience() {
       fetch(`${import.meta.env.VITE_ADS_API_URL}/api/audiences`, {
         headers: { 
           'Accept': 'application/json',
-          'X-Advertiser-ID': '1'
+          'X-Advertiser-ID': advertiserId
         }
       })
       .then(res => res.json())
@@ -48,7 +50,7 @@ export default function CreateAudience() {
         headers: {
           "Content-Type": "application/json",
           "Accept": "application/json",
-          "X-Advertiser-ID": "1"
+          "X-Advertiser-ID": advertiserId
         },
         body: JSON.stringify(payload)
       });

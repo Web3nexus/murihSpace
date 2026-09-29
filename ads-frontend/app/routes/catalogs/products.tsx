@@ -5,12 +5,14 @@ import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { Search, Plus, ArrowLeft, Image as ImageIcon, RefreshCw } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "../../components/ui/dialog";
+import { getAdvertiserId } from "../../lib/advertiser";
 
 export default function CatalogProducts() {
   const { id } = useParams();
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
+  const advertiserId = getAdvertiserId();
 
   // Add Product State
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -35,7 +37,7 @@ export default function CatalogProducts() {
     fetch(`${import.meta.env.VITE_ADS_API_URL}/api/catalogs/${id}/products`, {
       headers: { 
         'Accept': 'application/json',
-        'X-Advertiser-ID': '1'
+        'X-Advertiser-ID': advertiserId
       }
     })
       .then(res => res.json())
@@ -60,7 +62,7 @@ export default function CatalogProducts() {
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
-          'X-Advertiser-ID': '1'
+          'X-Advertiser-ID': advertiserId
         },
         body: JSON.stringify({
           ...newProduct,
@@ -89,7 +91,7 @@ export default function CatalogProducts() {
         method: 'POST',
         headers: {
           'Accept': 'application/json',
-          'X-Advertiser-ID': '1'
+          'X-Advertiser-ID': advertiserId
         }
       });
       const result = await res.json();
@@ -106,6 +108,13 @@ export default function CatalogProducts() {
     } finally {
       setIsSyncing(false);
     }
+  };
+
+  // Prices are persisted in minor units (cents/kobo).
+  const formatPrice = (minorUnits: number | string, currency?: string) => {
+    const amount = Number(minorUnits) / 100;
+    const formatted = amount % 1 === 0 ? amount.toFixed(0) : amount.toFixed(2);
+    return `${formatted} ${currency || ""}`.trim();
   };
 
   return (
@@ -257,7 +266,7 @@ export default function CatalogProducts() {
                     <div className="text-xs text-slate-500">SKU: {product.retailer_product_id}</div>
                   </td>
                   <td className="px-4 py-3 text-slate-600">{product.brand || '-'}</td>
-                  <td className="px-4 py-3 font-medium">{product.price} {product.currency}</td>
+                  <td className="px-4 py-3 font-medium">{formatPrice(product.price, product.currency)}</td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1.5">
                       <div className="h-2 w-2 rounded-full bg-emerald-500"></div>

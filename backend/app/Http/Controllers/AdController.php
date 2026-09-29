@@ -26,12 +26,45 @@ class AdController extends Controller
         return response()->json($campaigns);
     }
 
+    /**
+     * Ad-object catalogue: objectives, CTAs, placements and statuses served
+     * from the backend so client create/status views are never hardcoded.
+     */
+    public function meta(): JsonResponse
+    {
+        return response()->json([
+            'objectives' => collect(AdCampaign::OBJECTIVES)->map(fn (string $code) => [
+                'value' => $code,
+                'label' => AdCampaign::OBJECTIVE_LABELS[$code] ?? ucwords(str_replace('_', ' ', $code)),
+            ])->values(),
+            'cta_options' => [
+                'Shop Now', 'Send Message', 'Join Community',
+                'Learn More', 'Sign Up', 'Order Now', 'Book Now',
+            ],
+            'placements' => [
+                'home_feed', 'community_feed', 'video_feed', 'marketplace',
+                'search', 'creator_profile', 'community_recommendations',
+                'stories', 'mobile', 'desktop_web',
+            ],
+            'statuses' => AdCampaign::STATUSES,
+            'review_statuses' => AdCampaign::REVIEW_STATUSES,
+        ]);
+    }
+
     public function store(Request $request): JsonResponse
     {
         $user = $request->user();
         if (!in_array($user->role, ['creator', 'vendor', 'admin']) && !$user->is_business) {
             return response()->json(['message' => 'You are not eligible to create advertisements.'], 403);
         }
+
+        // Only concrete, known promotable kinds may be associated — never a
+        // user-supplied class name, which could otherwise trigger arbitrary
+        // model hydration.
+        $promotableTypes = [
+            'physical' => \App\Models\PhysicalProduct::class,
+            'digital' => \App\Models\DigitalProduct::class,
+        ];
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
@@ -59,7 +92,7 @@ class AdController extends Controller
             'destination_url' => ['nullable', 'string', 'url', 'max:500'],
             'media_url' => ['nullable', 'string', 'url', 'max:500'],
             'media_type' => ['nullable', 'string', 'max:50'],
-            'promotable_type' => ['nullable', 'string'],
+            'promotable_type' => ['nullable', Rule::in(array_keys($promotableTypes))],
             'promotable_id' => ['nullable', 'integer'],
         ]);
 
@@ -90,14 +123,23 @@ class AdController extends Controller
             ]);
 
             if (!empty($validated['promotable_type']) && !empty($validated['promotable_id'])) {
-                $creative->promotable()->associate(
-                    app($validated['promotable_type'])::findOrFail($validated['promotable_id'])
-                );
+                $promotableModel = $promotableTypes[$validated['promotable_type']];
+                $promotable = $promotableModel::findOrFail($validated['promotable_id']);
+                // Only the owner's own items may be promoted.
+                if ((int) $promotable->creator_id !== (int) $user->id) {
+                    return response()->json(['message' => 'You can only promote your own products.'], 403);
+                }
+                $creative->promotable()->associate($promotable);
                 $creative->save();
             }
         }
 
         $campaign->load('creatives');
+
+        // Mirror into the dedicated ads DB so Ads Studio + delivery + admin
+        // moderation see this campaign (no-op if the ads DB is unreachable).
+        app(\App\Services\Ads\AdsSyncService::class)->syncCampaignToAdsDb($campaign);
+
         return response()->json(['message' => 'Campaign created.', 'campaign' => $campaign], 201);
     }
 
@@ -138,6 +180,8 @@ class AdController extends Controller
         if ($campaign->user_id !== $request->user()->id && !$request->user()->isAdmin()) {
             return response()->json(['message' => 'Forbidden.'], 403);
         }
+        $campaign->update(['status' => 'cancelled', 'review_status' => 'removed']);
+        app(\App\Services\Ads\AdsSyncService::class)->syncCampaignToAdsDb($campaign);
         $campaign->delete();
         return response()->json(['message' => 'Campaign cancelled.']);
     }
@@ -149,6 +193,7 @@ class AdController extends Controller
             return response()->json(['message' => 'Forbidden.'], 403);
         }
         $campaign->update(['status' => 'paused']);
+        app(\App\Services\Ads\AdsSyncService::class)->syncCampaignToAdsDb($campaign);
         return response()->json(['message' => 'Campaign paused.', 'campaign' => $campaign]);
     }
 
@@ -162,6 +207,7 @@ class AdController extends Controller
             return response()->json(['message' => 'Campaign must be approved before resuming.'], 403);
         }
         $campaign->update(['status' => 'active']);
+        app(\App\Services\Ads\AdsSyncService::class)->syncCampaignToAdsDb($campaign);
         return response()->json(['message' => 'Campaign resumed.', 'campaign' => $campaign]);
     }
 
@@ -185,6 +231,9 @@ class AdController extends Controller
         }
 
         $campaign->load('creatives');
+
+        app(\App\Services\Ads\AdsSyncService::class)->syncCampaignToAdsDb($campaign);
+
         return response()->json(['message' => 'Campaign duplicated.', 'campaign' => $campaign], 201);
     }
 
@@ -207,6 +256,7 @@ class AdController extends Controller
             return response()->json(['message' => 'Add at least one creative before submitting.'], 422);
         }
         $campaign->update(['status' => 'active', 'review_status' => 'pending']);
+        app(\App\Services\Ads\AdsSyncService::class)->syncCampaignToAdsDb($campaign);
         return response()->json(['message' => 'Campaign submitted for review.', 'campaign' => $campaign]);
     }
 

@@ -959,6 +959,7 @@ Route::prefix('v1')->group(function () {
             Route::post('/', [AdController::class, 'store']);
             Route::post('/sso-token', [AdsSsoController::class, 'getSsoToken']);
             Route::get('/sso-launch', [AdsSsoController::class, 'launchSso']);
+            Route::get('/meta', [AdController::class, 'meta']);
             Route::get('/{id}', [AdController::class, 'show']);
             Route::put('/{id}', [AdController::class, 'update']);
             Route::delete('/{id}', [AdController::class, 'destroy']);

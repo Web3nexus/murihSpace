@@ -195,6 +195,184 @@ class AdsSyncService
     }
 
     /**
+     * Mirrors a creator/vendor's campaign (plus its first creative) into the
+     * dedicated ads database so the Ads Studio, delivery auction and admin
+     * moderation see it. Idempotent via external_campaign_id. Safe no-op when
+     * the ads database is unreachable or the ad account has not been created.
+     */
+    public function syncCampaignToAdsDb(AdCampaign $campaign): bool
+    {
+        try {
+            $adsDb = DB::connection('ads_pgsql');
+            $schema = $adsDb->getSchemaBuilder();
+
+            if (!$schema->hasTable('campaigns') || !$schema->hasTable('advertisers')) {
+                return false;
+            }
+
+            $advertiser = $adsDb->table('advertisers')
+                ->where('murihspace_user_id', $campaign->user_id)
+                ->first();
+            if (!$advertiser) {
+                Log::debug("Ad mirror skipped: no advertiser for user {$campaign->user_id}.");
+                return false;
+            }
+
+            $adAccount = $adsDb->table('ad_accounts')
+                ->where('advertiser_id', $advertiser->id)
+                ->first();
+            if (!$adAccount) {
+                Log::debug("Ad mirror skipped: no ad account for advertiser {$advertiser->id}.");
+                return false;
+            }
+
+            $externalId = (int) $campaign->getKey();
+            $status = strtolower($campaign->status);
+            $reviewStatus = strtolower($campaign->review_status ?? 'pending');
+            $budget = $campaign->total_budget ?? $campaign->daily_budget;
+            $start = $campaign->start_date?->toDateTimeString();
+            $end = $campaign->end_date?->toDateTimeString();
+
+            // 1. Campaign
+            $campaignFieldValues = [
+                'name' => $campaign->name,
+                'objective' => $campaign->objective,
+                'status' => $status,
+                'review_status' => $reviewStatus,
+                'review_notes' => $campaign->review_notes,
+                'budget_type' => $campaign->daily_budget !== null ? 'daily' : 'lifetime',
+                'budget_amount' => $budget !== null ? round($budget * 100) : null,
+                'start_time' => $start,
+                'end_time' => $end,
+                'updated_at' => now(),
+            ];
+
+            $campaignId = $adsDb->table('campaigns')
+                ->where('ad_account_id', $adAccount->id)
+                ->where('external_campaign_id', $externalId)
+                ->value('id');
+
+            if ($campaignId) {
+                $adsDb->table('campaigns')->where('id', $campaignId)->update($campaignFieldValues);
+            } else {
+                $campaignId = $adsDb->table('campaigns')->insertGetId(array_merge([
+                    'ad_account_id' => $adAccount->id,
+                    'advertiser_id' => $advertiser->id,
+                    'external_campaign_id' => $externalId,
+                    'created_at' => $campaign->created_at?->toDateTimeString() ?? now(),
+                ], $campaignFieldValues));
+            }
+
+            // 2. Ad group (one default group per campaign)
+            $groupId = $adsDb->table('ad_groups')
+                ->where('campaign_id', $campaignId)
+                ->where('external_campaign_id', $externalId)
+                ->value('id');
+
+            // jsonb columns written via PDO-quoted literals with an explicit
+            // ::jsonb cast — the query builder has no insert-time json encode.
+            $jsonb = fn (string $value) => DB::raw($adsDb->getPdo()->quote($value) . '::jsonb');
+
+            $groupFieldValues = [
+                'name' => $campaign->name . ' — Auto Group',
+                'placements' => $jsonb(json_encode($campaign->placements ?? [])),
+                'audience_targeting' => $jsonb(json_encode($campaign->targeting ?? [])),
+                'optimization_goal' => $campaign->objective,
+                'bid_strategy' => 'lowest_cost',
+                'bid_amount' => $budget !== null ? round($budget * 100) : null,
+                'budget_type' => $campaign->daily_budget !== null ? 'daily' : 'lifetime',
+                'budget_amount' => $budget !== null ? round($budget * 100) : null,
+                'status' => $status,
+                'start_time' => $start,
+                'end_time' => $end,
+                'updated_at' => now(),
+            ];
+
+            if ($groupId) {
+                $adsDb->table('ad_groups')->where('id', $groupId)->update($groupFieldValues);
+            } else {
+                $groupId = $adsDb->table('ad_groups')->insertGetId(array_merge([
+                    'campaign_id' => $campaignId,
+                    'external_campaign_id' => $externalId,
+                    'created_at' => now(),
+                ], $groupFieldValues));
+            }
+
+            // 3. Creative (from the first main-app creative if present)
+            $creative = $campaign->creatives()->first();
+            $creativeId = null;
+            if ($creative && $schema->hasTable('creatives')) {
+                $creativeId = $adsDb->table('creatives')
+                    ->where('advertiser_id', $advertiser->id)
+                    ->where('external_campaign_id', $externalId)
+                    ->value('id');
+
+                $assets = [
+                    'headline' => $creative->headline,
+                    'body' => $creative->description,
+                    'cta_type' => $creative->cta_text,
+                    'url' => $creative->destination_url,
+                    'media_url' => $creative->media_url,
+                    'media_type' => $creative->media_type,
+                ];
+
+                $creativeFieldValues = [
+                    'type' => $creative->media_type === 'video' ? 'video' : 'single_image',
+                    'assets' => $jsonb(json_encode($assets)),
+                    'status' => $reviewStatus === 'approved' ? 'approved' : 'pending',
+                    'updated_at' => now(),
+                ];
+
+                if ($creativeId) {
+                    $adsDb->table('creatives')->where('id', $creativeId)->update($creativeFieldValues);
+                } else {
+                    $creativeId = $adsDb->table('creatives')->insertGetId(array_merge([
+                        'advertiser_id' => $advertiser->id,
+                        'external_campaign_id' => $externalId,
+                        'created_at' => now(),
+                    ], $creativeFieldValues));
+                }
+            }
+
+            // 4. Ad (single ad per campaign using the auto group)
+            if ($schema->hasTable('ads')) {
+                $adId = $adsDb->table('ads')
+                    ->where('ad_group_id', $groupId)
+                    ->where('external_campaign_id', $externalId)
+                    ->value('id');
+
+                $adFieldValues = [
+                    'name' => $campaign->name,
+                    'headline' => $creative?->headline,
+                    'body' => $creative?->description,
+                    'cta_type' => $creative?->cta_text,
+                    'destination_url' => $creative?->destination_url,
+                    'promoted_object_type' => $creative?->promotable_type,
+                    'promoted_object_id' => $creative?->promotable_id,
+                    'status' => $status,
+                    'creative_id' => $creativeId,
+                    'updated_at' => now(),
+                ];
+
+                if ($adId) {
+                    $adsDb->table('ads')->where('id', $adId)->update($adFieldValues);
+                } else {
+                    $adsDb->table('ads')->insert(array_merge([
+                        'ad_group_id' => $groupId,
+                        'external_campaign_id' => $externalId,
+                        'created_at' => now(),
+                    ], $adFieldValues));
+                }
+            }
+
+            return true;
+        } catch (\Throwable $e) {
+            Log::warning('Ad campaign mirror sync skipped: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
      * Get active sponsored advertisements for specific placements:
      * - 'right_rail' (desktop right side sponsored bar)
      * - 'inter_post' (in-feed TikTok & Facebook style video/image with countdown)

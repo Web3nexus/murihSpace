@@ -3,6 +3,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "../../components/ui/ca
 import { Button } from "../../components/ui/button";
 import { Calendar, Download, HelpCircle, Activity } from "lucide-react";
 import { Area, AreaChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { getAdvertiserId } from "../../lib/advertiser";
 
 export default function AnalyticsDashboard() {
   const [loading, setLoading] = useState(true);
@@ -19,7 +20,7 @@ export default function AnalyticsDashboard() {
   const [chartData, setChartData] = useState<any[]>([]);
 
   useEffect(() => {
-    const advertiserId = typeof window !== 'undefined' ? (localStorage.getItem('active_advertiser_id') || '1') : '1';
+    const advertiserId = getAdvertiserId();
     fetch(`${import.meta.env.VITE_ADS_API_URL}/api/analytics/report`, {
       headers: {
         'Accept': 'application/json',

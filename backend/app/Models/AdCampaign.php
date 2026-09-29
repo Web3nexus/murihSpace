@@ -33,6 +33,19 @@ class AdCampaign extends Model
         'event_promotion', 'video_views', 'messages_enquiries', 'external_traffic',
     ];
 
+    public const OBJECTIVE_LABELS = [
+        'post_engagement' => 'Post Engagement',
+        'profile_followers' => 'Profile & Reach',
+        'product_sales' => 'Catalog Sales',
+        'product_traffic' => 'Product Traffic',
+        'community_promotion' => 'Community Promotion',
+        'community_membership' => 'Community Membership',
+        'event_promotion' => 'Event Promotion',
+        'video_views' => 'Video Views',
+        'messages_enquiries' => 'Messages & Enquiries',
+        'external_traffic' => 'External Traffic',
+    ];
+
     public const STATUSES = ['draft', 'active', 'paused', 'completed', 'cancelled'];
 
     public const REVIEW_STATUSES = ['pending', 'approved', 'rejected', 'suspended', 'removed'];

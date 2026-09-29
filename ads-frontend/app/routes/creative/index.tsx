@@ -3,12 +3,14 @@ import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Search, Filter, MoreHorizontal, Upload, Image as ImageIcon, Video, Loader2 } from "lucide-react";
 import { ListShell } from "../../components/shared/ListShell";
+import { getAdvertiserId } from "../../lib/advertiser";
 
 export default function CreativeIndex() {
   const [creatives, setCreatives] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [activeTab, setActiveTab] = useState("media");
+  const advertiserId = getAdvertiserId();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchCreatives = async () => {
@@ -17,7 +19,7 @@ export default function CreativeIndex() {
       const res = await fetch(`${import.meta.env.VITE_ADS_API_URL}/api/creatives`, {
         headers: {
           "Accept": "application/json",
-          "X-Advertiser-ID": '1',
+          "X-Advertiser-ID": advertiserId,
         }
       });
       if (res.ok) {
@@ -52,7 +54,7 @@ export default function CreativeIndex() {
         method: "POST",
         headers: {
           "Accept": "application/json",
-          "X-Advertiser-ID": '1',
+          "X-Advertiser-ID": advertiserId,
         },
         body: formData,
       });

@@ -4,6 +4,7 @@ import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Search, Filter, SlidersHorizontal, MoreHorizontal, Plus, Loader2 } from "lucide-react";
 import { ListShell } from "../../components/shared/ListShell";
+import { getAdvertiserId } from "../../lib/advertiser";
 
 export default function CampaignsIndex() {
   const [campaigns, setCampaigns] = useState<any[]>([]);
@@ -11,6 +12,7 @@ export default function CampaignsIndex() {
   const [ads, setAds] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("campaigns");
+  const advertiserId = getAdvertiserId();
 
   const fetchCampaigns = async () => {
     setLoading(true);
@@ -18,7 +20,7 @@ export default function CampaignsIndex() {
       const res = await fetch(`${import.meta.env.VITE_ADS_API_URL}/api/campaigns`, {
         headers: {
           "Accept": "application/json",
-          "X-Advertiser-ID": '1',
+          "X-Advertiser-ID": advertiserId,
         }
       });
       if (res.ok) {
@@ -38,7 +40,7 @@ export default function CampaignsIndex() {
       const res = await fetch(`${import.meta.env.VITE_ADS_API_URL}/api/ad-groups`, {
         headers: {
           "Accept": "application/json",
-          "X-Advertiser-ID": '1',
+          "X-Advertiser-ID": advertiserId,
         }
       });
       if (res.ok) {
@@ -58,7 +60,7 @@ export default function CampaignsIndex() {
       const res = await fetch(`${import.meta.env.VITE_ADS_API_URL}/api/ads`, {
         headers: {
           "Accept": "application/json",
-          "X-Advertiser-ID": '1',
+          "X-Advertiser-ID": advertiserId,
         }
       });
       if (res.ok) {

@@ -5,10 +5,12 @@ import { Input } from "../../components/ui/input";
 import { Search, Plus, Activity, Code, Settings } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "../../components/ui/dialog";
 import { Label } from "../../components/ui/label";
+import { getAdvertiserId } from "../../lib/advertiser";
 
 export default function EventsManagerIndex() {
   const [pixels, setPixels] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const advertiserId = getAdvertiserId();
 
   // Create pixel state
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -25,7 +27,7 @@ export default function EventsManagerIndex() {
     fetch(`${import.meta.env.VITE_ADS_API_URL}/api/pixels`, {
       headers: { 
         'Accept': 'application/json',
-        'X-Advertiser-ID': '1'
+        'X-Advertiser-ID': advertiserId
       }
     })
       .then(res => res.json())
@@ -50,10 +52,9 @@ export default function EventsManagerIndex() {
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
-          'X-Advertiser-ID': '1'
+          'X-Advertiser-ID': advertiserId
         },
         body: JSON.stringify({
-          advertiser_id: 1,
           name: newPixelName,
           domain: newPixelDomain
         })

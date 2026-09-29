@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\ProductCatalog;
 use App\Models\Product;
+use App\Models\Advertiser;
+use App\Models\AdAccount;
 use App\Models\AdAccountMember;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -97,7 +99,8 @@ class ProductCatalogController extends Controller
     }
 
     /**
-     * Sync products from the main MurihSpace app for this advertiser.
+     * Sync products created by the linked MurihSpace creator/vendor into this
+     * advertiser's product catalog.
      */
     public function sync(Request $request, string $id)
     {
@@ -109,15 +112,30 @@ class ProductCatalogController extends Controller
         // Verify catalog ownership
         $catalog = ProductCatalog::where('advertiser_id', $advertiserId)->findOrFail($id);
 
-        // To sync from the core DB, we need the core user ID. 
-        // In this implementation, we get the first member of the ad account.
-        $member = AdAccountMember::where('ad_account_id', $advertiserId)->first();
-        $coreUserId = $member ? $member->murihspace_user_id : 1; // Fallback to 1 for dev if needed
+        // Resolve the real core user through the SSO membership link. Without
+        // this the sync silently imported user #1's products for everyone.
+        $advertiser = Advertiser::find($advertiserId);
+        if (!$advertiser) {
+            return response()->json(['message' => 'Advertiser not found for this account.'], 404);
+        }
+
+        $adAccount = AdAccount::where('advertiser_id', $advertiserId)->first();
+        $member = $adAccount
+            ? AdAccountMember::where('ad_account_id', $adAccount->id)->first()
+            : null;
+
+        if (!$member) {
+            return response()->json([
+                'message' => 'No MurihSpace account is linked to this ad account yet. Open Ads Studio once via the MurihSpace app to create the link.',
+            ], 422);
+        }
+
+        $coreUserId = $member->murihspace_user_id;
 
         $syncedCount = 0;
 
         try {
-            // Fetch physical products
+            // Fetch physical products (prices are in whole currency units)
             $physicalProducts = DB::connection('core')
                 ->table('physical_products')
                 ->where('creator_id', $coreUserId)
@@ -137,7 +155,8 @@ class ProductCatalogController extends Controller
                         'name' => $product->title,
                         'description' => $product->description,
                         'image_url' => $imageUrl,
-                        'price' => $product->price,
+                        // Product prices are stored in minor units (cents/kobo).
+                        'price' => (int) round((float) $product->price * 100),
                         'currency' => $product->currency ?? $catalog->currency,
                         'in_stock' => $product->stock_quantity > 0 || !$product->track_inventory,
                     ]
@@ -161,7 +180,7 @@ class ProductCatalogController extends Controller
                         'name' => $product->title,
                         'description' => $product->description,
                         'image_url' => $product->cover_url,
-                        'price' => $product->price, // Digital product prices are decimals, usually stored as decimal/double
+                        'price' => (int) round((float) $product->price * 100),
                         'currency' => $product->currency ?? $catalog->currency,
                         'in_stock' => true,
                     ]
