@@ -58,4 +58,20 @@ class ApiReadyTest extends TestCase
         $this->assertFalse($response->json('success'));
         $this->assertNull($response->json('data'));
     }
+
+    /**
+     * Guests on protected API routes must receive a JSON 401, never a 500.
+     *
+     * Covers a regression where the default guest redirect (route('login'))
+     * threw RouteNotFoundException because no web route named "login" exists.
+     */
+    public function test_guest_hitting_protected_api_route_gets_401_not_500(): void
+    {
+        $response = $this->get('/api/v1/gifts/catalogue');
+
+        $response->assertStatus(401);
+        $response->assertHeader('X-Request-ID');
+        $response->assertJson(['success' => false]);
+        $this->assertEquals('Unauthenticated.', $response->json('message'));
+    }
 }

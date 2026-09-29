@@ -43,6 +43,13 @@ return Application::configure(basePath: dirname(__DIR__))
         },
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Guests hitting protected routes must get a JSON 401, not a redirect.
+        // No web route named "login" exists here, so the default guest redirect
+        // (route('login')) throws a RouteNotFoundException that surfaces as 500.
+        $middleware->redirectGuestsTo(function (): never {
+            throw new AuthenticationException('Unauthenticated.');
+        });
+
         $middleware->api(prepend: [
             CaptureRequestAndEnvelopeResponse::class,
             SecurityHeaders::class,
