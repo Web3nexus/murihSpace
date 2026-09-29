@@ -24,7 +24,9 @@ import { SEOHead } from "@/components/common/SEOHead";
 import { Button } from "@/components/ui/button";
 import { PublicLiveStage } from "@/components/live/PublicLiveStage";
 import { useAuth } from "@/hooks/useAuth";
+import { useLiveStreamEnded, type LiveStreamEndedPayload } from "@/hooks/useLiveStreamEnded";
 import { authFetch } from "@/lib/api/authFetch";
+import { toast } from "sonner";
 
 interface LiveHost {
   id: number;
@@ -39,6 +41,12 @@ interface LiveCommunity {
   slug?: string | null;
 }
 
+interface LiveSummary {
+  total_likes?: number;
+  peak_viewers?: number;
+  total_coins_earned?: number;
+}
+
 interface LiveStream {
   id: number;
   tracking_id: string;
@@ -48,14 +56,23 @@ interface LiveStream {
   status: string;
   viewers_count: number;
   started_at: string | null;
+  ended_at?: string | null;
+  summary?: LiveSummary;
   host: LiveHost | null;
   community: LiveCommunity | null;
+}
+
+interface ViewerContext {
+  is_host: boolean;
+  has_joined: boolean;
+  last_joined_at: string | null;
 }
 
 interface ResolveData {
   stream: LiveStream;
   canonical_url: string;
   legacy: boolean;
+  viewer_context?: ViewerContext;
   livekit?: {
     token: string;
     host: string;
@@ -130,6 +147,44 @@ function formatMode(mode: string): string {
   return "Video broadcast";
 }
 
+function formatDateTime(value: string | null | undefined): string {
+  if (!value) {
+    return "—";
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "—";
+  }
+
+  return date.toLocaleString([], { dateStyle: "medium", timeStyle: "short" });
+}
+
+function formatSessionStart(value: string | null | undefined): string {
+  if (!value) {
+    return "—";
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "—";
+  }
+
+  return date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+}
+
+function formatDuration(start: string | null | undefined, end: string | null | undefined): string {
+  if (!start || !end) {
+    return "";
+  }
+
+  const seconds = Math.max(0, Math.round((new Date(end).getTime() - new Date(start).getTime()) / 1000));
+  const minutes = Math.floor(seconds / 60);
+  const remainder = seconds % 60;
+
+  return minutes > 0 ? `${minutes}m ${remainder}s` : `${seconds}s`;
+}
+
 function copySearchTo(target: URL): void {
   const current = new URL(window.location.href);
   current.searchParams.forEach((value, key) => {
@@ -167,6 +222,7 @@ export function PublicLivePage() {
   const [joinError, setJoinError] = useState("");
   const [liveKitAccess, setLiveKitAccess] = useState<LiveKitAccess | null>(null);
   const [shareCopied, setShareCopied] = useState(false);
+  const [viewerContext, setViewerContext] = useState<ViewerContext | null>(null);
   const leaveSentRef = useRef(false);
   const joinedRef = useRef(false);
 
@@ -203,6 +259,7 @@ export function PublicLivePage() {
 
         setStream(resolved.stream);
         setCanonicalUrl(resolved.canonical_url || null);
+        setViewerContext(resolved.viewer_context ?? null);
         if (resolved.legacy && resolved.canonical_url) {
           updateCanonicalAddress(resolved.canonical_url);
         }
@@ -241,6 +298,31 @@ export function PublicLivePage() {
   }, [trackingId]);
 
   const streamId = stream?.id ?? null;
+
+  // When the host ends the stream, close it for everyone still watching at
+  // the same time, then show the ended view (with start/end times) below.
+  const handleStreamEnded = useCallback((payload: LiveStreamEndedPayload) => {
+    setStream((prev) => {
+      if (!prev) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        status: payload.stream.status === "ended" ? "ended" : prev.status,
+        ended_at: payload.stream.ended_at ?? prev.ended_at ?? null,
+        summary: payload.summary ?? prev.summary,
+      };
+    });
+    setViewerContext((prev) => (prev ? { ...prev, has_joined: true } : prev));
+    joinedRef.current = false;
+    setLiveKitAccess(null);
+    setJoining(false);
+    setJoinError("");
+    toast.info("This live broadcast has ended.");
+  }, []);
+
+  useLiveStreamEnded(streamId, handleStreamEnded);
   const sendLeave = useCallback(() => {
     if (streamId === null || !joinedRef.current || leaveSentRef.current) {
       return;
@@ -398,6 +480,7 @@ export function PublicLivePage() {
           liveKitAccess={liveKitAccess}
           isHost={user?.id === stream.host?.id}
           onLeave={handleLeave}
+          onStreamEnded={handleStreamEnded}
         />
       </div>
     );
@@ -409,6 +492,10 @@ export function PublicLivePage() {
   const viewerCount = Number(stream.viewers_count) || 0;
   const streamMode = formatMode(stream.stream_mode);
   const isHost = user?.id === stream.host?.id;
+  const hasJoinedBefore = viewerContext?.has_joined === true;
+  const lastJoinedLabel = hasJoinedBefore && viewerContext?.last_joined_at
+    ? ` · joined at ${formatSessionStart(viewerContext.last_joined_at)}`
+    : "";
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -500,35 +587,74 @@ export function PublicLivePage() {
                   <div className="flex items-center justify-between gap-4">
                     <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground">
                       <Eye weight="fill" className="h-4 w-4 text-secondary" />
-                      Watching now
+                      {isLive ? "Watching now" : "Broadcast ended"}
                     </div>
-                    <span className="text-2xl font-extrabold tracking-tight text-foreground">{viewerCount}</span>
+                    <span className="text-2xl font-extrabold tracking-tight text-foreground">{isLive ? viewerCount : "—"}</span>
                   </div>
                   <div className="mt-6 h-px bg-border/70" />
-                  <div className="mt-6 space-y-4">
+                  <div className="mt-6 space-y-3">
                     <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                      <Calendar weight="fill" className="h-4 w-4 text-secondary" />
-                      <span>{formatStartedAt(stream.started_at)}</span>
+                      <Calendar weight="fill" className="h-4 w-4 shrink-0 text-secondary" />
+                      <span>{isLive ? formatStartedAt(stream.started_at) : `Started ${formatDateTime(stream.started_at)}`}</span>
                     </div>
+                    {!isLive && (
+                      <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                        <Clock weight="fill" className="h-4 w-4 shrink-0 text-secondary" />
+                        <span>Ended {formatDateTime(stream.ended_at)}</span>
+                      </div>
+                    )}
                     <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                      <Users weight="fill" className="h-4 w-4 text-secondary" />
-                      <span>Live community session</span>
+                      <Users weight="fill" className="h-4 w-4 shrink-0 text-secondary" />
+                      <span>{isLive ? "Live community session" : "Thanks for tuning in"}</span>
                     </div>
-                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                      <Lock weight="fill" className="h-4 w-4 text-secondary" />
-                      <span>Sign-in required to enter</span>
-                    </div>
+                    {isLive ? (
+                      <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                        <Lock weight="fill" className="h-4 w-4 shrink-0 text-secondary" />
+                        <span>Sign-in required to enter</span>
+                      </div>
+                    ) : (
+                      stream.ended_at &&
+                      stream.started_at && (
+                        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                          <Radio weight="fill" className="h-4 w-4 shrink-0 text-secondary" />
+                          <span>Lasted {formatDuration(stream.started_at, stream.ended_at)}</span>
+                        </div>
+                      )
+                    )}
                   </div>
                 </div>
 
                 <div className="mt-10">
                   {isLive ? (
-                    <Button onClick={handleJoin} disabled={joining || authLoading} className="h-12 w-full gap-2 rounded-2xl bg-secondary text-sm font-extrabold text-secondary-foreground shadow-lg shadow-secondary/20 transition-transform hover:-translate-y-0.5 hover:bg-secondary/90">
-                      {joining ? <Loader2 weight="fill" className="h-4 w-4 animate-spin" /> : isAuthenticated ? <Play weight="fill" className="h-4 w-4" /> : <SignIn weight="fill" className="h-4 w-4" />}
-                      {joining ? "Preparing your room pass" : isAuthenticated ? isHost ? "Open live studio" : "Join the live room" : "Sign in to join"}
-                    </Button>
+                    <>
+                      <Button onClick={handleJoin} disabled={joining || authLoading} className="h-12 w-full gap-2 rounded-2xl bg-secondary text-sm font-extrabold text-secondary-foreground shadow-lg shadow-secondary/20 transition-transform hover:-translate-y-0.5 hover:bg-secondary/90">
+                        {joining ? <Loader2 weight="fill" className="h-4 w-4 animate-spin" /> : isAuthenticated ? <Play weight="fill" className="h-4 w-4" /> : <SignIn weight="fill" className="h-4 w-4" />}
+                        {joining ? "Preparing your room pass" : !isAuthenticated ? "Sign in to join" : isHost ? "Open live studio" : hasJoinedBefore ? "Rejoin the live room" : "Join the live room"}
+                      </Button>
+                      {isAuthenticated && hasJoinedBefore && (
+                        <p className="mt-3 rounded-xl bg-secondary/10 px-3 py-2 text-center text-[11px] font-semibold leading-5 text-secondary">You joined this session earlier{lastJoinedLabel}. Welcome back!</p>
+                      )}
+                    </>
                   ) : (
-                    <div className="rounded-2xl border border-border bg-card/70 p-4 text-sm leading-6 text-muted-foreground">This broadcast has ended. Thanks for stopping by — the creator may have another live session soon.</div>
+                    <div className="rounded-2xl border border-border bg-card/70 p-4 text-sm leading-6 text-muted-foreground">
+                      <p className="font-bold text-foreground">This broadcast has ended</p>
+                      <p className="mt-2">
+                        Started {formatDateTime(stream.started_at)} · Ended {formatDateTime(stream.ended_at)}
+                      </p>
+                      {stream.summary && (typeof stream.summary.total_likes === "number" || typeof stream.summary.peak_viewers === "number" || typeof stream.summary.total_coins_earned === "number") && (
+                        <div className="mt-4 flex flex-wrap gap-2">
+                          {typeof stream.summary.total_likes === "number" && (
+                            <span className="rounded-full bg-muted px-3 py-1 text-[11px] font-bold text-muted-foreground">{stream.summary.total_likes.toLocaleString()} likes</span>
+                          )}
+                          {typeof stream.summary.peak_viewers === "number" && (
+                            <span className="rounded-full bg-muted px-3 py-1 text-[11px] font-bold text-muted-foreground">{stream.summary.peak_viewers.toLocaleString()} peak viewers</span>
+                          )}
+                          {typeof stream.summary.total_coins_earned === "number" && (
+                            <span className="rounded-full bg-muted px-3 py-1 text-[11px] font-bold text-muted-foreground">🪙 {stream.summary.total_coins_earned.toLocaleString()} earned</span>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   )}
                   {joinError && <p className="mt-3 text-xs font-semibold leading-5 text-red-600" role="alert">{joinError}</p>}
                   <p className="mt-3 text-center text-[11px] leading-5 text-muted-foreground">You can keep this link and return to the live session anytime.</p>

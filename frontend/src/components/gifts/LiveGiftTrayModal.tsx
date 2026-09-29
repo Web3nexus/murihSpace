@@ -41,26 +41,42 @@ export function LiveGiftTrayModal({
   const [selectedGift, setSelectedGift] = useState<GiftItem | null>(null);
   const [systemBalance, setSystemBalance] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [feePreview, setFeePreview] = useState<any>(null);
 
   const fetchGiftsAndWallet = useCallback(async () => {
     setLoading(true);
+    setLoadError(null);
     try {
       const [gRes, wRes] = await Promise.all([
         apiClient.get("/gifts/catalogue"),
         apiClient.get("/wallet/type/system"),
       ]);
 
-      const giftList = gRes.data?.data || gRes.data || [];
-      setGifts(giftList);
-      if (giftList.length > 0) setSelectedGift(giftList[0]);
+      const giftList = (gRes.data?.data || gRes.data || []) as GiftItem[];
+      const safeGifts: GiftItem[] = (Array.isArray(giftList) ? giftList : []).map((gift) => ({
+        id: Number(gift.id),
+        name: gift.name || "Gift",
+        coin_price: Math.max(0, Number(gift.coin_price) || 0),
+        icon: gift.icon,
+        category: gift.category,
+      }));
+      setGifts(safeGifts);
+      const firstSelectable = safeGifts.find((gift) => gift.coin_price > 0) || safeGifts[0];
+      if (firstSelectable) setSelectedGift(firstSelectable);
 
-      if (wRes.data?.data) {
-        setSystemBalance(wRes.data.data.available);
+      const available = wRes.data?.data?.available;
+      if (typeof available === "number" || typeof available === "string") {
+        setSystemBalance(Number(available) || 0);
       }
-    } catch {
-      toast.error("Failed to load gifts catalogue.");
+    } catch (err: unknown) {
+      const apiErr = err as ApiError;
+      setLoadError(
+        apiErr.code === "UNAUTHORIZED"
+          ? "Please sign in to send gifts."
+          : "We could not load the gift catalogue. Check your connection and try again."
+      );
     } finally {
       setLoading(false);
     }
@@ -153,6 +169,28 @@ export function LiveGiftTrayModal({
         {loading ? (
           <div className="flex items-center justify-center py-10 text-muted-foreground text-sm">
             <Loader2 weight="fill" className="h-5 w-5 animate-spin mr-2" /> Loading gift tray...
+          </div>
+        ) : loadError ? (
+          <div className="flex flex-col items-center justify-center gap-3 py-8 text-center">
+            <p className="text-sm font-semibold text-muted-foreground">{loadError}</p>
+            <button
+              type="button"
+              onClick={() => void fetchGiftsAndWallet()}
+              className="rounded-lg bg-purple-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-purple-700"
+            >
+              Try again
+            </button>
+          </div>
+        ) : gifts.length === 0 ? (
+          <div className="flex flex-col items-center justify-center gap-2 py-8 text-center">
+            <p className="text-sm font-semibold text-muted-foreground">No gifts are available right now.</p>
+            <button
+              type="button"
+              onClick={() => void fetchGiftsAndWallet()}
+              className="rounded-lg bg-purple-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-purple-700"
+            >
+              Reload
+            </button>
           </div>
         ) : (
           <div className="space-y-4 pt-1">

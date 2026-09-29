@@ -3,12 +3,14 @@
 namespace Tests\Feature;
 
 use App\Models\Gift;
+use App\Events\LiveStreamEnded;
 use App\Models\LiveStream;
 use App\Models\LiveStreamParticipant;
 use App\Models\User;
 use App\Models\Wallet;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Event;
 use Tests\TestCase;
 
 class LiveStreamFeatureTest extends TestCase
@@ -498,6 +500,83 @@ class LiveStreamFeatureTest extends TestCase
             ->assertJsonPath('data.stream.viewers_count', 0);
 
         $this->assertEquals('ended', $stream->fresh()->status);
+    }
+
+    public function test_host_ending_stream_broadcasts_live_stream_ended_event(): void
+    {
+        Event::fake([LiveStreamEnded::class]);
+
+        $host = User::factory()->create();
+        $viewer = User::factory()->create();
+
+        $stream = LiveStream::create([
+            'user_id' => $host->id,
+            'title' => 'Night Show',
+            'stream_mode' => 'video',
+            'status' => 'live',
+            'livekit_room' => 'room_broadcast_night',
+            'viewers_count' => 2,
+            'likes_count' => 4,
+            'started_at' => now()->subMinutes(15),
+        ]);
+
+        LiveStreamParticipant::create([
+            'live_stream_id' => $stream->id,
+            'user_id' => $viewer->id,
+            'role' => 'viewer',
+            'is_active' => true,
+            'joined_at' => now()->subMinutes(5),
+        ]);
+
+        $this->actingAs($host)->postJson("/api/v1/live/{$stream->id}/end")->assertStatus(200);
+
+        Event::assertDispatched(LiveStreamEnded::class, function (LiveStreamEnded $event) use ($stream) {
+            $payload = $event->broadcastWith();
+
+            return (int) $payload['stream']['id'] === (int) $stream->id
+                && $payload['stream']['status'] === 'ended'
+                && $payload['stream']['ended_at'] !== null
+                && isset($payload['summary']['total_likes']);
+        });
+
+        $this->assertFalse(LiveStreamParticipant::where('live_stream_id', $stream->id)
+            ->where('user_id', $viewer->id)
+            ->first()->is_active);
+    }
+
+    public function test_resolve_exposes_ended_at_summary_and_viewer_rejoin_context(): void
+    {
+        $host = User::factory()->create();
+        $viewer = User::factory()->create();
+
+        $stream = LiveStream::create([
+            'user_id' => $host->id,
+            'title' => 'Morning Show',
+            'stream_mode' => 'video',
+            'status' => 'live',
+            'livekit_room' => 'room_resolve_ctx',
+            'likes_count' => 9,
+            'peak_viewers' => 3,
+            'total_coins_earned' => 120,
+            'started_at' => now()->subMinutes(10),
+        ]);
+
+        LiveStreamParticipant::create([
+            'live_stream_id' => $stream->id,
+            'user_id' => $viewer->id,
+            'role' => 'viewer',
+            'is_active' => true,
+            'joined_at' => now()->subMinutes(4),
+        ]);
+
+        $res = $this->actingAs($viewer)->getJson("/api/v1/live/resolve/{$stream->tracking_id}");
+        $res->assertStatus(200)
+            ->assertJsonPath('data.stream.status', 'live')
+            ->assertJsonPath('data.viewer_context.has_joined', true)
+            ->assertJsonPath('data.viewer_context.is_host', false)
+            ->assertJsonPath('data.stream.summary.total_likes', 9)
+            ->assertJsonPath('data.stream.summary.total_coins_earned', 120)
+            ->assertJsonStructure(['data' => ['stream' => ['ended_at', 'started_at']]]);
     }
 
     public function test_live_stream_starts_and_joins_gracefully_even_when_livekit_token_generation_fails(): void

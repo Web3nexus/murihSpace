@@ -17,6 +17,7 @@ use App\Models\PhysicalProduct;
 use App\Models\Storefront;
 use App\Models\User;
 use App\Models\Wallet;
+use App\Events\LiveStreamEnded;
 use App\Services\Accounting\AccountingStreamService;
 use App\Services\LiveKitService;
 use App\Services\LiveStreamAttributionService;
@@ -77,6 +78,23 @@ class LiveStreamController extends Controller
         $attribution = $this->liveAttributions->record($request, $stream, 'click');
         $legacy = $stream->tracking_id !== $token;
 
+        $viewerContext = [
+            'is_host' => false,
+            'has_joined' => false,
+            'last_joined_at' => null,
+        ];
+        if ($viewer = $request->user('sanctum') ?? $request->user()) {
+            $participant = LiveStreamParticipant::where('live_stream_id', $stream->id)
+                ->where('user_id', $viewer->id)
+                ->first();
+
+            $viewerContext = [
+                'is_host' => (int) $stream->user_id === (int) $viewer->id,
+                'has_joined' => $participant !== null,
+                'last_joined_at' => $participant?->joined_at?->toIso8601String(),
+            ];
+        }
+
         $livekit = null;
         if ($stream->status === 'live') {
             $user = $request->user('sanctum') ?? $request->user();
@@ -111,6 +129,7 @@ class LiveStreamController extends Controller
             'canonical_url' => $this->liveAttributions->canonicalUrl($stream),
             'legacy' => $legacy,
             'livekit' => $livekit,
+            'viewer_context' => $viewerContext,
             'attribution' => [
                 'session_id' => $attribution->session_id,
                 'event' => 'click',
@@ -253,6 +272,12 @@ class LiveStreamController extends Controller
             'status' => $stream->status,
             'viewers_count' => $stream->viewers_count,
             'started_at' => $stream->started_at?->toIso8601String(),
+            'ended_at' => $stream->ended_at?->toIso8601String(),
+            'summary' => [
+                'total_likes' => $stream->likes_count,
+                'peak_viewers' => $stream->peak_viewers,
+                'total_coins_earned' => $stream->total_coins_earned,
+            ],
             'host' => $host ? [
                 'id' => $host->id,
                 'name' => $host->name,
@@ -316,12 +341,34 @@ class LiveStreamController extends Controller
         }
 
         // End any active streams previously hosted by this user
-        LiveStream::where('user_id', $user->id)
+        $previousStreams = LiveStream::where('user_id', $user->id)
             ->where('status', 'live')
-            ->update([
+            ->get();
+
+        foreach ($previousStreams as $previousStream) {
+            $previousStream->update([
                 'status' => 'ended',
                 'ended_at' => now(),
             ]);
+
+            LiveStreamParticipant::where('live_stream_id', $previousStream->id)
+                ->where('is_active', true)
+                ->update([
+                    'is_active' => false,
+                    'left_at' => now(),
+                ]);
+
+            try {
+                LiveStreamEnded::dispatch($previousStream, [
+                    'total_likes' => $previousStream->likes_count,
+                    'peak_viewers' => $previousStream->peak_viewers,
+                    'total_coins_earned' => $previousStream->total_coins_earned,
+                    'duration_seconds' => $previousStream->started_at ? $previousStream->ended_at->diffInSeconds($previousStream->started_at) : 0,
+                ]);
+            } catch (\Throwable $e) {
+                \Log::warning('[LiveStreamController] LiveStreamEnded broadcast failed: '.$e->getMessage(), ['stream_id' => $previousStream->id]);
+            }
+        }
 
         $roomName = 'live_stream_'.Str::uuid();
 
@@ -1091,15 +1138,24 @@ class LiveStreamController extends Controller
                 'left_at' => now(),
             ]);
 
+        $summary = [
+            'total_likes' => $stream->likes_count,
+            'peak_viewers' => $stream->peak_viewers,
+            'total_coins_earned' => $stream->total_coins_earned,
+            'duration_seconds' => $stream->started_at ? $stream->ended_at->diffInSeconds($stream->started_at) : 0,
+        ];
+
+        // Tell every viewer still on this stream that the live is over.
+        try {
+            LiveStreamEnded::dispatch($stream, $summary);
+        } catch (\Throwable $e) {
+            \Log::warning('[LiveStreamController] LiveStreamEnded broadcast failed: '.$e->getMessage(), ['stream_id' => $stream->id]);
+        }
+
         return response()->json([
             'message' => 'Live stream ended successfully.',
             'stream' => $stream->fresh(),
-            'summary' => [
-                'total_likes' => $stream->likes_count,
-                'peak_viewers' => $stream->peak_viewers,
-                'total_coins_earned' => $stream->total_coins_earned,
-                'duration_seconds' => $stream->started_at ? $stream->ended_at->diffInSeconds($stream->started_at) : 0,
-            ],
+            'summary' => $summary,
         ]);
     }
 }

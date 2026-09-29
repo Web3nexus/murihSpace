@@ -35,6 +35,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { authFetch } from "@/lib/api/authFetch";
 import { apiClient } from "@/lib/api/client";
+import { type LiveStreamEndedPayload } from "@/hooks/useLiveStreamEnded";
 
 interface LiveHost {
   id: number;
@@ -102,9 +103,10 @@ interface Props {
   liveKitAccess: LiveKitAccess;
   isHost: boolean;
   onLeave: () => void;
+  onStreamEnded?: (payload: LiveStreamEndedPayload) => void;
 }
 
-export function PublicLiveStage({ stream, liveKitAccess, isHost, onLeave }: Props) {
+export function PublicLiveStage({ stream, liveKitAccess, isHost, onLeave, onStreamEnded }: Props) {
   // LiveKit state
   const [room, setRoom] = useState<Room | null>(null);
   const [connecting, setConnecting] = useState(true);
@@ -141,6 +143,8 @@ export function PublicLiveStage({ stream, liveKitAccess, isHost, onLeave }: Prop
   const stageContainerRef = useRef<HTMLDivElement>(null);
   const chatScrollRef = useRef<HTMLDivElement>(null);
   const seenGiftIdsRef = useRef<Set<number | string>>(new Set());
+  // Guards the poll fallback so detect-and-nofify of an ended stream runs once.
+  const endedNotifiedRef = useRef(false);
   // Mirrors isAudioMuted so the LiveKit connect effect (which must not depend on
   // mute state) can honour the current choice when it attaches audio tracks.
   const isAudioMutedRef = useRef(false);
@@ -197,6 +201,44 @@ export function PublicLiveStage({ stream, liveKitAccess, isHost, onLeave }: Prop
           if (typeof data.likes_count === "number") setLikesCount(data.likes_count);
           if (typeof data.total_coins_earned === "number") setTotalCoins(data.total_coins_earned);
           if (json?.data?.pinned_product) setPinnedProduct(json.data.pinned_product);
+
+          // Fallback if the realtime push is missed: once the stream flips to
+          // "ended" mid-session, close the stage for this viewer too.
+          if (
+            data.status === "ended"
+            && stream.status === "live"
+            && onStreamEnded
+            && !endedNotifiedRef.current
+          ) {
+            endedNotifiedRef.current = true;
+onStreamEnded({
+                stream: {
+                  id: stream.id,
+                  tracking_id: stream.tracking_id ?? "",
+                  title: data.title || stream.title,
+                  status: "ended",
+                  started_at: data.started_at ?? stream.started_at,
+                  ended_at: data.ended_at ?? null,
+                },
+                // /live/{id} returns the raw model (no `summary` field), so
+                // rebuild the summary from the final metric columns so the
+                // ended view shows the true totals instead of stale ones.
+                summary: {
+                  total_likes:
+                    typeof data.likes_count === "number"
+                      ? data.likes_count
+                      : stream.likes_count,
+                  peak_viewers:
+                    typeof data.peak_viewers === "number"
+                      ? data.peak_viewers
+                      : undefined,
+                  total_coins_earned:
+                    typeof data.total_coins_earned === "number"
+                      ? data.total_coins_earned
+                      : stream.total_coins_earned,
+                },
+              });
+          }
         }
       }
 
@@ -245,7 +287,7 @@ export function PublicLiveStage({ stream, liveKitAccess, isHost, onLeave }: Prop
     } catch {
       // Ignore polling errors
     }
-  }, [stream.id]);
+  }, [onStreamEnded, stream.id, stream.started_at, stream.status, stream.title, stream.tracking_id, stream.likes_count, stream.total_coins_earned]);
 
   useEffect(() => {
     void pollMetricsAndChat();
@@ -526,14 +568,30 @@ export function PublicLiveStage({ stream, liveKitAccess, isHost, onLeave }: Prop
       setFloatingHearts((prev) => prev.filter((h) => h.id !== id));
     }, 2000);
 
+    let rejected = false;
+    let message = "";
     try {
-      await authFetch(`/live/${stream.id}/like`, {
+      const response = await authFetch(`/live/${stream.id}/like`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ count: 1 }),
       });
+      if (!response.ok) {
+        rejected = true;
+        const payload: unknown = await response.json().catch(() => null);
+        const root = payload as { message?: unknown };
+        message = typeof root?.message === "string" && root.message.trim()
+          ? root.message
+          : "This stream is not accepting likes right now.";
+      }
     } catch {
-      // Ignore background like error
+      rejected = true;
+      message = "We could not send your like. Check your connection and try again.";
+    }
+
+    if (rejected) {
+      setLikesCount((prev) => Math.max(0, prev - 1));
+      toast.error(message);
     }
   };
 
