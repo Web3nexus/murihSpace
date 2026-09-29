@@ -14,6 +14,7 @@ use App\Services\AuthMethodConfigService;
 use App\Services\AuthSessionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -101,7 +102,22 @@ class PhoneOtpService
                 ],
             ]);
 
-            Cache::put('phone-otp:dev:'.$row->id, $code, now()->addMinutes($ttlMinutes));
+            // Staging delivers the code to the active device via websocket, but
+            // testers also need to read it from the log when no other device is
+            // signed in. Never emit the code in production; staging may report
+            // APP_ENV=production, so the explicit OTP_ALLOW_LOG_DRIVER flag
+            // (the same one LogOtpDriver honours) is the single override.
+            if (! app()->environment('production')
+                || filter_var(config('services.twilio.allow_log_driver', false), FILTER_VALIDATE_BOOLEAN)) {
+                Cache::put('phone-otp:dev:'.$row->id, $code, now()->addMinutes($ttlMinutes));
+
+                Log::info('[phone-otp] in-app active-device code issued', [
+                    'phone' => $row->maskedPhone(),
+                    'intent' => $intent,
+                    'request_id' => $row->id,
+                    'code' => $code,
+                ]);
+            }
 
             try {
                 $activeDeviceUser->notify(new MurihOfficialNotification(
@@ -129,8 +145,15 @@ class PhoneOtpService
                         'intent' => 'login',
                     ],
                 ]);
-            } catch (\Throwable) {
-                // notification resilience
+            } catch (\Throwable $e) {
+                // Delivery must not break the login request, but a silent
+                // swallow left staging "code never arrived" reports
+                // undiagnosable to an operator armed only with the log.
+                Log::warning('[phone-otp] active-device delivery failed; code is available on the log', [
+                    'request_id' => $row->id,
+                    'intent' => $intent,
+                    'error' => $e->getMessage(),
+                ]);
             }
 
             $this->bumpRequestCounters($phone, $request);
@@ -418,10 +441,20 @@ class PhoneOtpService
 
     private function driver(): OtpDriverInterface
     {
-        return match (config('services.twilio.otp_driver', 'log')) {
+        // A set-but-blank OTP_DRIVER (e.g. "OTP_DRIVER=" in a .env) makes
+        // env() return "", not the default, which fell through to `default`
+        // and surfaced as a 503 "verification could not be sent" on every
+        // request. Normalise blank/whitespace and casing before matching.
+        $driver = strtolower(trim((string) config('services.twilio.otp_driver', 'log')));
+
+        if ($driver === '') {
+            $driver = 'log';
+        }
+
+        return match ($driver) {
             'twilio' => app(TwilioOtpDriver::class),
             'log' => new LogOtpDriver,
-            default => throw new OtpProviderException('Unknown OTP driver configured.'),
+            default => throw new OtpProviderException("Unknown OTP driver configured: '{$driver}'."),
         };
     }
 

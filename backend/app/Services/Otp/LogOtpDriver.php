@@ -3,9 +3,9 @@
 namespace App\Services\Otp;
 
 use App\Models\PhoneOtpRequest;
+use App\Services\Otp\OtpProviderException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
-use RuntimeException;
 
 /**
  * Local development / test driver.
@@ -26,8 +26,13 @@ class LogOtpDriver implements OtpDriverInterface
 
     public function start(PhoneOtpRequest $request): void
     {
-        if (app()->environment('production')) {
-            throw new RuntimeException('The log OTP driver must never be used in production.');
+        // Staging is expected to run this driver so codes can be read from the
+        // log instead of sending real SMS. Only a real `production` deploy is
+        // blocked, and it can be unblocked deliberately (never by accident)
+        // with OTP_ALLOW_LOG_DRIVER=true for teams that need it.
+        if (app()->environment('production')
+            && ! filter_var(config('services.twilio.allow_log_driver', false), FILTER_VALIDATE_BOOLEAN)) {
+            throw new OtpProviderException('The log OTP driver must never be used in production.');
         }
 
         $code = (string) random_int(100000, 999999);

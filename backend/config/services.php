@@ -165,7 +165,11 @@ return [
         'verify_service_sid' => env('TWILIO_VERIFY_SERVICE_SID'),
         'default_country' => env('TWILIO_DEFAULT_COUNTRY', 'NG'),
         'channel' => env('TWILIO_OTP_CHANNEL', 'sms'),
-        'otp_driver' => env('OTP_DRIVER', env('APP_ENV') === 'production' ? 'twilio' : 'log'),
+        'otp_driver' => env('OTP_DRIVER') ?: (env('APP_ENV') === 'production' ? 'twilio' : 'log'),
+        // Staging intentionally runs the 'log' driver so codes are readable in
+        // the log instead of sending real SMS. Only a real production deploy is
+        // blocked; set OTP_ALLOW_LOG_DRIVER=true to permit it deliberately.
+        'allow_log_driver' => env('OTP_ALLOW_LOG_DRIVER', false),
         'code_ttl' => (int) env('OTP_CODE_TTL', 10),
         'resend_cooldown' => (int) env('OTP_RESEND_COOLDOWN', 60),
         'max_per_number_per_hour' => (int) env('OTP_MAX_PER_NUMBER_PER_HOUR', 5),

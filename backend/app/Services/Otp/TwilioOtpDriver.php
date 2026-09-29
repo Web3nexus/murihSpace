@@ -40,14 +40,25 @@ class TwilioOtpDriver implements OtpDriverInterface
         $authToken = (string) config('services.twilio.auth_token');
 
         if ($serviceSid === '' || $accountSid === '' || $authToken === '') {
+            // Keep the *names* of the unset variables, not the empty values.
+            $missing = array_keys(array_filter([
+                'TWILIO_ACCOUNT_SID' => $accountSid,
+                'TWILIO_AUTH_TOKEN' => $authToken,
+                'TWILIO_VERIFY_SERVICE_SID' => $serviceSid,
+            ], fn ($v) => $v === ''));
+
             Log::error('[phone-otp] Twilio Verify is not configured', [
-                'has_account_sid' => $accountSid !== '',
-                'has_auth_token' => $authToken !== '',
-                'has_verify_service_sid' => $serviceSid !== '',
+                'missing_vars' => $missing,
                 'otp_driver' => (string) config('services.twilio.otp_driver'),
+                'environment' => app()->environment(),
             ]);
 
-            throw new OtpProviderException('Twilio Verify is not configured.');
+            // Name the missing variables so staging/local is actionable. The
+            // generic message here was indistinguishable from a provider outage.
+            throw new OtpProviderException(sprintf(
+                'Twilio Verify is not configured (missing: %s). Set OTP_DRIVER=log to read codes from the log instead.',
+                implode(', ', $missing),
+            ));
         }
 
         $res = $this->http->post(self::BASE_URL."/Services/{$serviceSid}/Verifications", [
@@ -81,14 +92,25 @@ class TwilioOtpDriver implements OtpDriverInterface
         $authToken = (string) config('services.twilio.auth_token');
 
         if ($serviceSid === '' || $accountSid === '' || $authToken === '') {
+            // Keep the *names* of the unset variables, not the empty values.
+            $missing = array_keys(array_filter([
+                'TWILIO_ACCOUNT_SID' => $accountSid,
+                'TWILIO_AUTH_TOKEN' => $authToken,
+                'TWILIO_VERIFY_SERVICE_SID' => $serviceSid,
+            ], fn ($v) => $v === ''));
+
             Log::error('[phone-otp] Twilio Verify is not configured', [
-                'has_account_sid' => $accountSid !== '',
-                'has_auth_token' => $authToken !== '',
-                'has_verify_service_sid' => $serviceSid !== '',
+                'missing_vars' => $missing,
                 'otp_driver' => (string) config('services.twilio.otp_driver'),
+                'environment' => app()->environment(),
             ]);
 
-            throw new OtpProviderException('Twilio Verify is not configured.');
+            // Name the missing variables so staging/local is actionable. The
+            // generic message here was indistinguishable from a provider outage.
+            throw new OtpProviderException(sprintf(
+                'Twilio Verify is not configured (missing: %s). Set OTP_DRIVER=log to read codes from the log instead.',
+                implode(', ', $missing),
+            ));
         }
 
         $res = $this->http->post(self::BASE_URL."/Services/{$serviceSid}/VerificationCheck", [
