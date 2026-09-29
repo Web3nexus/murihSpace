@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Meeting;
 use App\Services\LiveKitService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -23,8 +24,8 @@ class MeetingController extends Controller
             ], 403);
         }
 
-        $title = $request->input('title') ?: ($user->name . "'s Meeting");
-        
+$title = $request->input('title') ?: ($user->name . "'s Meeting");
+
         // Generate a Google Meet style code (e.g. abc-defg-hij)
         $part1 = Str::lower(Str::random(3));
         $part2 = Str::lower(Str::random(4));
@@ -33,6 +34,18 @@ class MeetingController extends Controller
         $roomName = "meeting-{$code}";
 
         try {
+            // Persist the ephemeral meeting so joiners can be validated against
+            // a real, active room instead of silently minting a token for any
+            // code (which stranded guests in empty rooms that looked connected).
+            $expiresAt = now()->addHours(8);
+            Meeting::create([
+                'code' => $code,
+                'host_user_id' => $user->id,
+                'room' => $roomName,
+                'title' => $title,
+                'expires_at' => $expiresAt,
+            ]);
+
             $service = app(LiveKitService::class);
             $token = $service->generateToken(
                 identity: (string) $user->id,
@@ -82,9 +95,22 @@ class MeetingController extends Controller
      */
     public function token(Request $request, string $code): JsonResponse
     {
-        $user = $request->user();
         $code = trim(strtolower($code));
-        $roomName = "meeting-{$code}";
+
+        // Only mint tokens for rooms that were actually created via
+        // `/meetings/instant` and have not expired. Unknown codes now produce a
+        // clear error instead of a connected-but-empty room on another server.
+        $meeting = Meeting::query()->active()->where('code', $code)->first();
+
+        if (! $meeting) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Meeting room not found or has ended. Ask the host to share a fresh invite link.',
+            ], 404);
+        }
+
+        $user = $request->user();
+        $roomName = $meeting->room;
 
         try {
             $service = app(LiveKitService::class);
