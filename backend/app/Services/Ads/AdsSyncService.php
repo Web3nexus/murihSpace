@@ -6,16 +6,34 @@ use App\Models\User;
 use App\Models\AdCampaign;
 use App\Models\AdCreative;
 use App\Models\AdAnalytics;
+use App\Exceptions\AdsEligibilityException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class AdsSyncService
 {
     /**
+     * Roles that may use Ads Studio. Normal members must upgrade to a
+     * Creator or Vendor account before they can advertise.
+     */
+    public const ADS_ELIGIBLE_ROLES = ['creator', 'vendor', 'admin'];
+
+    public static function isEligibleForAds(?string $role): bool
+    {
+        return in_array($role, self::ADS_ELIGIBLE_ROLES, true);
+    }
+
+    /**
      * Generate an authenticated SSO handshake payload for MurihSpace Ads Studio.
      */
     public function generateSsoToken(User $user): array
     {
+        if (!self::isEligibleForAds($user->role)) {
+            throw new AdsEligibilityException(
+                'You must upgrade your MurihSpace account to Creator or Vendor before you can use Ads Studio.'
+            );
+        }
+
         $issuedAt = time();
         $expiresAt = $issuedAt + 3600; // 1 hour validity
 
@@ -25,7 +43,7 @@ class AdsSyncService
             'email'         => $user->email,
             'username'      => $user->username ?? 'user_' . $user->id,
             'avatar_url'    => $user->avatar_url ?? $user->avatar ?? null,
-            'role'          => $user->role ?? 'creator',
+            'role'          => $user->role,
             'business_name' => $user->business_name ?? ($user->name . ' Ads'),
             'iat'           => $issuedAt,
             'exp'           => $expiresAt,

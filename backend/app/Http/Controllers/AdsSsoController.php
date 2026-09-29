@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use App\Services\Ads\AdsSyncService;
+use App\Exceptions\AdsEligibilityException;
 
 class AdsSsoController extends Controller
 {
@@ -26,7 +27,14 @@ class AdsSsoController extends Controller
             return response()->json(['message' => 'Unauthenticated.'], 401);
         }
 
-        $ssoData = $this->adsSyncService->generateSsoToken($user);
+        try {
+            $ssoData = $this->adsSyncService->generateSsoToken($user);
+        } catch (AdsEligibilityException $e) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => $e->getMessage(),
+            ], 403);
+        }
 
         return response()->json([
             'status' => 'success',
@@ -45,7 +53,14 @@ class AdsSsoController extends Controller
             return redirect('/login');
         }
 
-        $ssoData = $this->adsSyncService->generateSsoToken($user);
+        try {
+            $ssoData = $this->adsSyncService->generateSsoToken($user);
+        } catch (AdsEligibilityException $e) {
+            $frontendUrl = rtrim((string) env('ADS_FRONTEND_URL', 'http://localhost:5174'), '/');
+            return redirect($frontendUrl)
+                ->with('sso_error', $e->getMessage());
+        }
+
         return redirect($ssoData['sso_launch_url']);
     }
 

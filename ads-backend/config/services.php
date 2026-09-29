@@ -35,4 +35,20 @@ return [
         ],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | MurihSpace SSO
+    |--------------------------------------------------------------------------
+    |
+    | The core MurihSpace app signs ad-studio SSO tokens with its own APP_KEY
+    | (the literal `base64:...` string). Ads Studio must trust the exact same
+    | string to verify them. It is a cross-service trust secret and therefore
+    | has NO default: when it is unset every SSO attempt is rejected rather
+    | than silently falling back to a value that ships in the repository.
+    */
+
+    'murihspace' => [
+        'app_key' => env('MURIHSPACE_APP_KEY'),
+    ],
+
 ];

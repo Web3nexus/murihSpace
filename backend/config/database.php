@@ -102,11 +102,17 @@ return [
         'ads_pgsql' => [
             'driver' => 'pgsql',
             'url' => env('ADS_DB_URL'),
-            'host' => env('ADS_DB_HOST', env('DB_HOST', '127.0.0.1')),
-            'port' => env('ADS_DB_PORT', env('DB_PORT', '5432')),
-            'database' => env('ADS_DB_DATABASE', 'murihspace_ads'),
-            'username' => env('ADS_DB_USERNAME', env('DB_USERNAME', 'postgres')),
-            'password' => env('ADS_DB_PASSWORD', env('DB_PASSWORD', 'Paul@02092002')),
+            // The ads database is a separate service. Host/port are non-secret
+            // topology and may default to localhost, but database, username and
+            // password have NO fallback (neither to a default value nor to the
+            // main DB credentials): silently reusing main-DB credentials could
+            // write ads data into the wrong database. Configure ADS_DB_* or the
+            // ads sync fails loudly instead.
+            'host' => env('ADS_DB_HOST', '127.0.0.1'),
+            'port' => env('ADS_DB_PORT', '5432'),
+            'database' => env('ADS_DB_DATABASE'),
+            'username' => env('ADS_DB_USERNAME'),
+            'password' => env('ADS_DB_PASSWORD'),
             'charset' => env('DB_CHARSET', 'utf8'),
             'prefix' => '',
             'prefix_indexes' => true,

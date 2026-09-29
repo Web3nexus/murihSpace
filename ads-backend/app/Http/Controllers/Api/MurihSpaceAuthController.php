@@ -10,6 +10,7 @@ use App\Models\AdWallet;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class MurihSpaceAuthController extends Controller
@@ -31,13 +32,20 @@ class MurihSpaceAuthController extends Controller
         }
 
         [$encodedPayload, $signature] = $parts;
-        
-        // Check signature against MurihSpace app keys
-        $murihKey = env('MURIHSPACE_APP_KEY', 'base64:q2mvpcHZYJ4DfCCT6bjpue6c0PMk1kP7KkGqlGSwxqE=');
-        $localKey = config('app.key');
-        
-        $validSignature = hash_equals(hash_hmac('sha256', $encodedPayload, $murihKey), $signature)
-            || hash_equals(hash_hmac('sha256', $encodedPayload, $localKey), $signature);
+
+        // Verify against the core app's key, passed explicitly via env. This is
+        // a cross-service trust secret: it must never fall back to a hardcoded
+        // value (previously a base64 key shipped in this controller) so anyone
+        // who reads the repository could forge a valid SSO token. When unset,
+        // reject the token and log the misconfiguration for the operator.
+        $murihKey = (string) config('services.murihspace.app_key');
+
+        if ($murihKey === '') {
+            Log::error('[ads-sso] MURIHSPACE_APP_KEY is not configured; rejecting SSO token.');
+        }
+
+        $validSignature = $murihKey !== ''
+            && hash_equals(hash_hmac('sha256', $encodedPayload, $murihKey), $signature);
 
         if (!$validSignature) {
             return response()->json(['status' => 'error', 'message' => 'Invalid SSO token signature.'], 401);
@@ -46,6 +54,17 @@ class MurihSpaceAuthController extends Controller
         $payload = json_decode(base64_decode($encodedPayload), true);
         if (!$payload || !isset($payload['exp']) || time() > $payload['exp']) {
             return response()->json(['status' => 'error', 'message' => 'SSO token has expired.'], 401);
+        }
+
+        // Only Creator, Vendor and Admin MurihSpace accounts may use Ads Studio.
+        // Normal members must upgrade first — surface that clearly instead of
+        // silently creating an advertiser for them.
+        $role = $payload['role'] ?? null;
+        if (!in_array($role, ['creator', 'vendor', 'admin'], true)) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'You must upgrade your MurihSpace account to Creator or Vendor before you can use Ads Studio.',
+            ], 403);
         }
 
         $email = $payload['email'] ?? null;
@@ -71,7 +90,7 @@ class MurihSpaceAuthController extends Controller
             ['murihspace_user_id' => $murihUserId],
             [
                 'business_name'       => $businessName,
-                'business_type'       => ($payload['role'] ?? '') === 'vendor' ? 'ecommerce' : 'creator',
+                'business_type'       => $role === 'vendor' ? 'ecommerce' : 'creator',
                 'country'             => 'US',
                 'currency'            => 'USD',
                 'timezone'            => 'UTC',

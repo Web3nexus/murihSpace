@@ -87,11 +87,17 @@ return [
         'core' => [
             'driver' => 'pgsql',
             'url' => env('DB_CORE_URL'),
-            'host' => env('DB_HOST', '127.0.0.1'),
-            'port' => env('DB_PORT', '5432'),
-            'database' => env('DB_CORE_DATABASE', 'murihspace'),
-            'username' => env('DB_USERNAME', 'forge'),
-            'password' => env('DB_PASSWORD', ''),
+            // Direct read path into the main MurihSpace database (product
+            // catalog). Host/port may default to localhost, but database,
+            // username and password must be configured explicitly: falling back
+            // to this service's own DB credentials connects the wrong role and
+            // can silently read the wrong database. Configure DB_CORE_* or the
+            // catalog sync fails loudly instead.
+            'host' => env('DB_CORE_HOST', '127.0.0.1'),
+            'port' => env('DB_CORE_PORT', '5432'),
+            'database' => env('DB_CORE_DATABASE'),
+            'username' => env('DB_CORE_USERNAME'),
+            'password' => env('DB_CORE_PASSWORD'),
             'charset' => 'utf8',
             'prefix' => '',
             'prefix_indexes' => true,
