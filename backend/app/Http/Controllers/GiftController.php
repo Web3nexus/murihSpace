@@ -32,7 +32,45 @@ class GiftController extends Controller
     {
         $gifts = Gift::active()->orderBy('sort_order', 'asc')->orderBy('id', 'asc')->get();
 
-        return response()->json($gifts);
+        $targetCurrency = strtoupper($request->query('currency', 'NGN'));
+        if (! $request->has('currency')) {
+            $countryCode = $request->user()?->country;
+            if ($countryCode) {
+                $targetCurrency = strtoupper(\App\Models\Country::whereKey($countryCode)->value('currency') ?: 'NGN');
+            }
+        }
+
+        $rateService = app(\App\Services\Payment\LiveExchangeRateService::class);
+        $coinRate = CoinPackController::coinConversionRate();
+        $fxRate = $rateService->getRate('USD', $targetCurrency);
+
+        $payload = $gifts->map(function (Gift $gift) use ($targetCurrency, $coinRate, $fxRate, $rateService) {
+            $priceUsd = $coinRate > 0 ? (float) $gift->coin_price / $coinRate : (float) $gift->coin_price;
+            $localPrice = round($priceUsd * $fxRate, 2);
+
+            return [
+                'id' => $gift->id,
+                'name' => $gift->name,
+                'icon_url' => $gift->icon_url,
+                'animation_url' => $gift->animation_url,
+                'coin_price' => (int) $gift->coin_price,
+                'creator_earns' => (int) $gift->creator_earns,
+                'platform_commission' => (int) $gift->platform_commission,
+                'category' => $gift->category,
+                'is_active' => (bool) $gift->is_active,
+                'sort_order' => (int) $gift->sort_order,
+                'price_usd' => $priceUsd,
+                'formatted_usd' => '$' . number_format($priceUsd, 2),
+                'local_currency' => $targetCurrency,
+                'local_price' => $localPrice,
+                'local_formatted' => $rateService->format($localPrice, $targetCurrency),
+            ];
+        });
+
+        return response()->json([
+            'data' => $payload->values(),
+            'coin_conversion_rate' => $coinRate,
+        ]);
     }
 
     public function send(Request $request): JsonResponse
@@ -171,13 +209,8 @@ class GiftController extends Controller
             return response()->json(['message' => $e->getMessage()], 500);
         }
 
-        // Determine animation tier
-        $animationType = match (true) {
-            $grossAmount >= 500000 => 'full_screen', // ₦5,000+
-            $grossAmount >= 100000 => 'premium',     // ₦1,000+
-            $grossAmount >= 20000  => 'standard',    // ₦200+
-            default                => 'micro',
-        };
+        // Determine animation tier (shared with live chat enrichment)
+        $animationType = Gift::animationTierFor($grossAmount);
 
         // Broadcast real-time WebSocket event + notify recipient — only for newly created transactions
         if ($isNew) {

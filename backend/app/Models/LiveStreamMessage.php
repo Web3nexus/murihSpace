@@ -13,6 +13,7 @@ class LiveStreamMessage extends Model
     protected $fillable = [
         'live_stream_id',
         'user_id',
+        'gift_id',
         'message',
         'is_pinned',
     ];
@@ -29,6 +30,11 @@ class LiveStreamMessage extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function gift(): BelongsTo
+    {
+        return $this->belongsTo(Gift::class);
     }
 }
 

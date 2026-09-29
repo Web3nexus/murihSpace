@@ -41,4 +41,28 @@ class Gift extends Model
         }
         return url($value);
     }
+
+    /**
+     * Map a gift's coin price to the animation tier it should trigger.
+     *
+     * This is the single source of truth used by both the live-stream gift
+     * flow (GiftController::send) and the live chat enrichment
+     * (LiveStreamController::getMessages) so the same gift always produces the
+     * same tier everywhere.
+     *
+     * Fits the catalog scale (10 → 10,000 coins):
+     *   - <= 20  micro       (Love, Legit)
+     *   - 21-399 standard    (most gifts)
+     *   - 400-999 premium    (Master Key)
+     *   - >= 1000 full_screen (Supreme Master, Thoth, King, Cruise, Mansion)
+     */
+    public static function animationTierFor(int $coinPrice): string
+    {
+        return match (true) {
+            $coinPrice >= 1000 => 'full_screen',
+            $coinPrice >= 400 => 'premium',
+            $coinPrice <= 20 => 'micro',
+            default => 'standard',
+        };
+    }
 }

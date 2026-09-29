@@ -633,6 +633,29 @@ class LiveStreamController extends Controller
             ->reverse()
             ->values();
 
+        // Enrich real gift rows (created by sendGift with a persisted gift_id)
+        // with the actual gift artwork + price so mobile viewers render the
+        // real image and the correct animation tier. Messages are only enriched
+        // when they carry a gift_id — a viewer typing "🎁 …" by hand is
+        // ordinary chat text and never spoofs a gift celebration.
+        $giftIndex = Gift::active()->get()->keyBy('id');
+
+        $messages->transform(function (LiveStreamMessage $m) use ($giftIndex) {
+            $gift = $m->gift_id ? $giftIndex->get($m->gift_id) : null;
+            if (! $gift) {
+                return $m;
+            }
+
+            $coinPrice = (int) $gift->coin_price;
+            $m->gift_id = $gift->id;
+            $m->gift_name = $gift->name;
+            $m->gift_icon_url = $gift->icon_url;
+            $m->coin_price = $coinPrice;
+            $m->animation_type = Gift::animationTierFor($coinPrice);
+
+            return $m;
+        });
+
         return response()->json(['data' => $messages]);
     }
 
@@ -710,6 +733,7 @@ class LiveStreamController extends Controller
             LiveStreamMessage::create([
                 'live_stream_id' => $stream->id,
                 'user_id' => $user->id,
+                'gift_id' => $gift->id,
                 'message' => "🎁 {$displayName} sent {$gift->name}!",
             ]);
 
