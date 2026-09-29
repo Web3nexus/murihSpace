@@ -19,6 +19,7 @@ import {
   EyeSlash as EyeOff
 } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
+import { anyLoginMethodEnabled, defaultLoginTab, loginVisibility, resolveLoginTab, showLoginTabSwitcher } from "@/lib/loginVisibility";
 import { AuthLayout } from "@/components/layout/AuthLayout";
 
 
@@ -37,18 +38,21 @@ export function LoginPage() {
     : "/app";
 
   const methods = cfg.auth_methods.methods;
-  const phoneLoginEnabled = methods.phone_otp.login;
-  const emailLoginEnabled = methods.email_password.login;
-  const socialProviders = (["google", "apple"] as const).filter((p) => methods[p].login);
+  const visibility = loginVisibility(methods);
+  const phoneLoginEnabled = visibility.phoneEnabled;
+  const emailLoginEnabled = visibility.emailEnabled;
+  const socialProviders = visibility.socialEnabled;
 
-  const [tab, setTab] = useState<Tab>(phoneLoginEnabled ? "phone" : "email");
+  const [tab, setTab] = useState<Tab>(defaultLoginTab(visibility));
 
-  // Re-sync selected tab when platform config loads
+  // Re-sync selected tab when platform config loads, or when an admin
+  // toggles a method off while the user is on that tab.
   useEffect(() => {
     if (cfg.loading) return;
-    if (tab === "phone" && !phoneLoginEnabled && emailLoginEnabled) setTab("email");
-    if (tab === "email" && !emailLoginEnabled && phoneLoginEnabled) setTab("phone");
-  }, [cfg.loading, phoneLoginEnabled, emailLoginEnabled, tab]);
+    const resolved = resolveLoginTab(visibility, tab);
+    if (resolved !== tab) setTab(resolved);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cfg.loading, phoneLoginEnabled, emailLoginEnabled, socialProviders.length, tab]);
 
   // Phone OTP flow
   const [phoneStep, setPhoneStep] = useState<"phone" | "otp">("phone");
@@ -240,7 +244,7 @@ export function LoginPage() {
         )}
 
         {/* Method tabs */}
-        {(phoneLoginEnabled && emailLoginEnabled) && (
+        {showLoginTabSwitcher(visibility) && (
           <div className="flex rounded-lg border-none bg-muted/30 p-1">
             {phoneLoginEnabled && (
               <button
@@ -269,8 +273,16 @@ export function LoginPage() {
           </div>
         )}
 
+        {/* No enabled method: mirror the mobile screen instead of showing a
+            form the backend will reject. */}
+        {!cfg.loading && !anyLoginMethodEnabled(visibility) && (
+          <p className="text-sm font-medium text-rose-600 dark:text-rose-400 text-center">
+            Login is currently disabled. Please contact support.
+          </p>
+        )}
+
         {/* Phone OTP flow */}
-        {tab === "phone" && (
+        {tab === "phone" && phoneLoginEnabled && (
           <>
             {phoneStep === "phone" ? (
               <form onSubmit={handleRequestPhoneOtp} className="space-y-4">
@@ -375,7 +387,7 @@ export function LoginPage() {
         )}
 
         {/* Email flow */}
-        {tab === "email" && (
+        {tab === "email" && emailLoginEnabled && (
           <form onSubmit={handleEmailSubmit} className="space-y-4">
             <FieldGroup className="space-y-4">
               <Field>

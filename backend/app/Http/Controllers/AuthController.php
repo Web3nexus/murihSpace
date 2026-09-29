@@ -220,9 +220,29 @@ class AuthController extends Controller
         }
 
         if (! app(AuthMethodConfigService::class)->loginEnabled('email_password')) {
-            throw ValidationException::withMessages([
-                'email' => ['Email and password login is currently disabled. Use your phone number instead.'],
-            ]);
+            // The toggle governs *member* login only. AdminLoginPage posts to
+            // this same endpoint, so enforcing it unconditionally locked every
+            // admin out of Securegate with no way back in: this is the only
+            // login route, and the admin panel has no credential of its own.
+            // Admins are therefore allowed through.
+            //
+            // Everyone else receives the identical message whether or not the
+            // account exists, so the disabled state cannot be used to probe for
+            // admin accounts.
+            $candidate = null;
+            if ($request->filled('email') && $request->filled('password')) {
+                $candidate = User::withTrashed()->where('email', $request->email)->first();
+            }
+
+            $isAdmin = $candidate
+                && $candidate->isAdmin()
+                && Hash::check((string) $request->password, (string) $candidate->password);
+
+            if (! $isAdmin) {
+                throw ValidationException::withMessages([
+                    'email' => ['Email and password login is currently disabled. Use your phone number instead.'],
+                ]);
+            }
         }
 
         $request->validate([
