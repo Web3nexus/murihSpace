@@ -80,12 +80,14 @@ function parseNotificationContent(content: unknown, fallback = 'You have a new u
       const type = e.type ? String(e.type) : (rawData.type ? String(rawData.type) : undefined);
       const isOfficial = Boolean(e.is_official ?? rawData.is_official ?? false);
       const isVerified = Boolean(e.is_verified ?? rawData.is_verified ?? isOfficial);
+      const code = e.code ? String(e.code) : (rawData.code ? String(rawData.code) : undefined);
 
       showWebInAppNotification({
         title,
         message,
         actionUrl,
-        actionLabel: e.action_label ? String(e.action_label) : (rawData.action_label ? String(rawData.action_label) : 'View'),
+        code,
+        actionLabel: code ? 'Copy Code' : (e.action_label ? String(e.action_label) : (rawData.action_label ? String(rawData.action_label) : 'View')),
         senderName,
         senderAvatar,
         type,

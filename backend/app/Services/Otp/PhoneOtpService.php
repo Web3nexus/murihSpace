@@ -68,16 +68,8 @@ class PhoneOtpService
 
         if (! $forceSms && $intent === 'login') {
             $userCandidate = User::where('mobile_number', $phone)->first();
-            if ($userCandidate) {
-                $hasActiveSession = DeviceSession::where('user_id', $userCandidate->id)
-                    ->whereNull('revoked_at')
-                    ->where('is_trusted', true)
-                    ->where('last_active_at', '>=', now()->subDays(30))
-                    ->exists();
-
-                if ($hasActiveSession) {
-                    $activeDeviceUser = $userCandidate;
-                }
+            if ($userCandidate && $this->hasActiveDeliveryDevice($userCandidate)) {
+                $activeDeviceUser = $userCandidate;
             }
         }
 
@@ -140,6 +132,7 @@ class PhoneOtpService
                     'title' => '🔐 MurihSpace Login Verification Code',
                     'body' => "Your MurihSpace login verification code is {$code}. Enter this code to sign in.",
                     'code' => $code,
+                    'action_label' => 'Copy Code',
                     'metadata' => [
                         'code' => $code,
                         'intent' => 'login',
@@ -424,6 +417,39 @@ class PhoneOtpService
         $limit = (int) config('services.twilio.max_per_ip_per_hour', 10);
 
         return $ipCount >= max(1, (int) ceil($limit / 2));
+    }
+
+    /**
+     * Whether a login code can be delivered to one of the user's other
+     * signed-in devices instead of SMS.
+     *
+     * Normal web/app logins only ever produce a Sanctum personal access token
+     * (no DeviceSession row), so restricting delivery to "trusted" device
+     * sessions silently turned this feature off for everyone except users who
+     * went through the device-approval flow. Any non-expired token used within
+     * the last 30 days (or a non-revoked device session touched in that window)
+     * counts as an active device -- the code is pushed to a session that is
+     * already authenticated as the account owner, which mainstream platforms
+     * treat as an acceptable login-code destination.
+     *
+     * @return bool
+     */
+    private function hasActiveDeliveryDevice(User $user): bool
+    {
+        $hasLiveToken = $user->tokens()
+            ->where(fn ($q) => $q->whereNull('expires_at')
+                ->orWhere('expires_at', '>', now()))
+            ->where(fn ($q) => $q->where('last_used_at', '>=', now()->subDays(30))
+                ->orWhere('created_at', '>=', now()->subDays(30)))
+            ->exists();
+
+        $hasLiveDevice = DeviceSession::where('user_id', $user->id)
+            ->whereNull('revoked_at')
+            ->where(fn ($q) => $q->where('last_active_at', '>=', now()->subDays(30))
+                ->orWhere('created_at', '>=', now()->subDays(30)))
+            ->exists();
+
+        return $hasLiveToken || $hasLiveDevice;
     }
 
     private function assertNotExceeded(string $key, int $limit, string $message): void

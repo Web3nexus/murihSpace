@@ -62,13 +62,9 @@ class OtpStagingDriverTest extends TestCase
     private function loginUserWithActiveDevice(string $phone): User
     {
         $user = User::factory()->create(['mobile_number' => $phone]);
-        DeviceSession::create([
-            'user_id' => $user->id,
-            'device_id' => 'web-existing',
-            'platform' => 'web',
-            'is_trusted' => true,
-            'last_active_at' => now(),
-        ]);
+        // A normal login only ever creates a Sanctum personal access token; no
+        // DeviceSession row is involved, so the helper must reflect that shape.
+        $user->createToken('active-web-session')->accessToken->forceFill(['last_used_at' => now()])->save();
 
         return $user;
     }
@@ -261,18 +257,45 @@ class OtpStagingDriverTest extends TestCase
         );
     }
 
-    public function test_untrusted_device_falls_back_to_the_logged_driver(): void
+    public function test_any_recently_used_login_session_receives_the_inapp_code(): void
+    {
+        // Regression: ordinary web/app logins never create a DeviceSession row,
+        // so the old "trusted device session only" check silently disabled the
+        // active-device flow for everyone but device-approval users.
+        $user = User::factory()->create(['mobile_number' => '+2348099887766']);
+        $user->createToken('web-session')->accessToken->forceFill(['last_used_at' => now()])->save();
+
+        $this->sendOtp('+2348099887766')
+            ->assertOk()
+            ->assertJsonPath('data.channel', 'in_app_active_device');
+
+        $this->assertDatabaseHas('phone_otp_requests', ['driver' => 'in_app_active_device']);
+    }
+
+    public function test_untrusted_but_recently_active_session_still_receives_the_inapp_code(): void
     {
         $user = User::factory()->create(['mobile_number' => '+2348012345678']);
         DeviceSession::create([
             'user_id' => $user->id,
-            'device_id' => 'old-untrusted',
+            'device_id' => 'untrusted-web',
             'platform' => 'web',
             'is_trusted' => false,
             'last_active_at' => now(),
         ]);
 
-        $this->sendOtp()->assertOk()->assertJsonPath('data.channel', 'sms');
+        $this->sendOtp()->assertOk()->assertJsonPath('data.channel', 'in_app_active_device');
+    }
+
+    public function test_stale_session_falls_back_to_the_sms_driver(): void
+    {
+        $user = User::factory()->create(['mobile_number' => '+2348077665544']);
+        $token = $user->createToken('old-session')->accessToken;
+        $token->forceFill([
+            'last_used_at' => now()->subDays(60),
+            'created_at' => now()->subDays(60),
+        ])->save();
+
+        $this->sendOtp('+2348077665544')->assertOk()->assertJsonPath('data.channel', 'sms');
         $this->assertDatabaseHas('phone_otp_requests', ['driver' => 'log']);
     }
 

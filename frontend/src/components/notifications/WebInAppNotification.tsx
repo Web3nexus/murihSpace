@@ -27,6 +27,7 @@ export interface WebNotificationData {
   isVerified?: boolean;
   actionUrl?: string;
   actionLabel?: string;
+  code?: string;
   onAction?: () => void;
   onDismiss?: () => void;
 }
@@ -115,6 +116,7 @@ export function WebInAppNotification({
   isVerified,
   actionUrl,
   actionLabel,
+  code,
   onAction,
   onDismiss,
 }: WebNotificationData) {
@@ -131,6 +133,14 @@ export function WebInAppNotification({
   const handleClick = (e: React.MouseEvent) => {
     // If clicking close button, do not trigger action
     if ((e.target as HTMLElement).closest('.close-btn')) return;
+
+    // A login code notification's single purpose is to surface the code:
+    // clicking it copies the code to the clipboard and dismisses the banner.
+    if (code) {
+      void navigator.clipboard?.writeText(code).catch(() => {});
+      onDismiss?.();
+      return;
+    }
 
     if (onAction) {
       onAction();
