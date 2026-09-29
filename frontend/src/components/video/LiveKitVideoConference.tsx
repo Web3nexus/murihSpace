@@ -7,7 +7,6 @@ import {
   Monitor,
   PhoneSlash,
   Users,
-  Spinner,
   Copy,
   Check,
   Hand,
@@ -18,6 +17,7 @@ import {
   ArrowsClockwise,
   ShieldCheck,
   UserCircle,
+  ShareNetwork,
 } from "@phosphor-icons/react";
 import {
   Room,
@@ -492,13 +492,35 @@ export function LiveKitVideoConference({
     }
   };
 
-  const handleCopyLink = () => {
-    const link = meetingCode
+  const buildMeetingLink = () =>
+    meetingCode
       ? `${window.location.origin}/app/meeting/${meetingCode}`
       : window.location.href;
-    navigator.clipboard.writeText(link);
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(buildMeetingLink());
     setCopiedLink(true);
     setTimeout(() => setCopiedLink(false), 2500);
+  };
+
+  const handleShare = async () => {
+    const link = buildMeetingLink();
+    const shareData = {
+      title: roomTitle || 'MurihSpace Meeting',
+      text: `Join my MurihSpace meeting${meetingCode ? ` (room ${meetingCode})` : ''}`,
+      url: link,
+    };
+    if (typeof navigator.share === 'function') {
+      try {
+        await navigator.share(shareData);
+        setCopiedLink(true);
+        setTimeout(() => setCopiedLink(false), 1800);
+        return;
+      } catch (err) {
+        if ((err as Error).name === 'AbortError') return;
+      }
+    }
+    handleCopyLink();
   };
 
   useEffect(() => {
@@ -528,7 +550,7 @@ export function LiveKitVideoConference({
       <div className="w-full max-w-4xl mx-auto p-5 sm:p-8 bg-card text-card-foreground rounded-3xl shadow-xl border border-border flex flex-col md:flex-row items-center justify-between gap-8 transition-colors">
         {/* Left: Camera Preview Viewfinder */}
         <div className="w-full md:w-3/5 flex flex-col items-center">
-          <div className="relative w-full aspect-video bg-neutral-950 rounded-2xl overflow-hidden border border-border/80 flex items-center justify-center shadow-inner">
+          <div className="relative w-full aspect-video bg-muted/60 rounded-2xl overflow-hidden border border-border/80 flex items-center justify-center shadow-inner">
             {isCamOn ? (
               <video
                 ref={localVideoRef}
@@ -538,9 +560,9 @@ export function LiveKitVideoConference({
                 className="w-full h-full object-cover -scale-x-100"
               />
             ) : (
-              <div className="flex flex-col items-center gap-3 text-neutral-300 p-6 text-center">
+              <div className="flex flex-col items-center gap-3 text-muted-foreground p-6 text-center">
                 <div className="relative">
-                  <div className="w-20 h-20 rounded-full bg-primary/20 text-primary-foreground flex items-center justify-center font-bold text-2xl shadow-md ring-4 ring-neutral-800">
+                  <div className="w-20 h-20 rounded-full bg-primary/20 text-primary-foreground flex items-center justify-center font-bold text-2xl shadow-md ring-4 ring-border">
                     {user?.name?.charAt(0).toUpperCase() || <UserCircle weight="fill" className="w-12 h-12" />}
                   </div>
                   <span className="absolute -bottom-1 -right-1 p-1 bg-destructive rounded-full text-destructive-foreground shadow-sm">
@@ -548,8 +570,8 @@ export function LiveKitVideoConference({
                   </span>
                 </div>
                 <div className="space-y-0.5">
-                  <p className="text-xs font-semibold text-neutral-200">Camera is turned off</p>
-                  <p className="text-[11px] text-neutral-400">Your video will remain off when you enter the call</p>
+                  <p className="text-xs font-semibold text-foreground">Camera is turned off</p>
+                  <p className="text-[11px] text-muted-foreground">Your video will remain off when you enter the call</p>
                 </div>
               </div>
             )}
@@ -732,11 +754,17 @@ export function LiveKitVideoConference({
   // ── CONNECTING SCREEN ───────────────────────────────────────────────────
   if (stage === 'connecting') {
     return (
-      <div className="w-full max-w-lg mx-auto py-16 px-6 bg-card text-card-foreground rounded-3xl flex flex-col items-center justify-center space-y-4 border border-border shadow-xl">
-        <Spinner weight="bold" className="w-10 h-10 animate-spin text-primary" />
+      <div className="w-full max-w-lg mx-auto py-16 px-6 bg-card text-card-foreground rounded-3xl flex flex-col items-center justify-center space-y-8 border border-border shadow-xl">
+        <div className="relative h-28 w-28 flex items-center justify-center">
+          <div className="absolute inset-0 rounded-full border-[5px] border-border/40" />
+          <div className="absolute inset-0 rounded-full border-[5px] border-transparent border-t-primary border-r-primary/30 animate-spin" />
+          <div className="relative h-16 w-16 rounded-2xl bg-primary/10 border border-border flex items-center justify-center shadow-sm">
+            <VideoIcon weight="fill" className="w-8 h-8 text-primary" />
+          </div>
+        </div>
         <div className="text-center space-y-1">
-          <p className="text-base font-bold text-foreground">Connecting to Meeting Room...</p>
-          <p className="text-xs text-muted-foreground">Establishing encrypted audio and video stream</p>
+          <p className="text-base font-bold text-foreground">Joining your meeting…</p>
+          <p className="text-xs text-muted-foreground">It won&apos;t be long now</p>
         </div>
         {meetingCode && (
           <span className="font-mono text-xs bg-muted px-3 py-1 rounded-full text-muted-foreground border border-border">
@@ -824,11 +852,22 @@ export function LiveKitVideoConference({
             {copiedLink ? <Check weight="bold" className="w-3.5 h-3.5 text-emerald-500" /> : <Copy weight="bold" className="w-3.5 h-3.5" />}
             <span>{copiedLink ? 'Copied!' : 'Copy Link'}</span>
           </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleShare}
+            className="h-8 rounded-full border-border text-muted-foreground hover:text-foreground hover:bg-muted text-xs font-semibold gap-1.5"
+            title="Share meeting link"
+          >
+            <ShareNetwork weight="bold" className="w-3.5 h-3.5" />
+            <span>Share</span>
+          </Button>
         </div>
       </div>
 
       {/* Main Video / Participant Grid + Reactions + Chat */}
-      <div className="flex-1 flex min-h-0 bg-neutral-950">
+      <div className="flex-1 flex min-h-0 bg-muted/50">
         <div className="flex-1 relative min-w-0">
           <div
             className="absolute inset-0 p-4 grid gap-4 auto-rows-fr overflow-y-auto"
@@ -850,33 +889,33 @@ export function LiveKitVideoConference({
           return (
             <div
               key={pState.participant.identity || idx}
-              className={`relative bg-neutral-900 rounded-2xl overflow-hidden border transition-all flex items-center justify-center ${
+              className={`relative bg-muted rounded-2xl overflow-hidden border transition-all flex items-center justify-center ${
                 isSpeaking
                   ? 'border-emerald-500 ring-2 ring-emerald-500/50 shadow-lg shadow-emerald-500/20'
-                  : 'border-neutral-800'
+                  : 'border-border/70'
               }`}
             >
               {pState.videoTrack && (isLocal ? isCamOn : true) ? (
                 <ParticipantVideoElement track={pState.videoTrack} isLocal={isLocal} />
               ) : (
-                <div className="flex flex-col items-center gap-3 text-neutral-400 p-6 text-center">
+                <div className="flex flex-col items-center gap-3 text-muted-foreground p-6 text-center">
                   <div className="relative">
-                    <div className="w-20 h-20 rounded-full bg-primary/20 text-white flex items-center justify-center font-black text-2xl shadow-xl">
+                    <div className="w-20 h-20 rounded-full bg-primary/20 text-primary-foreground flex items-center justify-center font-black text-2xl shadow-xl">
                       {participantName.charAt(0).toUpperCase()}
                     </div>
                     {isSpeaking && (
-                      <span className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-emerald-400 ring-2 ring-neutral-900 animate-pulse" />
+                      <span className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-emerald-400 ring-2 ring-background animate-pulse" />
                     )}
                   </div>
                   <div className="space-y-0.5">
-                    <p className="text-sm font-bold text-white">{participantName}</p>
-                    <span className="text-[11px] text-neutral-400">Camera off</span>
+                    <p className="text-sm font-bold text-foreground">{participantName}</p>
+                    <span className="text-[11px] text-muted-foreground">Camera off</span>
                   </div>
                 </div>
               )}
 
               {/* Participant Name Overlay Badge */}
-              <div className="absolute bottom-3 left-3 bg-black/70 backdrop-blur-md px-3 py-1 rounded-full border border-white/10 text-xs font-semibold flex items-center gap-2 text-white">
+              <div className="absolute bottom-3 left-3 bg-background/85 backdrop-blur-md px-3 py-1 rounded-full border border-border text-xs font-semibold flex items-center gap-2 text-foreground">
                 {raisedHand && <span title="Raised hand">✋</span>}
                 <span>{participantName}</span>
                 {isSpeaking ? (
@@ -1061,11 +1100,12 @@ export function LiveKitVideoConference({
           <Button
             variant="ghost"
             size="sm"
-            onClick={handleCopyLink}
+            onClick={handleShare}
             className="text-muted-foreground hover:text-foreground text-xs font-semibold gap-1.5"
+            title="Share meeting link"
           >
-            <Copy weight="bold" className="w-4 h-4" />
-            <span>Invite</span>
+            <ShareNetwork weight="bold" className="w-4 h-4" />
+            <span>{copiedLink ? 'Copied!' : 'Share'}</span>
           </Button>
         </div>
       </div>

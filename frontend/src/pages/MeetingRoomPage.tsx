@@ -16,6 +16,7 @@ import {
   Trash,
   Monitor,
   ShieldCheck,
+  ShareNetwork,
 } from "@phosphor-icons/react";
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -110,6 +111,23 @@ export function MeetingRoomPage() {
       setTimeout(() => setCopiedCode(false), 2000);
     };
 
+    const handleShareRoom = async () => {
+      const link = `${window.location.origin}/app/meeting/${roomCode}`;
+      if (typeof navigator.share === 'function') {
+        try {
+          await navigator.share({
+            title: `MurihSpace Meeting: ${roomCode}`,
+            text: `Join my MurihSpace meeting (room ${roomCode})`,
+            url: link,
+          });
+          return;
+        } catch (err) {
+          if ((err as Error).name === 'AbortError') return;
+        }
+      }
+      handleCopyRoom();
+    };
+
     return (
       <div className="w-full max-w-5xl mx-auto px-4 py-6 sm:py-8 space-y-5">
         {/* Top Breadcrumb & Room Info */}
@@ -134,6 +152,15 @@ export function MeetingRoomPage() {
               ) : (
                 <Copy weight="bold" className="w-3 h-3 text-muted-foreground" />
               )}
+            </button>
+            <button
+              type="button"
+              onClick={handleShareRoom}
+              className="h-8 px-3 rounded-full text-xs font-semibold flex items-center gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+              title="Share meeting link"
+            >
+              <ShareNetwork weight="bold" className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Share</span>
             </button>
           </div>
         </div>
@@ -210,7 +237,7 @@ export function MeetingRoomPage() {
               Meetings &amp; Conferences
             </h1>
             <Badge variant="outline" className="text-xs font-semibold px-2 py-0.5">
-              WebRTC HD
+              Private HD
             </Badge>
           </div>
           <p className="text-xs sm:text-sm text-muted-foreground">
@@ -346,7 +373,7 @@ export function MeetingRoomPage() {
                 <h3 className="text-sm font-bold text-foreground">Private &amp; Secure Conferencing</h3>
               </div>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Connect with clients, students, and community members in high definition with modern WebRTC encryption.
+                Connect with clients, students, and community members in crystal-clear HD with secure, private rooms on any device.
               </p>
 
               <div className="space-y-2 pt-2">
@@ -360,7 +387,7 @@ export function MeetingRoomPage() {
                   <div className="h-6 w-6 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
                     <ShieldCheck weight="fill" className="h-3.5 w-3.5" />
                   </div>
-                  <span>Encrypted Peer Connection with Zero Software Install</span>
+                  <span>Secure private rooms with zero software to install</span>
                 </div>
                 <div className="flex items-center gap-2.5 text-xs text-foreground">
                   <div className="h-6 w-6 rounded-lg bg-amber-500/10 text-amber-500 flex items-center justify-center shrink-0">
