@@ -54,6 +54,14 @@ class StripePaymentProvider implements PaymentProviderInterface
             ],
         ];
 
+        // return_url is a first-class PaymentIntent property, accepted at
+        // create time as well as update time (see the allowlist in
+        // vendor/stripe/stripe-php PaymentIntentService::create). Setting it
+        // here is what lets the client confirm with just the client_secret:
+        // Stripe stores it on the intent and redirects to it when a
+        // redirect-based payment method settles. Passing it at confirm time
+        // would instead force every caller to supply it again.
+        //
         // Only sent when configured: Stripe rejects an empty return_url, and the
         // customer must land back in the app once the payment settles.
         if (! empty($returnUrl)) {

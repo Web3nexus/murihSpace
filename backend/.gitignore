@@ -10,6 +10,10 @@
 .env.*.local
 .env.testing
 !.env.example
+# Templates, not real env files: the deployer copies from this one, so keep it
+# in the repo. Only overrides the `.env.production.*` rule above, never a real
+# .env.production.
+!.env.production.example
 .phpactor.json
 .phpunit.result.cache
 /.codex
