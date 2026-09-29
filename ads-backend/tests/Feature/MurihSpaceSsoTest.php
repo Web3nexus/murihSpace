@@ -79,6 +79,13 @@ class MurihSpaceSsoTest extends TestCase
         $res->assertOk();
         $this->assertDatabaseHas('users', ['email' => 'advertiser@example.com']);
         $this->assertDatabaseHas('advertisers', ['murihspace_user_id' => 77]);
+
+        $advertiser = \App\Models\Advertiser::where('murihspace_user_id', 77)->firstOrFail();
+        $this->assertDatabaseHas('ad_accounts', ['advertiser_id' => $advertiser->id]);
+        $this->assertDatabaseHas('ad_wallets', [
+            'advertiser_id' => $advertiser->id,
+            'available_balance' => 10000,
+        ]);
     }
 
     public function test_expired_token_is_rejected(): void

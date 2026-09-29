@@ -38,6 +38,18 @@ class AdsSsoEligibilityTest extends TestCase
             ->assertJsonPath('success', false);
     }
 
+    public function test_sso_launch_redirects_members_with_the_upgrade_error_in_the_url(): void
+    {
+        $member = User::factory()->create(['role' => 'member']);
+        Sanctum::actingAs($member);
+
+        $res = $this->get('/api/v1/ads/sso-launch');
+
+        $res->assertRedirect();
+        $this->assertStringContainsString('sso_error=upgrade_required', (string) $res->headers->get('Location'));
+        $this->assertStringContainsString('upgrade', (string) $res->headers->get('Location'));
+    }
+
     public function test_creator_vendor_and_admin_can_get_an_sso_token(): void
     {
         foreach (['creator', 'vendor', 'admin'] as $role) {

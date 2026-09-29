@@ -86,6 +86,30 @@ class OtpStagingDriverTest extends TestCase
         $this->assertDatabaseHas('phone_otp_requests', ['driver' => 'log']);
     }
 
+    public function test_explicitly_blank_otp_driver_is_not_coerced_to_twilio_in_production(): void
+    {
+        // CodeRabbit caught the config defaulting a *blank* driver to twilio
+        // under APP_ENV=production before PhoneOtpService::driver() could
+        // normalize it to log. The default must only apply when unset.
+        $backup = [$_ENV['OTP_DRIVER'] ?? null, $_ENV['APP_ENV'] ?? null, $_SERVER['OTP_DRIVER'] ?? null, $_SERVER['APP_ENV'] ?? null];
+        $_ENV['OTP_DRIVER'] = $_SERVER['OTP_DRIVER'] = '';
+        $_ENV['APP_ENV'] = $_SERVER['APP_ENV'] = 'production';
+
+        try {
+            $services = require base_path('config/services.php');
+
+            $this->assertSame('', $services['twilio']['otp_driver']);
+        } finally {
+            foreach (['OTP_DRIVER', 'APP_ENV'] as $key) {
+                unset($_ENV[$key], $_SERVER[$key]);
+            }
+            if ($backup[0] !== null) $_ENV['OTP_DRIVER'] = $backup[0];
+            if ($backup[1] !== null) $_ENV['APP_ENV'] = $backup[1];
+            if ($backup[2] !== null) $_SERVER['OTP_DRIVER'] = $backup[2];
+            if ($backup[3] !== null) $_SERVER['APP_ENV'] = $backup[3];
+        }
+    }
+
     public function test_whitespace_and_uppercase_driver_names_are_normalised(): void
     {
         config(['services.twilio.otp_driver' => '  LOG  ']);

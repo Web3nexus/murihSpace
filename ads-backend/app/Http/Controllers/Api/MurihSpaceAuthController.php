@@ -115,7 +115,7 @@ class MurihSpaceAuthController extends Controller
         $wallet = AdWallet::firstOrCreate(
             ['advertiser_id' => $advertiser->id],
             [
-                'balance'  => 100.00,
+                'available_balance' => 10000,
                 'currency' => 'USD',
             ]
         );

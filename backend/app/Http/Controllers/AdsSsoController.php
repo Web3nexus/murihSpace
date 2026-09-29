@@ -57,8 +57,7 @@ class AdsSsoController extends Controller
             $ssoData = $this->adsSyncService->generateSsoToken($user);
         } catch (AdsEligibilityException $e) {
             $frontendUrl = rtrim((string) env('ADS_FRONTEND_URL', 'http://localhost:5174'), '/');
-            return redirect($frontendUrl)
-                ->with('sso_error', $e->getMessage());
+            return redirect($frontendUrl.'?sso_error=upgrade_required&message='.rawurlencode($e->getMessage()));
         }
 
         return redirect($ssoData['sso_launch_url']);
