@@ -40,11 +40,24 @@ class WalletController extends Controller
             : app(\App\Services\LocalCurrencyResolver::class)->currency($user));
         $wallets        = $this->walletService->getUserWallets($user);
 
-        $data = $wallets->map(fn (Wallet $w) => $this->formatWalletData($w, $targetCurrency));
+        $data = $wallets->map(fn (Wallet $w) => $this->formatWalletData($w, $targetCurrency))->values();
 
         return response()->json([
+            'success' => true,
             'data' => $data,
         ]);
+    }
+
+    /**
+     * POST /api/v1/wallet/provision
+     * Explicitly provision/ensure user wallets and return all wallets.
+     */
+    public function provision(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $this->walletService->provisionForUser($user);
+
+        return $this->index($request);
     }
 
     /**
@@ -60,6 +73,7 @@ class WalletController extends Controller
         $wallet         = $this->walletService->getOrCreateWallet($user, $type);
 
         return response()->json([
+            'success' => true,
             'data' => $this->formatWalletData($wallet, $targetCurrency),
         ]);
     }
@@ -452,11 +466,23 @@ class WalletController extends Controller
 
     private function formatWalletData(Wallet $w, string $targetCurrency = 'USD'): array
     {
-        $rateService = app(\App\Services\Payment\LiveExchangeRateService::class);
-        $localRate = $rateService->getRate($w->currency, $targetCurrency);
+        try {
+            $rateService = app(\App\Services\Payment\LiveExchangeRateService::class);
+            $localRate = (float) ($rateService->getRate($w->currency, $targetCurrency) ?: 1.0);
+        } catch (\Throwable) {
+            $localRate = 1.0;
+        }
 
         $availableUsd = $w->available / 100.0;
         $localEstimatedAvailable = round($availableUsd * $localRate, 2);
+        $formattedLocal = '$' . number_format($localEstimatedAvailable, 2);
+        try {
+            if (isset($rateService)) {
+                $formattedLocal = $rateService->format($localEstimatedAvailable, $targetCurrency);
+            }
+        } catch (\Throwable) {
+            // fallback
+        }
 
         return [
             'id'                       => $w->id,
@@ -475,7 +501,7 @@ class WalletController extends Controller
             'local_currency'           => $targetCurrency,
             'local_rate'               => $localRate,
             'local_estimated_available'=> $localEstimatedAvailable,
-            'local_formatted'          => $rateService->format($localEstimatedAvailable, $targetCurrency),
+            'local_formatted'          => $formattedLocal,
             'formatted'                => [
                 'available'    => $this->formatAmount($w->available, $w->currency),
                 'pending'      => $this->formatAmount($w->pending, $w->currency),

@@ -20,6 +20,7 @@ import { WalletBalanceCard } from "@/components/wallet/WalletBalanceCard";
 import { InternalTransferModal } from "@/components/wallet/InternalTransferModal";
 import { FeePreviewCard } from "@/components/wallet/FeePreviewCard";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 interface WalletItem {
   id: number;
@@ -115,14 +116,47 @@ export function WalletPage() {
   const fetchWallets = useCallback(async () => {
     try {
       const res = await apiClient.get("/wallet");
-      const raw = res.data?.data ?? res.data ?? [];
-      const list = Array.isArray(raw) ? raw : (raw && typeof raw === "object" && raw.id ? [raw] : []);
-      setWallets(list);
+      const body = res.data;
+      const raw = Array.isArray(body)
+        ? body
+        : Array.isArray(body?.data)
+        ? body.data
+        : Array.isArray(body?.data?.data)
+        ? body.data.data
+        : body?.data && typeof body.data === "object" && body.data.id
+        ? [body.data]
+        : [];
+      setWallets(raw);
     } catch {
       toast.error("Failed to load wallets.");
       setWallets([]);
     }
   }, []);
+
+  const handleProvision = async () => {
+    setLoading(true);
+    try {
+      const res = await apiClient.post("/wallet/provision");
+      const body = res.data;
+      const raw = Array.isArray(body)
+        ? body
+        : Array.isArray(body?.data)
+        ? body.data
+        : Array.isArray(body?.data?.data)
+        ? body.data.data
+        : body?.data && typeof body.data === "object" && body.data.id
+        ? [body.data]
+        : [];
+      setWallets(raw);
+      if (raw.length > 0) {
+        toast.success("Wallets provisioned successfully.");
+      }
+    } catch {
+      await fetchWallets();
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const fetchTransactions = useCallback(async (typeFilter?: string) => {
     const requestId = ++transactionsRequestRef.current;
@@ -342,10 +376,20 @@ export function WalletPage() {
 
   if (wallets.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[400px] text-center space-y-3">
+      <div className="flex flex-col items-center justify-center min-h-[400px] text-center space-y-3 p-6">
         <Wallet weight="fill" className="h-10 w-10 text-muted-foreground" />
         <p className="text-muted-foreground font-medium">No wallets available yet.</p>
-        <p className="text-sm text-muted-foreground">Your wallets will appear here once they are provisioned.</p>
+        <p className="text-sm text-muted-foreground max-w-sm">
+          Your wallets will appear here once they are provisioned. Click below to initialize or refresh your wallet.
+        </p>
+        <Button
+          size="sm"
+          onClick={handleProvision}
+          className="mt-2 text-xs font-semibold bg-[#2164b6] hover:bg-[#1a5091] text-white"
+        >
+          <RefreshCw weight="bold" className="h-3.5 w-3.5 mr-1.5" />
+          Provision & Refresh Wallets
+        </Button>
       </div>
     );
   }

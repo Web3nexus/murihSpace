@@ -1267,6 +1267,7 @@ Route::prefix('v1')->group(function () {
         Route::prefix('wallet')->middleware('verified')->group(function () {
             Route::get('/', [WalletController::class, 'index']);
             Route::get('/list', [WalletController::class, 'index']);
+            Route::post('/provision', [WalletController::class, 'provision']);
             Route::get('/type/{type}', [WalletController::class, 'showByType'])->whereIn('type', ['system', 'creator', 'business']);
             Route::post('/deposit', [WalletController::class, 'deposit']);
             Route::post('/deposit-estimate', [WalletController::class, 'depositEstimate']);
