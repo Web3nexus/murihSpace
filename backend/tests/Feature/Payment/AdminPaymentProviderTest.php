@@ -14,10 +14,13 @@ use App\Services\Payment\Providers\PaystackProvider;
 use App\Services\Payment\Router\ProviderRouter;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Mockery;
+use Tests\Concerns\ActsAsSession;
 use Tests\TestCase;
 
 class AdminPaymentProviderTest extends TestCase
 {
+    use ActsAsSession;
+
     use RefreshDatabase;
 
     protected User $adminUser;
@@ -43,7 +46,7 @@ class AdminPaymentProviderTest extends TestCase
             'health_status' => ProviderHealthStatus::Healthy,
         ]);
 
-        $res = $this->actingAs($this->adminUser)->getJson('/api/v1/securegate/payment-providers');
+        $res = $this->actingAsSession($this->adminUser)->getJson('/api/v1/securegate/payment-providers');
 
         $res->assertStatus(200);
         $res->assertJsonStructure([
@@ -80,7 +83,7 @@ class AdminPaymentProviderTest extends TestCase
             'health_status' => ProviderHealthStatus::Healthy,
         ]);
 
-        $res = $this->actingAs($this->adminUser)->putJson("/api/v1/securegate/payment-providers/{$provider->code}", [
+        $res = $this->actingAsSession($this->adminUser)->putJson("/api/v1/securegate/payment-providers/{$provider->code}", [
             'is_enabled' => false,
             'environment' => 'live',
             'priority' => 50,
@@ -166,7 +169,7 @@ class AdminPaymentProviderTest extends TestCase
         $router->registerProvider('flutterwave', $flutterwaveMock);
 
         // Initially routes to Paystack
-        $sim1 = $this->actingAs($this->adminUser)->postJson('/api/v1/securegate/payment-routes/simulate', [
+        $sim1 = $this->actingAsSession($this->adminUser)->postJson('/api/v1/securegate/payment-routes/simulate', [
             'transaction_type' => 'payment',
             'country' => 'NG',
             'currency' => 'NGN',
@@ -176,13 +179,13 @@ class AdminPaymentProviderTest extends TestCase
         $sim1->assertJsonPath('data.resolved_provider', 'paystack');
 
         // Admin disables Paystack tomorrow
-        $this->actingAs($this->adminUser)->putJson('/api/v1/securegate/payment-providers/paystack', [
+        $this->actingAsSession($this->adminUser)->putJson('/api/v1/securegate/payment-providers/paystack', [
             'is_enabled' => false,
             'reason' => 'Disabling Paystack per Section 32 Provider Switching Test',
         ]);
 
         // Simulating the exact same transaction now resolves to Flutterwave without modifying any code!
-        $sim2 = $this->actingAs($this->adminUser)->postJson('/api/v1/securegate/payment-routes/simulate', [
+        $sim2 = $this->actingAsSession($this->adminUser)->postJson('/api/v1/securegate/payment-routes/simulate', [
             'transaction_type' => 'payment',
             'country' => 'NG',
             'currency' => 'NGN',
@@ -190,5 +193,41 @@ class AdminPaymentProviderTest extends TestCase
         ]);
         $sim2->assertStatus(200);
         $sim2->assertJsonPath('data.resolved_provider', 'flutterwave');
+    }
+
+    public function test_admin_can_store_flutterwave_encryption_key_without_exposing_it(): void
+    {
+        $provider = PaymentProvider::create([
+            'code' => 'flutterwave',
+            'name' => 'Flutterwave',
+            'is_enabled' => true,
+            'environment' => 'sandbox',
+            'priority' => 20,
+            'health_status' => ProviderHealthStatus::Healthy,
+        ]);
+
+        $res = $this->actingAsSession($this->adminUser)->putJson("/api/v1/securegate/payment-providers/{$provider->code}", [
+            'public_key' => 'FLWPUBK_TEST',
+            'secret_key' => 'FLWSECK_TEST',
+            'encryption_key' => 'FLWSECK_TEST_ENCRYPTION',
+            'reason' => 'Provisioning Flutterwave inline checkout credentials.',
+        ]);
+
+        $res->assertStatus(200);
+
+        $provider->refresh();
+        $this->assertSame('FLWSECK_TEST_ENCRYPTION', $provider->config['encryption_key']);
+
+        // The resolver must surface it so inline checkout can use it.
+        $this->assertSame(
+            'FLWSECK_TEST_ENCRYPTION',
+            \App\Services\Payment\Support\ProviderConfigResolver::resolve('flutterwave')['encryption_key']
+        );
+
+        // The list payload reports the status flag but never the key itself.
+        $list = $this->actingAsSession($this->adminUser)->getJson('/api/v1/securegate/payment-providers');
+        $list->assertStatus(200);
+        $list->assertJsonFragment(['code' => 'flutterwave', 'has_encryption_key' => true]);
+        $this->assertStringNotContainsString('FLWSECK_TEST_ENCRYPTION', $list->getContent());
     }
 }

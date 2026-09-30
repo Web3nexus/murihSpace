@@ -5,10 +5,13 @@ namespace Tests\Feature;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
+use Tests\Concerns\ActsAsSession;
 use Tests\TestCase;
 
 class QueueMonitorTest extends TestCase
 {
+    use ActsAsSession;
+
     use RefreshDatabase;
 
     public function test_admin_can_fetch_queue_stats_and_system_info_without_redis_error(): void
@@ -18,7 +21,7 @@ class QueueMonitorTest extends TestCase
             'status' => 'active',
         ]);
 
-        Sanctum::actingAs($admin);
+        $this->actAsSession($admin);
 
         $statsRes = $this->getJson('/api/v1/securegate/queue/stats');
         $statsRes->assertStatus(200);

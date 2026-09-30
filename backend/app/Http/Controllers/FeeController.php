@@ -28,7 +28,7 @@ class FeeController extends Controller
 
         $code     = strtoupper($validated['transaction_code']);
         $amount   = (int) $validated['amount'];
-        $currency = strtoupper($validated['currency'] ?? 'NGN');
+        $currency = strtoupper($validated['currency'] ?? 'USD');
         $method   = $validated['payment_method'] ?? null;
         $wType    = $validated['wallet_type'] ?? null;
         $role     = $request->user()?->role;

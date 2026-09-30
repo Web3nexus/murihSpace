@@ -25,7 +25,7 @@ class LedgerService
     public function credit(
         User|int $user,
         int $amount,
-        string $currency = 'NGN',
+        string $currency = 'USD',
         string $walletType = 'system',
         string $balanceCategory = 'available',
         string $type = 'deposit',
@@ -53,7 +53,7 @@ class LedgerService
     public function debit(
         User|int $user,
         int $amount,
-        string $currency = 'NGN',
+        string $currency = 'USD',
         string $walletType = 'system',
         string $balanceCategory = 'available',
         string $type = 'payment',
@@ -82,7 +82,7 @@ class LedgerService
         int $fromUserId,
         int $toUserId,
         int $amount,
-        string $currency = 'NGN',
+        string $currency = 'USD',
         ?string $description = null,
         ?string $idempotencyKey = null,
         array $metadata = []
@@ -186,7 +186,7 @@ class LedgerService
         string $toWalletType = 'system',
         int $amount = 0,
         int $feeAmount = 0,
-        string $currency = 'NGN',
+        string $currency = 'USD',
         ?string $idempotencyKey = null
     ): LedgerTransaction {
         if (! in_array($fromWalletType, ['creator', 'business'], true) || $toWalletType !== 'system') {

@@ -63,7 +63,7 @@ class PhysicalProductController extends Controller
         ]);
 
         $validated['creator_id'] = $request->user()->id;
-        $validated['currency'] ??= 'NGN';
+        $validated['currency'] ??= 'USD';
 
         $product = PhysicalProduct::create($validated);
 

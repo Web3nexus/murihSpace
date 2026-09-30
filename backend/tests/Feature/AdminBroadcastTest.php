@@ -9,10 +9,13 @@ use App\Models\User;
 use App\Notifications\MurihOfficialNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
+use Tests\Concerns\ActsAsSession;
 use Tests\TestCase;
 
 class AdminBroadcastTest extends TestCase
 {
+    use ActsAsSession;
+
     use RefreshDatabase;
 
     private function createAdmin(): User
@@ -30,7 +33,7 @@ class AdminBroadcastTest extends TestCase
         $admin = $this->createAdmin();
         $users = User::factory()->count(3)->create();
 
-        $res = $this->actingAs($admin)->postJson('/api/v1/securegate/broadcasts', [
+        $res = $this->actingAsSession($admin)->postJson('/api/v1/securegate/broadcasts', [
             'title' => 'Scheduled Maintenance',
             'body' => 'MurihSpace will undergo maintenance on Sunday at 2 AM UTC.',
             'type' => 'announcement',
@@ -73,7 +76,7 @@ class AdminBroadcastTest extends TestCase
             'recipients_count' => 1,
         ]);
 
-        $res = $this->actingAs($user)->getJson('/api/v1/system-broadcasts');
+        $res = $this->actingAsSession($user)->getJson('/api/v1/system-broadcasts');
 
         $res->assertOk()
             ->assertJsonFragment(['title' => 'Creator Economy Boost']);
@@ -83,7 +86,7 @@ class AdminBroadcastTest extends TestCase
     {
         $user = User::factory()->create(['role' => 'user']);
 
-        $res = $this->actingAs($user)->postJson('/api/v1/securegate/broadcasts', [
+        $res = $this->actingAsSession($user)->postJson('/api/v1/securegate/broadcasts', [
             'title' => 'Unauthorized Alert',
             'body' => 'Should fail.',
             'type' => 'announcement',

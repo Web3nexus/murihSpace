@@ -219,4 +219,43 @@ class GiftCatalogueAndChatEnrichmentTest extends TestCase
         $this->assertSame('full_screen', $giftMsg['animation_type']);
         $this->assertStringContainsString('/gifts/qa_QA Rocket.png', $giftMsg['gift_icon_url']);
     }
+
+    public function test_gift_catalogue_defaults_to_usd_without_country_signal(): void
+    {
+        AdminSetting::set('coin_conversion_rate', 10);
+        $this->seedGift('QA Love', 25);
+
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->getJson('/api/v1/gifts');
+
+        $response->assertOk();
+        $item = collect($response->json('data.data'))->firstWhere('name', 'QA Love');
+        $this->assertNotNull($item);
+        $this->assertSame('USD', $item['local_currency']);
+        $this->assertStringStartsWith('$', $item['local_formatted']);
+    }
+
+    public function test_gift_catalogue_derives_currency_from_mobile_calling_code(): void
+    {
+        AdminSetting::set('coin_conversion_rate', 10);
+        Country::create([
+            'iso2' => 'NG',
+            'iso3' => 'NGA',
+            'name' => 'Nigeria',
+            'calling_code' => '234',
+            'currency' => 'NGN',
+        ]);
+        $this->seedGift('QA Love', 25);
+
+        $user = User::factory()->create(['country' => null, 'mobile_number' => '+2348012345678']);
+
+        $response = $this->actingAs($user)->getJson('/api/v1/gifts');
+
+        $response->assertOk();
+        $item = collect($response->json('data.data'))->firstWhere('name', 'QA Love');
+        $this->assertNotNull($item);
+        $this->assertSame('NGN', $item['local_currency']);
+        $this->assertStringContainsString('₦', $item['local_formatted']);
+    }
 }

@@ -8,16 +8,19 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Mail\Mailer;
 use Illuminate\Support\Facades\Mail;
 use Laravel\Sanctum\Sanctum;
+use Tests\Concerns\ActsAsSession;
 use Tests\TestCase;
 
 class AdminMailSettingsTest extends TestCase
 {
+    use ActsAsSession;
+
     use RefreshDatabase;
 
     public function test_admin_can_update_mail_engine_to_resend_and_apply_settings(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
-        Sanctum::actingAs($admin);
+        $this->actAsSession($admin);
 
         $response = $this->putJson('/api/v1/securegate/mail-settings', [
             'transport' => 'resend',
@@ -44,7 +47,7 @@ class AdminMailSettingsTest extends TestCase
     public function test_all_supported_transports_can_be_configured_and_applied(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
-        Sanctum::actingAs($admin);
+        $this->actAsSession($admin);
 
         /** @var MailEngineService $engine */
         $engine = app(MailEngineService::class);
@@ -68,7 +71,7 @@ class AdminMailSettingsTest extends TestCase
     public function test_resend_transport_can_be_instantiated_without_missing_class_error(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
-        Sanctum::actingAs($admin);
+        $this->actAsSession($admin);
 
         $this->putJson('/api/v1/securegate/mail-settings', [
             'transport' => 'resend',

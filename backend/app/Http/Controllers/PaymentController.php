@@ -24,7 +24,7 @@ class PaymentController extends Controller
      */
     public function methods(Request $request): JsonResponse
     {
-        $currency = strtoupper($request->query('currency', 'NGN'));
+        $currency = strtoupper($request->query('currency', 'USD'));
         $country = $request->query('country') ? strtoupper($request->query('country')) : null;
 
         $methods = [
@@ -77,7 +77,7 @@ class PaymentController extends Controller
 
         // 1. Resolve product/order details
         $amount = 0;
-        $currency = 'NGN';
+        $currency = 'USD';
         $transactionType = 'digital_product';
         $orderId = null;
         $fees = 0;
@@ -109,7 +109,7 @@ class PaymentController extends Controller
             'customer_name' => $user->name,
             'amount' => $amount,
             'currency' => $currency,
-            'country' => $validated['country'] ?? 'NG',
+            'country' => $validated['country'] ?? app(\App\Services\LocalCurrencyResolver::class)->countryCode($user) ?? 'US',
             'payment_method' => $validated['payment_method'] ?? 'card',
             'transaction_type' => $transactionType,
             'return_url' => $validated['return_url'] ?? null,

@@ -16,10 +16,13 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
+use Tests\Concerns\ActsAsSession;
 use Tests\TestCase;
 
 class MediaRetentionTest extends TestCase
 {
+    use ActsAsSession;
+
     use RefreshDatabase;
 
     private function superAdmin(): User
@@ -78,7 +81,7 @@ class MediaRetentionTest extends TestCase
     public function test_admin_can_update_retention_settings_and_audit_is_written(): void
     {
         $admin = $this->superAdmin();
-        Sanctum::actingAs($admin);
+        $this->actAsSession($admin);
 
         $response = $this->putJson('/api/v1/securegate/messaging-retention', [
             'default_retention_days' => 14,
@@ -105,7 +108,7 @@ class MediaRetentionTest extends TestCase
     public function test_non_admin_cannot_access_retention_settings(): void
     {
         $member = User::factory()->create(['role' => 'member']);
-        Sanctum::actingAs($member);
+        $this->actAsSession($member);
 
         $this->getJson('/api/v1/securegate/messaging-retention')->assertForbidden();
         $this->putJson('/api/v1/securegate/messaging-retention', ['default_retention_days' => 5])->assertForbidden();
@@ -193,7 +196,7 @@ class MediaRetentionTest extends TestCase
     public function test_admin_can_place_and_release_hold_via_api(): void
     {
         $admin = $this->superAdmin();
-        Sanctum::actingAs($admin);
+        $this->actAsSession($admin);
 
         $media = $this->makeMedia(['delete_after' => now()->subDay(), 'lifecycle_status' => 'available']);
 
@@ -271,7 +274,7 @@ class MediaRetentionTest extends TestCase
     public function test_upload_schedules_media_for_deletion(): void
     {
         Storage::fake('local_uploads');
-        Sanctum::actingAs($this->superAdmin());
+        $this->actAsSession($this->superAdmin());
 
         $response = $this->postJson('/api/v1/messages/attachments', [
             'file' => \Illuminate\Http\UploadedFile::fake()->image('pic.jpg'),

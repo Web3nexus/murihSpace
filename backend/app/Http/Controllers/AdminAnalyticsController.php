@@ -43,27 +43,38 @@ class AdminAnalyticsController extends Controller
             return $requested;
         }
 
-        $default = strtoupper((string) AdminSetting::get('default_currency', 'NGN'));
+        $default = strtoupper((string) AdminSetting::get('default_currency', 'USD'));
         return in_array($default, $this->converter->getSupportedCurrencies(), true)
             ? $default
-            : 'NGN';
+            : 'USD';
     }
 
     /**
-     * Convert an NGN minor-unit amount into the target currency (minor units).
+     * Convert a platform baseline currency minor-unit amount into the target currency.
+     * Amounts are USD minor units by default (default_currency setting).
      */
-    private function convertAmount(int|float $ngnMinorUnits, string $to): float
+    private function convertAmount(int|float $baseMinorUnits, string $to): float
     {
-        if ($to === 'NGN') {
-            return (float) round((float) $ngnMinorUnits, 2);
+        $from = $this->currentDefaultCurrency();
+        if ($from === $to) {
+            return (float) round((float) $baseMinorUnits, 2);
         }
 
-        $rate = $this->converter->getRate('NGN', $to);
+        $rate = $this->converter->getRate($from, $to);
         if ($rate === null) {
-            return (float) round((float) $ngnMinorUnits, 2);
+            return (float) round((float) $baseMinorUnits, 2);
         }
 
-        return (float) round((float) $ngnMinorUnits * $rate, 2);
+        return (float) round((float) $baseMinorUnits * $rate, 2);
+    }
+
+    private function currentDefaultCurrency(): string
+    {
+        $default = strtoupper((string) AdminSetting::get('default_currency', 'USD'));
+
+        return in_array($default, $this->converter->getSupportedCurrencies(), true)
+            ? $default
+            : 'USD';
     }
 
     public function overview(Request $request): JsonResponse

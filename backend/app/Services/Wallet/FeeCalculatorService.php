@@ -13,7 +13,7 @@ class FeeCalculatorService
     public function calculate(
         string $codeOrType,
         int $grossAmount,
-        string $currency = 'NGN',
+        string $currency = 'USD',
         ?string $paymentMethod = null,
         ?string $role = null,
         ?string $walletType = null

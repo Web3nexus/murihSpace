@@ -35,7 +35,9 @@ class WalletController extends Controller
     public function index(Request $request): JsonResponse
     {
         $user           = $request->user();
-        $targetCurrency = strtoupper($request->query('currency', 'NGN'));
+        $targetCurrency = strtoupper($request->has('currency')
+            ? $request->query('currency')
+            : app(\App\Services\LocalCurrencyResolver::class)->currency($user));
         $wallets        = $this->walletService->getUserWallets($user);
 
         $data = $wallets->map(fn (Wallet $w) => $this->formatWalletData($w, $targetCurrency));
@@ -52,7 +54,9 @@ class WalletController extends Controller
     public function showByType(Request $request, string $type = 'system'): JsonResponse
     {
         $user           = $request->user();
-        $targetCurrency = strtoupper($request->query('currency', 'NGN'));
+        $targetCurrency = strtoupper($request->has('currency')
+            ? $request->query('currency')
+            : app(\App\Services\LocalCurrencyResolver::class)->currency($user));
         $wallet         = $this->walletService->getOrCreateWallet($user, $type);
 
         return response()->json([
@@ -97,7 +101,7 @@ class WalletController extends Controller
 
         // Resolve wallet first to enforce currency consistency.
         // Reject if the request currency doesn't match the existing wallet currency.
-        $requested   = strtoupper($validated['currency'] ?? 'NGN');
+        $requested   = strtoupper($validated['currency'] ?? 'USD');
         $walletCheck = $this->walletService->getOrCreateWallet($user, 'system', $requested);
 
         if ($walletCheck->currency !== $requested) {
@@ -446,7 +450,7 @@ class WalletController extends Controller
         return $this->showByType($request, 'system');
     }
 
-    private function formatWalletData(Wallet $w, string $targetCurrency = 'NGN'): array
+    private function formatWalletData(Wallet $w, string $targetCurrency = 'USD'): array
     {
         $rateService = app(\App\Services\Payment\LiveExchangeRateService::class);
         $localRate = $rateService->getRate($w->currency, $targetCurrency);

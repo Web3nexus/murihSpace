@@ -2,9 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\AdminPermission;
+use App\Enums\AdminRole;
 use App\Models\AuditLog;
 use App\Models\User;
 use App\Services\NotificationService;
+use App\Support\AdminPermissionMatrix;
+use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -15,53 +19,90 @@ class AdminManagementController extends Controller
     public function __construct(private readonly NotificationService $notifications)
     {
     }
-    public const ROLES = [
-        'super_admin' => 'Super Admin',
-        'finance_admin' => 'Finance & Accounting Admin',
-        'support_admin' => 'Customer Support Admin',
-        'commerce_admin' => 'Commerce & Marketplace Admin',
-        'content_admin' => 'Content Moderation Admin',
-        'ads_admin' => 'Advertisements & Campaigns Admin',
-        'marketing_admin' => 'Marketing & Growth Admin',
-        'compliance_admin' => 'Compliance & Risk Admin',
-        'operations_admin' => 'Operations & Staff Admin',
-        'support_staff' => 'Support Representative / Staff',
-        'moderator' => 'Content Moderator / Staff',
-    ];
 
-    public const PERMISSIONS = [
-        'users' => 'User management & impersonation',
-        'kyc' => 'KYC verification & identity audits',
-        'content' => 'Content moderation & reporting',
-        'commerce' => 'Commerce & orders management',
-        'accounting' => 'Accounting & revenue streams',
-        'tax' => 'Tax management & compliance',
-        'payouts' => 'Payouts & escrow management',
-        'analytics' => 'Analytics & platform reports',
-        'settings' => 'Platform settings & configuration',
-        'admins' => 'Admin & staff access management',
-        'wallets' => 'Wallet & ledger adjustment',
-        'fees' => 'Platform fee rules & commission percentage',
-        'ads' => 'Advertisements & sponsor campaigns',
-        'marketing' => 'Marketing & customer engagement',
-        'support' => 'Customer support & tickets',
-    ];
+    /**
+     * Resolve the permissions to store for an administrator.
+     *
+     * An explicitly submitted list is honoured verbatim and is never widened.
+     * When no list is submitted the role's defaults apply, so creating an
+     * administrator without ticking anything no longer yields an account with
+     * an empty grant that — before routes were permission-guarded — effectively
+     * meant full access.
+     *
+     * @return array<int, string>
+     */
+    private function resolvePermissions(Request $request, string $role): array
+    {
+        if ($role === AdminRole::SuperAdmin->value) {
+            return AdminPermission::names();
+        }
+
+        if ($request->has('permissions') && is_array($request->input('permissions'))) {
+            return array_values(array_intersect(
+                $request->input('permissions'),
+                AdminPermission::names()
+            ));
+        }
+
+        return AdminPermissionMatrix::defaultNamesFor(AdminRole::from($role));
+    }
 
     public function roles(): JsonResponse
     {
-        return response()->json([
-            'data' => [
-                'roles' => self::ROLES,
-                'permissions' => self::PERMISSIONS,
-            ],
+        return ApiResponse::success([
+            'roles' => AdminRole::labelled(),
+            'permissions' => AdminPermission::labelled(),
+            'role_defaults' => $this->roleDefaults(),
         ]);
+    }
+
+    /**
+     * The signed-in administrator's own authority.
+     *
+     * Reachable by any administrator so a client can render role-appropriate
+     * navigation without holding the `admins` permission. Resolution happens here
+     * on the server so no client has to keep its own copy of the matrix.
+     */
+    public function me(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $role = $user->adminRole();
+
+        return ApiResponse::success([
+            'id' => $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+            'avatar' => $user->avatar_url ?? $user->avatar,
+            'status' => $user->status,
+            'admin_role' => $role?->value,
+            'admin_role_label' => $role?->label(),
+            'is_super_admin' => $user->isSuperAdmin(),
+            'permissions' => AdminPermissionMatrix::effectiveNamesFor($user),
+            'sections' => AdminPermissionMatrix::sectionsFor($user),
+        ]);
+    }
+
+    /**
+     * Default permissions per role, so the creation form can preselect them.
+     *
+     * @return array<string, array<int, string>>
+     */
+    private function roleDefaults(): array
+    {
+        $defaults = [];
+
+        foreach (AdminRole::cases() as $role) {
+            $defaults[$role->value] = AdminPermissionMatrix::defaultNamesFor($role);
+        }
+
+        return $defaults;
     }
 
     public function index(Request $request): JsonResponse
     {
         $validated = $request->validate([
             'search' => ['nullable', 'string', 'max:100'],
-            'admin_role' => ['nullable', 'string', 'in:all,' . implode(',', array_keys(self::ROLES))],
+            'admin_role' => ['nullable', 'string', 'in:all,' . implode(',', AdminRole::names())],
             'status' => ['nullable', 'string', 'in:active,suspended,all'],
             'per_page' => ['nullable', 'integer', 'min:10', 'max:100'],
         ]);
@@ -103,14 +144,12 @@ class AdminManagementController extends Controller
             'name' => ['required_if:user_id,null', 'string', 'max:100'],
             'email' => ['required_if:user_id,null', 'string', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required_if:user_id,null', 'string', 'min:8'],
-            'admin_role' => ['required', 'string', 'in:'.implode(',', array_keys(self::ROLES))],
+            'admin_role' => ['required', 'string', 'in:'.implode(',', AdminRole::names())],
             'permissions' => ['nullable', 'array'],
-            'permissions.*' => ['string', 'in:'.implode(',', array_keys(self::PERMISSIONS))],
+            'permissions.*' => ['string', 'in:'.implode(',', AdminPermission::names())],
         ]);
 
-        $permissions = $validated['admin_role'] === 'super_admin'
-            ? array_keys(self::PERMISSIONS)
-            : ($validated['permissions'] ?? []);
+        $permissions = $this->resolvePermissions($request, $validated['admin_role']);
 
         if ($validated['user_id'] ?? null) {
             $user = User::findOrFail($validated['user_id']);
@@ -166,11 +205,11 @@ class AdminManagementController extends Controller
         $this->notifications->actionEmail(
             user: $user,
             title: 'Your admin account is ready',
-            bodyHtml: '<p>You have been granted an <strong>admin role</strong> on the MurihSpace platform ('.e(self::ROLES[$validated['admin_role']] ?? $validated['admin_role']).'). You can now sign in through the Securegate admin portal.</p>',
+            bodyHtml: '<p>You have been granted an <strong>admin role</strong> on the MurihSpace platform ('.e(AdminRole::tryFrom($validated['admin_role'])?->label() ?? $validated['admin_role']).'). You can now sign in through the Securegate admin portal.</p>',
             actionLabel: 'Open Securegate',
             actionUrl: NotificationService::link('securegate/login'),
             template: 'admin_role_granted',
-            data: ['role' => e(self::ROLES[$validated['admin_role']] ?? $validated['admin_role'])],
+            data: ['role' => e(AdminRole::tryFrom($validated['admin_role'])?->label() ?? $validated['admin_role'])],
         );
 
         return response()->json([
@@ -198,15 +237,13 @@ class AdminManagementController extends Controller
         }
 
         $validated = $request->validate([
-            'admin_role' => ['required', 'string', 'in:'.implode(',', array_keys(self::ROLES))],
+            'admin_role' => ['required', 'string', 'in:'.implode(',', AdminRole::names())],
             'permissions' => ['nullable', 'array'],
-            'permissions.*' => ['string', 'in:'.implode(',', array_keys(self::PERMISSIONS))],
+            'permissions.*' => ['string', 'in:'.implode(',', AdminPermission::names())],
             'status' => ['sometimes', 'string', 'in:active,suspended'],
         ]);
 
-        $permissions = $validated['admin_role'] === 'super_admin'
-            ? array_keys(self::PERMISSIONS)
-            : ($validated['permissions'] ?? []);
+        $permissions = $this->resolvePermissions($request, $validated['admin_role']);
 
         $user->update([
             'admin_role' => $validated['admin_role'],
@@ -325,8 +362,8 @@ class AdminManagementController extends Controller
         $validated = $request->validate([
             'user_id' => ['nullable', 'integer', 'min:1', 'required_without:email'],
             'email' => ['nullable', 'string', 'email', 'required_without:user_id'],
-            'permission' => ['nullable', 'string', 'in:' . implode(',', array_keys(self::PERMISSIONS))],
-            'role' => ['nullable', 'string', 'in:' . implode(',', array_keys(self::ROLES))],
+            'permission' => ['nullable', 'string', 'in:' . implode(',', AdminPermission::names())],
+            'role' => ['nullable', 'string', 'in:' . implode(',', AdminRole::names())],
         ]);
 
         $query = User::where('role', 'admin')->where('status', 'active');
@@ -362,7 +399,8 @@ class AdminManagementController extends Controller
             'username' => $user->username,
             'role' => $user->role,
             'admin_role' => $user->admin_role,
-            'admin_permissions' => $user->admin_permissions ?? [],
+            'admin_role_label' => $user->adminRole()?->label(),
+            'admin_permissions' => AdminPermissionMatrix::effectiveNamesFor($user),
             'status' => $user->status,
             'created_at' => $user->created_at?->toIso8601String(),
         ];

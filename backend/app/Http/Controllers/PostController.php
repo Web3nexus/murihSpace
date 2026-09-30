@@ -10,13 +10,17 @@ use App\Models\PostComment;
 use App\Models\PostReaction;
 use App\Models\SavedPost;
 use App\Models\PostReport;
+use App\Models\Report;
 use App\Models\User;
+use App\Services\ContentMonitor;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
 class PostController extends Controller
 {
+    public function __construct(private readonly ContentMonitor $monitor) {}
+
     /**
      * Display a feed of published posts for a specific community.
      */
@@ -172,6 +176,11 @@ class PostController extends Controller
 
         $post->load(['author:id,name,username,avatar,verification_badge_status,verification_badge_expires_at', 'community:id,name,slug,logo_url']);
 
+        // Queues the post for a moderator if it matches a detection rule. It
+        // never changes the post: the response is the same whether or not
+        // anything was flagged, because the author is not the audience for it.
+        $this->monitor->scan('post', $post->id, $post->user_id, (string) $post->content);
+
         return response()->json([
             'message' => 'Post published successfully.',
             'post' => $post,
@@ -248,6 +257,12 @@ class PostController extends Controller
 
         $post->load(['author:id,name,username,avatar,verification_badge_status,verification_badge_expires_at', 'community:id,name,slug,logo_url', 'reactions']);
 
+        // Re-scan on edit: a post is only "clean" as of its current text, and
+        // an edit is the usual way a flagged post is made to look harmless.
+        if (array_key_exists('content', $validated)) {
+            $this->monitor->scan('post', $post->id, $post->user_id, (string) $post->content);
+        }
+
         return response()->json([
             'message' => 'Post updated.',
             'post' => $post,
@@ -289,6 +304,8 @@ class PostController extends Controller
 
         $post->increment('comments_count');
         $comment->load('author:id,name,username,avatar,verification_badge_status,verification_badge_expires_at');
+
+        $this->monitor->scan('comment', $comment->id, $comment->user_id, (string) $comment->content);
 
         return response()->json([
             'message' => 'Comment added.',
@@ -435,33 +452,92 @@ class PostController extends Controller
 
     /**
      * Report a post.
+     *
+     * Writes to `reports` rather than `post_reports` (DEC-014). This endpoint
+     * used to write to a table that no administration screen reads, so a member
+     * reporting a post produced a record that no moderator would ever see.
+     * `PostReport` is left in place for its historic rows and its own
+     * post-detail screens.
      */
     public function report(Request $request, int $postId): JsonResponse
     {
         $validated = $request->validate([
-            'reason' => ['required', Rule::in(PostReport::REASONS)],
+            'reason' => ['required', Rule::in(Report::REASONS)],
             'description' => ['nullable', 'string', 'max:2000'],
         ]);
 
         $post = Post::findOrFail($postId);
         $user = $request->user();
 
-        $exists = PostReport::where('post_id', $post->id)
-            ->where('user_id', $user->id)
+        $exists = Report::where('reporter_id', $user->id)
+            ->where('reported_type', 'post')
+            ->where('reported_id', $post->id)
+            ->where('status', 'pending')
             ->exists();
 
         if ($exists) {
-            return response()->json(['message' => 'You have already reported this post.'], 409);
+            return response()->json([
+                'message' => 'You have already reported this post.',
+                'code' => 'ALREADY_REPORTED',
+            ], 409);
         }
 
-        PostReport::create([
-            'post_id' => $post->id,
-            'user_id' => $user->id,
+        Report::create([
+            'reporter_id' => $user->id,
+            'reported_type' => 'post',
+            'reported_id' => $post->id,
             'reason' => $validated['reason'],
-            'description' => $validated['description'] ?? null,
+            'details' => $validated['description'] ?? null,
+            'status' => 'pending',
         ]);
 
-        return response()->json(['message' => 'Post reported. Thank you for helping keep the community safe.'], 201);
+        return response()->json([
+            'message' => 'Post reported. Thank you for helping keep the community safe.',
+        ], 201);
+    }
+
+    /**
+     * Report a comment.
+     *
+     * `Report.reported_type` has always allowed `comment` and the moderation
+     * queue can already delete one, but no endpoint created such a report — so
+     * a member had no way to report a comment at all.
+     */
+    public function reportComment(Request $request, int $postId, int $commentId): JsonResponse
+    {
+        $validated = $request->validate([
+            'reason' => ['required', Rule::in(Report::REASONS)],
+            'description' => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        $comment = PostComment::where('post_id', $postId)->findOrFail($commentId);
+        $user = $request->user();
+
+        $exists = Report::where('reporter_id', $user->id)
+            ->where('reported_type', 'comment')
+            ->where('reported_id', $comment->id)
+            ->where('status', 'pending')
+            ->exists();
+
+        if ($exists) {
+            return response()->json([
+                'message' => 'You have already reported this comment.',
+                'code' => 'ALREADY_REPORTED',
+            ], 409);
+        }
+
+        Report::create([
+            'reporter_id' => $user->id,
+            'reported_type' => 'comment',
+            'reported_id' => $comment->id,
+            'reason' => $validated['reason'],
+            'details' => $validated['description'] ?? null,
+            'status' => 'pending',
+        ]);
+
+        return response()->json([
+            'message' => 'Comment reported. Thank you for helping keep the community safe.',
+        ], 201);
     }
 
     /**

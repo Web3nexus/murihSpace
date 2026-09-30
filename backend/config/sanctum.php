@@ -54,6 +54,25 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Administration Token Expiration (minutes)
+    |--------------------------------------------------------------------------
+    |
+    | Administration sessions are deliberately short-lived. A consumer session is
+    | a paying member's own account and a 30-day bearer token is a tolerable
+    | trade for not re-authenticating a phone every few days. An administration
+    | session can move money, approve KYC, grant Creator/Vendor status and edit
+    | platform settings, and the exposure of a stolen token there is far greater
+    | than the annoyance of signing in again. 8 hours covers a working day.
+    |
+    | Applied by AuthSessionService::issueAdmin(); administration tokens are also
+    | tagged with the `admin:mfa` ability, which IsAdmin requires.
+    |
+    */
+
+    'admin_expiration' => env('SANCTUM_ADMIN_TOKEN_TTL', 480),
+
+    /*
+    |--------------------------------------------------------------------------
     | Token Prefix
     |--------------------------------------------------------------------------
     |

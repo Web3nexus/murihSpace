@@ -9,17 +9,20 @@ use App\Models\SocialAccount;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
+use Tests\Concerns\ActsAsSession;
 use Tests\TestCase;
 
 class SocialAccountTest extends TestCase
 {
+    use ActsAsSession;
+
     use RefreshDatabase;
 
     public function test_user_can_list_supported_providers(): void
     {
         $user = User::factory()->create(['role' => 'member']);
 
-        $response = $this->actingAs($user)->getJson('/api/v1/social-accounts/supported-providers');
+        $response = $this->actingAsSession($user)->getJson('/api/v1/social-accounts/supported-providers');
 
         $response->assertStatus(200)
             ->assertJsonPath('data.data.0.provider', 'instagram');
@@ -29,7 +32,7 @@ class SocialAccountTest extends TestCase
     {
         $user = User::factory()->create(['role' => 'member']);
 
-        $response = $this->actingAs($user)->postJson('/api/v1/social-accounts/manual', [
+        $response = $this->actingAsSession($user)->postJson('/api/v1/social-accounts/manual', [
             'provider'       => 'instagram',
             'username'       => 'johndoe_official',
             'profile_url'    => 'https://instagram.com/johndoe_official',
@@ -67,7 +70,7 @@ class SocialAccountTest extends TestCase
             'sync_status'    => 'synced',
         ]);
 
-        $response = $this->actingAs($user)->getJson('/api/v1/social-accounts/follower-summary');
+        $response = $this->actingAsSession($user)->getJson('/api/v1/social-accounts/follower-summary');
 
         $response->assertStatus(200)
             ->assertJsonPath('data.data.combined_followers', 11000)
@@ -85,13 +88,13 @@ class SocialAccountTest extends TestCase
         $user = User::factory()->create(['role' => 'member']);
 
         // Connecting accounts that cross threshold (5000 + 6000 = 11000 >= 10000)
-        $this->actingAs($user)->postJson('/api/v1/social-accounts/manual', [
+        $this->actingAsSession($user)->postJson('/api/v1/social-accounts/manual', [
             'provider'       => 'instagram',
             'username'       => 'john_ig',
             'follower_count' => 5000,
         ]);
 
-        $this->actingAs($user)->postJson('/api/v1/social-accounts/manual', [
+        $this->actingAsSession($user)->postJson('/api/v1/social-accounts/manual', [
             'provider'       => 'youtube',
             'username'       => 'john_yt',
             'follower_count' => 6000,
@@ -109,7 +112,7 @@ class SocialAccountTest extends TestCase
     {
         $admin = User::factory()->create(['role' => 'admin']);
 
-        $response = $this->actingAs($admin)->putJson('/api/v1/securegate/creator-qualification/settings', [
+        $response = $this->actingAsSession($admin)->putJson('/api/v1/securegate/creator-qualification/settings', [
             'enabled'                => true,
             'follower_threshold'     => 15000,
             'delay_amount'           => 12,
@@ -142,7 +145,7 @@ class SocialAccountTest extends TestCase
             'sync_status'    => 'synced',
         ]);
 
-        $response = $this->actingAs($user)->deleteJson("/api/v1/social-accounts/{$account->id}");
+        $response = $this->actingAsSession($user)->deleteJson("/api/v1/social-accounts/{$account->id}");
 
         $response->assertStatus(200);
 

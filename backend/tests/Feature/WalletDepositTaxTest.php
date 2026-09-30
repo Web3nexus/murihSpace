@@ -76,7 +76,7 @@ class WalletDepositTaxTest extends TestCase
         $this->assertDatabaseHas('tax_liabilities', [
             'period_identifier' => now()->format('Y-m'),
             'country_code' => 'TST',
-            'currency' => 'NGN',
+            'currency' => 'USD',
             'tax_type' => 'VAT',
             'taxable_base_cents' => 5000,
             'tax_collected_cents' => 500,

@@ -68,7 +68,7 @@ class AdminFeeController extends Controller
         ]);
 
         $rule = FeeRule::create(array_merge([
-            'currency'     => 'NGN',
+            'currency'     => 'USD',
             'fixed_amount' => 0,
             'percentage'   => 0,
             'minimum_fee'  => 0,

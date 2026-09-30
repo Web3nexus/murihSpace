@@ -12,10 +12,13 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Crypt;
 use Laravel\Sanctum\Sanctum;
+use Tests\Concerns\ActsAsSession;
 use Tests\TestCase;
 
 class AdminSettingsKycCredentialsTest extends TestCase
 {
+    use ActsAsSession;
+
     use RefreshDatabase;
 
     protected function setUp(): void
@@ -55,7 +58,7 @@ class AdminSettingsKycCredentialsTest extends TestCase
     public function test_admin_settings_api_exposes_and_persists_kyc_credentials(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
-        Sanctum::actingAs($admin);
+        $this->actAsSession($admin);
 
         // GET settings initially shows all credentials as false (not set)
         $response = $this->getJson('/api/v1/securegate/settings');

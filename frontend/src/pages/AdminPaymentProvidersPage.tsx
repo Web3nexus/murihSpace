@@ -30,6 +30,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { authFetch } from '@/lib/api/authFetch';
+import { env } from '@/config/env';
 
 interface ProviderCapability {
   id: number;
@@ -51,6 +52,7 @@ interface PaymentProvider {
   health_status: 'healthy' | 'degraded' | 'down' | 'maintenance';
   credential_status: 'Configured' | 'Not configured';
   has_credentials?: boolean;
+  has_encryption_key?: boolean;
   public_key_preview?: string | null;
   handles_tax?: boolean;
   last_health_check_at: string | null;
@@ -108,6 +110,8 @@ export function AdminPaymentProvidersPage() {
   const [providerClientToken, setProviderClientToken] = useState<string>('');
   const [providerVendorId, setProviderVendorId] = useState<string>('');
   const [providerWebhookPublicKey, setProviderWebhookPublicKey] = useState<string>('');
+  const [providerEncryptionKey, setProviderEncryptionKey] = useState<string>('');
+  const [copiedWebhook, setCopiedWebhook] = useState<string | null>(null);
   const [providerHandlesTax, setProviderHandlesTax] = useState<boolean>(true);
   const [savingProvider, setSavingProvider] = useState(false);
 
@@ -256,6 +260,7 @@ export function AdminPaymentProvidersPage() {
     setProviderClientToken('');
     setProviderVendorId('');
     setProviderWebhookPublicKey('');
+    setProviderEncryptionKey('');
     setConfigModalOpen(true);
   };
 
@@ -279,6 +284,7 @@ export function AdminPaymentProvidersPage() {
       if (providerClientToken) payload.client_token = providerClientToken;
       if (providerVendorId) payload.vendor_id = providerVendorId;
       if (providerWebhookPublicKey) payload.webhook_public_key = providerWebhookPublicKey;
+      if (providerEncryptionKey) payload.encryption_key = providerEncryptionKey;
       payload.handles_tax = providerHandlesTax;
 
       const res = await authFetch('/securegate/payment-providers', {
@@ -653,11 +659,41 @@ export function AdminPaymentProvidersPage() {
                         </div>
                       )}
 
-                      <div className="flex justify-between py-1 border-b border-border/50">
-                        <span className="text-muted-foreground">Webhook URL:</span>
-                        <code className="text-[10px] bg-muted px-1.5 py-0.5 rounded text-foreground font-mono">
-                          /webhooks/{p.code}
-                        </code>
+                      {p.code === 'flutterwave' && (
+                        <div className="flex justify-between py-1 border-b border-border/50">
+                          <span className="text-muted-foreground">Encryption Key:</span>
+                          <span className={'font-semibold ' + (p.has_encryption_key ? 'text-emerald-500' : 'text-amber-500')}>
+                            {p.has_encryption_key ? 'Configured' : 'Not configured'}
+                          </span>
+                        </div>
+                      )}
+
+                      <div className="flex justify-between items-center gap-2 py-1 border-b border-border/50">
+                        <span className="text-muted-foreground shrink-0">Webhook URL:</span>
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <code className="text-[10px] bg-muted px-1.5 py-0.5 rounded text-foreground font-mono truncate">
+                            {env.VITE_API_BASE_URL.replace(/\/+$/, '')}/webhooks/{p.code}
+                          </code>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-5 px-1.5 text-[10px] text-muted-foreground hover:text-foreground shrink-0"
+                            onClick={() => {
+                              const url = `${env.VITE_API_BASE_URL.replace(/\/+$/, '')}/webhooks/${p.code}`;
+                              if (!navigator.clipboard) {
+                                setActionMsg({ ok: false, text: `Copy unavailable. Webhook URL: ${url}` });
+                                return;
+                              }
+                              navigator.clipboard.writeText(url).then(() => {
+                                setCopiedWebhook(p.code);
+                                setTimeout(() => setCopiedWebhook((c) => (c === p.code ? null : c)), 1500);
+                              }).catch(() => setActionMsg({ ok: false, text: 'Could not copy the webhook URL.' }));
+                            }}
+                          >
+                            {copiedWebhook === p.code ? <CheckCircle2 size={12} className="text-emerald-500" /> : 'Copy'}
+                          </Button>
+                        </div>
                       </div>
 
                       <div className="flex justify-between py-1 border-b border-border/50">
@@ -1018,6 +1054,24 @@ export function AdminPaymentProvidersPage() {
                   placeholder={editingCode === 'paystack' ? 'sk_test_... or sk_live_...' : editingCode === 'flutterwave' ? 'FLWSECK_...' : 'sk_...'}
                   className="h-8 text-xs font-mono"
                 />
+              </div>
+            )}
+
+            {editingCode === 'flutterwave' && (
+              <div>
+                <label className="font-semibold block mb-1">
+                  Encryption Key (optional)
+                </label>
+                <Input
+                  type="password"
+                  value={providerEncryptionKey}
+                  onChange={(e) => setProviderEncryptionKey(e.target.value)}
+                  placeholder="Enter Flutterwave dashboard Encryption Key"
+                  className="h-8 text-xs font-mono"
+                />
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  Only required for inline Flutterwave checkout. Server-side redirect flow works without it.
+                </p>
               </div>
             )}
 

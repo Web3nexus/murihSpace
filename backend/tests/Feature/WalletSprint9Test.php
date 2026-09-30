@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use App\Models\Wallet;
+use App\Services\Wallet\FeeCalculatorService;
 use App\Services\Wallet\LedgerService;
 use App\Services\Wallet\WalletService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -59,8 +60,10 @@ class WalletSprint9Test extends TestCase
         $res2 = $this->actingAs($user)->postJson('/api/v1/wallet/deposit', $payload);
         $res2->assertStatus(200);
 
-        $systemWallet = Wallet::where('user_id', $user->id)->where('wallet_type', 'system')->first();
-        $this->assertEquals(98500, $systemWallet->available); // 100,000 gross minus 1.5% fee (1,500) = 98,500 net credited
+$systemWallet = Wallet::where('user_id', $user->id)->where('wallet_type', 'system')->first();
+        // Net credited = gross minus the platform's seeded USD Paystack deposit fee.
+        $expectedNet = app(FeeCalculatorService::class)->calculate('DEPOSIT_PAYSTACK', 100000, 'USD')['net_amount'];
+        $this->assertEquals($expectedNet, $systemWallet->available);
     }
 
     public function test_creator_can_perform_internal_transfer_to_system_wallet(): void

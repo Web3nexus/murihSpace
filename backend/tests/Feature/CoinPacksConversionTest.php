@@ -4,12 +4,16 @@ namespace Tests\Feature;
 
 use App\Models\AdminSetting;
 use App\Models\CoinPack;
+use App\Models\Country;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\ActsAsSession;
 use Tests\TestCase;
 
 class CoinPacksConversionTest extends TestCase
 {
+    use ActsAsSession;
+
     use RefreshDatabase;
 
     public function test_catalogue_includes_configurable_conversion_rate(): void
@@ -22,7 +26,7 @@ class CoinPacksConversionTest extends TestCase
 
         $user = User::factory()->create();
 
-        $response = $this->actingAs($user)->getJson('/api/v1/coins/packs');
+        $response = $this->actingAsSession($user)->getJson('/api/v1/coins/packs');
 
         $response->assertOk();
         $response->assertJsonPath('data.coin_conversion_rate', 10);
@@ -36,7 +40,7 @@ class CoinPacksConversionTest extends TestCase
 
         $user = User::factory()->create();
 
-        $response = $this->actingAs($user)->postJson('/api/v1/coins/purchase-custom', [
+        $response = $this->actingAsSession($user)->postJson('/api/v1/coins/purchase-custom', [
             'amount_usd' => 25.0,
         ]);
 
@@ -50,7 +54,7 @@ class CoinPacksConversionTest extends TestCase
 
         $user = User::factory()->create();
 
-        $response = $this->actingAs($user)->postJson('/api/v1/coins/purchase-custom', [
+        $response = $this->actingAsSession($user)->postJson('/api/v1/coins/purchase-custom', [
             'amount_usd' => 5.0,
         ]);
 
@@ -67,7 +71,7 @@ class CoinPacksConversionTest extends TestCase
 
         $user = User::factory()->create();
 
-        $response = $this->actingAs($user)->postJson('/api/v1/coins/purchase', [
+        $response = $this->actingAsSession($user)->postJson('/api/v1/coins/purchase', [
             'coin_pack_id' => $pack->id,
         ]);
 
@@ -88,7 +92,7 @@ class CoinPacksConversionTest extends TestCase
 
         $user = User::factory()->create();
 
-        $response = $this->actingAs($user)->postJson('/api/v1/coins/purchase-custom', [
+        $response = $this->actingAsSession($user)->postJson('/api/v1/coins/purchase-custom', [
             'amount_usd' => 0.25,
         ]);
 
@@ -99,15 +103,59 @@ class CoinPacksConversionTest extends TestCase
     {
         $admin = User::factory()->create(['role' => 'admin']);
 
-        $this->actingAs($admin)->getJson('/api/v1/securegate/coin-packs/rate')
+        $this->actingAsSession($admin)->getJson('/api/v1/securegate/coin-packs/rate')
             ->assertOk()
             ->assertJsonPath('data.data.coin_conversion_rate', 10);
 
-        $this->actingAs($admin)->putJson('/api/v1/securegate/coin-packs/rate', [
+        $this->actingAsSession($admin)->putJson('/api/v1/securegate/coin-packs/rate', [
             'coin_conversion_rate' => 12,
             'coin_max_purchase_usd' => 5000,
         ])->assertOk()->assertJsonPath('data.data.coin_conversion_rate', 12);
 
         $this->assertSame('12', AdminSetting::get('coin_conversion_rate'));
+    }
+
+    public function test_coin_packs_catalogue_defaults_to_usd_without_country_signal(): void
+    {
+        AdminSetting::set('coin_conversion_rate', 10);
+        CoinPack::create([
+            'name' => 'Starter', 'coins' => 100, 'bonus_coins' => 0,
+            'price' => 1000, 'currency' => 'USD', 'sort_order' => 1,
+        ]);
+
+        $user = User::factory()->create();
+
+        $response = $this->actingAsSession($user)->getJson('/api/v1/coins/packs');
+
+        $response->assertOk();
+        $pack = collect($response->json('data.data'))->firstWhere('name', 'Starter');
+        $this->assertSame('USD', $pack['currency']);
+        $this->assertSame('USD', $pack['local_currency']);
+        $this->assertStringStartsWith('$', $pack['local_formatted']);
+    }
+
+    public function test_coin_packs_catalogue_auto_detects_country_currency(): void
+    {
+        AdminSetting::set('coin_conversion_rate', 10);
+        CoinPack::create([
+            'name' => 'Starter', 'coins' => 100, 'bonus_coins' => 0,
+            'price' => 1000, 'currency' => 'USD', 'sort_order' => 1,
+        ]);
+        Country::create([
+            'iso2' => 'KE',
+            'iso3' => 'KEN',
+            'name' => 'Kenya',
+            'calling_code' => '254',
+            'currency' => 'KES',
+        ]);
+
+        $user = User::factory()->create(['country' => 'KE']);
+
+        $response = $this->actingAsSession($user)->getJson('/api/v1/coins/packs');
+
+        $response->assertOk();
+        $pack = collect($response->json('data.data'))->firstWhere('name', 'Starter');
+        $this->assertSame('KES', $pack['local_currency']);
+        $this->assertStringContainsString('KSh', $pack['local_formatted']);
     }
 }

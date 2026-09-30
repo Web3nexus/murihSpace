@@ -50,7 +50,7 @@ class DonationController extends Controller
             return response()->json(['message' => 'Incorrect transaction PIN.', 'code' => 'INVALID_TRANSACTION_PIN'], 403);
         }
 
-        $currency = $validated['currency'] ?? 'NGN';
+        $currency = strtoupper((string) ($validated['currency'] ?? $wallet->currency));
         $isAnonymous = $validated['is_anonymous'] ?? false;
 
         $ledgerTxn = $this->ledgerService->transfer(

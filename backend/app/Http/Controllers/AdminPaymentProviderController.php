@@ -59,6 +59,7 @@ class AdminPaymentProviderController extends Controller
             $configKey = "payments.providers.{$p->code}";
             $cfg = $p->config ?? [];
             $hasSecret = false;
+            $hasEncryptionKey = false;
 
             if ($p->code === 'airwallex') {
                 $hasSecret = (! empty(config("{$configKey}.client_id")) && ! empty(config("{$configKey}.api_key")))
@@ -67,6 +68,7 @@ class AdminPaymentProviderController extends Controller
                 $hasSecret = ! empty(config("{$configKey}.secret_key")) || ! empty($cfg['secret_key']);
             } elseif ($p->code === 'flutterwave') {
                 $hasSecret = ! empty(config("{$configKey}.secret_key")) || ! empty($cfg['secret_key']);
+                $hasEncryptionKey = ! empty(config("{$configKey}.encryption_key")) || ! empty($cfg['encryption_key']);
             } elseif ($p->code === 'paddle') {
                 $hasSecret = ! empty(config("{$configKey}.api_key")) || ! empty($cfg['api_key'])
                     || ! empty(config("{$configKey}.webhook_public_key")) || ! empty($cfg['webhook_public_key']);
@@ -91,6 +93,7 @@ class AdminPaymentProviderController extends Controller
                 'health_status' => $p->health_status->value,
                 'credential_status' => $credentialStatus,
                 'has_credentials' => $hasSecret,
+                'has_encryption_key' => $hasEncryptionKey,
                 'public_key_preview' => $publicKeyPreview,
                 'handles_tax' => (bool) ($cfg['handles_tax']
                     ?? config("payments.providers.{$p->code}.handles_tax", true)),
@@ -136,11 +139,12 @@ class AdminPaymentProviderController extends Controller
             'client_token' => ['nullable', 'string', 'max:500'],
             'vendor_id' => ['nullable', 'string', 'max:500'],
             'webhook_public_key' => ['nullable', 'string', 'max:1000'],
+            'encryption_key' => ['nullable', 'string', 'max:1000'],
             'handles_tax' => ['nullable', 'boolean'],
         ]);
 
         $config = [];
-        foreach (['public_key', 'secret_key', 'client_id', 'api_key', 'webhook_secret', 'client_token', 'vendor_id', 'webhook_public_key'] as $field) {
+        foreach (['public_key', 'secret_key', 'client_id', 'api_key', 'webhook_secret', 'client_token', 'vendor_id', 'webhook_public_key', 'encryption_key'] as $field) {
             if (! empty($validated[$field])) {
                 $config[$field] = $validated[$field];
             }
@@ -202,6 +206,7 @@ class AdminPaymentProviderController extends Controller
             'client_token' => ['nullable', 'string', 'max:500'],
             'vendor_id' => ['nullable', 'string', 'max:500'],
             'webhook_public_key' => ['nullable', 'string', 'max:1000'],
+            'encryption_key' => ['nullable', 'string', 'max:1000'],
             'handles_tax' => ['nullable', 'boolean'],
         ]);
 
@@ -221,7 +226,7 @@ class AdminPaymentProviderController extends Controller
         }
 
         $currentConfig = $provider->config ?? [];
-        foreach (['public_key', 'secret_key', 'client_id', 'api_key', 'webhook_secret', 'client_token', 'vendor_id', 'webhook_public_key'] as $field) {
+        foreach (['public_key', 'secret_key', 'client_id', 'api_key', 'webhook_secret', 'client_token', 'vendor_id', 'webhook_public_key', 'encryption_key'] as $field) {
             if (array_key_exists($field, $validated) && ! empty($validated[$field])) {
                 $currentConfig[$field] = $validated[$field];
             }

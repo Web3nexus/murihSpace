@@ -101,7 +101,10 @@ class CoinPackController extends Controller
 
     public function catalogue(Request $request): JsonResponse
     {
-        $targetCurrency = strtoupper($request->query('currency', 'NGN'));
+        $localContext = app(\App\Services\LocalCurrencyResolver::class)->resolve($request->user());
+        $targetCurrency = $request->has('currency')
+            ? strtoupper($request->query('currency'))
+            : $localContext['currency'];
         $rateService = app(\App\Services\Payment\LiveExchangeRateService::class);
         $rate = $rateService->getRate('USD', $targetCurrency);
         $coinRate = self::coinConversionRate();

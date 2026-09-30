@@ -7,10 +7,13 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
+use Tests\Concerns\ActsAsSession;
 use Tests\TestCase;
 
 class MediaProcessingTest extends TestCase
 {
+    use ActsAsSession;
+
     use RefreshDatabase;
 
     public function test_user_can_request_signed_upload_url(): void
@@ -18,7 +21,7 @@ class MediaProcessingTest extends TestCase
         Storage::fake('contabo');
         $user = User::factory()->create();
 
-        $response = $this->actingAs($user, 'sanctum')
+        $response = $this->actingAsSession($user, 'sanctum')
             ->postJson('/api/v1/media/signed-upload-url', [
                 'filename' => 'test-video.mp4',
                 'mime_type' => 'video/mp4',
@@ -66,7 +69,7 @@ class MediaProcessingTest extends TestCase
 
         Storage::disk('contabo')->put($media->path, 'fake video content');
 
-        $response = $this->actingAs($user, 'sanctum')
+        $response = $this->actingAsSession($user, 'sanctum')
             ->postJson('/api/v1/media/complete', [
                 'media_uuid' => $media->uuid,
             ]);
@@ -98,14 +101,14 @@ class MediaProcessingTest extends TestCase
             'processing_status' => Media::STATUS_COMPLETED,
         ]);
 
-        $statsRes = $this->actingAs($admin, 'sanctum')
+        $statsRes = $this->actingAsSession($admin, 'sanctum')
             ->getJson('/api/v1/securegate/media/stats');
 
         $statsRes->assertStatus(200)
             ->assertJsonPath('success', true)
             ->assertJsonPath('data.total_media_count', 1);
 
-        $listRes = $this->actingAs($admin, 'sanctum')
+        $listRes = $this->actingAsSession($admin, 'sanctum')
             ->getJson('/api/v1/securegate/media');
 
         $listRes->assertStatus(200)

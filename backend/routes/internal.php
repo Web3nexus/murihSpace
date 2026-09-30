@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AdminManagementController;
+use App\Http\Controllers\Internal\InternalEnforcementController;
 use App\Http\Controllers\Internal\SupportInternalController;
 use Illuminate\Support\Facades\Route;
 
@@ -27,6 +28,16 @@ Route::prefix('support')->group(function () {
     Route::get('/transactions/{transaction}/summary', [SupportInternalController::class, 'transactionSummary']);
     Route::get('/orders/{order}', [SupportInternalController::class, 'orderSummary']);
     Route::post('/notifications', [SupportInternalController::class, 'notifyCustomer']);
+});
+
+// Member enforcement requested by another trusted service. The main backend
+// remains the system of record (DEC-011): these delegate to the same service
+// the console uses, so the warning gate cannot be bypassed by arriving over the
+// internal API instead.
+Route::prefix('enforcement')->group(function () {
+    Route::post('/warn', [InternalEnforcementController::class, 'warn']);
+    Route::post('/ban', [InternalEnforcementController::class, 'ban']);
+    Route::post('/flag-report', [InternalEnforcementController::class, 'flagReport']);
 });
 
 // Admin & Staff Synchronization across all platform dashboards / services

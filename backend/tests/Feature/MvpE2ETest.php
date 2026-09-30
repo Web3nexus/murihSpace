@@ -9,10 +9,13 @@ use App\Models\User;
 use App\Models\Wallet;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
+use Tests\Concerns\ActsAsSession;
 use Tests\TestCase;
 
 class MvpE2ETest extends TestCase
 {
+    use ActsAsSession;
+
     use RefreshDatabase;
 
     protected function actingAsCreator(): User
@@ -23,7 +26,7 @@ class MvpE2ETest extends TestCase
             'kyc_status' => 'verified',
             'username' => 'creator_'.fake()->unique()->bothify('####'),
         ]);
-        Sanctum::actingAs($user);
+        $this->actAsSession($user);
 
         return $user;
     }
@@ -36,7 +39,7 @@ class MvpE2ETest extends TestCase
             'kyc_status' => 'verified',
             'username' => 'member_'.fake()->unique()->bothify('####'),
         ]);
-        Sanctum::actingAs($user);
+        $this->actAsSession($user);
 
         return $user;
     }
@@ -49,7 +52,7 @@ class MvpE2ETest extends TestCase
             'kyc_status' => 'verified',
             'username' => 'admin_'.fake()->unique()->bothify('####'),
         ]);
-        Sanctum::actingAs($user);
+        $this->actAsSession($user);
 
         return $user;
     }
@@ -136,7 +139,7 @@ class MvpE2ETest extends TestCase
     public function test_member_full_journey(): void
     {
         $creator = User::factory()->create(['role' => 'creator', 'email_verified_at' => now()]);
-        Sanctum::actingAs($creator);
+        $this->actAsSession($creator);
         $community = Community::factory()->create([
             'user_id' => $creator->id,
             'visibility' => 'public',
@@ -158,14 +161,14 @@ class MvpE2ETest extends TestCase
         ]);
 
         // 2c. Create a text status as creator
-        Sanctum::actingAs($creator);
+        $this->actAsSession($creator);
         $postRes = $this->postJson('/api/v1/posts', [
             'community_id' => $community->id,
             'type' => 'status',
             'content' => 'Hello from a creator!',
         ]);
         $postRes->assertStatus(201);
-        Sanctum::actingAs($member);
+        $this->actAsSession($member);
 
         // 2d. React to creator's post
         $creatorPost = Post::factory()->create([
@@ -186,7 +189,7 @@ class MvpE2ETest extends TestCase
     public function test_purchase_and_download_journey(): void
     {
         $creator = User::factory()->create(['role' => 'creator', 'email_verified_at' => now()]);
-        Sanctum::actingAs($creator);
+        $this->actAsSession($creator);
         $product = DigitalProduct::create([
             'creator_id' => $creator->id,
             'title' => 'Test Product',
@@ -292,7 +295,7 @@ class MvpE2ETest extends TestCase
         $msgRes->assertStatus(201);
 
         // 5c. User B can read messages
-        Sanctum::actingAs($userB);
+        $this->actAsSession($userB);
         $readRes = $this->getJson("/api/v1/conversations/{$convId}/messages");
         $readRes->assertStatus(200);
 
@@ -380,14 +383,14 @@ class MvpE2ETest extends TestCase
     public function test_member_link_sharing_is_restricted(): void
     {
         $creator = User::factory()->create(['role' => 'creator', 'email_verified_at' => now()]);
-        Sanctum::actingAs($creator);
+        $this->actAsSession($creator);
         $community = Community::factory()->create([
             'user_id' => $creator->id,
             'visibility' => 'public',
         ]);
 
         $member = User::factory()->create(['role' => 'member', 'email_verified_at' => now()]);
-        Sanctum::actingAs($member);
+        $this->actAsSession($member);
         $this->postJson("/api/v1/communities/{$community->id}/join");
 
         // Post with URL in content should be rejected

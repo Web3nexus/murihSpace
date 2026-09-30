@@ -58,7 +58,7 @@ class WithdrawalController extends Controller
             return response()->json(['message' => 'Insufficient withdrawable balance.', 'code' => 'INSUFFICIENT_BALANCE'], 422);
         }
 
-        $destCurrency = strtoupper($validated['currency'] ?? 'NGN');
+        $destCurrency = strtoupper($validated['currency'] ?? 'USD');
         $rateService = app(\App\Services\Payment\LiveExchangeRateService::class);
         $rate = $rateService->getRate('USD', $destCurrency);
         $estimatedLocal = round(($validated['amount'] / 100.0) * $rate, 2);
@@ -90,7 +90,7 @@ class WithdrawalController extends Controller
         ]);
 
         $user = $request->user();
-        $targetCurrency = strtoupper($validated['destination_currency'] ?? 'NGN');
+        $targetCurrency = strtoupper($validated['destination_currency'] ?? 'USD');
         $amountUsdCents = (int) $validated['amount'];
         $amountUsd = $amountUsdCents / 100.0;
 

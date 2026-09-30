@@ -60,7 +60,7 @@ class SubscriptionPlanController extends Controller
         ]);
 
         $validated['creator_id'] = $request->user()->id;
-        $validated['currency'] ??= 'NGN';
+        $validated['currency'] ??= 'USD';
         $validated['billing_cycle'] ??= 'monthly';
 
         $plan = SubscriptionPlan::create($validated);

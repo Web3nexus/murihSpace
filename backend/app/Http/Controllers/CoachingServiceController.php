@@ -53,7 +53,7 @@ class CoachingServiceController extends Controller
         ]);
 
         $validated['creator_id'] = $request->user()->id;
-        $validated['currency'] ??= 'NGN';
+        $validated['currency'] ??= 'USD';
 
         $service = CoachingService::create($validated);
 

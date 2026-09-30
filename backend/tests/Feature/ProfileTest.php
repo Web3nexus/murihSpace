@@ -5,10 +5,13 @@ namespace Tests\Feature;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
+use Tests\Concerns\ActsAsSession;
 use Tests\TestCase;
 
 class ProfileTest extends TestCase
 {
+    use ActsAsSession;
+
     use RefreshDatabase;
 
     public function test_authenticated_user_can_fetch_profile(): void
@@ -19,7 +22,7 @@ class ProfileTest extends TestCase
             'country' => 'United Kingdom',
         ]);
 
-        Sanctum::actingAs($user);
+        $this->actAsSession($user);
 
         $response = $this->getJson('/api/v1/profile');
 
@@ -42,7 +45,7 @@ class ProfileTest extends TestCase
             'bio' => 'Old bio',
         ]);
 
-        Sanctum::actingAs($user);
+        $this->actAsSession($user);
 
         $response = $this->putJson('/api/v1/profile', [
             'name' => 'Updated Name',
@@ -75,7 +78,7 @@ class ProfileTest extends TestCase
             'kyc_status' => 'pending',
         ]);
 
-        Sanctum::actingAs($user);
+        $this->actAsSession($user);
 
         $response = $this->postJson('/api/v1/profile/kyc', [
             'kyc_document' => 'PASSPORT-12345678',
@@ -105,7 +108,7 @@ class ProfileTest extends TestCase
             'kyc_document' => 'DOC-999',
         ]);
 
-        Sanctum::actingAs($admin);
+        $this->actAsSession($admin);
 
         // List pending KYC
         $listResponse = $this->getJson('/api/v1/securegate/kyc');
@@ -136,7 +139,7 @@ class ProfileTest extends TestCase
             'kyc_document' => 'DOC-BLURRY',
         ]);
 
-        Sanctum::actingAs($admin);
+        $this->actAsSession($admin);
 
         $rejectResponse = $this->postJson("/api/v1/securegate/kyc/{$creator->id}/reject", [
             'reason' => 'Document image is unreadable or blurry.',

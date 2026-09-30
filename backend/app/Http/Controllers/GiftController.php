@@ -32,13 +32,10 @@ class GiftController extends Controller
     {
         $gifts = Gift::active()->orderBy('sort_order', 'asc')->orderBy('id', 'asc')->get();
 
-        $targetCurrency = strtoupper($request->query('currency', 'NGN'));
-        if (! $request->has('currency')) {
-            $countryCode = $request->user()?->country;
-            if ($countryCode) {
-                $targetCurrency = strtoupper(\App\Models\Country::whereKey($countryCode)->value('currency') ?: 'NGN');
-            }
-        }
+        $localContext = app(\App\Services\LocalCurrencyResolver::class)->resolve($request->user());
+        $targetCurrency = $request->has('currency')
+            ? strtoupper($request->query('currency'))
+            : $localContext['currency'];
 
         $rateService = app(\App\Services\Payment\LiveExchangeRateService::class);
         $coinRate = CoinPackController::coinConversionRate();

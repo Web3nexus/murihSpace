@@ -101,7 +101,7 @@ class ConversationController extends Controller
                         if ($matchEscrow) {
                             $hasActiveEscrow = true;
                             $escrowAmount = $matchEscrow->amount / 100.0;
-                            $escrowCurrency = $matchEscrow->currency ?? 'NGN';
+                            $escrowCurrency = $matchEscrow->currency ?? 'USD';
                         }
                     }
                 }

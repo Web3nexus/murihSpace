@@ -35,6 +35,24 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(20)->by($request->ip());
         });
 
+        // Administration sign-in. Keyed on the account as well as the address,
+        // so neither a single host spraying many accounts nor many hosts
+        // hammering one account gets the full budget. Tighter than `auth`
+        // because there is no second channel to fall back on.
+        RateLimiter::for('admin-auth', function (Request $request) {
+            return [
+                Limit::perMinute(10)->by('ip:'.$request->ip()),
+                Limit::perMinute(5)->by('account:'.strtolower((string) $request->input('email'))),
+            ];
+        });
+
+        // Second-factor entry. The per-challenge counter in AdminSession is the
+        // real limit; this one stops challenges being minted cheaply in bulk to
+        // sidestep it.
+        RateLimiter::for('admin-mfa', function (Request $request) {
+            return Limit::perMinute(20)->by($request->ip());
+        });
+
         RateLimiter::for('kyc.session', function (Request $request) {
             return Limit::perMinutes(
                 (int) config('kyc.session_rate_limit_minutes', 60),

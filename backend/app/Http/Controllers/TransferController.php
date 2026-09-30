@@ -46,7 +46,7 @@ class TransferController extends Controller
             return response()->json(['message' => 'Incorrect transaction PIN.', 'code' => 'INVALID_TRANSACTION_PIN'], 403);
         }
 
-        $currency = $validated['currency'] ?? 'NGN';
+        $currency = strtoupper((string) ($validated['currency'] ?? $wallet->currency));
         $note = $validated['note'] ?? null;
 
         $ledgerTxn = $this->ledgerService->transfer(

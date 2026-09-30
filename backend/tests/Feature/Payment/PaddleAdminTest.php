@@ -8,10 +8,13 @@ use App\Models\PaymentProvider;
 use App\Models\User;
 use App\Services\Tax\TaxCalculationService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\ActsAsSession;
 use Tests\TestCase;
 
 class PaddleAdminTest extends TestCase
 {
+    use ActsAsSession;
+
     use RefreshDatabase;
 
     private User $adminUser;
@@ -27,7 +30,7 @@ class PaddleAdminTest extends TestCase
 
     public function test_admin_can_store_paddle_credentials_and_handles_tax_flag(): void
     {
-        $res = $this->actingAs($this->adminUser)->postJson('/api/v1/securegate/payment-providers', [
+        $res = $this->actingAsSession($this->adminUser)->postJson('/api/v1/securegate/payment-providers', [
             'code' => 'paddle',
             'name' => 'Paddle (Merchant of Record)',
             'is_enabled' => true,
@@ -47,7 +50,7 @@ class PaddleAdminTest extends TestCase
         $this->assertSame('7788', $provider->config['vendor_id']);
 
         // Raw secret keys never leak back in the list response
-        $list = $this->actingAs($this->adminUser)->getJson('/api/v1/securegate/payment-providers');
+        $list = $this->actingAsSession($this->adminUser)->getJson('/api/v1/securegate/payment-providers');
         $this->assertStringNotContainsString('pdl_test_supersecret', $list->getContent());
     }
 
@@ -62,7 +65,7 @@ class PaddleAdminTest extends TestCase
             'config' => ['handles_tax' => true],
         ]);
 
-        $res = $this->actingAs($this->adminUser)->putJson('/api/v1/securegate/payment-providers/paddle', [
+        $res = $this->actingAsSession($this->adminUser)->putJson('/api/v1/securegate/payment-providers/paddle', [
             'handles_tax' => false,
             'api_key' => 'pdl_test_newkey123',
         ]);
@@ -73,7 +76,7 @@ class PaddleAdminTest extends TestCase
         $this->assertSame('pdl_test_newkey123', $provider->config['api_key']);
 
         // Business transaction types accepted on routing rules
-        $route = $this->actingAs($this->adminUser)->postJson('/api/v1/securegate/payment-routes', [
+        $route = $this->actingAsSession($this->adminUser)->postJson('/api/v1/securegate/payment-routes', [
             'name' => 'Coin Packs via Paddle',
             'transaction_type' => 'coin_pack',
             'country_code' => '*',
@@ -113,10 +116,10 @@ class PaddleAdminTest extends TestCase
     {
         AdminSetting::set('charge_vat', true);
 
-        $show = $this->actingAs($this->adminUser)->getJson('/api/v1/securegate/settings');
+        $show = $this->actingAsSession($this->adminUser)->getJson('/api/v1/securegate/settings');
         $show->assertOk()->assertJsonPath('data.data.charge_vat', true);
 
-        $update = $this->actingAs($this->adminUser)->putJson('/api/v1/securegate/settings', [
+        $update = $this->actingAsSession($this->adminUser)->putJson('/api/v1/securegate/settings', [
             'charge_vat' => false,
         ]);
         $update->assertOk()->assertJsonPath('data.data.charge_vat', false);

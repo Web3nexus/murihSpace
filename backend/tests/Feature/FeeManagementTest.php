@@ -6,10 +6,13 @@ use App\Models\FeeRule;
 use App\Models\User;
 use App\Services\Wallet\FeeCalculatorService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\ActsAsSession;
 use Tests\TestCase;
 
 class FeeManagementTest extends TestCase
 {
+    use ActsAsSession;
+
     use RefreshDatabase;
 
     public function test_fee_calculator_service_computes_percentage_and_caps(): void
@@ -58,7 +61,7 @@ class FeeManagementTest extends TestCase
 
         $user = User::factory()->create(['role' => 'creator']);
 
-        $response = $this->actingAs($user)->postJson('/api/v1/wallet/fees/preview', [
+        $response = $this->actingAsSession($user)->postJson('/api/v1/wallet/fees/preview', [
             'transaction_code' => 'TEST_INTERNAL_TRANSFER',
             'amount'           => 500000, // ₦5,000.00
             'currency'         => 'NGN',
@@ -78,7 +81,7 @@ class FeeManagementTest extends TestCase
         $admin = User::factory()->create(['role' => 'admin', 'admin_role' => 'super_admin']);
 
         // Create
-        $createRes = $this->actingAs($admin)->postJson('/api/v1/securegate/fees', [
+        $createRes = $this->actingAsSession($admin)->postJson('/api/v1/securegate/fees', [
             'name'             => 'Withdrawal Fee',
             'code'             => 'WITHDRAWAL_BANK',
             'fee_type'         => 'fixed',
@@ -92,12 +95,12 @@ class FeeManagementTest extends TestCase
         $this->assertNotNull($ruleId, 'Fee rule ID should be present in response');
 
         // Toggle status
-        $toggleRes = $this->actingAs($admin)->postJson("/api/v1/securegate/fees/{$ruleId}/toggle");
+        $toggleRes = $this->actingAsSession($admin)->postJson("/api/v1/securegate/fees/{$ruleId}/toggle");
         $toggleRes->assertStatus(200);
         $this->assertFalse($toggleRes->json('data.data.enabled'));
 
         // Delete
-        $deleteRes = $this->actingAs($admin)->deleteJson("/api/v1/securegate/fees/{$ruleId}");
+        $deleteRes = $this->actingAsSession($admin)->deleteJson("/api/v1/securegate/fees/{$ruleId}");
         $deleteRes->assertStatus(200);
 
         $this->assertDatabaseMissing('fee_rules', ['id' => $ruleId]);

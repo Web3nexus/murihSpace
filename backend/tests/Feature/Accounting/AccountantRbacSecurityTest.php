@@ -7,10 +7,13 @@ use App\Models\User;
 use App\Models\Wallet;
 use App\Models\WithdrawalRequest;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\ActsAsSession;
 use Tests\TestCase;
 
 class AccountantRbacSecurityTest extends TestCase
 {
+    use ActsAsSession;
+
     use RefreshDatabase;
 
     protected User $accountant;
@@ -49,28 +52,28 @@ class AccountantRbacSecurityTest extends TestCase
     public function test_accountant_can_access_accounting_and_tax_endpoints(): void
     {
         // 1. Accounting Overview
-        $resOverview = $this->actingAs($this->accountant)->getJson('/api/v1/securegate/accounting/overview');
+        $resOverview = $this->actingAsSession($this->accountant)->getJson('/api/v1/securegate/accounting/overview');
         $resOverview->assertStatus(200);
         $resOverview->assertJsonStructure(['data' => ['metrics', 'summary']]);
 
         // 2. Tax Summary
-        $resTax = $this->actingAs($this->accountant)->getJson('/api/v1/securegate/tax/summary');
+        $resTax = $this->actingAsSession($this->accountant)->getJson('/api/v1/securegate/tax/summary');
         $resTax->assertStatus(200);
         $resTax->assertJsonStructure(['data' => ['totals', 'liabilities']]);
 
         // 3. Tax Rates
-        $resRates = $this->actingAs($this->accountant)->getJson('/api/v1/securegate/tax/rates');
+        $resRates = $this->actingAsSession($this->accountant)->getJson('/api/v1/securegate/tax/rates');
         $resRates->assertStatus(200);
     }
 
     public function test_accountant_is_strictly_forbidden_from_payment_gateway_infrastructure(): void
     {
         // Gateway list
-        $resList = $this->actingAs($this->accountant)->getJson('/api/v1/securegate/payment-providers');
+        $resList = $this->actingAsSession($this->accountant)->getJson('/api/v1/securegate/payment-providers');
         $resList->assertStatus(403);
 
         // Gateway update
-        $resUpdate = $this->actingAs($this->accountant)->putJson('/api/v1/securegate/payment-providers/airwallex', [
+        $resUpdate = $this->actingAsSession($this->accountant)->putJson('/api/v1/securegate/payment-providers/airwallex', [
             'is_enabled' => false,
             'reason' => 'Unauthorized attempt by accountant',
         ]);
@@ -88,7 +91,7 @@ class AccountantRbacSecurityTest extends TestCase
             'wallet_type' => 'creator',
         ]);
 
-        $response = $this->actingAs($this->accountant)->postJson("/api/v1/securegate/withdrawals/{$withdrawal->id}/process", [
+        $response = $this->actingAsSession($this->accountant)->postJson("/api/v1/securegate/withdrawals/{$withdrawal->id}/process", [
             'action' => 'approve',
         ]);
 
@@ -106,7 +109,7 @@ class AccountantRbacSecurityTest extends TestCase
             'available' => 10000,
         ]);
 
-        $response = $this->actingAs($this->accountant)->postJson("/api/v1/securegate/wallets/{$wallet->id}/adjust", [
+        $response = $this->actingAsSession($this->accountant)->postJson("/api/v1/securegate/wallets/{$wallet->id}/adjust", [
             'action' => 'credit',
             'balance_category' => 'available',
             'amount' => 5000,
@@ -119,7 +122,7 @@ class AccountantRbacSecurityTest extends TestCase
 
     public function test_super_admin_has_full_access_to_gateways(): void
     {
-        $response = $this->actingAs($this->superAdmin)->getJson('/api/v1/securegate/payment-providers');
+        $response = $this->actingAsSession($this->superAdmin)->getJson('/api/v1/securegate/payment-providers');
         $response->assertStatus(200);
     }
 
@@ -131,10 +134,10 @@ class AccountantRbacSecurityTest extends TestCase
             'admin_permissions' => ['community_mod'],
         ]);
 
-        $resOverview = $this->actingAs($moderator)->getJson('/api/v1/securegate/accounting/overview');
+        $resOverview = $this->actingAsSession($moderator)->getJson('/api/v1/securegate/accounting/overview');
         $resOverview->assertStatus(403);
 
-        $resTax = $this->actingAs($moderator)->getJson('/api/v1/securegate/tax/summary');
+        $resTax = $this->actingAsSession($moderator)->getJson('/api/v1/securegate/tax/summary');
         $resTax->assertStatus(403);
     }
 }

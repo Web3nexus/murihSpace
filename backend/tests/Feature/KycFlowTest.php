@@ -12,10 +12,13 @@ use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 use Laravel\Sanctum\Sanctum;
+use Tests\Concerns\ActsAsSession;
 use Tests\TestCase;
 
 class KycFlowTest extends TestCase
 {
+    use ActsAsSession;
+
     use RefreshDatabase;
 
     protected function setUp(): void
@@ -35,7 +38,7 @@ class KycFlowTest extends TestCase
     {
         $user = User::factory()->create(['role' => 'member']);
 
-        Sanctum::actingAs($user);
+        $this->actAsSession($user);
 
         $this->getJson('/api/v1/kyc/status')
             ->assertStatus(200)
@@ -59,7 +62,7 @@ class KycFlowTest extends TestCase
             ], 200),
         ]);
 
-        Sanctum::actingAs($user);
+        $this->actAsSession($user);
 
         $response = $this->postJson('/api/v1/kyc/start');
 
@@ -280,7 +283,7 @@ class KycFlowTest extends TestCase
     {
         $user = User::factory()->create(['role' => 'creator', 'kyc_status' => 'pending']);
 
-        Sanctum::actingAs($user);
+        $this->actAsSession($user);
 
         $this->postJson('/api/v1/store/products', [
             'title' => 'Test Product',
@@ -294,7 +297,7 @@ class KycFlowTest extends TestCase
     {
         $user = User::factory()->create(['role' => 'creator', 'kyc_status' => 'verified']);
 
-        Sanctum::actingAs($user);
+        $this->actAsSession($user);
 
         $response = $this->postJson('/api/v1/store/products', [
             'title' => 'Test Product',
@@ -311,7 +314,7 @@ class KycFlowTest extends TestCase
         $admin = User::factory()->create(['role' => 'admin', 'kyc_status' => 'verified']);
         $creator = User::factory()->create(['role' => 'creator', 'kyc_status' => 'pending']);
 
-        Sanctum::actingAs($admin);
+        $this->actAsSession($admin);
 
         $this->postJson("/api/v1/securegate/kyc/{$creator->id}/approve")
             ->assertStatus(200)
@@ -346,7 +349,7 @@ class KycFlowTest extends TestCase
             'completed_at' => now(),
         ]);
 
-        Sanctum::actingAs($user);
+        $this->actAsSession($user);
 
         $this->getJson('/api/v1/kyc/history')
             ->assertStatus(200)
@@ -357,7 +360,7 @@ class KycFlowTest extends TestCase
     {
         $user = User::factory()->create(['role' => 'member']);
 
-        Sanctum::actingAs($user);
+        $this->actAsSession($user);
 
         $this->getJson('/api/v1/kyc/status')
             ->assertStatus(200)
@@ -378,7 +381,7 @@ class KycFlowTest extends TestCase
 
         $admin = User::factory()->create(['role' => 'admin', 'kyc_status' => 'verified']);
 
-        Sanctum::actingAs($admin);
+        $this->actAsSession($admin);
 
         $this->putJson('/api/v1/securegate/settings', [
             'kyc_providers' => ['didit', 'sumsub'],
@@ -411,7 +414,7 @@ class KycFlowTest extends TestCase
 
         $user = User::factory()->create(['role' => 'creator']);
 
-        Sanctum::actingAs($user);
+        $this->actAsSession($user);
 
         $this->postJson('/api/v1/kyc/start', ['provider' => 'sumsub'])
             ->assertStatus(200)
@@ -509,7 +512,7 @@ class KycFlowTest extends TestCase
 
         $user = User::factory()->create(['role' => 'creator']);
 
-        Sanctum::actingAs($user);
+        $this->actAsSession($user);
 
         $this->postJson('/api/v1/kyc/start', ['provider' => 'sumsub'])
             ->assertStatus(422);

@@ -20,6 +20,15 @@ export interface UserProfile {
   onboarding_completed?: boolean;
 }
 
+/**
+ * A half-completed administration sign-in: the password was accepted, a second
+ * factor is still owed. Carries no authority by itself.
+ */
+export interface AdminLoginChallenge {
+  challenge: string;
+  expiresInSeconds: number;
+}
+
 export type OtpIntent = "login" | "register";
 
 export interface OtpRequestResult {
@@ -49,6 +58,8 @@ interface AuthContextValue {
   error: string | null;
   fieldErrors: Record<string, string[]>;
   login: (email: string, password: string) => Promise<UserProfile | null>;
+  adminLogin: (email: string, password: string) => Promise<AdminLoginChallenge | null>;
+  adminVerifyTwoFactor: (challenge: string, code: string) => Promise<UserProfile | null>;
   requestOtp: (payload: { intent: OtpIntent; phoneE164: string }) => Promise<OtpRequestResult | null>;
   verifyOtp: (payload: { intent: OtpIntent; phoneE164: string; code: string }) => Promise<OtpVerifyResult | null>;
   register: (data: RegisterData) => Promise<boolean>;
@@ -143,6 +154,75 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setError(apiErr.message || "Login failed.");
       setFieldErrors(apiErr.errors || {});
       toast.error(apiErr.message || "Login failed.");
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+
+  /**
+   * Step 1 of administration sign-in.
+   *
+   * Deliberately not `login()`. The consumer endpoint issues an ordinary token
+   * that the administration API refuses — it has no second factor and no
+   * provenance the server recognises — so signing an administrator in there and
+   * then discovering 403s on every screen would be a worse experience than
+   * asking for the code up front.
+   */
+  const adminLogin = useCallback(async (email: string, password: string): Promise<AdminLoginChallenge | null> => {
+    setLoading(true);
+    setError(null);
+    setFieldErrors({});
+    try {
+      const response = await apiClient.post("/securegate/auth/login", { email, password });
+      const envelope = response.data;
+      const responseData = envelope?.success ? envelope.data : envelope;
+
+      if (!responseData?.challenge) {
+        setError("Invalid response: no sign-in challenge.");
+        return null;
+      }
+
+      return {
+        challenge: responseData.challenge as string,
+        expiresInSeconds: (responseData.expires_in_seconds as number) ?? 300,
+      };
+    } catch (err: unknown) {
+      const apiErr = err && typeof err === "object" ? (err as ApiError) : { message: "An unexpected error occurred.", errors: {} };
+      setError(apiErr.message || "Administrator sign-in failed.");
+      setFieldErrors(apiErr.errors || {});
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  /** Step 2. This is the only call that yields an administration session. */
+  const adminVerifyTwoFactor = useCallback(async (challenge: string, code: string): Promise<UserProfile | null> => {
+    setLoading(true);
+    setError(null);
+    setFieldErrors({});
+    try {
+      const response = await apiClient.post("/securegate/auth/2fa/verify", { challenge, code });
+      const envelope = response.data;
+      const responseData = envelope?.success ? envelope.data : envelope;
+
+      const token = responseData?.token;
+      const userProfile = responseData?.user as UserProfile | undefined;
+      if (!token || !userProfile) {
+        setError("Invalid response: missing credentials.");
+        return null;
+      }
+
+      localStorage.setItem("murihspace-token", token);
+      setUser(userProfile);
+      toast.success(`Signed in as ${userProfile.name}.`);
+      return userProfile;
+    } catch (err: unknown) {
+      const apiErr = err && typeof err === "object" ? (err as ApiError) : { message: "An unexpected error occurred.", errors: {} };
+      setError(apiErr.message || "Verification failed.");
+      setFieldErrors(apiErr.errors || {});
       return null;
     } finally {
       setLoading(false);
@@ -297,6 +377,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     error,
     fieldErrors,
     login,
+    adminLogin,
+    adminVerifyTwoFactor,
     requestOtp,
     verifyOtp,
     register,

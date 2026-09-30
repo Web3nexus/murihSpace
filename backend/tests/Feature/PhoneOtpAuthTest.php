@@ -8,10 +8,13 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Laravel\Sanctum\Sanctum;
+use Tests\Concerns\ActsAsSession;
 use Tests\TestCase;
 
 class PhoneOtpAuthTest extends TestCase
 {
+    use ActsAsSession;
+
     use RefreshDatabase;
 
     private const NG_NUMBER = '+2348123456789';
@@ -326,7 +329,7 @@ class PhoneOtpAuthTest extends TestCase
     public function test_email_password_login_can_be_disabled(): void
     {
         $admin = $this->admin();
-        Sanctum::actingAs($admin);
+        $this->actAsSession($admin);
 
         $this->putJson('/api/v1/securegate/auth/methods', [
             'primary' => 'phone_otp',
@@ -344,7 +347,7 @@ class PhoneOtpAuthTest extends TestCase
     public function test_email_password_registration_can_be_disabled(): void
     {
         $admin = $this->admin();
-        Sanctum::actingAs($admin);
+        $this->actAsSession($admin);
 
         $this->putJson('/api/v1/securegate/auth/methods', [
             'primary' => 'phone_otp',
@@ -366,7 +369,7 @@ class PhoneOtpAuthTest extends TestCase
     public function test_at_least_one_login_method_must_remain_enabled(): void
     {
         $admin = $this->admin();
-        Sanctum::actingAs($admin);
+        $this->actAsSession($admin);
 
         $this->putJson('/api/v1/securegate/auth/methods', [
             'primary' => 'phone_otp',
@@ -383,7 +386,7 @@ class PhoneOtpAuthTest extends TestCase
     public function test_phone_otp_and_email_login_cannot_both_be_disabled(): void
     {
         $admin = $this->admin();
-        Sanctum::actingAs($admin);
+        $this->actAsSession($admin);
 
         $this->putJson('/api/v1/securegate/auth/methods', [
             'primary' => 'google',
@@ -398,7 +401,7 @@ class PhoneOtpAuthTest extends TestCase
     public function test_auth_method_change_is_audited(): void
     {
         $admin = $this->admin();
-        Sanctum::actingAs($admin);
+        $this->actAsSession($admin);
 
         $this->putJson('/api/v1/securegate/auth/methods', [
             'primary' => 'phone_otp',

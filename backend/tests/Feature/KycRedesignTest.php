@@ -5,10 +5,13 @@ namespace Tests\Feature;
 use App\Models\User;
 use App\Models\Wallet;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\ActsAsSession;
 use Tests\TestCase;
 
 class KycRedesignTest extends TestCase
 {
+    use ActsAsSession;
+
     use RefreshDatabase;
 
     public function test_basic_user_registration_completes_without_mandatory_kyc(): void
@@ -61,7 +64,7 @@ class KycRedesignTest extends TestCase
 
         app(\App\Services\RoleTransitionService::class)->apply($user, 'creator');
 
-        $response = $this->actingAs($user)->getJson('/api/v1/kyc/triggers');
+        $response = $this->actingAsSession($user)->getJson('/api/v1/kyc/triggers');
 
         $response->assertStatus(200)
             ->assertJsonStructure(['data' => ['kyc_status', 'required', 'triggers']])
@@ -72,7 +75,7 @@ class KycRedesignTest extends TestCase
     {
         $user = User::factory()->create(['role' => 'member', 'kyc_status' => 'not_required']);
 
-        $response = $this->actingAs($user)->postJson('/api/v1/verification-badge/apply');
+        $response = $this->actingAsSession($user)->postJson('/api/v1/verification-badge/apply');
 
         $response->assertStatus(422)
             ->assertJson(['errors' => ['code' => 'KYC_REQUIRED', 'status' => 'kyc_pending']]);
@@ -94,7 +97,7 @@ class KycRedesignTest extends TestCase
 
         config(['murihspace.verification_badge_fee' => 10]);
 
-        $response = $this->actingAs($user)->postJson('/api/v1/verification-badge/apply');
+        $response = $this->actingAsSession($user)->postJson('/api/v1/verification-badge/apply');
 
         $response->assertStatus(201)
             ->assertJson(['data' => ['data' => ['status' => 'under_review']]]);
@@ -111,7 +114,7 @@ class KycRedesignTest extends TestCase
             'verification_badge_status' => 'under_review',
         ]);
 
-        $response = $this->actingAs($admin)->patchJson("/api/v1/securegate/verification-badges/{$targetUser->id}/status", [
+        $response = $this->actingAsSession($admin)->patchJson("/api/v1/securegate/verification-badges/{$targetUser->id}/status", [
             'status' => 'verified',
         ]);
 

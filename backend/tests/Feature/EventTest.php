@@ -7,10 +7,13 @@ use App\Models\Event;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
+use Tests\Concerns\ActsAsSession;
 use Tests\TestCase;
 
 class EventTest extends TestCase
 {
+    use ActsAsSession;
+
     use RefreshDatabase;
 
     protected function actingAsCreator(): User
@@ -19,7 +22,7 @@ class EventTest extends TestCase
             'role' => 'creator',
             'email_verified_at' => now(),
         ]);
-        Sanctum::actingAs($user);
+        $this->actAsSession($user);
 
         return $user;
     }
@@ -30,7 +33,7 @@ class EventTest extends TestCase
             'role' => 'member',
             'email_verified_at' => now(),
         ]);
-        Sanctum::actingAs($user);
+        $this->actAsSession($user);
 
         return $user;
     }
@@ -41,7 +44,7 @@ class EventTest extends TestCase
             'role' => 'admin',
             'email_verified_at' => now(),
         ]);
-        Sanctum::actingAs($user);
+        $this->actAsSession($user);
 
         return $user;
     }

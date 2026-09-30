@@ -7,6 +7,7 @@ use App\Http\Controllers\AdminAccountingController;
 use App\Http\Controllers\AdminAdController;
 use App\Http\Controllers\AdminAiSettingsController;
 use App\Http\Controllers\AdminAnalyticsController;
+use App\Http\Controllers\AdminAuthController;
 use App\Http\Controllers\AdminAuthMethodController;
 use App\Http\Controllers\AdminBroadcastController;
 use App\Http\Controllers\AdminConversionMetricsController;
@@ -28,6 +29,7 @@ use App\Http\Controllers\AdminSmsSettingsController;
 use App\Http\Controllers\AdminSocialLoginController;
 use App\Http\Controllers\AdminStorageController;
 use App\Http\Controllers\AdminStoryController;
+use App\Http\Controllers\AdminSupportController;
 use App\Http\Controllers\AdminSystemHealthController;
 use App\Http\Controllers\AdminTaxController;
 use App\Http\Controllers\AdminUserController;
@@ -270,6 +272,23 @@ Route::prefix('v1')->group(function () {
         Route::get('/email/verify/{id}/{hash}', [VerificationController::class, 'verify'])
             ->middleware('signed')
             ->name('verification.verify');
+    });
+
+    // Administration authentication. Public, and deliberately outside the
+    // `auth` prefix above — this is where an administrator earns a session, so
+    // it cannot sit behind auth:sanctum. `admin` (IsAdmin) requires the
+    // admin:mfa ability, so the session minted here is the only kind of token
+    // that opens /api/v1/securegate/*.
+    Route::prefix('securegate')->group(function () {
+        Route::post('/auth/login', [AdminAuthController::class, 'login'])
+            ->middleware('throttle:admin-auth');
+
+        // Not under throttle:admin-auth. That limiter's account bucket is keyed
+        // on the submitted email, which this route does not carry — left
+        // attached it would collapse into one shared 5/minute budget for every
+        // second-factor attempt on the platform.
+        Route::post('/auth/2fa/verify', [AdminAuthController::class, 'verifyTwoFactor'])
+            ->middleware('throttle:admin-mfa');
     });
 
     // Public Country & Location Endpoints
@@ -573,6 +592,7 @@ Route::prefix('v1')->group(function () {
             Route::post('/{id}/poll/vote', [PostController::class, 'votePoll']);
             Route::get('/{id}/comments', [PostController::class, 'getComments']);
             Route::post('/{id}/comments', [PostController::class, 'addComment']);
+            Route::post('/{id}/comments/{commentId}/report', [PostController::class, 'reportComment']);
             Route::post('/{id}/reactions/toggle', [ReactionController::class, 'togglePostReaction']);
             Route::post('/{id}/share', [PostController::class, 'share']);
             Route::post('/{id}/save', [PostController::class, 'toggleSave']);
@@ -1410,18 +1430,42 @@ Route::prefix('v1')->group(function () {
             // Dashboard
             Route::get('/dashboard', [AdminDashboardController::class, 'stats']);
 
+            // Signed-in administrator's own authority. Deliberately reachable by
+            // any administrator — a client must be able to render correct
+            // navigation without holding the `admins` permission.
+            Route::get('/me', [AdminManagementController::class, 'me']);
+
+            // Ends the current administration session only. Requires the
+            // admin:mfa-tagged token, so an operator cannot be left signing
+            // themselves out of the surface they are trying to secure.
+            Route::post('/auth/logout', [AdminAuthController::class, 'logout']);
+
+            // Trust & safety. Kept separate from `users` so that holding user
+            // management does not by itself confer the power to warn, flag or ban.
+            Route::prefix('enforcement')->middleware('admin.permission:warnings')->group(function () {
+                Route::get('/users/{id}/warnings', [AdminUserController::class, 'warnings']);
+                Route::delete('/users/{id}/warnings/{warningId}', [AdminUserController::class, 'revokeWarning']);
+                Route::post('/users/{id}/warn', [AdminUserController::class, 'warn']);
+                Route::post('/users/{id}/suspend', [AdminUserController::class, 'suspend']);
+                Route::post('/users/{id}/ban', [AdminUserController::class, 'ban']);
+            });
+
+            // Backwards-compatible warning aliases gated by warnings permission
+            Route::get('/users/{id}/warnings', [AdminUserController::class, 'warnings'])->middleware('admin.permission:warnings');
+            Route::delete('/users/{id}/warnings/{warningId}', [AdminUserController::class, 'revokeWarning'])->middleware('admin.permission:warnings');
+
+            // KYC manual verification requires dedicated kyc permission
+            Route::post('/users/{id}/verify-kyc', [AdminUserController::class, 'verifyKyc'])->middleware('admin.permission:kyc');
+
             // Users
-            Route::prefix('users')->group(function () {
+            Route::prefix('users')->middleware('admin.permission:users')->group(function () {
                 Route::get('/', [AdminUserController::class, 'index']);
                 Route::get('/export', [AdminUserController::class, 'export']);
                 Route::get('/{id}', [AdminUserController::class, 'show']);
-                Route::post('/{id}/suspend', [AdminUserController::class, 'suspend']);
                 Route::post('/{id}/activate', [AdminUserController::class, 'activate']);
-                Route::post('/{id}/ban', [AdminUserController::class, 'ban']);
                 Route::post('/{id}/restore', [AdminUserController::class, 'restore']);
                 Route::post('/{id}/impersonate', [AdminUserController::class, 'impersonate']);
                 Route::post('/stop-impersonate', [AdminUserController::class, 'stopImpersonate']);
-                Route::post('/{id}/verify-kyc', [AdminUserController::class, 'verifyKyc']);
             });
 
             // Admins (admin management — super admin only)
@@ -1452,7 +1496,7 @@ Route::prefix('v1')->group(function () {
             });
 
             // KYC
-            Route::prefix('kyc')->group(function () {
+            Route::prefix('kyc')->middleware('admin.permission:kyc')->group(function () {
                 Route::get('/', [AdminKycController::class, 'index']);
                 Route::get('/verifications', [AdminKycController::class, 'verifications']);
                 Route::get('/{user}', [AdminKycController::class, 'show']);
@@ -1461,7 +1505,7 @@ Route::prefix('v1')->group(function () {
             });
 
             // ── Sprint 1: Role Applications ──────────────────────────────
-            Route::prefix('role-applications')->group(function () {
+            Route::prefix('role-applications')->middleware('admin.permission:approvals')->group(function () {
                 Route::get('/', [RoleUpgradeController::class, 'adminIndex']);
                 Route::get('/stats', [RoleUpgradeController::class, 'stats']);
                 Route::get('/{id}', [RoleUpgradeController::class, 'adminShow']);
@@ -1471,26 +1515,35 @@ Route::prefix('v1')->group(function () {
             });
 
             // ── Sprint 2: Verification Badges ───────────────────────────
-            Route::prefix('verification-badges')->group(function () {
+            Route::prefix('verification-badges')->middleware('admin.permission:kyc')->group(function () {
                 Route::get('/', [VerificationBadgeController::class, 'adminIndex']);
                 Route::patch('/{userId}/status', [VerificationBadgeController::class, 'adminUpdateStatus']);
             });
 
             // Withdrawals
-            Route::prefix('withdrawals')->group(function () {
+            Route::prefix('withdrawals')->middleware('admin.permission:payouts')->group(function () {
                 Route::get('/', [WithdrawalController::class, 'adminIndex']);
                 Route::post('/{id}/process', [WithdrawalController::class, 'adminProcess']);
             });
 
             // Reports
-            Route::prefix('reports')->group(function () {
+            Route::prefix('reports')->middleware('admin.permission:content')->group(function () {
                 Route::get('/', [ModerationController::class, 'index']);
                 Route::get('/pending-count', [ModerationController::class, 'pendingCount']);
                 Route::post('/{report}/action', [ModerationController::class, 'action']);
             });
 
+            // Support Threads (administration queue)
+            Route::prefix('support')->middleware('admin.permission:support')->group(function () {
+                Route::get('/threads', [AdminSupportController::class, 'index']);
+                Route::get('/threads/counts', [AdminSupportController::class, 'counts']);
+                Route::get('/threads/{thread}', [AdminSupportController::class, 'show']);
+                Route::post('/threads/{thread}/reply', [AdminSupportController::class, 'reply']);
+                Route::patch('/threads/{thread}', [AdminSupportController::class, 'update']);
+            });
+
             // Orders
-            Route::get('/orders', [OrderController::class, 'adminIndex']);
+            Route::get('/orders', [OrderController::class, 'adminIndex'])->middleware('admin.permission:commerce');
 
             // Audit Logs
             Route::prefix('audit-logs')->middleware('admin.permission:analytics')->group(function () {
@@ -1499,7 +1552,7 @@ Route::prefix('v1')->group(function () {
             });
 
             // Central Media Management
-            Route::prefix('media')->group(function () {
+            Route::prefix('media')->middleware('admin.permission:settings')->group(function () {
                 Route::get('/', [AdminMediaController::class, 'index']);
                 Route::get('/stats', [AdminMediaController::class, 'stats']);
                 Route::post('/{uuid}/retry', [AdminMediaController::class, 'retry']);
@@ -1507,7 +1560,7 @@ Route::prefix('v1')->group(function () {
             });
 
             // Sound & Music Library Management
-            Route::prefix('sound-tracks')->group(function () {
+            Route::prefix('sound-tracks')->middleware('admin.permission:content')->group(function () {
                 Route::get('/', [SoundTrackController::class, 'adminIndex']);
                 Route::post('/', [SoundTrackController::class, 'store']);
                 Route::put('/{id}', [SoundTrackController::class, 'update']);
@@ -1515,27 +1568,27 @@ Route::prefix('v1')->group(function () {
             });
 
             // Reconciliation (Sprint 29)
-            Route::prefix('reconciliation')->group(function () {
+            Route::prefix('reconciliation')->middleware('admin.permission:accounting')->group(function () {
                 Route::get('/audit', [ReconciliationController::class, 'audit']);
                 Route::get('/ledger-summary', [ReconciliationController::class, 'ledgerSummary']);
             });
 
             // Payment Infrastructure (Providers, Routing, Transactions, Payouts, Refunds)
-            Route::prefix('payment-providers')->group(function () {
+            Route::prefix('payment-providers')->middleware('admin.permission:settings')->group(function () {
                 Route::get('/', [AdminPaymentProviderController::class, 'index']);
                 Route::post('/', [AdminPaymentProviderController::class, 'store']);
                 Route::put('/{code}', [AdminPaymentProviderController::class, 'update']);
                 Route::post('/{code}/test-connection', [AdminPaymentProviderController::class, 'testConnection']);
             });
 
-            Route::prefix('payment-routes')->group(function () {
+            Route::prefix('payment-routes')->middleware('admin.permission:settings')->group(function () {
                 Route::get('/', [AdminPaymentProviderController::class, 'routes']);
                 Route::post('/', [AdminPaymentProviderController::class, 'storeRoute']);
                 Route::delete('/{id}', [AdminPaymentProviderController::class, 'destroyRoute']);
                 Route::post('/simulate', [AdminPaymentProviderController::class, 'simulateRouting']);
             });
 
-            Route::prefix('payments')->group(function () {
+            Route::prefix('payments')->middleware('admin.permission:accounting')->group(function () {
                 Route::get('/stats', [AdminPaymentTransactionController::class, 'stats']);
                 Route::get('/', [AdminPaymentTransactionController::class, 'payments']);
                 Route::get('/{id}', [AdminPaymentTransactionController::class, 'showPayment']);
@@ -1543,9 +1596,9 @@ Route::prefix('v1')->group(function () {
                 Route::post('/{id}/refund', [AdminPaymentTransactionController::class, 'issueRefund']);
             });
 
-            Route::get('/payouts/all', [AdminPaymentTransactionController::class, 'payouts']);
-            Route::get('/refunds/all', [AdminPaymentTransactionController::class, 'refunds']);
-            Route::get('/financial-audit-logs', [AdminPaymentTransactionController::class, 'auditLogs']);
+            Route::get('/payouts/all', [AdminPaymentTransactionController::class, 'payouts'])->middleware('admin.permission:accounting');
+            Route::get('/refunds/all', [AdminPaymentTransactionController::class, 'refunds'])->middleware('admin.permission:accounting');
+            Route::get('/financial-audit-logs', [AdminPaymentTransactionController::class, 'auditLogs'])->middleware('admin.permission:accounting');
 
             // Multi-Stream Accounting & Tax Compliance Hub
             Route::prefix('accounting')->middleware('admin.permission:accounting')->group(function () {
@@ -1563,7 +1616,7 @@ Route::prefix('v1')->group(function () {
             });
 
             // Feature Flags
-            Route::prefix('feature-flags')->group(function () {
+            Route::prefix('feature-flags')->middleware('admin.permission:settings')->group(function () {
                 Route::get('/', [FeatureFlagController::class, 'index']);
                 Route::post('/', [FeatureFlagController::class, 'store']);
                 Route::put('/{id}', [FeatureFlagController::class, 'update']);
@@ -1572,7 +1625,7 @@ Route::prefix('v1')->group(function () {
             });
 
             // ── Sprint 19: Queue & System Monitoring ─────────────────────────
-            Route::prefix('queue')->group(function () {
+            Route::prefix('queue')->middleware('admin.permission:settings')->group(function () {
                 Route::get('/health', [QueueMonitorController::class, 'health']);
                 Route::get('/stats', [QueueMonitorController::class, 'stats']);
                 Route::get('/failed-jobs', [QueueMonitorController::class, 'failedJobs']);
@@ -1583,12 +1636,12 @@ Route::prefix('v1')->group(function () {
             });
 
             // ── Sprint 20: Events Management ──────────────────────────────────
-            Route::prefix('events')->group(function () {
+            Route::prefix('events')->middleware('admin.permission:content')->group(function () {
                 Route::get('/', [EventController::class, 'adminIndex']);
             });
 
             // ── Sprint 18: CMS Page Sections & Broadcasts ────────────────────
-            Route::prefix('cms')->group(function () {
+            Route::prefix('cms')->middleware('admin.permission:marketing')->group(function () {
                 Route::get('/', [PageSectionController::class, 'index']);
                 Route::post('/', [PageSectionController::class, 'store']);
                 Route::get('/{id}', [PageSectionController::class, 'show']);
@@ -1597,14 +1650,14 @@ Route::prefix('v1')->group(function () {
                 Route::post('/reorder', [PageSectionController::class, 'reorder']);
             });
 
-            Route::prefix('broadcasts')->group(function () {
+            Route::prefix('broadcasts')->middleware('admin.permission:marketing')->group(function () {
                 Route::get('/', [AdminBroadcastController::class, 'index']);
                 Route::post('/', [AdminBroadcastController::class, 'store']);
                 Route::delete('/{id}', [AdminBroadcastController::class, 'destroy']);
             });
 
             // ── Sprint 33: Disputes Management ────────────────────────────────
-            Route::prefix('disputes')->group(function () {
+            Route::prefix('disputes')->middleware('admin.permission:commerce')->group(function () {
                 Route::get('/', [FulfilmentDisputeController::class, 'adminIndex']);
                 Route::put('/{id}/resolve', [FulfilmentDisputeController::class, 'adminResolve']);
                 Route::get('/brand-deals', [BrandDealMilestoneController::class, 'adminDisputesIndex']);
@@ -1612,12 +1665,12 @@ Route::prefix('v1')->group(function () {
             });
 
             // ── Sprint 35: Payouts Management ─────────────────────────────────
-            Route::prefix('payouts')->group(function () {
+            Route::prefix('payouts')->middleware('admin.permission:payouts')->group(function () {
                 Route::get('/', [FulfilmentPayoutController::class, 'adminIndex']);
             });
 
             // ── Sprint 36: Badges Management ──────────────────────────────────
-            Route::prefix('badges')->group(function () {
+            Route::prefix('badges')->middleware('admin.permission:content')->group(function () {
                 Route::post('/', [BadgeController::class, 'store']);
                 Route::put('/{id}', [BadgeController::class, 'update']);
                 Route::delete('/{id}', [BadgeController::class, 'destroy']);
@@ -1625,7 +1678,7 @@ Route::prefix('v1')->group(function () {
             });
 
             // ── Sprint 33: Reviews Management (admin-only) ─────────────────────
-            Route::prefix('reviews')->group(function () {
+            Route::prefix('reviews')->middleware('admin.permission:commerce')->group(function () {
                 Route::get('/', [ProductReviewController::class, 'adminIndex']);
                 Route::put('/{id}', [ProductReviewController::class, 'adminUpdate']);
                 Route::post('/{id}/approve', [ProductReviewController::class, 'adminApprove']);
@@ -1633,14 +1686,14 @@ Route::prefix('v1')->group(function () {
             });
 
             // ── Sprint 41: Communities Management ────────────────────────────
-            Route::prefix('communities')->group(function () {
+            Route::prefix('communities')->middleware('admin.permission:content')->group(function () {
                 Route::get('/', [CommunityController::class, 'adminIndex']);
                 Route::get('/{id}', [CommunityController::class, 'adminShow']);
                 Route::delete('/{id}', [CommunityController::class, 'adminDelete']);
             });
 
             // ── Sprint 41: Escrow Management ─────────────────────────────────
-            Route::prefix('escrow')->group(function () {
+            Route::prefix('escrow')->middleware('admin.permission:payouts')->group(function () {
                 Route::get('/', [EscrowController::class, 'index']);
                 Route::get('/{id}', [EscrowController::class, 'show']);
                 Route::post('/{id}/release', [EscrowController::class, 'release']);
@@ -1651,13 +1704,13 @@ Route::prefix('v1')->group(function () {
             });
 
             // ── Sprint 41: Payouts Management ────────────────────────────────
-            Route::prefix('payouts')->group(function () {
+            Route::prefix('payouts')->middleware('admin.permission:payouts')->group(function () {
                 Route::get('/', [FulfilmentPayoutController::class, 'adminIndex']);
                 Route::put('/{id}/mark-paid', [FulfilmentPayoutController::class, 'adminMarkPaid']);
             });
 
             // ── Sprint 42: Platform Analytics ────────────────────────────────
-            Route::prefix('analytics')->group(function () {
+            Route::prefix('analytics')->middleware('admin.permission:analytics')->group(function () {
                 Route::get('/overview', [AdminAnalyticsController::class, 'overview']);
                 Route::get('/trends', [AdminAnalyticsController::class, 'trends']);
                 Route::get('/top-content', [AdminAnalyticsController::class, 'topContent']);
@@ -1667,52 +1720,52 @@ Route::prefix('v1')->group(function () {
             });
 
             // ── Sprint 42: Plans & Fees Management ───────────────────────────
-            Route::prefix('plans')->group(function () {
+            Route::prefix('plans')->middleware('admin.permission:commerce')->group(function () {
                 Route::get('/', [AdminPlansController::class, 'index']);
                 Route::get('/{id}', [AdminPlansController::class, 'show']);
                 Route::post('/{id}/toggle', [AdminPlansController::class, 'toggleActive']);
             });
 
             // ── System Health ────────────────────────────────────────────────
-            Route::get('/system-health', [AdminSystemHealthController::class, 'index']);
+            Route::get('/system-health', [AdminSystemHealthController::class, 'index'])->middleware('admin.permission:settings');
 
             // ── Moderation Logs ─────────────────────────────────────────────
-            Route::get('/moderation-logs', [AdminModerationLogController::class, 'index']);
+            Route::get('/moderation-logs', [AdminModerationLogController::class, 'index'])->middleware('admin.permission:content');
 
             // ── Audit Trail ─────────────────────────────────────────────────
-            Route::prefix('audit-trail')->group(function () {
+            Route::prefix('audit-trail')->middleware('admin.permission:analytics')->group(function () {
                 Route::get('/', [AuditLogController::class, 'index']);
             });
 
             // ── Admin Settings ──────────────────────────────────────────────
-            Route::prefix('settings')->group(function () {
+            Route::prefix('settings')->middleware('admin.permission:settings')->group(function () {
                 Route::get('/', [AdminSettingsController::class, 'show']);
                 Route::put('/', [AdminSettingsController::class, 'update']);
             });
 
             // ── AI Provider Selection ───────────────────────────────────────
-            Route::prefix('ai-settings')->group(function () {
+            Route::prefix('ai-settings')->middleware('admin.permission:settings')->group(function () {
                 Route::get('/', [AdminAiSettingsController::class, 'show']);
                 Route::put('/', [AdminAiSettingsController::class, 'update']);
                 Route::post('/test', [AdminAiSettingsController::class, 'test']);
             });
 
             // ── Mail Engine & Email Templates ───────────────────────────────
-            Route::prefix('mail-settings')->group(function () {
+            Route::prefix('mail-settings')->middleware('admin.permission:settings')->group(function () {
                 Route::get('/', [AdminMailSettingsController::class, 'show']);
                 Route::put('/', [AdminMailSettingsController::class, 'update']);
                 Route::post('/test', [AdminMailSettingsController::class, 'test']);
             });
 
             // ── SMS Engine ─────────────────────────────────────────────────
-            Route::prefix('sms-settings')->group(function () {
+            Route::prefix('sms-settings')->middleware('admin.permission:settings')->group(function () {
                 Route::get('/', [AdminSmsSettingsController::class, 'show']);
                 Route::put('/', [AdminSmsSettingsController::class, 'update']);
                 Route::post('/test', [AdminSmsSettingsController::class, 'test']);
             });
 
             // ── Social Login (OAuth) Providers ──────────────────────────────
-            Route::prefix('social-login')->group(function () {
+            Route::prefix('social-login')->middleware('admin.permission:settings')->group(function () {
                 Route::get('/', [AdminSocialLoginController::class, 'show']);
                 Route::put('/', [AdminSocialLoginController::class, 'update']);
             });
@@ -1735,7 +1788,7 @@ Route::prefix('v1')->group(function () {
             });
 
             // ── Creator Qualification Settings & Events ─────────────────────
-            Route::prefix('creator-qualification')->group(function () {
+            Route::prefix('creator-qualification')->middleware('admin.permission:settings')->group(function () {
                 Route::get('/settings', [AdminSettingsController::class, 'getCreatorQualification']);
                 Route::put('/settings', [AdminSettingsController::class, 'updateCreatorQualification']);
                 Route::get('/events', [AdminSettingsController::class, 'listQualificationEvents']);
@@ -1743,7 +1796,7 @@ Route::prefix('v1')->group(function () {
                 Route::get('/accounts', [AdminSettingsController::class, 'listSocialAccounts']);
             });
 
-            Route::prefix('email-templates')->group(function () {
+            Route::prefix('email-templates')->middleware('admin.permission:settings')->group(function () {
                 Route::get('/', [AdminEmailTemplateController::class, 'index']);
                 Route::get('{key}', [AdminEmailTemplateController::class, 'show']);
                 Route::put('{key}', [AdminEmailTemplateController::class, 'update']);
@@ -1751,7 +1804,7 @@ Route::prefix('v1')->group(function () {
             });
 
             // ── Storage Configuration ───────────────────────────────────────
-            Route::prefix('storage')->group(function () {
+            Route::prefix('storage')->middleware('admin.permission:settings')->group(function () {
                 Route::get('/', [AdminStorageController::class, 'show']);
                 Route::put('/', [AdminStorageController::class, 'update']);
 
@@ -1765,7 +1818,7 @@ Route::prefix('v1')->group(function () {
             });
 
             // ── Advertisements Management ──────────────────────────────────
-            Route::prefix('ads')->group(function () {
+            Route::prefix('ads')->middleware('admin.permission:ads')->group(function () {
                 Route::get('/', [AdminAdController::class, 'index']);
                 Route::get('/stats', [AdminAdController::class, 'stats']);
                 Route::get('/revenue', [AdminAdController::class, 'revenue']);
@@ -1776,7 +1829,7 @@ Route::prefix('v1')->group(function () {
             });
 
             // ── Gifts Management ──────────────────────────────────────────
-            Route::prefix('gifts')->group(function () {
+            Route::prefix('gifts')->middleware('admin.permission:commerce')->group(function () {
                 Route::get('/', [GiftController::class, 'adminGifts']);
                 Route::post('/', [GiftController::class, 'adminStoreGift']);
                 Route::put('/{id}', [GiftController::class, 'adminUpdateGift']);
@@ -1787,7 +1840,7 @@ Route::prefix('v1')->group(function () {
             });
 
             // ── Gift Payouts Management ───────────────────────────────────
-            Route::prefix('gift-payouts')->group(function () {
+            Route::prefix('gift-payouts')->middleware('admin.permission:payouts')->group(function () {
                 Route::get('/', [GiftController::class, 'adminPayouts']);
                 Route::post('/{id}/approve', [GiftController::class, 'adminApprovePayout']);
                 Route::post('/{id}/reject', [GiftController::class, 'adminRejectPayout']);
@@ -1795,7 +1848,7 @@ Route::prefix('v1')->group(function () {
             });
 
             // ── Coin Packs Management ─────────────────────────────────────
-            Route::prefix('coin-packs')->group(function () {
+            Route::prefix('coin-packs')->middleware('admin.permission:commerce')->group(function () {
                 Route::get('/', [CoinPackController::class, 'adminIndex']);
                 Route::post('/', [CoinPackController::class, 'adminStore']);
                 Route::get('/rate', [CoinPackController::class, 'adminRate']);
@@ -1806,7 +1859,7 @@ Route::prefix('v1')->group(function () {
             });
 
             // ── Feed Algorithm Management ─────────────────────────────────
-            Route::prefix('feed-algorithm')->group(function () {
+            Route::prefix('feed-algorithm')->middleware('admin.permission:settings')->group(function () {
                 Route::get('/weights', [FeedController::class, 'weights']);
                 Route::put('/weights/{id}', [FeedController::class, 'updateWeight']);
                 Route::get('/configs', [FeedController::class, 'configs']);
@@ -1825,13 +1878,13 @@ Route::prefix('v1')->group(function () {
             });
 
             // ── Story Settings ─────────────────────────────────────────────
-            Route::prefix('stories')->group(function () {
+            Route::prefix('stories')->middleware('admin.permission:settings')->group(function () {
                 Route::get('/settings', [AdminStoryController::class, 'show']);
                 Route::put('/settings', [AdminStoryController::class, 'update']);
             });
 
             // ── Conversion Metrics ─────────────────────────────────────────
-            Route::get('/analytics/conversions', [AdminConversionMetricsController::class, 'index']);
+            Route::get('/analytics/conversions', [AdminConversionMetricsController::class, 'index'])->middleware('admin.permission:analytics');
         });
     });
 });

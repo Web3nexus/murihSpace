@@ -16,7 +16,7 @@ class CurrencyController extends Controller
     {
         $from = strtoupper($request->query('from', 'USD'));
         $amount = (float) $request->query('amount', 1);
-        $to = strtoupper($request->query('to', 'NGN'));
+        $to = strtoupper($request->query('to', 'USD'));
 
         $result = $this->converter->convert($amount, $from, $to, fromCents: false);
 

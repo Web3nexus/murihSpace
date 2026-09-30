@@ -60,6 +60,14 @@ class FulfilmentOrderController extends Controller
             $subtotal += $product->price * $item->quantity;
         }
 
+        $currencies = $cart->items
+            ->map(fn ($i) => strtoupper((string) ($i->physicalProduct?->currency ?? 'USD')))
+            ->unique();
+        if ($currencies->count() > 1) {
+            return response()->json(['message' => 'All items must be priced in the same currency.'], 400);
+        }
+        $orderCurrency = $currencies->first() ?? 'USD';
+
         $creatorIds = $cart->items->pluck('physicalProduct.creator_id')->unique();
         if ($creatorIds->count() > 1) {
             return response()->json(['message' => 'All items must be from the same creator.'], 400);
@@ -95,7 +103,7 @@ class FulfilmentOrderController extends Controller
                 'tax_name'         => $taxInfo['tax_name'],
                 'tax_type'         => $taxInfo['tax_type'],
                 'tax_country_code' => $taxInfo['country_code'],
-                'currency'         => 'NGN',
+                'currency'         => $orderCurrency,
                 'total'            => (int) ($subtotal + $shippingCost + $platformFee + $taxInfo['tax_amount_cents']),
             ],
         ]);
@@ -143,6 +151,14 @@ class FulfilmentOrderController extends Controller
             return response()->json(['message' => 'Some items cannot be checked out.', 'errors' => $errors], 409);
         }
 
+        $currencies = $cart->items
+            ->map(fn ($i) => strtoupper((string) ($i->physicalProduct?->currency ?? 'USD')))
+            ->unique();
+        if ($currencies->count() > 1) {
+            return response()->json(['message' => 'All items must be priced in the same currency.'], 400);
+        }
+        $orderCurrency = $currencies->first() ?? 'USD';
+
         $creatorIds = $cart->items->pluck('physicalProduct.creator_id')->unique();
         if ($creatorIds->count() > 1) {
             return response()->json(['message' => 'All items must be from the same creator.'], 400);
@@ -173,7 +189,7 @@ class FulfilmentOrderController extends Controller
 
         $total = $subtotal + $shippingCost + $platformFee + $tax;
 
-        $order = DB::transaction(function () use ($userId, $creatorId, $address, $cart, $subtotal, $shippingCost, $platformFee, $tax, $taxInfo, $total) {
+        $order = DB::transaction(function () use ($userId, $creatorId, $address, $cart, $subtotal, $shippingCost, $platformFee, $tax, $taxInfo, $total, $orderCurrency) {
             $order = FulfilmentOrder::create([
                 'buyer_id' => $userId,
                 'shipping_address_id' => $address->id,
@@ -186,7 +202,7 @@ class FulfilmentOrderController extends Controller
                 'tax_country_code' => $taxInfo['country_code'],
                 'tax_type' => $taxInfo['tax_type'],
                 'total' => $total,
-                'currency' => 'NGN',
+                'currency' => $orderCurrency,
                 'status' => 'pending',
             ]);
 
@@ -214,7 +230,7 @@ class FulfilmentOrderController extends Controller
                 'buyer_id' => $userId,
                 'seller_id' => $creatorId,
                 'amount' => $total - $platformFee,
-                'currency' => 'NGN',
+                'currency' => $orderCurrency,
                 'status' => 'held',
                 'release_window_days' => 7,
             ]);

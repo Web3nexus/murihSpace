@@ -5,14 +5,19 @@ namespace App\Http\Controllers;
 use App\Http\Middleware\EnsureImpersonationLiveness;
 use App\Models\AuditLog;
 use App\Models\User;
+use App\Models\UserWarning;
 use App\Services\NotificationService;
+use App\Services\UserEnforcementService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use RuntimeException;
 
 class AdminUserController extends Controller
 {
-    public function __construct(private readonly NotificationService $notifications)
-    {
+    public function __construct(
+        private readonly NotificationService $notifications,
+        private readonly UserEnforcementService $enforcement,
+    ) {
     }
 
     public function index(Request $request): JsonResponse
@@ -101,19 +106,7 @@ class AdminUserController extends Controller
         ]);
 
         $user = User::withTrashed()->findOrFail($id);
-        $user->update([
-            'status' => 'suspended',
-            'suspended_at' => now(),
-            'suspension_reason' => $validated['reason'],
-        ]);
-
-        AuditLog::create([
-            'user_id' => $request->user()->id,
-            'action' => 'user.suspended',
-            'resource_type' => 'user',
-            'resource_id' => (string) $user->id,
-            'metadata' => ['reason' => $validated['reason']],
-        ]);
+        $this->enforcement->suspend($request->user(), $user, $validated['reason']);
 
         try {
             $this->notifications->actionEmail(
@@ -310,22 +303,20 @@ class AdminUserController extends Controller
     {
         $validated = $request->validate([
             'reason' => ['required', 'string', 'max:500'],
+            'ban_type' => ['nullable', 'string', 'in:standard,emergency'],
         ]);
 
         $user = User::withTrashed()->findOrFail($id);
-        $user->update([
-            'status' => 'banned',
-            'suspended_at' => now(),
-            'suspension_reason' => $validated['reason'],
-        ]);
+        $banType = $validated['ban_type'] ?? 'standard';
 
-        AuditLog::create([
-            'user_id' => $request->user()->id,
-            'action' => 'user.banned',
-            'resource_type' => 'user',
-            'resource_id' => (string) $user->id,
-            'metadata' => ['reason' => $validated['reason']],
-        ]);
+        try {
+            $this->enforcement->ban($request->user(), $user, $validated['reason'], $banType);
+        } catch (\App\Exceptions\BanGateException $e) {
+            return response()->json([
+                'message' => $e->getMessage(),
+                'code' => 'warning_required',
+            ], 422);
+        }
 
         try {
             $this->notifications->actionEmail(
@@ -339,7 +330,94 @@ class AdminUserController extends Controller
             report($e);
         }
 
-        return response()->json(['message' => 'User banned.', 'data' => $user]);
+        return response()->json([
+            'message' => 'User banned.',
+            'data' => $user->refresh(),
+        ]);
+    }
+
+    /**
+     * GET /admin/users/{id}/warnings
+     */
+    public function warnings(int $id): JsonResponse
+    {
+        $user = User::withTrashed()->findOrFail($id);
+
+        $warnings = $user->warnings()
+            ->with('issuer:id,name')
+            ->latest('issued_at')
+            ->latest('id')
+            ->limit(50)
+            ->get()
+            ->map(fn (UserWarning $warning) => [
+                'id' => $warning->id,
+                'reason' => $warning->reason,
+                'category' => $warning->category,
+                'issued_at' => $warning->issued_at?->toIso8601String(),
+                'expires_at' => $warning->expires_at?->toIso8601String(),
+                'days_remaining' => $this->enforcement->daysRemaining($warning),
+                'active' => $warning->isActive(),
+                'revoked_at' => $warning->revoked_at?->toIso8601String(),
+                'issued_by' => $warning->issuer?->name,
+            ]);
+
+        return response()->json([
+            'data' => $warnings,
+            'meta' => [
+                'can_ban' => $this->enforcement->canBan($user),
+                'active_warning' => $this->enforcement->activeWarning($user)?->id,
+            ],
+        ]);
+    }
+
+    /**
+     * POST /admin/users/{id}/warn
+     */
+    public function warn(Request $request, int $id): JsonResponse
+    {
+        $validated = $request->validate([
+            'reason' => ['required', 'string', 'max:500'],
+            'category' => ['nullable', 'string', 'in:'.implode(',', UserWarning::CATEGORIES)],
+            'valid_for_days' => ['nullable', 'integer', 'min:1', 'max:365'],
+        ]);
+
+        $user = User::withTrashed()->findOrFail($id);
+
+        $warning = $this->enforcement->warn(
+            actor: $request->user(),
+            target: $user,
+            reason: $validated['reason'],
+            category: $validated['category'] ?? 'conduct',
+            validForDays: $validated['valid_for_days'] ?? 30,
+        );
+
+        return response()->json([
+            'message' => 'Warning issued.',
+            'data' => $warning,
+        ], 201);
+    }
+
+    /**
+     * DELETE /admin/users/{id}/warnings/{warning}
+     */
+    public function revokeWarning(Request $request, int $id, int $warningId): JsonResponse
+    {
+        $validated = $request->validate([
+            'reason' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $user = User::withTrashed()->findOrFail($id);
+        $warning = $this->enforcement->revokeWarning(
+            actor: $request->user(),
+            target: $user,
+            warningId: $warningId,
+            reason: $validated['reason'] ?? null,
+        );
+
+        return response()->json([
+            'message' => 'Warning revoked.',
+            'data' => $warning,
+        ]);
     }
 
     public function restore(Request $request, int $id): JsonResponse

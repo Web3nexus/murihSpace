@@ -17,7 +17,10 @@ use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\HasApiTokens;
 use Laravel\Scout\Searchable;
+use App\Enums\AdminPermission;
+use App\Enums\AdminRole;
 use App\Services\PermissionService;
+use App\Support\AdminPermissionMatrix;
 
 #[Fillable([
     'uuid', 'name', 'email', 'password', 'username', 'country',
@@ -133,11 +136,38 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->isAdmin() && ($this->admin_role === 'super_admin' || empty($this->admin_role));
     }
 
+    public function adminRole(): ?AdminRole
+    {
+        if (! $this->isAdmin() || ! $this->admin_role) {
+            return null;
+        }
+
+        return AdminRole::tryFrom($this->admin_role);
+    }
+
+    /**
+     * The permissions this administrator actually holds, resolved from
+     * AdminPermissionMatrix. Never read admin_permissions directly — that column
+     * is only one of the inputs to the resolution.
+     *
+     * @return array<int, AdminPermission>
+     */
+    public function effectiveAdminPermissions(): array
+    {
+        return AdminPermissionMatrix::effectiveFor($this);
+    }
+
     public function hasAdminPermission(string $permission): bool
     {
         if (! $this->isAdmin()) return false;
+
         if ($this->isSuperAdmin()) return true;
-        return in_array($permission, $this->admin_permissions ?? [], true);
+
+        $required = AdminPermission::tryFrom($permission);
+
+        if (! $required) return false;
+
+        return in_array($required, $this->effectiveAdminPermissions(), true);
     }
 
     public function isCreator(): bool
@@ -288,6 +318,11 @@ class User extends Authenticatable implements MustVerifyEmail
     public function posts(): HasMany
     {
         return $this->hasMany(Post::class);
+    }
+
+    public function warnings(): HasMany
+    {
+        return $this->hasMany(UserWarning::class);
     }
 
     public function wallet(): HasOne

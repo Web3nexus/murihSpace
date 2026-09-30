@@ -66,7 +66,7 @@ class PaymentService
             return $existing->response_body;
         }
 
-        $currency = strtoupper($data['currency'] ?? 'NGN');
+        $currency = strtoupper($data['currency'] ?? 'USD');
         $country = isset($data['country']) ? strtoupper($data['country']) : null;
         $paymentMethod = $data['payment_method'] ?? 'card';
         $amount = (int) $data['amount'];

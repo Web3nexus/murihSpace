@@ -6,10 +6,13 @@ use App\Models\AccountRoleHistory;
 use App\Models\User;
 use App\Services\PermissionService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\ActsAsSession;
 use Tests\TestCase;
 
 class RoleUpgradeTest extends TestCase
 {
+    use ActsAsSession;
+
     use RefreshDatabase;
 
     public function test_permission_service_roles_map(): void
@@ -36,7 +39,7 @@ class RoleUpgradeTest extends TestCase
     {
         $user = User::factory()->create(['role' => 'member']);
 
-        $response = $this->actingAs($user)
+        $response = $this->actingAsSession($user)
             ->postJson('/api/v1/role/apply', [
                 'requested_role' => 'creator',
             ]);
@@ -64,7 +67,7 @@ class RoleUpgradeTest extends TestCase
             'requested_at' => now(),
         ]);
 
-        $response = $this->actingAs($user)
+        $response = $this->actingAsSession($user)
             ->postJson('/api/v1/role/apply', [
                 'requested_role' => 'vendor',
             ]);
@@ -86,7 +89,7 @@ class RoleUpgradeTest extends TestCase
             'requested_at' => now(),
         ]);
 
-        $response = $this->actingAs($admin)
+        $response = $this->actingAsSession($admin)
             ->patchJson("/api/v1/securegate/role-applications/{$app->id}/approve");
 
         $response->assertStatus(200)
@@ -110,7 +113,7 @@ class RoleUpgradeTest extends TestCase
             'requested_at' => now(),
         ]);
 
-        $response = $this->actingAs($admin)
+        $response = $this->actingAsSession($admin)
             ->patchJson("/api/v1/securegate/role-applications/{$app->id}/reject", [
                 'reason' => 'Identity verification documents were not provided.',
             ]);
@@ -135,7 +138,7 @@ class RoleUpgradeTest extends TestCase
         ]);
 
         // User cancels
-        $cancelRes = $this->actingAs($user)
+        $cancelRes = $this->actingAsSession($user)
             ->deleteJson('/api/v1/role/apply');
 
         $cancelRes->assertStatus(200)
@@ -144,7 +147,7 @@ class RoleUpgradeTest extends TestCase
         $this->assertEquals('cancelled', $app->fresh()->status);
 
         // User re-applies
-        $reapplyRes = $this->actingAs($user)
+        $reapplyRes = $this->actingAsSession($user)
             ->postJson('/api/v1/role/apply', [
                 'requested_role' => 'creator',
             ]);
@@ -173,7 +176,7 @@ class RoleUpgradeTest extends TestCase
         ]);
 
         // Admin requests KYC
-        $kycRes = $this->actingAs($admin)
+        $kycRes = $this->actingAsSession($admin)
             ->patchJson("/api/v1/securegate/role-applications/{$app->id}/request-kyc", [
                 'note' => 'Please provide a valid government passport or national ID.',
             ]);
@@ -186,7 +189,7 @@ class RoleUpgradeTest extends TestCase
         $this->assertEquals('Please provide a valid government passport or national ID.', $updatedApp->metadata['kyc_request_note']);
 
         // Admin lists pending applications
-        $listRes = $this->actingAs($admin)
+        $listRes = $this->actingAsSession($admin)
             ->getJson('/api/v1/securegate/role-applications?status=pending');
 
         $listRes->assertStatus(200)

@@ -65,7 +65,7 @@ class ProviderRouter
      */
     public function resolve(
         string $transactionType = 'payment',
-        string $currency = 'NGN',
+        string $currency = 'USD',
         ?string $country = null,
         string $paymentMethod = 'card',
         ?int $amount = null,

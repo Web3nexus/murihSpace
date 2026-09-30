@@ -5,10 +5,13 @@ namespace Tests\Feature\Accounting;
 use App\Models\TaxRate;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\ActsAsSession;
 use Tests\TestCase;
 
 class AdminTaxRatesSearchTest extends TestCase
 {
+    use ActsAsSession;
+
     use RefreshDatabase;
 
     protected User $accountant;
@@ -43,7 +46,7 @@ class AdminTaxRatesSearchTest extends TestCase
 
     public function test_rates_endpoint_paginates(): void
     {
-        $res = $this->actingAs($this->accountant)->getJson('/api/v1/securegate/tax/rates?page=1&per_page=2');
+        $res = $this->actingAsSession($this->accountant)->getJson('/api/v1/securegate/tax/rates?page=1&per_page=2');
 
         $res->assertOk();
         $res->assertJsonPath('data.meta.total', 5);
@@ -55,7 +58,7 @@ class AdminTaxRatesSearchTest extends TestCase
 
     public function test_rates_endpoint_searches_country_name(): void
     {
-        $res = $this->actingAs($this->accountant)->getJson('/api/v1/securegate/tax/rates?search=nig&page=1&per_page=25');
+        $res = $this->actingAsSession($this->accountant)->getJson('/api/v1/securegate/tax/rates?search=nig&page=1&per_page=25');
 
         $res->assertOk();
         $res->assertJsonPath('data.meta.total', 1);
@@ -66,13 +69,13 @@ class AdminTaxRatesSearchTest extends TestCase
 
     public function test_rates_endpoint_searches_country_code_or_tax_name(): void
     {
-        $res = $this->actingAs($this->accountant)->getJson('/api/v1/securegate/tax/rates?search=GBR');
+        $res = $this->actingAsSession($this->accountant)->getJson('/api/v1/securegate/tax/rates?search=GBR');
 
         $res->assertOk();
         $res->assertJsonPath('data.meta.total', 1);
         $res->assertJsonPath('data.rates.0.country_name', 'United Kingdom');
 
-        $res2 = $this->actingAs($this->accountant)->getJson('/api/v1/securegate/tax/rates?search=withholding');
+        $res2 = $this->actingAsSession($this->accountant)->getJson('/api/v1/securegate/tax/rates?search=withholding');
         $res2->assertOk();
         $res2->assertJsonPath('data.meta.total', 0);
     }
