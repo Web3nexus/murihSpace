@@ -318,6 +318,49 @@ class AdminPaymentProviderController extends Controller
     }
 
     /**
+     * Update an existing provider routing rule.
+     */
+    public function updateRoute(Request $request, int $id): JsonResponse
+    {
+        $this->authorizeSuperAdmin($request);
+        $route = ProviderRoute::findOrFail($id);
+
+        $validated = $request->validate([
+            'name' => ['sometimes', 'required', 'string', 'max:100'],
+            'transaction_type' => ['sometimes', 'required', 'string', 'in:payment,payout,refund,coin_pack,gift,wallet_topup,order,digital_product,subscription'],
+            'country_code' => ['sometimes', 'required', 'string', 'max:5'],
+            'currency' => ['sometimes', 'required', 'string', 'max:5'],
+            'payment_method' => ['sometimes', 'required', 'string', 'max:40'],
+            'primary_provider_id' => ['sometimes', 'required', 'integer', 'exists:payment_providers,id'],
+            'fallback_provider_id' => ['nullable', 'integer', 'exists:payment_providers,id'],
+            'priority' => ['sometimes', 'required', 'integer', 'min:1', 'max:1000'],
+            'is_active' => ['sometimes', 'required', 'boolean'],
+            'reason' => ['nullable', 'string'],
+        ]);
+
+        $oldValues = $route->toArray();
+        $route->update($validated);
+
+        FinancialAuditLog::create([
+            'admin_id' => $request->user()?->id,
+            'action' => 'route_updated',
+            'resource_type' => 'provider_route',
+            'resource_id' => (string) $route->id,
+            'old_values' => $oldValues,
+            'new_values' => $route->toArray(),
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'reason' => $validated['reason'] ?? 'Admin updated routing rule',
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'data' => $route->fresh(['primaryProvider', 'fallbackProvider']),
+            'message' => 'Routing rule updated successfully.',
+        ]);
+    }
+
+    /**
      * Delete a provider routing rule.
      */
     public function destroyRoute(Request $request, int $id): JsonResponse

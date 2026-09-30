@@ -15,6 +15,7 @@ import {
   Key,
   ShieldCheck,
   Trash,
+  PencilSimple,
   X,
   Info
 } from '@phosphor-icons/react';
@@ -115,8 +116,9 @@ export function AdminPaymentProvidersPage() {
   const [providerHandlesTax, setProviderHandlesTax] = useState<boolean>(true);
   const [savingProvider, setSavingProvider] = useState(false);
 
-  // New Route Modal state
+  // Route Modal state (Create & Edit)
   const [routeModalOpen, setRouteModalOpen] = useState(false);
+  const [editingRouteId, setEditingRouteId] = useState<number | null>(null);
   const [routeName, setRouteName] = useState('');
   const [routeTxType, setRouteTxType] = useState('payment');
   const [routeCountry, setRouteCountry] = useState('*');
@@ -125,6 +127,7 @@ export function AdminPaymentProvidersPage() {
   const [routePrimaryId, setRoutePrimaryId] = useState<number>(0);
   const [routeFallbackId, setRouteFallbackId] = useState<number>(0);
   const [routePriority, setRoutePriority] = useState<number>(10);
+  const [routeIsActive, setRouteIsActive] = useState<boolean>(true);
   const [savingRoute, setSavingRoute] = useState(false);
 
   // Simulator state
@@ -315,8 +318,12 @@ export function AdminPaymentProvidersPage() {
     setSavingRoute(true);
     setActionMsg(null);
     try {
-      const res = await authFetch('/securegate/payment-routes', {
-        method: 'POST',
+      const isEditing = editingRouteId !== null;
+      const endpoint = isEditing ? `/securegate/payment-routes/${editingRouteId}` : '/securegate/payment-routes';
+      const method = isEditing ? 'PUT' : 'POST';
+
+      const res = await authFetch(endpoint, {
+        method,
         body: JSON.stringify({
           name: routeName.trim(),
           transaction_type: routeTxType,
@@ -326,22 +333,59 @@ export function AdminPaymentProvidersPage() {
           primary_provider_id: routePrimaryId,
           fallback_provider_id: routeFallbackId || null,
           priority: routePriority,
-          is_active: true,
+          is_active: routeIsActive,
         }),
       });
       if (res.ok) {
-        setActionMsg({ ok: true, text: `✓ Routing rule "${routeName}" created!` });
+        setActionMsg({ ok: true, text: `✓ Routing rule "${routeName}" ${isEditing ? 'updated' : 'created'}!` });
         setRouteModalOpen(false);
+        setEditingRouteId(null);
         setRouteName('');
         loadData();
       } else {
         const j = await res.json();
-        setActionMsg({ ok: false, text: j.message || 'Failed to create route.' });
+        setActionMsg({ ok: false, text: j.message || `Failed to ${isEditing ? 'update' : 'create'} route.` });
       }
     } catch {
       setActionMsg({ ok: false, text: 'Network error saving route.' });
     } finally {
       setSavingRoute(false);
+    }
+  };
+
+  const handleEditRoute = (route: ProviderRoute) => {
+    setEditingRouteId(route.id);
+    setRouteName(route.name);
+    setRouteTxType(route.transaction_type);
+    setRouteCountry(route.country_code);
+    setRouteCurrency(route.currency);
+    setRouteMethod(route.payment_method);
+    setRoutePrimaryId(route.primary_provider?.id || (providers[0]?.id ?? 0));
+    setRouteFallbackId(route.fallback_provider?.id || 0);
+    setRoutePriority(route.priority);
+    setRouteIsActive(route.is_active);
+    setRouteModalOpen(true);
+  };
+
+  const handleToggleRouteActive = async (route: ProviderRoute) => {
+    try {
+      const nextActive = !route.is_active;
+      const res = await authFetch(`/securegate/payment-routes/${route.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          is_active: nextActive,
+          reason: `Admin toggled rule ${nextActive ? 'active' : 'inactive'} from routing matrix`,
+        }),
+      });
+      if (res.ok) {
+        setActionMsg({ ok: true, text: `Routing rule "${route.name}" is now ${nextActive ? 'active' : 'disabled'}.` });
+        loadData();
+      } else {
+        const j = await res.json();
+        setActionMsg({ ok: false, text: j.message || 'Failed to update rule status.' });
+      }
+    } catch {
+      setActionMsg({ ok: false, text: 'Network error updating rule status.' });
     }
   };
 
@@ -786,9 +830,18 @@ export function AdminPaymentProvidersPage() {
             <Button
               size="sm"
               onClick={() => {
+                setEditingRouteId(null);
+                setRouteName('');
+                setRouteTxType('payment');
+                setRouteCountry('*');
+                setRouteCurrency('NGN');
+                setRouteMethod('*');
                 if (providers.length > 0) {
                   setRoutePrimaryId(providers[0].id);
                 }
+                setRouteFallbackId(0);
+                setRoutePriority(10);
+                setRouteIsActive(true);
                 setRouteModalOpen(true);
               }}
               className="text-xs bg-[#2164b6] hover:bg-[#1a5091] text-white font-bold"
@@ -812,9 +865,16 @@ export function AdminPaymentProvidersPage() {
                       <Badge variant="outline" className="text-[10px]">
                         Priority: {r.priority}
                       </Badge>
-                      <Badge variant={r.is_active ? 'default' : 'secondary'} className="text-[10px]">
-                        {r.is_active ? 'Active' : 'Disabled'}
-                      </Badge>
+                      <button
+                        type="button"
+                        onClick={() => handleToggleRouteActive(r)}
+                        className="inline-flex items-center gap-1 cursor-pointer transition-opacity hover:opacity-80"
+                        title={r.is_active ? 'Click to disable route' : 'Click to activate route'}
+                      >
+                        <Badge variant={r.is_active ? 'default' : 'secondary'} className="text-[10px] cursor-pointer">
+                          {r.is_active ? 'Active' : 'Disabled'}
+                        </Badge>
+                      </button>
                     </div>
                     <div className="text-xs text-muted-foreground flex items-center gap-3 flex-wrap">
                       <span>Type: <b className="text-foreground">{r.transaction_type}</b></span>
@@ -831,13 +891,22 @@ export function AdminPaymentProvidersPage() {
                         Fallback: {r.fallback_provider ? <b className="text-blue-400">{r.fallback_provider.name}</b> : 'None'}
                       </div>
                     </div>
-                    <button
-                      onClick={() => handleDeleteRoute(r.id, r.name)}
-                      className="p-1.5 rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
-                      title="Delete rule"
-                    >
-                      <Trash weight="bold" className="h-4 w-4" />
-                    </button>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => handleEditRoute(r)}
+                        className="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                        title="Edit routing rule"
+                      >
+                        <PencilSimple weight="bold" className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteRoute(r.id, r.name)}
+                        className="p-1.5 rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                        title="Delete rule"
+                      >
+                        <Trash weight="bold" className="h-4 w-4" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))
@@ -1191,16 +1260,21 @@ export function AdminPaymentProvidersPage() {
         </DialogContent>
       </Dialog>
 
-      {/* MODAL: ADD ROUTING RULE */}
-      <Dialog open={routeModalOpen} onOpenChange={setRouteModalOpen}>
+      {/* MODAL: ADD / EDIT ROUTING RULE */}
+      <Dialog open={routeModalOpen} onOpenChange={(open) => {
+        setRouteModalOpen(open);
+        if (!open) setEditingRouteId(null);
+      }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-base">
               <Shuffle weight="fill" className="h-5 w-5 text-[#2164b6]" />
-              New Dynamic Routing Rule
+              {editingRouteId ? 'Edit Routing Rule' : 'New Dynamic Routing Rule'}
             </DialogTitle>
             <DialogDescription className="text-xs">
-              Define which gateway handles transactions for specific currencies, countries, or payment methods.
+              {editingRouteId
+                ? 'Update routing criteria, priorities, fallback gateway, or active status for this rule.'
+                : 'Define which gateway handles transactions for specific currencies, countries, or payment methods.'}
             </DialogDescription>
           </DialogHeader>
 
@@ -1230,6 +1304,8 @@ export function AdminPaymentProvidersPage() {
                   <option value="gift">Gifts</option>
                   <option value="wallet_topup">Wallet Top-ups</option>
                   <option value="order">Commerce Orders</option>
+                  <option value="digital_product">Digital Products</option>
+                  <option value="subscription">Subscriptions</option>
                 </select>
               </div>
 
@@ -1301,20 +1377,41 @@ export function AdminPaymentProvidersPage() {
               </div>
             </div>
 
-            <div>
-              <label className="font-semibold block mb-1">Priority Order (Lower = First)</label>
-              <Input
-                type="number"
-                value={routePriority}
-                onChange={(e) => setRoutePriority(parseInt(e.target.value, 10) || 10)}
-                placeholder="10"
-                className="h-8 text-xs"
-              />
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="font-semibold block mb-1">Priority Order (Lower = First)</label>
+                <Input
+                  type="number"
+                  value={routePriority}
+                  onChange={(e) => setRoutePriority(parseInt(e.target.value, 10) || 10)}
+                  placeholder="10"
+                  className="h-8 text-xs"
+                />
+              </div>
+
+              <div>
+                <label className="font-semibold block mb-1">Rule Status</label>
+                <select
+                  value={routeIsActive ? 'active' : 'inactive'}
+                  onChange={(e) => setRouteIsActive(e.target.value === 'active')}
+                  className="w-full bg-background border border-border rounded-lg p-2 text-xs font-medium"
+                >
+                  <option value="active">Active (Enabled)</option>
+                  <option value="inactive">Disabled</option>
+                </select>
+              </div>
             </div>
           </div>
 
           <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="outline" size="sm" onClick={() => setRouteModalOpen(false)}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setRouteModalOpen(false);
+                setEditingRouteId(null);
+              }}
+            >
               Cancel
             </Button>
             <Button
@@ -1323,7 +1420,7 @@ export function AdminPaymentProvidersPage() {
               disabled={savingRoute}
               className="bg-[#2164b6] hover:bg-[#1a5091] text-white font-bold"
             >
-              {savingRoute ? 'Saving...' : 'Create Routing Rule'}
+              {savingRoute ? 'Saving...' : editingRouteId ? 'Update Routing Rule' : 'Create Routing Rule'}
             </Button>
           </DialogFooter>
         </DialogContent>

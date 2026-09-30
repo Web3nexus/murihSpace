@@ -230,4 +230,132 @@ class AdminPaymentProviderTest extends TestCase
         $list->assertJsonFragment(['code' => 'flutterwave', 'has_encryption_key' => true]);
         $this->assertStringNotContainsString('FLWSECK_TEST_ENCRYPTION', $list->getContent());
     }
+
+    public function test_admin_can_update_routing_rule_and_records_audit_log(): void
+    {
+        $primary = PaymentProvider::create([
+            'code' => 'paystack',
+            'name' => 'Paystack',
+            'is_enabled' => true,
+            'priority' => 10,
+            'health_status' => ProviderHealthStatus::Healthy,
+        ]);
+
+        $fallback = PaymentProvider::create([
+            'code' => 'flutterwave',
+            'name' => 'Flutterwave',
+            'is_enabled' => true,
+            'priority' => 20,
+            'health_status' => ProviderHealthStatus::Healthy,
+        ]);
+
+        $route = ProviderRoute::create([
+            'name' => 'Original Route',
+            'transaction_type' => 'payment',
+            'country_code' => 'NG',
+            'currency' => 'NGN',
+            'payment_method' => 'card',
+            'primary_provider_id' => $primary->id,
+            'fallback_provider_id' => $fallback->id,
+            'priority' => 10,
+            'is_active' => true,
+        ]);
+
+        $res = $this->actingAsSession($this->adminUser)->putJson("/api/v1/securegate/payment-routes/{$route->id}", [
+            'name' => 'Updated Route Name',
+            'priority' => 5,
+            'is_active' => false,
+            'reason' => 'Lowering priority and deactivating route during gateway audit',
+        ]);
+
+        $res->assertOk();
+        $res->assertJsonPath('success', true);
+        $res->assertJsonPath('data.name', 'Updated Route Name');
+        $res->assertJsonPath('data.priority', 5);
+        $res->assertJsonPath('data.is_active', false);
+
+        $route->refresh();
+        $this->assertSame('Updated Route Name', $route->name);
+        $this->assertSame(5, $route->priority);
+        $this->assertFalse((bool) $route->is_active);
+
+        $this->assertDatabaseHas('financial_audit_logs', [
+            'admin_id' => $this->adminUser->id,
+            'action' => 'route_updated',
+            'resource_type' => 'provider_route',
+            'resource_id' => (string) $route->id,
+            'reason' => 'Lowering priority and deactivating route during gateway audit',
+        ]);
+    }
+
+    public function test_admin_can_toggle_route_active_status(): void
+    {
+        $primary = PaymentProvider::create([
+            'code' => 'paystack',
+            'name' => 'Paystack',
+            'is_enabled' => true,
+            'priority' => 10,
+            'health_status' => ProviderHealthStatus::Healthy,
+        ]);
+
+        $route = ProviderRoute::create([
+            'name' => 'Toggle Route',
+            'transaction_type' => 'payment',
+            'country_code' => 'NG',
+            'currency' => 'NGN',
+            'payment_method' => 'card',
+            'primary_provider_id' => $primary->id,
+            'priority' => 1,
+            'is_active' => true,
+        ]);
+
+        $res = $this->actingAsSession($this->adminUser)->patchJson("/api/v1/securegate/payment-routes/{$route->id}", [
+            'is_active' => false,
+        ]);
+
+        $res->assertOk();
+        $this->assertFalse((bool) $route->fresh()->is_active);
+
+        $res2 = $this->actingAsSession($this->adminUser)->patchJson("/api/v1/securegate/payment-routes/{$route->id}", [
+            'is_active' => true,
+        ]);
+
+        $res2->assertOk();
+        $this->assertTrue((bool) $route->fresh()->is_active);
+    }
+
+    public function test_non_super_admin_cannot_update_routing_rule(): void
+    {
+        $primary = PaymentProvider::create([
+            'code' => 'paystack',
+            'name' => 'Paystack',
+            'is_enabled' => true,
+            'priority' => 10,
+            'health_status' => ProviderHealthStatus::Healthy,
+        ]);
+
+        $route = ProviderRoute::create([
+            'name' => 'Route',
+            'transaction_type' => 'payment',
+            'country_code' => 'NG',
+            'currency' => 'NGN',
+            'payment_method' => 'card',
+            'primary_provider_id' => $primary->id,
+            'priority' => 1,
+            'is_active' => true,
+        ]);
+
+        $supportAdmin = User::factory()->create([
+            'role' => 'admin',
+            'admin_role' => 'support_admin',
+        ]);
+
+        $res = $this->actingAsSession($supportAdmin)->putJson("/api/v1/securegate/payment-routes/{$route->id}", [
+            'name' => 'Forbidden Name Change',
+        ]);
+
+        $res->assertForbidden();
+    }
 }
+
+
