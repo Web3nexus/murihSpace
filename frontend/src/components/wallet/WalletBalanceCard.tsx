@@ -69,9 +69,12 @@ export function WalletBalanceCard({ wallet, onDeposit, onTransfer, onWithdraw }:
           <div className="mt-3">
             <p className="text-xs text-white/70 font-medium uppercase tracking-wider">Available Balance</p>
             <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight mt-0.5">{wallet.formatted.available}</h2>
-            {wallet.local_formatted && wallet.currency === 'USD' && (
-              <p className="text-xs text-white/75 font-medium mt-0.5">
-                ≈ {wallet.local_formatted}
+            {wallet.local_formatted && wallet.currency === 'USD' && wallet.local_currency && wallet.local_currency !== 'USD' && (
+              <p className="text-xs text-white/75 font-medium mt-0.5 flex items-center gap-1.5">
+                <span>≈ {wallet.local_formatted}</span>
+                <span className="text-[11px] text-white/60 bg-white/10 px-1.5 py-0.5 rounded font-normal">
+                  {wallet.local_currency} estimate
+                </span>
               </p>
             )}
             {wallet.coins !== undefined && isSystem && (

@@ -19,8 +19,8 @@ import { apiClient, type ApiError } from "@/lib/api/client";
 import { WalletBalanceCard } from "@/components/wallet/WalletBalanceCard";
 import { InternalTransferModal } from "@/components/wallet/InternalTransferModal";
 import { FeePreviewCard } from "@/components/wallet/FeePreviewCard";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 interface WalletItem {
   id: number;
@@ -34,6 +34,10 @@ interface WalletItem {
   disputed: number;
   total: number;
   currency: string;
+  local_currency?: string;
+  local_rate?: number;
+  local_formatted?: string;
+  coins?: number;
   formatted: {
     available: string;
     pending: string;
@@ -44,6 +48,20 @@ interface WalletItem {
   has_pin: boolean;
   status: string;
 }
+
+const CURRENCY_SYMBOLS: Record<string, string> = {
+  USD: "$",
+  NGN: "₦",
+  EUR: "€",
+  GBP: "£",
+  GHS: "GH₵",
+  KES: "KSh",
+  ZAR: "R",
+};
+
+const getCurrencySymbol = (curr?: string): string => {
+  return curr ? (CURRENCY_SYMBOLS[curr] ?? `${curr} `) : "$";
+};
 
 interface CountryOption {
   iso2: string;
@@ -183,7 +201,7 @@ export function WalletPage() {
   const systemWallet = safeWallets.find((w) => w?.wallet_type === "system") ?? safeWallets[0] ?? null;
 
   // Live fee preview for deposit
-  const fetchDepositFeePreview = useCallback(async (amountStr: string, gateway: string) => {
+  const fetchDepositFeePreview = useCallback(async (amountStr: string, gateway: string, curr: string) => {
     const requestId = ++feePreviewRequestRef.current;
     const minor = Math.round((parseFloat(amountStr) || 0) * 100);
     if (minor < 100) { setDepositFeePreview(null); return; }
@@ -192,7 +210,7 @@ export function WalletPage() {
       const res = await apiClient.post("/wallet/fees/preview", {
         transaction_code: `DEPOSIT_${gateway.toUpperCase()}`,
         amount: minor,
-        currency: "NGN",
+        currency: curr || "USD",
         payment_method: gateway,
       });
       if (requestId !== feePreviewRequestRef.current) return;
@@ -204,11 +222,13 @@ export function WalletPage() {
     }
   }, []);
 
+  const walletCurrency = systemWallet?.currency || activeWallet?.currency || "USD";
+
   useEffect(() => {
     if (!showDeposit) return;
-    const timer = setTimeout(() => fetchDepositFeePreview(depositAmount, depositGateway), 400);
+    const timer = setTimeout(() => fetchDepositFeePreview(depositAmount, depositGateway, walletCurrency), 400);
     return () => clearTimeout(timer);
-  }, [depositAmount, depositGateway, showDeposit, fetchDepositFeePreview]);
+  }, [depositAmount, depositGateway, showDeposit, walletCurrency, fetchDepositFeePreview]);
 
   // Live VAT/GST preview for the top-up amount based on billing country.
   const taxPreviewRequestRef = useRef(0);
@@ -254,8 +274,9 @@ export function WalletPage() {
   const handleDepositSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const minorAmount = Math.round((parseFloat(depositAmount) || 0) * 100);
+    const minSymbol = walletCurrency === "USD" ? "$" : walletCurrency === "NGN" ? "₦" : `${walletCurrency} `;
     if (minorAmount < 100) {
-      toast.error("Minimum deposit amount is ₦1.00");
+      toast.error(`Minimum deposit amount is ${minSymbol}1.00`);
       return;
     }
 
@@ -264,7 +285,7 @@ export function WalletPage() {
       const res = await apiClient.post("/wallet/deposit", {
         amount: minorAmount,
         payment_gateway: depositGateway,
-        currency: "NGN",
+        currency: walletCurrency,
         ...(depositCountry ? { country_code: depositCountry } : {}),
       });
 
@@ -307,11 +328,13 @@ export function WalletPage() {
       await apiClient.post("/wallet/transfers/send", {
         recipient_username: sendRecipient,
         amount: minorAmount,
+        currency: walletCurrency,
         note: sendNote || undefined,
         ...(systemWallet?.has_pin ? { pin: sendPin } : {}),
       });
 
-      toast.success(`Sent NGN ${parseFloat(sendAmount).toFixed(2)} to @${sendRecipient}!`);
+      const displaySymbol = walletCurrency === "USD" ? "$" : walletCurrency === "NGN" ? "₦" : `${walletCurrency} `;
+      toast.success(`Sent ${displaySymbol}${parseFloat(sendAmount).toFixed(2)} to @${sendRecipient}!`);
       closeSendModal();
       setSendRecipient("");
       setSendAmount("");
@@ -537,7 +560,7 @@ export function WalletPage() {
                         {isCredit ? "+" : "-"}{tx.formatted}
                       </td>
                       <td className="px-4 py-3 text-xs text-muted-foreground">
-                        {tx.currency === "USD" ? "$" : tx.currency === "EUR" ? "€" : tx.currency === "GBP" ? "£" : "₦"}
+                        {getCurrencySymbol(tx.currency)}
                         {(tx.balance_after / 100).toFixed(2)}
                       </td>
                       <td className="px-4 py-3 text-xs text-muted-foreground text-right whitespace-nowrap">
@@ -582,19 +605,37 @@ export function WalletPage() {
 
           <form onSubmit={handleDepositSubmit} className="space-y-4 pt-2">
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
-                Deposit Amount (NGN ₦)
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Deposit Amount ({getCurrencySymbol(walletCurrency)}{walletCurrency})
+                </label>
+                {systemWallet?.currency === "USD" && systemWallet?.local_rate && systemWallet?.local_currency !== "USD" && (
+                  <span className="text-[11px] text-primary/80 font-medium">
+                    1 USD ≈ {systemWallet.local_rate.toLocaleString()} {systemWallet.local_currency}
+                  </span>
+                )}
+              </div>
               <input
                 type="number"
                 step="0.01"
                 min="1"
-                placeholder="1000.00"
+                placeholder={walletCurrency === "USD" ? "10.00" : "1000.00"}
                 value={depositAmount}
                 onChange={(e) => setDepositAmount(e.target.value)}
                 className="w-full rounded-lg border-none bg-background px-3.5 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary"
                 required
               />
+              {systemWallet?.currency === "USD" && systemWallet?.local_rate && systemWallet?.local_currency !== "USD" && parseFloat(depositAmount) > 0 && (
+                <p className="text-xs text-muted-foreground mt-1.5 flex items-center justify-between">
+                  <span>Local payment equivalent:</span>
+                  <span className="font-semibold text-foreground">
+                    ≈ {(parseFloat(depositAmount) * systemWallet.local_rate).toLocaleString(undefined, {
+                      style: "currency",
+                      currency: systemWallet.local_currency,
+                    })}
+                  </span>
+                </p>
+              )}
             </div>
 
             <div>
@@ -643,23 +684,23 @@ export function WalletPage() {
               <div className="rounded-lg bg-muted/40 border border-border px-3.5 py-2.5 text-xs space-y-1">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground font-medium">Amount</span>
-                  <span className="font-bold">{(depositTaxPreview.amount / 100).toLocaleString(undefined, { style: "currency", currency: "NGN" })}</span>
+                  <span className="font-bold">{getCurrencySymbol(walletCurrency)}{(depositTaxPreview.amount / 100).toFixed(2)}</span>
                 </div>
                 {depositTaxPreview.tax > 0 && (
                   <div className="flex justify-between">
                     <span className="text-muted-foreground font-medium">{depositTaxPreview.tax_name ?? "VAT"} ({Number(depositTaxPreview.tax_rate ?? 0)}%)</span>
-                    <span className="font-bold">{(depositTaxPreview.tax / 100).toLocaleString(undefined, { style: "currency", currency: "NGN" })}</span>
+                    <span className="font-bold">{getCurrencySymbol(walletCurrency)}{(depositTaxPreview.tax / 100).toFixed(2)}</span>
                   </div>
                 )}
                 {depositTaxPreview.tax === 0 && (
                   <div className="flex justify-between">
                     <span className="text-emerald-600 font-medium">{depositTaxPreview.tax_rate === 0 ? "Zero-rated" : "No VAT"}</span>
-                    <span className="font-bold">₦0.00</span>
+                    <span className="font-bold">{getCurrencySymbol(walletCurrency)}0.00</span>
                   </div>
                 )}
                 <div className="flex justify-between border-t border-border pt-1.5">
                   <span className="text-muted-foreground font-bold">Total Charged</span>
-                  <span className="font-black text-primary">{(depositTaxPreview.total_charged / 100).toLocaleString(undefined, { style: "currency", currency: "NGN" })}</span>
+                  <span className="font-black text-primary">{getCurrencySymbol(walletCurrency)}{(depositTaxPreview.total_charged / 100).toFixed(2)}</span>
                 </div>
               </div>
             )}
@@ -710,19 +751,37 @@ export function WalletPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
-                Amount (NGN ₦)
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Amount ({getCurrencySymbol(walletCurrency)}{walletCurrency})
+                </label>
+                {systemWallet?.currency === "USD" && systemWallet?.local_rate && systemWallet?.local_currency !== "USD" && (
+                  <span className="text-[11px] text-muted-foreground">
+                    Base: USD
+                  </span>
+                )}
+              </div>
               <input
                 type="number"
                 step="0.01"
-                min="1"
-                placeholder="500.00"
+                min="0.01"
+                placeholder={walletCurrency === "USD" ? "10.00" : "500.00"}
                 value={sendAmount}
                 onChange={(e) => setSendAmount(e.target.value)}
                 className="w-full rounded-lg border-none bg-background px-3.5 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary"
                 required
               />
+              {systemWallet?.currency === "USD" && systemWallet?.local_rate && systemWallet?.local_currency !== "USD" && parseFloat(sendAmount) > 0 && (
+                <p className="text-xs text-muted-foreground mt-1.5 flex items-center justify-between">
+                  <span>Recipient equivalent in {systemWallet.local_currency}:</span>
+                  <span className="font-medium text-foreground">
+                    ≈ {(parseFloat(sendAmount) * systemWallet.local_rate).toLocaleString(undefined, {
+                      style: "currency",
+                      currency: systemWallet.local_currency,
+                    })}
+                  </span>
+                </p>
+              )}
             </div>
 
             <div>
