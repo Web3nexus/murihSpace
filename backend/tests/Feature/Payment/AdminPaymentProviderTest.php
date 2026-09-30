@@ -356,6 +356,56 @@ class AdminPaymentProviderTest extends TestCase
 
         $res->assertForbidden();
     }
+
+    public function test_simulator_supports_wildcard_country_and_returns_resolved_provider_payload(): void
+    {
+        $paystack = PaymentProvider::create([
+            'code' => 'paystack',
+            'name' => 'Paystack',
+            'is_enabled' => true,
+            'priority' => 10,
+            'health_status' => ProviderHealthStatus::Healthy,
+        ]);
+
+        ProviderCapability::create([
+            'payment_provider_id' => $paystack->id,
+            'capability' => 'card',
+            'country_code' => '*',
+            'currency' => 'NGN',
+            'status' => CapabilityStatus::Confirmed,
+        ]);
+
+        ProviderRoute::create([
+            'name' => 'Global NGN Cards',
+            'transaction_type' => 'payment',
+            'country_code' => '*',
+            'currency' => 'NGN',
+            'payment_method' => 'card',
+            'primary_provider_id' => $paystack->id,
+            'priority' => 10,
+            'is_active' => true,
+        ]);
+
+        $paystackMock = Mockery::mock(PaystackProvider::class, PaymentProviderInterface::class);
+        $paystackMock->shouldReceive('providerCode')->andReturn('paystack');
+        $paystackMock->shouldReceive('providerName')->andReturn('Paystack');
+        $paystackMock->shouldReceive('isAvailable')->andReturn(true);
+        app(ProviderRouter::class)->registerProvider('paystack', $paystackMock);
+
+        $res = $this->actingAsSession($this->adminUser)->postJson('/api/v1/securegate/payment-routes/simulate', [
+            'transaction_type' => 'payment',
+            'country' => '*',
+            'currency' => 'NGN',
+            'payment_method' => 'card',
+        ]);
+
+        $res->assertOk();
+        $res->assertJsonPath('success', true);
+        $res->assertJsonPath('data.resolved_provider', 'paystack');
+        $res->assertJsonPath('resolved_provider', 'paystack');
+        $res->assertJsonPath('provider_name', 'Paystack');
+        $this->assertTrue($res->json('is_available'));
+    }
 }
 
 

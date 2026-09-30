@@ -74,29 +74,32 @@ class ProviderRouter
         $currency = strtoupper($currency);
         $country = $country ? strtoupper($country) : null;
 
-        // 1. Business-specific routing (coins/gifts/top-ups -> Paddle).
+        // 1. Specific stream routing (coins/gifts/top-ups -> Paddle, custom transaction types).
         //    When a business route exists it is authoritative: we never leak these
         //    streams onto the generic commerce gateways (Paystack/Flutterwave/Airwallex).
-        if ($businessType && $businessType !== 'payment') {
-            $businessRoutes = $this->fetchRoutes($businessType, $currency, $country, $paymentMethod);
+        $streamType = $businessType ?? ($transactionType !== 'payment' ? $transactionType : null);
+        if ($streamType && $streamType !== 'payment') {
+            $streamRoutes = $this->fetchRoutes($streamType, $currency, $country, $paymentMethod);
 
-            if ($businessRoutes->isNotEmpty()) {
-                $resolved = $this->tryRoutes($businessRoutes, $paymentMethod, $currency, $country, $amount);
+            if ($streamRoutes->isNotEmpty()) {
+                $resolved = $this->tryRoutes($streamRoutes, $paymentMethod, $currency, $country, $amount);
                 if ($resolved !== null) {
                     return $resolved;
                 }
 
-                throw new RoutingException(
-                    "No capable and healthy payment provider found for business type: {$businessType}, currency: {$currency}, country: {$country}, method: {$paymentMethod}.",
-                    [
-                        'transaction_type' => $transactionType,
-                        'business_type' => $businessType,
-                        'currency' => $currency,
-                        'country' => $country,
-                        'payment_method' => $paymentMethod,
-                        'amount' => $amount,
-                    ]
-                );
+                if (in_array($streamType, ['coin_pack', 'gift', 'wallet_topup'], true)) {
+                    throw new RoutingException(
+                        "No capable and healthy payment provider found for business type: {$streamType}, currency: {$currency}, country: {$country}, method: {$paymentMethod}.",
+                        [
+                            'transaction_type' => $transactionType,
+                            'business_type' => $streamType,
+                            'currency' => $currency,
+                            'country' => $country,
+                            'payment_method' => $paymentMethod,
+                            'amount' => $amount,
+                        ]
+                    );
+                }
             }
         }
 

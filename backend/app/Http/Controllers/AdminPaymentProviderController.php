@@ -380,31 +380,47 @@ class AdminPaymentProviderController extends Controller
         $this->authorizeSuperAdmin($request);
         $validated = $request->validate([
             'transaction_type' => ['required', 'string', 'in:payment,payout,refund,coin_pack,gift,wallet_topup,order,digital_product,subscription'],
-            'country' => ['nullable', 'string', 'size:2'],
-            'currency' => ['required', 'string', 'size:3'],
+            'country' => ['nullable', 'string', 'max:5'],
+            'currency' => ['required', 'string', 'max:5'],
             'payment_method' => ['required', 'string'],
             'amount' => ['nullable', 'integer'],
             'business_type' => ['nullable', 'string', 'in:coin_pack,gift,wallet_topup,order,commerce'],
         ]);
 
         try {
+            $country = isset($validated['country']) ? trim(strtoupper($validated['country'])) : null;
+            if ($country === '*' || $country === '') {
+                $country = null;
+            }
+            $currency = trim(strtoupper($validated['currency']));
+
             $provider = $this->router->resolve(
                 transactionType: $validated['transaction_type'],
-                currency: $validated['currency'],
-                country: $validated['country'] ?? null,
+                currency: $currency,
+                country: $country,
                 paymentMethod: $validated['payment_method'],
                 amount: $validated['amount'] ?? null,
                 businessType: $validated['business_type'] ?? null
             );
 
-            return response()->json([
+            $resolvedData = [
                 'resolved_provider' => $provider->providerCode(),
                 'provider_name' => $provider->providerName(),
                 'is_available' => $provider->isAvailable(),
+            ];
+
+            return response()->json([
+                'success' => true,
+                'data' => $resolvedData,
+                'resolved_provider' => $provider->providerCode(),
+                'provider_name' => $provider->providerName(),
+                'is_available' => $provider->isAvailable(),
+                'message' => 'Routing resolved to '.$provider->providerName().' ('.$provider->providerCode().')',
             ]);
         } catch (Exception $e) {
             return response()->json([
                 'success' => false,
+                'data' => null,
                 'message' => $e->getMessage(),
             ], 422);
         }

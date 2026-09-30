@@ -410,13 +410,17 @@ export function AdminPaymentProvidersPage() {
     setSimulating(true);
     setSimResult(null);
     try {
+      const cleanCountry = simCountry.trim().toUpperCase();
+      const cleanCurrency = simCurrency.trim().toUpperCase() || 'NGN';
       const payload: Record<string, unknown> = {
         transaction_type: simType,
-        country: simCountry,
-        currency: simCurrency,
+        currency: cleanCurrency,
         payment_method: simMethod,
         amount: parseInt(simAmount, 10) || 500000,
       };
+      if (cleanCountry && cleanCountry !== '*') {
+        payload.country = cleanCountry;
+      }
       if (businessTypes.has(simType)) {
         payload.business_type = simType;
       }
@@ -425,9 +429,27 @@ export function AdminPaymentProvidersPage() {
         body: JSON.stringify(payload),
       });
       const j = await res.json();
-      setSimResult(j);
+
+      // Unwrap enveloped response (j.data) or flat response (j)
+      const data = j?.data ?? j;
+      const resolvedCode = data?.resolved_provider ?? j?.resolved_provider;
+
+      if (res.ok && resolvedCode) {
+        setSimResult({
+          resolved_provider: resolvedCode,
+          provider_name: data?.provider_name ?? j?.provider_name ?? resolvedCode,
+          is_available: data?.is_available ?? j?.is_available ?? true,
+          message: j?.message && j.message !== 'Request succeeded.' ? j.message : 'Matched active routing rule with verified live gateway capability.',
+        });
+      } else {
+        const errorMsg = j?.errors?.code || j?.message || data?.message || 'No matching route or capable payment provider found for this criteria.';
+        setSimResult({
+          resolved_provider: null,
+          message: errorMsg,
+        });
+      }
     } catch {
-      setSimResult({ success: false, message: 'Simulation failed due to network error.' });
+      setSimResult({ resolved_provider: null, message: 'Simulation failed due to network error.' });
     } finally {
       setSimulating(false);
     }
@@ -941,15 +963,18 @@ export function AdminPaymentProvidersPage() {
                 <option value="coin_pack">Coin Packs / Custom Coins</option>
                 <option value="gift">Gifts</option>
                 <option value="wallet_topup">Wallet Top-ups</option>
+                <option value="order">Commerce Orders</option>
+                <option value="digital_product">Digital Products</option>
+                <option value="subscription">Subscriptions</option>
               </select>
             </div>
 
             <div>
-              <label className="font-semibold block mb-1">Country (ISO 2)</label>
+              <label className="font-semibold block mb-1">Country (ISO 2 or * for all)</label>
               <Input
                 value={simCountry}
                 onChange={(e) => setSimCountry(e.target.value.toUpperCase())}
-                placeholder="NG, US, GB, KE..."
+                placeholder="NG, US, GB, KE, or *"
                 className="h-9 text-xs"
               />
             </div>
@@ -1014,9 +1039,9 @@ export function AdminPaymentProvidersPage() {
                 )}
               </div>
               <p className="text-muted-foreground">
-                {simResult.resolved_provider
+                {simResult.message || (simResult.resolved_provider
                   ? 'Matched active routing rule with verified live gateway capability.'
-                  : (simResult.message || 'No matching route found for this criteria.')}
+                  : 'No matching route found for this criteria.')}
               </p>
             </div>
           )}
