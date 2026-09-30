@@ -21,6 +21,12 @@ class AdminAuthTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        config(['sanctum.admin_require_mfa' => true]);
+    }
+
     private function enrolledAdmin(?AdminRole $role = AdminRole::SupportAdmin): User
     {
         $service = app(TwoFactorAuthService::class);

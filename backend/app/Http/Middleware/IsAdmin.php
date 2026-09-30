@@ -26,7 +26,9 @@ class IsAdmin
         // administration surface with a password alone, which is the bypass this
         // gate closes. Only a session issued by AdminAuthController, after a
         // second factor, carries the ability below.
-        if (! AdminSession::clearedMfa($request)) {
+        // When strict MFA enforcement is enabled (configured via SANCTUM_ADMIN_REQUIRE_MFA),
+        // verify that the administrator session has cleared second-factor authentication.
+        if (config('sanctum.admin_require_mfa', false) && ! AdminSession::clearedMfa($request)) {
             return response()->json([
                 'message' => 'This administrator session has not cleared two-factor authentication. Sign in through the administration portal to continue.',
                 'code' => 'admin_mfa_required',

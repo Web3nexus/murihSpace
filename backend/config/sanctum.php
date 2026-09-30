@@ -71,6 +71,8 @@ return [
 
     'admin_expiration' => env('SANCTUM_ADMIN_TOKEN_TTL', 480),
 
+    'admin_require_mfa' => env('SANCTUM_ADMIN_REQUIRE_MFA', false),
+
     /*
     |--------------------------------------------------------------------------
     | Token Prefix

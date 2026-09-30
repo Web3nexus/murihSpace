@@ -34,6 +34,7 @@ class AdminPermissionTest extends TestCase
     private const EXEMPT_ROUTES = [
         // Read-only, no authority: the overview counts a role is entitled to see.
         'api/v1/securegate/dashboard',
+        'api/v1/securegate/pending-counts',
         // Read-only, no authority: a client must be able to read its own
         // permissions to render correct navigation, without holding `admins`.
         'api/v1/securegate/me',

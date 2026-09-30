@@ -1429,6 +1429,7 @@ Route::prefix('v1')->group(function () {
         Route::prefix('securegate')->middleware('admin')->group(function () {
             // Dashboard
             Route::get('/dashboard', [AdminDashboardController::class, 'stats']);
+            Route::get('/pending-counts', [AdminAnalyticsController::class, 'pendingCounts']);
 
             // Signed-in administrator's own authority. Deliberately reachable by
             // any administrator — a client must be able to render correct

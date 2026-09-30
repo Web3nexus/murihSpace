@@ -30,7 +30,7 @@ class EventFactory extends Factory
             'meeting_url' => fake()->optional()->url(),
             'cover_url' => fake()->optional()->imageUrl(),
             'capacity' => fake()->optional()->numberBetween(10, 500),
-            'registration_deadline' => fake()->optional()->dateTimeBetween('-1 day', '+1 month'),
+            'registration_deadline' => fake()->optional()->dateTimeBetween('+1 day', '+1 month'),
             'status' => 'published',
             'is_featured' => false,
         ];
