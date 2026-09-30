@@ -23,6 +23,17 @@ class CurrencyController extends Controller
         return response()->json(['data' => $result]);
     }
 
+    public function sync(): JsonResponse
+    {
+        $rateService = app(\App\Services\Payment\LiveExchangeRateService::class);
+        $synced = $rateService->syncRates();
+
+        return response()->json([
+            'message' => 'Exchange rates synced successfully.',
+            'rates'   => $synced,
+        ]);
+    }
+
     public function supported(): JsonResponse
     {
         $currencies = [];

@@ -97,8 +97,36 @@ class LiveExchangeRateService
         }
 
         $rates = Cache::remember('fx_rates_usd_all', self::CACHE_TTL_SECONDS, function () {
+            // Check if DB rates exist and were updated recently (within last 6 hours)
+            try {
+                $latest = CurrencyExchangeRate::where('from_currency', 'USD')->latest('updated_at')->first();
+                if (! $latest || $latest->updated_at === null || $latest->updated_at->lt(now()->subHours(6))) {
+                    $synced = $this->syncRates();
+                    if (! empty($synced)) {
+                        return $synced;
+                    }
+                }
+            } catch (\Throwable $e) {
+                Log::warning('Automatic on-demand FX rate sync failed: ' . $e->getMessage());
+            }
+
             return $this->getRatesFromDb();
         });
+
+        // If target currency is missing or was never populated in the cached rates, auto-sync
+        $targetMissing = ($from === 'USD' && (! isset($rates[$to]) || (float) $rates[$to] <= 0))
+            || ($to === 'USD' && (! isset($rates[$from]) || (float) $rates[$from] <= 0));
+
+        if ($targetMissing) {
+            try {
+                $fresh = $this->syncRates();
+                if (! empty($fresh)) {
+                    $rates = $fresh;
+                }
+            } catch (\Throwable $e) {
+                Log::warning('On-demand sync for missing currency failed: ' . $e->getMessage());
+            }
+        }
 
         // If USD is the base
         if ($from === 'USD' && isset($rates[$to])) {
@@ -199,14 +227,18 @@ class LiveExchangeRateService
     {
         $usdRates = [
             'USD' => 1.0,
-            'NGN' => 1550.0,
-            'KES' => 130.0,
-            'GHS' => 15.5,
-            'ZAR' => 18.2,
-            'EUR' => 0.92,
-            'GBP' => 0.78,
-            'CAD' => 1.36,
-            'AUD' => 1.50,
+            'NGN' => 1327.24,
+            'KES' => 129.68,
+            'GHS' => 11.70,
+            'ZAR' => 16.41,
+            'EUR' => 0.88,
+            'GBP' => 0.76,
+            'CAD' => 1.42,
+            'AUD' => 1.43,
+            'UGX' => 3830.61,
+            'TZS' => 2615.17,
+            'RWF' => 1476.65,
+            'XOF' => 578.23,
         ];
 
         if ($from === 'USD') {

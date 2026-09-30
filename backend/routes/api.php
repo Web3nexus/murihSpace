@@ -1219,6 +1219,7 @@ Route::prefix('v1')->group(function () {
             Route::get('/rates', [CurrencyController::class, 'rates']);
             Route::get('/supported', [CurrencyController::class, 'supported']);
             Route::post('/convert', [CurrencyController::class, 'convert']);
+            Route::match(['get', 'post'], '/sync', [CurrencyController::class, 'sync']);
         });
 
         Route::get('/conversations/stats', [ConversationController::class, 'stats']);
