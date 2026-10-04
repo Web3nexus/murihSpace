@@ -223,7 +223,6 @@ export function PublicLivePage() {
   const [liveKitAccess, setLiveKitAccess] = useState<LiveKitAccess | null>(null);
   const [shareCopied, setShareCopied] = useState(false);
   const [viewerContext, setViewerContext] = useState<ViewerContext | null>(null);
-  const leaveSentRef = useRef(false);
   const joinedRef = useRef(false);
 
   useEffect(() => {
@@ -323,19 +322,6 @@ export function PublicLivePage() {
   }, []);
 
   useLiveStreamEnded(streamId, handleStreamEnded);
-  const sendLeave = useCallback(() => {
-    if (streamId === null || !joinedRef.current || leaveSentRef.current) {
-      return;
-    }
-
-    joinedRef.current = false;
-    leaveSentRef.current = true;
-    void authFetch(`/live/${streamId}/leave`, { method: "POST" }).catch(() => undefined);
-  }, [streamId]);
-
-  useEffect(() => {
-    return () => sendLeave();
-  }, [sendLeave]);
 
   const handleJoin = useCallback(async () => {
     if (!stream || stream.status !== "live") {
@@ -370,7 +356,6 @@ export function PublicLivePage() {
           : host;
       }
 
-      leaveSentRef.current = false;
       joinedRef.current = true;
       setLiveKitAccess({
         token: access.token,
@@ -385,10 +370,13 @@ export function PublicLivePage() {
     }
   }, [isAuthenticated, stream]);
 
+  // The session store posts the presence leave when the user explicitly leaves.
+  // Unmounting this page (navigating away, closing the tab) must not: the room
+  // keeps running in the dock, so broadcasting a leave here emptied the roster
+  // for viewers who were still watching.
   const handleLeave = useCallback(() => {
-    sendLeave();
     setLiveKitAccess(null);
-  }, [sendLeave]);
+  }, []);
 
   const shareUrl = useMemo(() => {
     if (!stream) {

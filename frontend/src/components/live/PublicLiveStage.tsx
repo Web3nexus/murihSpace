@@ -21,6 +21,7 @@ import {
   WarningCircle,
 } from "@phosphor-icons/react";
 import {
+  ConnectionState,
   Participant,
   RemoteParticipant,
   Room,
@@ -36,6 +37,7 @@ import { Button } from "@/components/ui/button";
 import { authFetch } from "@/lib/api/authFetch";
 import { apiClient } from "@/lib/api/client";
 import { type LiveStreamEndedPayload } from "@/hooks/useLiveStreamEnded";
+import { liveSessionStore } from "@/lib/session/liveSessionStore";
 
 interface LiveHost {
   id: number;
@@ -107,8 +109,10 @@ interface Props {
 }
 
 export function PublicLiveStage({ stream, liveKitAccess, isHost, onLeave, onStreamEnded }: Props) {
-  // LiveKit state
-  const [room, setRoom] = useState<Room | null>(null);
+  const sessionId = `live:${stream.id}`;
+  // LiveKit state. The room itself belongs to the session store so navigating
+  // away keeps the broadcast (and the roster) alive for everyone else.
+  const [room, setRoom] = useState<Room | null>(liveSessionStore.getRoom(sessionId));
   const [connecting, setConnecting] = useState(true);
   const [connectionError, setConnectionError] = useState<string | null>(null);
   const [audioBlocked, setAudioBlocked] = useState(false);
@@ -300,9 +304,33 @@ onStreamEnded({
     scrollToBottom(false);
   }, [chatMessages.length, scrollToBottom]);
 
+  // Register with the persistent session registry so the floating dock can keep
+  // this broadcast on screen while the user browses the rest of the app.
+  useEffect(() => {
+    liveSessionStore.start({
+      id: sessionId,
+      kind: "live",
+      title: stream.title || "Live broadcast",
+      subtitle: isHost ? "Hosting" : `${Math.max(1, stream.viewers_count || 1)} watching`,
+      avatarUrl: stream.host?.avatar_url ?? null,
+      returnTo: null,
+      notifyLeave: async () => {
+        const res = await authFetch(`/live/${stream.id}/leave`, { method: "POST" });
+        if (!res.ok) {
+          // Presence is reconciled server-side, so a failed leave is recoverable.
+          return;
+        }
+      },
+      onEnded: (reason) => {
+        if (reason === "left") {
+          onLeave();
+        }
+      },
+    });
+  }, [sessionId, stream.id, stream.title, stream.viewers_count, stream.host?.avatar_url, isHost, onLeave]);
+
   // Initialize and connect to LiveKit
   useEffect(() => {
-    let currentRoom: Room | null = null;
     let isDisposed = false;
 
     const connectLiveKit = async () => {
@@ -310,7 +338,8 @@ onStreamEnded({
       setConnectionError(null);
 
       try {
-        const roomInstance = new Room({
+        // Re-attach to an existing room instead of creating a second one.
+        const roomInstance = liveSessionStore.getRoom(sessionId) ?? new Room({
           adaptiveStream: true,
           dynacast: true,
           audioCaptureDefaults: {
@@ -323,59 +352,7 @@ onStreamEnded({
           },
         });
 
-        currentRoom = roomInstance;
         setRoom(roomInstance);
-
-        const attachVideoTrack = (track: Track) => {
-          if (videoRef.current && track.kind === Track.Kind.Video) {
-            track.attach(videoRef.current);
-          }
-        };
-
-        const attachAudioTrack = (track: Track) => {
-          if (track.kind === Track.Kind.Audio) {
-            if (audioRef.current) {
-              track.attach(audioRef.current);
-              ownedAudioElsRef.current.add(audioRef.current);
-            } else {
-              const el = track.attach();
-              el.autoplay = true;
-              document.body.appendChild(el);
-              ownedAudioElsRef.current.add(el);
-            }
-            // Honour a mute chosen before this track arrived.
-            applyAudioMute(isAudioMutedRef.current);
-          }
-        };
-
-        // Attach tracks from participant
-        const syncParticipantTracks = (participant: Participant) => {
-          participant.trackPublications.forEach((pub: TrackPublication) => {
-            if (pub.track) {
-              if (pub.kind === Track.Kind.Video) attachVideoTrack(pub.track);
-              if (pub.kind === Track.Kind.Audio) attachAudioTrack(pub.track);
-            }
-          });
-        };
-
-        roomInstance.on(RoomEvent.TrackSubscribed, (track: Track) => {
-          if (track.kind === Track.Kind.Video) attachVideoTrack(track);
-          if (track.kind === Track.Kind.Audio) attachAudioTrack(track);
-        });
-
-        roomInstance.on(RoomEvent.AudioPlaybackStatusChanged, () => {
-          setAudioBlocked(!roomInstance.canPlaybackAudio);
-        });
-
-        roomInstance.on(RoomEvent.ParticipantConnected, (p: RemoteParticipant) => {
-          syncParticipantTracks(p);
-        });
-
-        roomInstance.on(RoomEvent.Disconnected, () => {
-          if (!isDisposed) {
-            toast.info("Live broadcast disconnected.");
-          }
-        });
 
         let host = liveKitAccess.host;
         if (!host || host.includes("localhost") || host.includes("127.0.0.1")) {
@@ -390,6 +367,10 @@ onStreamEnded({
           await roomInstance.disconnect();
           return;
         }
+
+        // The room is now owned by the session store.
+        liveSessionStore.setRoom(sessionId, roomInstance);
+        liveSessionStore.patch(sessionId, { status: "connected", isMuted: isAudioMutedRef.current });
 
         // Check audio autoplay
         if (!roomInstance.canPlaybackAudio) {
@@ -428,10 +409,8 @@ onStreamEnded({
           }
         }
 
-        // If viewer, sync any already published host tracks
-        roomInstance.remoteParticipants.forEach((remote) => {
-          syncParticipantTracks(remote);
-        });
+        // Already-published remote tracks are attached by the listener effect,
+        // which re-syncs once this element exists.
 
         setConnecting(false);
       } catch (err: unknown) {
@@ -446,19 +425,109 @@ onStreamEnded({
 
     return () => {
       isDisposed = true;
-      if (currentRoom) {
-        currentRoom.disconnect().catch(() => {});
+      // Deliberately no `disconnect()` here: this view unmounting is not the
+      // same as the user leaving. The room and its audio stay in the session
+      // store and keep running until an explicit leave or a real failure.
+      setRoom(liveSessionStore.getRoom(sessionId));
+    };
+  }, [applyAudioMute, isHost, liveKitAccess, sessionId, stream.stream_mode]);
+
+  // Room listeners live in their own effect: the room is shared and long-lived,
+  // so registering them inside the connect effect would stack duplicates every
+  // time the page re-attached.
+  useEffect(() => {
+    const roomInstance = room;
+    if (!roomInstance) return;
+
+    const attachVideoTrack = (track: Track) => {
+      if (videoRef.current && track.kind === Track.Kind.Video) {
+        track.attach(videoRef.current);
       }
-      // Detach and remove any audio elements this room appended to <body>.
-      ownedAudioElsRef.current.forEach((el) => {
-        if (el !== audioRef.current) {
-          el.pause();
-          el.remove();
+    };
+
+    const attachAudioTrack = (track: Track) => {
+      if (track.kind !== Track.Kind.Audio) return;
+
+      if (audioRef.current) {
+        track.attach(audioRef.current);
+        ownedAudioElsRef.current.add(audioRef.current);
+        liveSessionStore.adoptAudioElement(sessionId, audioRef.current);
+      } else {
+        // LiveKit created and appended this to <body>; hand it to the store so
+        // audio survives this view unmounting.
+        const el = track.attach();
+        el.autoplay = true;
+        document.body.appendChild(el);
+        ownedAudioElsRef.current.add(el);
+        liveSessionStore.adoptAudioElement(sessionId, el);
+      }
+
+      // Honour a mute chosen before this track arrived.
+      applyAudioMute(isAudioMutedRef.current);
+    };
+
+    const syncParticipantTracks = (participant: Participant) => {
+      participant.trackPublications.forEach((pub: TrackPublication) => {
+        if (pub.track) {
+          if (pub.kind === Track.Kind.Video) attachVideoTrack(pub.track);
+          if (pub.kind === Track.Kind.Audio) attachAudioTrack(pub.track);
         }
       });
-      ownedAudioElsRef.current.clear();
     };
-  }, [applyAudioMute, isHost, liveKitAccess, stream.stream_mode]);
+
+    const onTrackSubscribed = (track: Track) => {
+      if (track.kind === Track.Kind.Video) attachVideoTrack(track);
+      if (track.kind === Track.Kind.Audio) attachAudioTrack(track);
+    };
+
+    const onAudioPlaybackStatus = () => {
+      setAudioBlocked(!roomInstance.canPlaybackAudio);
+    };
+
+    const onParticipantConnected = (p: RemoteParticipant) => {
+      syncParticipantTracks(p);
+    };
+
+    const onDisconnected = () => {
+      // Only a real transport disconnect ends the session; navigating away
+      // unmounts this view without reaching here.
+      liveSessionStore.close(sessionId, "error");
+    };
+
+    const onConnectionStateChanged = (state: ConnectionState) => {
+      liveSessionStore.patch(sessionId, {
+        status:
+          state === ConnectionState.Connected
+            ? "connected"
+            : state === ConnectionState.Reconnecting || state === ConnectionState.SignalReconnecting
+              ? "reconnecting"
+              : "connecting",
+      });
+    };
+
+    roomInstance.on(RoomEvent.TrackSubscribed, onTrackSubscribed);
+    roomInstance.on(RoomEvent.AudioPlaybackStatusChanged, onAudioPlaybackStatus);
+    roomInstance.on(RoomEvent.ParticipantConnected, onParticipantConnected);
+    roomInstance.on(RoomEvent.Disconnected, onDisconnected);
+    roomInstance.on(RoomEvent.ConnectionStateChanged, onConnectionStateChanged);
+
+    // Remote tracks may have arrived before this element existed.
+    roomInstance.remoteParticipants.forEach(syncParticipantTracks);
+
+    return () => {
+      roomInstance.off(RoomEvent.TrackSubscribed, onTrackSubscribed);
+      roomInstance.off(RoomEvent.AudioPlaybackStatusChanged, onAudioPlaybackStatus);
+      roomInstance.off(RoomEvent.ParticipantConnected, onParticipantConnected);
+      roomInstance.off(RoomEvent.Disconnected, onDisconnected);
+      roomInstance.off(RoomEvent.ConnectionStateChanged, onConnectionStateChanged);
+    };
+  }, [applyAudioMute, room, sessionId]);
+
+  // Explicit, user-initiated leave: posts the presence leave exactly once and
+  // tears the media down. Navigating away must never call this.
+  const handleLeaveSession = () => {
+    void liveSessionStore.end(sessionId, "left");
+  };
 
   // Toggle viewer mute
   const toggleMute = () => {
@@ -521,7 +590,8 @@ onStreamEnded({
     try {
       await authFetch(`/live/${stream.id}/end`, { method: "POST" });
       toast.success("Broadcast ended.");
-      onLeave();
+      // The server ended it for everyone, so no presence leave is needed.
+      liveSessionStore.close(sessionId, "host-ended");
     } catch {
       toast.error("Failed to end broadcast.");
     } finally {
@@ -746,7 +816,7 @@ onStreamEnded({
             <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-black/80 px-6 text-center">
               <WarningCircle weight="fill" className="h-10 w-10 text-red-500" />
               <p className="max-w-md text-sm text-red-200">{connectionError}</p>
-              <Button size="sm" variant="outline" onClick={onLeave} className="mt-2 border-white/20 text-white">
+              <Button size="sm" variant="outline" onClick={handleLeaveSession} className="mt-2 border-white/20 text-white">
                 Back to Details
               </Button>
             </div>
@@ -909,7 +979,7 @@ onStreamEnded({
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={onLeave}
+                  onClick={handleLeaveSession}
                   className="h-9 rounded-full border-white/20 bg-white/10 px-3 text-xs font-semibold text-white hover:bg-white/20"
                 >
                   Leave

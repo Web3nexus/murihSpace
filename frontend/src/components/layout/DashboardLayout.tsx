@@ -22,6 +22,7 @@ import { WebLockedPage } from "@/components/WebLockedPage";
 import { getAuthToken } from "@/lib/auth/token";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { PopChatWidget } from "@/components/chat/PopChatWidget";
+import { SessionDock } from "@/components/session/SessionDock";
 import { RealtimeNotificationsHost } from "@/hooks/useGlobalRealtimeNotifications";
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? "http://localhost:8000/api/v1";
@@ -195,6 +196,11 @@ export function DashboardLayout() {
 
       {/* Floating Pop Chat widget — user-side only, docked bottom-right, only shows when a chat is open */}
       {!isAdmin && <PopChatWidget />}
+
+      {/* Keeps an active call / meeting / live broadcast alive while browsing.
+          Without this, navigating away used to disconnect the LiveKit room and
+          empty the participant roster for everyone still in the session. */}
+      <SessionDock />
 
       {!isAdmin && <MobileBottomNav />}
     </div>
