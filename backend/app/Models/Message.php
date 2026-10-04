@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\MessageEditingService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -27,11 +28,24 @@ class Message extends Model
         'media_id',
         'is_automated',
         'edited_at',
+        'edit_count',
     ];
 
     protected $casts = [
         'is_automated' => 'boolean',
         'edited_at' => 'datetime',
+        'edit_count' => 'integer',
+    ];
+
+    /**
+     * Computed attributes the client needs to decide whether to offer editing.
+     *
+     * Listed explicitly because this Laravel version only serialises mutators
+     * that are appended, not every `getXAttribute` method on the model.
+     */
+    protected $appends = [
+        'can_edit',
+        'edit_deadline_at',
     ];
 
     public const STATUS_SENDING = 'sending';
@@ -80,6 +94,56 @@ class Message extends Model
     public function userStates(): HasMany
     {
         return $this->hasMany(MessageUserState::class);
+    }
+
+    /**
+     * Every retained revision of this message, oldest first.
+     */
+    public function edits(): HasMany
+    {
+        return $this->hasMany(MessageEdit::class)->orderBy('id');
+    }
+
+    /**
+     * Whether this message has ever been edited. Distinct from `edited_at`,
+     * which is also set when an edit is rolled back to the original text.
+     */
+    public function wasEdited(): bool
+    {
+        return (int) ($this->edit_count ?? 0) > 0;
+    }
+
+    /**
+     * Whether the *acting* user may still edit this message.
+     *
+     * Serialized so the client only offers the edit affordance when the server
+     * would actually allow it. The API re-checks on write; this is presentation
+     * only and is always false for anonymous/queued contexts.
+     */
+    public function getCanEditAttribute(): bool
+    {
+        $user = auth()->user();
+
+        return $user instanceof User
+            ? app(MessageEditingService::class)->canEdit($this, $user)
+            : false;
+    }
+
+    /**
+     * When editing stops being possible, so the client can show a countdown
+     * without duplicating the server's window calculation.
+     *
+     * Named for the `edit_deadline_at` attribute it exposes.
+     */
+    public function getEditDeadlineAtAttribute(): ?string
+    {
+        $deadline = app(MessageEditingService::class)->deadlineFor($this);
+
+        if ($deadline instanceof \Carbon\Carbon) {
+            return $deadline->toIso8601String();
+        }
+
+        return null;
     }
 
     public function scopeNotHiddenForUser($query, int $userId)

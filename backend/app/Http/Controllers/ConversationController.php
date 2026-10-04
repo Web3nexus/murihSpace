@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Events\MessageDeleted;
+use App\Events\MessageEdited;
 use App\Events\MessageSent;
 use App\Events\TypingIndicator;
 use App\Models\Community;
@@ -19,6 +20,7 @@ use App\Models\MessageUserState;
 use App\Models\User;
 use App\Models\UserBlock;
 use App\Notifications\NewMessageNotification;
+use App\Services\MessageEditingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -381,14 +383,18 @@ class ConversationController extends Controller
             ->map(fn ($ts) => Carbon::parse($ts));
 
         $messages = $messages->through(function (Message $message) use ($request, $otherLastReadAt) {
-            $message->read = false;
-            if ($message->user_id === $request->user()->id && $otherLastReadAt->isNotEmpty()) {
-                $message->read = $otherLastReadAt->contains(
-                    fn ($readAt) => $message->created_at->lessThanOrEqualTo($readAt)
-                );
-                if ($message->read) {
-                    $message->status = Message::STATUS_READ;
+            if ($message->user_id === $request->user()->id) {
+                $message->read = false;
+                if ($otherLastReadAt->isNotEmpty()) {
+                    $message->read = $otherLastReadAt->contains(
+                        fn ($readAt) => $message->created_at->lessThanOrEqualTo($readAt)
+                    );
+                    if ($message->read) {
+                        $message->status = Message::STATUS_READ;
+                    }
                 }
+            } else {
+                $message->read = ($message->status === Message::STATUS_READ);
             }
 
             return $message;
@@ -688,6 +694,66 @@ class ConversationController extends Controller
     }
 
     /**
+     * Correct a message the sender just posted.
+     *
+     * PATCH /conversations/{conversationId}/messages/{messageId}
+     *
+     * The window and ownership rules live in MessageEditingService so the
+     * client can mirror them for the affordance while the server stays the
+     * only thing that actually decides. Previous text is retained as an audit
+     * revision rather than overwritten.
+     */
+    public function editMessage(Request $request, int $conversationId, int $messageId): JsonResponse
+    {
+        $conversation = Conversation::findOrFail($conversationId);
+        $this->authorizeParticipant($request, $conversation);
+
+        /** @var MessageEditingService $editing */
+        $editing = app(MessageEditingService::class);
+
+        $validated = $request->validate([
+            'content' => ['required', 'string', 'max:'.$editing->maxLength()],
+        ]);
+
+        $message = Message::where('conversation_id', $conversationId)
+            ->withTrashed()
+            ->findOrFail($messageId);
+
+        $content = trim($validated['content']);
+
+        if ($reason = $editing->blockedReason($message, $request->user())) {
+            return response()->json([
+                'message' => $editing->messageFor($reason),
+                'reason' => $reason,
+            ], $editing->statusFor($reason));
+        }
+
+        // Re-submitting identical text is a no-op, not an edit: it should not
+        // produce an audit revision or flip the "edited" marker.
+        if ($content === trim((string) $message->content)) {
+            return response()->json([
+                'message' => $editing->messageFor(MessageEditingService::REASON_UNCHANGED),
+                'reason' => MessageEditingService::REASON_UNCHANGED,
+            ], 422);
+        }
+
+        $updated = $editing->apply($message, $request->user(), $content);
+
+        $updated->load([
+            'user:id,name,username,avatar',
+            'replyTo:id,user_id,content,attachment_type',
+            'replyTo.user:id,name,username',
+        ]);
+
+        event(new MessageEdited($updated, (int) $request->user()->id));
+
+        return response()->json([
+            'message' => 'Message updated.',
+            'data' => $updated,
+        ]);
+    }
+
+    /**
      * Clear all messages in a conversation (for me or for everyone).
      */
     public function clearMessages(Request $request, int $conversationId): JsonResponse
@@ -944,8 +1010,16 @@ class ConversationController extends Controller
                 ->where('user_id', '!=', $user->id)
                 ->whereIn('status', [Message::STATUS_SENT, Message::STATUS_DELIVERED])
                 ->update(['status' => Message::STATUS_READ]);
+        }
 
-            // Broadcast real-time read receipt to the conversation channel
+        // Broadcast real-time read receipt to the conversation and user channels so
+        // all participant devices and the reader's other active sessions sync.
+        //
+        // Only when the reader allows receipts. The setting governs what is
+        // disclosed, not merely what is stored: publishing the event regardless
+        // would tell every participant exactly when a message was opened by
+        // someone who had opted out of being observed doing so.
+        if ($readReceiptsEnabled) {
             event(new \App\Events\MessageRead($conversation->id, $user->id));
         }
 
@@ -1157,7 +1231,7 @@ class ConversationController extends Controller
         // Fetch ALL messages including soft-deleted — ignore MessageUserState hidden flags
         $messages = Message::withTrashed()
             ->where('conversation_id', $conversationId)
-            ->with(['user:id,name,username,avatar_url', 'attachments'])
+            ->with(['user:id,name,username,avatar_url', 'media', 'edits'])
             ->orderBy('created_at', 'asc')
             ->get()
             ->map(fn ($m) => [
@@ -1171,7 +1245,28 @@ class ConversationController extends Controller
                 'status'          => $m->status,
                 'created_at'      => $m->created_at?->toIso8601String(),
                 'deleted_at'      => $m->deleted_at?->toIso8601String(),
-                'attachments'     => $m->attachments ?? [],
+                // Messages have no separate attachment rows: an attachment is
+                // either a bare URL or a linked Media record.
+                'attachment_url'  => $m->attachment_url,
+                'attachment_type' => $m->attachment_type,
+                'media'           => $m->media ? [
+                    'id'          => $m->media->id,
+                    'url'         => $m->media->url,
+                    'mime_type'   => $m->media->mime_type,
+                    'media_type'  => $m->media->media_type,
+                    'original_name' => $m->media->original_name,
+                    'expired_at'  => $m->media->expired_at?->toIso8601String(),
+                ] : null,
+                // An edited message must still show what it originally said, so
+                // every revision is retained alongside the current content.
+                'edited_at'       => $m->edited_at?->toIso8601String(),
+                'edit_count'      => (int) ($m->edit_count ?? 0),
+                'edit_history'    => $m->edits->map(fn ($edit) => [
+                    'editor_id'         => $edit->editor_id,
+                    'previous_content'  => $edit->previous_content,
+                    'content'           => $edit->content,
+                    'edited_at'         => $edit->created_at?->toIso8601String(),
+                ])->values(),
             ]);
 
         return response()->json([

@@ -40,6 +40,13 @@ export interface ChatMessage {
   };
   created_at: string;
   updated_at?: string;
+  /** Set once the sender has corrected the message. */
+  edited_at?: string | null;
+  edit_count?: number;
+  /** Server-computed: the current user may edit this message right now. */
+  can_edit?: boolean;
+  /** ISO timestamp of the edit deadline, or null when editing is not possible. */
+  edit_deadline_at?: string | null;
   user?: ChatUser;
 }
 

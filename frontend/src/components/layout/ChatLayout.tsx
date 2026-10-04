@@ -27,6 +27,7 @@ import {
   TrashSimple as Trash,
   Phone,
   VideoCamera,
+  PencilSimple,
   X as X
 } from "@phosphor-icons/react";
 import { toast } from 'sonner';
@@ -158,6 +159,10 @@ export function ChatLayout() {
   const [emojiMenu, setEmojiMenu] = useState<{ msg: ChatMessage; x: number; y: number } | null>(null);
   const [forwardMsg, setForwardMsg] = useState<ChatMessage | null>(null);
   const [pendingDelete, setPendingDelete] = useState<ChatMessage | null>(null);
+  const [editingMsg, setEditingMsg] = useState<ChatMessage | null>(null);
+  const [editDraft, setEditDraft] = useState('');
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+  const editInputRef = useRef<HTMLTextAreaElement | null>(null);
   const dragStartRef = useRef<{ id?: number; x: number; dragged?: boolean } | null>(null);
 
   const { user } = useAuth();
@@ -246,13 +251,22 @@ export function ChatLayout() {
 
   useRealtimeMessaging(activeConv?.id ?? null, currentUserId, {
     onMessageReceived: useCallback((msg: ChatMessage) => {
-      playMessageReceivedSound();
+      const isSentByMe = msg.user_id === currentUserId;
+      if (!isSentByMe) {
+        playMessageReceivedSound();
+      }
       setMessages((prev) => {
-        if (prev.some((m) => m.client_uuid && m.client_uuid === msg.client_uuid)) return prev;
-        if (prev.some((m) => m.id && m.id === msg.id)) return prev;
+        // Reconcile optimistic/pending message by client_uuid
+        if (msg.client_uuid && prev.some((m) => m.client_uuid === msg.client_uuid)) {
+          return prev.map((m) => m.client_uuid === msg.client_uuid ? { ...m, ...msg, status: msg.status || 'sent' } : m);
+        }
+        if (msg.id && prev.some((m) => m.id === msg.id)) {
+          return prev.map((m) => m.id === msg.id ? { ...m, ...msg, status: msg.status || m.status } : m);
+        }
         return [...prev, { ...msg, status: (msg.status as MessageStatus) || 'sent' }];
       });
-      if (msg.conversation_id === activeConv?.id) {
+
+      if (!isSentByMe && msg.conversation_id === activeConv?.id) {
         // Mark as read (we're looking at it)
         apiFetch(`/conversations/${msg.conversation_id}/read`, { method: 'POST' }).catch(() => {});
         // Also mark as delivered so the sender gets double-grey ticks
@@ -264,12 +278,19 @@ export function ChatLayout() {
         }
         refreshUnreadCount().catch(() => {});
       }
+
       setConversations((prev) => prev.map((c) =>
         c.id === msg.conversation_id
-          ? { ...c, latest_message: msg, updated_at: msg.created_at, unread_count: c.id === activeConv?.id ? 0 : (c.unread_count ?? 0) + 1 }
+          ? {
+              ...c,
+              latest_message: msg,
+              updated_at: msg.created_at,
+              unread_count: isSentByMe ? 0 : (c.id === activeConv?.id ? 0 : (c.unread_count ?? 0) + 1),
+            }
           : c,
       ));
-      if (msg.conversation_id !== activeConv?.id) {
+
+      if (!isSentByMe && msg.conversation_id !== activeConv?.id) {
         const conv = conversations.find((c) => c.id === msg.conversation_id);
         const sender = msg.user?.name ?? conv?.title ?? 'New message';
         toast(sender, {
@@ -281,10 +302,19 @@ export function ChatLayout() {
       }
     }, [activeConv?.id, currentUserId, conversations, navigate, selectConversation]),
     onMessageRead: useCallback((data) => {
-      if (data.reader_id !== currentUserId) {
-        setMessages((prev) => prev.map((m) =>
-          m.user_id === currentUserId && m.status !== 'read' ? { ...m, status: 'read' } : m,
-        ));
+      if (data.reader_id === currentUserId) {
+        // Read on another device (e.g. mobile)
+        setConversations((prev) =>
+          prev.map((c) => (c.id === data.conversation_id ? { ...c, unread_count: 0 } : c))
+        );
+        setMessages((prev) =>
+          prev.map((m) => (m.user_id !== currentUserId && m.status !== 'read' ? { ...m, status: 'read' } : m))
+        );
+      } else {
+        // Recipient read my messages
+        setMessages((prev) =>
+          prev.map((m) => (m.user_id === currentUserId && m.status !== 'read' ? { ...m, status: 'read' } : m))
+        );
       }
     }, [currentUserId]),
     onMessageDelivered: useCallback((data) => {
@@ -305,7 +335,108 @@ export function ChatLayout() {
         m.id === data.message_id ? { ...m, reactions: data.reactions } : m,
       ));
     }, []),
+    onMessageEdited: useCallback((data) => {
+      setMessages((prev) => prev.map((m) =>
+        m.id === data.id
+          ? {
+              ...m,
+              content: data.content,
+              type: data.type || m.type,
+              edited_at: data.edited_at,
+              edit_count: data.edit_count,
+              // Only the sender may keep editing, and the window still applies.
+              can_edit: data.editor_id === currentUserId,
+              edit_deadline_at: null,
+            }
+          : m,
+      ));
+      setConversations((prev) => prev.map((c) =>
+        c.id === data.conversation_id && c.latest_message?.id === data.id
+          ? { ...c, latest_message: { ...c.latest_message!, content: data.content } }
+          : c,
+      ));
+      // An edit that happens while this client has the row open must not overwrite the draft.
+      setEditingMsg((prev) => (prev?.id === data.id ? null : prev));
+    }, [currentUserId]),
   });
+
+  useEffect(() => {
+    const handleGlobalMessage = (e: Event) => {
+      const msg = (e as CustomEvent).detail as ChatMessage;
+      if (!msg || !msg.conversation_id) return;
+      const isSentByMe = msg.user_id === currentUserId;
+      setConversations((prev) =>
+        prev.map((c) =>
+          c.id === msg.conversation_id
+            ? {
+                ...c,
+                latest_message: msg,
+                updated_at: msg.created_at,
+                unread_count: isSentByMe ? 0 : (c.id === activeConv?.id ? 0 : (c.unread_count ?? 0) + 1),
+              }
+            : c,
+        ),
+      );
+    };
+
+    const handleGlobalRead = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      const convId = detail?.conversation_id;
+      const readerId = detail?.reader_id;
+      if (!convId) return;
+
+      if (readerId === currentUserId) {
+        setConversations((prev) =>
+          prev.map((c) => (c.id === convId ? { ...c, unread_count: 0 } : c)),
+        );
+        if (activeConv?.id === convId) {
+          setMessages((prev) =>
+            prev.map((m) => (m.user_id !== currentUserId && m.status !== 'read' ? { ...m, status: 'read' } : m)),
+          );
+        }
+      } else {
+        if (activeConv?.id === convId) {
+          setMessages((prev) =>
+            prev.map((m) => (m.user_id === currentUserId && m.status !== 'read' ? { ...m, status: 'read' } : m)),
+          );
+        }
+      }
+    };
+
+    const handleGlobalDelivered = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      const convId = detail?.conversation_id;
+      const ids = new Set((detail?.message_ids ?? []) as number[]);
+      if (ids.size === 0) return;
+
+      setConversations((prev) =>
+        prev.map((c) => {
+          if (c.id === convId && c.latest_message?.id && ids.has(c.latest_message.id)) {
+            return {
+              ...c,
+              latest_message: { ...c.latest_message, status: 'delivered' },
+            };
+          }
+          return c;
+        }),
+      );
+
+      if (activeConv?.id === convId) {
+        setMessages((prev) =>
+          prev.map((m) => (m.id && ids.has(m.id) && m.status === 'sent' ? { ...m, status: 'delivered' } : m)),
+        );
+      }
+    };
+
+    window.addEventListener('murih:message', handleGlobalMessage);
+    window.addEventListener('murih:conversation_read', handleGlobalRead);
+    window.addEventListener('murih:message_delivered', handleGlobalDelivered);
+    return () => {
+      window.removeEventListener('murih:message', handleGlobalMessage);
+      window.removeEventListener('murih:conversation_read', handleGlobalRead);
+      window.removeEventListener('murih:message_delivered', handleGlobalDelivered);
+    };
+  }, [activeConv?.id, currentUserId]);
 
   const loadConversations = useCallback(async () => {
     try {
@@ -495,6 +626,64 @@ export function ChatLayout() {
       });
       setMessages((prev) => prev.filter((m) => m.id !== msg.id && m.client_uuid !== msg.client_uuid));
     } catch (e) { console.error('Failed to delete message', e); }
+  };
+
+  const startEditing = (msg: ChatMessage) => {
+    setEditingMsg(msg);
+    setEditDraft(msg.content ?? '');
+    // Focus once the inline editor is mounted.
+    requestAnimationFrame(() => {
+      const el = editInputRef.current;
+      if (!el) return;
+      el.focus();
+      el.setSelectionRange(el.value.length, el.value.length);
+    });
+  };
+
+  const cancelEditing = () => {
+    setEditingMsg(null);
+    setEditDraft('');
+  };
+
+  const submitEdit = async () => {
+    if (!editingMsg?.id || isSavingEdit) return;
+    const next = editDraft.trim();
+    if (!next) {
+      toast.error('Message cannot be empty.');
+      return;
+    }
+    setIsSavingEdit(true);
+    try {
+      // Response envelope: { data: { message, data: <updated message> } }
+      const res = await apiFetch<{ data?: { data?: Partial<ChatMessage> } }>(
+        `/conversations/${editingMsg.conversation_id}/messages/${editingMsg.id}`,
+        { method: 'PATCH', body: JSON.stringify({ content: next }) },
+      );
+      const body = res?.data?.data;
+      setMessages((prev) => prev.map((m) =>
+        m.id === editingMsg.id
+          ? {
+              ...m,
+              content: body?.content ?? next,
+              type: body?.type ?? m.type,
+              edited_at: body?.edited_at ?? new Date().toISOString(),
+              edit_count: body?.edit_count ?? (m.edit_count ?? 0) + 1,
+              can_edit: body?.can_edit ?? false,
+              edit_deadline_at: body?.edit_deadline_at ?? null,
+            }
+          : m,
+      ));
+      setConversations((prev) => prev.map((c) =>
+        c.id === editingMsg.conversation_id && c.latest_message?.id === editingMsg.id
+          ? { ...c, latest_message: { ...c.latest_message!, content: body?.content ?? next } }
+          : c,
+      ));
+      cancelEditing();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Could not save your edit.');
+    } finally {
+      setIsSavingEdit(false);
+    }
   };
 
   const forwardMessage = async (msg: ChatMessage, toConversationId: number) => {
@@ -739,6 +928,7 @@ export function ChatLayout() {
                 const isMine = msg.user_id === currentUserId;
                 const isPending = msg.status === 'pending';
                 const isFailed = msg.status === 'failed';
+                const isEditing = editingMsg?.id === msg.id && msg.id !== undefined;
 
                 return (
                   <div key={msg.client_uuid || msg.id} className={`group flex items-end gap-2 ${isMine ? 'justify-end' : 'justify-start'} mb-1`}>
@@ -774,6 +964,48 @@ export function ChatLayout() {
                         </div>
                       )}
 
+                      {isEditing ? (
+                        <div className="rounded-lg border border-secondary/60 bg-card p-2 space-y-2 min-w-[220px] max-w-full">
+                          <textarea
+                            ref={editInputRef}
+                            value={editDraft}
+                            onChange={(e) => setEditDraft(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' && !e.shiftKey) {
+                                e.preventDefault();
+                                submitEdit();
+                              }
+                              if (e.key === 'Escape') {
+                                e.preventDefault();
+                                cancelEditing();
+                              }
+                            }}
+                            rows={Math.min(6, Math.max(2, editDraft.split('\n').length))}
+                            className="w-full resize-none bg-transparent text-xs leading-relaxed text-foreground outline-none"
+                            aria-label="Edit message"
+                          />
+                          <p className="text-[10px] text-muted-foreground">Enter to save · Esc to cancel</p>
+                          <div className="flex items-center justify-end gap-2">
+                            <button
+                              type="button"
+                              onClick={cancelEditing}
+                              disabled={isSavingEdit}
+                              className="px-2.5 py-1 rounded-full text-[10px] font-bold text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              type="button"
+                              onClick={submitEdit}
+                              disabled={isSavingEdit || !editDraft.trim()}
+                              className="px-3 py-1 rounded-full text-[10px] font-bold bg-primary text-primary-foreground hover:opacity-90 transition-opacity disabled:opacity-50 inline-flex items-center gap-1"
+                            >
+                              {isSavingEdit && <Loader2 weight="fill" className="h-3 w-3 animate-spin" />}
+                              Save
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
                       <div className={`p-3 rounded-lg text-xs space-y-1 ${isMine ? (isFailed ? 'bg-destructive/15 border border-destructive/40 text-foreground rounded-br-none' : isPending ? 'bg-secondary/70 text-secondary-foreground rounded-br-none opacity-85 ' : 'bg-secondary text-secondary-foreground rounded-br-none ') : 'bg-card border-none text-foreground rounded-bl-none '}`}>
                         {!isMine && msg.user?.name && <span className="block text-[10px] font-bold text-secondary">{msg.user.name}</span>}
 
@@ -827,6 +1059,11 @@ export function ChatLayout() {
                         )}
 
                         <div className="flex items-center justify-end gap-1 text-[9px] opacity-80 pt-0.5">
+                          {msg.edited_at && (
+                            <span title={`Edited ${safeFormat(msg.edited_at, 'h:mm a')}`} className="italic">
+                              edited
+                            </span>
+                          )}
                           <span>{safeFormat(msg.created_at, 'h:mm a')}</span>
                           {isMine && (
                             isPending ? (
@@ -855,6 +1092,7 @@ export function ChatLayout() {
                           </button>
                         )}
                       </div>
+                      )}
 
                       {/* Reactions */}
                       {msg.id && (
@@ -1047,6 +1285,15 @@ export function ChatLayout() {
           >
             <Reply weight="fill" className="h-4 w-4" /> Reply
           </button>
+          {actionMenu.msg.can_edit && actionMenu.msg.type === 'text' && (
+            <button
+              type="button"
+              onClick={() => { startEditing(actionMenu.msg); setActionMenu(null); }}
+              className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs font-bold text-foreground hover:bg-muted transition-colors"
+            >
+              <PencilSimple weight="fill" className="h-4 w-4" /> Edit
+            </button>
+          )}
           <button
             type="button"
             onClick={() => { setForwardMsg(actionMenu.msg); setActionMenu(null); }}
