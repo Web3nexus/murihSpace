@@ -245,9 +245,19 @@ class MediaRetentionTest extends TestCase
             'created_at' => now(),
         ]);
 
-        $service->expiringWarningBatch(5)->each(function ($m) use ($media) {
-            $this->assertNotEquals($media->id, $m->id);
-        });
+        // A control item that has never been notified, so the batch is
+        // provably non-empty. Without it, asserting inside ->each() meant an
+        // empty batch ran zero assertions and the test passed for the wrong
+        // reason — exactly the failure it exists to catch.
+        $control = $this->makeMedia([
+            'delete_after' => now()->addDays(4),
+            'lifecycle_status' => 'available',
+        ]);
+
+        $ids = $service->expiringWarningBatch(5)->pluck('id')->all();
+
+        $this->assertContains($control->id, $ids);
+        $this->assertNotContains($media->id, $ids);
     }
 
     public function test_automatic_moderation_hold_blocks_deletion(): void

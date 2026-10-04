@@ -112,19 +112,9 @@ class PhoneOtpService
             }
 
             try {
-                $activeDeviceUser->notify(new MurihOfficialNotification(
-                    type: 'auth_login_otp',
-                    title: '🔐 MurihSpace Login Verification Code',
-                    body: "Your MurihSpace login verification code is {$code}. Enter this code on your device to sign in.",
-                    actionLabel: 'Copy Code',
-                    metadata: [
-                        'type' => 'auth_login_otp',
-                        'code' => $code,
-                        'intent' => 'login',
-                        'phone' => $row->maskedPhone(),
-                    ]
-                ));
-
+                // Section 17 & 18: Never persist authentication OTP codes into the
+                // public notifications database table. Deliver only via ephemeral
+                // real-time broadcast to the verified active device.
                 NotificationBroadcast::dispatch($activeDeviceUser->id, [
                     'id' => (string) Str::uuid(),
                     'type' => 'auth_login_otp',
