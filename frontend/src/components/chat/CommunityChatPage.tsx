@@ -136,11 +136,26 @@ export default function CommunityChatPage() {
     try {
       const res = await apiFetch(`/conversations/${conv.id}/messages`);
       const list = extractMessages(res);
-      setMessages(list.map((m) => ({ ...m, status: "sent" as MessageStatus })));
+      const formatted = list.map((m: any) => ({
+        ...m,
+        status: m.read === true ? ("read" as MessageStatus) : ((m.status && m.status !== "sent" ? m.status : "sent") as MessageStatus),
+      }));
+      setMessages(formatted);
 
       if (conv.unread_count > 0) {
         await apiFetch(`/conversations/${conv.id}/read`, { method: "POST" });
         setConversations((prev) => prev.map((c) => (c.id === conv.id ? { ...c, unread_count: 0 } : c)));
+      }
+
+      // Acknowledge delivered for incoming messages
+      const unacknowledged = formatted
+        .filter((m) => m.user_id !== currentUserId && m.status === "sent" && m.id)
+        .map((m) => m.id as number);
+      if (unacknowledged.length > 0) {
+        apiFetch(`/conversations/${conv.id}/delivered`, {
+          method: "POST",
+          body: JSON.stringify({ message_ids: unacknowledged }),
+        }).catch(() => {});
       }
     } catch {
       setMessages([]);
@@ -152,17 +167,29 @@ export default function CommunityChatPage() {
   };
 
   const onMessageReceived = useCallback((msg: ChatMessage) => {
+    const isSentByMe = msg.user_id === currentUserId;
     setMessages((prev) => {
       if (prev.some((m) => m.client_uuid && m.client_uuid === msg.client_uuid)) return prev;
       if (prev.some((m) => m.id && m.id === msg.id)) return prev;
-      return [...prev, { ...msg, status: "sent" as MessageStatus }];
+      return [...prev, { ...msg, status: (msg.status as MessageStatus) || "sent" }];
     });
     setConversations((prev) => prev.map((c) =>
       c.id === msg.conversation_id
-        ? { ...c, latest_message: msg, updated_at: msg.created_at, unread_count: c.id === activeConv?.id ? 0 : (c.unread_count ?? 0) + 1 }
+        ? { ...c, latest_message: msg, updated_at: msg.created_at, unread_count: isSentByMe ? 0 : (c.id === activeConv?.id ? 0 : (c.unread_count ?? 0) + 1) }
         : c,
     ));
-    if (msg.conversation_id !== activeConv?.id) {
+
+    if (!isSentByMe && msg.conversation_id === activeConv?.id) {
+      if (msg.id) {
+        apiFetch(`/conversations/${msg.conversation_id}/delivered`, {
+          method: "POST",
+          body: JSON.stringify({ message_ids: [msg.id] }),
+        }).catch(() => {});
+      }
+      apiFetch(`/conversations/${msg.conversation_id}/read`, { method: "POST" }).catch(() => {});
+    }
+
+    if (!isSentByMe && msg.conversation_id !== activeConv?.id) {
       const conv = conversations.find((c) => c.id === msg.conversation_id);
       const sender = msg.user?.name ?? conv?.title ?? "New message";
       toast(sender, {
@@ -188,10 +215,31 @@ export default function CommunityChatPage() {
     ));
   }, []);
 
+  const onMessageRead = useCallback((data: { conversation_id: number; reader_id: number }) => {
+    if (data.reader_id === currentUserId) {
+      setMessages((prev) =>
+        prev.map((m) => (m.user_id !== currentUserId && m.status !== "read" ? { ...m, status: "read" as MessageStatus } : m))
+      );
+    } else {
+      setMessages((prev) =>
+        prev.map((m) => (m.user_id === currentUserId && m.status !== "read" ? { ...m, status: "read" as MessageStatus } : m))
+      );
+    }
+  }, [currentUserId]);
+
+  const onMessageDelivered = useCallback((data: { conversation_id: number; message_ids: number[] }) => {
+    const ids = new Set(data.message_ids);
+    setMessages((prev) =>
+      prev.map((m) => (m.id && ids.has(m.id) && m.status === "sent" ? { ...m, status: "delivered" as MessageStatus } : m))
+    );
+  }, []);
+
   useRealtimeMessaging(activeConv?.id ?? null, currentUserId, {
     onMessageReceived,
     onTyping,
     onReaction,
+    onMessageRead,
+    onMessageDelivered,
   });
 
   const loadConversations = useCallback(async () => {

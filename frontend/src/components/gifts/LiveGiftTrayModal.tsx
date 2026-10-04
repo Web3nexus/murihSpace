@@ -66,8 +66,7 @@ export function LiveGiftTrayModal({
       const firstSelectable = safeGifts.find((gift) => gift.coin_price > 0) || safeGifts[0];
       if (firstSelectable) setSelectedGift(firstSelectable);
 
-      const wData = wRes.data?.data?.data ?? wRes.data?.data ?? wRes.data;
-      const available = wData?.available;
+      const available = wRes.data?.data?.available;
       if (typeof available === "number" || typeof available === "string") {
         setSystemBalance(Number(available) || 0);
       }

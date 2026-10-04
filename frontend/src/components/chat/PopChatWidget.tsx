@@ -84,13 +84,20 @@ export function PopChatWidget() {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const onMessageReceived = useCallback((msg: ChatMessage) => {
-    playMessageReceivedSound();
+    const isSentByMe = msg.user_id === user?.id;
+    if (!isSentByMe) {
+      playMessageReceivedSound();
+    }
     setMessages((prev) => {
-      if (prev.some((m) => m.client_uuid && m.client_uuid === msg.client_uuid)) return prev;
-      if (prev.some((m) => m.id && m.id === msg.id)) return prev;
-      return [...prev, { ...msg, status: "sent" }];
+      if (msg.client_uuid && prev.some((m) => m.client_uuid === msg.client_uuid)) {
+        return prev.map((m) => m.client_uuid === msg.client_uuid ? { ...m, ...msg, status: msg.status || "sent" } : m);
+      }
+      if (msg.id && prev.some((m) => m.id === msg.id)) {
+        return prev.map((m) => m.id === msg.id ? { ...m, ...msg, status: msg.status || m.status } : m);
+      }
+      return [...prev, { ...msg, status: msg.status || "sent" }];
     });
-    if (activeConv?.id === msg.conversation_id) {
+    if (!isSentByMe && activeConv?.id === msg.conversation_id) {
       apiClient.post(`/conversations/${msg.conversation_id}/read`).catch(() => {});
       if (msg.id) {
         apiClient.post(`/conversations/${msg.conversation_id}/delivered`, {
@@ -99,17 +106,26 @@ export function PopChatWidget() {
       }
     }
     refreshConversations();
-  }, [activeConv?.id, refreshConversations]);
+  }, [activeConv?.id, refreshConversations, user?.id]);
 
   const onMessageRead = useCallback((data: { conversation_id: number; reader_id: number }) => {
-    if (data.reader_id !== user?.id) {
+    if (data.reader_id === user?.id) {
+      // Read on another session (e.g. mobile)
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.user_id !== user?.id && m.status !== "read" ? { ...m, status: "read" } : m,
+        ),
+      );
+      refreshConversations();
+    } else {
+      // Recipient read my messages
       setMessages((prev) =>
         prev.map((m) =>
           m.user_id === user?.id && m.status !== "read" ? { ...m, status: "read" } : m,
         ),
       );
     }
-  }, [user?.id]);
+  }, [user?.id, refreshConversations]);
 
   const onMessageDelivered = useCallback((data: { conversation_id: number; message_ids: number[] }) => {
     const ids = new Set(data.message_ids);
@@ -118,7 +134,8 @@ export function PopChatWidget() {
         m.id !== undefined && ids.has(m.id) && m.status === "sent" ? { ...m, status: "delivered" } : m,
       ),
     );
-  }, []);
+    refreshConversations();
+  }, [refreshConversations]);
 
   const onTyping = useCallback(() => {}, []);
   const onReaction = useCallback(() => {}, []);
@@ -135,6 +152,47 @@ export function PopChatWidget() {
     onMessageRead,
     onMessageDelivered,
   });
+
+  useEffect(() => {
+    const handleGlobalRead = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      const convId = detail?.conversation_id;
+      const readerId = detail?.reader_id;
+      if (!convId) return;
+
+      if (activeConv?.id === convId) {
+        if (readerId === user?.id) {
+          setMessages((prev) =>
+            prev.map((m) => (m.user_id !== user?.id && m.status !== "read" ? { ...m, status: "read" } : m))
+          );
+        } else {
+          setMessages((prev) =>
+            prev.map((m) => (m.user_id === user?.id && m.status !== "read" ? { ...m, status: "read" } : m))
+          );
+        }
+      }
+      refreshConversations();
+    };
+
+    const handleGlobalDelivered = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      const convId = detail?.conversation_id;
+      const ids = new Set((detail?.message_ids ?? []) as number[]);
+      if (activeConv?.id === convId && ids.size > 0) {
+        setMessages((prev) =>
+          prev.map((m) => (m.id && ids.has(m.id) && m.status === "sent" ? { ...m, status: "delivered" } : m))
+        );
+      }
+      refreshConversations();
+    };
+
+    window.addEventListener("murih:conversation_read", handleGlobalRead);
+    window.addEventListener("murih:message_delivered", handleGlobalDelivered);
+    return () => {
+      window.removeEventListener("murih:conversation_read", handleGlobalRead);
+      window.removeEventListener("murih:message_delivered", handleGlobalDelivered);
+    };
+  }, [activeConv?.id, refreshConversations, user?.id]);
 
   // Fetch messages when active conversation changes
   useEffect(() => {
