@@ -20,6 +20,7 @@ use App\Http\Controllers\AdminManagementController;
 use App\Http\Controllers\AdminMediaController;
 use App\Http\Controllers\AdminMediaRetentionController;
 use App\Http\Controllers\AdminModerationLogController;
+use App\Http\Controllers\AdminNotificationController;
 use App\Http\Controllers\AdminObjectStorageProviderController;
 use App\Http\Controllers\AdminPaymentProviderController;
 use App\Http\Controllers\AdminPaymentTransactionController;
@@ -93,6 +94,7 @@ use App\Http\Controllers\InternalAccountingSyncController;
 use App\Http\Controllers\KycController;
 use App\Http\Controllers\LinkInBioController;
 use App\Http\Controllers\LiveStreamController;
+use App\Http\Controllers\LinkPreviewController;
 use App\Http\Controllers\MarketingCampaignController;
 use App\Http\Controllers\MarketplaceController;
 use App\Http\Controllers\MediaKitController;
@@ -289,6 +291,20 @@ Route::prefix('v1')->group(function () {
         // second-factor attempt on the platform.
         Route::post('/auth/2fa/verify', [AdminAuthController::class, 'verifyTwoFactor'])
             ->middleware('throttle:admin-mfa');
+
+        // First-time two-factor setup, for an administrator who has proved a
+        // password but has never confirmed a factor. Without these the only way
+        // to enrol is a consumer session from /auth/login, which Securegate has
+        // no screen for — the portal has no registration form and never issues
+        // one. Carries no authority: it can only write a *first* factor, and
+        // refuses outright once one is confirmed, so it cannot be used to
+        // replace an existing second factor on the strength of a password.
+        Route::prefix('auth/2fa/enroll')->group(function () {
+            Route::post('/start', [AdminAuthController::class, 'startEnrollment'])
+                ->middleware('throttle:admin-mfa');
+            Route::post('/confirm', [AdminAuthController::class, 'confirmEnrollment'])
+                ->middleware('throttle:admin-mfa');
+        });
     });
 
     // Public Country & Location Endpoints
@@ -329,6 +345,14 @@ Route::prefix('v1')->group(function () {
 
     Route::get('/live/resolve/{token}', [LiveStreamController::class, 'resolve'])->middleware('throttle:120,1');
     Route::get('/live/{token}/resolve', [LiveStreamController::class, 'resolve'])->middleware('throttle:120,1');
+
+    // Typed link previews for chat bubbles, posts and native share sheets.
+    // Unauthenticated on purpose so guests see the same card, and it only ever
+    // returns the metadata the public pages already expose.
+    Route::prefix('link-preview')->middleware('throttle:120,1')->group(function () {
+        Route::get('/', [LinkPreviewController::class, 'show']);
+        Route::post('/batch', [LinkPreviewController::class, 'batch']);
+    });
 
     // Sprint 15: Public payment webhook (no auth — provider calls this)
     Route::post('/checkout/webhooks/{provider}', [CheckoutController::class, 'handleWebhook'])->middleware('throttle:30,1');
@@ -667,6 +691,8 @@ Route::prefix('v1')->group(function () {
             Route::put('/{id}/settings', [ConversationSettingsController::class, 'update']);
             // Message deletion
             Route::delete('/{conversationId}/messages/{messageId}', [ConversationController::class, 'deleteMessage']);
+            // Message editing — sender-only, short window enforced server-side
+            Route::patch('/{conversationId}/messages/{messageId}', [ConversationController::class, 'editMessage']);
             // Audit archive (admin only) — retrieves full preserved history for financial/escrow chats
             Route::get('/{id}/audit-archive', [ConversationController::class, 'auditArchive']);
             // Admin speed control — anti-bot rate limiting for financial chats
@@ -1361,6 +1387,20 @@ Route::prefix('v1')->group(function () {
         Route::prefix('meetings')->group(function () {
             Route::post('/instant', [MeetingController::class, 'instant'])->middleware('creator');
             Route::get('/{code}/token', [MeetingController::class, 'token']);
+
+            // Presence + host controls. Every moderation action re-checks the
+            // caller's roster role server-side, so a viewer cannot reach a host
+            // API even with a valid session.
+            Route::get('/{code}', [MeetingController::class, 'show']);
+            Route::get('/{code}/participants', [MeetingController::class, 'participants']);
+            Route::post('/{code}/join', [MeetingController::class, 'join']);
+            Route::post('/{code}/state', [MeetingController::class, 'state']);
+            Route::post('/{code}/leave', [MeetingController::class, 'leave']);
+            Route::post('/{code}/end', [MeetingController::class, 'end']);
+            Route::post('/{code}/participants/{userId}/mute', [MeetingController::class, 'muteParticipant']);
+            Route::post('/{code}/participants/{userId}/restrict', [MeetingController::class, 'restrictParticipant']);
+            Route::post('/{code}/participants/{userId}/role', [MeetingController::class, 'updateRole']);
+            Route::delete('/{code}/participants/{userId}', [MeetingController::class, 'removeParticipant']);
         });
 
         // ── Sprint 20: Events ──────────────────────────────────────────────
@@ -1425,6 +1465,14 @@ Route::prefix('v1')->group(function () {
             Route::post('/{id}/end', [LiveStreamController::class, 'end']);
             Route::post('/{id}/attribution', [LiveStreamController::class, 'recordAttribution']);
             Route::get('/{id}/analytics', [LiveStreamController::class, 'analytics']);
+
+            // Host participant management. Each handler re-checks the caller's
+            // roster role server-side, so a plain viewer receives 403 here.
+            Route::get('/{id}/participants', [LiveStreamController::class, 'participants']);
+            Route::post('/{id}/participants/{userId}/role', [LiveStreamController::class, 'updateParticipantRole']);
+            Route::post('/{id}/participants/{userId}/mute', [LiveStreamController::class, 'muteParticipant']);
+            Route::post('/{id}/participants/{userId}/restrict', [LiveStreamController::class, 'restrictParticipant']);
+            Route::delete('/{id}/participants/{userId}', [LiveStreamController::class, 'removeParticipant']);
         });
 
         // ── Sprint 17: Core Administration (securegate) ────────────────────
@@ -1441,6 +1489,15 @@ Route::prefix('v1')->group(function () {
             // admin:mfa-tagged token, so an operator cannot be left signing
             // themselves out of the surface they are trying to secure.
             Route::post('/auth/logout', [AdminAuthController::class, 'logout']);
+
+            // Section 17 & 18: Admin-isolated notifications & preferences
+            Route::prefix('notifications')->group(function () {
+                Route::get('/', [AdminNotificationController::class, 'index']);
+                Route::post('/read-all', [AdminNotificationController::class, 'markAllRead']);
+                Route::post('/{id}/read', [AdminNotificationController::class, 'markRead']);
+                Route::get('/preferences', [AdminNotificationController::class, 'getPreferences']);
+                Route::put('/preferences', [AdminNotificationController::class, 'updatePreferences']);
+            });
 
             // Trust & safety. Kept separate from `users` so that holding user
             // management does not by itself confer the power to warn, flag or ban.
