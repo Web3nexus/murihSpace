@@ -96,6 +96,7 @@ const AdminCommunitiesPage = lazyWithRetry(() => import("@/pages/AdminCommunitie
 const AdminEscrowPage = lazyWithRetry(() => import("@/pages/AdminEscrowPage"), "AdminEscrowPage");
 const AdminPayoutsPage = lazyWithRetry(() => import("@/pages/AdminPayoutsPage"), "AdminPayoutsPage");
 const AdminCmsPage = lazyWithRetry(() => import("@/pages/AdminCmsPage"), "AdminCmsPage");
+const AdminNotificationsPage = lazyWithRetry(() => import("@/pages/AdminNotificationsPage"), "AdminNotificationsPage");
 const ContentStudioPage = lazyWithRetry(() => import("@/pages/ContentStudioPage"));
 const LinkInBioPage = lazyWithRetry(() => import("@/pages/LinkInBioPage"));
 const LinkInBioDomainPage = lazyWithRetry(() => import("@/pages/LinkInBioDomainPage"));
@@ -829,6 +830,30 @@ export const routes: RouteObject[] = [
       },
       {
         path: "securegate/system-health",
+        element: <ProtectedRoute requiredRole="admin"><Suspense fallback={<PageLoader />}><AdminSystemHealthPage /></Suspense></ProtectedRoute>,
+      },
+      {
+        path: "securegate/notifications",
+        element: <ProtectedRoute requiredRole="admin"><Suspense fallback={<PageLoader />}><AdminNotificationsPage /></Suspense></ProtectedRoute>,
+      },
+      {
+        path: "admin/notifications",
+        element: <ProtectedRoute requiredRole="admin"><Suspense fallback={<PageLoader />}><AdminNotificationsPage /></Suspense></ProtectedRoute>,
+      },
+      {
+        path: "admin/users",
+        element: <ProtectedRoute requiredRole="admin"><Suspense fallback={<PageLoader />}><AdminUsersPage /></Suspense></ProtectedRoute>,
+      },
+      {
+        path: "admin/kyc",
+        element: <ProtectedRoute requiredRole="admin"><Suspense fallback={<PageLoader />}><AdminKycPage /></Suspense></ProtectedRoute>,
+      },
+      {
+        path: "admin/fees",
+        element: <ProtectedRoute requiredRole="admin"><Suspense fallback={<PageLoader />}><AdminFeeManagementPage /></Suspense></ProtectedRoute>,
+      },
+      {
+        path: "admin/system-health",
         element: <ProtectedRoute requiredRole="admin"><Suspense fallback={<PageLoader />}><AdminSystemHealthPage /></Suspense></ProtectedRoute>,
       },
       {

@@ -30,7 +30,41 @@ class AdminAlertService
 
         $this->sendNotifications($alert);
 
+        // Section 17 & 18: Record into dedicated admin_notifications table
+        try {
+            $category = $this->mapEventTypeToCategory($alert->event_type);
+            app(AdminNotificationService::class)->dispatch([
+                'category' => $category,
+                'severity' => $alert->severity,
+                'title' => $alert->title,
+                'message' => $alert->description ?? $alert->title,
+                'action_url' => $alert->reference,
+                'reference_id' => $alert->reference,
+                'reference_type' => $alert->event_type,
+                'metadata' => $alert->metadata,
+            ]);
+        } catch (\Throwable $e) {
+            \Log::warning('AdminNotification dispatch failed from AdminAlertService: ' . $e->getMessage());
+        }
+
         return $alert;
+    }
+
+    protected function mapEventTypeToCategory(string $eventType): string
+    {
+        return match ($eventType) {
+            'user_registered', 'new_user', 'registration' => \App\Enums\AdminNotificationCategory::NewUserRegistration->value,
+            'kyc_submission', 'kyc_request', 'kyc_pending' => \App\Enums\AdminNotificationCategory::KycRequest->value,
+            'role_application', 'account_upgrade', 'creator_application', 'vendor_application' => \App\Enums\AdminNotificationCategory::AccountUpgradeRequest->value,
+            'deposit_initiated', 'deposit_request', 'deposit_pending' => \App\Enums\AdminNotificationCategory::DepositRequest->value,
+            'withdrawal_request', 'payout_requested', 'payout_pending' => \App\Enums\AdminNotificationCategory::WithdrawalRequest->value,
+            'payment_failed', 'payment_issue', 'chargeback', 'gateway_error' => \App\Enums\AdminNotificationCategory::PaymentIssues->value,
+            'security_alert', 'brute_force', 'unauthorized_access', 'mfa_failure' => \App\Enums\AdminNotificationCategory::SecurityAlerts->value,
+            'support_message', 'support_ticket', 'ticket_created', 'ticket_escalated' => \App\Enums\AdminNotificationCategory::SupportRequests->value,
+            'moderation_flag', 'content_flag', 'report_created', 'moderation_event' => \App\Enums\AdminNotificationCategory::ModerationEvents->value,
+            'infrastructure_alert', 'queue_backlog', 'worker_restart', 'disk_space' => \App\Enums\AdminNotificationCategory::InfrastructureNotifications->value,
+            default => \App\Enums\AdminNotificationCategory::SystemAlerts->value,
+        };
     }
 
     protected function sendNotifications(AdminAlert $alert): void

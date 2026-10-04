@@ -4,6 +4,7 @@ import { useLocation } from 'react-router';
 import { getEcho } from '@/lib/echo';
 import { playMessageReceivedSound, playNotificationSound } from '@/lib/sound';
 import { getUnreadCount, setUnreadCount, refreshUnreadCount } from '@/lib/chatUnread';
+import { getAuthToken } from '@/lib/auth/token';
 import { showWebInAppNotification } from '@/components/notifications/WebInAppNotification';
 
 export const NOTIFICATION_EVENT_NAME = 'murih:notification';
@@ -99,6 +100,7 @@ function parseNotificationContent(content: unknown, fallback = 'You have a new u
     };
 
     const onMessageSent = (e: {
+      id?: number;
       conversation_id?: number;
       user_id?: number;
       user?: { name?: string; avatar?: string; avatar_url?: string };
@@ -108,6 +110,23 @@ function parseNotificationContent(content: unknown, fallback = 'You have a new u
     }) => {
       window.dispatchEvent(new CustomEvent(MESSAGE_EVENT_NAME, { detail: e }));
       if (e.user_id === user.id) return;
+
+      // Automatically acknowledge delivery for incoming message immediately
+      if (e.id && e.conversation_id) {
+        const apiBase = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1').replace(/\/$/, '');
+        const token = getAuthToken();
+        if (token) {
+          fetch(`${apiBase}/conversations/${e.conversation_id}/delivered`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Accept: 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ message_ids: [e.id] }),
+          }).catch(() => {});
+        }
+      }
 
       // Bump the global unread badge immediately so the header icon updates
       // before the next server poll, but only if not currently viewing messages.
@@ -147,23 +166,44 @@ function parseNotificationContent(content: unknown, fallback = 'You have a new u
 
     // When any participant reads a conversation, server-sync the badge so
     // the header count stays accurate across tabs and page navigations.
-    const onMessageRead = (e: { conversation_id?: number; reader_id?: number }) => {
-      if (e.reader_id !== user.id) {
-        // Someone else read a message — no badge change needed for us.
-        return;
+    const onMessageRead = (e: { conversation_id?: number; reader_id?: number; read_at?: string }) => {
+      window.dispatchEvent(new CustomEvent('murih:conversation_read', { detail: e }));
+      if (e.reader_id === user.id) {
+        // We read the messages (from another tab/device, e.g. mobile), re-sync badge.
+        refreshUnreadCount().catch(() => {});
       }
-      // We read the messages (from another tab/device), re-sync badge.
-      refreshUnreadCount().catch(() => {});
+    };
+
+    const onMessageDelivered = (e: { conversation_id?: number; message_ids?: number[]; delivered_at?: string }) => {
+      window.dispatchEvent(new CustomEvent('murih:message_delivered', { detail: e }));
     };
 
     notificationChannel.listen('.notification', onNotification);
     userChannel.listen('.MessageSent', onMessageSent);
     userChannel.listen('.MessageRead', onMessageRead);
+    userChannel.listen('.MessageDelivered', onMessageDelivered);
+
+    // Periodic presence heartbeat so user stays marked as online
+    const heartbeatInterval = setInterval(() => {
+      const token = getAuthToken();
+      if (!token) return;
+      const apiBase = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1').replace(/\/$/, '');
+      fetch(`${apiBase}/chat/heartbeat`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+      }).catch(() => {});
+    }, 60000);
 
     return () => {
+      clearInterval(heartbeatInterval);
       notificationChannel.stopListening('.notification', onNotification);
       userChannel.stopListening('.MessageSent', onMessageSent);
       userChannel.stopListening('.MessageRead', onMessageRead);
+      userChannel.stopListening('.MessageDelivered', onMessageDelivered);
     };
   }, [user?.id]);
 

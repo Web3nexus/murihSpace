@@ -141,6 +141,26 @@ class AuthController extends Controller
             report($e);
         }
 
+        try {
+            app(\App\Services\AdminNotificationService::class)->dispatch([
+                'category' => \App\Enums\AdminNotificationCategory::NewUserRegistration->value,
+                'severity' => 'info',
+                'title' => 'New User Registration',
+                'message' => "New member @{$user->username} ({$user->name}) registered.",
+                'action_url' => '/securegate/users/' . $user->id,
+                'reference_id' => (string) $user->id,
+                'reference_type' => 'user',
+                'metadata' => [
+                    'user_id' => $user->id,
+                    'username' => $user->username,
+                    'email' => $user->email,
+                    'role' => $user->role,
+                ],
+            ]);
+        } catch (\Throwable $e) {
+            // Non-blocking
+        }
+
         $token = app(AuthSessionService::class)->issue($user, $request)['token'];
         $this->deviceSecurity->registerActiveSession($user, $request, $token);
 

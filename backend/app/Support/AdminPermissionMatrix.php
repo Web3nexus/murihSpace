@@ -30,6 +30,10 @@ final class AdminPermissionMatrix
                 'label' => 'Overview',
                 'permissions' => [],
             ],
+            'notifications' => [
+                'label' => 'Notifications',
+                'permissions' => [],
+            ],
             'kyc' => [
                 'label' => 'KYC Requests',
                 'permissions' => [AdminPermission::Kyc],
