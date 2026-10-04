@@ -34,7 +34,6 @@ class AdminPermissionTest extends TestCase
     private const EXEMPT_ROUTES = [
         // Read-only, no authority: the overview counts a role is entitled to see.
         'api/v1/securegate/dashboard',
-        'api/v1/securegate/pending-counts',
         // Read-only, no authority: a client must be able to read its own
         // permissions to render correct navigation, without holding `admins`.
         'api/v1/securegate/me',
@@ -48,6 +47,29 @@ class AdminPermissionTest extends TestCase
         // Revokes the caller's own session. No role check can meaningfully
         // restrict who may end their own access.
         'api/v1/securegate/auth/logout',
+
+        // First-time two-factor setup, and nothing else. These carry no
+        // authority: they are gated on an IP-bound, single-use challenge that
+        // only exists because /auth/login already accepted the password, and
+        // they can only write a *first* factor — start refuses outright once one
+        // is confirmed, so they cannot be used to replace a live second factor
+        // on the strength of a password. Requiring a permission would make the
+        // control unbootable: a brand-new administrator holds no permissions,
+        // which is exactly the account that cannot enrol otherwise.
+        'api/v1/securegate/auth/2fa/enroll/start',
+        'api/v1/securegate/auth/2fa/enroll/confirm',
+
+        // Admin-isolated notifications (Section 17 & 18). Authorization is
+        // per-category and happens in AdminNotificationService::queryFor, which
+        // intersects the requested categories with the permissions the caller
+        // actually holds and returns an empty result set otherwise. A single
+        // route-level permission cannot express "any of kyc, payouts, disputes,
+        // trust & safety" without either over-granting or excluding a role that
+        // legitimately owns one of them, so the check lives in the query.
+        'api/v1/securegate/notifications',
+        'api/v1/securegate/notifications/read-all',
+        'api/v1/securegate/notifications/{id}/read',
+        'api/v1/securegate/notifications/preferences',
     ];
 
     /**

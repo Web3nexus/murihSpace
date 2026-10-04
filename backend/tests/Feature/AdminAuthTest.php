@@ -21,12 +21,6 @@ class AdminAuthTest extends TestCase
 {
     use RefreshDatabase;
 
-    protected function setUp(): void
-    {
-        parent::setUp();
-        config(['sanctum.admin_require_mfa' => true]);
-    }
-
     private function enrolledAdmin(?AdminRole $role = AdminRole::SupportAdmin): User
     {
         $service = app(TwoFactorAuthService::class);
@@ -112,16 +106,178 @@ class AdminAuthTest extends TestCase
         );
     }
 
-    public function test_an_admin_without_enrolled_mfa_is_told_how_to_enrol_rather_than_admitted(): void
+    public function test_an_admin_without_enrolled_mfa_is_offered_enrolment_rather_than_admitted(): void
     {
         $admin = User::factory()->create(['role' => 'admin', 'admin_role' => 'support_admin']);
 
-        $this->postJson('/api/v1/securegate/auth/login', [
+        $response = $this->postJson('/api/v1/securegate/auth/login', [
             'email' => $admin->email,
             'password' => 'password',
         ])
-            ->assertStatus(403)
-            ->assertJsonPath('errors.code.0', 'admin_mfa_enrollment_required');
+            ->assertStatus(202)
+            ->assertJsonPath('data.status', 'mfa_enrollment_required')
+            ->assertJsonPath('data.account', $admin->email);
+
+        // No authority whatsoever: no challenge for the second factor, no token.
+        $this->assertArrayNotHasKey('token', $response->json('data'));
+        $this->assertArrayNotHasKey('challenge', $response->json('data'));
+    }
+
+    // ── Enrolment: first factor, reachable from the login screen ────────────
+
+    public function test_an_admin_can_enrol_a_first_factor_from_the_login_screen_and_then_sign_in(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin', 'admin_role' => 'support_admin']);
+
+        $enrollment = $this->postJson('/api/v1/securegate/auth/login', [
+            'email' => $admin->email,
+            'password' => 'password',
+        ])->assertStatus(202)->json('data.enrollment_challenge');
+
+        $start = $this->postJson('/api/v1/securegate/auth/2fa/enroll/start', [
+            'enrollment_challenge' => $enrollment,
+        ])
+            ->assertOk()
+            ->assertJsonPath('data.account', null)
+            ->json('data');
+
+        $this->assertNotEmpty($start['secret']);
+        $this->assertStringContainsString('otpauth://', $start['provision_url']);
+        $this->assertCount(8, $start['recovery_codes']);
+
+        // Still refused to sign in: the factor is not real until confirmed.
+        $this->postJson('/api/v1/securegate/auth/login', [
+            'email' => $admin->email,
+            'password' => 'password',
+        ])->assertStatus(202)->assertJsonPath('data.status', 'mfa_enrollment_required');
+
+        $this->postJson('/api/v1/securegate/auth/2fa/enroll/confirm', [
+            'enrollment_challenge' => $enrollment,
+            'code' => $this->totpFor($admin->refresh()),
+        ])
+            ->assertOk()
+            ->assertJsonPath('data.mfa_enrolled', true);
+
+        $admin->refresh();
+        $this->assertNotNull($admin->two_factor_confirmed_at);
+
+        // And now the ordinary two-step sign-in works end to end.
+        $challenge = $this->postJson('/api/v1/securegate/auth/login', [
+            'email' => $admin->email,
+            'password' => 'password',
+        ])->assertStatus(202)->assertJsonPath('data.status', 'two_factor_required')->json('data.challenge');
+
+        $this->postJson('/api/v1/securegate/auth/2fa/verify', [
+            'challenge' => $challenge,
+            'code' => $this->totpFor($admin),
+        ])->assertOk()->assertJsonPath('data.user.mfa_enrolled', true);
+    }
+
+    public function test_enrolment_refuses_to_replace_an_already_confirmed_factor(): void
+    {
+        $admin = $this->enrolledAdmin();
+
+        // A password check must never be enough to swap out a live second
+        // factor, or the factor would not be a second factor at all.
+        $challenge = $this->postJson('/api/v1/securegate/auth/login', [
+            'email' => $admin->email,
+            'password' => 'password',
+        ])->json('data.challenge');
+
+        $originalSecret = $admin->two_factor_secret;
+
+        $this->postJson('/api/v1/securegate/auth/2fa/enroll/start', [
+            'enrollment_challenge' => $challenge,
+        ])->assertStatus(422)->assertJsonValidationErrors('enrollment_challenge');
+
+        $this->assertSame($originalSecret, $admin->refresh()->two_factor_secret);
+    }
+
+    public function test_enrolment_requires_the_password_first(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin', 'admin_role' => 'support_admin']);
+
+        $this->postJson('/api/v1/securegate/auth/2fa/enroll/start', [
+            'enrollment_challenge' => 'made-up',
+        ])->assertStatus(422)->assertJsonValidationErrors('enrollment_challenge');
+
+        $this->assertNull($admin->refresh()->two_factor_secret);
+    }
+
+    public function test_an_expired_or_foreign_enrollment_challenge_is_refused(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin', 'admin_role' => 'support_admin']);
+
+        $enrollment = $this->postJson('/api/v1/securegate/auth/login', [
+            'email' => $admin->email,
+            'password' => 'password',
+        ])->json('data.enrollment_challenge');
+
+        $this->postJson('/api/v1/securegate/auth/2fa/enroll/start', [
+            'enrollment_challenge' => $enrollment,
+        ])->assertOk();
+
+        // Challenges are IP-bound, so the same string from another address is
+        // not a challenge at all.
+        Cache::flush();
+
+        $this->postJson('/api/v1/securegate/auth/2fa/enroll/confirm', [
+            'enrollment_challenge' => $enrollment,
+            'code' => '000000',
+        ])->assertStatus(422)->assertJsonValidationErrors('enrollment_challenge');
+
+        $this->assertNull($admin->refresh()->two_factor_confirmed_at);
+    }
+
+    public function test_a_wrong_code_does_not_confirm_the_factor(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin', 'admin_role' => 'support_admin']);
+
+        $enrollment = $this->postJson('/api/v1/securegate/auth/login', [
+            'email' => $admin->email,
+            'password' => 'password',
+        ])->json('data.enrollment_challenge');
+
+        $this->postJson('/api/v1/securegate/auth/2fa/enroll/start', [
+            'enrollment_challenge' => $enrollment,
+        ])->assertOk();
+
+        $this->postJson('/api/v1/securegate/auth/2fa/enroll/confirm', [
+            'enrollment_challenge' => $enrollment,
+            'code' => '000000',
+        ])->assertStatus(422)->assertJsonValidationErrors('code');
+
+        $this->assertNull($admin->refresh()->two_factor_confirmed_at);
+
+        // Still on the enrolment path, not admitted.
+        $this->postJson('/api/v1/securegate/auth/login', [
+            'email' => $admin->email,
+            'password' => 'password',
+        ])->assertStatus(202)->assertJsonPath('data.status', 'mfa_enrollment_required');
+    }
+
+    public function test_the_enrollment_challenge_is_spent_on_confirmation(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin', 'admin_role' => 'support_admin']);
+
+        $enrollment = $this->postJson('/api/v1/securegate/auth/login', [
+            'email' => $admin->email,
+            'password' => 'password',
+        ])->json('data.enrollment_challenge');
+
+        $this->postJson('/api/v1/securegate/auth/2fa/enroll/start', [
+            'enrollment_challenge' => $enrollment,
+        ])->assertOk();
+
+        $this->postJson('/api/v1/securegate/auth/2fa/enroll/confirm', [
+            'enrollment_challenge' => $enrollment,
+            'code' => $this->totpFor($admin->refresh()),
+        ])->assertOk();
+
+        $this->postJson('/api/v1/securegate/auth/2fa/enroll/confirm', [
+            'enrollment_challenge' => $enrollment,
+            'code' => $this->totpFor($admin->refresh()),
+        ])->assertStatus(422)->assertJsonValidationErrors('enrollment_challenge');
     }
 
     // ── Step 2: the second factor mints the session ────────────────────────

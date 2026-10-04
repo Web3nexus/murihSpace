@@ -80,14 +80,24 @@ class AdminAuthController extends Controller
         }
 
         if (! AdminPermissionMatrix::hasEnrolledMfa($user)) {
-            // Not a lockout: enrolment is reachable, it just is not reachable
-            // from here. The account can still sign in at /auth/login, call
-            // /auth/2fa/enable and /auth/2fa/confirm, and then sign in here.
-            return ApiResponse::error(
-                'This administrator has not enrolled two-factor authentication. Enrol at /api/v1/auth/2fa/enable using a session from /api/v1/auth/login, then sign in again.',
-                ['code' => ['admin_mfa_enrollment_required']],
-                403,
-            );
+            // Not a lockout, and no reason to make it one. The password has just
+            // been proved, so the account is offered enrolment here rather than
+            // being told to go and find a consumer session it may not be able to
+            // obtain: Securegate has no registration form of its own, so the only
+            // other route to /auth/2fa/enable is a detour the operator cannot
+            // complete from this screen.
+            //
+            // The challenge carries no authority. It is IP-bound, single-use and
+            // expires with the login challenge, and it only ever authorises
+            // writing a *first* factor — see enrolTwoFactor for why re-enrolling
+            // a confirmed factor is refused.
+            return ApiResponse::success([
+                'status' => 'mfa_enrollment_required',
+                'enrollment_challenge' => AdminSession::issueChallenge($user, $request),
+                'expires_in_seconds' => AdminSession::CHALLENGE_TTL_SECONDS,
+                'issuer' => config('app.name'),
+                'account' => $user->email,
+            ], 'This administrator has not set up two-factor authentication yet. Set it up to continue.', 202);
         }
 
         $challenge = AdminSession::issueChallenge($user, $request);
@@ -141,6 +151,114 @@ class AdminAuthController extends Controller
             'is_new_device' => $session['is_new_device'],
             'user' => $this->adminPayload($user),
         ], 'Administrator session started.');
+    }
+
+    /**
+     * Step 1 of enrolment — hand back the secret to load into an authenticator.
+     *
+     * Reachable only by a caller holding an enrolment challenge, which means a
+     * password was already accepted at /auth/login for this account and this IP.
+     * Nothing is written here: the factor does not exist until it is confirmed,
+     * so abandoning this step leaves the account exactly as it was.
+     */
+    public function startEnrollment(Request $request): JsonResponse
+    {
+        $request->validate([
+            'enrollment_challenge' => ['required', 'string'],
+        ]);
+
+        $challenge = $request->string('enrollment_challenge')->toString();
+        $user = AdminSession::resolveChallenge($challenge, $request);
+
+        if (! $user) {
+            throw ValidationException::withMessages([
+                'enrollment_challenge' => ['This setup attempt has expired. Start again.'],
+            ]);
+        }
+
+        // Enrolment is a first-factor operation only. Once a factor is
+        // confirmed this route must not hand out a fresh secret on the strength
+        // of a password, because that would let anyone who has merely obtained
+        // an administrator password silently replace the second factor and log
+        // straight in — turning the control into decoration. Recovery for a
+        // lost device goes through the recovery codes issued at enrolment, or
+        // an operator command.
+        if ($user->two_factor_confirmed_at !== null) {
+            throw ValidationException::withMessages([
+                'enrollment_challenge' => ['Two-factor authentication is already set up for this account.'],
+            ]);
+        }
+
+        $secret = $this->twoFactor->generateSecret();
+        $recoveryCodes = $this->twoFactor->generateRecoveryCodes();
+
+        // Stored unconfirmed. It grants no access on its own, but it means an
+        // interrupted setup is resumed rather than restarted, and it keeps the
+        // recovery codes the user was shown stable across the confirm step.
+        $user->forceFill([
+            'two_factor_secret' => $this->twoFactor->encryptSecret($secret),
+            'two_factor_recovery_codes' => json_encode($recoveryCodes),
+            'two_factor_confirmed_at' => null,
+        ])->save();
+
+        return ApiResponse::success([
+            'secret' => $secret,
+            'provision_url' => $this->twoFactor->getProvisionUrl($secret, $user->email),
+            'recovery_codes' => $recoveryCodes,
+            'expires_in_seconds' => AdminSession::CHALLENGE_TTL_SECONDS,
+        ], 'Scan this in your authenticator app, then enter the code it shows.');
+    }
+
+    /**
+     * Step 2 of enrolment — confirm the factor with a live code.
+     *
+     * This is what makes the factor real. Until it returns, the account is still
+     * refused at /auth/login, so a mistyped code costs nothing but a retry.
+     */
+    public function confirmEnrollment(Request $request): JsonResponse
+    {
+        $request->validate([
+            'enrollment_challenge' => ['required', 'string'],
+            'code' => ['required', 'string'],
+        ]);
+
+        $challenge = $request->string('enrollment_challenge')->toString();
+        $user = AdminSession::resolveChallenge($challenge, $request);
+
+        if (! $user) {
+            throw ValidationException::withMessages([
+                'enrollment_challenge' => ['This setup attempt has expired. Start again.'],
+            ]);
+        }
+
+        $code = preg_replace('/\s+/', '', $request->string('code')->toString());
+
+        if (! $user->two_factor_secret) {
+            throw ValidationException::withMessages([
+                'code' => ['Start two-factor setup again.'],
+            ]);
+        }
+
+        $secret = $this->twoFactor->decryptSecret($user->two_factor_secret);
+
+        if (! $this->twoFactor->verify($secret, (string) $code)) {
+            AdminSession::recordFailedChallengeAttempt($challenge);
+
+            throw ValidationException::withMessages([
+                'code' => ['That code is not valid. Check your authenticator and try again.'],
+            ]);
+        }
+
+        $user->forceFill(['two_factor_confirmed_at' => now()])->save();
+
+        // Single-use: the enrolment challenge is spent, so the secret cannot be
+        // re-confirmed or re-issued from the same password check.
+        AdminSession::consumeChallenge($challenge);
+
+        return ApiResponse::success([
+            'status' => 'mfa_enrolled',
+            'mfa_enrolled' => true,
+        ], 'Two-factor authentication is set up. Sign in to continue.');
     }
 
     /**

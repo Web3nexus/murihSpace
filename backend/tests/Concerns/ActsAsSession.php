@@ -76,6 +76,8 @@ trait ActsAsSession
      */
     private function presentAdminToken(User $admin): void
     {
+        $this->app['auth']->forgetGuards();
+
         $plain = $admin->createToken(AdminSession::TOKEN_NAME, ['*', AdminSession::ABILITY_MFA])
             ->plainTextToken;
 

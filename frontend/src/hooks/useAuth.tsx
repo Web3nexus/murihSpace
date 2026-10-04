@@ -29,6 +29,30 @@ export interface AdminLoginChallenge {
   expiresInSeconds: number;
 }
 
+/**
+ * What the server hands back when a password is accepted but no second factor
+ * exists yet. Carries no authority — it only authorises writing a *first*
+ * factor — which is why it is a separate shape from AdminLoginChallenge rather
+ * than a challenge with an empty code field.
+ */
+export interface AdminEnrollmentPrompt {
+  status: "mfa_enrollment_required";
+  enrollmentChallenge: string;
+  expiresInSeconds: number;
+  account: string;
+}
+
+export interface AdminEnrollmentSecret {
+  secret: string;
+  provisionUrl: string;
+  recoveryCodes: string[];
+  expiresInSeconds: number;
+}
+
+export type AdminLoginOutcome =
+  | { kind: "verify"; challenge: string; expiresInSeconds: number }
+  | { kind: "enroll"; prompt: AdminEnrollmentPrompt };
+
 export type OtpIntent = "login" | "register";
 
 export interface OtpRequestResult {
@@ -58,7 +82,9 @@ interface AuthContextValue {
   error: string | null;
   fieldErrors: Record<string, string[]>;
   login: (email: string, password: string) => Promise<UserProfile | null>;
-  adminLogin: (email: string, password: string) => Promise<AdminLoginChallenge | null>;
+  adminLogin: (email: string, password: string) => Promise<AdminLoginOutcome | null>;
+  adminStartEnrollment: (enrollmentChallenge: string) => Promise<AdminEnrollmentSecret | null>;
+  adminConfirmEnrollment: (enrollmentChallenge: string, code: string) => Promise<boolean>;
   adminVerifyTwoFactor: (challenge: string, code: string) => Promise<UserProfile | null>;
   requestOtp: (payload: { intent: OtpIntent; phoneE164: string }) => Promise<OtpRequestResult | null>;
   verifyOtp: (payload: { intent: OtpIntent; phoneE164: string; code: string }) => Promise<OtpVerifyResult | null>;
@@ -170,7 +196,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
    * then discovering 403s on every screen would be a worse experience than
    * asking for the code up front.
    */
-  const adminLogin = useCallback(async (email: string, password: string): Promise<AdminLoginChallenge | null> => {
+  const adminLogin = useCallback(async (email: string, password: string): Promise<AdminLoginOutcome | null> => {
     setLoading(true);
     setError(null);
     setFieldErrors({});
@@ -179,12 +205,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const envelope = response.data;
       const responseData = envelope?.success ? envelope.data : envelope;
 
+      if (responseData?.status === "mfa_enrollment_required") {
+        // Without the challenge there is nothing to enrol against, so treat a
+        // malformed body as the failure it is rather than advancing the client
+        // into setup that cannot complete.
+        if (!responseData.enrollment_challenge) {
+          setError("Invalid response: no setup attempt returned.");
+          return null;
+        }
+
+        return {
+          kind: "enroll",
+          prompt: {
+            status: "mfa_enrollment_required",
+            enrollmentChallenge: responseData.enrollment_challenge as string,
+            expiresInSeconds: (responseData.expires_in_seconds as number) ?? 300,
+            account: (responseData.account as string) ?? email,
+          },
+        };
+      }
+
       if (!responseData?.challenge) {
         setError("Invalid response: no sign-in challenge.");
         return null;
       }
 
       return {
+        kind: "verify",
         challenge: responseData.challenge as string,
         expiresInSeconds: (responseData.expires_in_seconds as number) ?? 300,
       };
@@ -224,6 +271,75 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setError(apiErr.message || "Verification failed.");
       setFieldErrors(apiErr.errors || {});
       return null;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  /**
+   * Fetch the secret for a first factor. Nothing is admitted by this; it only
+   * tells the operator what to load into their authenticator app.
+   */
+  const adminStartEnrollment = useCallback(async (enrollmentChallenge: string): Promise<AdminEnrollmentSecret | null> => {
+    setLoading(true);
+    setError(null);
+    setFieldErrors({});
+    try {
+      const response = await apiClient.post("/securegate/auth/2fa/enroll/start", {
+        enrollment_challenge: enrollmentChallenge,
+      });
+      const envelope = response.data;
+      const data = envelope?.success ? envelope.data : envelope;
+
+      if (!data?.secret || !data?.provision_url) {
+        setError("Invalid response: no enrolment secret returned.");
+        return null;
+      }
+
+      return {
+        secret: data.secret as string,
+        provisionUrl: data.provision_url as string,
+        recoveryCodes: (data.recovery_codes as string[]) ?? [],
+        expiresInSeconds: (data.expires_in_seconds as number) ?? 300,
+      };
+    } catch (err: unknown) {
+      const apiErr = err && typeof err === "object" ? (err as ApiError) : { message: "An unexpected error occurred.", errors: {} };
+      setError(apiErr.message || "Could not start two-factor setup.");
+      setFieldErrors(apiErr.errors || {});
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  /**
+   * Confirm the factor with a live code. This is the step that makes it real —
+   * until it succeeds the account is still refused at sign-in.
+   */
+  const adminConfirmEnrollment = useCallback(async (enrollmentChallenge: string, code: string): Promise<boolean> => {
+    setLoading(true);
+    setError(null);
+    setFieldErrors({});
+    try {
+      const response = await apiClient.post("/securegate/auth/2fa/enroll/confirm", {
+        enrollment_challenge: enrollmentChallenge,
+        code,
+      });
+      const envelope = response.data;
+      const data = envelope?.success ? envelope.data : envelope;
+
+      if (!data?.mfa_enrolled) {
+        setError("Two-factor setup did not complete.");
+        return false;
+      }
+
+      toast.success("Two-factor authentication is set up. Sign in to continue.");
+      return true;
+    } catch (err: unknown) {
+      const apiErr = err && typeof err === "object" ? (err as ApiError) : { message: "An unexpected error occurred.", errors: {} };
+      setError(apiErr.message || "That code is not valid.");
+      setFieldErrors(apiErr.errors || {});
+      return false;
     } finally {
       setLoading(false);
     }
@@ -379,6 +495,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     login,
     adminLogin,
     adminVerifyTwoFactor,
+    adminStartEnrollment,
+    adminConfirmEnrollment,
     requestOtp,
     verifyOtp,
     register,

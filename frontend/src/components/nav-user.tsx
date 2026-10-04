@@ -27,7 +27,8 @@ import {
   ShieldCheck as ShieldCheck,
   Bell as Bell,
   Wallet as Wallet,
-  SignOut as LogOut
+  SignOut as LogOut,
+  Lock as LockIcon
 } from "@phosphor-icons/react";
 
 interface NavUserProps {
@@ -41,7 +42,8 @@ interface NavUserProps {
 export function NavUser({ user }: NavUserProps) {
   const { isMobile } = useSidebar();
   const navigate = useNavigate();
-  const { logout } = useAuth();
+  const { user: authUser, logout } = useAuth();
+  const isAdmin = authUser?.role === "admin";
 
   const handleLogout = async () => {
     try {
@@ -106,24 +108,50 @@ export function NavUser({ user }: NavUserProps) {
                   Profile & Identity
                 </Link>
               </DropdownMenuItem>
-              <DropdownMenuItem asChild className="cursor-pointer gap-2">
-                <Link to="/app/settings/kyc">
-                  <ShieldCheck weight="fill" className="size-4" />
-                  KYC Verification
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild className="cursor-pointer gap-2">
-                <Link to="/app/wallet">
-                  <Wallet weight="fill" className="size-4" />
-                  MurihPay Wallet
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild className="cursor-pointer gap-2">
-                <Link to="/app/settings/notifications">
-                  <Bell weight="fill" className="size-4" />
-                  Notifications
-                </Link>
-              </DropdownMenuItem>
+
+              {isAdmin ? (
+                <>
+                  <DropdownMenuItem asChild className="cursor-pointer gap-2">
+                    <Link to="/app/securegate">
+                      <ShieldCheck weight="fill" className="size-4 text-amber-500" />
+                      Admin Control Panel
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild className="cursor-pointer gap-2">
+                    <Link to="/app/securegate/notifications">
+                      <Bell weight="fill" className="size-4 text-primary" />
+                      Admin Notification Center
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild className="cursor-pointer gap-2">
+                    <Link to="/app/settings/security">
+                      <LockIcon weight="fill" className="size-4" />
+                      Active Sessions & Security
+                    </Link>
+                  </DropdownMenuItem>
+                </>
+              ) : (
+                <>
+                  <DropdownMenuItem asChild className="cursor-pointer gap-2">
+                    <Link to="/app/settings/kyc">
+                      <ShieldCheck weight="fill" className="size-4" />
+                      KYC Verification
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild className="cursor-pointer gap-2">
+                    <Link to="/app/wallet">
+                      <Wallet weight="fill" className="size-4" />
+                      MurihPay Wallet
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild className="cursor-pointer gap-2">
+                    <Link to="/app/settings/notifications">
+                      <Bell weight="fill" className="size-4" />
+                      Notifications
+                    </Link>
+                  </DropdownMenuItem>
+                </>
+              )}
             </DropdownMenuGroup>
 
             <DropdownMenuSeparator />
