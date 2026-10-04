@@ -49,11 +49,8 @@ export default function CreatorWalletPage() {
         apiClient.get("/wallet/type/system"),
       ]);
 
-      const cData = cRes.data?.data?.data ?? cRes.data?.data ?? cRes.data;
-      const sData = sRes.data?.data?.data ?? sRes.data?.data ?? sRes.data;
-
-      if (cData && typeof cData === "object" && cData.id) setWallet(cData);
-      if (sData && typeof sData === "object" && sData.id) setSystemWallet(sData);
+      if (cRes.data?.data) setWallet(cRes.data.data);
+      if (sRes.data?.data) setSystemWallet(sRes.data.data);
     } catch {
       toast.error("Failed to load Creator Wallet.");
       setError(true);

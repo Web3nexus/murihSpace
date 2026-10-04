@@ -65,6 +65,6 @@ class WalletService
         // Auto-provision if missing
         $this->provisionForUser($user);
 
-        return Wallet::where('user_id', $user->id)->orderBy('id', 'asc')->get();
+        return Wallet::where('user_id', $user->id)->get();
     }
 }

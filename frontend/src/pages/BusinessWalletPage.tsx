@@ -47,11 +47,8 @@ export default function BusinessWalletPage() {
         apiClient.get("/wallet/type/system"),
       ]);
 
-      const bData = bRes.data?.data?.data ?? bRes.data?.data ?? bRes.data;
-      const sData = sRes.data?.data?.data ?? sRes.data?.data ?? sRes.data;
-
-      if (bData && typeof bData === "object" && bData.id) setWallet(bData);
-      if (sData && typeof sData === "object" && sData.id) setSystemWallet(sData);
+      if (bRes.data?.data) setWallet(bRes.data.data);
+      if (sRes.data?.data) setSystemWallet(sRes.data.data);
     } catch {
       toast.error("Failed to load Business Wallet.");
     } finally {

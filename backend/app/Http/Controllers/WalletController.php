@@ -40,24 +40,11 @@ class WalletController extends Controller
             : app(\App\Services\LocalCurrencyResolver::class)->currency($user));
         $wallets        = $this->walletService->getUserWallets($user);
 
-        $data = $wallets->map(fn (Wallet $w) => $this->formatWalletData($w, $targetCurrency))->values();
+        $data = $wallets->map(fn (Wallet $w) => $this->formatWalletData($w, $targetCurrency));
 
         return response()->json([
-            'success' => true,
             'data' => $data,
         ]);
-    }
-
-    /**
-     * POST /api/v1/wallet/provision
-     * Explicitly provision/ensure user wallets and return all wallets.
-     */
-    public function provision(Request $request): JsonResponse
-    {
-        $user = $request->user();
-        $this->walletService->provisionForUser($user);
-
-        return $this->index($request);
     }
 
     /**
@@ -73,7 +60,6 @@ class WalletController extends Controller
         $wallet         = $this->walletService->getOrCreateWallet($user, $type);
 
         return response()->json([
-            'success' => true,
             'data' => $this->formatWalletData($wallet, $targetCurrency),
         ]);
     }
@@ -466,23 +452,32 @@ class WalletController extends Controller
 
     private function formatWalletData(Wallet $w, string $targetCurrency = 'USD'): array
     {
+        $rateService = app(\App\Services\Payment\LiveExchangeRateService::class);
+
+        // A rate provider that is slow, erroring, or returning nothing must not
+        // take the balance endpoint down with it: the balances below are the
+        // actual product, the converted figure is a convenience. Falling back to
+        // 1.0 keeps the response well-formed and, together with the null
+        // formatted estimate, tells the client not to show a converted number.
         try {
-            $rateService = app(\App\Services\Payment\LiveExchangeRateService::class);
-            $localRate = (float) ($rateService->getRate($w->currency, $targetCurrency) ?: 1.0);
-        } catch (\Throwable) {
+            $localRate = (float) $rateService->getRate($w->currency, $targetCurrency);
+        } catch (\Throwable $e) {
+            \Log::warning('[Wallet] exchange rate unavailable: '.$e->getMessage(), [
+                'from' => $w->currency,
+                'to' => $targetCurrency,
+            ]);
+            $localRate = 0.0;
+        }
+
+        $rateAvailable = $localRate > 0;
+        if (! $rateAvailable) {
             $localRate = 1.0;
         }
 
         $availableUsd = $w->available / 100.0;
-        $localEstimatedAvailable = round($availableUsd * $localRate, 2);
-        $formattedLocal = '$' . number_format($localEstimatedAvailable, 2);
-        try {
-            if (isset($rateService)) {
-                $formattedLocal = $rateService->format($localEstimatedAvailable, $targetCurrency);
-            }
-        } catch (\Throwable) {
-            // fallback
-        }
+        $localEstimatedAvailable = $rateAvailable
+            ? round($availableUsd * $localRate, 2)
+            : null;
 
         return [
             'id'                       => $w->id,
@@ -499,9 +494,11 @@ class WalletController extends Controller
             'amount_usd'               => $availableUsd,
             'coins'                    => $w->available, // 100 coins = $1.00 USD peg (1 cent = 1 coin)
             'local_currency'           => $targetCurrency,
-            'local_rate'               => $localRate,
+            // Null rather than a fabricated 1.0 rate when the provider failed,
+            // so a client cannot present a converted figure it invented.
+            'local_rate'               => $rateAvailable ? $localRate : null,
             'local_estimated_available'=> $localEstimatedAvailable,
-            'local_formatted'          => $formattedLocal,
+            'local_formatted'          => $rateService->format($localEstimatedAvailable, $targetCurrency),
             'formatted'                => [
                 'available'    => $this->formatAmount($w->available, $w->currency),
                 'pending'      => $this->formatAmount($w->pending, $w->currency),

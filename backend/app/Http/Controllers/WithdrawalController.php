@@ -70,6 +70,31 @@ class WithdrawalController extends Controller
             'status'   => 'pending',
         ]);
 
+        try {
+            app(\App\Services\AdminNotificationService::class)->dispatch([
+                'category' => \App\Enums\AdminNotificationCategory::WithdrawalRequest->value,
+                'severity' => 'warning',
+                'title' => 'New Withdrawal Request',
+                // `amount` is USD cents. Labelling it with the destination code
+                // told the approving operator that a USD 50.00 request was
+                // "NGN 50.00", on the screen where that mistake is expensive.
+                'message' => "User {$user->name} requested a withdrawal of USD "
+                    . number_format($validated['amount'] / 100.0, 2)
+                    . " (payout in {$destCurrency}).",
+                'action_url' => '/securegate/payouts',
+                'reference_id' => (string) $withdrawal->id,
+                'reference_type' => 'withdrawal_request',
+                'metadata' => [
+                    'withdrawal_id' => $withdrawal->id,
+                    'user_id' => $user->id,
+                    'amount' => $validated['amount'],
+                    'currency' => $destCurrency,
+                ],
+            ]);
+        } catch (\Throwable $e) {
+            // Non-blocking
+        }
+
         return response()->json([
             'message' => 'Withdrawal request submitted for review.',
             'data' => array_merge($withdrawal->toArray(), [

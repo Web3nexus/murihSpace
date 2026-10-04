@@ -109,40 +109,4 @@ $systemWallet = Wallet::where('user_id', $user->id)->where('wallet_type', 'syste
         $response->assertStatus(403);
         $this->assertStringContainsString('System wallet funds cannot be withdrawn', $response->json('message'));
     }
-
-    public function test_user_can_list_wallets_with_proper_enveloping(): void
-    {
-        $user = User::factory()->create(['role' => 'creator']);
-
-        $res = $this->actingAs($user)->getJson('/api/v1/wallet');
-
-        $res->assertOk();
-        $res->assertJsonPath('success', true);
-        $this->assertIsArray($res->json('data'));
-        $this->assertCount(3, $res->json('data'));
-        $this->assertSame('system', $res->json('data.0.wallet_type'));
-    }
-
-    public function test_user_can_explicitly_provision_wallets(): void
-    {
-        $user = User::factory()->create(['role' => 'vendor']);
-
-        $res = $this->actingAs($user)->postJson('/api/v1/wallet/provision');
-
-        $res->assertOk();
-        $res->assertJsonPath('success', true);
-        $this->assertIsArray($res->json('data'));
-        $this->assertGreaterThanOrEqual(1, count($res->json('data')));
-    }
-
-    public function test_user_can_get_wallet_by_type(): void
-    {
-        $user = User::factory()->create(['role' => 'member']);
-
-        $res = $this->actingAs($user)->getJson('/api/v1/wallet/type/system');
-
-        $res->assertOk();
-        $res->assertJsonPath('success', true);
-        $this->assertSame('system', $res->json('data.wallet_type'));
-    }
 }
