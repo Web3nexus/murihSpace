@@ -30,6 +30,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class LiveStreamController extends Controller
 {
@@ -41,6 +42,8 @@ class LiveStreamController extends Controller
         private readonly LiveKitService $liveKitService,
         private readonly LiveStreamAttributionService $liveAttributions,
         private readonly NotificationService $notifications,
+        private readonly \App\Services\LiveStreamPresenceService $presence,
+        private readonly \App\Services\LiveKitAdminService $liveKitAdmin,
         private readonly WalletService $walletService,
         private readonly LedgerService $ledgerService,
         private readonly FeeCalculatorService $feeCalculator,
@@ -472,30 +475,24 @@ class LiveStreamController extends Controller
         }
 
         $user = $request->user();
-        $isHost = $user->id === $stream->user_id;
+        $isHost = (int) $user->id === (int) $stream->user_id;
 
-        // Upsert participant record
-        LiveStreamParticipant::updateOrCreate(
-            [
-                'live_stream_id' => $stream->id,
-                'user_id' => $user->id,
-            ],
-            [
-                'role' => $isHost ? 'host' : 'viewer',
-                'is_active' => true,
-                'joined_at' => now(),
-                'left_at' => null,
-            ]
+        // Register presence (and announce the arrival to the host's roster).
+        $participant = $this->presence->join(
+            $stream,
+            (int) $user->id,
+            $isHost ? LiveStreamParticipant::ROLE_HOST : LiveStreamParticipant::ROLE_VIEWER,
         );
 
         // Recalculate real active viewer count
-        $activeCount = $stream->activeParticipants()->count();
-        $stream->update([
-            'viewers_count' => $activeCount,
-            'peak_viewers' => max($stream->peak_viewers, $activeCount),
-        ]);
+        $activeCount = $this->presence->refreshCounts($stream);
 
         $this->liveAttributions->record($request, $stream, 'join');
+
+        // A co-host/promoted participant may publish; a restricted one may not,
+        // and a restriction must not be undone simply by rejoining the stream.
+        $canPublish = $isHost
+            || ($participant->canModerate() && ! $participant->is_restricted);
 
         // Generate LiveKit token safely
         $token = null;
@@ -508,11 +505,15 @@ class LiveStreamController extends Controller
                     'name' => $user->name,
                     'username' => $user->username,
                     'avatar_url' => $user->avatar_url ?? $user->avatar,
-                    'role' => $isHost ? 'host' : 'viewer',
+                    'role' => $participant->role,
                 ]),
-                canPublish: $isHost,
+                canPublish: $canPublish,
                 canSubscribe: true,
                 name: $user->name,
+                // Not room-admin. Broadcast moderation is enforced server-side
+                // against the roster via LiveKitAdminService; a client-side grant
+                // would only offer a way around those checks.
+                roomAdmin: false,
             );
         } catch (\Throwable $e) {
             \Log::warning('[LiveStreamController] Viewer LiveKit token generation failed: '.$e->getMessage(), [
@@ -529,7 +530,7 @@ class LiveStreamController extends Controller
                 'token' => $token,
                 'room' => $stream->livekit_room,
                 'host' => $this->getLivekitHost(),
-                'is_publisher' => $isHost,
+                'is_publisher' => $canPublish,
             ],
         ]);
     }
@@ -542,21 +543,219 @@ class LiveStreamController extends Controller
         $stream = LiveStream::findOrFail($id);
         $user = $request->user();
 
-        LiveStreamParticipant::where('live_stream_id', $stream->id)
-            ->where('user_id', $user->id)
-            ->update([
-                'is_active' => false,
-                'left_at' => now(),
-            ]);
+        $this->presence->leave($stream, (int) $user->id);
 
-        $activeCount = $stream->activeParticipants()->count();
-        $stream->update(['viewers_count' => $activeCount]);
+        $activeCount = $this->presence->refreshCounts($stream);
         $this->liveAttributions->record($request, $stream, 'leave');
 
         return response()->json([
             'message' => 'Left live stream.',
             'viewers_count' => $activeCount,
         ]);
+    }
+
+    // ── Host participant management (server-authorized) ─────────────────────
+
+    /**
+     * Full participant roster for the host's moderation panel.
+     *
+     * Also reconciles against the media server first so the panel reflects
+     * reality rather than whatever the browser last reported.
+     */
+    public function participants(Request $request, int $id): JsonResponse
+    {
+        $stream = LiveStream::findOrFail($id);
+        $user = $request->user();
+
+        $moderator = $this->presence->moderatorFor($stream, (int) $user->id, (bool) $user->isAdmin());
+
+        if (! $moderator) {
+            return response()->json(['message' => 'Only the broadcast host or a moderator can view participants.'], 403);
+        }
+
+        // Reconciled only once the caller is entitled to the roster. Reconciliation
+        // mutates participant rows and calls the media server; doing it before the
+        // authorisation check would let any viewer drive that work.
+        $this->presence->reconcile($stream);
+
+        $active = $this->presence->refreshCounts($stream);
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'stream_id' => $stream->id,
+                'role' => $moderator->role,
+                'can_moderate' => true,
+                'participants' => $this->presence->roster($stream),
+                'active_count' => $active,
+            ],
+        ]);
+    }
+
+    /**
+     * Promote/demote a participant (co-host / moderator / viewer).
+     */
+    public function updateParticipantRole(Request $request, int $id, int $userId): JsonResponse
+    {
+        $validated = $request->validate([
+            'role' => ['required', 'string', Rule::in([
+                LiveStreamParticipant::ROLE_CO_HOST,
+                LiveStreamParticipant::ROLE_MODERATOR,
+                LiveStreamParticipant::ROLE_VIEWER,
+            ])],
+        ]);
+
+        $stream = LiveStream::findOrFail($id);
+
+        // Stricter than authorizeLiveModerator, which admits moderators. Letting
+        // a moderator promote somebody to co-host is a privilege ladder: the
+        // target outranks the actor and can then remove the role that allowed
+        // the promotion. Assigning roles is the host's call.
+        $actor = $request->user();
+        $isHost = (int) $stream->user_id === (int) $actor->id;
+        if (! $isHost && ! $actor->isAdmin()) {
+            return response()->json(['message' => 'Only the broadcast host can change participant roles.'], 403);
+        }
+
+        if ((int) $stream->user_id === $userId) {
+            return response()->json(['message' => 'The broadcast host role cannot be changed.'], 400);
+        }
+
+        if ((int) $actor->user_id === $userId) {
+            return response()->json(['message' => 'You cannot change your own role.'], 403);
+        }
+
+        $target = $this->presence->participantFor($stream, $userId);
+
+        if (! $target) {
+            return response()->json(['message' => 'That participant is not in this broadcast.'], 404);
+        }
+
+        $role = $validated['role'];
+        $this->presence->setRole($stream, $target, $role);
+
+        return response()->json([
+            'message' => "Participant role changed to {$role}.",
+            'data' => ['participants' => $this->presence->activeRoster($stream)],
+        ]);
+    }
+
+    /**
+     * Force a participant's microphone off in the room.
+     */
+    public function muteParticipant(Request $request, int $id, int $userId): JsonResponse
+    {
+        $stream = LiveStream::findOrFail($id);
+        $actor = $this->authorizeLiveModerator($request, $stream);
+
+        if ((int) $stream->user_id === $userId) {
+            return response()->json(['message' => 'The broadcast host cannot be muted.'], 400);
+        }
+
+        if ((int) $actor->user_id === $userId) {
+            return response()->json(['message' => 'You cannot mute yourself.'], 403);
+        }
+
+        $target = $this->presence->participantFor($stream, $userId);
+
+        if (! $target || ! $target->is_active) {
+            return response()->json(['message' => 'That participant is not in this broadcast.'], 404);
+        }
+
+        $this->presence->mute($stream, $target);
+
+        return response()->json([
+            'message' => 'Participant microphone muted.',
+            'data' => ['participants' => $this->presence->activeRoster($stream)],
+        ]);
+    }
+
+    /**
+     * Restrict (revoke publish rights) or restore a participant.
+     */
+    public function restrictParticipant(Request $request, int $id, int $userId): JsonResponse
+    {
+        $validated = $request->validate([
+            'restricted' => ['required', 'boolean'],
+        ]);
+
+        $stream = LiveStream::findOrFail($id);
+        $actor = $this->authorizeLiveModerator($request, $stream);
+
+        if ((int) $stream->user_id === $userId) {
+            return response()->json(['message' => 'The broadcast host cannot be restricted.'], 400);
+        }
+
+        if ((int) $actor->user_id === $userId) {
+            return response()->json(['message' => 'You cannot change your own access.'], 403);
+        }
+
+        $target = $this->presence->participantFor($stream, $userId);
+
+        if (! $target || ! $target->is_active) {
+            return response()->json(['message' => 'That participant is not in this broadcast.'], 404);
+        }
+
+        $restricted = (bool) $validated['restricted'];
+        $mediaSynced = $this->presence->setRestricted($stream, $target, $restricted);
+
+        if ($this->liveKitAdmin->isConfigured() && ! $mediaSynced) {
+            return response()->json([
+                'message' => 'The broadcast service is unavailable, so access could not be changed. Try again shortly.',
+            ], 503);
+        }
+
+        return response()->json([
+            'message' => $restricted ? 'Participant restricted.' : 'Participant access restored.',
+            'data' => ['participants' => $this->presence->activeRoster($stream)],
+        ]);
+    }
+
+    /**
+     * Remove a participant from the broadcast.
+     */
+    public function removeParticipant(Request $request, int $id, int $userId): JsonResponse
+    {
+        $stream = LiveStream::findOrFail($id);
+        $actor = $this->authorizeLiveModerator($request, $stream);
+
+        if ((int) $stream->user_id === $userId) {
+            return response()->json(['message' => 'The broadcast host cannot be removed.'], 400);
+        }
+
+        if ((int) $actor->user_id === $userId) {
+            return response()->json(['message' => 'You cannot remove yourself.'], 403);
+        }
+
+        $target = $this->presence->participantFor($stream, $userId);
+
+        if (! $target || ! $target->is_active) {
+            return response()->json(['message' => 'That participant is not in this broadcast.'], 404);
+        }
+
+        $this->presence->remove($stream, $target);
+        $this->presence->refreshCounts($stream);
+
+        return response()->json([
+            'message' => 'Participant removed from the broadcast.',
+            'data' => ['participants' => $this->presence->activeRoster($stream)],
+        ]);
+    }
+
+    /**
+     * Every live moderation route funnels through here so a viewer can never
+     * reach a host API by guessing the URL.
+     */
+    private function authorizeLiveModerator(Request $request, LiveStream $stream): LiveStreamParticipant
+    {
+        $user = $request->user();
+        $moderator = $this->presence->moderatorFor($stream, (int) $user->id, (bool) $user->isAdmin());
+
+        if (! $moderator) {
+            abort(403, 'Only the broadcast host or a moderator can perform this action.');
+        }
+
+        return $moderator;
     }
 
     /**
@@ -1161,6 +1360,20 @@ class LiveStreamController extends Controller
                 'is_active' => false,
                 'left_at' => now(),
             ]);
+
+        // Drop every remaining viewer from the media room so the LiveKit
+        // session genuinely closes when the host ends the broadcast. Removing
+        // only the host left viewers connected to a stream the database had
+        // already marked ended.
+        $this->liveKitAdmin->removeAllParticipants(
+            $stream->livekit_room,
+            $this->presence->identityFor(
+                LiveStreamParticipant::where('live_stream_id', $stream->id)
+                    ->where('user_id', $stream->user_id)
+                    ->first()
+                    ?? new LiveStreamParticipant(['live_stream_id' => $stream->id, 'user_id' => $stream->user_id])
+            ),
+        );
 
         $summary = [
             'total_likes' => $stream->likes_count,

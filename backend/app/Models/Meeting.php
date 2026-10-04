@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Meeting extends Model
 {
@@ -23,6 +24,16 @@ class Meeting extends Model
     public function host(): BelongsTo
     {
         return $this->belongsTo(User::class, 'host_user_id');
+    }
+
+    public function participants(): HasMany
+    {
+        return $this->hasMany(MeetingParticipant::class);
+    }
+
+    public function activeParticipants(): HasMany
+    {
+        return $this->hasMany(MeetingParticipant::class)->where('is_active', true);
     }
 
     /**

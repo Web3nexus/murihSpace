@@ -1,6 +1,7 @@
 <?php
 
 use App\Exceptions\InsufficientBalanceException;
+use App\Exceptions\RemovedFromSessionException;
 use App\Http\Middleware\ActivityLogMiddleware;
 use App\Http\Middleware\CachePublicResponse;
 use App\Http\Middleware\CaptureRequestAndEnvelopeResponse;
@@ -102,6 +103,13 @@ return Application::configure(basePath: dirname(__DIR__))
                 } elseif ($e instanceof InsufficientBalanceException) {
                     $status = 422;
                     $code = InsufficientBalanceException::CODE;
+                } elseif ($e instanceof RemovedFromSessionException) {
+                    // 403, not 409/404: the caller is authenticated and the
+                    // session exists — they are simply not permitted back in,
+                    // which is a permission answer.
+                    $status = 403;
+                    $message = $e->getMessage();
+                    $code = RemovedFromSessionException::CODE;
                 }
 
                 $requestId = $request->header('X-Request-ID')
