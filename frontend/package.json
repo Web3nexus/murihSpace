@@ -10,7 +10,9 @@
     "lint": "eslint .",
     "typecheck": "tsc -b --pretty false",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "links": "node scripts/generate-association-files.mjs",
+    "links:write": "node scripts/generate-association-files.mjs --write"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

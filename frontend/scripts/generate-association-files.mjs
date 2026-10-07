@@ -9,18 +9,25 @@
  * silently and opens the browser instead of the app, so regenerate these
  * whenever a keystore or Apple team changes.
  *
- * Usage:
+ * The two signing identities are read from `.env` (see `.env.example`), so a
+ * regeneration after a team or keystore change is one command:
+ *
  *   # Android — prints the SHA256 fingerprint of a keystore
  *   keytool -list -v -keystore upload-keystore.jks -alias upload \
  *     | grep SHA256
  *
+ *   npm run links:write          # regenerate from .env
+ *   npm run links                # print what is currently committed
+ *
+ * Flags override `.env` for the run, and an already-exported variable beats
+ * both, so CI can inject the values without a checkout of `.env`:
+ *
  *   node scripts/generate-association-files.mjs \
- *     --android-package com.murihspace.mobile \
  *     --android-fingerprint "AA:BB:..." \
  *     --ios-team-id ABCDE12345
  *
- * With no arguments it prints the current values found in the files, which is
- * handy for confirming what is deployed.
+ * With neither flags nor `--write` it prints the current values found in the
+ * files, which is handy for confirming what is deployed.
  */
 
 import { execFileSync } from "node:child_process";
@@ -84,6 +91,47 @@ const APP_COMPONENTS = [
   { "/": "/app/community/*", comment: "In-app community route" },
 ];
 
+/**
+ * Minimal `.env` reader — the script must not gain a dependency just to read
+ * four lines. Later files win, matching Vite's own loading order, and a value
+ * already in `process.env` beats every file.
+ */
+const ENV_FILES = [".env", ".env.local", ".env.production", ".env.production.local"];
+
+function loadEnvFiles() {
+  const fromFiles = {};
+  for (const name of ENV_FILES) {
+    const path = join(root, name);
+    let contents;
+    try {
+      contents = readFileSync(path, "utf8");
+    } catch {
+      continue;
+    }
+    for (const line of contents.split(/\r?\n/)) {
+      const match = /^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$/.exec(line);
+      if (!match) continue;
+      let value = match[2].trim();
+      if ((value.startsWith('"') && value.endsWith('"')) ||
+          (value.startsWith("'") && value.endsWith("'"))) {
+        value = value.slice(1, -1);
+      }
+      fromFiles[match[1]] = value;
+    }
+  }
+  return fromFiles;
+}
+
+const envFiles = loadEnvFiles();
+
+/** Resolves a signing identity from `.env`, or an exported variable over it. */
+function fromEnv(key) {
+  const exported = process.env[key];
+  if (exported !== undefined && exported !== "") return exported.trim();
+  const value = envFiles[key];
+  return value !== undefined && value !== "" ? value.trim() : undefined;
+}
+
 function parseArgs(argv) {
   const args = {};
   for (let i = 0; i < argv.length; i += 1) {
@@ -103,21 +151,29 @@ function parseArgs(argv) {
 
 const args = parseArgs(process.argv.slice(2));
 
+// `--write` (or `npm run links:write`) is what makes `.env` authoritative.
+// Without it, only explicit flags change anything, so a bare run stays a read.
+const useEnv = Boolean(args["write"]);
+const resolve = (flag, envKey) => (args[flag] ?? (useEnv ? fromEnv(envKey) : undefined));
+
+const packageName = resolve("android-package", "ANDROID_PACKAGE") ?? "com.murihspace.mobile";
+const rawFingerprints = resolve("android-fingerprint", "ANDROID_FINGERPRINT");
+const teamId = resolve("ios-team-id", "IOS_TEAM_ID");
+const bundleId = resolve("ios-bundle-id", "IOS_BUNDLE_ID") ?? "com.murihspace.mobile";
+
 // ── Report only ───────────────────────────────────────────────────
-if (!args["android-fingerprint"] && !args["ios-team-id"]) {
+if (!useEnv && !args["android-fingerprint"] && !args["ios-team-id"]) {
   console.log("Current apple-app-site-association:");
   console.log(readFileSync(aasaPath, "utf8"));
   console.log("\nCurrent assetlinks.json:");
   console.log(readFileSync(assetLinksPath, "utf8"));
   console.log(
-    "\nNo changes made. Pass --android-fingerprint and/or --ios-team-id to rewrite.",
+    "\nNo changes made. Run `npm run links:write` to regenerate from .env, or pass --android-fingerprint / --ios-team-id.",
   );
   process.exit(0);
 }
 
 // ── Android ───────────────────────────────────────────────────────
-const packageName = args["android-package"] ?? "com.murihspace.mobile";
-const rawFingerprints = args["android-fingerprint"];
 if (rawFingerprints) {
   const fingerprints = (Array.isArray(rawFingerprints) ? rawFingerprints : [rawFingerprints])
     .flatMap((value) => String(value).split(","))
@@ -152,12 +208,10 @@ if (rawFingerprints) {
   );
   console.log(`Wrote ${fingerprints.length} fingerprint(s) to assetlinks.json`);
 } else {
-  console.warn("--android-fingerprint missing: assetlinks.json left unchanged.");
+  console.warn("ANDROID_FINGERPRINT not set: assetlinks.json left unchanged.");
 }
 
 // ── iOS ───────────────────────────────────────────────────────────
-const teamId = args["ios-team-id"];
-const bundleId = args["ios-bundle-id"] ?? "com.murihspace.mobile";
 if (teamId) {
   const appId = `${teamId}.${bundleId}`;
   const document = `${JSON.stringify(
@@ -182,7 +236,7 @@ if (teamId) {
   }
   console.log(`Wrote appID ${appId} to ${aasaPaths.length} AASA copies`);
 } else {
-  console.warn("--ios-team-id missing: apple-app-site-association left unchanged.");
+  console.warn("IOS_TEAM_ID not set: apple-app-site-association left unchanged.");
 }
 
 console.log("\nVerify with:");
