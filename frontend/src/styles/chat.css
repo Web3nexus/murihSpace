@@ -1,17 +1,19 @@
 /*
- * WhatsApp-style doodle backdrop for the desktop web chat.
+ * Decorative backdrop for the desktop web chat.
  *
  * The artwork (assets/chat-pattern-desktop.png) is a light-blue ink on a fully
  * transparent field, so it would be invisible on the light theme. Rather than
  * shipping a second tinted copy, the PNG is used as an alpha *mask* over a
  * solid ink colour, which mirrors the `BlendMode.srcIn` treatment used by the
- * Flutter chat background and lets one asset serve both themes.
+ * Flutter chat background and lets one asset serve both themes. Only the alpha
+ * channel is ever read; the ink colour baked into the PNG is never shown.
  *
  * The pattern is deliberately faint: it should read as texture behind the
  * message bubbles, never compete with message text.
  *
- * Only applied from the lg breakpoint up. The artwork is a 1920x1080 desktop
- * composition, and narrow viewports would merely crop it.
+ * Only applied from the lg breakpoint up. The artwork is a 941x1672 portrait
+ * composition, so on a wide viewport `cover` scales it to the surface width and
+ * shows its top portion; narrow viewports would merely crop it further.
  */
 .chat-pattern {
   position: relative;
