@@ -15,6 +15,7 @@ import {
   ArrowsClockwise as RefreshCw,
   CheckCircle as CheckCircle2
 } from "@phosphor-icons/react";
+import { siteUrl } from "@/lib/deepLinks";
 import { authFetch } from "@/lib/api/authFetch";
 
 
@@ -330,7 +331,7 @@ export function ReferralsPage() {
             <div className="flex flex-col sm:flex-row gap-3">
               <div className="relative flex-1">
                 <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
-                  <span className="text-muted-foreground text-sm font-mono">murihspace.com/ref/</span>
+                  <span className="text-muted-foreground text-sm font-mono">{siteUrl().replace(/^https?:\/\//, "")}/ref/</span>
                 </div>
                 <input 
                   value={newCode} 

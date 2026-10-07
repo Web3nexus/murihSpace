@@ -1,4 +1,5 @@
 import * as React from "react";
+import { absolute } from "@/lib/deepLinks";
 import {
   Dialog,
   DialogContent,
@@ -269,7 +270,7 @@ export function CreateGroupModal({
                     <p className="text-[11px] text-muted-foreground flex items-center gap-1 font-mono">
                       <span>URL:</span>
                       <span className="text-primary font-semibold truncate">
-                        murihspace.com/app/groups/{previewSlug}
+                        {absolute(`/app/groups/${previewSlug}`)}
                       </span>
                     </p>
                   </div>

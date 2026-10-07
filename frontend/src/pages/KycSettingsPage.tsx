@@ -16,6 +16,7 @@ import {
 } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { apiClient } from "@/lib/api/client";
+import { absolute } from "@/lib/deepLinks";
 import { useAuth } from "@/hooks/useAuth";
 
 type KycStatus =
@@ -302,7 +303,7 @@ export default function KycSettingsPage() {
   };
 
   const copyMobileLink = () => {
-    const kycDeepLink = "https://murihspace.com/app/kyc";
+    const kycDeepLink = absolute("/app/kyc");
     navigator.clipboard.writeText(kycDeepLink);
     toast.success("Mobile KYC link copied to clipboard!");
   };
@@ -320,7 +321,7 @@ export default function KycSettingsPage() {
   const isPending = status === "pending" || status === "in_review";
 
   // Universal deep-link QR content for mobile app handoff
-  const kycQrUrl = "https://murihspace.com/app/kyc";
+  const kycQrUrl = absolute("/app/kyc");
 
   return (
     <div className="space-y-6 w-full max-w-3xl mx-auto py-2">

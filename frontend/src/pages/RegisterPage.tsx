@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { usePlatformConfig } from "@/hooks/usePlatformConfig";
 import { isRegistrationOpen } from "@/lib/authMethods";
 import { stashSocialReturn, usePostAuthRedirect } from "@/lib/usePostAuthRedirect";
+import { absolute, profileUrl } from "@/lib/deepLinks";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -448,7 +449,7 @@ export function RegisterPage() {
             <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-start gap-2.5">
               <Crown weight="fill" className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
               <div>
-                <p className="text-xs font-bold text-emerald-500">Your link: <span className="font-mono">murihspace.com/@{username || "username"}</span></p>
+                <p className="text-xs font-bold text-emerald-500">Your link: <span className="font-mono">{absolute(profileUrl(username || "username"))}</span></p>
                 <p className="text-[10px] text-emerald-500/70 mt-0.5">Usernames are free — yours to keep.</p>
               </div>
             </div>

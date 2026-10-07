@@ -24,7 +24,7 @@ class BrandDealMilestoneController extends Controller
                 'due_date' => '2026-09-01',
                 'status' => 'approved_and_released', // pending, funded_in_escrow, submitted_for_review, approved_and_released, disputed
                 'proof_notes' => 'Storyboard PDF submitted via chat link.',
-                'proof_url' => 'https://murihspace.com/storage/proofs/storyboard_v1.pdf',
+                'proof_url' => asset('storage/proofs/storyboard_v1.pdf'),
                 'escrow_held' => false,
                 'dispute_reason' => null,
             ],
