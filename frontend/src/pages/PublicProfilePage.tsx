@@ -27,6 +27,7 @@ import {
   CheckCircle as CheckCircle,
   User as UserIcon
 } from "@phosphor-icons/react";
+import { absolute, profileUrl } from "@/lib/deepLinks";
 
 interface PublicCommunity {
   id: number;
@@ -793,7 +794,7 @@ export default function PublicProfilePage() {
         onClose={() => setShowShareModal(false)}
         title={profile.name || `@${cleanUsername}`}
         description={profile.bio || `Check out ${profile.name || cleanUsername}'s profile on MurihSpace`}
-        url={`${window.location.origin}/u/${cleanUsername}`}
+        url={absolute(profileUrl(cleanUsername))}
         type="profile"
         imageUrl={profile.avatar_url || profile.avatar}
         badge={profile.role}

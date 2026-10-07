@@ -1,0 +1,111 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appIDs": [
+          "TEAMID.com.murihspace.mobile"
+        ],
+        "components": [
+          {
+            "/": "/live",
+            "comment": "Live landing"
+          },
+          {
+            "/": "/live/*",
+            "comment": "Live session share link"
+          },
+          {
+            "/": "/m/*",
+            "comment": "Meeting invite"
+          },
+          {
+            "/": "/e/*",
+            "comment": "Event share link"
+          },
+          {
+            "/": "/p/*",
+            "comment": "Product share link"
+          },
+          {
+            "/": "/chat/*",
+            "comment": "Chat share link"
+          },
+          {
+            "/": "/u/*",
+            "comment": "Public profile"
+          },
+          {
+            "/": "/c/*",
+            "comment": "Community"
+          },
+          {
+            "/": "/l/*",
+            "comment": "Link in bio"
+          },
+          {
+            "/": "/store/*",
+            "comment": "Creator storefront"
+          },
+          {
+            "/": "/meeting/*",
+            "comment": "Legacy meeting alias"
+          },
+          {
+            "/": "/meetings/*",
+            "comment": "Legacy meeting alias"
+          },
+          {
+            "/": "/events/*",
+            "comment": "Legacy event alias"
+          },
+          {
+            "/": "/products/*",
+            "comment": "Legacy product alias"
+          },
+          {
+            "/": "/conversation/*",
+            "comment": "Legacy conversation alias"
+          },
+          {
+            "/": "/communities/*",
+            "comment": "Legacy community alias"
+          },
+          {
+            "/": "/community/*",
+            "comment": "Legacy community alias"
+          },
+          {
+            "/": "/bio/*",
+            "comment": "Legacy link-in-bio alias"
+          },
+          {
+            "/": "/app/meeting/*",
+            "comment": "In-app meeting route"
+          },
+          {
+            "/": "/app/meetings/*",
+            "comment": "In-app meetings route"
+          },
+          {
+            "/": "/app/conversation/*",
+            "comment": "In-app conversation route"
+          },
+          {
+            "/": "/app/community/*",
+            "comment": "In-app community route"
+          }
+        ]
+      }
+    ]
+  },
+  "webcredentials": {
+    "apps": [
+      "TEAMID.com.murihspace.mobile"
+    ]
+  },
+  "appclips": {
+    "apps": [],
+    "details": []
+  }
+}

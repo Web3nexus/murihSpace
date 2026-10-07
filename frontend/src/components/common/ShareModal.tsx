@@ -19,6 +19,7 @@ import {
   Code
 } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
+import { absolute } from "@/lib/deepLinks";
 
 export interface ShareModalProps {
   isOpen: boolean;
@@ -26,10 +27,20 @@ export interface ShareModalProps {
   title: string;
   url: string;
   description?: string;
-  type?: "profile" | "store" | "product";
+  type?: "profile" | "store" | "product" | "event" | "live" | "meeting";
   imageUrl?: string;
   badge?: string;
 }
+
+/** Exhaustive on purpose: a new `type` fails the build until it has a label. */
+const TYPE_LABELS: Record<NonNullable<ShareModalProps["type"]>, string> = {
+  profile: "Profile",
+  store: "Storefront",
+  product: "Product",
+  event: "Event",
+  live: "Live",
+  meeting: "Meeting",
+};
 
 export function ShareModal({
   isOpen,
@@ -47,7 +58,7 @@ export function ShareModal({
 
   if (!isOpen) return null;
 
-  const fullUrl = url.startsWith("http") ? url : `${window.location.origin}${url.startsWith("/") ? "" : "/"}${url}`;
+  const fullUrl = url.startsWith("http") ? url : absolute(url);
 
   const handleCopy = async () => {
     try {
@@ -145,7 +156,7 @@ export function ShareModal({
     link.click();
   };
 
-  const typeLabel = type === "store" ? "Storefront" : type === "product" ? "Product" : "Profile";
+  const typeLabel = TYPE_LABELS[type ?? "profile"];
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in">

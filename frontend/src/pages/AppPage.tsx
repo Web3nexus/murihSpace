@@ -30,6 +30,7 @@ import {
   WarningCircle as AlertCircle,
   User as UserIcon,
 } from "@phosphor-icons/react";
+import { absolute } from "@/lib/deepLinks";
 
 interface CommentItem {
   id: number;
@@ -503,7 +504,7 @@ export function AppPage() {
 
   function handleCopyLink() {
     if (!shareModalPost) return;
-    const postUrl = `${window.location.origin}/app/feed?post=${shareModalPost.id}`;
+    const postUrl = absolute(`/app/feed?post=${shareModalPost.id}`);
     navigator.clipboard.writeText(postUrl);
     setCopiedLink(true);
     setTimeout(() => setCopiedLink(false), 3000);
@@ -1189,7 +1190,7 @@ export function AppPage() {
               <input
                 type="text"
                 readOnly
-                value={`${window.location.origin}/app/feed?post=${shareModalPost.id}`}
+                value={absolute(`/app/feed?post=${shareModalPost.id}`)}
                 className="flex-1 h-9 px-3 text-xs rounded-lg border-none bg-muted/40 font-mono text-muted-foreground truncate"
               />
               <button
@@ -1203,7 +1204,7 @@ export function AppPage() {
 
             <div className="grid grid-cols-3 gap-2 pt-2">
               <a
-                href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareModalPost.content.slice(0, 100))}&url=${encodeURIComponent(`${window.location.origin}/app/feed?post=${shareModalPost.id}`)}`}
+                href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareModalPost.content.slice(0, 100))}&url=${encodeURIComponent(absolute(`/app/feed?post=${shareModalPost.id}`))}`}
                 target="_blank"
                 rel="noreferrer"
                 className="p-2.5 rounded-lg border-none bg-slate-50 dark:bg-muted/40 hover:bg-muted text-center text-xs font-semibold text-foreground transition-colors"
@@ -1211,7 +1212,7 @@ export function AppPage() {
                 Twitter / X
               </a>
               <a
-                href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(`${window.location.origin}/app/feed?post=${shareModalPost.id}`)}`}
+                href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(absolute(`/app/feed?post=${shareModalPost.id}`))}`}
                 target="_blank"
                 rel="noreferrer"
                 className="p-2.5 rounded-lg border-none bg-slate-50 dark:bg-muted/40 hover:bg-muted text-center text-xs font-semibold text-foreground transition-colors"
@@ -1219,7 +1220,7 @@ export function AppPage() {
                 Facebook
               </a>
               <a
-                href={`https://api.whatsapp.com/send?text=${encodeURIComponent(`${shareModalPost.content.slice(0, 100)} ${window.location.origin}/app/feed?post=${shareModalPost.id}`)}`}
+                href={`https://api.whatsapp.com/send?text=${encodeURIComponent(`${shareModalPost.content.slice(0, 100)} ${absolute(`/app/feed?post=${shareModalPost.id}`)}`)}`}
                 target="_blank"
                 rel="noreferrer"
                 className="p-2.5 rounded-lg border-none bg-slate-50 dark:bg-muted/40 hover:bg-muted text-center text-xs font-semibold text-foreground transition-colors"

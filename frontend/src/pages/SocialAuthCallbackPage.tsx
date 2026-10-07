@@ -6,6 +6,8 @@ import {
   ShieldWarning as ShieldWarning
 } from "@phosphor-icons/react";
 import { AuthLayout } from "@/components/layout/AuthLayout";
+import { sanitiseReturnTo } from "@/lib/deepLinks";
+import { takeSocialReturn } from "@/lib/usePostAuthRedirect";
 import { Link } from "react-router";
 
 
@@ -31,7 +33,16 @@ export function SocialAuthCallbackPage() {
     const finish = (token: string, _user: CallbackUser) => {
       localStorage.setItem("murihspace-token", token);
       // Let the auth provider re-hydrate from /user on the next screen.
-      window.location.replace("/app");
+      // Honour the shared link the visitor arrived with, so a Google or Apple
+      // sign-in started from /m/abc or /e/12 still lands on that meeting or
+      // event instead of the dashboard.
+      // The provider never echoes `next` back, so the login screen stashed the
+      // destination in this tab before leaving. An explicit `?next=` still wins
+      // for the flows that can carry one.
+      const stashed = takeSocialReturn();
+      const fromQuery = new URLSearchParams(window.location.search).get("next");
+      const next = sanitiseReturnTo(fromQuery) ?? sanitiseReturnTo(stashed);
+      window.location.replace(next ?? "/app");
     };
 
     const finishWithError = (msg: string) => {

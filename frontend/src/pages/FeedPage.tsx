@@ -25,6 +25,7 @@ import {
 } from "@phosphor-icons/react";
 import { SponsoredRightRail } from "@/components/ads/SponsoredRightRail";
 import { InterPostSponsoredAd, type SponsoredAdData } from "@/components/ads/InterPostSponsoredAd";
+import { absolute } from "@/lib/deepLinks";
 
 interface CommentItem {
   id: number;
@@ -845,12 +846,12 @@ export default function FeedPage() {
               <input
                 type="text"
                 readOnly
-                value={`${window.location.origin}/app/feed?post=${shareModalPost.id}`}
+                value={absolute(`/app/feed?post=${shareModalPost.id}`)}
                 className="flex-1 h-9 px-3 text-xs rounded-lg border-none bg-muted/40 font-mono text-muted-foreground truncate"
               />
               <button
                 onClick={() => {
-                  navigator.clipboard.writeText(`${window.location.origin}/app/feed?post=${shareModalPost.id}`);
+                  navigator.clipboard.writeText(absolute(`/app/feed?post=${shareModalPost.id}`));
                   setCopiedLink(true);
                   setTimeout(() => setCopiedLink(false), 3000);
                 }}
@@ -863,7 +864,7 @@ export default function FeedPage() {
 
             <div className="grid grid-cols-3 gap-2 pt-2">
               <a
-                href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareModalPost.content.slice(0, 100))}&url=${encodeURIComponent(`${window.location.origin}/app/feed?post=${shareModalPost.id}`)}`}
+                href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareModalPost.content.slice(0, 100))}&url=${encodeURIComponent(absolute(`/app/feed?post=${shareModalPost.id}`))}`}
                 target="_blank"
                 rel="noreferrer"
                 className="p-2.5 rounded-lg border-none bg-slate-50 dark:bg-muted/40 hover:bg-muted text-center text-xs font-semibold text-foreground transition-colors"
@@ -871,7 +872,7 @@ export default function FeedPage() {
                 Twitter / X
               </a>
               <a
-                href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(`${window.location.origin}/app/feed?post=${shareModalPost.id}`)}`}
+                href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(absolute(`/app/feed?post=${shareModalPost.id}`))}`}
                 target="_blank"
                 rel="noreferrer"
                 className="p-2.5 rounded-lg border-none bg-slate-50 dark:bg-muted/40 hover:bg-muted text-center text-xs font-semibold text-foreground transition-colors"
@@ -879,7 +880,7 @@ export default function FeedPage() {
                 Facebook
               </a>
               <a
-                href={`https://api.whatsapp.com/send?text=${encodeURIComponent(`${shareModalPost.content.slice(0, 100)} ${window.location.origin}/app/feed?post=${shareModalPost.id}`)}`}
+                href={`https://api.whatsapp.com/send?text=${encodeURIComponent(`${shareModalPost.content.slice(0, 100)} ${absolute(`/app/feed?post=${shareModalPost.id}`)}`)}`}
                 target="_blank"
                 rel="noreferrer"
                 className="p-2.5 rounded-lg border-none bg-slate-50 dark:bg-muted/40 hover:bg-muted text-center text-xs font-semibold text-foreground transition-colors"

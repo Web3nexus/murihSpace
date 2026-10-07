@@ -34,6 +34,7 @@ import { Badge } from '@/components/ui/badge';
 import { authFetch } from '@/lib/api/authFetch';
 import { mapApplicationError } from '@/lib/errorMapper';
 import { useAuth } from '@/hooks/useAuth';
+import { absolute, meetingUrl } from "@/lib/deepLinks";
 
 // Resolve the API against the environment the web app is served from (same
 // origin in production/staging) instead of a hardcoded fallback host.
@@ -494,7 +495,7 @@ export function LiveKitVideoConference({
 
   const buildMeetingLink = () =>
     meetingCode
-      ? `${window.location.origin}/app/meeting/${meetingCode}`
+      ? absolute(meetingUrl(meetingCode))
       : window.location.href;
 
   const handleCopyLink = () => {

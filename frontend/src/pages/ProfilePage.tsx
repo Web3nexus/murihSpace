@@ -25,6 +25,7 @@ import { cn } from "@/lib/utils";
 import { ShareModal } from "@/components/common/ShareModal";
 import { authFetch } from "@/lib/api/authFetch";
 import { toast } from "sonner";
+import { absolute, profileUrl } from "@/lib/deepLinks";
 
 function getInitials(nameStr: string): string {
   const parts = nameStr.trim().split(/\s+/).filter(Boolean);
@@ -662,7 +663,7 @@ export function ProfilePage() {
         onClose={() => setShowShareModal(false)}
         title={name || username || "User Profile"}
         description={bio || `Check out ${name || username}'s profile on MurihSpace`}
-        url={`${window.location.origin}/u/${username || profile?.username}`}
+        url={absolute(profileUrl(username || profile?.username || ""))}
         type="profile"
         imageUrl={avatar}
         badge={profile?.role}

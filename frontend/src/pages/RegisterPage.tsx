@@ -4,6 +4,7 @@ import { Link, useNavigate, useLocation } from "react-router";
 import { useAuth } from "@/hooks/useAuth";
 import { usePlatformConfig } from "@/hooks/usePlatformConfig";
 import { isRegistrationOpen } from "@/lib/authMethods";
+import { stashSocialReturn, usePostAuthRedirect } from "@/lib/usePostAuthRedirect";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -53,9 +54,7 @@ export function RegisterPage() {
   const cfg = usePlatformConfig();
 
   const [step, setStep] = useState<Step>(1);
-  const postRegistrationPath = initialState.from?.pathname?.startsWith("/live/")
-    ? `${initialState.from.pathname}${initialState.from.search ?? ""}`
-    : "/app/onboarding";
+  const postRegistrationPath = usePostAuthRedirect({ fallback: "/app/onboarding" });
 
   // Step 1-2: Phone + OTP
   const countryIso2 = initialState.countryIso2 || "NG";
@@ -245,6 +244,9 @@ export function RegisterPage() {
       const j = await res.json();
       const d = j?.success ? j?.data : j;
       if (d?.redirect_url) {
+        // Same handover as LoginPage: the provider only echoes its own
+        // parameters, so the destination is held in this tab for /social/callback.
+        stashSocialReturn(postRegistrationPath);
         window.location.assign(d.redirect_url);
         return;
       }

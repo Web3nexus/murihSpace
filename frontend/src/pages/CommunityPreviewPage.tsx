@@ -34,6 +34,7 @@ import {
 } from "@phosphor-icons/react";
 import type { Community, CommunityMembership } from "@/types/community";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { absolute, communityUrl } from "@/lib/deepLinks";
 
 const MEMBER_ROLE_STYLES: Record<string, string> = {
   owner: "bg-amber-500/15 text-amber-500 border-amber-500/30",
@@ -110,7 +111,7 @@ export function CommunityPreviewPage() {
 
   const handleShare = async () => {
     if (!community) return;
-    const shareUrl = `${window.location.origin}/c/${community.slug}`;
+    const shareUrl = absolute(communityUrl(community.slug));
     const shareData = {
       title: community.name,
       text: community.description || `Join ${community.name} on MurihSpace`,

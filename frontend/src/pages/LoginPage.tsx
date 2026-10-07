@@ -21,6 +21,7 @@ import {
 import { cn } from "@/lib/utils";
 import { anyLoginMethodEnabled, defaultLoginTab, loginVisibility, resolveLoginTab, showLoginTabSwitcher } from "@/lib/loginVisibility";
 import { AuthLayout } from "@/components/layout/AuthLayout";
+import { stashSocialReturn, usePostAuthRedirect } from "@/lib/usePostAuthRedirect";
 
 
 const DEFAULT_COUNTRY = "NG";
@@ -33,9 +34,7 @@ export function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const fromLocation = (location.state as { from?: { pathname?: string; search?: string } } | null)?.from;
-  const postAuthPath = fromLocation?.pathname?.startsWith("/live/")
-    ? `${fromLocation.pathname}${fromLocation.search ?? ""}`
-    : "/app";
+  const postAuthPath = usePostAuthRedirect();
 
   const methods = cfg.auth_methods.methods;
   const visibility = loginVisibility(methods);
@@ -158,6 +157,10 @@ export function LoginPage() {
       const j = await res.json();
       const d = j?.success ? j?.data : j;
       if (d?.redirect_url) {
+        // `next` on the provider's authorize URL would never come back — Google
+        // and Apple only echo their own parameters — so the destination is held
+        // in this tab and read by /social/callback instead.
+        stashSocialReturn(postAuthPath);
         window.location.assign(d.redirect_url);
         return;
       }

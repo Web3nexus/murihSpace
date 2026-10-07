@@ -23,6 +23,7 @@ import {
   Eye
 } from "@phosphor-icons/react";
 import type { PublicStorefront } from "@/types/storefront";
+import { absolute, storefrontUrl } from "@/lib/deepLinks";
 
 interface StorePost {
   id: number;
@@ -166,7 +167,7 @@ export function PublicStorefrontPage() {
       : []),
   ];
 
-  const shareUrl = `${window.location.origin}/store/${store.short_code}`;
+  const shareUrl = absolute(storefrontUrl(store.short_code));
 
   return (
     <div className="min-h-screen bg-background text-foreground pb-20">

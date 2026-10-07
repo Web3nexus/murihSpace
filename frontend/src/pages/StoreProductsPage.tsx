@@ -23,6 +23,7 @@ import { authFetch } from "@/lib/api/authFetch";
 import { ActionTooltip } from "@/components/ui/action-tooltip";
 import { safeArray } from "@/lib/api/cacheStore";
 import { ShareModal } from "@/components/common/ShareModal";
+import { absolute, productUrl } from "@/lib/deepLinks";
 
 interface StoreProduct {
   id: number;
@@ -395,7 +396,7 @@ export default function StoreProductsPage() {
           onClose={() => setSharingProduct(null)}
           title={sharingProduct.title}
           description={`View ${sharingProduct.title} on MurihSpace for ${sharingProduct.currency} ${(sharingProduct.price / 100).toFixed(2)}`}
-          url={`${window.location.origin}/p/${sharingProduct.id}`}
+          url={absolute(productUrl(sharingProduct.id, sharingProduct.type === "digital" ? "digital" : "physical"))}
           type="product"
           badge={sharingProduct.type === "digital" ? "Digital Download" : "Physical Product"}
         />

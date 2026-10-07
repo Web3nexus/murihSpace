@@ -27,6 +27,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useLiveStreamEnded, type LiveStreamEndedPayload } from "@/hooks/useLiveStreamEnded";
 import { authFetch } from "@/lib/api/authFetch";
 import { toast } from "sonner";
+import { absolute, liveUrl, siteUrl } from "@/lib/deepLinks";
 
 interface LiveHost {
   id: number;
@@ -192,9 +193,24 @@ function copySearchTo(target: URL): void {
   });
 }
 
+function safeParse(value: string): URL | null {
+  try {
+    return new URL(value, siteUrl());
+  } catch {
+    return null;
+  }
+}
+
 function updateCanonicalAddress(canonicalUrl: string): void {
   try {
     const canonical = new URL(canonicalUrl, window.location.origin);
+    // Only rewrite the address bar when the canonical lives on the host we
+    // serve from. A cross-origin canonical would navigate away from the app
+    // (and, on a staging client, into production), so leave it in the
+    // address bar and let `shareUrl` build the environment-correct link.
+    if (canonical.origin !== siteUrl()) {
+      return;
+    }
     copySearchTo(canonical);
     const nextAddress = `${canonical.pathname}${canonical.search}${canonical.hash}`;
 
@@ -383,9 +399,20 @@ export function PublicLivePage() {
       return window.location.href;
     }
 
-    const baseUrl = canonicalUrl || `${window.location.origin}/live/${encodeURIComponent(stream.tracking_id)}`;
+    // The API may hand us a canonical URL pointing at a different MurihSpace
+    // host (for example an apex domain that serves the marketing site rather
+    // than the app). Honouring that would bounce visitors off this page, so
+    // only accept it when it is the host we actually share from. Otherwise
+    // build the canonical path locally, which keeps live links
+    // environment-aware: a staging client shares staging links.
+    const candidate = canonicalUrl ? safeParse(canonicalUrl) : null;
+    const canonicalOrigin = candidate?.origin ?? null;
+    const baseUrl =
+      canonicalOrigin && canonicalOrigin === siteUrl()
+        ? candidate!.toString()
+        : absolute(liveUrl(stream.tracking_id));
     try {
-      const share = new URL(baseUrl, window.location.origin);
+      const share = new URL(baseUrl, siteUrl());
       copySearchTo(share);
       return share.toString();
     } catch {

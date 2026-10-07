@@ -1,0 +1,14 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.murihspace.mobile",
+      "sha256_cert_fingerprints": [
+        "6D:D9:85:3A:AD:04:8E:09:E9:29:07:A7:95:93:D9:5F:19:DC:EA:D6:68:22:17:67:B4:09:45:2A:C7:40:9F:E3"
+      ]
+    }
+  }
+]

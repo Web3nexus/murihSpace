@@ -24,6 +24,7 @@ import { Badge } from '@/components/ui/badge';
 import { LiveKitVideoConference } from '@/components/video/LiveKitVideoConference';
 import { authFetch } from '@/lib/api/authFetch';
 import { useAuth } from '@/hooks/useAuth';
+import { absolute, meetingUrl, resolveDeepLink } from "@/lib/deepLinks";
 
 const RECENT_MEETINGS_KEY = 'murih_recent_meetings_v1';
 
@@ -112,7 +113,7 @@ export function MeetingRoomPage() {
     };
 
     const handleShareRoom = async () => {
-      const link = `${window.location.origin}/app/meeting/${roomCode}`;
+      const link = absolute(meetingUrl(roomCode));
       if (typeof navigator.share === 'function') {
         try {
           await navigator.share({
@@ -207,12 +208,24 @@ export function MeetingRoomPage() {
 
   const handleJoinByCode = (e: React.FormEvent) => {
     e.preventDefault();
-    const clean = inputCode
-      .trim()
-      .replace(/^https?:\/\/[^/]+\/app\/meeting\//, '')
-      .replace(/^\/app\/meeting\//, '')
-      .replace(/^#\/app\/meeting\//, '')
-      .trim();
+    const raw = inputCode.trim();
+    if (!raw) return;
+
+    // A pasted link arrives in whichever shape it was copied in: /m/{code},
+    // /meeting/{code}, /meetings/{code}, /app/meeting/{code} or the scheme.
+    // Anything else the resolver recognised is not a room, so it is dropped
+    // rather than pasted into the meeting route whole.
+    const target = resolveDeepLink(raw);
+    const clean = (target.type === "meeting"
+      ? target.identifier
+      : target.type === "unknown"
+        ? raw
+            .replace(/^https?:\/\/[^/]+\/app\/meeting\//, "")
+            .replace(/^\/app\/meeting\//, "")
+            .replace(/^#\/app\/meeting\//, "")
+            .trim()
+        : ""
+    ).trim();
     if (!clean) return;
     storeRecentMeeting(clean);
     navigate(`/app/meeting/${clean}`);

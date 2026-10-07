@@ -55,7 +55,10 @@ return [
     'url' => env('APP_URL', 'https://api.murihspace.com'),
 
     'frontend_url' => env('FRONTEND_URL', 'https://web.murihspace.com'),
-    'live_public_url' => env('LIVE_PUBLIC_URL', env('FRONTEND_URL', 'https://murihspace.com')),
+    // Canonical origin shared links are built from. Must be the SPA that serves
+    // /live, /p, /c, /u, /m and /e — pointing this at a host that only serves
+    // the marketing site makes shared links bounce away from the app.
+    'live_public_url' => env('LIVE_PUBLIC_URL', env('FRONTEND_URL', 'https://web.murihspace.com')),
 
     'app_download_url' => env('APP_DOWNLOAD_URL', 'https://apps.apple.com/app/murihspace'),
 

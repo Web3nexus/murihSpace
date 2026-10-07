@@ -20,6 +20,7 @@ import {
   User as UserIcon
 } from "@phosphor-icons/react";
 import type { Community } from "@/types/community";
+import { absolute, communityUrl } from "@/lib/deepLinks";
 
 interface FeedPost {
   id: number;
@@ -318,21 +319,27 @@ export function CommunitiesPage() {
                         onClick: () => navigate(`/app/communities/${post.community_slug}`),
                         active: false,
                       },
-                      {
-                        icon: <Share2 weight="fill" className="h-[18px] w-[18px]" />,
-                        label: "Share",
-                        onClick: async () => {
-                          const url = `${window.location.origin}/c/${post.community_slug}`;
-                          if (navigator.share && navigator.canShare && navigator.canShare({ url })) {
-                            try {
-                              await navigator.share({ title: "Community on MurihSpace", url });
-                              return;
-                            } catch {}
-                          }
-                          navigator.clipboard.writeText(url);
-                        },
-                        active: false,
-                      },
+                      // `community_slug` falls back to "#" when a post carries
+                      // no community. Sharing that would cut a link to /c/%23.
+                      ...(post.community_slug && post.community_slug !== "#"
+                        ? [
+                            {
+                              icon: <Share2 weight="fill" className="h-[18px] w-[18px]" />,
+                              label: "Share",
+                              onClick: async () => {
+                                const url = absolute(communityUrl(post.community_slug));
+                                if (navigator.share && navigator.canShare && navigator.canShare({ url })) {
+                                  try {
+                                    await navigator.share({ title: "Community on MurihSpace", url });
+                                    return;
+                                  } catch { /* share sheet dismissed */ }
+                                }
+                                navigator.clipboard.writeText(url);
+                              },
+                              active: false,
+                            },
+                          ]
+                        : []),
                     ].map((btn) => (
                       <button
                         key={btn.label}

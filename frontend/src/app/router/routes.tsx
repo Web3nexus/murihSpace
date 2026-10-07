@@ -6,6 +6,7 @@ import { SettingsLayout } from "@/components/layout/SettingsLayout";
 import { ChatLayout } from "@/components/layout/ChatLayout";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { lazyWithRetry } from "@/lib/lazyWithRetry";
+import { ChatDeepLinkRedirect } from "./ChatDeepLinkRedirect";
 
 import {
   NotFoundState,
@@ -52,6 +53,11 @@ const PublicStorefrontPage = lazyWithRetry(() => import("@/pages/PublicStorefron
 const PublicProductPage = lazyWithRetry(() => import("@/pages/PublicProductPage"), "PublicProductPage");
 const PublicMediaKitPage = lazyWithRetry(() => import("@/pages/PublicMediaKitPage"), "PublicMediaKitPage");
 const PublicLivePage = lazyWithRetry(() => import("@/pages/PublicLivePage"), "PublicLivePage");
+const PublicMeetingPage = lazyWithRetry(() => import("@/pages/PublicMeetingPage"), "PublicMeetingPage");
+const PublicEventPage = lazyWithRetry(
+  () => import("@/pages/EventDetailPage").then((m) => ({ default: m.PublicEventPage })),
+  "PublicEventPage",
+);
 const DigitalProductsPage = lazyWithRetry(() => import("@/pages/DigitalProductsPage"), "DigitalProductsPage");
 const SalesOrdersPage = lazyWithRetry(() => import("@/pages/SalesOrdersPage"), "SalesOrdersPage");
 const AudioRoomsPage = lazyWithRetry(() => import("@/pages/AudioRoomsPage"), "AudioRoomsPage");
@@ -177,6 +183,22 @@ export const routes: RouteObject[] = [
   { path: "/products/:id", element: <Suspense fallback={<PageLoader />}><PublicProductPage /></Suspense> },
   { path: "/media-kit/:creatorId", element: <Suspense fallback={<PageLoader />}><PublicMediaKitPage /></Suspense> },
   { path: "/live/:trackingId", element: <Suspense fallback={<PageLoader />}><PublicLivePage /></Suspense> },
+
+  // ── Canonical deep-link landing pages ────────────────────────────
+  // Each of these is a shared MurihSpace link that must render a real page
+  // when the recipient has no app installed. Keep the path shapes in sync
+  // with `src/lib/deepLinks.ts` and `mobile/lib/config/deep_links.dart`.
+  //
+  // Note the order matters: `/c/:slug` and `/communities/:slug` sit below,
+  // and the greedy `:username` catch-all is last, so a shared entity path can
+  // never be swallowed by a profile lookup.
+  { path: "/m/:code", element: <Suspense fallback={<PageLoader />}><PublicMeetingPage /></Suspense> },
+  { path: "/meeting/:code", element: <Suspense fallback={<PageLoader />}><PublicMeetingPage /></Suspense> },
+  // `/meetings/*` is still claimed by the OS association files, so a link cut
+  // by an older build has to land somewhere instead of a 404.
+  { path: "/meetings/:code", element: <Suspense fallback={<PageLoader />}><PublicMeetingPage /></Suspense> },
+  { path: "/e/:id", element: <Suspense fallback={<PageLoader />}><PublicEventPage /></Suspense> },
+  { path: "/chat/:id", element: <ChatDeepLinkRedirect /> },
   { path: "/communities", element: <Suspense fallback={<PageLoader />}><PublicCommunitiesPage /></Suspense> },
   { path: "/communities/:slug", element: <Suspense fallback={<PageLoader />}><CommunityPreviewPage /></Suspense> },
   { path: "/c/:slug", element: <Suspense fallback={<PageLoader />}><CommunityPreviewPage /></Suspense> },
@@ -188,6 +210,10 @@ export const routes: RouteObject[] = [
   { path: "/friends", element: <Navigate to="/app/friends" replace /> },
   { path: "/friends/*", element: <Navigate to="/app/friends" replace /> },
   { path: "/community", element: <Navigate to="/app/communities" replace /> },
+  // The association files claim /community/{slug} as a legacy alias, and
+  // resolveDeepLink maps it to /c/{slug}. Dropping it in the dashboard would
+  // strand a web recipient on an unrelated index page with the slug gone.
+  { path: "/community/:slug", element: <Suspense fallback={<PageLoader />}><CommunityPreviewPage /></Suspense> },
   { path: "/community/*", element: <Navigate to="/app/communities" replace /> },
   { path: "/courses", element: <Navigate to="/app/courses" replace /> },
   { path: "/courses/*", element: <Navigate to="/app/courses" replace /> },

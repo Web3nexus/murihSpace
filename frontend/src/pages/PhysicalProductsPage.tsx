@@ -30,6 +30,7 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { SuccessBanner } from '@/components/ui/SuccessBanner';
 import { FormErrorSummary } from '@/components/ui/FormErrorSummary';
 import { ActionTooltip } from '@/components/ui/action-tooltip';
+import { absolute, productUrl } from "@/lib/deepLinks";
 
 function formatPrice(cents: number, currency = 'NGN'): string {
   const symbols: Record<string, string> = { NGN: '₦', USD: '$', GBP: '£', EUR: '€' };
@@ -596,7 +597,7 @@ export function PhysicalProductsPage() {
           onClose={() => setSharingProduct(null)}
           title={sharingProduct.title}
           description={sharingProduct.description || `Buy ${sharingProduct.title} on MurihSpace. Escrow-protected checkout.`}
-          url={`${window.location.origin}/p/${sharingProduct.id}`}
+          url={absolute(productUrl(sharingProduct.id, "physical"))}
           type="product"
           imageUrl={sharingProduct.images && sharingProduct.images[0] ? sharingProduct.images[0] : undefined}
           badge="Physical Product"

@@ -37,6 +37,7 @@ import { authFetch } from "@/lib/api/authFetch";
 import { FormErrorSummary } from '@/components/ui/FormErrorSummary';
 import { PageSecondaryNav, type PageNavTab } from "@/components/common/PageSecondaryNav";
 import { ActionTooltip } from '@/components/ui/action-tooltip';
+import { absolute, productUrl } from "@/lib/deepLinks";
 
 const CATEGORIES: { value: ProductCategory; label: string }[] = [
   { value: 'ebook', label: 'E-Book' },
@@ -731,7 +732,7 @@ export function DigitalProductsPage() {
           onClose={() => setSharingProduct(null)}
           title={sharingProduct.title}
           description={sharingProduct.description || `Download ${sharingProduct.title} on MurihSpace`}
-          url={`${window.location.origin}/p/${sharingProduct.id}`}
+          url={absolute(productUrl(sharingProduct.id, "digital"))}
           type="product"
           imageUrl={sharingProduct.cover_url}
           badge="Digital Product"
