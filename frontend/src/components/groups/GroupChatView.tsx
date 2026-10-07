@@ -17,6 +17,7 @@ import { apiClient } from "@/lib/api/client";
 import type { Group } from "@/types/group";
 import type { ChatMessage } from "@/types/chat";
 import { EmojiPickerPopover } from "@/components/chat/EmojiPickerPopover";
+import { ChatMessageContent } from "@/components/chat/ChatMessageContent";
 
 interface GroupChatViewProps {
   group: Group;
@@ -376,9 +377,7 @@ export function GroupChatView({ group }: GroupChatViewProps) {
 
                     {/* Text Message */}
                     {msg.content && (
-                      <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
-                        {msg.content}
-                      </p>
+                      <ChatMessageContent content={msg.content} isMine={isMe} />
                     )}
 
                     {/* Timestamp & Status */}

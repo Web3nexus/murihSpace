@@ -32,6 +32,7 @@ import { EmojiPickerPopover } from "@/components/chat/EmojiPickerPopover";
 import { IOSTypingBubble } from "@/components/chat/iOSTypingBubble";
 import { useRealtimeMessaging } from "@/hooks/useRealtimeMessaging";
 import { LiveKitVideoConference } from "@/components/video/LiveKitVideoConference";
+import { ChatMessageContent } from "@/components/chat/ChatMessageContent";
 import { cn } from "@/lib/utils";
 import { getAuthToken } from "@/lib/auth/token";
 import { useNavigate } from "react-router";
@@ -755,7 +756,7 @@ export default function CommunityChatPage() {
                             </div>
                           )}
 
-                          <p className="text-inherit">{msg.content}</p>
+                          <ChatMessageContent content={msg.content} isMine={isMine} />
 
                           <div className={cn(
                             "flex items-center justify-end gap-1 mt-1",

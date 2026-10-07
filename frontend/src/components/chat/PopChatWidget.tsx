@@ -21,6 +21,7 @@ import { extractMessages } from "@/lib/chatMessages";
 import type { ChatMessage } from "@/types/chat";
 import { safeFormat } from "@/lib/date";
 import { EmojiPickerPopover } from "@/components/chat/EmojiPickerPopover";
+import { ChatMessageContent } from "@/components/chat/ChatMessageContent";
 import { playMessageReceivedSound } from "@/lib/sound";
 
 export function formatMessagePreview(msg?: { content?: string; type?: string; attachment_type?: string } | null): string {
@@ -531,7 +532,7 @@ export function PopChatWidget() {
                         </div>
                       </div>
                     ) : (
-                      msg.content
+                      <ChatMessageContent content={msg.content} isMine={isMe} />
                     )}
                   </div>
                   <span className="text-[9px] text-muted-foreground mt-0.5 px-1 flex items-center gap-1">
