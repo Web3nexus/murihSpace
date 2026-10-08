@@ -5,6 +5,7 @@ import { MotionProvider } from "./MotionProvider";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { DialogProvider } from "@/components/ui/DialogProvider";
 import { PopChatProvider } from "@/context/PopChatContext";
+import { CallProvider } from "@/context/CallContext";
 import { GlobalCallReceiver } from "@/components/video/GlobalCallReceiver";
 import { Toaster } from "sonner";
 
@@ -16,19 +17,21 @@ export function AppProviders({ children }: AppProvidersProps) {
   return (
     <QueryProvider>
       <AuthProvider>
-        <ThemeProvider defaultTheme="system">
-          <TooltipProvider>
-            <MotionProvider>
-              <DialogProvider>
-                <PopChatProvider>
-                  {children}
-                  <GlobalCallReceiver />
-                  <Toaster richColors position="top-right" toastOptions={{ duration: 4000 }} />
-                </PopChatProvider>
-              </DialogProvider>
-            </MotionProvider>
-          </TooltipProvider>
-        </ThemeProvider>
+        <CallProvider>
+          <ThemeProvider defaultTheme="system">
+            <TooltipProvider>
+              <MotionProvider>
+                <DialogProvider>
+                  <PopChatProvider>
+                    {children}
+                    <GlobalCallReceiver />
+                    <Toaster richColors position="top-right" toastOptions={{ duration: 4000 }} />
+                  </PopChatProvider>
+                </DialogProvider>
+              </MotionProvider>
+            </TooltipProvider>
+          </ThemeProvider>
+        </CallProvider>
       </AuthProvider>
     </QueryProvider>
   );

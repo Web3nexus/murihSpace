@@ -41,7 +41,7 @@ import { StoriesCarousel, type StoryUser } from '../chat/StoriesCarousel';
 import { StoryCreateModal } from '../story/StoryCreateModal';
 import { ChatPatternSurface } from './ChatPatternSurface';
 import { NewChatModal } from '@/components/chat/NewChatModal';
-import { CallOverlayModal } from '@/components/video/CallOverlayModal';
+import { useCall } from '@/context/CallContext';
 import { useRealtimeMessaging } from '@/hooks/useRealtimeMessaging';
 import { useAuth } from '@/hooks/useAuth';
 import { getAuthToken } from "@/lib/auth/token";
@@ -116,42 +116,20 @@ export function ChatLayout() {
   const [isArchived, setIsArchived] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [isNewModalOpen, setIsNewModalOpen] = useState(false);
-  const [isCallModalOpen, setIsCallModalOpen] = useState(false);
-  const [callSession, setCallSession] = useState<{
-    callId?: number;
-    roomName?: string;
-    livekitToken?: string;
-    livekitHost?: string;
-    type: 'audio' | 'video';
-  } | null>(null);
+  const { startCall: initiateGlobalCall } = useCall();
 
   const startCall = async (type: 'audio' | 'video') => {
     if (!activeConv?.other_user?.id) {
       toast.error('Direct contact is required to place a call.');
       return;
     }
-    try {
-      const raw = await apiFetch<any>('/calls/initiate', {
-        method: 'POST',
-        body: JSON.stringify({
-          recipient_id: activeConv.other_user.id,
-          type,
-          conversation_id: activeConv.id,
-        }),
-      });
-      const data = raw?.data ?? raw;
-      const call = data?.call || (data?.id ? data : null);
-      setCallSession({
-        callId: call?.id ?? data?.id,
-        roomName: data.room_name || call?.room_name,
-        livekitToken: data.livekit_token || call?.livekit_token,
-        livekitHost: data.livekit_host || call?.livekit_host,
-        type,
-      });
-      setIsCallModalOpen(true);
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to initiate call.');
-    }
+    await initiateGlobalCall({
+      recipientId: activeConv.other_user.id,
+      contactName: activeConv.other_user.name || activeConv.title || 'Contact',
+      contactAvatar: activeConv.other_user.avatar_url,
+      type,
+      conversationId: activeConv.id,
+    });
   };
   const [isCreateStoryOpen, setIsCreateStoryOpen] = useState(false);
   const [storiesList, setStoriesList] = useState<StoryUser[]>([]);
@@ -1210,23 +1188,6 @@ export function ChatLayout() {
             navigate('/app/friends');
           }
         }}
-      />
-
-      <CallOverlayModal
-        isOpen={isCallModalOpen}
-        callId={callSession?.callId}
-        callType={callSession?.type ?? 'video'}
-        callMode="outgoing"
-        contactName={activeConv?.other_user?.name ?? activeConv?.title ?? 'Contact'}
-        contactAvatar={activeConv?.other_user?.avatar_url}
-        roomName={callSession?.roomName}
-        livekitToken={callSession?.livekitToken}
-        livekitHost={callSession?.livekitHost}
-        onClose={() => {
-          setIsCallModalOpen(false);
-          setCallSession(null);
-        }}
-        onOpenChat={() => setIsCallModalOpen(false)}
       />
 
       <StoryCreateModal
