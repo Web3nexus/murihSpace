@@ -162,13 +162,19 @@ const teamId = resolve("ios-team-id", "IOS_TEAM_ID");
 const bundleId = resolve("ios-bundle-id", "IOS_BUNDLE_ID") ?? "com.murihspace.mobile";
 
 // ── Report only ───────────────────────────────────────────────────
-if (!useEnv && !args["android-fingerprint"] && !args["ios-team-id"]) {
+// Any flag at all is a request for a change, so none of them may be
+// swallowed by the read-only path.
+const flagOnly = !useEnv;
+const requested =
+  args["android-fingerprint"] || args["ios-team-id"] || args["android-package"] || args["ios-bundle-id"];
+
+if (flagOnly && !requested) {
   console.log("Current apple-app-site-association:");
   console.log(readFileSync(aasaPath, "utf8"));
   console.log("\nCurrent assetlinks.json:");
   console.log(readFileSync(assetLinksPath, "utf8"));
   console.log(
-    "\nNo changes made. Run `npm run links:write` to regenerate from .env, or pass --android-fingerprint / --ios-team-id.",
+    "\nNo changes made. Run `npm run links:write` to regenerate from .env, or pass --android-fingerprint / --ios-team-id / --android-package / --ios-bundle-id.",
   );
   process.exit(0);
 }
@@ -207,6 +213,11 @@ if (rawFingerprints) {
     )}\n`,
   );
   console.log(`Wrote ${fingerprints.length} fingerprint(s) to assetlinks.json`);
+} else if (args["android-package"]) {
+  console.error(
+    "`--android-package` also needs a fingerprint. Pass --android-fingerprint, or use `npm run links:write` so it comes from .env.",
+  );
+  process.exit(1);
 } else {
   console.warn("ANDROID_FINGERPRINT not set: assetlinks.json left unchanged.");
 }
@@ -235,6 +246,11 @@ if (teamId) {
     writeFileSync(path, document);
   }
   console.log(`Wrote appID ${appId} to ${aasaPaths.length} AASA copies`);
+} else if (args["ios-bundle-id"]) {
+  console.error(
+    "`--ios-bundle-id` also needs a team ID. Pass --ios-team-id, or use `npm run links:write` so it comes from .env.",
+  );
+  process.exit(1);
 } else {
   console.warn("IOS_TEAM_ID not set: apple-app-site-association left unchanged.");
 }
