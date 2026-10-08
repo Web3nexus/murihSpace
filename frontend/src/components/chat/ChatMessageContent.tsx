@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useRef } from "react";
 import { Link } from "react-router";
 import { resolveDeepLink, type DeepLinkTarget, type DeepLinkType } from "@/lib/deepLinks";
 import { apiClient } from "@/lib/api/client";
@@ -48,6 +48,11 @@ const STATUS_PREVIEW_TTL_MS = 30_000;
 
 function previewTtl(type: DeepLinkType): number {
   return type === "live" || type === "meeting" ? STATUS_PREVIEW_TTL_MS : PREVIEW_TTL_MS;
+}
+
+/** How long until a status-bearing preview has to be asked about again. */
+function statusTtl(type: DeepLinkType): number | null {
+  return type === "live" || type === "meeting" ? STATUS_PREVIEW_TTL_MS : null;
 }
 
 // Extract URLs from text
@@ -173,29 +178,52 @@ export function ChatMessageContent({ content, isMine = false, className }: ChatM
 
   const candidateUrl = deepLinkCandidate?.url;
   const candidateType = deepLinkCandidate?.target.type;
+  const [previewRefresh, setPreviewRefresh] = useState(0);
+
+  // Which URL the card on screen belongs to, so a refresh of the same link
+  // can revalidate without blanking a card the reader is looking at.
+  const previewUrlRef = useRef<string | null>(null);
 
   const [preview, setPreview] = useState<LinkPreviewData | null>(() => {
     if (!candidateUrl || !candidateType) return null;
     const entry = previewCache.get(candidateUrl);
-    return entry && Date.now() - entry.at <= previewTtl(candidateType) ? entry.data : null;
+    if (!entry || Date.now() - entry.at > previewTtl(candidateType)) return null;
+    previewUrlRef.current = candidateUrl;
+    return entry.data;
   });
+
+  // A mounted chat never changes candidateUrl, so a live or meeting card
+  // would keep its status forever without a timer to revalidate it.
+  useEffect(() => {
+    if (!candidateUrl || !candidateType) return;
+    const ttl = statusTtl(candidateType);
+    if (ttl === null) return;
+    const timer = window.setTimeout(() => setPreviewRefresh((n) => n + 1), ttl);
+    return () => window.clearTimeout(timer);
+  }, [candidateUrl, candidateType, previewRefresh]);
 
   useEffect(() => {
     if (!candidateUrl || !candidateType) {
       setPreview(null);
+      previewUrlRef.current = null;
       return;
     }
 
     const cached = previewCache.get(candidateUrl);
     if (cached && Date.now() - cached.at <= previewTtl(candidateType)) {
       setPreview(cached.data);
+      previewUrlRef.current = candidateUrl;
       return;
     }
 
-    // Drop both the stale answer and the previous message's card: React
-    // keeps state at the same tree position when the URL changes.
+    // Drop the stale answer, and blank the card only when the URL actually
+    // changed: React keeps state at the same tree position, so a revalidation
+    // of this link should keep showing the old card until the new one lands.
     previewCache.delete(candidateUrl);
-    setPreview(null);
+    if (previewUrlRef.current !== candidateUrl) {
+      setPreview(null);
+    }
+    previewUrlRef.current = candidateUrl;
 
     let isMounted = true;
     apiClient
@@ -217,7 +245,7 @@ export function ChatMessageContent({ content, isMine = false, className }: ChatM
     return () => {
       isMounted = false;
     };
-  }, [candidateUrl, candidateType]);
+  }, [candidateUrl, candidateType, previewRefresh]);
 
   return (
     <div className={cn("space-y-2", className)}>
@@ -323,7 +351,7 @@ function DeepLinkCard({ target, preview, isMine }: DeepLinkCardProps) {
               </span>
             ) : isEnded ? (
               <span className="inline-flex items-center text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-slate-500/20 text-slate-400 dark:text-slate-300">
-                {target.type === "live" ? "Broadcast Ended" : target.type === "meeting" ? "Meeting Ended" : "Ended"}
+                {target.type === "live" ? "Broadcast Ended" : target.type === "meeting" ? "Meeting Ended" : "Unavailable"}
               </span>
             ) : isMeeting ? (
               <span
