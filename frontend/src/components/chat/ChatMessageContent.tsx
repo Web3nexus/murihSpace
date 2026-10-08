@@ -35,8 +35,20 @@ interface LinkPreviewData {
   host?: { name?: string; username?: string; avatar_url?: string };
 }
 
-// In-memory cache across message re-renders
-const previewCache = new Map<string, LinkPreviewData | null>();
+interface PreviewCacheEntry {
+  data: LinkPreviewData | null;
+  at: number;
+}
+
+// In-memory cache across message re-renders. Live and meeting status can
+// flip without the message changing, so those entries go stale quickly.
+const previewCache = new Map<string, PreviewCacheEntry>();
+const PREVIEW_TTL_MS = 5 * 60_000;
+const STATUS_PREVIEW_TTL_MS = 30_000;
+
+function previewTtl(type: DeepLinkType): number {
+  return type === "live" || type === "meeting" ? STATUS_PREVIEW_TTL_MS : PREVIEW_TTL_MS;
+}
 
 // Extract URLs from text
 const URL_REGEX = /(https?:\/\/[^\s]+|murihspace:\/\/[^\s]+)/gi;
@@ -159,45 +171,53 @@ export function ChatMessageContent({ content, isMine = false, className }: ChatM
     return { parts: rawParts, deepLinkCandidate: firstDeepLink };
   }, [content]);
 
+  const candidateUrl = deepLinkCandidate?.url;
+  const candidateType = deepLinkCandidate?.target.type;
+
   const [preview, setPreview] = useState<LinkPreviewData | null>(() => {
-    if (!deepLinkCandidate) return null;
-    return previewCache.get(deepLinkCandidate.url) ?? null;
+    if (!candidateUrl || !candidateType) return null;
+    const entry = previewCache.get(candidateUrl);
+    return entry && Date.now() - entry.at <= previewTtl(candidateType) ? entry.data : null;
   });
 
   useEffect(() => {
-    if (!deepLinkCandidate) {
+    if (!candidateUrl || !candidateType) {
       setPreview(null);
       return;
     }
 
-    const cached = previewCache.get(deepLinkCandidate.url);
-    if (cached !== undefined) {
-      setPreview(cached);
+    const cached = previewCache.get(candidateUrl);
+    if (cached && Date.now() - cached.at <= previewTtl(candidateType)) {
+      setPreview(cached.data);
       return;
     }
 
+    // Drop both the stale answer and the previous message's card: React
+    // keeps state at the same tree position when the URL changes.
+    previewCache.delete(candidateUrl);
+    setPreview(null);
+
     let isMounted = true;
     apiClient
-      .get("/link-preview", { params: { url: deepLinkCandidate.url } })
+      .get("/link-preview", { params: { url: candidateUrl } })
       .then((res) => {
         if (!isMounted) return;
-        const data = res.data?.data as LinkPreviewData | undefined;
-        if (data) {
-          previewCache.set(deepLinkCandidate.url, data);
-          setPreview(data);
-        } else {
-          previewCache.set(deepLinkCandidate.url, null);
-        }
+        const data = (res.data?.data as LinkPreviewData | undefined) ?? null;
+        previewCache.set(candidateUrl, { data, at: Date.now() });
+        setPreview(data);
       })
       .catch(() => {
         if (!isMounted) return;
-        previewCache.set(deepLinkCandidate.url, null);
+        // A rejected request is not an answer — leave it uncached so the
+        // next render can try again instead of showing a dead card.
+        previewCache.delete(candidateUrl);
+        setPreview(null);
       });
 
     return () => {
       isMounted = false;
     };
-  }, [deepLinkCandidate?.url]);
+  }, [candidateUrl, candidateType]);
 
   return (
     <div className={cn("space-y-2", className)}>
@@ -260,10 +280,14 @@ interface DeepLinkCardProps {
 
 function DeepLinkCard({ target, preview, isMine }: DeepLinkCardProps) {
   const IconComponent = getIconForType(target.type);
-  const title = preview?.title || getDefaultTitle(target);
-  const label = preview?.label || getDefaultLabel(target.type);
-  const isLive = target.type === "live" && (preview?.is_active ?? true);
+  const isEnded = preview?.is_active === false;
+  // An unknown or failed lookup is not proof that the stream is running.
+  const isLive = target.type === "live" && preview?.is_active === true;
   const isMeeting = target.type === "meeting";
+  const title = preview?.title || (isEnded && target.type === "meeting" ? "Meeting has ended" : getDefaultTitle(target));
+  const label = isEnded
+    ? (target.type === "live" ? "Broadcast Ended" : target.type === "meeting" ? "Meeting Ended" : (preview?.label || "Unavailable"))
+    : (preview?.label || getDefaultLabel(target.type));
 
   return (
     <div
@@ -280,6 +304,8 @@ function DeepLinkCard({ target, preview, isMine }: DeepLinkCardProps) {
             "p-2 rounded-lg shrink-0 flex items-center justify-center",
             isLive
               ? "bg-rose-500/20 text-rose-500"
+              : isEnded
+              ? "bg-slate-500/20 text-slate-400"
               : isMine
               ? "bg-white/20 text-white"
               : "bg-[#2164b6]/15 dark:bg-[#7ab0ff]/15 text-[#2164b6] dark:text-[#7ab0ff]"
@@ -294,6 +320,10 @@ function DeepLinkCard({ target, preview, isMine }: DeepLinkCardProps) {
               <span className="inline-flex items-center gap-1 bg-rose-500 text-white text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded">
                 <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
                 Live
+              </span>
+            ) : isEnded ? (
+              <span className="inline-flex items-center text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-slate-500/20 text-slate-400 dark:text-slate-300">
+                {target.type === "live" ? "Broadcast Ended" : target.type === "meeting" ? "Meeting Ended" : "Ended"}
               </span>
             ) : isMeeting ? (
               <span
@@ -324,7 +354,7 @@ function DeepLinkCard({ target, preview, isMine }: DeepLinkCardProps) {
             )}
           </div>
 
-          <h4 className="font-semibold text-xs mt-1 truncate leading-tight">
+          <h4 className={cn("font-semibold text-xs mt-1 truncate leading-tight", isEnded && "opacity-80")}>
             {title}
           </h4>
 
@@ -356,6 +386,10 @@ function DeepLinkCard({ target, preview, isMine }: DeepLinkCardProps) {
             "w-full h-8 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all active:scale-[0.98]",
             isLive
               ? "bg-rose-500 hover:bg-rose-600 text-white"
+              : isEnded
+              ? isMine
+                ? "bg-white/20 hover:bg-white/30 text-white/90"
+                : "bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300"
               : isMine
               ? "bg-white hover:bg-white/90 text-slate-900"
               : "bg-[#2164b6] hover:bg-[#1a5196] text-white dark:bg-[#3b82f6] dark:hover:bg-[#2563eb]"
