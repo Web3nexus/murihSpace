@@ -300,16 +300,19 @@ class LinkResolverService
             ];
         }
 
+        $isLive = $stream->status === 'live';
+
         return [
             'type' => self::TYPE_LIVE,
-            'label' => 'Join Live',
+            'label' => $isLive ? 'Join Live' : 'Broadcast Ended',
             'url' => '/live/'.rawurlencode((string) $stream->tracking_id),
             'stream_id' => (int) $stream->id,
             'tracking_id' => (string) $stream->tracking_id,
-            'title' => (string) $stream->title,
+            'title' => $isLive ? (string) $stream->title : (string) $stream->title.' (Ended)',
             'description' => $stream->description,
             'cover_url' => $stream->community?->cover_url ?? null,
-            'is_active' => $stream->status === 'live',
+            'is_active' => $isLive,
+            'status' => $stream->status,
             'stream_mode' => $stream->stream_mode,
             'viewers_count' => (int) $stream->viewers_count,
             'host' => $stream->host ? [

@@ -80,6 +80,28 @@ class LinkPreviewTest extends TestCase
             ->assertJsonPath('data.label', 'Join Live');
     }
 
+    public function test_an_ended_live_stream_resolves_with_ended_status(): void
+    {
+        $host = User::factory()->create(['name' => 'Past Streamer']);
+
+        $stream = LiveStream::create([
+            'user_id' => $host->id,
+            'title' => 'Sunday Jam',
+            'status' => 'ended',
+            'stream_mode' => 'video',
+            'livekit_room' => 'room_link_ended',
+            'started_at' => now()->subHours(2),
+            'ended_at' => now()->subHour(),
+        ]);
+
+        $this->getJson('/api/v1/link-preview?url='.urlencode("https://murihspace.com/live/{$stream->tracking_id}"))
+            ->assertStatus(200)
+            ->assertJsonPath('data.type', 'live')
+            ->assertJsonPath('data.is_active', false)
+            ->assertJsonPath('data.status', 'ended')
+            ->assertJsonPath('data.label', 'Broadcast Ended');
+    }
+
     public function test_an_event_link_resolves(): void
     {
         Event::create([

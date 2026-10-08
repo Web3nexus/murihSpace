@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  ArrowLeft,
   ArrowsIn,
   ArrowsOut,
   Check,
@@ -742,6 +743,18 @@ onStreamEnded({
         {/* TOP VIDEO OVERLAY: Host Profile, LIVE badge, and stats */}
         <div className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between bg-gradient-to-b from-black/80 via-black/40 to-transparent p-4">
           <div className="flex items-center gap-3">
+            {/* Only viewers leave through here. For a host this button would
+                call end(), abandoning a stream that is still live server-side. */}
+            {!isHost && (
+              <button
+                type="button"
+                onClick={handleLeaveSession}
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-black/60 text-white/90 backdrop-blur-md transition-colors hover:bg-black/80 hover:text-white border border-white/10"
+                title="Leave broadcast"
+              >
+                <ArrowLeft weight="bold" className="h-4 w-4" />
+              </button>
+            )}
             {/* TikTok-style conic-gradient spinning LIVE ring */}
             <div className="relative shrink-0">
               <div

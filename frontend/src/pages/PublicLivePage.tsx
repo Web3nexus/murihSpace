@@ -386,12 +386,33 @@ export function PublicLivePage() {
     }
   }, [isAuthenticated, stream]);
 
+  useEffect(() => {
+    if (!liveKitAccess) return;
+
+    const current = window.history.state || {};
+    if (!current.liveStage) {
+      window.history.pushState({ ...current, liveStage: true }, "");
+    }
+
+    const onPopState = () => {
+      setLiveKitAccess(null);
+    };
+
+    window.addEventListener("popstate", onPopState);
+    return () => {
+      window.removeEventListener("popstate", onPopState);
+    };
+  }, [liveKitAccess]);
+
   // The session store posts the presence leave when the user explicitly leaves.
   // Unmounting this page (navigating away, closing the tab) must not: the room
   // keeps running in the dock, so broadcasting a leave here emptied the roster
   // for viewers who were still watching.
   const handleLeave = useCallback(() => {
     setLiveKitAccess(null);
+    if (window.history.state?.liveStage) {
+      window.history.back();
+    }
   }, []);
 
   const shareUrl = useMemo(() => {
@@ -570,7 +591,12 @@ export function PublicLivePage() {
                     {communityName && <span className="rounded-full bg-muted px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-[0.16em] text-muted-foreground">{communityName}</span>}
                   </div>
                   <h1 className="mt-6 max-w-3xl text-3xl font-extrabold leading-[1.08] tracking-[-0.04em] text-foreground sm:text-5xl">{stream.title}</h1>
-                  <p className="mt-5 max-w-2xl text-sm leading-7 text-muted-foreground sm:text-base">{stream.description || `${hostName} is live on MurihSpace. Settle in, say hello, and join the conversation.`}</p>
+                  <p className="mt-5 max-w-2xl text-sm leading-7 text-muted-foreground sm:text-base">
+                    {stream.description || (isLive
+                      ? `${hostName} is live on MurihSpace. Settle in, say hello, and join the conversation.`
+                      : `${hostName} was live on MurihSpace. This broadcast has concluded.`
+                    )}
+                  </p>
 
                   <div className="mt-8 flex items-center gap-3">
                     {/* TikTok-style animated LIVE ring around host avatar */}
@@ -591,7 +617,9 @@ export function PublicLivePage() {
                     </div>
                     <div>
                       <p className="text-sm font-bold text-foreground">{hostName}</p>
-                      <p className="mt-0.5 text-xs text-muted-foreground">Host · {formatStartedAt(stream.started_at)}</p>
+                      <p className="mt-0.5 text-xs text-muted-foreground">
+                        Host · {isLive ? formatStartedAt(stream.started_at) : `Broadcast ended ${formatDateTime(stream.ended_at)}`}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -672,7 +700,11 @@ export function PublicLivePage() {
                     </div>
                   )}
                   {joinError && <p className="mt-3 text-xs font-semibold leading-5 text-red-600" role="alert">{joinError}</p>}
-                  <p className="mt-3 text-center text-[11px] leading-5 text-muted-foreground">You can keep this link and return to the live session anytime.</p>
+                  {isLive ? (
+                    <p className="mt-3 text-center text-[11px] leading-5 text-muted-foreground">You can keep this link and return to the live session anytime.</p>
+                  ) : (
+                    <p className="mt-3 text-center text-[11px] leading-5 text-muted-foreground">This broadcast has concluded. Thank you for tuning in.</p>
+                  )}
                 </div>
               </div>
             </div>
@@ -698,11 +730,23 @@ export function PublicLivePage() {
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/15">
                   <VideoCamera weight="fill" className="h-5 w-5" />
                 </div>
-                <h2 className="mt-5 text-lg font-extrabold">Ready when you are.</h2>
-                <p className="mt-2 max-w-sm text-sm leading-6 text-secondary-foreground/80">Bring your curiosity. The best live rooms start with one person saying hello.</p>
-                <Button onClick={handleJoin} disabled={!isLive || joining || authLoading} variant="outline" className="mt-6 h-10 border-white/25 bg-white/10 font-bold text-white hover:bg-white/20 hover:text-white">
-                  {isAuthenticated ? "Enter the room" : "Sign in to continue"}
-                </Button>
+                {isLive ? (
+                  <>
+                    <h2 className="mt-5 text-lg font-extrabold">Ready when you are.</h2>
+                    <p className="mt-2 max-w-sm text-sm leading-6 text-secondary-foreground/80">Bring your curiosity. The best live rooms start with one person saying hello.</p>
+                    <Button onClick={handleJoin} disabled={joining || authLoading} variant="outline" className="mt-6 h-10 border-white/25 bg-white/10 font-bold text-white hover:bg-white/20 hover:text-white">
+                      {isAuthenticated ? "Enter the room" : "Sign in to continue"}
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <h2 className="mt-5 text-lg font-extrabold">Broadcast concluded</h2>
+                    <p className="mt-2 max-w-sm text-sm leading-6 text-secondary-foreground/80">This live session has ended. Discover other live streams and conversations happening now.</p>
+                    <Link to="/app/live" className="mt-6 inline-flex h-10 items-center justify-center rounded-xl border border-white/25 bg-white/10 px-4 text-sm font-bold text-white transition-colors hover:bg-white/20 hover:text-white">
+                      Explore Live Streams
+                    </Link>
+                  </>
+                )}
               </div>
             </div>
           </section>
