@@ -23,6 +23,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { LiveKitVideoConference } from '@/components/video/LiveKitVideoConference';
 import { authFetch } from '@/lib/api/authFetch';
+import { apiClient } from '@/lib/api/client';
 import { useAuth } from '@/hooks/useAuth';
 import { absolute, meetingUrl, resolveDeepLink } from "@/lib/deepLinks";
 
@@ -84,6 +85,32 @@ export function MeetingRoomPage() {
     }
   }, [roomCode]);
 
+  const [meetingEnded, setMeetingEnded] = useState(false);
+
+  useEffect(() => {
+    if (!roomCode) return;
+    // React keeps state when only the route params change, so an earlier
+    // room's result has to be cleared before this one is looked up.
+    setMeetingEnded(false);
+    let active = true;
+    apiClient
+      .get("/link-preview", { params: { url: `/m/${roomCode.toLowerCase()}` } })
+      .then((res) => {
+        if (!active) return;
+        const data = res.data?.data;
+        // Only an explicit `false` means the room is closed; a failed or
+        // partial response must not strand the host behind the ended screen.
+        setMeetingEnded(data?.is_active === false);
+      })
+      .catch(() => {
+        /* Let LiveKitVideoConference try or display error */
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [roomCode]);
+
   // If a bookingId is provided, join that booking's room directly
   if (bookingId) {
     return (
@@ -106,6 +133,33 @@ export function MeetingRoomPage() {
 
   // If a roomCode is provided, join that room
   if (roomCode) {
+    if (meetingEnded) {
+      return (
+        <div className="w-full max-w-lg mx-auto px-4 py-16 text-center space-y-6">
+          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-muted text-muted-foreground">
+            <Clock className="h-10 w-10" />
+          </div>
+          <div className="space-y-2">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-muted text-muted-foreground">
+              Meeting Ended
+            </span>
+            <h1 className="text-2xl font-bold">This meeting has ended</h1>
+            <p className="text-sm text-muted-foreground">
+              Room <code className="font-mono font-bold text-foreground">{roomCode}</code> is no longer active or the session has expired.
+            </p>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
+            <Button size="lg" onClick={() => navigate('/app/meetings')}>
+              Go to Meetings Hub
+            </Button>
+            <Button variant="outline" size="lg" onClick={() => navigate('/')}>
+              Back to MurihSpace
+            </Button>
+          </div>
+        </div>
+      );
+    }
+
     const handleCopyRoom = () => {
       navigator.clipboard.writeText(roomCode);
       setCopiedCode(true);
@@ -171,6 +225,11 @@ export function MeetingRoomPage() {
           roomTitle={`Meeting: ${roomCode}`}
           meetingCode={roomCode}
           onLeave={() => navigate('/app/meetings')}
+          onError={(msg) => {
+            if (typeof msg === 'string' && (msg.toLowerCase().includes('ended') || msg.toLowerCase().includes('not found') || msg.toLowerCase().includes('expired'))) {
+              setMeetingEnded(true);
+            }
+          }}
         />
       </div>
     );

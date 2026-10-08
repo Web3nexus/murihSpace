@@ -1,11 +1,12 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router";
-import { VideoCamera, SignIn, Copy, Check, ShareNetwork, ArrowLeft } from "@phosphor-icons/react";
+import { VideoCamera, SignIn, Copy, Check, ShareNetwork, ArrowLeft, Clock, Spinner, ArrowsClockwise as RefreshCw } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { SEOHead } from "@/components/common/SEOHead";
 import { ShareModal } from "@/components/common/ShareModal";
 import { useAuth } from "@/hooks/useAuth";
 import { meetingUrl, absolute } from "@/lib/deepLinks";
+import { apiClient } from "@/lib/api/client";
 
 // Room codes are one URL-safe path segment. No single shape is enforced when
 // a meeting is created, so this stays permissive on purpose — a stricter
@@ -17,17 +18,25 @@ const RESERVED_ROOM_CODES = new Set(["instant"]);
 /**
  * Public landing page for a shared meeting invite (`/m/:code`).
  *
- * Every meeting endpoint is authenticated, so this page cannot fetch room
- * details without a session. Instead it shows the invite, hands the code to
- * the authenticated room route when a session exists, and otherwise sends the
- * visitor through login and back — which is what a recipient who taps the
- * link in a chat app actually needs.
+ * Checks if the meeting is active via the link preview resolver, showing a
+ * clear ended screen when the room has closed rather than bouncing into an
+ * empty/failing conference room.
  */
 export function PublicMeetingPage() {
   const { code } = useParams<{ code: string }>();
   const navigate = useNavigate();
   const [copied, setCopied] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
+  const [checking, setChecking] = useState(true);
+  const [meetingState, setMeetingState] = useState<{
+    isActive: boolean;
+    title: string;
+    hostName?: string;
+  } | null>(null);
+  // A rejected request says nothing about the room, so it gets its own
+  // state instead of being folded into "ended".
+  const [statusFailed, setStatusFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
 
   const roomCode = useMemo(() => (code ?? "").trim().toLowerCase(), [code]);
   const isValid =
@@ -35,6 +44,45 @@ export function PublicMeetingPage() {
   const { isAuthenticated } = useAuth();
   const canonicalPath = isValid ? meetingUrl(roomCode) : "/m";
   const shareUrl = absolute(canonicalPath);
+
+  useEffect(() => {
+    if (!isValid) {
+      setChecking(false);
+      return;
+    }
+    // Route params can change in place, so drop whatever the previous code
+    // resolved to before looking this one up.
+    setChecking(true);
+    setMeetingState(null);
+    setStatusFailed(false);
+    let active = true;
+    apiClient
+      .get("/link-preview", { params: { url: `/m/${roomCode}` } })
+      .then((res) => {
+        if (!active) return;
+        const data = res.data?.data;
+        if (data) {
+          setMeetingState({
+            isActive: data.is_active !== false,
+            title: data.title || "MurihSpace Meeting",
+            hostName: data.host?.name,
+          });
+        } else {
+          setMeetingState({ isActive: false, title: "Meeting has ended" });
+        }
+      })
+      .catch(() => {
+        // The resolver being unreachable does not mean the room is closed.
+        if (active) setStatusFailed(true);
+      })
+      .finally(() => {
+        if (active) setChecking(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [roomCode, isValid, attempt]);
 
   const copyCode = async () => {
     try {
@@ -66,6 +114,92 @@ export function PublicMeetingPage() {
         <Button variant="outline" onClick={() => navigate("/app/meetings")}>
           Go to meetings
         </Button>
+      </div>
+    );
+  }
+
+  if (checking) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-3 p-6 text-center">
+        <Spinner weight="bold" className="h-8 w-8 animate-spin text-primary" />
+        <p className="text-xs text-muted-foreground">Checking meeting status…</p>
+      </div>
+    );
+  }
+
+  if (statusFailed) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col">
+        <header className="p-4">
+          <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="gap-2">
+            <ArrowLeft className="h-4 w-4" />
+            Back
+          </Button>
+        </header>
+        <main className="flex-1 flex items-center justify-center p-6">
+          <div className="w-full max-w-md space-y-6 text-center">
+            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-muted text-muted-foreground">
+              <Spinner className="h-10 w-10" />
+            </div>
+
+            <div className="space-y-2">
+              <h1 className="text-2xl font-bold">We could not check this meeting</h1>
+              <p className="text-sm text-muted-foreground">
+                The status service did not respond, so we do not know whether room{" "}
+                <code className="font-mono font-bold text-foreground">{roomCode}</code> is still open.
+              </p>
+            </div>
+
+            <div className="pt-2 flex flex-col sm:flex-row gap-3 justify-center">
+              <Button size="lg" className="w-full gap-2" onClick={() => setAttempt((n) => n + 1)}>
+                <RefreshCw className="h-4 w-4" />
+                Try again
+              </Button>
+              <Button variant="outline" size="lg" className="w-full" onClick={join}>
+                {isAuthenticated ? "Join anyway" : "Sign in to join"}
+              </Button>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  if (meetingState && !meetingState.isActive) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col">
+        <header className="p-4">
+          <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="gap-2">
+            <ArrowLeft className="h-4 w-4" />
+            Back
+          </Button>
+        </header>
+        <main className="flex-1 flex items-center justify-center p-6">
+          <div className="w-full max-w-md space-y-6 text-center">
+            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-muted text-muted-foreground">
+              <Clock className="h-10 w-10" />
+            </div>
+
+            <div className="space-y-2">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-muted text-muted-foreground">
+                Meeting Ended
+              </span>
+              <h1 className="text-2xl font-bold">This meeting has ended</h1>
+              <p className="text-sm text-muted-foreground">
+                Room <code className="font-mono font-bold text-foreground">{roomCode}</code> is no longer active or the invite has expired.
+              </p>
+            </div>
+
+            <div className="pt-2 flex flex-col sm:flex-row gap-3 justify-center">
+              <Button size="lg" className="w-full" onClick={() => navigate("/app/meetings")}>
+                Go to Meetings Hub
+              </Button>
+              <Button variant="outline" size="lg" className="w-full" onClick={() => navigate("/")}>
+                Back to MurihSpace
+              </Button>
+            </div>
+          </div>
+        </main>
       </div>
     );
   }
