@@ -1,5 +1,5 @@
 import * as React from "react";
-import { useParams, Link } from "react-router";
+import { useParams, Link, useNavigate } from "react-router";
 import { authFetch } from "@/lib/api/authFetch";
 import { useAuth } from "@/hooks/useAuth";
 import { SEOHead } from "@/components/common/SEOHead";
@@ -10,22 +10,30 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   SealCheck as BadgeCheck,
-  Calendar as Calendar,
-  MapPin as MapPin,
+  Calendar,
+  MapPin,
   ShareNetwork as Share2,
-  Users as Users,
+  Users,
   ChatTeardropText as MessageSquare,
-  UserPlus as UserPlus,
-  UserCheck as UserCheck,
+  UserPlus,
+  UserCheck,
   Storefront,
   ArrowSquareOut as ExternalLink,
-  Lock as Lock,
+  Lock,
   Spinner as Loader2,
   Warning as AlertTriangle,
-  ArrowLeft as ArrowLeft,
-  Star as Star,
-  CheckCircle as CheckCircle,
-  User as UserIcon
+  ArrowLeft,
+  Star,
+  CheckCircle,
+  User as UserIcon,
+  GridFour,
+  FilmReel,
+  Broadcast,
+  Heart,
+  ChatCircle,
+  Eye,
+  PencilSimple,
+  Play,
 } from "@phosphor-icons/react";
 import { absolute, profileUrl } from "@/lib/deepLinks";
 
@@ -80,6 +88,8 @@ interface PublicUserProfile {
   avatar_url?: string;
   banner_url?: string;
   country?: string;
+  state?: string;
+  county?: string;
   kyc_status?: string;
   has_active_verification_badge?: boolean;
   followers_count: number;
@@ -97,15 +107,44 @@ interface PublicUserProfile {
   created_at?: string;
 }
 
+interface UserPostItem {
+  id: number;
+  user_id: number;
+  content: string;
+  type: string;
+  media_urls?: string[];
+  likes_count?: number;
+  comments_count?: number;
+  views_count?: number;
+  shares_count?: number;
+  reactions_count?: number;
+  is_pinned?: boolean;
+  created_at: string;
+  community?: {
+    id: number;
+    name: string;
+    slug: string;
+    logo_url?: string;
+  } | null;
+}
+
+type TabType = "posts" | "reels" | "live" | "communities" | "reviews";
+
 export default function PublicProfilePage() {
   const { username } = useParams<{ username: string }>();
-  const cleanUsername = (username ?? "").replace(/^@/, "");
+  const navigate = useNavigate();
+  const cleanUsername = (username ?? "").replace(/^@/, "").toLowerCase();
 
   const { isAuthenticated, user: currentUser } = useAuth();
   const [profile, setProfile] = React.useState<PublicUserProfile | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [notFound, setNotFound] = React.useState(false);
   const [showShareModal, setShowShareModal] = React.useState(false);
+
+  // Active tab state
+  const [activeTab, setActiveTab] = React.useState<TabType>("posts");
+  const [tabPosts, setTabPosts] = React.useState<UserPostItem[]>([]);
+  const [postsLoading, setPostsLoading] = React.useState(false);
 
   // Reviews & ratings
   const [reviews, setReviews] = React.useState<PublicReview[]>([]);
@@ -124,14 +163,17 @@ export default function PublicProfilePage() {
     desc: "Log in or create a free account to follow creators, send messages, and join communities.",
   });
 
-  const isSelf = isAuthenticated && currentUser?.username === cleanUsername;
+  const isSelf = isAuthenticated && currentUser?.username?.toLowerCase() === cleanUsername;
 
   const loadProfile = React.useCallback(async () => {
     if (!cleanUsername) return;
     setLoading(true);
     setNotFound(false);
     try {
-      const res = await authFetch(`/users/${encodeURIComponent(cleanUsername)}/public`);
+      // Use ?refresh=1 and Cache-Control: no-cache to guarantee fresh live data for profile owners & visitors
+      const res = await authFetch(`/users/${encodeURIComponent(cleanUsername)}/public?refresh=1`, {
+        headers: { "Cache-Control": "no-cache" },
+      });
       if (!res.ok) {
         setNotFound(true);
         return;
@@ -170,10 +212,40 @@ export default function PublicProfilePage() {
     }
   }, [cleanUsername]);
 
+  const loadTabPosts = React.useCallback(async (userId: number, tab: TabType) => {
+    if (tab === "communities" || tab === "reviews") return;
+    setPostsLoading(true);
+    try {
+      let queryType = "all";
+      if (tab === "reels") queryType = "reels";
+      if (tab === "live") queryType = "live";
+
+      const res = await authFetch(`/users/${userId}/posts?type=${queryType}`);
+      if (res.ok) {
+        const json = await res.json();
+        const raw = json?.data ?? json;
+        const list = Array.isArray(raw) ? raw : (Array.isArray(raw?.data) ? raw.data : []);
+        setTabPosts(list);
+      } else {
+        setTabPosts([]);
+      }
+    } catch {
+      setTabPosts([]);
+    } finally {
+      setPostsLoading(false);
+    }
+  }, []);
+
   React.useEffect(() => {
     loadProfile();
     loadReviews();
   }, [loadProfile, loadReviews]);
+
+  React.useEffect(() => {
+    if (profile?.id) {
+      loadTabPosts(profile.id, activeTab);
+    }
+  }, [profile?.id, activeTab, loadTabPosts]);
 
   const handleShare = () => {
     setShowShareModal(true);
@@ -208,25 +280,25 @@ export default function PublicProfilePage() {
     if (!isAuthenticated) {
       setAuthModalReason({
         title: `Message @${cleanUsername}`,
-        desc: "Log in or create a free account to send direct messages and connect on MurihSpace.",
+        desc: "Log in or create a free account to send direct messages to this user.",
       });
       setIsAuthModalOpen(true);
       return;
     }
-    window.location.href = `/app/messages?user=${profile?.id}`;
+    navigate(`/app/chat?user=${cleanUsername}`);
   };
 
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 weight="fill" className="h-8 w-8 animate-spin text-secondary" />
+        <Loader2 weight="fill" className="h-8 w-8 animate-spin text-[#1A68D4]" />
       </div>
     );
   }
 
   if (notFound || !profile) {
     return (
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4 text-center space-y-4">
+      <div className="min-h-screen flex flex-col items-center justify-center bg-background p-4 text-center space-y-4">
         <div className="p-4 rounded-full bg-destructive/10 text-destructive">
           <AlertTriangle weight="fill" className="h-8 w-8" />
         </div>
@@ -236,7 +308,7 @@ export default function PublicProfilePage() {
         </p>
         <Link
           to={isAuthenticated ? "/app" : "/"}
-          className="text-xs font-bold text-secondary hover:underline inline-flex items-center gap-1.5"
+          className="text-xs font-bold text-[#1A68D4] hover:underline inline-flex items-center gap-1.5"
         >
           <ArrowLeft weight="fill" className="h-3.5 w-3.5" /> Go to MurihSpace
         </Link>
@@ -265,15 +337,16 @@ export default function PublicProfilePage() {
 
       {/* ── Profile Preview Banner for Self ── */}
       {isSelf && (
-        <div className="sticky top-0 z-50 bg-secondary/15 text-secondary-foreground border-b border-secondary/30 px-4 py-2 backdrop-blur-md flex items-center justify-between text-xs font-semibold">
+        <div className="sticky top-0 z-50 bg-[#1A68D4]/10 text-[#1A68D4] border-b border-[#1A68D4]/20 px-4 py-2.5 backdrop-blur-md flex items-center justify-between text-xs font-semibold">
           <div className="flex items-center gap-2">
-            <span className="h-2 w-2 rounded-full bg-secondary animate-pulse" />
+            <span className="h-2 w-2 rounded-full bg-[#1A68D4] animate-pulse" />
             <span>
               <strong>Profile Preview Mode</strong> — You are viewing your public profile as visitors see it.
             </span>
           </div>
           <Link to="/app/settings/profile">
-            <Button size="sm" variant="outline" className="h-7 text-xs font-bold rounded-lg bg-card hover:bg-muted">
+            <Button size="sm" className="h-7 text-xs font-bold rounded-lg bg-[#1A68D4] text-white hover:bg-[#1A68D4]/90 gap-1.5 shadow-sm">
+              <PencilSimple weight="bold" className="h-3.5 w-3.5" />
               Edit Profile
             </Button>
           </Link>
@@ -281,7 +354,7 @@ export default function PublicProfilePage() {
       )}
 
       {/* Top Bar */}
-      <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-md border-b border-border">
+      <header className="sticky top-0 z-40 bg-background/85 backdrop-blur-md border-b border-border">
         <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
           <Link
             to={isAuthenticated ? "/app" : "/"}
@@ -296,9 +369,9 @@ export default function PublicProfilePage() {
               variant="outline"
               size="sm"
               onClick={handleShare}
-              className="h-8 gap-1.5 text-xs font-semibold"
+              className="h-8 gap-1.5 text-xs font-semibold rounded-xl border-border"
             >
-              <Share2 weight="fill" className="h-3.5 w-3.5" />
+              <Share2 weight="bold" className="h-3.5 w-3.5" />
               Share
             </Button>
 
@@ -312,7 +385,7 @@ export default function PublicProfilePage() {
                   });
                   setIsAuthModalOpen(true);
                 }}
-                className="h-8 text-xs font-bold bg-secondary text-secondary-foreground hover:bg-secondary/90"
+                className="h-8 text-xs font-bold bg-[#1A68D4] text-white hover:bg-[#1A68D4]/90 rounded-xl"
               >
                 Log In
               </Button>
@@ -324,13 +397,26 @@ export default function PublicProfilePage() {
       {/* Main Container */}
       <main className="flex-1 max-w-4xl w-full mx-auto px-4 py-6 space-y-6">
         {/* Profile Header Card */}
-        <div className="overflow-hidden rounded-3xl border-none bg-card ">
-          {/* Banner */}
-          <div className="h-40 sm:h-52 w-full bg-gradient-to-r from-[#102840] via-[#173852] to-[#2164b6]/40 relative overflow-hidden">
-            {profile.banner_url && (
-              <img src={profile.banner_url} alt="" className="w-full h-full object-cover" />
+        <div className="overflow-hidden rounded-3xl border border-border bg-card shadow-sm">
+          {/* Banner Surface */}
+          <div className="h-44 sm:h-56 w-full bg-[#131b26] dark:bg-[#0d131d] relative overflow-hidden">
+            {profile.banner_url ? (
+              <img src={profile.banner_url} alt="Cover Banner" className="w-full h-full object-cover" />
+            ) : (
+              <div className="absolute inset-0 bg-[#131b26] dark:bg-[#0d131d] flex items-center justify-end pr-8">
+                <div
+                  className="absolute inset-0 opacity-[0.07]"
+                  style={{
+                    backgroundImage: `radial-gradient(circle at 1px 1px, #ffffff 1px, transparent 0)`,
+                    backgroundSize: "24px 24px",
+                  }}
+                />
+                <div className="relative text-right hidden sm:block select-none opacity-20 pointer-events-none">
+                  <span className="text-3xl font-black text-white/50 tracking-widest uppercase">MURIH</span>
+                </div>
+              </div>
             )}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none" />
           </div>
 
           {/* Profile Meta Area */}
@@ -338,7 +424,7 @@ export default function PublicProfilePage() {
             <div className="flex flex-col sm:flex-row sm:items-end justify-between -mt-16 sm:-mt-20 mb-4 gap-4">
               {/* Avatar + Basic Names */}
               <div className="flex items-end gap-4">
-                <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-3xl border-4 border-card bg-[#2164b6] flex items-center justify-center overflow-hidden shadow-xl shrink-0">
+                <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-3xl border-4 border-card bg-slate-800 dark:bg-slate-700 flex items-center justify-center overflow-hidden shadow-xl shrink-0">
                   {profile.avatar_url || profile.avatar ? (
                     <img
                       src={profile.avatar_url || profile.avatar}
@@ -350,46 +436,61 @@ export default function PublicProfilePage() {
                   )}
                 </div>
 
-                <div className="pb-1 space-y-0.5">
-                  <div className="flex items-center gap-2">
-                    <h1 className="text-xl sm:text-xl font-extrabold text-foreground tracking-tight">
+                <div className="pb-1 space-y-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h1 className="text-xl sm:text-2xl font-black text-foreground tracking-tight">
                       {profile.name}
                     </h1>
                     {(profile.has_active_verification_badge || profile.kyc_status === "verified") && (
-                      <BadgeCheck weight="fill" className="h-5 w-5 text-secondary fill-secondary/20 shrink-0" />
+                      <BadgeCheck weight="fill" className="h-5 w-5 text-[#1A68D4] fill-[#1A68D4] shrink-0" />
                     )}
                   </div>
-                  <p className="text-xs font-mono text-muted-foreground">@{profile.username}</p>
+                  <p className="text-xs font-bold text-muted-foreground font-mono">
+                    @{profile.username}
+                  </p>
                 </div>
               </div>
 
-              {/* Action Buttons */}
-              <div className="flex items-center gap-2 pb-1">
+              {/* Action Buttons Row */}
+              <div className="flex items-center gap-2 flex-wrap">
                 {isSelf ? (
-                  <Link to="/app/settings/profile">
-                    <Button size="sm" variant="outline" className="h-9 text-xs font-semibold gap-1.5">
-                      Edit Profile
+                  <>
+                    <Link to="/app/settings/profile">
+                      <Button
+                        size="sm"
+                        className="h-9 text-xs font-bold gap-1.5 bg-[#1A68D4] hover:bg-[#1A68D4]/90 text-white rounded-xl shadow-sm"
+                      >
+                        <PencilSimple weight="bold" className="h-3.5 w-3.5" /> Edit Profile
+                      </Button>
+                    </Link>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={handleShare}
+                      className="h-9 text-xs font-semibold gap-1.5 border-border rounded-xl hover:bg-muted"
+                    >
+                      <Share2 weight="bold" className="h-3.5 w-3.5" /> Share
                     </Button>
-                  </Link>
+                  </>
                 ) : (
                   <>
                     <Button
                       size="sm"
                       onClick={handleFollowClick}
                       disabled={followLoading}
-                      className={`h-9 text-xs font-bold gap-1.5 ${
+                      className={`h-9 text-xs font-bold gap-1.5 rounded-xl ${
                         isFollowing
-                          ? "bg-muted text-foreground hover:bg-muted/80 border-none"
-                          : "bg-secondary text-secondary-foreground hover:bg-secondary/90"
+                          ? "bg-muted text-foreground hover:bg-muted/80 border border-border"
+                          : "bg-[#1A68D4] text-white hover:bg-[#1A68D4]/90 shadow-sm"
                       }`}
                     >
                       {isFollowing ? (
                         <>
-                          <UserCheck weight="fill" className="h-3.5 w-3.5" /> Following
+                          <UserCheck weight="bold" className="h-3.5 w-3.5" /> Following
                         </>
                       ) : (
                         <>
-                          <UserPlus weight="fill" className="h-3.5 w-3.5" /> Follow
+                          <UserPlus weight="bold" className="h-3.5 w-3.5" /> Follow
                         </>
                       )}
                     </Button>
@@ -398,39 +499,39 @@ export default function PublicProfilePage() {
                       size="sm"
                       variant="outline"
                       onClick={handleMessageClick}
-                      className="h-9 text-xs font-semibold gap-1.5 border-border hover:bg-muted"
+                      className="h-9 text-xs font-semibold gap-1.5 border-border rounded-xl hover:bg-muted"
                     >
-                      <MessageSquare weight="fill" className="h-3.5 w-3.5 text-secondary" /> Message
+                      <MessageSquare weight="bold" className="h-3.5 w-3.5 text-[#1A68D4]" /> Message
+                    </Button>
+
+                    {profile.storefront && (
+                      <Link to={`/store/${profile.storefront.short_code}`}>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-9 text-xs font-bold gap-1.5 border-border rounded-xl hover:bg-muted"
+                        >
+                          <Storefront weight="bold" className="h-3.5 w-3.5 text-[#1A68D4]" /> Store
+                        </Button>
+                      </Link>
+                    )}
+
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={handleShare}
+                      className="h-9 text-xs font-semibold gap-1.5 border-border rounded-xl hover:bg-muted"
+                    >
+                      <Share2 weight="bold" className="h-3.5 w-3.5" />
                     </Button>
                   </>
                 )}
-
-                {profile.storefront && (
-                  <Link to={`/store/${profile.storefront.short_code}`}>
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      className="h-9 text-xs font-bold gap-1.5"
-                    >
-                      <Storefront weight="fill" className="h-3.5 w-3.5" /> Store
-                    </Button>
-                  </Link>
-                )}
-
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={handleShare}
-                  className="h-9 text-xs font-semibold gap-1.5 border-border hover:bg-muted"
-                >
-                  <Share2 weight="fill" className="h-3.5 w-3.5" />
-                </Button>
               </div>
             </div>
 
             {/* Role & Badges */}
             <div className="flex flex-wrap items-center gap-2 mb-4">
-              <span className="px-2.5 py-0.5 rounded-full bg-secondary/10 text-secondary text-[11px] font-bold capitalize">
+              <span className="px-2.5 py-0.5 rounded-full bg-[#1A68D4]/10 text-[#1A68D4] text-[11px] font-bold capitalize">
                 {profile.role || "Member"}
               </span>
               {(profile.average_rating || (reviewStats?.total ?? 0) > 0) && (
@@ -438,18 +539,18 @@ export default function PublicProfilePage() {
                   <Star weight="fill" className="h-3.5 w-3.5 fill-amber-500" />
                   <span>{profile.average_rating ?? reviewStats?.average}</span>
                   <span className="text-[11px] text-muted-foreground font-normal">
-                    ({profile.reviews_count ?? reviewStats?.total} {(profile.reviews_count ?? reviewStats?.total) === 1 ? "review" : "reviews"})
+                    ({profile.reviews_count ?? reviewStats?.total})
                   </span>
                 </span>
               )}
               {profile.country && (
                 <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                  <MapPin weight="fill" className="h-3.5 w-3.5" /> {profile.country}
+                  <MapPin weight="bold" className="h-3.5 w-3.5" /> {profile.country}
                 </span>
               )}
               {joinDate && (
                 <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                  <Calendar weight="fill" className="h-3.5 w-3.5" /> Joined {joinDate}
+                  <Calendar weight="bold" className="h-3.5 w-3.5" /> Joined {joinDate}
                 </span>
               )}
             </div>
@@ -466,34 +567,31 @@ export default function PublicProfilePage() {
             )}
 
             {/* Follower Stats Grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-3 p-4 rounded-xl bg-muted/40 border-none/80">
+            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-3 p-4 rounded-2xl bg-muted/40 border border-border/50">
               <div>
-                <p className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold">Followers</p>
-                <p className="text-lg font-extrabold text-foreground mt-0.5">{followersCount}</p>
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold">Followers</p>
+                <p className="text-lg font-black text-foreground mt-0.5">{followersCount}</p>
               </div>
               <div>
-                <p className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold">Following</p>
-                <p className="text-lg font-extrabold text-foreground mt-0.5">{profile.following_count ?? 0}</p>
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold">Following</p>
+                <p className="text-lg font-black text-foreground mt-0.5">{profile.following_count ?? 0}</p>
               </div>
               <div>
-                <p className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold">Communities</p>
-                <p className="text-lg font-extrabold text-foreground mt-0.5">{profile.communities_count ?? 0}</p>
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold">Communities</p>
+                <p className="text-lg font-black text-foreground mt-0.5">{profile.communities_count ?? 0}</p>
               </div>
               <div>
-                <p className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold">Posts</p>
-                <p className="text-lg font-extrabold text-foreground mt-0.5">{profile.posts_count ?? 0}</p>
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold">Posts</p>
+                <p className="text-lg font-black text-foreground mt-0.5">{profile.posts_count ?? 0}</p>
               </div>
               {(profile.role === "vendor" || (profile.reviews_count ?? 0) > 0 || (reviewStats?.total ?? 0) > 0) && (
                 <div>
-                  <p className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold">Rating</p>
-                  <p className="text-lg font-extrabold text-amber-500 mt-0.5 flex items-center gap-1">
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold">Rating</p>
+                  <p className="text-lg font-black text-amber-500 mt-0.5 flex items-center gap-1">
                     {(profile.average_rating || (reviewStats?.total ?? 0) > 0) ? (
                       <>
                         <Star weight="fill" className="h-4 w-4 fill-amber-500" />
                         <span>{profile.average_rating ?? reviewStats?.average}</span>
-                        <span className="text-xs text-muted-foreground font-normal">
-                          ({profile.reviews_count ?? reviewStats?.total})
-                        </span>
                       </>
                     ) : (
                       <span className="text-xs text-muted-foreground font-medium">New seller</span>
@@ -503,98 +601,362 @@ export default function PublicProfilePage() {
               )}
             </div>
 
-            {/* Quick Link-in-Bio & Storefront Shortcuts */}
-            {(profile.has_link_in_bio || profile.storefront) && (
-              <div className="flex flex-wrap items-center gap-3 pt-5 border-t border-border/60 mt-5">
-                {profile.has_link_in_bio && (
-                  <Link to={`/l/${profile.username}`}>
-                    <Button variant="outline" size="sm" className="gap-2 h-9 text-xs font-bold border-secondary/30 text-secondary hover:bg-secondary/10">
-                      <ExternalLink weight="fill" className="h-3.5 w-3.5" />
-                      View Link in Bio
-                    </Button>
-                  </Link>
-                )}
+            {/* Native Link-in-Bio Shortcut */}
+            <div className="flex flex-wrap items-center gap-3 pt-4 border-t border-border/60 mt-4">
+              <a
+                href={`/l/${profile.username}`}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#1A68D4]/10 text-[#1A68D4] text-xs font-bold hover:bg-[#1A68D4]/15 transition-colors border border-[#1A68D4]/20"
+              >
+                <ExternalLink weight="bold" className="h-3.5 w-3.5" />
+                <span>murihspace.com/l/{profile.username}</span>
+              </a>
 
-                {profile.storefront && (
-                  <Link to={`/store/${profile.storefront.short_code}`}>
-                    <Button variant="outline" size="sm" className="gap-2 h-9 text-xs font-bold border-border hover:bg-muted">
-                      <Storefront weight="fill" className="h-3.5 w-3.5 text-secondary" />
-                      Visit {profile.storefront.display_name || "Storefront"}
+              {profile.storefront && (
+                <Link
+                  to={`/store/${profile.storefront.short_code}`}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-muted text-foreground text-xs font-semibold hover:bg-muted/80 transition-colors border border-border"
+                >
+                  <Storefront weight="bold" className="h-3.5 w-3.5 text-[#1A68D4]" />
+                  <span>{profile.storefront.display_name || "Official Storefront"}</span>
+                </Link>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* ── CONTENT TABS NAVIGATION ────────────────────────────── */}
+        <div className="flex items-center border-b border-border/80 gap-1 overflow-x-auto no-scrollbar">
+          <button
+            type="button"
+            onClick={() => setActiveTab("posts")}
+            className={`px-4 py-3 text-xs font-bold flex items-center gap-2 border-b-2 transition-all whitespace-nowrap ${
+              activeTab === "posts"
+                ? "border-[#1A68D4] text-[#1A68D4]"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <GridFour weight={activeTab === "posts" ? "bold" : "regular"} className="h-4 w-4" />
+            <span>Posts</span>
+            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-muted font-mono">{profile.posts_count ?? 0}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab("reels")}
+            className={`px-4 py-3 text-xs font-bold flex items-center gap-2 border-b-2 transition-all whitespace-nowrap ${
+              activeTab === "reels"
+                ? "border-[#1A68D4] text-[#1A68D4]"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <FilmReel weight={activeTab === "reels" ? "bold" : "regular"} className="h-4 w-4" />
+            <span>Reels &amp; Media</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab("live")}
+            className={`px-4 py-3 text-xs font-bold flex items-center gap-2 border-b-2 transition-all whitespace-nowrap ${
+              activeTab === "live"
+                ? "border-[#1A68D4] text-[#1A68D4]"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <Broadcast weight={activeTab === "live" ? "bold" : "regular"} className="h-4 w-4" />
+            <span>Live</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab("communities")}
+            className={`px-4 py-3 text-xs font-bold flex items-center gap-2 border-b-2 transition-all whitespace-nowrap ${
+              activeTab === "communities"
+                ? "border-[#1A68D4] text-[#1A68D4]"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <Users weight={activeTab === "communities" ? "bold" : "regular"} className="h-4 w-4" />
+            <span>Communities</span>
+            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-muted font-mono">
+              {profile.public_communities?.length ?? 0}
+            </span>
+          </button>
+
+          {(profile.role === "vendor" || (profile.reviews_count ?? 0) > 0 || (reviewStats?.total ?? 0) > 0) && (
+            <button
+              type="button"
+              onClick={() => setActiveTab("reviews")}
+              className={`px-4 py-3 text-xs font-bold flex items-center gap-2 border-b-2 transition-all whitespace-nowrap ${
+                activeTab === "reviews"
+                  ? "border-[#1A68D4] text-[#1A68D4]"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <Star weight={activeTab === "reviews" ? "fill" : "regular"} className="h-4 w-4 text-amber-500" />
+              <span>Reviews</span>
+              <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-muted font-mono">
+                {reviewStats?.total ?? profile.reviews_count ?? 0}
+              </span>
+            </button>
+          )}
+        </div>
+
+        {/* ── TAB CONTENT: POSTS ─────────────────────────────────── */}
+        {activeTab === "posts" && (
+          <div>
+            {postsLoading ? (
+              <div className="py-16 text-center">
+                <Loader2 weight="fill" className="h-7 w-7 animate-spin text-[#1A68D4] mx-auto mb-2" />
+                <p className="text-xs text-muted-foreground">Loading posts...</p>
+              </div>
+            ) : tabPosts.length === 0 ? (
+              <div className="rounded-3xl border border-dashed border-border/80 bg-card p-10 text-center space-y-3">
+                <GridFour weight="regular" className="h-10 w-10 text-muted-foreground/40 mx-auto" />
+                <h3 className="text-sm font-bold text-foreground">No posts published yet</h3>
+                <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+                  {isSelf
+                    ? "You haven't published any posts yet. Head to your Feed or Creator Studio to share your first update."
+                    : `@${profile.username} hasn't posted anything to their wall yet.`}
+                </p>
+                {isSelf && (
+                  <Link to="/app">
+                    <Button size="sm" className="h-8 text-xs font-bold bg-[#1A68D4] text-white hover:bg-[#1A68D4]/90 rounded-xl mt-2">
+                      Create Post
                     </Button>
                   </Link>
                 )}
               </div>
-            )}
-          </div>
-        </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {tabPosts.map((post) => (
+                  <div
+                    key={post.id}
+                    className="group rounded-2xl bg-card border border-border/70 overflow-hidden shadow-sm hover:border-[#1A68D4]/50 transition-all flex flex-col justify-between"
+                  >
+                    <div>
+                      {post.media_urls && post.media_urls.length > 0 && (
+                        <div className="aspect-video w-full bg-slate-900 overflow-hidden relative">
+                          <img
+                            src={post.media_urls[0]}
+                            alt=""
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          />
+                          {post.media_urls.length > 1 && (
+                            <span className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-black/60 backdrop-blur-sm text-[10px] font-bold text-white">
+                              +{post.media_urls.length - 1}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                      <div className="p-4 space-y-2">
+                        {post.community && (
+                          <span className="text-[10px] font-bold text-[#1A68D4] bg-[#1A68D4]/10 px-2 py-0.5 rounded-full inline-block">
+                            {post.community.name}
+                          </span>
+                        )}
+                        <p className="text-xs text-foreground/90 line-clamp-3 leading-relaxed whitespace-pre-wrap">
+                          {post.content}
+                        </p>
+                      </div>
+                    </div>
 
-        {/* Public Communities */}
-        {profile.public_communities && profile.public_communities.length > 0 && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-base font-bold text-foreground flex items-center gap-2">
-                <Users weight="fill" className="h-4 w-4 text-secondary" />
-                Communities
-              </h2>
-              <span className="text-xs text-muted-foreground">
-                {profile.public_communities.length} public space{profile.public_communities.length === 1 ? "" : "s"}
-              </span>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {profile.public_communities.map((comm) => (
-                <Link
-                  key={comm.id}
-                  to={`/c/${comm.slug}`}
-                  className="group rounded-lg border-none bg-card p-4 hover:border-secondary/50 hover: transition flex items-center gap-3.5"
-                >
-                  <div className="h-14 w-14 rounded-lg bg-[#2164b6] flex items-center justify-center overflow-hidden shrink-0">
-                    {comm.logo_url ? (
-                      <img src={comm.logo_url} alt={comm.name} className="w-full h-full object-cover" />
-                    ) : (
-                      <UserIcon weight="fill" className="text-white/90" style={{ width: 28, height: 28 }} />
-                    )}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <h3 className="text-sm font-bold text-foreground group-hover:text-secondary transition truncate">
-                      {comm.name}
-                    </h3>
-                    <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">
-                      {comm.description || "Active community on MurihSpace."}
-                    </p>
-                    <div className="flex items-center gap-2 mt-2">
-                      <Badge variant="outline" className="text-[10px] font-semibold px-2 py-0">
-                        {comm.members_count} member{comm.members_count === 1 ? "" : "s"}
-                      </Badge>
-                      <span className="text-[11px] font-bold text-secondary">
-                        {comm.pricing_type === "paid" ? `$${comm.price_amount}` : "Free"}
+                    <div className="px-4 py-3 border-t border-border/50 flex items-center justify-between text-[11px] text-muted-foreground">
+                      <div className="flex items-center gap-3">
+                        <span className="flex items-center gap-1 font-semibold">
+                          <Heart weight="bold" className="h-3.5 w-3.5 text-rose-500" />
+                          {post.likes_count ?? post.reactions_count ?? 0}
+                        </span>
+                        <span className="flex items-center gap-1 font-semibold">
+                          <ChatCircle weight="bold" className="h-3.5 w-3.5" />
+                          {post.comments_count ?? 0}
+                        </span>
+                        {(post.views_count ?? 0) > 0 && (
+                          <span className="flex items-center gap-1 font-semibold">
+                            <Eye weight="bold" className="h-3.5 w-3.5" />
+                            {post.views_count}
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-[10px]">
+                        {new Date(post.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                       </span>
                     </div>
                   </div>
-                </Link>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
-        {/* Customer Reviews & Store Feedback */}
-        {(profile.role === "vendor" || profile.storefront || reviews.length > 0 || (reviewStats?.total ?? 0) > 0) && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-base font-bold text-foreground flex items-center gap-2">
-                <Star weight="fill" className="h-4 w-4 text-amber-400 fill-amber-400" />
-                Customer Reviews & Ratings
-              </h2>
-              <span className="text-xs text-muted-foreground">
-                {(reviewStats?.total ?? reviews.length)} {((reviewStats?.total ?? reviews.length) === 1) ? "review" : "reviews"}
-              </span>
-            </div>
+        {/* ── TAB CONTENT: REELS & MEDIA ─────────────────────────── */}
+        {activeTab === "reels" && (
+          <div>
+            {postsLoading ? (
+              <div className="py-16 text-center">
+                <Loader2 weight="fill" className="h-7 w-7 animate-spin text-[#1A68D4] mx-auto mb-2" />
+                <p className="text-xs text-muted-foreground">Loading media...</p>
+              </div>
+            ) : tabPosts.length === 0 ? (
+              <div className="rounded-3xl border border-dashed border-border/80 bg-card p-10 text-center space-y-3">
+                <FilmReel weight="regular" className="h-10 w-10 text-muted-foreground/40 mx-auto" />
+                <h3 className="text-sm font-bold text-foreground">No reels or media published yet</h3>
+                <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+                  {isSelf
+                    ? "You haven't uploaded any media or reels yet. Publish video content to engage your audience."
+                    : `@${profile.username} hasn't posted any reels or media content.`}
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                {tabPosts.map((reel) => (
+                  <div
+                    key={reel.id}
+                    className="group relative aspect-[9/16] rounded-2xl overflow-hidden bg-slate-900 border border-border shadow-sm cursor-pointer"
+                  >
+                    {reel.media_urls && reel.media_urls[0] && (
+                      <img
+                        src={reel.media_urls[0]}
+                        alt=""
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex flex-col justify-between p-3">
+                      <div className="self-end">
+                        <span className="p-1 rounded-full bg-black/40 backdrop-blur-md text-white flex items-center justify-center">
+                          <Play weight="fill" className="h-3 w-3" />
+                        </span>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-xs text-white line-clamp-2 font-medium drop-shadow-sm">
+                          {reel.content}
+                        </p>
+                        <div className="flex items-center gap-2 text-[10px] text-white/80 font-bold">
+                          <span className="flex items-center gap-1">
+                            <Heart weight="fill" className="h-3 w-3 text-rose-400" />
+                            {reel.likes_count ?? 0}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <ChatCircle weight="fill" className="h-3 w-3" />
+                            {reel.comments_count ?? 0}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
-            {/* Rating Summary Card if ratings exist */}
+        {/* ── TAB CONTENT: LIVE BROADCASTS ───────────────────────── */}
+        {activeTab === "live" && (
+          <div>
+            {postsLoading ? (
+              <div className="py-16 text-center">
+                <Loader2 weight="fill" className="h-7 w-7 animate-spin text-[#1A68D4] mx-auto mb-2" />
+                <p className="text-xs text-muted-foreground">Loading streams...</p>
+              </div>
+            ) : tabPosts.length === 0 ? (
+              <div className="rounded-3xl border border-dashed border-border/80 bg-card p-10 text-center space-y-3">
+                <Broadcast weight="regular" className="h-10 w-10 text-muted-foreground/40 mx-auto" />
+                <h3 className="text-sm font-bold text-foreground">No active or recorded live streams</h3>
+                <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+                  {isSelf
+                    ? "You haven't hosted any live stream broadcasts yet. Go live from the mobile app or web studio."
+                    : `@${profile.username} has no recorded or active live streams at this time.`}
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {tabPosts.map((live) => (
+                  <div
+                    key={live.id}
+                    className="rounded-2xl bg-card border border-border p-4 space-y-3 shadow-sm flex items-start gap-3.5"
+                  >
+                    <div className="h-12 w-12 rounded-xl bg-rose-500/10 text-rose-500 flex items-center justify-center shrink-0">
+                      <Broadcast weight="fill" className="h-6 w-6" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="text-sm font-bold text-foreground truncate">{live.content || "Live Broadcast"}</h4>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Streamed on {new Date(live.created_at).toLocaleDateString()}
+                      </p>
+                      <div className="flex items-center gap-3 mt-2 text-[11px] font-semibold text-muted-foreground">
+                        <span className="flex items-center gap-1">
+                          <Eye weight="bold" className="h-3 w-3" /> {live.views_count ?? 0} views
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Heart weight="bold" className="h-3 w-3 text-rose-500" /> {live.likes_count ?? 0}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── TAB CONTENT: COMMUNITIES ───────────────────────────── */}
+        {activeTab === "communities" && (
+          <div className="space-y-4">
+            {(!profile.public_communities || profile.public_communities.length === 0) ? (
+              <div className="rounded-3xl border border-dashed border-border/80 bg-card p-10 text-center space-y-3">
+                <Users weight="regular" className="h-10 w-10 text-muted-foreground/40 mx-auto" />
+                <h3 className="text-sm font-bold text-foreground">No public communities</h3>
+                <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+                  @{profile.username} has not joined or created any public communities yet.
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {profile.public_communities.map((comm) => (
+                  <Link
+                    key={comm.id}
+                    to={`/c/${comm.slug}`}
+                    className="group rounded-2xl border border-border bg-card p-4 hover:border-[#1A68D4]/50 transition flex items-center gap-3.5 shadow-sm"
+                  >
+                    <div className="h-14 w-14 rounded-2xl bg-slate-800 flex items-center justify-center overflow-hidden shrink-0">
+                      {comm.logo_url ? (
+                        <img src={comm.logo_url} alt={comm.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <Users weight="fill" className="text-white/80 h-7 w-7" />
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <h3 className="text-sm font-bold text-foreground group-hover:text-[#1A68D4] transition truncate">
+                        {comm.name}
+                      </h3>
+                      <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">
+                        {comm.description || "Active community on MurihSpace."}
+                      </p>
+                      <div className="flex items-center gap-2 mt-2">
+                        <Badge variant="outline" className="text-[10px] font-semibold px-2 py-0">
+                          {comm.members_count} member{comm.members_count === 1 ? "" : "s"}
+                        </Badge>
+                        <span className="text-[11px] font-bold text-[#1A68D4]">
+                          {comm.pricing_type === "paid" ? `$${comm.price_amount}` : "Free"}
+                        </span>
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── TAB CONTENT: REVIEWS ───────────────────────────────── */}
+        {activeTab === "reviews" && (
+          <div className="space-y-6">
+            {/* Rating Summary Card */}
             {reviewStats && reviewStats.total > 0 && (
-              <div className="rounded-2xl bg-card border border-border/70 p-5 grid grid-cols-1 sm:grid-cols-3 gap-6 items-center">
+              <div className="rounded-2xl bg-card border border-border p-5 grid grid-cols-1 sm:grid-cols-3 gap-6 items-center shadow-sm">
                 <div className="flex flex-col items-center justify-center text-center sm:border-r border-border/60 sm:pr-6">
-                  <span className="text-4xl font-extrabold text-foreground tracking-tight">
+                  <span className="text-4xl font-black text-foreground tracking-tight">
                     {reviewStats.average.toFixed(1)}
                   </span>
                   <div className="flex items-center gap-1 mt-1.5 text-amber-400">
@@ -637,12 +999,12 @@ export default function PublicProfilePage() {
 
             {/* Reviews List */}
             {reviewsLoading ? (
-              <div className="p-8 text-center bg-card rounded-2xl border border-border/60">
-                <Loader2 weight="fill" className="h-6 w-6 animate-spin text-secondary mx-auto mb-2" />
+              <div className="py-12 text-center bg-card rounded-2xl border border-border">
+                <Loader2 weight="fill" className="h-6 w-6 animate-spin text-[#1A68D4] mx-auto mb-2" />
                 <p className="text-xs text-muted-foreground">Loading reviews...</p>
               </div>
             ) : reviews.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-border/80 bg-card p-6 text-center space-y-2">
+              <div className="rounded-2xl border border-dashed border-border/80 bg-card p-8 text-center space-y-2">
                 <Star weight="regular" className="h-8 w-8 text-muted-foreground/40 mx-auto" />
                 <h3 className="text-sm font-bold text-foreground">No customer reviews yet</h3>
                 <p className="text-xs text-muted-foreground max-w-sm mx-auto">
@@ -652,10 +1014,10 @@ export default function PublicProfilePage() {
             ) : (
               <div className="space-y-3">
                 {reviews.map((rev) => (
-                  <div key={rev.id} className="rounded-2xl bg-card border border-border/60 p-4 sm:p-5 space-y-3">
+                  <div key={rev.id} className="rounded-2xl bg-card border border-border p-4 sm:p-5 space-y-3 shadow-sm">
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex items-center gap-3">
-                        <div className="h-9 w-9 rounded-full bg-[#2164b6] flex items-center justify-center overflow-hidden shrink-0">
+                        <div className="h-9 w-9 rounded-full bg-[#1A68D4] flex items-center justify-center overflow-hidden shrink-0">
                           {rev.buyer?.avatar_url || rev.buyer?.avatar ? (
                             <img
                               src={rev.buyer.avatar_url || rev.buyer.avatar}
@@ -693,7 +1055,6 @@ export default function PublicProfilePage() {
                       </div>
                     </div>
 
-                    {/* Product Tag */}
                     {rev.product && (
                       <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-muted/60 text-[11px] font-medium text-muted-foreground">
                         <span>Reviewed:</span>
@@ -701,7 +1062,6 @@ export default function PublicProfilePage() {
                       </div>
                     )}
 
-                    {/* Review content */}
                     {rev.title && (
                       <h4 className="text-sm font-bold text-foreground">{rev.title}</h4>
                     )}
@@ -709,11 +1069,10 @@ export default function PublicProfilePage() {
                       <p className="text-xs text-muted-foreground leading-relaxed whitespace-pre-wrap">{rev.body}</p>
                     )}
 
-                    {/* Vendor official reply */}
                     {rev.vendor_reply && (
-                      <div className="mt-3 pl-3.5 border-l-2 border-secondary bg-secondary/5 dark:bg-secondary/10 rounded-r-xl p-3 space-y-1">
+                      <div className="mt-3 pl-3.5 border-l-2 border-[#1A68D4] bg-[#1A68D4]/5 dark:bg-[#1A68D4]/10 rounded-r-xl p-3 space-y-1">
                         <div className="flex items-center justify-between">
-                          <span className="text-xs font-bold text-secondary flex items-center gap-1.5">
+                          <span className="text-xs font-bold text-[#1A68D4] flex items-center gap-1.5">
                             <Storefront weight="fill" className="h-3.5 w-3.5" />
                             Response from seller ({profile.name})
                           </span>
@@ -737,43 +1096,30 @@ export default function PublicProfilePage() {
 
         {/* Guest Preview Gating Card */}
         {!isAuthenticated && (
-          <div className="rounded-3xl border border-dashed border-border/90 bg-muted/20 p-5 text-center space-y-4">
-            <div className="h-12 w-12 rounded-lg bg-secondary/15 text-secondary flex items-center justify-center mx-auto">
+          <div className="rounded-3xl border border-dashed border-border bg-muted/20 p-6 text-center space-y-3 mt-6">
+            <div className="h-12 w-12 rounded-2xl bg-[#1A68D4]/10 text-[#1A68D4] flex items-center justify-center mx-auto">
               <Lock weight="fill" className="h-6 w-6" />
             </div>
             <div className="space-y-1">
               <h3 className="text-base font-bold text-foreground">
                 Join MurihSpace to interact with {profile.name}
               </h3>
-              <p className="text-xs text-muted-foreground max-w-md mx-auto leading-relaxed text-center">
-                Connect with creators, participate in live audio rooms, access digital products, and join discussions in member communities.
+              <p className="text-xs text-muted-foreground max-w-md mx-auto leading-relaxed">
+                Connect with creators, follow discussions, participate in live audio rooms, and access member storefronts.
               </p>
             </div>
-            <div className="flex items-center justify-center gap-3 pt-2">
+            <div className="flex items-center justify-center gap-3 pt-1">
               <Button
                 onClick={() => {
                   setAuthModalReason({
                     title: `Connect with ${profile.name}`,
-                    desc: "Create a free account or log in to start following and chatting.",
+                    desc: "Create an account or sign in to start chatting, sharing content, and following.",
                   });
                   setIsAuthModalOpen(true);
                 }}
-                className="h-9 px-5 font-bold text-xs bg-secondary text-secondary-foreground hover:bg-secondary/90 "
+                className="h-9 px-5 rounded-xl text-xs font-bold bg-[#1A68D4] text-white hover:bg-[#1A68D4]/90"
               >
-                Sign Up Free
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setAuthModalReason({
-                    title: "Welcome Back",
-                    desc: "Log in to your MurihSpace account.",
-                  });
-                  setIsAuthModalOpen(true);
-                }}
-                className="h-9 px-5 font-semibold text-xs border-border hover:bg-muted"
-              >
-                Log In
+                Create Account
               </Button>
             </div>
           </div>
@@ -792,8 +1138,8 @@ export default function PublicProfilePage() {
       <ShareModal
         isOpen={showShareModal}
         onClose={() => setShowShareModal(false)}
-        title={profile.name || `@${cleanUsername}`}
-        description={profile.bio || `Check out ${profile.name || cleanUsername}'s profile on MurihSpace`}
+        title={profile.name}
+        description={profile.bio || `Check out ${profile.name}'s profile on MurihSpace`}
         url={absolute(profileUrl(cleanUsername))}
         type="profile"
         imageUrl={profile.avatar_url || profile.avatar}

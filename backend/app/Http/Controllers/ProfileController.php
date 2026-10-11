@@ -9,13 +9,11 @@ use Illuminate\Validation\Rule;
 class ProfileController extends Controller
 {
     /**
-     * Display the authenticated user's profile.
+     * Format user profile payload consistently.
      */
-    public function show(Request $request): JsonResponse
+    private function formatUserProfile(\App\Models\User $user): array
     {
-        $user = $request->user();
-
-        return response()->json([
+        return [
             'id' => $user->id,
             'name' => $user->name,
             'email' => $user->email,
@@ -42,7 +40,15 @@ class ProfileController extends Controller
             'communities_count' => $user->communities()->count(),
             'coins' => $user->systemWallet?->available ?? 0,
             'created_at' => $user->created_at?->toISOString(),
-        ]);
+        ];
+    }
+
+    /**
+     * Display the authenticated user's profile.
+     */
+    public function show(Request $request): JsonResponse
+    {
+        return response()->json($this->formatUserProfile($request->user()));
     }
 
     /**
@@ -61,6 +67,7 @@ class ProfileController extends Controller
             'username' => ['sometimes', 'required', 'string', 'min:3', 'max:50', 'regex:/\A[a-zA-Z0-9_]+\z/', Rule::unique('users')->ignore($user->id)],
             'bio' => ['nullable', 'string', 'max:1000'],
             'avatar' => ['nullable', 'string', 'max:2048'],
+            'avatar_url' => ['nullable', 'string', 'max:2048'],
             'banner_url' => ['nullable', 'string', 'max:2048'],
             'country' => ['nullable', 'string', 'max:255'],
             'county' => ['nullable', 'string', 'max:255'],
@@ -75,31 +82,170 @@ class ProfileController extends Controller
         }
         unset($validated['phone']);
 
+        if (isset($validated['avatar']) && ! isset($validated['avatar_url'])) {
+            $validated['avatar_url'] = $validated['avatar'];
+        }
+
         $user->update($validated);
 
+        return response()->json($this->formatUserProfile($user));
+    }
+
+    /**
+     * Upload and update user avatar image.
+     */
+    public function uploadAvatar(Request $request, \App\Services\StorageRouter $router, \App\Services\FileSecurityFilterService $securityFilter): JsonResponse
+    {
+        $user = $request->user();
+
+        if ($request->has('avatar_url') || $request->has('avatar')) {
+            $url = $request->input('avatar_url') ?: $request->input('avatar');
+            $user->update([
+                'avatar' => $url,
+                'avatar_url' => $url,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Avatar updated successfully.',
+                'avatar' => $url,
+                'avatar_url' => $url,
+                'url' => $url,
+                'user' => $this->formatUserProfile($user),
+            ]);
+        }
+
+        $request->validate([
+            'file' => [
+                'required',
+                'file',
+                'image',
+                'mimes:jpeg,png,jpg,webp,gif',
+                'max:10240',
+            ],
+        ]);
+
+        $file = $request->file('file');
+        $securityFilter->validateUploadedFile($file);
+
+        $mime = $file->getMimeType();
+        $target = $router->resolve($mime, 'avatars');
+        $disk = $target['disk'];
+        $folder = $target['folder'];
+
+        $diskConfig = config("filesystems.disks.{$disk}");
+        if (! $diskConfig) {
+            $disk = 'contabo';
+        }
+
+        $cleanExt = strtolower($file->getClientOriginalExtension() ?: 'jpg');
+        $cleanExt = preg_replace('/[^a-z0-9]/', '', $cleanExt);
+        $filename = 'avatar_' . $user->id . '_' . \Illuminate\Support\Str::random(24) . ($cleanExt ? '.' . $cleanExt : '');
+        $path = ltrim($folder . '/' . $filename, '/');
+
+        $stored = \Illuminate\Support\Facades\Storage::disk($disk)->put(
+            $path,
+            file_get_contents($file->getRealPath()),
+            [
+                'visibility' => 'public',
+                'ContentType' => $mime,
+                'CacheControl' => 'public, max-age=86400',
+            ]
+        );
+
+        if (! $stored) {
+            return response()->json(['message' => 'Failed to store avatar.'], 500);
+        }
+
+        $url = \Illuminate\Support\Facades\Storage::disk($disk)->url($path);
+
+        $user->update([
+            'avatar' => $url,
+            'avatar_url' => $url,
+        ]);
+
         return response()->json([
-            'id' => $user->id,
-            'name' => $user->name,
-            'email' => $user->email,
-            'username' => $user->username,
-            'role' => $user->role,
-            'bio' => $user->bio,
-            'avatar' => $user->avatar,
-            'avatar_url' => $user->avatar_url ?? $user->avatar,
-            'banner_url' => $user->banner_url,
-            'country' => $user->country,
-            'county' => $user->county,
-            'state' => $user->state,
-            'mobile_number' => $user->mobile_number,
-            'phone' => $user->mobile_number,
-            'birthday' => $user->birthday?->format('Y-m-d'),
-            'kyc_status' => $user->kyc_status,
-            'email_verified' => $user->hasVerifiedEmail(),
-            'posts_count' => $user->posts()->count(),
-            'followers_count' => $user->followers()->count(),
-            'following_count' => $user->follows()->count(),
-            'communities_count' => $user->communities()->count(),
-            'coins' => $user->systemWallet?->available ?? 0,
+            'success' => true,
+            'message' => 'Avatar updated successfully.',
+            'avatar' => $url,
+            'avatar_url' => $url,
+            'url' => $url,
+            'user' => $this->formatUserProfile($user),
+        ]);
+    }
+
+    /**
+     * Upload and update user profile cover banner image.
+     */
+    public function uploadBanner(Request $request, \App\Services\StorageRouter $router, \App\Services\FileSecurityFilterService $securityFilter): JsonResponse
+    {
+        $user = $request->user();
+
+        if ($request->has('banner_url') || $request->has('banner')) {
+            $url = $request->input('banner_url') ?: $request->input('banner');
+            $user->update(['banner_url' => $url]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Cover banner updated successfully.',
+                'banner_url' => $url,
+                'url' => $url,
+                'user' => $this->formatUserProfile($user),
+            ]);
+        }
+
+        $request->validate([
+            'file' => [
+                'required',
+                'file',
+                'image',
+                'mimes:jpeg,png,jpg,webp,gif',
+                'max:15360',
+            ],
+        ]);
+
+        $file = $request->file('file');
+        $securityFilter->validateUploadedFile($file);
+
+        $mime = $file->getMimeType();
+        $target = $router->resolve($mime, 'banners');
+        $disk = $target['disk'];
+        $folder = $target['folder'];
+
+        $diskConfig = config("filesystems.disks.{$disk}");
+        if (! $diskConfig) {
+            $disk = 'contabo';
+        }
+
+        $cleanExt = strtolower($file->getClientOriginalExtension() ?: 'jpg');
+        $cleanExt = preg_replace('/[^a-z0-9]/', '', $cleanExt);
+        $filename = 'banner_' . $user->id . '_' . \Illuminate\Support\Str::random(24) . ($cleanExt ? '.' . $cleanExt : '');
+        $path = ltrim($folder . '/' . $filename, '/');
+
+        $stored = \Illuminate\Support\Facades\Storage::disk($disk)->put(
+            $path,
+            file_get_contents($file->getRealPath()),
+            [
+                'visibility' => 'public',
+                'ContentType' => $mime,
+                'CacheControl' => 'public, max-age=86400',
+            ]
+        );
+
+        if (! $stored) {
+            return response()->json(['message' => 'Failed to store banner.'], 500);
+        }
+
+        $url = \Illuminate\Support\Facades\Storage::disk($disk)->url($path);
+
+        $user->update(['banner_url' => $url]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Cover banner updated successfully.',
+            'banner_url' => $url,
+            'url' => $url,
+            'user' => $this->formatUserProfile($user),
         ]);
     }
 

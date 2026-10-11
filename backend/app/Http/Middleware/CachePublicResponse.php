@@ -18,6 +18,11 @@ class CachePublicResponse
     {
         $response = $next($request);
 
+        if ($request->bearerToken() || $request->has('refresh') || $request->header('Cache-Control') === 'no-cache') {
+            $response->headers->set('Cache-Control', 'no-cache, private');
+            return $response;
+        }
+
         if ($response->isSuccessful() && $request->isMethod('GET')) {
             $response->setCache(['public' => true, 'max_age' => $seconds]);
             $response->headers->set('X-Cache-TTL', "{$seconds}s");

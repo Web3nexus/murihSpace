@@ -12,7 +12,6 @@ import {
   SealCheck as BadgeCheck,
   ShareNetwork as Share2,
   ArrowSquareOut,
-  Star,
   Camera,
   FloppyDisk,
   DeviceMobile as Smartphone,
@@ -20,6 +19,11 @@ import {
   MapPin,
   Calendar,
   Sparkle,
+  Copy,
+  Link as LinkIcon,
+  Eye,
+  ArrowCounterClockwise,
+  ArrowLeft,
 } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
 import { ShareModal } from "@/components/common/ShareModal";
@@ -57,11 +61,13 @@ export function ProfilePage() {
   const [kycDocInput, setKycDocInput] = useState("");
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [showShareModal, setShowShareModal] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
 
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const bannerInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
+  // Sync state from profile
+  const populateFromProfile = React.useCallback(() => {
     if (profile) {
       setName(profile.name || "");
       setUsername(profile.username || "");
@@ -75,6 +81,25 @@ export function ProfilePage() {
       setBannerUrl(profile.banner_url || "");
     }
   }, [profile]);
+
+  useEffect(() => {
+    populateFromProfile();
+  }, [populateFromProfile]);
+
+  // Track whether there are unsaved changes
+  const isDirty = React.useMemo(() => {
+    if (!profile) return false;
+    return (
+      name !== (profile.name || "") ||
+      username !== (profile.username || "") ||
+      bio !== (profile.bio || "") ||
+      country !== (profile.country || "") ||
+      county !== (profile.county || "") ||
+      state !== (profile.state || "") ||
+      mobileNumber !== (profile.mobile_number || profile.phone || "") ||
+      birthday !== (profile.birthday || "")
+    );
+  }, [profile, name, username, bio, country, county, state, mobileNumber, birthday]);
 
   const handleAvatarFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -161,12 +186,12 @@ export function ProfilePage() {
     }
   };
 
-  const handleUpdate = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleUpdate = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     setSuccessMsg(null);
     const ok = await updateProfile({
       name,
-      username,
+      username: username.trim().toLowerCase(),
       bio,
       avatar: avatar || undefined,
       banner_url: bannerUrl || undefined,
@@ -194,16 +219,26 @@ export function ProfilePage() {
     }
   };
 
+  const copyLinkInBio = () => {
+    const link = `https://murihspace.com/l/${username || profile?.username || ""}`;
+    navigator.clipboard.writeText(link);
+    setCopiedLink(true);
+    toast.success("Copied Link-in-Bio URL to clipboard!");
+    setTimeout(() => setCopiedLink(false), 2000);
+  };
+
   if (loading) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <Loader2 weight="fill" className="h-7 w-7 animate-spin text-primary" />
+        <Loader2 weight="fill" className="h-7 w-7 animate-spin text-[#1A68D4]" />
       </div>
     );
   }
 
+  const cleanHandle = (username || profile?.username || "").toLowerCase();
+
   return (
-    <div className="w-full max-w-4xl mx-auto space-y-6 pb-12">
+    <div className="w-full max-w-4xl mx-auto space-y-6 pb-20">
       {/* Hidden File Inputs for Direct Camera/Upload Integration */}
       <input
         type="file"
@@ -220,20 +255,97 @@ export function ProfilePage() {
         className="hidden"
       />
 
-      {/* ── PROFILE HERO CARD ──────────────────────────────────── */}
+      {/* ── TOP HEADER BAR ─────────────────────────────────────── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-border/60">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <Link
+              to="/app/settings"
+              className="text-xs font-semibold text-muted-foreground hover:text-foreground inline-flex items-center gap-1 transition-colors"
+            >
+              <ArrowLeft weight="bold" className="h-3.5 w-3.5" /> Settings
+            </Link>
+            <span className="text-muted-foreground/40">/</span>
+            <span className="text-xs font-bold text-foreground">Edit Profile</span>
+          </div>
+          <h1 className="text-2xl font-black text-foreground tracking-tight">Edit Profile</h1>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Manage your public presence, personal information, and profile appearance.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2 flex-wrap">
+          {cleanHandle && (
+            <Link to={`/u/${cleanHandle}`} target="_blank" rel="noreferrer">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-9 gap-1.5 text-xs font-bold rounded-xl border-border hover:bg-muted"
+              >
+                <Eye weight="bold" className="h-4 w-4 text-[#1A68D4]" />
+                <span>Public Profile Preview</span>
+              </Button>
+            </Link>
+          )}
+
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setShowShareModal(true)}
+            className="h-9 gap-1.5 text-xs font-semibold rounded-xl border-border hover:bg-muted"
+          >
+            <Share2 weight="bold" className="h-3.5 w-3.5" />
+            <span>Share</span>
+          </Button>
+
+          <Button
+            type="button"
+            size="sm"
+            onClick={() => handleUpdate()}
+            disabled={updating}
+            className="h-9 gap-1.5 text-xs font-bold rounded-xl bg-[#1A68D4] hover:bg-[#1A68D4]/90 text-white shadow-sm"
+          >
+            {updating ? (
+              <Loader2 weight="fill" className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <FloppyDisk weight="bold" className="h-3.5 w-3.5" />
+            )}
+            <span>Save Changes</span>
+          </Button>
+        </div>
+      </div>
+
+      {/* Notifications / Feedback Banners */}
+      {successMsg && (
+        <div className="flex items-center gap-2.5 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-3.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400 animate-in fade-in">
+          <CheckCircle2 weight="fill" className="h-4 w-4 shrink-0" />
+          <span>{successMsg}</span>
+        </div>
+      )}
+
+      {error && (
+        <div className="flex items-center gap-2.5 rounded-2xl border border-destructive/30 bg-destructive/10 p-3.5 text-xs font-semibold text-destructive animate-in fade-in">
+          <AlertCircle weight="fill" className="h-4 w-4 shrink-0" />
+          <span>{error}</span>
+        </div>
+      )}
+
+      {/* ── PROFILE HERO VISUALS CARD ──────────────────────────── */}
       <div className="overflow-hidden rounded-3xl border border-border bg-card shadow-sm">
-        {/* Banner with Edit Cover Button */}
-        <div className="h-40 sm:h-48 w-full bg-[#131b26] dark:bg-[#0d131d] border-b border-border/80 relative overflow-hidden group">
+        {/* Cover Banner with Live Upload */}
+        <div className="h-44 sm:h-52 w-full bg-[#131b26] dark:bg-[#0d131d] border-b border-border/80 relative overflow-hidden group">
           {bannerUrl ? (
-            <img src={bannerUrl} alt="Profile Cover" className="w-full h-full object-cover" />
+            <img src={bannerUrl} alt="Profile Cover Banner" className="w-full h-full object-cover" />
           ) : (
             <div className="absolute inset-0 bg-[#131b26] dark:bg-[#0d131d] flex items-center justify-end pr-8">
-              {/* Subtle minimal geometric grid pattern for depth without looking like generic AI gradient */}
+              {/* Subtle geometric dot pattern */}
               <div
-                className="absolute inset-0 opacity-[0.06]"
+                className="absolute inset-0 opacity-[0.07]"
                 style={{
                   backgroundImage: `radial-gradient(circle at 1px 1px, #ffffff 1px, transparent 0)`,
-                  backgroundSize: '24px 24px',
+                  backgroundSize: "24px 24px",
                 }}
               />
               <div className="relative text-right hidden sm:block select-none opacity-20 pointer-events-none">
@@ -242,23 +354,29 @@ export function ProfilePage() {
             </div>
           )}
 
-          {/* Banner Upload Trigger Button */}
+          {/* Banner Upload Button */}
           <button
             type="button"
             onClick={() => bannerInputRef.current?.click()}
             disabled={uploadingBanner}
-            className="absolute top-3 right-3 sm:top-4 sm:right-4 px-3 py-1.5 rounded-full bg-black/60 hover:bg-black/80 backdrop-blur-md text-white text-xs font-semibold flex items-center gap-1.5 transition-all shadow-md border border-white/10"
+            className="absolute top-3 right-3 sm:top-4 sm:right-4 px-3.5 py-1.5 rounded-full bg-black/60 hover:bg-black/85 backdrop-blur-md text-white text-xs font-bold flex items-center gap-1.5 transition-all shadow-md border border-white/10 active:scale-95"
+            title="Upload profile cover banner"
           >
             {uploadingBanner ? (
               <Loader2 weight="fill" className="h-3.5 w-3.5 animate-spin" />
             ) : (
               <Camera weight="bold" className="h-3.5 w-3.5" />
             )}
-            <span>{uploadingBanner ? "Uploading..." : "Edit Cover"}</span>
+            <span>{uploadingBanner ? "Uploading..." : "Edit Cover Banner"}</span>
           </button>
+
+          {/* Cover Banner Descriptor */}
+          <div className="absolute bottom-2 left-4 text-[10px] font-semibold text-white/70 bg-black/40 backdrop-blur-sm px-2.5 py-0.5 rounded-full border border-white/10">
+            Profile Cover Banner
+          </div>
         </div>
 
-        {/* Profile Info Row with Unified Interactive Avatar Knob */}
+        {/* Profile Info Row with Interactive Avatar */}
         <div className="px-6 pb-6 pt-0 relative">
           <div className="flex flex-col sm:flex-row sm:items-end justify-between -mt-14 mb-4 gap-4">
             <div className="flex flex-col sm:flex-row sm:items-end gap-4">
@@ -278,7 +396,7 @@ export function ProfilePage() {
                   )}
 
                   {/* Dark hover overlay */}
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white text-[11px] font-semibold gap-1">
+                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white text-[11px] font-semibold gap-1">
                     <Camera weight="bold" className="w-5 h-5" />
                     <span>Change</span>
                   </div>
@@ -299,7 +417,7 @@ export function ProfilePage() {
                     avatarInputRef.current?.click();
                   }}
                   disabled={uploadingAvatar}
-                  className="absolute bottom-1 right-1 p-2 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground shadow-md border-2 border-card transition-transform active:scale-95"
+                  className="absolute bottom-1 right-1 p-2 rounded-full bg-[#1A68D4] hover:bg-[#1A68D4]/90 text-white shadow-md border-2 border-card transition-transform active:scale-95"
                   title="Upload profile photo"
                 >
                   <Camera weight="bold" className="w-3.5 h-3.5" />
@@ -309,11 +427,11 @@ export function ProfilePage() {
               {/* Name, Role & Verification Details */}
               <div className="pb-1 space-y-1">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <h1 className="text-xl sm:text-2xl font-black text-foreground tracking-tight">
+                  <h2 className="text-xl sm:text-2xl font-black text-foreground tracking-tight">
                     {name || "Your Name"}
-                  </h1>
+                  </h2>
                   {(profile?.has_active_verification_badge || profile?.kyc_status === "verified") && (
-                    <BadgeCheck weight="fill" className="h-5 w-5 text-sky-500 fill-sky-500/10 shrink-0" />
+                    <BadgeCheck weight="fill" className="h-5 w-5 text-[#1A68D4] fill-[#1A68D4] shrink-0" />
                   )}
                   {profile?.role === "admin" ? (
                     <span className="px-2.5 py-0.5 rounded-full bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30 text-[11px] font-bold tracking-wide">
@@ -328,65 +446,20 @@ export function ProfilePage() {
                       Storefront Owner
                     </span>
                   ) : (
-                    <span className="px-2.5 py-0.5 rounded-full bg-blue-500/10 text-blue-700 dark:text-blue-300 border border-blue-500/30 text-[11px] font-bold tracking-wide">
-                      Community Member
+                    <span className="px-2.5 py-0.5 rounded-full bg-[#1A68D4]/10 text-[#1A68D4] border border-[#1A68D4]/30 text-[11px] font-bold tracking-wide">
+                      Member
                     </span>
                   )}
                 </div>
-                <p className="text-xs font-semibold text-muted-foreground">
-                  @{username || "username"}
+                <p className="text-xs font-semibold text-muted-foreground font-mono">
+                  @{cleanHandle || "username"}
                 </p>
               </div>
-            </div>
-
-            {/* Top Quick Actions Bar */}
-            <div className="flex items-center gap-2 flex-wrap">
-              {(username || profile?.username) && (
-                <a
-                  href={`/u/${username || profile?.username}`}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="h-9 gap-1.5 text-xs font-semibold rounded-xl"
-                  >
-                    <ArrowSquareOut weight="bold" className="h-3.5 w-3.5" />
-                    <span>View Public Profile</span>
-                  </Button>
-                </a>
-              )}
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setShowShareModal(true)}
-                className="h-9 gap-1.5 text-xs font-semibold rounded-xl"
-              >
-                <Share2 weight="bold" className="h-3.5 w-3.5" />
-                <span>Share</span>
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                onClick={handleUpdate}
-                disabled={updating}
-                className="h-9 gap-1.5 text-xs font-bold rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm"
-              >
-                {updating ? (
-                  <Loader2 weight="fill" className="h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <FloppyDisk weight="bold" className="h-3.5 w-3.5" />
-                )}
-                <span>Save Changes</span>
-              </Button>
             </div>
           </div>
 
           {bio && (
-            <p className="text-xs text-muted-foreground mt-3 leading-relaxed max-w-2xl bg-muted/30 p-3 rounded-xl border border-border/50">
+            <p className="text-xs text-muted-foreground mt-2 leading-relaxed max-w-2xl bg-muted/30 p-3 rounded-xl border border-border/50">
               {bio}
             </p>
           )}
@@ -413,49 +486,70 @@ export function ProfilePage() {
         </div>
       </div>
 
-      {/* Notifications / Feedback Banners */}
-      {successMsg && (
-        <div className="flex items-center gap-2.5 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-3.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400 animate-in fade-in">
-          <CheckCircle2 weight="fill" className="h-4 w-4 shrink-0" />
-          <span>{successMsg}</span>
-        </div>
-      )}
-
-      {error && (
-        <div className="flex items-center gap-2.5 rounded-2xl border border-destructive/30 bg-destructive/10 p-3.5 text-xs font-semibold text-destructive animate-in fade-in">
-          <AlertCircle weight="fill" className="h-4 w-4 shrink-0" />
-          <span>{error}</span>
-        </div>
-      )}
-
-      {/* Vendor Store Reviews Shortcut (If Vendor) */}
-      {profile?.role === "vendor" && (
-        <div className="rounded-2xl border border-border bg-card p-4 flex items-center justify-between gap-4 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center shrink-0">
-              <Star weight="fill" className="h-5 w-5" />
+      {/* ── NATIVE LINK-IN-BIO SHORTCUT CARD ─────────────────────── */}
+      <div className="rounded-3xl border border-[#1A68D4]/30 bg-gradient-to-r from-[#1A68D4]/5 via-background to-background p-5 shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-start gap-3.5">
+            <div className="h-11 w-11 rounded-2xl bg-[#1A68D4]/10 text-[#1A68D4] flex items-center justify-center shrink-0">
+              <LinkIcon weight="bold" className="h-5 w-5" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-foreground">Customer Store Reviews</h3>
-              <p className="text-xs text-muted-foreground">
-                View customer ratings, review feedback, and manage buyer replies.
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-bold text-foreground">Native Link-in-Bio Experience</h3>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#1A68D4]/15 text-[#1A68D4]">
+                  Built-in
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Share all your content, storefront, and socials using your official MurihSpace link.
               </p>
+              <div className="mt-2 flex items-center gap-2 text-xs font-mono font-bold text-[#1A68D4] bg-[#1A68D4]/10 px-3 py-1.5 rounded-xl border border-[#1A68D4]/20 w-fit">
+                <span>https://murihspace.com/l/{cleanHandle}</span>
+              </div>
             </div>
           </div>
-          <Link to="/app/store/reviews">
-            <Button variant="outline" size="sm" className="h-8 text-xs font-semibold shrink-0 rounded-lg">
-              Manage Reviews
+
+          <div className="flex items-center gap-2 flex-wrap">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={copyLinkInBio}
+              className="h-9 gap-1.5 text-xs font-semibold rounded-xl border-border hover:bg-muted"
+            >
+              {copiedLink ? <CheckCircle2 weight="fill" className="h-4 w-4 text-emerald-500" /> : <Copy weight="bold" className="h-4 w-4" />}
+              <span>{copiedLink ? "Copied!" : "Copy Link"}</span>
             </Button>
-          </Link>
+            <a href={`/l/${cleanHandle}`} target="_blank" rel="noreferrer">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-9 gap-1.5 text-xs font-semibold rounded-xl border-border hover:bg-muted"
+              >
+                <ArrowSquareOut weight="bold" className="h-3.5 w-3.5 text-[#1A68D4]" />
+                <span>Preview</span>
+              </Button>
+            </a>
+            <Link to="/app/link-in-bio">
+              <Button
+                type="button"
+                size="sm"
+                className="h-9 text-xs font-bold rounded-xl bg-[#1A68D4] hover:bg-[#1A68D4]/90 text-white"
+              >
+                Manage Link-in-Bio
+              </Button>
+            </Link>
+          </div>
         </div>
-      )}
+      </div>
 
       {/* ── MAIN PROFILE EDIT FORM ─────────────────────────────── */}
       <form onSubmit={handleUpdate} className="space-y-6">
         {/* Card 1: Personal Details */}
         <div className="p-6 rounded-3xl bg-card border border-border shadow-sm space-y-4">
           <div className="flex items-center gap-2 pb-2 border-b border-border/50">
-            <Sparkle weight="fill" className="h-4 w-4 text-primary" />
+            <Sparkle weight="fill" className="h-4 w-4 text-[#1A68D4]" />
             <h2 className="text-sm font-bold text-foreground">Personal Information</h2>
           </div>
 
@@ -481,11 +575,19 @@ export function ProfilePage() {
                 <Input
                   id="profile-username"
                   value={username}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUsername(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ""))
+                  }
                   placeholder="username"
-                  className={cn("h-11 rounded-xl bg-muted/40 pl-8 font-mono text-xs", fieldErrors.username && "border-destructive")}
+                  className={cn(
+                    "h-11 rounded-xl bg-muted/40 pl-8 font-mono text-xs",
+                    fieldErrors.username && "border-destructive"
+                  )}
                 />
               </div>
+              <p className="text-[11px] text-muted-foreground mt-1">
+                Public URL: murihspace.com/u/{cleanHandle}
+              </p>
               {fieldErrors.username && <p className="text-xs text-destructive mt-1">{fieldErrors.username[0]}</p>}
             </Field>
 
@@ -519,14 +621,20 @@ export function ProfilePage() {
           </div>
 
           <Field>
-            <FieldLabel htmlFor="profile-bio">Bio &amp; About You</FieldLabel>
+            <div className="flex items-center justify-between">
+              <FieldLabel htmlFor="profile-bio">Bio &amp; About You</FieldLabel>
+              <span className={cn("text-[11px] font-mono", bio.length > 500 ? "text-destructive font-bold" : "text-muted-foreground")}>
+                {bio.length} / 500
+              </span>
+            </div>
             <textarea
               id="profile-bio"
               rows={3}
+              maxLength={500}
               value={bio}
               onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setBio(e.target.value)}
               placeholder="Tell community members, buyers, and collaborators about yourself..."
-              className="w-full rounded-xl border border-input bg-muted/40 px-3.5 py-2.5 text-xs text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary resize-none"
+              className="w-full rounded-xl border border-input bg-muted/40 px-3.5 py-2.5 text-xs text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#1A68D4] resize-none"
             />
           </Field>
         </div>
@@ -579,10 +687,21 @@ export function ProfilePage() {
 
         {/* Submit Action Bottom Bar */}
         <div className="flex items-center justify-end gap-3 pt-2">
+          {isDirty && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={populateFromProfile}
+              className="h-11 px-5 rounded-xl text-xs font-semibold gap-1.5"
+            >
+              <ArrowCounterClockwise weight="bold" className="h-4 w-4" />
+              <span>Discard Changes</span>
+            </Button>
+          )}
           <Button
             type="submit"
             disabled={updating}
-            className="h-11 px-6 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs gap-2 shadow-sm"
+            className="h-11 px-6 rounded-xl bg-[#1A68D4] hover:bg-[#1A68D4]/90 text-white font-bold text-xs gap-2 shadow-sm"
           >
             {updating ? (
               <Loader2 weight="fill" className="h-4 w-4 animate-spin" />
@@ -594,11 +713,41 @@ export function ProfilePage() {
         </div>
       </form>
 
+      {/* ── FLOATING UNSAVED CHANGES BAR ────────────────────────── */}
+      {isDirty && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-[92%] max-w-xl bg-slate-900 text-white dark:bg-card dark:text-foreground border border-white/10 dark:border-border rounded-2xl p-4 shadow-2xl backdrop-blur-xl flex items-center justify-between gap-4 animate-in fade-in slide-in-from-bottom-4">
+          <div className="flex items-center gap-2.5">
+            <div className="h-2 w-2 rounded-full bg-[#1A68D4] animate-pulse" />
+            <span className="text-xs font-bold">You have unsaved changes</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              onClick={populateFromProfile}
+              className="h-8 text-xs font-semibold text-white/80 hover:text-white dark:text-muted-foreground dark:hover:text-foreground"
+            >
+              Discard
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => handleUpdate()}
+              disabled={updating}
+              className="h-8 text-xs font-bold bg-[#1A68D4] hover:bg-[#1A68D4]/90 text-white rounded-lg px-4"
+            >
+              {updating ? <Loader2 weight="fill" className="h-3.5 w-3.5 animate-spin" /> : "Save Changes"}
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* ── IDENTITY VERIFICATION (KYC) CARD ─────────────────── */}
       <div className="p-6 rounded-3xl bg-card border border-border shadow-sm space-y-4">
         <div className="flex items-center justify-between pb-2 border-b border-border/50">
           <div className="flex items-center gap-2">
-            <ShieldWarning weight="fill" className="h-4 w-4 text-primary" />
+            <ShieldWarning weight="fill" className="h-4 w-4 text-[#1A68D4]" />
             <h2 className="text-sm font-bold text-foreground">Identity Verification (KYC)</h2>
           </div>
           <div>
@@ -619,7 +768,7 @@ export function ProfilePage() {
         </div>
 
         <p className="text-xs text-muted-foreground leading-relaxed">
-          Verification unlocks creator tools, live streaming broadcasts, instant meeting hosting, and creator wallet payouts.
+          Verification unlocks creator monetization, verified badges, live broadcasting, audio room hosting, and creator wallet payouts.
         </p>
 
         {profile?.kyc_status === "rejected" && profile.kyc_rejection_reason && (
@@ -647,7 +796,7 @@ export function ProfilePage() {
             <Button
               type="submit"
               size="sm"
-              className="w-full sm:w-auto h-11 px-5 rounded-xl text-xs font-bold gap-1.5 shrink-0"
+              className="w-full sm:w-auto h-11 px-5 rounded-xl text-xs font-bold gap-1.5 shrink-0 bg-[#1A68D4] hover:bg-[#1A68D4]/90 text-white"
               disabled={updating || !kycDocInput.trim()}
             >
               {updating ? <Loader2 weight="fill" className="h-3.5 w-3.5 animate-spin" /> : <ShieldWarning weight="fill" className="h-3.5 w-3.5" />}
@@ -663,7 +812,7 @@ export function ProfilePage() {
         onClose={() => setShowShareModal(false)}
         title={name || username || "User Profile"}
         description={bio || `Check out ${name || username}'s profile on MurihSpace`}
-        url={absolute(profileUrl(username || profile?.username || ""))}
+        url={absolute(profileUrl(cleanHandle))}
         type="profile"
         imageUrl={avatar}
         badge={profile?.role}
@@ -671,4 +820,4 @@ export function ProfilePage() {
     </div>
   );
 }
-
+export default ProfilePage;

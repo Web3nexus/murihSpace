@@ -330,6 +330,7 @@ Route::prefix('v1')->group(function () {
     // Public User Profile Endpoint
     Route::get('/users/{username}/public', [ProfileController::class, 'publicProfile'])->middleware('cache.public:600');
     Route::get('/users/{username}/reviews', [ProductReviewController::class, 'userReviews']);
+    Route::get('/users/{id}/posts', [PostController::class, 'userPosts']);
 
     // Public Link-in-Bio Page
     Route::get('/l/{username}', [LinkInBioController::class, 'publicPage'])->middleware('cache.public:600');
@@ -527,6 +528,8 @@ Route::prefix('v1')->group(function () {
         Route::prefix('profile')->group(function () {
             Route::get('/', [ProfileController::class, 'show']);
             Route::put('/', [ProfileController::class, 'update']);
+            Route::post('/avatar', [ProfileController::class, 'uploadAvatar']);
+            Route::post('/banner', [ProfileController::class, 'uploadBanner']);
             Route::post('/kyc', [ProfileController::class, 'submitKyc']);
             Route::post('/switch-role', [ProfileController::class, 'switchRole']);
             Route::match(['put', 'post'], '/fcm-token', [ProfileController::class, 'updateFcmToken']);
