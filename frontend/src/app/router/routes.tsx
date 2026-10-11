@@ -637,9 +637,13 @@ export const routes: RouteObject[] = [
         element: <Suspense fallback={<PageLoader />}><SupportThreadsPage /></Suspense>,
       },
 
-      // ── MurihPay Wallet (Sprint 16) ────────────
+      // ── MurihPay Wallet & Finance ────────────
       {
         path: "wallet",
+        element: <Suspense fallback={<PageLoader />}><WalletPage /></Suspense>,
+      },
+      {
+        path: "finance",
         element: <Suspense fallback={<PageLoader />}><WalletPage /></Suspense>,
       },
       {

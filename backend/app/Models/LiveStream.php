@@ -30,6 +30,8 @@ class LiveStream extends Model
         'pinned_product_type',
         'started_at',
         'ended_at',
+        'last_engagement_at',
+        'idle_warned_at',
     ];
 
     protected static function booted(): void
@@ -48,6 +50,8 @@ class LiveStream extends Model
         'total_coins_earned' => 'integer',
         'started_at' => 'datetime',
         'ended_at' => 'datetime',
+        'last_engagement_at' => 'datetime',
+        'idle_warned_at' => 'datetime',
     ];
 
     public function user(): BelongsTo
@@ -93,5 +97,20 @@ class LiveStream extends Model
     public function isLive(): bool
     {
         return $this->status === 'live';
+    }
+
+    /**
+     * Record engagement on an active broadcast.
+     *
+     * Any like, chat message or new viewer resets the idle clock and clears the
+     * pending inactivity warning, so the auto-close cycle only fires when a
+     * broadcast is genuinely unattended.
+     */
+    public function touchEngagement(): void
+    {
+        $this->forceFill([
+            'last_engagement_at' => now(),
+            'idle_warned_at' => null,
+        ])->saveQuietly();
     }
 }

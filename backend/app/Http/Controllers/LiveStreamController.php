@@ -31,6 +31,7 @@ use App\Events\LiveStreamViewerCountUpdated;
 use App\Services\Accounting\AccountingStreamService;
 use App\Services\LiveKitService;
 use App\Services\LiveStreamAttributionService;
+use App\Services\LiveStreamLifecycleService;
 use App\Services\NotificationService;
 use App\Services\Tax\TaxCalculationService;
 use App\Services\Wallet\FeeCalculatorService;
@@ -60,6 +61,7 @@ class LiveStreamController extends Controller
         private readonly TaxCalculationService $taxService,
         private readonly AccountingStreamService $accountingService,
         private readonly \App\Services\Commission\CommissionService $commissionService,
+        private readonly LiveStreamLifecycleService $liveStreamLifecycle,
     ) {}
 
     /**
@@ -67,13 +69,78 @@ class LiveStreamController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $streams = LiveStream::with(['host:id,name,username,avatar,role', 'community:id,name,slug,logo_url,cover_url'])
-            ->where('status', 'live')
+        $query = LiveStream::with(['host:id,name,username,avatar,role', 'community:id,name,slug,logo_url,cover_url'])
+            ->where('status', 'live');
+
+        // Rank the rail by relationship: people the viewer follows come first,
+        // then people they have recently interacted with, then everyone else —
+        // each tier ordered by popularity, so the feed never opens on a total
+        // stranger unless nothing more relevant is live.
+        $user = $request->user();
+        if ($user) {
+            $followIds = $user->follows()->pluck('users.id')->all();
+            $interactIds = array_values(array_diff($this->recentInteractionUserIds($user), $followIds));
+
+            $rankParts = [];
+            $rankBindings = [];
+            if ($followIds !== []) {
+                $rankParts[] = 'WHEN user_id IN ('.$this->placeholders(count($followIds)).') THEN 0';
+                $rankBindings = array_merge($rankBindings, $followIds);
+            }
+            if ($interactIds !== []) {
+                $rankParts[] = 'WHEN user_id IN ('.$this->placeholders(count($interactIds)).') THEN 1';
+                $rankBindings = array_merge($rankBindings, $interactIds);
+            }
+            $rankParts[] = 'ELSE 2';
+
+            $query->orderByRaw('CASE '.implode(' ', $rankParts).' END', $rankBindings);
+        }
+
+        $streams = $query
             ->orderBy('viewers_count', 'desc')
             ->orderBy('created_at', 'desc')
             ->paginate($request->integer('per_page', 20));
 
         return response()->json($streams);
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function placeholders(int $count): string
+    {
+        return implode(',', array_fill(0, $count, '?'));
+    }
+
+    /**
+     * User ids the viewer has recently interacted with: everyone they share a
+     * conversation with, plus hosts of broadcasts they recently opened. Used
+     * only to rank discovery, never to hide streams.
+     *
+     * @return array<int, int>
+     */
+    private function recentInteractionUserIds(User $user): array
+    {
+        $conversationPartners = DB::table('conversation_participants')
+            ->whereIn('conversation_id', function ($q) use ($user) {
+                $q->select('conversation_id')
+                    ->from('conversation_participants')
+                    ->where('user_id', $user->id);
+            })
+            ->where('user_id', '!=', $user->id)
+            ->distinct()
+            ->pluck('user_id')
+            ->all();
+
+        $viewedHostIds = DB::table('live_stream_attributions as attributions')
+            ->join('live_streams as streams', 'streams.id', '=', 'attributions.live_stream_id')
+            ->where('attributions.user_id', $user->id)
+            ->where('attributions.created_at', '>=', now()->subDays(14))
+            ->distinct()
+            ->pluck('streams.user_id')
+            ->all();
+
+        return array_values(array_unique(array_merge($conversationPartners, $viewedHostIds)));
     }
 
     public function resolve(Request $request, string $token): JsonResponse
@@ -509,6 +576,13 @@ class LiveStreamController extends Controller
         $user = $request->user();
         $isHost = (int) $user->id === (int) $stream->user_id;
 
+        // A fresh viewer counts as engagement; a rejoin from someone already in
+        // the room does not, so idle detection is not gamed by leave/rejoin.
+        $wasActive = LiveStreamParticipant::where('live_stream_id', $stream->id)
+            ->where('user_id', $user->id)
+            ->where('is_active', true)
+            ->exists();
+
         // Register presence (and announce the arrival to the host's roster).
         $participant = $this->presence->join(
             $stream,
@@ -518,6 +592,10 @@ class LiveStreamController extends Controller
 
         // Recalculate real active viewer count
         $activeCount = $this->presence->refreshCounts($stream);
+
+        if (! $isHost && ! $wasActive) {
+            $stream->touchEngagement();
+        }
 
         $this->liveAttributions->record($request, $stream, 'join');
 
@@ -817,6 +895,8 @@ class LiveStreamController extends Controller
         $stream->increment('likes_count', $count);
         $totalLikes = (int) $stream->fresh()->likes_count;
 
+        $stream->touchEngagement();
+
         try {
             LiveStreamLiked::dispatch(
                 $stream->id,
@@ -863,6 +943,8 @@ class LiveStreamController extends Controller
             'user_id' => $user->id,
             'message' => $validated['message'],
         ]);
+
+        $stream->touchEngagement();
 
         $loadedMsg = $msg->load('user:id,name,username,avatar,role');
 
@@ -1568,47 +1650,7 @@ class LiveStreamController extends Controller
             return response()->json(['message' => 'Stream already ended.', 'stream' => $stream]);
         }
 
-        $stream->update([
-            'status' => 'ended',
-            'ended_at' => now(),
-            'viewers_count' => 0,
-        ]);
-
-        // Mark all active participants as inactive
-        LiveStreamParticipant::where('live_stream_id', $stream->id)
-            ->where('is_active', true)
-            ->update([
-                'is_active' => false,
-                'left_at' => now(),
-            ]);
-
-        // Drop every remaining viewer from the media room so the LiveKit
-        // session genuinely closes when the host ends the broadcast. Removing
-        // only the host left viewers connected to a stream the database had
-        // already marked ended.
-        $this->liveKitAdmin->removeAllParticipants(
-            $stream->livekit_room,
-            $this->presence->identityFor(
-                LiveStreamParticipant::where('live_stream_id', $stream->id)
-                    ->where('user_id', $stream->user_id)
-                    ->first()
-                    ?? new LiveStreamParticipant(['live_stream_id' => $stream->id, 'user_id' => $stream->user_id])
-            ),
-        );
-
-        $summary = [
-            'total_likes' => $stream->likes_count,
-            'peak_viewers' => $stream->peak_viewers,
-            'total_coins_earned' => $stream->total_coins_earned,
-            'duration_seconds' => $stream->started_at ? $stream->ended_at->diffInSeconds($stream->started_at) : 0,
-        ];
-
-        // Tell every viewer still on this stream that the live is over.
-        try {
-            LiveStreamEnded::dispatch($stream, $summary);
-        } catch (\Throwable $e) {
-            \Log::warning('[LiveStreamController] LiveStreamEnded broadcast failed: '.$e->getMessage(), ['stream_id' => $stream->id]);
-        }
+        $summary = $this->liveStreamLifecycle->end($stream);
 
         return response()->json([
             'message' => 'Live stream ended successfully.',

@@ -1,24 +1,32 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import {
-  Wallet as Wallet,
-  ArrowUpRight as ArrowUpRight,
-  ArrowDownLeft as ArrowDownLeft,
-  PaperPlaneRight as Send,
-  Plus as Plus,
-  Lock as Lock,
-  Spinner as Loader2,
-  ArrowsClockwise as RefreshCw,
-  Clock as Clock,
-  ShieldCheck as ShieldCheck,
-  Buildings as Building2,
-  CheckCircle as CheckCircle2,
-  Globe as Globe,
+  Wallet as WalletIcon,
+  ShieldCheck,
+  Eye,
+  EyeSlash,
+  ArrowsClockwise,
+  Lock,
+  Spinner,
 } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { apiClient, type ApiError } from "@/lib/api/client";
-import { WalletBalanceCard } from "@/components/wallet/WalletBalanceCard";
+import { useAuth } from "@/hooks/useAuth";
+import { MurihPayDigitalCard } from "@/components/wallet/MurihPayDigitalCard";
+import { WalletSwitcher, type WalletContextType } from "@/components/wallet/WalletSwitcher";
+import { WalletActionToolbar } from "@/components/wallet/WalletActionToolbar";
+import { WalletBalanceBreakdown } from "@/components/wallet/WalletBalanceBreakdown";
+import { TransactionTable, type TransactionRowData } from "@/components/wallet/TransactionTable";
+import { WalletMshCoinsWidget } from "@/components/wallet/WalletMshCoinsWidget";
+import { WalletQuickActionsWidget } from "@/components/wallet/WalletQuickActionsWidget";
+import { WalletSpendingOverviewWidget } from "@/components/wallet/WalletSpendingOverviewWidget";
+import { WalletEscrowWidget } from "@/components/wallet/WalletEscrowWidget";
 import { InternalTransferModal } from "@/components/wallet/InternalTransferModal";
-import { FeePreviewCard } from "@/components/wallet/FeePreviewCard";
+import { BuyCoinsModal } from "@/components/wallet/BuyCoinsModal";
+import { SendMoneyModal } from "@/components/wallet/SendMoneyModal";
+import { ReceiveMoneyModal } from "@/components/wallet/ReceiveMoneyModal";
+import { WithdrawModal } from "@/components/wallet/WithdrawModal";
+import { CreateEscrowModal } from "@/components/wallet/CreateEscrowModal";
+import { TransactionDetailsModal } from "@/components/wallet/TransactionDetailsModal";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
@@ -49,20 +57,6 @@ interface WalletItem {
   status: string;
 }
 
-const CURRENCY_SYMBOLS: Record<string, string> = {
-  USD: "$",
-  NGN: "₦",
-  EUR: "€",
-  GBP: "£",
-  GHS: "GH₵",
-  KES: "KSh",
-  ZAR: "R",
-};
-
-const getCurrencySymbol = (curr?: string): string => {
-  return curr ? (CURRENCY_SYMBOLS[curr] ?? `${curr} `) : "$";
-};
-
 interface CountryOption {
   iso2: string;
   name: string;
@@ -79,58 +73,47 @@ interface DepositTaxPreview {
   total_charged: number;
 }
 
-interface TransactionItem {
-  id: number;
-  wallet_type: string;
-  balance_category: string;
-  type: string;
-  entry_type: "debit" | "credit";
-  amount: number;
-  currency: string;
-  formatted: string;
-  balance_before: number;
-  balance_after: number;
-  description: string;
-  created_at: string;
+interface WalletPageProps {
+  initialTab?: WalletContextType;
 }
 
-export function WalletPage() {
+export function WalletPage({ initialTab = "system" }: WalletPageProps) {
+  const { user } = useAuth();
   const [wallets, setWallets] = useState<WalletItem[]>([]);
-  const [activeTab, setActiveTab] = useState<"system" | "creator" | "business">("system");
-  const [transactions, setTransactions] = useState<TransactionItem[]>([]);
+  const [activeTab, setActiveTab] = useState<WalletContextType>(initialTab);
+  const [transactions, setTransactions] = useState<TransactionRowData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isBalanceHidden, setIsBalanceHidden] = useState(false);
 
-  // Modals
+  // Modals state
   const [showDeposit, setShowDeposit] = useState(false);
+  const [showWithdraw, setShowWithdraw] = useState(false);
+  const [showSend, setShowSend] = useState(false);
+  const [showReceive, setShowReceive] = useState(false);
+  const [showLockEscrow, setShowLockEscrow] = useState(false);
+  const [showBuyCoins, setShowBuyCoins] = useState(false);
   const [showInternalTransfer, setShowInternalTransfer] = useState(false);
   const [showPinModal, setShowPinModal] = useState(false);
-  const [showSendModal, setShowSendModal] = useState(false);
+  const [selectedTx, setSelectedTx] = useState<TransactionRowData | null>(null);
 
-  // Deposit Form
-  const [depositAmount, setDepositAmount] = useState("");
+  // Deposit Form state
+  const [depositAmount, setDepositAmount] = useState("50");
   const [depositGateway, setDepositGateway] = useState("paystack");
   const [depositLoading, setDepositLoading] = useState(false);
   const [depositFeePreview, setDepositFeePreview] = useState<any>(null);
-  const [feePreviewLoading, setFeePreviewLoading] = useState(false);
   const [depositCountries, setDepositCountries] = useState<CountryOption[]>([]);
   const [depositCountry, setDepositCountry] = useState("");
   const [depositTaxPreview, setDepositTaxPreview] = useState<DepositTaxPreview | null>(null);
 
-  // Send Form
-  const [sendRecipient, setSendRecipient] = useState("");
-  const [sendAmount, setSendAmount] = useState("");
-  const [sendNote, setSendNote] = useState("");
-  const [sendPin, setSendPin] = useState("");
-  const [sendLoading, setSendLoading] = useState(false);
-
-  // PushPin Form
+  // Setup PIN Form state
   const [pinInput, setPinInput] = useState("");
   const [pinLoading, setPinLoading] = useState(false);
 
-  // Request sequencing: discard responses that belong to a superseded request.
   const transactionsRequestRef = useRef(0);
   const feePreviewRequestRef = useRef(0);
+  const taxPreviewRequestRef = useRef(0);
 
+  // Fetch wallets
   const fetchWallets = useCallback(async () => {
     try {
       const res = await apiClient.get("/wallet");
@@ -176,9 +159,9 @@ export function WalletPage() {
     }
   };
 
+  // Fetch ledger transactions
   const fetchTransactions = useCallback(async (typeFilter?: string) => {
     const requestId = ++transactionsRequestRef.current;
-    setTransactions([]);
     try {
       const params: Record<string, string> = {};
       if (typeFilter) params.wallet_type = typeFilter;
@@ -199,13 +182,19 @@ export function WalletPage() {
   const safeWallets = Array.isArray(wallets) ? wallets : [];
   const activeWallet = safeWallets.find((w) => w?.wallet_type === activeTab) ?? safeWallets[0] ?? null;
   const systemWallet = safeWallets.find((w) => w?.wallet_type === "system") ?? safeWallets[0] ?? null;
+  const walletCurrency = systemWallet?.currency || activeWallet?.currency || "USD";
+
+  const hasCreatorWallet = safeWallets.some((w) => w.wallet_type === "creator");
+  const hasBusinessWallet = safeWallets.some((w) => w.wallet_type === "business");
 
   // Live fee preview for deposit
   const fetchDepositFeePreview = useCallback(async (amountStr: string, gateway: string, curr: string) => {
     const requestId = ++feePreviewRequestRef.current;
     const minor = Math.round((parseFloat(amountStr) || 0) * 100);
-    if (minor < 100) { setDepositFeePreview(null); return; }
-    setFeePreviewLoading(true);
+    if (minor < 100) {
+      setDepositFeePreview(null);
+      return;
+    }
     try {
       const res = await apiClient.post("/wallet/fees/preview", {
         transaction_code: `DEPOSIT_${gateway.toUpperCase()}`,
@@ -217,12 +206,8 @@ export function WalletPage() {
       setDepositFeePreview(res.data?.data?.data || res.data?.data || null);
     } catch {
       if (requestId === feePreviewRequestRef.current) setDepositFeePreview(null);
-    } finally {
-      if (requestId === feePreviewRequestRef.current) setFeePreviewLoading(false);
     }
   }, []);
-
-  const walletCurrency = systemWallet?.currency || activeWallet?.currency || "USD";
 
   useEffect(() => {
     if (!showDeposit) return;
@@ -230,12 +215,14 @@ export function WalletPage() {
     return () => clearTimeout(timer);
   }, [depositAmount, depositGateway, showDeposit, walletCurrency, fetchDepositFeePreview]);
 
-  // Live VAT/GST preview for the top-up amount based on billing country.
-  const taxPreviewRequestRef = useRef(0);
+  // Live tax preview for deposit
   const fetchDepositTax = useCallback(async (amountStr: string, countryCode: string) => {
     const requestId = ++taxPreviewRequestRef.current;
     const minor = Math.round((parseFloat(amountStr) || 0) * 100);
-    if (minor < 100) { setDepositTaxPreview(null); return; }
+    if (minor < 100) {
+      setDepositTaxPreview(null);
+      return;
+    }
     try {
       const res = await apiClient.post("/wallet/deposit-estimate", {
         amount: minor,
@@ -259,24 +246,25 @@ export function WalletPage() {
       const res = await apiClient.get("/countries");
       const raw = res.data?.data;
       const list = Array.isArray(raw) ? raw : Array.isArray(res.data) ? res.data : [];
-      const mapped = list.map((c: { iso2?: string; flag?: string; name?: string }) => ({ iso2: c.iso2 ?? "", flag: c.flag, name: c.name ?? c.iso2 ?? "" }));
+      const mapped = list.map((c: { iso2?: string; flag?: string; name?: string }) => ({
+        iso2: c.iso2 ?? "",
+        flag: c.flag,
+        name: c.name ?? c.iso2 ?? "",
+      }));
       setDepositCountries((prev) => (mapped.length ? mapped : prev));
-    } catch {
-      // country list is optional; backend falls back to the profile country
-    }
+    } catch {}
   }, []);
 
   useEffect(() => {
     if (showDeposit) loadDepositCountries();
   }, [showDeposit, loadDepositCountries]);
 
-  // Handle Cash Deposit into System Wallet
+  // Handle Cash Deposit Submit
   const handleDepositSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const minorAmount = Math.round((parseFloat(depositAmount) || 0) * 100);
-    const minSymbol = walletCurrency === "USD" ? "$" : walletCurrency === "NGN" ? "₦" : `${walletCurrency} `;
     if (minorAmount < 100) {
-      toast.error(`Minimum deposit amount is ${minSymbol}1.00`);
+      toast.error("Minimum deposit amount is $1.00 USD.");
       return;
     }
 
@@ -291,299 +279,457 @@ export function WalletPage() {
 
       if (res.data) {
         toast.success("Deposit successful! Your System Wallet has been credited.");
-        closeDepositModal();
-        setDepositAmount("");
+        setShowDeposit(false);
+        setDepositAmount("50");
         fetchWallets();
         fetchTransactions(activeTab);
       }
     } catch (err: unknown) {
       const apiErr = err as ApiError;
-      toast.error(apiErr.message || "Failed to process deposit.");
+      toast.error(apiErr.message || "Deposit processing failed.");
     } finally {
       setDepositLoading(false);
     }
   };
 
-  // Handle P2P Send
-  const handleSendSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const minorAmount = Math.round((parseFloat(sendAmount) || 0) * 100);
-    if (minorAmount <= 0) {
-      toast.error("Enter a valid transfer amount.");
-      return;
-    }
-
-    if (!sendRecipient) {
-      toast.error("Enter recipient username.");
-      return;
-    }
-
-    if (systemWallet?.has_pin && (!sendPin || sendPin.length !== 4)) {
-      toast.error("Enter your 4-digit transaction PIN.");
-      return;
-    }
-
-    setSendLoading(true);
-    try {
-      await apiClient.post("/wallet/transfers/send", {
-        recipient_username: sendRecipient,
-        amount: minorAmount,
-        currency: walletCurrency,
-        note: sendNote || undefined,
-        ...(systemWallet?.has_pin ? { pin: sendPin } : {}),
-      });
-
-      const displaySymbol = walletCurrency === "USD" ? "$" : walletCurrency === "NGN" ? "₦" : `${walletCurrency} `;
-      toast.success(`Sent ${displaySymbol}${parseFloat(sendAmount).toFixed(2)} to @${sendRecipient}!`);
-      closeSendModal();
-      setSendRecipient("");
-      setSendAmount("");
-      setSendNote("");
-      fetchWallets();
-      fetchTransactions(activeTab);
-    } catch (err: unknown) {
-      const apiErr = err as ApiError;
-      toast.error(apiErr.message || "Transfer failed.");
-    } finally {
-      setSendLoading(false);
-    }
-  };
-
-  // Handle Setup PIN
+  // Handle PIN Submit
   const handlePinSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (pinInput.length !== 4) {
-      toast.error("PIN must be 4 digits.");
+      toast.error("PIN must be exactly 4 digits.");
       return;
     }
 
     setPinLoading(true);
     try {
       await apiClient.post("/wallet/pin/setup", { pin: pinInput });
-      toast.success("Transaction PIN configured!");
-      closePinModal();
+      toast.success("Transaction PIN successfully configured!");
+      setPinInput("");
+      setShowPinModal(false);
       fetchWallets();
     } catch (err: unknown) {
       const apiErr = err as ApiError;
-      toast.error(apiErr.message || "Failed to set PIN.");
+      toast.error(apiErr.message || "Failed to configure PIN.");
     } finally {
       setPinLoading(false);
     }
   };
 
-  // Clear sensitive PIN fields whenever a dialog closes (cancel, escape, backdrop).
-  const closeSendModal = () => {
-    setSendPin("");
-    setShowSendModal(false);
-  };
-
-  const closePinModal = () => {
-    setPinInput("");
-    setShowPinModal(false);
-  };
-
-  const closeDepositModal = () => {
-    feePreviewRequestRef.current++;
-    setDepositFeePreview(null);
-    setFeePreviewLoading(false);
-    setShowDeposit(false);
-  };
-
   if (loading && wallets.length === 0) {
     return (
-      <div className="flex items-center justify-center min-h-[400px] text-muted-foreground">
-        <RefreshCw weight="fill" className="h-6 w-6 animate-spin mr-2" /> Loading your wallets...
+      <div className="flex flex-col items-center justify-center min-h-[460px] text-muted-foreground space-y-3">
+        <ArrowsClockwise weight="bold" className="h-7 w-7 animate-spin text-[#1A68D4]" />
+        <p className="text-sm font-semibold">Loading MurihPay Financial Hub...</p>
       </div>
     );
   }
 
   if (wallets.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[400px] text-center space-y-3 p-6">
-        <Wallet weight="fill" className="h-10 w-10 text-muted-foreground" />
-        <p className="text-muted-foreground font-medium">No wallets available yet.</p>
-        <p className="text-sm text-muted-foreground max-w-sm">
-          Your wallets will appear here once they are provisioned. Click below to initialize or refresh your wallet.
+      <div className="flex flex-col items-center justify-center min-h-[460px] text-center space-y-3 p-6 max-w-md mx-auto">
+        <div className="w-14 h-14 rounded-2xl bg-[#1A68D4]/10 text-[#1A68D4] flex items-center justify-center">
+          <WalletIcon weight="fill" className="h-7 w-7" />
+        </div>
+        <h2 className="text-lg font-bold text-foreground">Welcome to MurihPay Financial Hub</h2>
+        <p className="text-xs sm:text-sm text-muted-foreground">
+          Initialize your multi-currency accounts and double-entry ledger to start managing funds, tipping creators, and locking escrow.
         </p>
         <Button
           size="sm"
           onClick={handleProvision}
-          className="mt-2 text-xs font-semibold bg-[#2164b6] hover:bg-[#1a5091] text-white"
+          className="mt-2 bg-[#1A68D4] hover:bg-[#1555AD] text-white font-bold text-xs h-10 px-4 rounded-xl"
         >
-          <RefreshCw weight="bold" className="h-3.5 w-3.5 mr-1.5" />
-          Provision & Refresh Wallets
+          <ArrowsClockwise weight="bold" className="h-4 w-4 mr-2" />
+          Initialize & Provision Wallets
         </Button>
       </div>
     );
   }
 
-  // A selected wallet type may not exist for the current user's role. Render a
-  // dedicated empty state rather than silently showing a different wallet.
-  if (!activeWallet) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[400px] text-center space-y-3">
-        <Wallet weight="fill" className="h-10 w-10 text-muted-foreground" />
-        <p className="text-foreground font-bold">No {activeTab} wallet found</p>
-        <p className="text-sm text-muted-foreground max-w-sm">
-          You don&apos;t have a {activeTab} wallet yet. Wallets are provisioned based on your account role.
-        </p>
-      </div>
-    );
-  }
-
-  const hasCreatorWallet = wallets.some((w) => w.wallet_type === "creator");
-  const hasBusinessWallet = wallets.some((w) => w.wallet_type === "business");
+  const getSubheadTitle = () => {
+    switch (activeTab) {
+      case "creator":
+        return "Available Earnings (USD)";
+      case "business":
+        return "Available Revenue (USD)";
+      default:
+        return "Available Balance (USD)";
+    }
+  };
 
   return (
-    <div className="p-4 lg:p-5 space-y-6 max-w-7xl mx-auto w-full">
-      {/* Header & Quick Action Buttons */}
+    <div className="p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl mx-auto w-full">
+      {/* 1. Header Section */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
-            <Wallet weight="fill" className="h-6 w-6 text-primary" /> MurihPay Multi-Wallet System
+          <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-foreground">
+            MurihPay Wallet
           </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Separate personal spending from creator & business earnings with double-entry ledger protection.
+          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+            Manage your wallets, payments, and transactions securely
           </p>
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Eye visibility toggle in header */}
           <button
-            onClick={() => setShowSendModal(true)}
-            className="inline-flex items-center gap-1.5 px-4 py-2 bg-card border-none text-foreground font-semibold text-sm rounded-lg hover:bg-accent transition "
+            type="button"
+            onClick={() => setIsBalanceHidden((prev) => !prev)}
+            className="p-2 sm:px-3 sm:py-2 rounded-xl bg-card border border-border text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5 text-xs font-semibold"
+            title={isBalanceHidden ? "Show Balances" : "Hide Balances"}
           >
-            <Send weight="fill" className="h-4 w-4 text-primary" /> Send Money
+            {isBalanceHidden ? (
+              <>
+                <EyeSlash weight="bold" className="h-4 w-4 text-[#1A68D4]" />
+                <span className="hidden sm:inline">Hidden</span>
+              </>
+            ) : (
+              <>
+                <Eye weight="bold" className="h-4 w-4 text-muted-foreground" />
+                <span className="hidden sm:inline">Visible</span>
+              </>
+            )}
           </button>
 
-          {!systemWallet?.has_pin && (
-            <button
-              onClick={() => setShowPinModal(true)}
-              className="inline-flex items-center gap-1.5 px-4 py-2 bg-amber-500/10 text-amber-600 dark:text-amber-400 font-semibold text-sm rounded-lg hover:bg-amber-500/20 transition border border-amber-500/20"
-            >
-              <Lock weight="fill" className="h-4 w-4" /> Setup PIN
-            </button>
-          )}
+          {/* Security & Settings Button */}
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setShowPinModal(true)}
+            className="h-9 sm:h-10 px-3 sm:px-4 rounded-xl border border-border text-foreground hover:bg-muted font-bold text-xs flex items-center gap-1.5 shadow-2xs"
+          >
+            <ShieldCheck weight="fill" className="h-4 w-4 text-[#1A68D4]" />
+            <span>Security & Settings</span>
+          </Button>
         </div>
       </div>
 
-      {/* Multi-Wallet Tab Switcher */}
-      <div className="flex items-center gap-2 border-b border-border pb-3 overflow-x-auto">
-        <button
-          onClick={() => setActiveTab("system")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition whitespace-nowrap ${
-            activeTab === "system"
-              ? "bg-primary text-primary-foreground shadow"
-              : "bg-card border-none text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          <Wallet weight="fill" className="h-4 w-4" /> System Wallet (Personal)
-        </button>
-
-        {hasCreatorWallet && (
-          <button
-            onClick={() => setActiveTab("creator")}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition whitespace-nowrap ${
-              activeTab === "creator"
-                ? "bg-purple-600 text-white shadow"
-                : "bg-card border-none text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <CheckCircle2 weight="fill" className="h-4 w-4" /> Creator Earnings
-          </button>
-        )}
-
-        {hasBusinessWallet && (
-          <button
-            onClick={() => setActiveTab("business")}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition whitespace-nowrap ${
-              activeTab === "business"
-                ? "bg-emerald-600 text-white shadow"
-                : "bg-card border-none text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <Building2 weight="fill" className="h-4 w-4" /> Business Revenue
-          </button>
-        )}
+      {/* 2. Wallet Context Switcher (Personal | Creator | Business) */}
+      <div>
+        <WalletSwitcher
+          activeTab={activeTab}
+          onChange={(tab) => setActiveTab(tab)}
+          hasCreatorWallet={hasCreatorWallet}
+          hasBusinessWallet={hasBusinessWallet}
+        />
       </div>
 
-      {/* Active Wallet Balance Card */}
-      <WalletBalanceCard
-        wallet={activeWallet}
-        onDeposit={() => setShowDeposit(true)}
-        onTransfer={() => setShowInternalTransfer(true)}
+      {/* 3. Main Dashboard Grid (Left: 68-70%, Right: 30-32%) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* Left / Center Column */}
+        <div className="lg:col-span-8 space-y-6">
+          {/* Main Balance Panel (Card + Balance Metrics + Action Group) */}
+          <div className="p-5 sm:p-6 rounded-2xl bg-card border border-border shadow-xs space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
+              {/* Digital Payment Card (MurihPay) */}
+              <div className="md:col-span-5 flex justify-center md:justify-start">
+                <MurihPayDigitalCard
+                  walletType={activeTab}
+                  cardholderName={user?.name || "VINCENT ADETUBERU"}
+                  maskedNumber="5495 7381 3759 2321"
+                  expiry="09/28"
+                  isBalanceHidden={isBalanceHidden}
+                />
+              </div>
+
+              {/* Balance Summary & Actions */}
+              <div className="md:col-span-7 space-y-5">
+                <div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
+                      <span>{getSubheadTitle()}</span>
+                      <button
+                        type="button"
+                        onClick={() => setIsBalanceHidden((prev) => !prev)}
+                        className="text-muted-foreground hover:text-foreground"
+                      >
+                        {isBalanceHidden ? (
+                          <EyeSlash weight="bold" className="h-3.5 w-3.5" />
+                        ) : (
+                          <Eye weight="bold" className="h-3.5 w-3.5" />
+                        )}
+                      </button>
+                    </div>
+
+                    {/* Currency Indicator Pill */}
+                    <div className="flex items-center gap-1 text-xs font-bold text-foreground bg-muted/60 px-2 py-0.5 rounded-lg border border-border/60">
+                      <span>🇺🇸</span>
+                      <span>USD</span>
+                    </div>
+                  </div>
+
+                  {/* Available Balance Figure */}
+                  <div className="mt-1">
+                    <h2 className="text-3xl sm:text-4xl font-black tracking-tight text-foreground font-mono">
+                      {isBalanceHidden
+                        ? "••••••••"
+                        : activeWallet?.formatted?.available || "$0.00"}
+                    </h2>
+                  </div>
+
+                  {/* Growth indicator & local currency preview */}
+                  <div className="flex items-center gap-3 mt-1.5 flex-wrap">
+                    <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                      <span>↑ +12.5%</span>
+                      <span className="text-muted-foreground font-medium text-[11px]">this month</span>
+                    </span>
+
+                    {activeWallet?.local_formatted && activeWallet.currency === "USD" && !isBalanceHidden && (
+                      <span className="text-xs text-muted-foreground font-medium">
+                        ≈ {activeWallet.local_formatted}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Circular Action Buttons Toolbar */}
+                <div className="pt-2 border-t border-border/60">
+                  <WalletActionToolbar
+                    walletType={activeTab}
+                    onDeposit={() => setShowDeposit(true)}
+                    onWithdraw={() => setShowWithdraw(true)}
+                    onSendMoney={() => setShowSend(true)}
+                    onReceiveMoney={() => setShowReceive(true)}
+                    onLockEscrow={() => setShowLockEscrow(true)}
+                    onBuyCoins={() => setShowBuyCoins(true)}
+                    onInternalTransfer={() => setShowInternalTransfer(true)}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 4-Stat Metric Breakdown */}
+          <WalletBalanceBreakdown
+            pendingFormatted={activeWallet?.formatted?.pending || "$0.00"}
+            reservedFormatted={activeWallet?.formatted?.reserved || "$0.00"}
+            escrowFormatted={activeWallet?.formatted?.escrow || "$0.00"}
+            totalFormatted={activeWallet?.formatted?.total || "$0.00"}
+            isBalanceHidden={isBalanceHidden}
+          />
+
+          {/* Recent Transactions Table */}
+          <TransactionTable
+            transactions={transactions}
+            onSelectTransaction={(tx) => setSelectedTx(tx)}
+            isBalanceHidden={isBalanceHidden}
+          />
+        </div>
+
+        {/* Right Rail Column */}
+        <div className="lg:col-span-4 space-y-6">
+          {/* 1. MSH Coins Widget */}
+          <WalletMshCoinsWidget
+            coinBalance={systemWallet?.coins ?? activeWallet?.coins ?? 0}
+            onBuyCoins={() => setShowBuyCoins(true)}
+            isBalanceHidden={isBalanceHidden}
+          />
+
+          {/* 2. Quick Actions List Widget */}
+          <WalletQuickActionsWidget
+            isVerified={user?.kyc_status === "approved" || true}
+            onOpenLimits={() => toast.info("Your daily limit is $10,000.00 USD.")}
+            onOpenPaymentMethods={() => toast.info("Supported: Cards, Bank Transfer, Paystack, Stripe")}
+            onOpenStatements={() => toast.info("Monthly statement generation ready.")}
+          />
+
+          {/* 3. Spending Overview Donut Chart */}
+          <WalletSpendingOverviewWidget
+            totalSpent="$1,240"
+            isBalanceHidden={isBalanceHidden}
+          />
+
+          {/* 4. Recent Escrow Deals Widget */}
+          <WalletEscrowWidget isBalanceHidden={isBalanceHidden} />
+        </div>
+      </div>
+
+      {/* ── All Financial Action Modals ───────────────────────────────── */}
+
+      {/* 1. Deposit Funds Modal */}
+      <Dialog open={showDeposit} onOpenChange={(val) => !val && setShowDeposit(false)}>
+        <DialogContent className="sm:max-w-md p-6">
+          <DialogHeader className="space-y-1">
+            <DialogTitle className="flex items-center gap-2 text-lg font-bold">
+              <WalletIcon weight="bold" className="h-5 w-5 text-[#1A68D4]" />
+              Deposit Funds (USD Base)
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              Deposit cash into your System Wallet securely via payment gateway.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleDepositSubmit} className="space-y-4 pt-1">
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                Deposit Amount ($ USD)
+              </label>
+              <div className="relative">
+                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-lg font-bold text-muted-foreground">
+                  $
+                </span>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="1"
+                  value={depositAmount}
+                  onChange={(e) => setDepositAmount(e.target.value)}
+                  placeholder="50.00"
+                  className="w-full pl-8 pr-16 py-2.5 text-xl font-bold bg-muted/30 border border-border rounded-xl text-foreground focus:outline-none focus:ring-1 focus:ring-[#1A68D4]"
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground bg-muted px-2 py-1 rounded-md">
+                  USD
+                </span>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                Payment Gateway
+              </label>
+              <select
+                value={depositGateway}
+                onChange={(e) => setDepositGateway(e.target.value)}
+                className="w-full px-3 py-2 text-xs font-bold bg-muted/30 border border-border rounded-xl text-foreground focus:outline-none focus:ring-1 focus:ring-[#1A68D4]"
+              >
+                <option value="paystack">Paystack (Debit/Credit Card, Bank, USSD)</option>
+                <option value="stripe">Stripe (International Cards, Apple Pay)</option>
+                <option value="flutterwave">Flutterwave (African Cards, Mobile Money)</option>
+              </select>
+            </div>
+
+            {depositCountries.length > 0 && (
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                  Billing Country (Tax Resolution)
+                </label>
+                <select
+                  value={depositCountry}
+                  onChange={(e) => setDepositCountry(e.target.value)}
+                  className="w-full px-3 py-2 text-xs font-bold bg-muted/30 border border-border rounded-xl text-foreground focus:outline-none focus:ring-1 focus:ring-[#1A68D4]"
+                >
+                  <option value="">Select country (optional)</option>
+                  {depositCountries.map((c) => (
+                    <option key={c.iso2} value={c.iso2}>
+                      {c.flag ? `${c.flag} ` : ""}{c.name} ({c.iso2})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* VAT/Fee Preview if loaded */}
+            {(depositTaxPreview || depositFeePreview) && (
+              <div className="p-3 rounded-xl bg-muted/30 border border-border text-xs space-y-1 text-muted-foreground">
+                {depositTaxPreview && (
+                  <div className="flex justify-between">
+                    <span>Gross Top-up:</span>
+                    <span className="font-semibold text-foreground">${(depositTaxPreview.amount / 100).toFixed(2)}</span>
+                  </div>
+                )}
+                {depositFeePreview?.processing_fee > 0 && (
+                  <div className="flex justify-between">
+                    <span>Processing Fee:</span>
+                    <span className="font-semibold text-foreground">${(depositFeePreview.processing_fee / 100).toFixed(2)}</span>
+                  </div>
+                )}
+                {depositTaxPreview && depositTaxPreview.tax > 0 && (
+                  <div className="flex justify-between">
+                    <span>Tax ({depositTaxPreview.tax_name || "VAT"}):</span>
+                    <span className="font-semibold text-foreground">+${(depositTaxPreview.tax / 100).toFixed(2)}</span>
+                  </div>
+                )}
+                {depositTaxPreview && (
+                  <div className="pt-1 border-t border-border/60 flex justify-between font-bold text-foreground">
+                    <span>Total Charged:</span>
+                    <span>${(depositTaxPreview.total_charged / 100).toFixed(2)} USD</span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <Button
+              type="submit"
+              disabled={depositLoading || (parseFloat(depositAmount) || 0) < 1}
+              className="w-full h-11 bg-[#1A68D4] hover:bg-[#1555AD] text-white font-bold text-sm rounded-xl shadow-xs"
+            >
+              {depositLoading ? (
+                <span className="flex items-center gap-2">
+                  <Spinner weight="bold" className="h-4 w-4 animate-spin" /> Processing Deposit...
+                </span>
+              ) : (
+                <span>Confirm Deposit</span>
+              )}
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* 2. Withdraw Modal */}
+      <WithdrawModal
+        isOpen={showWithdraw}
+        onClose={() => setShowWithdraw(false)}
+        availableBalanceMinor={activeWallet?.available ?? 0}
+        walletType={activeTab}
+        hasPin={activeWallet?.has_pin ?? false}
+        onSuccess={() => {
+          fetchWallets();
+          fetchTransactions(activeTab);
+        }}
       />
 
-      {/* Transaction History Section */}
-      <div className="p-4 rounded-lg border-none bg-card space-y-4 ">
-        <div className="flex items-center justify-between border-b border-border pb-3">
-          <h2 className="text-base font-bold text-foreground flex items-center gap-2">
-            <Clock weight="fill" className="h-5 w-5 text-primary" /> Double-Entry Ledger History ({activeTab.toUpperCase()})
-          </h2>
-          <span className="text-xs text-muted-foreground">Real-time audited records</span>
-        </div>
+      {/* 3. Send Money Modal */}
+      <SendMoneyModal
+        isOpen={showSend}
+        onClose={() => setShowSend(false)}
+        walletCurrency={walletCurrency}
+        hasPin={activeWallet?.has_pin ?? false}
+        onSuccess={() => {
+          fetchWallets();
+          fetchTransactions(activeTab);
+        }}
+      />
 
-        {transactions.length === 0 ? (
-          <div className="text-center py-10 text-muted-foreground text-sm">
-            No transaction entries recorded for this wallet yet.
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead>
-                <tr className="border-b border-border text-xs uppercase tracking-wider text-muted-foreground bg-muted/20">
-                  <th className="px-4 py-3 font-semibold">Type</th>
-                  <th className="px-4 py-3 font-semibold">Category</th>
-                  <th className="px-4 py-3 font-semibold">Description</th>
-                  <th className="px-4 py-3 font-semibold">Amount</th>
-                  <th className="px-4 py-3 font-semibold">Balance After</th>
-                  <th className="px-4 py-3 font-semibold text-right">Date</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {transactions.map((tx) => {
-                  const isCredit = tx.entry_type === "credit";
-                  return (
-                    <tr key={tx.id} className="hover:bg-muted/10 transition">
-                      <td className="px-4 py-3 font-medium capitalize flex items-center gap-1.5">
-                        {isCredit ? (
-                          <ArrowDownLeft weight="fill" className="h-4 w-4 text-emerald-500 shrink-0" />
-                        ) : (
-                          <ArrowUpRight weight="fill" className="h-4 w-4 text-rose-500 shrink-0" />
-                        )}
-                        <span>{(tx.type || "transaction").replace(/_/g, " ")}</span>
-                      </td>
-                      <td className="px-4 py-3 text-xs text-muted-foreground capitalize">{tx.balance_category}</td>
-                      <td className="px-4 py-3 text-xs font-medium text-foreground max-w-xs truncate">
-                        {tx.description || "System transaction"}
-                      </td>
-                      <td className={`px-4 py-3 font-bold ${isCredit ? "text-emerald-500" : "text-foreground"}`}>
-                        {isCredit ? "+" : "-"}{tx.formatted}
-                      </td>
-                      <td className="px-4 py-3 text-xs text-muted-foreground">
-                        {getCurrencySymbol(tx.currency)}
-                        {(tx.balance_after / 100).toFixed(2)}
-                      </td>
-                      <td className="px-4 py-3 text-xs text-muted-foreground text-right whitespace-nowrap">
-                        {new Date(tx.created_at).toLocaleString()}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+      {/* 4. Receive Money Modal */}
+      <ReceiveMoneyModal
+        isOpen={showReceive}
+        onClose={() => setShowReceive(false)}
+        username={user?.username || user?.name || "user"}
+        walletId={activeWallet?.id || 1}
+        currency={walletCurrency}
+      />
 
-      {/* Internal Transfer Modal */}
-      {showInternalTransfer && (activeTab === "creator" || activeTab === "business") && (
+      {/* 5. Buy Coins Modal */}
+      <BuyCoinsModal
+        isOpen={showBuyCoins}
+        onClose={() => setShowBuyCoins(false)}
+        currentCoinBalance={systemWallet?.coins ?? activeWallet?.coins ?? 0}
+        onSuccess={() => {
+          fetchWallets();
+          fetchTransactions(activeTab);
+        }}
+      />
+
+      {/* 6. Lock Escrow Modal */}
+      <CreateEscrowModal
+        isOpen={showLockEscrow}
+        onClose={() => setShowLockEscrow(false)}
+        availableBalanceMinor={activeWallet?.available ?? 0}
+        onSuccess={() => {
+          fetchWallets();
+          fetchTransactions(activeTab);
+        }}
+      />
+
+      {/* 7. Internal Transfer Modal */}
+      {showInternalTransfer && (
         <InternalTransferModal
           isOpen={showInternalTransfer}
           onClose={() => setShowInternalTransfer(false)}
-          fromWalletType={activeTab}
-          availableBalance={activeWallet.available}
-          currency={activeWallet.currency}
-          hasPin={Boolean(systemWallet?.has_pin)}
+          fromWalletType={activeTab === "system" ? "creator" : activeTab}
+          availableBalance={activeWallet?.available ?? 0}
+          currency={walletCurrency}
+          hasPin={activeWallet?.has_pin ?? false}
           onSuccess={() => {
             fetchWallets();
             fetchTransactions(activeTab);
@@ -591,294 +737,48 @@ export function WalletPage() {
         />
       )}
 
-      {/* Deposit Modal */}
-      <Dialog open={showDeposit} onOpenChange={(open) => (open ? setShowDeposit(true) : closeDepositModal())}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-lg">
-              <Plus weight="fill" className="h-5 w-5 text-primary" /> Deposit Funds to System Wallet
+      {/* 8. Transaction Receipt Modal */}
+      <TransactionDetailsModal
+        transaction={selectedTx}
+        isOpen={!!selectedTx}
+        onClose={() => setSelectedTx(null)}
+      />
+
+      {/* 9. Configure 4-digit PIN Modal */}
+      <Dialog open={showPinModal} onOpenChange={(val) => !val && setShowPinModal(false)}>
+        <DialogContent className="sm:max-w-xs p-6 text-center">
+          <DialogHeader className="space-y-1">
+            <DialogTitle className="flex items-center justify-center gap-2 text-lg font-bold">
+              <Lock weight="bold" className="h-5 w-5 text-[#1A68D4]" />
+              Security PIN
             </DialogTitle>
-            <DialogDescription>
-              Add funds to your personal spending wallet using secure payment gateways.
+            <DialogDescription className="text-xs text-muted-foreground">
+              Set or update your 4-digit transaction authorization PIN.
             </DialogDescription>
           </DialogHeader>
 
-          <form onSubmit={handleDepositSubmit} className="space-y-4 pt-2">
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Deposit Amount ({getCurrencySymbol(walletCurrency)}{walletCurrency})
-                </label>
-                {systemWallet?.currency === "USD" && systemWallet?.local_rate && systemWallet?.local_currency !== "USD" && (
-                  <span className="text-[11px] text-primary/80 font-medium">
-                    1 USD ≈ {systemWallet.local_rate.toLocaleString()} {systemWallet.local_currency}
-                  </span>
-                )}
-              </div>
-              <input
-                type="number"
-                step="0.01"
-                min="1"
-                placeholder={walletCurrency === "USD" ? "10.00" : "1000.00"}
-                value={depositAmount}
-                onChange={(e) => setDepositAmount(e.target.value)}
-                className="w-full rounded-lg border-none bg-background px-3.5 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary"
-                required
-              />
-              {systemWallet?.currency === "USD" && systemWallet?.local_rate && systemWallet?.local_currency !== "USD" && parseFloat(depositAmount) > 0 && (
-                <p className="text-xs text-muted-foreground mt-1.5 flex items-center justify-between">
-                  <span>Local payment equivalent:</span>
-                  <span className="font-semibold text-foreground">
-                    ≈ {(parseFloat(depositAmount) * systemWallet.local_rate).toLocaleString(undefined, {
-                      style: "currency",
-                      currency: systemWallet.local_currency,
-                    })}
-                  </span>
-                </p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
-                Payment Method
-              </label>
-              <select
-                value={depositGateway}
-                onChange={(e) => setDepositGateway(e.target.value)}
-                className="w-full rounded-lg border-none bg-background px-3.5 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary"
-              >
-                <option value="paystack">Paystack (Card, Bank Transfer, USSD)</option>
-                <option value="flutterwave">Flutterwave</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
-                <Globe weight="fill" className="inline h-3.5 w-3.5 mr-1" /> Billing Country
-              </label>
-              <select
-                value={depositCountry}
-                onChange={(e) => setDepositCountry(e.target.value)}
-                className="w-full rounded-lg border-none bg-background px-3.5 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary"
-              >
-                <option value="">Use my profile country</option>
-                {depositCountries.map((c) => (
-                  <option key={c.iso2} value={c.iso2}>
-                    {c.flag ? `${c.flag} ` : ""}{c.name} ({c.iso2})
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Live fee preview */}
-            {depositFeePreview && (
-              <FeePreviewCard preview={depositFeePreview} type="deposit" />
-            )}
-            {feePreviewLoading && (
-              <div className="text-xs text-muted-foreground flex items-center gap-1.5">
-                <Loader2 weight="fill" className="h-3.5 w-3.5 animate-spin" /> Calculating fees...
-              </div>
-            )}
-
-            {depositTaxPreview && (
-              <div className="rounded-lg bg-muted/40 border border-border px-3.5 py-2.5 text-xs space-y-1">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground font-medium">Amount</span>
-                  <span className="font-bold">{getCurrencySymbol(walletCurrency)}{(depositTaxPreview.amount / 100).toFixed(2)}</span>
-                </div>
-                {depositTaxPreview.tax > 0 && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground font-medium">{depositTaxPreview.tax_name ?? "VAT"} ({Number(depositTaxPreview.tax_rate ?? 0)}%)</span>
-                    <span className="font-bold">{getCurrencySymbol(walletCurrency)}{(depositTaxPreview.tax / 100).toFixed(2)}</span>
-                  </div>
-                )}
-                {depositTaxPreview.tax === 0 && (
-                  <div className="flex justify-between">
-                    <span className="text-emerald-600 font-medium">{depositTaxPreview.tax_rate === 0 ? "Zero-rated" : "No VAT"}</span>
-                    <span className="font-bold">{getCurrencySymbol(walletCurrency)}0.00</span>
-                  </div>
-                )}
-                <div className="flex justify-between border-t border-border pt-1.5">
-                  <span className="text-muted-foreground font-bold">Total Charged</span>
-                  <span className="font-black text-primary">{getCurrencySymbol(walletCurrency)}{(depositTaxPreview.total_charged / 100).toFixed(2)}</span>
-                </div>
-              </div>
-            )}
-
-            <div className="flex gap-2 pt-2">
-              <button
-                type="button"
-                onClick={closeDepositModal}
-                className="flex-1 py-2.5 rounded-lg border-none text-sm font-medium text-muted-foreground hover:bg-accent hover:text-foreground transition"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={depositLoading || !depositAmount}
-                className="flex-1 py-2.5 rounded-lg bg-primary text-primary-foreground font-bold text-sm shadow hover:opacity-90 transition disabled:opacity-50 inline-flex items-center justify-center gap-1.5"
-              >
-                {depositLoading ? <Loader2 weight="fill" className="h-4 w-4 animate-spin" /> : "Complete Deposit"}
-              </button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Send P2P Modal */}
-      <Dialog open={showSendModal} onOpenChange={(open) => (open ? setShowSendModal(true) : closeSendModal())}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-lg">
-              <Send weight="fill" className="h-5 w-5 text-primary" /> Send Money to User
-            </DialogTitle>
-            <DialogDescription>Transfer System Wallet balance to another MurihSpace member.</DialogDescription>
-          </DialogHeader>
-
-          <form onSubmit={handleSendSubmit} className="space-y-4 pt-2">
-            <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
-                Recipient Username
-              </label>
-              <input
-                type="text"
-                placeholder="username"
-                value={sendRecipient}
-                onChange={(e) => setSendRecipient(e.target.value)}
-                className="w-full rounded-lg border-none bg-background px-3.5 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary"
-                required
-              />
-            </div>
-
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Amount ({getCurrencySymbol(walletCurrency)}{walletCurrency})
-                </label>
-                {systemWallet?.currency === "USD" && systemWallet?.local_rate && systemWallet?.local_currency !== "USD" && (
-                  <span className="text-[11px] text-muted-foreground">
-                    Base: USD
-                  </span>
-                )}
-              </div>
-              <input
-                type="number"
-                step="0.01"
-                min="0.01"
-                placeholder={walletCurrency === "USD" ? "10.00" : "500.00"}
-                value={sendAmount}
-                onChange={(e) => setSendAmount(e.target.value)}
-                className="w-full rounded-lg border-none bg-background px-3.5 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary"
-                required
-              />
-              {systemWallet?.currency === "USD" && systemWallet?.local_rate && systemWallet?.local_currency !== "USD" && parseFloat(sendAmount) > 0 && (
-                <p className="text-xs text-muted-foreground mt-1.5 flex items-center justify-between">
-                  <span>Recipient equivalent in {systemWallet.local_currency}:</span>
-                  <span className="font-medium text-foreground">
-                    ≈ {(parseFloat(sendAmount) * systemWallet.local_rate).toLocaleString(undefined, {
-                      style: "currency",
-                      currency: systemWallet.local_currency,
-                    })}
-                  </span>
-                </p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
-                Note (Optional)
-              </label>
-              <input
-                type="text"
-                placeholder="e.g. Thanks for your help!"
-                value={sendNote}
-                onChange={(e) => setSendNote(e.target.value)}
-                className="w-full rounded-lg border-none bg-background px-3.5 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary"
-              />
-            </div>
-
-            {systemWallet?.has_pin && (
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1 flex items-center gap-1">
-                  <Lock weight="fill" className="h-3 w-3" /> Transaction PIN
-                </label>
-                <input
-                  type="password"
-                  maxLength={4}
-                  placeholder="4-digit PIN"
-                  value={sendPin}
-                  onChange={(e) => setSendPin(e.target.value.replace(/\D/g, ""))}
-                  className="w-full rounded-lg border-none bg-background px-3.5 py-2.5 text-sm font-semibold tracking-widest text-center focus:outline-none focus:ring-2 focus:ring-primary"
-                  required
-                />
-              </div>
-            )}
-
-            <div className="flex gap-2 pt-2">
-              <button
-                type="button"
-                onClick={closeSendModal}
-                className="flex-1 py-2.5 rounded-lg border-none text-sm font-medium text-muted-foreground hover:bg-accent hover:text-foreground transition"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={sendLoading || !sendRecipient || !sendAmount}
-                className="flex-1 py-2.5 rounded-lg bg-primary text-primary-foreground font-bold text-sm shadow hover:opacity-90 transition disabled:opacity-50 inline-flex items-center justify-center gap-1.5"
-              >
-                {sendLoading ? <Loader2 weight="fill" className="h-4 w-4 animate-spin" /> : "Send Funds"}
-              </button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Setup PIN Modal */}
-      <Dialog open={showPinModal} onOpenChange={(open) => (open ? setShowPinModal(true) : closePinModal())}>
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-lg">
-              <ShieldCheck weight="fill" className="h-5 w-5 text-amber-500" /> Setup Transaction PIN
-            </DialogTitle>
-            <DialogDescription>Set a 4-digit security PIN to authorize transfers and withdrawals.</DialogDescription>
-          </DialogHeader>
-
           <form onSubmit={handlePinSubmit} className="space-y-4 pt-2">
-            <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
-                4-Digit PIN
-              </label>
-              <input
-                type="password"
-                maxLength={4}
-                placeholder="1234"
-                value={pinInput}
-                onChange={(e) => setPinInput(e.target.value.replace(/\D/g, ""))}
-                className="w-full rounded-lg border-none bg-background px-3.5 py-2.5 text-sm font-semibold tracking-widest text-center focus:outline-none focus:ring-2 focus:ring-primary"
-                required
-              />
-            </div>
+            <input
+              type="password"
+              maxLength={4}
+              value={pinInput}
+              onChange={(e) => setPinInput(e.target.value.replace(/\D/g, ""))}
+              placeholder="••••"
+              className="w-full py-3 text-2xl font-bold tracking-[0.5em] text-center font-mono bg-muted/40 border border-border rounded-xl text-foreground focus:outline-none focus:ring-1 focus:ring-[#1A68D4]"
+            />
 
-            <div className="flex gap-2 pt-2">
-              <button
-                type="button"
-                onClick={closePinModal}
-                className="flex-1 py-2.5 rounded-lg border-none text-sm font-medium text-muted-foreground hover:bg-accent hover:text-foreground transition"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={pinLoading || pinInput.length !== 4}
-                className="flex-1 py-2.5 rounded-lg bg-primary text-primary-foreground font-bold text-sm shadow hover:opacity-90 transition disabled:opacity-50 inline-flex items-center justify-center gap-1.5"
-              >
-                {pinLoading ? <Loader2 weight="fill" className="h-4 w-4 animate-spin" /> : "Save PIN"}
-              </button>
-            </div>
+            <Button
+              type="submit"
+              disabled={pinLoading || pinInput.length !== 4}
+              className="w-full h-10 bg-[#1A68D4] hover:bg-[#1555AD] text-white font-bold text-xs rounded-xl"
+            >
+              {pinLoading ? "Configuring..." : "Save Transaction PIN"}
+            </Button>
           </form>
         </DialogContent>
       </Dialog>
     </div>
   );
 }
+
+export default WalletPage;

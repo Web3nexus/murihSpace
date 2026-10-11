@@ -6,7 +6,8 @@ import {
   Calendar as Calendar,
   Trash as Trash2,
   Users as Users,
-  ArrowSquareOut as ExternalLink
+  ArrowSquareOut as ExternalLink,
+  PencilSimple as PencilSimple
 } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -45,6 +46,22 @@ export function MyEventsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingEvent, setEditingEvent] = useState<EventData | null>(null);
+
+  const openCreate = () => {
+    setEditingEvent(null);
+    setIsModalOpen(true);
+  };
+
+  const openEdit = (event: EventData) => {
+    setEditingEvent(event);
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setEditingEvent(null);
+  };
 
   const fetchEvents = useCallback(async () => {
     setIsLoading(true);
@@ -109,7 +126,7 @@ export function MyEventsPage() {
         icon={<Calendar weight="fill" className="h-5 w-5 text-primary" />}
         tabs={eventTabs}
         actions={
-          <Button onClick={() => setIsModalOpen(true)} size="sm" className="font-bold text-xs">
+          <Button onClick={openCreate} size="sm" className="font-bold text-xs">
             <Plus weight="fill" className="mr-1.5 h-4 w-4" />
             Create Event
           </Button>
@@ -120,7 +137,7 @@ export function MyEventsPage() {
         <EmptyState
           title="No events yet"
           description="Create your first event to engage your community."
-          action={{ label: "Create Event", onClick: () => setIsModalOpen(true) }}
+          action={{ label: "Create Event", onClick: openCreate }}
           icon={Calendar}
         />
       ) : (
@@ -166,6 +183,9 @@ export function MyEventsPage() {
                     Cancel
                   </Button>
                 )}
+                <Button size="sm" variant="ghost" onClick={() => openEdit(event)} title="Edit event">
+                  <PencilSimple weight="fill" className="h-4 w-4" />
+                </Button>
                 <Button size="sm" variant="ghost" asChild>
                   <Link to={`/app/events/${event.id}`}>
                     <ExternalLink weight="fill" className="h-4 w-4" />
@@ -181,9 +201,11 @@ export function MyEventsPage() {
       )}
 
       <CreateEventModal
+        key={editingEvent?.id ?? "new"}
         open={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={closeModal}
         onCreated={fetchEvents}
+        event={editingEvent}
       />
     </div>
   );

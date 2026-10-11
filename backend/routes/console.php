@@ -33,3 +33,9 @@ Schedule::command('auth:clean-registration-sessions')->hourly();
 
 // Sync live market exchange rates against USD (hourly)
 Schedule::command('currency:update-rates')->hourly();
+
+// End live broadcasts abandoned by their host (media room gone / left running)
+Schedule::command('live:reap-stale')->everyFiveMinutes()->withoutOverlapping();
+
+// Warn then close live broadcasts with no engagement (likes/chat/viewers)
+Schedule::command('live:reap-idle')->everyMinute()->withoutOverlapping();

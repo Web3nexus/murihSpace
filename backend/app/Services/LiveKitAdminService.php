@@ -58,6 +58,46 @@ class LiveKitAdminService
     }
 
     /**
+     * Names of the rooms the media server currently hosts, or null when the
+     * roster could not be read (unconfigured or unreachable).
+     *
+     * The null-vs-empty distinction matters for stale-stream reaping: an outage
+     * must never be mistaken for "every room is gone", or a media blip would
+     * end every live broadcast at once.
+     *
+     * @return array<int, string>|null
+     */
+    public function activeRoomNames(): ?array
+    {
+        if (! $this->isConfigured()) {
+            return null;
+        }
+
+        $result = $this->twirp('RoomService/ListRooms', []);
+
+        if (isset($result['_error'])) {
+            return null;
+        }
+
+        $rooms = $result['rooms'] ?? $result;
+
+        if (! is_array($rooms)) {
+            return null;
+        }
+
+        $names = [];
+        foreach ($rooms as $room) {
+            $name = is_array($room) ? ($room['name'] ?? null) : $room;
+
+            if (is_string($name) && $name !== '') {
+                $names[] = $name;
+            }
+        }
+
+        return array_values(array_unique($names));
+    }
+
+    /**
      * Force a participant's published microphone off.
      *
      * `MutePublishedTrack` targets a concrete track SID, so the participant is
