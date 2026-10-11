@@ -4,14 +4,10 @@ import {
   Sparkle,
   X,
   House as Home,
-  Users,
-  ShoppingBag,
+  Compass,
+  Plus,
+  User,
   ChatTeardropText as MessageSquare,
-  ChartBar,
-  Package,
-  ShoppingCart,
-  Wallet,
-  FileText,
 } from "@phosphor-icons/react";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SiteHeader } from "@/components/site-header";
@@ -76,59 +72,75 @@ function OnboardingBanner() {
 
 function MobileBottomNav() {
   const { pathname } = useLocation();
-  const { user } = useAuth();
-  const role = user?.role ?? "member";
 
   const isTabActive = (tabTo: string) => {
     if (tabTo === "/app") return pathname === "/app" || pathname === "/app/";
     return pathname.startsWith(tabTo);
   };
 
-  const navItems =
-    role === "vendor"
-      ? [
-          { id: "home", label: "Home", icon: Home, to: "/app" },
-          { id: "products", label: "Products", icon: Package, to: "/app/store/physical-products" },
-          { id: "orders", label: "Orders", icon: ShoppingCart, to: "/app/store/orders" },
-          { id: "messages", label: "Messages", icon: MessageSquare, to: "/app/messages" },
-          { id: "wallet", label: "Wallet", icon: Wallet, to: "/app/wallet" },
-        ]
-      : role === "creator"
-      ? [
-          { id: "home", label: "Home", icon: Home, to: "/app" },
-          { id: "friends", label: "Friends", icon: Users, to: "/app/friends" },
-          { id: "community", label: "Community", icon: Users, to: "/app/communities" },
-          { id: "store", label: "Store", icon: ShoppingBag, to: "/app/store" },
-          { id: "insights", label: "Insights", icon: ChartBar, to: "/app/insights" },
-        ]
-      : [
-          { id: "home", label: "Home", icon: Home, to: "/app" },
-          { id: "friends", label: "Friends", icon: Users, to: "/app/friends" },
-          { id: "community", label: "Community", icon: Users, to: "/app/communities" },
-          { id: "feed", label: "Feed", icon: FileText, to: "/app/feed" },
-          { id: "shop", label: "Shop", icon: ShoppingBag, to: "/app/store" },
-        ];
-
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 md:hidden h-14 bg-white dark:bg-[#242526] border-t border-[#DADDE1] dark:border-[#3E4042] flex items-center justify-around px-2 select-none shadow-sm">
-      {navItems.map((item) => {
-        const active = isTabActive(item.to);
-        const IconComp = item.icon;
-        return (
-          <Link
-            key={item.id}
-            to={item.to}
-            className={`flex flex-col items-center justify-center flex-1 h-full py-1 transition-colors ${
-              active
-                ? "text-[#2164b6] dark:text-[#7ab0ff]"
-                : "text-[#65676B] dark:text-[#B0B3B8] hover:text-[#050505] dark:hover:text-[#E4E6EB]"
-            }`}
-          >
-            <IconComp weight={active ? "fill" : "regular"} className="h-5 w-5" />
-            <span className="text-[10px] font-medium leading-tight mt-0.5">{item.label}</span>
-          </Link>
-        );
-      })}
+    <nav className="fixed bottom-0 left-0 right-0 z-40 md:hidden h-16 bg-white dark:bg-[#121620] border-t border-[#E4E7EC] dark:border-[#222B3D] flex items-center justify-around px-3 select-none shadow-sm">
+      {/* 1. Home */}
+      <Link
+        to="/app"
+        className={`flex flex-col items-center justify-center flex-1 h-full py-1 transition-colors ${
+          isTabActive("/app")
+            ? "text-[#1A68D4]"
+            : "text-[#667085] dark:text-[#94A3B8] hover:text-[#17202B] dark:hover:text-white"
+        }`}
+      >
+        <Home weight={isTabActive("/app") ? "fill" : "regular"} className="h-5 w-5" />
+        <span className="text-[10px] font-semibold leading-tight mt-1">Home</span>
+      </Link>
+
+      {/* 2. Discover */}
+      <Link
+        to="/app/communities"
+        className={`flex flex-col items-center justify-center flex-1 h-full py-1 transition-colors ${
+          isTabActive("/app/communities") || isTabActive("/app/discover")
+            ? "text-[#1A68D4]"
+            : "text-[#667085] dark:text-[#94A3B8] hover:text-[#17202B] dark:hover:text-white"
+        }`}
+      >
+        <Compass weight={isTabActive("/app/communities") || isTabActive("/app/discover") ? "fill" : "regular"} className="h-5 w-5" />
+        <span className="text-[10px] font-semibold leading-tight mt-1">Discover</span>
+      </Link>
+
+      {/* 3. Create (Elevated Button) */}
+      <Link
+        to="/app/feed"
+        className="flex flex-col items-center justify-center flex-1 h-full py-1"
+      >
+        <div className="w-10 h-10 rounded-xl bg-[#1A68D4] text-white flex items-center justify-center shadow-md shadow-[#1A68D4]/30 hover:bg-[#1555AD] transition-transform active:scale-95">
+          <Plus weight="bold" className="h-5 w-5" />
+        </div>
+      </Link>
+
+      {/* 4. Messages (Preserved Chat Icon) */}
+      <Link
+        to="/app/messages"
+        className={`flex flex-col items-center justify-center flex-1 h-full py-1 transition-colors ${
+          isTabActive("/app/messages")
+            ? "text-[#1A68D4]"
+            : "text-[#667085] dark:text-[#94A3B8] hover:text-[#17202B] dark:hover:text-white"
+        }`}
+      >
+        <MessageSquare weight={isTabActive("/app/messages") ? "fill" : "regular"} className="h-5 w-5" />
+        <span className="text-[10px] font-semibold leading-tight mt-1">Messages</span>
+      </Link>
+
+      {/* 5. Profile */}
+      <Link
+        to="/app/profile"
+        className={`flex flex-col items-center justify-center flex-1 h-full py-1 transition-colors ${
+          isTabActive("/app/profile")
+            ? "text-[#1A68D4]"
+            : "text-[#667085] dark:text-[#94A3B8] hover:text-[#17202B] dark:hover:text-white"
+        }`}
+      >
+        <User weight={isTabActive("/app/profile") ? "fill" : "regular"} className="h-5 w-5" />
+        <span className="text-[10px] font-semibold leading-tight mt-1">Profile</span>
+      </Link>
     </nav>
   );
 }
