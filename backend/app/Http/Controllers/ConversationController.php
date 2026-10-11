@@ -656,6 +656,19 @@ class ConversationController extends Controller
 
         $mode = $request->input('mode', 'me');
 
+        // ── Financial / escrow chat deletion protection ──────────────────────
+        // Commerce/creator chats tagged as marketplace or with an active escrow
+        // deal must NEVER have individual messages deleted (neither for me nor
+        // for everyone). All records remain in the database for audit
+        // compliance, dispute arbitration, and fund verification.
+        if ($this->isFinancialConversation($conversation)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Messages in financial or escrow deal chats cannot be deleted. All records are legally preserved for audit compliance, dispute arbitration, and fund verification.',
+                'can_soft_clear' => false,
+            ], 403);
+        }
+
         if ($mode === 'everyone') {
             if ($message->user_id !== $request->user()->id) {
                 $isMod = CommunityMembership::where('community_id', $conversation->community_id)
@@ -754,6 +767,37 @@ class ConversationController extends Controller
     }
 
     /**
+     * Whether a conversation is a financial/escrow deal that must be preserved.
+     *
+     * True for marketplace chats, or any chat whose participants are party to an
+     * escrow that is currently held/active/pending/disputed.
+     */
+    private function isFinancialConversation(Conversation $conversation): bool
+    {
+        if ($conversation->type === 'marketplace') {
+            return true;
+        }
+
+        // Only direct conversations can be "financial" via a shared escrow.
+        // Community/group chats can have thousands of participants, where a
+        // single escrow between any two members would otherwise flag the whole
+        // channel and block moderators from deleting messages.
+        if ($conversation->type !== 'direct') {
+            return false;
+        }
+
+        $participantIds = $conversation->participants()->pluck('user_id');
+
+        return DB::table('escrows')
+            ->where(function ($q) use ($participantIds) {
+                $q->whereIn('buyer_id', $participantIds)
+                  ->whereIn('seller_id', $participantIds);
+            })
+            ->whereIn('status', ['held', 'active', 'pending', 'disputed'])
+            ->exists();
+    }
+
+    /**
      * Clear all messages in a conversation (for me or for everyone).
      */
     public function clearMessages(Request $request, int $conversationId): JsonResponse
@@ -768,24 +812,12 @@ class ConversationController extends Controller
         // deal must NEVER be hard-deleted. All records remain in the database
         // for audit compliance, dispute arbitration, and fund verification.
         // Users may only soft-clear their own view (mode=me).
-        if ($mode === 'everyone') {
-            $participantIds = $conversation->participants()->pluck('user_id');
-            $isFinancial = $conversation->type === 'marketplace'
-                || DB::table('escrows')
-                    ->where(function ($q) use ($participantIds) {
-                        $q->whereIn('buyer_id', $participantIds)
-                          ->whereIn('seller_id', $participantIds);
-                    })
-                    ->whereIn('status', ['held', 'active', 'pending', 'disputed'])
-                    ->exists();
-
-            if ($isFinancial) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Financial and escrow deal chats cannot be permanently deleted. All records are legally preserved for audit compliance, dispute arbitration, and fund verification. You can soft-clear your personal view only.',
-                    'can_soft_clear' => true,
-                ], 403);
-            }
+        if ($mode === 'everyone' && $this->isFinancialConversation($conversation)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Financial and escrow deal chats cannot be permanently deleted. All records are legally preserved for audit compliance, dispute arbitration, and fund verification. You can soft-clear your personal view only.',
+                'can_soft_clear' => true,
+            ], 403);
         }
 
         if ($mode === 'everyone') {

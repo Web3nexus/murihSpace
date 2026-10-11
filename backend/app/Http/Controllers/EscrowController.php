@@ -4,10 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Dispute;
 use App\Models\Escrow;
-use App\Models\LedgerEntry;
-use App\Models\LedgerTransaction;
-use App\Models\Wallet;
-use App\Services\Wallet\LedgerService;
+use App\Services\Escrow\EscrowService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -15,7 +12,7 @@ use Illuminate\Support\Facades\DB;
 class EscrowController extends Controller
 {
     public function __construct(
-        private LedgerService $ledgerService,
+        private EscrowService $escrowService,
     ) {}
 
     public function index(Request $request): JsonResponse
@@ -82,32 +79,8 @@ class EscrowController extends Controller
             return response()->json(['message' => 'Escrow is not in a releasable state.'], 400);
         }
 
-        DB::transaction(function () use ($escrow) {
-            $txn = $this->ledgerService->credit(
-                $escrow->seller_id,
-                $escrow->amount,
-                $escrow->currency,
-                'escrow_release',
-                "Escrow release for order #{$escrow->order_id}",
-                ['escrow_id' => $escrow->id],
-            );
-
-            // Debit from escrow account
-            $this->ledgerService->debit(
-                $escrow->buyer_id,
-                $escrow->amount,
-                $escrow->currency,
-                'escrow_release',
-                "Escrow release for order #{$escrow->order_id}",
-                ['escrow_id' => $escrow->id],
-            );
-
-            $escrow->update([
-                'status' => 'released',
-                'released_at' => now(),
-                'ledger_transaction_id' => $txn->id,
-            ]);
-        });
+        // Single source of truth: EscrowService credits the seller's wallet.
+        $this->escrowService->release($escrow);
 
         return response()->json(['message' => 'Escrow released to seller.', 'data' => $escrow->fresh()->load(['buyer:id,name', 'seller:id,name'])]);
     }
@@ -124,30 +97,8 @@ class EscrowController extends Controller
             return response()->json(['message' => 'Escrow cannot be refunded in its current state.'], 400);
         }
 
-        DB::transaction(function () use ($escrow) {
-            $txn = $this->ledgerService->credit(
-                $escrow->buyer_id,
-                $escrow->amount,
-                $escrow->currency,
-                'escrow_refund',
-                "Escrow refund for order #{$escrow->order_id}",
-                ['escrow_id' => $escrow->id],
-            );
-
-            $this->ledgerService->debit(
-                $escrow->seller_id,
-                $escrow->amount,
-                $escrow->currency,
-                'escrow_refund',
-                "Escrow refund for order #{$escrow->order_id}",
-                ['escrow_id' => $escrow->id],
-            );
-
-            $escrow->update([
-                'status' => 'refunded',
-                'ledger_transaction_id' => $txn->id,
-            ]);
-        });
+        // Single source of truth: EscrowService credits the buyer's wallet.
+        $this->escrowService->refund($escrow);
 
         return response()->json(['message' => 'Escrow refunded to buyer.', 'data' => $escrow->fresh()]);
     }
@@ -231,39 +182,14 @@ class EscrowController extends Controller
             'resolution_note' => ['nullable', 'string', 'max:5000'],
         ]);
 
-        DB::transaction(function () use ($dispute, $request, $validated) {
-            $dispute->resolve(
-                $validated['resolution'],
-                $request->user()->id,
-                $validated['resolution_note'] ?? null,
-            );
-
-            if ($validated['resolution'] === 'resolved_buyer') {
-                // Refund to buyer
-                $this->ledgerService->credit(
-                    $dispute->escrow->buyer_id,
-                    $dispute->escrow->amount,
-                    $dispute->escrow->currency,
-                    'escrow_refund',
-                    "Dispute resolved in favor of buyer for escrow #{$dispute->escrow_id}",
-                    ['dispute_id' => $dispute->id],
-                );
-                $dispute->escrow->update(['status' => 'refunded']);
-            } elseif ($validated['resolution'] === 'resolved_seller') {
-                // Release to seller
-                $this->ledgerService->credit(
-                    $dispute->escrow->seller_id,
-                    $dispute->escrow->amount,
-                    $dispute->escrow->currency,
-                    'escrow_release',
-                    "Dispute resolved in favor of seller for escrow #{$dispute->escrow_id}",
-                    ['dispute_id' => $dispute->id],
-                );
-                $dispute->escrow->update(['status' => 'released', 'released_at' => now()]);
-            } else {
-                $dispute->escrow->update(['status' => 'held']);
-            }
-        });
+        // Single source of truth: EscrowService records the resolution and
+        // moves escrowed funds through the shared release/refund primitives.
+        $this->escrowService->resolveDispute(
+            $dispute,
+            $validated['resolution'],
+            $request->user()->id,
+            $validated['resolution_note'] ?? null,
+        );
 
         return response()->json(['message' => 'Dispute resolved.', 'data' => $dispute->fresh()]);
     }

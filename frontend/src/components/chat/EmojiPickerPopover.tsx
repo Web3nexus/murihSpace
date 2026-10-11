@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Smiley, MagnifyingGlass, X } from "@phosphor-icons/react";
+import { motion } from "motion/react";
 
 interface EmojiPickerPopoverProps {
   onSelect: (emoji: string) => void;
@@ -181,7 +182,7 @@ export function EmojiPickerPopover({
 
   return (
     <div ref={containerRef} className={`relative inline-block ${className}`}>
-      <button
+      <motion.button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         className={`p-2 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer flex items-center justify-center ${
@@ -189,9 +190,13 @@ export function EmojiPickerPopover({
         } ${buttonClassName}`}
         title="Insert emoji"
         aria-label="Insert emoji"
+        whileTap={{ scale: 0.95 }}
+        layout
       >
-        <Smiley weight={isOpen ? "fill" : "regular"} className="h-4 w-4" />
-      </button>
+        <motion.div layout>
+          <Smiley weight={isOpen ? "fill" : "regular"} className="h-4 w-4" />
+        </motion.div>
+      </motion.button>
 
       {isOpen && (
         <div

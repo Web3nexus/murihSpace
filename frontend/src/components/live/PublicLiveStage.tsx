@@ -10,16 +10,19 @@ import {
   MicrophoneSlash,
   PaperPlaneRight,
   PhoneSlash,
+  PushPin,
   Radio,
   ShareNetwork,
   ShoppingBag,
   SpeakerHigh,
   SpeakerSimpleSlash,
   Spinner,
+  Trophy,
   Users,
   VideoCamera,
   VideoCameraSlash,
   WarningCircle,
+  X,
 } from "@phosphor-icons/react";
 import {
   ConnectionState,
@@ -38,6 +41,7 @@ import { Button } from "@/components/ui/button";
 import { authFetch } from "@/lib/api/authFetch";
 import { apiClient } from "@/lib/api/client";
 import { type LiveStreamEndedPayload } from "@/hooks/useLiveStreamEnded";
+import { getEcho } from "@/lib/echo";
 import { liveSessionStore } from "@/lib/session/liveSessionStore";
 
 interface LiveHost {
@@ -130,6 +134,20 @@ export function PublicLiveStage({ stream, liveKitAccess, isHost, onLeave, onStre
   const [likesCount, setLikesCount] = useState(stream.likes_count || 0);
   const [totalCoins, setTotalCoins] = useState(stream.total_coins_earned || 0);
   const [pinnedProduct, setPinnedProduct] = useState(stream.pinned_product || null);
+  const [pinnedComment, setPinnedComment] = useState<{
+    id: number;
+    message: string;
+    user: { id?: number; name?: string; username?: string | null; avatar_url?: string | null };
+    pinned_at?: string;
+  } | null>(null);
+
+  // Rankings modal state
+  const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
+  const [rankings, setRankings] = useState<{
+    top_gifters: Array<{ user_id: number; name: string; username: string; avatar_url?: string; total_coins: number }>;
+    top_engagers: Array<{ user_id: number; name: string; username: string; avatar_url?: string; total_likes: number }>;
+  } | null>(null);
+  const [loadingRankings, setLoadingRankings] = useState(false);
 
   // Live Chat state
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
@@ -304,6 +322,185 @@ onStreamEnded({
   useEffect(() => {
     scrollToBottom(false);
   }, [chatMessages.length, scrollToBottom]);
+
+  // Spawn floating heart
+  const spawnFloatingHeart = useCallback((colorOverride?: string) => {
+    const id = Date.now() + Math.random();
+    const x = Math.floor(Math.random() * 50) + 35; // 35% to 85% width
+    const colors = ["#ef4444", "#ec4899", "#f59e0b", "#8b5cf6", "#06b6d4", "#10b981"];
+    const color = colorOverride || colors[Math.floor(Math.random() * colors.length)];
+
+    setFloatingHearts((prev) => [...prev.slice(-25), { id, x, color }]);
+
+    setTimeout(() => {
+      setFloatingHearts((prev) => prev.filter((h) => h.id !== id));
+    }, 2000);
+  }, []);
+
+  const likeBatchRef = useRef<number>(0);
+  const likeTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const flushLikes = useCallback(async () => {
+    const count = likeBatchRef.current;
+    if (count <= 0) return;
+    likeBatchRef.current = 0;
+    try {
+      await authFetch(`/live/${stream.id}/like`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ count }),
+      });
+    } catch {
+      // Ignore background network failure
+    }
+  }, [stream.id]);
+
+  // Handle user tap like (immediate visual heart + buffered batch network send)
+  const handleLike = useCallback(() => {
+    spawnFloatingHeart();
+    setLikesCount((prev) => prev + 1);
+
+    likeBatchRef.current += 1;
+    if (likeTimerRef.current) clearTimeout(likeTimerRef.current);
+    // The server rejects batches over 50 (HTTP 422, dropped silently), so flush
+    // as soon as we hit the cap instead of letting the batch grow past it.
+    if (likeBatchRef.current >= 50) {
+      void flushLikes();
+    } else {
+      likeTimerRef.current = setTimeout(flushLikes, 400);
+    }
+  }, [spawnFloatingHeart, flushLikes]);
+
+  // Flush any buffered likes and clear the timer when leaving the stream.
+  useEffect(() => {
+    return () => {
+      if (likeTimerRef.current) clearTimeout(likeTimerRef.current);
+      void flushLikes();
+    };
+  }, [flushLikes]);
+
+  // Real-time Echo listener for synchronized live events
+  useEffect(() => {
+    if (!stream.id) return;
+    const echo = getEcho();
+    const channel = echo.channel(`live-stream.${stream.id}`);
+
+    // 1. Synchronized real-time Likes
+    channel.listen("LiveStreamLiked", (payload: any) => {
+      if (typeof payload.total_likes === "number") {
+        setLikesCount(payload.total_likes);
+      } else if (typeof payload.count === "number") {
+        setLikesCount((prev) => prev + payload.count);
+      }
+      const count = Math.min(payload.count || 1, 6);
+      for (let i = 0; i < count; i++) {
+        setTimeout(() => spawnFloatingHeart(), i * 70);
+      }
+    });
+
+    // 2. Synchronized real-time Gifts
+    channel.listen("LiveStreamGiftSent", (payload: any) => {
+      if (typeof payload.total_coins_earned === "number") {
+        setTotalCoins(payload.total_coins_earned);
+      }
+      const gift = payload.gift || {};
+      const sender = payload.sender || {};
+      setCelebrationGift({
+        sender: {
+          id: sender.id || 0,
+          name: sender.name || "Fan",
+          username: sender.username || "fan",
+          avatar: sender.avatar_url || undefined,
+        },
+        gift: {
+          id: gift.id || 1,
+          name: gift.name || "Gift",
+          icon: gift.icon_url || "🎁",
+          animation_type: gift.animation_tier || "premium",
+        },
+        amount: gift.coin_price || 100,
+        currency: "COINS",
+        sent_at: new Date().toISOString(),
+      });
+    });
+
+    // 3. Real-time Chat Messages
+    channel.listen("LiveStreamChatMessage", (payload: any) => {
+      const msg = payload.message;
+      if (msg) {
+        setChatMessages((prev) => {
+          if (prev.some((m) => m.id === msg.id)) return prev;
+          return [
+            ...prev,
+            {
+              id: msg.id,
+              message: msg.message || "",
+              user: msg.user || { id: 0, name: "Viewer" },
+              created_at: msg.created_at,
+              is_gift: Boolean(msg.gift_id || msg.message?.includes("🎁")),
+            },
+          ];
+        });
+        scrollToBottom();
+      }
+    });
+
+    // 4. Product Pinning
+    channel.listen("LiveStreamProductPinned", (payload: any) => {
+      if (payload.product) {
+        setPinnedProduct(payload.product);
+        toast.info(`Featured Product: ${payload.product.title}`);
+      }
+    });
+
+    // 5. Product Unpinning
+    channel.listen("LiveStreamProductUnpinned", () => {
+      setPinnedProduct(null);
+    });
+
+    // 6. Comment Pinning
+    channel.listen("LiveStreamCommentPinned", (payload: any) => {
+      if (payload.comment) {
+        setPinnedComment(payload.comment);
+      }
+    });
+
+    // 7. Comment Unpinning
+    channel.listen("LiveStreamCommentUnpinned", () => {
+      setPinnedComment(null);
+    });
+
+    // 8. Guest Action
+    channel.listen("LiveStreamGuestAction", (payload: any) => {
+      if (payload.action === "requested" && isHost) {
+        toast.info(`${payload.guest?.name || "A viewer"} requested to join as co-host!`);
+      } else if (payload.action === "invited") {
+        toast.info("Host invited a guest to co-host!");
+      }
+    });
+
+    // 9. Viewer Count Update
+    channel.listen("LiveStreamViewerCountUpdated", (payload: any) => {
+      if (typeof payload.viewers_count === "number") {
+        setViewerCount(payload.viewers_count);
+      }
+    });
+
+    return () => {
+      try {
+        channel.stopListening("LiveStreamLiked");
+        channel.stopListening("LiveStreamGiftSent");
+        channel.stopListening("LiveStreamChatMessage");
+        channel.stopListening("LiveStreamProductPinned");
+        channel.stopListening("LiveStreamProductUnpinned");
+        channel.stopListening("LiveStreamCommentPinned");
+        channel.stopListening("LiveStreamCommentUnpinned");
+        channel.stopListening("LiveStreamGuestAction");
+        channel.stopListening("LiveStreamViewerCountUpdated");
+        (channel as any).leave?.();
+      } catch {}
+    };
+  }, [isHost, scrollToBottom, spawnFloatingHeart, stream.id]);
 
   // Register with the persistent session registry so the floating dock can keep
   // this broadcast on screen while the user browses the rest of the app.
@@ -625,44 +822,50 @@ onStreamEnded({
     }
   };
 
-  // Spawn floating heart
-  const handleLike = async () => {
-    const id = Date.now() + Math.random();
-    const x = Math.floor(Math.random() * 60) + 20; // 20% to 80% width
-    const colors = ["#ef4444", "#ec4899", "#f59e0b", "#8b5cf6", "#06b6d4"];
-    const color = colors[Math.floor(Math.random() * colors.length)];
-
-    setFloatingHearts((prev) => [...prev.slice(-15), { id, x, color }]);
-    setLikesCount((prev) => prev + 1);
-
-    setTimeout(() => {
-      setFloatingHearts((prev) => prev.filter((h) => h.id !== id));
-    }, 2000);
-
-    let rejected = false;
-    let message = "";
+  const handlePinComment = async (msgId: number | string) => {
+    if (!isHost) return;
     try {
-      const response = await authFetch(`/live/${stream.id}/like`, {
+      const res = await authFetch(`/live/${stream.id}/pin-comment`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ count: 1 }),
+        body: JSON.stringify({ message_id: msgId }),
       });
-      if (!response.ok) {
-        rejected = true;
-        const payload: unknown = await response.json().catch(() => null);
-        const root = payload as { message?: unknown };
-        message = typeof root?.message === "string" && root.message.trim()
-          ? root.message
-          : "This stream is not accepting likes right now.";
+      if (res.ok) {
+        toast.success("Comment pinned to live broadcast!");
       }
     } catch {
-      rejected = true;
-      message = "We could not send your like. Check your connection and try again.";
+      toast.error("Failed to pin comment.");
     }
+  };
 
-    if (rejected) {
-      setLikesCount((prev) => Math.max(0, prev - 1));
-      toast.error(message);
+  const handleUnpinComment = async () => {
+    if (!isHost) return;
+    try {
+      const res = await authFetch(`/live/${stream.id}/unpin-comment`, {
+        method: "POST",
+      });
+      if (res.ok) {
+        setPinnedComment(null);
+        toast.success("Comment unpinned.");
+      }
+    } catch {
+      toast.error("Failed to unpin comment.");
+    }
+  };
+
+  const fetchRankings = async () => {
+    setLoadingRankings(true);
+    try {
+      const res = await authFetch(`/live/${stream.id}/rankings`);
+      if (res.ok) {
+        const json = await res.json();
+        // The API wraps bodies in an envelope ({ success, data }); unwrap it so
+        // top_gifters / top_engagers are populated.
+        setRankings(json?.data ?? json);
+      }
+    } catch {
+    } finally {
+      setLoadingRankings(false);
     }
   };
 
@@ -804,6 +1007,21 @@ onStreamEnded({
               <span>{totalCoins} Coins</span>
             </div>
 
+            {/* Live Rankings / Leaderboard Button */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                void fetchRankings();
+                setIsLeaderboardOpen(true);
+              }}
+              className="h-8 rounded-full border-amber-500/30 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20 px-2.5 gap-1.5"
+              title="Live Rankings & Leaderboard"
+            >
+              <Trophy weight="fill" className="h-3.5 w-3.5 text-amber-400" />
+              <span className="hidden md:inline text-xs font-semibold">Rankings</span>
+            </Button>
+
             {/* Share Button */}
             <Button
               variant="outline"
@@ -816,8 +1034,17 @@ onStreamEnded({
           </div>
         </div>
 
-        {/* MAIN VIDEO / AUDIO CANVAS */}
-        <div className="relative flex flex-1 items-center justify-center overflow-hidden bg-[#0c1017]">
+        {/* MAIN VIDEO / AUDIO CANVAS (Tap anywhere to send hearts!) */}
+        <div
+          onClick={(e) => {
+            const target = e.target as HTMLElement;
+            if (target.closest("button") || target.closest("input") || target.closest("a") || target.closest(".interactive-card")) {
+              return;
+            }
+            handleLike();
+          }}
+          className="relative flex flex-1 items-center justify-center overflow-hidden bg-[#0c1017] cursor-pointer select-none"
+        >
           {connecting && (
             <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-black/70 backdrop-blur-sm">
               <Spinner weight="bold" className="h-8 w-8 animate-spin text-primary" />
@@ -896,7 +1123,7 @@ onStreamEnded({
 
           {/* Pinned Product Card (if available) */}
           {pinnedProduct && (
-            <div className="absolute bottom-20 left-4 z-20 max-w-sm rounded-xl border border-white/20 bg-black/80 p-3 backdrop-blur-xl shadow-2xl">
+            <div className="interactive-card absolute bottom-20 left-4 z-20 max-w-sm rounded-xl border border-white/20 bg-black/80 p-3 backdrop-blur-xl shadow-2xl">
               <div className="flex items-center gap-3">
                 {pinnedProduct.image_url ? (
                   <img src={pinnedProduct.image_url} alt={pinnedProduct.title} className="h-12 w-12 rounded-lg object-cover" />
@@ -929,87 +1156,139 @@ onStreamEnded({
           )}
         </div>
 
-        {/* BOTTOM VIDEO CONTROLS BAR */}
-        <div className="z-20 flex items-center justify-between border-t border-white/10 bg-black/90 px-4 py-3 backdrop-blur-md">
-          <div className="flex items-center gap-2">
-            <h3 className="truncate text-sm font-semibold text-white/90 max-w-[280px] sm:max-w-md">
-              {stream.title}
-            </h3>
+        {/* BOTTOM OVERLAY + RIGHT-EDGE INTERACTION RAIL (TikTok-style) */}
+        <div className="pointer-events-none absolute inset-0 z-20">
+          {/* Bottom gradient info strip */}
+          <div className="pointer-events-none absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent px-4 pb-3 pt-20">
+            <div className="pointer-events-auto flex items-end justify-between gap-3">
+              <div className="min-w-0">
+                <h3 className="max-w-[200px] truncate text-sm font-bold text-white sm:max-w-xs">
+                  {stream.title}
+                </h3>
+                <p className="mt-0.5 truncate text-xs font-medium text-white/70">
+                  {hostUsername} {stream.community?.name ? `· ${stream.community.name}` : ""}
+                </p>
+              </div>
+            </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            {/* Host Controls */}
-            {isHost && (
-              <>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={toggleMic}
-                  className={`h-9 w-9 rounded-full p-0 ${isMicOn ? "bg-white/10 text-white border-white/20" : "bg-red-600 text-white border-red-500 hover:bg-red-500"}`}
-                  title={isMicOn ? "Mute Microphone" : "Unmute Microphone"}
-                >
-                  {isMicOn ? <Microphone weight="bold" className="h-4 w-4" /> : <MicrophoneSlash weight="bold" className="h-4 w-4" />}
-                </Button>
+          {/* Vertical interaction rail on the right edge */}
+          <div className="pointer-events-auto absolute bottom-3 right-3 flex flex-col items-center gap-2">
+            <button
+              type="button"
+              onClick={handleLike}
+              className="flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-black/50 text-white backdrop-blur-md transition-transform hover:scale-110 active:scale-95"
+              title="Like broadcast"
+              aria-label="Like broadcast"
+            >
+              <Heart weight="fill" className="h-5 w-5 text-rose-500" />
+            </button>
+            <span className="text-[11px] font-bold text-white drop-shadow">{likesCount}</span>
 
-                {stream.stream_mode !== "audio" && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={toggleCam}
-                    className={`h-9 w-9 rounded-full p-0 ${isCamOn ? "bg-white/10 text-white border-white/20" : "bg-red-600 text-white border-red-500 hover:bg-red-500"}`}
-                    title={isCamOn ? "Turn Camera Off" : "Turn Camera On"}
-                  >
-                    {isCamOn ? <VideoCamera weight="bold" className="h-4 w-4" /> : <VideoCameraSlash weight="bold" className="h-4 w-4" />}
-                  </Button>
-                )}
+            <button
+              type="button"
+              onClick={() => setIsGiftModalOpen(true)}
+              className="mt-1 flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-black/50 text-white backdrop-blur-md transition-transform hover:scale-110 active:scale-95"
+              title="Send a Gift"
+              aria-label="Send a Gift"
+            >
+              <GiftIcon weight="fill" className="h-5 w-5 text-amber-400" />
+            </button>
+            <span className="text-[11px] font-bold text-amber-300 drop-shadow">{totalCoins}</span>
 
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={handleEndStream}
-                  disabled={isEndingStream}
-                  className="h-9 gap-1.5 rounded-full px-3 text-xs font-bold"
-                >
-                  {isEndingStream ? <Spinner weight="bold" className="h-3.5 w-3.5 animate-spin" /> : <PhoneSlash weight="bold" className="h-3.5 w-3.5" />}
-                  End Stream
-                </Button>
-              </>
-            )}
+            <button
+              type="button"
+              onClick={() => { void fetchRankings(); setIsLeaderboardOpen(true); }}
+              className="mt-1 flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-black/50 text-white backdrop-blur-md transition-transform hover:scale-110 active:scale-95"
+              title="Live Rankings"
+              aria-label="Live Rankings"
+            >
+              <Trophy weight="fill" className="h-5 w-5 text-amber-400" />
+            </button>
 
-            {/* Viewer Controls */}
-            {!isHost && (
-              <>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={toggleMute}
-                  className="h-9 w-9 rounded-full border-white/20 bg-white/10 p-0 text-white hover:bg-white/20"
-                  title={isAudioMuted ? "Unmute" : "Mute"}
-                >
-                  {isAudioMuted ? <SpeakerSimpleSlash weight="bold" className="h-4 w-4" /> : <SpeakerHigh weight="bold" className="h-4 w-4" />}
-                </Button>
+            <button
+              type="button"
+              onClick={handleShare}
+              className="flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-black/50 text-white backdrop-blur-md transition-transform hover:scale-110 active:scale-95"
+              title="Share broadcast"
+              aria-label="Share broadcast"
+            >
+              {shareCopied ? <Check weight="bold" className="h-5 w-5 text-emerald-400" /> : <ShareNetwork weight="bold" className="h-5 w-5" />}
+            </button>
 
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleLeaveSession}
-                  className="h-9 rounded-full border-white/20 bg-white/10 px-3 text-xs font-semibold text-white hover:bg-white/20"
-                >
-                  Leave
-                </Button>
-              </>
-            )}
+            <div className="my-1 h-px w-8 bg-white/20" />
 
-            {/* Fullscreen Button */}
-            <Button
-              variant="outline"
-              size="sm"
+            <button
+              type="button"
               onClick={toggleFullscreen}
-              className="h-9 w-9 rounded-full border-white/20 bg-white/10 p-0 text-white hover:bg-white/20"
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-black/50 text-white backdrop-blur-md transition-transform hover:scale-110 active:scale-95"
               title="Toggle Fullscreen"
+              aria-label="Toggle Fullscreen"
             >
               {isFullscreen ? <ArrowsIn weight="bold" className="h-4 w-4" /> : <ArrowsOut weight="bold" className="h-4 w-4" />}
-            </Button>
+            </button>
+
+            {!isHost ? (
+              <>
+                <button
+                  type="button"
+                  onClick={toggleMute}
+                  className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-black/50 text-white backdrop-blur-md transition-transform hover:scale-110 active:scale-95"
+                  title={isAudioMuted ? "Unmute" : "Mute"}
+                  aria-label={isAudioMuted ? "Unmute" : "Mute"}
+                >
+                  {isAudioMuted ? <SpeakerSimpleSlash weight="bold" className="h-4 w-4" /> : <SpeakerHigh weight="bold" className="h-4 w-4" />}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleLeaveSession}
+                  className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-red-600/80 text-white backdrop-blur-md transition-transform hover:scale-110 active:scale-95"
+                  title="Leave Broadcast"
+                  aria-label="Leave Broadcast"
+                >
+                  <PhoneSlash weight="bold" className="h-4 w-4" />
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={() => void toggleMic()}
+                  className={`flex h-9 w-9 items-center justify-center rounded-full border backdrop-blur-md transition-transform hover:scale-110 active:scale-95 ${
+                    isMicOn ? "border-white/20 bg-black/50 text-white" : "border-red-500/40 bg-red-600 text-white"
+                  }`}
+                  title={isMicOn ? "Mute Microphone" : "Unmute Microphone"}
+                  aria-label={isMicOn ? "Mute Microphone" : "Unmute Microphone"}
+                >
+                  {isMicOn ? <Microphone weight="bold" className="h-4 w-4" /> : <MicrophoneSlash weight="bold" className="h-4 w-4" />}
+                </button>
+
+                {stream.stream_mode !== "audio" && (
+                  <button
+                    type="button"
+                    onClick={() => void toggleCam()}
+                    className={`flex h-9 w-9 items-center justify-center rounded-full border backdrop-blur-md transition-transform hover:scale-110 active:scale-95 ${
+                      isCamOn ? "border-white/20 bg-black/50 text-white" : "border-red-500/40 bg-red-600 text-white"
+                    }`}
+                    title={isCamOn ? "Turn Camera Off" : "Turn Camera On"}
+                    aria-label={isCamOn ? "Turn Camera Off" : "Turn Camera On"}
+                  >
+                    {isCamOn ? <VideoCamera weight="bold" className="h-4 w-4" /> : <VideoCameraSlash weight="bold" className="h-4 w-4" />}
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => void handleEndStream()}
+                  disabled={isEndingStream}
+                  className="flex h-9 items-center gap-1 rounded-full border border-red-500/40 bg-red-600 px-2.5 text-white backdrop-blur-md transition-transform hover:scale-110 active:scale-95 disabled:opacity-60"
+                  title="End Stream"
+                >
+                  {isEndingStream ? <Spinner weight="bold" className="h-3.5 w-3.5 animate-spin" /> : <PhoneSlash weight="bold" className="h-3.5 w-3.5" />}
+                  <span className="text-[10px] font-bold">End</span>
+                </button>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -1023,6 +1302,29 @@ onStreamEnded({
           </div>
           <span className="text-[11px] font-semibold text-white/50">{chatMessages.length} messages</span>
         </div>
+
+        {/* Pinned Comment Banner */}
+        {pinnedComment && (
+          <div className="mx-3 mt-2 flex items-center justify-between gap-2 rounded-xl border border-primary/30 bg-primary/10 px-3 py-2 text-xs backdrop-blur-md">
+            <div className="flex items-center gap-2 min-w-0">
+              <PushPin weight="fill" className="h-4 w-4 shrink-0 text-primary" />
+              <div className="min-w-0">
+                <span className="font-bold text-primary mr-1.5">{pinnedComment.user.name}:</span>
+                <span className="text-white/90">{pinnedComment.message}</span>
+              </div>
+            </div>
+            {isHost && (
+              <button
+                type="button"
+                onClick={handleUnpinComment}
+                className="text-white/40 hover:text-white shrink-0 p-1"
+                title="Unpin comment"
+              >
+                <X weight="bold" className="h-3 w-3" />
+              </button>
+            )}
+          </div>
+        )}
 
         {/* Chat Messages Feed (auto-scrolled to bottom) */}
         <div
@@ -1055,7 +1357,7 @@ onStreamEnded({
               }
 
               return (
-                <div key={msg.id} className="flex items-start gap-2.5 text-xs">
+                <div key={msg.id} className="group flex items-start gap-2.5 text-xs">
                   <Avatar className="h-6 w-6 shrink-0 mt-0.5">
                     <AvatarImage src={msg.user.avatar ?? undefined} alt={msg.user.name} />
                     <AvatarFallback className="bg-white/10 text-[9px] font-bold text-white">
@@ -1063,14 +1365,26 @@ onStreamEnded({
                     </AvatarFallback>
                   </Avatar>
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-1.5">
-                      <span className={`font-bold ${isHostMsg ? "text-red-400 font-extrabold" : "text-blue-400"}`}>
-                        {msg.user.name}
-                      </span>
-                      {isHostMsg && (
-                        <span className="rounded bg-red-500/20 px-1 py-0.2 text-[9px] font-black uppercase text-red-400">
-                          HOST
+                    <div className="flex items-center justify-between gap-1.5">
+                      <div className="flex items-center gap-1.5">
+                        <span className={`font-bold ${isHostMsg ? "text-red-400 font-extrabold" : "text-blue-400"}`}>
+                          {msg.user.name}
                         </span>
+                        {isHostMsg && (
+                          <span className="rounded bg-red-500/20 px-1 py-0.2 text-[9px] font-black uppercase text-red-400">
+                            HOST
+                          </span>
+                        )}
+                      </div>
+                      {isHost && (
+                        <button
+                          type="button"
+                          onClick={() => handlePinComment(msg.id)}
+                          className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 text-white/40 hover:text-primary"
+                          title="Pin comment"
+                        >
+                          <PushPin weight="bold" className="h-3 w-3" />
+                        </button>
                       )}
                     </div>
                     <p className="mt-0.5 break-words font-normal text-white/90 leading-relaxed">
@@ -1130,6 +1444,91 @@ onStreamEnded({
           </form>
         </div>
       </div>
+
+      {/* Live Rankings & Top Supporters Leaderboard Modal */}
+      {isLeaderboardOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+          <div className="relative w-full max-w-md rounded-2xl border border-white/10 bg-[#121620] p-5 shadow-2xl text-white">
+            <div className="flex items-center justify-between pb-4 border-b border-white/10">
+              <div className="flex items-center gap-2">
+                <Trophy weight="fill" className="h-5 w-5 text-amber-400" />
+                <h3 className="text-base font-bold text-white">Live Leaderboard</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsLeaderboardOpen(false)}
+                className="rounded-full p-1 text-white/60 hover:text-white hover:bg-white/10"
+              >
+                <X weight="bold" className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="mt-4 space-y-4 max-h-[60vh] overflow-y-auto">
+              <div>
+                <h4 className="text-xs font-bold uppercase tracking-wider text-amber-400 mb-2 flex items-center gap-1.5">
+                  <GiftIcon weight="fill" className="h-3.5 w-3.5" />
+                  Top Supporters (Gifts)
+                </h4>
+                {loadingRankings ? (
+                  <div className="flex justify-center py-4">
+                    <Spinner weight="bold" className="h-5 w-5 animate-spin text-primary" />
+                  </div>
+                ) : !rankings?.top_gifters?.length ? (
+                  <p className="text-xs text-white/40 py-2">No gifts sent yet. Be the first supporter!</p>
+                ) : (
+                  <div className="space-y-2">
+                    {rankings.top_gifters.map((g, idx) => (
+                      <div key={g.user_id} className="flex items-center justify-between rounded-xl bg-white/5 p-2.5">
+                        <div className="flex items-center gap-2.5">
+                          <span className={`flex h-5 w-5 items-center justify-center rounded-full text-xs font-black ${
+                            idx === 0 ? "bg-amber-400 text-black" : idx === 1 ? "bg-slate-300 text-black" : idx === 2 ? "bg-amber-700 text-white" : "bg-white/10 text-white/60"
+                          }`}>
+                            {idx + 1}
+                          </span>
+                          <Avatar className="h-7 w-7">
+                            <AvatarImage src={g.avatar_url} />
+                            <AvatarFallback>{g.name.slice(0, 1)}</AvatarFallback>
+                          </Avatar>
+                          <span className="text-xs font-bold text-white">{g.name}</span>
+                        </div>
+                        <span className="text-xs font-extrabold text-amber-300">🪙 {g.total_coins.toLocaleString()}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <h4 className="text-xs font-bold uppercase tracking-wider text-rose-400 mb-2 flex items-center gap-1.5">
+                  <Heart weight="fill" className="h-3.5 w-3.5" />
+                  Top Engagers (Likes)
+                </h4>
+                {!rankings?.top_engagers?.length ? (
+                  <p className="text-xs text-white/40 py-2">Tap the screen to appear on the leaderboard!</p>
+                ) : (
+                  <div className="space-y-2">
+                    {rankings.top_engagers.map((e, idx) => (
+                      <div key={e.user_id} className="flex items-center justify-between rounded-xl bg-white/5 p-2.5">
+                        <div className="flex items-center gap-2.5">
+                          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white/10 text-xs font-bold text-white/60">
+                            {idx + 1}
+                          </span>
+                          <Avatar className="h-7 w-7">
+                            <AvatarImage src={e.avatar_url} />
+                            <AvatarFallback>{e.name.slice(0, 1)}</AvatarFallback>
+                          </Avatar>
+                          <span className="text-xs font-bold text-white">{e.name}</span>
+                        </div>
+                        <span className="text-xs font-extrabold text-rose-400">❤️ {e.total_likes.toLocaleString()}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

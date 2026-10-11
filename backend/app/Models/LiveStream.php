@@ -27,6 +27,7 @@ class LiveStream extends Model
         'total_coins_earned',
         'background_sound',
         'pinned_product_id',
+        'pinned_product_type',
         'started_at',
         'ended_at',
     ];

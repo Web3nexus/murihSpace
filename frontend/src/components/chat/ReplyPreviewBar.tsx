@@ -3,6 +3,7 @@ import {
   ArrowUUpLeft as Reply
 } from "@phosphor-icons/react";
 import type { ChatMessage } from '@/types/chat';
+import { messagePreview } from '@/lib/chatMessages';
 
 interface ReplyPreviewBarProps {
   replyingTo: ChatMessage;
@@ -11,13 +12,7 @@ interface ReplyPreviewBarProps {
 
 export function ReplyPreviewBar({ replyingTo, onDismiss }: ReplyPreviewBarProps) {
   const senderName = replyingTo.user?.name ?? 'Unknown';
-  const preview = replyingTo.attachment_type
-    ? replyingTo.attachment_type === 'image'
-      ? '📷 Image'
-      : replyingTo.attachment_type === 'file'
-      ? '📎 File'
-      : '🎙 Voice note'
-    : (replyingTo.content?.slice(0, 80) ?? '');
+  const preview = messagePreview(replyingTo, 80);
 
   return (
     <div className="mx-3 mb-1 px-3 py-2 rounded-lg bg-secondary/10 border border-secondary/25 flex items-center gap-3">

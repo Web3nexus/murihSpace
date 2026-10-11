@@ -63,12 +63,45 @@ class WithdrawalController extends Controller
         $rate = $rateService->getRate('USD', $destCurrency);
         $estimatedLocal = round(($validated['amount'] / 100.0) * $rate, 2);
 
-        $withdrawal = WithdrawalRequest::create([
-            'user_id'  => $request->user()->id,
-            'amount'   => $validated['amount'], // in USD cents
-            'currency' => $destCurrency,
-            'status'   => 'pending',
-        ]);
+        $withdrawal = \Illuminate\Support\Facades\DB::transaction(function () use ($user, $wallet, $walletType, $validated, $destCurrency) {
+            $withdrawal = WithdrawalRequest::create([
+                'user_id'     => $user->id,
+                'amount'      => $validated['amount'], // in USD cents
+                'currency'    => $destCurrency,
+                'wallet_type' => $walletType,
+                'status'      => 'pending',
+            ]);
+
+            // Reserve the requested funds immediately so they cannot be spent
+            // (gifted, used for commerce, etc.) while the request is pending.
+            // `withdrawable` is the physical eligibility bucket; `reserved`
+            // is the frozen bucket. Reserve = withdrawable -> reserved.
+            $this->ledgerService->debit(
+                user: $user,
+                amount: $withdrawal->amount,
+                currency: $wallet->currency,
+                walletType: $walletType,
+                balanceCategory: 'withdrawable',
+                type: 'withdrawal_reserve',
+                description: "Reserving funds for withdrawal request #{$withdrawal->id}",
+                idempotencyKey: "WDR-{$withdrawal->id}_RESERVE",
+                metadata: ['withdrawal_id' => $withdrawal->id],
+            );
+
+            $this->ledgerService->credit(
+                user: $user,
+                amount: $withdrawal->amount,
+                currency: $wallet->currency,
+                walletType: $walletType,
+                balanceCategory: 'reserved',
+                type: 'withdrawal_reserve',
+                description: "Reserving funds for withdrawal request #{$withdrawal->id}",
+                idempotencyKey: "WDR-{$withdrawal->id}_RESERVE_CREDIT",
+                metadata: ['withdrawal_id' => $withdrawal->id],
+            );
+
+            return $withdrawal;
+        });
 
         try {
             app(\App\Services\AdminNotificationService::class)->dispatch([
@@ -194,6 +227,11 @@ class WithdrawalController extends Controller
             }
 
             if ($validated['action'] === 'reject') {
+                $user = User::find($withdrawal->user_id);
+                if (! $user) {
+                    return response()->json(['message' => 'Withdrawal owner not found.', 'code' => 'USER_NOT_FOUND'], 404);
+                }
+
                 $withdrawal->update([
                     'status' => 'rejected',
                     'rejection_reason' => $validated['rejection_reason'],
@@ -201,10 +239,35 @@ class WithdrawalController extends Controller
                     'processed_at' => now(),
                 ]);
 
-                $user = User::find($withdrawal->user_id);
-                if (! $user) {
-                    return response()->json(['message' => 'Withdrawal owner not found.', 'code' => 'USER_NOT_FOUND'], 404);
+                // Return the reserved funds to the user's withdrawable balance.
+                $walletType = $withdrawal->wallet_type ?? 'creator';
+                $wallet = $this->walletService->getOrCreateWallet($user, $walletType);
+                if ((int) $wallet->reserved >= $withdrawal->amount) {
+                    $this->ledgerService->debit(
+                        user: $user,
+                        amount: $withdrawal->amount,
+                        currency: $wallet->currency,
+                        walletType: $walletType,
+                        balanceCategory: 'reserved',
+                        type: 'withdrawal_release',
+                        description: "Releasing frozen funds for rejected withdrawal request #{$withdrawal->id}",
+                        idempotencyKey: "WDR-{$withdrawal->id}_RELEASE",
+                        metadata: ['withdrawal_id' => $withdrawal->id],
+                    );
+
+                    $this->ledgerService->credit(
+                        user: $user,
+                        amount: $withdrawal->amount,
+                        currency: $wallet->currency,
+                        walletType: $walletType,
+                        balanceCategory: 'withdrawable',
+                        type: 'withdrawal_release',
+                        description: "Releasing frozen funds for rejected withdrawal request #{$withdrawal->id}",
+                        idempotencyKey: "WDR-{$withdrawal->id}_RELEASE_CREDIT",
+                        metadata: ['withdrawal_id' => $withdrawal->id],
+                    );
                 }
+
                 $this->notifications->actionEmail(
                     user: $user,
                     title: 'Your withdrawal request was declined',
@@ -234,16 +297,17 @@ class WithdrawalController extends Controller
             $walletType = $withdrawal->wallet_type ?? 'creator';
             $wallet = $this->walletService->getOrCreateWallet($user, $walletType);
 
-            if ($wallet->withdrawable < $withdrawal->amount) {
-                return response()->json(['message' => 'Insufficient withdrawable balance for withdrawal.', 'code' => 'INSUFFICIENT_BALANCE'], 422);
+            // Funds were frozen into `reserved` at request time; consume from there.
+            if ((int) $wallet->reserved < $withdrawal->amount) {
+                return response()->json(['message' => 'Reserved funds for this withdrawal are no longer available.', 'code' => 'INSUFFICIENT_BALANCE'], 422);
             }
 
             $ledgerTxn = $this->ledgerService->debit(
                 user: $user,
                 amount: $withdrawal->amount,
-                currency: $withdrawal->currency,
+                currency: $wallet->currency,
                 walletType: $walletType,
-                balanceCategory: 'withdrawable',
+                balanceCategory: 'reserved',
                 type: 'withdrawal',
                 description: "Withdrawal request #{$withdrawal->id}",
                 idempotencyKey: "WDR-{$withdrawal->id}",

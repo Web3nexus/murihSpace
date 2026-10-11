@@ -330,6 +330,17 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasOne(Wallet::class);
     }
 
+    /**
+     * The user's System Wallet — the spendable balance ("coins") account.
+     * Coins are pegged to the system wallet's `available` minor units
+     * (100 coins = $1.00 USD). Prefer this over the untyped `wallet`
+     * relation when reading/spending a user's coin balance.
+     */
+    public function systemWallet(): HasOne
+    {
+        return $this->hasOne(Wallet::class)->where('wallet_type', 'system');
+    }
+
     public function creatorProfile(): HasOne
     {
         return $this->hasOne(CreatorProfile::class);

@@ -46,81 +46,105 @@
   --primary: #102840;
   --primary-foreground: #FFFFFF;
 
-  --secondary: #2164b6;
-  --secondary-foreground: #FFFFFF;
+  --secondary: #38A8D8;
+  --secondary-foreground: #102840;
 
   --muted: #F0F5F8;
   --muted-foreground: #667085;
 
+  --accent: #E8F8FF;
   --accent-foreground: #102840;
 
   --destructive: #DC2626;
   --destructive-foreground: #FFFFFF;
 
+  --success: #16A34A;
+  --success-foreground: #FFFFFF;
+  --warning: #F59E0B;
+  --warning-foreground: #102840;
+  --info: #0EA5E9;
+  --info-foreground: #FFFFFF;
+
   --input: #D6E0E8;
-  --ring: #2164b6;
+  --ring: #38A8D8;
 
   --radius: 0.75rem;
 
-  /* Sidebar — warm off-white */
-  --sidebar: #F8F7F4;
-  --sidebar-foreground: #1a2e3b;
-  --sidebar-primary: #2164b6;
-  --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: rgba(56, 168, 216, 0.10);
-  --sidebar-accent-foreground: #1a2e3b;
-  --sidebar-border: rgba(16, 40, 64, 0.08);
-  --sidebar-ring: #2164b6;
+  /* Motion tokens — durations (ms) */
+  --motion-instant: 120ms;
+  --motion-fast: 160ms;
+  --motion-base: 220ms;
+  --motion-panel: 280ms;
+
+  /* Sidebar — engineered surfaces aligned to brand navy */
+  --sidebar: #102840;
+  --sidebar-foreground: rgba(247, 250, 252, 0.92);
+  --sidebar-primary: #38A8D8;
+  --sidebar-primary-foreground: #081827;
+  --sidebar-accent: rgba(255, 255, 255, 0.08);
+  --sidebar-accent-foreground: #F7FAFC;
+  --sidebar-border: rgba(247, 250, 252, 0.10);
+  --sidebar-ring: #38A8D8;
 }
 
 .dark {
-  /* Meta (FB / IG) Dark Theme Specification */
-  --text: #ffffff;
-  --text-h: #ffffff;
-  --bg: #18191a;
-  --border: #3a3b3c;
-  --code-bg: #242526;
-  --accent: #242526;
-  --accent-bg: rgba(24, 119, 242, 0.15);
-  --accent-border: rgba(24, 119, 242, 0.4);
-  --social-bg: #242526;
-  --shadow: 0px 4px 16px rgba(0, 0, 0, 0.5);
+  /* MurihSpace Dark Theme Tokens (from docs/Design.md) */
+  --text: #f7fafc;
+  --text-h: #f7fafc;
+  --bg: #081827;
+  --border: #294c65;
+  --code-bg: #173852;
+  --accent: #173852;
+  --accent-bg: rgba(56, 168, 216, 0.15);
+  --accent-border: rgba(56, 168, 216, 0.4);
+  --social-bg: #173852;
+  --shadow: 0px 4px 16px rgba(0, 0, 0, 0.45);
 
-  --background: #18191a;
-  --foreground: #ffffff;
+  --background: #081827;
+  --foreground: #f7fafc;
 
-  --card: #242526;
-  --card-foreground: #ffffff;
+  --card: #102840;
+  --card-foreground: #f7fafc;
 
-  --popover: #242526;
-  --popover-foreground: #ffffff;
+  --popover: #102840;
+  --popover-foreground: #f7fafc;
 
-  --primary: #1877f2;
-  --primary-foreground: #ffffff;
+  --primary: #38a8d8;
+  --primary-foreground: #081827;
 
-  --secondary: #3a3b3c;
-  --secondary-foreground: #ffffff;
+  --secondary: #38a8d8;
+  --secondary-foreground: #081827;
 
-  --muted: #3a3b3c;
-  --muted-foreground: #c4c7ce;
+  --muted: #173852;
+  --muted-foreground: #b7c6d1;
 
-  --accent-foreground: #ffffff;
+  --accent: #173852;
+  --accent-foreground: #f7fafc;
 
-  --destructive: #ef4444;
-  --destructive-foreground: #ffffff;
+  --success: #22c55e;
+  --success-foreground: #081827;
+  --warning: #f59e0b;
+  --warning-foreground: #081827;
+  --info: #38a8d8;
+  --info-foreground: #081827;
 
-  --input: #3a3b3c;
-  --ring: #1877f2;
+  --destructive: #f87171;
+  --destructive-foreground: #081827;
 
-  /* Sidebar — Meta FB/IG dark mode canvas & surface */
-  --sidebar: #18191a;
-  --sidebar-foreground: #ffffff;
-  --sidebar-primary: #1877f2;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #242526;
-  --sidebar-accent-foreground: #ffffff;
-  --sidebar-border: #2e2e2e;
-  --sidebar-ring: #1877f2;
+  --input: #294c65;
+  --ring: #38a8d8;
+
+  /* Sidebar — deep brand navy canvas in dark mode */
+  --sidebar: #0b2740;
+  --sidebar-foreground: rgba(247, 250, 252, 0.92);
+  --sidebar-primary: #38a8d8;
+  --sidebar-primary-foreground: #081827;
+  --sidebar-accent: rgba(255, 255, 255, 0.08);
+  --sidebar-accent-foreground: #f7fafc;
+  --sidebar-border: rgba(247, 250, 252, 0.10);
+  --sidebar-ring: #38a8d8;
+
+  color-scheme: dark;
 }
 
 #root {
@@ -178,6 +202,12 @@ code {
   --color-input: var(--input);
   --color-border: var(--border);
   --color-destructive: var(--destructive);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);
@@ -237,6 +267,25 @@ code {
 
 .animate-murih-shimmer {
   animation: murih-shimmer 1.5s ease-in-out infinite;
+}
+
+/* ── Motion tokens ─────────────────────────────────────────────────────── */
+:root {
+  --duration-instant: var(--motion-instant);
+  --duration-fast: var(--motion-fast);
+  --duration-base: var(--motion-base);
+  --duration-panel: var(--motion-panel);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* ── Live Ring (TikTok-style) ───────────────────────────────────────────── */

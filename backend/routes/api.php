@@ -1466,6 +1466,14 @@ Route::prefix('v1')->group(function () {
             Route::post('/{id}/attribution', [LiveStreamController::class, 'recordAttribution']);
             Route::get('/{id}/analytics', [LiveStreamController::class, 'analytics']);
 
+            Route::post('/{id}/pin-product', [LiveStreamController::class, 'pinProduct']);
+            Route::post('/{id}/unpin-product', [LiveStreamController::class, 'unpinProduct']);
+            Route::post('/{id}/pin-comment', [LiveStreamController::class, 'pinComment']);
+            Route::post('/{id}/unpin-comment', [LiveStreamController::class, 'unpinComment']);
+            Route::post('/{id}/guest-request', [LiveStreamController::class, 'requestGuest']);
+            Route::post('/{id}/guest-invite/{userId}', [LiveStreamController::class, 'inviteGuest']);
+            Route::get('/{id}/rankings', [LiveStreamController::class, 'getRankings']);
+
             // Host participant management. Each handler re-checks the caller's
             // roster role server-side, so a plain viewer receives 403 here.
             Route::get('/{id}/participants', [LiveStreamController::class, 'participants']);

@@ -245,6 +245,26 @@ class CoinPackController extends Controller
         $reference = $validated['reference'] ?? 'CP-'.Str::upper(Str::random(16));
         $totalCoins = $pack->coins + $pack->bonus_coins;
 
+        // If the client retries with the same `reference`, return the original
+        // purchase instead of crediting coins a second time.
+        $existingPurchase = CoinPurchase::where('user_id', $user->id)
+            ->where('reference', $reference)
+            ->first();
+
+        if ($existingPurchase) {
+            return response()->json([
+                'message' => 'Coins already added for this request.',
+                'data' => [
+                    'purchase' => $existingPurchase,
+                    'coins_added' => $existingPurchase->coins + $existingPurchase->bonus_coins,
+                    'tax' => $existingPurchase->tax,
+                    'tax_rate' => (float) $existingPurchase->tax_rate,
+                    'total_charged' => $existingPurchase->total_charged,
+                ],
+                'duplicate' => true,
+            ], 200);
+        }
+
         $taxInfo = $this->purchaseTaxInfo($request, (int) $pack->price);
         $taxCents = (int) $taxInfo['tax_amount_cents'];
         $totalCharged = (int) $pack->price + $taxCents;
@@ -359,6 +379,26 @@ class CoinPackController extends Controller
 
         $user = $request->user();
         $reference = $validated['reference'] ?? 'CC-'.Str::upper(Str::random(16));
+
+        // If the client retries with the same `reference`, return the original
+        // purchase instead of crediting coins a second time.
+        $existingPurchase = CoinPurchase::where('user_id', $user->id)
+            ->where('reference', $reference)
+            ->first();
+
+        if ($existingPurchase) {
+            return response()->json([
+                'message' => 'Coins already added for this request.',
+                'data' => [
+                    'purchase' => $existingPurchase,
+                    'coins_added' => $existingPurchase->coins + $existingPurchase->bonus_coins,
+                    'tax' => $existingPurchase->tax,
+                    'tax_rate' => (float) $existingPurchase->tax_rate,
+                    'total_charged' => $existingPurchase->total_charged,
+                ],
+                'duplicate' => true,
+            ], 200);
+        }
 
         $taxInfo = $this->purchaseTaxInfo($request, $amountMinor);
         $taxCents = (int) $taxInfo['tax_amount_cents'];

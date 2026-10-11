@@ -11,8 +11,8 @@ use App\Models\ShippingProfile;
 use App\Models\Storefront;
 use App\Models\TrackingEvent;
 use App\Services\Accounting\AccountingStreamService;
+use App\Services\Escrow\EscrowService;
 use App\Services\Tax\TaxCalculationService;
-use App\Services\Wallet\LedgerService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -23,7 +23,6 @@ class FulfilmentOrderController extends Controller
     public const PLATFORM_FEE_RATE = 0.05;
 
     public function __construct(
-        private LedgerService $ledgerService,
         private TaxCalculationService $taxService,
         private AccountingStreamService $accountingService,
         private \App\Services\Commission\CommissionService $commissionService,
@@ -449,23 +448,8 @@ class FulfilmentOrderController extends Controller
 
         if (! $escrow) return;
 
-        DB::transaction(function () use ($escrow) {
-            $netAmount = $escrow->amount;
-            $txn = $this->ledgerService->credit(
-                $escrow->seller_id,
-                $netAmount,
-                $escrow->currency,
-                'escrow_release',
-                "Escrow release for fulfilment order #{$escrow->fulfilment_order_id}",
-                ['fulfilment_order_id' => $escrow->fulfilment_order_id],
-            );
-
-            $escrow->update([
-                'status' => 'released',
-                'released_at' => now(),
-                'ledger_transaction_id' => $txn->id,
-            ]);
-        });
+        // Single source of truth for the wallet movement (EscrowService).
+        app(EscrowService::class)->release($escrow, note: "Fulfilment order #{$order->order_number}");
     }
 
     private function refundEscrow(FulfilmentOrder $order): void
@@ -476,12 +460,15 @@ class FulfilmentOrderController extends Controller
 
         if (! $escrow) return;
 
-        $escrow->update(['status' => 'refunded']);
+        // Credit the buyer's wallet via the same escrow service.
+        app(EscrowService::class)->refund($escrow, reason: "Fulfilment order #{$order->order_number} cancelled");
     }
 
     private function createPayout(FulfilmentOrder $order): void
     {
-        $netAmount = $order->total - $order->platform_fee;
+        $gross = (int) $order->total;
+        $fee   = (int) $order->platform_fee;
+        $net   = max(0, $gross - $fee);
         $escrow = Escrow::where('fulfilment_order_id', $order->id)->first();
         $creatorId = $escrow?->seller_id ?? $order->items->first()?->physicalProduct?->creator_id;
 
@@ -490,9 +477,9 @@ class FulfilmentOrderController extends Controller
         FulfilmentPayout::create([
             'creator_id' => $creatorId,
             'fulfilment_order_id' => $order->id,
-            'gross_amount' => $netAmount,
-            'platform_fee' => $order->platform_fee,
-            'net_amount' => $netAmount,
+            'gross_amount' => $gross,
+            'platform_fee' => $fee,
+            'net_amount' => $net,
             'currency' => $order->currency,
             'status' => 'pending',
         ]);

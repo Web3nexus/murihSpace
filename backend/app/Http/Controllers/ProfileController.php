@@ -40,7 +40,7 @@ class ProfileController extends Controller
             'followers_count' => $user->followers()->count(),
             'following_count' => $user->follows()->count(),
             'communities_count' => $user->communities()->count(),
-            'coins' => $user->wallet?->coin_balance ?? 0,
+            'coins' => $user->systemWallet?->available ?? 0,
             'created_at' => $user->created_at?->toISOString(),
         ]);
     }
@@ -99,7 +99,7 @@ class ProfileController extends Controller
             'followers_count' => $user->followers()->count(),
             'following_count' => $user->follows()->count(),
             'communities_count' => $user->communities()->count(),
-            'coins' => $user->wallet?->coin_balance ?? 0,
+            'coins' => $user->systemWallet?->available ?? 0,
         ]);
     }
 

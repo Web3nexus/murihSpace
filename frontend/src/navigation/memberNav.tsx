@@ -5,6 +5,7 @@ import {
   Rss,
   VideoCamera,
   VideoConference,
+  Broadcast,
   Crown,
   MapPin,
   ChatCircle,
@@ -23,6 +24,12 @@ export const memberNav: NavGroup[] = [
         title: "Discover",
         url: "/app/discover",
         icon: <Compass weight="fill" className="h-5 w-5" />,
+      },
+      {
+        title: "Live Now",
+        url: "/app/live",
+        icon: <Broadcast weight="fill" className="h-5 w-5" />,
+        badge: "LIVE",
       },
       {
         title: "Community",

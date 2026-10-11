@@ -17,7 +17,17 @@ use App\Models\PhysicalProduct;
 use App\Models\Storefront;
 use App\Models\User;
 use App\Models\Wallet;
+use App\Events\LiveStreamChatMessage;
+use App\Events\LiveStreamCommentPinned;
+use App\Events\LiveStreamCommentUnpinned;
 use App\Events\LiveStreamEnded;
+use App\Events\LiveStreamGiftSent;
+use App\Events\LiveStreamGuestAction;
+use App\Events\LiveStreamLiked;
+use App\Events\LiveStreamProductPinned;
+use App\Events\LiveStreamProductUnpinned;
+use App\Events\LiveStreamRankingsUpdated;
+use App\Events\LiveStreamViewerCountUpdated;
 use App\Services\Accounting\AccountingStreamService;
 use App\Services\LiveKitService;
 use App\Services\LiveStreamAttributionService;
@@ -329,9 +339,28 @@ class LiveStreamController extends Controller
             'community_id' => ['nullable', 'exists:communities,id'],
             'background_sound' => ['nullable', 'string', 'max:100'],
             'pinned_product_id' => ['nullable', 'integer'],
+            'pinned_product_type' => ['nullable', 'string', 'in:physical,digital'],
         ]);
 
         $user = $request->user();
+
+        // A product may only be pinned at start time if the host owns it, and the
+        // type is required to disambiguate an id shared across the two tables.
+        if (! empty($validated['pinned_product_id'])) {
+            $pinType = $validated['pinned_product_type'] ?? null;
+            $pinProduct = $pinType === 'physical'
+                ? PhysicalProduct::find($validated['pinned_product_id'])
+                : ($pinType === 'digital'
+                    ? DigitalProduct::find($validated['pinned_product_id'])
+                    : null);
+
+            if (! $pinProduct || (int) $pinProduct->creator_id !== (int) $user->id) {
+                return response()->json([
+                    'message' => 'Pinned product not found or not owned by you.',
+                    'code' => 'PRODUCT_NOT_OWNED',
+                ], 422);
+            }
+        }
 
         // Enforce KYC verification before going live
         if (! in_array($user->kyc_status, ['verified', 'approved'], true)) {
@@ -389,6 +418,9 @@ class LiveStreamController extends Controller
             'total_coins_earned' => 0,
             'background_sound' => $validated['background_sound'] ?? null,
             'pinned_product_id' => $validated['pinned_product_id'] ?? null,
+            'pinned_product_type' => ! empty($validated['pinned_product_id'])
+                ? ($validated['pinned_product_type'] ?? null)
+                : null,
             'started_at' => now(),
         ]);
 
@@ -770,7 +802,7 @@ class LiveStreamController extends Controller
         }
 
         $validated = $request->validate([
-            'count' => ['nullable', 'integer', 'min:1', 'max:20'],
+            'count' => ['nullable', 'integer', 'min:1', 'max:50'],
         ]);
 
         $count = $validated['count'] ?? 1;
@@ -783,10 +815,29 @@ class LiveStreamController extends Controller
         ]);
 
         $stream->increment('likes_count', $count);
+        $totalLikes = (int) $stream->fresh()->likes_count;
+
+        try {
+            LiveStreamLiked::dispatch(
+                $stream->id,
+                $count,
+                $totalLikes,
+                [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'username' => $user->username,
+                    'avatar_url' => $user->avatar_url ?? $user->avatar,
+                ]
+            );
+        } catch (\Throwable $e) {
+            \Log::warning('[LiveStreamController] LiveStreamLiked broadcast failed: '.$e->getMessage(), [
+                'stream_id' => $stream->id,
+            ]);
+        }
 
         return response()->json([
             'message' => 'Like recorded.',
-            'likes_count' => $stream->fresh()->likes_count,
+            'likes_count' => $totalLikes,
         ]);
     }
 
@@ -813,9 +864,37 @@ class LiveStreamController extends Controller
             'message' => $validated['message'],
         ]);
 
+        $loadedMsg = $msg->load('user:id,name,username,avatar,role');
+
+        try {
+            LiveStreamChatMessage::dispatch(
+                $stream->id,
+                [
+                    'id' => $loadedMsg->id,
+                    'live_stream_id' => $stream->id,
+                    'user_id' => $user->id,
+                    'message' => $loadedMsg->message,
+                    'is_pinned' => false,
+                    'user' => [
+                        'id' => $user->id,
+                        'name' => $user->name,
+                        'username' => $user->username,
+                        'avatar' => $user->avatar,
+                        'avatar_url' => $user->avatar_url ?? $user->avatar,
+                        'role' => $user->role,
+                    ],
+                    'created_at' => $loadedMsg->created_at?->toIso8601String(),
+                ]
+            );
+        } catch (\Throwable $e) {
+            \Log::warning('[LiveStreamController] LiveStreamChatMessage broadcast failed: '.$e->getMessage(), [
+                'stream_id' => $stream->id,
+            ]);
+        }
+
         return response()->json([
             'message' => 'Message sent.',
-            'data' => $msg->load('user:id,name,username,avatar,role'),
+            'data' => $loadedMsg,
         ], 201);
     }
 
@@ -883,6 +962,7 @@ class LiveStreamController extends Controller
             'gift_id' => ['required', 'exists:gifts,id'],
             'is_anonymous' => ['nullable', 'boolean'],
             'message' => ['nullable', 'string', 'max:255'],
+            'idempotency_key' => ['nullable', 'string', 'max:100'],
         ]);
 
         $gift = Gift::findOrFail($validated['gift_id']);
@@ -898,46 +978,175 @@ class LiveStreamController extends Controller
             ], 402);
         }
 
+        $creatorEarns = (int) $gift->creator_earns;
+        $platformPortion = max(0, $coinPrice - $creatorEarns);
+        $idemKey = $validated['idempotency_key'] ?? ('LIVE-GIFT-' . Str::uuid());
+
         // Execute atomic deduction and host earnings credit
-        $tx = DB::transaction(function () use ($user, $host, $gift, $stream, $senderWallet, $coinPrice, $validated) {
-            // Deduct from sender
-            $senderWallet->decrement('available', $coinPrice);
+        try {
+            $tx = DB::transaction(function () use ($user, $host, $gift, $stream, $senderWallet, $coinPrice, $creatorEarns, $platformPortion, $idemKey, $validated) {
+                // Idempotency check inside transaction with lock to prevent duplicate gifts
+                $existing = GiftTransaction::where('sender_id', $user->id)
+                    ->where('idempotency_key', $idemKey)
+                    ->lockForUpdate()
+                    ->first();
+                if ($existing) {
+                    // A reused key with a different payload must not be served as a successful duplicate.
+                    if ((int) $existing->gift_id !== $gift->id
+                        || (int) $existing->recipient_id !== $host->id
+                        || (int) $existing->giftable_id !== $stream->id) {
+                        throw new \RuntimeException('Idempotency key was already used for a different gift.');
+                    }
+                    return $existing;
+                }
 
-            // Credit host creator wallet
-            $creatorWallet = $this->walletService->getOrCreateWallet($host, 'creator');
-            $creatorWallet->increment('available', $gift->creator_earns);
+                // Pessimistic balance check inside transaction using the locked wallet row (avoids TOCTOU)
+                $locked = Wallet::whereKey($senderWallet->id)->lockForUpdate()->firstOrFail();
+                if ($locked->available < $coinPrice) {
+                    throw new \RuntimeException('INSUFFICIENT_COINS');
+                }
 
-            // Update live stream total coins earned
-            $stream->increment('total_coins_earned', $coinPrice);
+                // Debit sender System Wallet via the ledger (double-entry)
+                $this->ledgerService->debit(
+                    user: $user,
+                    amount: $coinPrice,
+                    currency: $senderWallet->currency,
+                    walletType: 'system',
+                    balanceCategory: 'available',
+                    type: 'donation_out',
+                    description: "Gift sent to @{$host->username}: {$gift->name} on live stream #{$stream->id}",
+                    idempotencyKey: $idemKey . '-debit'
+                );
 
-            // Record gift transaction
-            $giftTx = GiftTransaction::create([
-                'sender_id' => $user->id,
-                'recipient_id' => $host->id,
-                'gift_id' => $gift->id,
-                'giftable_type' => LiveStream::class,
-                'giftable_id' => $stream->id,
-                'coin_price' => $coinPrice,
-                'creator_earns' => $gift->creator_earns,
-                'platform_commission' => $gift->platform_commission,
-                'status' => 'completed',
-                'is_anonymous' => $validated['is_anonymous'] ?? false,
-                'sender_display_name' => ($validated['is_anonymous'] ?? false) ? 'Anonymous Fan' : $user->name,
-                'message' => $validated['message'] ?? null,
-                'idempotency_key' => 'LIVE-GIFT-'.Str::uuid(),
+                // Credit host Creator Wallet via the ledger
+                $this->ledgerService->credit(
+                    user: $host,
+                    amount: $creatorEarns,
+                    currency: $senderWallet->currency,
+                    walletType: 'creator',
+                    balanceCategory: 'available',
+                    type: 'creator_gift_receipt',
+                    description: "Gift received from @{$user->username}: {$gift->name} on live stream #{$stream->id}",
+                    idempotencyKey: $idemKey . '-credit',
+                    metadata: ['sender_id' => $user->id, 'gift_id' => $gift->id, 'live_stream_id' => $stream->id]
+                );
+
+                // Keep the ledger balanced: sender pays coin_price == host receives creator_earns + platform keeps the remainder.
+                if ($platformPortion > 0) {
+                    $this->ledgerService->creditPlatformRevenue(
+                        amount: $platformPortion,
+                        currency: $senderWallet->currency,
+                        description: "Live stream gift commission: {$gift->name} on stream #{$stream->id}",
+                        idempotencyKey: $idemKey . '-commission'
+                    );
+                }
+
+                // Update live stream total coins earned
+                $stream->increment('total_coins_earned', $coinPrice);
+
+                // Record gift transaction
+                $giftTx = GiftTransaction::create([
+                    'sender_id' => $user->id,
+                    'recipient_id' => $host->id,
+                    'gift_id' => $gift->id,
+                    'giftable_type' => LiveStream::class,
+                    'giftable_id' => $stream->id,
+                    'coin_price' => $coinPrice,
+                    'creator_earns' => $creatorEarns,
+                    'platform_commission' => $gift->platform_commission,
+                    'status' => 'completed',
+                    'is_anonymous' => $validated['is_anonymous'] ?? false,
+                    'sender_display_name' => ($validated['is_anonymous'] ?? false) ? 'Anonymous Fan' : $user->name,
+                    'message' => $validated['message'] ?? null,
+                    'idempotency_key' => $idemKey,
+                ]);
+
+                // Broadcast gift celebration message to live chat
+                $isAnon = (bool) ($validated['is_anonymous'] ?? false);
+                $displayName = $isAnon ? 'Someone' : $user->name;
+                $chatMsg = LiveStreamMessage::create([
+                    'live_stream_id' => $stream->id,
+                    'user_id' => $user->id,
+                    'gift_id' => $gift->id,
+                    'message' => "🎁 {$displayName} sent {$gift->name}!",
+                ]);
+
+                try {
+                    LiveStreamChatMessage::dispatch(
+                        $stream->id,
+                        [
+                            'id' => $chatMsg->id,
+                            'live_stream_id' => $stream->id,
+                            // Anonymous gifts must not leak the sender's identity
+                            // on the public live-stream channel.
+                            'user_id' => $isAnon ? null : $user->id,
+                            'message' => $chatMsg->message,
+                            'gift_id' => $gift->id,
+                            'gift_name' => $gift->name,
+                            'gift_icon_url' => $gift->icon_url,
+                            'coin_price' => $coinPrice,
+                            'animation_type' => Gift::animationTierFor($coinPrice),
+                            'is_pinned' => false,
+                            'user' => [
+                                'id' => $isAnon ? null : $user->id,
+                                'name' => $isAnon ? 'Someone' : $user->name,
+                                'username' => $isAnon ? 'anonymous' : $user->username,
+                                'avatar' => $isAnon ? null : $user->avatar,
+                                'avatar_url' => $isAnon ? null : ($user->avatar_url ?? $user->avatar),
+                                'role' => $user->role,
+                            ],
+                            'created_at' => $chatMsg->created_at?->toIso8601String(),
+                        ]
+                    );
+                } catch (\Throwable $e) {
+                    \Log::warning('[LiveStreamController] Chat message for gift broadcast failed: '.$e->getMessage());
+                }
+
+                return $giftTx;
+            });
+        } catch (\RuntimeException $e) {
+            if ($e->getMessage() === 'INSUFFICIENT_COINS') {
+                return response()->json([
+                    'message' => 'Insufficient coin balance. Please top up your wallet.',
+                    'code' => 'INSUFFICIENT_COINS',
+                    'current_balance' => $senderWallet->fresh()->available,
+                    'required_coins' => $coinPrice,
+                ], 402);
+            }
+            throw $e;
+        }
+
+        // Broadcast prominent real-time gift event to all connected viewers & host
+        try {
+            $isAnon = (bool) ($validated['is_anonymous'] ?? false);
+            $senderData = [
+                // Anonymous gifts must not expose the real sender id (it maps
+                // straight to a profile) on the public channel.
+                'id' => $isAnon ? null : $user->id,
+                'name' => $isAnon ? 'Anonymous Fan' : $user->name,
+                'username' => $isAnon ? 'anonymous' : $user->username,
+                'avatar_url' => $isAnon ? null : ($user->avatar_url ?? $user->avatar),
+            ];
+
+            LiveStreamGiftSent::dispatch(
+                $stream->id,
+                [
+                    'id' => $gift->id,
+                    'name' => $gift->name,
+                    'icon_url' => $gift->icon_url,
+                    'coin_price' => $coinPrice,
+                    'animation_tier' => Gift::animationTierFor($coinPrice),
+                ],
+                $senderData,
+                (int) $stream->fresh()->total_coins_earned,
+                $validated['message'] ?? null,
+                $validated['is_anonymous'] ?? false
+            );
+        } catch (\Throwable $e) {
+            \Log::warning('[LiveStreamController] LiveStreamGiftSent broadcast failed: '.$e->getMessage(), [
+                'stream_id' => $stream->id,
             ]);
-
-            // Broadcast gift celebration message to live chat
-            $displayName = ($validated['is_anonymous'] ?? false) ? 'Someone' : $user->name;
-            LiveStreamMessage::create([
-                'live_stream_id' => $stream->id,
-                'user_id' => $user->id,
-                'gift_id' => $gift->id,
-                'message' => "🎁 {$displayName} sent {$gift->name}!",
-            ]);
-
-            return $giftTx;
-        });
+        }
 
         return response()->json([
             'message' => 'Gift sent successfully!',
@@ -991,10 +1200,12 @@ class LiveStreamController extends Controller
         }
 
         $productId = (int) $validated['product_id'];
-        $requestedType = $validated['product_type'] ?? null;
+        // Prefer the type the host pinned; fall back to a client-sent type for
+        // rows pinned before the type column existed.
+        $requestedType = $stream->pinned_product_type ?: ($validated['product_type'] ?? null);
 
-        // Physical ids and digital ids live in separate tables, so an explicit
-        // product_type from the client disambiguates a numeric id collision.
+        // Physical ids and digital ids live in separate tables, so the pinned
+        // type disambiguates a numeric id collision.
         $physical = $requestedType === 'digital' ? null : PhysicalProduct::find($productId);
         $digital = $physical ? null : ($requestedType === 'physical' ? null : DigitalProduct::find($productId));
 
@@ -1270,7 +1481,15 @@ class LiveStreamController extends Controller
             return null;
         }
 
-        $physical = PhysicalProduct::find($stream->pinned_product_id);
+        // Resolve by the stored type first so an id collision between the
+        // physical and digital tables can never surface the wrong product.
+        // Fall back to probing both tables for rows pinned before the type
+        // column existed.
+        $type = $stream->pinned_product_type;
+
+        $physical = $type === 'digital'
+            ? null
+            : PhysicalProduct::find($stream->pinned_product_id);
         if ($physical) {
             $images = is_array($physical->images) && count($physical->images) > 0
                 ? array_values($physical->images)
@@ -1291,7 +1510,9 @@ class LiveStreamController extends Controller
             ];
         }
 
-        $digital = DigitalProduct::find($stream->pinned_product_id);
+        $digital = $type === 'physical'
+            ? null
+            : DigitalProduct::find($stream->pinned_product_id);
         if ($digital) {
             return [
                 'id' => $digital->id,
@@ -1393,6 +1614,270 @@ class LiveStreamController extends Controller
             'message' => 'Live stream ended successfully.',
             'stream' => $stream->fresh(),
             'summary' => $summary,
+        ]);
+    }
+
+    /**
+     * Pin a product to the live stream (Host only).
+     */
+    public function pinProduct(Request $request, int $id): JsonResponse
+    {
+        $stream = LiveStream::findOrFail($id);
+        $this->ensureHost($request, $stream);
+
+        $validated = $request->validate([
+            'product_id' => ['required', 'integer'],
+            'product_type' => ['required', 'string', 'in:physical,digital'],
+        ]);
+
+        $productId = (int) $validated['product_id'];
+        $type = $validated['product_type'];
+
+        // Resolve the product by the declared type and confirm the host owns it,
+        // otherwise a host could pin (and broadcast) someone else's product, or
+        // an id collision could pin the wrong table's product.
+        $product = $type === 'physical'
+            ? PhysicalProduct::find($productId)
+            : DigitalProduct::find($productId);
+
+        if (! $product || (int) $product->creator_id !== (int) $stream->user_id) {
+            return response()->json([
+                'message' => 'Product not found or not owned by you.',
+                'code' => 'PRODUCT_NOT_OWNED',
+            ], 422);
+        }
+
+        $stream->pinned_product_id = $productId;
+        $stream->pinned_product_type = $type;
+        $stream->save();
+
+        $payload = $this->pinnedProductPayload($stream);
+
+        if ($payload) {
+            try {
+                LiveStreamProductPinned::dispatch($stream->id, $payload);
+            } catch (\Throwable $e) {
+                \Log::warning('[LiveStreamController] LiveStreamProductPinned broadcast failed: '.$e->getMessage(), ['stream_id' => $stream->id]);
+            }
+        }
+
+        return response()->json([
+            'message' => 'Product pinned to live stream.',
+            'pinned_product' => $payload,
+        ]);
+    }
+
+    /**
+     * Unpin product from the live stream (Host only).
+     */
+    public function unpinProduct(Request $request, int $id): JsonResponse
+    {
+        $stream = LiveStream::findOrFail($id);
+        $this->ensureHost($request, $stream);
+
+        $stream->pinned_product_id = null;
+        $stream->pinned_product_type = null;
+        $stream->save();
+
+        try {
+            LiveStreamProductUnpinned::dispatch($stream->id);
+        } catch (\Throwable $e) {
+            \Log::warning('[LiveStreamController] LiveStreamProductUnpinned broadcast failed: '.$e->getMessage(), ['stream_id' => $stream->id]);
+        }
+
+        return response()->json([
+            'message' => 'Product unpinned from live stream.',
+        ]);
+    }
+
+    /**
+     * Pin a chat comment to the live stream (Host only).
+     */
+    public function pinComment(Request $request, int $id): JsonResponse
+    {
+        $stream = LiveStream::findOrFail($id);
+        $this->ensureHost($request, $stream);
+
+        $validated = $request->validate([
+            'message_id' => ['required', 'integer', 'exists:live_stream_messages,id'],
+        ]);
+
+        LiveStreamMessage::where('live_stream_id', $stream->id)->where('is_pinned', true)->update(['is_pinned' => false]);
+
+        // Scope the lookup to this stream: the `exists` rule accepts a message
+        // id from any stream, so without this a host could pin (and broadcast)
+        // another stream's message on their own channel.
+        $msg = LiveStreamMessage::with('user:id,name,username,avatar,role')
+            ->where('live_stream_id', $stream->id)
+            ->findOrFail($validated['message_id']);
+        $msg->is_pinned = true;
+        $msg->save();
+
+        $payload = [
+            'id' => $msg->id,
+            'message' => $msg->message,
+            'user' => [
+                'id' => $msg->user?->id,
+                'name' => $msg->user?->name,
+                'username' => $msg->user?->username,
+                'avatar_url' => $msg->user?->avatar_url ?? $msg->user?->avatar,
+            ],
+            'pinned_at' => now()->toIso8601String(),
+        ];
+
+        try {
+            LiveStreamCommentPinned::dispatch($stream->id, $payload);
+        } catch (\Throwable $e) {
+            \Log::warning('[LiveStreamController] LiveStreamCommentPinned broadcast failed: '.$e->getMessage(), ['stream_id' => $stream->id]);
+        }
+
+        return response()->json([
+            'message' => 'Comment pinned successfully.',
+            'comment' => $payload,
+        ]);
+    }
+
+    /**
+     * Unpin comment from the live stream (Host only).
+     */
+    public function unpinComment(Request $request, int $id): JsonResponse
+    {
+        $stream = LiveStream::findOrFail($id);
+        $this->ensureHost($request, $stream);
+
+        LiveStreamMessage::where('live_stream_id', $stream->id)->where('is_pinned', true)->update(['is_pinned' => false]);
+
+        try {
+            LiveStreamCommentUnpinned::dispatch($stream->id);
+        } catch (\Throwable $e) {
+            \Log::warning('[LiveStreamController] LiveStreamCommentUnpinned broadcast failed: '.$e->getMessage(), ['stream_id' => $stream->id]);
+        }
+
+        return response()->json([
+            'message' => 'Comment unpinned successfully.',
+        ]);
+    }
+
+    /**
+     * Viewer requests to join stream as a co-host/guest.
+     */
+    public function requestGuest(Request $request, int $id): JsonResponse
+    {
+        $stream = LiveStream::findOrFail($id);
+        $user = $request->user();
+
+        if ($stream->status !== 'live') {
+            return response()->json(['message' => 'Stream is not active.'], 422);
+        }
+
+        if ($user->id === $stream->user_id) {
+            return response()->json(['message' => 'You are the broadcast host.'], 422);
+        }
+
+        $guestPayload = [
+            'id' => $user->id,
+            'name' => $user->name,
+            'username' => $user->username,
+            'avatar_url' => $user->avatar_url ?? $user->avatar,
+        ];
+
+        try {
+            LiveStreamGuestAction::dispatch(
+                $stream->id,
+                'requested',
+                $guestPayload
+            );
+        } catch (\Throwable $e) {
+            \Log::warning('[LiveStreamController] Guest request broadcast failed: '.$e->getMessage());
+        }
+
+        return response()->json([
+            'message' => 'Guest request sent to host.',
+            'guest' => $guestPayload,
+        ]);
+    }
+
+    /**
+     * Host invites a viewer to become co-host.
+     */
+    public function inviteGuest(Request $request, int $id, int $userId): JsonResponse
+    {
+        $stream = LiveStream::findOrFail($id);
+        $this->ensureHost($request, $stream);
+
+        $targetUser = User::findOrFail($userId);
+
+        $guestPayload = [
+            'id' => $targetUser->id,
+            'name' => $targetUser->name,
+            'username' => $targetUser->username,
+            'avatar_url' => $targetUser->avatar_url ?? $targetUser->avatar,
+        ];
+
+        try {
+            LiveStreamGuestAction::dispatch(
+                $stream->id,
+                'invited',
+                $guestPayload
+            );
+        } catch (\Throwable $e) {
+            \Log::warning('[LiveStreamController] Guest invite broadcast failed: '.$e->getMessage());
+        }
+
+        return response()->json([
+            'message' => "Invitation sent to {$targetUser->name}.",
+            'guest' => $guestPayload,
+        ]);
+    }
+
+    /**
+     * Get live rankings (top supporters & top engagers).
+     */
+    public function getRankings(int $id): JsonResponse
+    {
+        $stream = LiveStream::findOrFail($id);
+
+        // Top Gifters
+        $topGifters = GiftTransaction::where('giftable_type', LiveStream::class)
+            ->where('giftable_id', $stream->id)
+            ->where('status', 'completed')
+            ->select('sender_id', DB::raw('SUM(coin_price) as total_coins'), DB::raw('COUNT(*) as total_gifts'))
+            ->groupBy('sender_id')
+            ->orderByDesc('total_coins')
+            ->limit(10)
+            ->with('sender:id,name,username,avatar,role')
+            ->get()
+            ->map(fn ($g) => [
+                'user_id' => $g->sender_id,
+                'name' => $g->sender?->name ?? 'Fan',
+                'username' => $g->sender?->username ?? 'fan',
+                'avatar_url' => $g->sender?->avatar_url ?? $g->sender?->avatar,
+                'total_coins' => (int) $g->total_coins,
+                'total_gifts' => (int) $g->total_gifts,
+            ]);
+
+        // Top Engagers (Likes)
+        $topLikers = LiveStreamLike::where('live_stream_id', $stream->id)
+            ->select('user_id', DB::raw('SUM(count) as total_likes'))
+            ->groupBy('user_id')
+            ->orderByDesc('total_likes')
+            ->limit(10)
+            ->with('user:id,name,username,avatar,role')
+            ->get()
+            ->map(fn ($l) => [
+                'user_id' => $l->user_id,
+                'name' => $l->user?->name ?? 'Viewer',
+                'username' => $l->user?->username ?? 'viewer',
+                'avatar_url' => $l->user?->avatar_url ?? $l->user?->avatar,
+                'total_likes' => (int) $l->total_likes,
+            ]);
+
+        return response()->json([
+            'stream_id' => $stream->id,
+            'top_gifters' => $topGifters,
+            'top_engagers' => $topLikers,
+            'total_coins_earned' => (int) $stream->total_coins_earned,
+            'total_likes' => (int) $stream->likes_count,
         ]);
     }
 }

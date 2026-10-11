@@ -18,6 +18,7 @@ import type { Group } from "@/types/group";
 import type { ChatMessage } from "@/types/chat";
 import { EmojiPickerPopover } from "@/components/chat/EmojiPickerPopover";
 import { ChatMessageContent } from "@/components/chat/ChatMessageContent";
+import { messagePreview } from "@/lib/chatMessages";
 
 interface GroupChatViewProps {
   group: Group;
@@ -348,7 +349,7 @@ export function GroupChatView({ group }: GroupChatViewProps) {
                         <div className="font-semibold text-[11px] mb-0.5">
                           {msg.reply_to.user?.name || "Replying"}
                         </div>
-                        <p className="line-clamp-1 italic">{msg.reply_to.content}</p>
+                        <p className="line-clamp-1 italic">{messagePreview(msg.reply_to)}</p>
                       </div>
                     )}
 

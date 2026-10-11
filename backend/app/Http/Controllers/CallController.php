@@ -438,6 +438,14 @@ class CallController extends Controller
             return response()->json(['message' => 'Unauthorized.'], 403);
         }
 
+        // Return immediately if call has already ended to prevent duplicate broadcasts or messages
+        if ($call->status === 'ended') {
+            return response()->json([
+                'call' => $call,
+                'message' => 'Call already ended.',
+            ]);
+        }
+
         $duration = 0;
         if ($request->filled('duration') || $request->filled('duration_seconds')) {
             $duration = (int) ($request->input('duration') ?? $request->input('duration_seconds'));
@@ -504,6 +512,32 @@ class CallController extends Controller
             $conversation = $this->resolveConversationForCall($call);
             if (! $conversation) {
                 return null;
+            }
+
+            // Ensure strict idempotency: prevent creating multiple call summary
+            // bubbles for the same call. Decode each call message and compare the
+            // id exactly — a LIKE on the raw content would also match longer ids
+            // (e.g. call 12 matching "call_id":120).
+            $existingMessage = Message::where('conversation_id', $conversation->id)
+                ->where('type', 'call')
+                ->get()
+                ->first(function ($message) use ($call) {
+                    $payload = json_decode((string) $message->content, true);
+
+                    return is_array($payload)
+                        && array_key_exists('call_id', $payload)
+                        && (string) $payload['call_id'] === (string) $call->id;
+                });
+
+            if ($existingMessage) {
+                // If updated duration is provided, update existing record without creating a duplicate
+                if ($durationSeconds > 0) {
+                    $payload = json_decode($existingMessage->content, true) ?: [];
+                    $payload['duration'] = max((int) ($payload['duration'] ?? 0), $durationSeconds);
+                    $payload['status'] = $status;
+                    $existingMessage->update(['content' => json_encode($payload)]);
+                }
+                return $existingMessage;
             }
 
             $payload = [

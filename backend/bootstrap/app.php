@@ -17,6 +17,7 @@ use App\Http\Middleware\RequiresKyc;
 use App\Http\Middleware\RequiresPermission;
 use App\Http\Middleware\SecurityHeaders;
 use App\Providers\AuthServiceProvider;
+use App\Services\Payment\Exceptions\PaymentException;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -103,6 +104,13 @@ return Application::configure(basePath: dirname(__DIR__))
                 } elseif ($e instanceof InsufficientBalanceException) {
                     $status = 422;
                     $code = InsufficientBalanceException::CODE;
+                } elseif ($e instanceof PaymentException) {
+                    // Domain/payment failures (escrow state guards, ledger
+                    // mismatches) carry their own HTTP status and error code so
+                    // they surface as a clean 4xx instead of a 500.
+                    $status = $e->statusCode;
+                    $message = $e->getMessage() ?: 'Payment error.';
+                    $code = $e->errorCode;
                 } elseif ($e instanceof RemovedFromSessionException) {
                     // 403, not 409/404: the caller is authenticated and the
                     // session exists — they are simply not permitted back in,

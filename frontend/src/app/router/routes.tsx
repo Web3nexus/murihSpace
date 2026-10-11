@@ -61,6 +61,7 @@ const PublicEventPage = lazyWithRetry(
 const DigitalProductsPage = lazyWithRetry(() => import("@/pages/DigitalProductsPage"), "DigitalProductsPage");
 const SalesOrdersPage = lazyWithRetry(() => import("@/pages/SalesOrdersPage"), "SalesOrdersPage");
 const AudioRoomsPage = lazyWithRetry(() => import("@/pages/AudioRoomsPage"), "AudioRoomsPage");
+const LiveDiscoverPage = lazyWithRetry(() => import("@/pages/LiveDiscoverPage"), "LiveDiscoverPage");
 const AnalyticsPage = lazyWithRetry(() => import("@/pages/AnalyticsPage"), "AnalyticsPage");
 const BrandDealsPage = lazyWithRetry(() => import("@/pages/BrandDealsPage"), "BrandDealsPage");
 const BrandInvoicingPage = lazyWithRetry(() => import("@/pages/BrandInvoicingPage"), "BrandInvoicingPage");
@@ -590,6 +591,14 @@ export const routes: RouteObject[] = [
       {
         path: "audio-rooms",
         element: <Suspense fallback={<PageLoader />}><AudioRoomsPage /></Suspense>,
+      },
+      {
+        path: "live",
+        element: <Suspense fallback={<PageLoader />}><LiveDiscoverPage /></Suspense>,
+      },
+      {
+        path: "live/discover",
+        element: <Suspense fallback={<PageLoader />}><LiveDiscoverPage /></Suspense>,
       },
       {
         path: "events/:id",

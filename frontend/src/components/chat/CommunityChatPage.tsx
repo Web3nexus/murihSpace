@@ -18,13 +18,15 @@ import {
   Gift as Gift,
   VideoCamera as Video,
   Phone as Phone,
+  Microphone as Mic,
+  Stop as StopIcon,
   X as X,
   User as UserIcon,
   Sparkle,
   ChatCircleDots
 } from "@phosphor-icons/react";
 import { safeFormatDistanceToNow, safeFormat } from "@/lib/date";
-import { extractMessages } from "@/lib/chatMessages";
+import { extractMessages, messagePreview } from "@/lib/chatMessages";
 import type { ConversationItem, ChatMessage, MessageStatus, MessageReaction } from "@/types/chat";
 import { ReplyPreviewBar } from "@/components/chat/ReplyPreviewBar";
 import { MessageReactions } from "@/components/chat/MessageReactions";
@@ -33,6 +35,7 @@ import { IOSTypingBubble } from "@/components/chat/iOSTypingBubble";
 import { useRealtimeMessaging } from "@/hooks/useRealtimeMessaging";
 import { LiveKitVideoConference } from "@/components/video/LiveKitVideoConference";
 import { ChatMessageContent } from "@/components/chat/ChatMessageContent";
+import { VoiceMessagePlayer } from "@/components/chat/VoiceMessagePlayer";
 import { cn } from "@/lib/utils";
 import { getAuthToken } from "@/lib/auth/token";
 import { useNavigate } from "react-router";
@@ -118,6 +121,14 @@ export default function CommunityChatPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const [isSendingVoice, setIsSendingVoice] = useState(false);
+  const [recordingSeconds, setRecordingSeconds] = useState(0);
+  const recorderRef = useRef<MediaRecorder | null>(null);
+  const recorderStreamRef = useRef<MediaStream | null>(null);
+  const recorderChunksRef = useRef<BlobPart[]>([]);
+  const recorderSendRef = useRef(false);
+  const recorderTickRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const currentUserData = getUserData();
   const currentUserId = (currentUserData?.id as number | undefined) ?? undefined;
 
@@ -380,6 +391,122 @@ export default function CommunityChatPage() {
       setUploading(false);
     }
   };
+
+  const stopRecordingTracks = () => {
+    recorderStreamRef.current?.getTracks().forEach((t) => t.stop());
+    recorderStreamRef.current = null;
+    if (recorderTickRef.current) {
+      clearInterval(recorderTickRef.current);
+      recorderTickRef.current = null;
+    }
+  };
+
+  const sendVoiceBlob = async (blob: Blob) => {
+    if (!activeConv || !recorderSendRef.current) return;
+    setIsSendingVoice(true);
+    try {
+      const token = getToken();
+      const formData = new FormData();
+      const ext = blob.type.includes('ogg') ? 'ogg' : blob.type.includes('webm') ? 'webm' : 'm4a';
+      formData.append('file', blob, `voice-${Date.now()}.${ext}`);
+
+      const res = await fetch(`${API_BASE}/messages/attachments`, {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: formData,
+      });
+
+      if (!res.ok) throw new Error('Upload failed');
+      const json = await res.json();
+      const { attachment_url, attachment_type } = json.data;
+
+      const clientUuid = crypto.randomUUID ? crypto.randomUUID() : `uuid-${Date.now()}`;
+      const draft: ChatMessage = {
+        conversation_id: activeConv.id,
+        user_id: currentUserId ?? 0,
+        content: '',
+        type: (attachment_type || 'voice') as ChatMessage['type'],
+        client_uuid: clientUuid,
+        status: 'pending',
+        attachment_url,
+        attachment_type: (attachment_type || 'voice') as ChatMessage['attachment_type'],
+        created_at: new Date().toISOString(),
+        user: { id: currentUserId ?? 0, name: (currentUserData?.name as string) ?? "You", username: (currentUserData?.username as string) ?? "you" },
+      };
+      setMessages((prev) => [...prev, draft]);
+      await executeSendMessage(draft);
+    } catch (err) {
+      console.error("Failed to send voice message", err);
+      toast.error("Could not send voice message");
+    } finally {
+      setIsSendingVoice(false);
+    }
+  };
+
+  const stopVoiceRecording = async (send: boolean) => {
+    const rec = recorderRef.current;
+    recorderSendRef.current = send;
+    if (!rec || rec.state === 'inactive') return;
+    const onStop = () => {
+      const blob = new Blob(recorderChunksRef.current, { type: rec.mimeType || 'audio/webm' });
+      sendVoiceBlob(blob);
+    };
+    rec.onstop = () => { onStop(); };
+    rec.stop();
+    stopRecordingTracks();
+    recorderRef.current = null;
+    recorderChunksRef.current = [];
+    setIsRecording(false);
+    setRecordingSeconds(0);
+  };
+
+  const cancelVoiceRecording = async () => {
+    const rec = recorderRef.current;
+    recorderSendRef.current = false;
+    if (!rec || rec.state === 'inactive') return;
+    rec.onstop = () => {};
+    rec.stop();
+    stopRecordingTracks();
+    recorderRef.current = null;
+    recorderChunksRef.current = [];
+    setIsRecording(false);
+    setRecordingSeconds(0);
+  };
+
+  const startVoiceRecording = async () => {
+    if (!activeConv) return;
+    // Guard against a second recording starting while one is already active:
+    // it would open a new mic stream and leak the previous one's tracks.
+    if (recorderRef.current || isRecording) return;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mimeType = ['audio/webm;codecs=opus', 'audio/ogg;codecs=opus', 'audio/mp4'].find((m) =>
+        typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported(m),
+      );
+      const rec = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+      recorderChunksRef.current = [];
+      rec.ondataavailable = (e) => { if (e.data.size > 0) recorderChunksRef.current.push(e.data); };
+      rec.start();
+      recorderRef.current = rec;
+      recorderStreamRef.current = stream;
+      recorderSendRef.current = true;
+      setIsRecording(true);
+      setRecordingSeconds(0);
+      recorderTickRef.current = setInterval(() => {
+        setRecordingSeconds((s) => s + 1);
+      }, 1000);
+    } catch (err) {
+      console.error('Mic permission denied', err);
+      toast.error('Microphone access is required to record a voice message');
+    }
+  };
+
+  useEffect(() => () => {
+    stopRecordingTracks();
+  }, []);
 
   const handleToggleMute = async () => {
     if (!activeConv) return;
@@ -652,8 +779,8 @@ export default function CommunityChatPage() {
                 </div>
               ) : messages.length === 0 ? (
                 <div className="py-20 text-center space-y-2">
-                  <div className="mx-auto w-10 h-10 rounded-lg bg-[#2164b6]/10 flex items-center justify-center">
-                    <MessageCircle weight="fill" className="h-5 w-5 text-[#2164b6] dark:text-[#7ab0ff]" />
+                  <div className="mx-auto w-10 h-10 rounded-lg bg-secondary/10 flex items-center justify-center">
+                    <MessageCircle weight="fill" className="h-5 w-5 text-secondary" />
                   </div>
                   <p className="text-sm font-bold text-foreground">Start the conversation</p>
                   <p className="text-xs text-muted-foreground max-w-[200px] mx-auto">
@@ -683,35 +810,35 @@ export default function CommunityChatPage() {
                       )}
 
                       <div className={cn(
-                        "max-w-[70%] sm:max-w-[60%] space-y-0.5",
+                        "max-w-[78%] sm:max-w-[68%] space-y-0.5",
                         isMine ? "items-end" : "items-start",
                       )}>
                         {msg.reply_to && (
                           <div className={cn(
-                            "px-2.5 py-1.5 rounded-lg text-[11px] border-l-[3px] border-[#2164b6] bg-[#2164b6]/8 text-muted-foreground",
+                            "px-2.5 py-1.5 rounded-lg text-[11px] border-l-[3px] border-secondary bg-secondary/10 text-muted-foreground",
                             isMine ? "ml-auto" : "",
                           )}>
-                            <span className="font-bold text-[#2164b6] dark:text-[#7ab0ff] text-[10px]">
+                            <span className="font-bold text-secondary text-[10px]">
                               {msg.reply_to.user?.name ?? "User"}
                             </span>
-                            <p className="truncate mt-0.5">{msg.reply_to.content?.slice(0, 60)}</p>
+                            <p className="truncate mt-0.5">{messagePreview(msg.reply_to)}</p>
                           </div>
                         )}
 
                         <div
                           className={cn(
-                            "p-3 rounded-lg text-sm leading-relaxed whitespace-pre-wrap break-words",
+                            "p-3 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap break-words",
                             isMine
                               ? isFailed
-                                ? "bg-destructive/10 border border-destructive/30 text-foreground rounded-br-md"
+                                ? "bg-destructive/15 border border-destructive/40 text-foreground rounded-br-xs"
                                 : isPending
-                                  ? "bg-[#2164b6]/70 text-white rounded-br-md opacity-85"
-                                  : "bg-[#2164b6] text-white rounded-br-md "
-                              : "bg-white dark:bg-[#102840] border-none/60 text-foreground rounded-bl-md ",
+                                  ? "bg-secondary/75 text-secondary-foreground rounded-br-xs opacity-85"
+                                  : "bg-secondary text-secondary-foreground rounded-br-xs shadow-2xs"
+                              : "bg-card text-foreground border border-border/60 rounded-bl-xs shadow-2xs",
                           )}
                         >
                           {!isMine && msg.user?.name && showAvatar && (
-                            <span className="block text-[10px] font-bold text-[#2164b6] dark:text-[#7ab0ff] mb-1">
+                            <span className="block text-[10px] font-bold text-secondary mb-1">
                               {msg.user.name}
                             </span>
                           )}
@@ -738,6 +865,8 @@ export default function CommunityChatPage() {
                                   alt="attachment"
                                   className="max-w-full rounded-lg max-h-48 object-cover"
                                 />
+                              ) : msg.attachment_type === "voice" ? (
+                                <VoiceMessagePlayer src={msg.attachment_url} isMine={isMine} />
                               ) : (
                                 <a
                                   href={msg.attachment_url}
@@ -830,29 +959,24 @@ export default function CommunityChatPage() {
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploading}
-                className="p-2 rounded-lg hover:bg-muted text-muted-foreground hover:text-[#2164b6] transition-colors shrink-0 disabled:opacity-50"
+                className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-[#2164b6] transition-colors shrink-0 disabled:opacity-50"
                 title="Attach file"
               >
                 {uploading ? (
-                  <Loader2 weight="fill" className="h-4 w-4 animate-spin" />
+                  <Loader2 weight="fill" className="h-3.5 w-3.5 animate-spin" />
                 ) : (
-                  <Paperclip weight="fill" className="h-4 w-4" />
+                  <Paperclip weight="fill" className="h-3.5 w-3.5" />
                 )}
               </button>
 
               <button
                 type="button"
                 onClick={() => window.location.href = "/gifts"}
-                className="p-2 rounded-lg hover:bg-pink-500/10 text-muted-foreground hover:text-pink-500 transition-colors shrink-0"
+                className="p-1.5 rounded-lg hover:bg-pink-500/10 text-muted-foreground hover:text-pink-500 transition-colors shrink-0"
                 title="Send Gift"
               >
-                <Gift weight="fill" className="h-4 w-4 text-pink-500" />
+                <Gift weight="fill" className="h-3.5 w-3.5 text-pink-500" />
               </button>
-
-              <EmojiPickerPopover
-                onSelect={(emoji) => setInputContent((prev) => prev + emoji)}
-                align="left"
-              />
 
               <input
                 ref={fileInputRef}
@@ -862,21 +986,74 @@ export default function CommunityChatPage() {
                 onChange={handleFileUpload}
               />
 
-              <input
-                type="text"
-                value={inputContent}
-                onChange={(e) => { setInputContent(e.target.value); handleTypingDebounced(); }}
-                onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) handleSendMessage(); }}
-                placeholder={`Message #${activeConv.community?.name ?? activeConv.title}...`}
-                className="flex-1 px-4 py-2 text-sm rounded-lg bg-muted/60 border-none/50 outline-none focus:ring-1 focus:ring-[#2164b6]/40 focus:border-[#2164b6] placeholder:text-muted-foreground/60 transition-all"
-              />
+              {isRecording ? (
+                <div className="flex-1 h-8 flex items-center gap-2 px-3 rounded-full bg-red-500/10 border border-red-500/30 animate-pulse">
+                  <span className="relative flex h-2 w-2 shrink-0">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
+                  </span>
+                  <span className="text-xs font-bold text-red-600 tabular-nums">
+                    {Math.floor(recordingSeconds / 60)}:{String(recordingSeconds % 60).padStart(2, '0')}
+                  </span>
+                  <span className="text-[10px] font-medium text-red-500/80">Recording</span>
+                  <div className="flex-1" />
+                  <button
+                    type="button"
+                    onClick={cancelVoiceRecording}
+                    disabled={isSendingVoice}
+                    className="p-1 rounded-full text-red-600 hover:bg-red-500/10 transition-colors disabled:opacity-50"
+                    title="Cancel recording"
+                  >
+                    <X weight="fill" className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => stopVoiceRecording(true)}
+                    disabled={isSendingVoice}
+                    className="p-1 rounded-full text-white bg-red-500 hover:bg-red-600 transition-colors disabled:opacity-50"
+                    title="Send voice message"
+                  >
+                    {isSendingVoice ? <Loader2 weight="fill" className="h-3.5 w-3.5 animate-spin" /> : <StopIcon weight="fill" className="h-3.5 w-3.5" />}
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <div className="flex-1 relative rounded-full bg-muted/60 border-0">
+                    <input
+                      type="text"
+                      value={inputContent}
+                      onChange={(e) => { setInputContent(e.target.value); handleTypingDebounced(); }}
+                      onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) handleSendMessage(); }}
+                      placeholder={`Message #${activeConv.community?.name ?? activeConv.title}...`}
+                      className="w-full pl-3 pr-9 py-1.5 text-sm rounded-full bg-transparent outline-none placeholder:text-muted-foreground/60 transition-all"
+                    />
+                    <div className="absolute right-1 top-1/2 -translate-y-1/2">
+                      <EmojiPickerPopover
+                        onSelect={(emoji) => setInputContent((prev) => prev + emoji)}
+                        align="left"
+                        buttonClassName="h-7 w-7 rounded-full"
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={!inputContent.trim() || uploading}
+                    className="p-1.5 rounded-full bg-[#2164b6] text-white font-bold hover:bg-[#1a5091] disabled:opacity-40 transition-all shrink-0 flex items-center justify-center h-8 w-8"
+                  >
+                    <Send weight="fill" className="h-3.5 w-3.5" />
+                  </button>
+                </>
+              )}
 
               <button
-                type="submit"
-                disabled={!inputContent.trim() || uploading}
-                className="p-2.5 rounded-full bg-[#2164b6] text-white font-bold hover:bg-[#1a5091] disabled:opacity-40 transition-all shrink-0  flex items-center justify-center w-9 h-9"
+                type="button"
+                onClick={startVoiceRecording}
+                disabled={isSendingVoice || isRecording}
+                className={`p-1.5 rounded-full transition-colors shrink-0 disabled:opacity-50 ${isRecording ? "text-red-500 bg-red-500/10 animate-pulse" : "text-muted-foreground hover:bg-muted hover:text-[#2164b6]"}`}
+                title={isRecording ? "Recording..." : "Record voice message"}
               >
-                <Send weight="fill" className="h-4 w-4" />
+                <Mic weight="fill" className="h-3.5 w-3.5" />
               </button>
             </form>
           </>

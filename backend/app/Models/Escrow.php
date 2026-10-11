@@ -10,13 +10,15 @@ class Escrow extends Model
 {
     protected $fillable = [
         'order_id', 'fulfilment_order_id', 'buyer_id', 'seller_id', 'ledger_transaction_id',
-        'amount', 'currency', 'status', 'release_window_days', 'released_at',
+        'amount', 'currency', 'status', 'release_window_days', 'captured_at', 'released_at', 'refunded_at',
     ];
 
     protected $casts = [
         'amount' => 'integer',
         'release_window_days' => 'integer',
+        'captured_at' => 'datetime',
         'released_at' => 'datetime',
+        'refunded_at' => 'datetime',
     ];
 
     public const STATUSES = ['held', 'released', 'refunded', 'disputed'];

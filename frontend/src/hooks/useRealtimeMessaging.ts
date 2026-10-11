@@ -25,6 +25,12 @@ export interface RealtimeEvents {
     edited_at: string | null;
     edit_count: number;
   }) => void;
+  onMessageDeleted?: (data: {
+    id: number;
+    conversation_id: number;
+    deleted: boolean;
+    deleted_at: string | null;
+  }) => void;
 }
 
 export function useRealtimeMessaging(
@@ -102,12 +108,22 @@ export function useRealtimeMessaging(
       eventsRef.current.onMessageEdited?.(e);
     };
 
+    const handleDeleted = (e: {
+      id: number;
+      conversation_id: number;
+      deleted: boolean;
+      deleted_at: string | null;
+    }) => {
+      eventsRef.current.onMessageDeleted?.(e);
+    };
+
     channel.listen('.MessageSent', handleMessage);
     channel.listen('.typing', handleTyping);
     channel.listen('.MessageReacted', handleReaction);
     channel.listen('.MessageRead', handleRead);
     channel.listen('.MessageDelivered', handleDelivered);
     channel.listen('.MessageEdited', handleEdited);
+    channel.listen('.MessageDeleted', handleDeleted);
 
     cleanup.current = () => {
       channel.stopListening('.MessageSent', handleMessage);
@@ -116,6 +132,7 @@ export function useRealtimeMessaging(
       channel.stopListening('.MessageRead', handleRead);
       channel.stopListening('.MessageDelivered', handleDelivered);
       channel.stopListening('.MessageEdited', handleEdited);
+      channel.stopListening('.MessageDeleted', handleDeleted);
       echo.leave(channelName);
     };
 

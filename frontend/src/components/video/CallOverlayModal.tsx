@@ -6,6 +6,8 @@ import {
   MicrophoneSlash as MicOff,
   VideoCamera as Video,
   VideoCameraSlash,
+  SpeakerHigh,
+  SpeakerSlash,
   ChatTeardropText as MessageSquare,
   Spinner,
   Monitor,
@@ -128,15 +130,38 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
   );
 
   const [isMuted, setIsMuted] = useState(false);
+  const [isSpeakerMuted, setIsSpeakerMuted] = useState(false);
+  const isSpeakerMutedRef = useRef(false);
+  useEffect(() => {
+    isSpeakerMutedRef.current = isSpeakerMuted;
+  }, [isSpeakerMuted]);
+
+  const toggleSpeaker = () => {
+    setIsSpeakerMuted((prev) => {
+      const next = !prev;
+      attachedAudioElementsRef.current.forEach((el) => {
+        el.muted = next;
+      });
+      return next;
+    });
+  };
+
   const [isVideoOn, setIsVideoOn] = useState(callType === 'video');
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [durationSeconds, setDurationSeconds] = useState(0);
   // Handlers registered inside the connect effect close over the render they
   // were created in, so anything that must be current reads from this ref.
   const durationRef = useRef(0);
+  const hasEndedRef = useRef(false);
   useEffect(() => {
     durationRef.current = durationSeconds;
   }, [durationSeconds]);
+
+  useEffect(() => {
+    if (isOpen) {
+      hasEndedRef.current = false;
+    }
+  }, [isOpen, callId]);
 
   // Video track & presentation state
   const [remoteVideoTrack, setRemoteVideoTrack] = useState<RemoteTrack | null>(null);
@@ -242,7 +267,7 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
     if (broadcast && roomRef.current && roomRef.current.state === ConnectionState.Connected) {
       try {
         const payload = new TextEncoder().encode(JSON.stringify({ type: 'reaction', emoji }));
-        roomRef.current.localParticipant.publishData(payload);
+        roomRef.current.localParticipant.publishData(payload, { reliable: false }).catch(() => {});
       } catch (_) {}
     }
   }, []);
@@ -478,6 +503,7 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
           } else if (track.kind === Track.Kind.Audio) {
             const audioEl = document.createElement('audio');
             audioEl.autoplay = true;
+            audioEl.muted = isSpeakerMutedRef.current;
             track.attach(audioEl);
             if (track.sid) {
               attachedAudioElementsRef.current.set(track.sid, audioEl);
@@ -587,6 +613,8 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
   }, []);
 
   const handleEndCall = () => {
+    if (hasEndedRef.current) return;
+    hasEndedRef.current = true;
     stopCallSounds();
     setCallState('ending');
     if (callId) {
@@ -604,6 +632,8 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
   };
 
   const handleDeclineCall = () => {
+    if (hasEndedRef.current) return;
+    hasEndedRef.current = true;
     stopCallSounds();
     setCallState('ended');
     if (callId) {
@@ -980,7 +1010,7 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
         </div>
 
         {/* ── Floating Reaction Bubbles ───────────────────────────────────────── */}
-        <div className="absolute inset-0 pointer-events-none overflow-hidden z-25">
+        <div className="absolute inset-0 pointer-events-none overflow-hidden z-[25]">
           {reactions.map((r) => (
             <div
               key={r.id}
@@ -1055,38 +1085,104 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
                 </button>
               </div>
             ) : (
-              /* Outgoing / Connecting Hang Up */
-              <button
-                type="button"
-                onClick={handleEndCall}
-                className="flex flex-col items-center gap-2 group"
-              >
-                <div className="w-16 h-16 rounded-full bg-red-600 hover:bg-red-500 text-white flex items-center justify-center shadow-lg transition-transform group-hover:scale-105">
-                  <PhoneSlash className="w-7 h-7" />
-                </div>
-                <span className="text-white text-xs font-semibold">{isConnecting ? 'Cancel' : 'End Call'}</span>
-              </button>
+              /* Outgoing / Connecting Controls: Sleek Capsule with Speaker, Video, Mute, Cancel */
+              <div className="flex items-center gap-3.5 px-5 py-2.5 rounded-full bg-slate-900/90 backdrop-blur-2xl border border-white/15 shadow-2xl">
+                <button
+                  type="button"
+                  onClick={toggleSpeaker}
+                  className={`w-11 h-11 rounded-full flex items-center justify-center transition-all ${
+                    isSpeakerMuted
+                      ? 'bg-red-500/20 text-red-400 border border-red-500/40'
+                      : 'bg-white/10 text-white hover:bg-white/20 border border-white/10'
+                  }`}
+                  title={isSpeakerMuted ? 'Unmute speaker' : 'Mute speaker'}
+                >
+                  {isSpeakerMuted ? <SpeakerSlash className="w-5 h-5" /> : <SpeakerHigh className="w-5 h-5" />}
+                </button>
+                {callType === 'video' && (
+                  <button
+                    type="button"
+                    onClick={toggleVideo}
+                    className={`w-11 h-11 rounded-full flex items-center justify-center transition-all ${
+                      !isVideoOn
+                        ? 'bg-red-500 text-white'
+                        : 'bg-white/10 text-white hover:bg-white/20 border border-white/10'
+                    }`}
+                    title={!isVideoOn ? 'Turn camera on' : 'Turn camera off'}
+                  >
+                    {!isVideoOn ? <VideoCameraSlash className="w-5 h-5" /> : <Video className="w-5 h-5" />}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={toggleMute}
+                  className={`w-11 h-11 rounded-full flex items-center justify-center transition-all ${
+                    isMuted ? 'bg-red-500 text-white' : 'bg-white/10 text-white hover:bg-white/20 border border-white/10'
+                  }`}
+                  title={isMuted ? 'Unmute microphone' : 'Mute microphone'}
+                >
+                  {isMuted ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleEndCall}
+                  className="w-12 h-12 rounded-full bg-gradient-to-br from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white flex items-center justify-center transition-all shadow-lg shadow-red-600/40 hover:scale-105 active:scale-95"
+                  title={isConnecting ? 'Cancel' : 'End Call'}
+                >
+                  <PhoneSlash className="w-6 h-6" />
+                </button>
+              </div>
             )
           ) : (
-            /* Active Connected Controls: Focused Mute | Hang Up */
-            <div className="flex items-center gap-8 px-8 py-3 rounded-full bg-black/60 backdrop-blur-2xl border border-white/15 shadow-2xl">
-              {/* 1. Mute Toggle */}
+            /* Active Connected Controls: Compact Full-Radius Pill (Speaker, Video, Mute, Hang Up) */
+            <div className="flex items-center gap-3.5 px-5 py-2.5 rounded-full bg-slate-900/90 backdrop-blur-2xl border border-white/15 shadow-2xl">
+              {/* 1. Speaker Toggle */}
+              <button
+                type="button"
+                onClick={toggleSpeaker}
+                className={`w-11 h-11 rounded-full flex items-center justify-center transition-all ${
+                  isSpeakerMuted
+                    ? 'bg-red-500/20 text-red-400 border border-red-500/40'
+                    : 'bg-white/10 text-white hover:bg-white/20 border border-white/10'
+                }`}
+                title={isSpeakerMuted ? 'Unmute speaker' : 'Mute speaker'}
+              >
+                {isSpeakerMuted ? <SpeakerSlash className="w-5 h-5" /> : <SpeakerHigh className="w-5 h-5" />}
+              </button>
+
+              {/* 2. Camera Toggle (if Video Call) */}
+              {callType === 'video' && (
+                <button
+                  type="button"
+                  onClick={toggleVideo}
+                  className={`w-11 h-11 rounded-full flex items-center justify-center transition-all ${
+                    !isVideoOn
+                      ? 'bg-red-500 text-white'
+                      : 'bg-white/10 text-white hover:bg-white/20 border border-white/10'
+                  }`}
+                  title={!isVideoOn ? 'Turn camera on' : 'Turn camera off'}
+                >
+                  {!isVideoOn ? <VideoCameraSlash className="w-5 h-5" /> : <Video className="w-5 h-5" />}
+                </button>
+              )}
+
+              {/* 3. Mute Toggle */}
               <button
                 type="button"
                 onClick={toggleMute}
-                className={`p-4 rounded-full transition-all ${
-                  isMuted ? 'bg-red-500 text-white' : 'bg-white/15 text-white hover:bg-white/25'
+                className={`w-11 h-11 rounded-full flex items-center justify-center transition-all ${
+                  isMuted ? 'bg-red-500 text-white' : 'bg-white/10 text-white hover:bg-white/20 border border-white/10'
                 }`}
                 title={isMuted ? 'Unmute microphone' : 'Mute microphone'}
               >
-                {isMuted ? <MicOff className="w-6 h-6" /> : <Mic className="w-6 h-6" />}
+                {isMuted ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
               </button>
 
-              {/* 2. Hang Up Button */}
+              {/* 4. Hang Up Button */}
               <button
                 type="button"
                 onClick={handleEndCall}
-                className="p-4 rounded-full bg-red-600 hover:bg-red-500 text-white transition-all shadow-lg shadow-red-600/40 hover:scale-105 active:scale-95"
+                className="w-12 h-12 rounded-full bg-gradient-to-br from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white flex items-center justify-center transition-all shadow-lg shadow-red-600/40 hover:scale-105 active:scale-95"
                 title="End Call"
               >
                 <PhoneSlash className="w-6 h-6" />

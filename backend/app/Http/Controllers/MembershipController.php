@@ -5,14 +5,21 @@ namespace App\Http\Controllers;
 use App\Models\Community;
 use App\Models\CommunityMembership;
 use App\Models\User;
+use App\Models\Wallet;
 use App\Services\NotificationService;
+use App\Services\Wallet\LedgerService;
+use App\Services\Wallet\WalletService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class MembershipController extends Controller
 {
     public function __construct(
         private readonly NotificationService $notifications,
+        private readonly WalletService $walletService,
+        private readonly LedgerService $ledgerService,
     ) {}
     /**
      * Join a community (instant for public, pending for private).
@@ -76,10 +83,77 @@ class MembershipController extends Controller
         // If community is paid, verify and charge payment
         if ($community->pricing_type === 'paid' && (float) ($community->price_amount ?? 0) > 0) {
             $coinCost = (int) $community->price_amount;
-            $wallet = $user->wallet;
-            $currentCoins = (int) ($wallet?->coin_balance ?? 0);
+            // Coins are the System Wallet `available` balance (100 coins = $1.00 USD).
+            $wallet = $this->walletService->getOrCreateWallet($user, 'system');
 
-            if ($currentCoins < $coinCost) {
+            $idemKey = (string) ($request->input('idempotency_key') ?: 'COMMUNITY-JOIN-'.Str::uuid());
+
+            try {
+                DB::transaction(function () use ($user, $wallet, $coinCost, $community, $idemKey) {
+                    // Pessimistic balance check on the locked wallet row (avoids TOCTOU).
+                    $locked = Wallet::whereKey($wallet->id)->lockForUpdate()->firstOrFail();
+                    if ((int) $locked->available < $coinCost) {
+                        throw new \RuntimeException('INSUFFICIENT_COINS');
+                    }
+
+                    // Debit the member's System Wallet via the ledger (double-entry),
+                    // so reconciliation against the ledger never drifts.
+                    $this->ledgerService->debit(
+                        user: $user,
+                        amount: $coinCost,
+                        currency: $locked->currency,
+                        walletType: 'system',
+                        balanceCategory: 'available',
+                        type: 'community_join',
+                        description: "Joined community {$community->name}",
+                        idempotencyKey: $idemKey.'-debit',
+                        metadata: ['community_id' => $community->id],
+                    );
+
+                    $creator = User::find($community->user_id);
+                    // Creator earnings land in their System Wallet coin balance,
+                    // matching where coins are spendable. Create it if missing so
+                    // earnings are never silently dropped.
+                    if ($creator) {
+                        $this->ledgerService->credit(
+                            user: $creator,
+                            amount: $coinCost,
+                            currency: $locked->currency,
+                            walletType: 'system',
+                            balanceCategory: 'available',
+                            type: 'community_join_receipt',
+                            description: "@{$user->username} subscribed to {$community->name}",
+                            idempotencyKey: $idemKey.'-credit',
+                            metadata: ['community_id' => $community->id, 'subscriber_id' => $user->id],
+                        );
+
+                        // Notify creator of paid subscription
+                        try {
+                            $creator->notify(new \App\Notifications\MurihOfficialNotification(
+                                type: 'money_received',
+                                title: '💎 New Community Subscriber!',
+                                body: "@{$user->username} subscribed to your community {$community->name} (+{$coinCost} coins)!",
+                                actionUrl: NotificationService::link('app/communities/' . $community->slug),
+                                actionLabel: 'View Community',
+                                route: '/communities/' . $community->slug,
+                                metadata: [
+                                    'community_id' => $community->id,
+                                    'subscriber_id' => $user->id,
+                                    'coins' => $coinCost,
+                                ]
+                            ));
+                        } catch (\Throwable $e) {
+                            report($e);
+                        }
+                    }
+                });
+            } catch (\RuntimeException $e) {
+                if ($e->getMessage() !== 'INSUFFICIENT_COINS') {
+                    throw $e;
+                }
+
+                $currentCoins = (int) $wallet->fresh()->available;
+
                 return response()->json([
                     'message' => "Insufficient coin balance. You need {$coinCost} coins to join this community (your balance: {$currentCoins} coins).",
                     'code' => 'INSUFFICIENT_FUNDS',
@@ -87,38 +161,6 @@ class MembershipController extends Controller
                     'current_coins' => $currentCoins,
                 ], 402);
             }
-
-            // Deduct coins from user and credit creator
-            \Illuminate\Support\Facades\DB::transaction(function () use ($user, $wallet, $coinCost, $community) {
-                if ($wallet) {
-                    $wallet->decrement('coin_balance', $coinCost);
-                }
-
-                $creator = User::find($community->user_id);
-                $creatorWallet = $creator?->wallet;
-                if ($creatorWallet) {
-                    $creatorWallet->increment('coin_balance', $coinCost);
-                }
-
-                // Notify creator of paid subscription
-                try {
-                    $creator?->notify(new \App\Notifications\MurihOfficialNotification(
-                        type: 'money_received',
-                        title: '💎 New Community Subscriber!',
-                        body: "@{$user->username} subscribed to your community {$community->name} (+{$coinCost} coins)!",
-                        actionUrl: NotificationService::link('app/communities/' . $community->slug),
-                        actionLabel: 'View Community',
-                        route: '/communities/' . $community->slug,
-                        metadata: [
-                            'community_id' => $community->id,
-                            'subscriber_id' => $user->id,
-                            'coins' => $coinCost,
-                        ]
-                    ));
-                } catch (\Throwable $e) {
-                    report($e);
-                }
-            });
         }
 
         // Determine status based on community visibility

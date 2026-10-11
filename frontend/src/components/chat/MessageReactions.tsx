@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import type { MessageReaction } from '@/types/chat';
 import { getAuthToken } from "@/lib/auth/token";
+import { BubbleReactions } from '@/components/ui/bubble';
+import { cn } from '@/lib/utils';
 
 const QUICK_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🔥'];
 
@@ -10,9 +12,17 @@ interface MessageReactionsProps {
   messageId: number;
   reactions: MessageReaction[];
   onReactionToggle: (messageId: number, updated: MessageReaction[]) => void;
+  align?: 'start' | 'end';
+  useBubbleReactions?: boolean;
 }
 
-export function MessageReactions({ messageId, reactions, onReactionToggle }: MessageReactionsProps) {
+export function MessageReactions({
+  messageId,
+  reactions,
+  onReactionToggle,
+  align = 'end',
+  useBubbleReactions = false,
+}: MessageReactionsProps) {
   const [showPicker, setShowPicker] = useState(false);
 
   const handleReact = async (emoji: string) => {
@@ -33,22 +43,29 @@ export function MessageReactions({ messageId, reactions, onReactionToggle }: Mes
         const json = await res.json();
         onReactionToggle(messageId, json?.data?.reactions ?? json?.reactions ?? []);
       }
-    } catch (e) { console.error('Failed to add reaction', e); }
+    } catch (e) {
+      console.error('Failed to add reaction', e);
+    }
   };
 
-  return (
+  const reactionContent = (
     <div className="flex items-center gap-1 flex-wrap relative group">
       {/* Existing reactions */}
       {reactions.map((r) => (
         <button
           key={r.emoji}
-          onClick={() => handleReact(r.emoji)}
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleReact(r.emoji);
+          }}
           title={`${r.count} reaction${r.count !== 1 ? 's' : ''}`}
-          className={`px-2 py-0.5 rounded-full text-xs border transition-all ${
+          className={cn(
+            'inline-flex items-center px-1.5 py-0.5 rounded-full text-xs border transition-all cursor-pointer select-none',
             r.by_me
-              ? 'bg-secondary/20 border-secondary/50 text-secondary font-bold'
-              : 'bg-muted/60 border-border text-foreground hover:border-secondary/40'
-          }`}
+              ? 'bg-secondary/25 border-secondary/50 text-secondary font-bold shadow-2xs'
+              : 'bg-muted/80 border-border/70 text-foreground hover:border-secondary/40 hover:bg-muted'
+          )}
         >
           <span>{r.emoji}</span>
           <span className="ml-1 text-[10px] font-bold">{r.count}</span>
@@ -58,8 +75,15 @@ export function MessageReactions({ messageId, reactions, onReactionToggle }: Mes
       {/* Add reaction trigger */}
       <div className="relative">
         <button
-          onClick={() => setShowPicker((v) => !v)}
-          className="opacity-0 group-hover:opacity-100 transition-opacity px-1.5 py-0.5 rounded-full text-xs border border-dashed border-border text-muted-foreground hover:border-secondary/50 hover:text-secondary"
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            setShowPicker((v) => !v);
+          }}
+          className={cn(
+            'transition-opacity px-1.5 py-0.5 rounded-full text-xs border border-dashed border-border text-muted-foreground hover:border-secondary/50 hover:text-secondary',
+            reactions.length > 0 ? 'opacity-0 group-hover:opacity-100' : 'opacity-70 hover:opacity-100'
+          )}
           title="React"
         >
           +😊
@@ -67,13 +91,27 @@ export function MessageReactions({ messageId, reactions, onReactionToggle }: Mes
 
         {showPicker && (
           <>
-            <div className="fixed inset-0 z-40" onClick={() => setShowPicker(false)} role="presentation" onKeyDown={(e) => e.key === 'Enter' && setShowPicker(false)} />
-            <div className="absolute bottom-7 left-0 z-50 flex gap-1 p-1.5 rounded-lg border-none bg-card shadow-xl">
+            <div
+              className="fixed inset-0 z-40"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowPicker(false);
+              }}
+              role="presentation"
+            />
+            <div
+              className="absolute bottom-7 left-0 z-50 flex gap-1 p-1.5 rounded-lg border border-border/80 bg-popover text-popover-foreground shadow-xl"
+              onClick={(e) => e.stopPropagation()}
+            >
               {QUICK_EMOJIS.map((emoji) => (
                 <button
                   key={emoji}
-                  onClick={() => handleReact(emoji)}
-                  className="text-base w-8 h-8 flex items-center justify-center rounded-lg hover:bg-muted transition-colors"
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleReact(emoji);
+                  }}
+                  className="text-base w-8 h-8 flex items-center justify-center rounded-lg hover:bg-muted transition-colors cursor-pointer"
                 >
                   {emoji}
                 </button>
@@ -84,4 +122,14 @@ export function MessageReactions({ messageId, reactions, onReactionToggle }: Mes
       </div>
     </div>
   );
+
+  if (useBubbleReactions && reactions.length > 0) {
+    return (
+      <BubbleReactions align={align} side="bottom" className="shadow-xs bg-background/90 backdrop-blur-xs border border-border/60">
+        {reactionContent}
+      </BubbleReactions>
+    );
+  }
+
+  return reactionContent;
 }

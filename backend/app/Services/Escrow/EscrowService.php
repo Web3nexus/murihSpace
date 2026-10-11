@@ -2,43 +2,48 @@
 
 namespace App\Services\Escrow;
 
-use App\Enums\PaymentStatus;
+use App\Models\Dispute;
 use App\Models\Escrow;
 use App\Models\FulfilmentOrder;
-use App\Models\FulfilmentPayout;
 use App\Models\LedgerEntry;
 use App\Models\LedgerTransaction;
-use App\Models\Payment;
 use App\Services\Payment\Exceptions\PaymentException;
+use App\Services\Wallet\LedgerService;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
 /**
- * EscrowService — journal-only escrow ledgering in the ORDER currency.
+ * EscrowService — the single source of truth for the escrow lifecycle.
  *
- * Paddle is the collection interface (Merchant of Record, cash held in Paddle's
- * treasury). The internal double-entry journal is the ONLY book of record for
- * what the platform owes the seller, denominated in the order currency.
+ * Two funding realities are supported by the same service so that the API
+ * (EscrowController) and the physical-goods fulfilment flow
+ * (FulfilmentOrderController) never diverge:
  *
- * We deliberately do NOT touch Wallet rows (no buyer/seller wallet credit/debit
- * and no movement between wallet balance categories). Money is never moved
- * between buyer/seller wallets during the escrow lifecycle:
+ *   capture  -> books an `escrow_hold` journal event (buyer obligation vs
+ *               platform liability). Paddle is the Merchant of Record and holds
+ *               the cash, so no Wallet row is touched at hold time.
+ *   release  -> credits the SELLER's creator wallet with the escrow amount and
+ *               marks the escrow released.
+ *   refund   -> credits the BUYER's system wallet with the escrow amount and
+ *               marks the escrow refunded.
  *
- *   capture  -> escrow_hold  (journal: buyer obligation credited, platform
- *                             liability debited — money now held)
- *   release  -> escrow_release + FulfilmentPayout (journal: seller credited the
- *                             net amount owed, platform revenue + fee) +
- *                             dispute resolution if any
- *   refund   -> escrow_refund (journal: obligation reversed back to buyer)
+ * Release/refund move real Wallet balances through LedgerService (the same
+ * wallet the seller sees and the buyer spends from). They deliberately do NOT
+ * debit the counterparty: the buyer's funds were collected externally (Paddle),
+ * so there is no wallet hold to reverse — debiting would double-charge the
+ * buyer (release) or claw back funds the seller never received (refund) and
+ * would 500 when the counterparty wallet is short.
  *
- * Every event is a BALANCED LedgerTransaction whose LedgerEntry rows carry
- * running balance_before/balance_after derived from the journal itself (no
- * Wallet row is read or written). Payout settlement is recorded only as
- * FulfilmentPayout + journal leg; the actual cash transfer to the seller runs
- * through the existing payout pipeline (Paddle payouts / bank transfer).
+ * Payout settlement for physical orders is recorded separately as a
+ * FulfilmentPayout; the actual cash transfer runs through the existing payout
+ * pipeline (Paddle payouts / bank transfer).
  */
 class EscrowService
 {
+    public function __construct(
+        private readonly LedgerService $ledgerService = new LedgerService(),
+    ) {}
+
     /* ── Journal internals ─────────────────────────────────────────────── */
 
     /**
@@ -146,9 +151,12 @@ class EscrowService
 
     /**
      * Capture confirmed funds into escrow (order confirmed, escrow held).
-     * Books an escrow_hold journal event idempotently.
+     * Books an escrow_hold journal event idempotently and records captured_at.
+     * If the escrow was already created in the held state (the common order
+     * flow), only the capture timestamp is recorded — the hold was never
+     * booked, so there is nothing to reverse.
      */
-    public function capture(Escrow $escrow, ?int $capturedBy = null, ?string $note = null): LedgerTransaction
+    public function capture(Escrow $escrow, ?int $capturedBy = null, ?string $note = null): ?LedgerTransaction
     {
         if ($escrow->status !== 'held') {
             $this->book(
@@ -183,6 +191,9 @@ class EscrowService
             if ($order && $order->status === 'pending') {
                 $order->update(['status' => 'confirmed', 'paid_at' => now()]);
             }
+        } elseif ($escrow->captured_at === null) {
+            // Already held on creation — record the capture time only.
+            $escrow->update(['captured_at' => now()]);
         }
 
         return $escrow->ledgerTransaction;
@@ -190,11 +201,98 @@ class EscrowService
 
     /* ── Release ───────────────────────────────────────────────────────── */
 
+    /* ── Wallet movement primitives ────────────────────────────────────── */
+
     /**
-     * Release a held escrow to the seller: book escrow_release journal +
-     * create a FulfilmentPayout record (the payout pipeline settles it).
+     * Credit the seller's creator wallet with the escrow amount. Idempotent on
+     * `ESCROW_RELEASE_{id}` so a release and a seller-favoured dispute can never
+     * double-credit.
      */
-    public function release(Escrow $escrow, ?int $releasedBy = null, ?string $note = null): FulfilmentPayout
+    private function creditSeller(Escrow $escrow, string $description): LedgerTransaction
+    {
+        return $this->ledgerService->credit(
+            user: $escrow->seller_id,
+            amount: (int) $escrow->amount,
+            currency: $escrow->currency,
+            walletType: 'creator',
+            balanceCategory: 'available',
+            type: 'escrow_release',
+            description: $description,
+            idempotencyKey: 'ESCROW_RELEASE_'.$escrow->id,
+            metadata: [
+                'escrow_id'            => $escrow->id,
+                'order_id'             => $escrow->order_id,
+                'fulfilment_order_id'  => $escrow->fulfilment_order_id,
+            ],
+        );
+    }
+
+    /**
+     * Credit the buyer's system wallet with the escrow amount. Idempotent on
+     * `ESCROW_REFUND_{id}`.
+     */
+    private function creditBuyer(Escrow $escrow, string $description): LedgerTransaction
+    {
+        return $this->ledgerService->credit(
+            user: $escrow->buyer_id,
+            amount: (int) $escrow->amount,
+            currency: $escrow->currency,
+            walletType: 'system',
+            balanceCategory: 'available',
+            type: 'escrow_refund',
+            description: $description,
+            idempotencyKey: 'ESCROW_REFUND_'.$escrow->id,
+            metadata: [
+                'escrow_id'            => $escrow->id,
+                'order_id'             => $escrow->order_id,
+                'fulfilment_order_id'  => $escrow->fulfilment_order_id,
+            ],
+        );
+    }
+
+    /**
+     * Move the escrow's funds to the seller and mark it released. Assumes the
+     * caller has already validated that the escrow is in a releasable state.
+     */
+    private function doRelease(Escrow $escrow, ?string $note = null): void
+    {
+        $txn = $this->creditSeller(
+            $escrow,
+            "Escrow release for order #{$escrow->order_id}".($note ? ': '.$note : ''),
+        );
+
+        $escrow->update([
+            'status'                => 'released',
+            'released_at'           => now(),
+            'ledger_transaction_id' => $txn->id,
+        ]);
+    }
+
+    /**
+     * Move the escrow's funds to the buyer and mark it refunded. Assumes the
+     * caller has already validated that the escrow is in a refundable state.
+     */
+    private function doRefund(Escrow $escrow, ?string $reason = null): void
+    {
+        $txn = $this->creditBuyer(
+            $escrow,
+            'Escrow refund for order #'.$escrow->order_id.($reason ? ': '.$reason : ''),
+        );
+
+        $escrow->update([
+            'status'                => 'refunded',
+            'refunded_at'           => now(),
+            'ledger_transaction_id' => $txn->id,
+        ]);
+    }
+
+    /* ── Release ───────────────────────────────────────────────────────── */
+
+    /**
+     * Release a held escrow to the seller: credits the seller's creator wallet
+     * with the escrow amount and marks the escrow released. Idempotent.
+     */
+    public function release(Escrow $escrow, ?int $releasedBy = null, ?string $note = null): void
     {
         if ($escrow->status !== 'held') {
             throw new PaymentException(
@@ -204,142 +302,124 @@ class EscrowService
             );
         }
 
-        $order = FulfilmentOrder::find($escrow->fulfilment_order_idonti);
-        $gross = (int) $escrow->amount;
-        $fee   = (int) ($order->platform_fee ?? 0);
-        $net   = max(0, $gross - $fee);
-        $payout = FulfilmentPayout::create([
-            'creator_id'          => $escrow->seller_id,
-            'fulfilment_order_id' => $escrow->fulfilment_order_id,
-            'gross_amount'        => $gross,
-            'platform_fee'        => $fee,
-            'net_amount'          => $net,
-            'currency'            => $escrow->currency,
-            'status'              => 'held',
-        ]);
-
-        $this->book(
-            escrow: $escrow,
-            type: 'escrow_release',
-            description: "Escrow #{$escrow->id} released to seller".($note ? ': '.$note : ''),
-            legs: [
-                [
-                    'account_type'     => 'platform_liability',
-                    'wallet_type'      => 'system',
-                    'balance_category' => 'escrow',
-                    'user_id'          => null,
-                    'entry_type'       => 'credit',
-                    'amount'           => $net,
-                ],
-                [
-                    'account_type'     => 'user_wallet',
-                    'wallet_type'      => 'creator',
-                    'balance_category' => 'available',
-                    'user_id'          => $escrow->seller_id,
-                    'entry_type'       => 'credit',
-                    'amount'           => $net,
-                ],
-                [
-                    'account_type'     => 'user_wallet',
-                    'wallet_type'      => 'system',
-                    'balance_category' => 'escrow',
-                    'user_id'          => $escrow->buyer_id,
-                    'entry_type'       => 'debit',
-                    'amount'           => $gross,
-                ],
-                [
-                    'account_type'     => 'user_wallet',
-                    'wallet_type'      => 'system',
-                    'balance_category' => 'available',
-                    'user_id'          => $escrow->buyer_id,
-                    'entry_type'       => 'debit',
-                    'amount'           => $fee,
-                ],
-            ],
-            idempotencyKey: 'ESCROW_RELEASE_'.$escrow->id,
-            initiatedBy: $releasedBy,
-        );
-
-        $escrow->update(['status' => 'released', 'released_at' => now()]);
-
-        return $payout;
-    }
-
-    /**
-     * Release after a dispute resolves in the seller's favour.
-     */
-    public function resolveInFavourOfSeller(Escrow $escrow, ?int $resolvedBy = null, ?string $note = null): FulfilmentPayout
-    {
-        $payout = $this->release($escrow, $resolvedBy, $note);
-        if ($escrow->dispute) {
-            $escrow->dispute->update([
-                'status' => 'resolved', 'resolution' => 'resolved_seller', 'resolved_at' => now(),
-            ]);
+        try {
+            DB::transaction(fn () => $this->doRelease($escrow, $note));
+        } catch (PaymentException $e) {
+            throw $e;
+        } catch (\Throwable $e) {
+            report($e);
+            throw new PaymentException(
+                "Escrow #{$escrow->id} could not be released: {$e->getMessage()}",
+                'ESCROW_RELEASE_FAILED',
+                422,
+                previous: $e instanceof \Exception ? $e : null,
+            );
         }
-
-        return $payout;
     }
 
     /* ── Refund ────────────────────────────────────────────────────────── */
 
     /**
-     * Refund a held escrow back to the buyer (buyer's obligation reversed in
-     * the journal; no wallet movement).
+     * Refund a held/disputed escrow back to the buyer: credits the buyer's
+     * system wallet with the escrow amount and marks the escrow refunded.
+     * The seller is NOT debited (funds were never credited on a refund from
+     * `held`; clawbacks after release are handled by the payout pipeline).
      */
     public function refund(Escrow $escrow, ?int $refundedBy = null, ?string $reason = null, ?int $disputeId = null, ?int $resolvedBy = null): void
     {
-        $order = FulfilmentOrder::find($escrow->fulfilment_order_id);
-
-        DB::transaction(function () use ($escrow, $order, $refundedBy, $reason, $disputeId, $resolvedBy) {
-            if (! in_array($escrow->status, ['held', 'disputed'], true)) {
-                throw new PaymentException(
-                    "Escrow #{$escrow->id} cannot be refunded (current: {$escrow->status}).",
-                    'ESCROW_NOT_REFUNDABLE',
-                    409,
-                );
-            }
-
-            $this->book(
-                escrow: $escrow,
-                type: 'escrow_refund',
-                description: 'Escrow refunded to buyer'.($reason ? ': '.$reason : ''),
-                legs: [
-                    [
-                        'account_type'     => 'user_wallet',
-                        'wallet_type'      => 'system',
-                        'balance_category' => 'escrow',
-                        'user_id'          => $order?->buyer_id,
-                        'entry_type'       => 'debit',
-                        'amount'           => $escrow->amount,
-                    ],
-                    [
-                        'account_type'     => 'platform_liability',
-                        'wallet_type'      => 'system',
-                        'balance_category' => 'escrow',
-                        'user_id'          => null,
-                        'entry_type'       => 'credit',
-                        'amount'           => $escrow->amount,
-                    ],
-                ],
-                idempotencyKey: 'ESCROW_REFUND_'.$escrow->id,
-                initiatedBy: $refundedBy,
+        if (! in_array($escrow->status, ['held', 'disputed'], true)) {
+            throw new PaymentException(
+                "Escrow #{$escrow->id} cannot be refunded (current: {$escrow->status}).",
+                'ESCROW_NOT_REFUNDABLE',
+                409,
             );
+        }
 
-            $escrow->update(['status' => 'refunded', 'refunded_at' => now()]);
-        });
+        try {
+            DB::transaction(function () use ($escrow, $reason) {
+                // Refunding a disputed escrow settles the open dispute too, so a
+                // later admin resolution can never pay the seller as well.
+                if ($escrow->status === 'disputed') {
+                    $escrow->disputes()
+                        ->whereIn('status', ['open', 'under_review'])
+                        ->update([
+                            'status' => 'resolved_buyer',
+                            'resolved_at' => now(),
+                        ]);
+                }
+
+                $this->doRefund($escrow, $reason);
+            });
+        } catch (PaymentException $e) {
+            throw $e;
+        } catch (\Throwable $e) {
+            report($e);
+            throw new PaymentException(
+                "Escrow #{$escrow->id} could not be refunded: {$e->getMessage()}",
+                'ESCROW_REFUND_FAILED',
+                422,
+                previous: $e instanceof \Exception ? $e : null,
+            );
+        }
     }
 
+    /* ── Disputes ──────────────────────────────────────────────────────── */
+
     /**
-     * Resolve a dispute in the buyer's favour (refund + mark dispute resolved).
+     * Resolve a dispute: records the resolution on the dispute and moves the
+     * escrowed funds through the same release/refund primitives used
+     * everywhere else, so wallet balances can never diverge by resolution path.
+     *
+     * - resolved_buyer  -> refund the buyer (escrow refunded)
+     * - resolved_seller -> release to the seller (escrow released)
+     * - cancelled       -> return the escrow to `held`
+     *
+     * The escrow row is locked and must still be `disputed`, which (combined
+     * with the closing of open disputes on refund) prevents the same funds
+     * from being paid out twice by a refund followed by a resolution.
      */
-    public function resolveInFavourOfBuyer(Escrow $escrow, ?int $resolvedBy = null, ?string $note = null, ?int $disputeId = null): void
+    public function resolveDispute(Dispute $dispute, string $resolution, int $adminId, ?string $note = null): void
     {
-        $this->refund($escrow, $resolvedBy, $note);
-        if ($disputeId) {
-            $dispute = \App\Models\Dispute::find($disputeId);
-            if ($dispute) {
-                $dispute->update(['status' => 'resolved', 'resolution' => 'resolved_buyer', 'resolved_at' => now()]);
-            }
+        if (! in_array($resolution, ['resolved_buyer', 'resolved_seller', 'cancelled'], true)) {
+            throw new PaymentException(
+                "Invalid dispute resolution '{$resolution}'.",
+                'INVALID_DISPUTE_RESOLUTION',
+                422,
+            );
+        }
+
+        try {
+            DB::transaction(function () use ($dispute, $resolution, $adminId, $note) {
+                $escrow = Escrow::whereKey($dispute->escrow_id)->lockForUpdate()->firstOrFail();
+
+                if ($escrow->status !== 'disputed') {
+                    throw new PaymentException(
+                        "Escrow #{$escrow->id} is not disputed (current: {$escrow->status}).",
+                        'ESCROW_NOT_DISPUTED',
+                        409,
+                    );
+                }
+
+                $dispute->resolve($resolution, $adminId, $note);
+
+                if ($resolution === 'resolved_buyer') {
+                    $this->doRefund($escrow, "Dispute resolved in favour of buyer (dispute #{$dispute->id})");
+                } elseif ($resolution === 'resolved_seller') {
+                    $this->doRelease($escrow, "Dispute resolved in favour of seller (dispute #{$dispute->id})");
+                } else {
+                    $escrow->update(['status' => 'held']);
+                }
+            });
+        } catch (PaymentException $e) {
+            throw $e;
+        } catch (\Throwable $e) {
+            report($e);
+            throw new PaymentException(
+                "Dispute #{$dispute->id} could not be resolved: {$e->getMessage()}",
+                'DISPUTE_RESOLVE_FAILED',
+                422,
+                previous: $e instanceof \Exception ? $e : null,
+            );
         }
     }
 }

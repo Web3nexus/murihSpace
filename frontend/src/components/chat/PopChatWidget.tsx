@@ -22,7 +22,11 @@ import type { ChatMessage } from "@/types/chat";
 import { safeFormat } from "@/lib/date";
 import { EmojiPickerPopover } from "@/components/chat/EmojiPickerPopover";
 import { ChatMessageContent } from "@/components/chat/ChatMessageContent";
+import { VoiceMessagePlayer } from "@/components/chat/VoiceMessagePlayer";
 import { playMessageReceivedSound } from "@/lib/sound";
+import { UserAvatar } from "@/components/ui/avatar";
+import { Bubble, BubbleContent } from "@/components/ui/bubble";
+import { Message } from "@/components/ui/message";
 
 export function formatMessagePreview(msg?: { content?: string; type?: string; attachment_type?: string } | null): string {
   if (!msg || !msg.content) return "No messages yet";
@@ -330,18 +334,12 @@ export function PopChatWidget() {
           className="h-12 px-3.5 rounded-t-xl bg-card border border-b-0 border-border/80 shadow-2xl flex items-center gap-2.5 cursor-pointer hover:bg-muted/50 transition-all select-none min-w-[180px] max-w-[260px]"
         >
           {/* Avatar */}
-          <div className="relative flex-shrink-0">
-            <div className="w-7 h-7 rounded-md bg-primary/10 overflow-hidden flex items-center justify-center font-bold text-xs text-primary">
-              {activeRecipient?.avatar ? (
-                <img src={activeRecipient.avatar} alt="" className="w-full h-full object-cover" />
-              ) : (
-                activeRecipient?.name?.charAt(0) || <ChatTeardropText weight="fill" className="h-3.5 w-3.5" />
-              )}
-            </div>
-            {activeRecipient?.is_online && (
-              <span className="absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full bg-[#34C759] ring-1 ring-card" />
-            )}
-          </div>
+          <UserAvatar
+            name={activeRecipient?.name}
+            src={activeRecipient?.avatar}
+            size={28}
+            status={activeRecipient ? (activeRecipient.is_online ? "active" : "inactive") : undefined}
+          />
 
           <span className="text-xs font-bold text-foreground truncate flex-1">
             {activeRecipient?.name || "Chat"}
@@ -381,18 +379,13 @@ export function PopChatWidget() {
             <ArrowLeft className="h-4 w-4" />
           </button>
 
-          <div className="relative flex-shrink-0">
-            <div className="w-7 h-7 rounded-md bg-white/20 overflow-hidden flex items-center justify-center font-bold text-xs text-white">
-              {activeRecipient?.avatar ? (
-                <img src={activeRecipient.avatar} alt="" className="w-full h-full object-cover" />
-              ) : (
-                activeRecipient?.name?.charAt(0) || "C"
-              )}
-            </div>
-            {activeRecipient?.is_online && (
-              <span className="absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full bg-[#34C759] ring-1 ring-[#2164b6] shadow-xs" />
-            )}
-          </div>
+          <UserAvatar
+            name={activeRecipient?.name}
+            src={activeRecipient?.avatar}
+            size={28}
+            status={activeRecipient ? (activeRecipient.is_online ? "active" : "inactive") : undefined}
+            className="ring-1 ring-white/30"
+          />
 
           <div className="min-w-0">
             <h4 className="text-xs font-bold text-white truncate">
@@ -490,51 +483,62 @@ export function PopChatWidget() {
                   : "Call ended";
 
               return (
-                <div
+                <Message
                   key={msg.id || msg.client_uuid || i}
-                  className={`flex flex-col ${isMe ? "items-end" : "items-start"}`}
+                  align={isMe ? "end" : "start"}
+                  className="mb-2"
                 >
-                  <div
-                    className={`max-w-[85%] px-3 py-2 rounded-2xl text-xs leading-relaxed shadow-2xs break-words ${
-                      isCall
-                        ? isMissed
-                          ? "bg-red-500/10 text-red-400 border border-red-500/20"
-                          : "bg-card text-foreground border border-border/80"
-                        : isMe
-                        ? "bg-[#2164b6] text-white rounded-br-sm"
-                        : "bg-card text-foreground border border-border/70 rounded-bl-sm"
-                    }`}
+                  <Bubble
+                    variant={isMe ? "default" : "secondary"}
+                    align={isMe ? "end" : "start"}
+                    className="max-w-[78%] sm:max-w-[68%]"
                   >
-                    {isCall ? (
-                      <div className="flex items-center gap-2.5 py-0.5 min-w-[150px]">
-                        <div
-                          className={`p-2 rounded-full shrink-0 ${
-                            isMissed ? "bg-red-500/20 text-red-500" : "bg-emerald-500/20 text-emerald-400"
-                          }`}
-                        >
-                          {isVideo ? (
-                            <VideoCamera weight="fill" className="h-4 w-4" />
-                          ) : (
-                            <Phone weight="fill" className="h-4 w-4" />
-                          )}
+                    <BubbleContent
+                      className={`p-2.5 text-xs leading-relaxed wrap-break-word ${
+                        isCall
+                          ? isMissed
+                            ? "bg-red-500/10 text-red-400 border border-red-500/20 rounded-2xl"
+                            : "bg-card text-foreground border border-border/80 rounded-2xl"
+                          : isMe
+                          ? "bg-secondary text-secondary-foreground rounded-2xl rounded-br-xs shadow-2xs"
+                          : "bg-card text-foreground border border-border/70 rounded-2xl rounded-bl-xs shadow-2xs"
+                      }`}
+                    >
+                      {isCall ? (
+                        <div className="flex items-center gap-2.5 py-0.5 min-w-[150px]">
+                          <div
+                            className={`p-2 rounded-full shrink-0 ${
+                              isMissed ? "bg-red-500/20 text-red-500" : "bg-emerald-500/20 text-emerald-400"
+                            }`}
+                          >
+                            {isVideo ? (
+                              <VideoCamera weight="fill" className="h-4 w-4" />
+                            ) : (
+                              <Phone weight="fill" className="h-4 w-4" />
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className={`font-semibold text-xs truncate ${isMissed ? "text-red-400" : "text-foreground"}`}>
+                              {isMissed
+                                ? isVideo
+                                  ? "Missed Video Call"
+                                  : "Missed Voice Call"
+                                : isVideo
+                                ? "Video Call"
+                                : "Voice Call"}
+                            </p>
+                            <p className="text-[10px] text-muted-foreground">{durStr}</p>
+                          </div>
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <p className={`font-semibold text-xs truncate ${isMissed ? "text-red-400" : "text-foreground"}`}>
-                            {isMissed
-                              ? isVideo
-                                ? "Missed Video Call"
-                                : "Missed Voice Call"
-                              : isVideo
-                              ? "Video Call"
-                              : "Voice Call"}
-                          </p>
-                          <p className="text-[10px] text-muted-foreground">{durStr}</p>
+                      ) : msg.attachment_type === "voice" || msg.type === "voice" ? (
+                        <div className="px-0.5">
+                          <VoiceMessagePlayer src={msg.attachment_url} isMine={isMe} />
                         </div>
-                      </div>
-                    ) : (
-                      <ChatMessageContent content={msg.content} isMine={isMe} />
-                    )}
-                  </div>
+                      ) : (
+                        <ChatMessageContent content={msg.content} isMine={isMe} />
+                      )}
+                    </BubbleContent>
+                  </Bubble>
                   <span className="text-[9px] text-muted-foreground mt-0.5 px-1 flex items-center gap-1">
                     <span>
                       {msg.status === "pending" ? "Sending..." : safeFormat(msg.created_at, "h:mm a")}
@@ -555,7 +559,7 @@ export function PopChatWidget() {
                       )
                     )}
                   </span>
-                </div>
+                </Message>
               );
             })
           )}
@@ -567,27 +571,31 @@ export function PopChatWidget() {
           onSubmit={handleSendMessage}
           className="p-2.5 bg-card border-t border-border/70 flex items-center gap-2"
         >
-          <input
-            ref={inputRef}
-            type="text"
-            placeholder={`Message ${activeRecipient?.name || ""}...`}
-            value={inputText}
-            onChange={(e) => setInputText(e.target.value)}
-            onKeyDown={handleKeyDown}
-            disabled={sending}
-            className="flex-1 h-9 px-3 text-xs rounded-lg bg-muted/60 border border-border/60 outline-none focus:ring-1 focus:ring-[#2164b6] focus:bg-background transition-all"
-          />
-          <EmojiPickerPopover
-            onSelect={(emoji) => setInputText((prev) => prev + emoji)}
-            align="right"
-            buttonClassName="h-9 w-9 rounded-lg"
-          />
+          <div className="flex-1 relative rounded-full bg-muted/60 border-0">
+            <input
+              ref={inputRef}
+              type="text"
+              placeholder={`Message ${activeRecipient?.name || ""}...`}
+              value={inputText}
+              onChange={(e) => setInputText(e.target.value)}
+              onKeyDown={handleKeyDown}
+              disabled={sending}
+              className="w-full pl-3 pr-9 py-1.5 text-xs rounded-full bg-transparent outline-none placeholder:text-muted-foreground/60 transition-all"
+            />
+            <div className="absolute right-1 top-1/2 -translate-y-1/2">
+              <EmojiPickerPopover
+                onSelect={(emoji) => setInputText((prev) => prev + emoji)}
+                align="right"
+                buttonClassName="h-7 w-7 rounded-full"
+              />
+            </div>
+          </div>
           <button
             type="submit"
             disabled={!inputText.trim() || sending}
-            className="h-9 w-9 rounded-lg bg-[#2164b6] text-white flex items-center justify-center disabled:opacity-40 hover:bg-[#1a5091] active:scale-95 transition-all flex-shrink-0"
+            className="h-8 w-8 rounded-full bg-[#2164b6] text-white flex items-center justify-center disabled:opacity-40 hover:bg-[#1a5091] active:scale-95 transition-all flex-shrink-0"
           >
-            <PaperPlaneRight weight="fill" className="h-4 w-4" />
+            <PaperPlaneRight weight="fill" className="h-3.5 w-3.5" />
           </button>
         </form>
       </div>

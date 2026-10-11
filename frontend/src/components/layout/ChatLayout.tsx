@@ -17,7 +17,6 @@ import {
   Paperclip as Paperclip,
   Check as CheckIcon,
   Checks as CheckCheck,
-  User as UserIcon,
   ChatCircleDots as ChatBubble,
   Storefront as Storefront,
   UserPlus as UserPlus,
@@ -32,10 +31,11 @@ import {
 } from "@phosphor-icons/react";
 import { toast } from 'sonner';
 import { safeFormatDistanceToNow, safeFormat } from '@/lib/date';
-import { extractMessages } from '@/lib/chatMessages';
+import { extractMessages, messagePreview } from '@/lib/chatMessages';
 import { refreshUnreadCount } from '@/lib/chatUnread';
 import type { ConversationItem, ChatMessage, MessageStatus, MessageReaction } from '@/types/chat';
 import { ReplyPreviewBar } from '@/components/chat/ReplyPreviewBar';
+import { EmojiPickerPopover } from '@/components/chat/EmojiPickerPopover';
 import { MessageReactions } from '@/components/chat/MessageReactions';
 import { StoriesCarousel, type StoryUser } from '../chat/StoriesCarousel';
 import { StoryCreateModal } from '../story/StoryCreateModal';
@@ -50,6 +50,14 @@ import {
   Plus as Plus,
   VideoCamera as Video
 } from "@phosphor-icons/react";
+import {
+  Microphone as Mic,
+  Stop as StopIcon,
+} from "@phosphor-icons/react";
+import { UserAvatar } from '@/components/ui/avatar';
+import { Bubble, BubbleContent } from '@/components/ui/bubble';
+import { Message, MessageAvatar } from '@/components/ui/message';
+import { VoiceMessagePlayer } from '@/components/chat/VoiceMessagePlayer';
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? 'http://localhost:8000/api/v1';
 
@@ -73,15 +81,6 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
     throw new Error(err.message ?? `HTTP ${res.status}`);
   }
   return res.json();
-}
-
-function Avatar({ name, src, size = 36 }: { name?: string; src?: string; size?: number }) {
-  if (src) return <img src={src} alt={name} style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />;
-  return (
-    <div className="flex items-center justify-center rounded-full bg-gradient-to-br from-primary to-secondary text-white shrink-0" style={{ width: size, height: size }}>
-      <UserIcon weight="fill" className="text-white/90" style={{ width: size * 0.55, height: size * 0.55 }} />
-    </div>
-  );
 }
 
 const QUICK_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🔥'];
@@ -115,6 +114,14 @@ export function ChatLayout() {
   const [isMuted, setIsMuted] = useState(false);
   const [isArchived, setIsArchived] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [isSendingVoice, setIsSendingVoice] = useState(false);
+  const [recordingSeconds, setRecordingSeconds] = useState(0);
+  const recorderRef = useRef<MediaRecorder | null>(null);
+  const recorderStreamRef = useRef<MediaStream | null>(null);
+  const recorderChunksRef = useRef<BlobPart[]>([]);
+  const recorderSendRef = useRef(false);
+  const recorderTickRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [isNewModalOpen, setIsNewModalOpen] = useState(false);
   const { startCall: initiateGlobalCall } = useCall();
 
@@ -140,6 +147,10 @@ export function ChatLayout() {
   const [editingMsg, setEditingMsg] = useState<ChatMessage | null>(null);
   const [editDraft, setEditDraft] = useState('');
   const [isSavingEdit, setIsSavingEdit] = useState(false);
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
+  const [isDeletingSelected, setIsDeletingSelected] = useState(false);
+  const [showProtectedNotice, setShowProtectedNotice] = useState(false);
   const editInputRef = useRef<HTMLTextAreaElement | null>(null);
   const dragStartRef = useRef<{ id?: number; x: number; dragged?: boolean } | null>(null);
 
@@ -336,6 +347,14 @@ export function ChatLayout() {
       // An edit that happens while this client has the row open must not overwrite the draft.
       setEditingMsg((prev) => (prev?.id === data.id ? null : prev));
     }, [currentUserId]),
+    onMessageDeleted: useCallback((data) => {
+      setMessages((prev) => prev.filter((m) => m.id !== data.id));
+      setConversations((prev) => prev.map((c) =>
+        c.id === data.conversation_id && c.latest_message?.id === data.id
+          ? { ...c, latest_message: { ...c.latest_message!, content: 'This message was deleted', type: 'deleted' } }
+          : c,
+      ));
+    }, []),
   });
 
   useEffect(() => {
@@ -564,6 +583,119 @@ export function ChatLayout() {
     }
   };
 
+  const stopRecordingTracks = () => {
+    recorderStreamRef.current?.getTracks().forEach((t) => t.stop());
+    recorderStreamRef.current = null;
+    if (recorderTickRef.current) {
+      clearInterval(recorderTickRef.current);
+      recorderTickRef.current = null;
+    }
+  };
+
+  const sendVoiceBlob = async (blob: Blob) => {
+    if (!activeConv || !recorderSendRef.current) return;
+    setIsSendingVoice(true);
+    try {
+      const token = getToken();
+      const formData = new FormData();
+      const ext = blob.type.includes('ogg') ? 'ogg' : blob.type.includes('webm') ? 'webm' : 'm4a';
+      formData.append('file', blob, `voice-${Date.now()}.${ext}`);
+
+      const res = await fetch(`${API_BASE}/messages/attachments`, {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: formData,
+      });
+
+      if (!res.ok) throw new Error('Upload failed');
+      const json = await res.json();
+      const { attachment_url, attachment_type } = json.data;
+
+      const clientUuid = crypto.randomUUID ? crypto.randomUUID() : `uuid-${Date.now()}`;
+      const draft: ChatMessage = {
+        conversation_id: activeConv.id,
+        user_id: currentUserId ?? 0,
+        content: '',
+        type: (attachment_type || 'voice') as ChatMessage['type'],
+        client_uuid: clientUuid,
+        status: 'pending',
+        attachment_url,
+        attachment_type: (attachment_type || 'voice') as ChatMessage['attachment_type'],
+        created_at: new Date().toISOString(),
+        user: { id: currentUserId ?? 0, name: currentUserName, username: (user as any)?.username ?? 'you', avatar_url: currentUserAvatar },
+      };
+      setMessages((prev) => [...prev, draft]);
+      await executeSendMessage(draft);
+    } catch (err) {
+      console.error('Failed to send voice message', err);
+      toast.error('Could not send voice message');
+    } finally {
+      setIsSendingVoice(false);
+    }
+  };
+
+  const stopVoiceRecording = async (send: boolean) => {
+    const rec = recorderRef.current;
+    recorderSendRef.current = send;
+    if (!rec || rec.state === 'inactive') return;
+    const onStop = () => {
+      const blob = new Blob(recorderChunksRef.current, { type: rec.mimeType || 'audio/webm' });
+      sendVoiceBlob(blob);
+    };
+    rec.onstop = () => { onStop(); };
+    rec.stop();
+    stopRecordingTracks();
+    recorderRef.current = null;
+    recorderChunksRef.current = [];
+    setIsRecording(false);
+    setRecordingSeconds(0);
+  };
+
+  const cancelVoiceRecording = async () => {
+    const rec = recorderRef.current;
+    recorderSendRef.current = false;
+    if (!rec || rec.state === 'inactive') return;
+    rec.onstop = () => {};
+    rec.stop();
+    stopRecordingTracks();
+    recorderRef.current = null;
+    recorderChunksRef.current = [];
+    setIsRecording(false);
+    setRecordingSeconds(0);
+  };
+
+  const startVoiceRecording = async () => {
+    if (!activeConv) return;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mimeType = ['audio/webm;codecs=opus', 'audio/ogg;codecs=opus', 'audio/mp4'].find((m) =>
+        typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported(m),
+      );
+      const rec = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+      recorderChunksRef.current = [];
+      rec.ondataavailable = (e) => { if (e.data.size > 0) recorderChunksRef.current.push(e.data); };
+      rec.start();
+      recorderRef.current = rec;
+      recorderStreamRef.current = stream;
+      recorderSendRef.current = true;
+      setIsRecording(true);
+      setRecordingSeconds(0);
+      recorderTickRef.current = setInterval(() => {
+        setRecordingSeconds((s) => s + 1);
+      }, 1000);
+    } catch (err) {
+      console.error('Mic permission denied', err);
+      toast.error('Microphone access is required to record a voice message');
+    }
+  };
+
+  useEffect(() => () => {
+    stopRecordingTracks();
+  }, []);
+
   const handleToggleSetting = async (key: 'is_muted' | 'is_archived') => {
     if (!activeConv) return;
     const newVal = key === 'is_muted' ? !isMuted : !isArchived;
@@ -596,7 +728,17 @@ export function ChatLayout() {
     try { await navigator.clipboard.writeText(msg.content ?? ''); } catch (e) { console.error('Failed to copy message', e); }
   };
 
+  const messageKey = (msg: ChatMessage) => String(msg.client_uuid ?? msg.id ?? '');
+
+  const isProtectedConversation = (conv: ConversationItem | null) =>
+    !!conv && (conv.has_active_escrow === true || conv.type === 'marketplace');
+
   const deleteMessage = async (msg: ChatMessage, mode: 'me' | 'everyone') => {
+    if (isProtectedConversation(activeConv)) {
+      setShowProtectedNotice(true);
+      return;
+    }
+    if (!msg.id) return;
     try {
       await apiFetch(`/conversations/${msg.conversation_id}/messages/${msg.id}`, {
         method: 'DELETE',
@@ -604,6 +746,64 @@ export function ChatLayout() {
       });
       setMessages((prev) => prev.filter((m) => m.id !== msg.id && m.client_uuid !== msg.client_uuid));
     } catch (e) { console.error('Failed to delete message', e); }
+  };
+
+  const enterSelectionMode = (msg?: ChatMessage) => {
+    setSelectionMode(true);
+    setSelectedKeys(msg ? new Set([messageKey(msg)]) : new Set());
+    setActionMenu(null);
+    setEmojiMenu(null);
+  };
+
+  const exitSelectionMode = () => {
+    setSelectionMode(false);
+    setSelectedKeys(new Set());
+  };
+
+  const toggleSelected = (msg: ChatMessage) => {
+    setSelectedKeys((prev) => {
+      const next = new Set(prev);
+      const key = messageKey(msg);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
+  const selectAllMessages = () =>
+    setSelectedKeys(new Set(messages.filter((m) => m.id).map(messageKey)));
+
+  const deleteSelectedMessages = async () => {
+    if (!activeConv) return;
+    if (isProtectedConversation(activeConv)) {
+      setShowProtectedNotice(true);
+      return;
+    }
+    const targets = messages.filter((m) => selectedKeys.has(messageKey(m)) && m.id);
+    if (targets.length === 0) return;
+    setIsDeletingSelected(true);
+    const deletedKeys = new Set<string>();
+    let failed = 0;
+    await Promise.all(targets.map(async (m) => {
+      try {
+        await apiFetch(`/conversations/${m.conversation_id}/messages/${m.id}`, {
+          method: 'DELETE',
+          body: JSON.stringify({ mode: 'me' }),
+        });
+        deletedKeys.add(messageKey(m));
+      } catch (e) {
+        failed += 1;
+        console.error('Failed to delete message', e);
+      }
+    }));
+    if (deletedKeys.size > 0) {
+      setMessages((prev) => prev.filter((m) => !deletedKeys.has(messageKey(m))));
+    }
+    setIsDeletingSelected(false);
+    exitSelectionMode();
+    if (failed > 0) {
+      toast.error(`${failed} message${failed === 1 ? '' : 's'} could not be deleted.`);
+    }
   };
 
   const startEditing = (msg: ChatMessage) => {
@@ -782,12 +982,12 @@ export function ChatLayout() {
                 {c.type === 'saved' ? <div className="h-9 w-9 rounded-full bg-amber-500/20 text-amber-500 flex items-center justify-center shrink-0"><Bookmark weight="fill" className="h-4 w-4" /></div>
                   : c.type === 'community' ? <div className="h-9 w-9 rounded-full bg-secondary/20 text-secondary flex items-center justify-center shrink-0"><Users weight="fill" className="h-4 w-4" /></div>
                   : (
-                    <div className="relative shrink-0">
-                      <Avatar name={c.other_user?.name ?? title} src={c.other_user?.avatar_url} size={36} />
-                      {c.other_user?.is_online && (
-                        <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-[#34C759] border-2 border-background shadow-xs ring-1 ring-[#34C759]/30" />
-                      )}
-                    </div>
+                    <UserAvatar
+                      name={c.other_user?.name ?? title}
+                      src={c.other_user?.avatar_url}
+                      size={36}
+                      status={c.other_user ? (c.other_user.is_online ? 'active' : 'inactive') : undefined}
+                    />
                   )}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between">
@@ -829,12 +1029,12 @@ export function ChatLayout() {
                 {activeConv.type === 'saved' ? <div className="h-9 w-9 rounded-full bg-amber-500/20 text-amber-500 flex items-center justify-center shrink-0"><Bookmark weight="fill" className="h-4 w-4" /></div>
                   : activeConv.type === 'community' ? <div className="h-9 w-9 rounded-full bg-secondary/20 text-secondary flex items-center justify-center shrink-0"><Users weight="fill" className="h-4 w-4" /></div>
                   : (
-                    <div className="relative shrink-0">
-                      <Avatar name={activeConv.other_user?.name ?? activeConv.title ?? 'Conversation'} src={activeConv.other_user?.avatar_url} size={36} />
-                      {activeConv.other_user?.is_online && (
-                        <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-[#34C759] border-2 border-background shadow-xs ring-1 ring-[#34C759]/30" />
-                      )}
-                    </div>
+                    <UserAvatar
+                      name={activeConv.other_user?.name ?? activeConv.title ?? 'Conversation'}
+                      src={activeConv.other_user?.avatar_url}
+                      size={36}
+                      status={activeConv.other_user ? (activeConv.other_user.is_online ? 'active' : 'inactive') : undefined}
+                    />
                   )}
                 <div>
                   <h3 className="text-xs sm:text-sm font-extrabold text-foreground flex items-center gap-1.5">
@@ -895,6 +1095,40 @@ export function ChatLayout() {
               </div>
             </div>
 
+            {/* Selection toolbar */}
+            {selectionMode && (
+              <div className="px-4 py-2.5 border-b border-border bg-secondary/10 flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={exitSelectionMode}
+                  className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground"
+                  title="Cancel selection"
+                >
+                  <X weight="bold" className="h-4 w-4" />
+                </button>
+                <span className="text-xs font-extrabold text-foreground">
+                  {selectedKeys.size} selected
+                </span>
+                <div className="flex-1" />
+                <button
+                  type="button"
+                  onClick={selectAllMessages}
+                  className="px-2.5 py-1 rounded-lg text-xs font-bold text-secondary hover:bg-secondary/15 transition-colors"
+                >
+                  Select all
+                </button>
+                <button
+                  type="button"
+                  onClick={deleteSelectedMessages}
+                  disabled={selectedKeys.size === 0 || isDeletingSelected}
+                  className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-red-500 text-white text-xs font-extrabold hover:bg-red-600 disabled:opacity-40 transition-colors"
+                >
+                  {isDeletingSelected ? <Loader2 weight="fill" className="h-3.5 w-3.5 animate-spin" /> : <Trash weight="fill" className="h-3.5 w-3.5" />}
+                  Delete
+                </button>
+              </div>
+            )}
+
             {/* Message Stream */}
             <ChatPatternSurface>
               <div className="h-full overflow-y-auto p-4 space-y-1 bg-muted/10">
@@ -909,13 +1143,37 @@ export function ChatLayout() {
                 const isEditing = editingMsg?.id === msg.id && msg.id !== undefined;
 
                 return (
-                  <div key={msg.client_uuid || msg.id} className={`group flex items-end gap-2 ${isMine ? 'justify-end' : 'justify-start'} mb-1`}>
-                    {!isMine && <Avatar name={msg.user?.name} src={msg.user?.avatar_url} size={28} />}
+                  <Message
+                    key={msg.client_uuid || msg.id}
+                    align={isMine ? "end" : "start"}
+                    className={`group mb-2 items-end gap-2 ${selectionMode && selectedKeys.has(messageKey(msg)) ? 'bg-secondary/10 rounded-lg p-1' : ''}`}
+                  >
+                    {selectionMode && (
+                      <button
+                        type="button"
+                        onClick={() => toggleSelected(msg)}
+                        aria-label={selectedKeys.has(messageKey(msg)) ? 'Deselect message' : 'Select message'}
+                        className={`shrink-0 mb-1 h-5 w-5 rounded-full border-2 flex items-center justify-center transition-colors ${selectedKeys.has(messageKey(msg)) ? 'bg-secondary border-secondary text-secondary-foreground' : 'border-muted-foreground/40 text-transparent hover:border-secondary'}`}
+                      >
+                        <CheckIcon weight="bold" className="h-3 w-3" />
+                      </button>
+                    )}
+                    {!isMine && (
+                      <MessageAvatar className="mb-0.5">
+                        <UserAvatar
+                          name={msg.user?.name}
+                          src={msg.user?.avatar_url}
+                          size={28}
+                          status={msg.user?.is_online ? "active" : undefined}
+                        />
+                      </MessageAvatar>
+                    )}
 
                     <div
-                      className={`max-w-[75%] sm:max-w-[65%] space-y-1 cursor-default ${dragStartRef.current?.id === msg.id ? 'opacity-80' : ''}`}
-                      onPointerDown={(e) => { dragStartRef.current = { id: msg.id, x: e.clientX }; }}
+                      className={`max-w-[78%] sm:max-w-[68%] space-y-1 cursor-default ${dragStartRef.current?.id === msg.id ? 'opacity-80' : ''}`}
+                      onPointerDown={(e) => { if (!selectionMode) dragStartRef.current = { id: msg.id, x: e.clientX }; }}
                       onPointerUp={(e) => {
+                        if (selectionMode) return;
                         const drag = dragStartRef.current;
                         if (drag && drag.id === msg.id) {
                           const dx = e.clientX - drag.x;
@@ -926,11 +1184,13 @@ export function ChatLayout() {
                       onPointerLeave={() => { if (dragStartRef.current?.id === msg.id) dragStartRef.current = null; }}
                       onClick={(e) => {
                         if ((e.target as HTMLElement).closest('button')) return;
+                        if (selectionMode) { toggleSelected(msg); return; }
                         if (dragStartRef.current?.dragged) return;
                         setEmojiMenu({ msg, x: Math.min(e.clientX, window.innerWidth - 150), y: e.clientY });
                       }}
                       onContextMenu={(e) => {
                         e.preventDefault();
+                        if (selectionMode) { toggleSelected(msg); return; }
                         setActionMenu({ msg, x: Math.min(e.clientX, window.innerWidth - 190), y: e.clientY });
                       }}
                     >
@@ -938,7 +1198,7 @@ export function ChatLayout() {
                       {msg.reply_to && (
                         <div className={`px-2.5 py-1.5 rounded-lg text-[10px] border-l-2 border-secondary bg-secondary/10 text-muted-foreground ${isMine ? 'ml-auto' : ''}`}>
                           <span className="font-bold text-secondary">{msg.reply_to.user?.name ?? 'User'}</span>
-                          <p className="truncate">{msg.reply_to.content?.slice(0, 60)}</p>
+                          <p className="truncate">{messagePreview(msg.reply_to)}</p>
                         </div>
                       )}
 
@@ -984,103 +1244,128 @@ export function ChatLayout() {
                           </div>
                         </div>
                       ) : (
-                      <div className={`p-3 rounded-lg text-xs space-y-1 ${isMine ? (isFailed ? 'bg-destructive/15 border border-destructive/40 text-foreground rounded-br-none' : isPending ? 'bg-secondary/70 text-secondary-foreground rounded-br-none opacity-85 ' : 'bg-secondary text-secondary-foreground rounded-br-none ') : 'bg-card border-none text-foreground rounded-bl-none '}`}>
-                        {!isMine && msg.user?.name && <span className="block text-[10px] font-bold text-secondary">{msg.user.name}</span>}
+                      <Bubble
+                        variant={isFailed ? "destructive" : isMine ? "default" : "secondary"}
+                        align={isMine ? "end" : "start"}
+                        className={`relative max-w-full ${isMine && !isFailed ? (isPending ? 'opacity-85' : '') : ''}`}
+                      >
+                        <BubbleContent
+                          className={`p-3 text-xs leading-relaxed space-y-1 ${
+                            isMine
+                              ? isFailed
+                                ? 'bg-destructive/15 border border-destructive/40 text-foreground rounded-2xl rounded-br-xs'
+                                : isPending
+                                ? 'bg-secondary/75 text-secondary-foreground rounded-2xl rounded-br-xs shadow-2xs'
+                                : 'bg-secondary text-secondary-foreground rounded-2xl rounded-br-xs shadow-2xs'
+                              : 'bg-card text-foreground border border-border/60 rounded-2xl rounded-bl-xs shadow-2xs'
+                          }`}
+                        >
+                          {!isMine && msg.user?.name && <span className="block text-[10px] font-bold text-secondary">{msg.user.name}</span>}
 
-                        {/* Attachment */}
-                        {msg.attachment_url && (
-                          msg.attachment_type === 'image'
-                            ? <img src={msg.attachment_url} alt="attachment" className="max-w-full rounded-lg max-h-48 object-cover mb-1" />
-                            : <a href={msg.attachment_url} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-xs font-semibold underline"><Paperclip weight="fill" className="h-3.5 w-3.5" /> Attachment</a>
-                        )}
-
-                        {/* Call Message Card */}
-                        {msg.type === 'call' || (typeof msg.content === 'string' && (msg.content.trim().startsWith('{"call_id"') || (msg.content.trim().startsWith('{') && msg.content.includes('"call_id"')))) ? (() => {
-                          let callData: any = {};
-                          try {
-                            callData = JSON.parse(msg.content);
-                          } catch {
-                            callData = { status: 'ended', call_type: 'audio', duration: 0 };
-                          }
-                          const isVideo = callData.call_type === 'video';
-                          const isMissed = callData.status === 'missed' || callData.status === 'declined';
-                          const dur = Number(callData.duration) || 0;
-                          const durStr = dur > 0
-                            ? `${Math.floor(dur / 60)}m ${dur % 60}s`
-                            : (isMissed ? (callData.status === 'declined' ? 'Call declined' : 'Missed call') : 'Call ended');
-
-                          return (
-                            <div className="flex items-center gap-3 py-1 min-w-[200px]">
-                              <div className={`p-2 rounded-full shrink-0 ${isMissed ? 'bg-red-500/20 text-red-500' : 'bg-emerald-500/20 text-emerald-400'}`}>
-                                {isVideo ? <VideoCamera weight="fill" className="h-4 w-4" /> : <Phone weight="fill" className="h-4 w-4" />}
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <p className={`font-semibold text-xs truncate ${isMissed ? 'text-red-400' : ''}`}>
-                                  {isMissed ? (isVideo ? 'Missed Video Call' : 'Missed Voice Call') : (isVideo ? 'Video Call' : 'Voice Call')}
-                                </p>
-                                <p className="text-[10px] opacity-75">{durStr}</p>
-                              </div>
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  startCall(isVideo ? 'video' : 'audio');
-                                }}
-                                className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-primary text-primary-foreground hover:opacity-90 transition-opacity shrink-0"
-                              >
-                                Call
-                              </button>
-                            </div>
-                          );
-                        })() : (
-                          <p className="leading-relaxed whitespace-pre-wrap break-words font-normal">{msg.content}</p>
-                        )}
-
-                        <div className="flex items-center justify-end gap-1 text-[9px] opacity-80 pt-0.5">
-                          {msg.edited_at && (
-                            <span title={`Edited ${safeFormat(msg.edited_at, 'h:mm a')}`} className="italic">
-                              edited
-                            </span>
+                          {/* Attachment */}
+                          {msg.attachment_url && (
+                            msg.attachment_type === 'image'
+                              ? <img src={msg.attachment_url} alt="attachment" className="max-w-full rounded-lg max-h-48 object-cover mb-1" />
+                              : msg.attachment_type === 'voice'
+                              ? <div className="mb-1"><VoiceMessagePlayer src={msg.attachment_url} isMine={isMine} /></div>
+                              : <a href={msg.attachment_url} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-xs font-semibold underline"><Paperclip weight="fill" className="h-3.5 w-3.5" /> Attachment</a>
                           )}
-                          <span>{safeFormat(msg.created_at, 'h:mm a')}</span>
-                          {isMine && (
-                            isPending ? (
-                              <Loader2 weight="fill" className="h-2.5 w-2.5 animate-spin" />
-                            ) : isFailed ? (
-                              <AlertCircle weight="fill" className="h-2.5 w-2.5 text-destructive" />
-                            ) : msg.status === 'read' ? (
-                              <span title="Read" className="inline-flex items-center text-[#34C759] dark:text-[#30D158]">
-                                <CheckCheck weight="bold" className="h-3.5 w-3.5" />
-                              </span>
-                            ) : msg.status === 'delivered' ? (
-                              <span title="Delivered" className="inline-flex items-center opacity-85 text-foreground/80">
-                                <CheckCheck weight="bold" className="h-3.5 w-3.5" />
-                              </span>
-                            ) : (
-                              <span title="Sent" className="inline-flex items-center opacity-85 text-foreground/80">
-                                <CheckIcon weight="bold" className="h-3.5 w-3.5" />
-                              </span>
-                            )
-                          )}
-                        </div>
 
-                        {isFailed && (
-                          <button onClick={() => executeSendMessage(msg)} className="mt-1 flex items-center gap-1 text-[10px] font-extrabold text-destructive hover:underline">
-                            <RotateCcw weight="fill" className="h-3 w-3" /> Retry sending
-                          </button>
-                        )}
-                      </div>
+                          {/* Call Message Card */}
+                          {msg.type === 'call' || (typeof msg.content === 'string' && (msg.content.trim().startsWith('{"call_id"') || (msg.content.trim().startsWith('{') && msg.content.includes('"call_id"')))) ? (() => {
+                            let callData: any = {};
+                            try {
+                              callData = JSON.parse(msg.content);
+                            } catch {
+                              callData = { status: 'ended', call_type: 'audio', duration: 0 };
+                            }
+                            const isVideo = callData.call_type === 'video';
+                            const isMissed = callData.status === 'missed' || callData.status === 'declined';
+                            const dur = Number(callData.duration) || 0;
+                            const durStr = dur > 0
+                              ? `${Math.floor(dur / 60)}m ${dur % 60}s`
+                              : (isMissed ? (callData.status === 'declined' ? 'Call declined' : 'Missed call') : 'Call ended');
+
+                            return (
+                              <div className="flex items-center gap-3 py-1 min-w-[200px]">
+                                <div className={`p-2 rounded-full shrink-0 ${isMissed ? 'bg-red-500/20 text-red-500' : 'bg-emerald-500/20 text-emerald-400'}`}>
+                                  {isVideo ? <VideoCamera weight="fill" className="h-4 w-4" /> : <Phone weight="fill" className="h-4 w-4" />}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className={`font-semibold text-xs truncate ${isMissed ? 'text-red-400' : ''}`}>
+                                    {isMissed ? (isVideo ? 'Missed Video Call' : 'Missed Voice Call') : (isVideo ? 'Video Call' : 'Voice Call')}
+                                  </p>
+                                  <p className="text-[10px] opacity-75">{durStr}</p>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    startCall(isVideo ? 'video' : 'audio');
+                                  }}
+                                  className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-primary text-primary-foreground hover:opacity-90 transition-opacity shrink-0"
+                                >
+                                  Call
+                                </button>
+                              </div>
+                            );
+                          })() : (
+                            <p className="leading-relaxed whitespace-pre-wrap break-words font-normal">{msg.content}</p>
+                          )}
+
+                          <div className="flex items-center justify-end gap-1 text-[9px] opacity-80 pt-0.5">
+                            {msg.edited_at && (
+                              <span title={`Edited ${safeFormat(msg.edited_at, 'h:mm a')}`} className="italic">
+                                edited
+                              </span>
+                            )}
+                            <span>{safeFormat(msg.created_at, 'h:mm a')}</span>
+                            {isMine && (
+                              isPending ? (
+                                <Loader2 weight="fill" className="h-2.5 w-2.5 animate-spin" />
+                              ) : isFailed ? (
+                                <AlertCircle weight="fill" className="h-2.5 w-2.5 text-destructive" />
+                              ) : msg.status === 'read' ? (
+                                <span title="Read" className="inline-flex items-center text-[#34C759] dark:text-[#30D158]">
+                                  <CheckCheck weight="bold" className="h-3.5 w-3.5" />
+                                </span>
+                              ) : msg.status === 'delivered' ? (
+                                <span title="Delivered" className="inline-flex items-center opacity-85 text-foreground/80">
+                                  <CheckCheck weight="bold" className="h-3.5 w-3.5" />
+                                </span>
+                              ) : (
+                                <span title="Sent" className="inline-flex items-center opacity-85 text-foreground/80">
+                                  <CheckIcon weight="bold" className="h-3.5 w-3.5" />
+                                </span>
+                              )
+                            )}
+                          </div>
+
+                          {isFailed && (
+                            <button onClick={() => executeSendMessage(msg)} className="mt-1 flex items-center gap-1 text-[10px] font-extrabold text-destructive hover:underline">
+                              <RotateCcw weight="fill" className="h-3 w-3" /> Retry sending
+                            </button>
+                          )}
+                        </BubbleContent>
+                      </Bubble>
                       )}
 
-                      {/* Reactions */}
+                      {/* Reactions with BubbleReactions */}
                       {msg.id && (
                         <div className={`px-1 ${isMine ? 'flex justify-end' : ''}`}>
-                          <MessageReactions messageId={msg.id} reactions={msg.reactions ?? []} onReactionToggle={handleReactionToggle} />
+                          <MessageReactions
+                            messageId={msg.id}
+                            reactions={msg.reactions ?? []}
+                            onReactionToggle={handleReactionToggle}
+                            align={isMine ? 'end' : 'start'}
+                            useBubbleReactions={Boolean(msg.reactions && msg.reactions.length > 0)}
+                          />
                         </div>
                       )}
                     </div>
 
                     {/* Action buttons (show on hover) */}
+                    {!selectionMode && (
                     <button
                       onClick={() => setReplyingTo(msg)}
                       className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground shrink-0 mb-1"
@@ -1088,6 +1373,8 @@ export function ChatLayout() {
                     >
                       <Reply weight="fill" className="h-3.5 w-3.5" />
                     </button>
+                    )}
+                    {!selectionMode && (
                     <button
                       onClick={(e) => {
                         const r = e.currentTarget.getBoundingClientRect();
@@ -1100,7 +1387,8 @@ export function ChatLayout() {
                     >
                       <MoreVertical weight="fill" className="h-3.5 w-3.5" />
                     </button>
-                  </div>
+                    )}
+                  </Message>
                 );
               })}
 
@@ -1129,10 +1417,10 @@ export function ChatLayout() {
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploading}
-                className="p-2 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors shrink-0 disabled:opacity-50"
+                className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors shrink-0 disabled:opacity-50"
                 title="Attach file"
               >
-                {uploading ? <Loader2 weight="fill" className="h-4 w-4 animate-spin" /> : <Paperclip weight="fill" className="h-4 w-4" />}
+                {uploading ? <Loader2 weight="fill" className="h-3.5 w-3.5 animate-spin" /> : <Paperclip weight="fill" className="h-3.5 w-3.5" />}
               </button>
               <input
                 ref={fileInputRef}
@@ -1142,16 +1430,66 @@ export function ChatLayout() {
                 onChange={handleFileUpload}
               />
 
-              <input
-                type="text"
-                value={inputContent}
-                onChange={(e) => { setInputContent(e.target.value); handleTypingDebounced(); }}
-                placeholder={`Message ${activeConv.title || activeConv.other_user?.name || '…'}…`}
-                className="flex-1 px-4 py-2.5 text-xs rounded-lg bg-muted border-0 outline-none focus:ring-1 focus:ring-secondary placeholder:text-muted-foreground"
-              />
-              <button type="submit" disabled={!inputContent.trim() || uploading} className="p-2.5 rounded-lg bg-secondary text-secondary-foreground font-bold hover:bg-secondary/90 disabled:opacity-50 transition-all shrink-0 ">
-                <Send weight="fill" className="h-4 w-4" />
-              </button>
+              {isRecording ? (
+                <>
+                  <div className="flex-1 flex items-center gap-2 rounded-full bg-destructive/10 border border-destructive/20 px-3 py-1.5 min-w-0">
+                    <span className="h-2.5 w-2.5 rounded-full bg-destructive animate-pulse shrink-0" aria-hidden="true" />
+                    <span className="text-xs font-bold text-destructive tabular-nums shrink-0">
+                      {Math.floor(recordingSeconds / 60)}:{String(recordingSeconds % 60).padStart(2, '0')}
+                    </span>
+                    <span className="text-[10px] text-muted-foreground truncate hidden sm:inline">Recording voice message…</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={cancelVoiceRecording}
+                    disabled={isSendingVoice}
+                    className="p-1.5 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors shrink-0"
+                    title="Cancel recording"
+                  >
+                    <X weight="bold" className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => stopVoiceRecording(true)}
+                    disabled={isSendingVoice}
+                    className="p-1.5 rounded-full bg-secondary text-secondary-foreground font-bold hover:bg-secondary/90 disabled:opacity-50 transition-all shrink-0 flex items-center justify-center h-8 w-8"
+                    title="Send voice message"
+                  >
+                    {isSendingVoice ? <Loader2 weight="fill" className="h-3.5 w-3.5 animate-spin" /> : <StopIcon weight="fill" className="h-3.5 w-3.5" />}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <div className="flex-1 relative rounded-full bg-muted border-0">
+                    <input
+                      type="text"
+                      value={inputContent}
+                      onChange={(e) => { setInputContent(e.target.value); handleTypingDebounced(); }}
+                      placeholder={`Message ${activeConv.title || activeConv.other_user?.name || '…'}…`}
+                      className="w-full pl-3 pr-9 py-1.5 text-xs rounded-full bg-transparent outline-none placeholder:text-muted-foreground"
+                    />
+                    <div className="absolute right-1 top-1/2 -translate-y-1/2">
+                      <EmojiPickerPopover
+                        onSelect={(emoji) => setInputContent((prev) => prev + emoji)}
+                        align="left"
+                        buttonClassName="h-7 w-7 rounded-full"
+                      />
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={startVoiceRecording}
+                    disabled={uploading}
+                    className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors shrink-0 disabled:opacity-50"
+                    title="Record voice message"
+                  >
+                    <Mic weight="fill" className="h-3.5 w-3.5" />
+                  </button>
+                  <button type="submit" disabled={!inputContent.trim() || uploading} className="p-1.5 rounded-full bg-secondary text-secondary-foreground font-bold hover:bg-secondary/90 disabled:opacity-50 transition-all shrink-0 flex items-center justify-center h-8 w-8">
+                    <Send weight="fill" className="h-3.5 w-3.5" />
+                  </button>
+                </>
+              )}
             </form>
           </>
         ) : (
@@ -1271,11 +1609,44 @@ export function ChatLayout() {
           </button>
           <button
             type="button"
-            onClick={() => { setActionMenu(null); setPendingDelete(actionMenu.msg); }}
+            onClick={() => enterSelectionMode(actionMenu.msg)}
+            className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs font-bold text-foreground hover:bg-muted transition-colors"
+          >
+            <CheckIcon weight="bold" className="h-4 w-4" /> Select
+          </button>
+          <button
+            type="button"
+            onClick={() => { setActionMenu(null); if (isProtectedConversation(activeConv)) { setShowProtectedNotice(true); } else { setPendingDelete(actionMenu.msg); } }}
             className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs font-bold text-red-500 hover:bg-red-500/10 transition-colors"
           >
             <Trash className="h-4 w-4" /> Delete
           </button>
+        </div>
+      )}
+
+      {/* Protected transaction / financial conversation notice */}
+      {showProtectedNotice && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/40" onClick={() => setShowProtectedNotice(false)} role="presentation" />
+          <div className="relative w-full max-w-sm rounded-xl bg-card shadow-xl p-5 text-center">
+            <div className="mx-auto mb-3 h-12 w-12 rounded-full bg-amber-500/15 flex items-center justify-center">
+              <Lock weight="fill" className="h-6 w-6 text-amber-500" />
+            </div>
+            <h3 className="text-sm font-extrabold text-foreground mb-1">Messages are protected</h3>
+            <p className="text-xs text-muted-foreground mb-1">
+              This message can’t be deleted because it’s part of an active business / financial conversation.
+            </p>
+            <p className="text-[11px] text-muted-foreground/80 mb-4">
+              Transaction and escrow messages are preserved as proof until the deal is closed and all funds are released.
+            </p>
+            <button
+              type="button"
+              onClick={() => setShowProtectedNotice(false)}
+              className="w-full px-3 py-2 rounded-lg bg-foreground text-background text-xs font-extrabold hover:opacity-90 transition-opacity"
+            >
+              Understood
+            </button>
+          </div>
         </div>
       )}
 
@@ -1345,7 +1716,12 @@ export function ChatLayout() {
                       <Users weight="fill" className="h-3.5 w-3.5" />
                     </div>
                   ) : (
-                    <Avatar name={c.other_user?.name ?? c.title} src={c.other_user?.avatar_url} size={32} />
+                    <UserAvatar
+                      name={c.other_user?.name ?? c.title}
+                      src={c.other_user?.avatar_url}
+                      size={32}
+                      status={c.other_user ? (c.other_user.is_online ? 'active' : 'inactive') : undefined}
+                    />
                   )}
                   <span className="text-xs font-bold text-foreground truncate">{c.title || c.other_user?.name || 'Conversation'}</span>
                 </button>
