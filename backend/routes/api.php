@@ -321,6 +321,7 @@ Route::prefix('v1')->group(function () {
     });
 
     Route::get('/feed', [PostController::class, 'globalFeed'])->middleware('cache.public:300');
+    Route::get('/discover/trending', [SearchController::class, 'trending'])->middleware('cache.public:60');
 
     // Public Storefront Profile Endpoint
     Route::get('/stores/{shortCode}', [StorefrontController::class, 'show'])->middleware('cache.public:600');
@@ -499,6 +500,7 @@ Route::prefix('v1')->group(function () {
             Route::get('/follow-status', [FollowController::class, 'status']);
             Route::get('/followers', [FollowController::class, 'followers']);
             Route::get('/following', [FollowController::class, 'following']);
+            Route::get('/posts', [PostController::class, 'userPosts']);
         });
 
         // Feature flags (read-only for all authenticated users)

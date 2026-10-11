@@ -54,6 +54,39 @@ class PostController extends Controller
     }
 
     /**
+     * Display posts for a specific user (supports filtering by type: post, media/reel, mention).
+     */
+    public function userPosts(Request $request, int $userId): JsonResponse
+    {
+        $type = $request->input('type'); // 'all', 'media', 'post', 'mentions'
+
+        $query = Post::with(['author:id,name,username,avatar,verification_badge_status,verification_badge_expires_at', 'community:id,name,slug,logo_url', 'reactions'])
+            ->published()
+            ->pinnedFirst();
+
+        if ($type === 'mentions') {
+            $query->whereJsonContains('mentions', $userId);
+        } else {
+            $query->where('user_id', $userId);
+
+            if ($type === 'media' || $type === 'reels') {
+                $query->where(function ($q) {
+                    $q->whereNotNull('media_urls')
+                      ->where('media_urls', '!=', '[]')
+                      ->orWhere('type', 'media');
+                });
+            } elseif ($type === 'live') {
+                $query->where('type', 'live');
+            }
+        }
+
+        $posts = $query->latest()->paginate(18);
+        $this->attachUserMeta($posts, $request->user());
+
+        return response()->json($posts);
+    }
+
+    /**
      * Display aggregate global feed across all public and community posts.
      */
     public function globalFeed(Request $request): JsonResponse

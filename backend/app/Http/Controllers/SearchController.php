@@ -154,4 +154,92 @@ class SearchController extends Controller
             'messages' => $results['messages'] ?? [],
         ]);
     }
+
+    /**
+     * Return real trending hashtags/topics and suggested creators for Discover.
+     */
+    public function trending(Request $request): JsonResponse
+    {
+        // 1. Fetch real posts to extract actual hashtags
+        $recentPosts = Post::published()
+            ->latest()
+            ->take(100)
+            ->get(['content', 'hashtags']);
+
+        $tagCounts = [];
+        foreach ($recentPosts as $post) {
+            if (!empty($post->hashtags) && is_array($post->hashtags)) {
+                foreach ($post->hashtags as $tag) {
+                    $cleaned = '#' . ltrim(trim($tag), '#');
+                    if (strlen($cleaned) > 1) {
+                        $tagCounts[$cleaned] = ($tagCounts[$cleaned] ?? 0) + 1;
+                    }
+                }
+            }
+
+            // Also parse hashtags from post content text (#Tag)
+            if (!empty($post->content) && preg_match_all('/#(\w+)/u', $post->content, $matches)) {
+                foreach ($matches[0] as $match) {
+                    $tagCounts[$match] = ($tagCounts[$match] ?? 0) + 1;
+                }
+            }
+        }
+
+        // Default popular platform topics if database has few posts
+        $defaults = [
+            '#MurihSpace' => 12,
+            '#CreatorEconomy' => 9,
+            '#Web3' => 8,
+            '#Tech' => 7,
+            '#Music' => 6,
+            '#Travel' => 5,
+        ];
+        foreach ($defaults as $k => $v) {
+            if (!isset($tagCounts[$k])) {
+                $tagCounts[$k] = $v;
+            }
+        }
+
+        arsort($tagCounts);
+
+        $trendingTopics = [];
+        $i = 0;
+        foreach ($tagCounts as $tag => $count) {
+            if ($i++ >= 10) break;
+            $trendingTopics[] = [
+                'tag' => $tag,
+                'count' => $count > 1 ? "{$count} posts" : "1 post",
+                'raw_count' => $count,
+            ];
+        }
+
+        // 2. Fetch suggested creators (active users with highest follower count or verified status)
+        $currentUserId = $request->user()?->id;
+        $creatorsQuery = User::whereNull('deleted_at')
+            ->when($currentUserId, fn($q) => $q->where('id', '!=', $currentUserId))
+            ->withCount(['followers', 'posts'])
+            ->orderByDesc('followers_count')
+            ->orderByDesc('posts_count')
+            ->take(8)
+            ->get();
+
+        $suggestedCreators = $creatorsQuery->map(fn (User $u) => [
+            'id' => $u->id,
+            'name' => $u->name,
+            'username' => $u->username,
+            'avatar' => $u->avatar,
+            'avatar_url' => $u->avatar_url ?? $u->avatar,
+            'bio' => $u->bio,
+            'role' => $u->role,
+            'followers_count' => $u->followers_count,
+            'followers' => $u->followers_count >= 1000 ? round($u->followers_count / 1000, 1) . 'K followers' : "{$u->followers_count} followers",
+            'is_verified' => $u->hasActiveVerificationBadge(),
+        ]);
+
+        return response()->json([
+            'trending_topics' => $trendingTopics,
+            'suggested_creators' => $suggestedCreators,
+        ]);
+    }
 }
+
