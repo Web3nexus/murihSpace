@@ -3,6 +3,7 @@ import type { MessageReaction } from '@/types/chat';
 import { getAuthToken } from "@/lib/auth/token";
 import { BubbleReactions } from '@/components/ui/bubble';
 import { cn } from '@/lib/utils';
+import { AnimatedEmoji } from '@/components/chat/AnimatedEmoji';
 
 const QUICK_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🔥'];
 
@@ -67,7 +68,7 @@ export function MessageReactions({
               : 'bg-muted/80 border-border/70 text-foreground hover:border-secondary/40 hover:bg-muted'
           )}
         >
-          <span>{r.emoji}</span>
+          <AnimatedEmoji emoji={r.emoji} className="h-3.5 w-3.5" />
           <span className="ml-1 text-[10px] font-bold">{r.count}</span>
         </button>
       ))}
@@ -86,7 +87,8 @@ export function MessageReactions({
           )}
           title="React"
         >
-          +😊
+          <span aria-hidden="true">+</span>
+          <AnimatedEmoji emoji="😊" className="h-3.5 w-3.5" />
         </button>
 
         {showPicker && (
@@ -111,9 +113,9 @@ export function MessageReactions({
                     e.stopPropagation();
                     handleReact(emoji);
                   }}
-                  className="text-base w-8 h-8 flex items-center justify-center rounded-lg hover:bg-muted transition-colors cursor-pointer"
+                  className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-muted transition-colors cursor-pointer"
                 >
-                  {emoji}
+                  <AnimatedEmoji emoji={emoji} className="h-5 w-5" />
                 </button>
               ))}
             </div>

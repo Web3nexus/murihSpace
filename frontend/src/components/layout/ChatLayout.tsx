@@ -37,6 +37,8 @@ import type { ConversationItem, ChatMessage, MessageStatus, MessageReaction } fr
 import { ReplyPreviewBar } from '@/components/chat/ReplyPreviewBar';
 import { EmojiPickerPopover } from '@/components/chat/EmojiPickerPopover';
 import { MessageReactions } from '@/components/chat/MessageReactions';
+import { EmojiRichText } from '@/components/chat/EmojiRichText';
+import { AnimatedEmoji } from '@/components/chat/AnimatedEmoji';
 import { StoriesCarousel, type StoryUser } from '../chat/StoriesCarousel';
 import { StoryCreateModal } from '../story/StoryCreateModal';
 import { ChatPatternSurface } from './ChatPatternSurface';
@@ -1310,7 +1312,7 @@ export function ChatLayout() {
                               </div>
                             );
                           })() : (
-                            <p className="leading-relaxed whitespace-pre-wrap break-words font-normal">{msg.content}</p>
+                            <p className="leading-relaxed whitespace-pre-wrap break-words font-normal"><EmojiRichText text={msg.content} /></p>
                           )}
 
                           <div className="flex items-center justify-end gap-1 text-[9px] opacity-80 pt-0.5">
@@ -1547,10 +1549,10 @@ export function ChatLayout() {
               key={emoji}
               type="button"
               onClick={() => { if (!emojiMenu.msg.id) return; toggleMessageReaction(emojiMenu.msg.id, emoji); setEmojiMenu(null); }}
-              className="text-lg h-9 w-9 flex items-center justify-center rounded-lg hover:bg-muted transition-colors"
+              className="h-9 w-9 flex items-center justify-center rounded-lg hover:bg-muted transition-colors"
               title={`React ${emoji}`}
             >
-              {emoji}
+              <AnimatedEmoji emoji={emoji} className="h-5 w-5" />
             </button>
           ))}
         </div>
@@ -1571,9 +1573,9 @@ export function ChatLayout() {
                 key={emoji}
                 type="button"
                 onClick={() => { if (!actionMenu.msg.id) return; toggleMessageReaction(actionMenu.msg.id, emoji); setActionMenu(null); }}
-                className="text-base h-8 w-8 flex items-center justify-center rounded-lg hover:bg-muted transition-colors"
+                className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-muted transition-colors"
               >
-                {emoji}
+                <AnimatedEmoji emoji={emoji} className="h-4.5 w-4.5" />
               </button>
             ))}
           </div>

@@ -3,6 +3,7 @@ import { Link } from "react-router";
 import { resolveDeepLink, type DeepLinkTarget, type DeepLinkType } from "@/lib/deepLinks";
 import { apiClient } from "@/lib/api/client";
 import { cn } from "@/lib/utils";
+import { EmojiRichText } from "@/components/chat/EmojiRichText";
 import {
   VideoCamera,
   Broadcast,
@@ -253,7 +254,11 @@ export function ChatMessageContent({ content, isMine = false, className }: ChatM
       <p className="text-inherit leading-relaxed whitespace-pre-wrap break-words">
         {parts.map((part, idx) => {
           if (part.type === "text") {
-            return <React.Fragment key={idx}>{part.value}</React.Fragment>;
+            return (
+              <React.Fragment key={idx}>
+                <EmojiRichText text={part.value} />
+              </React.Fragment>
+            );
           }
 
           if (part.target) {

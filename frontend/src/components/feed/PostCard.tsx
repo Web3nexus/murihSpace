@@ -20,6 +20,8 @@ import type { Post, ReactionType } from '@/types/post';
 import { ReportModal } from '@/components/moderation/ReportModal';
 import type { ReportedType } from '@/types/moderation';
 import { apiClient } from '@/lib/api/client';
+import { AnimatedEmoji } from '@/components/chat/AnimatedEmoji';
+import { EmojiRichText } from '@/components/chat/EmojiRichText';
 
 const viewedPostsSet = new Set<number>();
 
@@ -224,7 +226,9 @@ export default function PostCard({ post, onReact, onComment, onPin, onUnpin, isM
 
         {/* Content */}
         <div className="post-card-content">
-          <p>{post.content}</p>
+          <p>
+            <EmojiRichText text={post.content} />
+          </p>
         </div>
 
         {/* Link preview */}
@@ -251,8 +255,12 @@ export default function PostCard({ post, onReact, onComment, onPin, onUnpin, isM
                 onClick={() => handleReact(post.user_reaction === 'like' ? 'like' : 'like')}
               >
                 {post.user_reaction
-                  ? REACTIONS.find(r => r.type === post.user_reaction)?.emoji ?? '👍'
-                  : '👍'}
+                  ? (
+                      <AnimatedEmoji emoji={REACTIONS.find(r => r.type === post.user_reaction)?.emoji ?? '👍'} className="h-4 w-4" />
+                    )
+                  : (
+                      <AnimatedEmoji emoji="👍" className="h-4 w-4" />
+                    )}
                 {totalReactions > 0 && <span>{totalReactions}</span>}
               </button>
 
@@ -265,7 +273,7 @@ export default function PostCard({ post, onReact, onComment, onPin, onUnpin, isM
                       className={`reaction-pick-btn ${post.user_reaction === r.type ? 'active' : ''}`}
                       title={r.label}
                     >
-                      {r.emoji}
+                      <AnimatedEmoji emoji={r.emoji} className="h-5 w-5 align-middle" />
                     </button>
                   ))}
                 </div>

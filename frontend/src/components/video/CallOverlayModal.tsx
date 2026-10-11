@@ -32,6 +32,7 @@ import { startOutgoingRingback, startIncomingRingtone, stopCallSounds } from '@/
 import { getEcho } from '@/lib/echo';
 import { getAuthToken } from '@/lib/auth/token';
 import { useAuth } from '@/hooks/useAuth';
+import { AnimatedEmoji } from '@/components/chat/AnimatedEmoji';
 
 function RemoteVideoTrackElement({ track, muted = false }: { track: Track; muted?: boolean }) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -957,7 +958,7 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
                           }}
                           className="text-xl p-1 hover:scale-125 transition-transform"
                         >
-                          {emoji}
+                          <AnimatedEmoji emoji={emoji} className="h-5 w-5" />
                         </button>
                       ))}
                     </div>
@@ -1015,9 +1016,9 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
             <div
               key={r.id}
               style={{ left: `${r.x}%` }}
-              className="absolute bottom-24 text-4xl animate-bounce transition-all duration-1000 ease-out pointer-events-none"
+              className="absolute bottom-24 animate-bounce transition-all duration-1000 ease-out pointer-events-none"
             >
-              {r.emoji}
+              <AnimatedEmoji emoji={r.emoji} className="h-10 w-10" />
             </div>
           ))}
         </div>

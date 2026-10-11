@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Smiley, MagnifyingGlass, X } from "@phosphor-icons/react";
 import { motion } from "motion/react";
+import { AnimatedEmoji } from "@/components/chat/AnimatedEmoji";
 
 interface EmojiPickerPopoverProps {
   onSelect: (emoji: string) => void;
@@ -236,9 +237,9 @@ export function EmojiPickerPopover({
                   key={emoji}
                   type="button"
                   onClick={() => handlePick(emoji)}
-                  className="h-7 w-7 rounded-md hover:bg-muted text-base flex items-center justify-center transition-transform hover:scale-125 cursor-pointer shrink-0"
+                  className="h-7 w-7 rounded-md hover:bg-muted flex items-center justify-center transition-transform hover:scale-125 cursor-pointer shrink-0"
                 >
-                  {emoji}
+                  <AnimatedEmoji emoji={emoji} className="h-5 w-5" />
                 </button>
               ))}
             </div>
@@ -258,10 +259,10 @@ export function EmojiPickerPopover({
                         key={`${e.emoji}-${idx}`}
                         type="button"
                         onClick={() => handlePick(e.emoji)}
-                        className="h-8 w-8 rounded-lg hover:bg-muted text-lg flex items-center justify-center transition-transform hover:scale-125 cursor-pointer"
+                        className="h-8 w-8 rounded-lg hover:bg-muted flex items-center justify-center transition-transform hover:scale-125 cursor-pointer"
                         title={e.keywords.join(", ")}
                       >
-                        {e.emoji}
+                        <AnimatedEmoji emoji={e.emoji} className="h-6 w-6" />
                       </button>
                     ))}
                   </div>
@@ -282,10 +283,10 @@ export function EmojiPickerPopover({
                       key={`${e.emoji}-${idx}`}
                       type="button"
                       onClick={() => handlePick(e.emoji)}
-                      className="h-8 w-8 rounded-lg hover:bg-muted text-lg flex items-center justify-center transition-transform hover:scale-125 cursor-pointer"
+                      className="h-8 w-8 rounded-lg hover:bg-muted flex items-center justify-center transition-transform hover:scale-125 cursor-pointer"
                       title={e.keywords.join(", ")}
                     >
-                      {e.emoji}
+                      <AnimatedEmoji emoji={e.emoji} className="h-6 w-6" />
                     </button>
                   ))}
                 </div>
@@ -308,7 +309,7 @@ export function EmojiPickerPopover({
                   }`}
                   title={cat.name}
                 >
-                  <span className="text-sm">{cat.icon}</span>
+                  <AnimatedEmoji emoji={cat.icon} className="h-4 w-4" />
                   <span className="text-[11px] hidden sm:inline">{cat.name.split(" ")[0]}</span>
                 </button>
               ))}

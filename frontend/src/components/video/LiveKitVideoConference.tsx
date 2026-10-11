@@ -35,6 +35,7 @@ import { authFetch } from '@/lib/api/authFetch';
 import { mapApplicationError } from '@/lib/errorMapper';
 import { useAuth } from '@/hooks/useAuth';
 import { absolute, meetingUrl } from "@/lib/deepLinks";
+import { AnimatedEmoji } from '@/components/chat/AnimatedEmoji';
 
 // Resolve the API against the environment the web app is served from (same
 // origin in production/staging) instead of a hardcoded fallback host.
@@ -988,10 +989,10 @@ export function LiveKitVideoConference({
                   key={emoji}
                   type="button"
                   onClick={() => sendReaction(emoji)}
-                  className="h-8 w-8 rounded-lg bg-muted hover:bg-muted/80 transition-colors text-[15px] border border-border/40"
+                  className="h-8 w-8 rounded-lg bg-muted hover:bg-muted/80 transition-colors border border-border/40"
                   title={`Send ${emoji}`}
                 >
-                  {emoji}
+                  <AnimatedEmoji emoji={emoji} className="h-5 w-5" />
                 </button>
               ))}
             </div>
@@ -1151,9 +1152,9 @@ function MeetingEmojiBubble({ emoji, dx, delay }: { emoji: string; dx: number; d
   return (
     <span
       className="meeting-emoji-bubble absolute bottom-20 select-none pointer-events-none"
-      style={{ left: `${dx}%`, animationDelay: `${delay}ms`, fontSize: '2rem', lineHeight: 1 }}
+      style={{ left: `${dx}%`, animationDelay: `${delay}ms` }}
     >
-      {emoji}
+      <AnimatedEmoji emoji={emoji} className="h-8 w-8" />
     </span>
   );
 }

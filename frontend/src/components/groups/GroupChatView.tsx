@@ -18,6 +18,7 @@ import type { Group } from "@/types/group";
 import type { ChatMessage } from "@/types/chat";
 import { EmojiPickerPopover } from "@/components/chat/EmojiPickerPopover";
 import { ChatMessageContent } from "@/components/chat/ChatMessageContent";
+import { AnimatedEmoji } from "@/components/chat/AnimatedEmoji";
 import { messagePreview } from "@/lib/chatMessages";
 
 interface GroupChatViewProps {
@@ -413,7 +414,7 @@ export function GroupChatView({ group }: GroupChatViewProps) {
                                 : "bg-background/60 border-border/70 text-muted-foreground hover:bg-background"
                             }`}
                           >
-                            <span>{r.emoji}</span>
+                            <AnimatedEmoji emoji={r.emoji} className="h-3.5 w-3.5" />
                             <span className="text-[10px] font-semibold">{r.count}</span>
                           </button>
                         ))}
@@ -454,9 +455,9 @@ export function GroupChatView({ group }: GroupChatViewProps) {
                             key={emoji}
                             type="button"
                             onClick={() => msg.id && handleReactionClick(msg.id, emoji)}
-                            className="hover:scale-125 transition-transform p-1 text-sm"
+                            className="hover:scale-125 transition-transform p-1"
                           >
-                            {emoji}
+                            <AnimatedEmoji emoji={emoji} className="h-5 w-5" />
                           </button>
                         ))}
                       </div>
