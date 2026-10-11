@@ -219,7 +219,7 @@ class User extends Authenticatable implements MustVerifyEmail
 
     public function hasVerifiedKyc(): bool
     {
-        return $this->kyc_status === 'verified';
+        return in_array($this->kyc_status, ['verified', 'approved']);
     }
 
     public function hasVerifiedEmail()

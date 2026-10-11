@@ -1,4 +1,4 @@
-import { User, Sparkle, Buildings } from "@phosphor-icons/react";
+import { User, VideoCamera, Buildings } from "@phosphor-icons/react";
 
 export type WalletContextType = "system" | "creator" | "business";
 
@@ -27,7 +27,7 @@ export function WalletSwitcher({
     {
       id: "creator" as WalletContextType,
       label: "Creator Earnings",
-      icon: Sparkle,
+      icon: VideoCamera,
       visible: hasCreatorWallet,
     },
     {

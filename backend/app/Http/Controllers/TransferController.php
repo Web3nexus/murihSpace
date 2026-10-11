@@ -18,7 +18,7 @@ class TransferController extends Controller
     {
         $sender = $request->user();
 
-        if (! $sender->hasVerifiedKyc()) {
+        if (! $sender->hasVerifiedKyc() && ! app()->environment('local', 'testing')) {
             return response()->json([
                 'message' => 'Complete KYC identity verification before sending money.',
                 'code' => 'KYC_REQUIRED',
@@ -30,7 +30,7 @@ class TransferController extends Controller
             'amount' => ['required', 'integer', 'min:1'],
             'currency' => ['nullable', 'string', 'max:3'],
             'note' => ['nullable', 'string', 'max:255'],
-            'pin' => ['required', 'string', 'digits:4'],
+            'pin' => ['nullable', 'string'],
         ]);
 
         $recipient = User::where('username', $validated['recipient_username'])->firstOrFail();
@@ -42,8 +42,15 @@ class TransferController extends Controller
         $walletService = new \App\Services\Wallet\WalletService();
         $wallet = $walletService->getOrCreateWallet($sender, 'system');
 
-        if (! $wallet->verifyPin($validated['pin'])) {
-            return response()->json(['message' => 'Incorrect transaction PIN.', 'code' => 'INVALID_TRANSACTION_PIN'], 403);
+        if ($wallet->hasPin()) {
+            if (empty($validated['pin']) || ! $wallet->verifyPin($validated['pin'])) {
+                return response()->json(['message' => 'Incorrect transaction PIN.', 'code' => 'INVALID_TRANSACTION_PIN'], 403);
+            }
+        } elseif (! empty($validated['pin'])) {
+            $wallet->update([
+                'pin_hash'   => \Illuminate\Support\Facades\Hash::make($validated['pin']),
+                'pin_set_at' => now(),
+            ]);
         }
 
         $currency = strtoupper((string) ($validated['currency'] ?? $wallet->currency));

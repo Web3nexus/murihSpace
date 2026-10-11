@@ -84,6 +84,7 @@ export function WalletPage({ initialTab = "system" }: WalletPageProps) {
   const [transactions, setTransactions] = useState<TransactionRowData[]>([]);
   const [loading, setLoading] = useState(true);
   const [isBalanceHidden, setIsBalanceHidden] = useState(false);
+  const [showLocalCurrency, setShowLocalCurrency] = useState(false);
 
   // Modals state
   const [showDeposit, setShowDeposit] = useState(false);
@@ -183,6 +184,17 @@ export function WalletPage({ initialTab = "system" }: WalletPageProps) {
   const activeWallet = safeWallets.find((w) => w?.wallet_type === activeTab) ?? safeWallets[0] ?? null;
   const systemWallet = safeWallets.find((w) => w?.wallet_type === "system") ?? safeWallets[0] ?? null;
   const walletCurrency = systemWallet?.currency || activeWallet?.currency || "USD";
+  const localCurrency = activeWallet?.local_currency || "NGN";
+  const localRate = activeWallet?.local_rate ?? 1326.0;
+  const localFormatted = activeWallet?.local_formatted;
+  const availableDollars = (activeWallet?.available ?? 0) / 100.0;
+
+  const totalSpentNumber = transactions
+    .filter((tx) => tx.entry_type === "debit")
+    .reduce((sum, tx) => sum + (tx.amount ?? 0), 0);
+  const totalSpentFormatted = totalSpentNumber > 0
+    ? `$${totalSpentNumber.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+    : "$0.00";
 
   const hasCreatorWallet = safeWallets.some((w) => w.wallet_type === "creator");
   const hasBusinessWallet = safeWallets.some((w) => w.wallet_type === "business");
@@ -346,17 +358,6 @@ export function WalletPage({ initialTab = "system" }: WalletPageProps) {
     );
   }
 
-  const getSubheadTitle = () => {
-    switch (activeTab) {
-      case "creator":
-        return "Available Earnings (USD)";
-      case "business":
-        return "Available Revenue (USD)";
-      default:
-        return "Available Balance (USD)";
-    }
-  };
-
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl mx-auto w-full">
       {/* 1. Header Section */}
@@ -418,88 +419,58 @@ export function WalletPage({ initialTab = "system" }: WalletPageProps) {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Left / Center Column */}
         <div className="lg:col-span-8 space-y-6">
-          {/* Main Balance Panel (Card + Balance Metrics + Action Group) */}
-          <div className="p-5 sm:p-6 rounded-2xl bg-card border border-border shadow-xs space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
-              {/* Digital Payment Card (MurihPay) */}
-              <div className="md:col-span-5 flex justify-center md:justify-start">
-                <MurihPayDigitalCard
-                  walletType={activeTab}
-                  cardholderName={user?.name || "VINCENT ADETUBERU"}
-                  maskedNumber="5495 7381 3759 2321"
-                  expiry="09/28"
-                  isBalanceHidden={isBalanceHidden}
-                />
-              </div>
+          {/* Hero Financial Zone: Digital Card with Available Balance on Card + Action Suite */}
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
+            {/* Digital Payment Card with Available Balance directly on it */}
+            <div className="md:col-span-6 flex justify-center md:justify-start">
+              <MurihPayDigitalCard
+                walletType={activeTab}
+                userName={user?.name || "Vincent Adetuberu"}
+                userTag={user?.username || "@vincent"}
+                availableBalance={availableDollars}
+                currency={walletCurrency}
+                localCurrency={localCurrency}
+                localRate={localRate}
+                localFormatted={localFormatted}
+                isBalanceHidden={isBalanceHidden}
+                showLocalCurrency={showLocalCurrency}
+                onToggleCurrency={() => setShowLocalCurrency((prev) => !prev)}
+              />
+            </div>
 
-              {/* Balance Summary & Actions */}
-              <div className="md:col-span-7 space-y-5">
+            {/* Financial Actions Suite (No box-in-a-box) */}
+            <div className="md:col-span-6 flex flex-col justify-center gap-3">
+              <div className="flex items-center justify-between pb-2 border-b border-border/60">
                 <div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
-                      <span>{getSubheadTitle()}</span>
-                      <button
-                        type="button"
-                        onClick={() => setIsBalanceHidden((prev) => !prev)}
-                        className="text-muted-foreground hover:text-foreground"
-                      >
-                        {isBalanceHidden ? (
-                          <EyeSlash weight="bold" className="h-3.5 w-3.5" />
-                        ) : (
-                          <Eye weight="bold" className="h-3.5 w-3.5" />
-                        )}
-                      </button>
-                    </div>
-
-                    {/* Currency Indicator Pill */}
-                    <div className="flex items-center gap-1 text-xs font-bold text-foreground bg-muted/60 px-2 py-0.5 rounded-lg border border-border/60">
-                      <span>🇺🇸</span>
-                      <span>USD</span>
-                    </div>
-                  </div>
-
-                  {/* Available Balance Figure */}
-                  <div className="mt-1">
-                    <h2 className="text-3xl sm:text-4xl font-black tracking-tight text-foreground font-mono">
-                      {isBalanceHidden
-                        ? "••••••••"
-                        : activeWallet?.formatted?.available || "$0.00"}
-                    </h2>
-                  </div>
-
-                  {/* Growth indicator & local currency preview */}
-                  <div className="flex items-center gap-3 mt-1.5 flex-wrap">
-                    <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-                      <span>↑ +12.5%</span>
-                      <span className="text-muted-foreground font-medium text-[11px]">this month</span>
-                    </span>
-
-                    {activeWallet?.local_formatted && activeWallet.currency === "USD" && !isBalanceHidden && (
-                      <span className="text-xs text-muted-foreground font-medium">
-                        ≈ {activeWallet.local_formatted}
-                      </span>
-                    )}
-                  </div>
+                  <h2 className="text-sm font-bold text-foreground">Financial Actions</h2>
+                  <p className="text-xs text-muted-foreground">Peer transfers, payouts & escrow</p>
                 </div>
-
-                {/* Circular Action Buttons Toolbar */}
-                <div className="pt-2 border-t border-border/60">
-                  <WalletActionToolbar
-                    walletType={activeTab}
-                    onDeposit={() => setShowDeposit(true)}
-                    onWithdraw={() => setShowWithdraw(true)}
-                    onSendMoney={() => setShowSend(true)}
-                    onReceiveMoney={() => setShowReceive(true)}
-                    onLockEscrow={() => setShowLockEscrow(true)}
-                    onBuyCoins={() => setShowBuyCoins(true)}
-                    onInternalTransfer={() => setShowInternalTransfer(true)}
-                  />
-                </div>
+                {localCurrency !== "USD" && (
+                  <button
+                    type="button"
+                    onClick={() => setShowLocalCurrency((prev) => !prev)}
+                    className="text-xs font-semibold px-2.5 py-1 rounded-lg border border-border bg-card text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors cursor-pointer"
+                  >
+                    {showLocalCurrency ? "View in USD" : `View in ${localCurrency}`}
+                  </button>
+                )}
               </div>
+
+              {/* Action Buttons Toolbar */}
+              <WalletActionToolbar
+                walletType={activeTab}
+                onDeposit={() => setShowDeposit(true)}
+                onWithdraw={() => setShowWithdraw(true)}
+                onSendMoney={() => setShowSend(true)}
+                onReceiveMoney={() => setShowReceive(true)}
+                onLockEscrow={() => setShowLockEscrow(true)}
+                onBuyCoins={() => setShowBuyCoins(true)}
+                onInternalTransfer={() => setShowInternalTransfer(true)}
+              />
             </div>
           </div>
 
-          {/* 4-Stat Metric Breakdown */}
+          {/* Unified Ledger Summary Rail (Replaces repetitive AI boxes) */}
           <WalletBalanceBreakdown
             pendingFormatted={activeWallet?.formatted?.pending || "$0.00"}
             reservedFormatted={activeWallet?.formatted?.reserved || "$0.00"}
@@ -516,8 +487,8 @@ export function WalletPage({ initialTab = "system" }: WalletPageProps) {
           />
         </div>
 
-        {/* Right Rail Column */}
-        <div className="lg:col-span-4 space-y-6">
+        {/* Right Rail Column: Pinned Sticky so it does NOT scroll away */}
+        <div className="lg:col-span-4 space-y-6 lg:sticky lg:top-6 lg:self-start">
           {/* 1. MSH Coins Widget */}
           <WalletMshCoinsWidget
             coinBalance={systemWallet?.coins ?? activeWallet?.coins ?? 0}
@@ -527,15 +498,15 @@ export function WalletPage({ initialTab = "system" }: WalletPageProps) {
 
           {/* 2. Quick Actions List Widget */}
           <WalletQuickActionsWidget
-            isVerified={user?.kyc_status === "approved" || true}
-            onOpenLimits={() => toast.info("Your daily limit is $10,000.00 USD.")}
-            onOpenPaymentMethods={() => toast.info("Supported: Cards, Bank Transfer, Paystack, Stripe")}
-            onOpenStatements={() => toast.info("Monthly statement generation ready.")}
+            isVerified={user?.kyc_status === "approved" || user?.kyc_status === "verified"}
+            onOpenLimits={() => toast.info("Daily transfer limit: $10,000.00 USD (Level 2 Verified).")}
+            onOpenPaymentMethods={() => toast.info("Supported methods: Direct Bank Wire, Card, Paystack, Flutterwave.")}
+            onOpenStatements={() => toast.info("Monthly statement export is ready.")}
           />
 
-          {/* 3. Spending Overview Donut Chart */}
+          {/* 3. Spending Overview Donut Chart (Real data from ledger debits) */}
           <WalletSpendingOverviewWidget
-            totalSpent="$1,240"
+            totalSpent={totalSpentFormatted}
             isBalanceHidden={isBalanceHidden}
           />
 

@@ -1,5 +1,3 @@
-import { Clock, Lock, ShieldCheck, ChartBar } from "@phosphor-icons/react";
-
 interface WalletBalanceBreakdownProps {
   pendingFormatted: string;
   reservedFormatted: string;
@@ -8,6 +6,10 @@ interface WalletBalanceBreakdownProps {
   isBalanceHidden?: boolean;
 }
 
+/**
+ * Integrated Ledger Summary Rail redesigned with Impeccable principles.
+ * Replaces repetitive AI-style generic cards with a unified, cohesive financial summary rail.
+ */
 export function WalletBalanceBreakdown({
   pendingFormatted,
   reservedFormatted,
@@ -15,56 +17,65 @@ export function WalletBalanceBreakdown({
   totalFormatted,
   isBalanceHidden = false,
 }: WalletBalanceBreakdownProps) {
-  const items = [
+  const metrics = [
     {
-      label: "Pending",
-      value: pendingFormatted,
-      icon: Clock,
-      iconBg: "bg-amber-500/10 text-amber-600 dark:text-amber-400 dark:bg-amber-500/20",
-    },
-    {
-      label: "Reserved",
-      value: reservedFormatted,
-      icon: Lock,
-      iconBg: "bg-sky-500/10 text-[#1A68D4] dark:bg-sky-500/20",
-    },
-    {
-      label: "Escrow",
-      value: escrowFormatted,
-      icon: ShieldCheck,
-      iconBg: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 dark:bg-emerald-500/20",
-    },
-    {
-      label: "Total Balance",
+      label: "Total Book Balance",
       value: totalFormatted,
-      icon: ChartBar,
-      iconBg: "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 dark:bg-indigo-500/20",
+      description: "Available + In-flight",
+      accent: "text-foreground font-extrabold",
+      badge: "Consolidated",
+    },
+    {
+      label: "Pending Clearance",
+      value: pendingFormatted,
+      description: "Settling via banking rails",
+      accent: "text-amber-600 dark:text-amber-400 font-bold",
+      badge: "In Flight",
+    },
+    {
+      label: "Reserved Balance",
+      value: reservedFormatted,
+      description: "Security & dispute hold",
+      accent: "text-[#1A68D4] dark:text-sky-400 font-bold",
+      badge: "Protected",
+    },
+    {
+      label: "Locked in Escrow",
+      value: escrowFormatted,
+      description: "Active milestone contracts",
+      accent: "text-emerald-600 dark:text-emerald-400 font-bold",
+      badge: "Secured",
     },
   ];
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-      {items.map((item) => {
-        const Icon = item.icon;
-        return (
+    <div className="w-full bg-card rounded-xl border border-border shadow-xs overflow-hidden">
+      <div className="grid grid-cols-2 lg:grid-cols-4 divide-y lg:divide-y-0 lg:divide-x divide-border/60">
+        {metrics.map((item) => (
           <div
             key={item.label}
-            className="p-3.5 sm:p-4 rounded-xl bg-card border border-border shadow-xs flex items-center gap-3 transition-colors hover:border-border/80"
+            className="p-4 sm:p-5 flex flex-col justify-between transition-colors hover:bg-muted/20"
           >
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${item.iconBg}`}>
-              <Icon weight="fill" className="h-5 w-5" />
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                {item.label}
+              </span>
+              <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-muted/60 text-muted-foreground">
+                {item.badge}
+              </span>
             </div>
 
-            <div className="min-w-0">
-              <p className="text-xs font-medium text-muted-foreground truncate">{item.label}</p>
-              <p className="text-base sm:text-lg font-bold text-foreground tracking-tight truncate mt-0.5">
-                {isBalanceHidden ? "••••••" : item.value || "$0.00"}
+            <div>
+              <p className={`text-lg sm:text-xl tracking-tight truncate ${item.accent}`}>
+                {isBalanceHidden ? "••••••••" : item.value || "$0.00"}
+              </p>
+              <p className="text-[11px] text-muted-foreground/80 font-normal mt-0.5 truncate">
+                {item.description}
               </p>
             </div>
           </div>
-        );
-      })}
+        ))}
+      </div>
     </div>
   );
 }
-
