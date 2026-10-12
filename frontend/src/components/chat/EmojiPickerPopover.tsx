@@ -1,7 +1,8 @@
-import { useState, useRef, useEffect } from "react";
-import { Smiley, MagnifyingGlass, X } from "@phosphor-icons/react";
+import { useState, useRef, useEffect, useMemo, useCallback } from "react";
+import { Smiley, MagnifyingGlass, X, ClockCounterClockwise } from "@phosphor-icons/react";
 import { motion } from "motion/react";
 import { AnimatedEmoji } from "@/components/chat/AnimatedEmoji";
+import { EMOJI_MANIFEST, EMOJI_KEYS } from "@/lib/emoji-manifest";
 
 interface EmojiPickerPopoverProps {
   onSelect: (emoji: string) => void;
@@ -11,123 +12,75 @@ interface EmojiPickerPopoverProps {
 }
 
 interface EmojiCategory {
-  name: string;
+  folder: string;
+  label: string;
   icon: string;
-  emojis: { emoji: string; keywords: string[] }[];
+  emojis: string[];
 }
 
-const EMOJI_CATEGORIES: EmojiCategory[] = [
-  {
-    name: "Smileys & Emotion",
-    icon: "😀",
-    emojis: [
-      { emoji: "😀", keywords: ["grinning", "happy", "smile"] },
-      { emoji: "😃", keywords: ["smiley", "happy", "joy"] },
-      { emoji: "😄", keywords: ["smile", "laugh", "happy"] },
-      { emoji: "😁", keywords: ["grin", "eyes"] },
-      { emoji: "😆", keywords: ["laughing", "satisfied"] },
-      { emoji: "😅", keywords: ["sweat_smile", "nervous"] },
-      { emoji: "😂", keywords: ["joy", "tears", "laugh", "lol"] },
-      { emoji: "🤣", keywords: ["rofl", "rolling", "laughing"] },
-      { emoji: "😊", keywords: ["blush", "proud", "friendly"] },
-      { emoji: "😇", keywords: ["innocent", "angel"] },
-      { emoji: "🙂", keywords: ["slightly_smiling"] },
-      { emoji: "😉", keywords: ["wink", "flirt"] },
-      { emoji: "😌", keywords: ["relieved", "calm"] },
-      { emoji: "😍", keywords: ["heart_eyes", "love", "crush"] },
-      { emoji: "🥰", keywords: ["smiling_face_with_3_hearts", "adore"] },
-      { emoji: "😘", keywords: ["kissing_heart", "love"] },
-      { emoji: "😋", keywords: ["yum", "delicious"] },
-      { emoji: "😎", keywords: ["sunglasses", "cool"] },
-      { emoji: "🤩", keywords: ["star_struck", "excited"] },
-      { emoji: "🥳", keywords: ["partying", "celebrate"] },
-      { emoji: "😏", keywords: ["smirk", "sly"] },
-      { emoji: "😒", keywords: ["unamused", "bored"] },
-      { emoji: "🙄", keywords: ["roll_eyes", "whatever"] },
-      { emoji: "🤔", keywords: ["thinking", "hmm"] },
-      { emoji: "🤫", keywords: ["shushing", "quiet"] },
-      { emoji: "🤐", keywords: ["zipper_mouth", "secret"] },
-      { emoji: "😴", keywords: ["sleeping", "tired"] },
-      { emoji: "🤯", keywords: ["exploding_head", "mind_blown"] },
-      { emoji: "😱", keywords: ["scream", "shocked"] },
-      { emoji: "😭", keywords: ["sob", "crying", "sad"] },
-      { emoji: "😢", keywords: ["cry", "tear"] },
-      { emoji: "😤", keywords: ["triumph", "frustrated"] },
-      { emoji: "😡", keywords: ["rage", "angry"] },
-      { emoji: "🥺", keywords: ["pleading", "puppy"] },
-    ],
-  },
-  {
-    name: "Gestures & People",
-    icon: "👍",
-    emojis: [
-      { emoji: "👍", keywords: ["thumbsup", "approve", "good", "yes", "like"] },
-      { emoji: "👎", keywords: ["thumbsdown", "disapprove", "bad", "no"] },
-      { emoji: "👌", keywords: ["ok_hand", "perfect"] },
-      { emoji: "✌️", keywords: ["peace", "victory"] },
-      { emoji: "🤞", keywords: ["crossed_fingers", "luck", "hope"] },
-      { emoji: "🤟", keywords: ["love_you_gesture"] },
-      { emoji: "🤘", keywords: ["sign_of_the_horns", "rock"] },
-      { emoji: "🤙", keywords: ["call_me"] },
-      { emoji: "👏", keywords: ["clap", "applause", "bravo"] },
-      { emoji: "🙌", keywords: ["raised_hands", "hooray", "praise"] },
-      { emoji: "👐", keywords: ["open_hands"] },
-      { emoji: "🤲", keywords: ["palms_up_together"] },
-      { emoji: "🤝", keywords: ["handshake", "deal", "agree"] },
-      { emoji: "🙏", keywords: ["pray", "thank_you", "please"] },
-      { emoji: "💪", keywords: ["muscle", "flex", "strong"] },
-      { emoji: "👋", keywords: ["wave", "hello", "goodbye"] },
-      { emoji: "✋", keywords: ["raised_hand", "stop", "high_five"] },
-      { emoji: "🖐️", keywords: ["fingers_splayed"] },
-      { emoji: "👊", keywords: ["fist", "punch"] },
-      { emoji: "🤛", keywords: ["fist_left"] },
-      { emoji: "🤜", keywords: ["fist_right"] },
-      { emoji: "✍️", keywords: ["writing_hand"] },
-      { emoji: "🤳", keywords: ["selfie"] },
-    ],
-  },
-  {
-    name: "Hearts & Symbols",
-    icon: "❤️",
-    emojis: [
-      { emoji: "❤️", keywords: ["red_heart", "love"] },
-      { emoji: "🧡", keywords: ["orange_heart"] },
-      { emoji: "💛", keywords: ["yellow_heart"] },
-      { emoji: "💚", keywords: ["green_heart"] },
-      { emoji: "💙", keywords: ["blue_heart"] },
-      { emoji: "💜", keywords: ["purple_heart"] },
-      { emoji: "🖤", keywords: ["black_heart"] },
-      { emoji: "🤍", keywords: ["white_heart"] },
-      { emoji: "🤎", keywords: ["brown_heart"] },
-      { emoji: "💔", keywords: ["broken_heart"] },
-      { emoji: "❣️", keywords: ["heart_exclamation"] },
-      { emoji: "💕", keywords: ["two_hearts"] },
-      { emoji: "💞", keywords: ["revolving_hearts"] },
-      { emoji: "💓", keywords: ["beating_heart"] },
-      { emoji: "💗", keywords: ["growing_heart"] },
-      { emoji: "💖", keywords: ["sparkling_heart"] },
-      { emoji: "💘", keywords: ["cupid"] },
-      { emoji: "💝", keywords: ["gift_heart"] },
-      { emoji: "🔥", keywords: ["fire", "flame", "lit", "hot"] },
-      { emoji: "✨", keywords: ["sparkles", "shine", "magic"] },
-      { emoji: "⭐", keywords: ["star"] },
-      { emoji: "🌟", keywords: ["glowing_star"] },
-      { emoji: "⚡", keywords: ["zap", "lightning"] },
-      { emoji: "💯", keywords: ["100", "perfect"] },
-      { emoji: "🎉", keywords: ["tada", "party", "celebrate"] },
-      { emoji: "🎊", keywords: ["confetti_ball"] },
-      { emoji: "🎈", keywords: ["balloon"] },
-      { emoji: "🎁", keywords: ["gift", "present"] },
-      { emoji: "🏆", keywords: ["trophy", "winner"] },
-      { emoji: "🥇", keywords: ["1st_place_medal", "gold"] },
-      { emoji: "💰", keywords: ["moneybag", "cash"] },
-      { emoji: "💎", keywords: ["gem", "diamond"] },
-      { emoji: "🚀", keywords: ["rocket", "moon"] },
-    ],
-  },
+// Ordered, library-backed categories — every folder exists in the animated
+// emoji manifest so a tab can never render as an empty grid.
+const CATEGORY_ORDER: Omit<EmojiCategory, "emojis">[] = [
+  { folder: "Smileys", label: "Smileys", icon: "😀" },
+  { folder: "People", label: "Gestures", icon: "👍" },
+  { folder: "Animals and Nature", label: "Animals", icon: "🐶" },
+  { folder: "Food and Drink", label: "Food", icon: "🍕" },
+  { folder: "Activity", label: "Activities", icon: "⚽" },
+  { folder: "Travel and Places", label: "Travel", icon: "🚀" },
+  { folder: "Objects", label: "Objects", icon: "💡" },
+  { folder: "Symbols", label: "Symbols", icon: "❤️" },
+  { folder: "Flags", label: "Flags", icon: "🚩" },
 ];
 
+const CATEGORY_DATA: EmojiCategory[] = CATEGORY_ORDER.map((cat) => ({
+  ...cat,
+  emojis: EMOJI_KEYS.filter((k) => EMOJI_MANIFEST[k]?.startsWith(`${cat.folder}/`)),
+}));
+
+// Keyword index built from the human-readable asset filenames, e.g.
+// '🤝' -> "handshake deal agree" — mirrors the mobile picker's search.
+const SEARCH_INDEX: Record<string, string> = Object.fromEntries(
+  EMOJI_KEYS.map((k) => [
+    k,
+    `${k} ${k.split("").join(" ")} ${(EMOJI_MANIFEST[k] ?? "")
+      .replace(/^.*\//, "")
+      .replace(/\.webp$/, "")
+      .toLowerCase()}`,
+  ])
+);
+
 const POPULAR_ROW = ["👍", "❤️", "🔥", "😂", "👏", "🎉", "✨", "🙌", "😍", "🙏"];
+const RECENTS_KEY = "murihspace:emoji_recents_v1";
+const RECENTS_MAX = 28;
+
+function useRecents() {
+  const [recents, setRecents] = useState<string[]>(() => {
+    try {
+      const raw = localStorage.getItem(RECENTS_KEY);
+      if (!raw) return [];
+      const parsed = JSON.parse(raw);
+      // Guard against corrupted / foreign values under the same key.
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      // localStorage unavailable (private mode) — recents simply stay empty.
+      return [];
+    }
+  });
+
+  const markUsed = useCallback((emoji: string) => {
+    setRecents((prev) => {
+      const next = [emoji, ...prev.filter((e) => e !== emoji)].slice(0, RECENTS_MAX);
+      try {
+        localStorage.setItem(RECENTS_KEY, JSON.stringify(next));
+      } catch {
+        // Ignore quota / availability errors.
+      }
+      return next;
+    });
+  }, []);
+
+  return { recents, markUsed };
+}
 
 export function EmojiPickerPopover({
   onSelect,
@@ -137,8 +90,15 @@ export function EmojiPickerPopover({
 }: EmojiPickerPopoverProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState("");
-  const [activeCategory, setActiveCategory] = useState(0);
+  const [activeTab, setActiveTab] = useState(0); // 0 = Recent, 1..n = CATEGORY_DATA
   const containerRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
+  const { recents, markUsed } = useRecents();
+
+  // Focus the search field whenever the popover opens.
+  useEffect(() => {
+    if (isOpen) searchRef.current?.focus();
+  }, [isOpen]);
 
   // Close when clicked outside
   useEffect(() => {
@@ -168,18 +128,29 @@ export function EmojiPickerPopover({
 
   const handlePick = (emoji: string) => {
     onSelect(emoji);
-    setIsOpen(false);
-    setSearch("");
+    markUsed(emoji);
+    // Stay open so the user can insert several emojis in a row (Telegram-style).
   };
 
-  const filteredEmojis = search.trim()
-    ? EMOJI_CATEGORIES.flatMap((c) =>
-        c.emojis.filter((e) =>
-          e.keywords.some((k) => k.toLowerCase().includes(search.toLowerCase().trim())) ||
-          e.emoji.includes(search)
-        )
-      )
-    : [];
+  const query = search.trim().toLowerCase();
+  const filteredEmojis = useMemo(() => {
+    if (!query) return [];
+    const words = query.split(/\s+/);
+    const results: string[] = [];
+    for (const key of EMOJI_KEYS) {
+      if (results.length >= 120) break;
+      const haystack = SEARCH_INDEX[key];
+      if (words.every((w) => haystack.includes(w))) results.push(key);
+    }
+    return results;
+  }, [query]);
+
+  const gridEmojis = query ? filteredEmojis : activeTab === 0 ? recents : CATEGORY_DATA[activeTab - 1]?.emojis ?? [];
+  const gridLabel = query
+    ? `Search Results (${filteredEmojis.length})`
+    : activeTab === 0
+      ? "Recent"
+      : CATEGORY_DATA[activeTab - 1]?.label ?? "";
 
   return (
     <div ref={containerRef} className={`relative inline-block ${className}`}>
@@ -210,11 +181,11 @@ export function EmojiPickerPopover({
             <div className="relative flex items-center">
               <MagnifyingGlass className="absolute left-2.5 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
               <input
+                ref={searchRef}
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search emoji..."
-                autoFocus
                 className="w-full h-8 pl-8 pr-7 text-xs rounded-lg bg-background border border-border/80 outline-none focus:ring-1 focus:ring-primary placeholder:text-muted-foreground"
               />
               {search && (
@@ -230,7 +201,7 @@ export function EmojiPickerPopover({
           </div>
 
           {/* Quick Popular Row */}
-          {!search && (
+          {!query && (
             <div className="px-2 py-1.5 border-b border-border/50 bg-muted/20 flex items-center justify-between gap-1 overflow-x-auto no-scrollbar">
               {POPULAR_ROW.map((emoji) => (
                 <button
@@ -247,70 +218,65 @@ export function EmojiPickerPopover({
 
           {/* Emoji Grid Body */}
           <div className="h-56 overflow-y-auto p-2.5 space-y-3">
-            {search.trim() ? (
-              filteredEmojis.length > 0 ? (
-                <div>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground px-1 mb-1.5 block">
-                    Search Results ({filteredEmojis.length})
-                  </span>
-                  <div className="grid grid-cols-8 gap-1">
-                    {filteredEmojis.map((e, idx) => (
-                      <button
-                        key={`${e.emoji}-${idx}`}
-                        type="button"
-                        onClick={() => handlePick(e.emoji)}
-                        className="h-8 w-8 rounded-lg hover:bg-muted flex items-center justify-center transition-transform hover:scale-125 cursor-pointer"
-                        title={e.keywords.join(", ")}
-                      >
-                        <AnimatedEmoji emoji={e.emoji} className="h-6 w-6" />
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                <div className="py-12 text-center text-xs text-muted-foreground">
-                  No emoji found for "{search}"
-                </div>
-              )
-            ) : (
+            {gridEmojis.length > 0 ? (
               <div>
                 <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground px-1 mb-1.5 block">
-                  {EMOJI_CATEGORIES[activeCategory]?.name}
+                  {gridLabel}
                 </span>
                 <div className="grid grid-cols-8 gap-1">
-                  {EMOJI_CATEGORIES[activeCategory]?.emojis.map((e, idx) => (
+                  {gridEmojis.map((emoji, idx) => (
                     <button
-                      key={`${e.emoji}-${idx}`}
+                      key={`${emoji}-${idx}`}
                       type="button"
-                      onClick={() => handlePick(e.emoji)}
+                      onClick={() => handlePick(emoji)}
                       className="h-8 w-8 rounded-lg hover:bg-muted flex items-center justify-center transition-transform hover:scale-125 cursor-pointer"
-                      title={e.keywords.join(", ")}
                     >
-                      <AnimatedEmoji emoji={e.emoji} className="h-6 w-6" />
+                      <AnimatedEmoji emoji={emoji} className="h-6 w-6" />
                     </button>
                   ))}
                 </div>
+              </div>
+            ) : (
+              <div className="py-12 text-center text-xs text-muted-foreground">
+                {query
+                  ? `No emoji found for "${search}"`
+                  : activeTab === 0
+                    ? "Emojis you use will appear here"
+                    : "No emojis in this category"}
               </div>
             )}
           </div>
 
           {/* Category Tabs Footer */}
-          {!search && (
-            <div className="p-1.5 border-t border-border/70 bg-muted/30 flex items-center justify-around">
-              {EMOJI_CATEGORIES.map((cat, idx) => (
+          {!query && (
+            <div className="p-1.5 border-t border-border/70 bg-muted/30 flex items-center gap-0.5 overflow-x-auto no-scrollbar">
+              <button
+                type="button"
+                onClick={() => setActiveTab(0)}
+                className={`h-7 px-2.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer shrink-0 ${
+                  activeTab === 0
+                    ? "bg-primary/10 text-primary font-bold dark:bg-primary/20"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                }`}
+                title="Recent"
+              >
+                <ClockCounterClockwise className="h-4 w-4" weight={activeTab === 0 ? "fill" : "regular"} />
+                <span className="text-[11px] hidden sm:inline">Recent</span>
+              </button>
+              {CATEGORY_DATA.map((cat, idx) => (
                 <button
-                  key={cat.name}
+                  key={cat.folder}
                   type="button"
-                  onClick={() => setActiveCategory(idx)}
-                  className={`h-7 px-2.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer ${
-                    activeCategory === idx
+                  onClick={() => setActiveTab(idx + 1)}
+                  className={`h-7 px-2.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer shrink-0 ${
+                    activeTab === idx + 1
                       ? "bg-primary/10 text-primary font-bold dark:bg-primary/20"
                       : "text-muted-foreground hover:text-foreground hover:bg-muted"
                   }`}
-                  title={cat.name}
+                  title={cat.label}
                 >
                   <AnimatedEmoji emoji={cat.icon} className="h-4 w-4" />
-                  <span className="text-[11px] hidden sm:inline">{cat.name.split(" ")[0]}</span>
+                  <span className="text-[11px] hidden sm:inline">{cat.label}</span>
                 </button>
               ))}
             </div>
@@ -320,4 +286,3 @@ export function EmojiPickerPopover({
     </div>
   );
 }
-

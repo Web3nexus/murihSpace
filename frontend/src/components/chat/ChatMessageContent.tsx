@@ -4,6 +4,8 @@ import { resolveDeepLink, type DeepLinkTarget, type DeepLinkType } from "@/lib/d
 import { apiClient } from "@/lib/api/client";
 import { cn } from "@/lib/utils";
 import { EmojiRichText } from "@/components/chat/EmojiRichText";
+import { AnimatedEmoji } from "@/components/chat/AnimatedEmoji";
+import { emojiOnlySequence } from "@/lib/emoji";
 import {
   VideoCamera,
   Broadcast,
@@ -177,6 +179,10 @@ export function ChatMessageContent({ content, isMine = false, className }: ChatM
     return { parts: rawParts, deepLinkCandidate: firstDeepLink };
   }, [content]);
 
+  // A message that is just 1–3 emoji is drawn large (Telegram style) rather
+  // than inline at text size.
+  const jumbo = useMemo(() => emojiOnlySequence(content), [content]);
+
   const candidateUrl = deepLinkCandidate?.url;
   const candidateType = deepLinkCandidate?.target.type;
   const [previewRefresh, setPreviewRefresh] = useState(0);
@@ -250,6 +256,18 @@ export function ChatMessageContent({ content, isMine = false, className }: ChatM
 
   return (
     <div className={cn("space-y-2", className)}>
+      {jumbo ? (
+        <div className="flex items-center gap-1.5 py-0.5">
+          {jumbo.map((emoji, i) => (
+            <AnimatedEmoji
+              key={`${i}-${emoji}`}
+              emoji={emoji}
+              className={JUMBO_SIZES[jumbo.length] ?? "h-10 w-10"}
+            />
+          ))}
+        </div>
+      ) : (
+        <>
       {/* Formatted Text with clickable URLs */}
       <p className="text-inherit leading-relaxed whitespace-pre-wrap break-words">
         {parts.map((part, idx) => {
@@ -301,9 +319,17 @@ export function ChatMessageContent({ content, isMine = false, className }: ChatM
           isMine={isMine}
         />
       )}
+        </>
+      )}
     </div>
   );
 }
+
+const JUMBO_SIZES: Record<number, string> = {
+  1: "h-[68px] w-[68px]",
+  2: "h-[50px] w-[50px]",
+  3: "h-[40px] w-[40px]",
+};
 
 interface DeepLinkCardProps {
   target: DeepLinkTarget;

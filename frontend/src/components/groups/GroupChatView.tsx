@@ -20,6 +20,7 @@ import { EmojiPickerPopover } from "@/components/chat/EmojiPickerPopover";
 import { ChatMessageContent } from "@/components/chat/ChatMessageContent";
 import { AnimatedEmoji } from "@/components/chat/AnimatedEmoji";
 import { messagePreview } from "@/lib/chatMessages";
+import { isEmojiOnlyMessage } from "@/lib/emoji";
 
 interface GroupChatViewProps {
   group: Group;
@@ -279,6 +280,10 @@ export function GroupChatView({ group }: GroupChatViewProps) {
               !prevMsg ||
               new Date(msg.created_at).toDateString() !== new Date(prevMsg.created_at).toDateString();
             const showAvatar = !isMe && (!prevMsg || prevMsg.user_id !== msg.user_id);
+            // Emoji-only messages drop the bubble (Telegram style) so the large
+            // emoji sits straight on the canvas.
+            const emojiOnly =
+              isEmojiOnlyMessage(msg.content) && !msg.attachment_url && !msg.reply_to;
 
             return (
               <React.Fragment key={msg.id || msg.client_uuid || index}>
@@ -318,10 +323,14 @@ export function GroupChatView({ group }: GroupChatViewProps) {
 
                   {/* Bubble Content */}
                   <div
-                    className={`relative max-w-[85%] sm:max-w-[70%] rounded-2xl px-4 py-2.5 shadow-sm transition-all ${
-                      isMe
-                        ? "bg-primary text-primary-foreground rounded-br-xs"
-                        : "bg-muted/80 dark:bg-muted/40 border border-border/60 text-foreground rounded-bl-xs"
+                    className={`relative max-w-[85%] sm:max-w-[70%] rounded-2xl transition-all ${
+                      emojiOnly
+                        ? "px-1 py-0.5"
+                        : `px-4 py-2.5 shadow-sm ${
+                            isMe
+                              ? "bg-primary text-primary-foreground rounded-br-xs"
+                              : "bg-muted/80 dark:bg-muted/40 border border-border/60 text-foreground rounded-bl-xs"
+                          }`
                     }`}
                   >
                     {/* Sender Name & Role */}
@@ -385,7 +394,7 @@ export function GroupChatView({ group }: GroupChatViewProps) {
                     {/* Timestamp & Status */}
                     <div
                       className={`flex items-center justify-end gap-1 mt-1 text-[10px] ${
-                        isMe ? "text-primary-foreground/75" : "text-muted-foreground"
+                        isMe && !emojiOnly ? "text-primary-foreground/75" : "text-muted-foreground"
                       }`}
                     >
                       <span>{formatChatTime(msg.created_at)}</span>

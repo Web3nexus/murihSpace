@@ -119,7 +119,7 @@ export function chatUrl(conversationId: string | number): string {
 }
 
 export function profileUrl(username: string): string {
-  return `${PATHS.profile}/${encodeURIComponent(normaliseHandle(username))}`;
+  return `https://murih.me/@${encodeURIComponent(normaliseHandle(username))}`;
 }
 
 export function communityUrl(slug: string): string {
@@ -247,7 +247,10 @@ export function resolveDeepLink(raw: string): DeepLinkTarget {
     return make("community", id()!, `${PATHS.community}/${id()}`);
   } else if (first === "u" && id()) {
     const username = normaliseHandle(id()!);
-    return make("profile", username, `${PATHS.profile}/${username}`);
+    return make("profile", username, `/@${username}`);
+  } else if (first.startsWith("@") && first.length > 1) {
+    const username = normaliseHandle(first);
+    return make("profile", username, `/@${username}`);
   } else if (first === "live") {
     const token = second === "resolve" ? id(2) : id();
     if (token) return make("live", token, `${PATHS.live}/${token}`);

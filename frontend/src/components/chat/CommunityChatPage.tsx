@@ -27,6 +27,7 @@ import {
 } from "@phosphor-icons/react";
 import { safeFormatDistanceToNow, safeFormat } from "@/lib/date";
 import { extractMessages, messagePreview } from "@/lib/chatMessages";
+import { isEmojiOnlyMessage } from "@/lib/emoji";
 import type { ConversationItem, ChatMessage, MessageStatus, MessageReaction } from "@/types/chat";
 import { ReplyPreviewBar } from "@/components/chat/ReplyPreviewBar";
 import { MessageReactions } from "@/components/chat/MessageReactions";
@@ -793,6 +794,10 @@ export default function CommunityChatPage() {
                   const isPending = msg.status === "pending";
                   const isFailed = msg.status === "failed";
                   const showAvatar = idx === 0 || messages[idx - 1]?.user_id !== msg.user_id;
+                  // Emoji-only messages drop the bubble (Telegram style) so the
+                  // large emoji sits straight on the canvas.
+                  const emojiOnly =
+                    isEmojiOnlyMessage(msg.content) && !msg.attachment_url && !msg.reply_to;
 
                   return (
                     <div
@@ -827,14 +832,19 @@ export default function CommunityChatPage() {
 
                         <div
                           className={cn(
-                            "p-3 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap break-words",
-                            isMine
-                              ? isFailed
-                                ? "bg-destructive/15 border border-destructive/40 text-foreground rounded-br-xs"
-                                : isPending
-                                  ? "bg-secondary/75 text-secondary-foreground rounded-br-xs opacity-85"
-                                  : "bg-secondary text-secondary-foreground rounded-br-xs shadow-2xs"
-                              : "bg-card text-foreground border border-border/60 rounded-bl-xs shadow-2xs",
+                            "text-sm leading-relaxed whitespace-pre-wrap break-words",
+                            emojiOnly
+                              ? "p-1 bg-transparent border-0 shadow-none"
+                              : cn(
+                                  "p-3 rounded-2xl",
+                                  isMine
+                                    ? isFailed
+                                      ? "bg-destructive/15 border border-destructive/40 text-foreground rounded-br-xs"
+                                      : isPending
+                                        ? "bg-secondary/75 text-secondary-foreground rounded-br-xs opacity-85"
+                                        : "bg-secondary text-secondary-foreground rounded-br-xs shadow-2xs"
+                                    : "bg-card text-foreground border border-border/60 rounded-bl-xs shadow-2xs",
+                                ),
                           )}
                         >
                           {!isMine && msg.user?.name && showAvatar && (
@@ -889,7 +899,7 @@ export default function CommunityChatPage() {
 
                           <div className={cn(
                             "flex items-center justify-end gap-1 mt-1",
-                            isMine ? "text-white/70" : "text-muted-foreground/60",
+                            isMine && !emojiOnly ? "text-white/70" : "text-muted-foreground/60",
                           )}>
                             <span className="text-[10px]">
                               {safeFormat(msg.created_at, "h:mm a")}

@@ -35,3 +35,27 @@ export function emojiAssetUrl(emoji: string): string | null {
     .join("/");
   return `${apiOrigin()}/emoji/${encoded}`;
 }
+
+/**
+ * Returns the emojis when [text] contains *only* emoji (plus whitespace) and no
+ * more than [max] of them — the Telegram "jumbo" case drawn large instead of at
+ * text size. Returns null otherwise.
+ */
+export function emojiOnlySequence(text: string, max = 3): string[] | null {
+  const trimmed = text.trim();
+  if (!trimmed) return null;
+  const matches = trimmed.match(EMOJI_REGEX);
+  if (!matches || matches.length === 0 || matches.length > max) return null;
+  if (trimmed.replace(EMOJI_REGEX, "").trim() !== "") return null;
+  return matches;
+}
+
+/** True when [text] is made up exclusively of emoji (and whitespace), with no
+ *  limit on how many — used to render such messages without the chat bubble. */
+export function isEmojiOnlyMessage(text: string): boolean {
+  const trimmed = text.trim();
+  if (!trimmed) return false;
+  const matches = trimmed.match(EMOJI_REGEX);
+  if (!matches || matches.length === 0) return false;
+  return trimmed.replace(EMOJI_REGEX, "").trim() === "";
+}

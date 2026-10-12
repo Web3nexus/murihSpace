@@ -20,6 +20,7 @@ import { apiClient } from "@/lib/api/client";
 import { extractMessages } from "@/lib/chatMessages";
 import type { ChatMessage } from "@/types/chat";
 import { safeFormat } from "@/lib/date";
+import { isEmojiOnlyMessage } from "@/lib/emoji";
 import { EmojiPickerPopover } from "@/components/chat/EmojiPickerPopover";
 import { ChatMessageContent } from "@/components/chat/ChatMessageContent";
 import { VoiceMessagePlayer } from "@/components/chat/VoiceMessagePlayer";
@@ -460,6 +461,12 @@ export function PopChatWidget() {
                 msg.attachment_type === "call" ||
                 content.startsWith('{"call_id"') ||
                 (content.startsWith("{") && content.includes('"call_id"'));
+              // Emoji-only messages drop the bubble (Telegram style).
+              const emojiOnly =
+                !isCall &&
+                !msg.attachment_url &&
+                !msg.attachment_type &&
+                isEmojiOnlyMessage(content);
 
               let callData: any = null;
               if (isCall) {
@@ -489,19 +496,23 @@ export function PopChatWidget() {
                   className="mb-2"
                 >
                   <Bubble
-                    variant={isMe ? "default" : "secondary"}
+                    variant={emojiOnly ? "ghost" : isMe ? "default" : "secondary"}
                     align={isMe ? "end" : "start"}
                     className="max-w-[78%] sm:max-w-[68%]"
                   >
                     <BubbleContent
-                      className={`p-2.5 text-xs leading-relaxed wrap-break-word ${
-                        isCall
-                          ? isMissed
-                            ? "bg-red-500/10 text-red-400 border border-red-500/20 rounded-2xl"
-                            : "bg-card text-foreground border border-border/80 rounded-2xl"
-                          : isMe
-                          ? "bg-secondary text-secondary-foreground rounded-2xl rounded-br-xs shadow-2xs"
-                          : "bg-card text-foreground border border-border/70 rounded-2xl rounded-bl-xs shadow-2xs"
+                      className={`text-xs leading-relaxed wrap-break-word ${
+                        emojiOnly
+                          ? "p-1 bg-transparent border-0 shadow-none"
+                          : `p-2.5 ${
+                              isCall
+                                ? isMissed
+                                  ? "bg-red-500/10 text-red-400 border border-red-500/20 rounded-2xl"
+                                  : "bg-card text-foreground border border-border/80 rounded-2xl"
+                                : isMe
+                                ? "bg-secondary text-secondary-foreground rounded-2xl rounded-br-xs shadow-2xs"
+                                : "bg-card text-foreground border border-border/70 rounded-2xl rounded-bl-xs shadow-2xs"
+                            }`
                       }`}
                     >
                       {isCall ? (
