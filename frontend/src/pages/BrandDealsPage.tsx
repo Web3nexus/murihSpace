@@ -154,13 +154,13 @@ export function BrandDealsPage() {
   return (
     <div className="space-y-6 w-full max-w-7xl mx-auto p-4 lg:p-5">
       <PageSecondaryNav
-        title="Brand Deals Hub"
-        subtitle="Manage your brand partnerships, budgets, and deliverables in one place."
-        icon={<Briefcase weight="fill" className="h-5 w-5 text-secondary" />}
+        title="Brand Studio"
+        subtitle="Discover brand campaigns, review briefs, apply to sponsorships & manage escrow payouts."
+        icon={<Briefcase weight="fill" className="h-5 w-5 text-[#1A68D4]" />}
         tabs={brandDealTabs}
         actions={
           <Button onClick={() => { resetForm(); setShowForm(!showForm); }}
-            variant={showForm ? "outline" : "default"} className="shrink-0 text-xs font-bold">
+            variant={showForm ? "outline" : "default"} className="shrink-0 text-xs font-bold bg-[#1A68D4] hover:bg-[#1A68D4]/90 text-white">
             {showForm ? <X className="h-4 w-4 mr-1.5" /> : <Plus weight="fill" className="h-4 w-4 mr-1.5" />}
             {showForm ? 'Cancel' : 'New Deal'}
           </Button>
@@ -247,8 +247,8 @@ export function BrandDealsPage() {
 
       {deals.length === 0 ? (
         <div className="rounded-3xl border border-dashed border-border bg-card p-12 flex flex-col items-center justify-center text-center space-y-3.5 w-full min-h-[240px]">
-          <div className="w-14 h-14 rounded-lg bg-[#2164b6]/10 flex items-center justify-center">
-            <Briefcase weight="fill" className="h-7 w-7 text-[#2164b6] dark:text-[#7ab0ff]" />
+          <div className="w-14 h-14 rounded-lg bg-[#1A68D4]/10 flex items-center justify-center">
+            <Briefcase weight="fill" className="h-7 w-7 text-[#1A68D4]" />
           </div>
           <div className="space-y-1 max-w-md mx-auto text-center">
             <h3 className="text-base font-extrabold text-foreground">No brand deals yet</h3>
@@ -256,7 +256,7 @@ export function BrandDealsPage() {
               Create your first brand partnership deal to get started earning from sponsorships.
             </p>
           </div>
-          <Button size="sm" className="bg-[#2164b6] hover:bg-[#1a5091] text-white font-bold text-xs  mx-auto flex items-center gap-1.5" onClick={() => { resetForm(); setShowForm(true); }}>
+          <Button size="sm" className="bg-[#1A68D4] hover:bg-[#1A68D4]/90 text-white font-bold text-xs mx-auto flex items-center gap-1.5" onClick={() => { resetForm(); setShowForm(true); }}>
             <Plus weight="fill" className="h-4 w-4" /> New Deal
           </Button>
         </div>

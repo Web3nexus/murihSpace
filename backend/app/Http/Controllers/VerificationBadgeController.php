@@ -20,25 +20,44 @@ class VerificationBadgeController extends Controller
     {
         $monthly = (int) \App\Models\AdminSetting::get('verification_badge_fee', config('murihspace.verification_badge_fee', 100));
         $annual = (int) \App\Models\AdminSetting::get('verification_badge_annual_fee', (int) round($monthly * 12 * 0.67));
-        return ['monthly' => $monthly, 'annual' => $annual];
+        $communityMonthly = (int) \App\Models\AdminSetting::get('community_verification_monthly_fee', 150);
+        return [
+            'monthly' => $monthly,
+            'annual' => $annual,
+            'community_monthly' => $communityMonthly,
+            'canonical_domain' => 'murih.me',
+        ];
     }
 
     public function status(Request $request): JsonResponse
     {
         $user = $request->user();
         $pricing = $this->getBadgePricing();
+        $status = $this->resolveStatus($user);
+        $hasPremiumUsername = in_array($status, ['active', 'verified'], true);
 
         return response()->json([
             'data' => [
-                'status' => $this->resolveStatus($user),
+                'status' => $status,
+                'has_premium_username' => $hasPremiumUsername,
+                'vanity_profile_url' => "https://murih.me/@{$user->username}",
+                'canonical_username' => "@{$user->username}",
+                'canonical_domain' => 'murih.me',
                 'expires_at' => $user->verification_badge_expires_at?->toIso8601String(),
                 'purchased_at' => $user->verification_badge_purchased_at?->toIso8601String(),
                 'auto_renew' => (bool) $user->verification_badge_auto_renew,
                 'kyc_verified' => $user->hasVerifiedKyc(),
                 'monthly_fee' => $pricing['monthly'],
                 'annual_fee' => $pricing['annual'],
+                'community_monthly_fee' => $pricing['community_monthly'],
                 'currency' => 'Coins',
                 'wallet_balance' => (int) ($this->walletService->getOrCreateWallet($user, 'system')->available),
+                'benefits' => [
+                    'Official Blue Checkmark badge on your profile and comments',
+                    "Permanent premium vanity handle and profile link: murih.me/@{$user->username}",
+                    'Priority placement in search, discover, and community recommendations',
+                    'Higher community trust rating & VIP creator badge',
+                ],
             ],
         ]);
     }
@@ -181,6 +200,7 @@ class VerificationBadgeController extends Controller
             'verification_badge_status' => 'active',
             'verification_badge_expires_at' => $expiresAt,
             'verification_badge_auto_renew' => true,
+            'is_premium' => true,
         ]);
 
         return response()->json([
@@ -228,6 +248,38 @@ class VerificationBadgeController extends Controller
         return response()->json($users);
     }
 
+    public function adminGetPricing(Request $request): JsonResponse
+    {
+        return response()->json([
+            'data' => $this->getBadgePricing(),
+        ]);
+    }
+
+    public function adminUpdatePricing(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'monthly_fee' => ['sometimes', 'integer', 'min:1'],
+            'annual_fee' => ['sometimes', 'integer', 'min:1'],
+            'community_monthly_fee' => ['sometimes', 'integer', 'min:1'],
+        ]);
+
+        if (isset($validated['monthly_fee'])) {
+            \App\Models\AdminSetting::set('verification_badge_fee', $validated['monthly_fee']);
+            \App\Models\AdminSetting::set('premium_username_monthly_fee', $validated['monthly_fee']);
+        }
+        if (isset($validated['annual_fee'])) {
+            \App\Models\AdminSetting::set('verification_badge_annual_fee', $validated['annual_fee']);
+        }
+        if (isset($validated['community_monthly_fee'])) {
+            \App\Models\AdminSetting::set('community_verification_monthly_fee', $validated['community_monthly_fee']);
+        }
+
+        return response()->json([
+            'message' => 'Verification badge & premium username pricing updated.',
+            'data' => $this->getBadgePricing(),
+        ]);
+    }
+
     public function adminUpdateStatus(Request $request, int $userId): JsonResponse
     {
         $validated = $request->validate([
@@ -236,8 +288,12 @@ class VerificationBadgeController extends Controller
 
         $user = \App\Models\User::findOrFail($userId);
         $newStatus = $validated['status'];
+        $isPremium = in_array($newStatus, ['active', 'verified'], true);
 
-        $user->update(['verification_badge_status' => $newStatus]);
+        $user->update([
+            'verification_badge_status' => $newStatus,
+            'is_premium' => $isPremium,
+        ]);
 
         \App\Models\AuditLog::create([
             'user_id' => $request->user()->id,
@@ -253,6 +309,7 @@ class VerificationBadgeController extends Controller
             'data' => [
                 'id' => $user->id,
                 'status' => $user->verification_badge_status,
+                'is_premium' => $isPremium,
             ],
         ]);
     }

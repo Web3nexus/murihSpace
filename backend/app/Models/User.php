@@ -28,6 +28,7 @@ use App\Support\AdminPermissionMatrix;
     'bio', 'avatar', 'avatar_url', 'banner_url',
     'kyc_status', 'kyc_document', 'kyc_rejection_reason', 'kyc_provider', 'sumsub_applicant_id',
     'kyc_verification_id',
+    'is_premium',
     'verification_badge_status', 'verification_badge_expires_at',
     'verification_badge_purchased_at', 'verification_badge_auto_renew',
     'two_factor_secret', 'two_factor_recovery_codes', 'two_factor_confirmed_at',
@@ -128,7 +129,26 @@ class User extends Authenticatable implements MustVerifyEmail
 
     public function isAdmin(): bool
     {
-        return $this->role === 'admin';
+        return $this->role === 'admin' || ! empty($this->admin_role);
+    }
+
+    /**
+     * Scope to strictly exclude administrators and internal staff from public/app feeds,
+     * creator recommendations, member discovery, and friend searches.
+     */
+    public function scopeNonAdmin(\Illuminate\Database\Eloquent\Builder $query): \Illuminate\Database\Eloquent\Builder
+    {
+        return $query->where(function ($q) {
+            $q->whereNull('role')->orWhere('role', '!=', 'admin');
+        })->whereNull('admin_role');
+    }
+
+    /**
+     * Alias for scopeNonAdmin.
+     */
+    public function scopeExcludeAdmins(\Illuminate\Database\Eloquent\Builder $query): \Illuminate\Database\Eloquent\Builder
+    {
+        return $this->scopeNonAdmin($query);
     }
 
     public function isSuperAdmin(): bool

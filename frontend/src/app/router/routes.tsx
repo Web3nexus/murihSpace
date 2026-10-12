@@ -47,6 +47,7 @@ const AccessibilityPage = lazyWithRetry(() => import("@/pages/AccessibilityPage"
 const UpgradeAccountPage = lazyWithRetry(() => import("@/pages/UpgradeAccountPage"), "UpgradeAccountPage");
 const AdminRoleApplicationsPage = lazyWithRetry(() => import("@/pages/AdminRoleApplicationsPage"), "AdminRoleApplicationsPage");
 const AdminVerificationBadgesPage = lazyWithRetry(() => import("@/pages/AdminVerificationBadgesPage"), "AdminVerificationBadgesPage");
+const AdminBadgesPage = lazyWithRetry(() => import("@/pages/AdminBadgesPage"), "AdminBadgesPage");
 const CoursesPage = lazyWithRetry(() => import("@/pages/CoursesPage"));
 const StoreManagementPage = lazyWithRetry(() => import("@/pages/StoreManagementPage"), "StoreManagementPage");
 const PublicStorefrontPage = lazyWithRetry(() => import("@/pages/PublicStorefrontPage"), "PublicStorefrontPage");
@@ -834,6 +835,10 @@ export const routes: RouteObject[] = [
       {
         path: "securegate/verification-badges",
         element: <ProtectedRoute requiredRole="admin"><Suspense fallback={<PageLoader />}><AdminVerificationBadgesPage /></Suspense></ProtectedRoute>,
+      },
+      {
+        path: "securegate/badges",
+        element: <ProtectedRoute requiredRole="admin"><Suspense fallback={<PageLoader />}><AdminBadgesPage /></Suspense></ProtectedRoute>,
       },
       {
         path: "securegate/fees",

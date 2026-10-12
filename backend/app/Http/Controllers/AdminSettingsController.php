@@ -50,6 +50,11 @@ class AdminSettingsController extends Controller
                 'telegram_bot_configured' => AdminSetting::get('admin_notify_telegram_bot_token', '') !== '',
                 'charge_vat' => (bool) AdminSetting::get('charge_vat', true),
                 'commission_rates' => app(\App\Services\Commission\CommissionService::class)->getAllRates(),
+                'verification_badge_fee' => (int) AdminSetting::get('verification_badge_fee', config('murihspace.verification_badge_fee', 100)),
+                'verification_badge_annual_fee' => (int) AdminSetting::get('verification_badge_annual_fee', 800),
+                'premium_username_monthly_fee' => (int) AdminSetting::get('premium_username_monthly_fee', (int) AdminSetting::get('verification_badge_fee', 100)),
+                'community_verification_monthly_fee' => (int) AdminSetting::get('community_verification_monthly_fee', 150),
+                'canonical_profile_domain' => 'murih.me',
             ],
         ]);
     }
@@ -72,6 +77,10 @@ class AdminSettingsController extends Controller
             'web_purchases_enabled' => ['sometimes', 'boolean'],
             'commission_rates' => ['sometimes', 'array'],
             'commission_rates.*' => ['numeric', 'min:0', 'max:100'],
+            'verification_badge_fee' => ['sometimes', 'integer', 'min:1'],
+            'verification_badge_annual_fee' => ['sometimes', 'integer', 'min:1'],
+            'premium_username_monthly_fee' => ['sometimes', 'integer', 'min:1'],
+            'community_verification_monthly_fee' => ['sometimes', 'integer', 'min:1'],
         ]);
 
         if (isset($validated['commission_rates'])) {
@@ -122,6 +131,23 @@ class AdminSettingsController extends Controller
             AdminSetting::set('web_purchases_enabled', (bool) $validated['web_purchases_enabled']);
         }
 
+        if (isset($validated['verification_badge_fee'])) {
+            AdminSetting::set('verification_badge_fee', $validated['verification_badge_fee']);
+            AdminSetting::set('premium_username_monthly_fee', $validated['verification_badge_fee']);
+        }
+
+        if (isset($validated['verification_badge_annual_fee'])) {
+            AdminSetting::set('verification_badge_annual_fee', $validated['verification_badge_annual_fee']);
+        }
+
+        if (isset($validated['premium_username_monthly_fee'])) {
+            AdminSetting::set('premium_username_monthly_fee', $validated['premium_username_monthly_fee']);
+        }
+
+        if (isset($validated['community_verification_monthly_fee'])) {
+            AdminSetting::set('community_verification_monthly_fee', $validated['community_verification_monthly_fee']);
+        }
+
         return response()->json([
             'message' => 'Settings updated.',
             'data' => [
@@ -137,6 +163,11 @@ class AdminSettingsController extends Controller
                 'admin_notify_telegram_bot_token' => AdminSetting::get('admin_notify_telegram_bot_token', ''),
                 'admin_notify_telegram_chat_id' => AdminSetting::get('admin_notify_telegram_chat_id', ''),
                 'charge_vat' => (bool) AdminSetting::get('charge_vat', true),
+                'verification_badge_fee' => (int) AdminSetting::get('verification_badge_fee', config('murihspace.verification_badge_fee', 100)),
+                'verification_badge_annual_fee' => (int) AdminSetting::get('verification_badge_annual_fee', 800),
+                'premium_username_monthly_fee' => (int) AdminSetting::get('premium_username_monthly_fee', (int) AdminSetting::get('verification_badge_fee', 100)),
+                'community_verification_monthly_fee' => (int) AdminSetting::get('community_verification_monthly_fee', 150),
+                'canonical_profile_domain' => 'murih.me',
             ],
         ]);
     }

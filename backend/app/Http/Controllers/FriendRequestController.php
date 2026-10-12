@@ -153,7 +153,8 @@ class FriendRequestController extends Controller
         $userId = $request->user()->id;
         $like = DB::connection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
 
-        $users = User::where('id', '!=', $userId)
+        $users = User::nonAdmin()
+            ->where('id', '!=', $userId)
             ->whereNull('deleted_at')
             ->where(function (Builder $query) use ($q, $cleanQ, $like) {
                 $query->where('name', $like, "%{$q}%")
@@ -260,7 +261,8 @@ class FriendRequestController extends Controller
 
         $searchTerms = $searchTerms->unique()->values();
 
-        $matchedUsers = User::where('id', '!=', $userId)
+        $matchedUsers = User::nonAdmin()
+            ->where('id', '!=', $userId)
             ->whereNull('deleted_at')
             ->where(function (Builder $query) use ($searchTerms) {
                 foreach ($searchTerms as $term) {
@@ -487,7 +489,8 @@ class FriendRequestController extends Controller
             ->push($userId)
             ->unique();
 
-        $suggestions = User::whereNotIn('id', $excludedUserIds)
+        $suggestions = User::nonAdmin()
+            ->whereNotIn('id', $excludedUserIds)
             ->whereNull('deleted_at')
             ->where('status', 'active')
             ->limit(20)

@@ -64,8 +64,15 @@ class PostController extends Controller
             ->published()
             ->pinnedFirst();
 
-        if ($type === 'mentions') {
-            $query->whereJsonContains('mentions', $userId);
+        if ($type === 'mentions' || $type === 'tagged') {
+            $query->where(function ($q) use ($userId) {
+                $q->whereJsonContains('mentions', $userId)
+                  ->orWhereJsonContains('mentions', (string) $userId);
+            });
+        } elseif ($type === 'likes') {
+            $query->whereHas('reactions', function ($q) use ($userId) {
+                $q->where('user_id', $userId);
+            });
         } else {
             $query->where('user_id', $userId);
 

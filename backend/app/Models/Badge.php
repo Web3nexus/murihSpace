@@ -9,12 +9,13 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Badge extends Model
 {
     protected $fillable = [
-        'slug', 'name', 'description', 'icon', 'color', 'criteria', 'is_active',
+        'slug', 'name', 'level_label', 'description', 'icon', 'icon_3d', 'color', 'icon_gradient', 'criteria', 'is_active', 'awarded_count',
     ];
 
     protected $casts = [
         'criteria' => 'array',
         'is_active' => 'boolean',
+        'awarded_count' => 'integer',
     ];
 
     public function users(): HasMany

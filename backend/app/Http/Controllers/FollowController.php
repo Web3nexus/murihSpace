@@ -160,6 +160,10 @@ class FollowController extends Controller
         $targetUser = User::findOrFail($id);
 
         $followers = $targetUser->followers()
+            ->where(function ($q) {
+                $q->whereNull('users.role')->orWhere('users.role', '!=', 'admin');
+            })
+            ->whereNull('users.admin_role')
             ->select('users.id', 'users.name', 'users.username', 'users.avatar', 'users.bio', 'users.role', 'users.kyc_status', 'users.verification_badge_status')
             ->paginate(30);
 
@@ -195,6 +199,10 @@ class FollowController extends Controller
         $targetUser = User::findOrFail($id);
 
         $following = $targetUser->follows()
+            ->where(function ($q) {
+                $q->whereNull('users.role')->orWhere('users.role', '!=', 'admin');
+            })
+            ->whereNull('users.admin_role')
             ->select('users.id', 'users.name', 'users.username', 'users.avatar', 'users.bio', 'users.role', 'users.kyc_status', 'users.verification_badge_status')
             ->paginate(30);
 

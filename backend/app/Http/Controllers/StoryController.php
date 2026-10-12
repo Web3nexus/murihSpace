@@ -110,4 +110,32 @@ class StoryController extends Controller
 
         return response()->json(['message' => 'Story deleted.']);
     }
+
+    /**
+     * Return public stories / highlights for a specific user profile.
+     */
+    public function userStories(Request $request, int $userId): JsonResponse
+    {
+        $stories = Story::where('user_id', $userId)
+            ->active()
+            ->orderBy('created_at', 'desc')
+            ->limit(50)
+            ->get()
+            ->map(function ($s) {
+                $media = $s->media_url;
+                if ($media && !str_starts_with($media, 'http')) {
+                    $media = url(str_starts_with($media, '/') ? $media : '/storage/' . ltrim($media, '/'));
+                }
+                return [
+                    'id' => (string) $s->id,
+                    'media_url' => $media,
+                    'media_type' => $s->media_type ?? 'image',
+                    'caption' => $s->caption ?? '',
+                    'title' => $s->caption ? str($s->caption)->limit(16) : 'Highlight',
+                    'created_at' => $s->created_at?->toIso8601String(),
+                ];
+            });
+
+        return response()->json($stories);
+    }
 }

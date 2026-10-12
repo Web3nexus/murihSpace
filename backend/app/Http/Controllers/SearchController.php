@@ -23,19 +23,23 @@ class SearchController extends Controller
         $q = trim($request->input('q'));
         $cleanQ = ltrim($q, '@');
         $type = $request->input('type', 'all');
-        $perPage = (int) $request->input('per_page', 15);
+        $perPage = (int) ($request->input('per_page') ?? $request->input('limit') ?? 15);
 
         $results = [];
 
         $like = \Illuminate\Support\Facades\DB::connection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
 
         if ($type === 'all' || $type === 'users') {
-            $results['users'] = User::where(function ($query) use ($q, $cleanQ, $like) {
-                $query->where('name', $like, "%{$q}%")
-                    ->orWhere('username', $like, "%{$cleanQ}%")
-                    ->orWhere('email', $like, "%{$q}%");
-            })
+            $results['users'] = User::nonAdmin()
+                ->where(function ($query) use ($q, $cleanQ, $like) {
+                    $query->where('name', $like, "%{$q}%")
+                        ->orWhere('username', $like, "%{$cleanQ}%")
+                        ->orWhere('email', $like, "%{$q}%");
+                })
                 ->whereNull('deleted_at')
+                ->where(function ($query) {
+                    $query->whereNull('status')->orWhere('status', 'active');
+                })
                 ->orderByRaw("CASE 
                     WHEN LOWER(username) = LOWER(?) THEN 0 
                     WHEN LOWER(username) LIKE LOWER(?) THEN 1 
@@ -48,8 +52,9 @@ class SearchController extends Controller
                     'name' => $u->name,
                     'username' => $u->username,
                     'avatar' => $u->avatar,
-                    'avatar_url' => $u->avatar,
+                    'avatar_url' => $u->avatar_url ?? $u->avatar,
                     'bio' => $u->bio,
+                    'role' => $u->role,
                     'type' => 'user',
                 ]);
         }
@@ -213,14 +218,19 @@ class SearchController extends Controller
             ];
         }
 
-        // 2. Fetch suggested creators (active users with highest follower count or verified status)
-        $currentUserId = $request->user()?->id;
+        // 2. Fetch suggested creators (active users with highest follower count, strictly excluding administrators)
         $creatorsQuery = User::whereNull('deleted_at')
-            ->when($currentUserId, fn($q) => $q->where('id', '!=', $currentUserId))
+            ->where(function ($q) {
+                $q->whereNull('role')->orWhere('role', '!=', 'admin');
+            })
+            ->whereNull('admin_role')
+            ->where(function ($q) {
+                $q->whereNull('status')->orWhere('status', 'active');
+            })
             ->withCount(['followers', 'posts'])
             ->orderByDesc('followers_count')
             ->orderByDesc('posts_count')
-            ->take(8)
+            ->take(12)
             ->get();
 
         $suggestedCreators = $creatorsQuery->map(fn (User $u) => [
@@ -229,16 +239,83 @@ class SearchController extends Controller
             'username' => $u->username,
             'avatar' => $u->avatar,
             'avatar_url' => $u->avatar_url ?? $u->avatar,
+            'banner_url' => $u->banner_url,
             'bio' => $u->bio,
             'role' => $u->role,
             'followers_count' => $u->followers_count,
+            'posts_count' => $u->posts_count,
             'followers' => $u->followers_count >= 1000 ? round($u->followers_count / 1000, 1) . 'K followers' : "{$u->followers_count} followers",
             'is_verified' => $u->hasActiveVerificationBadge(),
         ]);
 
+        $featuredTrending = null;
+        if (!empty($trendingTopics)) {
+            $topTopic = $trendingTopics[0];
+            $featuredTrending = [
+                'title' => $topTopic['tag'],
+                'subtitle' => 'Trending on MurihSpace · ' . $topTopic['count'],
+                'tag' => $topTopic['tag'],
+                'category' => 'Hot Topic',
+            ];
+        }
+
         return response()->json([
             'trending_topics' => $trendingTopics,
             'suggested_creators' => $suggestedCreators,
+            'featured_trending' => $featuredTrending,
+        ]);
+    }
+
+    /**
+     * Paginated suggested creators endpoint for the "View All" screen.
+     * Strictly enforces administrator privacy (role != 'admin' AND admin_role IS NULL).
+     */
+    public function suggestedCreators(Request $request): JsonResponse
+    {
+        $q = trim((string) $request->input('q', ''));
+
+        $query = User::whereNull('deleted_at')
+            ->where(function ($sub) {
+                $sub->whereNull('role')->orWhere('role', '!=', 'admin');
+            })
+            ->whereNull('admin_role')
+            ->where(function ($sub) {
+                $sub->whereNull('status')->orWhere('status', 'active');
+            })
+            ->when($q !== '', function ($query) use ($q) {
+                $like = \Illuminate\Support\Facades\DB::connection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
+                $cleanQ = ltrim($q, '@');
+                $query->where(function ($sub) use ($q, $cleanQ, $like) {
+                    $sub->where('name', $like, "%{$q}%")
+                        ->orWhere('username', $like, "%{$cleanQ}%")
+                        ->orWhere('bio', $like, "%{$q}%");
+                });
+            })
+            ->withCount(['followers', 'posts'])
+            ->orderByDesc('followers_count')
+            ->orderByDesc('posts_count');
+
+        $perPage = min(50, max(5, (int) $request->input('per_page', 20)));
+        $paginated = $query->paginate($perPage);
+
+        return response()->json([
+            'creators' => collect($paginated->items())->map(fn (User $u) => [
+                'id' => $u->id,
+                'name' => $u->name,
+                'username' => $u->username,
+                'avatar' => $u->avatar,
+                'avatar_url' => $u->avatar_url ?? $u->avatar,
+                'banner_url' => $u->banner_url,
+                'bio' => $u->bio,
+                'role' => $u->role,
+                'followers_count' => $u->followers_count,
+                'posts_count' => $u->posts_count,
+                'followers' => $u->followers_count >= 1000 ? round($u->followers_count / 1000, 1) . 'K followers' : "{$u->followers_count} followers",
+                'is_verified' => $u->hasActiveVerificationBadge(),
+            ]),
+            'current_page' => $paginated->currentPage(),
+            'last_page' => $paginated->lastPage(),
+            'total' => $paginated->total(),
         ]);
     }
 }

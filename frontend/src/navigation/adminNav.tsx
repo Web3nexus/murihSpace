@@ -10,6 +10,7 @@ import {
   ArrowsLeftRight as ArrowsLeftRight,
   Shield as Shield,
   ShieldCheck as ShieldCheck,
+  Medal as Medal,
   CurrencyDollar as CurrencyDollar,
   ArrowCounterClockwise as RotateCcw,
   Gift as Gift,
@@ -57,6 +58,11 @@ export const adminNav: NavGroup[] = [
         title: "Verification Badges",
         url: "/app/securegate/verification-badges",
         icon: <ShieldCheck weight="fill" className="size-4" />,
+      },
+      {
+        title: "Activity Badges",
+        url: "/app/securegate/badges",
+        icon: <Medal weight="fill" className="size-4" />,
       },
       {
         title: "Approved Accounts",

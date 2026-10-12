@@ -25,6 +25,11 @@ export const creatorNav: NavGroup[] = [
     title: "",
     items: [
       {
+        title: "Creator Studio",
+        url: "/app/studio",
+        icon: <VideoCamera weight="fill" className="h-5 w-5" />,
+      },
+      {
         title: "Insights",
         url: "/app/insights",
         icon: <ChartBar weight="fill" className="h-5 w-5" />,

@@ -447,7 +447,7 @@ class ProfileController extends Controller
 
         $user = \App\Models\User::where('username', $cleanUsername)->first();
 
-        if (! $user) {
+        if (! $user || $user->isAdmin()) {
             return response()->json([
                 'success' => false,
                 'message' => 'User not found.',
@@ -466,6 +466,41 @@ class ProfileController extends Controller
 
         $hasLinkInBio = \App\Models\LinkInBioLink::where('user_id', $user->id)->where('is_active', true)->exists();
         $storefront = \App\Models\Storefront::where('user_id', $user->id)->where('is_published', true)->first();
+
+        // Evaluate automated badge awards for profile activity. Dispatched to the
+        // queue so the evaluation is decoupled from this publicly cached GET
+        // response and still runs when the response itself is served from cache.
+        $badgeUserId = $user->id;
+        try {
+            dispatch(function () use ($badgeUserId) {
+                $badgeUser = \App\Models\User::find($badgeUserId);
+                if ($badgeUser) {
+                    app(\App\Http\Controllers\BadgeController::class)->evaluateUserBadges($badgeUser);
+                }
+            });
+        } catch (\Throwable $e) {
+            report($e);
+        }
+
+        $userBadges = \App\Models\UserBadge::where('user_id', $user->id)
+            ->with('badge')
+            ->latest('earned_at')
+            ->get()
+            ->filter(fn ($ub) => $ub->badge && $ub->badge->is_active)
+            ->map(fn ($ub) => [
+                'id' => $ub->badge->id,
+                'slug' => $ub->badge->slug,
+                'name' => $ub->badge->name,
+                'level_label' => $ub->badge->level_label,
+                'description' => $ub->badge->description,
+                'icon' => $ub->badge->icon,
+                'icon_3d' => $ub->badge->icon_3d,
+                'color' => $ub->badge->color,
+                'icon_gradient' => $ub->badge->icon_gradient,
+                'criteria' => $ub->badge->criteria,
+                'earned_at' => $ub->earned_at?->toISOString(),
+            ])
+            ->values();
 
         return response()->json([
             'id' => $user->id,
@@ -491,6 +526,7 @@ class ProfileController extends Controller
                 'display_name' => $storefront->display_name,
             ] : null,
             'public_communities' => $publicCommunities,
+            'badges' => $userBadges,
             'created_at' => $user->created_at?->toISOString(),
         ]);
     }

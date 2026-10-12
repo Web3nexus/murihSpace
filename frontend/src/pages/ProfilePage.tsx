@@ -18,12 +18,14 @@ import {
   Globe,
   MapPin,
   Calendar,
-  Sparkle,
+  User,
   Copy,
   Link as LinkIcon,
   Eye,
   ArrowCounterClockwise,
   ArrowLeft,
+  Handshake,
+  VideoCamera as Video,
 } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
 import { ShareModal } from "@/components/common/ShareModal";
@@ -289,6 +291,30 @@ export function ProfilePage() {
             </Link>
           )}
 
+          <Link to="/app/studio">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-9 gap-1.5 text-xs font-bold rounded-xl border-border hover:bg-muted"
+            >
+              <Video weight="bold" className="h-4 w-4 text-[#1A68D4]" />
+              <span>Creator Studio</span>
+            </Button>
+          </Link>
+
+          <Link to="/app/brand-deals">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-9 gap-1.5 text-xs font-bold rounded-xl border-border hover:bg-muted"
+            >
+              <Handshake weight="bold" className="h-4 w-4 text-amber-500" />
+              <span>Brand Studio</span>
+            </Button>
+          </Link>
+
           <Button
             type="button"
             variant="outline"
@@ -549,7 +575,7 @@ export function ProfilePage() {
         {/* Card 1: Personal Details */}
         <div className="p-6 rounded-3xl bg-card border border-border shadow-sm space-y-4">
           <div className="flex items-center gap-2 pb-2 border-b border-border/50">
-            <Sparkle weight="fill" className="h-4 w-4 text-[#1A68D4]" />
+            <User weight="bold" className="h-4 w-4 text-[#1A68D4]" />
             <h2 className="text-sm font-bold text-foreground">Personal Information</h2>
           </div>
 

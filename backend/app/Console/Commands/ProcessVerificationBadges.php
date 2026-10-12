@@ -15,7 +15,7 @@ class ProcessVerificationBadges extends Command
 
     public function handle(LedgerService $ledgerService): int
     {
-        $fee = (int) config('murihspace.verification_badge_fee');
+        $fee = (int) \App\Models\AdminSetting::get('verification_badge_fee', config('murihspace.verification_badge_fee', 100));
         $expired = 0;
         $renewed = 0;
 
@@ -39,12 +39,16 @@ class ProcessVerificationBadges extends Command
                             $user->update([
                                 'verification_badge_expires_at' => now()->addMonth(),
                                 'verification_badge_status' => 'active',
+                                'is_premium' => true,
                             ]);
                             $renewed++;
                             return;
                         }
 
-                        $user->update(['verification_badge_status' => 'expired']);
+                        $user->update([
+                            'verification_badge_status' => 'expired',
+                            'is_premium' => false,
+                        ]);
                         $expired++;
                     });
                 }

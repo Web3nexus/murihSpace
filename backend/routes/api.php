@@ -322,6 +322,8 @@ Route::prefix('v1')->group(function () {
 
     Route::get('/feed', [PostController::class, 'globalFeed'])->middleware('cache.public:300');
     Route::get('/discover/trending', [SearchController::class, 'trending'])->middleware('cache.public:60');
+    Route::get('/discover/creators', [SearchController::class, 'suggestedCreators'])->middleware('cache.public:60');
+    Route::get('/creators/suggested', [SearchController::class, 'suggestedCreators'])->middleware('cache.public:60');
 
     // Public Storefront Profile Endpoint
     Route::get('/stores/{shortCode}', [StorefrontController::class, 'show'])->middleware('cache.public:600');
@@ -331,6 +333,7 @@ Route::prefix('v1')->group(function () {
     Route::get('/users/{username}/public', [ProfileController::class, 'publicProfile'])->middleware('cache.public:600');
     Route::get('/users/{username}/reviews', [ProductReviewController::class, 'userReviews']);
     Route::get('/users/{id}/posts', [PostController::class, 'userPosts']);
+    Route::get('/users/{id}/stories', [StoryController::class, 'userStories'])->middleware('cache.public:60');
 
     // Public Link-in-Bio Page
     Route::get('/l/{username}', [LinkInBioController::class, 'publicPage'])->middleware('cache.public:600');
@@ -453,6 +456,10 @@ Route::prefix('v1')->group(function () {
     Route::middleware('auth:sanctum', 'throttle:api')->group(function () {
         // Search
         Route::get('/search', [SearchController::class, 'search']);
+        Route::get('/users/search', function (Request $request) {
+            $request->merge(['type' => 'users']);
+            return app(SearchController::class)->search($request);
+        });
 
         Route::get('/user', function (Request $request) {
             $user = $request->user();
@@ -1589,6 +1596,8 @@ Route::prefix('v1')->group(function () {
             // ── Sprint 2: Verification Badges ───────────────────────────
             Route::prefix('verification-badges')->middleware('admin.permission:kyc')->group(function () {
                 Route::get('/', [VerificationBadgeController::class, 'adminIndex']);
+                Route::get('/pricing', [VerificationBadgeController::class, 'adminGetPricing']);
+                Route::put('/pricing', [VerificationBadgeController::class, 'adminUpdatePricing']);
                 Route::patch('/{userId}/status', [VerificationBadgeController::class, 'adminUpdateStatus']);
             });
 
@@ -1745,9 +1754,12 @@ Route::prefix('v1')->group(function () {
 
             // ── Sprint 36: Badges Management ──────────────────────────────────
             Route::prefix('badges')->middleware('admin.permission:content')->group(function () {
+                Route::get('/', [BadgeController::class, 'adminIndex']);
                 Route::post('/', [BadgeController::class, 'store']);
                 Route::put('/{id}', [BadgeController::class, 'update']);
                 Route::delete('/{id}', [BadgeController::class, 'destroy']);
+                Route::post('/{id}/award', [BadgeController::class, 'awardUser']);
+                Route::delete('/{id}/users/{userId}', [BadgeController::class, 'revokeUser']);
                 Route::post('/seed', [BadgeController::class, 'seed']);
             });
 

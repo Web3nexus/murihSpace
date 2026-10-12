@@ -610,7 +610,7 @@ export default function PublicProfilePage() {
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#1A68D4]/10 text-[#1A68D4] text-xs font-bold hover:bg-[#1A68D4]/15 transition-colors border border-[#1A68D4]/20"
               >
                 <ExternalLink weight="bold" className="h-3.5 w-3.5" />
-                <span>murihspace.com/l/{profile.username}</span>
+                <span>murih.me/l/{profile.username}</span>
               </a>
 
               {profile.storefront && (
