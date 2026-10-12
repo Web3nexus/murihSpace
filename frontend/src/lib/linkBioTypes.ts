@@ -10,6 +10,13 @@ export interface LinkBioLinkItem {
   url: string;
   sort_order: number;
   click_count?: number;
+  category?: string | null;
+  badge?: string | null;
+  price?: string | number | null;
+  currency?: string | null;
+  icon_3d?: string | null;
+  icon_emoji?: string | null;
+  unique_visitors?: number;
 }
 
 export interface LinkBioProductItem {

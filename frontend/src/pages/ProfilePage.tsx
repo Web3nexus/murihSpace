@@ -55,6 +55,9 @@ export function ProfilePage() {
   const [state, setState] = useState("");
   const [mobileNumber, setMobileNumber] = useState("");
   const [birthday, setBirthday] = useState("");
+  const [website, setWebsite] = useState("");
+  const [category, setCategory] = useState("");
+  const [gender, setGender] = useState("");
   const [avatar, setAvatar] = useState("");
   const [bannerUrl, setBannerUrl] = useState("");
 
@@ -79,6 +82,9 @@ export function ProfilePage() {
       setState(profile.state || "");
       setMobileNumber(profile.mobile_number || profile.phone || "");
       setBirthday(profile.birthday || "");
+      setWebsite(profile.website || "");
+      setCategory(profile.category || "");
+      setGender(profile.gender || "");
       setAvatar(profile.avatar || profile.avatar_url || "");
       setBannerUrl(profile.banner_url || "");
     }
@@ -95,13 +101,16 @@ export function ProfilePage() {
       name !== (profile.name || "") ||
       username !== (profile.username || "") ||
       bio !== (profile.bio || "") ||
+      website !== (profile.website || "") ||
+      category !== (profile.category || "") ||
+      gender !== (profile.gender || "") ||
       country !== (profile.country || "") ||
       county !== (profile.county || "") ||
       state !== (profile.state || "") ||
       mobileNumber !== (profile.mobile_number || profile.phone || "") ||
       birthday !== (profile.birthday || "")
     );
-  }, [profile, name, username, bio, country, county, state, mobileNumber, birthday]);
+  }, [profile, name, username, bio, website, category, gender, country, county, state, mobileNumber, birthday]);
 
   const handleAvatarFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -195,13 +204,16 @@ export function ProfilePage() {
       name,
       username: username.trim().toLowerCase(),
       bio,
+      website: website ? website.trim() : null,
+      category: category ? category.trim() : null,
+      gender: gender ? gender.trim() : null,
       avatar: avatar || undefined,
       banner_url: bannerUrl || undefined,
       country,
       county,
       state,
       mobile_number: mobileNumber,
-      birthday: birthday || undefined,
+      birthday: birthday ? birthday.trim() : null,
     });
     if (ok) {
       setSuccessMsg("Profile updated successfully!");
@@ -643,6 +655,53 @@ export function ProfilePage() {
                 placeholder="+234 800 000 0000"
                 className="h-11 rounded-xl bg-muted/40 text-xs"
               />
+            </Field>
+
+            <Field>
+              <FieldLabel htmlFor="profile-website" className="flex items-center gap-1.5">
+                <Globe weight="bold" className="w-3.5 h-3.5 text-muted-foreground" />
+                <span>Website</span>
+              </FieldLabel>
+              <Input
+                id="profile-website"
+                value={website}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setWebsite(e.target.value)}
+                placeholder="https://linktr.ee/lorduzih"
+                className="h-11 rounded-xl bg-muted/40 text-xs text-[#1A68D4] font-medium"
+              />
+            </Field>
+
+            <Field>
+              <FieldLabel htmlFor="profile-category" className="flex items-center gap-1.5">
+                <Camera weight="bold" className="w-3.5 h-3.5 text-muted-foreground" />
+                <span>Category</span>
+              </FieldLabel>
+              <Input
+                id="profile-category"
+                value={category}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCategory(e.target.value)}
+                placeholder="e.g. Content Creator"
+                className="h-11 rounded-xl bg-muted/40 text-xs font-medium"
+              />
+            </Field>
+
+            <Field>
+              <FieldLabel htmlFor="profile-gender" className="flex items-center gap-1.5">
+                <User weight="bold" className="w-3.5 h-3.5 text-muted-foreground" />
+                <span>Gender</span>
+              </FieldLabel>
+              <select
+                id="profile-gender"
+                value={gender}
+                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setGender(e.target.value)}
+                className="h-11 w-full rounded-xl bg-muted/40 border border-input px-3 text-xs font-medium text-foreground"
+              >
+                <option value="">Select Gender</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Non-binary">Non-binary</option>
+                <option value="Prefer not to say">Prefer not to say</option>
+              </select>
             </Field>
           </div>
 

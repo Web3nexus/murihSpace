@@ -148,6 +148,38 @@ class OpenApiController extends Controller
                         'responses' => ['200' => ['description' => 'Product object']],
                     ],
                 ],
+                '/discovery/trending' => [
+                    'get' => [
+                        'summary' => 'Get trending topics and hashtags',
+                        'description' => 'Time-decayed trending hashtags derived from real post activity, plus suggested creators.',
+                        'tags' => ['Discovery'],
+                        'parameters' => [['name' => 'limit', 'in' => 'query', 'required' => false, 'schema' => ['type' => 'integer', 'maximum' => 25]]],
+                        'responses' => ['200' => ['description' => 'Trending topics, creators and featured topic']],
+                    ],
+                ],
+                '/discovery/hashtags' => [
+                    'get' => [
+                        'summary' => 'Suggest hashtags',
+                        'description' => 'Autocomplete hashtag suggestions ranked by real usage.',
+                        'tags' => ['Discovery'],
+                        'parameters' => [
+                            ['name' => 'q', 'in' => 'query', 'required' => false, 'schema' => ['type' => 'string']],
+                            ['name' => 'limit', 'in' => 'query', 'required' => false, 'schema' => ['type' => 'integer', 'maximum' => 25]],
+                        ],
+                        'responses' => ['200' => ['description' => 'Collection of hashtags']],
+                    ],
+                ],
+                '/discovery/hashtags/{tag}' => [
+                    'get' => [
+                        'summary' => 'Get a hashtag and its recent posts',
+                        'tags' => ['Discovery'],
+                        'parameters' => [['name' => 'tag', 'in' => 'path', 'required' => true, 'schema' => ['type' => 'string']]],
+                        'responses' => [
+                            '200' => ['description' => 'Hashtag object with posts'],
+                            '404' => ['description' => 'Hashtag not found'],
+                        ],
+                    ],
+                ],
                 '/ad-accounts' => [
                     'get' => [
                         'summary' => 'List ad accounts',

@@ -140,6 +140,70 @@ class FcmService
         }
     }
 
+    /**
+     * Fan-out a notification to every known device token for a user
+     * (legacy users.fcm_token + all native entries in push_tokens).
+     * This is what makes delivery reliable when the user is signed in on
+     * more than one device at the same time.
+     *
+     * @return int number of tokens the message was dispatched to
+     */
+    public static function sendToUser(
+        int $userId,
+        string $title,
+        string $body,
+        array $data = [],
+        bool $highPriority = true
+    ): int {
+        $tokens = self::deviceTokensForUser($userId);
+        foreach ($tokens as $token) {
+            self::sendToToken($token, $title, $body, $data, $highPriority);
+        }
+        return count($tokens);
+    }
+
+    /**
+     * Fan-out a pure data message (background wakeup, e.g. incoming calls)
+     * to every known device token for a user.
+     *
+     * @return int number of tokens the message was dispatched to
+     */
+    public static function sendDataToUser(
+        int $userId,
+        array $data,
+        bool $highPriority = true
+    ): int {
+        $tokens = self::deviceTokensForUser($userId);
+        foreach ($tokens as $token) {
+            self::sendDataToToken($token, $data, $highPriority);
+        }
+        return count($tokens);
+    }
+
+    /** Collect and de-duplicate every deliverable FCM token for a user. */
+    private static function deviceTokensForUser(int $userId): array
+    {
+        $tokens = [];
+
+        $primary = \App\Models\User::whereKey($userId)->value('fcm_token');
+        if (!empty($primary)) {
+            $tokens[] = $primary;
+        }
+
+        $registered = \App\Models\PushToken::where('user_id', $userId)
+            ->whereIn('platform', ['ios', 'android'])
+            ->pluck('token')
+            ->all();
+
+        foreach ($registered as $token) {
+            if (!empty($token)) {
+                $tokens[] = $token;
+            }
+        }
+
+        return array_values(array_unique($tokens));
+    }
+
     // ─── Internal helpers ────────────────────────────────────────────────────
 
     private static function getProjectId(): string

@@ -8,6 +8,7 @@ use App\Models\Message;
 use App\Models\PhysicalProduct;
 use App\Models\Post;
 use App\Models\User;
+use App\Services\HashtagService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -17,7 +18,7 @@ class SearchController extends Controller
     {
         $request->validate([
             'q' => ['required', 'string', 'max:100'],
-            'type' => ['nullable', 'string', 'in:all,users,communities,posts,messages,products'],
+            'type' => ['nullable', 'string', 'in:all,users,communities,posts,messages,products,hashtags'],
         ]);
 
         $q = trim($request->input('q'));
@@ -148,6 +149,18 @@ class SearchController extends Controller
             $results['products'] = $products;
         }
 
+        if ($type === 'all' || $type === 'hashtags') {
+            $results['hashtags'] = app(HashtagService::class)
+                ->suggest($q, $perPage)
+                ->map(fn ($hashtag) => [
+                    'tag' => $hashtag->label,
+                    'posts_count' => $hashtag->posts_count,
+                    'last_used_at' => optional($hashtag->last_used_at)->toIso8601String(),
+                    'type' => 'hashtag',
+                ])
+                ->values();
+        }
+
         return response()->json([
             'query' => $q,
             'type' => $type,
@@ -157,64 +170,37 @@ class SearchController extends Controller
             'posts' => $results['posts'] ?? [],
             'products' => $results['products'] ?? [],
             'messages' => $results['messages'] ?? [],
+            'hashtags' => $results['hashtags'] ?? [],
         ]);
     }
 
     /**
      * Return real trending hashtags/topics and suggested creators for Discover.
+     *
+     * Trending is derived entirely from tracked hashtag activity (a time-decayed
+     * sum over daily usage buckets). Nothing here is hardcoded or fabricated —
+     * a young platform simply returns fewer (or no) topics.
      */
     public function trending(Request $request): JsonResponse
     {
-        // 1. Fetch real posts to extract actual hashtags
-        $recentPosts = Post::published()
-            ->latest()
-            ->take(100)
-            ->get(['content', 'hashtags']);
-
-        $tagCounts = [];
-        foreach ($recentPosts as $post) {
-            if (!empty($post->hashtags) && is_array($post->hashtags)) {
-                foreach ($post->hashtags as $tag) {
-                    $cleaned = '#' . ltrim(trim($tag), '#');
-                    if (strlen($cleaned) > 1) {
-                        $tagCounts[$cleaned] = ($tagCounts[$cleaned] ?? 0) + 1;
-                    }
-                }
-            }
-
-            // Also parse hashtags from post content text (#Tag)
-            if (!empty($post->content) && preg_match_all('/#(\w+)/u', $post->content, $matches)) {
-                foreach ($matches[0] as $match) {
-                    $tagCounts[$match] = ($tagCounts[$match] ?? 0) + 1;
-                }
-            }
-        }
-
-        // Default popular platform topics if database has few posts
-        $defaults = [
-            '#MurihSpace' => 12,
-            '#CreatorEconomy' => 9,
-            '#Web3' => 8,
-            '#Tech' => 7,
-            '#Music' => 6,
-            '#Travel' => 5,
-        ];
-        foreach ($defaults as $k => $v) {
-            if (!isset($tagCounts[$k])) {
-                $tagCounts[$k] = $v;
-            }
-        }
-
-        arsort($tagCounts);
+        $limit = min(25, max(1, (int) $request->input('limit', 10)));
+        $trending = app(HashtagService::class)->trending($limit);
 
         $trendingTopics = [];
-        $i = 0;
-        foreach ($tagCounts as $tag => $count) {
-            if ($i++ >= 10) break;
+        foreach ($trending as $row) {
+            /** @var \App\Models\Hashtag $hashtag */
+            $hashtag = $row['hashtag'];
+            $count = $row['window_posts'] > 0 ? $row['window_posts'] : $hashtag->posts_count;
+
             $trendingTopics[] = [
-                'tag' => $tag,
-                'count' => $count > 1 ? "{$count} posts" : "1 post",
+                'tag' => $hashtag->label,
+                'count' => $count === 1 ? '1 post' : "{$count} posts",
                 'raw_count' => $count,
+                'posts_count' => $hashtag->posts_count,
+                'trend_score' => $row['score'],
+                'growth' => $row['growth'],
+                'is_growing' => $row['growth'] > 0,
+                'last_used_at' => optional($hashtag->last_used_at)->toIso8601String(),
             ];
         }
 
@@ -263,6 +249,66 @@ class SearchController extends Controller
             'trending_topics' => $trendingTopics,
             'suggested_creators' => $suggestedCreators,
             'featured_trending' => $featuredTrending,
+        ]);
+    }
+
+    /**
+     * Autocomplete / suggestion list of real hashtags for the post composer.
+     */
+    public function hashtagSuggestions(Request $request): JsonResponse
+    {
+        $limit = min(25, max(1, (int) $request->input('limit', 10)));
+        $query = (string) $request->input('q', '');
+
+        $hashtags = app(HashtagService::class)->suggest($query, $limit)->map(fn ($hashtag) => [
+            'tag' => $hashtag->label,
+            'posts_count' => $hashtag->posts_count,
+            'trending_score' => null,
+            'last_used_at' => optional($hashtag->last_used_at)->toIso8601String(),
+        ])->values();
+
+        return response()->json([
+            'data' => $hashtags,
+            'hashtags' => $hashtags,
+        ]);
+    }
+
+    /**
+     * Explore a single hashtag: metadata plus its most recent public posts.
+     */
+    public function hashtag(Request $request, string $tag): JsonResponse
+    {
+        $hashtag = app(HashtagService::class)->find($tag);
+
+        if (! $hashtag) {
+            return response()->json(['message' => 'Hashtag not found.'], 404);
+        }
+
+        $perPage = min(50, max(1, (int) $request->input('per_page', 20)));
+
+        $posts = Post::with(['author:id,name,username,avatar,verification_badge_status,verification_badge_expires_at', 'community:id,name,slug'])
+            ->published()
+            ->where(function ($query) use ($hashtag) {
+                $query->whereJsonContains('hashtags', $hashtag->label)
+                    ->orWhereJsonContains('hashtags', $hashtag->display_tag)
+                    ->orWhereJsonContains('hashtags', '#' . $hashtag->tag);
+            })
+            ->latest()
+            ->paginate($perPage);
+
+        return response()->json([
+            'data' => [
+                'tag' => $hashtag->label,
+                'posts_count' => $hashtag->posts_count,
+                'first_used_at' => optional($hashtag->first_used_at)->toIso8601String(),
+                'last_used_at' => optional($hashtag->last_used_at)->toIso8601String(),
+                'posts' => $posts->items(),
+            ],
+            'meta' => [
+                'current_page' => $posts->currentPage(),
+                'last_page' => $posts->lastPage(),
+                'total' => $posts->total(),
+            ],
         ]);
     }
 

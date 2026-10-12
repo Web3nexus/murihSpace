@@ -23,6 +23,16 @@ class ProfileController extends Controller
             'avatar' => $user->avatar,
             'avatar_url' => $user->avatar_url ?? $user->avatar,
             'banner_url' => $user->banner_url ?? null,
+            'website' => $user->website,
+            'gender' => $user->gender,
+            'category' => $user->category,
+            'interests' => $user->interests,
+            'languages' => $user->languages,
+            'is_creator_account' => (bool) ($user->is_creator_account ?? true),
+            'show_interests' => (bool) ($user->show_interests ?? true),
+            'allow_tagging' => (bool) ($user->allow_tagging ?? true),
+            'show_contact_info' => (bool) ($user->show_contact_info ?? true),
+            'account_privacy' => $user->account_privacy ?? 'public',
             'country' => $user->country,
             'county' => $user->county,
             'state' => $user->state,
@@ -69,6 +79,18 @@ class ProfileController extends Controller
             'avatar' => ['nullable', 'string', 'max:2048'],
             'avatar_url' => ['nullable', 'string', 'max:2048'],
             'banner_url' => ['nullable', 'string', 'max:2048'],
+            'website' => ['nullable', 'string', 'max:512'],
+            'gender' => ['nullable', 'string', 'max:50'],
+            'category' => ['nullable', 'string', 'max:100'],
+            'interests' => ['nullable', 'array', 'max:50'],
+            'interests.*' => ['string', 'max:50'],
+            'languages' => ['nullable', 'array', 'max:20'],
+            'languages.*' => ['string', 'max:50'],
+            'is_creator_account' => ['nullable', 'boolean'],
+            'show_interests' => ['nullable', 'boolean'],
+            'allow_tagging' => ['nullable', 'boolean'],
+            'show_contact_info' => ['nullable', 'boolean'],
+            'account_privacy' => ['nullable', 'string', 'in:public,private'],
             'country' => ['nullable', 'string', 'max:255'],
             'county' => ['nullable', 'string', 'max:255'],
             'state' => ['nullable', 'string', 'max:255'],
@@ -467,21 +489,6 @@ class ProfileController extends Controller
         $hasLinkInBio = \App\Models\LinkInBioLink::where('user_id', $user->id)->where('is_active', true)->exists();
         $storefront = \App\Models\Storefront::where('user_id', $user->id)->where('is_published', true)->first();
 
-        // Evaluate automated badge awards for profile activity. Dispatched to the
-        // queue so the evaluation is decoupled from this publicly cached GET
-        // response and still runs when the response itself is served from cache.
-        $badgeUserId = $user->id;
-        try {
-            dispatch(function () use ($badgeUserId) {
-                $badgeUser = \App\Models\User::find($badgeUserId);
-                if ($badgeUser) {
-                    app(\App\Http\Controllers\BadgeController::class)->evaluateUserBadges($badgeUser);
-                }
-            });
-        } catch (\Throwable $e) {
-            report($e);
-        }
-
         $userBadges = \App\Models\UserBadge::where('user_id', $user->id)
             ->with('badge')
             ->latest('earned_at')
@@ -502,31 +509,47 @@ class ProfileController extends Controller
             ])
             ->values();
 
+        $isPrivate = ($user->account_privacy ?? 'public') === 'private';
+        $viewerId = auth('sanctum')->id();
+        $isOwnerOrFollower = $viewerId && ($viewerId === $user->id || $user->followers()->where('follower_id', $viewerId)->exists());
+        $hidePrivateDetails = $isPrivate && ! $isOwnerOrFollower;
+        $showContactInfo = (bool) ($user->show_contact_info ?? true);
+
         return response()->json([
             'id' => $user->id,
             'name' => $user->name,
             'username' => $user->username,
             'role' => $user->role,
-            'bio' => $user->bio,
+            'bio' => $hidePrivateDetails ? null : $user->bio,
             'avatar' => $user->avatar,
             'avatar_url' => $user->avatar_url ?? $user->avatar,
             'banner_url' => $user->banner_url,
+            'website' => ($showContactInfo && ! $hidePrivateDetails) ? $user->website : null,
+            'category' => $user->category,
+            'gender' => $user->gender,
+            'interests' => (! $hidePrivateDetails && ($user->show_interests ?? true)) ? ($user->interests ?? []) : [],
+            'languages' => $hidePrivateDetails ? [] : ($user->languages ?? []),
+            'is_creator_account' => (bool) ($user->is_creator_account ?? true),
+            'show_interests' => (bool) ($user->show_interests ?? true),
+            'allow_tagging' => (bool) ($user->allow_tagging ?? true),
+            'show_contact_info' => $showContactInfo,
+            'account_privacy' => $user->account_privacy ?? 'public',
             'country' => $user->country,
             'kyc_status' => $user->kyc_status,
             'has_active_verification_badge' => $user->hasActiveVerificationBadge(),
             'followers_count' => $user->followers()->count(),
             'following_count' => $user->follows()->count(),
-            'communities_count' => $user->communities()->count(),
-            'posts_count' => $user->posts()->count(),
+            'communities_count' => $hidePrivateDetails ? 0 : $user->communities()->count(),
+            'posts_count' => $hidePrivateDetails ? 0 : $user->posts()->count(),
             'reviews_count' => $reviewsCount,
             'average_rating' => $averageRating,
-            'has_link_in_bio' => $hasLinkInBio,
-            'storefront' => $storefront ? [
+            'has_link_in_bio' => $hidePrivateDetails ? false : $hasLinkInBio,
+            'storefront' => (! $hidePrivateDetails && $storefront) ? [
                 'short_code' => $storefront->short_code,
                 'display_name' => $storefront->display_name,
             ] : null,
-            'public_communities' => $publicCommunities,
-            'badges' => $userBadges,
+            'public_communities' => $hidePrivateDetails ? [] : $publicCommunities,
+            'badges' => $hidePrivateDetails ? [] : $userBadges,
             'created_at' => $user->created_at?->toISOString(),
         ]);
     }
@@ -538,11 +561,32 @@ class ProfileController extends Controller
     {
         $request->validate([
             'fcm_token' => 'required|string',
+            'platform' => ['nullable', \Illuminate\Validation\Rule::in(['ios', 'android'])],
         ]);
 
-        $request->user()->update([
-            'fcm_token' => $request->input('fcm_token'),
+        $user = $request->user();
+        $token = $request->input('fcm_token');
+
+        $user->update([
+            'fcm_token' => $token,
         ]);
+
+        // Also track every device token so pushes fan out to all of the
+        // user's devices instead of only the most recently seen one.
+        $ua = $request->header('User-Agent', '');
+        $platform = $request->input('platform');
+        if (! $platform) {
+            $isIos = stripos($ua, 'ios') !== false || stripos($ua, 'iPhone') !== false || stripos($ua, 'iPad') !== false;
+            $platform = $isIos ? 'ios' : 'android';
+        }
+
+        // Clean up this token if it was previously registered to another user account on the same device.
+        \App\Models\PushToken::where('token', $token)->where('user_id', '!=', $user->id)->delete();
+
+        $user->pushTokens()->updateOrCreate(
+            ['token' => $token],
+            ['platform' => $platform],
+        );
 
         return response()->json(['message' => 'FCM token updated successfully.']);
     }

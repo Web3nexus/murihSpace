@@ -521,22 +521,20 @@ class ConversationController extends Controller
                     ));
 
                     // Dispatch standard Push Notification for Chat Message via FcmService
-                    if (!empty($participant->user->fcm_token)) {
-                        try {
-                            $preview = mb_substr($loadedMessage->content ?? 'Sent an attachment', 0, 120);
-                            \App\Services\FcmService::sendToToken(
-                                $participant->user->fcm_token,
-                                $request->user()->name,
-                                $preview,
-                                [
-                                    'type'            => 'new_message',
-                                    'conversation_id' => (string) $conversation->id,
-                                    'sender_name'     => $request->user()->name,
-                                ]
-                            );
-                        } catch (\Throwable $e) {
-                            \Illuminate\Support\Facades\Log::error('[ConversationController] FCM push failed for user ' . $participant->user->id . ': ' . $e->getMessage());
-                        }
+                    try {
+                        $preview = mb_substr($loadedMessage->content ?? 'Sent an attachment', 0, 120);
+                        \App\Services\FcmService::sendToUser(
+                            $participant->user->id,
+                            $request->user()->name,
+                            $preview,
+                            [
+                                'type'            => 'new_message',
+                                'conversation_id' => (string) $conversation->id,
+                                'sender_name'     => $request->user()->name,
+                            ]
+                        );
+                    } catch (\Throwable $e) {
+                        \Illuminate\Support\Facades\Log::error('[ConversationController] FCM push failed for user ' . $participant->user->id . ': ' . $e->getMessage());
                     }
                 }
             });
@@ -611,23 +609,21 @@ class ConversationController extends Controller
                         $recipientUser
                     ));
 
-                    if (!empty($request->user()->fcm_token)) {
-                        try {
-                            $preview = mb_substr($loadedAutoMsg->content ?? 'Sent an automated reply', 0, 120);
-                            \App\Services\FcmService::sendToToken(
-                                $request->user()->fcm_token,
-                                $recipientUser->name,
-                                $preview,
-                                [
-                                    'type'            => 'new_message',
-                                    'conversation_id' => (string) $conversation->id,
-                                    'sender_name'     => $recipientUser->name,
-                                    'is_automated'    => '1',
-                                ]
-                            );
-                        } catch (\Throwable $e) {
-                            \Illuminate\Support\Facades\Log::error('[ConversationController] FCM push for auto message failed for user ' . $request->user()->id . ': ' . $e->getMessage());
-                        }
+                    try {
+                        $preview = mb_substr($loadedAutoMsg->content ?? 'Sent an automated reply', 0, 120);
+                        \App\Services\FcmService::sendToUser(
+                            $request->user()->id,
+                            $recipientUser->name,
+                            $preview,
+                            [
+                                'type'            => 'new_message',
+                                'conversation_id' => (string) $conversation->id,
+                                'sender_name'     => $recipientUser->name,
+                                'is_automated'    => '1',
+                            ]
+                        );
+                    } catch (\Throwable $e) {
+                        \Illuminate\Support\Facades\Log::error('[ConversationController] FCM push for auto message failed for user ' . $request->user()->id . ': ' . $e->getMessage());
                     }
 
                     $automatedMessage = $loadedAutoMsg;

@@ -6,6 +6,7 @@ use App\Http\Controllers\V1\MeController;
 use App\Http\Controllers\V1\UserController;
 use App\Http\Controllers\V1\PostController;
 use App\Http\Controllers\V1\SocialController;
+use App\Http\Controllers\V1\DiscoveryController;
 use App\Http\Controllers\V1\BusinessController;
 use App\Http\Controllers\V1\ProductController;
 // Phase 3
@@ -43,6 +44,11 @@ Route::middleware(['throttle:60,1'])->group(function () {
     Route::get('/v1/announcements',                [MarketingContentController::class, 'announcements']);
     Route::get('/v1/cms/{section}',                [MarketingContentController::class, 'cmsSection']);
     Route::get('/v1/cms/{section}/{slug}',        [MarketingContentController::class, 'cmsItem']);
+
+    // Discovery: trending topics & hashtags (tracked from real activity)
+    Route::get('/v1/discovery/trending',       [DiscoveryController::class, 'trending']);
+    Route::get('/v1/discovery/hashtags',       [DiscoveryController::class, 'hashtags']);
+    Route::get('/v1/discovery/hashtags/{tag}', [DiscoveryController::class, 'hashtag']);
 
     // Phase 5: OAuth Token & OpenAPI Spec & SDKs (public)
     Route::get('/v1/oauth/scopes',  [OAuthController::class, 'scopes']);

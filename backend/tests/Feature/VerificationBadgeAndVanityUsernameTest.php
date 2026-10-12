@@ -35,6 +35,25 @@ class VerificationBadgeAndVanityUsernameTest extends TestCase
         $this->assertEquals(25, $payload['monthly_fee']);
     }
 
+    public function test_vanity_url_reflects_configured_profile_domain(): void
+    {
+        config(['murihspace.canonical_profile_domain' => 'profile.example']);
+
+        $user = User::factory()->create([
+            'username' => 'demouser',
+            'verification_badge_status' => 'active',
+            'verification_badge_expires_at' => now()->addDays(30),
+        ]);
+
+        $response = $this->actingAs($user, 'sanctum')
+            ->getJson('/api/v1/verification-badge/status');
+
+        $response->assertOk();
+        $payload = $response->json('data.data') ?? $response->json('data');
+        $this->assertEquals('https://profile.example/@demouser', $payload['vanity_profile_url']);
+        $this->assertEquals('profile.example', $payload['canonical_domain']);
+    }
+
     public function test_admin_can_retrieve_and_update_pricing(): void
     {
         $admin = User::factory()->create([

@@ -20,7 +20,7 @@ import {
   Check as Check,
   Crown as Crown,
   Palette as Palette,
-  Sparkle as Sparkle,
+  Browsers as Browsers,
   CaretRight as ChevronRight,
   CaretLeft as ChevronLeft
 } from "@phosphor-icons/react";
@@ -32,11 +32,21 @@ import { TEMPLATES, templateBySlug } from "@/lib/linkBioTemplates";
 import TemplateRenderer from "@/components/linkbio/TemplateRenderer";
 import TemplateThumb from "@/components/linkbio/TemplateThumb";
 
-
-
-
-
-interface LinkItem { id: number; title: string; url: string; sort_order: number; is_active: boolean; click_count?: number; }
+interface LinkItem {
+  id: number;
+  title: string;
+  url: string;
+  sort_order: number;
+  is_active: boolean;
+  click_count?: number;
+  category?: string | null;
+  badge?: string | null;
+  price?: string | number | null;
+  currency?: string | null;
+  icon_3d?: string | null;
+  icon_emoji?: string | null;
+  unique_visitors?: number;
+}
 interface SocialLink { id: number; platform: string; url: string; sort_order: number; }
 interface ProductItem { id: number; title: string; description: string | null; price: string; currency: string; type: string; media_url: string | null; checkout_url: string | null; is_active: boolean; sort_order: number; }
 
@@ -65,7 +75,7 @@ const LAYOUT_OPTIONS = [
 ];
 
 const STEPS = [
-  { key: "template", label: "Template", icon: Sparkle },
+  { key: "template", label: "Template", icon: Browsers },
   { key: "style", label: "Style", icon: Palette },
   { key: "profile", label: "Profile", icon: Globe },
   { key: "links", label: "Links", icon: Link },
@@ -86,6 +96,10 @@ export default function LinkInBioPage() {
   // Link form
   const [title, setTitle] = useState("");
   const [url, setUrl] = useState("");
+  const [category, setCategory] = useState("General");
+  const [badge, setBadge] = useState("");
+  const [price, setPrice] = useState("");
+  const [icon3d, setIcon3d] = useState("link");
   const [editing, setEditing] = useState<LinkItem | null>(null);
 
   // Profile
@@ -244,14 +258,32 @@ export default function LinkInBioPage() {
 
   // ── Link CRUD ────────────────────────────────────────────────
 
-  const resetForm = () => { setTitle(""); setUrl(""); setEditing(null); setMsg(null); };
+  const resetForm = () => {
+    setTitle("");
+    setUrl("");
+    setCategory("General");
+    setBadge("");
+    setPrice("");
+    setIcon3d("link");
+    setEditing(null);
+    setMsg(null);
+  };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !url.trim()) return;
     setSaving(true); setMsg(null);
     try {
-      const body = { title: title.trim(), url: url.trim(), sort_order: editing ? editing.sort_order : links.length };
+      const body = {
+        title: title.trim(),
+        url: url.trim(),
+        category: category.trim() || null,
+        badge: badge.trim() || null,
+        price: price ? parseFloat(price) : null,
+        currency: "USD",
+        icon_3d: icon3d || "link",
+        sort_order: editing ? editing.sort_order : links.length,
+      };
       const res = editing
         ? await authFetch(`/link-in-bio/${editing.id}`, { method: "PATCH",  body: JSON.stringify(body) })
         : await authFetch(`/link-in-bio`, { method: "POST",  body: JSON.stringify(body) });
@@ -268,7 +300,16 @@ export default function LinkInBioPage() {
     try { await authFetch(`/link-in-bio/${id}`, { method: "DELETE",  }); fetchAll(); } catch { /* ignore */ }
   };
 
-  const startEdit = (link: LinkItem) => { setEditing(link); setTitle(link.title); setUrl(link.url); setMsg(null); };
+  const startEdit = (link: LinkItem) => {
+    setEditing(link);
+    setTitle(link.title);
+    setUrl(link.url);
+    setCategory(link.category || "General");
+    setBadge(link.badge || "");
+    setPrice(link.price ? String(link.price) : "");
+    setIcon3d(link.icon_3d || "link");
+    setMsg(null);
+  };
 
   // ── Profile ──────────────────────────────────────────────────
 
@@ -383,7 +424,7 @@ export default function LinkInBioPage() {
             <div className="space-y-4">
               <div className="border-none rounded-lg bg-card p-4">
                 <div className="flex items-center gap-2 mb-1">
-                  <Sparkle weight="fill" className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" />
+                  <Browsers weight="fill" className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" />
                   <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Choose a Template</h2>
                 </div>
                 <p className="text-[11px] text-muted-foreground mb-4">Full layouts with built-in colors — switch anytime. You can fine-tune in the Style step.</p>
@@ -545,22 +586,80 @@ export default function LinkInBioPage() {
                 <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{editing ? "Edit Link" : "Add Link"}</h2>
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-muted-foreground">Title</label>
-                  <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="My Website" required />
+                  <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. 1-on-1 Strategy Consultation" required />
                 </div>
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-muted-foreground">URL</label>
                   <Input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://..." required />
                 </div>
-                <div className="flex gap-2">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-bold text-muted-foreground">Category</label>
+                    <select
+                      value={category}
+                      onChange={(e) => setCategory(e.target.value)}
+                      className="w-full rounded-lg border-none bg-muted/60 p-2 text-xs font-medium text-foreground"
+                    >
+                      <option value="General">General</option>
+                      <option value="Service">Service</option>
+                      <option value="Video">Video</option>
+                      <option value="Booking">Booking</option>
+                      <option value="Resource">Resource</option>
+                      <option value="Store">Store</option>
+                    </select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-bold text-muted-foreground">Badge (Optional)</label>
+                    <select
+                      value={badge}
+                      onChange={(e) => setBadge(e.target.value)}
+                      className="w-full rounded-lg border-none bg-muted/60 p-2 text-xs font-medium text-foreground"
+                    >
+                      <option value="">None</option>
+                      <option value="Primary">Primary</option>
+                      <option value="Popular">Popular</option>
+                      <option value="Featured">Featured</option>
+                      <option value="Download">Download</option>
+                      <option value="New">New</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-bold text-muted-foreground">Price (Optional)</label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={price}
+                      onChange={(e) => setPrice(e.target.value)}
+                      placeholder="e.g. 49.99"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-bold text-muted-foreground">3D Icon</label>
+                    <select
+                      value={icon3d}
+                      onChange={(e) => setIcon3d(e.target.value)}
+                      className="w-full rounded-lg border-none bg-muted/60 p-2 text-xs font-medium text-foreground"
+                    >
+                      <option value="link">Standard Link</option>
+                      <option value="bags">Shopping / Services (Bags)</option>
+                      <option value="camera">Video / Creator (Camera)</option>
+                      <option value="calendar">Booking / Events (Calendar)</option>
+                      <option value="box">Resource / Package (Box)</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="flex gap-2 pt-2">
                   <Button type="submit" disabled={saving || !title.trim() || !url.trim()} className="text-sm font-bold">
-                    {saving ? <Loader2 weight="fill" className="h-4 w-4 animate-spin mr-2" /> : null}{editing ? "Update" : "Add"}
+                    {saving ? <Loader2 weight="fill" className="h-4 w-4 animate-spin mr-2" /> : null}{editing ? "Update Link" : "Add Link"}
                   </Button>
                   {editing && <Button type="button" variant="ghost" onClick={resetForm} className="text-sm">Cancel</Button>}
                 </div>
               </form>
               <div className="border-none rounded-lg bg-card overflow-hidden">
                 <div className="px-4 py-3 border-b border-border flex items-center justify-between">
-                  <span className="text-xs font-bold text-foreground">All Links</span>
+                  <span className="text-xs font-bold text-foreground">Your Links ({links.length})</span>
                 </div>
                 {links.length === 0 ? (
                   <div className="p-12 text-center"><Link weight="fill" className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" /><p className="text-xs text-muted-foreground">No links added yet.</p></div>
@@ -570,15 +669,31 @@ export default function LinkInBioPage() {
                       <div key={link.id} className="flex items-center justify-between px-4 py-3 hover:bg-muted/10 transition-colors">
                         <div className="flex items-center gap-3 min-w-0">
                           <span className="text-[10px] text-muted-foreground font-mono w-4">{i + 1}</span>
-                          <div className="min-w-0">
-                          <p className="text-sm font-bold text-foreground truncate">{link.title}</p>
-                          <p className="text-[11px] text-muted-foreground truncate">{link.url}</p>
-                          {link.click_count !== undefined && (
-                            <p className="text-[10px] text-muted-foreground/60 mt-0.5">
-                              {link.click_count} click{link.click_count !== 1 ? "s" : ""}
-                            </p>
-                          )}
-                        </div>
+                          <div className="min-w-0 space-y-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <p className="text-sm font-bold text-foreground truncate">{link.title}</p>
+                              {link.price ? (
+                                <span className="text-[10px] font-bold text-emerald-500 bg-emerald-500/10 px-1.5 py-0.5 rounded">
+                                  ${parseFloat(String(link.price)).toFixed(2)}
+                                </span>
+                              ) : null}
+                              {link.category ? (
+                                <span className="text-[9px] font-semibold text-muted-foreground bg-muted px-1.5 py-0.5 rounded uppercase">
+                                  {link.category}
+                                </span>
+                              ) : null}
+                              {link.badge ? (
+                                <span className="text-[9px] font-bold text-blue-500 bg-blue-500/10 px-1.5 py-0.5 rounded">
+                                  {link.badge}
+                                </span>
+                              ) : null}
+                            </div>
+                            <p className="text-[11px] text-muted-foreground truncate">{link.url}</p>
+                            <div className="flex items-center gap-3 text-[10px] text-muted-foreground/60">
+                              <span>{link.click_count ?? 0} clicks</span>
+                              {link.unique_visitors ? <span>• {link.unique_visitors} unique</span> : null}
+                            </div>
+                          </div>
                         </div>
                         <div className="flex gap-1 shrink-0">
                           <Button size="sm" variant="ghost" className="h-7 text-[10px]" onClick={() => startEdit(link)}><Edit weight="fill" className="h-3 w-3" /></Button>

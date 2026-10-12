@@ -212,6 +212,27 @@ class ResponseNormaliser
     }
 
     // -----------------------------------------------------------------------
+    // Discovery: hashtags & trending topics
+    // -----------------------------------------------------------------------
+
+    public static function hashtag(array $raw): array
+    {
+        $tag = $raw['tag'] ?? null;
+        $slug = is_string($tag) ? strtolower(preg_replace('/[^\p{L}\p{N}_]/u', '', ltrim($tag, '#')) ?? '') : null;
+
+        return array_filter([
+            'id'            => ($slug !== null && $slug !== '') ? 'htg_' . $slug : null,
+            'type'          => 'hashtag',
+            'tag'           => $tag,
+            'posts_count'   => $raw['posts_count'] ?? $raw['raw_count'] ?? null,
+            'trend_score'   => $raw['trend_score'] ?? null,
+            'growth'        => $raw['growth'] ?? null,
+            'is_growing'    => $raw['is_growing'] ?? null,
+            'last_used_at'  => $raw['last_used_at'] ?? null,
+        ], fn ($value) => $value !== null);
+    }
+
+    // -----------------------------------------------------------------------
     // Collection wrapper
     // -----------------------------------------------------------------------
 

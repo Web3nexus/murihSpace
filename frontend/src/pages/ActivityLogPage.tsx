@@ -57,7 +57,7 @@ export default function ActivityLogPage() {
       const res = await authFetch(`/activity-logs?page=${p}&per_page=25`);
       if (!res.ok) { setError("Failed to load activity"); return; }
       const json = await res.json();
-      setActivities(json.data ?? json.data?.data ?? []);
+      setActivities(json.data?.data ?? json.data ?? []);
       setLastPage(json.data?.last_page ?? json.meta?.last_page ?? 1);
     } catch { setError("Network error"); }
     finally { setLoading(false); }

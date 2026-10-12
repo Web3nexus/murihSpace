@@ -48,7 +48,6 @@ export function updateImpersonationActivity(): void {
   if (isImpersonating()) {
     const now = Date.now().toString();
     sessionStorage.setItem(IMPERSONATION_LAST_ACTIVITY_KEY, now);
-    localStorage.setItem(IMPERSONATION_LAST_ACTIVITY_KEY, now);
   }
 }
 
@@ -60,9 +59,7 @@ export function updateImpersonationActivity(): void {
 export function checkImpersonationTimeout(): boolean {
   if (!isImpersonating()) return false;
 
-  const lastActivityStr =
-    sessionStorage.getItem(IMPERSONATION_LAST_ACTIVITY_KEY) ||
-    localStorage.getItem(IMPERSONATION_LAST_ACTIVITY_KEY);
+  const lastActivityStr = sessionStorage.getItem(IMPERSONATION_LAST_ACTIVITY_KEY);
 
   if (!lastActivityStr) {
     // Session just started — seed the timestamp
@@ -83,9 +80,13 @@ export function checkImpersonationTimeout(): boolean {
 export function getAuthToken(): string | null {
   // Pure getter — no side-effects. Timeout is checked by the idle interval
   // (set up in setImpersonationToken) and by activity listeners.
+  //
+  // Impersonation is intentionally session-scoped (sessionStorage only). It used
+  // to also be persisted to localStorage, which meant a stale impersonation
+  // token survived logouts/account switches and silently overrode the real
+  // session — making the app load another user's data (e.g. their notifications).
   return (
     sessionStorage.getItem(IMPERSONATION_TOKEN_KEY) ||
-    localStorage.getItem(IMPERSONATION_TOKEN_KEY) ||
     localStorage.getItem(MURIHSPACE_TOKEN_KEY) ||
     localStorage.getItem(AUTH_TOKEN_KEY)
   );
@@ -122,14 +123,16 @@ export function setImpersonationToken(token: string, user?: unknown): void {
   sessionStorage.setItem(IS_IMPERSONATING_KEY, "true");
   sessionStorage.setItem(IMPERSONATION_LAST_ACTIVITY_KEY, now);
 
-  localStorage.setItem(IMPERSONATION_TOKEN_KEY, token);
-  localStorage.setItem(IS_IMPERSONATING_KEY, "true");
-  localStorage.setItem(IMPERSONATION_LAST_ACTIVITY_KEY, now);
+  // Purge any legacy impersonation keys that previous builds persisted to
+  // localStorage so they can never leak into a fresh session.
+  localStorage.removeItem(IMPERSONATION_TOKEN_KEY);
+  localStorage.removeItem(IS_IMPERSONATING_KEY);
+  localStorage.removeItem(IMPERSONATED_USER_KEY);
+  localStorage.removeItem(IMPERSONATION_LAST_ACTIVITY_KEY);
 
   if (user) {
     const userStr = typeof user === "string" ? user : JSON.stringify(user);
     sessionStorage.setItem(IMPERSONATED_USER_KEY, userStr);
-    localStorage.setItem(IMPERSONATED_USER_KEY, userStr);
   }
 
   // Lazily attach activity listeners now that we're impersonating
@@ -202,16 +205,16 @@ export async function stopImpersonatingSession(redirectUrl: string = "/app/secur
 
 export function isImpersonating(): boolean {
   return (
-    sessionStorage.getItem(IS_IMPERSONATING_KEY) === "true" ||
-    localStorage.getItem(IS_IMPERSONATING_KEY) === "true"
+    sessionStorage.getItem(IS_IMPERSONATING_KEY) === "true" &&
+    sessionStorage.getItem(IMPERSONATION_TOKEN_KEY) !== null
   );
 }
 
 export function getImpersonatedUser(): any | null {
-  const data =
-    sessionStorage.getItem(IMPERSONATED_USER_KEY) ||
-    localStorage.getItem(IMPERSONATED_USER_KEY);
-  if (!data) return null;
+  const data = sessionStorage.getItem(IMPERSONATED_USER_KEY);
+  if (!data) {
+    return null;
+  }
   try {
     return JSON.parse(data);
   } catch {

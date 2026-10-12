@@ -115,4 +115,25 @@ class MainApiClient extends ApiClient
     {
         return $this->get("v1/public/products/{$id}", [], $token);
     }
+
+    // -----------------------------------------------------------------------
+    // Discovery: trending topics & hashtags
+    // -----------------------------------------------------------------------
+
+    public function getTrending(array $query = [], ?string $token = null): array
+    {
+        return $this->get('v1/discover/trending', array_filter($query), $token);
+    }
+
+    public function suggestHashtags(array $query = [], ?string $token = null): array
+    {
+        return $this->get('v1/discover/hashtags/suggest', array_filter($query), $token);
+    }
+
+    public function getHashtag(string $tag, ?string $token = null): array
+    {
+        $clean = rawurlencode(ltrim(trim($tag), '#'));
+
+        return $this->get("v1/discover/hashtags/{$clean}", [], $token);
+    }
 }

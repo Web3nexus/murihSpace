@@ -90,8 +90,25 @@ function LinkButton({ data, link, href, transparent }: { data: LinkBioPageData; 
         backdropFilter: def.slug === "portal" ? "blur(8px)" : undefined,
       }}
     >
-      <span className="truncate">{link.title}</span>
-      <ExternalLink weight="fill" className="h-4 w-4 shrink-0 ml-2" style={{ color: data.accent }} />
+      <div className="flex items-center gap-2 min-w-0">
+        <span className="truncate">{link.title}</span>
+        {link.badge ? (
+          <span
+            className="text-[10px] font-bold px-1.5 py-0.5 rounded-full shrink-0"
+            style={{ background: `${data.accent}25`, color: data.accent }}
+          >
+            {link.badge}
+          </span>
+        ) : null}
+      </div>
+      <div className="flex items-center gap-2 shrink-0 ml-2">
+        {link.price ? (
+          <span className="text-xs font-bold opacity-80">
+            ${parseFloat(String(link.price)).toFixed(2)}
+          </span>
+        ) : null}
+        <ExternalLink weight="fill" className="h-4 w-4 shrink-0" style={{ color: data.accent }} />
+      </div>
     </a>
   );
 }

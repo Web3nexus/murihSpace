@@ -119,7 +119,26 @@ export function chatUrl(conversationId: string | number): string {
 }
 
 export function profileUrl(username: string): string {
-  return `https://murih.me/@${encodeURIComponent(normaliseHandle(username))}`;
+  return `${profileOrigin()}/@${encodeURIComponent(normaliseHandle(username))}`;
+}
+
+/**
+ * Bare host (no scheme) of the public profile domain, for display strings such
+ * as "murih.me/l/ada". Driven by VITE_PROFILE_DOMAIN so staging and live can
+ * advertise different hosts; keep it aligned with the backend
+ * CANONICAL_PROFILE_DOMAIN.
+ */
+export function profileDomain(): string {
+  return profileOrigin().replace(/^https?:\/\//i, "");
+}
+
+/** Resolves the origin serving vanity profile / link-in-bio pages. */
+function profileOrigin(): string {
+  const configured = import.meta.env.VITE_PROFILE_DOMAIN;
+  if (typeof configured === "string" && configured.trim()) {
+    return configured.trim().replace(/\/+$/, "");
+  }
+  return "https://murih.me";
 }
 
 export function communityUrl(slug: string): string {

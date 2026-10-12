@@ -1,7 +1,23 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react";
 import { toast } from "sonner";
 import { apiClient, type ApiError } from "@/lib/api/client";
-import { getAuthToken, clearAuthTokens } from "@/lib/auth/token";
+import { getAuthToken, clearAuthTokens, clearImpersonationToken } from "@/lib/auth/token";
+import {
+  getSavedAccounts,
+  saveSavedAccount,
+  removeSavedAccount as removeSavedAccountFromStore,
+  type SavedAccount,
+} from "@/lib/auth/savedAccounts";
+
+/**
+ * Establishes a real user session from an auth token. Ends any lingering admin
+ * impersonation first so a stale impersonation token can never override the
+ * freshly authenticated account (which would surface another user's data).
+ */
+function adoptSessionToken(token: string): void {
+  clearImpersonationToken();
+  localStorage.setItem("murihspace-token", token);
+}
 
 export interface UserProfile {
   id: number;
@@ -98,6 +114,12 @@ interface AuthContextValue {
   hasPermission: (permission: string) => boolean;
   refreshUser: () => Promise<void>;
   markOnboardingCompleted: () => void;
+  savedAccounts: SavedAccount[];
+  switchAccount: (token: string) => Promise<UserProfile | null>;
+  addAccount: (email: string, password: string) => Promise<UserProfile | null>;
+  removeSavedAccount: (id: number) => void;
+  refreshSavedAccounts: () => void;
+  switchRole: (role: UserProfile["role"]) => Promise<boolean>;
 }
 
 export interface RegisterData {
@@ -116,6 +138,18 @@ export interface RegisterData {
   phoneE164?: string;
 }
 
+function toSavedAccount(user: UserProfile, token: string): SavedAccount {
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    username: user.username,
+    role: user.role,
+    avatar: user.avatar_url || user.avatar,
+    token,
+  };
+}
+
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -123,6 +157,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
+  const [savedAccounts, setSavedAccounts] = useState<SavedAccount[]>(() => getSavedAccounts());
+
+  const refreshSavedAccounts = useCallback(() => {
+    setSavedAccounts(getSavedAccounts());
+  }, []);
 
   useEffect(() => {
     const token = getAuthToken();
@@ -134,10 +173,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .get("/user")
       .then((res) => {
         const responseData = res.data;
-        if (responseData && responseData.success) {
-          setUser(responseData.data);
-        } else {
-          setUser(responseData);
+        const profile = responseData && responseData.success ? responseData.data : responseData;
+        setUser(profile);
+        if (profile) {
+          saveSavedAccount(toSavedAccount(profile as UserProfile, token));
+          refreshSavedAccounts();
         }
       })
       .catch(() => {
@@ -147,7 +187,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .finally(() => {
         setLoading(false);
       });
-  }, []);
+  }, [refreshSavedAccounts]);
 
   const login = useCallback(async (email: string, password: string): Promise<UserProfile | null> => {
     setLoading(true);
@@ -171,8 +211,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setError("Invalid response: missing credentials.");
         return null;
       }
-      localStorage.setItem("murihspace-token", token);
+      adoptSessionToken(token);
       setUser(userProfile);
+      saveSavedAccount(toSavedAccount(userProfile, token));
+      refreshSavedAccounts();
       toast.success(`Welcome back, ${userProfile.name}!`);
       return userProfile;
     } catch (err: unknown) {
@@ -184,7 +226,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [refreshSavedAccounts]);
 
 
   /**
@@ -262,8 +304,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return null;
       }
 
-      localStorage.setItem("murihspace-token", token);
+      adoptSessionToken(token);
       setUser(userProfile);
+      saveSavedAccount(toSavedAccount(userProfile, token));
+      refreshSavedAccounts();
       toast.success(`Signed in as ${userProfile.name}.`);
       return userProfile;
     } catch (err: unknown) {
@@ -274,7 +318,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [refreshSavedAccounts]);
 
   /**
    * Fetch the secret for a first factor. Nothing is admitted by this; it only
@@ -390,8 +434,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const envelope = response.data;
       const data = (envelope?.success ? envelope.data : envelope) as Partial<OtpVerifyResult> & { message?: string };
       if (payload.intent === "login" && data.account_exists && data.token && data.user) {
-        localStorage.setItem("murihspace-token", data.token);
+        adoptSessionToken(data.token);
         setUser(data.user);
+        saveSavedAccount(toSavedAccount(data.user, data.token));
+        refreshSavedAccounts();
         toast.success(`Welcome back, ${data.user.name}!`);
       }
       return {
@@ -413,7 +459,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [refreshSavedAccounts]);
 
   const register = useCallback(async (signUpData: RegisterData): Promise<boolean> => {
     setLoading(true);
@@ -444,8 +490,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const responseData = envelope.success ? envelope.data : envelope;
       const token = responseData.token;
       const userProfile = responseData.user;
-      localStorage.setItem("murihspace-token", token);
+      adoptSessionToken(token);
       setUser(userProfile);
+      saveSavedAccount(toSavedAccount(userProfile, token));
+      refreshSavedAccounts();
       return true;
     } catch (err: unknown) {
       const apiErr = err as ApiError;
@@ -455,7 +503,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [refreshSavedAccounts]);
 
   const logout = useCallback(async () => {
     setLoading(true);
@@ -465,6 +513,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (err) {
       console.error("Logout request failed:", err);
     } finally {
+      clearImpersonationToken();
       localStorage.removeItem("murihspace-token");
       setUser(null);
       setLoading(false);
@@ -486,6 +535,66 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const markOnboardingCompleted = useCallback(() => {
     setUser((prev) => (prev ? { ...prev, onboarding_completed: true } : prev));
   }, []);
+
+  /** Swaps the active session to a previously saved account token. */
+  const switchAccount = useCallback(async (token: string): Promise<UserProfile | null> => {
+    const previousToken = getAuthToken();
+    adoptSessionToken(token);
+    try {
+      const res = await apiClient.get("/user");
+      const responseData = res.data;
+      const profile = (responseData && responseData.success ? responseData.data : responseData) as UserProfile;
+      if (!profile) throw new Error("No profile");
+      setUser(profile);
+      saveSavedAccount(toSavedAccount(profile, token));
+      refreshSavedAccounts();
+      toast.success(`Switched to ${profile.name}.`);
+      return profile;
+    } catch {
+      if (previousToken) {
+        adoptSessionToken(previousToken);
+      }
+      toast.error("Could not switch account. Please try again.");
+      return null;
+    }
+  }, [refreshSavedAccounts]);
+
+  /** Signs into another account and remembers it, keeping the current one saved. */
+  const addAccount = useCallback(async (email: string, password: string): Promise<UserProfile | null> => {
+    const currentToken = getAuthToken();
+    if (user && currentToken) {
+      saveSavedAccount(toSavedAccount(user, currentToken));
+      refreshSavedAccounts();
+    }
+    return login(email, password);
+  }, [user, login, refreshSavedAccounts]);
+
+  const removeSavedAccount = useCallback((id: number) => {
+    setSavedAccounts(removeSavedAccountFromStore(id));
+  }, []);
+
+  /** Switches the active profile mode (member ↔ creator ↔ vendor). */
+  const switchRole = useCallback(async (role: UserProfile["role"]): Promise<boolean> => {
+    try {
+      const res = await apiClient.post("/profile/switch-role", { role });
+      const envelope = res.data;
+      const updatedRole: UserProfile["role"] = envelope?.role || role;
+      setUser((prev) => {
+        if (!prev) return prev;
+        const next = { ...prev, role: updatedRole };
+        const token = getAuthToken();
+        if (token) saveSavedAccount(toSavedAccount(next, token));
+        return next;
+      });
+      refreshSavedAccounts();
+      toast.success(`Switched to ${updatedRole} profile.`);
+      return true;
+    } catch (err) {
+      const apiErr = err as ApiError;
+      toast.error(apiErr.message || "Could not switch profile.");
+      return false;
+    }
+  }, [refreshSavedAccounts]);
 
   const value: AuthContextValue = {
     user,
@@ -513,6 +622,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     refreshUser,
     markOnboardingCompleted,
+    savedAccounts,
+    switchAccount,
+    addAccount,
+    removeSavedAccount,
+    refreshSavedAccounts,
+    switchRole,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

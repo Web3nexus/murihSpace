@@ -12,6 +12,7 @@ import {
 import { formatDistanceToNow } from 'date-fns';
 import type { AppNotification } from '@/types/notification';
 import { getAuthToken } from "@/lib/auth/token";
+import { NOTIFICATION_STATE_EVENT_NAME, NOTIFICATION_EVENT_NAME } from '@/hooks/useGlobalRealtimeNotifications';
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? 'http://localhost:8000/api/v1';
 
@@ -58,7 +59,14 @@ export function NotificationDropdown() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchNotifications();
     const interval = setInterval(fetchNotifications, 30000); // Polling every 30s
-    return () => clearInterval(interval);
+    const resync = () => fetchNotifications();
+    window.addEventListener(NOTIFICATION_STATE_EVENT_NAME, resync);
+    window.addEventListener(NOTIFICATION_EVENT_NAME, resync);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener(NOTIFICATION_STATE_EVENT_NAME, resync);
+      window.removeEventListener(NOTIFICATION_EVENT_NAME, resync);
+    };
   }, [fetchNotifications]);
 
   const handleMarkAllRead = async () => {

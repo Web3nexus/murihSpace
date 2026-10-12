@@ -54,7 +54,7 @@ class AdminSettingsController extends Controller
                 'verification_badge_annual_fee' => (int) AdminSetting::get('verification_badge_annual_fee', 800),
                 'premium_username_monthly_fee' => (int) AdminSetting::get('premium_username_monthly_fee', (int) AdminSetting::get('verification_badge_fee', 100)),
                 'community_verification_monthly_fee' => (int) AdminSetting::get('community_verification_monthly_fee', 150),
-                'canonical_profile_domain' => 'murih.me',
+                'canonical_profile_domain' => config('murihspace.canonical_profile_domain'),
             ],
         ]);
     }
@@ -167,7 +167,7 @@ class AdminSettingsController extends Controller
                 'verification_badge_annual_fee' => (int) AdminSetting::get('verification_badge_annual_fee', 800),
                 'premium_username_monthly_fee' => (int) AdminSetting::get('premium_username_monthly_fee', (int) AdminSetting::get('verification_badge_fee', 100)),
                 'community_verification_monthly_fee' => (int) AdminSetting::get('community_verification_monthly_fee', 150),
-                'canonical_profile_domain' => 'murih.me',
+                'canonical_profile_domain' => config('murihspace.canonical_profile_domain'),
             ],
         ]);
     }

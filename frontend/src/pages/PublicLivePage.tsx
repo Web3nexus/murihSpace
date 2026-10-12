@@ -515,6 +515,7 @@ export function PublicLivePage() {
           stream={stream}
           liveKitAccess={liveKitAccess}
           isHost={user?.id === stream.host?.id}
+          currentUserId={user?.id ?? null}
           onLeave={handleLeave}
           onStreamEnded={handleStreamEnded}
         />

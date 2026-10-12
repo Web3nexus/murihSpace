@@ -25,8 +25,13 @@ class VerificationBadgeController extends Controller
             'monthly' => $monthly,
             'annual' => $annual,
             'community_monthly' => $communityMonthly,
-            'canonical_domain' => 'murih.me',
+            'canonical_domain' => $this->canonicalProfileDomain(),
         ];
+    }
+
+    private function canonicalProfileDomain(): string
+    {
+        return (string) config('murihspace.canonical_profile_domain', 'murih.me');
     }
 
     public function status(Request $request): JsonResponse
@@ -35,14 +40,15 @@ class VerificationBadgeController extends Controller
         $pricing = $this->getBadgePricing();
         $status = $this->resolveStatus($user);
         $hasPremiumUsername = in_array($status, ['active', 'verified'], true);
+        $profileDomain = $this->canonicalProfileDomain();
 
         return response()->json([
             'data' => [
                 'status' => $status,
                 'has_premium_username' => $hasPremiumUsername,
-                'vanity_profile_url' => "https://murih.me/@{$user->username}",
+                'vanity_profile_url' => "https://{$profileDomain}/@{$user->username}",
                 'canonical_username' => "@{$user->username}",
-                'canonical_domain' => 'murih.me',
+                'canonical_domain' => $profileDomain,
                 'expires_at' => $user->verification_badge_expires_at?->toIso8601String(),
                 'purchased_at' => $user->verification_badge_purchased_at?->toIso8601String(),
                 'auto_renew' => (bool) $user->verification_badge_auto_renew,
@@ -54,7 +60,7 @@ class VerificationBadgeController extends Controller
                 'wallet_balance' => (int) ($this->walletService->getOrCreateWallet($user, 'system')->available),
                 'benefits' => [
                     'Official Blue Checkmark badge on your profile and comments',
-                    "Permanent premium vanity handle and profile link: murih.me/@{$user->username}",
+                    "Permanent premium vanity handle and profile link: {$profileDomain}/@{$user->username}",
                     'Priority placement in search, discover, and community recommendations',
                     'Higher community trust rating & VIP creator badge',
                 ],

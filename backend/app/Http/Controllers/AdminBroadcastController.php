@@ -51,7 +51,7 @@ class AdminBroadcastController extends Controller
         } elseif ($validated['target_audience'] === 'vendors') {
             $userQuery->where('role', 'vendor');
         } elseif ($validated['target_audience'] === 'members') {
-            $userQuery->where('role', 'user');
+            $userQuery->whereIn('role', ['member', 'user']);
         }
 
         $recipientsCount = $userQuery->count();

@@ -26,6 +26,8 @@ use App\Support\AdminPermissionMatrix;
     'uuid', 'name', 'email', 'password', 'username', 'country',
     'mobile_number', 'birthday', 'county', 'state', 'role', 'admin_role', 'admin_permissions', 'status',
     'bio', 'avatar', 'avatar_url', 'banner_url',
+    'website', 'gender', 'category', 'interests', 'languages',
+    'is_creator_account', 'show_interests', 'allow_tagging', 'show_contact_info', 'account_privacy',
     'kyc_status', 'kyc_document', 'kyc_rejection_reason', 'kyc_provider', 'sumsub_applicant_id',
     'kyc_verification_id',
     'is_premium',
@@ -74,6 +76,12 @@ class User extends Authenticatable implements MustVerifyEmail
             'chat_sounds_enabled' => 'boolean',
             'greeting_message_enabled' => 'boolean',
             'away_message_enabled' => 'boolean',
+            'interests' => 'array',
+            'languages' => 'array',
+            'is_creator_account' => 'boolean',
+            'show_interests' => 'boolean',
+            'allow_tagging' => 'boolean',
+            'show_contact_info' => 'boolean',
         ];
     }
 
@@ -389,6 +397,11 @@ class User extends Authenticatable implements MustVerifyEmail
     public function socialAccounts(): HasMany
     {
         return $this->hasMany(SocialAccount::class);
+    }
+
+    public function pushTokens(): HasMany
+    {
+        return $this->hasMany(PushToken::class);
     }
 
     public function qualificationEvents(): HasMany

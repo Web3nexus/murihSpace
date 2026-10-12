@@ -55,8 +55,15 @@ class LinkInBioController extends Controller
     public function storeLink(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'title' => ['required', 'string', 'max:100'],
+            'title' => ['required', 'string', 'max:150'],
             'url' => ['required', 'string', 'url', 'max:500'],
+            'category' => ['nullable', 'string', 'max:50'],
+            'badge' => ['nullable', 'string', 'max:50'],
+            'price' => ['nullable', 'numeric', 'min:0'],
+            'currency' => ['nullable', 'string', 'max:10'],
+            'icon_emoji' => ['nullable', 'string', 'max:30'],
+            'icon_3d' => ['nullable', 'string', 'max:50'],
+            'is_active' => ['sometimes', 'boolean'],
             'sort_order' => ['nullable', 'integer', 'min:0'],
         ]);
 
@@ -73,8 +80,14 @@ class LinkInBioController extends Controller
         if ($link->user_id !== $request->user()->id) abort(403);
 
         $data = $request->validate([
-            'title' => ['sometimes', 'string', 'max:100'],
+            'title' => ['sometimes', 'string', 'max:150'],
             'url' => ['sometimes', 'string', 'url', 'max:500'],
+            'category' => ['nullable', 'string', 'max:50'],
+            'badge' => ['nullable', 'string', 'max:50'],
+            'price' => ['nullable', 'numeric', 'min:0'],
+            'currency' => ['nullable', 'string', 'max:10'],
+            'icon_emoji' => ['nullable', 'string', 'max:30'],
+            'icon_3d' => ['nullable', 'string', 'max:50'],
             'is_active' => ['sometimes', 'boolean'],
             'sort_order' => ['sometimes', 'integer', 'min:0'],
         ]);
@@ -429,7 +442,11 @@ class LinkInBioController extends Controller
         $links = LinkInBioLink::where('user_id', $user->id)
             ->where('is_active', true)
             ->orderBy('sort_order')
-            ->get(['id', 'title', 'url', 'sort_order', 'click_count']);
+            ->get([
+                'id', 'title', 'url', 'category', 'badge', 'price',
+                'currency', 'icon_emoji', 'icon_3d', 'sort_order',
+                'click_count', 'unique_visitors',
+            ]);
 
         $socials = LinkInBioSocialLink::where('user_id', $user->id)
             ->orderBy('sort_order')

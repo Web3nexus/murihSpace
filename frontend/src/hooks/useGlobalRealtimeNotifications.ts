@@ -8,6 +8,7 @@ import { getAuthToken } from '@/lib/auth/token';
 import { showWebInAppNotification } from '@/components/notifications/WebInAppNotification';
 
 export const NOTIFICATION_EVENT_NAME = 'murih:notification';
+export const NOTIFICATION_STATE_EVENT_NAME = 'murih:notification_state';
 export const MESSAGE_EVENT_NAME = 'murih:message';
 
 /**
@@ -178,7 +179,14 @@ function parseNotificationContent(content: unknown, fallback = 'You have a new u
       window.dispatchEvent(new CustomEvent('murih:message_delivered', { detail: e }));
     };
 
+    const onNotificationState = (e: Record<string, unknown>) => {
+      // A notification was marked read/unread on another device (e.g. mobile);
+      // let feeds and badges on this device reconcile their state.
+      window.dispatchEvent(new CustomEvent(NOTIFICATION_STATE_EVENT_NAME, { detail: e }));
+    };
+
     notificationChannel.listen('.notification', onNotification);
+    notificationChannel.listen('.notification.state', onNotificationState);
     userChannel.listen('.MessageSent', onMessageSent);
     userChannel.listen('.MessageRead', onMessageRead);
     userChannel.listen('.MessageDelivered', onMessageDelivered);
@@ -201,6 +209,7 @@ function parseNotificationContent(content: unknown, fallback = 'You have a new u
     return () => {
       clearInterval(heartbeatInterval);
       notificationChannel.stopListening('.notification', onNotification);
+      notificationChannel.stopListening('.notification.state', onNotificationState);
       userChannel.stopListening('.MessageSent', onMessageSent);
       userChannel.stopListening('.MessageRead', onMessageRead);
       userChannel.stopListening('.MessageDelivered', onMessageDelivered);

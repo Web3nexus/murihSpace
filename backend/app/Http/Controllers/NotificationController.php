@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\NotificationStateChanged;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -54,6 +55,8 @@ class NotificationController extends Controller
 
         $notification->markAsRead();
 
+        $this->broadcastState($request->user()->id, ['id' => (string) $id, 'read' => true, 'all' => false]);
+
         return response()->json([
             'message' => 'Marked as read.',
             'unread' => $request->user()->unreadNotifications()->count(),
@@ -71,6 +74,8 @@ class NotificationController extends Controller
 
         $notification->markAsUnread();
 
+        $this->broadcastState($request->user()->id, ['id' => (string) $id, 'read' => false, 'all' => false]);
+
         return response()->json([
             'message' => 'Marked as unread.',
             'unread' => $request->user()->unreadNotifications()->count(),
@@ -83,6 +88,8 @@ class NotificationController extends Controller
     public function markAllRead(Request $request): JsonResponse
     {
         $request->user()->unreadNotifications()->update(['read_at' => now()]);
+
+        $this->broadcastState($request->user()->id, ['id' => null, 'read' => true, 'all' => true]);
 
         return response()->json([
             'message' => 'All notifications marked as read.',
@@ -120,5 +127,20 @@ class NotificationController extends Controller
             'unread' => 0,
             'total' => 0,
         ]);
+    }
+
+    /**
+     * Notify the user's other devices/sessions that a notification's
+     * read/unread state changed so they can reconcile feed and badge.
+     *
+     * @param  array{id?: string|null, read?: bool, all?: bool}  $payload
+     */
+    private function broadcastState(int $userId, array $payload): void
+    {
+        try {
+            NotificationStateChanged::dispatch($userId, $payload);
+        } catch (\Throwable $e) {
+            report($e);
+        }
     }
 }

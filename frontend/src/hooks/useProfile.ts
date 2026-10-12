@@ -8,6 +8,16 @@ export interface UserProfileData {
   username: string;
   role: "member" | "creator" | "vendor" | "admin";
   bio?: string | null;
+  website?: string | null;
+  category?: string | null;
+  gender?: string | null;
+  interests?: string[];
+  languages?: string[];
+  is_creator_account?: boolean;
+  show_interests?: boolean;
+  allow_tagging?: boolean;
+  show_contact_info?: boolean;
+  account_privacy?: string;
   avatar?: string | null;
   avatar_url?: string | null;
   banner_url?: string | null;

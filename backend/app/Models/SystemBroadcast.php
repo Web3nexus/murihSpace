@@ -43,6 +43,8 @@ class SystemBroadcast extends Model
             $roles[] = 'creators';
         } elseif ($user->role === 'vendor') {
             $roles[] = 'vendors';
+        } elseif ($user->isMember()) {
+            $roles[] = 'members';
         }
 
         return $query->whereIn('target_audience', $roles);

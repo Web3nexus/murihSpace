@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  AppWindow,
   ArrowLeft,
   ArrowsIn,
   ArrowsOut,
@@ -8,6 +9,7 @@ import {
   Heart,
   Microphone,
   MicrophoneSlash,
+  Minus,
   PaperPlaneRight,
   PhoneSlash,
   PushPin,
@@ -55,6 +57,17 @@ interface LiveCommunity {
   id: number;
   name: string;
   slug?: string | null;
+}
+
+interface LiveParticipant {
+  user_id: number;
+  name: string;
+  username?: string | null;
+  avatar_url?: string | null;
+  role: string;
+  is_active: boolean;
+  is_restricted: boolean;
+  joined_at?: string | null;
 }
 
 export interface LiveStream {
@@ -109,11 +122,12 @@ interface Props {
   stream: LiveStream;
   liveKitAccess: LiveKitAccess;
   isHost: boolean;
+  currentUserId?: number | null;
   onLeave: () => void;
   onStreamEnded?: (payload: LiveStreamEndedPayload) => void;
 }
 
-export function PublicLiveStage({ stream, liveKitAccess, isHost, onLeave, onStreamEnded }: Props) {
+export function PublicLiveStage({ stream, liveKitAccess, isHost, currentUserId, onLeave, onStreamEnded }: Props) {
   const sessionId = `live:${stream.id}`;
   // LiveKit state. The room itself belongs to the session store so navigating
   // away keeps the broadcast (and the roster) alive for everyone else.
@@ -149,6 +163,12 @@ export function PublicLiveStage({ stream, liveKitAccess, isHost, onLeave, onStre
   } | null>(null);
   const [loadingRankings, setLoadingRankings] = useState(false);
 
+  // Host participant-management panel state
+  const [participants, setParticipants] = useState<LiveParticipant[]>([]);
+  const [participantsOpen, setParticipantsOpen] = useState(false);
+  const [loadingParticipants, setLoadingParticipants] = useState(false);
+  const [participantBusyId, setParticipantBusyId] = useState<number | null>(null);
+
   // Live Chat state
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput] = useState("");
@@ -176,6 +196,13 @@ export function PublicLiveStage({ stream, liveKitAccess, isHost, onLeave, onStre
   // to <body>; those fallbacks are tracked here so muting this stream never
   // reaches audio elements owned by other players on the page.
   const ownedAudioElsRef = useRef<Set<HTMLAudioElement>>(new Set());
+  // One dedicated <audio> element per remote audio track (keyed by track SID).
+  // Attaching every participant's audio to a single shared element collapses
+  // them into one (the last write wins), so co-hosts/guests were inaudible.
+  const audioElsBySidRef = useRef<Map<string, HTMLAudioElement>>(new Map());
+  // Mirrors isMicOn for the live-room presence listener, which must not
+  // re-subscribe the channel every time the microphone is toggled.
+  const isMicOnRef = useRef(true);
 
   // Applies the mute state to the audio elements this room has attached.
   const applyAudioMute = useCallback((muted: boolean, resumePlayback = false) => {
@@ -502,6 +529,56 @@ onStreamEnded({
     };
   }, [isHost, scrollToBottom, spawnFloatingHeart, stream.id]);
 
+  // Private "live-room" channel: roster/moderation events. Hosts & moderators
+  // can subscribe; a promoted co-host learns here that they may now publish,
+  // and enables their microphone without manually rejoining.
+  useEffect(() => {
+    isMicOnRef.current = isMicOn;
+  }, [isMicOn]);
+
+  useEffect(() => {
+    if (!stream.id) return;
+    const echo = getEcho();
+    const roomChannel = echo.private(`live-room.${stream.id}`);
+
+    roomChannel.listen("LiveStreamParticipantPresence", (payload: any) => {
+      // Keep an open roster panel fresh.
+      setParticipants((prev) => {
+        if (prev.length === 0) return prev;
+        const updated: LiveParticipant | undefined = payload?.participant ?? payload?.participant_payload;
+        if (!updated?.user_id) return prev;
+        const exists = prev.some((p) => p.user_id === updated.user_id);
+        if (!exists) return [...prev, updated];
+        return prev.map((p) => (p.user_id === updated.user_id ? { ...p, ...updated } : p));
+      });
+
+      const participant = payload?.participant ?? payload?.participant_payload;
+      const isSelf =
+        currentUserId != null && Number(participant?.user_id) === Number(currentUserId);
+
+      if (isSelf && payload?.reason === "role_changed") {
+        const role = participant?.role;
+        const canPublish = role === "co_host" || role === "moderator" || role === "host";
+        if (canPublish && room?.localParticipant && !isMicOnRef.current) {
+          void room.localParticipant
+            .setMicrophoneEnabled(true)
+            .then(() => {
+              setIsMicOn(true);
+              toast.success("You are now a co-host — microphone enabled.");
+            })
+            .catch(() => undefined);
+        }
+      }
+    });
+
+    return () => {
+      try {
+        roomChannel.stopListening("LiveStreamParticipantPresence");
+        (roomChannel as any).leave?.();
+      } catch {}
+    };
+  }, [stream.id, currentUserId, room]);
+
   // Register with the persistent session registry so the floating dock can keep
   // this broadcast on screen while the user browses the rest of the app.
   useEffect(() => {
@@ -511,7 +588,7 @@ onStreamEnded({
       title: stream.title || "Live broadcast",
       subtitle: isHost ? "Hosting" : `${Math.max(1, stream.viewers_count || 1)} watching`,
       avatarUrl: stream.host?.avatar_url ?? null,
-      returnTo: null,
+      returnTo: `/live/${stream.tracking_id || stream.id}`,
       notifyLeave: async () => {
         const res = await authFetch(`/live/${stream.id}/leave`, { method: "POST" });
         if (!res.ok) {
@@ -525,7 +602,15 @@ onStreamEnded({
         }
       },
     });
-  }, [sessionId, stream.id, stream.title, stream.viewers_count, stream.host?.avatar_url, isHost, onLeave]);
+
+    // While the full stage is on screen, mark it expanded so SessionDock doesn't duplicate.
+    liveSessionStore.setExpanded(sessionId, true);
+
+    return () => {
+      // When navigating away, mark unexpanded so the floating dock card takes over.
+      liveSessionStore.setExpanded(sessionId, false);
+    };
+  }, [sessionId, stream.id, stream.tracking_id, stream.title, stream.viewers_count, stream.host?.avatar_url, isHost, onLeave]);
 
   // Initialize and connect to LiveKit
   useEffect(() => {
@@ -646,22 +731,36 @@ onStreamEnded({
     const attachAudioTrack = (track: Track) => {
       if (track.kind !== Track.Kind.Audio) return;
 
-      if (audioRef.current) {
-        track.attach(audioRef.current);
-        ownedAudioElsRef.current.add(audioRef.current);
-        liveSessionStore.adoptAudioElement(sessionId, audioRef.current);
-      } else {
-        // LiveKit created and appended this to <body>; hand it to the store so
-        // audio survives this view unmounting.
-        const el = track.attach();
-        el.autoplay = true;
-        document.body.appendChild(el);
-        ownedAudioElsRef.current.add(el);
-        liveSessionStore.adoptAudioElement(sessionId, el);
-      }
+      // Each audio track gets its own element so every speaker mixes together
+      // instead of overwriting a single shared source.
+      const sid = track.sid ?? `${track.mediaStreamID ?? "audio"}`;
+      if (audioElsBySidRef.current.has(sid)) return;
+
+      const el = track.attach();
+      el.autoplay = true;
+      document.body.appendChild(el);
+      audioElsBySidRef.current.set(sid, el);
+      ownedAudioElsRef.current.add(el);
+      liveSessionStore.adoptAudioElement(sessionId, el);
 
       // Honour a mute chosen before this track arrived.
-      applyAudioMute(isAudioMutedRef.current);
+      applyAudioMute(isAudioMutedRef.current, !isAudioMutedRef.current);
+    };
+
+    const detachAudioTrack = (track: Track) => {
+      if (track.kind !== Track.Kind.Audio) return;
+      const sid = track.sid ?? `${track.mediaStreamID ?? "audio"}`;
+      const el = audioElsBySidRef.current.get(sid);
+      if (el) {
+        try {
+          track.detach(el);
+        } catch {
+          // Track may already be detached; the element is removed regardless.
+        }
+        el.remove();
+        audioElsBySidRef.current.delete(sid);
+        ownedAudioElsRef.current.delete(el);
+      }
     };
 
     const syncParticipantTracks = (participant: Participant) => {
@@ -676,6 +775,10 @@ onStreamEnded({
     const onTrackSubscribed = (track: Track) => {
       if (track.kind === Track.Kind.Video) attachVideoTrack(track);
       if (track.kind === Track.Kind.Audio) attachAudioTrack(track);
+    };
+
+    const onTrackUnsubscribed = (track: Track) => {
+      if (track.kind === Track.Kind.Audio) detachAudioTrack(track);
     };
 
     const onAudioPlaybackStatus = () => {
@@ -704,6 +807,7 @@ onStreamEnded({
     };
 
     roomInstance.on(RoomEvent.TrackSubscribed, onTrackSubscribed);
+    roomInstance.on(RoomEvent.TrackUnsubscribed, onTrackUnsubscribed);
     roomInstance.on(RoomEvent.AudioPlaybackStatusChanged, onAudioPlaybackStatus);
     roomInstance.on(RoomEvent.ParticipantConnected, onParticipantConnected);
     roomInstance.on(RoomEvent.Disconnected, onDisconnected);
@@ -714,6 +818,7 @@ onStreamEnded({
 
     return () => {
       roomInstance.off(RoomEvent.TrackSubscribed, onTrackSubscribed);
+      roomInstance.off(RoomEvent.TrackUnsubscribed, onTrackUnsubscribed);
       roomInstance.off(RoomEvent.AudioPlaybackStatusChanged, onAudioPlaybackStatus);
       roomInstance.off(RoomEvent.ParticipantConnected, onParticipantConnected);
       roomInstance.off(RoomEvent.Disconnected, onDisconnected);
@@ -869,6 +974,70 @@ onStreamEnded({
     }
   };
 
+  // ── Host participant management ─────────────────────────────────────────
+  const fetchParticipants = useCallback(async () => {
+    setLoadingParticipants(true);
+    try {
+      const res = await authFetch(`/live/${stream.id}/participants`);
+      if (res.ok) {
+        const json = await res.json();
+        const data = json?.data ?? json;
+        setParticipants(Array.isArray(data?.participants) ? data.participants : []);
+      } else if (res.status === 403) {
+        toast.error("Only the host or a moderator can manage participants.");
+      }
+    } catch {
+      toast.error("Could not load participants.");
+    } finally {
+      setLoadingParticipants(false);
+    }
+  }, [stream.id]);
+
+  const openParticipants = () => {
+    if (!isHost && !liveKitAccess.isPublisher) return;
+    setParticipantsOpen(true);
+    void fetchParticipants();
+  };
+
+  // Runs a moderation POST and refreshes the roster from the server response so
+  // the panel always reflects authoritative state.
+  const runParticipantAction = async (
+    userId: number,
+    action: "role" | "mute" | "restrict" | "remove",
+    body?: Record<string, unknown>,
+    successMessage?: string
+  ) => {
+    if (participantBusyId === userId) return;
+    setParticipantBusyId(userId);
+    try {
+      const url =
+        action === "remove"
+          ? `/live/${stream.id}/participants/${userId}`
+          : `/live/${stream.id}/participants/${userId}/${action}`;
+      const res = await authFetch(url, {
+        method: action === "remove" ? "DELETE" : "POST",
+        headers: body ? { "Content-Type": "application/json" } : undefined,
+        body: body ? JSON.stringify(body) : undefined,
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(json?.message ?? "Action failed.");
+        return;
+      }
+      const data = json?.data ?? json;
+      if (Array.isArray(data?.participants)) {
+        setParticipants(data.participants);
+      } else {
+        void fetchParticipants();
+      }
+      if (successMessage) toast.success(successMessage);
+    } catch {
+      toast.error("Action failed.");
+    } finally {
+      setParticipantBusyId(null);
+    }
+  };
+
   // Fullscreen toggle
   const toggleFullscreen = () => {
     if (!stageContainerRef.current) return;
@@ -876,6 +1045,26 @@ onStreamEnded({
       stageContainerRef.current.requestFullscreen().then(() => setIsFullscreen(true)).catch(() => {});
     } else {
       document.exitFullscreen().then(() => setIsFullscreen(false)).catch(() => {});
+    }
+  };
+
+  // Minimize live broadcast to floating dock mini-player
+  const handleMinimize = () => {
+    onLeave();
+  };
+
+  // Native Picture-in-Picture
+  const togglePiP = async () => {
+    try {
+      if (document.pictureInPictureElement) {
+        await document.exitPictureInPicture();
+      } else if (videoRef.current && document.pictureInPictureEnabled) {
+        await videoRef.current.requestPictureInPicture();
+      } else {
+        toast.info("Picture-in-Picture is not supported by this browser.");
+      }
+    } catch {
+      toast.error("Picture-in-Picture could not be started.");
     }
   };
 
@@ -1228,6 +1417,28 @@ onStreamEnded({
               {isFullscreen ? <ArrowsIn weight="bold" className="h-4 w-4" /> : <ArrowsOut weight="bold" className="h-4 w-4" />}
             </button>
 
+            {stream.stream_mode !== "audio" && (
+              <button
+                type="button"
+                onClick={togglePiP}
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-black/50 text-white backdrop-blur-md transition-transform hover:scale-110 active:scale-95"
+                title="Picture-in-Picture"
+                aria-label="Picture-in-Picture"
+              >
+                <AppWindow weight="bold" className="h-4 w-4" />
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={handleMinimize}
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-black/50 text-white backdrop-blur-md transition-transform hover:scale-110 active:scale-95"
+              title="Minimize to Floating Mini-Player"
+              aria-label="Minimize to Floating Mini-Player"
+            >
+              <Minus weight="bold" className="h-4 w-4" />
+            </button>
+
             {!isHost ? (
               <>
                 <button
@@ -1276,6 +1487,16 @@ onStreamEnded({
                     {isCamOn ? <VideoCamera weight="bold" className="h-4 w-4" /> : <VideoCameraSlash weight="bold" className="h-4 w-4" />}
                   </button>
                 )}
+
+                <button
+                  type="button"
+                  onClick={openParticipants}
+                  className="flex h-9 w-9 items-center justify-center rounded-full border border-white/20 bg-black/50 text-white backdrop-blur-md transition-transform hover:scale-110 active:scale-95"
+                  title="Manage Participants"
+                  aria-label="Manage Participants"
+                >
+                  <Users weight="bold" className="h-4 w-4" />
+                </button>
 
                 <button
                   type="button"
@@ -1525,6 +1746,128 @@ onStreamEnded({
                   </div>
                 )}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Host Participant Management Panel */}
+      {participantsOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+          <div className="relative w-full max-w-md rounded-2xl border border-white/10 bg-[#121620] p-5 shadow-2xl text-white">
+            <div className="flex items-center justify-between pb-4 border-b border-white/10">
+              <div className="flex items-center gap-2">
+                <Users weight="fill" className="h-5 w-5 text-sky-400" />
+                <h3 className="text-base font-bold text-white">Participants</h3>
+                <span className="rounded-full bg-white/10 px-2 py-0.5 text-[11px] font-bold text-white/70">
+                  {participants.filter((p) => p.is_active).length}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setParticipantsOpen(false)}
+                className="rounded-full p-1 text-white/60 hover:text-white hover:bg-white/10"
+              >
+                <X weight="bold" className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="mt-4 max-h-[60vh] space-y-2 overflow-y-auto">
+              {loadingParticipants ? (
+                <div className="flex justify-center py-8">
+                  <Spinner weight="bold" className="h-5 w-5 animate-spin text-primary" />
+                </div>
+              ) : participants.length === 0 ? (
+                <p className="py-8 text-center text-xs text-white/40">No participants yet.</p>
+              ) : (
+                participants.map((p) => {
+                  const busy = participantBusyId === p.user_id;
+                  const isOwner = p.user_id === stream.host?.id;
+                  return (
+                    <div
+                      key={p.user_id}
+                      className={`flex items-center justify-between rounded-xl border border-white/5 bg-white/5 p-2.5 ${
+                        p.is_active ? "" : "opacity-50"
+                      }`}
+                    >
+                      <div className="flex min-w-0 items-center gap-2.5">
+                        <Avatar className="h-8 w-8">
+                          <AvatarImage src={p.avatar_url ?? undefined} />
+                          <AvatarFallback>{p.name.slice(0, 1)}</AvatarFallback>
+                        </Avatar>
+                        <div className="min-w-0">
+                          <p className="truncate text-xs font-bold text-white">{p.name}</p>
+                          <span className="text-[10px] font-semibold uppercase tracking-wide text-white/50">
+                            {isOwner ? "Host" : p.role === "co_host" ? "Co-host" : p.role === "moderator" ? "Moderator" : "Viewer"}
+                            {p.is_restricted ? " · restricted" : ""}
+                          </span>
+                        </div>
+                      </div>
+
+                      {!isOwner && (
+                        <div className="flex items-center gap-1">
+                          {p.role === "co_host" ? (
+                            <button
+                              type="button"
+                              disabled={busy}
+                              onClick={() =>
+                                void runParticipantAction(p.user_id, "role", { role: "viewer" }, "Co-host removed.")
+                              }
+                              className="rounded-md bg-white/10 px-2 py-1 text-[10px] font-bold text-white hover:bg-white/20 disabled:opacity-50"
+                              title="Remove co-host"
+                            >
+                              Unfeature
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              disabled={busy}
+                              onClick={() =>
+                                void runParticipantAction(p.user_id, "role", { role: "co_host" }, "Promoted to co-host.")
+                              }
+                              className="rounded-md bg-emerald-500/20 px-2 py-1 text-[10px] font-bold text-emerald-300 hover:bg-emerald-500/30 disabled:opacity-50"
+                              title="Make co-host"
+                            >
+                              Co-host
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            disabled={busy}
+                            onClick={() =>
+                              void runParticipantAction(
+                                p.user_id,
+                                "restrict",
+                                { restricted: !p.is_restricted },
+                                p.is_restricted ? "Access restored." : "Participant restricted."
+                              )
+                            }
+                            className={`rounded-md px-2 py-1 text-[10px] font-bold disabled:opacity-50 ${
+                              p.is_restricted
+                                ? "bg-white/10 text-white hover:bg-white/20"
+                                : "bg-amber-500/20 text-amber-300 hover:bg-amber-500/30"
+                            }`}
+                            title={p.is_restricted ? "Restore publishing" : "Revoke microphone"}
+                          >
+                            {p.is_restricted ? "Restore" : "Mute"}
+                          </button>
+                          <button
+                            type="button"
+                            disabled={busy}
+                            onClick={() =>
+                              void runParticipantAction(p.user_id, "remove", undefined, "Participant removed.")
+                            }
+                            className="rounded-md bg-red-500/20 px-2 py-1 text-[10px] font-bold text-red-300 hover:bg-red-500/30 disabled:opacity-50"
+                            title="Remove from broadcast"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              )}
             </div>
           </div>
         </div>

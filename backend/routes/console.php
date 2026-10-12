@@ -39,3 +39,6 @@ Schedule::command('live:reap-stale')->everyFiveMinutes()->withoutOverlapping();
 
 // Warn then close live broadcasts with no engagement (likes/chat/viewers)
 Schedule::command('live:reap-idle')->everyMinute()->withoutOverlapping();
+
+// Prune old hashtag trend buckets so trending stays fast and current
+Schedule::command('hashtags:prune --days=60')->dailyAt('04:15')->withoutOverlapping();

@@ -13,6 +13,14 @@ return [
     'verification_badge_fee' => (int) env('MURIHSPACE_VERIFICATION_BADGE_FEE', 100),
 
     /*
+    | Canonical public profile domain — the host of vanity links such as
+    | https://murih.me/@user. Drives verification-badge metadata and admin
+    | settings, so staging and live can advertise different hosts. Keep the
+    | host bare (no scheme); the URL is assembled elsewhere.
+    */
+    'canonical_profile_domain' => env('CANONICAL_PROFILE_DOMAIN', 'murih.me'),
+
+    /*
     | Chat
     */
     'chat' => [

@@ -117,30 +117,12 @@ class CallController extends Controller
         // Broadcast real-time incoming call event to recipient
         broadcast(new CallIncoming($call));
 
-        // Dispatch FCM Push Notification to wake up device if locked (via FcmService)
-        if (!empty($recipient->fcm_token)) {
-            try {
-                \App\Services\FcmService::sendDataToToken(
-                    $recipient->fcm_token,
-                    [
-                        'type'          => 'incoming_call',
-                        'call_id'       => (string) $call->id,
-                        'room_name'     => $roomName,
-                        'caller_name'   => $request->user()->name ?? 'Unknown Caller',
-                        'caller_avatar' => $request->user()->avatar_url ?? '',
-                        'is_video'      => $callType === 'video' ? 'true' : 'false',
-                        'livekit_host'  => $this->getLivekitHost() ?? '',
-                    ]
-                );
-                Log::info('[CallController] FCM push sent to user ' . $recipient->id);
-            } catch (\Throwable $e) {
-                Log::error('[CallController] FCM push failed for user ' . $recipient->id . ': ' . $e->getMessage());
-            }
-        }
-
-        // Generate LiveKit token for caller
-        $livekitToken = null;
+        // Generate LiveKit tokens for both parties up front so the recipient can
+        // join the room immediately when they answer (even from the OS CallKit UI
+        // while backgrounded) without an extra round-trip.
         $service = $this->resolveLivekitService();
+        $livekitToken = null;
+        $recipientToken = null;
         if ($service) {
             try {
                 $livekitToken = $service->generateToken(
@@ -159,6 +141,27 @@ class CallController extends Controller
             } catch (\Throwable $e) {
                 Log::error('[CallController] LiveKit token generation FAILED for call ' . ($call->id ?? 'unknown') . ' — check LIVEKIT_API_KEY, LIVEKIT_API_SECRET, LIVEKIT_HOST in .env. Error: ' . $e->getMessage());
             }
+        }
+
+        // Dispatch FCM Push Notification to wake up device if locked (via FcmService).
+        // Fan-out to every device the recipient is signed in on.
+        // LiveKit token is omitted here for security; recipient fetches it upon accepting.
+        try {
+            \App\Services\FcmService::sendDataToUser(
+                $recipient->id,
+                [
+                    'type'          => 'incoming_call',
+                    'call_id'       => (string) $call->id,
+                    'room_name'     => $roomName,
+                    'caller_name'   => $request->user()->name ?? 'Unknown Caller',
+                    'caller_avatar' => $request->user()->avatar_url ?? '',
+                    'is_video'      => $callType === 'video' ? 'true' : 'false',
+                    'livekit_host'  => $this->getLivekitHost() ?? '',
+                ]
+            );
+            Log::info('[CallController] FCM push sent to user ' . $recipient->id);
+        } catch (\Throwable $e) {
+            Log::error('[CallController] FCM push failed for user ' . $recipient->id . ': ' . $e->getMessage());
         }
 
         return response()->json([

@@ -16,7 +16,6 @@ import {
   List,
   UserCircle,
   User,
-  Gear,
   ShieldCheck,
   SignOut,
   VideoCamera,
@@ -24,6 +23,7 @@ import {
   Megaphone,
   Handshake,
   Calendar,
+  UserPlus,
 } from "@phosphor-icons/react";
 import { useAuth } from "@/hooks/useAuth";
 import { apiClient } from "@/lib/api/client";
@@ -38,6 +38,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { ProfileMenuDrawer } from "@/components/account/ProfileMenuDrawer";
+import { AddAccountDialog } from "@/components/account/AddAccountDialog";
 
 interface SiteHeaderProps {
   onOpenMobileSidebar?: () => void;
@@ -50,6 +52,8 @@ export function SiteHeader({ onOpenMobileSidebar }: SiteHeaderProps) {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [showQuickMenu, setShowQuickMenu] = useState(false);
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const [addAccountOpen, setAddAccountOpen] = useState(false);
   const [suggestions, setSuggestions] = useState<
     { id: number; name: string; username?: string; type: string; avatar?: string; slug?: string; communitySlug?: string }[]
   >([]);
@@ -161,6 +165,16 @@ export function SiteHeader({ onOpenMobileSidebar }: SiteHeaderProps) {
     <header className="sticky top-0 z-40 h-14 w-full shrink-0 flex items-center justify-between border-b border-[#DADDE1] dark:border-[#3E4042] bg-white dark:bg-[#242526] px-3 sm:px-4 select-none">
       {/* ── LEFT: Logo + Mobile Hamburger + Search ── */}
       <div className="flex items-center gap-2.5 shrink-0 min-w-0">
+        {/* Profile menu trigger — desktop */}
+        <button
+          type="button"
+          onClick={() => setProfileMenuOpen(true)}
+          className="hidden md:flex h-9 w-9 rounded-full bg-[#F0F2F5] dark:bg-[#3A3B3C] text-[#050505] dark:text-[#E4E6EB] hover:bg-[#E4E6EB] dark:hover:bg-[#4E4F50] items-center justify-center transition-colors"
+          title="Profile menu"
+        >
+          <List weight="bold" className="h-5 w-5" />
+        </button>
+
         {/* Mobile menu trigger */}
         <button
           type="button"
@@ -414,11 +428,18 @@ export function SiteHeader({ onOpenMobileSidebar }: SiteHeaderProps) {
               <span>Profile Settings</span>
             </DropdownMenuItem>
             <DropdownMenuItem
-              onClick={() => navigate("/app/settings")}
+              onClick={() => setProfileMenuOpen(true)}
               className="cursor-pointer text-xs flex items-center gap-2 px-3 py-2 rounded-md hover:bg-[#F0F2F5] dark:hover:bg-[#3A3B3C]"
             >
-              <Gear weight="fill" className="h-4 w-4 text-[#65676B] dark:text-[#B0B3B8]" />
-              <span>Settings &amp; Privacy</span>
+              <List weight="bold" className="h-4 w-4 text-[#65676B] dark:text-[#B0B3B8]" />
+              <span>Profile menu</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => setAddAccountOpen(true)}
+              className="cursor-pointer text-xs flex items-center gap-2 px-3 py-2 rounded-md hover:bg-[#F0F2F5] dark:hover:bg-[#3A3B3C]"
+            >
+              <UserPlus weight="fill" className="h-4 w-4 text-[#65676B] dark:text-[#B0B3B8]" />
+              <span>Add account</span>
             </DropdownMenuItem>
             {!isAdmin && (
               <>
@@ -485,6 +506,9 @@ export function SiteHeader({ onOpenMobileSidebar }: SiteHeaderProps) {
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+
+      <ProfileMenuDrawer open={profileMenuOpen} onOpenChange={setProfileMenuOpen} />
+      <AddAccountDialog open={addAccountOpen} onOpenChange={setAddAccountOpen} />
     </header>
   );
 }

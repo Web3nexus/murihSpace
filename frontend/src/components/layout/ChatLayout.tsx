@@ -39,6 +39,7 @@ import { EmojiPickerPopover } from '@/components/chat/EmojiPickerPopover';
 import { MessageReactions } from '@/components/chat/MessageReactions';
 import { EmojiRichText } from '@/components/chat/EmojiRichText';
 import { AnimatedEmoji } from '@/components/chat/AnimatedEmoji';
+import { isEmojiOnlyMessage, emojiOnlySequence } from '@/lib/emoji';
 import { StoriesCarousel, type StoryUser } from '../chat/StoriesCarousel';
 import { StoryCreateModal } from '../story/StoryCreateModal';
 import { ChatPatternSurface } from './ChatPatternSurface';
@@ -62,6 +63,14 @@ import { Message, MessageAvatar } from '@/components/ui/message';
 import { VoiceMessagePlayer } from '@/components/chat/VoiceMessagePlayer';
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? 'http://localhost:8000/api/v1';
+
+// Telegram-style sizing for emoji-only messages: the fewer the emoji, the
+// larger each one is drawn. Mirrors the community/group chat surfaces.
+const JUMBO_EMOJI_SIZES: Record<number, string> = {
+  1: 'h-[64px] w-[64px]',
+  2: 'h-[48px] w-[48px]',
+  3: 'h-[38px] w-[38px]',
+};
 
 function getToken(): string | null {
   return getAuthToken();
@@ -1143,6 +1152,14 @@ export function ChatLayout() {
                 const isPending = msg.status === 'pending';
                 const isFailed = msg.status === 'failed';
                 const isEditing = editingMsg?.id === msg.id && msg.id !== undefined;
+                // Emoji-only messages drop the bubble (Telegram style) so the
+                // emoji sit straight on the canvas instead of on a background.
+                const emojiOnly =
+                  typeof msg.content === 'string' &&
+                  isEmojiOnlyMessage(msg.content) &&
+                  !msg.attachment_url &&
+                  !msg.reply_to;
+                const jumbo = emojiOnly ? emojiOnlySequence(msg.content) : null;
 
                 return (
                   <Message
@@ -1247,20 +1264,22 @@ export function ChatLayout() {
                         </div>
                       ) : (
                       <Bubble
-                        variant={isFailed ? "destructive" : isMine ? "default" : "secondary"}
+                        variant={emojiOnly ? "ghost" : isFailed ? "destructive" : isMine ? "default" : "secondary"}
                         align={isMine ? "end" : "start"}
                         className={`relative max-w-full ${isMine && !isFailed ? (isPending ? 'opacity-85' : '') : ''}`}
                       >
                         <BubbleContent
-                          className={`p-3 text-xs leading-relaxed space-y-1 ${
-                            isMine
-                              ? isFailed
-                                ? 'bg-destructive/15 border border-destructive/40 text-foreground rounded-2xl rounded-br-xs'
-                                : isPending
-                                ? 'bg-secondary/75 text-secondary-foreground rounded-2xl rounded-br-xs shadow-2xs'
-                                : 'bg-secondary text-secondary-foreground rounded-2xl rounded-br-xs shadow-2xs'
-                              : 'bg-card text-foreground border border-border/60 rounded-2xl rounded-bl-xs shadow-2xs'
-                          }`}
+                          className={emojiOnly
+                            ? 'bg-transparent border-0 shadow-none'
+                            : `p-3 text-xs leading-relaxed space-y-1 ${
+                                isMine
+                                  ? isFailed
+                                    ? 'bg-destructive/15 border border-destructive/40 text-foreground rounded-2xl rounded-br-xs'
+                                    : isPending
+                                    ? 'bg-secondary/75 text-secondary-foreground rounded-2xl rounded-br-xs shadow-2xs'
+                                    : 'bg-secondary text-secondary-foreground rounded-2xl rounded-br-xs shadow-2xs'
+                                  : 'bg-card text-foreground border border-border/60 rounded-2xl rounded-bl-xs shadow-2xs'
+                              }`}
                         >
                           {!isMine && msg.user?.name && <span className="block text-[10px] font-bold text-secondary">{msg.user.name}</span>}
 
@@ -1311,7 +1330,17 @@ export function ChatLayout() {
                                 </button>
                               </div>
                             );
-                          })() : (
+                          })() : jumbo ? (
+                            <div className="flex items-center gap-1.5">
+                              {jumbo.map((e, i) => (
+                                <AnimatedEmoji
+                                  key={`${i}-${e}`}
+                                  emoji={e}
+                                  className={JUMBO_EMOJI_SIZES[jumbo.length] ?? 'h-10 w-10'}
+                                />
+                              ))}
+                            </div>
+                          ) : (
                             <p className="leading-relaxed whitespace-pre-wrap break-words font-normal"><EmojiRichText text={msg.content} /></p>
                           )}
 

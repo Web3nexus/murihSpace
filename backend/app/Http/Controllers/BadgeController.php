@@ -305,7 +305,7 @@ class BadgeController extends Controller
                 'icon_3d' => '3d-gem',
                 'color' => '#FF2D55',
                 'icon_gradient' => 'from-pink-400 via-rose-500 to-red-600',
-                'criteria' => ['metric' => 'account_age_days', 'value' => 0, 'rule' => 'Registered pioneer member'],
+                'criteria' => ['metric' => 'account_age_days', 'value' => 30, 'rule' => 'Registered pioneer member for at least 30 days'],
             ],
             [
                 'slug' => 'viral_publisher',

@@ -46,7 +46,7 @@ import type {
   NotificationChannel,
 } from '@/types/notification';
 import { authFetch } from "@/lib/api/authFetch";
-import { NOTIFICATION_EVENT_NAME } from '@/hooks/useGlobalRealtimeNotifications';
+import { NOTIFICATION_EVENT_NAME, NOTIFICATION_STATE_EVENT_NAME } from '@/hooks/useGlobalRealtimeNotifications';
 
 const TYPE_CONFIG: Record<
   NotificationType,
@@ -447,8 +447,13 @@ export default function NotificationsPage() {
       fetchNotifications(true, 1, activeFeedFilter);
     };
     window.addEventListener(NOTIFICATION_EVENT_NAME, handleLiveNotif);
+    const handleStateSync = () => {
+      fetchNotifications(true, 1, activeFeedFilter);
+    };
+    window.addEventListener(NOTIFICATION_STATE_EVENT_NAME, handleStateSync);
     return () => {
       window.removeEventListener(NOTIFICATION_EVENT_NAME, handleLiveNotif);
+      window.removeEventListener(NOTIFICATION_STATE_EVENT_NAME, handleStateSync);
     };
   }, [fetchNotifications, activeFeedFilter]);
 

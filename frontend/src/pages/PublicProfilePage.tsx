@@ -35,7 +35,22 @@ import {
   PencilSimple,
   Play,
 } from "@phosphor-icons/react";
-import { absolute, profileUrl } from "@/lib/deepLinks";
+import { absolute, profileDomain, profileUrl } from "@/lib/deepLinks";
+import { Badge3DRenderer } from "@/pages/AdminBadgesPage";
+
+interface PublicBadgeItem {
+  id: number;
+  slug: string;
+  name: string;
+  level_label?: string | null;
+  description?: string | null;
+  icon?: string | null;
+  icon_3d?: string | null;
+  color?: string | null;
+  icon_gradient?: string | null;
+  criteria?: any;
+  earned_at?: string;
+}
 
 interface PublicCommunity {
   id: number;
@@ -104,6 +119,7 @@ interface PublicUserProfile {
     display_name?: string;
   } | null;
   public_communities: PublicCommunity[];
+  badges?: PublicBadgeItem[];
   created_at?: string;
 }
 
@@ -601,6 +617,29 @@ export default function PublicProfilePage() {
               )}
             </div>
 
+            {/* Dynamic Activity Badges (Compact 3D Tokens, shown only if earned) */}
+            {Array.isArray(profile.badges) && profile.badges.length > 0 && (
+              <div className="pt-4 border-t border-border/60 mt-4 space-y-2">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-bold text-foreground">Activity Badges</h3>
+                </div>
+                <div className="flex items-center gap-3 overflow-x-auto no-scrollbar py-1">
+                  {profile.badges.map((b) => (
+                    <div
+                      key={b.id || b.slug}
+                      title={`${b.name} (${b.level_label || "Earned"}) - ${b.description || ""}`}
+                      className="flex flex-col items-center gap-1.5 shrink-0 group cursor-pointer transition-transform hover:scale-105"
+                    >
+                      <Badge3DRenderer type={b.icon_3d} size={38} />
+                      <span className="text-[10px] font-semibold text-muted-foreground group-hover:text-foreground tracking-tight max-w-[56px] truncate text-center">
+                        {b.name}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Native Link-in-Bio Shortcut */}
             <div className="flex flex-wrap items-center gap-3 pt-4 border-t border-border/60 mt-4">
               <a
@@ -610,7 +649,7 @@ export default function PublicProfilePage() {
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#1A68D4]/10 text-[#1A68D4] text-xs font-bold hover:bg-[#1A68D4]/15 transition-colors border border-[#1A68D4]/20"
               >
                 <ExternalLink weight="bold" className="h-3.5 w-3.5" />
-                <span>murih.me/l/{profile.username}</span>
+                <span>{profileDomain()}/l/{profile.username}</span>
               </a>
 
               {profile.storefront && (
