@@ -255,7 +255,7 @@ export function AppSidebar({ className = "", onNavigate }: AppSidebarProps) {
       {!loading && user && (
         <div className="mb-2">
           <Link
-            to="/app/settings/profile"
+            to="/app/profile"
             onClick={onNavigate}
             className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-[#E4E6EB]/60 dark:hover:bg-[#3A3B3C] transition-colors"
           >
@@ -351,6 +351,16 @@ export function AppSidebar({ className = "", onNavigate }: AppSidebarProps) {
                 <p className="text-[11px] text-muted-foreground font-normal">{user.email}</p>
               </DropdownMenuLabel>
               <DropdownMenuSeparator className="bg-border" />
+              <DropdownMenuItem
+                onClick={() => {
+                  navigate("/app/profile");
+                  onNavigate?.();
+                }}
+                className="cursor-pointer text-xs"
+              >
+                <User weight="fill" className="mr-2 h-4 w-4 text-muted-foreground" />
+                View Profile
+              </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => {
                   navigate("/app/settings/profile");

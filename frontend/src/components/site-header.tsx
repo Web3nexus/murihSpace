@@ -421,6 +421,13 @@ export function SiteHeader({ onOpenMobileSidebar }: SiteHeaderProps) {
             </DropdownMenuLabel>
             <DropdownMenuSeparator className="bg-[#DADDE1] dark:bg-[#3E4042]" />
             <DropdownMenuItem
+              onClick={() => navigate("/app/profile")}
+              className="cursor-pointer text-xs flex items-center gap-2 px-3 py-2 rounded-md hover:bg-[#F0F2F5] dark:hover:bg-[#3A3B3C]"
+            >
+              <User weight="fill" className="h-4 w-4 text-[#65676B] dark:text-[#B0B3B8]" />
+              <span>View Profile</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem
               onClick={() => navigate("/app/settings/profile")}
               className="cursor-pointer text-xs flex items-center gap-2 px-3 py-2 rounded-md hover:bg-[#F0F2F5] dark:hover:bg-[#3A3B3C]"
             >
