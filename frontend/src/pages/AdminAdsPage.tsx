@@ -1,15 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useConfirm, usePrompt } from "@/components/ui/DialogProvider";
-import {
-  WarningCircle as AlertCircle,
-  CurrencyDollar as DollarSign,
-  Spinner as Loader2,
-  Megaphone as Megaphone,
-  MagnifyingGlass as Search,
-  ThumbsUp as ThumbsUp,
-  ThumbsDown as ThumbsDown,
-  X as X
-} from "@phosphor-icons/react";
+import { DangerSquare as AlertCircle, Search, CloseSquare as X } from "@/components/icons";
+import { CurrencyDollar as DollarSign, Spinner as Loader2, Megaphone, ThumbsUp, ThumbsDown } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { authFetch } from "@/lib/api/authFetch";

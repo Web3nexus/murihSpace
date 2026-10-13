@@ -1,12 +1,5 @@
-import {
-  Package as Package,
-  Truck as Truck,
-  Spinner as Loader2,
-  MagnifyingGlass as Search,
-  Eye as Eye,
-  MapPin as MapPin,
-  Clock as Clock
-} from "@phosphor-icons/react";
+import { Search, Show as Eye, Location as MapPin, TimeCircle as Clock } from "@/components/icons";
+import { Package, Truck, Spinner as Loader2 } from "@phosphor-icons/react";
 import { useState, useEffect, useCallback } from 'react';
 import { usePrompt } from '@/components/ui/DialogProvider';
 import { Button } from "@/components/ui/button";

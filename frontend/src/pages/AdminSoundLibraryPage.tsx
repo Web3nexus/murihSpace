@@ -1,16 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import {
-  MusicNote as Music,
-  Spinner as Loader2,
-  Plus as Plus,
-  Pencil as Edit,
-  Trash as Trash2,
-  Check as Check,
-  WarningCircle as AlertCircle,
-  Play as Play,
-  Pause as Pause,
-  SpeakerHigh as Volume2
-} from "@phosphor-icons/react";
+import { Plus, Edit, Delete as Trash2, TickSquare as Check, DangerSquare as AlertCircle, Play, VolumeUp as Volume2 } from "@/components/icons";
+import { MusicNote as Music, Spinner as Loader2, Pause } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

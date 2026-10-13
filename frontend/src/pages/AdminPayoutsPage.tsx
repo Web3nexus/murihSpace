@@ -1,13 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useConfirm } from '@/components/ui/DialogProvider';
-import {
-  CurrencyDollar as DollarSign,
-  Spinner as Loader2,
-  CheckCircle as CheckCircle2,
-  Clock as Clock,
-  Warning as AlertTriangle,
-  WarningCircle as AlertCircle
-} from "@phosphor-icons/react";
+import { TickSquare as CheckCircle2, TimeCircle as Clock, DangerTriangle as AlertTriangle, DangerSquare as AlertCircle } from "@/components/icons";
+import { CurrencyDollar as DollarSign, Spinner as Loader2 } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { authFetch } from "@/lib/api/authFetch";
 

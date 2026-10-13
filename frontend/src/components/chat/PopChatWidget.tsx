@@ -1,18 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useLocation, useNavigate } from "react-router";
-import {
-  ChatTeardropText,
-  X,
-  Minus,
-  ArrowLeft,
-  ArrowSquareOut,
-  PaperPlaneRight,
-  SpinnerGap,
-  Checks as CheckCheck,
-  Check as CheckIcon,
-  Phone,
-  VideoCamera,
-} from "@phosphor-icons/react";
+import { Message as ChatTeardropText, CloseSquare as X, ArrowLeft, Send as PaperPlaneRight, TickSquare as CheckCheck, TickSquare as CheckIcon, Call as Phone, Video as VideoCamera } from "@/components/icons";
+import { Minus, ArrowSquareOut, SpinnerGap } from "@phosphor-icons/react";
 import { useAuth } from "@/hooks/useAuth";
 import { usePopChat } from "@/context/PopChatContext";
 import { useRealtimeMessaging } from "@/hooks/useRealtimeMessaging";

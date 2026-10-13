@@ -5,12 +5,8 @@ import { AuthLayout } from "@/components/layout/AuthLayout";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import {
-  Spinner as Loader2,
-  Check as Check,
-  WarningCircle as AlertCircle,
-  ArrowLeft as ArrowLeft
-} from "@phosphor-icons/react";
+import { TickSquare as Check, DangerSquare as AlertCircle, ArrowLeft } from "@/components/icons";
+import { Spinner as Loader2 } from "@phosphor-icons/react";
 
 export function ForgotPasswordPage() {
   const [email, setEmail] = useState("");

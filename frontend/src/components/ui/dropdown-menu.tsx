@@ -4,10 +4,7 @@ import * as React from "react"
 import { DropdownMenu as DropdownMenuPrimitive } from "radix-ui"
 
 import { cn } from "@/lib/utils"
-import {
-  Check as CheckIcon,
-  CaretRight as ChevronRightIcon
-} from "@phosphor-icons/react";
+import { TickSquare as CheckIcon, ArrowRight as ChevronRightIcon } from "@/components/icons";
 
 function DropdownMenu({
   ...props

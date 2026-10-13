@@ -6,14 +6,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  UserPlus as UserPlus,
-  CheckCircle as CheckCircle2,
-  Clock as Clock,
-  SignOut as LogOut,
-  CaretDown as ChevronDown,
-  Lock as Lock
-} from "@phosphor-icons/react";
+import { AddUser as UserPlus, TickSquare as CheckCircle2, TimeCircle as Clock, Logout as LogOut, ArrowDown as ChevronDown, Lock } from "@/components/icons";
 import type { Community } from "@/types/community";
 import { getAuthToken } from "@/lib/auth/token";
 

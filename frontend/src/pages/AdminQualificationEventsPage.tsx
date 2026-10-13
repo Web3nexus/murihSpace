@@ -1,11 +1,5 @@
 import { useState, useEffect } from "react";
-import {
-  ArrowsClockwise as RefreshCwIcon,
-  PaperPlaneRight as SendIcon,
-  Clock as ClockIcon,
-  CheckCircle as CheckCircle2Icon,
-  XCircle as XCircleIcon
-} from "@phosphor-icons/react";
+import { Swap as RefreshCwIcon, Send as SendIcon, TimeCircle as ClockIcon, TickSquare as CheckCircle2Icon, CloseSquare as XCircleIcon } from "@/components/icons";
 import { toast } from "sonner";
 
 interface QualificationEvent {

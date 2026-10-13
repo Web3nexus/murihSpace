@@ -1,6 +1,7 @@
 import { useMemo, useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router";
-import { VideoCamera, SignIn, Copy, Check, ShareNetwork, ArrowLeft, Clock, Spinner, ArrowsClockwise as RefreshCw } from "@phosphor-icons/react";
+import { Video as VideoCamera, Login as SignIn, TickSquare as Check, ArrowLeft, TimeCircle as Clock, Swap as RefreshCw } from "@/components/icons";
+import { Copy, ShareNetwork, Spinner } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { SEOHead } from "@/components/common/SEOHead";
 import { ShareModal } from "@/components/common/ShareModal";

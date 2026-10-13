@@ -1,16 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import {
-  ChatText as ChatText,
-  Plus as Plus,
-  Spinner as Loader2,
-  Trash as Trash2,
-  Pencil as Edit,
-  Eye as Eye,
-  EyeSlash as EyeOff,
-  Check as Check,
-  WarningCircle as AlertCircle,
-  X as X
-} from "@phosphor-icons/react";
+import { Message as ChatText, Plus, Delete as Trash2, Edit, Show as Eye, Hide as EyeOff, TickSquare as Check, DangerSquare as AlertCircle, CloseSquare as X } from "@/components/icons";
+import { Spinner as Loader2 } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { authFetch } from "@/lib/api/authFetch";
 import { useConfirm } from "@/components/ui/DialogProvider";

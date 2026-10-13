@@ -1,19 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import {
-  Gift as Gift,
-  Spinner as Loader2,
-  MagnifyingGlass as Search,
-  PaperPlaneRight as Send,
-  Coins as Coins,
-  WarningCircle as AlertCircle,
-  Check as Check,
-  Plus as Plus,
-  X as X,
-  ClockCounterClockwise as ClockCounterClockwise,
-  Bag as ShoppingBag,
-  Globe as Globe,
-  DeviceMobile as Smartphone
-} from "@phosphor-icons/react";
+import { Discount as Gift, Search, Send, DangerSquare as AlertCircle, TickSquare as Check, Plus, CloseSquare as X, TimeCircle as ClockCounterClockwise, Bag as ShoppingBag, Discovery as Globe } from "@/components/icons";
+import { Spinner as Loader2, Coins, DeviceMobile as Smartphone } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";

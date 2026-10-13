@@ -1,23 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router";
-import {
-  ArrowLeft,
-  Calendar,
-  Check,
-  Clock,
-  Copy,
-  Eye,
-  Lock,
-  Play,
-  Radio,
-  ShareNetwork,
-  SignIn,
-  Spinner as Loader2,
-  UserCircle,
-  Users,
-  VideoCamera,
-  WarningCircle,
-} from "@phosphor-icons/react";
+import { ArrowLeft, Calendar, TickSquare as Check, TimeCircle as Clock, Show as Eye, Lock, Play, Login as SignIn, Profile as UserCircle, N2User as Users, Video as VideoCamera, DangerSquare as WarningCircle } from "@/components/icons";
+import { Copy, Radio, ShareNetwork, Spinner as Loader2 } from "@phosphor-icons/react";
 import { AuthPromptModal } from "@/components/auth/AuthPromptModal";
 import { BrandPreloader } from "@/components/common/BrandPreloader";
 import { SEOHead } from "@/components/common/SEOHead";

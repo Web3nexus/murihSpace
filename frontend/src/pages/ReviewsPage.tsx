@@ -1,19 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useConfirm } from '@/components/ui/DialogProvider';
 import { useAuth } from '@/hooks/useAuth';
-import {
-  Medal as Award,
-  ChatTeardropText as MessageSquare,
-  Plus,
-  Spinner as Loader2,
-  Trash as Trash2,
-  Pencil as Edit,
-  Clock,
-  ArrowBendDownRight,
-  Storefront,
-  CheckCircle,
-  ChatCircleDots,
-} from "@phosphor-icons/react";
+import { Message as MessageSquare, Plus, Delete as Trash2, Edit, TimeCircle as Clock, TickSquare as CheckCircle, Chat as ChatCircleDots } from "@/components/icons";
+import { Medal as Award, Spinner as Loader2, ArrowBendDownRight, Storefront } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { authFetch } from "@/lib/api/authFetch";

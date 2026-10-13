@@ -1,15 +1,7 @@
 import { useState, useEffect } from "react";
 import { useSearchParams, Link } from "react-router";
-import {
-  MagnifyingGlass as Search,
-  Spinner as Loader2,
-  Users as Users,
-  ChatTeardropText as MessageSquare,
-  FileText as FileText,
-  Package as Package,
-  User as User,
-  User as UserIcon,
-} from "@phosphor-icons/react";
+import { Search, N2User as Users, Message as MessageSquare, Document as FileText, Profile as User, Profile as UserIcon } from "@/components/icons";
+import { Spinner as Loader2, Package } from "@phosphor-icons/react";
 import { authFetch } from "@/lib/api/authFetch";
 
 

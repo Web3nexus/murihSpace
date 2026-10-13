@@ -1,11 +1,6 @@
 import React, { useState, useRef } from "react";
-import {
-  X as X,
-  UploadSimple as Upload,
-  PaperPlaneRight as Send,
-  Spinner as Loader2,
-  Sparkle as Sparkle
-} from "@phosphor-icons/react";
+import { CloseSquare as X, Upload, Send } from "@/components/icons";
+import { Spinner as Loader2, Sparkle } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { authFetch } from "@/lib/api/authFetch";

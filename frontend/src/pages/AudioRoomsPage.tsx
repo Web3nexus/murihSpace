@@ -2,23 +2,8 @@ import { getAuthToken } from "@/lib/auth/token";
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Link } from 'react-router';
-import {
-  VideoCamera as Video,
-  Radio as Radio,
-  Calendar as Calendar,
-  Clock as Clock,
-  Users as Users,
-  Spinner as Loader2,
-  Play as Play,
-  SignIn as SignIn,
-  ShieldCheck as ShieldCheck,
-  WarningCircle as AlertCircle,
-  X as X,
-  Check as Check,
-  UserCheck as UserCheck,
-  Globe as Globe,
-  User as UserIcon
-} from "@phosphor-icons/react";
+import { Video, Calendar, TimeCircle as Clock, N2User as Users, Play, Login as SignIn, ShieldDone as ShieldCheck, DangerSquare as AlertCircle, CloseSquare as X, TickSquare as Check, Discovery as Globe, Profile as UserIcon } from "@/components/icons";
+import { Radio, Spinner as Loader2, UserCheck } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { LiveKitVideoConference } from "@/components/video/LiveKitVideoConference";

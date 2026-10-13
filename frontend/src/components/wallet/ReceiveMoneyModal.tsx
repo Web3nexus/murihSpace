@@ -1,7 +1,8 @@
 import React from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { QrCode, Copy, Check } from "@phosphor-icons/react";
+import { Scan as QrCode, TickSquare as Check } from "@/components/icons";
+import { Copy } from "@phosphor-icons/react";
 import { toast } from "sonner";
 
 interface ReceiveMoneyModalProps {

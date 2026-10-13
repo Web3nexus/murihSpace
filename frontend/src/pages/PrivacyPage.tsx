@@ -1,17 +1,5 @@
 import { useState, useEffect } from "react";
-import {
-  Lock as Lock,
-  Eye as Eye,
-  EyeSlash as EyeOff,
-  Globe as Globe,
-  Users as Users,
-  DownloadSimple as Download,
-  Trash as Trash2,
-  Check as Check,
-  ChatCircleDots,
-  Checks as CheckCheck,
-  SpeakerHigh,
-} from "@phosphor-icons/react";
+import { Lock, Show as Eye, Hide as EyeOff, Discovery as Globe, N2User as Users, Download, Delete as Trash2, TickSquare as Check, Chat as ChatCircleDots, TickSquare as CheckCheck, VolumeUp as SpeakerHigh } from "@/components/icons";
 import { apiClient } from "@/lib/api/client";
 import { playMessageReceivedSound, isChatSoundEnabled, setChatSoundEnabled } from "@/lib/sound";
 

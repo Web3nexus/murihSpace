@@ -1,19 +1,7 @@
 import * as React from "react";
 import { useRouteError, Link } from "react-router";
-import {
-  WarningCircle,
-  ArrowsClockwise,
-  House,
-  Sparkle,
-  VideoCameraSlash,
-  WifiSlash,
-  LockKey,
-  Copy,
-  Check,
-  CaretDown,
-  CaretUp,
-  SignIn,
-} from "@phosphor-icons/react";
+import { DangerSquare as WarningCircle, Swap as ArrowsClockwise, Home as House, Lock as LockKey, TickSquare as Check, ArrowDown as CaretDown, ArrowUp as CaretUp, Login as SignIn } from "@/components/icons";
+import { Sparkle, VideoCameraSlash, WifiSlash, Copy } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { mapApplicationError } from "@/lib/errorMapper";
 

@@ -1,23 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import {
-  Link as Link,
-  Spinner as Loader2,
-  Plus as Plus,
-  Copy as Copy,
-  Check as Check,
-  Bag as ShoppingBag,
-  Eye as Eye,
-  Pencil as Pencil,
-  Trash as Trash2,
-  X as X,
-  CurrencyDollar as DollarSign,
-  CursorClick as CursorClick,
-  ToggleLeft as ToggleLeft,
-  ToggleRight as ToggleRight,
-  ChartBar as BarChart3,
-  ArrowSquareOut as ExternalLink,
-  CheckCircle as CheckCircle2
-} from "@phosphor-icons/react";
+import { Plus, TickSquare as Check, Bag as ShoppingBag, Show as Eye, Edit as Pencil, Delete as Trash2, CloseSquare as X, Chart as BarChart3, TickSquare as CheckCircle2 } from "@/components/icons";
+import { Link, Spinner as Loader2, Copy, CurrencyDollar as DollarSign, CursorClick, ToggleLeft, ToggleRight, ArrowSquareOut as ExternalLink } from "@phosphor-icons/react";
 import { authFetch } from "@/lib/api/authFetch";
 import { useConfirm } from "@/components/ui/DialogProvider";
 import { StatCard } from "@/components/ui/StatCard";

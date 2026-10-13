@@ -1,20 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useConfirm } from '@/components/ui/DialogProvider';
-import {
-  Link as Link,
-  Plus as Plus,
-  Spinner as Loader2,
-  Users as Users,
-  CursorClick as CursorClick,
-  Bag as ShoppingBag,
-  Copy as Copy,
-  Check as Check,
-  ArrowSquareOut as ExternalLink,
-  Power,
-  Gift as Gift,
-  ArrowsClockwise as RefreshCw,
-  CheckCircle as CheckCircle2
-} from "@phosphor-icons/react";
+import { Plus, N2User as Users, Bag as ShoppingBag, TickSquare as Check, Discount as Gift, Swap as RefreshCw, TickSquare as CheckCircle2 } from "@/components/icons";
+import { Link, Spinner as Loader2, CursorClick, Copy, ArrowSquareOut as ExternalLink, Power } from "@phosphor-icons/react";
 import { siteUrl } from "@/lib/deepLinks";
 import { authFetch } from "@/lib/api/authFetch";
 

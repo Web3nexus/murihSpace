@@ -1,6 +1,4 @@
-import {
-  Scroll as Scroll
-} from "@phosphor-icons/react";
+import { Paper as Scroll } from "@/components/icons";
 import { LegalLayout } from "@/components/layout/LegalLayout";
 
 export default function TermsOfServicePage() {

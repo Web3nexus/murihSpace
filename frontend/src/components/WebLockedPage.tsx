@@ -1,12 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import QRCode from "qrcode";
-import {
-  DownloadSimple as Download,
-  DeviceMobile as Smartphone,
-  SignOut as LogOut,
-  Spinner as Loader2,
-  QrCode as QrCode
-} from "@phosphor-icons/react";
+import { Download, Logout as LogOut, Scan as QrCode } from "@/components/icons";
+import { DeviceMobile as Smartphone, Spinner as Loader2 } from "@phosphor-icons/react";
 import { usePlatformConfig } from "@/hooks/usePlatformConfig";
 import { useAuth } from "@/hooks/useAuth";
 

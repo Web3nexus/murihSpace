@@ -14,9 +14,7 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
 } from "@/components/ui/sidebar";
-import {
-  CaretRight as ChevronRightIcon
-} from "@phosphor-icons/react";
+import { ArrowRight as ChevronRightIcon } from "@/components/icons";
 
 interface NavItem {
   title: string;

@@ -1,19 +1,7 @@
 import { getAuthToken } from "@/lib/auth/token";
 import React, { useState, useEffect, useCallback } from 'react';
-import {
-  Storefront,
-  Globe as Globe,
-  ShareNetwork as Share2,
-  QrCode as QrCode,
-  Copy as Copy,
-  Check as Check,
-  Plus as Plus,
-  Trash as Trash2,
-  ArrowSquareOut as ExternalLink,
-  Spinner as Loader2,
-  Eye as Eye,
-  PencilSimple as Edit3
-} from "@phosphor-icons/react";
+import { Discovery as Globe, Scan as QrCode, TickSquare as Check, Plus, Delete as Trash2, Show as Eye, Edit as Edit3 } from "@/components/icons";
+import { Storefront, ShareNetwork as Share2, Copy, ArrowSquareOut as ExternalLink, Spinner as Loader2 } from "@phosphor-icons/react";
 import { ImageUploader } from "@/components/upload/ImageUploader";
 import { Button } from '@/components/ui/button';
 import type { StorefrontLink } from '@/types/storefront';

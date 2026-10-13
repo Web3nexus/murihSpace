@@ -1,6 +1,4 @@
-import {
-  ShieldCheck as ShieldCheck
-} from "@phosphor-icons/react";
+import { ShieldDone as ShieldCheck } from "@/components/icons";
 import { LegalLayout } from "@/components/layout/LegalLayout";
 
 export default function PrivacyPolicyPage() {

@@ -2,22 +2,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router';
 import { toast } from 'sonner';
-import {
-  Users as Users,
-  MagnifyingGlass as Search,
-  Spinner as Loader2,
-  ShieldSlash as ShieldSlash,
-  ShieldCheck as ShieldCheck,
-  Prohibit as Prohibit,
-  ArrowCounterClockwise as RotateCcw,
-  WarningCircle as AlertCircle,
-  CheckCircle as CheckCircle2,
-  SignIn as SignIn,
-  ArrowsDownUp as ArrowsDownUp,
-  ArrowUp as ArrowUp,
-  ArrowDown as ArrowDown,
-  DownloadSimple as Download
-} from "@phosphor-icons/react";
+import { N2User as Users, Search, ShieldDone as ShieldCheck, Swap as RotateCcw, DangerSquare as AlertCircle, TickSquare as CheckCircle2, Login as SignIn, ArrowUp, ArrowDown, Download } from "@/components/icons";
+import { ShieldFail as ShieldSlash } from "@/components/icons";
+import { Spinner as Loader2, Prohibit, ArrowsDownUp } from "@phosphor-icons/react";
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {

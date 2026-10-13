@@ -5,24 +5,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { apiClient } from "@/lib/api/client";
 import { timeAgo, mapApiPost, mapApiComments } from "@/lib/feed";
-import {
-  Plus as Plus,
-  Heart as Heart,
-  ChatCircle as MessageCircle,
-  ShareNetwork as Share2,
-  CaretRight as ChevronRight,
-  CaretLeft as ChevronLeft,
-  Play as Play,
-  User as UserIcon,
-  SealCheck as BadgeCheck,
-  Rss as Rss,
-  PaperPlaneRight as Send,
-  Spinner as Loader2,
-  Copy as Copy,
-  Check as Check,
-  X as X,
-  CaretDown as ChevronDown
-} from "@phosphor-icons/react";
+import { Plus, Heart, Chat as MessageCircle, ArrowRight as ChevronRight, ArrowLeft as ChevronLeft, Play, Profile as UserIcon, ShieldDone as BadgeCheck, Send, TickSquare as Check, CloseSquare as X, ArrowDown as ChevronDown } from "@/components/icons";
+import { ShareNetwork as Share2, Rss, Spinner as Loader2, Copy } from "@phosphor-icons/react";
 import { SponsoredRightRail } from "@/components/ads/SponsoredRightRail";
 import { InterPostSponsoredAd, type SponsoredAdData } from "@/components/ads/InterPostSponsoredAd";
 import { absolute } from "@/lib/deepLinks";

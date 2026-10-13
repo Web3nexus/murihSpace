@@ -1,18 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import {
-  Crown as Crown,
-  Spinner as Loader2,
-  Users as Users,
-  CurrencyDollar as DollarSign,
-  ToggleLeft as ToggleLeft,
-  ToggleRight as ToggleRight,
-  MagnifyingGlass as Search,
-  Percent as Percent,
-  FloppyDisk as FloppyDisk,
-  X as X,
-  ArrowsClockwise as RefreshCw,
-  WarningCircle as AlertCircle
-} from "@phosphor-icons/react";
+import { N2User as Users, Search, Download as FloppyDisk, CloseSquare as X, Swap as RefreshCw, DangerSquare as AlertCircle } from "@/components/icons";
+import { Crown, Spinner as Loader2, CurrencyDollar as DollarSign, ToggleLeft, ToggleRight, Percent } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { authFetch } from "@/lib/api/authFetch";

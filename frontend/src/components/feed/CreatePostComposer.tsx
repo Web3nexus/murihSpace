@@ -1,14 +1,8 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import {
-  ChatTeardropText as MessageSquare,
-  Megaphone as Megaphone,
-  Image as ImageIcon,
-  Link as Link,
-  PaperPlaneRight as Send,
-  X as X
-} from "@phosphor-icons/react";
+import { Message as MessageSquare, Image as ImageIcon, Send, CloseSquare as X } from "@/components/icons";
+import { Megaphone, Link } from "@phosphor-icons/react";
 import type { CreatePostPayload, PostType } from '@/types/post';
 
 interface CreatePostComposerProps {

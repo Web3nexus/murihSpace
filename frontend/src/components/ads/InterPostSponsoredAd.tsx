@@ -1,19 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router";
 import { apiClient } from "@/lib/api/client";
-import {
-  SealCheck,
-  Heart,
-  ChatCircle,
-  ShareNetwork,
-  ArrowSquareOut,
-  X,
-  SpeakerHigh as Volume2,
-  SpeakerSlash as VolumeX,
-  DotsThree,
-  Megaphone,
-  Info,
-} from "@phosphor-icons/react";
+import { ShieldDone as SealCheck, Heart, Chat as ChatCircle, CloseSquare as X, VolumeUp as Volume2, VolumeOff as VolumeX, MoreCircle as DotsThree, InfoSquare as Info } from "@/components/icons";
+import { ShareNetwork, ArrowSquareOut, Megaphone } from "@phosphor-icons/react";
 
 export interface SponsoredAdData {
   id: string | number;

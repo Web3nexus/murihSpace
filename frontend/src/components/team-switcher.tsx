@@ -17,10 +17,8 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
-import {
-  CaretUpDown as ChevronsUpDownIcon,
-  Plus as PlusIcon
-} from "@phosphor-icons/react";
+import { Plus as PlusIcon } from "@/components/icons";
+import { CaretUpDown as ChevronsUpDownIcon } from "@phosphor-icons/react";
 
 export function TeamSwitcher({
   teams,

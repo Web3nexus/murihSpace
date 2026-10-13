@@ -1,14 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useConfirm } from '@/components/ui/DialogProvider';
-import {
-  Medal as Award,
-  ChatTeardropText as MessageSquare,
-  Spinner as Loader2,
-  CheckCircle as CheckCircle2,
-  XCircle as XCircle,
-  Trash as Trash2,
-  WarningCircle as AlertCircle
-} from "@phosphor-icons/react";
+import { Message as MessageSquare, TickSquare as CheckCircle2, CloseSquare as XCircle, Delete as Trash2, DangerSquare as AlertCircle } from "@/components/icons";
+import { Medal as Award, Spinner as Loader2 } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { authFetch } from "@/lib/api/authFetch";
 

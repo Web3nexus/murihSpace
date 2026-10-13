@@ -1,21 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import {
-  Spinner as Loader2,
-  FloppyDisk as FloppyDisk,
-  Eye as Eye,
-  Globe as Globe,
-  Users as Users,
-  ChartBar as BarChart3,
-  Plus as Plus,
-  Trash as Trash2,
-  Check as Check,
-  ArrowSquareOut as ExternalLink,
-  Image as ImageIcon,
-  Briefcase as Briefcase,
-  FileText as FileText,
-  CurrencyDollar as DollarSign,
-  CheckCircle as CheckCircle2
-} from "@phosphor-icons/react";
+import { Download as FloppyDisk, Show as Eye, Discovery as Globe, N2User as Users, Chart as BarChart3, Plus, Delete as Trash2, TickSquare as Check, Image as ImageIcon, Work as Briefcase, Document as FileText, TickSquare as CheckCircle2 } from "@/components/icons";
+import { Spinner as Loader2, ArrowSquareOut as ExternalLink, CurrencyDollar as DollarSign } from "@phosphor-icons/react";
 import { ImageUploader } from "@/components/upload/ImageUploader";
 import { authFetch } from "@/lib/api/authFetch";
 import { StatCard } from "@/components/ui/StatCard";

@@ -1,17 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate, useLocation, Link } from "react-router";
-import {
-  Calendar as Calendar,
-  Clock as Clock,
-  MapPin as MapPin,
-  Users as Users,
-  VideoCamera as Video,
-  ArrowLeft as ArrowLeft,
-  ArrowSquareOut as ExternalLink,
-  CheckCircle as CheckCircle,
-  XCircle as XCircle,
-  ShareNetwork as ShareNetwork,
-} from "@phosphor-icons/react";
+import { Calendar, TimeCircle as Clock, Location as MapPin, N2User as Users, Video, ArrowLeft, TickSquare as CheckCircle, CloseSquare as XCircle } from "@/components/icons";
+import { ArrowSquareOut as ExternalLink, ShareNetwork } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { LoadingState, ErrorState, NotFoundState } from "@/components/common/UIStateComponents";

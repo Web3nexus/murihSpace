@@ -1,15 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
-import {
-  Radio,
-  Users,
-  Heart,
-  Gift,
-  Play,
-  ShareNetwork,
-  VideoCamera,
-  Broadcast,
-} from "@phosphor-icons/react";
+import { N2User as Users, Heart, Discount as Gift, Play, Video as VideoCamera } from "@/components/icons";
+import { Radio, ShareNetwork, Broadcast } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
 import { getAuthToken } from "@/lib/auth/token";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";

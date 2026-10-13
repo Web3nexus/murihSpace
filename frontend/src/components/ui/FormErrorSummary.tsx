@@ -1,7 +1,5 @@
 import React from "react";
-import {
-  Warning as AlertTriangleIcon
-} from "@phosphor-icons/react";
+import { DangerTriangle as AlertTriangleIcon } from "@/components/icons";
 
 interface FormErrorSummaryProps {
   title?: string;

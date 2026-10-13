@@ -1,37 +1,6 @@
-import {
-  ShieldWarning as ShieldWarning,
-  UserCheck as UserCheck,
-  UserMinus as UserMinus,
-  Users as Users,
-  Buildings as Building2,
-  Flag as Flag,
-  ChatCircle as MessageCircle,
-  Scroll as Scroll,
-  ArrowsLeftRight as ArrowsLeftRight,
-  Shield as Shield,
-  ShieldCheck as ShieldCheck,
-  Medal as Medal,
-  CurrencyDollar as CurrencyDollar,
-  ArrowCounterClockwise as RotateCcw,
-  Gift as Gift,
-  FileText as FileText,
-  Waveform as Activity,
-  Heartbeat as Heartbeat,
-  HardDrive as HardDrive,
-  TrendUp as TrendingUp,
-  ChartBar as BarChart3,
-  ChartLineUp as ChartLineUp,
-  Gear as Settings,
-  BookOpen as BookOpen,
-  Envelope as Envelope,
-  EnvelopeOpen as EnvelopeOpen,
-  ChatText as ChatText,
-  Link as LinkIcon,
-  Receipt as Receipt,
-  Wallet as Wallet,
-  Key as Key,
-  CreditCard as CreditCard
-} from "@phosphor-icons/react";
+import { ShieldFail as ShieldWarning, N2User as Users, Chat as MessageCircle, Paper as Scroll, ShieldDone as Shield, ShieldDone as ShieldCheck, Swap as RotateCcw, Discount as Gift, Document as FileText, Activity, Heart as Heartbeat, Graph as TrendingUp, Chart as BarChart3, Graph as ChartLineUp, Setting as Settings, Message as Envelope, Message as EnvelopeOpen, Message as ChatText, Wallet, Password as Key, Wallet as CreditCard } from "@/components/icons";
+import { Swap as ArrowsLeftRight } from "@/components/icons";
+import { UserCheck, UserMinus, Buildings as Building2, Flag, Medal, CurrencyDollar, HardDrive, BookOpen, Link as LinkIcon, Receipt } from "@phosphor-icons/react";
 import type { NavGroup } from "./navTypes";
 import { MeraIcon } from "@/components/brand/MeraIcon";
 

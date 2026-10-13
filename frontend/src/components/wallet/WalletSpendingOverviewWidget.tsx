@@ -1,4 +1,4 @@
-import { CaretDown } from "@phosphor-icons/react";
+import { ArrowDown as CaretDown } from "@/components/icons";
 
 interface WalletSpendingOverviewWidgetProps {
   totalSpent?: string;

@@ -10,16 +10,7 @@ import { getSidebarNav } from "@/navigation/getSidebarNav";
 import { ROLE_LABELS } from "@/navigation/navTypes";
 import type { NavItem, NavGroup, UserRole } from "@/navigation/navTypes";
 import { useFeatureFlags } from "@/hooks/useFeatureFlags";
-import {
-  SignOut,
-  UserCircle,
-  User,
-  Gear,
-  ShieldCheck,
-  Wallet,
-  Bell,
-  CaretDown,
-} from "@phosphor-icons/react";
+import { Logout as SignOut, Profile as UserCircle, Profile as User, Setting as Gear, ShieldDone as ShieldCheck, Wallet, Notification as Bell, ArrowDown as CaretDown } from "@/components/icons";
 import {
   DropdownMenu,
   DropdownMenuContent,

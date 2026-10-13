@@ -1,17 +1,6 @@
 import { useState, useRef, useEffect } from "react";
-import {
-  PaperPlaneRight as Send,
-  Lightning as Zap,
-  ArrowsClockwise as RefreshCw,
-  TrendUp as TrendingUp,
-  Users as Users,
-  FileText as FileText,
-  ChatCircle as MessageCircle,
-  Bag as ShoppingBag,
-  MagicWand as MagicWand,
-  EnvelopeSimple as EnvelopeSimple,
-  Spinner as Loader2
-} from "@phosphor-icons/react";
+import { Send, Swap as RefreshCw, Graph as TrendingUp, N2User as Users, Document as FileText, Chat as MessageCircle, Bag as ShoppingBag, Message as EnvelopeSimple } from "@/components/icons";
+import { Lightning as Zap, MagicWand, Spinner as Loader2 } from "@phosphor-icons/react";
 import { MeraIcon } from "@/components/brand/MeraIcon";
 import { authFetch } from "@/lib/api/authFetch";
 import { useAuth } from "@/hooks/useAuth";

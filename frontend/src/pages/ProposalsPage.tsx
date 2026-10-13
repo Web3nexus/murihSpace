@@ -1,14 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useConfirm } from '@/components/ui/DialogProvider';
-import {
-  PaperPlaneRight as PaperPlaneRight,
-  Plus as Plus,
-  Spinner as Loader2,
-  Buildings as Building2,
-  Trash as Trash2,
-  Check as Check,
-  X as X
-} from "@phosphor-icons/react";
+import { Send as PaperPlaneRight, Plus, Delete as Trash2, TickSquare as Check, CloseSquare as X } from "@/components/icons";
+import { Spinner as Loader2, Buildings as Building2 } from "@phosphor-icons/react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";

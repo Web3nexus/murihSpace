@@ -1,19 +1,7 @@
 import React from "react";
 import { Link, useLocation } from "react-router";
-import {
-  House as LayoutDashboard,
-  Users as Users,
-  Storefront,
-  ChatTeardropText as MessageSquare,
-  Gear as Settings,
-  ShieldWarning as ShieldWarning,
-  CaretLeft as ChevronLeft,
-  CaretRight as ChevronRight,
-  Compass as Compass,
-  Wallet as Wallet,
-  Heart as Heart,
-  Package as Package
-} from "@phosphor-icons/react";
+import { Home as LayoutDashboard, N2User as Users, Message as MessageSquare, Setting as Settings, ShieldFail as ShieldWarning, ArrowLeft as ChevronLeft, ArrowRight as ChevronRight, Discovery as Compass, Wallet, Heart } from "@/components/icons";
+import { Storefront, Package } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 

@@ -2,13 +2,8 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router";
 import { useAuth } from "@/hooks/useAuth";
 import { apiClient } from "@/lib/api/client";
-import {
-  ArrowSquareOut,
-  SealCheck,
-  DotsThree,
-  Info,
-  Storefront,
-} from "@phosphor-icons/react";
+import { ShieldDone as SealCheck, MoreCircle as DotsThree, InfoSquare as Info } from "@/components/icons";
+import { ArrowSquareOut, Storefront } from "@phosphor-icons/react";
 
 interface SponsoredAdItem {
   id: string | number;

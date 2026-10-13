@@ -11,27 +11,8 @@ import { SEOHead } from "@/components/common/SEOHead";
 import { OpenInAppBanner } from "@/components/common/OpenInAppBanner";
 import { AuthPromptModal } from "@/components/auth/AuthPromptModal";
 import { useAuth } from "@/hooks/useAuth";
-import {
-  Users as Users,
-  Globe as Globe,
-  Lock as Lock,
-  CheckCircle as CheckCircle2,
-  ShieldWarning as ShieldWarning,
-  ArrowLeft as ArrowLeft,
-  ShareNetwork as Share2,
-  ChatTeardropText as MessageSquare,
-  Info as Info,
-  CurrencyDollar as DollarSign,
-  Clock as Clock,
-  Key as Key,
-  UserPlus as UserPlus,
-  CaretLeft as ChevronLeft,
-  CaretRight as ChevronRight,
-  Spinner as Loader2,
-  BookOpen as BookOpen,
-  Check as Check,
-  User as UserIcon
-} from "@phosphor-icons/react";
+import { N2User as Users, Discovery as Globe, Lock, TickSquare as CheckCircle2, ShieldFail as ShieldWarning, ArrowLeft, Message as MessageSquare, InfoSquare as Info, TimeCircle as Clock, Password as Key, AddUser as UserPlus, ArrowLeft as ChevronLeft, ArrowRight as ChevronRight, TickSquare as Check, Profile as UserIcon } from "@/components/icons";
+import { ShareNetwork as Share2, CurrencyDollar as DollarSign, Spinner as Loader2, BookOpen } from "@phosphor-icons/react";
 import type { Community, CommunityMembership } from "@/types/community";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { absolute, communityUrl } from "@/lib/deepLinks";

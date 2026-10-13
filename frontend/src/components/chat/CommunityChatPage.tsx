@@ -1,30 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import {
-  ChatCircle as MessageCircle,
-  MagnifyingGlass as Search,
-  PaperPlaneRight as Send,
-  Spinner as Loader2,
-  ArrowLeft as ArrowLeft,
-  WarningCircle as AlertCircle,
-  ArrowCounterClockwise as RotateCcw,
-  ArrowUUpLeft as Reply,
-  Paperclip as Paperclip,
-  Checks as CheckCheck,
-  BellSlash as BellOff,
-  DotsThreeVertical as MoreVertical,
-  Hash as Hash,
-  FileText as FileText,
-  SpeakerHigh as Volume2,
-  Gift as Gift,
-  VideoCamera as Video,
-  Phone as Phone,
-  Microphone as Mic,
-  Stop as StopIcon,
-  X as X,
-  User as UserIcon,
-  Sparkle,
-  ChatCircleDots
-} from "@phosphor-icons/react";
+import { Chat as MessageCircle, Search, Send, ArrowLeft, DangerSquare as AlertCircle, Swap as RotateCcw, TickSquare as CheckCheck, MoreSquare as MoreVertical, Document as FileText, VolumeUp as Volume2, Discount as Gift, Video, Call as Phone, Voice as Mic, CloseSquare as X, Profile as UserIcon, Chat as ChatCircleDots } from "@/components/icons";
+import { Spinner as Loader2, ArrowUUpLeft as Reply, Paperclip, BellSlash as BellOff, Hash, Stop as StopIcon, Sparkle } from "@phosphor-icons/react";
 import { safeFormatDistanceToNow, safeFormat } from "@/lib/date";
 import { extractMessages, messagePreview } from "@/lib/chatMessages";
 import { isEmojiOnlyMessage } from "@/lib/emoji";

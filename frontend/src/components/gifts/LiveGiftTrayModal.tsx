@@ -1,10 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import {
-  Wallet as Wallet,
-  PaperPlaneRight as Send,
-  Spinner as Loader2,
-  Sparkle as Sparkle
-} from "@phosphor-icons/react";
+import { Wallet, Send } from "@/components/icons";
+import { Spinner as Loader2, Sparkle } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { apiClient, type ApiError } from "@/lib/api/client";
 import { FeePreviewCard } from "@/components/wallet/FeePreviewCard";

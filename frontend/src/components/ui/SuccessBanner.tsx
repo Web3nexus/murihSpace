@@ -1,9 +1,5 @@
 import React from "react";
-import {
-  CheckCircle as CheckCircle2Icon,
-  Info as InfoIcon,
-  X as XIcon
-} from "@phosphor-icons/react";
+import { TickSquare as CheckCircle2Icon, InfoSquare as InfoIcon, CloseSquare as XIcon } from "@/components/icons";
 
 interface SuccessBannerProps {
   title?: string;

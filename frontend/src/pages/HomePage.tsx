@@ -1,15 +1,8 @@
 import { Link } from "react-router";
 import { AnimatedPage } from "@/components/common/AnimatedPage";
 import { Button } from "@/components/ui/button";
-import {
-  Users as Users,
-  Bag as ShoppingBag,
-  Wallet as Wallet,
-  Lightning as Zap,
-  Trophy as Trophy,
-  ArrowRight as ArrowRight,
-  ShieldCheck as ShieldCheck
-} from "@phosphor-icons/react";
+import { N2User as Users, Bag as ShoppingBag, Wallet, ArrowRight, ShieldDone as ShieldCheck } from "@/components/icons";
+import { Lightning as Zap, Trophy } from "@phosphor-icons/react";
 
 export function HomePage() {
   return (

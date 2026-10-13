@@ -1,15 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import {
-  ChartBar as BarChart3,
-  Spinner as Loader2,
-  Check as Check,
-  WarningCircle as AlertCircle,
-  X as X,
-  ArrowsClockwise as RefreshCw,
-  Wallet as Wallet,
-  FileText as FileText,
-  ShieldCheck as ShieldCheck
-} from "@phosphor-icons/react";
+import { Chart as BarChart3, TickSquare as Check, DangerSquare as AlertCircle, CloseSquare as X, Swap as RefreshCw, Wallet, Document as FileText, ShieldDone as ShieldCheck } from "@/components/icons";
+import { Spinner as Loader2 } from "@phosphor-icons/react";
 import { authFetch } from "@/lib/api/authFetch";
 
 

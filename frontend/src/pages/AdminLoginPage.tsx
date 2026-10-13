@@ -5,15 +5,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import {
-  Spinner as Loader2,
-  ShieldWarning as ShieldWarning,
-  DeviceMobile as DeviceMobile,
-  ShieldCheck as ShieldCheck,
-  ArrowLeft as ArrowLeft,
-  Copy as Copy,
-  Check as Check
-} from "@phosphor-icons/react";
+import { ShieldFail as ShieldWarning, ShieldDone as ShieldCheck, ArrowLeft, TickSquare as Check } from "@/components/icons";
+import { Spinner as Loader2, DeviceMobile, Copy } from "@phosphor-icons/react";
 
 type Step = "credentials" | "second-factor" | "enroll-secret" | "enroll-confirm";
 

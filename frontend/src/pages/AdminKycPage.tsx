@@ -1,25 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router';
 import { toast } from 'sonner';
-import {
-  ShieldCheck as ShieldCheck,
-  Spinner as Loader2,
-  CheckCircle as CheckCircle2,
-  XCircle as XCircle,
-  WarningCircle as AlertCircle,
-  Clock as Clock,
-  UserCheck as UserCheck,
-  Users as UsersIcon,
-  XSquare as XSquare,
-  MagnifyingGlass as Search,
-  CaretLeft as ChevronLeft,
-  CaretRight as ChevronRight,
-  FileText as FileText,
-  Envelope as Envelope,
-  Phone as Phone,
-  DownloadSimple as Download,
-  ArrowSquareOut as ExternalLink
-} from "@phosphor-icons/react";
+import { ShieldDone as ShieldCheck, TickSquare as CheckCircle2, CloseSquare as XCircle, DangerSquare as AlertCircle, TimeCircle as Clock, N2User as UsersIcon, CloseSquare as XSquare, Search, ArrowLeft as ChevronLeft, ArrowRight as ChevronRight, Document as FileText, Message as Envelope, Call as Phone, Download } from "@/components/icons";
+import { Spinner as Loader2, UserCheck, ArrowSquareOut as ExternalLink } from "@phosphor-icons/react";
 import { apiClient } from '@/lib/api/client';
 
 const TABS = [

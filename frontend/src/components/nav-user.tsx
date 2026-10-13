@@ -20,16 +20,8 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
-import {
-  CaretUpDown as ChevronsUpDownIcon,
-  User as UserIcon,
-  UserCircle as UserCircle,
-  ShieldCheck as ShieldCheck,
-  Bell as Bell,
-  Wallet as Wallet,
-  SignOut as LogOut,
-  Lock as LockIcon
-} from "@phosphor-icons/react";
+import { Profile as UserIcon, Profile as UserCircle, ShieldDone as ShieldCheck, Notification as Bell, Wallet, Logout as LogOut, Lock as LockIcon } from "@/components/icons";
+import { CaretUpDown as ChevronsUpDownIcon } from "@phosphor-icons/react";
 
 interface NavUserProps {
   user: {

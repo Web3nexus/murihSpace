@@ -1,19 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import QRCode from "qrcode";
-import {
-  ShieldCheck as ShieldCheck,
-  Check as Check,
-  X as X,
-  WarningCircle as AlertCircle,
-  Spinner as Loader2,
-  ArrowsClockwise as RefreshCw,
-  SealCheck as BadgeCheck,
-  Coins as Coins,
-  DeviceMobile as Smartphone,
-  DeviceMobile,
-  QrCode as QrCode,
-  Copy as Copy,
-} from "@phosphor-icons/react";
+import { ShieldDone as ShieldCheck, TickSquare as Check, CloseSquare as X, DangerSquare as AlertCircle, Swap as RefreshCw, ShieldDone as BadgeCheck, Scan as QrCode } from "@/components/icons";
+import { Spinner as Loader2, Coins, DeviceMobile as Smartphone, DeviceMobile, Copy } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { apiClient } from "@/lib/api/client";
 import { absolute } from "@/lib/deepLinks";

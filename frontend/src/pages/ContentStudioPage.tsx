@@ -2,31 +2,8 @@ import { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router";
 import { useConfirm } from "@/components/ui/DialogProvider";
 import { useProfile } from "@/hooks/useProfile";
-import {
-  Plus,
-  Spinner as Loader2,
-  Pencil as Edit,
-  Trash as Trash2,
-  FileText,
-  VideoCamera as Video,
-  MusicNote as Music,
-  Image as ImageIcon,
-  Star,
-  Heart,
-  TrendUp,
-  Users,
-  Eye,
-  Handshake,
-  ChartBar,
-  Broadcast,
-  SealCheck,
-  Check,
-  WarningCircle,
-  X,
-  ShareNetwork,
-  Clock,
-  SquaresFour,
-} from "@phosphor-icons/react";
+import { Plus, Edit, Delete as Trash2, Document as FileText, Video, Image as ImageIcon, Star, Heart, Graph as TrendUp, N2User as Users, Show as Eye, Chart as ChartBar, ShieldDone as SealCheck, TickSquare as Check, DangerSquare as WarningCircle, CloseSquare as X, TimeCircle as Clock, Category as SquaresFour } from "@/components/icons";
+import { Spinner as Loader2, MusicNote as Music, Handshake, Broadcast, ShareNetwork } from "@phosphor-icons/react";
 import { ImageUploader } from "@/components/upload/ImageUploader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

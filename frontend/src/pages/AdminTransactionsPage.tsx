@@ -1,15 +1,7 @@
 import { getAuthToken } from "@/lib/auth/token";
 import { useState, useEffect, useCallback } from 'react';
-import {
-  CurrencyDollar as CurrencyDollar,
-  Spinner as Loader2,
-  CheckCircle as CheckCircle2,
-  Clock as Clock,
-  XCircle as XCircle,
-  WarningCircle as AlertCircle,
-  Check as Check,
-  MagnifyingGlass as Search
-} from "@phosphor-icons/react";
+import { TickSquare as CheckCircle2, TimeCircle as Clock, CloseSquare as XCircle, DangerSquare as AlertCircle, TickSquare as Check, Search } from "@/components/icons";
+import { CurrencyDollar, Spinner as Loader2 } from "@phosphor-icons/react";
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import type { WithdrawalRequest } from '@/types/wallet';

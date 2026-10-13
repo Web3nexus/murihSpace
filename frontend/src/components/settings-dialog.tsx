@@ -27,20 +27,8 @@ import {
   SidebarMenuItem,
   SidebarProvider,
 } from "@/components/ui/sidebar"
-import {
-  Bell as BellIcon,
-  List as MenuIcon,
-  House as HomeIcon,
-  PaintBrush as PaintbrushIcon,
-  ChatCircle as MessageCircleIcon,
-  Globe as GlobeIcon,
-  Keyboard as KeyboardIcon,
-  Check as CheckIcon,
-  VideoCamera as VideoIcon,
-  Link as LinkIcon,
-  Lock as LockIcon,
-  Gear as SettingsIcon
-} from "@phosphor-icons/react";
+import { Notification as BellIcon, Home as HomeIcon, Chat as MessageCircleIcon, Discovery as GlobeIcon, TickSquare as CheckIcon, Video as VideoIcon, Lock as LockIcon, Setting as SettingsIcon } from "@/components/icons";
+import { List as MenuIcon, PaintBrush as PaintbrushIcon, Keyboard as KeyboardIcon, Link as LinkIcon } from "@phosphor-icons/react";
 
 const data = {
   nav: [

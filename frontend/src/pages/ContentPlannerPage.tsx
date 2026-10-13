@@ -1,12 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import {
-  Calendar as Calendar,
-  Clock as Clock,
-  FileText as FileText,
-  Spinner as Loader2,
-  Trash as Trash2,
-  ArrowsClockwise as RefreshCw
-} from "@phosphor-icons/react";
+import { Calendar, TimeCircle as Clock, Document as FileText, Delete as Trash2, Swap as RefreshCw } from "@/components/icons";
+import { Spinner as Loader2 } from "@phosphor-icons/react";
 import { authFetch } from "@/lib/api/authFetch";
 
 

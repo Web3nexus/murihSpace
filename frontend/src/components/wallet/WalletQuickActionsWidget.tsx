@@ -1,12 +1,5 @@
-import {
-  SlidersHorizontal,
-  CreditCard,
-  ShieldCheck,
-  CheckCircle,
-  FileText,
-  Question,
-  CaretRight,
-} from "@phosphor-icons/react";
+import { Setting as SlidersHorizontal, Wallet as CreditCard, ShieldDone as ShieldCheck, TickSquare as CheckCircle, Document as FileText, ArrowRight as CaretRight } from "@/components/icons";
+import { Question } from "@phosphor-icons/react";
 import { useNavigate } from "react-router";
 
 interface WalletQuickActionsWidgetProps {

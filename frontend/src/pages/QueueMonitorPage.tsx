@@ -1,18 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useConfirm } from '@/components/ui/DialogProvider';
-import {
-  Waveform as Activity,
-  Database as Database,
-  Clock as Clock,
-  Warning as AlertTriangle,
-  ArrowsClockwise as ArrowsClockwise,
-  Trash as Trash2,
-  HardDrives as HardDrives,
-  Cpu as Cpu,
-  Shield as Shield,
-  HardDrive as HardDrive,
-  WarningCircle as AlertCircle
-} from "@phosphor-icons/react";
+import { Activity, TimeCircle as Clock, DangerTriangle as AlertTriangle, Swap as ArrowsClockwise, Delete as Trash2, ShieldDone as Shield, DangerSquare as AlertCircle } from "@/components/icons";
+import { Database, HardDrives, Cpu, HardDrive } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { authFetch } from "@/lib/api/authFetch";
 

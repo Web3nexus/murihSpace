@@ -1,8 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from "react";
-import {
-  CaretDown as ChevronDown,
-  Spinner as Loader2
-} from "@phosphor-icons/react";
+import { ArrowDown as ChevronDown } from "@/components/icons";
+import { Spinner as Loader2 } from "@phosphor-icons/react";
 import { env } from "@/config/env";
 
 const API_BASE = env.VITE_API_BASE_URL;

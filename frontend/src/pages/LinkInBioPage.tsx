@@ -1,29 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useConfirm } from "@/components/ui/DialogProvider";
-import {
-  Link as Link,
-  Spinner as Loader2,
-  Pencil as Edit,
-  Trash as Trash2,
-  Globe as Globe,
-  Tag as Tag,
-  ShoppingCart as ShoppingCart,
-  Plus as Plus,
-  X as X,
-  MusicNote as Music,
-  Camera as Camera,
-  ChatCircle as MessageCircle,
-  PaperPlaneRight as Send,
-  Hash as Hash,
-  FilmStrip as FilmStrip,
-  Link as LinkIcon,
-  Check as Check,
-  Crown as Crown,
-  Palette as Palette,
-  Browsers as Browsers,
-  CaretRight as ChevronRight,
-  CaretLeft as ChevronLeft
-} from "@phosphor-icons/react";
+import { Edit, Delete as Trash2, Discovery as Globe, Ticket as Tag, Bag as ShoppingCart, Plus, CloseSquare as X, Camera, Chat as MessageCircle, Send, Video as FilmStrip, TickSquare as Check, ArrowRight as ChevronRight, ArrowLeft as ChevronLeft } from "@/components/icons";
+import { Link, Spinner as Loader2, MusicNote as Music, Hash, Link as LinkIcon, Crown, Palette, Browsers } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ImageUploader } from "@/components/upload/ImageUploader";

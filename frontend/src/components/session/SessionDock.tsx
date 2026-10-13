@@ -1,16 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router";
-import {
-  ArrowsOut,
-  CaretDown,
-  Microphone,
-  MicrophoneSlash,
-  PhoneSlash,
-  SquaresFour,
-  VideoCamera,
-  VideoCameraSlash,
-  WarningCircle,
-} from "@phosphor-icons/react";
+import { ArrowDown as CaretDown, Voice as Microphone, Category as SquaresFour, Video as VideoCamera, DangerSquare as WarningCircle } from "@/components/icons";
+import { CallSilent as PhoneSlash } from "@/components/icons";
+import { ArrowsOut, MicrophoneSlash, VideoCameraSlash } from "@phosphor-icons/react";
 import { Track, RoomEvent, type Room } from "livekit-client";
 import { Button } from "@/components/ui/button";
 import { liveSessionStore, type LiveSessionRecord } from "@/lib/session/liveSessionStore";

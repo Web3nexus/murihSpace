@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { PaperPlaneRight, MagnifyingGlass, Lock, Spinner } from "@phosphor-icons/react";
+import { Send as PaperPlaneRight, Search as MagnifyingGlass, Lock } from "@/components/icons";
+import { Spinner } from "@phosphor-icons/react";
 import { apiClient, type ApiError } from "@/lib/api/client";
 import { toast } from "sonner";
 

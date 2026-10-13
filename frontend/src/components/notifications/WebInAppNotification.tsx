@@ -1,20 +1,7 @@
 import React from 'react';
 import { toast } from 'sonner';
-import {
-  PaperPlaneTilt,
-  ChatTeardropText,
-  Gift,
-  Wallet,
-  CheckCircle,
-  X,
-  ArrowRight,
-  ShieldCheck,
-  ShieldWarning,
-  Trophy,
-  Lightning,
-  PhoneCall,
-  LockKey,
-} from '@phosphor-icons/react';
+import { Send as PaperPlaneTilt, Message as ChatTeardropText, Discount as Gift, Wallet, TickSquare as CheckCircle, CloseSquare as X, ArrowRight, ShieldDone as ShieldCheck, ShieldFail as ShieldWarning, Call as PhoneCall, Lock as LockKey } from "@/components/icons";
+import { Trophy, Lightning } from "@phosphor-icons/react";
 
 export interface WebNotificationData {
   id?: string | number;

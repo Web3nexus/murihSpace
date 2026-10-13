@@ -1,11 +1,6 @@
 import { useState, useCallback, useId } from "react";
-import {
-  UploadSimple as Upload,
-  X as X,
-  Spinner as Loader2,
-  Image as ImageIcon,
-  DotsSixVertical as DotsSixVertical
-} from "@phosphor-icons/react";
+import { Upload, CloseSquare as X, Image as ImageIcon } from "@/components/icons";
+import { Spinner as Loader2, DotsSixVertical } from "@phosphor-icons/react";
 import { useDropzone } from "react-dropzone";
 import { getAuthToken } from "@/lib/auth/token";
 

@@ -1,17 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "react-router";
 import { toast } from "sonner";
-import {
-  SealCheck as BadgeCheck,
-  Warning as AlertTriangle,
-  Clock as Clock,
-  Faders as Faders,
-  Spinner as Loader2,
-  CaretLeft as ChevronLeft,
-  CaretRight as ChevronRight,
-  Shield as Shield,
-  ShieldCheck as ShieldCheck
-} from "@phosphor-icons/react";
+import { ShieldDone as BadgeCheck, DangerTriangle as AlertTriangle, TimeCircle as Clock, ArrowLeft as ChevronLeft, ArrowRight as ChevronRight, ShieldDone as Shield, ShieldDone as ShieldCheck } from "@/components/icons";
+import { Faders, Spinner as Loader2 } from "@phosphor-icons/react";
 import { apiClient, type ApiError } from "@/lib/api/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ActionTooltip } from "@/components/ui/action-tooltip";

@@ -1,16 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import {
-  HardDrive as HardDrive,
-  FilmStrip as FilmStrip,
-  Image as ImageIcon,
-  Spinner as Loader2,
-  ArrowsClockwise as RefreshCw,
-  MagnifyingGlass as Search,
-  Trash as Trash2,
-  WarningCircle as AlertCircle,
-  CheckCircle as CheckCircle2,
-  Clock as Clock
-} from "@phosphor-icons/react";
+import { Video as FilmStrip, Image as ImageIcon, Swap as RefreshCw, Search, Delete as Trash2, DangerSquare as AlertCircle, TickSquare as CheckCircle2, TimeCircle as Clock } from "@/components/icons";
+import { HardDrive, Spinner as Loader2 } from "@phosphor-icons/react";
 import { getAuthToken } from "@/lib/auth/token";
 import { authFetch } from "@/lib/api/authFetch";
 

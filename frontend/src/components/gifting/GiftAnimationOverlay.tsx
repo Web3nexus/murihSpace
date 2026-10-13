@@ -1,9 +1,6 @@
 import { useEffect, useState } from "react";
-import {
-  Sparkle as Sparkle,
-  Coins as Coins,
-  Gift as GiftIcon
-} from "@phosphor-icons/react";
+import { Discount as GiftIcon } from "@/components/icons";
+import { Sparkle, Coins } from "@phosphor-icons/react";
 
 export interface GiftAnimationData {
   giftName: string;

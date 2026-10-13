@@ -1,17 +1,7 @@
 import { getAuthToken } from "@/lib/auth/token";
 import { useEffect, useState } from "react";
-import {
-  ChatText as ChatText,
-  Spinner as Loader2,
-  FloppyDisk as FloppyDisk,
-  PaperPlaneRight as Send,
-  WarningCircle as AlertCircle,
-  CheckCircle as CheckCircle2,
-  Eye as Eye,
-  EyeSlash as EyeOff,
-  Lock as Lock,
-  Archive as Archive
-} from "@phosphor-icons/react";
+import { Message as ChatText, Download as FloppyDisk, Send, DangerSquare as AlertCircle, TickSquare as CheckCircle2, Show as Eye, Hide as EyeOff, Lock } from "@/components/icons";
+import { Spinner as Loader2, Archive } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

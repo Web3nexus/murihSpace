@@ -3,24 +3,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { useConfirm } from '@/components/ui/DialogProvider';
 import { useAuth } from '@/hooks/useAuth';
 import { Link } from 'react-router';
-import {
-  Package as Package,
-  Plus as Plus,
-  MagnifyingGlass as Search,
-  Pencil as Edit,
-  Trash as Trash2,
-  Spinner as Loader2,
-  Check as Check,
-  WarningCircle as AlertCircle,
-  X as X,
-  Eye as Eye,
-  EyeSlash as EyeOff,
-  ArrowCounterClockwise as RotateCcw,
-  ShieldCheck as ShieldCheck,
-  ShareNetwork as ShareNetwork,
-  ArrowSquareOut as ArrowSquareOut,
-  CheckCircle as CheckCircle2
-} from "@phosphor-icons/react";
+import { Plus, Search, Edit, Delete as Trash2, TickSquare as Check, DangerSquare as AlertCircle, CloseSquare as X, Show as Eye, Hide as EyeOff, Swap as RotateCcw, ShieldDone as ShieldCheck, TickSquare as CheckCircle2 } from "@/components/icons";
+import { Package, Spinner as Loader2, ShareNetwork, ArrowSquareOut } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MultiImageUploader } from "@/components/upload/ImageUploader";

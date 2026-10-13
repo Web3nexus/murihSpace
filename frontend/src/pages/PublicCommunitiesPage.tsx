@@ -2,14 +2,8 @@ import { authFetch } from "@/lib/api/authFetch";
 import { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router";
 import { AnimatedPage } from "@/components/common/AnimatedPage";
-import {
-  MagnifyingGlass as Search,
-  Users as Users,
-  Globe as Globe,
-  ArrowRight as ArrowRight,
-  Spinner as Loader2,
-  User as UserIcon,
-} from "@phosphor-icons/react";
+import { Search, N2User as Users, Discovery as Globe, ArrowRight, Profile as UserIcon } from "@/components/icons";
+import { Spinner as Loader2 } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 
 

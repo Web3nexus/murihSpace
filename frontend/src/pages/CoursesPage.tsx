@@ -1,21 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import {
-  BookOpen as BookOpen,
-  Plus as Plus,
-  Spinner as Loader2,
-  Check as Check,
-  WarningCircle as AlertCircle,
-  Pencil as Edit,
-  Trash as Trash2,
-  Eye as Eye,
-  EyeSlash as EyeOff,
-  FilmStrip as FilmStrip,
-  FileText as FileText,
-  CaretRight as ChevronRight,
-  CaretDown as ChevronDown,
-  DotsSixVertical as DotsSixVertical,
-  Users as Users
-} from "@phosphor-icons/react";
+import { Plus, TickSquare as Check, DangerSquare as AlertCircle, Edit, Delete as Trash2, Show as Eye, Hide as EyeOff, Video as FilmStrip, Document as FileText, ArrowRight as ChevronRight, ArrowDown as ChevronDown, N2User as Users } from "@/components/icons";
+import { BookOpen, Spinner as Loader2, DotsSixVertical } from "@phosphor-icons/react";
 import { ImageUploader } from "@/components/upload/ImageUploader";
 import { authFetch } from "@/lib/api/authFetch";
 import { useConfirm } from "@/components/ui/DialogProvider";

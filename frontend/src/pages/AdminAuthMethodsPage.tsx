@@ -1,17 +1,7 @@
 import { getAuthToken } from "@/lib/auth/token";
 import { useEffect, useState } from "react";
-import {
-  Spinner as Loader2,
-  FloppyDisk as FloppyDisk,
-  ShieldCheck as ShieldCheck,
-  WarningCircle as AlertCircle,
-  CheckCircle as CheckCircle2,
-  DeviceMobile as Smartphone,
-  Envelope as Envelope,
-  Fingerprint as Fingerprint,
-  Globe as Globe,
-  AppleLogo as AppleIcon
-} from "@phosphor-icons/react";
+import { Download as FloppyDisk, ShieldDone as ShieldCheck, DangerSquare as AlertCircle, TickSquare as CheckCircle2, Message as Envelope, Discovery as Globe } from "@/components/icons";
+import { Spinner as Loader2, DeviceMobile as Smartphone, Fingerprint, AppleLogo as AppleIcon } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { authFetch } from "@/lib/api/authFetch";

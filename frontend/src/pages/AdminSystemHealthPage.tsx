@@ -1,14 +1,7 @@
 import { getAuthToken } from "@/lib/auth/token";
 import { useState, useEffect, useCallback, useRef } from "react";
-import {
-  Waveform as Activity,
-  Spinner as Loader2,
-  CheckCircle as CheckCircle2,
-  Warning as AlertTriangle,
-  XCircle as XCircle,
-  ArrowsClockwise as RefreshCw,
-  WarningCircle as AlertCircle
-} from "@phosphor-icons/react";
+import { Activity, TickSquare as CheckCircle2, DangerTriangle as AlertTriangle, CloseSquare as XCircle, Swap as RefreshCw, DangerSquare as AlertCircle } from "@/components/icons";
+import { Spinner as Loader2 } from "@phosphor-icons/react";
 import { authFetch } from "@/lib/api/authFetch";
 
 

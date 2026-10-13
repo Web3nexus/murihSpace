@@ -1,23 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router';
-import {
-  VideoCamera,
-  Plus,
-  ArrowRight,
-  WarningCircle,
-  CalendarCheck,
-  Spinner,
-  Users,
-  Crown,
-  LockKey,
-  Copy,
-  Check,
-  Clock,
-  Trash,
-  Monitor,
-  ShieldCheck,
-  ShareNetwork,
-} from "@phosphor-icons/react";
+import { Video as VideoCamera, Plus, ArrowRight, DangerSquare as WarningCircle, Calendar as CalendarCheck, N2User as Users, Lock as LockKey, TickSquare as Check, TimeCircle as Clock, Delete as Trash, ShieldDone as ShieldCheck } from "@/components/icons";
+import { Spinner, Crown, Copy, Monitor, ShareNetwork } from "@phosphor-icons/react";
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';

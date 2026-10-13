@@ -1,22 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useConfirm } from "@/components/ui/DialogProvider";
-import {
-  HardDrive as HardDrive,
-  Plus as Plus,
-  Pencil as Pencil,
-  Trash as Trash2,
-  Spinner as Loader2,
-  FloppyDisk as FloppyDisk,
-  X as X,
-  Check as Check,
-  WarningCircle as AlertCircle,
-  CheckCircle as CheckCircle2,
-  Eye as Eye,
-  EyeSlash as EyeOff,
-  CaretRight as ChevronRight,
-  Question as HelpCircle,
-  ArrowSquareOut as ExternalLink
-} from "@phosphor-icons/react";
+import { Plus, Edit as Pencil, Delete as Trash2, Download as FloppyDisk, CloseSquare as X, TickSquare as Check, DangerSquare as AlertCircle, TickSquare as CheckCircle2, Show as Eye, Hide as EyeOff, ArrowRight as ChevronRight } from "@/components/icons";
+import { HardDrive, Spinner as Loader2, Question as HelpCircle, ArrowSquareOut as ExternalLink } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { authFetch } from "@/lib/api/authFetch";
 

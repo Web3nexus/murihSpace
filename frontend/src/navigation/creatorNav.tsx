@@ -1,23 +1,5 @@
-import {
-  ChartBar,
-  Users,
-  LinkSimple,
-  UsersThree,
-  ChatCircleDots,
-  VideoCamera,
-  VideoConference,
-  GraduationCap,
-  CalendarCheck,
-  Megaphone,
-  Broadcast,
-  Handshake,
-  ShoppingBag,
-  TrendUp,
-  Gift,
-  Wallet,
-  Gear,
-  ShieldCheck,
-} from "@phosphor-icons/react";
+import { Chart as ChartBar, N2User as Users, N3User as UsersThree, Chat as ChatCircleDots, Video as VideoCamera, Video as VideoConference, Calendar as CalendarCheck, Bag as ShoppingBag, Graph as TrendUp, Discount as Gift, Wallet, Setting as Gear, ShieldDone as ShieldCheck } from "@/components/icons";
+import { LinkSimple, GraduationCap, Megaphone, Broadcast, Handshake } from "@phosphor-icons/react";
 import type { NavGroup } from "./navTypes";
 
 export const creatorNav: NavGroup[] = [

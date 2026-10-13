@@ -20,9 +20,7 @@ import {
 } from "@/components/ui/select";
 import { env } from "@/config/env";
 import { ImageUploader } from "@/components/upload/ImageUploader";
-import {
-  Calendar as Calendar
-} from "@phosphor-icons/react";
+import { Calendar } from "@/components/icons";
 import { getAuthToken } from "@/lib/auth/token";
 import type { EventData } from "@/types/events";
 

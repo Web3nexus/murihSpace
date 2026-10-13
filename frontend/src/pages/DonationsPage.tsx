@@ -1,12 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import {
-  Gift as Gift,
-  Heart as Heart,
-  PaperPlaneRight as Send,
-  Spinner as Loader2,
-  WarningCircle as AlertCircle,
-  CheckCircle as CheckCircle2
-} from "@phosphor-icons/react";
+import { Discount as Gift, Heart, Send, DangerSquare as AlertCircle, TickSquare as CheckCircle2 } from "@/components/icons";
+import { Spinner as Loader2 } from "@phosphor-icons/react";
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {

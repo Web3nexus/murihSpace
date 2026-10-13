@@ -7,28 +7,8 @@ import { apiClient } from "@/lib/api/client";
 import { mapApiPost, type FeedPost } from "@/lib/feed";
 import { profileUrl } from "@/lib/deepLinks";
 import { toast } from "sonner";
-import {
-  PencilSimple,
-  Storefront,
-  MapPin,
-  CalendarBlank,
-  LinkSimple,
-  Users,
-  UserPlus,
-  Image as ImageIcon,
-  VideoCamera,
-  Broadcast,
-  At,
-  Heart,
-  ChatCircle,
-  ShareNetwork,
-  Plus,
-  Spinner as Loader2,
-  SealCheck as BadgeCheck,
-  PaperPlaneRight as Send,
-  Check,
-  Globe,
-} from "@phosphor-icons/react";
+import { Edit as PencilSimple, Location as MapPin, Calendar as CalendarBlank, N2User as Users, AddUser as UserPlus, Image as ImageIcon, Video as VideoCamera, Heart, Chat as ChatCircle, Plus, ShieldDone as BadgeCheck, Send, TickSquare as Check, Discovery as Globe } from "@/components/icons";
+import { Storefront, LinkSimple, Broadcast, At, ShareNetwork, Spinner as Loader2 } from "@phosphor-icons/react";
 
 type TabKey = "posts" | "reels" | "live" | "mentions";
 

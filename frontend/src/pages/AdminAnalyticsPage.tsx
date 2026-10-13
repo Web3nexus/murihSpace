@@ -1,25 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router";
-import {
-  ChartBar as BarChart3,
-  TrendUp as TrendingUp,
-  CurrencyDollar as DollarSign,
-  Users as Users,
-  Bag as ShoppingBag,
-  Globe as Globe,
-  Crown as Crown,
-  Wallet as Wallet,
-  Spinner as Loader2,
-  Storefront,
-  ShieldCheck as ShieldCheck,
-  ArrowsClockwise as RefreshCw,
-  CreditCard as CreditCard,
-  Coins as Coins,
-  ArrowUpRight as ArrowUpRight,
-  ArrowDownRight as ArrowDownRight,
-  Package as Package,
-  WarningCircle as AlertCircle
-} from "@phosphor-icons/react";
+import { Chart as BarChart3, Graph as TrendingUp, N2User as Users, Bag as ShoppingBag, Discovery as Globe, Wallet, ShieldDone as ShieldCheck, Swap as RefreshCw, Wallet as CreditCard, ArrowUp as ArrowUpRight, ArrowDown as ArrowDownRight, DangerSquare as AlertCircle } from "@/components/icons";
+import { CurrencyDollar as DollarSign, Crown, Spinner as Loader2, Storefront, Coins, Package } from "@phosphor-icons/react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, AreaChart, Area,

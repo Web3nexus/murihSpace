@@ -1,13 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import {
-  Wallet as WalletIcon,
-  ShieldCheck,
-  Eye,
-  EyeSlash,
-  ArrowsClockwise,
-  Lock,
-  Spinner,
-} from "@phosphor-icons/react";
+import { Wallet as WalletIcon, ShieldDone as ShieldCheck, Show as Eye, Hide as EyeSlash, Swap as ArrowsClockwise, Lock } from "@/components/icons";
+import { Spinner } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { apiClient, type ApiError } from "@/lib/api/client";
 import { useAuth } from "@/hooks/useAuth";

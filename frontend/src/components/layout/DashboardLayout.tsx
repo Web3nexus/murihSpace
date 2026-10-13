@@ -1,14 +1,7 @@
 import { useState, useEffect } from "react";
 import { Outlet, useLocation, Navigate, Link } from "react-router";
-import {
-  Sparkle,
-  X,
-  House as Home,
-  Compass,
-  Plus,
-  User,
-  ChatTeardropText as MessageSquare,
-} from "@phosphor-icons/react";
+import { CloseSquare as X, Home, Discovery as Compass, Plus, Profile as User, Message as MessageSquare } from "@/components/icons";
+import { Sparkle } from "@phosphor-icons/react";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SiteHeader } from "@/components/site-header";
 import { ImpersonationBanner } from "@/components/ImpersonationBanner";

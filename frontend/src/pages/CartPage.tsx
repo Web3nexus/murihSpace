@@ -1,13 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import {
-  ShoppingCart as ShoppingCart,
-  Trash as Trash2,
-  Plus as Plus,
-  Minus as Minus,
-  Spinner as Loader2,
-  Bag as ShoppingBag,
-  CreditCard as CreditCard
-} from "@phosphor-icons/react";
+import { Bag as ShoppingCart, Delete as Trash2, Plus, Bag as ShoppingBag, Wallet as CreditCard } from "@/components/icons";
+import { Minus, Spinner as Loader2 } from "@phosphor-icons/react";
 import { authFetch } from "@/lib/api/authFetch";
 import { PhysicalCheckoutModal } from "@/components/commerce/PhysicalCheckoutModal";
 

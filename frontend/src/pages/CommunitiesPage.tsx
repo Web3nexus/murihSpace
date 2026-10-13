@@ -3,22 +3,8 @@ import { Link, useNavigate } from "react-router";
 import { AnimatedPage } from "@/components/common/AnimatedPage";
 import { CreateCommunityModal } from "@/components/community/CreateCommunityModal";
 import { apiClient } from "@/lib/api/client";
-import {
-  MagnifyingGlass as Search,
-  Plus as Plus,
-  Gear as Settings,
-  Users as Users,
-  Globe as Globe,
-  Compass as Compass,
-  Clock as Clock,
-  Lock as Lock,
-  DotsThree as MoreHorizontal,
-  Heart as Heart,
-  ChatCircle as MessageCircle,
-  ShareNetwork as Share2,
-  CaretRight as ChevronRight,
-  User as UserIcon
-} from "@phosphor-icons/react";
+import { Search, Plus, Setting as Settings, N2User as Users, Discovery as Globe, Discovery as Compass, TimeCircle as Clock, Lock, MoreCircle as MoreHorizontal, Heart, Chat as MessageCircle, ArrowRight as ChevronRight, Profile as UserIcon } from "@/components/icons";
+import { ShareNetwork as Share2 } from "@phosphor-icons/react";
 import type { Community } from "@/types/community";
 import { absolute, communityUrl } from "@/lib/deepLinks";
 

@@ -1,14 +1,6 @@
 import React from "react";
-import {
-  Bell as Bell,
-  MagnifyingGlass as Search,
-  Sun as Sun,
-  Moon as Moon,
-  CaretDown as ChevronDown,
-  User as User,
-  SignOut as LogOut,
-  CaretUpDown as ChevronsUpDown
-} from "@phosphor-icons/react";
+import { Notification as Bell, Search, ArrowDown as ChevronDown, Profile as User, Logout as LogOut } from "@/components/icons";
+import { Sun, Moon, CaretUpDown as ChevronsUpDown } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,

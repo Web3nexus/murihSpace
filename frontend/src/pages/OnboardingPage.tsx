@@ -1,31 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router";
 import { toast } from "sonner";
-import {
-  Spinner as Loader2,
-  MagicWand as MagicWand,
-  PaperPlaneRight as Send,
-  Plus as Plus,
-  X as X,
-  Check as Check,
-  CaretRight as ChevronRight,
-  CaretLeft as ChevronLeft,
-  Camera as Camera,
-  MusicNote as Music,
-  Hash as Hash,
-  FilmStrip as FilmStrip,
-  ChatCircle as MessageCircle,
-  Link as LinkIcon,
-  ShoppingCart as ShoppingCart,
-  Palette as Palette,
-  ArrowRight as ArrowRight,
-  DeviceMobile as Smartphone,
-  Storefront,
-  User as UserIcon,
-  Package as Package,
-  Globe as Globe,
-  Target as Target
-} from "@phosphor-icons/react";
+import { Send, Plus, CloseSquare as X, TickSquare as Check, ArrowRight as ChevronRight, ArrowLeft as ChevronLeft, Camera, Video as FilmStrip, Chat as MessageCircle, Bag as ShoppingCart, ArrowRight, Profile as UserIcon, Discovery as Globe } from "@/components/icons";
+import { Spinner as Loader2, MagicWand, MusicNote as Music, Hash, Link as LinkIcon, Palette, DeviceMobile as Smartphone, Storefront, Package, Target } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MeraIcon } from "@/components/brand/MeraIcon";

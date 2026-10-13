@@ -1,16 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import {
-  ClockCounterClockwise as ClockCounterClockwise,
-  Spinner as Loader2,
-  ArrowsClockwise as RefreshCw,
-  FileText as FileText,
-  Users as Users,
-  ShoppingCart as ShoppingCart,
-  Wallet as Wallet,
-  Gift as Gift,
-  Calendar as Calendar,
-  CreditCard as CreditCard
-} from "@phosphor-icons/react";
+import { TimeCircle as ClockCounterClockwise, Swap as RefreshCw, Document as FileText, N2User as Users, Bag as ShoppingCart, Wallet, Discount as Gift, Calendar, Wallet as CreditCard } from "@/components/icons";
+import { Spinner as Loader2 } from "@phosphor-icons/react";
 import { authFetch } from "@/lib/api/authFetch";
 
 

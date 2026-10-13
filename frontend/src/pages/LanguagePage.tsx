@@ -1,9 +1,5 @@
 import { useState } from "react";
-import {
-  Globe as Globe,
-  Check as Check,
-  CaretDown as ChevronDown
-} from "@phosphor-icons/react";
+import { Discovery as Globe, TickSquare as Check, ArrowDown as ChevronDown } from "@/components/icons";
 
 const LANGUAGES = [
   { code: "en", label: "English (US)" },

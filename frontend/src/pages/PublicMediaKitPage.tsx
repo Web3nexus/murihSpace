@@ -1,14 +1,8 @@
 import { authFetch } from "@/lib/api/authFetch";
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router";
-import {
-  Spinner as Loader2,
-  Users as Users,
-  Eye as Eye,
-  ChartBar as BarChart3,
-  Globe as Globe,
-  ShieldCheck as ShieldCheck
-} from "@phosphor-icons/react";
+import { N2User as Users, Show as Eye, Chart as BarChart3, Discovery as Globe, ShieldDone as ShieldCheck } from "@/components/icons";
+import { Spinner as Loader2 } from "@phosphor-icons/react";
 
 
 

@@ -1,19 +1,6 @@
 import { useState, useMemo } from "react";
-import {
-  MagnifyingGlass,
-  Funnel,
-  CalendarBlank,
-  DotsThree,
-  ArrowDownLeft,
-  ArrowUpRight,
-  Gift,
-  Coins,
-  ShieldCheck,
-  Bank,
-  CheckCircle,
-  Clock,
-  WarningCircle,
-} from "@phosphor-icons/react";
+import { Search as MagnifyingGlass, Filter as Funnel, Calendar as CalendarBlank, MoreCircle as DotsThree, ArrowDown as ArrowDownLeft, ArrowUp as ArrowUpRight, Discount as Gift, ShieldDone as ShieldCheck, Wallet as Bank, TickSquare as CheckCircle, TimeCircle as Clock, DangerSquare as WarningCircle } from "@/components/icons";
+import { Coins } from "@phosphor-icons/react";
 
 export interface TransactionRowData {
   id: number;

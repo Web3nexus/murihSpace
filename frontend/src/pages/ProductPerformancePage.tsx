@@ -1,11 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
-import {
-  ChartBar as BarChart3,
-  Spinner as Loader2,
-  TrendUp as TrendingUp,
-  TrendDown as TrendDown,
-  Minus as Minus
-} from "@phosphor-icons/react";
+import { Chart as BarChart3, Graph as TrendingUp } from "@/components/icons";
+import { Graph as TrendDown } from "@/components/icons";
+import { Spinner as Loader2, Minus } from "@phosphor-icons/react";
 import { authFetch } from "@/lib/api/authFetch";
 
 

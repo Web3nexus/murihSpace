@@ -1,11 +1,5 @@
-import {
-  Wallet as Wallet,
-  ShieldCheck as ShieldCheck,
-  Clock as Clock,
-  Lock as Lock,
-  Scales as Scales,
-  ArrowUpRight as ArrowUpRight
-} from "@phosphor-icons/react";
+import { Wallet, ShieldDone as ShieldCheck, TimeCircle as Clock, Lock, ArrowUp as ArrowUpRight } from "@/components/icons";
+import { Scales } from "@phosphor-icons/react";
 
 interface WalletBalanceData {
   id: number;

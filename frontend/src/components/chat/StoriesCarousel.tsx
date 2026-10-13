@@ -1,7 +1,5 @@
 import React, { useState } from 'react';
-import {
-  Plus as Plus
-} from "@phosphor-icons/react";
+import { Plus } from "@/components/icons";
 
 export interface StoryUser {
   id: number | string;

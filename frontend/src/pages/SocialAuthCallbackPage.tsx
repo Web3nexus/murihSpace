@@ -1,10 +1,8 @@
 import { authFetch } from "@/lib/api/authFetch";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
-import {
-  Spinner as Loader2,
-  ShieldWarning as ShieldWarning
-} from "@phosphor-icons/react";
+import { ShieldFail as ShieldWarning } from "@/components/icons";
+import { Spinner as Loader2 } from "@phosphor-icons/react";
 import { AuthLayout } from "@/components/layout/AuthLayout";
 import { sanitiseReturnTo } from "@/lib/deepLinks";
 import { takeSocialReturn } from "@/lib/usePostAuthRedirect";

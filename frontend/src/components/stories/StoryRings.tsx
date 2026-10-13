@@ -1,10 +1,6 @@
 import { useState, useEffect } from 'react';
-import {
-  Plus as Plus,
-  X as X,
-  PaperPlaneRight as Send,
-  Spinner as Loader2
-} from "@phosphor-icons/react";
+import { Plus, CloseSquare as X, Send } from "@/components/icons";
+import { Spinner as Loader2 } from "@phosphor-icons/react";
 import StoryViewer from './StoryViewer';
 import { getAuthToken } from "@/lib/auth/token";
 

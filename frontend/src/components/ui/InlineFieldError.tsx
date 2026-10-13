@@ -1,7 +1,5 @@
 import React from "react";
-import {
-  WarningCircle as AlertCircleIcon
-} from "@phosphor-icons/react";
+import { DangerSquare as AlertCircleIcon } from "@/components/icons";
 
 interface InlineFieldErrorProps {
   id?: string;

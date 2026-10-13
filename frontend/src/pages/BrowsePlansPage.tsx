@@ -1,12 +1,6 @@
 import { useState, useEffect } from 'react';
-import {
-  Crown as Crown,
-  Spinner as Loader2,
-  Check as Check,
-  CreditCard as CreditCard,
-  WarningCircle as AlertCircle,
-  X as X
-} from "@phosphor-icons/react";
+import { TickSquare as Check, Wallet as CreditCard, DangerSquare as AlertCircle, CloseSquare as X } from "@/components/icons";
+import { Crown, Spinner as Loader2 } from "@phosphor-icons/react";
 import type { SubscriptionPlan } from '@/types/subscription';
 import { authFetch } from "@/lib/api/authFetch";
 import { PageSecondaryNav, type PageNavTab } from "@/components/common/PageSecondaryNav";

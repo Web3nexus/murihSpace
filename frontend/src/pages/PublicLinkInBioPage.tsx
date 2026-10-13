@@ -1,10 +1,8 @@
 import { authFetch } from "@/lib/api/authFetch";
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router";
-import {
-  Spinner as Loader2,
-  Warning as AlertTriangle
-} from "@phosphor-icons/react";
+import { DangerTriangle as AlertTriangle } from "@/components/icons";
+import { Spinner as Loader2 } from "@phosphor-icons/react";
 import type { LinkBioPageData } from "@/lib/linkBioTypes";
 import TemplateRenderer from "@/components/linkbio/TemplateRenderer";
 

@@ -2,10 +2,7 @@ import * as React from "react"
 import { Slot } from "radix-ui"
 
 import { cn } from "@/lib/utils"
-import {
-  CaretRight as ChevronRightIcon,
-  DotsThree as MoreHorizontalIcon
-} from "@phosphor-icons/react";
+import { ArrowRight as ChevronRightIcon, MoreCircle as MoreHorizontalIcon } from "@/components/icons";
 
 function Breadcrumb({ className, ...props }: React.ComponentProps<"nav">) {
   return (

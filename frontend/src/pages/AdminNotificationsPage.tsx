@@ -1,26 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import {
-  Bell,
-  Checks as CheckCheck,
-  Check,
-  ShieldWarning,
-  ShieldCheck,
-  UserPlus,
-  Sliders,
-  Spinner as Loader2,
-  ArrowsClockwise as RefreshCw,
-  Wallet,
-  WarningCircle,
-  Lifebuoy,
-  Warning as AlertTriangle,
-  Cpu,
-  CreditCard,
-  Key,
-  MagnifyingGlass,
-  ArrowRight,
-  EnvelopeSimple,
-  PaperPlaneRight,
-} from "@phosphor-icons/react";
+import { Notification as Bell, TickSquare as CheckCheck, TickSquare as Check, ShieldFail as ShieldWarning, ShieldDone as ShieldCheck, AddUser as UserPlus, Setting as Sliders, Swap as RefreshCw, Wallet, DangerSquare as WarningCircle, DangerTriangle as AlertTriangle, Wallet as CreditCard, Password as Key, Search as MagnifyingGlass, ArrowRight, Message as EnvelopeSimple, Send as PaperPlaneRight } from "@/components/icons";
+import { Spinner as Loader2, Lifebuoy, Cpu } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { authFetch } from "@/lib/api/authFetch";
 import { getAuthToken } from "@/lib/auth/token";

@@ -8,33 +8,8 @@ import { AuthPromptModal } from "@/components/auth/AuthPromptModal";
 import { ShareModal } from "@/components/common/ShareModal";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-  SealCheck as BadgeCheck,
-  Calendar,
-  MapPin,
-  ShareNetwork as Share2,
-  Users,
-  ChatTeardropText as MessageSquare,
-  UserPlus,
-  UserCheck,
-  Storefront,
-  ArrowSquareOut as ExternalLink,
-  Lock,
-  Spinner as Loader2,
-  Warning as AlertTriangle,
-  ArrowLeft,
-  Star,
-  CheckCircle,
-  User as UserIcon,
-  GridFour,
-  FilmReel,
-  Broadcast,
-  Heart,
-  ChatCircle,
-  Eye,
-  PencilSimple,
-  Play,
-} from "@phosphor-icons/react";
+import { ShieldDone as BadgeCheck, Calendar, Location as MapPin, N2User as Users, Message as MessageSquare, AddUser as UserPlus, Lock, DangerTriangle as AlertTriangle, ArrowLeft, Star, TickSquare as CheckCircle, Profile as UserIcon, Category as GridFour, Video as FilmReel, Heart, Chat as ChatCircle, Show as Eye, Edit as PencilSimple, Play } from "@/components/icons";
+import { ShareNetwork as Share2, UserCheck, Storefront, ArrowSquareOut as ExternalLink, Spinner as Loader2, Broadcast } from "@phosphor-icons/react";
 import { absolute, profileDomain, profileUrl } from "@/lib/deepLinks";
 import { Badge3DRenderer } from "@/pages/AdminBadgesPage";
 

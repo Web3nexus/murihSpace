@@ -1,9 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from "react";
-import {
-  CaretDown as ChevronDown,
-  MagnifyingGlass as Search,
-  Spinner as Loader2
-} from "@phosphor-icons/react";
+import { ArrowDown as ChevronDown, Search } from "@/components/icons";
+import { Spinner as Loader2 } from "@phosphor-icons/react";
 
 export interface CountryItem {
   iso2: string;

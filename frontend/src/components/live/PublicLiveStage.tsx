@@ -1,31 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import {
-  AppWindow,
-  ArrowLeft,
-  ArrowsIn,
-  ArrowsOut,
-  Check,
-  Gift as GiftIcon,
-  Heart,
-  Microphone,
-  MicrophoneSlash,
-  Minus,
-  PaperPlaneRight,
-  PhoneSlash,
-  PushPin,
-  Radio,
-  ShareNetwork,
-  ShoppingBag,
-  SpeakerHigh,
-  SpeakerSimpleSlash,
-  Spinner,
-  Trophy,
-  Users,
-  VideoCamera,
-  VideoCameraSlash,
-  WarningCircle,
-  X,
-} from "@phosphor-icons/react";
+import { ArrowLeft, TickSquare as Check, Discount as GiftIcon, Heart, Voice as Microphone, Send as PaperPlaneRight, Bag as ShoppingBag, VolumeUp as SpeakerHigh, VolumeOff as SpeakerSimpleSlash, N2User as Users, Video as VideoCamera, DangerSquare as WarningCircle, CloseSquare as X } from "@/components/icons";
+import { CallSilent as PhoneSlash } from "@/components/icons";
+import { AppWindow, ArrowsIn, ArrowsOut, MicrophoneSlash, Minus, PushPin, Radio, ShareNetwork, Spinner, Trophy, VideoCameraSlash } from "@phosphor-icons/react";
 import {
   ConnectionState,
   Participant,

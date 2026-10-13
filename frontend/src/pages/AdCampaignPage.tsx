@@ -1,32 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { useConfirm } from "@/components/ui/DialogProvider";
 import { toast } from "sonner";
-import {
-  Megaphone as Megaphone,
-  Spinner as Loader2,
-  Plus as Plus,
-  Eye as Eye,
-  CursorClick as CursorClick,
-  CurrencyDollar as DollarSign,
-  ChartBar as BarChart3,
-  Play as Play,
-  Pause as Pause,
-  Copy as Copy,
-  Trash as Trash2,
-  WarningCircle as AlertCircle,
-  Check as Check,
-  Calendar as Calendar,
-  Globe as Globe,
-  Users as Users,
-  Radio as Radio,
-  FileText as FileText,
-  ArrowSquareOut,
-  Database,
-  ShieldCheck,
-  X,
-  MagnifyingGlass as Search,
-  CheckCircle as CheckCircle2
-} from "@phosphor-icons/react";
+import { Plus, Show as Eye, Chart as BarChart3, Play, Delete as Trash2, DangerSquare as AlertCircle, TickSquare as Check, Calendar, Discovery as Globe, N2User as Users, Document as FileText, ShieldDone as ShieldCheck, CloseSquare as X, Search, TickSquare as CheckCircle2 } from "@/components/icons";
+import { Megaphone, Spinner as Loader2, CursorClick, CurrencyDollar as DollarSign, Pause, Copy, Radio, ArrowSquareOut, Database } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";

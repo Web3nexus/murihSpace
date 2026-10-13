@@ -16,12 +16,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
-import {
-  DotsThree as MoreHorizontalIcon,
-  Folder as FolderIcon,
-  ArrowRight as ArrowRightIcon,
-  Trash as Trash2Icon
-} from "@phosphor-icons/react";
+import { MoreCircle as MoreHorizontalIcon, Folder as FolderIcon, ArrowRight as ArrowRightIcon, Delete as Trash2Icon } from "@/components/icons";
 
 export function NavProjects({
   projects,

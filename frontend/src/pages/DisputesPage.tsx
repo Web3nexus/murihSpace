@@ -1,13 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import {
-  ShieldWarning as ShieldWarning,
-  Plus as Plus,
-  Spinner as Loader2,
-  Eye as Eye,
-  Clock as Clock,
-  CheckCircle as CheckCircle,
-  XCircle as XCircle
-} from "@phosphor-icons/react";
+import { ShieldFail as ShieldWarning, Plus, Show as Eye, TimeCircle as Clock, TickSquare as CheckCircle, CloseSquare as XCircle } from "@/components/icons";
+import { Spinner as Loader2 } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";

@@ -1,10 +1,7 @@
 import { getAuthToken } from "@/lib/auth/token";
 import { useState, useEffect, useCallback } from "react";
-import {
-  Shield as Shield,
-  Spinner as Loader2,
-  WarningCircle as AlertCircle
-} from "@phosphor-icons/react";
+import { ShieldDone as Shield, DangerSquare as AlertCircle } from "@/components/icons";
+import { Spinner as Loader2 } from "@phosphor-icons/react";
 import { authFetch } from "@/lib/api/authFetch";
 
 

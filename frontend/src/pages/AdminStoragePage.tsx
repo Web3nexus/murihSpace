@@ -1,13 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import {
-  HardDrive as HardDrive,
-  Spinner as Loader2,
-  Plus as Plus,
-  Trash as Trash2,
-  FloppyDisk as FloppyDisk,
-  WarningCircle as AlertCircle,
-  CheckCircle as CheckCircle2
-} from "@phosphor-icons/react";
+import { Plus, Delete as Trash2, Download as FloppyDisk, DangerSquare as AlertCircle, TickSquare as CheckCircle2 } from "@/components/icons";
+import { HardDrive, Spinner as Loader2 } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { authFetch } from "@/lib/api/authFetch";
 

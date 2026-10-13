@@ -7,21 +7,8 @@ import { OpenInAppBanner } from "@/components/common/OpenInAppBanner";
 import { ShareModal } from "@/components/common/ShareModal";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-  Storefront,
-  Globe,
-  ArrowSquareOut as ExternalLink,
-  Users,
-  CheckCircle as CheckCircle2,
-  ArrowLeft,
-  Spinner as Loader2,
-  Warning as AlertTriangle,
-  ChatText,
-  ShareNetwork,
-  Package,
-  PencilSimple as Edit3,
-  Eye
-} from "@phosphor-icons/react";
+import { Discovery as Globe, N2User as Users, TickSquare as CheckCircle2, ArrowLeft, DangerTriangle as AlertTriangle, Message as ChatText, Edit as Edit3, Show as Eye } from "@/components/icons";
+import { Storefront, ArrowSquareOut as ExternalLink, Spinner as Loader2, ShareNetwork, Package } from "@phosphor-icons/react";
 import type { PublicStorefront } from "@/types/storefront";
 import { absolute, storefrontUrl } from "@/lib/deepLinks";
 

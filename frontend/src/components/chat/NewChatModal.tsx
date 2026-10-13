@@ -1,10 +1,5 @@
 import React from 'react';
-import {
-  ChatTeardropText as MessageSquare,
-  UserPlus as UserPlus,
-  Users as Users,
-  X as X
-} from "@phosphor-icons/react";
+import { Message as MessageSquare, AddUser as UserPlus, N2User as Users, CloseSquare as X } from "@/components/icons";
 
 interface NewChatModalProps {
   isOpen: boolean;

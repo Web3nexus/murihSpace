@@ -1,21 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { formatDistanceToNow } from 'date-fns';
-import {
-  ChatTeardropText as MessageSquare,
-  Link as Link,
-  DotsThree as MoreHorizontal,
-  PushPin as PushPin,
-  PushPinSlash as PushPinSlash,
-  Megaphone as Megaphone,
-  Heart as Heart,
-  Lightning as Zap,
-  ThumbsUp as ThumbsUp,
-  HandGrabbing as HandGrabbing,
-  ShieldWarning as ShieldWarning,
-  UserMinus as UserMinus,
-  SealCheck as BadgeCheck,
-  User as UserIcon
-} from "@phosphor-icons/react";
+import { Message as MessageSquare, MoreCircle as MoreHorizontal, Heart, ShieldFail as ShieldWarning, ShieldDone as BadgeCheck, Profile as UserIcon } from "@/components/icons";
+import { Link, PushPin, PushPinSlash, Megaphone, Lightning as Zap, ThumbsUp, HandGrabbing, UserMinus } from "@phosphor-icons/react";
 import type { Post, ReactionType } from '@/types/post';
 import { ReportModal } from '@/components/moderation/ReportModal';
 import type { ReportedType } from '@/types/moderation';

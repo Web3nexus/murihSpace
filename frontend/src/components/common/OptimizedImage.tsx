@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
-import {
-  ImageSquare as ImageSquare,
-  Spinner as Loader2
-} from "@phosphor-icons/react";
+import { Image as ImageSquare } from "@/components/icons";
+import { Spinner as Loader2 } from "@phosphor-icons/react";
 
 interface OptimizedImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
   src: string;

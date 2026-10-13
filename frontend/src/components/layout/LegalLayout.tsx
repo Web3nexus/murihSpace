@@ -1,9 +1,7 @@
 import React from "react";
 import { Link } from "react-router";
-import {
-  ArrowLeft as ArrowLeft,
-  ArrowSquareOut as ExternalLink
-} from "@phosphor-icons/react";
+import { ArrowLeft } from "@/components/icons";
+import { ArrowSquareOut as ExternalLink } from "@phosphor-icons/react";
 
 interface LegalSection {
   heading: string;

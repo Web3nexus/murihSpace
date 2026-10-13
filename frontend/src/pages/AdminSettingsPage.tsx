@@ -1,19 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import {
-  Gear as Settings,
-  Spinner as Loader2,
-  FloppyDisk as FloppyDisk,
-  WarningCircle as AlertCircle,
-  Coins as Coins,
-  DeviceMobile as Smartphone,
-  ShieldCheck as ShieldCheck,
-  Key as Key,
-  CaretDown as ChevronDown,
-  CaretUp as ChevronUp,
-  Lock as Lock,
-  X as X,
-  Envelope as Envelope
-} from "@phosphor-icons/react";
+import { Setting as Settings, Download as FloppyDisk, DangerSquare as AlertCircle, ShieldDone as ShieldCheck, Password as Key, ArrowDown as ChevronDown, ArrowUp as ChevronUp, Lock, CloseSquare as X, Message as Envelope } from "@/components/icons";
+import { Spinner as Loader2, Coins, DeviceMobile as Smartphone } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

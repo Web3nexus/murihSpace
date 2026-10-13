@@ -8,16 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { PhoneInput } from "@/components/forms/PhoneInput";
 import { OtpInput } from "@/components/forms/OtpInput";
-import {
-  Spinner as Loader2,
-  ShieldWarning as ShieldWarning,
-  ArrowLeft as ArrowLeft,
-  ArrowsClockwise as RefreshCw,
-  CheckCircle as CheckCircle2,
-  DeviceMobile as Smartphone,
-  Eye as Eye,
-  EyeSlash as EyeOff
-} from "@phosphor-icons/react";
+import { ShieldFail as ShieldWarning, ArrowLeft, Swap as RefreshCw, TickSquare as CheckCircle2, Show as Eye, Hide as EyeOff } from "@/components/icons";
+import { Spinner as Loader2, DeviceMobile as Smartphone } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
 import { anyLoginMethodEnabled, defaultLoginTab, loginVisibility, resolveLoginTab, showLoginTabSwitcher } from "@/lib/loginVisibility";
 import { AuthLayout } from "@/components/layout/AuthLayout";

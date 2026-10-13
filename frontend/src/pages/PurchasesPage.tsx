@@ -1,14 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import {
-  DownloadSimple as Download,
-  Package as Package,
-  Spinner as Loader2,
-  FileText as FileText,
-  Image as Image,
-  Headphones as Headphones,
-  VideoCamera as Video,
-  Archive as Archive
-} from "@phosphor-icons/react";
+import { Download, Document as FileText, Image, Video } from "@/components/icons";
+import { Package, Spinner as Loader2, Headphones, Archive } from "@phosphor-icons/react";
 import { Button } from '@/components/ui/button';
 import type { Purchase } from '@/types/wallet';
 import { authFetch } from "@/lib/api/authFetch";

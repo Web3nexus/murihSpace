@@ -1,24 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import {
-  Microphone as Mic,
-  MicrophoneSlash as MicOff,
-  VideoCamera as VideoIcon,
-  VideoCameraSlash,
-  Monitor,
-  PhoneSlash,
-  Users,
-  Copy,
-  Check,
-  Hand,
-  Clock,
-  WarningCircle,
-  ChatCircle,
-  PaperPlaneTilt,
-  ArrowsClockwise,
-  ShieldCheck,
-  UserCircle,
-  ShareNetwork,
-} from "@phosphor-icons/react";
+import { Voice as Mic, Video as VideoIcon, N2User as Users, TickSquare as Check, TimeCircle as Clock, DangerSquare as WarningCircle, Chat as ChatCircle, Send as PaperPlaneTilt, Swap as ArrowsClockwise, ShieldDone as ShieldCheck, Profile as UserCircle } from "@/components/icons";
+import { CallSilent as PhoneSlash } from "@/components/icons";
+import { MicrophoneSlash as MicOff, VideoCameraSlash, Monitor, Copy, Hand, ShareNetwork } from "@phosphor-icons/react";
 import {
   Room,
   RoomEvent,

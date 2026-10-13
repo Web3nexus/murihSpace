@@ -8,23 +8,8 @@ import { ShareModal } from "@/components/common/ShareModal";
 import { AuthPromptModal } from "@/components/auth/AuthPromptModal";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-  Package,
-  ShoppingCart,
-  ShareNetwork,
-  Check,
-  CheckCircle,
-  ShieldCheck,
-  ArrowLeft,
-  Storefront,
-  Warning as AlertTriangle,
-  Spinner as Loader2,
-  Tag,
-  Truck,
-  FileText,
-  DownloadSimple,
-  SealCheck
-} from "@phosphor-icons/react";
+import { Bag as ShoppingCart, TickSquare as Check, TickSquare as CheckCircle, ShieldDone as ShieldCheck, ArrowLeft, DangerTriangle as AlertTriangle, Ticket as Tag, Document as FileText, Download as DownloadSimple, ShieldDone as SealCheck } from "@/components/icons";
+import { Package, ShareNetwork, Storefront, Spinner as Loader2, Truck } from "@phosphor-icons/react";
 
 interface ProductData {
   id: string | number;

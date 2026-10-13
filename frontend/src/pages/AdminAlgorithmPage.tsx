@@ -1,21 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import {
-  ChartBar as BarChart3,
-  Spinner as Loader2,
-  TrendUp as TrendingUp,
-  ToggleLeft as ToggleLeft,
-  ToggleRight as ToggleRight,
-  ArrowCounterClockwise as RotateCcw,
-  Play as Play,
-  Square as Square,
-  Flask as Flask,
-  Check as Check,
-  WarningCircle as AlertCircle,
-  Lightning as Zap,
-  Plus as Plus,
-  Trash as Trash2,
-  FileText as FileText
-} from "@phosphor-icons/react";
+import { Chart as BarChart3, Graph as TrendingUp, Swap as RotateCcw, Play, TickSquare as Check, DangerSquare as AlertCircle, Plus, Delete as Trash2, Document as FileText } from "@/components/icons";
+import { Spinner as Loader2, ToggleLeft, ToggleRight, Square, Flask, Lightning as Zap } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";

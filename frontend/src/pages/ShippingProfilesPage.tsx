@@ -1,12 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import {
-  Truck as Truck,
-  Plus as Plus,
-  Spinner as Loader2,
-  Pencil as Edit,
-  Trash as Trash2,
-  Globe as Globe
-} from "@phosphor-icons/react";
+import { Plus, Edit, Delete as Trash2, Discovery as Globe } from "@/components/icons";
+import { Truck, Spinner as Loader2 } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";

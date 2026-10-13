@@ -1,18 +1,5 @@
-import {
-  Globe as Globe,
-  ArrowSquareOut as ExternalLink,
-  ShoppingCart as ShoppingCart,
-  Tag as Tag,
-  Camera as Camera,
-  MusicNote as Music,
-  Hash as Hash,
-  FilmStrip as FilmStrip,
-  ChatCircle as MessageCircle,
-  PaperPlaneRight as Send,
-  Link as LinkIcon,
-  Crown as Crown,
-  CaretRight as ChevronRight
-} from "@phosphor-icons/react";
+import { Discovery as Globe, Bag as ShoppingCart, Ticket as Tag, Camera, Video as FilmStrip, Chat as MessageCircle, Send, ArrowRight as ChevronRight } from "@/components/icons";
+import { ArrowSquareOut as ExternalLink, MusicNote as Music, Hash, Link as LinkIcon, Crown } from "@phosphor-icons/react";
 import type { LinkBioPageData, LinkBioLinkItem, LinkBioProductItem, LinkBioSocial } from "@/lib/linkBioTypes";
 import { templateBySlug, pageBackground, buttonRadius, fontFamily, avatarRadius } from "@/lib/linkBioTemplates";
 

@@ -14,13 +14,7 @@ import { Badge } from "@/components/ui/badge";
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? 'http://localhost:8000/api/v1';
 import { ErrorState, EmptyState } from "@/components/common/UIStateComponents";
 import { RoleBadge } from "@/components/community/RoleBadge";
-import {
-  Plus as Plus,
-  Check as Check,
-  WarningCircle as AlertCircle,
-  Key as Key,
-  ShieldCheck as ShieldCheck
-} from "@phosphor-icons/react";
+import { Plus, TickSquare as Check, DangerSquare as AlertCircle, Password as Key, ShieldDone as ShieldCheck } from "@/components/icons";
 import type { CommunityRole, PermissionDefinition } from "@/types/community";
 import { getAuthToken } from "@/lib/auth/token";
 

@@ -1,44 +1,7 @@
 import { getAuthToken } from "@/lib/auth/token";
 import { useState, useEffect, useCallback } from "react";
-import {
-  SlidersHorizontal as SlidersHorizontal,
-  FilmStrip as FilmStrip,
-  Link as Link,
-  Users as Users,
-  Radio as Radio,
-  Package as Package,
-  ShoppingCart as ShoppingCart,
-  Crown as Crown,
-  Megaphone as Megaphone,
-  Briefcase as Briefcase,
-  ChartBar as BarChart3,
-  ChatTeardropText as MessageSquare,
-  Robot as Robot,
-  Wallet as Wallet,
-  Shield as Shield,
-  Globe as Globe,
-  BookOpen as BookOpen,
-  Calendar as Calendar,
-  CalendarCheck,
-  Storefront,
-  Heart as Heart,
-  ShieldCheck as ShieldCheck,
-  Flag as Flag,
-  Spinner as Loader2,
-  WarningCircle as AlertCircle,
-  CheckCircle as CheckCircle2,
-  MagnifyingGlass as Search,
-  Plus as Plus,
-  Trash as Trash2,
-  X as X,
-  UserPlus,
-  Gift,
-  Medal,
-  ShareNetwork,
-  HandCoins,
-  FilePdf,
-  ChartLineUp
-} from "@phosphor-icons/react";
+import { Setting as SlidersHorizontal, Video as FilmStrip, N2User as Users, Bag as ShoppingCart, Work as Briefcase, Chart as BarChart3, Message as MessageSquare, Wallet, ShieldDone as Shield, Discovery as Globe, Calendar, Calendar as CalendarCheck, Heart, ShieldDone as ShieldCheck, DangerSquare as AlertCircle, TickSquare as CheckCircle2, Search, Plus, Delete as Trash2, CloseSquare as X, AddUser as UserPlus, Discount as Gift, Graph as ChartLineUp } from "@/components/icons";
+import { Link, Radio, Package, Crown, Megaphone, Robot, BookOpen, Storefront, Flag, Spinner as Loader2, Medal, ShareNetwork, HandCoins, FilePdf } from "@phosphor-icons/react";
 import { authFetch } from "@/lib/api/authFetch";
 import { refreshFeatureFlags } from "@/hooks/useFeatureFlags";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";

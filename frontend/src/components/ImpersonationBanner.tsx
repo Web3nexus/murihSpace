@@ -1,8 +1,4 @@
-import {
-  SignOut as LogOut,
-  ShieldWarning as ShieldWarning,
-  Clock as Clock
-} from "@phosphor-icons/react";
+import { Logout as LogOut, ShieldFail as ShieldWarning, TimeCircle as Clock } from "@/components/icons";
 import { stopImpersonatingSession, isImpersonating, getImpersonatedUser } from '@/lib/auth/token';
 
 export function ImpersonationBanner() {

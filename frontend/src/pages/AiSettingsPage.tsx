@@ -1,11 +1,6 @@
 import { useEffect, useState } from "react";
-import {
-  Spinner as Loader2,
-  CheckCircle as CheckCircle2,
-  WarningCircle as AlertCircle,
-  FloppyDisk as FloppyDisk,
-  ShieldCheck as ShieldCheck
-} from "@phosphor-icons/react";
+import { TickSquare as CheckCircle2, DangerSquare as AlertCircle, Download as FloppyDisk, ShieldDone as ShieldCheck } from "@/components/icons";
+import { Spinner as Loader2 } from "@phosphor-icons/react";
 import { apiClient } from "@/lib/api/client";
 import { MeraIcon } from "@/components/brand/MeraIcon";
 

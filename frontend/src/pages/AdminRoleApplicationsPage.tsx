@@ -1,21 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "react-router";
 import { toast } from "sonner";
-import {
-  UserCheck as UserCheck,
-  Clock as Clock,
-  CheckCircle as CheckCircle2,
-  XCircle as XCircle,
-  Spinner as Loader2,
-  CaretLeft as ChevronLeft,
-  CaretRight as ChevronRight,
-  Faders as Faders,
-  Bag as ShoppingBag,
-  ShieldWarning as ShieldWarning,
-  ShieldCheck as ShieldCheck,
-  FileText as FileText,
-  ArrowSquareOut as ExternalLink
-} from "@phosphor-icons/react";
+import { TimeCircle as Clock, TickSquare as CheckCircle2, CloseSquare as XCircle, ArrowLeft as ChevronLeft, ArrowRight as ChevronRight, Bag as ShoppingBag, ShieldFail as ShieldWarning, ShieldDone as ShieldCheck, Document as FileText } from "@/components/icons";
+import { UserCheck, Spinner as Loader2, Faders, ArrowSquareOut as ExternalLink } from "@phosphor-icons/react";
 import { apiClient, type ApiError } from "@/lib/api/client";
 
 interface RoleApplication {

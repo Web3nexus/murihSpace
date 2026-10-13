@@ -1,16 +1,6 @@
 import * as React from "react";
-import {
-  PaperPlaneTilt,
-  Smiley,
-  Image as ImageIcon,
-  ArrowBendUpLeft,
-  X,
-  Check,
-  SpinnerGap,
-  ChatCircleDots,
-  Crown,
-  Lock,
-} from "@phosphor-icons/react";
+import { Send as PaperPlaneTilt, Image as ImageIcon, CloseSquare as X, TickSquare as Check, Chat as ChatCircleDots, Lock } from "@/components/icons";
+import { Smiley, ArrowBendUpLeft, SpinnerGap, Crown } from "@phosphor-icons/react";
 import { useAuth } from "@/hooks/useAuth";
 import { useRealtimeMessaging } from "@/hooks/useRealtimeMessaging";
 import { apiClient } from "@/lib/api/client";

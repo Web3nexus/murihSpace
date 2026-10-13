@@ -1,13 +1,6 @@
 import { useState, useEffect } from "react";
-import {
-  PaintBrush as PaintBrush,
-  Monitor as Monitor,
-  Sun as Sun,
-  Moon as Moon,
-  TextT as TextT,
-  Eye as Eye,
-  Check as Check
-} from "@phosphor-icons/react";
+import { Show as Eye, TickSquare as Check } from "@/components/icons";
+import { PaintBrush, Monitor, Sun, Moon, TextT } from "@phosphor-icons/react";
 import { useTheme } from "@/hooks/useTheme";
 
 type FontSize = "small" | "medium" | "large";

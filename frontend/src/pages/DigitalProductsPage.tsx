@@ -3,24 +3,8 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useConfirm } from '@/components/ui/DialogProvider';
 import { useAuth } from '@/hooks/useAuth';
 import { Link } from 'react-router';
-import {
-  Package as Package,
-  Plus as Plus,
-  MagnifyingGlass as Search,
-  DownloadSimple as Download,
-  Pencil as Edit,
-  Trash as Trash2,
-  FileText as FileText,
-  Spinner as Loader2,
-  CloudArrowUp as CloudArrowUp,
-  WarningCircle as AlertCircle,
-  ArrowCounterClockwise as RotateCcw,
-  Truck as Truck,
-  ShieldCheck as ShieldCheck,
-  ShareNetwork as ShareNetwork,
-  ArrowSquareOut as ArrowSquareOut,
-  CheckCircle as CheckCircle2
-} from "@phosphor-icons/react";
+import { Plus, Search, Download, Edit, Delete as Trash2, Document as FileText, DangerSquare as AlertCircle, Swap as RotateCcw, ShieldDone as ShieldCheck, TickSquare as CheckCircle2 } from "@/components/icons";
+import { Package, Spinner as Loader2, CloudArrowUp, Truck, ShareNetwork, ArrowSquareOut } from "@phosphor-icons/react";
 import { ImageUploader } from '@/components/upload/ImageUploader';
 import { Button } from '@/components/ui/button';
 import { ShareModal } from '@/components/common/ShareModal';

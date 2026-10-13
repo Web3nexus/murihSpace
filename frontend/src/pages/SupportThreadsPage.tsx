@@ -1,17 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import {
-  ChatTeardropText as MessageSquare,
-  Spinner as Loader2,
-  PaperPlaneRight as Send,
-  WarningCircle as AlertCircle,
-  Plus as Plus,
-  CaretLeft as ChevronLeft,
-  Star as Star,
-  Paperclip as Paperclip,
-  X as X,
-  ArrowCounterClockwise as RotateCcw,
-  CheckCircle as CheckCircle2
-} from "@phosphor-icons/react";
+import { Message as MessageSquare, Send, DangerSquare as AlertCircle, Plus, ArrowLeft as ChevronLeft, Star, CloseSquare as X, Swap as RotateCcw, TickSquare as CheckCircle2 } from "@/components/icons";
+import { Spinner as Loader2, Paperclip } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";

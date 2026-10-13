@@ -1,30 +1,7 @@
 import * as React from "react";
 import { useParams, useNavigate, Link } from "react-router";
-import {
-  UsersThree,
-  Globe,
-  Lock,
-  ShieldCheck,
-  Gear,
-  ChatCircleDots,
-  Newspaper,
-  Users,
-  Info,
-  UserPlus,
-  Check,
-  Copy,
-  Trash,
-  SpinnerGap,
-  Hourglass,
-  ArrowLeft,
-  MapPin,
-  Warning,
-  User as UserIcon,
-  ShareNetwork,
-  Sparkle,
-  MagnifyingGlass,
-  PaperPlaneTilt,
-} from "@phosphor-icons/react";
+import { N3User as UsersThree, Discovery as Globe, Lock, ShieldDone as ShieldCheck, Setting as Gear, Chat as ChatCircleDots, N2User as Users, InfoSquare as Info, AddUser as UserPlus, TickSquare as Check, Delete as Trash, TimeCircle as Hourglass, ArrowLeft, Location as MapPin, DangerTriangle as Warning, Profile as UserIcon, Search as MagnifyingGlass, Send as PaperPlaneTilt } from "@/components/icons";
+import { Newspaper, Copy, SpinnerGap, ShareNetwork, Sparkle } from "@phosphor-icons/react";
 import { useAuth } from "@/hooks/useAuth";
 import { apiClient } from "@/lib/api/client";
 import { Button } from "@/components/ui/button";

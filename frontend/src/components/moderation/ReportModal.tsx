@@ -9,11 +9,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import {
-  ShieldWarning as ShieldWarning,
-  Warning as AlertTriangle,
-  CheckCircle as CheckCircle2
-} from "@phosphor-icons/react";
+import { ShieldFail as ShieldWarning, DangerTriangle as AlertTriangle, TickSquare as CheckCircle2 } from "@/components/icons";
 import type { ReportReason, ReportedType } from '@/types/moderation';
 import { getAuthToken } from "@/lib/auth/token";
 

@@ -1,6 +1,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Receipt, CheckCircle, ArrowDownLeft, ArrowUpRight, Copy } from "@phosphor-icons/react";
+import { TickSquare as CheckCircle, ArrowDown as ArrowDownLeft, ArrowUp as ArrowUpRight } from "@/components/icons";
+import { Receipt, Copy } from "@phosphor-icons/react";
 import type { TransactionRowData } from "./TransactionTable";
 import { toast } from "sonner";
 

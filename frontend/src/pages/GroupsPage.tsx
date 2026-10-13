@@ -1,18 +1,7 @@
 import * as React from "react";
 import { useNavigate } from "react-router";
-import {
-  UsersThree,
-  Plus,
-  MagnifyingGlass,
-  Globe,
-  Lock,
-  SpinnerGap,
-  EnvelopeSimple,
-  Compass,
-  UserCheck,
-  ArrowRight,
-  User as UserIcon,
-} from "@phosphor-icons/react";
+import { N3User as UsersThree, Plus, Search as MagnifyingGlass, Discovery as Globe, Lock, Message as EnvelopeSimple, Discovery as Compass, ArrowRight, Profile as UserIcon } from "@/components/icons";
+import { SpinnerGap, UserCheck } from "@phosphor-icons/react";
 import { apiClient } from "@/lib/api/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

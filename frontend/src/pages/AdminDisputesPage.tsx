@@ -1,15 +1,7 @@
 import { getAuthToken } from "@/lib/auth/token";
 import { useState, useEffect, useCallback } from "react";
-import {
-  ShieldWarning as ShieldWarning,
-  Spinner as Loader2,
-  CheckCircle as CheckCircle2,
-  WarningCircle as AlertCircle,
-  Check as Check,
-  ChatTeardropText as MessageSquare,
-  ArrowSquareOut as ExternalLink,
-  ShieldCheck as ShieldCheck
-} from "@phosphor-icons/react";
+import { ShieldFail as ShieldWarning, TickSquare as CheckCircle2, DangerSquare as AlertCircle, TickSquare as Check, Message as MessageSquare, ShieldDone as ShieldCheck } from "@/components/icons";
+import { Spinner as Loader2, ArrowSquareOut as ExternalLink } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { authFetch } from "@/lib/api/authFetch";

@@ -1,10 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import {
-  X as X,
-  CaretLeft as ChevronLeft,
-  CaretRight as ChevronRight,
-  Trash as Trash2
-} from "@phosphor-icons/react";
+import { CloseSquare as X, ArrowLeft as ChevronLeft, ArrowRight as ChevronRight, Delete as Trash2 } from "@/components/icons";
 import { getAuthToken } from "@/lib/auth/token";
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? 'http://localhost:8000/api/v1';

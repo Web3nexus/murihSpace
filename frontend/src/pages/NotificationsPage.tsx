@@ -1,33 +1,7 @@
 import { getAuthToken } from "@/lib/auth/token";
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import {
-  Bell,
-  Checks as CheckCheck,
-  ShieldWarning,
-  ShieldCheck,
-  ChatTeardropText as MessageSquare,
-  UserPlus,
-  Lightning as Zap,
-  Sliders,
-  Check,
-  Spinner as Loader2,
-  ArrowsClockwise as RefreshCw,
-  ArrowRight,
-  Lifebuoy,
-  Medal as Award,
-  Gift,
-  Wallet,
-  CheckCircle as CheckCircle2,
-  PaperPlaneTilt,
-  Trash,
-  CaretDown,
-  CaretUp,
-  CaretLeft,
-  CaretRight,
-  MagnifyingGlass,
-  EnvelopeSimple,
-  X as XIcon,
-} from "@phosphor-icons/react";
+import { Notification as Bell, TickSquare as CheckCheck, ShieldFail as ShieldWarning, ShieldDone as ShieldCheck, Message as MessageSquare, AddUser as UserPlus, Setting as Sliders, TickSquare as Check, Swap as RefreshCw, ArrowRight, Discount as Gift, Wallet, TickSquare as CheckCircle2, Send as PaperPlaneTilt, Delete as Trash, ArrowDown as CaretDown, ArrowUp as CaretUp, ArrowLeft as CaretLeft, ArrowRight as CaretRight, Search as MagnifyingGlass, Message as EnvelopeSimple, CloseSquare as XIcon } from "@/components/icons";
+import { Lightning as Zap, Spinner as Loader2, Lifebuoy, Medal as Award } from "@phosphor-icons/react";
 import { Button } from '@/components/ui/button';
 import {
   Dialog,

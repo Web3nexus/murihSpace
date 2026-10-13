@@ -1,17 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useConfirm } from '@/components/ui/DialogProvider';
-import {
-  Briefcase as Briefcase,
-  Plus as Plus,
-  Spinner as Loader2,
-  Buildings as Building2,
-  CurrencyDollar as DollarSign,
-  PencilSimple as Edit2,
-  Trash as Trash2,
-  Check as Check,
-  WarningCircle as AlertCircle,
-  X as X
-} from "@phosphor-icons/react";
+import { Work as Briefcase, Plus, Edit as Edit2, Delete as Trash2, TickSquare as Check, DangerSquare as AlertCircle, CloseSquare as X } from "@/components/icons";
+import { Spinner as Loader2, Buildings as Building2, CurrencyDollar as DollarSign } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

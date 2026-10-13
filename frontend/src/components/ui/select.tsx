@@ -1,10 +1,6 @@
 import * as React from "react";
 import * as SelectPrimitive from "@radix-ui/react-select";
-import {
-  Check as Check,
-  CaretDown as ChevronDown,
-  CaretUp as ChevronUp
-} from "@phosphor-icons/react";
+import { TickSquare as Check, ArrowDown as ChevronDown, ArrowUp as ChevronUp } from "@/components/icons";
 import { cn } from "@/lib/utils";
 
 const Select = SelectPrimitive.Root;

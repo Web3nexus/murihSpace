@@ -1,14 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import {
-  ShieldCheck as ShieldCheck,
-  ShieldWarning as ShieldWarning,
-  Spinner as Loader2,
-  Check as Check,
-  X as X,
-  WarningCircle as AlertCircle,
-  CaretRight as ChevronRight,
-  User as UserIcon
-} from "@phosphor-icons/react";
+import { ShieldDone as ShieldCheck, ShieldFail as ShieldWarning, TickSquare as Check, CloseSquare as X, DangerSquare as AlertCircle, ArrowRight as ChevronRight, Profile as UserIcon } from "@/components/icons";
+import { Spinner as Loader2 } from "@phosphor-icons/react";
 import { authFetch } from "@/lib/api/authFetch";
 
 

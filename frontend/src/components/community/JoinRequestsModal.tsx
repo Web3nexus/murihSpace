@@ -9,12 +9,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ErrorState, EmptyState } from "@/components/common/UIStateComponents";
-import {
-  Clock as Clock,
-  ShieldCheck as ShieldCheck,
-  Check as Check,
-  X as X
-} from "@phosphor-icons/react";
+import { TimeCircle as Clock, ShieldDone as ShieldCheck, TickSquare as Check, CloseSquare as X } from "@/components/icons";
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? 'http://localhost:8000/api/v1';
 import type { JoinRequest } from "@/types/community";

@@ -1,18 +1,8 @@
 import { getAuthToken } from "@/lib/auth/token";
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router';
-import {
-  Users as Users,
-  Gear as Settings,
-  ArrowLeft as ArrowLeft,
-  Spinner as Loader2,
-  ArrowsClockwise as RefreshCw,
-  Lock as Lock,
-  Globe as Globe,
-  CurrencyDollar as DollarSign,
-  Bell as Bell,
-  BellSlash as BellOff
-} from "@phosphor-icons/react";
+import { N2User as Users, Setting as Settings, ArrowLeft, Swap as RefreshCw, Lock, Discovery as Globe, Notification as Bell } from "@/components/icons";
+import { Spinner as Loader2, CurrencyDollar as DollarSign, BellSlash as BellOff } from "@phosphor-icons/react";
 import { Button } from '@/components/ui/button';
 import CreatePostComposer from '@/components/feed/CreatePostComposer';
 import PostCard from '@/components/feed/PostCard';

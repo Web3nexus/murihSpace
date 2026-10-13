@@ -1,15 +1,7 @@
 import { getAuthToken } from "@/lib/auth/token";
 import { useState, useEffect, useCallback } from "react";
-import {
-  ChartBar as BarChart3,
-  Spinner as Loader2,
-  Users as Users,
-  ShoppingCart as ShoppingCart,
-  CreditCard as CreditCard,
-  Repeat as Repeat,
-  ArrowRight as ArrowRight,
-  WarningCircle as AlertCircle
-} from "@phosphor-icons/react";
+import { Chart as BarChart3, N2User as Users, Bag as ShoppingCart, Wallet as CreditCard, Swap as Repeat, ArrowRight, DangerSquare as AlertCircle } from "@/components/icons";
+import { Spinner as Loader2 } from "@phosphor-icons/react";
 import { authFetch } from "@/lib/api/authFetch";
 
 

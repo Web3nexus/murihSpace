@@ -1,15 +1,7 @@
 import { getAuthToken } from "@/lib/auth/token";
 import { useEffect, useState } from "react";
-import {
-  Spinner as Loader2,
-  FloppyDisk as FloppyDisk,
-  WarningCircle as AlertCircle,
-  CheckCircle as CheckCircle2,
-  Eye as Eye,
-  EyeSlash as EyeOff,
-  Plug as Plug,
-  Lock as Lock
-} from "@phosphor-icons/react";
+import { Download as FloppyDisk, DangerSquare as AlertCircle, TickSquare as CheckCircle2, Show as Eye, Hide as EyeOff, Lock } from "@/components/icons";
+import { Spinner as Loader2, Plug } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

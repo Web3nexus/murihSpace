@@ -10,21 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Globe,
-  Lock,
-  ShieldCheck,
-  UsersThree,
-  Sparkle,
-  Image as ImageIcon,
-  MapPin,
-  Tag,
-  ArrowRight,
-  ArrowLeft,
-  Eye,
-  Check,
-  BookOpen,
-} from "@phosphor-icons/react";
+import { Discovery as Globe, Lock, ShieldDone as ShieldCheck, N3User as UsersThree, Image as ImageIcon, Location as MapPin, Ticket as Tag, ArrowRight, ArrowLeft, Show as Eye, TickSquare as Check } from "@/components/icons";
+import { Sparkle, BookOpen } from "@phosphor-icons/react";
 import { apiClient } from "@/lib/api/client";
 import { ImageUploader } from "@/components/upload/ImageUploader";
 import type { Group, GroupPrivacy } from "@/types/group";

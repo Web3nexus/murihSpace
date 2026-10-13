@@ -1,12 +1,6 @@
 import { useState } from "react";
-import {
-  Eye as Eye,
-  Keyboard as Keyboard,
-  Cursor as Cursor,
-  TextUnderline as TextUnderline,
-  TextT as TextT,
-  Check as Check
-} from "@phosphor-icons/react";
+import { Show as Eye, TickSquare as Check } from "@/components/icons";
+import { Keyboard, Cursor, TextUnderline, TextT } from "@phosphor-icons/react";
 
 const STORAGE_KEY_HC = "murihspace-high-contrast";
 const STORAGE_KEY_FOCUS = "murihspace-focus-ring";

@@ -1,13 +1,5 @@
 import { useState, useEffect } from "react";
-import {
-  FloppyDisk as SaveIcon,
-  ArrowsClockwise as RefreshCwIcon,
-  Envelope as MailIcon,
-  CheckCircle as CheckCircle2Icon,
-  Sliders as SlidersIcon,
-  Clock as ClockIcon,
-  Users
-} from "@phosphor-icons/react";
+import { Download as SaveIcon, Swap as RefreshCwIcon, Message as MailIcon, TickSquare as CheckCircle2Icon, Setting as SlidersIcon, TimeCircle as ClockIcon, N2User as Users } from "@/components/icons";
 import { toast } from "sonner";
 import { apiClient } from "@/lib/api/client";
 

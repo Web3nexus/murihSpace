@@ -9,18 +9,8 @@ import { absolute, profileUrl } from "@/lib/deepLinks";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import {
-  Spinner as Loader2,
-  ArrowRight as ArrowRight,
-  ArrowLeft as ArrowLeft,
-  CheckCircle as CheckCircle2,
-  XCircle as XCircle,
-  SealCheck as BadgeCheck,
-  Crown as Crown,
-  ShieldCheck as ShieldCheck,
-  Eye as Eye,
-  EyeSlash as EyeOff
-} from "@phosphor-icons/react";
+import { ArrowRight, ArrowLeft, TickSquare as CheckCircle2, CloseSquare as XCircle, ShieldDone as BadgeCheck, ShieldDone as ShieldCheck, Show as Eye, Hide as EyeOff } from "@/components/icons";
+import { Spinner as Loader2, Crown } from "@phosphor-icons/react";
 import { PASSWORD_RULES, validatePassword } from "@/lib/auth/passwordRules";
 
 import { AuthLayout } from "@/components/layout/AuthLayout";

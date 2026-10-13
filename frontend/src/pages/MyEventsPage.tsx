@@ -1,14 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { useConfirm } from "@/components/ui/DialogProvider";
 import { Link } from "react-router";
-import {
-  Plus as Plus,
-  Calendar as Calendar,
-  Trash as Trash2,
-  Users as Users,
-  ArrowSquareOut as ExternalLink,
-  PencilSimple as PencilSimple
-} from "@phosphor-icons/react";
+import { Plus, Calendar, Delete as Trash2, N2User as Users, Edit as PencilSimple } from "@/components/icons";
+import { ArrowSquareOut as ExternalLink } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState, LoadingState, ErrorState } from "@/components/common/UIStateComponents";

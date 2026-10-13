@@ -1,20 +1,7 @@
 import { getAuthToken } from "@/lib/auth/token";
 import { useState, useEffect, useCallback } from 'react';
-import {
-  FileText,
-  Plus,
-  Spinner as Loader2,
-  EyeSlash as EyeOff,
-  Eye,
-  Trash as Trash2,
-  WarningCircle as AlertCircle,
-  CheckCircle as CheckCircle2,
-  FloppyDisk,
-  Megaphone,
-  PaperPlaneTilt,
-  Users,
-  CalendarBlank,
-} from "@phosphor-icons/react";
+import { Document as FileText, Plus, Hide as EyeOff, Show as Eye, Delete as Trash2, DangerSquare as AlertCircle, TickSquare as CheckCircle2, Download as FloppyDisk, Send as PaperPlaneTilt, N2User as Users, Calendar as CalendarBlank } from "@/components/icons";
+import { Spinner as Loader2, Megaphone } from "@phosphor-icons/react";
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {

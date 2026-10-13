@@ -1,19 +1,7 @@
 import { getAuthToken } from "@/lib/auth/token";
 import { useState, useEffect, useCallback } from "react";
-import {
-  ShieldCheck as ShieldCheck,
-  UserPlus as UserPlus,
-  Spinner as Loader2,
-  MagnifyingGlass as Search,
-  Pencil as Pencil,
-  Trash as Trash2,
-  WarningCircle as AlertCircle,
-  CheckCircle as CheckCircle2,
-  X as X,
-  CaretLeft as ChevronLeft,
-  CaretRight as ChevronRight,
-  Shield as Shield
-} from "@phosphor-icons/react";
+import { ShieldDone as ShieldCheck, AddUser as UserPlus, Search, Edit as Pencil, Delete as Trash2, DangerSquare as AlertCircle, TickSquare as CheckCircle2, CloseSquare as X, ArrowLeft as ChevronLeft, ArrowRight as ChevronRight, ShieldDone as Shield } from "@/components/icons";
+import { Spinner as Loader2 } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

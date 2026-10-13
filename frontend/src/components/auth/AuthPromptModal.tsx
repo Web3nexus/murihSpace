@@ -7,11 +7,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import {
-  SignIn as SignIn,
-  UserPlus as UserPlus,
-  Users as Users,
-} from "@phosphor-icons/react";
+import { Login as SignIn, AddUser as UserPlus, N2User as Users } from "@/components/icons";
 
 interface AuthPromptModalProps {
   open: boolean;

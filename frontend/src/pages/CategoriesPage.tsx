@@ -1,11 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import {
-  Tag as Tag,
-  Plus as Plus,
-  Spinner as Loader2,
-  Pencil as Edit,
-  Trash as Trash2
-} from "@phosphor-icons/react";
+import { Ticket as Tag, Plus, Edit, Delete as Trash2 } from "@/components/icons";
+import { Spinner as Loader2 } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { authFetch } from "@/lib/api/authFetch";

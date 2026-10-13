@@ -6,30 +6,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { apiClient } from "@/lib/api/client";
 import { timeAgo, mapApiPost, mapApiComments } from "@/lib/feed";
 import { SkeletonFeed } from "@/components/ui/skeletons";
-import {
-  Users as Users,
-  Plus as Plus,
-  Package as Package,
-  Calendar as Calendar,
-  ChatCircle as MessageCircle,
-  VideoCamera as Video,
-  ChartBar as BarChart2,
-  Heart as Heart,
-  ShareNetwork as Share2,
-  DotsThree as MoreHorizontal,
-  CaretRight as ChevronRight,
-  Play as Play,
-  SealCheck as BadgeCheck,
-  PaperPlaneRight as Send,
-  Spinner as Loader2,
-  Copy as Copy,
-  Check as Check,
-  X as X,
-  CaretDown as ChevronDown,
-  Rss as Rss,
-  WarningCircle as AlertCircle,
-  User as UserIcon,
-} from "@phosphor-icons/react";
+import { N2User as Users, Plus, Calendar, Chat as MessageCircle, Video, Chart as BarChart2, Heart, MoreCircle as MoreHorizontal, ArrowRight as ChevronRight, Play, ShieldDone as BadgeCheck, Send, TickSquare as Check, CloseSquare as X, ArrowDown as ChevronDown, DangerSquare as AlertCircle, Profile as UserIcon } from "@/components/icons";
+import { Package, ShareNetwork as Share2, Spinner as Loader2, Copy, Rss } from "@phosphor-icons/react";
 import { absolute } from "@/lib/deepLinks";
 
 interface CommentItem {

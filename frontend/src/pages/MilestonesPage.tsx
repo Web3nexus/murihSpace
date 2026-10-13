@@ -1,18 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useConfirm } from '@/components/ui/DialogProvider';
-import {
-  Trophy as Trophy,
-  Medal as Award,
-  Plus as Plus,
-  Spinner as Loader2,
-  Pencil as Edit,
-  Trash as Trash2,
-  Target as Target,
-  TrendUp as TrendingUp,
-  Bag as ShoppingBag,
-  CurrencyDollar as DollarSign,
-  Heart as Heart
-} from "@phosphor-icons/react";
+import { Plus, Edit, Delete as Trash2, Graph as TrendingUp, Bag as ShoppingBag, Heart } from "@/components/icons";
+import { Trophy, Medal as Award, Spinner as Loader2, Target, CurrencyDollar as DollarSign } from "@phosphor-icons/react";
 import { authFetch } from "@/lib/api/authFetch";
 
 

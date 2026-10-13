@@ -1,22 +1,7 @@
 import { getAuthToken } from "@/lib/auth/token";
 import { useEffect, useState } from "react";
-import {
-  Envelope as Envelope,
-  Spinner as Loader2,
-  FloppyDisk as FloppyDisk,
-  PaperPlaneRight as Send,
-  WarningCircle as AlertCircle,
-  CheckCircle as CheckCircle2,
-  Eye as Eye,
-  EyeSlash as EyeOff,
-  Lock as Lock,
-  HardDrives as HardDrives,
-  TerminalWindow as TerminalWindow,
-  SteeringWheel as SteeringWheel,
-  Cloud as Cloud,
-  Paperclip as Paperclip,
-  Archive as Archive
-} from "@phosphor-icons/react";
+import { Message as Envelope, Download as FloppyDisk, Send, DangerSquare as AlertCircle, TickSquare as CheckCircle2, Show as Eye, Hide as EyeOff, Lock } from "@/components/icons";
+import { Spinner as Loader2, HardDrives, TerminalWindow, SteeringWheel, Cloud, Paperclip, Archive } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

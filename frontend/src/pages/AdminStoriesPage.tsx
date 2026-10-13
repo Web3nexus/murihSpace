@@ -1,14 +1,6 @@
 import { useState, useEffect } from "react";
-import {
-  Image as Image,
-  TextT as TextT,
-  VideoCamera as Video,
-  Spinner as Loader2,
-  FloppyDisk as FloppyDisk,
-  CheckCircle as CheckCircle2,
-  WarningCircle as AlertCircle,
-  BookOpen as BookOpen
-} from "@phosphor-icons/react";
+import { Image, Video, Download as FloppyDisk, TickSquare as CheckCircle2, DangerSquare as AlertCircle } from "@/components/icons";
+import { TextT, Spinner as Loader2, BookOpen } from "@phosphor-icons/react";
 import { AnimatedPage } from "@/components/common/AnimatedPage";
 import { apiClient } from "@/lib/api/client";
 

@@ -1,12 +1,7 @@
 import { getAuthToken } from "@/lib/auth/token";
 import { useState, useEffect, useCallback } from "react";
-import {
-  TrendUp as TrendingUp,
-  Spinner as Loader2,
-  Users as Users,
-  Storefront,
-  CurrencyDollar as DollarSign
-} from "@phosphor-icons/react";
+import { Graph as TrendingUp, N2User as Users } from "@/components/icons";
+import { Spinner as Loader2, Storefront, CurrencyDollar as DollarSign } from "@phosphor-icons/react";
 import { authFetch } from "@/lib/api/authFetch";
 
 

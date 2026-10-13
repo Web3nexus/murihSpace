@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from "react";
-import { Smiley, MagnifyingGlass, X, ClockCounterClockwise } from "@phosphor-icons/react";
+import { Search as MagnifyingGlass, CloseSquare as X, TimeCircle as ClockCounterClockwise } from "@/components/icons";
+import { Smiley } from "@phosphor-icons/react";
 import { motion } from "motion/react";
 import { AnimatedEmoji } from "@/components/chat/AnimatedEmoji";
 import { EMOJI_MANIFEST, EMOJI_KEYS } from "@/lib/emoji-manifest";

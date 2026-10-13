@@ -1,11 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import {
-  ArrowCounterClockwise as RotateCcw,
-  Spinner as Loader2,
-  CheckCircle as CheckCircle2,
-  XCircle as XCircle,
-  Eye as Eye
-} from "@phosphor-icons/react";
+import { Swap as RotateCcw, TickSquare as CheckCircle2, CloseSquare as XCircle, Show as Eye } from "@/components/icons";
+import { Spinner as Loader2 } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { authFetch } from "@/lib/api/authFetch";
 

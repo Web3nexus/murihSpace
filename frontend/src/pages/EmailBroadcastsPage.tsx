@@ -1,19 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useConfirm } from '@/components/ui/DialogProvider';
-import {
-  Envelope as Envelope,
-  Spinner as Loader2,
-  PaperPlaneRight as Send,
-  PencilSimple as Edit2,
-  Trash as Trash2,
-  Check as Check,
-  Eye as Eye,
-  CursorClick as CursorClick,
-  Plus as Plus,
-  X as X,
-  Clock as Clock,
-  ChartBar as BarChart2
-} from "@phosphor-icons/react";
+import { Message as Envelope, Send, Edit as Edit2, Delete as Trash2, TickSquare as Check, Show as Eye, Plus, CloseSquare as X, TimeCircle as Clock, Chart as BarChart2 } from "@/components/icons";
+import { Spinner as Loader2, CursorClick } from "@phosphor-icons/react";
 import { authFetch } from "@/lib/api/authFetch";
 import { PageSecondaryNav, type PageNavTab } from "@/components/common/PageSecondaryNav";
 
