@@ -438,6 +438,22 @@ class ProfileController extends Controller
             ]);
         }
 
+        // Once an account has upgraded to Creator or Vendor it keeps a business
+        // profile and can no longer fall back to the plain Member profile.
+        if ($targetRole === 'member') {
+            $hasUpgraded = in_array($user->role, ['creator', 'vendor'], true)
+                || \App\Models\AccountRoleHistory::where('user_id', $user->id)
+                    ->where('status', 'approved')
+                    ->whereIn('requested_role', ['creator', 'vendor'])
+                    ->exists();
+
+            if ($hasUpgraded) {
+                return response()->json([
+                    'message' => 'Your account has been upgraded and can no longer switch to a Member profile.',
+                ], 403);
+            }
+        }
+
         // Check if user has approved history or holds unlocked roles
         $hasApprovedRole = \App\Models\AccountRoleHistory::where('user_id', $user->id)
             ->where(function ($q) use ($targetRole) {

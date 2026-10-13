@@ -210,6 +210,7 @@ class AuthController extends Controller
                 'communities_count' => 0,
                 'coins' => 0,
                 'onboarding_completed' => $user->role === 'admin' || $user->creatorProfile?->onboarding_completed_at !== null,
+                'created_at' => $user->created_at?->toISOString(),
             ],
         ], 201);
     }
@@ -356,6 +357,7 @@ class AuthController extends Controller
                 'coins' => $user->systemWallet?->available ?? 0,
                 'onboarding_completed' => $user->role === 'admin' || $user->creatorProfile?->onboarding_completed_at !== null,
                 'username_trial_ends_at' => $user->username_trial_ends_at?->toIso8601String(),
+                'created_at' => $user->created_at?->toISOString(),
             ],
         ]);
     }
@@ -596,6 +598,7 @@ class AuthController extends Controller
                     'avatar_url' => $user->avatar_url ?? $user->avatar,
                     'mobile_number' => $user->mobile_number,
                     'coins' => $user->systemWallet?->available ?? 0,
+                    'created_at' => $user->created_at?->toISOString(),
                 ],
             ]);
         }
@@ -643,6 +646,7 @@ class AuthController extends Controller
                     'avatar_url' => $user->avatar_url ?? $user->avatar,
                     'mobile_number' => $user->mobile_number,
                     'coins' => $user->systemWallet?->available ?? 0,
+                    'created_at' => $user->created_at?->toISOString(),
                 ],
             ]);
         }

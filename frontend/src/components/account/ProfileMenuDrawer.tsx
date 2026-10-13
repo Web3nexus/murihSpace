@@ -214,12 +214,25 @@ export function ProfileMenuDrawer({ open, onOpenChange }: ProfileMenuDrawerProps
     };
   }, [open]);
 
-  const availableModes = new Set<ProfileRole>(["member"]);
+  // A business account that upgraded to Creator/Vendor keeps that profile and
+  // can no longer fall back to the plain Member profile.
+  const upgraded =
+    role === "creator" ||
+    role === "vendor" ||
+    role === "admin" ||
+    history.some(
+      (entry) =>
+        entry.status === "approved" &&
+        (entry.requested_role === "creator" || entry.requested_role === "vendor"),
+    );
+
+  const availableModes = new Set<ProfileRole>();
+  if (!upgraded) availableModes.add("member");
   if (role === "admin") {
     availableModes.add("creator");
     availableModes.add("vendor");
     availableModes.add("admin");
-  } else {
+  } else if (role !== "member") {
     availableModes.add(role);
   }
   for (const entry of history) {

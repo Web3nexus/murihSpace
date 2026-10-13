@@ -106,6 +106,7 @@ class SocialAuthController extends Controller
                 'email_verified' => $user->hasVerifiedEmail(),
                 'link_in_bio_url' => $user->getLinkInBioUrl(),
                 'username_trial_ends_at' => $user->username_trial_ends_at?->toIso8601String(),
+                'created_at' => $user->created_at?->toISOString(),
             ],
         ];
 

@@ -499,6 +499,7 @@ Route::prefix('v1')->group(function () {
                     'active' => $user->hasActiveVerificationBadge(),
                     'expires_at' => $user->verification_badge_expires_at?->toIso8601String(),
                 ],
+                'created_at' => $user->created_at?->toISOString(),
             ]);
         });
 

@@ -89,7 +89,7 @@ export function AdminUsersPage() {
       const j = await res.json();
       const raw = j?.data?.data ?? j?.data ?? [];
       setUsers(Array.isArray(raw) ? raw : []);
-      setLastPage(j.data?.last_page ?? j.data?.data?.last_page ?? 1);
+      setLastPage(j?.last_page ?? j?.data?.last_page ?? j?.data?.data?.last_page ?? 1);
     } catch (e) {
       console.error('Users fetch error:', e);
       setFetchError('Network error loading users.');
@@ -236,7 +236,7 @@ export function AdminUsersPage() {
                       <td className="px-4 py-3 text-muted-foreground uppercase font-bold text-[10px]">{u.country || '-'}</td>
                       <td className="px-4 py-3"><span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${STATUS_COLORS[u.status] ?? ''}`}>{u.status}</span></td>
                       <td className="px-4 py-3"><span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${u.kyc_status === 'verified' ? 'bg-emerald-500/20 text-emerald-400' : u.kyc_status === 'rejected' ? 'bg-rose-500/20 text-rose-400' : 'bg-amber-500/20 text-amber-400'}`}>{u.kyc_status}</span></td>
-                      <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{new Date(u.created_at).toLocaleDateString()}</td>
+                      <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{u.created_at && !isNaN(new Date(u.created_at).getTime()) ? new Date(u.created_at).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }) : '—'}</td>
                       <td className="px-4 py-3">
                         <div className="flex gap-1">
                           {u.role !== 'admin' && u.status === 'active' && (
