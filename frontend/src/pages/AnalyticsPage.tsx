@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useId } from "react";
 import { Link } from "react-router";
 import { Show as Eye, Chat as ChatCircleDots, N2User as Users, Document as FileText, Calendar, ArrowUp, ArrowDown, ArrowDown as CaretDown, Plus, DangerSquare as WarningCircle, TimeCircle as Clock, ArrowRight } from "@/components/icons";
-import { Broadcast, Handshake, Spinner } from "@phosphor-icons/react";
+import { Broadcast, Handshake, Spinner } from "@/components/icons/rounded";;
 import { useAuth } from "@/hooks/useAuth";
 import { authFetch } from "@/lib/api/authFetch";
 import { AnimatedPage } from "@/components/common/AnimatedPage";

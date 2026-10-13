@@ -1,5 +1,5 @@
 import { Discovery as Compass, N2User as Users, Chat as ChatCircleDots, Video as VideoCamera, Video as VideoConference, Location as MapPin, Chat as ChatCircle, Wallet, Profile as UserCircle, ShieldDone as ShieldCheck, Setting as Gear } from "@/components/icons";
-import { Rss, Broadcast, Crown } from "@phosphor-icons/react";
+import { Rss, Broadcast, Crown } from "@/components/icons/rounded";;
 import type { NavGroup } from "./navTypes";
 
 export const memberNav: NavGroup[] = [

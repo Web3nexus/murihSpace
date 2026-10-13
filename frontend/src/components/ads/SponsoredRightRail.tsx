@@ -3,7 +3,7 @@ import { Link } from "react-router";
 import { useAuth } from "@/hooks/useAuth";
 import { apiClient } from "@/lib/api/client";
 import { ShieldDone as SealCheck, MoreCircle as DotsThree, InfoSquare as Info } from "@/components/icons";
-import { ArrowSquareOut, Storefront } from "@phosphor-icons/react";
+import { ArrowSquareOut, Storefront } from "@/components/icons/rounded";;
 
 interface SponsoredAdItem {
   id: string | number;

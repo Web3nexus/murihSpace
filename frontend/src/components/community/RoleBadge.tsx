@@ -1,6 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { ShieldDone as Shield, ShieldFail as ShieldWarning, ShieldDone as BadgeCheck } from "@/components/icons";
-import { Crown, UserCheck } from "@phosphor-icons/react";
+import { Crown, UserCheck } from "@/components/icons/rounded";;
 
 interface RoleBadgeProps {
   role?: string;

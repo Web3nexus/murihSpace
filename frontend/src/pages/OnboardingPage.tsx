@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router";
 import { toast } from "sonner";
 import { Send, Plus, CloseSquare as X, TickSquare as Check, ArrowRight as ChevronRight, ArrowLeft as ChevronLeft, Camera, Video as FilmStrip, Chat as MessageCircle, Bag as ShoppingCart, ArrowRight, Profile as UserIcon, Discovery as Globe } from "@/components/icons";
-import { Spinner as Loader2, MagicWand, MusicNote as Music, Hash, Link as LinkIcon, Palette, DeviceMobile as Smartphone, Storefront, Package, Target } from "@phosphor-icons/react";
+import { Spinner as Loader2, MagicWand, MusicNote as Music, Hash, Link as LinkIcon, Palette, DeviceMobile as Smartphone, Storefront, Package, Target } from "@/components/icons/rounded";;
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MeraIcon } from "@/components/brand/MeraIcon";

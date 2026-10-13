@@ -1,6 +1,6 @@
 import { Plus, ArrowUp as ArrowUpRight, Send as PaperPlaneRight, Scan as QrCode, ShieldDone as ShieldCheck } from "@/components/icons";
 import { Swap as ArrowsLeftRight } from "@/components/icons";
-import { Coins } from "@phosphor-icons/react";
+import { Coins } from "@/components/icons/rounded";;
 
 interface WalletActionToolbarProps {
   walletType: "system" | "creator" | "business";

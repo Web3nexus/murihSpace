@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Graph as TrendingUp, TickSquare as CheckCircle, TimeCircle as Clock } from "@/components/icons";
-import { CurrencyDollar as DollarSign, Spinner as Loader2 } from "@phosphor-icons/react";
+import { CurrencyDollar as DollarSign, Spinner as Loader2 } from "@/components/icons/rounded";;
 import { Badge } from "@/components/ui/badge";
 import { authFetch } from "@/lib/api/authFetch";
 

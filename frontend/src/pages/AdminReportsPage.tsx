@@ -2,7 +2,7 @@ import { getAuthToken } from "@/lib/auth/token";
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router';
 import { Document as FileText, DangerTriangle as AlertTriangle, TickSquare as CheckCircle2, CloseSquare as XCircle, Delete as Trash2, Chat as MessageCircle, Profile as UserIcon } from "@/components/icons";
-import { Spinner as Loader2, Flag, Prohibit } from "@phosphor-icons/react";
+import { Spinner as Loader2, Flag, Prohibit } from "@/components/icons/rounded";;
 import { Button } from '@/components/ui/button';
 import { authFetch } from "@/lib/api/authFetch";
 

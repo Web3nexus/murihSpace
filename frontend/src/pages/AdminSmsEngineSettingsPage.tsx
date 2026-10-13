@@ -1,7 +1,7 @@
 import { getAuthToken } from "@/lib/auth/token";
 import { useEffect, useState } from "react";
 import { Message as ChatText, Download as FloppyDisk, Send, DangerSquare as AlertCircle, TickSquare as CheckCircle2, Show as Eye, Hide as EyeOff, Lock } from "@/components/icons";
-import { Spinner as Loader2, Archive } from "@phosphor-icons/react";
+import { Spinner as Loader2, Archive } from "@/components/icons/rounded";;
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

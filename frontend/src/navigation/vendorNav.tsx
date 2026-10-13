@@ -1,5 +1,5 @@
 import { Ticket as Tag, Bag as ShoppingCart, Chat as ChatCircle, Message as ChatTeardropText, Wallet, Graph as TrendUp, Profile as UserCircle, ShieldDone as ShieldCheck, Setting as Gear } from "@/components/icons";
-import { Package, Warehouse, Storefront, Truck, ArrowUUpLeft, Receipt, CurrencyDollar, Megaphone } from "@phosphor-icons/react";
+import { Package, Warehouse, Storefront, Truck, ArrowUUpLeft, Receipt, CurrencyDollar, Megaphone } from "@/components/icons/rounded";;
 import type { NavGroup } from "./navTypes";
 
 export const vendorNav: NavGroup[] = [

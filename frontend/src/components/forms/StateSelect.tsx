@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { ArrowDown as ChevronDown, Search } from "@/components/icons";
-import { Spinner as Loader2 } from "@phosphor-icons/react";
+import { Spinner as Loader2 } from "@/components/icons/rounded";;
 
 export interface StateItem {
   id: number;

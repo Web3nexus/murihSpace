@@ -10,7 +10,7 @@ import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, ArrowLeft, TickSquare as CheckCircle2, CloseSquare as XCircle, ShieldDone as BadgeCheck, ShieldDone as ShieldCheck, Show as Eye, Hide as EyeOff } from "@/components/icons";
-import { Spinner as Loader2, Crown } from "@phosphor-icons/react";
+import { Spinner as Loader2, Crown } from "@/components/icons/rounded";;
 import { PASSWORD_RULES, validatePassword } from "@/lib/auth/passwordRules";
 
 import { AuthLayout } from "@/components/layout/AuthLayout";

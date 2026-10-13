@@ -6,7 +6,7 @@ import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ShieldFail as ShieldWarning, ShieldDone as ShieldCheck, ArrowLeft, TickSquare as Check } from "@/components/icons";
-import { Spinner as Loader2, DeviceMobile, Copy } from "@phosphor-icons/react";
+import { Spinner as Loader2, DeviceMobile, Copy } from "@/components/icons/rounded";;
 
 type Step = "credentials" | "second-factor" | "enroll-secret" | "enroll-confirm";
 

@@ -21,7 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ShieldDone as ShieldCheck, Lock, Discovery as Globe, Plus, Delete as Trash2, N2User as Users } from "@/components/icons";
-import { CurrencyDollar as DollarSign } from "@phosphor-icons/react";
+import { CurrencyDollar as DollarSign } from "@/components/icons/rounded";;
 import type { Community, CreateCommunityInput } from "@/types/community";
 import { ImageUploader } from "@/components/upload/ImageUploader";
 import { getAuthToken } from "@/lib/auth/token";

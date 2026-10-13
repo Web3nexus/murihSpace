@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { Plus, Swap as RefreshCw, Setting as Sliders, Edit as Pencil, Delete as Trash2 } from "@/components/icons";
-import { Receipt, ToggleLeft, ToggleRight, Spinner } from "@phosphor-icons/react";
+import { Receipt, ToggleLeft, ToggleRight, Spinner } from "@/components/icons/rounded";;
 import { toast } from "sonner";
 import { authFetch } from "@/lib/api/authFetch";
 

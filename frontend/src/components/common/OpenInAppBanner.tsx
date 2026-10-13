@@ -1,6 +1,6 @@
 import * as React from "react";
 import { CloseSquare as X } from "@/components/icons";
-import { DeviceMobile as Smartphone } from "@phosphor-icons/react";
+import { DeviceMobile as Smartphone } from "@/components/icons/rounded";;
 import { Button } from "@/components/ui/button";
 
 interface OpenInAppBannerProps {

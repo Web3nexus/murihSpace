@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Document as FileText, Plus, TickSquare as CheckCircle, Send, Delete as Trash2, DangerSquare as AlertCircle, CloseSquare as X, Download } from "@/components/icons";
-import { Spinner as Loader2, Buildings as Building2, FileXls, CurrencyDollar as DollarSign } from "@phosphor-icons/react";
+import { Spinner as Loader2, Buildings as Building2, FileXls, CurrencyDollar as DollarSign } from "@/components/icons/rounded";;
 import { authFetch } from "@/lib/api/authFetch";
 import { useConfirm } from '@/components/ui/DialogProvider';
 import { StatCard } from '@/components/ui/StatCard';

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, Edit as Pencil, Delete as Trash2, CloseSquare as X, N2User as Users, Wallet as Money, Calendar, Show as Eye, Hide as EyeOff, DangerSquare as AlertCircle, Profile as UserIcon } from "@/components/icons";
-import { Crown, Spinner as Loader2 } from "@phosphor-icons/react";
+import { Crown, Spinner as Loader2 } from "@/components/icons/rounded";;
 import type { SubscriptionPlan, SubscriptionStats, CreatePlanPayload } from '@/types/subscription';
 import { authFetch } from "@/lib/api/authFetch";
 import { useConfirm } from '@/components/ui/DialogProvider';

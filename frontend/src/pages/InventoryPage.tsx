@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { Edit, DangerTriangle as AlertTriangle } from "@/components/icons";
-import { Package, Spinner as Loader2 } from "@phosphor-icons/react";
+import { Package, Spinner as Loader2 } from "@/components/icons/rounded";;
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { authFetch } from "@/lib/api/authFetch";

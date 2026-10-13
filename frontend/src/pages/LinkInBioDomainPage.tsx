@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { Discovery as Globe, TickSquare as CheckCircle2, CloseSquare as XCircle, Swap as RefreshCw } from "@/components/icons";
-import { Spinner as Loader2, ArrowSquareOut as ExternalLink } from "@phosphor-icons/react";
+import { Spinner as Loader2, ArrowSquareOut as ExternalLink } from "@/components/icons/rounded";;
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { authFetch } from "@/lib/api/authFetch";

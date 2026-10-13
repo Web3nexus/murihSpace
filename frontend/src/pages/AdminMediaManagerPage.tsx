@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { Video as FilmStrip, Image as ImageIcon, Swap as RefreshCw, Search, Delete as Trash2, DangerSquare as AlertCircle, TickSquare as CheckCircle2, TimeCircle as Clock } from "@/components/icons";
-import { HardDrive, Spinner as Loader2 } from "@phosphor-icons/react";
+import { HardDrive, Spinner as Loader2 } from "@/components/icons/rounded";;
 import { getAuthToken } from "@/lib/auth/token";
 import { authFetch } from "@/lib/api/authFetch";
 

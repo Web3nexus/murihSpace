@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router';
 import { Notification as Bell, TickSquare as CheckCheck, Message as MessageSquare, AddUser as UserPlus, ShieldFail as ShieldWarning } from "@/components/icons";
-import { ArrowSquareOut as ExternalLink, Lightning as Zap } from "@phosphor-icons/react";
+import { ArrowSquareOut as ExternalLink, Lightning as Zap } from "@/components/icons/rounded";;
 import { formatDistanceToNow } from 'date-fns';
 import type { AppNotification } from '@/types/notification';
 import { getAuthToken } from "@/lib/auth/token";

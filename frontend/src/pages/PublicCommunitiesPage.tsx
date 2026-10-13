@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router";
 import { AnimatedPage } from "@/components/common/AnimatedPage";
 import { Search, N2User as Users, Discovery as Globe, ArrowRight, Profile as UserIcon } from "@/components/icons";
-import { Spinner as Loader2 } from "@phosphor-icons/react";
+import { Spinner as Loader2 } from "@/components/icons/rounded";;
 import { Button } from "@/components/ui/button";
 
 

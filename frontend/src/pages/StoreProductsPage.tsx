@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { getAuthToken } from "@/lib/auth/token";
 import { Link } from "react-router";
 import { Plus, Edit, Delete as Trash2, Show as Eye, Hide as EyeOff, DangerSquare as AlertCircle, Swap as RotateCcw, ShieldDone as ShieldCheck } from "@/components/icons";
-import { Package, Spinner as Loader2, ShareNetwork, ArrowSquareOut } from "@phosphor-icons/react";
+import { Package, Spinner as Loader2, ShareNetwork, ArrowSquareOut } from "@/components/icons/rounded";;
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { authFetch } from "@/lib/api/authFetch";

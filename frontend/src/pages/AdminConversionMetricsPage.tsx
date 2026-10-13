@@ -1,7 +1,7 @@
 import { getAuthToken } from "@/lib/auth/token";
 import { useState, useEffect, useCallback } from "react";
 import { Chart as BarChart3, N2User as Users, Bag as ShoppingCart, Wallet as CreditCard, Swap as Repeat, ArrowRight, DangerSquare as AlertCircle } from "@/components/icons";
-import { Spinner as Loader2 } from "@phosphor-icons/react";
+import { Spinner as Loader2 } from "@/components/icons/rounded";;
 import { authFetch } from "@/lib/api/authFetch";
 
 

@@ -2,7 +2,7 @@ import { getAuthToken } from "@/lib/auth/token";
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router';
 import { N2User as Users, Setting as Settings, ArrowLeft, Swap as RefreshCw, Lock, Discovery as Globe, Notification as Bell } from "@/components/icons";
-import { Spinner as Loader2, CurrencyDollar as DollarSign, BellSlash as BellOff } from "@phosphor-icons/react";
+import { Spinner as Loader2, CurrencyDollar as DollarSign, BellSlash as BellOff } from "@/components/icons/rounded";;
 import { Button } from '@/components/ui/button';
 import CreatePostComposer from '@/components/feed/CreatePostComposer';
 import PostCard from '@/components/feed/PostCard';

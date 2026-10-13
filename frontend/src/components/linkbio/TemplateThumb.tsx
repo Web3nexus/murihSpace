@@ -1,5 +1,5 @@
 import { Camera, Video as FilmStrip, Chat as MessageCircle, Send } from "@/components/icons";
-import { Hash, MusicNote as Music } from "@phosphor-icons/react";
+import { Hash, MusicNote as Music } from "@/components/icons/rounded";;
 import type { TemplateDef } from "@/lib/linkBioTemplates";
 import { pageBackground, buttonRadius } from "@/lib/linkBioTemplates";
 

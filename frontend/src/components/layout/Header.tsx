@@ -1,6 +1,6 @@
 import React from "react";
 import { Notification as Bell, Search, ArrowDown as ChevronDown, Profile as User, Logout as LogOut } from "@/components/icons";
-import { Sun, Moon, CaretUpDown as ChevronsUpDown } from "@phosphor-icons/react";
+import { Sun, Moon, CaretUpDown as ChevronsUpDown } from "@/components/icons/rounded";;
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,

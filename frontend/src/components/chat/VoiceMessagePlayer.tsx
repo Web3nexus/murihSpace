@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Play, Activity as Waveform } from "@/components/icons";
-import { PauseCircle as Pause } from "@phosphor-icons/react";
+import { PauseCircle as Pause } from "@/components/icons/rounded";;
 import { cn } from "@/lib/utils";
 
 interface VoiceMessagePlayerProps {

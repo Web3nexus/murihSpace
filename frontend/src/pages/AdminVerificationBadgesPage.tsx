@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "react-router";
 import { toast } from "sonner";
 import { ShieldDone as BadgeCheck, DangerTriangle as AlertTriangle, TimeCircle as Clock, ArrowLeft as ChevronLeft, ArrowRight as ChevronRight, ShieldDone as Shield, ShieldDone as ShieldCheck } from "@/components/icons";
-import { Faders, Spinner as Loader2 } from "@phosphor-icons/react";
+import { Faders, Spinner as Loader2 } from "@/components/icons/rounded";;
 import { apiClient, type ApiError } from "@/lib/api/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ActionTooltip } from "@/components/ui/action-tooltip";

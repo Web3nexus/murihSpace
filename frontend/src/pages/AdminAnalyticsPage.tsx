@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router";
 import { Chart as BarChart3, Graph as TrendingUp, N2User as Users, Bag as ShoppingBag, Discovery as Globe, Wallet, ShieldDone as ShieldCheck, Swap as RefreshCw, Wallet as CreditCard, ArrowUp as ArrowUpRight, ArrowDown as ArrowDownRight, DangerSquare as AlertCircle } from "@/components/icons";
-import { CurrencyDollar as DollarSign, Crown, Spinner as Loader2, Storefront, Coins, Package } from "@phosphor-icons/react";
+import { CurrencyDollar as DollarSign, Crown, Spinner as Loader2, Storefront, Coins, Package } from "@/components/icons/rounded";;
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, AreaChart, Area,

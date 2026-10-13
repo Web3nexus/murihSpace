@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Show as Eye, Hide as EyeOff, Password as Key, ShieldDone as Shield, DangerSquare as AlertCircle, TickSquare as Check, TickSquare as CheckCheck, Logout as LogOut } from "@/components/icons";
-import { DeviceMobile as Smartphone, Copy, Spinner as Loader2 } from "@phosphor-icons/react";
+import { DeviceMobile as Smartphone, Copy, Spinner as Loader2 } from "@/components/icons/rounded";;
 import { apiClient } from "@/lib/api/client";
 import { PASSWORD_RULES } from "@/lib/auth/passwordRules";
 import { AppDownloadQR } from "@/components/WebLockedPage";

@@ -28,7 +28,7 @@ import {
   SidebarProvider,
 } from "@/components/ui/sidebar"
 import { Notification as BellIcon, Home as HomeIcon, Chat as MessageCircleIcon, Discovery as GlobeIcon, TickSquare as CheckIcon, Video as VideoIcon, Lock as LockIcon, Setting as SettingsIcon } from "@/components/icons";
-import { List as MenuIcon, PaintBrush as PaintbrushIcon, Keyboard as KeyboardIcon, Link as LinkIcon } from "@phosphor-icons/react";
+import { List as MenuIcon, PaintBrush as PaintbrushIcon, Keyboard as KeyboardIcon, Link as LinkIcon } from "@/components/icons/rounded";;
 
 const data = {
   nav: [

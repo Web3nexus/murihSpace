@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Link } from 'react-router';
 import { Video, Calendar, TimeCircle as Clock, N2User as Users, Play, Login as SignIn, ShieldDone as ShieldCheck, DangerSquare as AlertCircle, CloseSquare as X, TickSquare as Check, Discovery as Globe, Profile as UserIcon } from "@/components/icons";
-import { Radio, Spinner as Loader2, UserCheck } from "@phosphor-icons/react";
+import { Radio, Spinner as Loader2, UserCheck } from "@/components/icons/rounded";;
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { LiveKitVideoConference } from "@/components/video/LiveKitVideoConference";

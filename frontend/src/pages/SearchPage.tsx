@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useSearchParams, Link } from "react-router";
 import { Search, N2User as Users, Message as MessageSquare, Document as FileText, Profile as User, Profile as UserIcon } from "@/components/icons";
-import { Spinner as Loader2, Package } from "@phosphor-icons/react";
+import { Spinner as Loader2, Package } from "@/components/icons/rounded";;
 import { authFetch } from "@/lib/api/authFetch";
 
 

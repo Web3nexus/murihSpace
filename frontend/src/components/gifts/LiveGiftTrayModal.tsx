@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { Wallet, Send } from "@/components/icons";
-import { Spinner as Loader2, Sparkle } from "@phosphor-icons/react";
+import { Spinner as Loader2, Sparkle } from "@/components/icons/rounded";;
 import { toast } from "sonner";
 import { apiClient, type ApiError } from "@/lib/api/client";
 import { FeePreviewCard } from "@/components/wallet/FeePreviewCard";

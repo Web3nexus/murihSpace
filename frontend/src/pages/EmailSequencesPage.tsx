@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useConfirm } from '@/components/ui/DialogProvider';
 import { Plus, Delete as Trash2, TimeCircle as Clock, TickSquare as Check, CloseSquare as X, Setting as SlidersHorizontal, Play, Send, ArrowDown } from "@/components/icons";
-import { ListNumbers, Spinner as Loader2, Power } from "@phosphor-icons/react";
+import { ListNumbers, Spinner as Loader2, Power } from "@/components/icons/rounded";;
 import { authFetch } from "@/lib/api/authFetch";
 import { PageSecondaryNav, type PageNavTab } from "@/components/common/PageSecondaryNav";
 

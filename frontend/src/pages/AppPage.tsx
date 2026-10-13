@@ -7,7 +7,7 @@ import { apiClient } from "@/lib/api/client";
 import { timeAgo, mapApiPost, mapApiComments } from "@/lib/feed";
 import { SkeletonFeed } from "@/components/ui/skeletons";
 import { N2User as Users, Plus, Calendar, Chat as MessageCircle, Video, Chart as BarChart2, Heart, MoreCircle as MoreHorizontal, ArrowRight as ChevronRight, Play, ShieldDone as BadgeCheck, Send, TickSquare as Check, CloseSquare as X, ArrowDown as ChevronDown, DangerSquare as AlertCircle, Profile as UserIcon } from "@/components/icons";
-import { Package, ShareNetwork as Share2, Spinner as Loader2, Copy, Rss } from "@phosphor-icons/react";
+import { Package, ShareNetwork as Share2, Spinner as Loader2, Copy, Rss } from "@/components/icons/rounded";;
 import { absolute } from "@/lib/deepLinks";
 
 interface CommentItem {

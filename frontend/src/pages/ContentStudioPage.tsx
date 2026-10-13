@@ -3,7 +3,7 @@ import { Link } from "react-router";
 import { useConfirm } from "@/components/ui/DialogProvider";
 import { useProfile } from "@/hooks/useProfile";
 import { Plus, Edit, Delete as Trash2, Document as FileText, Video, Image as ImageIcon, Star, Heart, Graph as TrendUp, N2User as Users, Show as Eye, Chart as ChartBar, ShieldDone as SealCheck, TickSquare as Check, DangerSquare as WarningCircle, CloseSquare as X, TimeCircle as Clock, Category as SquaresFour } from "@/components/icons";
-import { Spinner as Loader2, MusicNote as Music, Handshake, Broadcast, ShareNetwork } from "@phosphor-icons/react";
+import { Spinner as Loader2, MusicNote as Music, Handshake, Broadcast, ShareNetwork } from "@/components/icons/rounded";;
 import { ImageUploader } from "@/components/upload/ImageUploader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

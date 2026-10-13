@@ -2,7 +2,7 @@ import { authFetch } from "@/lib/api/authFetch";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { ShieldFail as ShieldWarning } from "@/components/icons";
-import { Spinner as Loader2 } from "@phosphor-icons/react";
+import { Spinner as Loader2 } from "@/components/icons/rounded";;
 import { AuthLayout } from "@/components/layout/AuthLayout";
 import { sanitiseReturnTo } from "@/lib/deepLinks";
 import { takeSocialReturn } from "@/lib/usePostAuthRedirect";

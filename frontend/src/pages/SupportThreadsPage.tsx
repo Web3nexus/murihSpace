@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { Message as MessageSquare, Send, DangerSquare as AlertCircle, Plus, ArrowLeft as ChevronLeft, Star, CloseSquare as X, Swap as RotateCcw, TickSquare as CheckCircle2 } from "@/components/icons";
-import { Spinner as Loader2, Paperclip } from "@phosphor-icons/react";
+import { Spinner as Loader2, Paperclip } from "@/components/icons/rounded";;
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { N2User as Users, Search, Download as FloppyDisk, CloseSquare as X, Swap as RefreshCw, DangerSquare as AlertCircle } from "@/components/icons";
-import { Crown, Spinner as Loader2, CurrencyDollar as DollarSign, ToggleLeft, ToggleRight, Percent } from "@phosphor-icons/react";
+import { Crown, Spinner as Loader2, CurrencyDollar as DollarSign, ToggleLeft, ToggleRight, Percent } from "@/components/icons/rounded";;
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { authFetch } from "@/lib/api/authFetch";

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { Discount as Gift } from "@/components/icons";
-import { Trophy, Crown, Spinner as Loader2 } from "@phosphor-icons/react";
+import { Trophy, Crown, Spinner as Loader2 } from "@/components/icons/rounded";;
 import { apiClient } from "@/lib/api/client";
 
 interface TopGifter {

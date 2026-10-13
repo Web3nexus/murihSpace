@@ -7,7 +7,7 @@ import { EmojiRichText } from "@/components/chat/EmojiRichText";
 import { AnimatedEmoji } from "@/components/chat/AnimatedEmoji";
 import { emojiOnlySequence } from "@/lib/emoji";
 import { Video as VideoCamera, Calendar as CalendarBlank, Bag as ShoppingBag, N3User as UsersThree, Profile as User, Chat as ChatCircleText } from "@/components/icons";
-import { Broadcast, Storefront, ArrowSquareOut } from "@phosphor-icons/react";
+import { Broadcast, Storefront, ArrowSquareOut } from "@/components/icons/rounded";;
 
 interface ChatMessageContentProps {
   content: string;

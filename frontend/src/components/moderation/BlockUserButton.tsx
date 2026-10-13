@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { TickSquare as Check } from "@/components/icons";
-import { UserMinus } from "@phosphor-icons/react";
+import { UserMinus } from "@/components/icons/rounded";;
 import { getAuthToken } from "@/lib/auth/token";
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? 'http://localhost:8000/api/v1';

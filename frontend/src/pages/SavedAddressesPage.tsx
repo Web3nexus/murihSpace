@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { Location as MapPin, Plus, Edit, Delete as Trash2, TickSquare as CheckCircle } from "@/components/icons";
-import { Spinner as Loader2 } from "@phosphor-icons/react";
+import { Spinner as Loader2 } from "@/components/icons/rounded";;
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { authFetch } from "@/lib/api/authFetch";

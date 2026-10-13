@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Discount as Gift } from "@/components/icons";
-import { Sparkle, Fire as Flame } from "@phosphor-icons/react";
+import { Sparkle, Fire as Flame } from "@/components/icons/rounded";;
 
 export interface GiftEventPayload {
   sender: {

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ArrowRight, Lock } from "@/components/icons";
-import { Spinner as Loader2 } from "@phosphor-icons/react";
+import { Spinner as Loader2 } from "@/components/icons/rounded";;
 import { toast } from "sonner";
 import { apiClient, type ApiError } from "@/lib/api/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";

@@ -1,6 +1,6 @@
 import { ShieldFail as ShieldWarning, N2User as Users, Chat as MessageCircle, Paper as Scroll, ShieldDone as Shield, ShieldDone as ShieldCheck, Swap as RotateCcw, Discount as Gift, Document as FileText, Activity, Heart as Heartbeat, Graph as TrendingUp, Chart as BarChart3, Graph as ChartLineUp, Setting as Settings, Message as Envelope, Message as EnvelopeOpen, Message as ChatText, Wallet, Password as Key, Wallet as CreditCard } from "@/components/icons";
 import { Swap as ArrowsLeftRight } from "@/components/icons";
-import { UserCheck, UserMinus, Buildings as Building2, Flag, Medal, CurrencyDollar, HardDrive, BookOpen, Link as LinkIcon, Receipt } from "@phosphor-icons/react";
+import { UserCheck, UserMinus, Buildings as Building2, Flag, Medal, CurrencyDollar, HardDrive, BookOpen, Link as LinkIcon, Receipt } from "@/components/icons/rounded";;
 import type { NavGroup } from "./navTypes";
 import { MeraIcon } from "@/components/brand/MeraIcon";
 

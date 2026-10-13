@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Bag as ShoppingCart, Wallet as CreditCard, TickSquare as CheckCircle2, DangerSquare as AlertCircle, Download, Ticket as Tag, Discovery as Globe } from "@/components/icons";
-import { Spinner as Loader2, Package, Lightning as Zap } from "@phosphor-icons/react";
+import { Spinner as Loader2, Package, Lightning as Zap } from "@/components/icons/rounded";;
 import {
   Dialog,
   DialogContent,

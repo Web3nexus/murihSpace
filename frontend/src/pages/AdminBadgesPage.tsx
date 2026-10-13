@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import { ShieldDone as ShieldCheck, Star, N2User as Users, TickSquare as CheckCircle, Plus, Swap as ArrowClockwise, Edit as PencilSimple, AddUser as UserPlus, Search as MagnifyingGlass, CloseSquare as X } from "@/components/icons";
-import { Medal, Trophy, Cube, Crown } from "@phosphor-icons/react";
+import { Medal, Trophy, Cube, Crown } from "@/components/icons/rounded";;
 import { apiClient } from "@/lib/api/client";
 import { Skeleton } from "@/components/ui/skeleton";
 

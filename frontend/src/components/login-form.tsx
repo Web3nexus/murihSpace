@@ -10,7 +10,7 @@ import {
   FieldSeparator,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
-import { Cards as GalleryVerticalEndIcon } from "@phosphor-icons/react";
+import { Cards as GalleryVerticalEndIcon } from "@/components/icons/rounded";;
 import { Link } from "react-router"
 
 export function LoginForm({

@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router';
 import { useConfirm } from '@/components/ui/DialogProvider';
 import { Calendar, TimeCircle as Clock, Video as VideoCamera, Plus, Delete as Trash, TickSquare as Check, CloseSquare as X, Location as MapPin, Wallet as CreditCard, Edit as Pencil, ArrowRight as CaretRight, DangerSquare as WarningCircle, N2User as Users } from "@/components/icons";
-import { Spinner, HandHeart } from "@phosphor-icons/react";
+import { Spinner, HandHeart } from "@/components/icons/rounded";;
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { authFetch } from "@/lib/api/authFetch";

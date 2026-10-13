@@ -4,7 +4,7 @@ import { AnimatedPage } from "@/components/common/AnimatedPage";
 import { CreateCommunityModal } from "@/components/community/CreateCommunityModal";
 import { apiClient } from "@/lib/api/client";
 import { Search, Plus, Setting as Settings, N2User as Users, Discovery as Globe, Discovery as Compass, TimeCircle as Clock, Lock, MoreCircle as MoreHorizontal, Heart, Chat as MessageCircle, ArrowRight as ChevronRight, Profile as UserIcon } from "@/components/icons";
-import { ShareNetwork as Share2 } from "@phosphor-icons/react";
+import { ShareNetwork as Share2 } from "@/components/icons/rounded";;
 import type { Community } from "@/types/community";
 import { absolute, communityUrl } from "@/lib/deepLinks";
 

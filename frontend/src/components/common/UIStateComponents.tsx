@@ -1,7 +1,7 @@
 import React from "react";
 import { DangerSquare as AlertCircle } from "@/components/icons";
 import { ShieldFail as ShieldSlash } from "@/components/icons";
-import { Tray as Inbox, FileMagnifyingGlass } from "@phosphor-icons/react";
+import { Tray as Inbox, FileMagnifyingGlass } from "@/components/icons/rounded";;
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router";
 import { cn } from "@/lib/utils";

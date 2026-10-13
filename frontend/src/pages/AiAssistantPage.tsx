@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Send, Swap as RefreshCw, Graph as TrendingUp, N2User as Users, Document as FileText, Chat as MessageCircle, Bag as ShoppingBag, Message as EnvelopeSimple } from "@/components/icons";
-import { Lightning as Zap, MagicWand, Spinner as Loader2 } from "@phosphor-icons/react";
+import { Lightning as Zap, MagicWand, Spinner as Loader2 } from "@/components/icons/rounded";;
 import { MeraIcon } from "@/components/brand/MeraIcon";
 import { authFetch } from "@/lib/api/authFetch";
 import { useAuth } from "@/hooks/useAuth";

@@ -4,7 +4,7 @@ import { useSearchParams } from 'react-router';
 import { toast } from 'sonner';
 import { N2User as Users, Search, ShieldDone as ShieldCheck, Swap as RotateCcw, DangerSquare as AlertCircle, TickSquare as CheckCircle2, Login as SignIn, ArrowUp, ArrowDown, Download } from "@/components/icons";
 import { ShieldFail as ShieldSlash } from "@/components/icons";
-import { Spinner as Loader2, Prohibit, ArrowsDownUp } from "@phosphor-icons/react";
+import { Spinner as Loader2, Prohibit, ArrowsDownUp } from "@/components/icons/rounded";;
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {

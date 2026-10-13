@@ -1,5 +1,5 @@
 import { Profile as User, Video as VideoCamera } from "@/components/icons";
-import { Buildings } from "@phosphor-icons/react";
+import { Buildings } from "@/components/icons/rounded";;
 
 export type WalletContextType = "system" | "creator" | "business";
 

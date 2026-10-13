@@ -1,5 +1,5 @@
 import { CloseSquare as X } from "@/components/icons";
-import { ArrowUUpLeft as Reply } from "@phosphor-icons/react";
+import { ArrowUUpLeft as Reply } from "@/components/icons/rounded";;
 import type { ChatMessage } from '@/types/chat';
 import { messagePreview } from '@/lib/chatMessages';
 

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Voice as Mic } from "@/components/icons";
-import { MicrophoneSlash as MicOff, Headphones, Spinner as Loader2 } from "@phosphor-icons/react";
+import { MicrophoneSlash as MicOff, Headphones, Spinner as Loader2 } from "@/components/icons/rounded";;
 import { Room, LocalTrackPublication } from 'livekit-client';
 import { getAuthToken } from "@/lib/auth/token";
 

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { Graph as TrendingUp, Document as FileText, Download, Swap as RefreshCw, Plus, ShieldDone as ShieldCheck, Discovery as Globe, Search, ArrowRight as ChevronRight, ArrowLeft as ChevronLeft } from "@/components/icons";
-import { CurrencyDollar as DollarSign, Receipt, Buildings as Building2, Stack as Layers, Percent, Coins, Spinner } from "@phosphor-icons/react";
+import { CurrencyDollar as DollarSign, Receipt, Buildings as Building2, Stack as Layers, Percent, Coins, Spinner } from "@/components/icons/rounded";;
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

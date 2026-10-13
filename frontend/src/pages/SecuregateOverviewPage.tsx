@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Graph as TrendingUp, N2User as Users, Wallet, DangerSquare as AlertCircle, ArrowUp as ArrowUpRight, Swap as RefreshCw } from "@/components/icons";
-import { Coins, UserCheck } from "@phosphor-icons/react";
+import { Coins, UserCheck } from "@/components/icons/rounded";;
 import {
   LineChart, Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis,
   CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell,

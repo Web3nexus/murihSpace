@@ -8,7 +8,7 @@ import { ShareModal } from "@/components/common/ShareModal";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Discovery as Globe, N2User as Users, TickSquare as CheckCircle2, ArrowLeft, DangerTriangle as AlertTriangle, Message as ChatText, Edit as Edit3, Show as Eye } from "@/components/icons";
-import { Storefront, ArrowSquareOut as ExternalLink, Spinner as Loader2, ShareNetwork, Package } from "@phosphor-icons/react";
+import { Storefront, ArrowSquareOut as ExternalLink, Spinner as Loader2, ShareNetwork, Package } from "@/components/icons/rounded";;
 import type { PublicStorefront } from "@/types/storefront";
 import { absolute, storefrontUrl } from "@/lib/deepLinks";
 

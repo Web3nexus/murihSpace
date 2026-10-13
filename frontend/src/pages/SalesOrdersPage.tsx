@@ -1,7 +1,7 @@
 import { getAuthToken } from "@/lib/auth/token";
 import { useState, useEffect, useCallback } from 'react';
 import { Graph as TrendingUp, DangerSquare as AlertCircle } from "@/components/icons";
-import { CurrencyDollar as DollarSign, Package, Spinner as Loader2, Receipt, ArrowSquareOut as ExternalLink } from "@phosphor-icons/react";
+import { CurrencyDollar as DollarSign, Package, Spinner as Loader2, Receipt, ArrowSquareOut as ExternalLink } from "@/components/icons/rounded";;
 import { Button } from '@/components/ui/button';
 import {
   Dialog,

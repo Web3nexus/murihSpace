@@ -1,7 +1,7 @@
 import React from "react";
 import { Link, useLocation } from "react-router";
 import { Home as LayoutDashboard, N2User as Users, Message as MessageSquare, Setting as Settings, ShieldFail as ShieldWarning, ArrowLeft as ChevronLeft, ArrowRight as ChevronRight, Discovery as Compass, Wallet, Heart } from "@/components/icons";
-import { Storefront, Package } from "@phosphor-icons/react";
+import { Storefront, Package } from "@/components/icons/rounded";;
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 

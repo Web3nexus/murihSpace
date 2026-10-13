@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { Link, useSearchParams } from "react-router";
 import { Video as VideoCamera, Calendar, Calendar as CalendarCheck, Search as MagnifyingGlass, Location as MapPin, N2User as Users, TimeCircle as Clock, Plus, Delete as Trash, TickSquare as Check, DangerSquare as WarningCircle, ShieldDone as ShieldCheck, CloseSquare as X, Discovery as Globe, Discovery as Compass, Swap as ArrowsClockwise, Profile as UserIcon, Video as VideoConference } from "@/components/icons";
-import { Radio, Broadcast, Spinner } from "@phosphor-icons/react";
+import { Radio, Broadcast, Spinner } from "@/components/icons/rounded";;
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/hooks/useAuth";

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { Message as ChatText, Plus, Delete as Trash2, Edit, Show as Eye, Hide as EyeOff, TickSquare as Check, DangerSquare as AlertCircle, CloseSquare as X } from "@/components/icons";
-import { Spinner as Loader2 } from "@phosphor-icons/react";
+import { Spinner as Loader2 } from "@/components/icons/rounded";;
 import { Button } from "@/components/ui/button";
 import { authFetch } from "@/lib/api/authFetch";
 import { useConfirm } from "@/components/ui/DialogProvider";

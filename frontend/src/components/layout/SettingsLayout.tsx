@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { NavLink, Outlet } from "react-router";
 import { Profile as User, Wallet, Folder, Notification as Bell, Lock, Discovery as Globe, Star, ArrowRight as ChevronRight, ShieldDone as ShieldCheck, ShieldDone as BadgeCheck, Activity, Swap as RotateCcw, Chat as ChatCircleDots } from "@/components/icons";
-import { DeviceMobile as Smartphone, Sun, Sparkle, Storefront, Question as HelpCircle, CurrencyDollar as DollarSign, Link, Package, Truck } from "@phosphor-icons/react";
+import { DeviceMobile as Smartphone, Sun, Sparkle, Storefront, Question as HelpCircle, CurrencyDollar as DollarSign, Link, Package, Truck } from "@/components/icons/rounded";;
 import { useAuth } from "@/hooks/useAuth";
 import { useTheme } from "@/hooks/useTheme";
 import { apiClient } from "@/lib/api/client";

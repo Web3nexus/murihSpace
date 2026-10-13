@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { Upload, Video as FilmStrip, Image as ImageIcon, DangerSquare as AlertCircle, Swap as RefreshCw } from "@/components/icons";
-import { Spinner as Loader2 } from "@phosphor-icons/react";
+import { Spinner as Loader2 } from "@/components/icons/rounded";;
 import { authFetch } from "@/lib/api/authFetch";
 
 export interface MediaUploadResult {

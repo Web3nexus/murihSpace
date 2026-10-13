@@ -1,7 +1,7 @@
 import { getAuthToken } from "@/lib/auth/token";
 import { useState, useEffect, useCallback } from 'react';
 import { Document as FileText, Plus, Hide as EyeOff, Show as Eye, Delete as Trash2, DangerSquare as AlertCircle, TickSquare as CheckCircle2, Download as FloppyDisk, Send as PaperPlaneTilt, N2User as Users, Calendar as CalendarBlank } from "@/components/icons";
-import { Spinner as Loader2, Megaphone } from "@phosphor-icons/react";
+import { Spinner as Loader2, Megaphone } from "@/components/icons/rounded";;
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {

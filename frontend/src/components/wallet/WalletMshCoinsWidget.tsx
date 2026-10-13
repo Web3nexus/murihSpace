@@ -1,4 +1,4 @@
-import { Coins } from "@phosphor-icons/react";
+import { Coins } from "@/components/icons/rounded";;
 import { Button } from "@/components/ui/button";
 
 interface WalletMshCoinsWidgetProps {

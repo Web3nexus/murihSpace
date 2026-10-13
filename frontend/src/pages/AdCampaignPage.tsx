@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useConfirm } from "@/components/ui/DialogProvider";
 import { toast } from "sonner";
 import { Plus, Show as Eye, Chart as BarChart3, Play, Delete as Trash2, DangerSquare as AlertCircle, TickSquare as Check, Calendar, Discovery as Globe, N2User as Users, Document as FileText, ShieldDone as ShieldCheck, CloseSquare as X, Search, TickSquare as CheckCircle2 } from "@/components/icons";
-import { Megaphone, Spinner as Loader2, CursorClick, CurrencyDollar as DollarSign, Pause, Copy, Radio, ArrowSquareOut, Database } from "@phosphor-icons/react";
+import { Megaphone, Spinner as Loader2, CursorClick, CurrencyDollar as DollarSign, Pause, Copy, Radio, ArrowSquareOut, Database } from "@/components/icons/rounded";;
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";

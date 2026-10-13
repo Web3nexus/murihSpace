@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { AddUser as UserPlus, N2User as Users, TimeCircle as Clock, TickSquare as Check, CloseSquare as X, Search as MagnifyingGlass, Message as ChatTeardropText, N3User as UsersThree, MoreCircle as DotsThree, MoreSquare as DotsThreeVertical, Discount as Gift, Star, Work as Briefcase, Show as Eye, Setting as SlidersHorizontal, Category as SquaresFour, Plus, Delete as Trash, ShieldDone as SealCheck, Heart, Profile as User } from "@/components/icons";
-import { Spinner, UserCheck, UserMinus, Prohibit, Cake, Palette, ListDashes } from "@phosphor-icons/react";
+import { Spinner, UserCheck, UserMinus, Prohibit, Cake, Palette, ListDashes } from "@/components/icons/rounded";;
 import { apiClient } from "@/lib/api/client";
 import { useConfirm } from "@/components/ui/DialogProvider";
 import { Link, useSearchParams } from "react-router";

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useConfirm } from '@/components/ui/DialogProvider';
 import { Plus, N2User as Users, Bag as ShoppingBag, TickSquare as Check, Discount as Gift, Swap as RefreshCw, TickSquare as CheckCircle2 } from "@/components/icons";
-import { Link, Spinner as Loader2, CursorClick, Copy, ArrowSquareOut as ExternalLink, Power } from "@phosphor-icons/react";
+import { Link, Spinner as Loader2, CursorClick, Copy, ArrowSquareOut as ExternalLink, Power } from "@/components/icons/rounded";;
 import { siteUrl } from "@/lib/deepLinks";
 import { authFetch } from "@/lib/api/authFetch";
 

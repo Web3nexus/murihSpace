@@ -14,7 +14,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { Plus as PlusIcon, ShieldFail as ShieldWarning } from "@/components/icons";
-import { CaretUpDown as ChevronsUpDownIcon } from "@phosphor-icons/react";
+import { CaretUpDown as ChevronsUpDownIcon } from "@/components/icons/rounded";;
 
 interface Workspace {
   name: string;

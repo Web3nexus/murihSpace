@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState } from "react";
 import { DangerTriangle as AlertTriangleIcon, CloseSquare as XIcon } from "@/components/icons";
-import { Question as HelpCircleIcon } from "@phosphor-icons/react";
+import { Question as HelpCircleIcon } from "@/components/icons/rounded";;
 
 export interface ConfirmOptions {
   title?: string;

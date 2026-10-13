@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { Profile as UserIcon, Wallet, Folder, Notification as Bell, Lock, Discovery as Globe, Star, ShieldDone as ShieldCheck, ShieldDone as BadgeCheck, Activity as Waveform, Swap as ArrowCounterClockwise, Chat as ChatCircleDots, Bookmark, AddUser as UserPlus, Logout as SignOut, TickSquare as Check } from "@/components/icons";
 import { Swap as ArrowsLeftRight } from "@/components/icons";
-import { DeviceMobile as Smartphone, Sun, Sparkle, Storefront, Question, CurrencyDollar, Link as LinkIcon, Package, Truck } from "@phosphor-icons/react";
+import { DeviceMobile as Smartphone, Sun, Sparkle, Storefront, Question, CurrencyDollar, Link as LinkIcon, Package, Truck } from "@/components/icons/rounded";;
 import { useAuth } from "@/hooks/useAuth";
 import { apiClient } from "@/lib/api/client";
 import {

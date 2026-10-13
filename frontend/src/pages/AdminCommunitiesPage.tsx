@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useConfirm } from '@/components/ui/DialogProvider';
 import { Search, Delete as Trash2, Show as Eye, Discovery as Globe, Lock, DangerSquare as AlertCircle } from "@/components/icons";
-import { Buildings as Building2, Spinner as Loader2 } from "@phosphor-icons/react";
+import { Buildings as Building2, Spinner as Loader2 } from "@/components/icons/rounded";;
 import { toast } from 'sonner';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

@@ -1,7 +1,7 @@
 import { getAuthToken } from "@/lib/auth/token";
 import { useState, useEffect, useCallback } from "react";
 import { Setting as SlidersHorizontal, Video as FilmStrip, N2User as Users, Bag as ShoppingCart, Work as Briefcase, Chart as BarChart3, Message as MessageSquare, Wallet, ShieldDone as Shield, Discovery as Globe, Calendar, Calendar as CalendarCheck, Heart, ShieldDone as ShieldCheck, DangerSquare as AlertCircle, TickSquare as CheckCircle2, Search, Plus, Delete as Trash2, CloseSquare as X, AddUser as UserPlus, Discount as Gift, Graph as ChartLineUp } from "@/components/icons";
-import { Link, Radio, Package, Crown, Megaphone, Robot, BookOpen, Storefront, Flag, Spinner as Loader2, Medal, ShareNetwork, HandCoins, FilePdf } from "@phosphor-icons/react";
+import { Link, Radio, Package, Crown, Megaphone, Robot, BookOpen, Storefront, Flag, Spinner as Loader2, Medal, ShareNetwork, HandCoins, FilePdf } from "@/components/icons/rounded";;
 import { authFetch } from "@/lib/api/authFetch";
 import { refreshFeatureFlags } from "@/hooks/useFeatureFlags";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";

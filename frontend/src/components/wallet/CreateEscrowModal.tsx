@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { ShieldDone as ShieldCheck, Profile as User } from "@/components/icons";
-import { Spinner } from "@phosphor-icons/react";
+import { Spinner } from "@/components/icons/rounded";;
 import { toast } from "sonner";
 import { useNavigate } from "react-router";
 

@@ -1,4 +1,4 @@
-import { Cookie } from "@phosphor-icons/react";
+import { Cookie } from "@/components/icons/rounded";;
 import { LegalLayout } from "@/components/layout/LegalLayout";
 
 export default function CookiesPolicyPage() {

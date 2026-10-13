@@ -4,7 +4,7 @@ import { useConfirm } from '@/components/ui/DialogProvider';
 import { useAuth } from '@/hooks/useAuth';
 import { Link } from 'react-router';
 import { Plus, Search, Edit, Delete as Trash2, TickSquare as Check, DangerSquare as AlertCircle, CloseSquare as X, Show as Eye, Hide as EyeOff, Swap as RotateCcw, ShieldDone as ShieldCheck, TickSquare as CheckCircle2 } from "@/components/icons";
-import { Package, Spinner as Loader2, ShareNetwork, ArrowSquareOut } from "@phosphor-icons/react";
+import { Package, Spinner as Loader2, ShareNetwork, ArrowSquareOut } from "@/components/icons/rounded";;
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MultiImageUploader } from "@/components/upload/ImageUploader";

@@ -1,5 +1,5 @@
 import { Swap as ArrowsLeftRight } from "@/components/icons";
-import { WifiHigh } from "@phosphor-icons/react";
+import { WifiHigh } from "@/components/icons/rounded";;
 
 interface MurihPayDigitalCardProps {
   walletType: "system" | "creator" | "business";

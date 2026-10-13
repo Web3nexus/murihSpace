@@ -1,7 +1,7 @@
 import { getAuthToken } from "@/lib/auth/token";
 import { useState, useEffect, useCallback } from "react";
 import { Search, DangerSquare as AlertCircle } from "@/components/icons";
-import { ClipboardText, Spinner as Loader2 } from "@phosphor-icons/react";
+import { ClipboardText, Spinner as Loader2 } from "@/components/icons/rounded";;
 import { Input } from "@/components/ui/input";
 import { authFetch } from "@/lib/api/authFetch";
 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Call as Phone, Voice as Mic, Video, VolumeUp as SpeakerHigh, VolumeOff as SpeakerSlash, Message as MessageSquare, AddUser as UserPlus, CloseSquare as X, Search, MoreCircle as DotsThree, ArrowDown as CaretDown } from "@/components/icons";
 import { CallSilent as PhoneSlash, Swap as ArrowsLeftRight } from "@/components/icons";
-import { MicrophoneSlash as MicOff, VideoCameraSlash, Spinner, Monitor, CornersOut } from "@phosphor-icons/react";
+import { MicrophoneSlash as MicOff, VideoCameraSlash, Spinner, Monitor, CornersOut } from "@/components/icons/rounded";;
 import {
   Room,
   RoomEvent,

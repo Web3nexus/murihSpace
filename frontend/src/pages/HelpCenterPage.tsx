@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { Link } from "react-router";
 import { Profile as UserCircle, Discount as Gift, Wallet, N2User as Users, Bag as ShoppingBag, ShieldDone as ShieldCheck, Search, Send, ArrowLeft as ChevronLeft, ArrowRight as ChevronRight, CloseSquare as X, Chat as MessageCircle, ArrowUp as ArrowUpRight, ArrowDown as ChevronDown, Swap as RefreshCw } from "@/components/icons";
-import { Rocket, Crown, Spinner as Loader2, List as Menu, BookOpen, ArrowSquareOut as ExternalLink, Question as HelpCircle } from "@phosphor-icons/react";
+import { Rocket, Crown, Spinner as Loader2, List as Menu, BookOpen, ArrowSquareOut as ExternalLink, Question as HelpCircle } from "@/components/icons/rounded";;
 import {
   HELP_CATEGORIES, HELP_ARTICLES, articleBodyText,
 } from "@/data/helpCenter";

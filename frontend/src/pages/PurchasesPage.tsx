@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Download, Document as FileText, Image, Video } from "@/components/icons";
-import { Package, Spinner as Loader2, Headphones, Archive } from "@phosphor-icons/react";
+import { Package, Spinner as Loader2, Headphones, Archive } from "@/components/icons/rounded";;
 import { Button } from '@/components/ui/button';
 import type { Purchase } from '@/types/wallet';
 import { authFetch } from "@/lib/api/authFetch";

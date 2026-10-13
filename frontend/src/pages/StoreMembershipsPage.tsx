@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router";
 import { useConfirm } from "@/components/ui/DialogProvider";
 import { Plus, Edit, Delete as Trash2, N2User as Users, N3User as UsersThree, Chat as ChatCircleDots } from "@/components/icons";
-import { Crown, Spinner as Loader2 } from "@phosphor-icons/react";
+import { Crown, Spinner as Loader2 } from "@/components/icons/rounded";;
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { authFetch } from "@/lib/api/authFetch";

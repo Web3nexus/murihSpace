@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router";
 import { Message as Envelope, Plus, Show as Eye, Discount as Gift, Graph as TrendingUp, TickSquare as Check, DangerSquare as AlertCircle } from "@/components/icons";
-import { Megaphone, Spinner as Loader2, CursorClick, ListNumbers, Link, Target, Tray as Inbox } from "@phosphor-icons/react";
+import { Megaphone, Spinner as Loader2, CursorClick, ListNumbers, Link, Target, Tray as Inbox } from "@/components/icons/rounded";;
 import { Button } from "@/components/ui/button";
 import { authFetch } from "@/lib/api/authFetch";
 import { Skeleton, SkeletonStatsGrid, SkeletonTable } from "@/components/ui/skeletons";

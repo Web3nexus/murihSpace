@@ -1,5 +1,5 @@
 import { Video as VideoCamera } from "@/components/icons";
-import { Headphones } from "@phosphor-icons/react";
+import { Headphones } from "@/components/icons/rounded";;
 import { useNavigate } from "react-router";
 
 export interface EscrowDealItem {

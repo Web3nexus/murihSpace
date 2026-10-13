@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Message as MessageSquare, Image as ImageIcon, Send, CloseSquare as X } from "@/components/icons";
-import { Megaphone, Link } from "@phosphor-icons/react";
+import { Megaphone, Link } from "@/components/icons/rounded";;
 import type { CreatePostPayload, PostType } from '@/types/post';
 
 interface CreatePostComposerProps {

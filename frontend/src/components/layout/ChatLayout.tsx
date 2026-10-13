@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router';
 import { Message as MessageSquare, Search, Send, Bookmark, N2User as Users, ArrowLeft, DangerSquare as AlertCircle, Swap as RotateCcw, MoreSquare as MoreVertical, TickSquare as CheckIcon, TickSquare as CheckCheck, Chat as ChatBubble, AddUser as UserPlus, ShieldDone as Shield, Lock, Delete as Trash, Call as Phone, Video as VideoCamera, Edit as PencilSimple, CloseSquare as X } from "@/components/icons";
-import { Spinner as Loader2, BellSlash as BellOff, Archive, ArrowUUpLeft as Reply, Paperclip, Storefront, Copy } from "@phosphor-icons/react";
+import { Spinner as Loader2, BellSlash as BellOff, Archive, ArrowUUpLeft as Reply, Paperclip, Storefront, Copy } from "@/components/icons/rounded";;
 import { toast } from 'sonner';
 import { safeFormatDistanceToNow, safeFormat } from '@/lib/date';
 import { extractMessages, messagePreview } from '@/lib/chatMessages';
@@ -24,7 +24,7 @@ import { getAuthToken } from "@/lib/auth/token";
 import { playMessageReceivedSound, playMessageSentSound } from '@/lib/sound';
 import { Plus, Video } from "@/components/icons";
 import { Voice as Mic } from "@/components/icons";
-import { Stop as StopIcon } from "@phosphor-icons/react";
+import { Stop as StopIcon } from "@/components/icons/rounded";;
 import { UserAvatar } from '@/components/ui/avatar';
 import { Bubble, BubbleContent } from '@/components/ui/bubble';
 import { Message, MessageAvatar } from '@/components/ui/message';

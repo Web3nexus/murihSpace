@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Plus as PlusIcon, Delete as Trash2Icon, Swap as RefreshCwIcon, ShieldDone as BadgeCheckIcon, N2User as Users } from "@/components/icons";
-import { ShareNetwork as Share2Icon, ArrowSquareOut as ExternalLinkIcon } from "@phosphor-icons/react";
+import { ShareNetwork as Share2Icon, ArrowSquareOut as ExternalLinkIcon } from "@/components/icons/rounded";;
 import { Link } from "react-router";
 import { toast } from "sonner";
 import { useConfirm } from "@/components/ui/DialogProvider";

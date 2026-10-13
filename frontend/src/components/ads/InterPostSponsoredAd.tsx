@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router";
 import { apiClient } from "@/lib/api/client";
 import { ShieldDone as SealCheck, Heart, Chat as ChatCircle, CloseSquare as X, VolumeUp as Volume2, VolumeOff as VolumeX, MoreCircle as DotsThree, InfoSquare as Info } from "@/components/icons";
-import { ShareNetwork, ArrowSquareOut, Megaphone } from "@phosphor-icons/react";
+import { ShareNetwork, ArrowSquareOut, Megaphone } from "@/components/icons/rounded";;
 
 export interface SponsoredAdData {
   id: string | number;

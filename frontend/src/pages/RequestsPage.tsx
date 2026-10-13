@@ -1,7 +1,7 @@
 import { getAuthToken } from "@/lib/auth/token";
 import { useState, useEffect, useCallback } from "react";
 import { AddUser as UserPlus, N2User as Users, TimeCircle as Clock, TickSquare as Check, CloseSquare as X, Search, Login as SignIn, Profile as UserIcon } from "@/components/icons";
-import { Spinner as Loader2, UserCheck, Prohibit } from "@phosphor-icons/react";
+import { Spinner as Loader2, UserCheck, Prohibit } from "@/components/icons/rounded";;
 import { authFetch } from "@/lib/api/authFetch";
 
 

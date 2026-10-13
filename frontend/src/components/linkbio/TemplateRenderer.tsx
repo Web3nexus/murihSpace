@@ -1,5 +1,5 @@
 import { Discovery as Globe, Bag as ShoppingCart, Ticket as Tag, Camera, Video as FilmStrip, Chat as MessageCircle, Send, ArrowRight as ChevronRight } from "@/components/icons";
-import { ArrowSquareOut as ExternalLink, MusicNote as Music, Hash, Link as LinkIcon, Crown } from "@phosphor-icons/react";
+import { ArrowSquareOut as ExternalLink, MusicNote as Music, Hash, Link as LinkIcon, Crown } from "@/components/icons/rounded";;
 import type { LinkBioPageData, LinkBioLinkItem, LinkBioProductItem, LinkBioSocial } from "@/lib/linkBioTypes";
 import { templateBySlug, pageBackground, buttonRadius, fontFamily, avatarRadius } from "@/lib/linkBioTemplates";
 

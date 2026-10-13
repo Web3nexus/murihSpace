@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { Chat as ChatCircleDots, TimeCircle as Clock, Download as FloppyDisk, TickSquare as CheckCircle, Show as Eye } from "@/components/icons";
-import { Sparkle, Moon, Spinner as Loader2, Lightning, Storefront } from "@phosphor-icons/react";
+import { Sparkle, Moon, Spinner as Loader2, Lightning, Storefront } from "@/components/icons/rounded";;
 import { Button } from "@/components/ui/button";
 import { authFetch } from "@/lib/api/authFetch";
 import { useAuth } from "@/hooks/useAuth";

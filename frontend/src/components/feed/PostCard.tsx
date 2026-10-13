@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { Message as MessageSquare, MoreCircle as MoreHorizontal, Heart, ShieldFail as ShieldWarning, ShieldDone as BadgeCheck, Profile as UserIcon } from "@/components/icons";
-import { Link, PushPin, PushPinSlash, Megaphone, Lightning as Zap, ThumbsUp, HandGrabbing, UserMinus } from "@phosphor-icons/react";
+import { Link, PushPin, PushPinSlash, Megaphone, Lightning as Zap, ThumbsUp, HandGrabbing, UserMinus } from "@/components/icons/rounded";;
 import type { Post, ReactionType } from '@/types/post';
 import { ReportModal } from '@/components/moderation/ReportModal';
 import type { ReportedType } from '@/types/moderation';

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Wallet as CreditCard, Swap as RefreshCw, TickSquare as CheckCircle2, CloseSquare as XCircle, DangerTriangle as AlertTriangle, Activity, Plus, Password as Key, ShieldDone as ShieldCheck, Delete as Trash, Edit as PencilSimple, CloseSquare as X, InfoSquare as Info } from "@/components/icons";
-import { Cpu, Shuffle, CurrencyDollar as DollarSign, HardDrives, Lightning as Zap } from "@phosphor-icons/react";
+import { Cpu, Shuffle, CurrencyDollar as DollarSign, HardDrives, Lightning as Zap } from "@/components/icons/rounded";;
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';

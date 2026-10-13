@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { TickSquare as CheckCircle2, CloseSquare as XCircle, Calendar, Profile as UserIcon } from "@/components/icons";
-import { Crown, Spinner as Loader2, Prohibit } from "@phosphor-icons/react";
+import { Crown, Spinner as Loader2, Prohibit } from "@/components/icons/rounded";;
 import type { Subscription } from '@/types/subscription';
 import { formatDistanceToNow } from 'date-fns';
 import { authFetch } from "@/lib/api/authFetch";

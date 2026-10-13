@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { Discount as Gift, Plus, Edit, Delete as Trash2, TickSquare as Check, DangerSquare as AlertCircle, Search as MagnifyingGlass } from "@/components/icons";
-import { Spinner as Loader2, ArrowsVertical, ToggleLeft, ToggleRight } from "@phosphor-icons/react";
+import { Spinner as Loader2, ArrowsVertical, ToggleLeft, ToggleRight } from "@/components/icons/rounded";;
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

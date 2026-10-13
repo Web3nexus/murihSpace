@@ -6,7 +6,7 @@ import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { TickSquare as Check, DangerSquare as AlertCircle, Show as Eye, Hide as EyeOff } from "@/components/icons";
-import { Spinner as Loader2 } from "@phosphor-icons/react";
+import { Spinner as Loader2 } from "@/components/icons/rounded";;
 import { PASSWORD_RULES, validatePassword } from "@/lib/auth/passwordRules";
 
 export function ResetPasswordPage() {

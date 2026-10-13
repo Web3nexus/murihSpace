@@ -1,6 +1,6 @@
 import React, { useState, useRef } from "react";
 import { CloseSquare as X, Upload, Send } from "@/components/icons";
-import { Spinner as Loader2, Sparkle } from "@phosphor-icons/react";
+import { Spinner as Loader2, Sparkle } from "@/components/icons/rounded";;
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { authFetch } from "@/lib/api/authFetch";

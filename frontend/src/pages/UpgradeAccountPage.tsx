@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { Bag as ShoppingBag, TimeCircle as Clock, TickSquare as CheckCircle2, CloseSquare as XCircle, Document as FileText } from "@/components/icons";
-import { Spinner as Loader2 } from "@phosphor-icons/react";
+import { Spinner as Loader2 } from "@/components/icons/rounded";;
 import { toast } from "sonner";
 import { apiClient, type ApiError } from "@/lib/api/client";
 import { useAuth } from "@/hooks/useAuth";

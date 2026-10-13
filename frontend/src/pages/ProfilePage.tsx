@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { TickSquare as CheckCircle2, DangerSquare as AlertCircle, ShieldFail as ShieldWarning, ShieldDone as BadgeCheck, Camera, Download as FloppyDisk, Discovery as Globe, Location as MapPin, Calendar, Profile as User, Show as Eye, Swap as ArrowCounterClockwise, ArrowLeft, Video } from "@/components/icons";
-import { Spinner as Loader2, ShareNetwork as Share2, ArrowSquareOut, DeviceMobile as Smartphone, Copy, Link as LinkIcon, Handshake } from "@phosphor-icons/react";
+import { Spinner as Loader2, ShareNetwork as Share2, ArrowSquareOut, DeviceMobile as Smartphone, Copy, Link as LinkIcon, Handshake } from "@/components/icons/rounded";;
 import { cn } from "@/lib/utils";
 import { ShareModal } from "@/components/common/ShareModal";
 import { authFetch } from "@/lib/api/authFetch";

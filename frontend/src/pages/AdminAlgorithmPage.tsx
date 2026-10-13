@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { Chart as BarChart3, Graph as TrendingUp, Swap as RotateCcw, Play, TickSquare as Check, DangerSquare as AlertCircle, Plus, Delete as Trash2, Document as FileText } from "@/components/icons";
-import { Spinner as Loader2, ToggleLeft, ToggleRight, Square, Flask, Lightning as Zap } from "@phosphor-icons/react";
+import { Spinner as Loader2, ToggleLeft, ToggleRight, Square, Flask, Lightning as Zap } from "@/components/icons/rounded";;
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";

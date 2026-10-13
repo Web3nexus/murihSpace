@@ -1,4 +1,4 @@
-import { Receipt } from "@phosphor-icons/react";
+import { Receipt } from "@/components/icons/rounded";;
 
 interface FeePreviewData {
   gross_amount: number;

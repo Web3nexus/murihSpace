@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
 import { Search, Home, N2User as Users, Document as FileText, Bag as ShoppingBag, Plus, Notification as Bell, Message as MessageSquare, CloseSquare as X, Bag as ShoppingCart, Wallet, Profile as UserCircle, Profile as User, ShieldDone as ShieldCheck, Logout as SignOut, Video as VideoCamera, Chart as ChartBar, Calendar, AddUser as UserPlus } from "@/components/icons";
-import { Package, List, Megaphone, Handshake } from "@phosphor-icons/react";
+import { Package, List, Megaphone, Handshake } from "@/components/icons/rounded";;
 import { useAuth } from "@/hooks/useAuth";
 import { apiClient } from "@/lib/api/client";
 import { getLogo } from "@/lib/logoConfig";

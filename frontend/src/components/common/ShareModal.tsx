@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { TickSquare as Check, Scan as QrCode, Message as EnvelopeSimple, Download as DownloadSimple, CloseSquare as XIcon, Show as Eye } from "@/components/icons";
-import { ShareNetwork, Copy, WhatsappLogo, TwitterLogo, FacebookLogo, LinkedinLogo, TelegramLogo, RedditLogo, LinkSimple, ArrowSquareOut, Code } from "@phosphor-icons/react";
+import { ShareNetwork, Copy, WhatsappLogo, TwitterLogo, FacebookLogo, LinkedinLogo, TelegramLogo, RedditLogo, LinkSimple, ArrowSquareOut, Code } from "@/components/icons/rounded";;
 import { Button } from "@/components/ui/button";
 import { absolute } from "@/lib/deepLinks";
 

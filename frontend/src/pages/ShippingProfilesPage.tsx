@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Plus, Edit, Delete as Trash2, Discovery as Globe } from "@/components/icons";
-import { Truck, Spinner as Loader2 } from "@phosphor-icons/react";
+import { Truck, Spinner as Loader2 } from "@/components/icons/rounded";;
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Plus, Location as MapPin, Delete as Trash2, TickSquare as CheckCircle, Edit } from "@/components/icons";
-import { Spinner as Loader2, Circle } from "@phosphor-icons/react";
+import { Spinner as Loader2, Circle } from "@/components/icons/rounded";;
 import { useConfirm } from '@/components/ui/DialogProvider';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
