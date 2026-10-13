@@ -8,9 +8,11 @@ use App\Models\Message;
 use App\Models\PhysicalProduct;
 use App\Models\Post;
 use App\Models\User;
+use App\Models\UserBlock;
 use App\Services\HashtagService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class SearchController extends Controller
 {
@@ -219,6 +221,11 @@ class SearchController extends Controller
             ->take(12)
             ->get();
 
+        $viewer = $request->user('sanctum');
+        $followingIds = $viewer
+            ? DB::table('follows')->where('follower_id', $viewer->id)->pluck('following_id')->flip()
+            : collect();
+
         $suggestedCreators = $creatorsQuery->map(fn (User $u) => [
             'id' => $u->id,
             'name' => $u->name,
@@ -232,6 +239,7 @@ class SearchController extends Controller
             'posts_count' => $u->posts_count,
             'followers' => $u->followers_count >= 1000 ? round($u->followers_count / 1000, 1) . 'K followers' : "{$u->followers_count} followers",
             'is_verified' => $u->hasActiveVerificationBadge(),
+            'is_following' => $followingIds->has($u->id),
         ]);
 
         $featuredTrending = null;
@@ -344,6 +352,11 @@ class SearchController extends Controller
         $perPage = min(50, max(5, (int) $request->input('per_page', 20)));
         $paginated = $query->paginate($perPage);
 
+        $viewer = $request->user('sanctum');
+        $followingIds = $viewer
+            ? DB::table('follows')->where('follower_id', $viewer->id)->pluck('following_id')->flip()
+            : collect();
+
         return response()->json([
             'creators' => collect($paginated->items())->map(fn (User $u) => [
                 'id' => $u->id,
@@ -358,10 +371,192 @@ class SearchController extends Controller
                 'posts_count' => $u->posts_count,
                 'followers' => $u->followers_count >= 1000 ? round($u->followers_count / 1000, 1) . 'K followers' : "{$u->followers_count} followers",
                 'is_verified' => $u->hasActiveVerificationBadge(),
+                'is_following' => $followingIds->has($u->id),
             ]),
             'current_page' => $paginated->currentPage(),
             'last_page' => $paginated->lastPage(),
             'total' => $paginated->total(),
+        ]);
+    }
+
+    /**
+     * Discover People: combines "People You May Know" (friends of users you follow,
+     * mutual followers, users following you) and "Suggested Creators".
+     */
+    public function people(Request $request): JsonResponse
+    {
+        $viewer = $request->user('sanctum');
+        $userId = $viewer?->id;
+
+        $followingIds = $userId
+            ? DB::table('follows')->where('follower_id', $userId)->pluck('following_id')
+            : collect();
+
+        // Never surface a user in either direction of a block — neither those
+        // the viewer blocked nor those who blocked the viewer.
+        $blockedIds = $userId
+            ? UserBlock::where('blocker_id', $userId)->pluck('blocked_id')
+                ->merge(UserBlock::where('blocked_id', $userId)->pluck('blocker_id'))
+            : collect();
+
+        $excludedIds = collect([$userId])
+            ->filter()
+            ->merge($followingIds)
+            ->merge($blockedIds)
+            ->unique();
+
+        $peopleYouMayKnow = collect();
+
+        if ($userId) {
+            // 1. Friends of people you follow (2nd-degree network)
+            if ($followingIds->isNotEmpty()) {
+                $followedByMyFollowings = DB::table('follows')
+                    ->join('users', 'follows.follower_id', '=', 'users.id')
+                    ->join('users as candidates', 'follows.following_id', '=', 'candidates.id')
+                    ->whereIn('follows.follower_id', $followingIds)
+                    ->where('follows.following_id', '!=', $userId)
+                    ->whereNotIn('follows.following_id', $excludedIds)
+                    ->whereNull('users.deleted_at')
+                    ->where(fn ($q) => $q->whereNull('users.status')->orWhere('users.status', 'active'))
+                    ->where(fn ($q) => $q->whereNull('users.role')->orWhere('users.role', '!=', 'admin'))
+                    ->whereNull('users.admin_role')
+                    ->whereNotIn('follows.follower_id', $blockedIds)
+                    ->whereNull('candidates.deleted_at')
+                    ->where(fn ($q) => $q->whereNull('candidates.status')->orWhere('candidates.status', 'active'))
+                    ->where(fn ($q) => $q->whereNull('candidates.role')->orWhere('candidates.role', '!=', 'admin'))
+                    ->whereNull('candidates.admin_role')
+                    ->select(
+                        'follows.following_id',
+                        DB::raw('count(*) as mutual_count'),
+                        DB::raw('min(users.username) as sample_username')
+                    )
+                    ->groupBy('follows.following_id')
+                    ->orderByDesc('mutual_count')
+                    ->limit(15)
+                    ->get();
+
+                if ($followedByMyFollowings->isNotEmpty()) {
+                    $targetIds = $followedByMyFollowings->pluck('following_id');
+                    $users = User::whereIn('id', $targetIds)
+                        ->whereNull('deleted_at')
+                        ->where(fn ($q) => $q->whereNull('status')->orWhere('status', 'active'))
+                        ->where(fn ($q) => $q->whereNull('role')->orWhere('role', '!=', 'admin'))
+                        ->whereNull('admin_role')
+                        ->withCount(['followers', 'posts'])
+                        ->get()
+                        ->keyBy('id');
+
+                    foreach ($followedByMyFollowings as $row) {
+                        if ($u = $users->get($row->following_id)) {
+                            $sampleUser = $row->sample_username ? "@{$row->sample_username}" : "someone you follow";
+                            $reason = $row->mutual_count > 1
+                                ? "Followed by {$sampleUser} and " . ($row->mutual_count - 1) . " other friends"
+                                : "Followed by {$sampleUser}";
+
+                            $peopleYouMayKnow->push([
+                                'id' => $u->id,
+                                'name' => $u->name,
+                                'username' => $u->username,
+                                'avatar' => $u->avatar,
+                                'avatar_url' => $u->avatar_url ?? $u->avatar,
+                                'bio' => $u->bio,
+                                'role' => $u->role,
+                                'followers_count' => $u->followers_count,
+                                'posts_count' => $u->posts_count,
+                                'followers' => $u->followers_count >= 1000 ? round($u->followers_count / 1000, 1) . 'K followers' : "{$u->followers_count} followers",
+                                'is_verified' => $u->hasActiveVerificationBadge(),
+                                'is_following' => false,
+                                'reason' => $reason,
+                                'type' => 'friend_of_followed',
+                            ]);
+                        }
+                    }
+                }
+            }
+
+            // 2. Users who follow you that you don't follow back
+            $myFollowersNotFollowed = DB::table('follows')
+                ->join('users', 'follows.follower_id', '=', 'users.id')
+                ->where('follows.following_id', $userId)
+                ->where('follows.follower_id', '!=', $userId)
+                ->whereNotIn('follows.follower_id', $excludedIds->merge($peopleYouMayKnow->pluck('id')))
+                ->whereNull('users.deleted_at')
+                ->where(fn ($q) => $q->whereNull('users.status')->orWhere('users.status', 'active'))
+                ->where(fn ($q) => $q->whereNull('users.role')->orWhere('users.role', '!=', 'admin'))
+                ->whereNull('users.admin_role')
+                ->limit(10)
+                ->pluck('follows.follower_id');
+
+            if ($myFollowersNotFollowed->isNotEmpty()) {
+                $followerUsers = User::whereIn('id', $myFollowersNotFollowed)
+                    ->whereNull('deleted_at')
+                    ->where(fn ($q) => $q->whereNull('status')->orWhere('status', 'active'))
+                    ->where(fn ($q) => $q->whereNull('role')->orWhere('role', '!=', 'admin'))
+                    ->whereNull('admin_role')
+                    ->withCount(['followers', 'posts'])
+                    ->get();
+
+                foreach ($followerUsers as $u) {
+                    $peopleYouMayKnow->push([
+                        'id' => $u->id,
+                        'name' => $u->name,
+                        'username' => $u->username,
+                        'avatar' => $u->avatar,
+                        'avatar_url' => $u->avatar_url ?? $u->avatar,
+                        'bio' => $u->bio,
+                        'role' => $u->role,
+                        'followers_count' => $u->followers_count,
+                        'posts_count' => $u->posts_count,
+                        'followers' => $u->followers_count >= 1000 ? round($u->followers_count / 1000, 1) . 'K followers' : "{$u->followers_count} followers",
+                        'is_verified' => $u->hasActiveVerificationBadge(),
+                        'is_following' => false,
+                        'reason' => 'Follows you',
+                        'type' => 'follows_you',
+                    ]);
+                }
+            }
+        }
+
+        // 3. Fallback / Suggested creators (top active creators)
+        $alreadyPicked = $peopleYouMayKnow->pluck('id')->merge($excludedIds);
+
+        $suggestedQuery = User::whereNull('deleted_at')
+            ->where(function ($sub) {
+                $sub->whereNull('role')->orWhere('role', '!=', 'admin');
+            })
+            ->whereNull('admin_role')
+            ->where(function ($sub) {
+                $sub->whereNull('status')->orWhere('status', 'active');
+            })
+            ->whereNotIn('id', $alreadyPicked)
+            ->withCount(['followers', 'posts'])
+            ->orderByDesc('followers_count')
+            ->orderByDesc('posts_count')
+            ->limit(20)
+            ->get();
+
+        $followingFlipped = $followingIds->flip();
+
+        $suggestedCreators = $suggestedQuery->map(fn (User $u) => [
+            'id' => $u->id,
+            'name' => $u->name,
+            'username' => $u->username,
+            'avatar' => $u->avatar,
+            'avatar_url' => $u->avatar_url ?? $u->avatar,
+            'bio' => $u->bio,
+            'role' => $u->role,
+            'followers_count' => $u->followers_count,
+            'posts_count' => $u->posts_count,
+            'followers' => $u->followers_count >= 1000 ? round($u->followers_count / 1000, 1) . 'K followers' : "{$u->followers_count} followers",
+            'is_verified' => $u->hasActiveVerificationBadge(),
+            'is_following' => $followingFlipped->has($u->id),
+            'reason' => 'Popular creator on MurihSpace',
+            'type' => 'suggested_creator',
+        ]);
+
+        return response()->json([
+            'people_you_may_know' => $peopleYouMayKnow->values(),
+            'suggested_creators' => $suggestedCreators->values(),
         ]);
     }
 }

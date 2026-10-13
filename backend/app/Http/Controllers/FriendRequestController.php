@@ -272,7 +272,12 @@ class FriendRequestController extends Controller
             ->limit(100)
             ->get();
 
-        $matched = $matchedUsers->map(function (User $u) use ($userId) {
+        $followingIds = \Illuminate\Support\Facades\DB::table('follows')
+            ->where('follower_id', $userId)
+            ->pluck('following_id')
+            ->flip();
+
+        $matched = $matchedUsers->map(function (User $u) use ($userId, $followingIds) {
             $friendship = FriendRequest::where(function (Builder $q) use ($userId, $u) {
                 $q->where('sender_id', $userId)->where('receiver_id', $u->id);
             })->orWhere(function (Builder $q) use ($userId, $u) {
@@ -302,6 +307,8 @@ class FriendRequestController extends Controller
                 'mutual_friends' => $this->mutualFriendsCount($userId, $u->id),
                 'status' => $status,
                 'is_friend' => $status === 'accepted',
+                'is_following' => $followingIds->has($u->id),
+                'reason' => 'From your contacts',
             ];
         });
 

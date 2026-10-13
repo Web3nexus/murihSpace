@@ -122,7 +122,6 @@ class CallController extends Controller
         // while backgrounded) without an extra round-trip.
         $service = $this->resolveLivekitService();
         $livekitToken = null;
-        $recipientToken = null;
         if ($service) {
             try {
                 $livekitToken = $service->generateToken(
@@ -163,6 +162,54 @@ class CallController extends Controller
         } catch (\Throwable $e) {
             Log::error('[CallController] FCM push failed for user ' . $recipient->id . ': ' . $e->getMessage());
         }
+
+        // PushKit VoIP push (iOS): wakes a fully-killed app so it can ring via
+        // CallKit even when the FCM/notification push was not delivered.
+        //
+        // No LiveKit token is embedded: a push payload passes through APNs and
+        // is persisted on-device, so carrying a joinable room credential would
+        // leak it. The recipient mints its own token from /calls/{id}/accept
+        // once it answers (see PushService cold-start accept flow).
+        //
+        // Deferred so the APNs round-trip (one HTTP/2 request per device) never
+        // delays the 201 the caller needs to start ringing — the fan-out runs
+        // after the response has been sent.
+        $recipientId = $recipient->id;
+        $callId = (string) $call->id;
+        $callerName = $request->user()->name ?? 'Unknown Caller';
+        $callerAvatar = $request->user()->avatar_url ?? '';
+        $isVideo = $callType === 'video' ? 'true' : 'false';
+        $livekitHost = $this->getLivekitHost() ?? '';
+        defer(function () use ($recipientId, $callId, $roomName, $callerName, $callerAvatar, $isVideo, $livekitHost) {
+            try {
+                // The call may have progressed in the moment between the
+                // response and this deferred fan-out (answered, declined, hung
+                // up, missed). Only a call still waiting to ring should wake a
+                // device — anything else would strand the recipient on CallKit.
+                $currentStatus = Call::whereKey($callId)->value('status');
+                if (! in_array($currentStatus, ['connecting', 'ringing'], true)) {
+                    return;
+                }
+
+                \App\Services\FcmService::sendVoipToUser(
+                    $recipientId,
+                    [
+                        'type'          => 'incoming_call',
+                        'id'            => $callId,
+                        'call_id'       => $callId,
+                        'room_name'     => $roomName,
+                        'nameCaller'    => $callerName,
+                        'caller_name'   => $callerName,
+                        'caller_avatar' => $callerAvatar,
+                        'handle'        => 'Murihspace Call',
+                        'isVideo'       => $isVideo,
+                        'livekit_host'  => $livekitHost,
+                    ]
+                );
+            } catch (\Throwable $e) {
+                Log::error('[CallController] VoIP push failed for user ' . $recipientId . ': ' . $e->getMessage());
+            }
+        });
 
         return response()->json([
             'call' => $call,

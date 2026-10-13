@@ -142,6 +142,18 @@ return [
         'private_key' => env('APPLE_PRIVATE_KEY'),
     ],
 
+    // APNs provider credentials for PushKit VoIP pushes (incoming iOS calls).
+    // Distinct from the Sign in with Apple key above. The key file is an APNs
+    // Auth Key (.p8); when `key_path` is omitted it is resolved from the key id
+    // as storage/app/AuthKey_<key_id>.p8.
+    'apns' => [
+        'key_id' => env('APNS_KEY_ID'),
+        'team_id' => env('APNS_TEAM_ID'),
+        'key_path' => env('APNS_KEY_PATH'),
+        'voip_topic' => env('APNS_VOIP_TOPIC', 'com.murihspace.mobile.voip'),
+        'environment' => env('APNS_ENV', 'production'),
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | Phone OTP (Twilio Verify)

@@ -153,6 +153,7 @@ export function DashboardLayout() {
 
   const isAdmin = user?.role === "admin";
   const isAppHome = pathname === "/app" || pathname === "/app/";
+  const hideSidebar = pathname === "/app/profile" || pathname.startsWith("/app/profile/");
 
   if (isAdmin && isAppHome) {
     return <Navigate to="/app/securegate" replace />;
@@ -182,11 +183,13 @@ export function DashboardLayout() {
       <OnboardingBanner />
 
       {/* Social Shell below header: Sidebar + Feed / Page Outlet */}
-      <div className="flex-1 flex w-full max-w-[1920px] mx-auto min-h-0">
-        {/* Left Desktop Sidebar: visible on desktop for all users */}
-        <aside className="w-[240px] xl:w-[260px] shrink-0 hidden md:block sticky top-14 h-[calc(100vh-3.5rem)] overflow-y-auto no-scrollbar py-3 px-2">
-          <AppSidebar />
-        </aside>
+      <div className={`flex-1 flex w-full mx-auto min-h-0 ${hideSidebar ? "" : "max-w-[1920px]"}`}>
+        {/* Left Desktop Sidebar: visible on desktop for all users (hidden on full-width profile) */}
+        {!hideSidebar && (
+          <aside className="w-[240px] xl:w-[260px] shrink-0 hidden md:block sticky top-14 h-[calc(100vh-3.5rem)] overflow-y-auto no-scrollbar py-3 px-2">
+            <AppSidebar />
+          </aside>
+        )}
 
         {/* Main Content Area */}
         <main

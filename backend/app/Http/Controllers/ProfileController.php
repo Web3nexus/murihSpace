@@ -577,11 +577,28 @@ class ProfileController extends Controller
     {
         $request->validate([
             'fcm_token' => 'required|string',
-            'platform' => ['nullable', \Illuminate\Validation\Rule::in(['ios', 'android'])],
+            'platform' => ['nullable', \Illuminate\Validation\Rule::in(['ios', 'android', 'ios_voip'])],
         ]);
 
         $user = $request->user();
         $token = $request->input('fcm_token');
+        $platform = $request->input('platform', '');
+
+        // A PushKit VoIP token is APNs-only and used solely to wake a terminated
+        // iOS app so it can ring via CallKit. Keep it out of the notification
+        // FCM token slot so it never clobbers the regular APNs token.
+        if ($platform === 'ios_voip') {
+            \App\Models\PushToken::where('token', $token)
+                ->where('user_id', '!=', $user->id)
+                ->delete();
+
+            $user->pushTokens()->updateOrCreate(
+                ['token' => $token],
+                ['platform' => 'ios_voip'],
+            );
+
+            return response()->json(['message' => 'VoIP token updated successfully.']);
+        }
 
         $user->update([
             'fcm_token' => $token,

@@ -25,6 +25,7 @@ const AdminLoginPage = lazyWithRetry(() => import("@/pages/AdminLoginPage"), "Ad
 const RegisterPage = lazyWithRetry(() => import("@/pages/RegisterPage"), "RegisterPage");
 const AppPage = lazyWithRetry(() => import("@/pages/AppPage"), "AppPage");
 const ProfilePage = lazyWithRetry(() => import("@/pages/ProfilePage"), "ProfilePage");
+const UserProfilePage = lazyWithRetry(() => import("@/pages/UserProfilePage"), "UserProfilePage");
 const AdminKycPage = lazyWithRetry(() => import("@/pages/AdminKycPage"), "AdminKycPage");
 const NotFoundPage = lazyWithRetry(() => import("@/pages/NotFoundPage"), "NotFoundPage");
 const CommunitiesPage = lazyWithRetry(() => import("@/pages/CommunitiesPage"), "CommunitiesPage");
@@ -246,6 +247,12 @@ export const routes: RouteObject[] = [
       {
         path: "feed",
         element: <Suspense fallback={<PageLoader />}><FeedPage /></Suspense>,
+      },
+
+      // ── Own Profile (full-width, sidebar-hidden view) ──
+      {
+        path: "profile",
+        element: <Suspense fallback={<PageLoader />}><UserProfilePage /></Suspense>,
       },
 
       // ── Search ──────────────────────────────────

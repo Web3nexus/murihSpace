@@ -204,6 +204,136 @@ class FcmService
         return array_values(array_unique($tokens));
     }
 
+    /**
+     * Send a PushKit VoIP push to every iOS device registered for the user.
+     * APNs allows VoIP pushes to wake a terminated app so it can ring via
+     * CallKit — this is the only reliable way to ring an iPhone whose app
+     * has been swiped away.
+     *
+     * @return int number of VoIP tokens the message was dispatched to
+     */
+    public static function sendVoipToUser(int $userId, array $data, bool $highPriority = true): int
+    {
+        $tokens = self::voipTokensForUser($userId);
+        $topic  = (string) config('services.apns.voip_topic', 'com.murihspace.mobile.voip');
+
+        foreach ($tokens as $token) {
+            self::sendVoipToToken($token, $data, $topic, $highPriority);
+        }
+
+        return count($tokens);
+    }
+
+    private static function voipTokensForUser(int $userId): array
+    {
+        return \App\Models\PushToken::where('user_id', $userId)
+            ->where('platform', 'ios_voip')
+            ->pluck('token')
+            ->filter()
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Deliver a PushKit VoIP push straight to APNs.
+     *
+     * FCM's token-based endpoint only accepts FCM registration tokens — a raw
+     * PushKit token is an APNs device token and must be sent to
+     * api.push.apple.com with the `.voip` topic and `apns-push-type: voip`.
+     * Anything else silently fails to ring a terminated iOS app.
+     */
+    private static function sendVoipToToken(string $token, array $data, string $topic, bool $highPriority = true): bool
+    {
+        try {
+            $jwt = self::getApnsJwt();
+            if ($jwt === null) {
+                Log::warning('[APNs] VoIP push skipped — APNs credentials not configured (set APNS_KEY_ID, APNS_TEAM_ID and APNS_KEY_PATH).');
+                return false;
+            }
+
+            // Custom keys ride at the top level for PushKit; CallKit reads them
+            // directly. `aps` carries content-available so the payload is valid.
+            $payload = array_map('strval', $data);
+            $payload['aps'] = ['content-available' => 1];
+
+            $response = Http::withOptions(['version' => 2.0])
+                ->asJson()
+                ->withHeaders([
+                    'authorization'   => 'bearer ' . $jwt,
+                    'apns-topic'      => $topic,
+                    'apns-push-type'  => 'voip',
+                    'apns-priority'   => $highPriority ? '10' : '5',
+                    'apns-expiration' => (string) (time() + 30),
+                ])
+                ->timeout(10)
+                ->post(self::apnsHost() . '/3/device/' . $token, $payload);
+
+            if ($response->failed()) {
+                Log::error('[APNs] VoIP send failed', [
+                    'status' => $response->status(),
+                    'body'   => $response->body(),
+                ]);
+
+                // 410 Gone always means the token is stale. 400 is only a bad
+                // token when APNs says so (`reason: BadDeviceToken`); other 400s
+                // (BadTopic, PayloadTooLarge, ...) must keep the token intact.
+                $isStale = $response->status() === 410
+                    || ($response->status() === 400 && $response->json('reason') === 'BadDeviceToken');
+
+                if ($isStale) {
+                    \App\Models\PushToken::where('token', $token)
+                        ->where('platform', 'ios_voip')
+                        ->delete();
+                }
+
+                return false;
+            }
+
+            return true;
+
+        } catch (\Throwable $e) {
+            Log::error('[APNs] Exception (VoIP): ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Mint (and cache) the provider authentication token APNs expects: an ES256
+     * JWT whose header carries the key id and whose issuer is the team id.
+     */
+    private static function getApnsJwt(): ?string
+    {
+        $keyId   = (string) config('services.apns.key_id');
+        $teamId  = (string) config('services.apns.team_id');
+        $keyPath = (string) config('services.apns.key_path');
+
+        if ($keyPath === '' && $keyId !== '') {
+            $keyPath = storage_path('app/AuthKey_' . $keyId . '.p8');
+        }
+
+        if ($keyId === '' || $teamId === '' || ! is_file($keyPath)) {
+            return null;
+        }
+
+        return Cache::remember('apns_jwt_' . $keyId, now()->addMinutes(50), function () use ($keyId, $teamId, $keyPath) {
+            return \Firebase\JWT\JWT::encode(
+                ['iss' => $teamId, 'iat' => time()],
+                file_get_contents($keyPath),
+                'ES256',
+                $keyId
+            );
+        });
+    }
+
+    private static function apnsHost(): string
+    {
+        $env = strtolower((string) config('services.apns.environment', 'production'));
+
+        return in_array($env, ['sandbox', 'development', 'dev'], true)
+            ? 'https://api.sandbox.push.apple.com'
+            : 'https://api.push.apple.com';
+    }
+
     // ─── Internal helpers ────────────────────────────────────────────────────
 
     private static function getProjectId(): string

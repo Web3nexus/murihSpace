@@ -9,7 +9,7 @@ class PushToken extends Model
 {
     protected $fillable = ['user_id', 'token', 'platform'];
 
-    public const PLATFORMS = ['web', 'ios', 'android'];
+    public const PLATFORMS = ['web', 'ios', 'android', 'ios_voip'];
 
     public function user(): BelongsTo
     {

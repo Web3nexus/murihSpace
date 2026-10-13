@@ -321,11 +321,13 @@ Route::prefix('v1')->group(function () {
     });
 
     Route::get('/feed', [PostController::class, 'globalFeed'])->middleware('cache.public:300');
-    Route::get('/discover/trending', [SearchController::class, 'trending'])->middleware('cache.public:60');
+    // Not publicly cacheable: these embed the viewer-specific `is_following` flag.
+    Route::get('/discover/trending', [SearchController::class, 'trending']);
+    Route::get('/discover/people', [SearchController::class, 'people']);
     Route::get('/discover/hashtags/suggest', [SearchController::class, 'hashtagSuggestions'])->middleware('cache.public:120');
     Route::get('/discover/hashtags/{tag}', [SearchController::class, 'hashtag'])->middleware('cache.public:60');
-    Route::get('/discover/creators', [SearchController::class, 'suggestedCreators'])->middleware('cache.public:60');
-    Route::get('/creators/suggested', [SearchController::class, 'suggestedCreators'])->middleware('cache.public:60');
+    Route::get('/discover/creators', [SearchController::class, 'suggestedCreators']);
+    Route::get('/creators/suggested', [SearchController::class, 'suggestedCreators']);
 
     // Public Storefront Profile Endpoint
     Route::get('/stores/{shortCode}', [StorefrontController::class, 'show'])->middleware('cache.public:600');
