@@ -507,6 +507,7 @@ Route::prefix('v1')->group(function () {
 
         // ── Social Follows & User Relations ──────────────────────────────
         Route::prefix('users/{id}')->group(function () {
+            Route::get('/', [ProfileController::class, 'publicProfileById'])->whereNumber('id');
             Route::post('/follow', [FollowController::class, 'toggleFollow']);
             Route::post('/follow-user', [FollowController::class, 'follow']);
             Route::delete('/follow', [FollowController::class, 'unfollow']);

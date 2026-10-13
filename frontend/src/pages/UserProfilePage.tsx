@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Link } from "react-router";
+import { Link, useParams, useNavigate } from "react-router";
 import { AnimatedPage } from "@/components/common/AnimatedPage";
 import { useAuth } from "@/hooks/useAuth";
-import { useProfile } from "@/hooks/useProfile";
+import { useProfile, type UserProfileData } from "@/hooks/useProfile";
 import { apiClient } from "@/lib/api/client";
 import { mapApiPost, type FeedPost } from "@/lib/feed";
 import { profileUrl } from "@/lib/deepLinks";
@@ -68,21 +68,17 @@ function roleLabel(role?: string): string {
 
 export default function UserProfilePage() {
   const { user } = useAuth();
-  const { profile, loading } = useProfile();
+  const { profile: selfProfile, loading: selfLoading } = useProfile();
+  const { id: routeId } = useParams<{ id?: string }>();
+  const navigate = useNavigate();
 
-  const display = profile;
-  const name = display?.name ?? user?.name ?? "User";
-  const username = display?.username ?? user?.username ?? "user";
-  const role = display?.role ?? user?.role ?? "member";
-  const canUseStudio = role === "creator" || role === "vendor" || role === "admin";
-  const avatar = display?.avatar_url ?? display?.avatar ?? user?.avatar_url ?? user?.avatar ?? "";
-  const banner = display?.banner_url ?? "";
-  const bio = display?.bio ?? "";
-  const location = [display?.state, display?.country].filter(Boolean).join(", ");
-  const joinedYear = display?.created_at
-    ? new Date(display.created_at).getFullYear()
-    : new Date().getFullYear();
-  const verified = Boolean(display?.has_active_verification_badge);
+  const isSelf = !routeId || (user?.id != null && String(user.id) === String(routeId));
+
+  const [otherProfile, setOtherProfile] = useState<UserProfileData | null>(null);
+  const [otherLoading, setOtherLoading] = useState(false);
+  const [otherError, setOtherError] = useState(false);
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [followBusy, setFollowBusy] = useState(false);
 
   const [friends, setFriends] = useState<FriendItem[]>([]);
   const [highlights, setHighlights] = useState<HighlightItem[]>([]);
@@ -100,7 +96,23 @@ export default function UserProfilePage() {
   const [userCommunities, setUserCommunities] = useState<{ id: number; name: string }[]>([]);
   const [selectedCommunityId, setSelectedCommunityId] = useState<number | null>(null);
 
-  const userId = display?.id ?? user?.id;
+  const display = isSelf ? selfProfile : otherProfile;
+  const loading = isSelf ? selfLoading : otherLoading;
+  const name = display?.name ?? (isSelf ? user?.name : undefined) ?? "User";
+  const username = display?.username ?? (isSelf ? user?.username : undefined) ?? "user";
+  const role = display?.role ?? (isSelf ? user?.role : undefined) ?? "member";
+  const canUseStudio = role === "creator" || role === "vendor" || role === "admin";
+  const avatar = display?.avatar_url ?? display?.avatar ?? (isSelf ? (user?.avatar_url ?? user?.avatar) : undefined) ?? "";
+  const banner = display?.banner_url ?? "";
+  const bio = display?.bio ?? "";
+  const location = [display?.state, display?.country].filter(Boolean).join(", ");
+  const joinedYear = display?.created_at
+    ? new Date(display.created_at).getFullYear()
+    : new Date().getFullYear();
+  const verified = Boolean(display?.has_active_verification_badge);
+
+  const userId = isSelf ? (selfProfile?.id ?? user?.id) : otherProfile?.id;
+  const notFound = !isSelf && otherError;
 
   const activeRequestRef = useRef(0);
 
@@ -129,26 +141,65 @@ export default function UserProfilePage() {
     loadTab(activeTab);
   }, [activeTab, loadTab]);
 
+  // Load the viewed user's public profile when this is not the signed-in user.
+  useEffect(() => {
+    if (isSelf || !routeId) {
+      setOtherProfile(null);
+      setOtherError(false);
+      return;
+    }
+    let cancelled = false;
+    setOtherLoading(true);
+    setOtherError(false);
+    apiClient
+      .get(`/users/${encodeURIComponent(routeId)}`)
+      .then((res) => {
+        if (cancelled) return;
+        const data = res.data?.data ?? res.data;
+        if (data && data.id) {
+          setOtherProfile(data as UserProfileData);
+        } else {
+          setOtherProfile(null);
+          setOtherError(true);
+        }
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setOtherProfile(null);
+        setOtherError(true);
+      })
+      .finally(() => {
+        if (!cancelled) setOtherLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isSelf, routeId]);
+
+  // Follow state for the viewed user (self has none).
+  useEffect(() => {
+    if (isSelf || !userId) {
+      setIsFollowing(false);
+      return;
+    }
+    let cancelled = false;
+    apiClient
+      .get(`/users/${userId}/follow-status`)
+      .then((res) => {
+        if (cancelled) return;
+        const data = res.data?.data ?? res.data;
+        setIsFollowing(Boolean(data?.is_following));
+      })
+      .catch(() => {
+        if (!cancelled) setIsFollowing(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isSelf, userId]);
+
   useEffect(() => {
     if (!userId) return;
-    apiClient
-      .get("/friends")
-      .then((res) => {
-        const raw = res.data?.data ?? res.data ?? [];
-        const list = Array.isArray(raw) ? raw : [];
-        setFriends(
-          list
-            .map((f: any) => f.friend ?? f)
-            .filter((f: any) => f && f.id)
-            .map((f: any) => ({
-              id: f.id,
-              name: f.name,
-              username: f.username,
-              avatar: f.avatar_url ?? f.avatar,
-            }))
-        );
-      })
-      .catch(() => setFriends([]));
 
     apiClient
       .get(`/users/${userId}/stories`)
@@ -171,6 +222,32 @@ export default function UserProfilePage() {
       })
       .catch(() => setPhotos([]));
 
+    if (!isSelf) {
+      setFriends([]);
+      setUserCommunities([]);
+      setSelectedCommunityId(null);
+      return;
+    }
+
+    apiClient
+      .get("/friends")
+      .then((res) => {
+        const raw = res.data?.data ?? res.data ?? [];
+        const list = Array.isArray(raw) ? raw : [];
+        setFriends(
+          list
+            .map((f: any) => f.friend ?? f)
+            .filter((f: any) => f && f.id)
+            .map((f: any) => ({
+              id: f.id,
+              name: f.name,
+              username: f.username,
+              avatar: f.avatar_url ?? f.avatar,
+            }))
+        );
+      })
+      .catch(() => setFriends([]));
+
     apiClient
       .get("/my-communities")
       .then((res) => {
@@ -180,7 +257,7 @@ export default function UserProfilePage() {
         if (list.length > 0) setSelectedCommunityId(list[0].id);
       })
       .catch(() => setUserCommunities([]));
-  }, [userId]);
+  }, [userId, isSelf]);
 
   async function handleCreatePost() {
     if (!postText.trim() || !selectedCommunityId) {
@@ -251,15 +328,54 @@ export default function UserProfilePage() {
     }
   }
 
+  async function toggleFollow() {
+    if (!userId || followBusy || isSelf) return;
+    setFollowBusy(true);
+    const next = !isFollowing;
+    setIsFollowing(next);
+    try {
+      await apiClient.post(`/users/${userId}/follow`, {});
+      toast.success(next ? `Following @${username}` : `Unfollowed @${username}`);
+    } catch {
+      setIsFollowing(!next);
+      toast.error("Couldn't update follow.");
+    } finally {
+      setFollowBusy(false);
+    }
+  }
+
   const ActiveTabIcon = TABS.find((t) => t.key === activeTab)?.icon ?? ImageIcon;
 
   const stats = [
     { label: "Posts", value: display?.posts_count ?? 0 },
     { label: "Followers", value: display?.followers_count ?? 0 },
     { label: "Following", value: display?.following_count ?? 0 },
-    { label: "Friends", value: friends.length },
+    ...(isSelf ? [{ label: "Friends", value: friends.length }] : []),
     { label: "Communities", value: display?.communities_count ?? 0 },
   ];
+
+  if (notFound) {
+    return (
+      <AnimatedPage className="w-full min-h-screen bg-[#F1F5F9] dark:bg-black flex items-center justify-center">
+        <div className="text-center space-y-3 px-6">
+          <Users weight="fill" className="h-10 w-10 mx-auto text-muted-foreground/50" />
+          <h1 className="text-lg font-black text-foreground">User not found</h1>
+          <p className="text-sm text-muted-foreground">This account doesn&apos;t exist or is unavailable.</p>
+          <Link to="/app/feed" className="inline-block mt-2 px-4 py-2 rounded-xl bg-[#2164b6] text-white text-sm font-bold">
+            Back to feed
+          </Link>
+        </div>
+      </AnimatedPage>
+    );
+  }
+
+  if (!isSelf && !display) {
+    return (
+      <AnimatedPage className="w-full min-h-screen bg-[#F1F5F9] dark:bg-black flex items-center justify-center">
+        <Loader2 weight="fill" className="h-6 w-6 animate-spin text-[#2164b6]" />
+      </AnimatedPage>
+    );
+  }
 
   return (
     <AnimatedPage className="w-full min-h-screen bg-[#F1F5F9] dark:bg-black">
@@ -325,7 +441,7 @@ export default function UserProfilePage() {
             {bio && <p className="mt-5 text-sm text-foreground/90 leading-relaxed max-w-3xl">{bio}</p>}
 
             {/* Stats */}
-            <div className="mt-5 grid grid-cols-2 sm:grid-cols-5 gap-3">
+            <div className={`mt-5 grid grid-cols-2 ${isSelf ? "sm:grid-cols-5" : "sm:grid-cols-4"} gap-3`}>
               {stats.map((s) => (
                 <div
                   key={s.label}
@@ -341,27 +457,52 @@ export default function UserProfilePage() {
 
             {/* Actions */}
             <div className="mt-5 flex flex-wrap items-center gap-2.5">
-              <Link
-                to="/app/settings/profile"
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#2164b6] hover:bg-[#1a5091] text-white text-sm font-bold transition-colors"
-              >
-                <PencilSimple weight="fill" className="h-4 w-4" /> Edit Profile
-              </Link>
-
-              {canUseStudio && (
+              {isSelf ? (
                 <>
                   <Link
-                    to="/app/studio"
-                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#2164b6]/10 text-[#2164b6] dark:text-[#7ab0ff] hover:bg-[#2164b6]/20 text-sm font-bold transition-colors"
+                    to="/app/settings/profile"
+                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#2164b6] hover:bg-[#1a5091] text-white text-sm font-bold transition-colors"
                   >
-                    <VideoCamera weight="fill" className="h-4 w-4" /> Creator Studio
+                    <PencilSimple weight="fill" className="h-4 w-4" /> Edit Profile
                   </Link>
-                  <Link
-                    to="/app/brand-deals"
-                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#2164b6]/10 text-[#2164b6] dark:text-[#7ab0ff] hover:bg-[#2164b6]/20 text-sm font-bold transition-colors"
+
+                  {canUseStudio && (
+                    <>
+                      <Link
+                        to="/app/studio"
+                        className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#2164b6]/10 text-[#2164b6] dark:text-[#7ab0ff] hover:bg-[#2164b6]/20 text-sm font-bold transition-colors"
+                      >
+                        <VideoCamera weight="fill" className="h-4 w-4" /> Creator Studio
+                      </Link>
+                      <Link
+                        to="/app/brand-deals"
+                        className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#2164b6]/10 text-[#2164b6] dark:text-[#7ab0ff] hover:bg-[#2164b6]/20 text-sm font-bold transition-colors"
+                      >
+                        <Storefront weight="fill" className="h-4 w-4" /> Brand Studio
+                      </Link>
+                    </>
+                  )}
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={toggleFollow}
+                    disabled={followBusy}
+                    className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-colors disabled:opacity-60 ${
+                      isFollowing
+                        ? "bg-[#2164b6]/10 text-[#2164b6] dark:text-[#7ab0ff] hover:bg-[#2164b6]/20"
+                        : "bg-[#2164b6] hover:bg-[#1a5091] text-white"
+                    }`}
                   >
-                    <Storefront weight="fill" className="h-4 w-4" /> Brand Studio
-                  </Link>
+                    {isFollowing ? <Check weight="bold" className="h-4 w-4" /> : <UserPlus weight="fill" className="h-4 w-4" />}
+                    {isFollowing ? "Following" : "Follow"}
+                  </button>
+                  <button
+                    onClick={() => navigate(`/app/messages?user=${userId}`)}
+                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#2164b6]/10 text-[#2164b6] dark:text-[#7ab0ff] hover:bg-[#2164b6]/20 text-sm font-bold transition-colors"
+                  >
+                    <ChatCircle weight="fill" className="h-4 w-4" /> Message
+                  </button>
                 </>
               )}
             </div>
@@ -379,15 +520,17 @@ export default function UserProfilePage() {
                 <span className="text-[11px] text-muted-foreground font-semibold">{highlights.length}</span>
               </div>
               <div className="flex gap-3 overflow-x-auto no-scrollbar pb-1">
-                <button
-                  onClick={() => toast.info("Create a story from the feed.")}
-                  className="flex flex-col items-center gap-1.5 shrink-0"
-                >
-                  <span className="h-16 w-16 rounded-full border-2 border-dashed border-[#2164b6]/50 flex items-center justify-center text-[#2164b6] dark:text-[#7ab0ff]">
-                    <Plus weight="bold" className="h-6 w-6" />
-                  </span>
-                  <span className="text-[11px] font-semibold text-foreground">New</span>
-                </button>
+                {isSelf && (
+                  <button
+                    onClick={() => toast.info("Create a story from the feed.")}
+                    className="flex flex-col items-center gap-1.5 shrink-0"
+                  >
+                    <span className="h-16 w-16 rounded-full border-2 border-dashed border-[#2164b6]/50 flex items-center justify-center text-[#2164b6] dark:text-[#7ab0ff]">
+                      <Plus weight="bold" className="h-6 w-6" />
+                    </span>
+                    <span className="text-[11px] font-semibold text-foreground">New</span>
+                  </button>
+                )}
                 {highlights.map((h) => (
                   <div key={h.id} className="flex flex-col items-center gap-1.5 shrink-0">
                     <span className="h-16 w-16 rounded-full p-[2px] bg-gradient-to-tr from-[#2164b6] to-[#7ab0ff]">
@@ -412,43 +555,45 @@ export default function UserProfilePage() {
               </div>
             </div>
 
-            {/* Friends */}
-            <div className="rounded-2xl bg-white dark:bg-[#0d1117] p-5 shadow-sm ring-1 ring-black/5 dark:ring-white/10">
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="text-sm font-black text-foreground">Friends</h2>
-                <Link to="/app/friends" className="text-[11px] font-bold text-[#2164b6] dark:text-[#7ab0ff] hover:underline">
-                  {friends.length} total
+            {/* Friends (own profile only) */}
+            {isSelf && (
+              <div className="rounded-2xl bg-white dark:bg-[#0d1117] p-5 shadow-sm ring-1 ring-black/5 dark:ring-white/10">
+                <div className="flex items-center justify-between mb-3">
+                  <h2 className="text-sm font-black text-foreground">Friends</h2>
+                  <Link to="/app/friends" className="text-[11px] font-bold text-[#2164b6] dark:text-[#7ab0ff] hover:underline">
+                    {friends.length} total
+                  </Link>
+                </div>
+                {friends.length > 0 ? (
+                  <div className="grid grid-cols-3 gap-3">
+                    {friends.slice(0, 6).map((f) => (
+                      <div key={f.id} className="flex flex-col items-center gap-1.5">
+                        <span className="h-16 w-16 rounded-xl overflow-hidden bg-[#2164b6] flex items-center justify-center">
+                          {f.avatar ? (
+                            <img src={f.avatar} alt="" className="w-full h-full object-cover" />
+                          ) : (
+                            <span className="text-lg font-bold text-white">{(f.name ?? "U").charAt(0).toUpperCase()}</span>
+                          )}
+                        </span>
+                        <span className="text-[11px] font-semibold text-foreground text-center leading-tight line-clamp-2">
+                          {f.name ?? f.username ?? "User"}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Users weight="fill" className="h-4 w-4" /> No friends yet.
+                  </div>
+                )}
+                <Link
+                  to="/app/friends/suggestions"
+                  className="mt-3 inline-flex items-center gap-1.5 text-xs font-bold text-[#2164b6] dark:text-[#7ab0ff] hover:underline"
+                >
+                  <UserPlus weight="fill" className="h-4 w-4" /> Find friends
                 </Link>
               </div>
-              {friends.length > 0 ? (
-                <div className="grid grid-cols-3 gap-3">
-                  {friends.slice(0, 6).map((f) => (
-                    <div key={f.id} className="flex flex-col items-center gap-1.5">
-                      <span className="h-16 w-16 rounded-xl overflow-hidden bg-[#2164b6] flex items-center justify-center">
-                        {f.avatar ? (
-                          <img src={f.avatar} alt="" className="w-full h-full object-cover" />
-                        ) : (
-                          <span className="text-lg font-bold text-white">{(f.name ?? "U").charAt(0).toUpperCase()}</span>
-                        )}
-                      </span>
-                      <span className="text-[11px] font-semibold text-foreground text-center leading-tight line-clamp-2">
-                        {f.name ?? f.username ?? "User"}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <Users weight="fill" className="h-4 w-4" /> No friends yet.
-                </div>
-              )}
-              <Link
-                to="/app/friends/suggestions"
-                className="mt-3 inline-flex items-center gap-1.5 text-xs font-bold text-[#2164b6] dark:text-[#7ab0ff] hover:underline"
-              >
-                <UserPlus weight="fill" className="h-4 w-4" /> Find friends
-              </Link>
-            </div>
+            )}
 
             {/* Photos */}
             <div className="rounded-2xl bg-white dark:bg-[#0d1117] p-5 shadow-sm ring-1 ring-black/5 dark:ring-white/10">
@@ -473,7 +618,8 @@ export default function UserProfilePage() {
 
           {/* RIGHT COLUMN */}
           <div className="space-y-4 order-1 lg:order-2 min-w-0">
-            {/* Composer */}
+            {/* Composer (own profile only) */}
+            {isSelf && (
             <div className="rounded-2xl bg-white dark:bg-[#0d1117] p-4 sm:p-5 shadow-sm ring-1 ring-black/5 dark:ring-white/10">
               <div className="flex items-center gap-3">
                 <span className="h-10 w-10 rounded-full bg-[#2164b6] flex items-center justify-center text-white overflow-hidden shrink-0">
@@ -540,6 +686,7 @@ export default function UserProfilePage() {
                 </div>
               )}
             </div>
+            )}
 
             {/* Tabs + Posts */}
             <div className="rounded-2xl bg-white dark:bg-[#0d1117] shadow-sm ring-1 ring-black/5 dark:ring-white/10 overflow-hidden">

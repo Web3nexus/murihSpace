@@ -249,9 +249,13 @@ export const routes: RouteObject[] = [
         element: <Suspense fallback={<PageLoader />}><FeedPage /></Suspense>,
       },
 
-      // ── Own Profile (full-width, sidebar-hidden view) ──
+      // ── Profile (full-width, sidebar-hidden view) ──
       {
         path: "profile",
+        element: <Suspense fallback={<PageLoader />}><UserProfilePage /></Suspense>,
+      },
+      {
+        path: "profile/:id",
         element: <Suspense fallback={<PageLoader />}><UserProfilePage /></Suspense>,
       },
 

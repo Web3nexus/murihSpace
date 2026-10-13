@@ -492,6 +492,32 @@ class ProfileController extends Controller
             ], 404);
         }
 
+        return response()->json($this->buildPublicProfilePayload($user));
+    }
+
+    /**
+     * Public profile payload addressed by numeric id, used by the in-app
+     * profile view (/app/profile/:id) so it mirrors the public link-in-bio page.
+     */
+    public function publicProfileById(int $id): JsonResponse
+    {
+        $user = \App\Models\User::find($id);
+
+        if (! $user || $user->isAdmin()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'User not found.',
+            ], 404);
+        }
+
+        return response()->json($this->buildPublicProfilePayload($user));
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function buildPublicProfilePayload(\App\Models\User $user): array
+    {
         $publicCommunities = $user->communities()
             ->where('visibility', 'public')
             ->select('communities.id', 'communities.name', 'communities.slug', 'communities.logo_url', 'communities.cover_url', 'communities.description', 'communities.category', 'communities.members_count', 'communities.pricing_type', 'communities.price_amount')
@@ -531,7 +557,7 @@ class ProfileController extends Controller
         $hidePrivateDetails = $isPrivate && ! $isOwnerOrFollower;
         $showContactInfo = (bool) ($user->show_contact_info ?? true);
 
-        return response()->json([
+        return [
             'id' => $user->id,
             'name' => $user->name,
             'username' => $user->username,
@@ -567,7 +593,7 @@ class ProfileController extends Controller
             'public_communities' => $hidePrivateDetails ? [] : $publicCommunities,
             'badges' => $hidePrivateDetails ? [] : $userBadges,
             'created_at' => $user->created_at?->toISOString(),
-        ]);
+        ];
     }
 
     /**
