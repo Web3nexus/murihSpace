@@ -63,7 +63,7 @@ export function SponsoredRightRail() {
   }
 
   return (
-    <aside className="w-[280px] xl:w-[320px] shrink-0 sticky top-16 self-start space-y-4 py-3 select-none">
+    <aside className="w-[280px] xl:w-[320px] shrink-0 sticky top-0 self-start space-y-4 py-3 select-none">
       {/* ── Section Header ── */}
       <div className="flex items-center justify-between px-1">
         <div className="flex items-center gap-1.5">

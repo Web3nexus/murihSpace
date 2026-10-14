@@ -499,8 +499,8 @@ export function CommunitiesPage() {
   };
 
   return (
-    <AnimatedPage className="w-full min-h-screen bg-[#F0F2F5] dark:bg-background">
-      <div className="flex w-full h-[calc(100vh-56px)]">
+    <AnimatedPage className="w-full h-full flex flex-col bg-[#F0F2F5] dark:bg-background">
+      <div className="flex flex-1 min-h-0 w-full">
 
         {/* ── LEFT PANEL ── */}
         <div className="hidden lg:flex w-[340px] shrink-0 bg-[#F8F7F4] dark:bg-card border-r border-border flex-col overflow-y-auto">

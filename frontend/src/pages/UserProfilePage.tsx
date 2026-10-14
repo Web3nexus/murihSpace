@@ -336,7 +336,7 @@ export default function UserProfilePage() {
 
   if (notFound) {
     return (
-      <AnimatedPage className="w-full min-h-screen bg-[#F1F5F9] dark:bg-black flex items-center justify-center">
+      <AnimatedPage className="w-full min-h-screen bg-[#F0F2F5] dark:bg-[#18191A] flex items-center justify-center">
         <div className="text-center space-y-3 px-6">
           <Users weight="fill" className="h-10 w-10 mx-auto text-muted-foreground/50" />
           <h1 className="text-lg font-black text-foreground">User not found</h1>
@@ -351,14 +351,14 @@ export default function UserProfilePage() {
 
   if (!isSelf && !display) {
     return (
-      <AnimatedPage className="w-full min-h-screen bg-[#F1F5F9] dark:bg-black flex items-center justify-center">
+      <AnimatedPage className="w-full min-h-screen bg-[#F0F2F5] dark:bg-[#18191A] flex items-center justify-center">
         <Loader2 weight="fill" className="h-6 w-6 animate-spin text-[#2164b6]" />
       </AnimatedPage>
     );
   }
 
   return (
-    <AnimatedPage className="w-full min-h-screen bg-[#F1F5F9] dark:bg-black">
+    <AnimatedPage className="w-full min-h-screen bg-[#F0F2F5] dark:bg-[#18191A]">
       {/* ── Banner ── */}
       <div className="relative">
         <div className="h-44 sm:h-60 w-full rounded-b-[32px] overflow-hidden bg-gradient-to-r from-[#2164b6] via-[#1a5091] to-[#0d2f5e]">
@@ -372,7 +372,7 @@ export default function UserProfilePage() {
 
       {/* ── Profile Header Section ── */}
       <div className="max-w-[1240px] mx-auto px-4 -mt-16 sm:-mt-20 relative z-10">
-        <div className="rounded-2xl bg-white dark:bg-[#0f1b30] shadow-sm ring-1 ring-black/5 dark:ring-white/10 overflow-hidden">
+        <div className="rounded-2xl bg-white dark:bg-[#242526] shadow-sm ring-1 ring-black/5 dark:ring-white/10 overflow-hidden">
           <div className="h-1.5 w-full bg-gradient-to-r from-[#2164b6] to-[#7ab0ff]" />
           <div className="p-5 sm:p-7">
             <div className="flex flex-col sm:flex-row sm:items-end gap-5">
@@ -425,7 +425,7 @@ export default function UserProfilePage() {
               {stats.map((s) => (
                 <div
                   key={s.label}
-                  className="rounded-xl bg-[#F1F5F9] dark:bg-[#0b1324] px-3 py-3 text-center"
+                  className="rounded-xl bg-[#F0F2F5] dark:bg-[#3A3B3C] px-3 py-3 text-center"
                 >
                   <p className="text-lg font-black text-foreground">
                     {loading ? "—" : s.value.toLocaleString()}
@@ -494,7 +494,7 @@ export default function UserProfilePage() {
           {/* LEFT COLUMN */}
           <div className="space-y-4 order-2 lg:order-1">
             {/* Story Highlights */}
-            <div className="rounded-2xl bg-white dark:bg-[#0d1117] p-5 shadow-sm ring-1 ring-black/5 dark:ring-white/10">
+            <div className="rounded-2xl bg-white dark:bg-[#242526] p-5 shadow-sm ring-1 ring-black/5 dark:ring-white/10">
               <div className="flex items-center justify-between mb-3">
                 <h2 className="text-sm font-black text-foreground">Story Highlights</h2>
                 <span className="text-[11px] text-muted-foreground font-semibold">{highlights.length}</span>
@@ -537,7 +537,7 @@ export default function UserProfilePage() {
 
             {/* Friends (own profile only) */}
             {isSelf && (
-              <div className="rounded-2xl bg-white dark:bg-[#0d1117] p-5 shadow-sm ring-1 ring-black/5 dark:ring-white/10">
+              <div className="rounded-2xl bg-white dark:bg-[#242526] p-5 shadow-sm ring-1 ring-black/5 dark:ring-white/10">
                 <div className="flex items-center justify-between mb-3">
                   <h2 className="text-sm font-black text-foreground">Friends</h2>
                   <Link to="/app/friends" className="text-[11px] font-bold text-[#2164b6] dark:text-[#7ab0ff] hover:underline">
@@ -576,7 +576,7 @@ export default function UserProfilePage() {
             )}
 
             {/* Photos */}
-            <div className="rounded-2xl bg-white dark:bg-[#0d1117] p-5 shadow-sm ring-1 ring-black/5 dark:ring-white/10">
+            <div className="rounded-2xl bg-white dark:bg-[#242526] p-5 shadow-sm ring-1 ring-black/5 dark:ring-white/10">
               <div className="flex items-center justify-between mb-3">
                 <h2 className="text-sm font-black text-foreground">Photos</h2>
               </div>
@@ -600,7 +600,7 @@ export default function UserProfilePage() {
           <div className="space-y-4 order-1 lg:order-2 min-w-0">
             {/* Composer (own profile only) */}
             {isSelf && (
-            <div className="rounded-2xl bg-white dark:bg-[#0d1117] p-4 sm:p-5 shadow-sm ring-1 ring-black/5 dark:ring-white/10">
+            <div className="rounded-2xl bg-white dark:bg-[#242526] p-4 sm:p-5 shadow-sm ring-1 ring-black/5 dark:ring-white/10">
               <div className="flex items-center gap-3">
                 <span className="h-10 w-10 rounded-full bg-[#2164b6] flex items-center justify-center text-white overflow-hidden shrink-0">
                   {avatar ? (
@@ -612,7 +612,7 @@ export default function UserProfilePage() {
                 {!composerOpen ? (
                   <button
                     onClick={() => setComposerOpen(true)}
-                    className="flex-1 text-left rounded-full bg-[#F1F5F9] dark:bg-[#1a2233] hover:bg-[#e6ebf2] dark:hover:bg-[#232d42] transition-colors px-5 py-3 text-sm text-muted-foreground"
+                    className="flex-1 text-left rounded-full bg-[#F0F2F5] dark:bg-[#3A3B3C] hover:bg-[#E4E6EB] dark:hover:bg-[#4E4F50] transition-colors px-5 py-3 text-sm text-muted-foreground"
                   >
                     What's on your mind, {name.split(" ")[0]}?
                   </button>
@@ -628,13 +628,13 @@ export default function UserProfilePage() {
                     onChange={(e) => setPostText(e.target.value)}
                     placeholder="Write your post here..."
                     autoFocus
-                    className="w-full h-28 p-3.5 text-sm rounded-xl bg-[#F1F5F9] dark:bg-[#1a2233] focus:outline-none focus:ring-2 focus:ring-[#2164b6]/40 resize-none text-foreground"
+                    className="w-full h-28 p-3.5 text-sm rounded-xl bg-[#F0F2F5] dark:bg-[#3A3B3C] focus:outline-none focus:ring-2 focus:ring-[#2164b6]/40 resize-none text-foreground"
                   />
                   <div className="flex items-center justify-between gap-3">
                     <select
                       value={selectedCommunityId ?? ""}
                       onChange={(e) => setSelectedCommunityId(Number(e.target.value))}
-                      className="h-9 px-3 rounded-lg bg-[#F1F5F9] dark:bg-[#1a2233] text-xs font-semibold text-foreground focus:outline-none"
+                      className="h-9 px-3 rounded-lg bg-[#F0F2F5] dark:bg-[#3A3B3C] text-xs font-semibold text-foreground focus:outline-none"
                     >
                       {userCommunities.length === 0 && <option value="">No communities</option>}
                       {userCommunities.map((c) => (
@@ -669,7 +669,7 @@ export default function UserProfilePage() {
             )}
 
             {/* Tabs + Posts */}
-            <div className="rounded-2xl bg-white dark:bg-[#0d1117] shadow-sm ring-1 ring-black/5 dark:ring-white/10 overflow-hidden">
+            <div className="rounded-2xl bg-white dark:bg-[#242526] shadow-sm ring-1 ring-black/5 dark:ring-white/10 overflow-hidden">
               <div className="flex items-center border-b border-black/5 dark:border-white/10">
                 {TABS.map((t) => {
                   const Icon = t.icon;

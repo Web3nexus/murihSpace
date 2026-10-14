@@ -118,7 +118,7 @@ export default function AiAssistantPage() {
 
   if (user && user.email_verified === false) {
     return (
-      <div className="flex min-h-[calc(100svh-112px)] items-center justify-center bg-gradient-to-br from-[#F8FAFB] via-white to-[#E8F8FF]/40 dark:from-[#0a1a2a] dark:via-[#0f1f30] dark:to-[#0a1a2a] p-4">
+      <div className="flex min-h-full items-center justify-center bg-[#F0F2F5] dark:bg-[#18191A] p-4">
         <div className="w-full max-w-md border-none rounded-lg bg-card p-5 space-y-5 shadow-lg">
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-[#2164b6] to-[#1a6b9e] flex items-center justify-center  shadow-[#2164b6]/20">
@@ -169,7 +169,7 @@ export default function AiAssistantPage() {
   }
 
   return (
-    <div className="flex h-[calc(100svh-112px)] overflow-hidden bg-gradient-to-br from-[#F8FAFB] via-white to-[#E8F8FF]/40 dark:from-[#0a1a2a] dark:via-[#0f1f30] dark:to-[#0a1a2a]">
+    <div className="flex h-full min-h-0 overflow-hidden bg-[#F0F2F5] dark:bg-[#18191A]">
       <div className="flex flex-col w-full max-w-7xl mx-auto">
         {/* Header */}
         <div className="shrink-0 px-6 pt-6 pb-4 flex items-center justify-between">
@@ -217,7 +217,7 @@ export default function AiAssistantPage() {
                   <button
                     key={s.label}
                     onClick={() => send(s.query)}
-                    className="flex items-center gap-3 px-4 py-3.5 rounded-lg border-none/60 bg-white dark:bg-[#102840]/60 hover:border-[#2164b6]/30 hover:bg-[#2164b6]/5 hover: hover:shadow-[#2164b6]/5 transition-all duration-200 text-left group"
+                    className="flex items-center gap-3 px-4 py-3.5 rounded-lg border-none/60 bg-white dark:bg-[#242526]/60 hover:border-[#2164b6]/30 hover:bg-[#2164b6]/5 hover: hover:shadow-[#2164b6]/5 transition-all duration-200 text-left group"
                   >
                     <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-[#2164b6]/10 to-purple-500/10 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
                       <s.icon className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" />
@@ -244,7 +244,7 @@ export default function AiAssistantPage() {
               <div className={`max-w-[75%] ${m.role === "user" ? "order-first" : ""}`}>
                 <div className={`px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap break-words ${
                   m.role === "assistant"
-                    ? "bg-white dark:bg-[#102840] border-none/50 text-foreground rounded-lg rounded-tl-sm "
+                    ? "bg-white dark:bg-[#242526] border-none/50 text-foreground rounded-lg rounded-tl-sm "
                     : "bg-gradient-to-r from-[#2164b6] to-[#1a5091] text-white rounded-lg rounded-tr-sm  shadow-[#2164b6]/10"
                 }`}>
                   {m.content}
@@ -261,7 +261,7 @@ export default function AiAssistantPage() {
               <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-[#2164b6] to-[#1a6b9e] flex items-center justify-center shrink-0 ">
                 <MeraIcon className="h-4 w-4" />
               </div>
-              <div className="bg-white dark:bg-[#102840] border-none/50 rounded-lg rounded-tl-sm px-4 py-2 ">
+              <div className="bg-white dark:bg-[#242526] border-none/50 rounded-lg rounded-tl-sm px-4 py-2 ">
                 <TypingDots />
               </div>
             </div>
@@ -274,7 +274,7 @@ export default function AiAssistantPage() {
         <div className="shrink-0 px-6 pb-6 pt-2">
           <div className="relative max-w-3xl mx-auto">
             <div className="absolute inset-0 rounded-lg bg-gradient-to-r from-[#2164b6]/5 to-purple-500/5 blur-xl" />
-            <div className="relative flex items-center gap-2 bg-white dark:bg-[#102840] border-none/60 rounded-lg px-4 py-2.5  focus-within:border-[#2164b6]/30 focus-within: focus-within:shadow-[#2164b6]/5 transition-all">
+            <div className="relative flex items-center gap-2 bg-white dark:bg-[#242526] border-none/60 rounded-lg px-4 py-2.5  focus-within:border-[#2164b6]/30 focus-within: focus-within:shadow-[#2164b6]/5 transition-all">
               <input
                 type="text"
                 value={input}

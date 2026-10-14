@@ -27,10 +27,10 @@ const TYPE_ICONS: Record<string, typeof Video> = {
 };
 
 const TYPE_COLORS: Record<string, string> = {
-  video: "bg-rose-500/15 text-rose-500",
-  article: "bg-blue-500/15 text-blue-500",
-  audio: "bg-purple-500/15 text-purple-500",
-  image: "bg-emerald-500/15 text-emerald-500",
+  video: "bg-[#2164b6]/10 text-[#2164b6] dark:bg-[#2164b6]/20 dark:text-[#7ab0ff]",
+  article: "bg-[#2164b6]/10 text-[#2164b6] dark:bg-[#2164b6]/20 dark:text-[#7ab0ff]",
+  audio: "bg-[#2164b6]/10 text-[#2164b6] dark:bg-[#2164b6]/20 dark:text-[#7ab0ff]",
+  image: "bg-[#2164b6]/10 text-[#2164b6] dark:bg-[#2164b6]/20 dark:text-[#7ab0ff]",
 };
 
 export default function ContentStudioPage() {
@@ -200,7 +200,7 @@ export default function ContentStudioPage() {
 
         <div className="flex items-center gap-2.5">
           <Link to="/app/settings/profile">
-            <Button variant="outline" size="sm" className="h-9 gap-1.5 text-xs font-bold rounded-xl">
+            <Button variant="outline" size="sm" className="h-9 gap-1.5 text-xs font-bold rounded-lg">
               <Edit className="h-3.5 w-3.5" />
               <span>Edit Profile</span>
             </Button>
@@ -211,7 +211,7 @@ export default function ContentStudioPage() {
               if (showForm) resetForm();
               else setShowForm(true);
             }}
-            className="h-9 gap-1.5 text-xs font-bold rounded-xl bg-[#1A68D4] hover:bg-[#1A68D4]/90 text-white shadow-sm"
+            className="h-9 gap-1.5 text-xs font-bold rounded-lg bg-[#2164b6] hover:bg-[#2164b6]/90 text-white shadow-sm"
           >
             {showForm ? <X className="h-4 w-4" /> : <Plus weight="bold" className="h-4 w-4" />}
             <span>{showForm ? "Cancel" : "Create Content"}</span>
@@ -220,10 +220,10 @@ export default function ContentStudioPage() {
       </div>
 
       {/* ── CREATOR PROFILE IDENTITY CARD ──────────────────────── */}
-      <div className="rounded-2xl border border-border bg-card p-5 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="rounded-lg border border-border bg-card p-5 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <div className="relative">
-            <div className="h-14 w-14 rounded-full p-0.5 bg-gradient-to-tr from-[#1A68D4] to-blue-400">
+            <div className="h-14 w-14 rounded-full p-0.5 bg-[#2164b6]">
               {avatarUrl ? (
                 <img
                   src={avatarUrl}
@@ -240,10 +240,10 @@ export default function ContentStudioPage() {
           <div>
             <div className="flex items-center gap-1.5">
               <h2 className="text-base font-black text-foreground">{displayName}</h2>
-              <SealCheck weight="fill" className="h-4 w-4 text-[#1A68D4]" />
+              <SealCheck weight="fill" className="h-4 w-4 text-[#2164b6]" />
             </div>
             <p className="text-xs text-muted-foreground font-medium">@{username}</p>
-            <div className="mt-1.5 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#1A68D4]/10 text-[#1A68D4] text-[11px] font-bold">
+            <div className="mt-1.5 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#2164b6]/10 text-[#2164b6] text-[11px] font-bold">
               <Star weight="fill" className="h-3 w-3" />
               <span>Creator Account</span>
             </div>
@@ -268,7 +268,7 @@ export default function ContentStudioPage() {
       {/* ── NOTIFICATIONS FEEDBACK ──────────────────────────────── */}
       {msg && (
         <div
-          className={`flex items-center justify-between gap-3 p-3.5 rounded-xl text-xs font-semibold border ${
+          className={`flex items-center justify-between gap-3 p-3.5 rounded-lg text-xs font-semibold border ${
             msg.ok
               ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400"
               : "bg-destructive/10 border-destructive/20 text-destructive"
@@ -285,7 +285,7 @@ export default function ContentStudioPage() {
       )}
 
       {error && (
-        <div className="flex items-center justify-between gap-3 p-3.5 rounded-xl text-xs font-semibold border bg-destructive/10 border-destructive/20 text-destructive">
+        <div className="flex items-center justify-between gap-3 p-3.5 rounded-lg text-xs font-semibold border bg-destructive/10 border-destructive/20 text-destructive">
           <div className="flex items-center gap-2">
             <WarningCircle className="h-4 w-4" />
             <span>{error}</span>
@@ -300,7 +300,7 @@ export default function ContentStudioPage() {
       {showForm && (
         <form
           onSubmit={handleSave}
-          className="rounded-2xl border border-border bg-card p-5 space-y-4 shadow-sm animate-in fade-in"
+          className="rounded-lg border border-border bg-card p-5 space-y-4 shadow-sm animate-in fade-in"
         >
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-bold text-foreground">
@@ -318,7 +318,7 @@ export default function ContentStudioPage() {
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="e.g. Masterclass Episode 1: Building Audience"
-                className="h-10 text-xs rounded-xl"
+                className="h-10 text-xs rounded-lg"
                 required
               />
             </div>
@@ -328,7 +328,7 @@ export default function ContentStudioPage() {
               <select
                 value={contentType}
                 onChange={(e) => setContentType(e.target.value as ContentItem["type"])}
-                className="h-10 w-full rounded-xl border border-input bg-background px-3 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-[#1A68D4]"
+                className="h-10 w-full rounded-lg border border-input bg-background px-3 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-[#2164b6]"
               >
                 <option value="video">Video / Reel</option>
                 <option value="article">Article / Post</option>
@@ -348,14 +348,14 @@ export default function ContentStudioPage() {
           </div>
 
           <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="outline" size="sm" onClick={resetForm} className="h-9 text-xs rounded-xl">
+            <Button type="button" variant="outline" size="sm" onClick={resetForm} className="h-9 text-xs rounded-lg">
               Cancel
             </Button>
             <Button
               type="submit"
               size="sm"
               disabled={saving}
-              className="h-9 text-xs font-bold rounded-xl bg-[#1A68D4] hover:bg-[#1A68D4]/90 text-white"
+              className="h-9 text-xs font-bold rounded-lg bg-[#2164b6] hover:bg-[#2164b6]/90 text-white"
             >
               {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : editing ? "Save Changes" : "Publish Content"}
             </Button>
@@ -373,10 +373,10 @@ export default function ContentStudioPage() {
         </div>
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
-          <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
+          <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold text-muted-foreground">Followers</span>
-              <div className="p-1.5 rounded-lg bg-blue-500/10 text-blue-500">
+              <div className="p-1.5 rounded-lg bg-[#2164b6]/10 text-[#2164b6] dark:bg-[#2164b6]/20 dark:text-[#7ab0ff]">
                 <Users weight="bold" className="h-4 w-4" />
               </div>
             </div>
@@ -386,10 +386,10 @@ export default function ContentStudioPage() {
             <span className="text-[10px] font-semibold text-emerald-500 mt-0.5 block">+0% growth</span>
           </div>
 
-          <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
+          <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold text-muted-foreground">Views</span>
-              <div className="p-1.5 rounded-lg bg-purple-500/10 text-purple-500">
+              <div className="p-1.5 rounded-lg bg-[#2164b6]/10 text-[#2164b6] dark:bg-[#2164b6]/20 dark:text-[#7ab0ff]">
                 <Eye weight="bold" className="h-4 w-4" />
               </div>
             </div>
@@ -399,10 +399,10 @@ export default function ContentStudioPage() {
             <span className="text-[10px] font-semibold text-muted-foreground mt-0.5 block">Total impressions</span>
           </div>
 
-          <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
+          <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold text-muted-foreground">Engagement</span>
-              <div className="p-1.5 rounded-lg bg-pink-500/10 text-pink-500">
+              <div className="p-1.5 rounded-lg bg-[#2164b6]/10 text-[#2164b6] dark:bg-[#2164b6]/20 dark:text-[#7ab0ff]">
                 <Heart weight="bold" className="h-4 w-4" />
               </div>
             </div>
@@ -410,10 +410,10 @@ export default function ContentStudioPage() {
             <span className="text-[10px] font-semibold text-muted-foreground mt-0.5 block">Interaction rate</span>
           </div>
 
-          <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
+          <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold text-muted-foreground">Earnings</span>
-              <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-500">
+              <div className="p-1.5 rounded-lg bg-[#2164b6]/10 text-[#2164b6] dark:bg-[#2164b6]/20 dark:text-[#7ab0ff]">
                 <TrendUp weight="bold" className="h-4 w-4" />
               </div>
             </div>
@@ -432,9 +432,9 @@ export default function ContentStudioPage() {
             resetForm();
             setShowForm(true);
           }}
-          className="flex items-center gap-3 p-3.5 rounded-2xl border border-border bg-card hover:bg-muted/50 transition text-left group shadow-sm"
+          className="flex items-center gap-3 p-3.5 rounded-lg border border-border bg-card hover:bg-muted/50 transition text-left group shadow-sm"
         >
-          <div className="h-10 w-10 rounded-xl bg-[#1A68D4]/10 text-[#1A68D4] flex items-center justify-center shrink-0 group-hover:scale-105 transition">
+          <div className="h-10 w-10 rounded-lg bg-[#2164b6]/10 text-[#2164b6] flex items-center justify-center shrink-0 group-hover:scale-105 transition">
             <Plus weight="bold" className="h-5 w-5" />
           </div>
           <div>
@@ -445,9 +445,9 @@ export default function ContentStudioPage() {
 
         <Link
           to="/app/events"
-          className="flex items-center gap-3 p-3.5 rounded-2xl border border-border bg-card hover:bg-muted/50 transition text-left group shadow-sm"
+          className="flex items-center gap-3 p-3.5 rounded-lg border border-border bg-card hover:bg-muted/50 transition text-left group shadow-sm"
         >
-          <div className="h-10 w-10 rounded-xl bg-rose-500/10 text-rose-500 flex items-center justify-center shrink-0 group-hover:scale-105 transition">
+          <div className="h-10 w-10 rounded-lg bg-[#2164b6]/10 text-[#2164b6] dark:bg-[#2164b6]/20 dark:text-[#7ab0ff] flex items-center justify-center shrink-0 group-hover:scale-105 transition">
             <Broadcast weight="fill" className="h-5 w-5" />
           </div>
           <div>
@@ -458,9 +458,9 @@ export default function ContentStudioPage() {
 
         <Link
           to="/app/brand-deals"
-          className="flex items-center gap-3 p-3.5 rounded-2xl border border-border bg-card hover:bg-muted/50 transition text-left group shadow-sm"
+          className="flex items-center gap-3 p-3.5 rounded-lg border border-border bg-card hover:bg-muted/50 transition text-left group shadow-sm"
         >
-          <div className="h-10 w-10 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center shrink-0 group-hover:scale-105 transition">
+          <div className="h-10 w-10 rounded-lg bg-[#2164b6]/10 text-[#2164b6] dark:bg-[#2164b6]/20 dark:text-[#7ab0ff] flex items-center justify-center shrink-0 group-hover:scale-105 transition">
             <Handshake weight="fill" className="h-5 w-5" />
           </div>
           <div>
@@ -471,9 +471,9 @@ export default function ContentStudioPage() {
 
         <Link
           to="/app/insights"
-          className="flex items-center gap-3 p-3.5 rounded-2xl border border-border bg-card hover:bg-muted/50 transition text-left group shadow-sm"
+          className="flex items-center gap-3 p-3.5 rounded-lg border border-border bg-card hover:bg-muted/50 transition text-left group shadow-sm"
         >
-          <div className="h-10 w-10 rounded-xl bg-purple-500/10 text-purple-500 flex items-center justify-center shrink-0 group-hover:scale-105 transition">
+          <div className="h-10 w-10 rounded-lg bg-[#2164b6]/10 text-[#2164b6] dark:bg-[#2164b6]/20 dark:text-[#7ab0ff] flex items-center justify-center shrink-0 group-hover:scale-105 transition">
             <ChartBar weight="fill" className="h-5 w-5" />
           </div>
           <div>
@@ -484,11 +484,11 @@ export default function ContentStudioPage() {
       </div>
 
       {/* ── CONSISTENCY GROWTH BANNER CARD ─────────────────────── */}
-      <div className="rounded-2xl border border-[#1A68D4]/20 bg-gradient-to-r from-[#1A68D4]/10 via-blue-500/5 to-transparent p-5 shadow-sm">
+      <div className="rounded-lg border border-border bg-card p-5 shadow-sm">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <TrendUp weight="bold" className="h-4 w-4 text-[#1A68D4]" />
+              <TrendUp weight="bold" className="h-4 w-4 text-[#2164b6]" />
               <h3 className="text-sm font-black text-foreground">Grow faster with consistency</h3>
             </div>
             <p className="text-xs text-muted-foreground max-w-xl">
@@ -499,10 +499,10 @@ export default function ContentStudioPage() {
           <div className="w-full sm:w-48 space-y-1.5 shrink-0">
             <div className="flex items-center justify-between text-xs font-bold">
               <span className="text-muted-foreground">Weekly Target</span>
-              <span className="text-[#1A68D4]">2 / 3 posts</span>
+              <span className="text-[#2164b6]">2 / 3 posts</span>
             </div>
             <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
-              <div className="h-full bg-[#1A68D4] rounded-full w-[66%]" />
+              <div className="h-full bg-[#2164b6] rounded-full w-[66%]" />
             </div>
           </div>
         </div>
@@ -517,9 +517,9 @@ export default function ContentStudioPage() {
               resetForm();
               setShowForm(true);
             }}
-            className="flex items-start gap-3 p-4 rounded-2xl border border-border bg-card hover:bg-muted/40 transition text-left shadow-sm"
+            className="flex items-start gap-3 p-4 rounded-lg border border-border bg-card hover:bg-muted/40 transition text-left shadow-sm"
           >
-            <div className="p-2 rounded-xl bg-[#1A68D4]/10 text-[#1A68D4] shrink-0">
+            <div className="p-2 rounded-lg bg-[#2164b6]/10 text-[#2164b6] shrink-0">
               <FileText weight="bold" className="h-5 w-5" />
             </div>
             <div>
@@ -532,9 +532,9 @@ export default function ContentStudioPage() {
 
           <Link
             to="/app/marketing"
-            className="flex items-start gap-3 p-4 rounded-2xl border border-border bg-card hover:bg-muted/40 transition text-left shadow-sm"
+            className="flex items-start gap-3 p-4 rounded-lg border border-border bg-card hover:bg-muted/40 transition text-left shadow-sm"
           >
-            <div className="p-2 rounded-xl bg-purple-500/10 text-purple-500 shrink-0">
+            <div className="p-2 rounded-lg bg-[#2164b6]/10 text-[#2164b6] dark:bg-[#2164b6]/20 dark:text-[#7ab0ff] shrink-0">
               <Clock weight="bold" className="h-5 w-5" />
             </div>
             <div>
@@ -547,9 +547,9 @@ export default function ContentStudioPage() {
 
           <Link
             to="/app/settings/connected-accounts"
-            className="flex items-start gap-3 p-4 rounded-2xl border border-border bg-card hover:bg-muted/40 transition text-left shadow-sm"
+            className="flex items-start gap-3 p-4 rounded-lg border border-border bg-card hover:bg-muted/40 transition text-left shadow-sm"
           >
-            <div className="p-2 rounded-xl bg-cyan-500/10 text-cyan-500 shrink-0">
+            <div className="p-2 rounded-lg bg-[#2164b6]/10 text-[#2164b6] dark:bg-[#2164b6]/20 dark:text-[#7ab0ff] shrink-0">
               <ShareNetwork weight="bold" className="h-5 w-5" />
             </div>
             <div>
@@ -571,7 +571,7 @@ export default function ContentStudioPage() {
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
-            <div className="flex items-center bg-muted rounded-xl p-0.5 text-xs">
+            <div className="flex items-center bg-muted rounded-lg p-0.5 text-xs">
               <button
                 onClick={() => setStatusFilter("all")}
                 className={`px-3 py-1.5 rounded-lg font-bold transition ${
@@ -602,17 +602,17 @@ export default function ContentStudioPage() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search content..."
-              className="h-8 w-44 text-xs rounded-xl"
+              className="h-8 w-44 text-xs rounded-lg"
             />
           </div>
         </div>
 
         {loading ? (
           <div className="h-44 w-full flex items-center justify-center">
-            <Loader2 weight="fill" className="h-6 w-6 animate-spin text-[#1A68D4]" />
+            <Loader2 weight="fill" className="h-6 w-6 animate-spin text-[#2164b6]" />
           </div>
         ) : filteredItems.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-border bg-card p-10 text-center">
+          <div className="rounded-lg border border-dashed border-border bg-card p-10 text-center">
             <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center mx-auto mb-3 text-muted-foreground">
               <SquaresFour className="h-6 w-6" />
             </div>
@@ -626,7 +626,7 @@ export default function ContentStudioPage() {
                 resetForm();
                 setShowForm(true);
               }}
-              className="mt-4 h-8 text-xs font-bold rounded-xl bg-[#1A68D4] hover:bg-[#1A68D4]/90 text-white"
+              className="mt-4 h-8 text-xs font-bold rounded-lg bg-[#2164b6] hover:bg-[#2164b6]/90 text-white"
             >
               <Plus className="h-3.5 w-3.5 mr-1.5" />
               <span>Create Your First Content</span>
@@ -636,16 +636,16 @@ export default function ContentStudioPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
             {filteredItems.map((item) => {
               const Icon = TYPE_ICONS[item.type] ?? Video;
-              const colorClass = TYPE_COLORS[item.type] ?? "bg-blue-500/15 text-blue-500";
+              const colorClass = TYPE_COLORS[item.type] ?? "bg-[#2164b6]/10 text-[#2164b6] dark:bg-[#2164b6]/20 dark:text-[#7ab0ff]";
 
               return (
                 <div
                   key={item.id}
-                  className="rounded-2xl border border-border bg-card p-4 space-y-3 shadow-sm hover:border-[#1A68D4]/30 transition group"
+                  className="rounded-lg border border-border bg-card p-4 space-y-3 shadow-sm hover:border-[#2164b6]/30 transition group"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-2">
-                      <div className={`p-2 rounded-xl ${colorClass}`}>
+                      <div className={`p-2 rounded-lg ${colorClass}`}>
                         <Icon weight="bold" className="h-4 w-4" />
                       </div>
                       <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
@@ -665,7 +665,7 @@ export default function ContentStudioPage() {
                   </div>
 
                   {item.thumbnail_url && (
-                    <div className="h-32 w-full rounded-xl overflow-hidden bg-muted">
+                    <div className="h-32 w-full rounded-lg overflow-hidden bg-muted">
                       <img
                         src={item.thumbnail_url}
                         alt={item.title}

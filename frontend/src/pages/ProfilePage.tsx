@@ -223,7 +223,7 @@ export function ProfilePage() {
   if (loading) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <Loader2 weight="fill" className="h-7 w-7 animate-spin text-[#1A68D4]" />
+        <Loader2 weight="fill" className="h-7 w-7 animate-spin text-[#2164b6]" />
       </div>
     );
   }
@@ -276,7 +276,7 @@ export function ProfilePage() {
                 size="sm"
                 className="h-9 gap-1.5 text-xs font-bold rounded-xl border-border hover:bg-muted"
               >
-                <Eye weight="bold" className="h-4 w-4 text-[#1A68D4]" />
+                <Eye weight="bold" className="h-4 w-4 text-[#2164b6]" />
                 <span>Public Profile Preview</span>
               </Button>
             </Link>
@@ -289,7 +289,7 @@ export function ProfilePage() {
               size="sm"
               className="h-9 gap-1.5 text-xs font-bold rounded-xl border-border hover:bg-muted"
             >
-              <Video weight="bold" className="h-4 w-4 text-[#1A68D4]" />
+              <Video weight="bold" className="h-4 w-4 text-[#2164b6]" />
               <span>Creator Studio</span>
             </Button>
           </Link>
@@ -322,7 +322,7 @@ export function ProfilePage() {
             size="sm"
             onClick={() => handleUpdate()}
             disabled={updating}
-            className="h-9 gap-1.5 text-xs font-bold rounded-xl bg-[#1A68D4] hover:bg-[#1A68D4]/90 text-white shadow-sm"
+            className="h-9 gap-1.5 text-xs font-bold rounded-xl bg-[#2164b6] hover:bg-[#2164b6]/90 text-white shadow-sm"
           >
             {updating ? (
               <Loader2 weight="fill" className="h-3.5 w-3.5 animate-spin" />
@@ -434,7 +434,7 @@ export function ProfilePage() {
                     avatarInputRef.current?.click();
                   }}
                   disabled={uploadingAvatar}
-                  className="absolute bottom-1 right-1 p-2 rounded-full bg-[#1A68D4] hover:bg-[#1A68D4]/90 text-white shadow-md border-2 border-card transition-transform active:scale-95"
+                  className="absolute bottom-1 right-1 p-2 rounded-full bg-[#2164b6] hover:bg-[#2164b6]/90 text-white shadow-md border-2 border-card transition-transform active:scale-95"
                   title="Upload profile photo"
                 >
                   <Camera weight="bold" className="w-3.5 h-3.5" />
@@ -448,7 +448,7 @@ export function ProfilePage() {
                     {name || "Your Name"}
                   </h2>
                   {(profile?.has_active_verification_badge || profile?.kyc_status === "verified") && (
-                    <BadgeCheck weight="fill" className="h-5 w-5 text-[#1A68D4] fill-[#1A68D4] shrink-0" />
+                    <BadgeCheck weight="fill" className="h-5 w-5 text-[#2164b6] fill-[#2164b6] shrink-0" />
                   )}
                   {profile?.role === "admin" ? (
                     <span className="px-2.5 py-0.5 rounded-full bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30 text-[11px] font-bold tracking-wide">
@@ -463,7 +463,7 @@ export function ProfilePage() {
                       Storefront Owner
                     </span>
                   ) : (
-                    <span className="px-2.5 py-0.5 rounded-full bg-[#1A68D4]/10 text-[#1A68D4] border border-[#1A68D4]/30 text-[11px] font-bold tracking-wide">
+                    <span className="px-2.5 py-0.5 rounded-full bg-[#2164b6]/10 text-[#2164b6] border border-[#2164b6]/30 text-[11px] font-bold tracking-wide">
                       Member
                     </span>
                   )}
@@ -504,23 +504,23 @@ export function ProfilePage() {
       </div>
 
       {/* ── NATIVE LINK-IN-BIO SHORTCUT CARD ─────────────────────── */}
-      <div className="rounded-3xl border border-[#1A68D4]/30 bg-gradient-to-r from-[#1A68D4]/5 via-background to-background p-5 shadow-sm">
+      <div className="rounded-3xl border border-[#2164b6]/30 bg-gradient-to-r from-[#2164b6]/5 via-background to-background p-5 shadow-sm">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-start gap-3.5">
-            <div className="h-11 w-11 rounded-2xl bg-[#1A68D4]/10 text-[#1A68D4] flex items-center justify-center shrink-0">
+            <div className="h-11 w-11 rounded-2xl bg-[#2164b6]/10 text-[#2164b6] flex items-center justify-center shrink-0">
               <LinkIcon weight="bold" className="h-5 w-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="text-sm font-bold text-foreground">Native Link-in-Bio Experience</h3>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#1A68D4]/15 text-[#1A68D4]">
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#2164b6]/15 text-[#2164b6]">
                   Built-in
                 </span>
               </div>
               <p className="text-xs text-muted-foreground mt-0.5">
                 Share all your content, storefront, and socials using your official MurihSpace link.
               </p>
-              <div className="mt-2 flex items-center gap-2 text-xs font-mono font-bold text-[#1A68D4] bg-[#1A68D4]/10 px-3 py-1.5 rounded-xl border border-[#1A68D4]/20 w-fit">
+              <div className="mt-2 flex items-center gap-2 text-xs font-mono font-bold text-[#2164b6] bg-[#2164b6]/10 px-3 py-1.5 rounded-xl border border-[#2164b6]/20 w-fit">
                 <span>https://murihspace.com/l/{cleanHandle}</span>
               </div>
             </div>
@@ -544,7 +544,7 @@ export function ProfilePage() {
                 size="sm"
                 className="h-9 gap-1.5 text-xs font-semibold rounded-xl border-border hover:bg-muted"
               >
-                <ArrowSquareOut weight="bold" className="h-3.5 w-3.5 text-[#1A68D4]" />
+                <ArrowSquareOut weight="bold" className="h-3.5 w-3.5 text-[#2164b6]" />
                 <span>Preview</span>
               </Button>
             </a>
@@ -552,7 +552,7 @@ export function ProfilePage() {
               <Button
                 type="button"
                 size="sm"
-                className="h-9 text-xs font-bold rounded-xl bg-[#1A68D4] hover:bg-[#1A68D4]/90 text-white"
+                className="h-9 text-xs font-bold rounded-xl bg-[#2164b6] hover:bg-[#2164b6]/90 text-white"
               >
                 Manage Link-in-Bio
               </Button>
@@ -566,7 +566,7 @@ export function ProfilePage() {
         {/* Card 1: Personal Details */}
         <div className="p-6 rounded-3xl bg-card border border-border shadow-sm space-y-4">
           <div className="flex items-center gap-2 pb-2 border-b border-border/50">
-            <User weight="bold" className="h-4 w-4 text-[#1A68D4]" />
+            <User weight="bold" className="h-4 w-4 text-[#2164b6]" />
             <h2 className="text-sm font-bold text-foreground">Personal Information</h2>
           </div>
 
@@ -646,7 +646,7 @@ export function ProfilePage() {
                 value={website}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setWebsite(e.target.value)}
                 placeholder="https://linktr.ee/lorduzih"
-                className="h-11 rounded-xl bg-muted/40 text-xs text-[#1A68D4] font-medium"
+                className="h-11 rounded-xl bg-muted/40 text-xs text-[#2164b6] font-medium"
               />
             </Field>
 
@@ -698,7 +698,7 @@ export function ProfilePage() {
               value={bio}
               onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setBio(e.target.value)}
               placeholder="Tell community members, buyers, and collaborators about yourself..."
-              className="w-full rounded-xl border border-input bg-muted/40 px-3.5 py-2.5 text-xs text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#1A68D4] resize-none"
+              className="w-full rounded-xl border border-input bg-muted/40 px-3.5 py-2.5 text-xs text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#2164b6] resize-none"
             />
           </Field>
         </div>
@@ -765,7 +765,7 @@ export function ProfilePage() {
           <Button
             type="submit"
             disabled={updating}
-            className="h-11 px-6 rounded-xl bg-[#1A68D4] hover:bg-[#1A68D4]/90 text-white font-bold text-xs gap-2 shadow-sm"
+            className="h-11 px-6 rounded-xl bg-[#2164b6] hover:bg-[#2164b6]/90 text-white font-bold text-xs gap-2 shadow-sm"
           >
             {updating ? (
               <Loader2 weight="fill" className="h-4 w-4 animate-spin" />
@@ -781,7 +781,7 @@ export function ProfilePage() {
       {isDirty && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-[92%] max-w-xl bg-slate-900 text-white dark:bg-card dark:text-foreground border border-white/10 dark:border-border rounded-2xl p-4 shadow-2xl backdrop-blur-xl flex items-center justify-between gap-4 animate-in fade-in slide-in-from-bottom-4">
           <div className="flex items-center gap-2.5">
-            <div className="h-2 w-2 rounded-full bg-[#1A68D4] animate-pulse" />
+            <div className="h-2 w-2 rounded-full bg-[#2164b6] animate-pulse" />
             <span className="text-xs font-bold">You have unsaved changes</span>
           </div>
           <div className="flex items-center gap-2">
@@ -799,7 +799,7 @@ export function ProfilePage() {
               size="sm"
               onClick={() => handleUpdate()}
               disabled={updating}
-              className="h-8 text-xs font-bold bg-[#1A68D4] hover:bg-[#1A68D4]/90 text-white rounded-lg px-4"
+              className="h-8 text-xs font-bold bg-[#2164b6] hover:bg-[#2164b6]/90 text-white rounded-lg px-4"
             >
               {updating ? <Loader2 weight="fill" className="h-3.5 w-3.5 animate-spin" /> : "Save Changes"}
             </Button>
@@ -811,7 +811,7 @@ export function ProfilePage() {
       <div className="p-6 rounded-3xl bg-card border border-border shadow-sm space-y-4">
         <div className="flex items-center justify-between pb-2 border-b border-border/50">
           <div className="flex items-center gap-2">
-            <ShieldWarning weight="fill" className="h-4 w-4 text-[#1A68D4]" />
+            <ShieldWarning weight="fill" className="h-4 w-4 text-[#2164b6]" />
             <h2 className="text-sm font-bold text-foreground">Identity Verification (KYC)</h2>
           </div>
           <div>
@@ -860,7 +860,7 @@ export function ProfilePage() {
             <Button
               type="submit"
               size="sm"
-              className="w-full sm:w-auto h-11 px-5 rounded-xl text-xs font-bold gap-1.5 shrink-0 bg-[#1A68D4] hover:bg-[#1A68D4]/90 text-white"
+              className="w-full sm:w-auto h-11 px-5 rounded-xl text-xs font-bold gap-1.5 shrink-0 bg-[#2164b6] hover:bg-[#2164b6]/90 text-white"
               disabled={updating || !kycDocInput.trim()}
             >
               {updating ? <Loader2 weight="fill" className="h-3.5 w-3.5 animate-spin" /> : <ShieldWarning weight="fill" className="h-3.5 w-3.5" />}

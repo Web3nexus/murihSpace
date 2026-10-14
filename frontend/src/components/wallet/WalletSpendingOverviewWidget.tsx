@@ -12,7 +12,7 @@ export function WalletSpendingOverviewWidget({
   const timeframe = "Last 30 days";
 
   const segments = [
-    { label: "MSH Coins", percent: 45, color: "#1A68D4", strokeDash: "45 55", strokeOffset: "0" },
+    { label: "MSH Coins", percent: 45, color: "#2164b6", strokeDash: "45 55", strokeOffset: "0" },
     { label: "Transfers", percent: 25, color: "#F59E0B", strokeDash: "25 75", strokeOffset: "-45" },
     { label: "Escrow", percent: 20, color: "#10B981", strokeDash: "20 80", strokeOffset: "-70" },
     { label: "Other", percent: 10, color: "#8B5CF6", strokeDash: "10 90", strokeOffset: "-90" },

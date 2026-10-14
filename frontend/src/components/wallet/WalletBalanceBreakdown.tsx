@@ -36,7 +36,7 @@ export function WalletBalanceBreakdown({
       label: "Reserved Balance",
       value: reservedFormatted,
       description: "Security & dispute hold",
-      accent: "text-[#1A68D4] dark:text-sky-400 font-bold",
+      accent: "text-[#2164b6] dark:text-sky-400 font-bold",
       badge: "Protected",
     },
     {

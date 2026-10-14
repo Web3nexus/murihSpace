@@ -34,7 +34,7 @@ export function ReceiveMoneyModal({
       <DialogContent className="sm:max-w-sm p-6 text-center">
         <DialogHeader className="space-y-1">
           <DialogTitle className="flex items-center justify-center gap-2 text-lg font-bold">
-            <QrCode weight="bold" className="h-5 w-5 text-[#1A68D4]" />
+            <QrCode weight="bold" className="h-5 w-5 text-[#2164b6]" />
             Receive Money
           </DialogTitle>
           <DialogDescription className="text-xs text-muted-foreground">
@@ -100,7 +100,7 @@ export function ReceiveMoneyModal({
           <Button
             type="button"
             onClick={handleCopy}
-            className="flex-1 h-10 bg-[#1A68D4] hover:bg-[#1555AD] text-white font-bold text-xs rounded-xl"
+            className="flex-1 h-10 bg-[#2164b6] hover:bg-[#1a5091] text-white font-bold text-xs rounded-xl"
           >
             {copied ? (
               <span className="flex items-center gap-1.5">

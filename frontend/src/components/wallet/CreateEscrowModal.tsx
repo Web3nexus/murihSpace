@@ -74,7 +74,7 @@ export function CreateEscrowModal({
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g. Sponsored Video Campaign or Web Development"
-              className="w-full px-3 py-2 text-sm bg-muted/30 border border-border rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-[#1A68D4]"
+              className="w-full px-3 py-2 text-sm bg-muted/30 border border-border rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-[#2164b6]"
             />
           </div>
 
@@ -89,7 +89,7 @@ export function CreateEscrowModal({
                 value={sellerUsername}
                 onChange={(e) => setSellerUsername(e.target.value)}
                 placeholder="Username (e.g. apex_audio)"
-                className="w-full pl-9 pr-3 py-2 text-sm bg-muted/30 border border-border rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-[#1A68D4]"
+                className="w-full pl-9 pr-3 py-2 text-sm bg-muted/30 border border-border rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-[#2164b6]"
               />
             </div>
           </div>
@@ -105,7 +105,7 @@ export function CreateEscrowModal({
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               placeholder="100.00"
-              className="w-full px-3 py-2 text-base font-bold bg-muted/30 border border-border rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-[#1A68D4]"
+              className="w-full px-3 py-2 text-base font-bold bg-muted/30 border border-border rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-[#2164b6]"
             />
           </div>
 
@@ -118,7 +118,7 @@ export function CreateEscrowModal({
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Delivery within 7 business days..."
-              className="w-full px-3 py-2 text-xs bg-muted/30 border border-border rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-[#1A68D4] resize-none"
+              className="w-full px-3 py-2 text-xs bg-muted/30 border border-border rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-[#2164b6] resize-none"
             />
           </div>
 

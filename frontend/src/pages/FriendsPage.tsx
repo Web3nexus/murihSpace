@@ -445,7 +445,7 @@ export default function FriendsPage({ initialTab }: FriendsPageProps) {
   return (
     <div className="w-full min-h-screen bg-[#F0F2F5] dark:bg-[#18191A] text-foreground pb-20">
       {/* ────────────────── TOP PAGE HEADER ────────────────── */}
-      <header className="w-full bg-white dark:bg-[#242526] border-b border-[#DADDE1] dark:border-[#3E4042] sticky top-14 z-20 shadow-xs">
+      <header className="w-full bg-white dark:bg-[#242526] border-b border-[#DADDE1] dark:border-[#3E4042] sticky top-0 z-20 shadow-xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-5">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             {/* Title & Subtitle */}

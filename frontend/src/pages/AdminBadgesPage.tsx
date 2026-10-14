@@ -291,7 +291,7 @@ export function AdminBadgesPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-blue-600/10 flex items-center justify-center text-[#1A68D4]">
+            <div className="w-8 h-8 rounded-lg bg-blue-600/10 flex items-center justify-center text-[#2164b6]">
               <Medal weight="fill" size={20} />
             </div>
             <h1 className="text-2xl font-bold tracking-tight text-neutral-900 dark:text-neutral-100">
@@ -328,7 +328,7 @@ export function AdminBadgesPage() {
               });
               setIsCreateOpen(true);
             }}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-xl bg-[#1A68D4] text-white hover:bg-blue-700 transition-all shadow-md shadow-blue-500/20 active:scale-95"
+            className="flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-xl bg-[#2164b6] text-white hover:bg-blue-700 transition-all shadow-md shadow-blue-500/20 active:scale-95"
           >
             <Plus weight="bold" size={16} />
             <span>New 3D Badge</span>
@@ -363,7 +363,7 @@ export function AdminBadgesPage() {
         </div>
 
         <div className="p-4 rounded-2xl bg-white dark:bg-neutral-900 border border-neutral-200/80 dark:border-neutral-800 shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-blue-500/10 text-[#1A68D4] flex items-center justify-center shrink-0">
+          <div className="w-12 h-12 rounded-xl bg-blue-500/10 text-[#2164b6] flex items-center justify-center shrink-0">
             <Users weight="fill" size={24} />
           </div>
           <div>
@@ -384,7 +384,7 @@ export function AdminBadgesPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by name, slug or rule..."
-            className="w-full pl-10 pr-4 py-2 text-sm rounded-xl bg-neutral-50 dark:bg-neutral-800 border-none focus:ring-2 focus:ring-[#1A68D4] outline-none"
+            className="w-full pl-10 pr-4 py-2 text-sm rounded-xl bg-neutral-50 dark:bg-neutral-800 border-none focus:ring-2 focus:ring-[#2164b6] outline-none"
           />
         </div>
 
@@ -459,7 +459,7 @@ export function AdminBadgesPage() {
                         {badge.name}
                       </h3>
                       {badge.level_label && (
-                        <span className="inline-block mt-0.5 text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-50 text-[#1A68D4] dark:bg-blue-950/40 dark:text-blue-400 border border-blue-200/60 dark:border-blue-800/40">
+                        <span className="inline-block mt-0.5 text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-50 text-[#2164b6] dark:bg-blue-950/40 dark:text-blue-400 border border-blue-200/60 dark:border-blue-800/40">
                           {badge.level_label}
                         </span>
                       )}
@@ -518,7 +518,7 @@ export function AdminBadgesPage() {
                       setAwardUserId("");
                       setIsAwardOpen(true);
                     }}
-                    className="p-1.5 rounded-lg text-[#1A68D4] hover:bg-blue-50 dark:hover:bg-blue-950/30 transition-colors"
+                    className="p-1.5 rounded-lg text-[#2164b6] hover:bg-blue-50 dark:hover:bg-blue-950/30 transition-colors"
                     title="Award to specific user"
                   >
                     <UserPlus size={16} weight="bold" />
@@ -687,7 +687,7 @@ export function AdminBadgesPage() {
                   id="badge_active"
                   checked={formData.is_active}
                   onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-                  className="rounded text-[#1A68D4] focus:ring-[#1A68D4]"
+                  className="rounded text-[#2164b6] focus:ring-[#2164b6]"
                 />
                 <label htmlFor="badge_active" className="text-xs font-medium text-neutral-700 dark:text-neutral-300">
                   Active (automatically awarded by system rule engine)
@@ -708,7 +708,7 @@ export function AdminBadgesPage() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-5 py-2 text-xs font-bold rounded-xl bg-[#1A68D4] text-white hover:bg-blue-700 transition shadow-md shadow-blue-500/20 disabled:opacity-50"
+                  className="px-5 py-2 text-xs font-bold rounded-xl bg-[#2164b6] text-white hover:bg-blue-700 transition shadow-md shadow-blue-500/20 disabled:opacity-50"
                 >
                   {submitting ? "Saving..." : isEditOpen ? "Update Badge" : "Create Badge"}
                 </button>
@@ -774,7 +774,7 @@ export function AdminBadgesPage() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-5 py-2 text-xs font-bold rounded-xl bg-[#1A68D4] text-white hover:bg-blue-700 transition shadow-md shadow-blue-500/20 disabled:opacity-50"
+                  className="px-5 py-2 text-xs font-bold rounded-xl bg-[#2164b6] text-white hover:bg-blue-700 transition shadow-md shadow-blue-500/20 disabled:opacity-50"
                 >
                   {submitting ? "Awarding..." : "Award Badge"}
                 </button>

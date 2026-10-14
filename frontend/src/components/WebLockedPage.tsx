@@ -96,7 +96,7 @@ export function WebLockedPage({ role, embedded = false }: WebLockedPageProps) {
   }
 
   return (
-    <div className="min-h-screen w-full bg-slate-50/60 dark:bg-background flex items-center justify-center p-4">
+    <div className="min-h-screen w-full bg-[#F0F2F5] dark:bg-[#18191A] flex items-center justify-center p-4">
       <div className="w-full max-w-md bg-card border-none rounded-3xl  p-5">
         {content}
         <div className="mt-6 pt-6 border-t border-border/60 text-center">

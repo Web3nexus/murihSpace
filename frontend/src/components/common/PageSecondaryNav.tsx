@@ -54,7 +54,7 @@ export function PageSecondaryNav({
 
   return (
     <div
-      className={`w-full bg-white dark:bg-[#242526] border-b border-[#DADDE1] dark:border-[#3E4042] sticky top-14 z-10 shadow-2xs ${className}`}
+      className={`w-full bg-white dark:bg-[#242526] border-b border-[#DADDE1] dark:border-[#3E4042] sticky top-0 z-10 shadow-2xs ${className}`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {(title || actions) && (

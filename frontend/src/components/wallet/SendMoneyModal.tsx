@@ -87,7 +87,7 @@ export function SendMoneyModal({
       <DialogContent className="sm:max-w-md p-6">
         <DialogHeader className="space-y-1">
           <DialogTitle className="flex items-center gap-2 text-lg font-bold">
-            <PaperPlaneRight weight="fill" className="h-5 w-5 text-[#1A68D4]" />
+            <PaperPlaneRight weight="fill" className="h-5 w-5 text-[#2164b6]" />
             Send Money
           </DialogTitle>
           <DialogDescription className="text-xs text-muted-foreground">
@@ -108,7 +108,7 @@ export function SendMoneyModal({
                 value={recipient}
                 onChange={(e) => setRecipient(e.target.value)}
                 placeholder="Search people, username or phone..."
-                className="w-full pl-9 pr-3 py-2 text-sm bg-muted/30 border border-border rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-[#1A68D4]"
+                className="w-full pl-9 pr-3 py-2 text-sm bg-muted/30 border border-border rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-[#2164b6]"
               />
             </div>
           </div>
@@ -127,7 +127,7 @@ export function SendMoneyModal({
                 <div
                   className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-xs shadow-xs transition-colors ${
                     recipient === c.username
-                      ? "bg-[#1A68D4] text-white ring-2 ring-[#1A68D4]/30"
+                      ? "bg-[#2164b6] text-white ring-2 ring-[#2164b6]/30"
                       : "bg-muted text-foreground group-hover:bg-muted/80"
                   }`}
                 >
@@ -156,7 +156,7 @@ export function SendMoneyModal({
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 placeholder="0.00"
-                className="w-full pl-9 pr-16 py-2.5 text-xl font-bold bg-muted/30 border border-border rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-[#1A68D4]"
+                className="w-full pl-9 pr-16 py-2.5 text-xl font-bold bg-muted/30 border border-border rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-[#2164b6]"
               />
               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground bg-muted px-2 py-1 rounded-md">
                 {walletCurrency}
@@ -173,7 +173,7 @@ export function SendMoneyModal({
                 onClick={() => setAmount(q)}
                 className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all border ${
                   amount === q
-                    ? "border-[#1A68D4] bg-[#1A68D4]/10 text-[#1A68D4]"
+                    ? "border-[#2164b6] bg-[#2164b6]/10 text-[#2164b6]"
                     : "border-border bg-card text-muted-foreground hover:text-foreground hover:bg-muted/40"
                 }`}
               >
@@ -196,7 +196,7 @@ export function SendMoneyModal({
               value={note}
               onChange={(e) => setNote(e.target.value)}
               placeholder="e.g. Thanks for your help!"
-              className="w-full px-3 py-2 text-xs bg-muted/30 border border-border rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-[#1A68D4] resize-none"
+              className="w-full px-3 py-2 text-xs bg-muted/30 border border-border rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-[#2164b6] resize-none"
             />
           </div>
 
@@ -214,7 +214,7 @@ export function SendMoneyModal({
                   value={pin}
                   onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))}
                   placeholder="••••"
-                  className="w-full pl-9 pr-3 py-2 text-sm bg-muted/30 border border-border rounded-xl text-foreground tracking-widest font-mono text-center focus:outline-none focus:ring-1 focus:ring-[#1A68D4]"
+                  className="w-full pl-9 pr-3 py-2 text-sm bg-muted/30 border border-border rounded-xl text-foreground tracking-widest font-mono text-center focus:outline-none focus:ring-1 focus:ring-[#2164b6]"
                 />
               </div>
             </div>
@@ -225,7 +225,7 @@ export function SendMoneyModal({
             <Button
               type="submit"
               disabled={loading || !recipient}
-              className="w-full h-11 bg-[#1A68D4] hover:bg-[#1555AD] text-white font-bold text-sm rounded-xl shadow-xs"
+              className="w-full h-11 bg-[#2164b6] hover:bg-[#1a5091] text-white font-bold text-sm rounded-xl shadow-xs"
             >
               {loading ? (
                 <span className="flex items-center gap-2">

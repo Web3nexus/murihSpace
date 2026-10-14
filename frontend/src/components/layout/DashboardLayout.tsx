@@ -72,14 +72,14 @@ function MobileBottomNav() {
   };
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 md:hidden h-16 bg-white dark:bg-[#121620] border-t border-[#E4E7EC] dark:border-[#222B3D] flex items-center justify-around px-3 select-none shadow-sm">
+    <nav className="fixed bottom-0 left-0 right-0 z-40 md:hidden h-16 bg-white dark:bg-[#242526] border-t border-[#DADDE1] dark:border-[#3E4042] flex items-center justify-around px-3 select-none shadow-sm">
       {/* 1. Home */}
       <Link
         to="/app"
         className={`flex flex-col items-center justify-center flex-1 h-full py-1 transition-colors ${
           isTabActive("/app")
-            ? "text-[#1A68D4]"
-            : "text-[#667085] dark:text-[#94A3B8] hover:text-[#17202B] dark:hover:text-white"
+            ? "text-[#2164b6] dark:text-[#7ab0ff]"
+            : "text-[#65676B] dark:text-[#B0B3B8] hover:text-[#050505] dark:hover:text-white"
         }`}
       >
         <Home weight={isTabActive("/app") ? "fill" : "regular"} className="h-5 w-5" />
@@ -91,8 +91,8 @@ function MobileBottomNav() {
         to="/app/communities"
         className={`flex flex-col items-center justify-center flex-1 h-full py-1 transition-colors ${
           isTabActive("/app/communities") || isTabActive("/app/discover")
-            ? "text-[#1A68D4]"
-            : "text-[#667085] dark:text-[#94A3B8] hover:text-[#17202B] dark:hover:text-white"
+            ? "text-[#2164b6] dark:text-[#7ab0ff]"
+            : "text-[#65676B] dark:text-[#B0B3B8] hover:text-[#050505] dark:hover:text-white"
         }`}
       >
         <Compass weight={isTabActive("/app/communities") || isTabActive("/app/discover") ? "fill" : "regular"} className="h-5 w-5" />
@@ -104,7 +104,7 @@ function MobileBottomNav() {
         to="/app/feed"
         className="flex flex-col items-center justify-center flex-1 h-full py-1"
       >
-        <div className="w-10 h-10 rounded-xl bg-[#1A68D4] text-white flex items-center justify-center shadow-md shadow-[#1A68D4]/30 hover:bg-[#1555AD] transition-transform active:scale-95">
+        <div className="w-10 h-10 rounded-xl bg-[#2164b6] text-white flex items-center justify-center shadow-md shadow-[#2164b6]/30 hover:bg-[#1a5091] transition-transform active:scale-95">
           <Plus weight="bold" className="h-5 w-5" />
         </div>
       </Link>
@@ -114,8 +114,8 @@ function MobileBottomNav() {
         to="/app/messages"
         className={`flex flex-col items-center justify-center flex-1 h-full py-1 transition-colors ${
           isTabActive("/app/messages")
-            ? "text-[#1A68D4]"
-            : "text-[#667085] dark:text-[#94A3B8] hover:text-[#17202B] dark:hover:text-white"
+            ? "text-[#2164b6] dark:text-[#7ab0ff]"
+            : "text-[#65676B] dark:text-[#B0B3B8] hover:text-[#050505] dark:hover:text-white"
         }`}
       >
         <MessageSquare weight={isTabActive("/app/messages") ? "fill" : "regular"} className="h-5 w-5" />
@@ -127,8 +127,8 @@ function MobileBottomNav() {
         to="/app/profile"
         className={`flex flex-col items-center justify-center flex-1 h-full py-1 transition-colors ${
           isTabActive("/app/profile")
-            ? "text-[#1A68D4]"
-            : "text-[#667085] dark:text-[#94A3B8] hover:text-[#17202B] dark:hover:text-white"
+            ? "text-[#2164b6] dark:text-[#7ab0ff]"
+            : "text-[#65676B] dark:text-[#B0B3B8] hover:text-[#050505] dark:hover:text-white"
         }`}
       >
         <User weight={isTabActive("/app/profile") ? "fill" : "regular"} className="h-5 w-5" />
@@ -162,7 +162,7 @@ export function DashboardLayout() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#F0F2F5] dark:bg-[#18191A] text-[#050505] dark:text-[#E4E6EB]">
+    <div className="h-[100dvh] overflow-hidden flex flex-col bg-[#F0F2F5] dark:bg-[#18191A] text-[#050505] dark:text-[#E4E6EB]">
       {/* 100vw Impersonation banner at the very top */}
       <ImpersonationBanner />
 
@@ -179,15 +179,16 @@ export function DashboardLayout() {
       <div className={`flex-1 flex w-full mx-auto min-h-0 ${hideSidebar ? "" : "max-w-[1920px]"}`}>
         {/* Left Desktop Sidebar: visible on desktop for all users (hidden on full-width profile) */}
         {!hideSidebar && (
-          <aside className="w-[240px] xl:w-[260px] shrink-0 hidden md:block sticky top-14 h-[calc(100vh-3.5rem)] overflow-y-auto no-scrollbar py-3 px-2">
+          <aside className="w-[240px] xl:w-[260px] shrink-0 hidden md:block h-full overflow-y-auto no-scrollbar py-3 px-2">
             <AppSidebar />
           </aside>
         )}
 
-        {/* Main Content Area */}
+        {/* Main Content Area — the single scrolling surface of the shell, so
+            the header and sidebar stay pinned while only this area moves. */}
         <main
           id="main-content"
-          className="flex-1 min-w-0 h-[calc(100dvh-3.5rem)] flex flex-col pb-16 md:pb-0"
+          className="flex-1 min-w-0 min-h-0 overflow-y-auto flex flex-col bg-[#F0F2F5] dark:bg-[#18191A] pb-16 md:pb-0"
         >
           <Outlet />
         </main>

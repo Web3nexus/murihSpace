@@ -9,16 +9,16 @@
 
 :root {
   /* MurihSpace Light Theme Tokens (from docs/Design.md & docs/selected-frames-agent-prompt.md) */
-  --text: #102840;
-  --text-h: #102840;
-  --bg: #F7FAFC;
-  --border: #D6E0E8;
-  --code-bg: #F0F5F8;
-  --accent: #E8F8FF;
-  --accent-bg: rgba(56, 168, 216, 0.1);
-  --accent-border: rgba(56, 168, 216, 0.4);
-  --social-bg: rgba(240, 245, 248, 0.6);
-  --shadow: 0px 4px 12px rgba(16, 40, 64, 0.08);
+  --text: #050505;
+  --text-h: #050505;
+  --bg: #F0F2F5;
+  --border: #DADDE1;
+  --code-bg: #E4E6EB;
+  --accent: #E7F3FF;
+  --accent-bg: rgba(33, 100, 182, 0.1);
+  --accent-border: rgba(33, 100, 182, 0.4);
+  --social-bg: rgba(240, 242, 245, 0.6);
+  --shadow: 0px 4px 12px rgba(5, 5, 5, 0.08);
 
   --sans: 'Inter Variable', system-ui, -apple-system, sans-serif;
   --heading: 'Inter Variable', system-ui, -apple-system, sans-serif;
@@ -34,26 +34,26 @@
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 
-  --background: #F7FAFC;
-  --foreground: #102840;
+  --background: #F0F2F5;
+  --foreground: #050505;
 
   --card: #FFFFFF;
-  --card-foreground: #102840;
+  --card-foreground: #050505;
 
   --popover: #FFFFFF;
-  --popover-foreground: #102840;
+  --popover-foreground: #050505;
 
-  --primary: #102840;
+  --primary: #2164b6;
   --primary-foreground: #FFFFFF;
 
-  --secondary: #38A8D8;
-  --secondary-foreground: #102840;
+  --secondary: #2164b6;
+  --secondary-foreground: #FFFFFF;
 
-  --muted: #F0F5F8;
-  --muted-foreground: #667085;
+  --muted: #E4E6EB;
+  --muted-foreground: #65676B;
 
-  --accent: #E8F8FF;
-  --accent-foreground: #102840;
+  --accent: #E7F3FF;
+  --accent-foreground: #2164b6;
 
   --destructive: #DC2626;
   --destructive-foreground: #FFFFFF;
@@ -65,8 +65,8 @@
   --info: #0EA5E9;
   --info-foreground: #FFFFFF;
 
-  --input: #D6E0E8;
-  --ring: #38A8D8;
+  --input: #DADDE1;
+  --ring: #2164b6;
 
   --radius: 0.75rem;
 
@@ -77,49 +77,49 @@
   --motion-panel: 280ms;
 
   /* Sidebar — engineered surfaces aligned to brand navy */
-  --sidebar: #102840;
-  --sidebar-foreground: rgba(247, 250, 252, 0.92);
-  --sidebar-primary: #38A8D8;
-  --sidebar-primary-foreground: #081827;
-  --sidebar-accent: rgba(255, 255, 255, 0.08);
-  --sidebar-accent-foreground: #F7FAFC;
-  --sidebar-border: rgba(247, 250, 252, 0.10);
-  --sidebar-ring: #38A8D8;
+  --sidebar: #FFFFFF;
+  --sidebar-foreground: #050505;
+  --sidebar-primary: #2164b6;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #E7F3FF;
+  --sidebar-accent-foreground: #2164b6;
+  --sidebar-border: #DADDE1;
+  --sidebar-ring: #2164b6;
 }
 
 .dark {
   /* MurihSpace Dark Theme Tokens (from docs/Design.md) */
-  --text: #f7fafc;
-  --text-h: #f7fafc;
-  --bg: #081827;
-  --border: #294c65;
-  --code-bg: #173852;
-  --accent: #173852;
-  --accent-bg: rgba(56, 168, 216, 0.15);
-  --accent-border: rgba(56, 168, 216, 0.4);
-  --social-bg: #173852;
+  --text: #E4E6EB;
+  --text-h: #E4E6EB;
+  --bg: #18191A;
+  --border: #3E4042;
+  --code-bg: #3A3B3C;
+  --accent: #2D3F54;
+  --accent-bg: rgba(33, 100, 182, 0.25);
+  --accent-border: rgba(122, 176, 255, 0.4);
+  --social-bg: #242526;
   --shadow: 0px 4px 16px rgba(0, 0, 0, 0.45);
 
-  --background: #081827;
-  --foreground: #f7fafc;
+  --background: #18191A;
+  --foreground: #E4E6EB;
 
-  --card: #102840;
-  --card-foreground: #f7fafc;
+  --card: #242526;
+  --card-foreground: #E4E6EB;
 
-  --popover: #102840;
-  --popover-foreground: #f7fafc;
+  --popover: #242526;
+  --popover-foreground: #E4E6EB;
 
-  --primary: #38a8d8;
-  --primary-foreground: #081827;
+  --primary: #2164b6;
+  --primary-foreground: #FFFFFF;
 
-  --secondary: #38a8d8;
-  --secondary-foreground: #081827;
+  --secondary: #2164b6;
+  --secondary-foreground: #FFFFFF;
 
-  --muted: #173852;
-  --muted-foreground: #b7c6d1;
+  --muted: #3A3B3C;
+  --muted-foreground: #B0B3B8;
 
-  --accent: #173852;
-  --accent-foreground: #f7fafc;
+  --accent: #2D3F54;
+  --accent-foreground: #7ab0ff;
 
   --success: #22c55e;
   --success-foreground: #081827;
@@ -131,18 +131,18 @@
   --destructive: #f87171;
   --destructive-foreground: #081827;
 
-  --input: #294c65;
-  --ring: #38a8d8;
+  --input: #3E4042;
+  --ring: #7ab0ff;
 
   /* Sidebar — deep brand navy canvas in dark mode */
-  --sidebar: #0b2740;
-  --sidebar-foreground: rgba(247, 250, 252, 0.92);
-  --sidebar-primary: #38a8d8;
-  --sidebar-primary-foreground: #081827;
-  --sidebar-accent: rgba(255, 255, 255, 0.08);
-  --sidebar-accent-foreground: #f7fafc;
-  --sidebar-border: rgba(247, 250, 252, 0.10);
-  --sidebar-ring: #38a8d8;
+  --sidebar: #242526;
+  --sidebar-foreground: #E4E6EB;
+  --sidebar-primary: #2164b6;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #2D3F54;
+  --sidebar-accent-foreground: #7ab0ff;
+  --sidebar-border: #3E4042;
+  --sidebar-ring: #7ab0ff;
 
   color-scheme: dark;
 }
@@ -307,4 +307,17 @@ code {
 
 .animate-float-heart {
   animation: float-heart 2s ease-out forwards;
+}
+
+/* ── App shell scroll surface ─────────────────────────────────────────────
+   The dashboard scrolls its content inside #main-content so the global header
+   and sidebar stay pinned to the viewport. Pages authored with `min-h-screen`
+   fill that scroll surface (instead of forcing an extra window scroll, which
+   used to let the page body's colour bleed through while scrolling). */
+#main-content {
+  overscroll-behavior: contain;
+}
+
+#main-content > .min-h-screen {
+  min-height: 100%;
 }

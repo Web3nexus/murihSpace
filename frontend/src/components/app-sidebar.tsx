@@ -244,7 +244,7 @@ export function AppSidebar({ className = "", onNavigate }: AppSidebarProps) {
     <nav aria-label="Social Navigation" className={`flex flex-col h-full ${className}`}>
       {/* Top: User Identity Row */}
       {!loading && user && (
-        <div className="mb-2">
+        <div className="mb-2 shrink-0">
           <Link
             to="/app/profile"
             onClick={onNavigate}
@@ -270,7 +270,7 @@ export function AppSidebar({ className = "", onNavigate }: AppSidebarProps) {
       )}
 
       {/* Continuous Social Navigation List */}
-      <div className="flex-1 space-y-0.5 overflow-y-auto no-scrollbar pr-0.5">
+      <div className="flex-1 min-h-0 space-y-0.5 overflow-y-auto no-scrollbar pr-0.5">
         {navGroups.map((group, groupIdx) => {
           const isShortcutGroup = group.title.toLowerCase().includes("shortcut");
           const isNamedGroup = group.title && !isShortcutGroup && role === "admin";
@@ -305,7 +305,7 @@ export function AppSidebar({ className = "", onNavigate }: AppSidebarProps) {
 
       {/* Subtle Bottom User Dropdown */}
       {!loading && user && (
-        <div className="pt-2 mt-auto border-t border-[#DADDE1] dark:border-[#3E4042]">
+        <div className="shrink-0 pt-2 mt-auto border-t border-[#DADDE1] dark:border-[#3E4042]">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button

@@ -940,7 +940,7 @@ export function AppPage() {
         </div>
 
         {/* Right Rail: 280-320px, borderless, holding Requests, Suggested Communities, Events, Chats */}
-        <div className="w-[280px] xl:w-[320px] shrink-0 hidden lg:block py-4 px-2 space-y-4 overflow-y-auto h-[calc(100vh-3.5rem)] sticky top-14 no-scrollbar">
+        <div className="w-[280px] xl:w-[320px] shrink-0 hidden lg:block py-4 px-2 space-y-4 overflow-y-auto max-h-[calc(100dvh-3.5rem)] self-start sticky top-0 no-scrollbar">
 
           {/* 1. Requests (Friends & Communities) */}
           <div className="rounded-lg bg-white dark:bg-[#242526] shadow-xs p-3.5 space-y-3">

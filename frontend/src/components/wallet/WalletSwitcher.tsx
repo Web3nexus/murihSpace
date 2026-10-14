@@ -56,9 +56,9 @@ export function WalletSwitcher({
             aria-selected={isActive}
             disabled={disabled}
             onClick={() => onChange(tab.id)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all duration-200 whitespace-nowrap focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1A68D4] ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all duration-200 whitespace-nowrap focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2164b6] ${
               isActive
-                ? "bg-[#1A68D4] text-white shadow-sm font-bold"
+                ? "bg-[#2164b6] text-white shadow-sm font-bold"
                 : "text-muted-foreground hover:text-foreground hover:bg-background/80"
             }`}
           >

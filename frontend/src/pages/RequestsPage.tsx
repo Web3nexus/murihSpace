@@ -151,7 +151,7 @@ export default function RequestsPage() {
             onClick={() => setTab(t.key)}
             className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-bold transition-all flex-1 justify-center ${
               tab === t.key
-                ? "bg-white dark:bg-[#102840] text-foreground  border-none/50"
+                ? "bg-white dark:bg-[#242526] text-foreground  border-none/50"
                 : "text-muted-foreground/60 hover:text-foreground hover:bg-muted/50"
             }`}
           >

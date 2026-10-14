@@ -323,7 +323,7 @@ export function WalletPage({ initialTab = "system" }: WalletPageProps) {
   if (loading && wallets.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[460px] text-muted-foreground space-y-3">
-        <ArrowsClockwise weight="bold" className="h-7 w-7 animate-spin text-[#1A68D4]" />
+        <ArrowsClockwise weight="bold" className="h-7 w-7 animate-spin text-[#2164b6]" />
         <p className="text-sm font-semibold">Loading MurihPay Financial Hub...</p>
       </div>
     );
@@ -332,7 +332,7 @@ export function WalletPage({ initialTab = "system" }: WalletPageProps) {
   if (wallets.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[460px] text-center space-y-3 p-6 max-w-md mx-auto">
-        <div className="w-14 h-14 rounded-2xl bg-[#1A68D4]/10 text-[#1A68D4] flex items-center justify-center">
+        <div className="w-14 h-14 rounded-2xl bg-[#2164b6]/10 text-[#2164b6] flex items-center justify-center">
           <WalletIcon weight="fill" className="h-7 w-7" />
         </div>
         <h2 className="text-lg font-bold text-foreground">Welcome to MurihPay Financial Hub</h2>
@@ -342,7 +342,7 @@ export function WalletPage({ initialTab = "system" }: WalletPageProps) {
         <Button
           size="sm"
           onClick={handleProvision}
-          className="mt-2 bg-[#1A68D4] hover:bg-[#1555AD] text-white font-bold text-xs h-10 px-4 rounded-xl"
+          className="mt-2 bg-[#2164b6] hover:bg-[#1a5091] text-white font-bold text-xs h-10 px-4 rounded-xl"
         >
           <ArrowsClockwise weight="bold" className="h-4 w-4 mr-2" />
           Initialize & Provision Wallets
@@ -374,7 +374,7 @@ export function WalletPage({ initialTab = "system" }: WalletPageProps) {
           >
             {isBalanceHidden ? (
               <>
-                <EyeSlash weight="bold" className="h-4 w-4 text-[#1A68D4]" />
+                <EyeSlash weight="bold" className="h-4 w-4 text-[#2164b6]" />
                 <span className="hidden sm:inline">Hidden</span>
               </>
             ) : (
@@ -392,7 +392,7 @@ export function WalletPage({ initialTab = "system" }: WalletPageProps) {
             onClick={() => setShowPinModal(true)}
             className="h-9 sm:h-10 px-3 sm:px-4 rounded-xl border border-border text-foreground hover:bg-muted font-bold text-xs flex items-center gap-1.5 shadow-2xs"
           >
-            <ShieldCheck weight="fill" className="h-4 w-4 text-[#1A68D4]" />
+            <ShieldCheck weight="fill" className="h-4 w-4 text-[#2164b6]" />
             <span>Security & Settings</span>
           </Button>
         </div>
@@ -515,7 +515,7 @@ export function WalletPage({ initialTab = "system" }: WalletPageProps) {
         <DialogContent className="sm:max-w-md p-6">
           <DialogHeader className="space-y-1">
             <DialogTitle className="flex items-center gap-2 text-lg font-bold">
-              <WalletIcon weight="bold" className="h-5 w-5 text-[#1A68D4]" />
+              <WalletIcon weight="bold" className="h-5 w-5 text-[#2164b6]" />
               Deposit Funds (USD Base)
             </DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground">
@@ -539,7 +539,7 @@ export function WalletPage({ initialTab = "system" }: WalletPageProps) {
                   value={depositAmount}
                   onChange={(e) => setDepositAmount(e.target.value)}
                   placeholder="50.00"
-                  className="w-full pl-8 pr-16 py-2.5 text-xl font-bold bg-muted/30 border border-border rounded-xl text-foreground focus:outline-none focus:ring-1 focus:ring-[#1A68D4]"
+                  className="w-full pl-8 pr-16 py-2.5 text-xl font-bold bg-muted/30 border border-border rounded-xl text-foreground focus:outline-none focus:ring-1 focus:ring-[#2164b6]"
                 />
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground bg-muted px-2 py-1 rounded-md">
                   USD
@@ -554,7 +554,7 @@ export function WalletPage({ initialTab = "system" }: WalletPageProps) {
               <select
                 value={depositGateway}
                 onChange={(e) => setDepositGateway(e.target.value)}
-                className="w-full px-3 py-2 text-xs font-bold bg-muted/30 border border-border rounded-xl text-foreground focus:outline-none focus:ring-1 focus:ring-[#1A68D4]"
+                className="w-full px-3 py-2 text-xs font-bold bg-muted/30 border border-border rounded-xl text-foreground focus:outline-none focus:ring-1 focus:ring-[#2164b6]"
               >
                 <option value="paystack">Paystack (Debit/Credit Card, Bank, USSD)</option>
                 <option value="stripe">Stripe (International Cards, Apple Pay)</option>
@@ -570,7 +570,7 @@ export function WalletPage({ initialTab = "system" }: WalletPageProps) {
                 <select
                   value={depositCountry}
                   onChange={(e) => setDepositCountry(e.target.value)}
-                  className="w-full px-3 py-2 text-xs font-bold bg-muted/30 border border-border rounded-xl text-foreground focus:outline-none focus:ring-1 focus:ring-[#1A68D4]"
+                  className="w-full px-3 py-2 text-xs font-bold bg-muted/30 border border-border rounded-xl text-foreground focus:outline-none focus:ring-1 focus:ring-[#2164b6]"
                 >
                   <option value="">Select country (optional)</option>
                   {depositCountries.map((c) => (
@@ -615,7 +615,7 @@ export function WalletPage({ initialTab = "system" }: WalletPageProps) {
             <Button
               type="submit"
               disabled={depositLoading || (parseFloat(depositAmount) || 0) < 1}
-              className="w-full h-11 bg-[#1A68D4] hover:bg-[#1555AD] text-white font-bold text-sm rounded-xl shadow-xs"
+              className="w-full h-11 bg-[#2164b6] hover:bg-[#1a5091] text-white font-bold text-sm rounded-xl shadow-xs"
             >
               {depositLoading ? (
                 <span className="flex items-center gap-2">
@@ -713,7 +713,7 @@ export function WalletPage({ initialTab = "system" }: WalletPageProps) {
         <DialogContent className="sm:max-w-xs p-6 text-center">
           <DialogHeader className="space-y-1">
             <DialogTitle className="flex items-center justify-center gap-2 text-lg font-bold">
-              <Lock weight="bold" className="h-5 w-5 text-[#1A68D4]" />
+              <Lock weight="bold" className="h-5 w-5 text-[#2164b6]" />
               Security PIN
             </DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground">
@@ -728,13 +728,13 @@ export function WalletPage({ initialTab = "system" }: WalletPageProps) {
               value={pinInput}
               onChange={(e) => setPinInput(e.target.value.replace(/\D/g, ""))}
               placeholder="••••"
-              className="w-full py-3 text-2xl font-bold tracking-[0.5em] text-center font-mono bg-muted/40 border border-border rounded-xl text-foreground focus:outline-none focus:ring-1 focus:ring-[#1A68D4]"
+              className="w-full py-3 text-2xl font-bold tracking-[0.5em] text-center font-mono bg-muted/40 border border-border rounded-xl text-foreground focus:outline-none focus:ring-1 focus:ring-[#2164b6]"
             />
 
             <Button
               type="submit"
               disabled={pinLoading || pinInput.length !== 4}
-              className="w-full h-10 bg-[#1A68D4] hover:bg-[#1555AD] text-white font-bold text-xs rounded-xl"
+              className="w-full h-10 bg-[#2164b6] hover:bg-[#1a5091] text-white font-bold text-xs rounded-xl"
             >
               {pinLoading ? "Configuring..." : "Save Transaction PIN"}
             </Button>

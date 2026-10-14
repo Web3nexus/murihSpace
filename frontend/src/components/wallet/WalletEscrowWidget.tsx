@@ -74,7 +74,7 @@ export function WalletEscrowWidget({
         <button
           onClick={() => navigate("/app/wallet/escrow")}
           type="button"
-          className="text-xs font-semibold text-[#1A68D4] hover:underline"
+          className="text-xs font-semibold text-[#2164b6] hover:underline"
         >
           View All
         </button>
@@ -92,7 +92,7 @@ export function WalletEscrowWidget({
               className="p-3 rounded-xl bg-muted/30 border border-border/70 hover:border-border flex items-center justify-between gap-3 cursor-pointer transition-all hover:bg-muted/50"
             >
               <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-9 h-9 rounded-lg bg-[#1A68D4]/10 text-[#1A68D4] flex items-center justify-center shrink-0">
+                <div className="w-9 h-9 rounded-lg bg-[#2164b6]/10 text-[#2164b6] flex items-center justify-center shrink-0">
                   <Icon weight="fill" className="h-4 w-4" />
                 </div>
                 <div className="min-w-0">

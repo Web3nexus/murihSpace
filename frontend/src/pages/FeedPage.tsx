@@ -400,7 +400,7 @@ export default function FeedPage() {
   }
 
   return (
-    <AnimatedPage className="w-full min-h-screen bg-slate-50/60 dark:bg-background">
+    <AnimatedPage className="w-full min-h-screen bg-[#F0F2F5] dark:bg-[#18191A]">
       <div className="max-w-[1240px] mx-auto p-4 sm:p-4 flex gap-6 justify-center">
         <div className="w-full max-w-[760px] space-y-5 min-w-0">
 

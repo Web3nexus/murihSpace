@@ -90,7 +90,7 @@ export function MurihPayDigitalCard({
     <div
       className="relative w-full aspect-[1.586/1] max-w-[420px] rounded-2xl p-5 sm:p-6 text-white shadow-xl overflow-hidden flex flex-col justify-between transition-all duration-300 hover:shadow-2xl select-none"
       style={{
-        background: "linear-gradient(135deg, #1A68D4 0%, #1555AD 55%, #0E3D7D 100%)",
+        background: "linear-gradient(135deg, #2164b6 0%, #1a5091 55%, #0E3D7D 100%)",
         boxShadow: "0 16px 36px -10px rgba(26, 104, 212, 0.42), 0 4px 12px -2px rgba(0, 0, 0, 0.12)",
       }}
     >

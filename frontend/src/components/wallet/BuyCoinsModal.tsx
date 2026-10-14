@@ -135,7 +135,7 @@ export function BuyCoinsModal({
                   onClick={() => setSelectedPackId(pack.id)}
                   className={`p-3 rounded-xl border flex items-center justify-between gap-3 cursor-pointer transition-all ${
                     isSelected
-                      ? "border-[#1A68D4] bg-[#1A68D4]/5 ring-1 ring-[#1A68D4]"
+                      ? "border-[#2164b6] bg-[#2164b6]/5 ring-1 ring-[#2164b6]"
                       : "border-border hover:border-border/80 bg-card hover:bg-muted/30"
                   }`}
                 >
@@ -152,7 +152,7 @@ export function BuyCoinsModal({
                           <span
                             className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
                               pack.badge.toLowerCase().includes("popular")
-                                ? "bg-blue-500/10 text-[#1A68D4] border border-blue-500/20"
+                                ? "bg-blue-500/10 text-[#2164b6] border border-blue-500/20"
                                 : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
                             }`}
                           >
@@ -183,7 +183,7 @@ export function BuyCoinsModal({
             type="button"
             disabled={!selectedPackId || purchasing}
             onClick={handlePurchase}
-            className="w-full h-11 bg-[#1A68D4] hover:bg-[#1555AD] text-white font-bold text-sm rounded-xl shadow-xs"
+            className="w-full h-11 bg-[#2164b6] hover:bg-[#1a5091] text-white font-bold text-sm rounded-xl shadow-xs"
           >
             {purchasing ? (
               <span className="flex items-center gap-2">

@@ -60,7 +60,7 @@ export default function AiSettingsPage() {
   };
 
   return (
-    <div className="min-h-full bg-gradient-to-br from-[#F8FAFB] via-white to-[#E8F8FF]/40 dark:from-[#0a1a2a] dark:via-[#0f1f30] dark:to-[#0a1a2a]">
+    <div className="min-h-full bg-[#F0F2F5] dark:bg-[#18191A]">
       <div className="max-w-3xl mx-auto px-6 py-8 space-y-6">
         {/* Header */}
         <div className="flex items-center gap-3">
@@ -82,7 +82,7 @@ export default function AiSettingsPage() {
         ) : (
           <div className="space-y-6">
             {/* Identity */}
-            <section className="rounded-lg border-none/60 bg-white dark:bg-[#102840]/60 p-5  space-y-4">
+            <section className="rounded-lg border-none/60 bg-white dark:bg-[#242526]/60 p-5  space-y-4">
               <div className="flex items-center gap-2">
                 <MeraIcon className="h-4 w-4" />
                 <h2 className="text-sm font-bold text-foreground">Assistant identity</h2>
@@ -119,7 +119,7 @@ export default function AiSettingsPage() {
             </section>
 
             {/* Guardrails notice */}
-            <section className="rounded-lg border-none/60 bg-white dark:bg-[#102840]/60 p-5 ">
+            <section className="rounded-lg border-none/60 bg-white dark:bg-[#242526]/60 p-5 ">
               <div className="flex items-center gap-2">
                 <ShieldCheck weight="fill" className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" />
                 <h2 className="text-sm font-bold text-foreground">Stay on-topic</h2>

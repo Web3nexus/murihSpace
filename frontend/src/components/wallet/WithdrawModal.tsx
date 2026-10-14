@@ -146,7 +146,7 @@ export function WithdrawModal({
                   value={amountUsd}
                   onChange={(e) => setAmountUsd(e.target.value)}
                   placeholder="0.00"
-                  className="w-full pl-8 pr-3 py-2 text-lg font-bold bg-muted/30 border border-border rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-[#1A68D4]"
+                  className="w-full pl-8 pr-3 py-2 text-lg font-bold bg-muted/30 border border-border rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-[#2164b6]"
                 />
               </div>
             </div>
@@ -158,7 +158,7 @@ export function WithdrawModal({
               <select
                 value={destCurrency}
                 onChange={(e) => setDestCurrency(e.target.value)}
-                className="w-full px-3 py-2.5 text-xs font-bold bg-muted/30 border border-border rounded-xl text-foreground focus:outline-none focus:ring-1 focus:ring-[#1A68D4]"
+                className="w-full px-3 py-2.5 text-xs font-bold bg-muted/30 border border-border rounded-xl text-foreground focus:outline-none focus:ring-1 focus:ring-[#2164b6]"
               >
                 {destCurrencies.map((c) => (
                   <option key={c.code} value={c.code}>
@@ -212,7 +212,7 @@ export function WithdrawModal({
                   value={pin}
                   onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))}
                   placeholder="••••"
-                  className="w-full pl-9 pr-3 py-2 text-sm bg-muted/30 border border-border rounded-xl text-foreground tracking-widest font-mono text-center focus:outline-none focus:ring-1 focus:ring-[#1A68D4]"
+                  className="w-full pl-9 pr-3 py-2 text-sm bg-muted/30 border border-border rounded-xl text-foreground tracking-widest font-mono text-center focus:outline-none focus:ring-1 focus:ring-[#2164b6]"
                 />
               </div>
             </div>
