@@ -186,7 +186,7 @@ export default function HelpIndex({ loaderData }: Route.ComponentProps) {
             <div className="grid gap-3 sm:grid-cols-2">
               {[
                 ["Log in to MurihSpace", "/login", "Resolve account issues from your dashboard."],
-                ["Start for free", "/register", "Create a new account in minutes."],
+                ["Get the app", "/download", "Create your account in the MurihSpace mobile app."],
               ].map(([label, to, desc]) => (
                 <Link
                   key={to}

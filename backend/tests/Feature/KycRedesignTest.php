@@ -16,7 +16,7 @@ class KycRedesignTest extends TestCase
 
     public function test_basic_user_registration_completes_without_mandatory_kyc(): void
     {
-        $response = $this->postJson('/api/v1/auth/register', [
+        $response = $this->withHeader('X-Client-Platform', 'app')->postJson('/api/v1/auth/register', [
             'name' => 'Free Member',
             'email' => 'freemember@murihspace.com',
             'username' => 'freemember',
@@ -35,7 +35,7 @@ class KycRedesignTest extends TestCase
 
     public function test_registration_with_creator_intent_triggers_role_application(): void
     {
-        $response = $this->postJson('/api/v1/auth/register', [
+        $response = $this->withHeader('X-Client-Platform', 'app')->postJson('/api/v1/auth/register', [
             'name' => 'Aspiring Creator',
             'email' => 'creatorintent@murihspace.com',
             'username' => 'creatorintent',

@@ -1,49 +1,43 @@
 import { authFetch } from "@/lib/api/authFetch";
 import React, { useState, useEffect, useRef } from "react";
-import { Link, useNavigate, useLocation } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { useAuth } from "@/hooks/useAuth";
 import { usePlatformConfig } from "@/hooks/usePlatformConfig";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { PhoneInput } from "@/components/forms/PhoneInput";
 import { OtpInput } from "@/components/forms/OtpInput";
-import { ShieldFail as ShieldWarning, ArrowLeft, Swap as RefreshCw, TickSquare as CheckCircle2, Show as Eye, Hide as EyeOff } from "@/components/icons";
-import { Spinner as Loader2, DeviceMobile as Smartphone } from "@/components/icons/rounded";;
+import {
+  ShieldFail as ShieldWarning,
+  ArrowLeft,
+  Swap as RefreshCw,
+  TickSquare as CheckCircle2,
+  Scan as ScanIcon,
+} from "@/components/icons";
+import { Spinner as Loader2, DeviceMobile as Smartphone } from "@/components/icons/rounded";
 import { cn } from "@/lib/utils";
-import { anyLoginMethodEnabled, defaultLoginTab, loginVisibility, resolveLoginTab, showLoginTabSwitcher } from "@/lib/loginVisibility";
+import { anyLoginMethodEnabled, loginVisibility } from "@/lib/loginVisibility";
 import { AuthLayout } from "@/components/layout/AuthLayout";
 import { stashSocialReturn, usePostAuthRedirect } from "@/lib/usePostAuthRedirect";
-
+import { clearImpersonationToken } from "@/lib/auth/token";
+import QRCode from "qrcode";
 
 const DEFAULT_COUNTRY = "NG";
 
-type Tab = "phone" | "email";
+type LoginMode = "qr" | "phone";
 
 export function LoginPage() {
-  const { login, requestOtp, verifyOtp, logout, loading, error, fieldErrors } = useAuth();
+  const { requestOtp, verifyOtp, logout, loading, error, fieldErrors } = useAuth();
   const cfg = usePlatformConfig();
   const navigate = useNavigate();
-  const location = useLocation();
-  const fromLocation = (location.state as { from?: { pathname?: string; search?: string } } | null)?.from;
   const postAuthPath = usePostAuthRedirect();
 
   const methods = cfg.auth_methods.methods;
   const visibility = loginVisibility(methods);
   const phoneLoginEnabled = visibility.phoneEnabled;
-  const emailLoginEnabled = visibility.emailEnabled;
   const socialProviders = visibility.socialEnabled;
 
-  const [tab, setTab] = useState<Tab>(defaultLoginTab(visibility));
-
-  // Re-sync selected tab when platform config loads, or when an admin
-  // toggles a method off while the user is on that tab.
-  useEffect(() => {
-    if (cfg.loading) return;
-    const resolved = resolveLoginTab(visibility, tab);
-    if (resolved !== tab) setTab(resolved);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cfg.loading, phoneLoginEnabled, emailLoginEnabled, socialProviders.length, tab]);
+  const [loginMode, setLoginMode] = useState<LoginMode>("qr");
 
   // Phone OTP flow
   const [phoneStep, setPhoneStep] = useState<"phone" | "otp">("phone");
@@ -55,10 +49,16 @@ export function LoginPage() {
   const [resendIn, setResendIn] = useState(0);
   const resendTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Email flow
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
+  // QR flow
+  const [qrImage, setQrImage] = useState<string | null>(null);
+  const [qrPollToken, setQrPollToken] = useState<string | null>(null);
+  const [qrStatus, setQrStatus] = useState<"pending" | "scanned" | "expired" | "error">("pending");
+  const [qrConfirmationCode, setQrConfirmationCode] = useState<string | null>(null);
+  const [qrError, setQrError] = useState<string | null>(null);
+  const [qrExpiresAt, setQrExpiresAt] = useState<number | null>(null);
+  const [qrCountdown, setQrCountdown] = useState<number>(0);
+  const qrPollRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const qrPollTokenRef = useRef<string | null>(null);
 
   const [socialLoading, setSocialLoading] = useState<string | null>(null);
   const [socialError, setSocialError] = useState<string | null>(null);
@@ -68,8 +68,16 @@ export function LoginPage() {
   useEffect(() => {
     return () => {
       if (resendTimerRef.current) clearInterval(resendTimerRef.current);
+      if (qrPollRef.current) clearTimeout(qrPollRef.current);
     };
   }, []);
+
+  const clearQrPoll = () => {
+    if (qrPollRef.current) {
+      clearTimeout(qrPollRef.current);
+      qrPollRef.current = null;
+    }
+  };
 
   const startResendCooldown = (seconds: number) => {
     if (resendTimerRef.current) clearInterval(resendTimerRef.current);
@@ -84,6 +92,150 @@ export function LoginPage() {
       });
     }, 1000);
   };
+
+  const startQr = async () => {
+    qrPollTokenRef.current = null;
+    clearQrPoll();
+    setQrStatus("pending");
+    setQrImage(null);
+    setQrConfirmationCode(null);
+    setQrError(null);
+    try {
+      const res = await authFetch("/auth/qr/start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      if (!res.ok) throw new Error(`The server returned ${res.status}. Please try again.`);
+      const j = await res.json();
+      const d = j?.success ? j?.data : j;
+      const token = d?.qr_token as string | undefined;
+      const poll = d?.poll_token as string | undefined;
+      const code = d?.confirmation_code as string | undefined;
+      const expiresAt = d?.expires_at as string | undefined;
+      if (!token || !poll) throw new Error("The server did not return a QR code.");
+
+      qrPollTokenRef.current = poll;
+      setQrPollToken(poll);
+      setQrConfirmationCode(code ?? null);
+      const expires = expiresAt ? new Date(expiresAt).getTime() : Date.now() + 120_000;
+      setQrExpiresAt(expires);
+      setQrCountdown(Math.max(0, Math.floor((expires - Date.now()) / 1000)));
+
+      const link = (d?.qr_deep_link as string) || (d?.qr_url as string) || `murihspace://qr-login?token=${token}`;
+      QRCode.toDataURL(link, { width: 512, margin: 1, errorCorrectionLevel: "M" })
+        .then((data) => setQrImage(data))
+        .catch(() => {
+          setQrError("Could not render the QR code image.");
+          setQrStatus("error");
+        });
+    } catch (err) {
+      setQrError(err instanceof Error ? err.message : "Could not reach the login server.");
+      setQrStatus("error");
+    }
+  };
+
+  const pollQr = async (pollToken: string) => {
+    try {
+      const res = await authFetch("/auth/qr/poll", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ poll_token: pollToken }),
+      });
+      // Non-2xx (410 expired / 403 denied) also carry a JSON status in `errors`.
+      const j = await res.json().catch(() => null);
+
+      // A refresh may have started a new QR while this request was in flight.
+      // Bail before touching login state so an outdated poll cannot log the
+      // user in or reschedule.
+      if (qrPollTokenRef.current !== pollToken) return;
+
+      const d = j?.data ?? j?.errors ?? j ?? {};
+      const status = d?.status as string | undefined;
+
+      if (status === "approved" && d?.token) {
+        const role = d?.user?.role;
+        // The web dashboard is for creators and vendors only, mirroring the
+        // phone-OTP path: admins use the securegate portal, members use the app.
+        if (role === "admin" || role === "member") {
+          // The approval already minted a valid session token server-side.
+          // Revoke it before discarding so it can never be replayed, then route
+          // the user to the correct surface.
+          await authFetch("/auth/logout", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${d.token as string}` },
+          }).catch(() => {});
+          if (role === "admin") setAdminBlocked(true);
+          else setMemberBlocked(true);
+          clearQrPoll();
+          return;
+        }
+        clearImpersonationToken();
+        localStorage.setItem("murihspace-token", d.token as string);
+        window.location.assign(postAuthPath);
+        return;
+      }
+      if (status === "scanned") {
+        setQrStatus("scanned");
+      }
+      if (["denied", "expired", "consumed", "failed", "not_found"].includes(status ?? "")) {
+        setQrStatus("expired");
+        clearQrPoll();
+        return;
+      }
+      if (!res.ok && !status) {
+        // Unexpected error payload — stop rather than loop forever, and drop
+        // the now-stale QR image so it cannot be shown as if still valid.
+        setQrImage(null);
+        setQrConfirmationCode(null);
+        setQrStatus("error");
+        return;
+      }
+    } catch {
+      // transient network error: keep polling until expiry
+    }
+
+    qrPollRef.current = setTimeout(() => {
+      // Guard against a stale in-flight poll rescheduling after the user has
+      // refreshed to a new QR code.
+      if (qrPollTokenRef.current === pollToken) void pollQr(qrPollTokenRef.current);
+    }, 1500);
+  };
+
+  // Kick off (or tear down) the QR transaction when the mode changes.
+  useEffect(() => {
+    if (loginMode !== "qr") {
+      clearQrPoll();
+      return;
+    }
+    void startQr();
+    return () => clearQrPoll();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loginMode]);
+
+  // Begin polling once we have a poll token.
+  useEffect(() => {
+    if (loginMode !== "qr" || !qrPollToken) return;
+    void pollQr(qrPollToken);
+    return () => clearQrPoll();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loginMode, qrPollToken]);
+
+  // Countdown to expiry.
+  useEffect(() => {
+    if (loginMode !== "qr" || qrExpiresAt === null) return;
+    const tick = () => {
+      const diff = Math.max(0, Math.floor((qrExpiresAt - Date.now()) / 1000));
+      setQrCountdown(diff);
+      if (diff <= 0) {
+        setQrStatus("expired");
+        clearQrPoll();
+      }
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loginMode, qrExpiresAt]);
 
   const handleRequestPhoneOtp = async (e?: React.FormEvent) => {
     e?.preventDefault();
@@ -123,23 +275,6 @@ export function LoginPage() {
     navigate(postAuthPath);
   };
 
-  const handleEmailSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setAdminBlocked(false);
-    const user = await login(email, password);
-    if (user) {
-      if (user.role === "admin") {
-        await logout();
-        setAdminBlocked(true);
-      } else if (user.role === "member") {
-        await logout();
-        setMemberBlocked(true);
-      } else {
-        navigate(postAuthPath);
-      }
-    }
-  };
-
   const handleSocialLogin = async (provider: string) => {
     setSocialLoading(provider);
     setSocialError(null);
@@ -163,15 +298,6 @@ export function LoginPage() {
     setSocialLoading(null);
   };
 
-  const goToRegister = () => {
-    navigate("/register", {
-      state: {
-        ...(phoneE164 ? { phoneE164, countryIso2: DEFAULT_COUNTRY } : {}),
-        ...(fromLocation ? { from: fromLocation } : {}),
-      },
-    });
-  };
-
   const resend = () => {
     setCode("");
     setOtpError(null);
@@ -187,10 +313,12 @@ export function LoginPage() {
       <div className="flex flex-col gap-5">
         <div className="flex flex-col gap-1 text-left">
           <h2 className="text-xl sm:text-xl font-extrabold tracking-tight text-slate-900 dark:text-white">
-            Log in to MurihSpace
+            Sign in to MurihSpace
           </h2>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
-            {tab === "phone" ? "We'll text you a code to verify it's you." : "Enter your credentials to access your account."}
+            {loginMode === "qr"
+              ? "Scan this code with the MurihSpace mobile app to sign in instantly."
+              : "We'll text you a code to verify it's you."}
           </p>
         </div>
 
@@ -238,33 +366,37 @@ export function LoginPage() {
           </div>
         )}
 
-        {/* Method tabs */}
-        {showLoginTabSwitcher(visibility) && (
-          <div className="flex rounded-lg border-none bg-muted/30 p-1">
-            {phoneLoginEnabled && (
-              <button
-                type="button"
-                onClick={() => setTab("phone")}
-                className={cn(
-                  "flex-1 rounded-lg py-2 text-xs font-bold transition-colors",
-                  tab === "phone" ? "bg-[#2164b6] text-white " : "text-slate-500 dark:text-slate-400 hover:text-foreground"
-                )}
-              >
-                Phone
-              </button>
-            )}
-            {emailLoginEnabled && (
-              <button
-                type="button"
-                onClick={() => setTab("email")}
-                className={cn(
-                  "flex-1 rounded-lg py-2 text-xs font-bold transition-colors",
-                  tab === "email" ? "bg-[#2164b6] text-white " : "text-slate-500 dark:text-slate-400 hover:text-foreground"
-                )}
-              >
-                Email & password
-              </button>
-            )}
+        {/* Method switcher */}
+        {phoneLoginEnabled && (
+          <div className="flex gap-2 rounded-lg bg-slate-100 dark:bg-slate-800/60 p-1">
+            <button
+              type="button"
+              id="login-tab-qr"
+              onClick={() => setLoginMode("qr")}
+              className={cn(
+                "flex-1 flex items-center justify-center gap-1.5 h-10 rounded-md text-xs sm:text-sm font-bold transition-all",
+                loginMode === "qr"
+                  ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm"
+                  : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white",
+              )}
+            >
+              <ScanIcon className="h-4 w-4" />
+              QR Code
+            </button>
+            <button
+              type="button"
+              id="login-tab-phone"
+              onClick={() => setLoginMode("phone")}
+              className={cn(
+                "flex-1 flex items-center justify-center gap-1.5 h-10 rounded-md text-xs sm:text-sm font-bold transition-all",
+                loginMode === "phone"
+                  ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm"
+                  : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white",
+              )}
+            >
+              <Smartphone className="h-4 w-4" />
+              Phone OTP
+            </button>
           </div>
         )}
 
@@ -276,8 +408,79 @@ export function LoginPage() {
           </p>
         )}
 
+        {/* QR login */}
+        {loginMode === "qr" && anyLoginMethodEnabled(visibility) && (
+          <div className="flex flex-col items-center justify-center gap-4 py-2">
+            <div className="relative flex items-center justify-center rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 p-5 shadow-sm">
+              {qrImage ? (
+                <img src={qrImage} alt="QR code to sign in" className="h-56 w-56 sm:h-64 sm:w-64" />
+              ) : (
+                <div className="flex h-56 w-56 sm:h-64 sm:w-64 items-center justify-center">
+                  {qrStatus === "error" ? (
+                    <div className="flex flex-col items-center gap-3 px-4 text-center">
+                      <span className="text-xs font-medium text-rose-500">
+                        {qrError ?? "Could not load QR code"}
+                      </span>
+                      <Button type="button" size="sm" variant="outline" onClick={() => void startQr()}>
+                        Try again
+                      </Button>
+                    </div>
+                  ) : (
+                    <Loader2 weight="fill" className="h-6 w-6 animate-spin text-slate-500" />
+                  )}
+                </div>
+              )}
+
+              {qrStatus === "expired" && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 rounded-2xl bg-white/90 dark:bg-slate-950/90 backdrop-blur-sm">
+                  <span className="text-sm font-bold text-slate-900 dark:text-white">QR code expired</span>
+                  <Button type="button" size="sm" onClick={() => void startQr()}>
+                    Refresh QR
+                  </Button>
+                </div>
+              )}
+
+              {qrStatus === "scanned" && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 rounded-2xl bg-white/95 dark:bg-slate-950/95 backdrop-blur-sm">
+                  <CheckCircle2 className="h-8 w-8 text-emerald-500" weight="fill" />
+                  <span className="text-sm font-bold text-slate-900 dark:text-white">Scanned</span>
+                  <p className="px-6 text-center text-xs text-slate-500 dark:text-slate-400">
+                    Approve the sign-in on your mobile device to continue.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {qrConfirmationCode && (qrStatus === "pending" || qrStatus === "scanned") && (
+              <div className="flex flex-col items-center gap-1 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 px-5 py-3">
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  Confirmation code
+                </span>
+                <span className="font-mono text-2xl font-bold tracking-[0.35em] text-slate-900 dark:text-white">
+                  {qrConfirmationCode}
+                </span>
+                <span className="text-xs text-slate-500 dark:text-slate-400 text-center">
+                  Enter this code on your phone to approve the sign-in.
+                </span>
+              </div>
+            )}
+
+            <div className="flex flex-col items-center gap-1 text-center">
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Open <span className="font-semibold text-slate-700 dark:text-slate-200">MurihSpace</span> on your phone, tap{" "}
+                <span className="font-semibold text-slate-700 dark:text-slate-200">Link a device</span>, then scan.
+              </p>
+              {qrExpiresAt !== null && qrStatus !== "expired" && (
+                <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">
+                  Expires in {qrCountdown}s
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Phone OTP flow */}
-        {tab === "phone" && phoneLoginEnabled && (
+        {loginMode === "phone" && phoneLoginEnabled && (
           <>
             {phoneStep === "phone" ? (
               <form onSubmit={handleRequestPhoneOtp} className="space-y-4">
@@ -333,17 +536,13 @@ export function LoginPage() {
                     <p className="text-xs text-rose-500 text-center font-medium">{otpError || error}</p>
                   )}
                   {noAccount && (
-                    <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-center space-y-2">
+                    <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-center space-y-1.5">
                       <p className="text-xs text-amber-600 dark:text-amber-400 font-medium">
                         No account is linked to this number.
                       </p>
-                      <Button
-                        type="button"
-                        onClick={goToRegister}
-                        className="w-full h-10 rounded-lg bg-[#2164b6] hover:bg-[#1a5091] text-white text-sm font-bold"
-                      >
-                        Create an account with this number
-                      </Button>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        Create one in the MurihSpace mobile app, then sign in here.
+                      </p>
                     </div>
                   )}
                   <div className="flex gap-2">
@@ -381,86 +580,6 @@ export function LoginPage() {
           </>
         )}
 
-        {/* Email flow */}
-        {tab === "email" && emailLoginEnabled && (
-          <form onSubmit={handleEmailSubmit} className="space-y-4">
-            <FieldGroup className="space-y-4">
-              <Field>
-                <FieldLabel htmlFor="login-email" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                  Email address
-                </FieldLabel>
-                <Input
-                  id="login-email"
-                  type="email"
-                  placeholder="name@example.com"
-                  required
-                  autoComplete="email"
-                  value={email}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
-                  disabled={loading}
-                  className={cn(
-                    "h-12 px-4 rounded-lg text-sm bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-800 focus:border-[#2164b6] focus:ring-2 focus:ring-[#2164b6]/20",
-                    fieldErrors.email && "border-rose-500 focus-visible:ring-rose-500"
-                  )}
-                />
-                {fieldErrors.email && <p className="text-xs text-rose-500 mt-1">{fieldErrors.email[0]}</p>}
-              </Field>
-
-              <Field>
-                <div className="flex items-center justify-between">
-                  <FieldLabel htmlFor="login-password" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                    Password
-                  </FieldLabel>
-                  <Link to="/forgot-password" className="text-xs font-medium text-[#2164b6] dark:text-[#7ab0ff] hover:underline underline-offset-4">
-                    Forgotten password?
-                  </Link>
-                </div>
-                <div className="relative">
-                  <Input
-                    id="login-password"
-                    type={showPassword ? "text" : "password"}
-                    placeholder="••••••••"
-                    required
-                    autoComplete="current-password"
-                    value={password}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
-                    disabled={loading}
-                    className={cn(
-                      "h-12 px-4 rounded-lg text-sm bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-800 focus:border-[#2164b6] focus:ring-2 focus:ring-[#2164b6]/20",
-                      fieldErrors.password && "border-rose-500 focus-visible:ring-rose-500"
-                    )}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 focus:outline-none"
-                  >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye weight="fill" className="w-4 h-4" />}
-                  </button>
-                </div>
-                {fieldErrors.password && <p className="text-xs text-rose-500 mt-1">{fieldErrors.password[0]}</p>}
-              </Field>
-
-              {!adminBlocked && error && (
-                <div id="login-error" className="rounded-lg bg-rose-500/10 border border-rose-500/20 p-3 text-xs sm:text-sm text-rose-500 text-center font-medium">
-                  {error}
-                </div>
-              )}
-
-              <Field className="pt-2">
-                <Button
-                  id="login-submit"
-                  type="submit"
-                  disabled={loading || !email || !password}
-                  className="w-full h-12 rounded-lg bg-[#2164b6] hover:bg-[#1a5091] text-white text-base font-bold shadow-lg shadow-[#2164b6]/25 transition-all duration-200 active:scale-[0.99]"
-                >
-                  {loading ? <><Loader2 weight="fill" className="mr-2 h-5 w-5 animate-spin" /> Logging in…</> : "Log in"}
-                </Button>
-              </Field>
-            </FieldGroup>
-          </form>
-        )}
-
         {/* Divider + Social */}
         {socialProviders.length > 0 && (
           <>
@@ -496,15 +615,14 @@ export function LoginPage() {
           </>
         )}
 
-        {/* Create account */}
+        {/* Registration is mobile-only; point users at the app. */}
         <div className="flex flex-col gap-3">
-          <Link
-            to="/register"
-            id="login-create-account-btn"
-            className="w-full h-12 rounded-lg border-2 border-[#2164b6] text-[#2164b6] dark:text-[#7ab0ff] hover:bg-[#2164b6]/10 font-bold text-sm sm:text-base flex items-center justify-center transition-all duration-200 active:scale-[0.99]"
-          >
-            Create new account
-          </Link>
+          <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 px-4 py-3 text-center">
+            <p className="text-xs text-slate-600 dark:text-slate-400">
+              New to MurihSpace?{" "}
+              <span className="font-semibold text-slate-800 dark:text-slate-200">Create an account in the mobile app.</span>
+            </p>
+          </div>
         </div>
 
         {/* Brand Watermark Footer */}

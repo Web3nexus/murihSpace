@@ -7,7 +7,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Login as SignIn, AddUser as UserPlus, N2User as Users } from "@/components/icons";
+import { Login as SignIn, N2User as Users } from "@/components/icons";
 
 interface AuthPromptModalProps {
   open: boolean;
@@ -28,11 +28,6 @@ export function AuthPromptModal({
   const handleLogin = () => {
     onOpenChange(false);
     navigate("/login", { state: { from: location } });
-  };
-
-  const handleRegister = () => {
-    onOpenChange(false);
-    navigate("/register", { state: { from: location } });
   };
 
   return (
@@ -56,19 +51,14 @@ export function AuthPromptModal({
             <Button
               type="button"
               onClick={() => handleLogin()}
-              className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-border hover:bg-muted/50 text-sm font-semibold transition-colors"
-            >
-              <SignIn weight="fill" className="h-4 w-4 mr-2" />
-              Sign in with email
-            </Button>
-            <Button
-              type="button"
-              onClick={() => handleRegister()}
               className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground"
             >
-              <UserPlus weight="fill" className="h-4 w-4 mr-2" />
-              Create account
+              <SignIn weight="fill" className="h-4 w-4 mr-2" />
+              Sign in with QR or phone
             </Button>
+            <p className="text-xs text-muted-foreground">
+              New here? Create your account in the MurihSpace mobile app.
+            </p>
           </div>
         </div>
       </DialogContent>

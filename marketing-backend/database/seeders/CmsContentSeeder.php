@@ -18,14 +18,33 @@ class CmsContentSeeder extends Seeder
     {
         $this->seedSection('homepage', 'homepage', [
             'badge' => 'Built for creators, by creators',
-            'headline' => 'Your audience deserves',
-            'headline_accent' => 'more than a link',
-            'subcopy' => 'MurihSpace gives creators everything they need to build, grow, and monetise — communities, storefronts, messaging, and payments, all in one place.',
-            'primary_cta_label' => 'Start building for free',
-            'primary_cta_href' => '/register',
-            'secondary_cta_label' => 'See creator stories',
-            'secondary_cta_href' => '/creators',
+            'headline' => 'Connect, teach, and monetize',
+            'headline_accent' => 'with verified trust and escrow',
+            'subcopy' => 'MurihSpace combines private messaging, live audio stages, student cohorts, and instant storefronts — all protected and simple to use.',
+            'primary_cta_label' => 'Sign in',
+            'primary_cta_href' => '/login',
+            'secondary_cta_label' => 'Download App',
+            'secondary_cta_href' => '/download',
             'creators_badge' => '2,400+ creators joined this month',
+            'hero_image_url' => '/images/hero-woman.webp',
+            'multilingual_headline' => 'Connect, teach, and transact with absolute confidence across structured cohorts and storefronts.',
+            'multilingual_image_url' => '/images/creatorEve.webp',
+            'calls_headline' => 'Interactive live audio rooms and HD stage masterclasses',
+            'calls_subcopy' => 'From group masterclasses with your core cohort to 1-on-1 coaching calls, feel like you are in the same room with crystal-clear audio and video.',
+            'calls_image_url' => '/images/creatorEvent.png',
+            'security_headline' => 'Default Signal protocol encryption & KYC verified trust',
+            'security_subcopy' => 'Your personal messages, audio calls, media, and private cohorts are cryptographically locked. Full moderation controls, KYC verification, and dispute resolution built in.',
+            'security_image_url' => '/images/creator.png',
+            'groups_headline' => 'Organize student cohorts, paid memberships & discussion channels',
+            'groups_subcopy' => 'Whether hosting an exclusive cohort, running live polls, or coordinating member events, group conversations feel effortless on MurihSpace.',
+            'groups_image_url' => '/images/creatorEve.webp',
+            'status_headline' => 'Murih AI creator studio, 24h stories & expressiveness',
+            'status_subcopy' => 'Outline curriculum, draft community broadcasts, publish ephemeral stories, and generate course lessons with your integrated AI copilot.',
+            'status_image_url' => '/images/creatorEvent.png',
+            'business_headline' => 'Monetize digital downloads, physical goods & coaching with escrow',
+            'business_subcopy' => 'Sell digital downloads, memberships, coaching, and physical merchandise directly to your audience with automated milestone escrow protection.',
+            'business_image_url' => '/images/creatorEvent.png',
+            'download_image_url' => '/images/creatorEve.webp',
         ]);
 
         foreach ([
@@ -38,12 +57,12 @@ class CmsContentSeeder extends Seeder
         }
 
         foreach ([
-            ['title' => 'Communities', 'description' => 'Build private or public communities. Share updates, host discussions, and grow your tribe.', 'icon' => 'Users', 'gradient' => 'from-blue-500/20 to-cyan-500/20', 'icon_color' => 'text-blue-500'],
-            ['title' => 'Storefront', 'description' => 'Sell digital products directly to your audience. No third-party fees, no hassle.', 'icon' => 'Store', 'gradient' => 'from-purple-500/20 to-pink-500/20', 'icon_color' => 'text-purple-500'],
-            ['title' => 'Messaging', 'description' => 'Real-time chat with your community. Direct messages and channel conversations.', 'icon' => 'MessageSquare', 'gradient' => 'from-emerald-500/20 to-teal-500/20', 'icon_color' => 'text-emerald-500'],
-            ['title' => 'Wallet & Payments', 'description' => 'Receive tips, donations, and payments. Withdraw when you want, where you want.', 'icon' => 'Wallet', 'gradient' => 'from-amber-500/20 to-orange-500/20', 'icon_color' => 'text-amber-500'],
-            ['title' => 'Creator Safety', 'description' => 'Full moderation tools, KYC verification, and dispute resolution built in.', 'icon' => 'ShieldCheck', 'gradient' => 'from-rose-500/20 to-red-500/20', 'icon_color' => 'text-rose-500'],
-            ['title' => 'AI Tools', 'description' => 'Smart analytics, automated moderation, and growth insights powered by AI.', 'icon' => 'Sparkles', 'gradient' => 'from-indigo-500/20 to-violet-500/20', 'icon_color' => 'text-indigo-500'],
+            ['title' => 'Communities & Cohorts', 'description' => 'Launch public or private cohorts with channels, member roles, announcements, and group discussions.', 'icon' => 'Users', 'gradient' => 'from-blue-500/20 to-cyan-500/20', 'icon_color' => 'text-[#2164B6]', 'image_url' => '/images/creatorEve.webp'],
+            ['title' => 'Creator Storefront', 'description' => 'Sell digital products, courses, coaching, and merch directly to your audience with milestone escrow.', 'icon' => 'Store', 'gradient' => 'from-purple-500/20 to-pink-500/20', 'icon_color' => 'text-[#2164B6]', 'image_url' => '/images/creatorEvent.png'],
+            ['title' => 'Private Messaging & Audio', 'description' => 'Real-time Signal-encrypted chat with your supporters. 1-on-1 direct messages, voice notes, and 24-hour Stories.', 'icon' => 'MessageSquare', 'gradient' => 'from-blue-500/20 to-sky-500/20', 'icon_color' => 'text-[#2164B6]', 'image_url' => '/images/creator.png'],
+            ['title' => 'Live Calling & Stages', 'description' => 'Host HD group video calls, live audio stages with speaker queues, and interactive workshops with screen sharing.', 'icon' => 'Phone', 'gradient' => 'from-amber-500/20 to-orange-500/20', 'icon_color' => 'text-[#2164B6]', 'image_url' => '/images/creatorEvent.png'],
+            ['title' => 'KYC Trust & Escrow', 'description' => 'Verified creator badges, end-to-end encryption by default, anti-fraud escrow, and full moderation controls.', 'icon' => 'ShieldCheck', 'gradient' => 'from-rose-500/20 to-red-500/20', 'icon_color' => 'text-[#2164B6]', 'image_url' => '/images/creator.png'],
+            ['title' => 'Creator Studio & AI', 'description' => 'Murih AI copilot, curriculum generator, broadcast drafts, and real-time revenue analytics.', 'icon' => 'Sparkles', 'gradient' => 'from-indigo-500/20 to-violet-500/20', 'icon_color' => 'text-[#2164B6]', 'image_url' => '/images/creatorEve.webp'],
         ] as $i => $feature) {
             $this->seedSection('features', 'feature-'.($i + 1), $feature, $feature['title'], sortOrder: $i);
         }
@@ -68,10 +87,10 @@ class CmsContentSeeder extends Seeder
             'headline' => 'Ready to build your',
             'headline_accent' => 'creator empire',
             'subcopy' => 'Join thousands of creators already using MurihSpace. Start free, no credit card required.',
-            'primary_cta_label' => 'Create your free account',
-            'primary_cta_href' => '/register',
-            'secondary_cta_label' => 'See all features',
-            'secondary_cta_href' => '/features',
+            'primary_cta_label' => 'Download the app',
+            'primary_cta_href' => '/download',
+            'secondary_cta_label' => 'Sign in',
+            'secondary_cta_href' => '/login',
             'fine_print' => 'Free forever. No credit card needed.',
         ]);
 
@@ -97,25 +116,80 @@ class CmsContentSeeder extends Seeder
         ] as $i => $link) {
             $this->seedSection('footer', 'footer-'.($i + 1), $link, $link['label'], sortOrder: $i);
         }
+
+        // Registration was retired in favour of the mobile app, so existing
+        // installs must pick up the sign-in/app CTAs. Merge only those keys so
+        // any other admin-edited copy and the publication state are preserved.
+        $this->mergeContent('homepage', 'homepage', [
+            'primary_cta_label' => 'Sign in',
+            'primary_cta_href' => '/login',
+        ]);
+        $this->mergeContent('cta', 'cta', [
+            'primary_cta_label' => 'Download the app',
+            'primary_cta_href' => '/download',
+            'secondary_cta_label' => 'Sign in',
+            'secondary_cta_href' => '/login',
+        ]);
     }
 
     /**
-     * Seed a single content item if it does not already exist.
+     * Merge a subset of keys into an existing row's JSON content, leaving any
+     * other admin-edited fields and the publication state untouched. The merge
+     * only runs while the row still points at the retired `/register` CTA, so a
+     * CTA an admin has since customised is never overwritten on re-seed.
+     *
+     * @param  array<string, mixed>  $overrides
      */
-    protected function seedSection(string $section, string $slug, array $content, ?string $title = null, int $sortOrder = 0): void
+    protected function mergeContent(string $section, string $slug, array $overrides): void
     {
-        if (CmsContent::query()->where('section', $section)->where('slug', $slug)->exists()) {
+        $row = CmsContent::where('section', $section)->where('slug', $slug)->first();
+
+        if (! $row) {
             return;
         }
 
-        CmsContent::create([
-            'section' => $section,
-            'slug' => $slug,
-            'title' => $title ?? $content['name'] ?? null,
-            'content' => $content,
-            'state' => 'published',
-            'sort_order' => $sortOrder,
-            'published_at' => now(),
-        ]);
+        $content = $row->content ?? [];
+
+        // Only rewrite CTAs that still point at the retired /register page.
+        // Check every href the override touches so the `cta` row is upgraded
+        // even when only its secondary link held the register URL.
+        $hrefKeys = array_filter(
+            array_keys($overrides),
+            static fn (string $key): bool => str_ends_with($key, '_href')
+        );
+
+        $isStale = false;
+        foreach ($hrefKeys as $key) {
+            if (($content[$key] ?? null) === '/register') {
+                $isStale = true;
+                break;
+            }
+        }
+
+        if (! $isStale) {
+            return;
+        }
+
+        $row->content = array_merge($content, $overrides);
+        $row->save();
+    }
+
+    /**
+     * Seed or update a single content item.
+     */
+    protected function seedSection(string $section, string $slug, array $content, ?string $title = null, int $sortOrder = 0): void
+    {
+        // Create only when missing so re-seeding never overwrites CMS content
+        // that admins have edited or its publication state.
+        CmsContent::firstOrCreate(
+            ['section' => $section, 'slug' => $slug],
+            [
+                'title' => $title ?? $content['name'] ?? null,
+                'content' => $content,
+                'state' => 'published',
+                'sort_order' => $sortOrder,
+                'published_at' => now(),
+            ]
+        );
     }
 }

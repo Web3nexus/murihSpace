@@ -1,8 +1,8 @@
 import { motion } from "motion/react";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, LogIn } from "lucide-react";
 import { Link } from "react-router";
-import { buttonVariants } from "../ui/button";
 import { useCmsSingle } from "../../hooks/useCms";
+import { getLoginUrl } from "~/lib/env";
 
 interface CmsCta {
   headline: string;
@@ -16,61 +16,68 @@ interface CmsCta {
 }
 
 const defaultCta: CmsCta = {
-  headline: "Ready to build your",
-  headline_accent: "creator empire",
+  headline: "Ready to connect and build your",
+  headline_accent: "creator community",
   subcopy:
-    "Join thousands of creators already using MurihSpace. Start free, no credit card required.",
-  primary_cta_label: "Create your free account",
-  primary_cta_href: "/register",
-  secondary_cta_label: "See all features",
-  secondary_cta_href: "/features",
-  fine_print: "Free forever. No credit card needed.",
+    "Join thousands of creators already using MurihSpace. Create your account in the mobile app, then sign in on the web.",
+  primary_cta_label: "Download the App",
+  primary_cta_href: "/download",
+  secondary_cta_label: "Sign In",
+  secondary_cta_href: "/login",
+  fine_print: "Free forever. End-to-end encrypted. No credit card needed.",
 };
 
 export function CTASection() {
   const { data: cta } = useCmsSingle<CmsCta>("cta", defaultCta);
 
-  return (
-    <section className="py-20 md:py-28 relative overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-b from-primary/10 via-primary/5 to-transparent pointer-events-none" />
-      <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] opacity-60 pointer-events-none" style={{ background: "radial-gradient(circle, color-mix(in oklch, var(--color-primary) 10%, transparent), transparent)" }} />
+  // Sign in lives on the web app, not the marketing site, so resolve the
+  // default marketing path to the real login URL (CMS overrides pass through).
+  const secondaryHref =
+    cta.secondary_cta_href === "/login" ? getLoginUrl() : cta.secondary_cta_href;
 
-      <div className="mx-auto max-w-7xl px-6 relative z-10">
+  return (
+    <section className="bg-[#102840] text-white py-20 md:py-28 relative overflow-hidden text-center">
+      <div className="mx-auto max-w-4xl px-6 relative z-10">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-100px" }}
           transition={{ duration: 0.5 }}
-          className="text-center max-w-2xl mx-auto"
+          className="flex flex-col items-center"
         >
-          <h2 className="text-3xl md:text-4xl font-bold tracking-tight">
+          <span className="text-xs font-bold uppercase tracking-wider text-[#38A8D8] bg-white/10 px-3.5 py-1.5 rounded-full mb-6">
+            Get Started in Seconds
+          </span>
+
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-white leading-tight">
             {cta.headline}{" "}
-            <span className="bg-gradient-to-r from-primary via-purple-500 to-pink-500 bg-clip-text text-transparent">
+            <span className="text-[#38A8D8] block sm:inline">
               {cta.headline_accent}
             </span>
-            ?
           </h2>
-          <p className="mt-4 text-muted-foreground text-lg">
+
+          <p className="mt-5 text-lg text-[#B7C6D1] max-w-xl">
             {cta.subcopy}
           </p>
 
           <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link
               to={cta.primary_cta_href}
-              className={buttonVariants({ size: "lg", className: "h-12 px-8 text-base gap-2" })}
+              className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-[#38A8D8] px-8 text-base font-bold text-[#081827] shadow-lg hover:bg-[#2692c0] hover:text-white transition-all hover:-translate-y-0.5"
             >
-              {cta.primary_cta_label}
+              <span>{cta.primary_cta_label}</span>
               <ArrowRight className="size-4" />
             </Link>
-            <Link
-              to={cta.secondary_cta_href}
-              className={buttonVariants({ variant: "outline", size: "lg", className: "h-12 px-8 text-base" })}
+            <a
+              href={secondaryHref}
+              className="inline-flex h-12 items-center justify-center gap-2 rounded-full border border-white/40 px-8 text-base font-semibold text-white hover:bg-white/10 transition-colors"
             >
-              {cta.secondary_cta_label}
-            </Link>
+              <span>{cta.secondary_cta_label}</span>
+              <LogIn className="size-4" />
+            </a>
           </div>
 
-          <p className="mt-4 text-xs text-muted-foreground">
+          <p className="mt-6 text-xs text-[#8696A0]">
             {cta.fine_print}
           </p>
         </motion.div>
@@ -78,3 +85,5 @@ export function CTASection() {
     </section>
   );
 }
+
+export default CTASection;

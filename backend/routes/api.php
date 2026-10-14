@@ -1980,3 +1980,27 @@ Route::prefix('v1')->group(function () {
         });
     });
 });
+
+// QR Login (device linking) — unauthenticated transaction bootstrapping.
+Route::prefix('v1/auth/qr')->group(function () {
+    // Public endpoints for the desktop flow
+    Route::post('/start', [\App\Http\Controllers\QrLoginController::class, 'start'])
+        ->middleware('throttle:qr-login');
+
+    Route::post('/poll', [\App\Http\Controllers\QrLoginController::class, 'poll'])
+        ->middleware('throttle:qr-login-poll');
+
+    // Authenticated endpoints for the mobile app
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::post('/scan', [\App\Http\Controllers\QrLoginController::class, 'scan'])
+            ->middleware('throttle:qr-login');
+
+        Route::post('/{id}/approve', [\App\Http\Controllers\QrLoginController::class, 'approve'])
+            ->where('id', '[0-9]+')
+            ->middleware('throttle:qr-login');
+
+        Route::post('/{id}/deny', [\App\Http\Controllers\QrLoginController::class, 'deny'])
+            ->where('id', '[0-9]+')
+            ->middleware('throttle:qr-login');
+    });
+});

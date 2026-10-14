@@ -91,11 +91,8 @@ export function PublicCommunitiesPage() {
           </Link>
           <div className="flex items-center gap-4">
             <Link to="/login">
-              <Button variant="ghost" size="sm" className="font-semibold">Sign In</Button>
-            </Link>
-            <Link to="/register">
               <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90 font-semibold gap-1">
-                Get Started <ArrowRight weight="fill" className="h-4 w-4" />
+                Sign In <ArrowRight weight="fill" className="h-4 w-4" />
               </Button>
             </Link>
           </div>
@@ -282,9 +279,9 @@ export function PublicCommunitiesPage() {
           <p className="text-sm text-white/80">
             Create public or private spaces, grow your audience, and monetize your expertise.
           </p>
-          <Link to="/register">
+          <Link to="/login">
             <Button className="bg-white text-[#2164b6] dark:text-[#7ab0ff] hover:bg-white/90 font-bold gap-2 mt-2">
-              Create a Community <ArrowRight weight="fill" className="h-4 w-4" />
+              Sign in to get started <ArrowRight weight="fill" className="h-4 w-4" />
             </Button>
           </Link>
         </div>
@@ -296,8 +293,7 @@ export function PublicCommunitiesPage() {
           <span className="font-bold text-foreground">MurihSpace</span>
           <div className="flex items-center gap-4">
             <Link to="/" className="hover:text-foreground">Home</Link>
-            <Link to="/login" className="hover:text-foreground">Sign In</Link>
-            <Link to="/register" className="hover:text-foreground font-semibold text-[#2164b6] dark:text-[#7ab0ff]">Get Started</Link>
+            <Link to="/login" className="hover:text-foreground font-semibold text-[#2164b6] dark:text-[#7ab0ff]">Sign In</Link>
           </div>
         </div>
       </footer>

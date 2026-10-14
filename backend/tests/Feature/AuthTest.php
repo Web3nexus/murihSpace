@@ -20,7 +20,7 @@ class AuthTest extends TestCase
     {
         Event::fake();
 
-        $response = $this->postJson('/api/v1/auth/register', [
+        $response = $this->withHeader('X-Client-Platform', 'app')->postJson('/api/v1/auth/register', [
             'name' => 'Vincent Paul',
             'email' => 'vincent@murihspace.com',
             'username' => 'vincentpaul',
@@ -59,7 +59,7 @@ class AuthTest extends TestCase
      */
     public function test_registration_validation_fails(): void
     {
-        $response = $this->postJson('/api/v1/auth/register', [
+        $response = $this->withHeader('X-Client-Platform', 'app')->postJson('/api/v1/auth/register', [
             'name' => '',
             'email' => 'invalid-email',
             'password' => 'short',

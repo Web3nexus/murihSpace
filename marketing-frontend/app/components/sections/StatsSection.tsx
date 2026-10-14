@@ -17,7 +17,7 @@ export function StatsSection() {
   const { data: stats } = useCmsCollection<CmsStat>("stats", defaultStats);
 
   return (
-    <section className="py-16 md:py-20 border-y border-border/50 bg-muted/30">
+    <section className="py-16 md:py-20 border-y border-[#D6E0E8] bg-[#F7FAFC]">
       <div className="mx-auto max-w-7xl px-6">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-12">
           {stats.map((stat, index) => (
@@ -29,10 +29,10 @@ export function StatsSection() {
               transition={{ duration: 0.4, delay: index * 0.1 }}
               className="text-center"
             >
-              <div className="text-3xl md:text-4xl font-extrabold tracking-tight bg-gradient-to-b from-foreground to-foreground/70 bg-clip-text text-transparent">
+              <div className="text-3xl md:text-5xl font-extrabold tracking-tight text-[#2164B6]">
                 {stat.value}
               </div>
-              <div className="text-sm text-muted-foreground mt-1.5">
+              <div className="text-sm font-semibold text-[#5A7184] mt-2">
                 {stat.label}
               </div>
             </motion.div>
@@ -42,3 +42,5 @@ export function StatsSection() {
     </section>
   );
 }
+
+export default StatsSection;

@@ -1,7 +1,7 @@
 import type { Route } from "./+types/sitemap.xml";
 import { getCategories, getArticles } from "../lib/help";
 
-const STATIC_URLS = ["", "/features", "/pricing", "/creators", "/blog", "/help", "/privacy", "/terms"];
+const STATIC_URLS = ["", "/features", "/business", "/download", "/creators", "/blog", "/help", "/privacy", "/terms"];
 
 function esc(s: string): string {
   return s

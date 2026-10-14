@@ -84,7 +84,7 @@ class PhoneOtpAuthTest extends TestCase
         $sessionId = $verify->json('data.registration_session_id');
         $this->assertNotEmpty($sessionId);
 
-        $register = $this->postJson('/api/v1/auth/register', [
+        $register = $this->withHeader('X-Client-Platform', 'app')->postJson('/api/v1/auth/register', [
             'registration_session_id' => $sessionId,
             'name' => 'Ada Nwosu',
             'username' => 'ada_nwosu',
@@ -117,7 +117,7 @@ class PhoneOtpAuthTest extends TestCase
         $v1 = $this->postJson('/api/v1/auth/otp/verify', ['intent' => 'register', 'phone_e164' => self::NG_NUMBER, 'code' => $code1]);
         $s1 = $v1->json('data.registration_session_id');
 
-        $reg1 = $this->postJson('/api/v1/auth/register', [
+        $reg1 = $this->withHeader('X-Client-Platform', 'app')->postJson('/api/v1/auth/register', [
             'registration_session_id' => $s1,
             'name' => 'User One',
             'username' => 'user_one',
@@ -138,7 +138,7 @@ class PhoneOtpAuthTest extends TestCase
         $v2 = $this->postJson('/api/v1/auth/otp/verify', ['intent' => 'register', 'phone_e164' => $phone2, 'code' => $code2]);
         $s2 = $v2->json('data.registration_session_id');
 
-        $reg2 = $this->postJson('/api/v1/auth/register', [
+        $reg2 = $this->withHeader('X-Client-Platform', 'app')->postJson('/api/v1/auth/register', [
             'registration_session_id' => $s2,
             'name' => 'User Two',
             'username' => 'user_two',
@@ -155,7 +155,7 @@ class PhoneOtpAuthTest extends TestCase
 
     public function test_registration_requires_verified_session(): void
     {
-        $register = $this->postJson('/api/v1/auth/register', [
+        $register = $this->withHeader('X-Client-Platform', 'app')->postJson('/api/v1/auth/register', [
             'registration_session_id' => 'not-a-real-session',
             'name' => 'No OTP',
             'username' => 'no_otp_user',
@@ -356,7 +356,7 @@ class PhoneOtpAuthTest extends TestCase
             ],
         ])->assertOk();
 
-        $this->postJson('/api/v1/auth/register', [
+        $this->withHeader('X-Client-Platform', 'app')->postJson('/api/v1/auth/register', [
             'name' => 'Blocked',
             'email' => 'blocked@example.com',
             'username' => 'blocked_user',

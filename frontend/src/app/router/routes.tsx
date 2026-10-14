@@ -59,7 +59,6 @@ const LoginPage = lazyWithRetry(() => import("@/pages/LoginPage"), "LoginPage");
 const ForgotPasswordPage = lazyWithRetry(() => import("@/pages/ForgotPasswordPage"), "ForgotPasswordPage");
 const ResetPasswordPage = lazyWithRetry(() => import("@/pages/ResetPasswordPage"), "ResetPasswordPage");
 const AdminLoginPage = lazyWithRetry(() => import("@/pages/AdminLoginPage"), "AdminLoginPage");
-const RegisterPage = lazyWithRetry(() => import("@/pages/RegisterPage"), "RegisterPage");
 const AppPage = lazyWithRetry(() => import("@/pages/AppPage"), "AppPage");
 const ProfilePage = lazyWithRetry(() => import("@/pages/ProfilePage"), "ProfilePage");
 const UserProfilePage = lazyWithRetry(() => import("@/pages/UserProfilePage"), "UserProfilePage");
@@ -215,7 +214,8 @@ export const routes: RouteObject[] = [
   { path: RoutePaths.RESET_PASSWORD, element: <Suspense fallback={<PageLoader />}><ResetPasswordPage /></Suspense> },
   { path: RoutePaths.SECUREGATE_LOGIN, element: <Suspense fallback={<PageLoader />}><AdminLoginPage /></Suspense> },
   { path: "/securegate", element: <Navigate to={RoutePaths.SECUREGATE_LOGIN} replace /> },
-  { path: RoutePaths.REGISTER, element: <Suspense fallback={<PageLoader />}><RegisterPage /></Suspense> },
+  // Web registration is retired — accounts are created in the mobile app.
+  { path: RoutePaths.REGISTER, element: <Navigate to={RoutePaths.LOGIN} replace /> },
   { path: "/social/callback", element: <Suspense fallback={<PageLoader />}><SocialAuthCallbackPage /></Suspense> },
   { path: "/store/:shortCode", element: <Suspense fallback={<PageLoader />}><PublicStorefrontPage /></Suspense> },
   { path: "/store/:shortCode/p/:id", element: <Suspense fallback={<PageLoader />}><PublicProductPage /></Suspense> },

@@ -52,7 +52,7 @@ class CountryAddressTest extends TestCase
 
     public function test_registration_accepts_valid_country_iso2_and_e164_phone(): void
     {
-        $response = $this->postJson('/api/v1/auth/register', [
+        $response = $this->withHeader('X-Client-Platform', 'app')->postJson('/api/v1/auth/register', [
             'name' => 'Valid Location User',
             'email' => 'validloc@murihspace.com',
             'username' => 'validlocuser',
@@ -73,7 +73,7 @@ class CountryAddressTest extends TestCase
 
     public function test_registration_rejects_invalid_country_iso2(): void
     {
-        $response = $this->postJson('/api/v1/auth/register', [
+        $response = $this->withHeader('X-Client-Platform', 'app')->postJson('/api/v1/auth/register', [
             'name' => 'Invalid Country User',
             'email' => 'invalidcountry@murihspace.com',
             'username' => 'invalidcountryuser',

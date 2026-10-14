@@ -4,6 +4,13 @@ namespace App\Providers;
 
 use App\Models\Post;
 use App\Observers\PostObserver;
+use App\Services\Kyc\KycProviderManager;
+use App\Services\Kyc\KycService;
+use App\Services\Payment\PaymentService;
+use App\Services\Payment\PayoutService;
+use App\Services\Payment\ProviderHealthMonitorService;
+use App\Services\Payment\RefundService;
+use App\Services\Payment\Router\ProviderRouter;
 use App\Support\FailOpenBroadcaster;
 use Illuminate\Broadcasting\BroadcastManager;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -16,13 +23,13 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        $this->app->singleton(\App\Services\Kyc\KycProviderManager::class);
-        $this->app->singleton(\App\Services\Kyc\KycService::class);
-        $this->app->singleton(\App\Services\Payment\Router\ProviderRouter::class);
-        $this->app->singleton(\App\Services\Payment\PaymentService::class);
-        $this->app->singleton(\App\Services\Payment\PayoutService::class);
-        $this->app->singleton(\App\Services\Payment\RefundService::class);
-        $this->app->singleton(\App\Services\Payment\ProviderHealthMonitorService::class);
+        $this->app->singleton(KycProviderManager::class);
+        $this->app->singleton(KycService::class);
+        $this->app->singleton(ProviderRouter::class);
+        $this->app->singleton(PaymentService::class);
+        $this->app->singleton(PayoutService::class);
+        $this->app->singleton(RefundService::class);
+        $this->app->singleton(ProviderHealthMonitorService::class);
     }
 
     public function boot(): void
@@ -66,6 +73,19 @@ class AppServiceProvider extends ServiceProvider
 
         RateLimiter::for('api', function (Request $request) {
             return Limit::perMinute(600)->by($request->user()?->id ?: $request->ip());
+        });
+
+        // QR login flows should be brisk but not reckless. Starting a new QR
+        // transaction, scanning, and approving are limited per IP.
+        RateLimiter::for('qr-login', function (Request $request) {
+            return Limit::perMinute(30)->by($request->user()?->id ?: $request->ip());
+        });
+
+        // The desktop polls every ~1.5s while a QR transaction is open, so it
+        // needs a much higher ceiling than the transaction-mutating calls. Keyed
+        // on IP because polling is unauthenticated.
+        RateLimiter::for('qr-login-poll', function (Request $request) {
+            return Limit::perMinute(120)->by($request->ip());
         });
 
         Broadcast::extend('reverb', function ($app, array $config) {

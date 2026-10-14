@@ -51,6 +51,7 @@ class DeviceSecurityService
             return $activeOtherSessions;
         } catch (\Throwable $e) {
             report($e);
+
             return false;
         }
     }
@@ -221,6 +222,7 @@ class DeviceSecurityService
             );
         } catch (\Throwable $e) {
             report($e);
+
             return null;
         }
     }
@@ -233,28 +235,50 @@ class DeviceSecurityService
         }
 
         // Fallback fingerprint: IP + User Agent hash
-        return hash('sha256', ($request->ip() ?? 'unknown') . '|' . ($request->userAgent() ?? 'unknown'));
+        return hash('sha256', ($request->ip() ?? 'unknown').'|'.($request->userAgent() ?? 'unknown'));
     }
 
     private function inferDeviceName(Request $request): string
     {
         $ua = $request->userAgent() ?? '';
-        if (str_contains($ua, 'iPhone')) return 'iPhone';
-        if (str_contains($ua, 'iPad')) return 'iPad';
-        if (str_contains($ua, 'Android')) return 'Android Device';
-        if (str_contains($ua, 'Macintosh')) return 'Mac';
-        if (str_contains($ua, 'Windows')) return 'Windows PC';
-        if (str_contains($ua, 'Linux')) return 'Linux PC';
+        if (str_contains($ua, 'iPhone')) {
+            return 'iPhone';
+        }
+        if (str_contains($ua, 'iPad')) {
+            return 'iPad';
+        }
+        if (str_contains($ua, 'Android')) {
+            return 'Android Device';
+        }
+        if (str_contains($ua, 'Macintosh')) {
+            return 'Mac';
+        }
+        if (str_contains($ua, 'Windows')) {
+            return 'Windows PC';
+        }
+        if (str_contains($ua, 'Linux')) {
+            return 'Linux PC';
+        }
+
         return 'Web Client';
     }
 
     private function inferPlatform(Request $request): string
     {
         $ua = strtolower($request->userAgent() ?? '');
-        if (str_contains($ua, 'iphone') || str_contains($ua, 'ipad') || str_contains($ua, 'darwin')) return 'ios';
-        if (str_contains($ua, 'android')) return 'android';
-        if (str_contains($ua, 'macintosh')) return 'macos';
-        if (str_contains($ua, 'windows')) return 'windows';
+        if (str_contains($ua, 'iphone') || str_contains($ua, 'ipad') || str_contains($ua, 'darwin')) {
+            return 'ios';
+        }
+        if (str_contains($ua, 'android')) {
+            return 'android';
+        }
+        if (str_contains($ua, 'macintosh')) {
+            return 'macos';
+        }
+        if (str_contains($ua, 'windows')) {
+            return 'windows';
+        }
+
         return 'web';
     }
 
@@ -274,6 +298,7 @@ class DeviceSecurityService
 
         if ($pending->attempts >= 5) {
             $pending->update(['status' => 'cancelled']);
+
             return [
                 'status' => 'too_many_attempts',
                 'message' => 'Too many failed attempts. Please request a new login.',
@@ -283,6 +308,7 @@ class DeviceSecurityService
         if (! hash_equals((string) $pending->verification_code_hash, hash('sha256', (string) $code))) {
             $pending->increment('attempts');
             $remaining = max(0, 5 - $pending->attempts);
+
             return [
                 'status' => 'invalid_code',
                 'message' => "Invalid verification code. {$remaining} attempts remaining.",
@@ -326,4 +352,3 @@ class DeviceSecurityService
         ];
     }
 }
-

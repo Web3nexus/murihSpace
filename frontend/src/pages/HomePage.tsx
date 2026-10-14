@@ -21,7 +21,7 @@ export function HomePage() {
                 Sign In
               </Button>
             </Link>
-            <Link to="/register">
+            <Link to="/login">
               <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90 font-semibold gap-1">
                 Get Started <ArrowRight weight="fill" className="h-4 w-4" />
               </Button>
@@ -46,7 +46,7 @@ export function HomePage() {
         </p>
 
         <div className="flex flex-wrap items-center justify-center gap-4 pt-4">
-          <Link to="/register">
+          <Link to="/login">
             <Button size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90 px-8 text-base font-semibold  gap-2">
               Launch Your Workspace <ArrowRight weight="fill" className="h-5 w-5" />
             </Button>
@@ -137,7 +137,7 @@ export function HomePage() {
             All creators and vendors pass identity verification (KYC). Physical purchases are protected by escrow, ensuring safety for buyers and merchants.
           </p>
           <div className="pt-2">
-            <Link to="/register">
+            <Link to="/login">
               <Button className="bg-primary text-primary-foreground hover:bg-primary/90 font-semibold gap-2">
                 Join MurihSpace Today <ArrowRight weight="fill" className="h-4 w-4" />
               </Button>

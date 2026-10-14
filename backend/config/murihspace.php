@@ -21,6 +21,22 @@ return [
     'canonical_profile_domain' => env('CANONICAL_PROFILE_DOMAIN', 'murih.me'),
 
     /*
+    | QR / device-linking login.
+    |
+    | The desktop starts a transaction, renders a QR code, and polls for the
+    | result; the signed-in mobile app scans and approves it. Transactions are
+    | deliberately short-lived and single-use.
+    */
+    'qr_login' => [
+        // Seconds a transaction stays open before it must be restarted.
+        'ttl' => (int) env('MURIHSPACE_QR_LOGIN_TTL', 120),
+
+        // Base URL used to build the deep link encoded into the QR image. The
+        // mobile scanner accepts this custom scheme; the web URL is a fallback.
+        'web_url' => rtrim((string) env('FRONTEND_URL', 'https://web.murihspace.com'), '/'),
+    ],
+
+    /*
     | Chat
     */
     'chat' => [

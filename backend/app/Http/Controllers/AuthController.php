@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\AdminNotificationCategory;
 use App\Models\DeviceSession;
 use App\Models\PendingLoginRequest;
 use App\Models\RegistrationSession;
 use App\Models\User;
+use App\Services\AdminNotificationService;
 use App\Services\AuthMethodConfigService;
 use App\Services\AuthSessionService;
 use App\Services\DeviceSecurityService;
@@ -31,6 +33,20 @@ class AuthController extends Controller
 
     public function register(Request $request): JsonResponse
     {
+        // Block web registrations: mobile is the only allowed registration client.
+        //
+        // NOTE: this is a UX/consistency gate, not a security boundary — the
+        // header is client-supplied and trivially spoofable. Real mobile-only
+        // enforcement would require app attestation or a signed client
+        // credential, which is tracked separately.
+        $clientPlatform = strtolower((string) $request->header('X-Client-Platform', ''));
+        $isNative = in_array($clientPlatform, ['app', 'ios', 'android'], true);
+        if (! $isNative) {
+            throw ValidationException::withMessages([
+                'registration' => ['Account registration is not available on the web. Please use the MurihSpace mobile app.'],
+            ]);
+        }
+
         if ($request->filled('email')) {
             $request->merge(['email' => strtolower(trim($request->email))]);
         } else {
@@ -142,12 +158,12 @@ class AuthController extends Controller
         }
 
         try {
-            app(\App\Services\AdminNotificationService::class)->dispatch([
-                'category' => \App\Enums\AdminNotificationCategory::NewUserRegistration->value,
+            app(AdminNotificationService::class)->dispatch([
+                'category' => AdminNotificationCategory::NewUserRegistration->value,
                 'severity' => 'info',
                 'title' => 'New User Registration',
                 'message' => "New member @{$user->username} ({$user->name}) registered.",
-                'action_url' => '/securegate/users/' . $user->id,
+                'action_url' => '/securegate/users/'.$user->id,
                 'reference_id' => (string) $user->id,
                 'reference_type' => 'user',
                 'metadata' => [
@@ -634,6 +650,7 @@ class AuthController extends Controller
 
         if ($result['status'] === 'approved') {
             $user = $result['user'];
+
             return response()->json([
                 'status' => 'approved',
                 'token' => $result['token'],
