@@ -141,6 +141,34 @@ function profileOrigin(): string {
   return "https://murih.me";
 }
 
+/**
+ * True when the current page is loaded from the configured vanity profile
+ * domain (e.g. `murih.me`, `s.murih.me`). Used to keep the bare root of that
+ * domain pointed at the main site instead of the dashboard/login.
+ */
+export function isProfileDomainHost(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    const host = new URL(profileOrigin()).hostname.replace(/^www\./i, "").toLowerCase();
+    return window.location.hostname.replace(/^www\./i, "").toLowerCase() === host;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Origin of the main application site that bare profile-domain hits (and other
+ * non-profile traffic) should be sent to. Configured per environment via
+ * VITE_MAIN_SITE_URL; falls back to the shared-link origin.
+ */
+export function mainSiteUrl(): string {
+  const configured = import.meta.env.VITE_MAIN_SITE_URL;
+  if (typeof configured === "string" && configured.trim()) {
+    return configured.trim().replace(/\/+$/, "");
+  }
+  return siteUrl();
+}
+
 export function communityUrl(slug: string): string {
   return `${PATHS.community}/${encodeURIComponent(slug.trim())}`;
 }

@@ -1,4 +1,4 @@
-import { Suspense } from "react";
+import { Suspense, useEffect } from "react";
 import type { RouteObject } from "react-router";
 import { Navigate } from "react-router";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
@@ -7,6 +7,7 @@ import { ChatLayout } from "@/components/layout/ChatLayout";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { lazyWithRetry } from "@/lib/lazyWithRetry";
 import { ChatDeepLinkRedirect } from "./ChatDeepLinkRedirect";
+import { isProfileDomainHost, mainSiteUrl } from "@/lib/deepLinks";
 
 import {
   NotFoundState,
@@ -16,6 +17,42 @@ import { RoutePaths } from "./route-paths";
 import { BrandPreloader } from "@/components/common/BrandPreloader";
 
 const PageLoader = () => <BrandPreloader size="md" />;
+
+/**
+ * Sends the browser to another origin (React Router's <Navigate> only handles
+ * in-app paths). Renders the brand loader while the browser navigates.
+ */
+function ExternalRedirect({ to }: { to: string }) {
+  useEffect(() => {
+    window.location.replace(to);
+  }, [to]);
+  return <PageLoader />;
+}
+
+/**
+ * Root route. On the vanity profile domain (e.g. `murih.me`, `s.murih.me`) a
+ * bare hit with no handle has nothing to show, so we hand the visitor to the
+ * main site — mirroring `wa.me` → `whatsapp.com`. Everywhere else, `/` keeps its
+ * existing dashboard redirect.
+ */
+function RootRedirect() {
+  if (isProfileDomainHost()) {
+    const currentHost = window.location.hostname.replace(/^www\./i, "").toLowerCase();
+    let targetHost = "";
+    const target = mainSiteUrl();
+    try {
+      targetHost = new URL(target).hostname.replace(/^www\./i, "").toLowerCase();
+    } catch {
+      targetHost = "";
+    }
+    // Only bounce externally when we have a valid, different target — otherwise
+    // we'd loop back to this same host or navigate to an unusable URL.
+    if (targetHost && targetHost !== currentHost) {
+      return <ExternalRedirect to={target} />;
+    }
+  }
+  return <Navigate to="/app" replace />;
+}
 
 // Lazy-loaded pages with automated deployment chunk-retry
 const LoginPage = lazyWithRetry(() => import("@/pages/LoginPage"), "LoginPage");
@@ -1014,7 +1051,7 @@ export const routes: RouteObject[] = [
   },
 
   // ── Public home → redirect to app dashboard ────
-  { path: RoutePaths.HOME, element: <Navigate to="/app" replace /> },
+  { path: RoutePaths.HOME, element: <RootRedirect /> },
 
   // ── Public link-in-bio & profile pages ───────────
   { path: "u/:username", element: <Suspense fallback={<PageLoader />}><PublicProfilePage /></Suspense> },
