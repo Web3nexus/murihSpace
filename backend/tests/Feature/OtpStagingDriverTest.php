@@ -223,6 +223,11 @@ class OtpStagingDriverTest extends TestCase
         $this->assertStringContainsString('in-app active-device code issued', $this->logContents());
         // ...and must still verify normally.
         $this->assertNotNull(Cache::get('phone-otp:dev:'.$row->id));
+
+        // It must also be persisted in the notifications table so the notifications page displays it.
+        $this->assertDatabaseHas('notifications', [
+            'type' => 'auth_login_otp',
+        ]);
     }
 
     public function test_in_app_code_is_never_logged_in_production(): void

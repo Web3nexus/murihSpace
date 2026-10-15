@@ -43,6 +43,8 @@ export function LoginPage() {
   const [phoneStep, setPhoneStep] = useState<"phone" | "otp">("phone");
   const [phoneE164, setPhoneE164] = useState("");
   const [maskedPhone, setMaskedPhone] = useState("");
+  const [otpChannel, setOtpChannel] = useState<string>("sms");
+  const [deliveryMessage, setDeliveryMessage] = useState<string | null>(null);
   const [code, setCode] = useState("");
   const [otpError, setOtpError] = useState<string | null>(null);
   const [noAccount, setNoAccount] = useState(false);
@@ -237,14 +239,20 @@ export function LoginPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loginMode, qrExpiresAt]);
 
-  const handleRequestPhoneOtp = async (e?: React.FormEvent) => {
-    e?.preventDefault();
+  const handleRequestPhoneOtp = async (options?: { forceSms?: boolean; e?: React.FormEvent }) => {
+    options?.e?.preventDefault();
     setOtpError(null);
     setNoAccount(false);
     if (!phoneE164) return;
-    const result = await requestOtp({ intent: "login", phoneE164 });
+    const result = await requestOtp({
+      intent: "login",
+      phoneE164,
+      force_sms: options?.forceSms,
+    });
     if (!result) return;
     setMaskedPhone(result.masked_phone);
+    setOtpChannel(result.channel || "sms");
+    setDeliveryMessage(result.delivery_message || null);
     setCode("");
     setPhoneStep("otp");
     setAdminBlocked(false);
@@ -296,12 +304,6 @@ export function LoginPage() {
       setSocialError(`Could not start ${provider} sign-in. Please try again.`);
     }
     setSocialLoading(null);
-  };
-
-  const resend = () => {
-    setCode("");
-    setOtpError(null);
-    void handleRequestPhoneOtp();
   };
 
   return (
@@ -483,7 +485,7 @@ export function LoginPage() {
         {loginMode === "phone" && phoneLoginEnabled && (
           <>
             {phoneStep === "phone" ? (
-              <form onSubmit={handleRequestPhoneOtp} className="space-y-4">
+              <form onSubmit={(e) => handleRequestPhoneOtp({ e })} className="space-y-4">
                 <FieldGroup className="space-y-4">
                   <Field>
                     <FieldLabel htmlFor="login-phone" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
@@ -516,12 +518,39 @@ export function LoginPage() {
               </form>
             ) : (
               <div className="space-y-4">
-                <div className="p-3 rounded-lg bg-[#2164b6]/10 border border-[#2164b6]/20 flex items-center gap-2.5">
-                  <CheckCircle2 weight="fill" className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff] shrink-0" />
-                  <p className="text-xs font-medium text-slate-700 dark:text-slate-300">
-                    We sent a 6-digit code to <span className="font-bold text-[#2164b6] dark:text-[#7ab0ff]">{maskedPhone}</span>.
-                  </p>
-                </div>
+                {otpChannel === "in_app_active_device" ? (
+                  <div className="p-3.5 rounded-lg bg-sky-50 dark:bg-sky-950/40 border border-sky-200 dark:border-sky-800 space-y-2">
+                    <div className="flex items-start gap-2.5">
+                      <Smartphone weight="fill" className="h-5 w-5 text-[#2164b6] dark:text-[#7ab0ff] shrink-0 mt-0.5" />
+                      <div className="text-xs text-slate-700 dark:text-slate-300 space-y-1">
+                        <p className="font-semibold text-slate-900 dark:text-white">
+                          Sent to your active signed-in device
+                        </p>
+                        <p>
+                          {deliveryMessage || `We pushed your 6-digit verification code to your open MurihSpace app or browser session for ${maskedPhone}.`}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="pt-1.5 border-t border-sky-100 dark:border-sky-900/60 flex items-center justify-between text-xs">
+                      <span className="text-slate-500 dark:text-slate-400">Didn't get the code?</span>
+                      <button
+                        type="button"
+                        onClick={() => handleRequestPhoneOtp({ forceSms: true })}
+                        disabled={loading}
+                        className="font-bold text-[#2164b6] dark:text-[#7ab0ff] hover:underline cursor-pointer disabled:opacity-50"
+                      >
+                        Send via SMS instead
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-3 rounded-lg bg-[#2164b6]/10 border border-[#2164b6]/20 flex items-center gap-2.5">
+                    <CheckCircle2 weight="fill" className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff] shrink-0" />
+                    <p className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                      We sent a 6-digit code via SMS to <span className="font-bold text-[#2164b6] dark:text-[#7ab0ff]">{maskedPhone}</span>.
+                    </p>
+                  </div>
+                )}
 
                 <form onSubmit={handleVerifyPhoneOtp} className="space-y-4">
                   <OtpInput
@@ -558,12 +587,16 @@ export function LoginPage() {
                     <Button
                       type="button"
                       variant="ghost"
-                      onClick={resend}
+                      onClick={() => {
+                        setCode("");
+                        setOtpError(null);
+                        void handleRequestPhoneOtp({ forceSms: otpChannel === "in_app_active_device" });
+                      }}
                       disabled={loading || resendIn > 0}
                       className="flex-1 text-sm text-[#2164b6] dark:text-[#7ab0ff]"
                     >
                       <RefreshCw weight="fill" className={cn("h-4 w-4 mr-1", resendIn > 0 && "opacity-50")} />
-                      {resendIn > 0 ? `Resend in ${resendIn}s` : "Resend code"}
+                      {resendIn > 0 ? `Resend in ${resendIn}s` : (otpChannel === "in_app_active_device" ? "Resend via SMS" : "Resend code")}
                     </Button>
                   </div>
                   <Button

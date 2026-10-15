@@ -112,9 +112,8 @@ class PhoneOtpService
             }
 
             try {
-                // Section 17 & 18: Never persist authentication OTP codes into the
-                // public notifications database table. Deliver only via ephemeral
-                // real-time broadcast to the verified active device.
+                // Deliver to active logged-in device:
+                // 1) Ephemeral real-time websocket broadcast for instantaneous toast/popup
                 NotificationBroadcast::dispatch($activeDeviceUser->id, [
                     'id' => (string) Str::uuid(),
                     'type' => 'auth_login_otp',
@@ -128,6 +127,20 @@ class PhoneOtpService
                         'intent' => 'login',
                     ],
                 ]);
+
+                // 2) In-app notification so it appears on the notifications page even if websocket was closed
+                $activeDeviceUser->notify(new MurihOfficialNotification(
+                    type: 'auth_login_otp',
+                    title: '🔐 MurihSpace Login Verification Code',
+                    body: "Your MurihSpace login verification code is {$code}. Enter this code to sign in.",
+                    actionLabel: 'Copy Code',
+                    metadata: [
+                        'type' => 'auth_login_otp',
+                        'code' => $code,
+                        'intent' => 'login',
+                        'phone' => $row->maskedPhone(),
+                    ]
+                ));
             } catch (\Throwable $e) {
                 // Delivery must not break the login request, but a silent
                 // swallow left staging "code never arrived" reports

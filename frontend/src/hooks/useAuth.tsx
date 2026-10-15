@@ -78,6 +78,7 @@ export interface OtpRequestResult {
   expires_in_seconds?: number;
   resend_after_seconds?: number;
   channel?: string;
+  delivery_message?: string;
 }
 
 export interface OtpVerifyResult {
@@ -102,7 +103,7 @@ interface AuthContextValue {
   adminStartEnrollment: (enrollmentChallenge: string) => Promise<AdminEnrollmentSecret | null>;
   adminConfirmEnrollment: (enrollmentChallenge: string, code: string) => Promise<boolean>;
   adminVerifyTwoFactor: (challenge: string, code: string) => Promise<UserProfile | null>;
-  requestOtp: (payload: { intent: OtpIntent; phoneE164: string }) => Promise<OtpRequestResult | null>;
+  requestOtp: (payload: { intent: OtpIntent; phoneE164: string; force_sms?: boolean }) => Promise<OtpRequestResult | null>;
   verifyOtp: (payload: { intent: OtpIntent; phoneE164: string; code: string }) => Promise<OtpVerifyResult | null>;
   register: (data: RegisterData) => Promise<boolean>;
   logout: () => void;
@@ -389,7 +390,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const requestOtp = useCallback(async (payload: { intent: OtpIntent; phoneE164: string }): Promise<OtpRequestResult | null> => {
+  const requestOtp = useCallback(async (payload: { intent: OtpIntent; phoneE164: string; force_sms?: boolean }): Promise<OtpRequestResult | null> => {
     setLoading(true);
     setError(null);
     setFieldErrors({});
@@ -397,6 +398,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const response = await apiClient.post("/auth/otp/request", {
         intent: payload.intent,
         phone_e164: payload.phoneE164,
+        force_sms: payload.force_sms,
       });
       // Unwrap the response envelope
       const envelope = response.data;
@@ -408,6 +410,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         expires_in_seconds: data.expires_in_seconds,
         resend_after_seconds: data.resend_after_seconds,
         channel: data.channel,
+        delivery_message: data.delivery_message,
       };
     } catch (err: unknown) {
       const apiErr = err && typeof err === "object" ? (err as ApiError) : { message: "Could not send the verification code.", errors: {} };
