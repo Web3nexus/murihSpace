@@ -1,6 +1,6 @@
 import React from 'react';
-import { Show as Eye, Star } from '@/components/icons';
-import { Package, ArrowSquareOut } from '@/components/icons/rounded';
+import { Star } from '@/components/icons';
+import { ArrowSquareOut } from '@/components/icons/rounded';
 import { Button } from '@/components/ui/button';
 
 interface StorefrontPreviewCardProps {

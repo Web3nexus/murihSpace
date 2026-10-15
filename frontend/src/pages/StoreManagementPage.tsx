@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router';
 import { getAuthToken } from "@/lib/auth/token";
 import { authFetch } from "@/lib/api/authFetch";
@@ -241,7 +241,6 @@ export function StoreManagementPage() {
         isTogglingPublish={isTogglingPublish}
         onTogglePublish={handleTogglePublish}
         onShare={() => setShowShareModal(true)}
-        publicUrl={publicUrl}
       />
 
       {/* 2. Primary 5-Tab Navigation Bar */}
@@ -347,7 +346,7 @@ export function StoreManagementPage() {
           onClose={() => setShowShareModal(false)}
           title={displayName || 'Creator Store'}
           url={publicUrl}
-          text={tagline || 'Check out my store on MurihSpace!'}
+          description={tagline || 'Check out my store on MurihSpace!'}
         />
       )}
     </div>

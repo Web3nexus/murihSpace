@@ -7,7 +7,6 @@ interface StoreHeaderProps {
   isTogglingPublish: boolean;
   onTogglePublish: () => void;
   onShare: () => void;
-  publicUrl: string;
 }
 
 export const StorePageHeader: React.FC<StoreHeaderProps> = ({
@@ -15,7 +14,6 @@ export const StorePageHeader: React.FC<StoreHeaderProps> = ({
   isTogglingPublish,
   onTogglePublish,
   onShare,
-  publicUrl,
 }) => {
   return (
     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2">

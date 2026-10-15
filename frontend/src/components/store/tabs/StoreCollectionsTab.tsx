@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '@/hooks/useAuth';
 import { getAuthToken } from '@/lib/auth/token';
 import { authFetch } from '@/lib/api/authFetch';
 import { Button } from '@/components/ui/button';

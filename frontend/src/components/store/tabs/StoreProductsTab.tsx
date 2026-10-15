@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '@/hooks/useAuth';
 import { getAuthToken } from '@/lib/auth/token';
 import { authFetch } from '@/lib/api/authFetch';
 import { safeArray } from '@/lib/api/cacheStore';
@@ -22,8 +21,6 @@ interface StoreProduct {
 
 export const StoreProductsTab: React.FC = () => {
   const confirm = useConfirm();
-  const { user } = useAuth();
-  const role = user?.role ?? 'creator';
 
   const [products, setProducts] = useState<StoreProduct[]>([]);
   const [loading, setLoading] = useState(true);
@@ -240,6 +237,13 @@ export const StoreProductsTab: React.FC = () => {
           Add Product
         </Button>
       </div>
+
+      {/* Error Message */}
+      {error && (
+        <div className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/25 text-red-400 text-xs font-semibold">
+          {error}
+        </div>
+      )}
 
       {/* Product List / Table */}
       <div className="bg-[#171D25] border border-[#29313C] rounded-2xl overflow-hidden shadow-sm">
