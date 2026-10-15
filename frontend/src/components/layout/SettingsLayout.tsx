@@ -1,15 +1,105 @@
-import { useEffect, useState } from "react";
-import { NavLink, Outlet } from "react-router";
-import { Profile as User, Wallet, Folder, Notification as Bell, Lock, Discovery as Globe, Star, ArrowRight as ChevronRight, ShieldDone as ShieldCheck, ShieldDone as BadgeCheck, Activity, Swap as RotateCcw, Chat as ChatCircleDots } from "@/components/icons";
-import { DeviceMobile as Smartphone, Sun, Sparkle, Storefront, Question as HelpCircle, CurrencyDollar as DollarSign, Link, Package, Truck } from "@/components/icons/rounded";;
+import { useEffect, useState, type ComponentType, type LazyExoticComponent, type ReactNode } from "react";
+import { Suspense } from "react";
+import { Outlet, useLocation } from "react-router";
+import { Profile as User, Folder, Notification as Bell, Lock, Discovery as Globe, ArrowRight as ChevronRight, ShieldDone as ShieldCheck, ShieldDone as BadgeCheck, Activity, Swap as RotateCcw, Chat as ChatCircleDots } from "@/components/icons";
+import { DeviceMobile as Smartphone, Sun, Sparkle, Question as HelpCircle, CurrencyDollar as DollarSign, Package, Truck } from "@/components/icons/rounded";
+import { BrandPreloader } from "@/components/common/BrandPreloader";
+import { lazyWithRetry } from "@/lib/lazyWithRetry";
 import { useAuth } from "@/hooks/useAuth";
 import { useTheme } from "@/hooks/useTheme";
 import { apiClient } from "@/lib/api/client";
 
+/**
+ * Every settings rail entry maps to the page it used to link to. Instead of
+ * routing away, the page is lazily loaded and rendered inline in the right-hand
+ * content panel while the rail stays put.
+ */
+const INLINE_PANEL_COMPONENTS: Record<string, LazyExoticComponent<ComponentType>> = {
+  "/app/settings": lazyWithRetry(() => import("@/pages/ProfilePage"), "ProfilePage"),
+  "/app/settings/profile": lazyWithRetry(() => import("@/pages/ProfilePage"), "ProfilePage"),
+  "/app/settings/upgrade": lazyWithRetry(() => import("@/pages/UpgradeAccountPage"), "UpgradeAccountPage"),
+  "/app/settings/security": lazyWithRetry(() => import("@/pages/SecurityPage"), "SecurityPage"),
+  "/app/settings/notifications": lazyWithRetry(() => import("@/pages/NotificationsPage"), "NotificationsPage"),
+  "/app/settings/privacy": lazyWithRetry(() => import("@/pages/PrivacyPage"), "PrivacyPage"),
+  "/app/settings/preferences": lazyWithRetry(() => import("@/pages/AppearancePage"), "AppearancePage"),
+  "/app/settings/language": lazyWithRetry(() => import("@/pages/LanguagePage"), "LanguagePage"),
+  "/app/settings/automated-replies": lazyWithRetry(() => import("@/pages/AutomatedRepliesPage"), "AutomatedRepliesPage"),
+  "/app/settings/help": lazyWithRetry(() => import("@/pages/SupportThreadsPage"), "SupportThreadsPage"),
+  "/app/kyc": lazyWithRetry(() => import("@/pages/KycSettingsPage"), "KycSettingsPage"),
+  "/app/store/physical": lazyWithRetry(() => import("@/pages/PhysicalProductsPage"), "PhysicalProductsPage"),
+  "/app/store/fulfilment": lazyWithRetry(() => import("@/pages/FulfilmentPage"), "FulfilmentPage"),
+  "/app/store/returns": lazyWithRetry(() => import("@/pages/ReturnsPage"), "ReturnsPage"),
+  "/app/community-chat": lazyWithRetry(() => import("@/pages/ChatPage"), "ChatPage"),
+  "/app/securegate/notifications": lazyWithRetry(() => import("@/pages/AdminNotificationsPage"), "AdminNotificationsPage"),
+  "/app/securegate/users": lazyWithRetry(() => import("@/pages/AdminUsersPage"), "AdminUsersPage"),
+  "/app/securegate/kyc": lazyWithRetry(() => import("@/pages/AdminKycPage"), "AdminKycPage"),
+  "/app/securegate/fees": lazyWithRetry(() => import("@/pages/AdminFeeManagementPage"), "AdminFeeManagementPage"),
+  "/app/securegate/system-health": lazyWithRetry(() => import("@/pages/AdminSystemHealthPage"), "AdminSystemHealthPage"),
+};
+
+/** Resolve a router pathname to a rail key, tolerating a trailing slash. */
+function resolvePanelKey(pathname: string): string | null {
+  if (INLINE_PANEL_COMPONENTS[pathname]) return pathname;
+  const trimmed = pathname.replace(/\/+$/, "");
+  return INLINE_PANEL_COMPONENTS[trimmed] ? trimmed : null;
+}
+
+interface RailEntry {
+  to: string;
+  label: string;
+  icon: ReactNode;
+  iconBg: string;
+  trailing?: ReactNode;
+}
+
+function RailCard({
+  entries,
+  activePanel,
+  onSelect,
+  className = "",
+}: {
+  entries: RailEntry[];
+  activePanel: string | null;
+  onSelect: (to: string) => void;
+  className?: string;
+}) {
+  return (
+    <div className={`rounded-3xl bg-card overflow-hidden divide-y divide-border/40 ${className}`}>
+      {entries.map((entry) => {
+        const active = activePanel === entry.to;
+        return (
+          <button
+            key={entry.label}
+            type="button"
+            onClick={() => onSelect(entry.to)}
+            aria-current={active ? "true" : undefined}
+            className={`w-full flex items-center justify-between p-3.5 transition-colors text-xs font-bold text-left ${
+              active
+                ? "bg-[#2164b6]/15 text-[#2164b6] dark:text-[#7ab0ff]"
+                : "text-foreground hover:bg-muted/50"
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <div className={`p-2 rounded-lg text-white shrink-0 ${entry.iconBg}`}>{entry.icon}</div>
+              <span>{entry.label}</span>
+            </div>
+            {entry.trailing ?? <ChevronRight weight="fill" className="h-4 w-4 text-muted-foreground" />}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 export function SettingsLayout() {
   const { user } = useAuth();
   const { theme } = useTheme();
+  const location = useLocation();
   const [sessionCount, setSessionCount] = useState<number | null>(null);
+  // Inline panel selection: `override` only applies while the URL still matches
+  // the path it was set on, so navigating (deep links / in-page links / back)
+  // transparently falls back to the routed <Outlet /> content.
+  const [panelOverride, setPanelOverride] = useState<{ path: string; key: string } | null>(null);
 
   useEffect(() => {
     apiClient.get("/auth/sessions")
@@ -19,6 +109,12 @@ export function SettingsLayout() {
       })
       .catch(() => {});
   }, []);
+
+  const routePanelKey = resolvePanelKey(location.pathname);
+  const activePanel =
+    panelOverride && panelOverride.path === location.pathname ? panelOverride.key : routePanelKey;
+  const setActivePanel = (to: string) => setPanelOverride({ path: location.pathname, key: to });
+
 
   const isKycVerified = user?.kyc_status === "verified";
   const isKycPending = user?.kyc_status === "pending" || user?.kyc_status === "in_review";
@@ -47,6 +143,19 @@ export function SettingsLayout() {
 
   const themeLabel = theme === "system" ? "Auto" : theme.charAt(0).toUpperCase() + theme.slice(1);
 
+  const sessionTrailing =
+    sessionCount !== null ? (
+      <span className="text-[11px] font-bold text-muted-foreground">{sessionCount} &gt;</span>
+    ) : (
+      <ChevronRight weight="fill" className="h-4 w-4 text-muted-foreground" />
+    );
+
+  const themeTrailing = (
+    <span className="text-[11px] font-medium text-muted-foreground">{themeLabel} &gt;</span>
+  );
+
+  const ActivePanel = activePanel ? INLINE_PANEL_COMPONENTS[activePanel] : null;
+
   return (
     <div className="w-full max-w-7xl mx-auto p-4 sm:p-4 lg:p-5 space-y-6">
       {/* Header */}
@@ -55,7 +164,7 @@ export function SettingsLayout() {
           Settings & Account
         </h1>
         <p className="text-xs font-medium text-muted-foreground mt-0.5">
-          Manage your role preferences, security, wallet, and account settings.
+          Manage your role preferences, security, and account settings.
         </p>
       </div>
 
@@ -92,72 +201,17 @@ export function SettingsLayout() {
               <p className="text-[10px] font-extrabold uppercase tracking-wider text-purple-500 px-3 py-1">
                 Admin Control Panel
               </p>
-              <div className="rounded-3xl bg-card border border-purple-500/30  overflow-hidden divide-y divide-border/40">
-                <NavLink
-                  to="/app/securegate/notifications"
-                  className="w-full flex items-center justify-between p-3.5 hover:bg-muted/50 transition-colors text-xs font-bold text-foreground"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-blue-600 text-white shrink-0">
-                      <Bell weight="fill" className="h-4 w-4" />
-                    </div>
-                    <span>Admin Notification Center</span>
-                  </div>
-                  <ChevronRight weight="fill" className="h-4 w-4 text-muted-foreground" />
-                </NavLink>
-
-                <NavLink
-                  to="/app/securegate/users"
-                  className="w-full flex items-center justify-between p-3.5 hover:bg-muted/50 transition-colors text-xs font-bold text-foreground"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-purple-600 text-white shrink-0">
-                      <ShieldCheck weight="fill" className="h-4 w-4" />
-                    </div>
-                    <span>User Management</span>
-                  </div>
-                  <ChevronRight weight="fill" className="h-4 w-4 text-muted-foreground" />
-                </NavLink>
-
-                <NavLink
-                  to="/app/securegate/kyc"
-                  className="w-full flex items-center justify-between p-3.5 hover:bg-muted/50 transition-colors text-xs font-bold text-foreground"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-indigo-600 text-white shrink-0">
-                      <BadgeCheck weight="fill" className="h-4 w-4" />
-                    </div>
-                    <span>KYC &amp; Identity Verification</span>
-                  </div>
-                  <ChevronRight weight="fill" className="h-4 w-4 text-muted-foreground" />
-                </NavLink>
-
-                <NavLink
-                  to="/app/securegate/fees"
-                  className="w-full flex items-center justify-between p-3.5 hover:bg-muted/50 transition-colors text-xs font-bold text-foreground"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-emerald-600 text-white shrink-0">
-                      <DollarSign weight="fill" className="h-4 w-4" />
-                    </div>
-                    <span>Platform Fee Management</span>
-                  </div>
-                  <ChevronRight weight="fill" className="h-4 w-4 text-muted-foreground" />
-                </NavLink>
-
-                <NavLink
-                  to="/app/securegate/system-health"
-                  className="w-full flex items-center justify-between p-3.5 hover:bg-muted/50 transition-colors text-xs font-bold text-foreground"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-rose-600 text-white shrink-0">
-                      <Activity weight="fill" className="h-4 w-4" />
-                    </div>
-                    <span>System Health &amp; Logs</span>
-                  </div>
-                  <ChevronRight weight="fill" className="h-4 w-4 text-muted-foreground" />
-                </NavLink>
-              </div>
+              <RailCard
+                entries={[
+                  { to: "/app/securegate/notifications", label: "Admin Notification Center", icon: <Bell weight="fill" className="h-4 w-4" />, iconBg: "bg-blue-600" },
+                  { to: "/app/securegate/users", label: "User Management", icon: <ShieldCheck weight="fill" className="h-4 w-4" />, iconBg: "bg-purple-600" },
+                  { to: "/app/securegate/kyc", label: "KYC & Identity Verification", icon: <BadgeCheck weight="fill" className="h-4 w-4" />, iconBg: "bg-indigo-600" },
+                  { to: "/app/securegate/fees", label: "Platform Fee Management", icon: <DollarSign weight="fill" className="h-4 w-4" />, iconBg: "bg-emerald-600" },
+                  { to: "/app/securegate/system-health", label: "System Health & Logs", icon: <Activity weight="fill" className="h-4 w-4" />, iconBg: "bg-rose-600" },
+                ]}
+                activePanel={activePanel}
+                onSelect={setActivePanel}
+              />
             </div>
           )}
 
@@ -166,46 +220,14 @@ export function SettingsLayout() {
               <p className="text-[10px] font-extrabold uppercase tracking-wider text-amber-500 px-3 py-1">
                 Creator Management
               </p>
-              <div className="rounded-3xl bg-card border border-amber-500/30  overflow-hidden divide-y divide-border/40">
-                <NavLink
-                  to="/app/store"
-                  className="w-full flex items-center justify-between p-3.5 hover:bg-muted/50 transition-colors text-xs font-bold text-foreground"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-amber-500 text-white shrink-0">
-                      <Storefront weight="fill" className="h-4 w-4" />
-                    </div>
-                    <span>Storefront &amp; Handle</span>
-                  </div>
-                  <ChevronRight weight="fill" className="h-4 w-4 text-muted-foreground" />
-                </NavLink>
-
-                <NavLink
-                  to="/app/link-in-bio"
-                  className="w-full flex items-center justify-between p-3.5 hover:bg-muted/50 transition-colors text-xs font-bold text-foreground"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-indigo-500 text-white shrink-0">
-                      <Link weight="fill" className="h-4 w-4" />
-                    </div>
-                    <span>Link in Bio &amp; Theme</span>
-                  </div>
-                  <ChevronRight weight="fill" className="h-4 w-4 text-muted-foreground" />
-                </NavLink>
-
-                <NavLink
-                  to="/app/kyc"
-                  className="w-full flex items-center justify-between p-3.5 hover:bg-muted/50 transition-colors text-xs font-bold text-foreground"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-emerald-600 text-white shrink-0">
-                      <BadgeCheck weight="fill" className="h-4 w-4" />
-                    </div>
-                    <span>KYC &amp; Verification Badge</span>
-                  </div>
-                  <ChevronRight weight="fill" className="h-4 w-4 text-muted-foreground" />
-                </NavLink>
-              </div>
+              <RailCard
+                className="border border-amber-500/30"
+                activePanel={activePanel}
+                onSelect={setActivePanel}
+                entries={[
+                  { to: "/app/kyc", label: "KYC & Verification Badge", icon: <BadgeCheck weight="fill" className="h-4 w-4" />, iconBg: "bg-emerald-600" },
+                ]}
+              />
             </div>
           )}
 
@@ -214,368 +236,88 @@ export function SettingsLayout() {
               <p className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-500 px-3 py-1">
                 Vendor Storefront Management
               </p>
-              <div className="rounded-3xl bg-card border border-emerald-500/30  overflow-hidden divide-y divide-border/40">
-                <NavLink
-                  to="/app/store/physical"
-                  className="w-full flex items-center justify-between p-3.5 hover:bg-muted/50 transition-colors text-xs font-bold text-foreground"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-emerald-600 text-white shrink-0">
-                      <Package weight="fill" className="h-4 w-4" />
-                    </div>
-                    <span>Physical Merchandise</span>
-                  </div>
-                  <ChevronRight weight="fill" className="h-4 w-4 text-muted-foreground" />
-                </NavLink>
-
-                <NavLink
-                  to="/app/store/fulfilment"
-                  className="w-full flex items-center justify-between p-3.5 hover:bg-muted/50 transition-colors text-xs font-bold text-foreground"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-blue-600 text-white shrink-0">
-                      <Truck weight="fill" className="h-4 w-4" />
-                    </div>
-                    <span>Order Fulfilment</span>
-                  </div>
-                  <ChevronRight weight="fill" className="h-4 w-4 text-muted-foreground" />
-                </NavLink>
-
-                <NavLink
-                  to="/app/store/returns"
-                  className="w-full flex items-center justify-between p-3.5 hover:bg-muted/50 transition-colors text-xs font-bold text-foreground"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-[#2164b6] text-white shrink-0">
-                      <RotateCcw weight="fill" className="h-4 w-4" />
-                    </div>
-                    <span>Returns &amp; Refund Policy</span>
-                  </div>
-                  <ChevronRight weight="fill" className="h-4 w-4 text-muted-foreground" />
-                </NavLink>
-              </div>
+              <RailCard
+                className="border border-emerald-500/30"
+                entries={[
+                  { to: "/app/store/physical", label: "Physical Merchandise", icon: <Package weight="fill" className="h-4 w-4" />, iconBg: "bg-emerald-600" },
+                  { to: "/app/store/fulfilment", label: "Order Fulfilment", icon: <Truck weight="fill" className="h-4 w-4" />, iconBg: "bg-blue-600" },
+                  { to: "/app/store/returns", label: "Returns & Refund Policy", icon: <RotateCcw weight="fill" className="h-4 w-4" />, iconBg: "bg-[#2164b6]" },
+                ]}
+                activePanel={activePanel}
+                onSelect={setActivePanel}
+              />
             </div>
           )}
 
-          {/* ── PROFILE & PREFERENCE SECTIONS ─────────────────────── */}
           {user?.role === "admin" ? (
-            <div className="rounded-3xl bg-card border-none/80 overflow-hidden divide-y divide-border/40">
-              <NavLink
-                to="/app/settings"
-                end
-                className={({ isActive }) =>
-                  `w-full flex items-center justify-between p-3.5 transition-colors text-xs font-bold ${
-                    isActive
-                      ? "bg-[#2164b6]/15 text-[#2164b6] dark:text-[#7ab0ff]"
-                      : "text-foreground hover:bg-muted/50"
-                  }`
-                }
-              >
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-red-500 text-white shrink-0">
-                    <User weight="fill" className="h-4 w-4" />
-                  </div>
-                  <span>My Profile</span>
-                </div>
-                <ChevronRight weight="fill" className="h-4 w-4 text-muted-foreground" />
-              </NavLink>
-
-              <NavLink
-                to="/app/settings/security"
-                className={({ isActive }) =>
-                  `w-full flex items-center justify-between p-3.5 transition-colors text-xs font-bold ${
-                    isActive
-                      ? "bg-[#2164b6]/15 text-[#2164b6] dark:text-[#7ab0ff]"
-                      : "text-foreground hover:bg-muted/50"
-                  }`
-                }
-              >
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-amber-500 text-white shrink-0">
-                    <Smartphone weight="fill" className="h-4 w-4" />
-                  </div>
-                  <span>Active Sessions &amp; Devices</span>
-                </div>
-                {sessionCount !== null && (
-                  <span className="text-[11px] font-bold text-muted-foreground">{sessionCount} &gt;</span>
-                )}
-              </NavLink>
-
-              <NavLink
-                to="/app/settings/privacy"
-                className={({ isActive }) =>
-                  `w-full flex items-center justify-between p-3.5 transition-colors text-xs font-bold ${
-                    isActive
-                      ? "bg-[#2164b6]/15 text-[#2164b6] dark:text-[#7ab0ff]"
-                      : "text-foreground hover:bg-muted/50"
-                  }`
-                }
-              >
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-slate-700 text-white shrink-0">
-                    <Lock weight="fill" className="h-4 w-4" />
-                  </div>
-                  <span>Privacy &amp; Password</span>
-                </div>
-                <ChevronRight weight="fill" className="h-4 w-4 text-muted-foreground" />
-              </NavLink>
-
-              <NavLink
-                to="/app/settings/preferences"
-                className={({ isActive }) =>
-                  `w-full flex items-center justify-between p-3.5 transition-colors text-xs font-bold ${
-                    isActive
-                      ? "bg-[#2164b6]/15 text-[#2164b6] dark:text-[#7ab0ff]"
-                      : "text-foreground hover:bg-muted/50"
-                  }`
-                }
-              >
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-teal-500 text-white shrink-0">
-                    <Sun weight="fill" className="h-4 w-4" />
-                  </div>
-                  <span>Appearance &amp; Theme</span>
-                </div>
-                <span className="text-[11px] font-medium text-muted-foreground">{themeLabel} &gt;</span>
-              </NavLink>
-            </div>
+            <RailCard
+              entries={[
+                { to: "/app/settings", label: "My Profile", icon: <User weight="fill" className="h-4 w-4" />, iconBg: "bg-red-500" },
+                { to: "/app/settings/security", label: "Active Sessions & Devices", icon: <Smartphone weight="fill" className="h-4 w-4" />, iconBg: "bg-amber-500", trailing: sessionTrailing },
+                { to: "/app/settings/privacy", label: "Privacy & Password", icon: <Lock weight="fill" className="h-4 w-4" />, iconBg: "bg-slate-700" },
+                { to: "/app/settings/preferences", label: "Appearance & Theme", icon: <Sun weight="fill" className="h-4 w-4" />, iconBg: "bg-teal-500", trailing: themeTrailing },
+              ]}
+              activePanel={activePanel}
+              onSelect={setActivePanel}
+            />
           ) : (
             <>
-              {/* Group 1: Identity & Wallet */}
-              <div className="rounded-3xl bg-card border-none/80 overflow-hidden divide-y divide-border/40">
-                <NavLink
-                  to="/app/settings"
-                  end
-                  className={({ isActive }) =>
-                    `w-full flex items-center justify-between p-3.5 transition-colors text-xs font-bold ${
-                      isActive
-                        ? "bg-[#2164b6]/15 text-[#2164b6] dark:text-[#7ab0ff]"
-                        : "text-foreground hover:bg-muted/50"
-                    }`
-                  }
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-red-500 text-white shrink-0">
-                      <User weight="fill" className="h-4 w-4" />
-                    </div>
-                    <span>My Profile</span>
-                  </div>
-                  <ChevronRight weight="fill" className="h-4 w-4 text-muted-foreground" />
-                </NavLink>
-
-                <NavLink
-                  to="/app/wallet"
-                  className={({ isActive }) =>
-                    `w-full flex items-center justify-between p-3.5 transition-colors text-xs font-bold ${
-                      isActive
-                        ? "bg-[#2164b6]/15 text-[#2164b6] dark:text-[#7ab0ff]"
-                        : "text-foreground hover:bg-muted/50"
-                    }`
-                  }
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-blue-500 text-white shrink-0">
-                      <Wallet weight="fill" className="h-4 w-4" />
-                    </div>
-                    <span>Wallet &amp; Balance</span>
-                  </div>
-                  <span className="px-2 py-0.5 rounded-full bg-[#2164b6] text-white text-[9px] font-black uppercase tracking-wider ">
-                    ACTIVE
-                  </span>
-                </NavLink>
-              </div>
+              {/* Group 1: Identity */}
+              <RailCard
+                entries={[
+                  { to: "/app/settings", label: "My Profile", icon: <User weight="fill" className="h-4 w-4" />, iconBg: "bg-red-500" },
+                ]}
+                activePanel={activePanel}
+                onSelect={setActivePanel}
+              />
 
               {/* Group 2: Messages & Security */}
-              <div className="rounded-3xl bg-card border-none/80 overflow-hidden divide-y divide-border/40">
-                <NavLink
-                  to="/app/settings/security"
-                  className={({ isActive }) =>
-                    `w-full flex items-center justify-between p-3.5 transition-colors text-xs font-bold ${
-                      isActive
-                        ? "bg-[#2164b6]/15 text-[#2164b6] dark:text-[#7ab0ff]"
-                        : "text-foreground hover:bg-muted/50"
-                    }`
-                  }
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-amber-500 text-white shrink-0">
-                      <Smartphone weight="fill" className="h-4 w-4" />
-                    </div>
-                    <span>Active Sessions &amp; Devices</span>
-                  </div>
-                  {sessionCount !== null && (
-                    <span className="text-[11px] font-bold text-muted-foreground">{sessionCount} &gt;</span>
-                  )}
-                </NavLink>
-
-                <NavLink
-                  to="/app/community-chat"
-                  className="w-full flex items-center justify-between p-3.5 hover:bg-muted/50 transition-colors text-xs font-bold text-foreground"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-indigo-500 text-white shrink-0">
-                      <Folder weight="fill" className="h-4 w-4" />
-                    </div>
-                    <span>Community Chat Channels</span>
-                  </div>
-                  <ChevronRight weight="fill" className="h-4 w-4 text-muted-foreground" />
-                </NavLink>
-
-                <NavLink
-                  to="/app/settings/automated-replies"
-                  className={({ isActive }) =>
-                    `w-full flex items-center justify-between p-3.5 transition-colors text-xs font-bold ${
-                      isActive
-                        ? "bg-[#2164b6]/15 text-[#2164b6] dark:text-[#7ab0ff]"
-                        : "text-foreground hover:bg-muted/50"
-                    }`
-                  }
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-emerald-600 text-white shrink-0">
-                      <ChatCircleDots weight="fill" className="h-4 w-4" />
-                    </div>
-                    <span>Automated Greeting &amp; Replies</span>
-                  </div>
-                  <ChevronRight weight="fill" className="h-4 w-4 text-muted-foreground" />
-                </NavLink>
-              </div>
+              <RailCard
+                entries={[
+                  { to: "/app/settings/security", label: "Active Sessions & Devices", icon: <Smartphone weight="fill" className="h-4 w-4" />, iconBg: "bg-amber-500", trailing: sessionTrailing },
+                  { to: "/app/community-chat", label: "Community Chat Channels", icon: <Folder weight="fill" className="h-4 w-4" />, iconBg: "bg-indigo-500" },
+                  { to: "/app/settings/automated-replies", label: "Automated Greeting & Replies", icon: <ChatCircleDots weight="fill" className="h-4 w-4" />, iconBg: "bg-emerald-600" },
+                ]}
+                activePanel={activePanel}
+                onSelect={setActivePanel}
+              />
 
               {/* Group 3: Preferences & Security */}
-              <div className="rounded-3xl bg-card border-none/80 overflow-hidden divide-y divide-border/40">
-                <NavLink
-                  to="/app/settings/notifications"
-                  className={({ isActive }) =>
-                    `w-full flex items-center justify-between p-3.5 transition-colors text-xs font-bold ${
-                      isActive
-                        ? "bg-[#2164b6]/15 text-[#2164b6] dark:text-[#7ab0ff]"
-                        : "text-foreground hover:bg-muted/50"
-                    }`
-                  }
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-rose-500 text-white shrink-0">
-                      <Bell weight="fill" className="h-4 w-4" />
-                    </div>
-                    <span>Notifications &amp; Sounds</span>
-                  </div>
-                  <ChevronRight weight="fill" className="h-4 w-4 text-muted-foreground" />
-                </NavLink>
-
-                <NavLink
-                  to="/app/settings/privacy"
-                  className={({ isActive }) =>
-                    `w-full flex items-center justify-between p-3.5 transition-colors text-xs font-bold ${
-                      isActive
-                        ? "bg-[#2164b6]/15 text-[#2164b6] dark:text-[#7ab0ff]"
-                        : "text-foreground hover:bg-muted/50"
-                    }`
-                  }
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-slate-700 text-white shrink-0">
-                      <Lock weight="fill" className="h-4 w-4" />
-                    </div>
-                    <span>Privacy &amp; Security</span>
-                  </div>
-                  <ChevronRight weight="fill" className="h-4 w-4 text-muted-foreground" />
-                </NavLink>
-
-                <NavLink
-                  to="/app/settings/preferences"
-                  className={({ isActive }) =>
-                    `w-full flex items-center justify-between p-3.5 transition-colors text-xs font-bold ${
-                      isActive
-                        ? "bg-[#2164b6]/15 text-[#2164b6] dark:text-[#7ab0ff]"
-                        : "text-foreground hover:bg-muted/50"
-                    }`
-                  }
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-teal-500 text-white shrink-0">
-                      <Sun weight="fill" className="h-4 w-4" />
-                    </div>
-                    <span>Appearance &amp; Theme</span>
-                  </div>
-                  <span className="text-[11px] font-medium text-muted-foreground">{themeLabel} &gt;</span>
-                </NavLink>
-
-                <NavLink
-                  to="/app/settings/language"
-                  className={({ isActive }) =>
-                    `w-full flex items-center justify-between p-3.5 transition-colors text-xs font-bold ${
-                      isActive
-                        ? "bg-[#2164b6]/15 text-[#2164b6] dark:text-[#7ab0ff]"
-                        : "text-foreground hover:bg-muted/50"
-                    }`
-                  }
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-violet-600 text-white shrink-0">
-                      <Globe weight="fill" className="h-4 w-4" />
-                    </div>
-                    <span>Language &amp; Region</span>
-                  </div>
-                  <ChevronRight weight="fill" className="h-4 w-4 text-muted-foreground" />
-                </NavLink>
-              </div>
+              <RailCard
+                entries={[
+                  { to: "/app/settings/notifications", label: "Notifications & Sounds", icon: <Bell weight="fill" className="h-4 w-4" />, iconBg: "bg-rose-500" },
+                  { to: "/app/settings/privacy", label: "Privacy & Security", icon: <Lock weight="fill" className="h-4 w-4" />, iconBg: "bg-slate-700" },
+                  { to: "/app/settings/preferences", label: "Appearance & Theme", icon: <Sun weight="fill" className="h-4 w-4" />, iconBg: "bg-teal-500", trailing: themeTrailing },
+                  { to: "/app/settings/language", label: "Language & Region", icon: <Globe weight="fill" className="h-4 w-4" />, iconBg: "bg-violet-600" },
+                ]}
+                activePanel={activePanel}
+                onSelect={setActivePanel}
+              />
 
               {/* Group 4: Account Tier & Help */}
-              <div className="rounded-3xl bg-card border-none/80 overflow-hidden divide-y divide-border/40">
-                {user?.role === "member" && (
-                  <NavLink
-                    to="/app/settings/upgrade"
-                    className="w-full flex items-center justify-between p-3.5 hover:bg-muted/50 transition-colors text-xs font-bold text-foreground"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-[#2164b6] text-white shrink-0">
-                        <Sparkle weight="fill" className="h-4 w-4" />
-                      </div>
-                      <span>Become a Creator or Vendor</span>
-                    </div>
-                    <ChevronRight weight="fill" className="h-4 w-4 text-muted-foreground" />
-                  </NavLink>
-                )}
-
-                <NavLink
-                  to="/app/gifts"
-                  className="w-full flex items-center justify-between p-3.5 hover:bg-muted/50 transition-colors text-xs font-bold text-foreground"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-amber-500 text-white shrink-0">
-                      <Star weight="fill" className="h-4 w-4" />
-                    </div>
-                    <span>My Stars &amp; Gifts</span>
-                  </div>
-                  <ChevronRight weight="fill" className="h-4 w-4 text-muted-foreground" />
-                </NavLink>
-
-                <NavLink
-                  to="/app/settings/help"
-                  className={({ isActive }) =>
-                    `w-full flex items-center justify-between p-3.5 transition-colors text-xs font-bold ${
-                      isActive
-                        ? "bg-[#2164b6]/15 text-[#2164b6] dark:text-[#7ab0ff]"
-                        : "text-foreground hover:bg-muted/50"
-                    }`
-                  }
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-amber-600 text-white shrink-0">
-                      <HelpCircle weight="fill" className="h-4 w-4" />
-                    </div>
-                    <span>Support &amp; Help Desk</span>
-                  </div>
-                  <ChevronRight weight="fill" className="h-4 w-4 text-muted-foreground" />
-                </NavLink>
-              </div>
+              <RailCard
+                entries={[
+                  ...(user?.role === "member"
+                    ? [{ to: "/app/settings/upgrade", label: "Become a Creator or Vendor", icon: <Sparkle weight="fill" className="h-4 w-4" />, iconBg: "bg-[#2164b6]" }]
+                    : []),
+                  { to: "/app/settings/help", label: "Support & Help Desk", icon: <HelpCircle weight="fill" className="h-4 w-4" />, iconBg: "bg-amber-600" },
+                ]}
+                activePanel={activePanel}
+                onSelect={setActivePanel}
+              />
             </>
           )}
         </aside>
 
         {/* ── Right Sub-view Content Area (8 Cols) ────────────────── */}
         <main className="lg:col-span-8">
-          <Outlet />
+          {ActivePanel ? (
+            <Suspense fallback={<BrandPreloader size="md" />}>
+              <ActivePanel />
+            </Suspense>
+          ) : (
+            <Outlet />
+          )}
         </main>
       </div>
     </div>

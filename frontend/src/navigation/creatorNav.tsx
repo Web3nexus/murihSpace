@@ -1,4 +1,4 @@
-import { Chart as ChartBar, N2User as Users, N3User as UsersThree, Chat as ChatCircleDots, Video as VideoCamera, Video as VideoConference, Calendar as CalendarCheck, Bag as ShoppingBag, Graph as TrendUp, Discount as Gift, Wallet, Setting as Gear, ShieldDone as ShieldCheck } from "@/components/icons";
+import { Chart as ChartBar, N2User as Users, N3User as UsersThree, Chat as ChatCircleDots, Video as VideoCamera, Video as VideoConference, Calendar as CalendarCheck, Bag as ShoppingBag, Graph as TrendUp, Discount as Gift, Star, Wallet, Setting as Gear, ShieldDone as ShieldCheck } from "@/components/icons";
 import { LinkSimple, GraduationCap, Megaphone, Broadcast, Handshake } from "@/components/icons/rounded";;
 import type { NavGroup } from "./navTypes";
 
@@ -95,6 +95,11 @@ export const creatorNav: NavGroup[] = [
         title: "Referrals & Rewards",
         url: "/app/referrals",
         icon: <Gift weight="fill" className="h-5 w-5" />,
+      },
+      {
+        title: "My Stars & Gifts",
+        url: "/app/gifts",
+        icon: <Star weight="fill" className="h-5 w-5" />,
       },
       {
         title: "MurihPay Wallet",

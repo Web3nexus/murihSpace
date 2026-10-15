@@ -1,4 +1,4 @@
-import { Discovery as Compass, N2User as Users, Chat as ChatCircleDots, Video as VideoCamera, Video as VideoConference, Location as MapPin, Chat as ChatCircle, Wallet, Profile as UserCircle, ShieldDone as ShieldCheck, Setting as Gear } from "@/components/icons";
+import { Discovery as Compass, N2User as Users, Chat as ChatCircleDots, Video as VideoCamera, Video as VideoConference, Location as MapPin, Chat as ChatCircle, Star, Wallet, Profile as UserCircle, ShieldDone as ShieldCheck, Setting as Gear } from "@/components/icons";
 import { Rss, Broadcast, Crown } from "@/components/icons/rounded";;
 import type { NavGroup } from "./navTypes";
 
@@ -60,6 +60,11 @@ export const memberNav: NavGroup[] = [
         title: "Reviews & Disputes",
         url: "/app/store/reviews",
         icon: <ChatCircle weight="fill" className="h-5 w-5" />,
+      },
+      {
+        title: "My Stars & Gifts",
+        url: "/app/gifts",
+        icon: <Star weight="fill" className="h-5 w-5" />,
       },
       {
         title: "MurihPay Wallet",

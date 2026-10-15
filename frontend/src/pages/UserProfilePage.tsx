@@ -7,8 +7,12 @@ import { apiClient } from "@/lib/api/client";
 import { mapApiPost, type FeedPost } from "@/lib/feed";
 import { profileUrl } from "@/lib/deepLinks";
 import { toast } from "sonner";
-import { Edit as PencilSimple, Location as MapPin, Calendar as CalendarBlank, N2User as Users, AddUser as UserPlus, Image as ImageIcon, Video as VideoCamera, Heart, Chat as ChatCircle, Plus, VerifiedBadge, Send, TickSquare as Check, Discovery as Globe } from "@/components/icons";
-import { Storefront, LinkSimple, Broadcast, At, ShareNetwork, Spinner as Loader2 } from "@/components/icons/rounded";;
+import { Edit as PencilSimple, Location as MapPin, Calendar as CalendarBlank, N2User as Users, AddUser as UserPlus, Image as ImageIcon, Video as VideoCamera, Heart, Chat as ChatCircle, Plus, VerifiedBadge, Send, TickSquare as Check, Discovery as Globe, Camera, CloseSquare, Download as FloppyDisk } from "@/components/icons";
+import { Storefront, LinkSimple, Broadcast, At, ShareNetwork, Spinner as Loader2 } from "@/components/icons/rounded";
+import { Input } from "@/components/ui/input";
+import { Field, FieldLabel } from "@/components/ui/field";
+import { authFetch } from "@/lib/api/authFetch";
+import { cn } from "@/lib/utils";
 
 type TabKey = "posts" | "reels" | "live" | "mentions";
 
@@ -48,7 +52,7 @@ function roleLabel(role?: string): string {
 
 export default function UserProfilePage() {
   const { user } = useAuth();
-  const { profile: selfProfile, loading: selfLoading } = useProfile();
+  const { profile: selfProfile, loading: selfLoading, updating, fieldErrors, updateProfile } = useProfile();
   const { id: routeId } = useParams<{ id?: string }>();
   const navigate = useNavigate();
 
@@ -76,6 +80,28 @@ export default function UserProfilePage() {
   const [userCommunities, setUserCommunities] = useState<{ id: number; name: string }[]>([]);
   const [selectedCommunityId, setSelectedCommunityId] = useState<number | null>(null);
 
+  // Inline profile editing (same page, same design — no separate route)
+  const [isEditing, setIsEditing] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [uploadingBanner, setUploadingBanner] = useState(false);
+
+  const [editName, setEditName] = useState("");
+  const [editUsername, setEditUsername] = useState("");
+  const [editBio, setEditBio] = useState("");
+  const [editWebsite, setEditWebsite] = useState("");
+  const [editCategory, setEditCategory] = useState("");
+  const [editGender, setEditGender] = useState("");
+  const [editCountry, setEditCountry] = useState("");
+  const [editState, setEditState] = useState("");
+  const [editCounty, setEditCounty] = useState("");
+  const [editMobile, setEditMobile] = useState("");
+  const [editBirthday, setEditBirthday] = useState("");
+  const [editAvatar, setEditAvatar] = useState("");
+  const [editBanner, setEditBanner] = useState("");
+
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const bannerInputRef = useRef<HTMLInputElement>(null);
+
   const display = isSelf ? selfProfile : otherProfile;
   const loading = isSelf ? selfLoading : otherLoading;
   const name = display?.name ?? (isSelf ? user?.name : undefined) ?? "User";
@@ -84,6 +110,8 @@ export default function UserProfilePage() {
   const canUseStudio = role === "creator" || role === "vendor" || role === "admin";
   const avatar = display?.avatar_url ?? display?.avatar ?? (isSelf ? (user?.avatar_url ?? user?.avatar) : undefined) ?? "";
   const banner = display?.banner_url ?? "";
+  const avatarSrc = isEditing ? (editAvatar || avatar) : avatar;
+  const bannerSrc = isEditing ? (editBanner || banner) : banner;
   const bio = display?.bio ?? "";
   const location = [display?.state, display?.country].filter(Boolean).join(", ");
   const joinedYear = display?.created_at
@@ -324,6 +352,102 @@ export default function UserProfilePage() {
     }
   }
 
+  function startEditing() {
+    if (!isSelf || !display) return;
+    setEditName(display.name ?? "");
+    setEditUsername(display.username ?? "");
+    setEditBio(display.bio ?? "");
+    setEditWebsite(display.website ?? "");
+    setEditCategory(display.category ?? "");
+    setEditGender(display.gender ?? "");
+    setEditCountry(display.country ?? "");
+    setEditState(display.state ?? "");
+    setEditCounty(display.county ?? "");
+    setEditMobile(display.mobile_number ?? display.phone ?? "");
+    setEditBirthday(display.birthday ?? "");
+    setEditAvatar(display.avatar ?? display.avatar_url ?? "");
+    setEditBanner(display.banner_url ?? "");
+    setIsEditing(true);
+  }
+
+  function cancelEditing() {
+    setIsEditing(false);
+    setEditAvatar("");
+    setEditBanner("");
+  }
+
+  async function handleSaveProfile() {
+    if (!editName.trim() || !editUsername.trim()) {
+      toast.error("Name and username are required.");
+      return;
+    }
+    const ok = await updateProfile({
+      name: editName,
+      username: editUsername.trim().toLowerCase(),
+      bio: editBio,
+      website: editWebsite ? editWebsite.trim() : null,
+      category: editCategory ? editCategory.trim() : null,
+      gender: editGender ? editGender.trim() : null,
+      country: editCountry,
+      state: editState,
+      county: editCounty,
+      mobile_number: editMobile,
+      birthday: editBirthday ? editBirthday.trim() : null,
+      avatar: editAvatar || undefined,
+      banner_url: editBanner || undefined,
+    });
+    if (ok) {
+      setIsEditing(false);
+      toast.success("Profile updated successfully!");
+    }
+  }
+
+  async function handleAvatarFileSelected(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = "";
+    setUploadingAvatar(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await authFetch("/profile/avatar", { method: "POST", body: formData });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json.message ?? json.error ?? "Failed to upload photo.");
+      const uploadedUrl = json.avatar ?? json.avatar_url ?? json.url ?? json.data?.avatar ?? json.data?.url;
+      if (uploadedUrl) {
+        setEditAvatar(uploadedUrl);
+        toast.success("Profile photo updated!");
+      }
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Failed to upload photo.");
+    } finally {
+      setUploadingAvatar(false);
+    }
+  }
+
+  async function handleBannerFileSelected(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = "";
+    setUploadingBanner(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await authFetch("/profile/banner", { method: "POST", body: formData });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json.message ?? json.error ?? "Failed to upload cover.");
+      const uploadedUrl = json.banner_url ?? json.url ?? json.data?.banner_url ?? json.data?.url;
+      if (uploadedUrl) {
+        setEditBanner(uploadedUrl);
+        toast.success("Cover updated!");
+      }
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Failed to upload cover.");
+    } finally {
+      setUploadingBanner(false);
+    }
+  }
+
   const ActiveTabIcon = TABS.find((t) => t.key === activeTab)?.icon ?? ImageIcon;
 
   const stats = [
@@ -361,11 +485,36 @@ export default function UserProfilePage() {
     <AnimatedPage className="w-full min-h-screen bg-[#F0F2F5] dark:bg-[#18191A]">
       {/* ── Banner ── */}
       <div className="relative">
-        <div className="h-44 sm:h-60 w-full rounded-b-[32px] overflow-hidden bg-gradient-to-r from-[#2164b6] via-[#1a5091] to-[#0d2f5e]">
-          {banner ? (
-            <img src={banner} alt="" className="w-full h-full object-cover" />
+        <input
+          type="file"
+          ref={bannerInputRef}
+          onChange={handleBannerFileSelected}
+          accept="image/jpeg,image/png,image/webp,image/gif"
+          className="hidden"
+        />
+        <input
+          type="file"
+          ref={avatarInputRef}
+          onChange={handleAvatarFileSelected}
+          accept="image/jpeg,image/png,image/webp,image/gif"
+          className="hidden"
+        />
+        <div className="h-44 sm:h-60 w-full rounded-b-[32px] overflow-hidden bg-gradient-to-r from-[#2164b6] via-[#1a5091] to-[#0d2f5e] relative">
+          {bannerSrc ? (
+            <img src={bannerSrc} alt="" className="w-full h-full object-cover" />
           ) : (
             <div className="absolute inset-0 opacity-30 bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.35),transparent_45%),radial-gradient(circle_at_80%_10%,rgba(255,255,255,0.25),transparent_40%)]" />
+          )}
+          {isEditing && (
+            <button
+              type="button"
+              onClick={() => bannerInputRef.current?.click()}
+              disabled={uploadingBanner}
+              className="absolute top-4 right-4 inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-black/60 hover:bg-black/85 backdrop-blur-md text-white text-xs font-bold transition-all shadow-md border border-white/10 active:scale-95"
+            >
+              {uploadingBanner ? <Loader2 weight="fill" className="h-3.5 w-3.5 animate-spin" /> : <Camera weight="bold" className="h-3.5 w-3.5" />}
+              <span>{uploadingBanner ? "Uploading…" : "Change Cover"}</span>
+            </button>
           )}
         </div>
       </div>
@@ -377,28 +526,74 @@ export default function UserProfilePage() {
           <div className="p-5 sm:p-7">
             <div className="flex flex-col sm:flex-row sm:items-end gap-5">
               {/* Avatar */}
-              <div className="relative shrink-0">
-                <div className="h-28 w-28 sm:h-36 sm:w-36 rounded-full ring-4 ring-white dark:ring-[#0f1b30] bg-[#2164b6] flex items-center justify-center overflow-hidden">
-                  {avatar ? (
-                    <img src={avatar} alt={name} className="w-full h-full object-cover" />
+              <div className="relative shrink-0 group">
+                <div
+                  className="h-28 w-28 sm:h-36 sm:w-36 rounded-full ring-4 ring-white dark:ring-[#0f1b30] bg-[#2164b6] flex items-center justify-center overflow-hidden"
+                >
+                  {avatarSrc ? (
+                    <img src={avatarSrc} alt={name} className="w-full h-full object-cover" />
                   ) : (
                     <span className="text-4xl font-black text-white">{name.charAt(0).toUpperCase()}</span>
+                  )}
+                  {isEditing && (
+                    <button
+                      type="button"
+                      onClick={() => avatarInputRef.current?.click()}
+                      disabled={uploadingAvatar}
+                      className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center text-white text-[11px] font-bold gap-1 rounded-full"
+                    >
+                      {uploadingAvatar ? (
+                        <Loader2 weight="fill" className="h-5 w-5 animate-spin" />
+                      ) : (
+                        <>
+                          <Camera weight="bold" className="h-5 w-5" />
+                          <span>Change</span>
+                        </>
+                      )}
+                    </button>
                   )}
                 </div>
               </div>
 
               {/* Name + meta */}
               <div className="flex-1 min-w-0 sm:pb-1">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h1 className="text-2xl sm:text-3xl font-black text-foreground tracking-tight">{name}</h1>
-                  {verified && <VerifiedBadge className="h-6 w-6 text-[#1B64F2]" aria-label="Verified" />}
-                  <span className="px-2 py-0.5 rounded-md bg-[#2164b6]/10 text-[#2164b6] dark:text-[#7ab0ff] text-[11px] font-bold uppercase tracking-wide">
-                    {roleLabel(role)}
-                  </span>
-                </div>
-                <p className="text-sm text-muted-foreground font-medium mt-0.5">@{username}</p>
+                {isEditing ? (
+                  <div className="space-y-2">
+                    <div className="flex flex-wrap gap-2">
+                      <Input
+                        value={editName}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditName(e.target.value)}
+                        placeholder="Full name"
+                        className={cn("h-11 rounded-xl bg-muted/40 max-w-xs text-base font-bold", fieldErrors.name && "border-destructive")}
+                      />
+                      <div className="relative max-w-xs">
+                        <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-muted-foreground">@</span>
+                        <Input
+                          value={editUsername}
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ""))}
+                          placeholder="username"
+                          className={cn("h-11 rounded-xl bg-muted/40 pl-8 font-mono text-xs", fieldErrors.username && "border-destructive")}
+                        />
+                      </div>
+                    </div>
+                    {(fieldErrors.name || fieldErrors.username) && (
+                      <p className="text-xs text-destructive">{fieldErrors.name?.[0] ?? fieldErrors.username?.[0]}</p>
+                    )}
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h1 className="text-2xl sm:text-3xl font-black text-foreground tracking-tight">{name}</h1>
+                      {verified && <VerifiedBadge className="h-6 w-6 text-[#1B64F2]" aria-label="Verified" />}
+                      <span className="px-2 py-0.5 rounded-md bg-[#2164b6]/10 text-[#2164b6] dark:text-[#7ab0ff] text-[11px] font-bold uppercase tracking-wide">
+                        {roleLabel(role)}
+                      </span>
+                    </div>
+                    <p className="text-sm text-muted-foreground font-medium mt-0.5">@{username}</p>
+                  </>
+                )}
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-xs text-muted-foreground">
-                  {location && (
+                  {!isEditing && location && (
                     <span className="inline-flex items-center gap-1">
                       <MapPin weight="fill" className="h-3.5 w-3.5" /> {location}
                     </span>
@@ -406,19 +601,129 @@ export default function UserProfilePage() {
                   <span className="inline-flex items-center gap-1">
                     <CalendarBlank weight="fill" className="h-3.5 w-3.5" /> Joined {joinedYear}
                   </span>
-                  <button
-                    onClick={copyProfileLink}
-                    className="inline-flex items-center gap-1 text-[#2164b6] dark:text-[#7ab0ff] font-semibold hover:underline"
-                  >
-                    {copied ? <Check weight="bold" className="h-3.5 w-3.5" /> : <LinkSimple weight="fill" className="h-3.5 w-3.5" />}
-                    {copied ? "Copied!" : `murihspace.com/@${username}`}
-                  </button>
+                  {!isEditing && (
+                    <button
+                      onClick={copyProfileLink}
+                      className="inline-flex items-center gap-1 text-[#2164b6] dark:text-[#7ab0ff] font-semibold hover:underline"
+                    >
+                      {copied ? <Check weight="bold" className="h-3.5 w-3.5" /> : <LinkSimple weight="fill" className="h-3.5 w-3.5" />}
+                      {copied ? "Copied!" : `murihspace.com/@${username}`}
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
 
             {/* Bio */}
-            {bio && <p className="mt-5 text-sm text-foreground/90 leading-relaxed max-w-3xl">{bio}</p>}
+            {isEditing ? (
+              <div className="mt-5">
+                <FieldLabel htmlFor="edit-bio" className="text-xs">
+                  Bio &amp; About You
+                </FieldLabel>
+                <textarea
+                  id="edit-bio"
+                  rows={3}
+                  maxLength={500}
+                  value={editBio}
+                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setEditBio(e.target.value)}
+                  placeholder="Tell community members, buyers, and collaborators about yourself…"
+                  className="w-full rounded-xl border border-input bg-muted/40 px-3.5 py-2.5 text-xs text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#2164b6] resize-none"
+                />
+              </div>
+            ) : (
+              bio && <p className="mt-5 text-sm text-foreground/90 leading-relaxed max-w-3xl">{bio}</p>
+            )}
+
+            {/* Editable detail fields (same page, same card design) */}
+            {isEditing && (
+              <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 rounded-2xl border border-border/60 bg-muted/20 p-4">
+                <Field>
+                  <FieldLabel htmlFor="edit-website">Website</FieldLabel>
+                  <Input
+                    id="edit-website"
+                    value={editWebsite}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditWebsite(e.target.value)}
+                    placeholder="https://example.com"
+                    className="h-10 rounded-xl bg-muted/40 text-xs"
+                  />
+                </Field>
+                <Field>
+                  <FieldLabel htmlFor="edit-category">Category</FieldLabel>
+                  <Input
+                    id="edit-category"
+                    value={editCategory}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditCategory(e.target.value)}
+                    placeholder="e.g. Digital Creator"
+                    className="h-10 rounded-xl bg-muted/40 text-xs"
+                  />
+                </Field>
+                <Field>
+                  <FieldLabel htmlFor="edit-gender">Gender</FieldLabel>
+                  <select
+                    id="edit-gender"
+                    value={editGender}
+                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setEditGender(e.target.value)}
+                    className="h-10 w-full rounded-xl bg-muted/40 border border-input px-3 text-xs font-medium text-foreground"
+                  >
+                    <option value="">Select Gender</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Non-binary">Non-binary</option>
+                    <option value="Prefer not to say">Prefer not to say</option>
+                  </select>
+                </Field>
+                <Field>
+                  <FieldLabel htmlFor="edit-mobile">Phone / Mobile</FieldLabel>
+                  <Input
+                    id="edit-mobile"
+                    value={editMobile}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditMobile(e.target.value)}
+                    placeholder="+234 800 000 0000"
+                    className="h-10 rounded-xl bg-muted/40 text-xs"
+                  />
+                </Field>
+                <Field>
+                  <FieldLabel htmlFor="edit-birthday">Birthday</FieldLabel>
+                  <Input
+                    id="edit-birthday"
+                    type="date"
+                    value={editBirthday}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditBirthday(e.target.value)}
+                    className="h-10 rounded-xl bg-muted/40 text-xs"
+                  />
+                </Field>
+                <Field>
+                  <FieldLabel htmlFor="edit-country">Country</FieldLabel>
+                  <Input
+                    id="edit-country"
+                    value={editCountry}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditCountry(e.target.value)}
+                    placeholder="e.g. Nigeria"
+                    className="h-10 rounded-xl bg-muted/40 text-xs"
+                  />
+                </Field>
+                <Field>
+                  <FieldLabel htmlFor="edit-state">State / Region</FieldLabel>
+                  <Input
+                    id="edit-state"
+                    value={editState}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditState(e.target.value)}
+                    placeholder="e.g. Lagos"
+                    className="h-10 rounded-xl bg-muted/40 text-xs"
+                  />
+                </Field>
+                <Field>
+                  <FieldLabel htmlFor="edit-county">County / City</FieldLabel>
+                  <Input
+                    id="edit-county"
+                    value={editCounty}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditCounty(e.target.value)}
+                    placeholder="e.g. Ikeja"
+                    className="h-10 rounded-xl bg-muted/40 text-xs"
+                  />
+                </Field>
+              </div>
+            )}
 
             {/* Stats */}
             <div className={`mt-5 grid grid-cols-2 ${isSelf ? "sm:grid-cols-5" : "sm:grid-cols-4"} gap-3`}>
@@ -438,31 +743,52 @@ export default function UserProfilePage() {
             {/* Actions */}
             <div className="mt-5 flex flex-wrap items-center gap-2.5">
               {isSelf ? (
-                <>
-                  <Link
-                    to="/app/settings/profile"
-                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#2164b6] hover:bg-[#1a5091] text-white text-sm font-bold transition-colors"
-                  >
-                    <PencilSimple weight="fill" className="h-4 w-4" /> Edit Profile
-                  </Link>
+                isEditing ? (
+                  <>
+                    <button
+                      onClick={handleSaveProfile}
+                      disabled={updating}
+                      className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#2164b6] hover:bg-[#1a5091] text-white text-sm font-bold transition-colors disabled:opacity-60"
+                    >
+                      {updating ? <Loader2 weight="fill" className="h-4 w-4 animate-spin" /> : <FloppyDisk weight="bold" className="h-4 w-4" />}
+                      Save Changes
+                    </button>
+                    <button
+                      onClick={cancelEditing}
+                      disabled={updating}
+                      className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#F0F2F5] dark:bg-[#3A3B3C] text-foreground hover:bg-[#E4E6EB] dark:hover:bg-[#4E4F50] text-sm font-bold transition-colors disabled:opacity-60"
+                    >
+                      <CloseSquare weight="bold" className="h-4 w-4" />
+                      Cancel
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      onClick={startEditing}
+                      className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#2164b6] hover:bg-[#1a5091] text-white text-sm font-bold transition-colors"
+                    >
+                      <PencilSimple weight="fill" className="h-4 w-4" /> Edit Profile
+                    </button>
 
-                  {canUseStudio && (
-                    <>
-                      <Link
-                        to="/app/studio"
-                        className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#2164b6]/10 text-[#2164b6] dark:text-[#7ab0ff] hover:bg-[#2164b6]/20 text-sm font-bold transition-colors"
-                      >
-                        <VideoCamera weight="fill" className="h-4 w-4" /> Creator Studio
-                      </Link>
-                      <Link
-                        to="/app/brand-deals"
-                        className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#2164b6]/10 text-[#2164b6] dark:text-[#7ab0ff] hover:bg-[#2164b6]/20 text-sm font-bold transition-colors"
-                      >
-                        <Storefront weight="fill" className="h-4 w-4" /> Brand Studio
-                      </Link>
-                    </>
-                  )}
-                </>
+                    {canUseStudio && (
+                      <>
+                        <Link
+                          to="/app/studio"
+                          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#2164b6]/10 text-[#2164b6] dark:text-[#7ab0ff] hover:bg-[#2164b6]/20 text-sm font-bold transition-colors"
+                        >
+                          <VideoCamera weight="fill" className="h-4 w-4" /> Creator Studio
+                        </Link>
+                        <Link
+                          to="/app/brand-deals"
+                          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#2164b6]/10 text-[#2164b6] dark:text-[#7ab0ff] hover:bg-[#2164b6]/20 text-sm font-bold transition-colors"
+                        >
+                          <Storefront weight="fill" className="h-4 w-4" /> Brand Studio
+                        </Link>
+                      </>
+                    )}
+                  </>
+                )
               ) : (
                 <>
                   <button

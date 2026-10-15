@@ -10,7 +10,7 @@ import { getSidebarNav } from "@/navigation/getSidebarNav";
 import { ROLE_LABELS } from "@/navigation/navTypes";
 import type { NavItem, NavGroup, UserRole } from "@/navigation/navTypes";
 import { useFeatureFlags } from "@/hooks/useFeatureFlags";
-import { Logout as SignOut, Profile as UserCircle, Profile as User, Setting as Gear, ShieldDone as ShieldCheck, Wallet, Notification as Bell, ArrowDown as CaretDown } from "@/components/icons";
+import { Logout as SignOut, Profile as UserCircle, Profile as User, ShieldDone as ShieldCheck, Wallet, Notification as Bell, ArrowDown as CaretDown } from "@/components/icons";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -354,23 +354,13 @@ export function AppSidebar({ className = "", onNavigate }: AppSidebarProps) {
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => {
-                  navigate("/app/settings/profile");
-                  onNavigate?.();
-                }}
-                className="cursor-pointer text-xs"
-              >
-                <UserCircle weight="fill" className="mr-2 h-4 w-4 text-muted-foreground" />
-                Profile Settings
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => {
                   navigate("/app/settings");
                   onNavigate?.();
                 }}
                 className="cursor-pointer text-xs"
               >
-                <Gear weight="fill" className="mr-2 h-4 w-4 text-muted-foreground" />
-                Settings &amp; Privacy
+                <UserCircle weight="fill" className="mr-2 h-4 w-4 text-muted-foreground" />
+                Settings
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => {

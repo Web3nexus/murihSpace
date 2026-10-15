@@ -1,4 +1,4 @@
-import { Ticket as Tag, Bag as ShoppingCart, Chat as ChatCircle, Message as ChatTeardropText, Wallet, Graph as TrendUp, Profile as UserCircle, ShieldDone as ShieldCheck, Setting as Gear } from "@/components/icons";
+import { Ticket as Tag, Bag as ShoppingCart, Chat as ChatCircle, Message as ChatTeardropText, Star, Wallet, Graph as TrendUp, Profile as UserCircle, ShieldDone as ShieldCheck, Setting as Gear } from "@/components/icons";
 import { Package, Warehouse, Storefront, Truck, ArrowUUpLeft, Receipt, CurrencyDollar, Megaphone } from "@/components/icons/rounded";;
 import type { NavGroup } from "./navTypes";
 
@@ -62,6 +62,11 @@ export const vendorNav: NavGroup[] = [
         url: "/app/messages",
         icon: <ChatTeardropText weight="fill" className="h-5 w-5" />,
         featureFlag: "inbox",
+      },
+      {
+        title: "My Stars & Gifts",
+        url: "/app/gifts",
+        icon: <Star weight="fill" className="h-5 w-5" />,
       },
       {
         title: "MurihPay Wallet",
