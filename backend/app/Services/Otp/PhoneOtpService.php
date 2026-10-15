@@ -427,6 +427,22 @@ class PhoneOtpService
     private function hasActiveDeliveryDevice(User $user): bool
     {
         $hasLiveToken = $user->tokens()
+            ->where(fn ($q) => $q->where('name', '!=', 'impersonation-token')
+                ->where(function ($qq) {
+                    $model = $qq->getModel();
+                    $abilities = $model->getRawOriginal('abilities');
+                    if (is_string($abilities) && $abilities !== '') {
+                        try {
+                            $decoded = json_decode($abilities, true);
+                            if (is_array($decoded) && in_array('impersonate', $decoded, true)) {
+                                return false;
+                            }
+                        } catch (\Throwable $e) {
+                            // ignore
+                        }
+                    }
+                    return true;
+                }))
             ->where(fn ($q) => $q->whereNull('expires_at')
                 ->orWhere('expires_at', '>', now()))
             ->where(fn ($q) => $q->where('last_used_at', '>=', now()->subDays(30))
