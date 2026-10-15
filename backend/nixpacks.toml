@@ -1,7 +1,7 @@
 providers = ['php']
 
 [phases.setup]
-nixPkgs = ['...', 'nginx', 'python311Packages.supervisor']
+nixPkgs = ['...', 'nginx', 'python311Packages.supervisor', 'nodejs_22']
 
 [phases.build]
 cmds = [

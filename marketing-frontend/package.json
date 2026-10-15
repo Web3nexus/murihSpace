@@ -2,6 +2,9 @@
   "name": "@murihspace/marketing",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "dev": "react-router dev",
     "build": "react-router build",
