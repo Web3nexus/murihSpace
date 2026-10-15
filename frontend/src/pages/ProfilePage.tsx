@@ -4,7 +4,7 @@ import { useProfile } from "@/hooks/useProfile";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Field, FieldLabel } from "@/components/ui/field";
-import { TickSquare as CheckCircle2, DangerSquare as AlertCircle, ShieldFail as ShieldWarning, ShieldDone as BadgeCheck, Camera, Download as FloppyDisk, Discovery as Globe, Location as MapPin, Calendar, Profile as User, Show as Eye, Swap as ArrowCounterClockwise, ArrowLeft, Video } from "@/components/icons";
+import { TickSquare as CheckCircle2, DangerSquare as AlertCircle, ShieldFail as ShieldWarning, VerifiedBadge, Camera, Download as FloppyDisk, Discovery as Globe, Location as MapPin, Calendar, Profile as User, Show as Eye, Swap as ArrowCounterClockwise, ArrowLeft, Video } from "@/components/icons";
 import { Spinner as Loader2, ShareNetwork as Share2, ArrowSquareOut, DeviceMobile as Smartphone, Copy, Link as LinkIcon, Handshake } from "@/components/icons/rounded";;
 import { cn } from "@/lib/utils";
 import { ShareModal } from "@/components/common/ShareModal";
@@ -447,8 +447,8 @@ export function ProfilePage() {
                   <h2 className="text-xl sm:text-2xl font-black text-foreground tracking-tight">
                     {name || "Your Name"}
                   </h2>
-                  {(profile?.has_active_verification_badge || profile?.kyc_status === "verified") && (
-                    <BadgeCheck weight="fill" className="h-5 w-5 text-[#2164b6] fill-[#2164b6] shrink-0" />
+                  {profile?.has_active_verification_badge && (
+                    <VerifiedBadge className="h-5 w-5 text-[#1B64F2] shrink-0" aria-label="Verified" />
                   )}
                   {profile?.role === "admin" ? (
                     <span className="px-2.5 py-0.5 rounded-full bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30 text-[11px] font-bold tracking-wide">

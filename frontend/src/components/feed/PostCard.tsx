@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { formatDistanceToNow } from 'date-fns';
-import { Message as MessageSquare, MoreCircle as MoreHorizontal, Heart, ShieldFail as ShieldWarning, ShieldDone as BadgeCheck, Profile as UserIcon } from "@/components/icons";
+import { Message as MessageSquare, MoreCircle as MoreHorizontal, Heart, ShieldFail as ShieldWarning, VerifiedBadge, Profile as UserIcon } from "@/components/icons";
 import { Link, PushPin, PushPinSlash, Megaphone, Lightning as Zap, ThumbsUp, HandGrabbing, UserMinus } from "@/components/icons/rounded";;
 import type { Post, ReactionType } from '@/types/post';
 import { ReportModal } from '@/components/moderation/ReportModal';
@@ -124,7 +124,7 @@ export default function PostCard({ post, onReact, onComment, onPin, onUnpin, isM
             <span className="post-card-author">
               {post.author?.name ?? 'Unknown'}
               {post.author?.has_active_verification_badge && (
-                <BadgeCheck weight="fill" size={14} className="inline-block ml-1 text-sky-500 -mt-0.5" aria-label="Verified" />
+                <VerifiedBadge size={14} className="inline-block ml-1 text-[#1B64F2] -mt-0.5" aria-label="Verified" />
               )}
             </span>
             {post.author?.username && (
@@ -319,7 +319,7 @@ export default function PostCard({ post, onReact, onComment, onPin, onUnpin, isM
                   <span className="post-card-comment-author">
                     {c.user?.name ?? 'User'}
                     {c.user?.has_active_verification_badge && (
-                      <BadgeCheck weight="fill" size={12} className="inline-block ml-0.5 text-sky-500 -mt-0.5" aria-label="Verified" />
+                      <VerifiedBadge size={12} className="inline-block ml-0.5 text-[#1B64F2] -mt-0.5" aria-label="Verified" />
                     )}
                   </span>
                   <span className="post-card-comment-text">{c.content}</span>

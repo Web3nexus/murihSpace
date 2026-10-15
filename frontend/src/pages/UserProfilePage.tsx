@@ -7,7 +7,7 @@ import { apiClient } from "@/lib/api/client";
 import { mapApiPost, type FeedPost } from "@/lib/feed";
 import { profileUrl } from "@/lib/deepLinks";
 import { toast } from "sonner";
-import { Edit as PencilSimple, Location as MapPin, Calendar as CalendarBlank, N2User as Users, AddUser as UserPlus, Image as ImageIcon, Video as VideoCamera, Heart, Chat as ChatCircle, Plus, ShieldDone as BadgeCheck, Send, TickSquare as Check, Discovery as Globe } from "@/components/icons";
+import { Edit as PencilSimple, Location as MapPin, Calendar as CalendarBlank, N2User as Users, AddUser as UserPlus, Image as ImageIcon, Video as VideoCamera, Heart, Chat as ChatCircle, Plus, VerifiedBadge, Send, TickSquare as Check, Discovery as Globe } from "@/components/icons";
 import { Storefront, LinkSimple, Broadcast, At, ShareNetwork, Spinner as Loader2 } from "@/components/icons/rounded";;
 
 type TabKey = "posts" | "reels" | "live" | "mentions";
@@ -391,7 +391,7 @@ export default function UserProfilePage() {
               <div className="flex-1 min-w-0 sm:pb-1">
                 <div className="flex items-center gap-2 flex-wrap">
                   <h1 className="text-2xl sm:text-3xl font-black text-foreground tracking-tight">{name}</h1>
-                  {verified && <BadgeCheck weight="fill" className="h-6 w-6 text-[#2164b6] dark:text-[#7ab0ff]" />}
+                  {verified && <VerifiedBadge className="h-6 w-6 text-[#1B64F2]" aria-label="Verified" />}
                   <span className="px-2 py-0.5 rounded-md bg-[#2164b6]/10 text-[#2164b6] dark:text-[#7ab0ff] text-[11px] font-bold uppercase tracking-wide">
                     {roleLabel(role)}
                   </span>
@@ -726,7 +726,7 @@ export default function UserProfilePage() {
                         <div>
                           <div className="flex items-center gap-1.5">
                             <span className="text-sm font-bold text-foreground">{post.author}</span>
-                            {post.authorVerified && <BadgeCheck weight="fill" className="h-3.5 w-3.5 text-sky-500" />}
+                            {post.authorVerified && <VerifiedBadge className="h-3.5 w-3.5 text-[#1B64F2]" aria-label="Verified" />}
                           </div>
                           <p className="text-[11px] text-muted-foreground flex items-center gap-1">
                             {post.badge} · {post.time} · <Globe weight="fill" className="h-3 w-3" />

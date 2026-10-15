@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import QRCode from "qrcode";
-import { ShieldDone as ShieldCheck, TickSquare as Check, CloseSquare as X, DangerSquare as AlertCircle, Swap as RefreshCw, ShieldDone as BadgeCheck, Scan as QrCode } from "@/components/icons";
+import { ShieldDone as ShieldCheck, TickSquare as Check, CloseSquare as X, DangerSquare as AlertCircle, Swap as RefreshCw, VerifiedBadge, Scan as QrCode } from "@/components/icons";
 import { Spinner as Loader2, Coins, DeviceMobile as Smartphone, DeviceMobile, Copy } from "@/components/icons/rounded";;
 import { toast } from "sonner";
 import { apiClient } from "@/lib/api/client";
@@ -342,14 +342,14 @@ export default function KycSettingsPage() {
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-center gap-3.5">
               <div className="h-12 w-12 rounded-lg bg-sky-500/10 border border-sky-500/20 flex items-center justify-center">
-                <BadgeCheck weight="fill" className="h-6 w-6 text-sky-500" />
+                <VerifiedBadge className="h-6 w-6 text-[#1B64F2]" />
               </div>
               <div>
                 <h3 className="text-base font-bold text-foreground flex items-center gap-2">
                   Official Blue Checkmark Badge
                   {badge?.status === "active" && (
                     <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-sky-500/10 text-sky-600 dark:text-sky-400 text-[11px] font-bold">
-                      <BadgeCheck weight="fill" className="h-3.5 w-3.5" /> Active
+                      <VerifiedBadge className="h-3.5 w-3.5" /> Active
                     </span>
                   )}
                 </h3>
@@ -387,7 +387,7 @@ export default function KycSettingsPage() {
 
               {badge.expires_at && badge.status === "active" && (
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <BadgeCheck weight="fill" className="h-4 w-4 text-sky-500" />
+                  <VerifiedBadge className="h-4 w-4 text-[#1B64F2]" />
                   Expires{" "}
                   {new Date(badge.expires_at).toLocaleDateString(undefined, {
                     year: "numeric",
@@ -438,7 +438,7 @@ export default function KycSettingsPage() {
                       </>
                     ) : (
                       <>
-                        <BadgeCheck weight="fill" className="h-4 w-4" /> Activate Badge (
+                        <VerifiedBadge className="h-4 w-4" /> Activate Badge (
                         {badge.monthly_fee}/mo)
                       </>
                     )}

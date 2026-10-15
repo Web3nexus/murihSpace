@@ -5,7 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { apiClient } from "@/lib/api/client";
 import { timeAgo, mapApiPost, mapApiComments } from "@/lib/feed";
-import { Plus, Heart, Chat as MessageCircle, ArrowRight as ChevronRight, ArrowLeft as ChevronLeft, Play, Profile as UserIcon, ShieldDone as BadgeCheck, Send, TickSquare as Check, CloseSquare as X, ArrowDown as ChevronDown } from "@/components/icons";
+import { Plus, Heart, Chat as MessageCircle, ArrowRight as ChevronRight, ArrowLeft as ChevronLeft, Play, Profile as UserIcon, VerifiedBadge, Send, TickSquare as Check, CloseSquare as X, ArrowDown as ChevronDown } from "@/components/icons";
 import { ShareNetwork as Share2, Rss, Spinner as Loader2, Copy } from "@/components/icons/rounded";;
 import { SponsoredRightRail } from "@/components/ads/SponsoredRightRail";
 import { InterPostSponsoredAd, type SponsoredAdData } from "@/components/ads/InterPostSponsoredAd";
@@ -606,7 +606,7 @@ export default function FeedPage() {
                       <div className="flex items-center gap-1.5">
                         <span className="text-sm font-bold text-foreground">{post.author}</span>
                         {post.authorVerified && (
-                          <BadgeCheck weight="fill" className="h-3.5 w-3.5 text-sky-500" />
+                          <VerifiedBadge className="h-3.5 w-3.5 text-[#1B64F2]" aria-label="Verified" />
                         )}
                       </div>
                       <p className="text-[11px] text-muted-foreground">{post.badge} · {post.time} · 🌐</p>
@@ -745,7 +745,7 @@ export default function FeedPage() {
                                 <span className="font-bold text-foreground text-[11px]">
                                   {cmt.user_name}
                                   {cmt.verified && (
-                                    <BadgeCheck weight="fill" size={12} className="inline-block ml-0.5 text-sky-500 -mt-0.5" aria-label="Verified" />
+                                    <VerifiedBadge size={12} className="inline-block ml-0.5 text-[#1B64F2] -mt-0.5" aria-label="Verified" />
                                   )}
                                 </span>
                                 <span className="text-[9px] text-muted-foreground">{cmt.time}</span>

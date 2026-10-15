@@ -8,7 +8,7 @@ import { AuthPromptModal } from "@/components/auth/AuthPromptModal";
 import { ShareModal } from "@/components/common/ShareModal";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ShieldDone as BadgeCheck, Calendar, Location as MapPin, N2User as Users, Message as MessageSquare, AddUser as UserPlus, Lock, DangerTriangle as AlertTriangle, ArrowLeft, Star, TickSquare as CheckCircle, Profile as UserIcon, Category as GridFour, Video as FilmReel, Heart, Chat as ChatCircle, Show as Eye, Edit as PencilSimple, Play } from "@/components/icons";
+import { VerifiedBadge, Calendar, Location as MapPin, N2User as Users, Message as MessageSquare, AddUser as UserPlus, Lock, DangerTriangle as AlertTriangle, ArrowLeft, Star, TickSquare as CheckCircle, Profile as UserIcon, Category as GridFour, Video as FilmReel, Heart, Chat as ChatCircle, Show as Eye, Edit as PencilSimple, Play } from "@/components/icons";
 import { ShareNetwork as Share2, UserCheck, Storefront, ArrowSquareOut as ExternalLink, Spinner as Loader2, Broadcast } from "@/components/icons/rounded";;
 import { absolute, profileDomain, profileUrl } from "@/lib/deepLinks";
 import { Badge3DRenderer } from "@/pages/AdminBadgesPage";
@@ -432,8 +432,8 @@ export default function PublicProfilePage() {
                     <h1 className="text-xl sm:text-2xl font-black text-foreground tracking-tight">
                       {profile.name}
                     </h1>
-                    {(profile.has_active_verification_badge || profile.kyc_status === "verified") && (
-                      <BadgeCheck weight="fill" className="h-5 w-5 text-[#2164b6] fill-[#2164b6] shrink-0" />
+                    {profile.has_active_verification_badge && (
+                      <VerifiedBadge className="h-5 w-5 text-[#1B64F2] shrink-0" aria-label="Verified" />
                     )}
                   </div>
                   <p className="text-xs font-bold text-muted-foreground font-mono">

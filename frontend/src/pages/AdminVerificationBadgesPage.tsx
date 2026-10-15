@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "react-router";
 import { toast } from "sonner";
-import { ShieldDone as BadgeCheck, DangerTriangle as AlertTriangle, TimeCircle as Clock, ArrowLeft as ChevronLeft, ArrowRight as ChevronRight, ShieldDone as Shield, ShieldDone as ShieldCheck } from "@/components/icons";
+import { VerifiedBadge, DangerTriangle as AlertTriangle, TimeCircle as Clock, ArrowLeft as ChevronLeft, ArrowRight as ChevronRight, ShieldDone as Shield, ShieldDone as ShieldCheck } from "@/components/icons";
 import { Faders, Spinner as Loader2 } from "@/components/icons/rounded";;
 import { apiClient, type ApiError } from "@/lib/api/client";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -23,7 +23,7 @@ interface BadgeUser {
 
 const TABS = [
   { key: "under_review", label: "Under Review", icon: Clock },
-  { key: "active", label: "Active & Verified Badges", icon: BadgeCheck },
+  { key: "active", label: "Active & Verified Badges", icon: VerifiedBadge },
   { key: "kyc_pending", label: "KYC Pending", icon: AlertTriangle },
   { key: "all", label: "All Badge Accounts", icon: Faders },
 ];
@@ -125,7 +125,7 @@ export function AdminVerificationBadgesPage() {
       {/* Header */}
       <div>
         <h1 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
-          <BadgeCheck weight="fill" className="h-6 w-6 text-[#1877f2]" />
+          <VerifiedBadge className="h-6 w-6 text-[#1B64F2]" />
           Verification Badge Management
         </h1>
         <p className="text-xs sm:text-sm text-muted-foreground mt-1">
@@ -169,7 +169,7 @@ export function AdminVerificationBadgesPage() {
           </div>
         ) : users.length === 0 ? (
           <div className="flex flex-col items-center justify-center p-16 text-center">
-            <BadgeCheck weight="fill" className="h-12 w-12 text-muted-foreground/30 mb-3" />
+            <VerifiedBadge className="h-12 w-12 text-muted-foreground/30 mb-3" />
             <h3 className="font-bold text-base text-foreground">No verification badges found</h3>
             <p className="text-xs text-muted-foreground mt-1">
               There are no accounts matching the selected badge filter.
@@ -199,7 +199,7 @@ export function AdminVerificationBadgesPage() {
                           <div className="font-bold text-foreground flex items-center gap-1.5 text-xs">
                             {u.name}
                             {(u.verification_badge_status === "active" || u.verification_badge_status === "verified") && (
-                              <BadgeCheck weight="fill" className="h-4 w-4 text-[#1877f2] shrink-0" />
+                              <VerifiedBadge className="h-4 w-4 text-[#1B64F2] shrink-0" aria-label="Verified" />
                             )}
                           </div>
                           <div className="text-[11px] text-muted-foreground">{u.email}</div>

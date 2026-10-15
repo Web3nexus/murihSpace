@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
-import { AddUser as UserPlus, N2User as Users, TimeCircle as Clock, TickSquare as Check, CloseSquare as X, Search as MagnifyingGlass, Message as ChatTeardropText, N3User as UsersThree, MoreCircle as DotsThree, MoreSquare as DotsThreeVertical, Discount as Gift, Star, Work as Briefcase, Show as Eye, Setting as SlidersHorizontal, Category as SquaresFour, Plus, Delete as Trash, ShieldDone as SealCheck, Heart, Profile as User } from "@/components/icons";
+import { AddUser as UserPlus, N2User as Users, TimeCircle as Clock, TickSquare as Check, CloseSquare as X, Search as MagnifyingGlass, Message as ChatTeardropText, N3User as UsersThree, MoreCircle as DotsThree, MoreSquare as DotsThreeVertical, Discount as Gift, Star, Work as Briefcase, Show as Eye, Setting as SlidersHorizontal, Category as SquaresFour, Plus, Delete as Trash, VerifiedBadge, Heart, Profile as User } from "@/components/icons";
 import { Spinner, UserCheck, UserMinus, Prohibit, Cake, Palette, ListDashes } from "@/components/icons/rounded";;
 import { apiClient } from "@/lib/api/client";
 import { useConfirm } from "@/components/ui/DialogProvider";
@@ -954,7 +954,7 @@ export default function FriendsPage({ initialTab }: FriendsPageProps) {
                             <div className="flex items-center gap-1.5">
                               <p className="text-sm font-bold text-foreground truncate">{user.name}</p>
                               {user.has_active_verification_badge && (
-                                <SealCheck weight="fill" className="h-4 w-4 text-[#2164b6] shrink-0" />
+                                <VerifiedBadge className="h-4 w-4 text-[#1B64F2] shrink-0" aria-label="Verified" />
                               )}
                             </div>
                             <p className="text-xs text-muted-foreground truncate">@{user.username}</p>
@@ -1008,7 +1008,7 @@ export default function FriendsPage({ initialTab }: FriendsPageProps) {
                             <div className="flex items-center gap-1.5">
                               <p className="text-sm font-bold text-foreground truncate">{user.name}</p>
                               {user.has_active_verification_badge && (
-                                <SealCheck weight="fill" className="h-3.5 w-3.5 text-[#2164b6] shrink-0" />
+                                <VerifiedBadge className="h-3.5 w-3.5 text-[#1B64F2] shrink-0" aria-label="Verified" />
                               )}
                             </div>
                             <p className="text-xs text-muted-foreground truncate">
@@ -1387,7 +1387,7 @@ function FriendCardGrid({
           >
             <span>{friend.name}</span>
             {friend.has_active_verification_badge && (
-              <SealCheck weight="fill" className="h-4 w-4 text-[#2164b6] shrink-0" />
+              <VerifiedBadge className="h-4 w-4 text-[#1B64F2] shrink-0" aria-label="Verified" />
             )}
           </Link>
           <p className="text-xs text-muted-foreground mt-0.5">@{friend.username}</p>
@@ -1456,7 +1456,7 @@ function FriendCardListRow({
             {friend.name}
           </Link>
           {friend.has_active_verification_badge && (
-            <SealCheck weight="fill" className="h-3.5 w-3.5 text-[#2164b6] shrink-0" />
+            <VerifiedBadge className="h-3.5 w-3.5 text-[#1B64F2] shrink-0" aria-label="Verified" />
           )}
         </div>
         <p className="text-xs text-muted-foreground truncate">
@@ -1572,7 +1572,7 @@ function IncomingRequestCard({
           >
             <span>{sender.name}</span>
             {sender.has_active_verification_badge && (
-              <SealCheck weight="fill" className="h-4 w-4 text-[#2164b6] shrink-0" />
+              <VerifiedBadge className="h-4 w-4 text-[#1B64F2] shrink-0" aria-label="Verified" />
             )}
           </Link>
           <p className="text-xs text-muted-foreground">@{sender.username}</p>
@@ -1709,7 +1709,7 @@ function SuggestionCard({
           >
             <span>{user.name}</span>
             {user.has_active_verification_badge && (
-              <SealCheck weight="fill" className="h-4 w-4 text-[#2164b6] shrink-0" />
+              <VerifiedBadge className="h-4 w-4 text-[#1B64F2] shrink-0" aria-label="Verified" />
             )}
           </Link>
           <p className="text-xs text-muted-foreground">@{user.username}</p>

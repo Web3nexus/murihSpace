@@ -177,7 +177,7 @@ class FollowController extends Controller
                 'avatar' => $user->avatar,
                 'bio' => $user->bio,
                 'role' => $user->role,
-                'is_verified' => $user->kyc_status === 'verified' || $user->hasActiveVerificationBadge(),
+                'is_verified' => $user->hasActiveVerificationBadge(),
                 'is_following' => in_array($user->id, $followingIds, true),
                 'is_self' => $authUser && $authUser->id === $user->id,
             ];
@@ -216,7 +216,7 @@ class FollowController extends Controller
                 'avatar' => $user->avatar,
                 'bio' => $user->bio,
                 'role' => $user->role,
-                'is_verified' => $user->kyc_status === 'verified' || $user->hasActiveVerificationBadge(),
+                'is_verified' => $user->hasActiveVerificationBadge(),
                 'is_following' => in_array($user->id, $authFollowingIds, true),
                 'is_self' => $authUser && $authUser->id === $user->id,
             ];
