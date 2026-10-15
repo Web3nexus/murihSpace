@@ -32,7 +32,7 @@ export const StoreHealthCard: React.FC<StoreHealthCardProps> = ({
   const strokeDashoffset = circumference - (percentage / 100) * circumference;
 
   return (
-    <div className="bg-[#171D25] border border-[#29313C] rounded-2xl p-5 sm:p-6 transition-all shadow-sm flex flex-col justify-between">
+    <div className="bg-[#171D25] border border-[#29313C] rounded-2xl p-5 sm:p-6 transition-all shadow-sm flex flex-col justify-between h-full">
       {/* Header */}
       <div className="pb-4 border-b border-[#29313C]/60 mb-5">
         <div className="flex items-center gap-2.5">

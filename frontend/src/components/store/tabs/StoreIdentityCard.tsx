@@ -77,7 +77,7 @@ export const StoreIdentityCard: React.FC<StoreIdentityCardProps> = ({
   };
 
   return (
-    <div className="bg-[#171D25] border border-[#29313C] rounded-2xl p-5 sm:p-6 transition-all shadow-sm">
+    <div className="bg-[#171D25] border border-[#29313C] rounded-2xl p-5 sm:p-6 transition-all shadow-sm h-full flex flex-col justify-between">
       {/* Header */}
       <div className="flex items-center justify-between pb-4 border-b border-[#29313C]/60 mb-5">
         <div className="flex items-center gap-2.5">

@@ -149,11 +149,11 @@ export function AdminBadgesPage() {
       if (filterActive !== "all") params.is_active = filterActive === "active" ? "1" : "0";
 
       const res = await apiClient.get("/securegate/badges", { params });
-      if (res.data) {
-        setBadges(res.data.data || []);
-        if (res.data.stats) {
-          setStats(res.data.stats);
-        }
+      const envelope = res.data;
+      const payload = envelope?.success ? envelope.data : envelope;
+      setBadges(Array.isArray(payload?.data) ? payload.data : []);
+      if (payload?.stats) {
+        setStats(payload.stats);
       }
     } catch (err) {
       console.error("Failed to load badges:", err);
@@ -171,7 +171,9 @@ export function AdminBadgesPage() {
     try {
       setSubmitting(true);
       const res = await apiClient.post("/securegate/badges/seed");
-      toast.success(res.data?.message || "Successfully seeded 3D activity badges!");
+      toast.success(
+        res.data?.data?.message || res.data?.message || "Successfully seeded 3D activity badges!"
+      );
       fetchBadges();
     } catch (err) {
       console.error(err);

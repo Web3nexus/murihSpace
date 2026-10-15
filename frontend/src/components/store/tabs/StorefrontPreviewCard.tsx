@@ -29,9 +29,9 @@ export const StorefrontPreviewCard: React.FC<StorefrontPreviewCardProps> = ({
   };
 
   return (
-    <div className="bg-[#171D25] border border-[#29313C] rounded-2xl p-5 sm:p-6 transition-all shadow-sm flex flex-col justify-between">
+    <div className="bg-[#171D25] border border-[#29313C] rounded-2xl p-5 sm:p-6 transition-all shadow-sm h-full flex flex-col justify-between">
       {/* Header */}
-      <div className="flex items-center justify-between pb-4 border-b border-[#29313C]/60 mb-5">
+      <div className="flex items-center justify-between pb-4 border-b border-[#29313C]/60 mb-4">
         <div className="flex items-center gap-2.5">
           <div className="h-2 w-2 rounded-full bg-[#087FFF]" />
           <div>
@@ -51,30 +51,47 @@ export const StorefrontPreviewCard: React.FC<StorefrontPreviewCardProps> = ({
         </Button>
       </div>
 
-      {/* Visual Mockup Card */}
-      <div className="w-full rounded-2xl overflow-hidden border border-[#29313C] bg-[#0B0F14] relative group">
-        {/* Cover Banner */}
-        <div className="h-36 sm:h-44 w-full relative overflow-hidden bg-gradient-to-r from-[#08203E] via-[#103E73] to-[#0A192F]">
-          {coverUrl ? (
+      {/* Visual Mockup Card (Fills available space) */}
+      <div className="w-full flex-1 min-h-[210px] rounded-xl overflow-hidden border border-[#29313C] bg-[#0B0F14] relative p-5 flex flex-col justify-between group">
+        {/* Background Layer: Cover or Curved Wave Gradient */}
+        {coverUrl ? (
+          <>
             <img
               src={coverUrl}
               alt="Store Cover"
-              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+              className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
             />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center relative">
-              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-600/30 via-transparent to-transparent opacity-70" />
-              <div className="absolute -bottom-10 -right-10 w-64 h-64 rounded-full bg-[#087FFF]/15 blur-3xl" />
-            </div>
-          )}
-          <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-[#0B0F14] to-transparent opacity-90" />
-        </div>
+            <div className="absolute inset-0 bg-gradient-to-r from-[#0B0F14]/90 via-[#0B0F14]/80 to-[#0B0F14]/65" />
+          </>
+        ) : (
+          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            {/* Deep rich blue abstract gradient wave */}
+            <div className="absolute inset-0 bg-gradient-to-r from-[#08203E] via-[#0E3563] to-[#0A192F]" />
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-600/30 via-transparent to-transparent opacity-80" />
+            <div className="absolute -bottom-10 -right-10 w-72 h-72 rounded-full bg-[#087FFF]/20 blur-3xl" />
+            <svg
+              className="absolute inset-0 w-full h-full opacity-25"
+              xmlns="http://www.w3.org/2000/svg"
+              preserveAspectRatio="none"
+              viewBox="0 0 1000 300"
+            >
+              <path
+                d="M0,150 C250,50 400,250 650,150 C800,80 900,220 1000,160 L1000,300 L0,300 Z"
+                fill="rgba(8,127,255,0.25)"
+              />
+              <path
+                d="M0,200 C300,100 450,280 750,180 C880,120 950,240 1000,210 L1000,300 L0,300 Z"
+                fill="rgba(8,127,255,0.18)"
+              />
+            </svg>
+          </div>
+        )}
 
-        {/* Content container inside preview */}
-        <div className="p-4 sm:p-5 pt-0 relative -mt-8">
-          <div className="flex flex-col sm:flex-row sm:items-end gap-3.5 mb-3.5">
-            {/* Avatar */}
-            <div className="h-16 w-16 rounded-full bg-[#087FFF] border-2 border-[#0B0F14] flex items-center justify-center text-white text-lg font-black shadow-lg overflow-hidden shrink-0">
+        {/* Content Layer */}
+        <div className="relative z-10 space-y-3">
+          {/* Top row: Avatar + Name + Handle */}
+          <div className="flex items-center gap-3.5">
+            <div className="h-14 w-14 rounded-full bg-[#087FFF] border-2 border-white/20 flex items-center justify-center text-white text-lg font-black shadow-lg overflow-hidden shrink-0">
               {avatarUrl ? (
                 <img src={avatarUrl} alt={displayName} className="h-full w-full object-cover" />
               ) : (
@@ -82,7 +99,6 @@ export const StorefrontPreviewCard: React.FC<StorefrontPreviewCardProps> = ({
               )}
             </div>
 
-            {/* Name & Handle */}
             <div className="space-y-0.5">
               <h4 className="text-base font-bold text-white leading-tight">
                 {displayName || 'Vincent'}
@@ -94,7 +110,7 @@ export const StorefrontPreviewCard: React.FC<StorefrontPreviewCardProps> = ({
           </div>
 
           {/* Tagline & Bio */}
-          <div className="space-y-1 mb-4">
+          <div className="space-y-1">
             <p className="text-xs font-semibold text-[#F5F7FA]">
               {tagline || 'Welcome to my official creator storefront.'}
             </p>
@@ -102,29 +118,28 @@ export const StorefrontPreviewCard: React.FC<StorefrontPreviewCardProps> = ({
               {bio || 'Explore my digital products, community memberships, and exclusive content.'}
             </p>
           </div>
+        </div>
 
-          {/* Category Badges / Pills matching reference */}
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-[#202731] border border-[#29313C] text-blue-400">
-              <span className="h-1.5 w-1.5 rounded-full bg-blue-400" />
-              Digital Products
-            </span>
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-[#202731] border border-[#29313C] text-emerald-400">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-              Physical Products
-            </span>
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-[#202731] border border-[#29313C] text-purple-400">
-              <span className="h-1.5 w-1.5 rounded-full bg-purple-400" />
-              Community
-            </span>
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-[#202731] border border-[#29313C] text-amber-400">
-              <Star className="h-3 w-3 text-amber-400" />
-              Exclusive Content
-            </span>
-          </div>
+        {/* Category Badges / Pills */}
+        <div className="relative z-10 flex items-center gap-2 flex-wrap pt-2">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-[#202731]/80 backdrop-blur-sm border border-[#29313C] text-blue-400">
+            <span className="h-1.5 w-1.5 rounded-full bg-blue-400" />
+            Digital Products
+          </span>
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-[#202731]/80 backdrop-blur-sm border border-[#29313C] text-emerald-400">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+            Physical Products
+          </span>
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-[#202731]/80 backdrop-blur-sm border border-[#29313C] text-purple-400">
+            <span className="h-1.5 w-1.5 rounded-full bg-purple-400" />
+            Community
+          </span>
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-[#202731]/80 backdrop-blur-sm border border-[#29313C] text-amber-400">
+            <Star className="h-3 w-3 text-amber-400" />
+            Exclusive Content
+          </span>
         </div>
       </div>
     </div>
   );
 };
-
