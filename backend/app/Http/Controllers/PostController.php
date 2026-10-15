@@ -79,7 +79,7 @@ class PostController extends Controller
             if ($type === 'media' || $type === 'reels') {
                 $query->where(function ($q) {
                     $q->whereNotNull('media_urls')
-                      ->where('media_urls', '!=', '[]')
+                      ->whereJsonLength('media_urls', '>', 0)
                       ->orWhere('type', 'media');
                 });
             } elseif ($type === 'live') {
