@@ -1,7 +1,6 @@
 import React from 'react';
 import { Star } from '@/components/icons';
 import { ArrowSquareOut } from '@/components/icons/rounded';
-import { Button } from '@/components/ui/button';
 
 interface StorefrontPreviewCardProps {
   displayName: string;
@@ -11,7 +10,7 @@ interface StorefrontPreviewCardProps {
   coverUrl?: string;
   avatarUrl?: string;
   userInitials: string;
-  publicUrl: string;
+  publicUrl?: string;
 }
 
 export const StorefrontPreviewCard: React.FC<StorefrontPreviewCardProps> = ({
@@ -22,11 +21,7 @@ export const StorefrontPreviewCard: React.FC<StorefrontPreviewCardProps> = ({
   coverUrl,
   avatarUrl,
   userInitials,
-  publicUrl,
 }) => {
-  const openLiveStore = () => {
-    window.open(publicUrl, '_blank', 'noopener,noreferrer');
-  };
 
   return (
     <div className="bg-[#171D25] border border-[#29313C] rounded-2xl p-5 sm:p-6 transition-all shadow-sm h-full flex flex-col justify-between">
@@ -40,15 +35,15 @@ export const StorefrontPreviewCard: React.FC<StorefrontPreviewCardProps> = ({
           </div>
         </div>
 
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={openLiveStore}
-          className="h-8 px-3 text-xs font-semibold rounded-lg bg-[#202731] border-[#29313C] text-[#F5F7FA] hover:bg-[#29313C] hover:text-white transition-all gap-1.5"
+        <a
+          href={`/store/${encodeURIComponent(shortCode || 'store')}?preview=true`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1.5 h-8 px-3 text-xs font-semibold rounded-lg bg-[#202731] border border-[#29313C] text-[#F5F7FA] hover:bg-[#29313C] hover:text-white transition-all shadow-sm"
         >
           <ArrowSquareOut className="h-3.5 w-3.5 text-[#A7B0BE]" />
           Preview Store
-        </Button>
+        </a>
       </div>
 
       {/* Visual Mockup Card (Fills available space) */}

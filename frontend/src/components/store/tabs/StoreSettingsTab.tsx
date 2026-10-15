@@ -148,16 +148,15 @@ export const StoreSettingsTab: React.FC<StoreSettingsTabProps> = ({
               <Copy className="h-3.5 w-3.5" />
               {copied ? 'Link Copied!' : 'Copy Full Link'}
             </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => window.open(publicUrl, '_blank')}
-              className="bg-[#202731] border-[#29313C] text-[#F5F7FA] hover:text-white text-xs font-semibold gap-1.5"
+            <a
+              href={`/store/${encodeURIComponent(formShortCode || shortCode)}?preview=true`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg border bg-[#202731] border-[#29313C] text-[#F5F7FA] hover:text-white text-xs font-semibold"
             >
               <ArrowSquareOut className="h-3.5 w-3.5" />
               Visit Public Store
-            </Button>
+            </a>
           </div>
         </div>
 

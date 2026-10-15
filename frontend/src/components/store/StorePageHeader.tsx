@@ -7,6 +7,7 @@ interface StoreHeaderProps {
   isTogglingPublish: boolean;
   onTogglePublish: () => void;
   onShare: () => void;
+  shortCode?: string;
 }
 
 export const StorePageHeader: React.FC<StoreHeaderProps> = ({
@@ -14,6 +15,7 @@ export const StorePageHeader: React.FC<StoreHeaderProps> = ({
   isTogglingPublish,
   onTogglePublish,
   onShare,
+  shortCode,
 }) => {
   return (
     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2">
@@ -47,6 +49,19 @@ export const StorePageHeader: React.FC<StoreHeaderProps> = ({
           />
           {isPublished ? 'Published' : 'Draft'}
         </div>
+
+        {/* Preview Button */}
+        {shortCode && (
+          <a
+            href={`/store/${encodeURIComponent(shortCode)}?preview=true`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 h-9 px-3.5 text-xs font-semibold rounded-lg bg-[#171D25] border border-[#29313C] text-[#F5F7FA] hover:bg-[#202731] hover:text-white transition-all shadow-sm"
+          >
+            <ArrowSquareOut weight="bold" className="h-4 w-4 text-[#A7B0BE]" />
+            Preview
+          </a>
+        )}
 
         {/* Share Button */}
         <Button

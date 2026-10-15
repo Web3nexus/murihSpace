@@ -241,6 +241,7 @@ export function StoreManagementPage() {
         isTogglingPublish={isTogglingPublish}
         onTogglePublish={handleTogglePublish}
         onShare={() => setShowShareModal(true)}
+        shortCode={shortCode}
       />
 
       {/* 2. Primary 5-Tab Navigation Bar */}

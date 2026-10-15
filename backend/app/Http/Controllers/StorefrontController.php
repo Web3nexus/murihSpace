@@ -93,7 +93,16 @@ class StorefrontController extends Controller
      */
     public function show(Request $request, string $shortCode): JsonResponse
     {
-        $authUser = auth('sanctum')->user() ?? $request->user();
+        $authUser = $request->user();
+        if (! $authUser && $bearer = $request->bearerToken()) {
+            $tokenModel = \Laravel\Sanctum\PersonalAccessToken::findToken($bearer);
+            if ($tokenModel) {
+                $authUser = $tokenModel->tokenable;
+            }
+        }
+        if (! $authUser) {
+            $authUser = auth('sanctum')->user();
+        }
 
         $store = Storefront::where('short_code', $shortCode)->first();
 
@@ -109,7 +118,7 @@ class StorefrontController extends Controller
             return response()->json(['message' => 'Storefront not found.'], 404);
         }
 
-        $isOwnerOrAdmin = $authUser && ($authUser->id === $store->user_id || $authUser->isAdmin());
+        $isOwnerOrAdmin = $authUser && ($authUser->id === $store->user_id || (method_exists($authUser, 'isAdmin') && $authUser->isAdmin()));
 
         if (! $store->is_published && ! $isOwnerOrAdmin) {
             return response()->json(['message' => 'This storefront is currently unpublished or offline.'], 404);
@@ -118,23 +127,35 @@ class StorefrontController extends Controller
         $creator = User::find($store->user_id);
 
         // Fetch creator's public communities
-        $communities = Community::where('creator_id', $store->user_id)
-            ->where('is_private', false)
-            ->select('id', 'name', 'slug', 'description', 'members_count')
-            ->get();
+        try {
+            $communities = Community::where('user_id', $store->user_id)
+                ->where('visibility', 'public')
+                ->select('id', 'name', 'slug', 'description', 'members_count', 'logo_url', 'cover_url')
+                ->get();
+        } catch (\Throwable $e) {
+            $communities = collect([]);
+        }
 
         // Fetch creator/vendor active products
-        $physicalProducts = \App\Models\PhysicalProduct::where('creator_id', $store->user_id)
-            ->active()
-            ->latest()
-            ->take(12)
-            ->get(['id', 'title', 'description', 'sku', 'price', 'currency', 'category', 'images', 'stock_quantity']);
+        try {
+            $physicalProducts = \App\Models\PhysicalProduct::where('creator_id', $store->user_id)
+                ->active()
+                ->latest()
+                ->take(12)
+                ->get(['id', 'title', 'description', 'sku', 'price', 'currency', 'category', 'images', 'stock_quantity']);
+        } catch (\Throwable $e) {
+            $physicalProducts = collect([]);
+        }
 
-        $digitalProducts = \App\Models\DigitalProduct::where('creator_id', $store->user_id)
-            ->where('status', 'published')
-            ->latest()
-            ->take(12)
-            ->get(['id', 'title', 'description', 'price', 'currency', 'category', 'cover_url']);
+        try {
+            $digitalProducts = \App\Models\DigitalProduct::where('creator_id', $store->user_id)
+                ->where('status', 'published')
+                ->latest()
+                ->take(12)
+                ->get(['id', 'title', 'description', 'price', 'currency', 'category', 'cover_url']);
+        } catch (\Throwable $e) {
+            $digitalProducts = collect([]);
+        }
 
         return response()->json([
             'data' => [

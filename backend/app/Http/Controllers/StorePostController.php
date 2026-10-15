@@ -72,14 +72,43 @@ class StorePostController extends Controller
         return response()->json(['message' => 'Post deleted.']);
     }
 
-    public function publicPosts(string $shortCode): JsonResponse
+    public function publicPosts(Request $request, string $shortCode): JsonResponse
     {
-        $storefront = \App\Models\Storefront::where('short_code', $shortCode)
-            ->where('is_published', true)
-            ->firstOrFail();
+        $authUser = $request->user();
+        if (! $authUser && $bearer = $request->bearerToken()) {
+            $tokenModel = \Laravel\Sanctum\PersonalAccessToken::findToken($bearer);
+            if ($tokenModel) {
+                $authUser = $tokenModel->tokenable;
+            }
+        }
+        if (! $authUser) {
+            $authUser = auth('sanctum')->user();
+        }
 
-        $posts = StorePost::where('creator_id', $storefront->user_id)
-            ->where('is_published', true)
+        $storefront = \App\Models\Storefront::where('short_code', $shortCode)->first();
+        if (! $storefront) {
+            $user = \App\Models\User::where('username', $shortCode)->first();
+            if ($user) {
+                $storefront = \App\Models\Storefront::where('user_id', $user->id)->first();
+            }
+        }
+
+        if (! $storefront) {
+            return response()->json(['data' => []]);
+        }
+
+        $isOwnerOrAdmin = $authUser && ($authUser->id === $storefront->user_id || (method_exists($authUser, 'isAdmin') && $authUser->isAdmin()));
+
+        if (! $storefront->is_published && ! $isOwnerOrAdmin) {
+            return response()->json(['data' => []]);
+        }
+
+        $postsQuery = StorePost::where('creator_id', $storefront->user_id);
+        if (! $isOwnerOrAdmin) {
+            $postsQuery->where('is_published', true);
+        }
+
+        $posts = $postsQuery
             ->orderBy('sort_order')
             ->orderBy('created_at', 'desc')
             ->get();
