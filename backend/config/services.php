@@ -181,7 +181,7 @@ return [
         // Staging intentionally runs the 'log' driver so codes are readable in
         // the log instead of sending real SMS. Only a real production deploy is
         // blocked; set OTP_ALLOW_LOG_DRIVER=true to permit it deliberately.
-        'allow_log_driver' => env('OTP_ALLOW_LOG_DRIVER', false),
+        'allow_log_driver' => env('OTP_ALLOW_LOG_DRIVER', str_contains((string) env('APP_URL', ''), 'staging')),
         'code_ttl' => (int) env('OTP_CODE_TTL', 10),
         'resend_cooldown' => (int) env('OTP_RESEND_COOLDOWN', 60),
         'max_per_number_per_hour' => (int) env('OTP_MAX_PER_NUMBER_PER_HOUR', 5),

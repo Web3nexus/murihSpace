@@ -173,12 +173,22 @@ export const StoreProductsTab: React.FC = () => {
         ? `/store/products/${product.id}`
         : `/store/physical-products/${product.id}`;
 
-    await authFetch(endpoint, {
-      method: 'DELETE',
-      headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-    });
+    try {
+      const res = await authFetch(endpoint, {
+        method: 'DELETE',
+        headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      });
 
-    fetchProducts();
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        setError(data?.message || 'Failed to delete product. Please try again.');
+        return;
+      }
+
+      fetchProducts();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Network error deleting product.');
+    }
   };
 
   const filtered = products.filter((p) => {

@@ -118,7 +118,7 @@ class StorefrontController extends Controller
             return response()->json(['message' => 'Storefront not found.'], 404);
         }
 
-        $isOwnerOrAdmin = $authUser && ($authUser->id === $store->user_id || (method_exists($authUser, 'isAdmin') && $authUser->isAdmin()));
+        $isOwnerOrAdmin = $authUser && ((string) $authUser->id === (string) $store->user_id || (method_exists($authUser, 'isAdmin') && $authUser->isAdmin()));
 
         if (! $store->is_published && ! $isOwnerOrAdmin) {
             return response()->json(['message' => 'This storefront is currently unpublished or offline.'], 404);
@@ -168,7 +168,7 @@ class StorefrontController extends Controller
                 'short_code' => $store->short_code,
                 'is_published' => (bool) $store->is_published,
                 'is_preview' => ! $store->is_published || $request->boolean('preview'),
-                'is_owner' => (bool) ($authUser && $authUser->id === $store->user_id),
+                'is_owner' => (bool) ($authUser && (string) $authUser->id === (string) $store->user_id),
                 'links' => $store->links ?? [],
                 'creator' => [
                     'id' => $creator?->id,

@@ -72,6 +72,10 @@ const CompactDropzone: React.FC<CompactDropzoneProps> = ({
 
   const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
     onDrop,
+    onDropRejected: (fileRejections) => {
+      const errorMsg = fileRejections[0]?.errors[0]?.message;
+      setError(errorMsg || `File must be an image under ${maxSizeMB}MB.`);
+    },
     accept: { "image/*": [] },
     maxFiles: 1,
     maxSize: maxSizeMB * 1024 * 1024,

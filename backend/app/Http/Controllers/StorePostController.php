@@ -97,7 +97,7 @@ class StorePostController extends Controller
             return response()->json(['data' => []]);
         }
 
-        $isOwnerOrAdmin = $authUser && ($authUser->id === $storefront->user_id || (method_exists($authUser, 'isAdmin') && $authUser->isAdmin()));
+        $isOwnerOrAdmin = $authUser && ((string) $authUser->id === (string) $storefront->user_id || (method_exists($authUser, 'isAdmin') && $authUser->isAdmin()));
 
         if (! $storefront->is_published && ! $isOwnerOrAdmin) {
             return response()->json(['data' => []]);

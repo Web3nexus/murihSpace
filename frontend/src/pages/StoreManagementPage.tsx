@@ -206,9 +206,13 @@ export function StoreManagementPage() {
       if (res.ok) {
         const json = await res.json();
         setStorefront(json.data?.data ?? json.data);
+      } else {
+        const json = await res.json().catch(() => null);
+        setError(json?.message || 'Failed to update store publish status.');
       }
     } catch (e) {
       console.error('Failed to toggle publish', e);
+      setError(e instanceof Error ? e.message : 'Network error updating store publish status.');
     } finally {
       setIsTogglingPublish(false);
     }
@@ -280,12 +284,16 @@ export function StoreManagementPage() {
             return ok;
           }}
           onCoverChange={async (url) => {
+            const prev = coverUrl;
             setCoverUrl(url);
-            await handleSaveStorefront({ coverUrl: url });
+            const ok = await handleSaveStorefront({ coverUrl: url });
+            if (!ok) setCoverUrl(prev);
           }}
           onAvatarChange={async (url) => {
+            const prev = avatarUrl;
             setAvatarUrl(url);
-            await handleSaveStorefront({ avatarUrl: url });
+            const ok = await handleSaveStorefront({ avatarUrl: url });
+            if (!ok) setAvatarUrl(prev);
           }}
           onSaveLinks={async (newLinks) => {
             setLinks(newLinks);
