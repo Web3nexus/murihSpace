@@ -1,9 +1,12 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
-import { AddUser as UserPlus, N2User as Users, TimeCircle as Clock, TickSquare as Check, CloseSquare as X, Search as MagnifyingGlass, Message as ChatTeardropText, N3User as UsersThree, MoreCircle as DotsThree, MoreSquare as DotsThreeVertical, Discount as Gift, Star, Work as Briefcase, Show as Eye, Setting as SlidersHorizontal, Category as SquaresFour, Plus, Delete as Trash, VerifiedBadge, Heart, Profile as User } from "@/components/icons";
+import { AddUser as UserPlus, N2User as Users, TimeCircle as Clock, TickSquare as Check, CloseSquare as X, Search as MagnifyingGlass, Message as ChatTeardropText, N3User as UsersThree, MoreCircle as DotsThree, MoreSquare as DotsThreeVertical, Discount as Gift, Star, Work as Briefcase, Show as Eye, Setting as SlidersHorizontal, Category as SquaresFour, Plus, Delete as Trash, VerifiedBadge, Heart, Profile as User, Scan as QrCode } from "@/components/icons";
 import { Spinner, UserCheck, UserMinus, Prohibit, Cake, Palette, ListDashes } from "@/components/icons/rounded";;
 import { apiClient } from "@/lib/api/client";
 import { useConfirm } from "@/components/ui/DialogProvider";
 import { Link, useSearchParams } from "react-router";
+import { useAuth } from "@/hooks/useAuth";
+import { ShareModal } from "@/components/common/ShareModal";
+import { profileUrl } from "@/lib/deepLinks";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -152,7 +155,9 @@ interface FriendsPageProps {
 
 export default function FriendsPage({ initialTab }: FriendsPageProps) {
   const confirm = useConfirm();
+  const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
+  const [showShareModal, setShowShareModal] = useState(false);
 
   // Tab State: route prop > query param > fallback "all"
   const urlTab = searchParams.get("tab") as TabKey | null;
@@ -494,6 +499,16 @@ export default function FriendsPage({ initialTab }: FriendsPageProps) {
                   </button>
                 )}
               </div>
+
+              {/* Action Button: Invite & QR */}
+              <button
+                onClick={() => setShowShareModal(true)}
+                className="h-9 px-3 rounded-lg border border-[#2164b6]/30 bg-[#2164b6]/10 hover:bg-[#2164b6]/20 text-[#2164b6] dark:text-[#7ab0ff] text-sm font-semibold flex items-center gap-1.5 shrink-0 transition-colors shadow-2xs cursor-pointer"
+                title="Share Invite Link & QR Code"
+              >
+                <QrCode weight="bold" className="h-4 w-4" />
+                <span className="hidden sm:inline">Invite & QR</span>
+              </button>
 
               {/* Action Button: Custom Lists / Quick Create */}
               <button
@@ -1289,6 +1304,18 @@ export default function FriendsPage({ initialTab }: FriendsPageProps) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {showShareModal && (
+        <ShareModal
+          isOpen={showShareModal}
+          onClose={() => setShowShareModal(false)}
+          title={user?.name ? `${user.name} on MurihSpace` : "MurihSpace Invite"}
+          url={user?.username ? profileUrl(user.username) : "/"}
+          type="profile"
+          description={`Join me on MurihSpace! Connect, chat, and explore Web3 communities.`}
+          imageUrl={user?.avatar_url || user?.avatar || undefined}
+        />
+      )}
     </div>
   );
 }

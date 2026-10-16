@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import QRCode from "qrcode";
 import { TickSquare as Check, Scan as QrCode, Message as EnvelopeSimple, Download as DownloadSimple, CloseSquare as XIcon, Show as Eye } from "@/components/icons";
 import { ShareNetwork, Copy, WhatsappLogo, TwitterLogo, FacebookLogo, LinkedinLogo, TelegramLogo, RedditLogo, LinkSimple, ArrowSquareOut, Code } from "@/components/icons/rounded";;
 import { Button } from "@/components/ui/button";
@@ -38,10 +39,42 @@ export function ShareModal({
   const [copied, setCopied] = useState(false);
   const [embedCopied, setEmbedCopied] = useState(false);
   const [activeTab, setActiveTab] = useState<"link" | "qr" | "embed">("link");
-
-  if (!isOpen) return null;
+  const [qrDataUrl, setQrDataUrl] = useState<string>("");
+  const [qrLoading, setQrLoading] = useState<boolean>(true);
 
   const fullUrl = url.startsWith("http") ? url : absolute(url);
+
+  useEffect(() => {
+    let isMounted = true;
+    setQrLoading(true);
+    QRCode.toDataURL(fullUrl, {
+      width: 480,
+      margin: 2,
+      errorCorrectionLevel: "M",
+      color: {
+        dark: "#0F172A",
+        light: "#FFFFFF",
+      },
+    })
+      .then((dataUri) => {
+        if (isMounted) {
+          setQrDataUrl(dataUri);
+          setQrLoading(false);
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to generate QR code", err);
+        if (isMounted) {
+          setQrLoading(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [fullUrl]);
+
+  if (!isOpen) return null;
 
   const handleCopy = async () => {
     try {
@@ -117,8 +150,6 @@ export function ShareModal({
     },
   ];
 
-  const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(fullUrl)}`;
-
   const embedCode = `<iframe src="${fullUrl}" width="100%" height="500" style="border:none;border-radius:12px;overflow:hidden;" title="${title}"></iframe>`;
 
   const handleCopyEmbed = async () => {
@@ -132,11 +163,13 @@ export function ShareModal({
   };
 
   const handleDownloadQr = () => {
+    if (!qrDataUrl) return;
     const link = document.createElement("a");
-    link.href = qrImageUrl;
+    link.href = qrDataUrl;
     link.download = `${title.toLowerCase().replace(/[^a-z0-9]/g, "-")}-qr.png`;
-    link.target = "_blank";
+    document.body.appendChild(link);
     link.click();
+    document.body.removeChild(link);
   };
 
   const typeLabel = TYPE_LABELS[type ?? "profile"];
@@ -310,16 +343,26 @@ export function ShareModal({
               <p className="text-xs text-muted-foreground">
                 Scan this QR code with any smartphone camera to immediately open this {typeLabel.toLowerCase()}.
               </p>
-              <div className="p-5 bg-white rounded-2xl w-56 h-56 mx-auto flex items-center justify-center border border-border/60 shadow-lg">
-                <img
-                  src={qrImageUrl}
-                  alt="QR Code"
-                  className="w-full h-full object-contain"
-                />
+              <div className="p-5 bg-white rounded-2xl w-60 h-60 mx-auto flex items-center justify-center border border-border/60 shadow-lg relative">
+                {qrLoading ? (
+                  <div className="flex flex-col items-center justify-center gap-2 text-muted-foreground">
+                    <div className="h-6 w-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                    <span className="text-xs font-medium">Generating QR code...</span>
+                  </div>
+                ) : qrDataUrl ? (
+                  <img
+                    src={qrDataUrl}
+                    alt="QR Code"
+                    className="w-full h-full object-contain"
+                  />
+                ) : (
+                  <div className="text-xs text-muted-foreground">Unable to generate QR code</div>
+                )}
               </div>
               <div className="flex items-center justify-center gap-3">
                 <Button
                   onClick={handleDownloadQr}
+                  disabled={!qrDataUrl || qrLoading}
                   variant="outline"
                   size="sm"
                   className="h-9 text-xs font-bold gap-1.5 rounded-xl"

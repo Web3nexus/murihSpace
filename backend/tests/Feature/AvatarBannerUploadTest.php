@@ -162,3 +162,4 @@ class AvatarBannerUploadTest extends TestCase
         ]);
     }
 }
+
