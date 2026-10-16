@@ -4,18 +4,24 @@ namespace App\Http\Controllers;
 
 use App\Models\Community;
 use App\Models\DigitalProduct;
+use App\Models\Hashtag;
 use App\Models\Message;
 use App\Models\PhysicalProduct;
 use App\Models\Post;
 use App\Models\User;
-use App\Models\UserBlock;
 use App\Services\HashtagService;
+use App\Services\Recommendation\UserRecommendationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class SearchController extends Controller
 {
+    public function __construct(
+        private readonly HashtagService $hashtags,
+        private readonly UserRecommendationService $recommendations,
+    ) {}
+
     public function search(Request $request): JsonResponse
     {
         $request->validate([
@@ -30,7 +36,7 @@ class SearchController extends Controller
 
         $results = [];
 
-        $like = \Illuminate\Support\Facades\DB::connection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
+        $like = DB::connection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
 
         if ($type === 'all' || $type === 'users') {
             $results['users'] = User::nonAdmin()
@@ -43,11 +49,11 @@ class SearchController extends Controller
                 ->where(function ($query) {
                     $query->whereNull('status')->orWhere('status', 'active');
                 })
-                ->orderByRaw("CASE 
+                ->orderByRaw('CASE 
                     WHEN LOWER(username) = LOWER(?) THEN 0 
                     WHEN LOWER(username) LIKE LOWER(?) THEN 1 
                     WHEN LOWER(name) LIKE LOWER(?) THEN 2 
-                    ELSE 3 END", [$cleanQ, "{$cleanQ}%", "{$q}%"])
+                    ELSE 3 END', [$cleanQ, "{$cleanQ}%", "{$q}%"])
                 ->take($perPage)
                 ->get()
                 ->map(fn (User $u) => [
@@ -68,10 +74,10 @@ class SearchController extends Controller
                     ->orWhere('slug', $like, "%{$q}%")
                     ->orWhere('description', $like, "%{$q}%");
             })
-                ->orderByRaw("CASE 
+                ->orderByRaw('CASE 
                     WHEN LOWER(name) = LOWER(?) THEN 0 
                     WHEN LOWER(name) LIKE LOWER(?) THEN 1 
-                    ELSE 2 END", [$q, "{$q}%"])
+                    ELSE 2 END', [$q, "{$q}%"])
                 ->take($perPage)
                 ->get()
                 ->map(fn (Community $c) => [
@@ -186,11 +192,11 @@ class SearchController extends Controller
     public function trending(Request $request): JsonResponse
     {
         $limit = min(25, max(1, (int) $request->input('limit', 10)));
-        $trending = app(HashtagService::class)->trending($limit);
+        $trending = $this->hashtags->trending($limit);
 
         $trendingTopics = [];
         foreach ($trending as $row) {
-            /** @var \App\Models\Hashtag $hashtag */
+            /** @var Hashtag $hashtag */
             $hashtag = $row['hashtag'];
             $count = $row['window_posts'] > 0 ? $row['window_posts'] : $hashtag->posts_count;
 
@@ -206,48 +212,16 @@ class SearchController extends Controller
             ];
         }
 
-        // 2. Fetch suggested creators (active users with highest follower count, strictly excluding administrators)
-        $creatorsQuery = User::whereNull('deleted_at')
-            ->where(function ($q) {
-                $q->whereNull('role')->orWhere('role', '!=', 'admin');
-            })
-            ->whereNull('admin_role')
-            ->where(function ($q) {
-                $q->whereNull('status')->orWhere('status', 'active');
-            })
-            ->withCount(['followers', 'posts'])
-            ->orderByDesc('followers_count')
-            ->orderByDesc('posts_count')
-            ->take(12)
-            ->get();
-
         $viewer = $request->user('sanctum');
-        $followingIds = $viewer
-            ? DB::table('follows')->where('follower_id', $viewer->id)->pluck('following_id')->flip()
-            : collect();
-
-        $suggestedCreators = $creatorsQuery->map(fn (User $u) => [
-            'id' => $u->id,
-            'name' => $u->name,
-            'username' => $u->username,
-            'avatar' => $u->avatar,
-            'avatar_url' => $u->avatar_url ?? $u->avatar,
-            'banner_url' => $u->banner_url,
-            'bio' => $u->bio,
-            'role' => $u->role,
-            'followers_count' => $u->followers_count,
-            'posts_count' => $u->posts_count,
-            'followers' => $u->followers_count >= 1000 ? round($u->followers_count / 1000, 1) . 'K followers' : "{$u->followers_count} followers",
-            'is_verified' => $u->hasActiveVerificationBadge(),
-            'is_following' => $followingIds->has($u->id),
-        ]);
+        $creatorsResult = $this->recommendations->suggestCreators($viewer, limit: 12);
+        $vendorsResult = $this->recommendations->suggestVendors($viewer, limit: 12);
 
         $featuredTrending = null;
-        if (!empty($trendingTopics)) {
+        if (! empty($trendingTopics)) {
             $topTopic = $trendingTopics[0];
             $featuredTrending = [
                 'title' => $topTopic['tag'],
-                'subtitle' => 'Trending on MurihSpace · ' . $topTopic['count'],
+                'subtitle' => 'Trending on MurihSpace · '.$topTopic['count'],
                 'tag' => $topTopic['tag'],
                 'category' => 'Hot Topic',
             ];
@@ -255,7 +229,8 @@ class SearchController extends Controller
 
         return response()->json([
             'trending_topics' => $trendingTopics,
-            'suggested_creators' => $suggestedCreators,
+            'suggested_creators' => $creatorsResult['items'],
+            'suggested_vendors' => $vendorsResult['items'],
             'featured_trending' => $featuredTrending,
         ]);
     }
@@ -299,7 +274,7 @@ class SearchController extends Controller
             ->where(function ($query) use ($hashtag) {
                 $query->whereJsonContains('hashtags', $hashtag->label)
                     ->orWhereJsonContains('hashtags', $hashtag->display_tag)
-                    ->orWhereJsonContains('hashtags', '#' . $hashtag->tag);
+                    ->orWhereJsonContains('hashtags', '#'.$hashtag->tag);
             })
             ->latest()
             ->paginate($perPage);
@@ -322,242 +297,74 @@ class SearchController extends Controller
 
     /**
      * Paginated suggested creators endpoint for the "View All" screen.
-     * Strictly enforces administrator privacy (role != 'admin' AND admin_role IS NULL).
+     * Strictly requires role = 'creator' (or is_creator_account = true), excluding admins, suspended, etc.
      */
     public function suggestedCreators(Request $request): JsonResponse
     {
         $q = trim((string) $request->input('q', ''));
-
-        $query = User::whereNull('deleted_at')
-            ->where(function ($sub) {
-                $sub->whereNull('role')->orWhere('role', '!=', 'admin');
-            })
-            ->whereNull('admin_role')
-            ->where(function ($sub) {
-                $sub->whereNull('status')->orWhere('status', 'active');
-            })
-            ->when($q !== '', function ($query) use ($q) {
-                $like = \Illuminate\Support\Facades\DB::connection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
-                $cleanQ = ltrim($q, '@');
-                $query->where(function ($sub) use ($q, $cleanQ, $like) {
-                    $sub->where('name', $like, "%{$q}%")
-                        ->orWhere('username', $like, "%{$cleanQ}%")
-                        ->orWhere('bio', $like, "%{$q}%");
-                });
-            })
-            ->withCount(['followers', 'posts'])
-            ->orderByDesc('followers_count')
-            ->orderByDesc('posts_count');
-
+        $page = max(1, (int) $request->input('page', 1));
         $perPage = min(50, max(5, (int) $request->input('per_page', 20)));
-        $paginated = $query->paginate($perPage);
-
         $viewer = $request->user('sanctum');
-        $followingIds = $viewer
-            ? DB::table('follows')->where('follower_id', $viewer->id)->pluck('following_id')->flip()
-            : collect();
+
+        $result = $this->recommendations->suggestCreators(
+            viewer: $viewer,
+            limit: $perPage,
+            page: $page,
+            search: $q !== '' ? $q : null,
+        );
 
         return response()->json([
-            'creators' => collect($paginated->items())->map(fn (User $u) => [
-                'id' => $u->id,
-                'name' => $u->name,
-                'username' => $u->username,
-                'avatar' => $u->avatar,
-                'avatar_url' => $u->avatar_url ?? $u->avatar,
-                'banner_url' => $u->banner_url,
-                'bio' => $u->bio,
-                'role' => $u->role,
-                'followers_count' => $u->followers_count,
-                'posts_count' => $u->posts_count,
-                'followers' => $u->followers_count >= 1000 ? round($u->followers_count / 1000, 1) . 'K followers' : "{$u->followers_count} followers",
-                'is_verified' => $u->hasActiveVerificationBadge(),
-                'is_following' => $followingIds->has($u->id),
-            ]),
-            'current_page' => $paginated->currentPage(),
-            'last_page' => $paginated->lastPage(),
-            'total' => $paginated->total(),
+            'creators' => $result['items'],
+            'current_page' => $result['current_page'],
+            'last_page' => $result['last_page'],
+            'total' => $result['total'],
+            'per_page' => $result['per_page'],
         ]);
     }
 
     /**
-     * Discover People: combines "People You May Know" (friends of users you follow,
-     * mutual followers, users following you) and "Suggested Creators".
+     * Paginated suggested vendors endpoint for the "View All" screen.
+     * Strictly requires role = 'vendor', excluding admins, creators, members, suspended, etc.
+     */
+    public function suggestedVendors(Request $request): JsonResponse
+    {
+        $q = trim((string) $request->input('q', ''));
+        $page = max(1, (int) $request->input('page', 1));
+        $perPage = min(50, max(5, (int) $request->input('per_page', 20)));
+        $viewer = $request->user('sanctum');
+
+        $result = $this->recommendations->suggestVendors(
+            viewer: $viewer,
+            limit: $perPage,
+            page: $page,
+            search: $q !== '' ? $q : null,
+        );
+
+        return response()->json([
+            'vendors' => $result['items'],
+            'current_page' => $result['current_page'],
+            'last_page' => $result['last_page'],
+            'total' => $result['total'],
+            'per_page' => $result['per_page'],
+        ]);
+    }
+
+    /**
+     * Discover People: combines "People You May Know" (2nd-degree mutual network & engaged members),
+     * "Suggested Creators" (strictly creators), and "Suggested Vendors" (strictly vendors).
      */
     public function people(Request $request): JsonResponse
     {
         $viewer = $request->user('sanctum');
-        $userId = $viewer?->id;
 
-        $followingIds = $userId
-            ? DB::table('follows')->where('follower_id', $userId)->pluck('following_id')
-            : collect();
-
-        // Never surface a user in either direction of a block — neither those
-        // the viewer blocked nor those who blocked the viewer.
-        $blockedIds = $userId
-            ? UserBlock::where('blocker_id', $userId)->pluck('blocked_id')
-                ->merge(UserBlock::where('blocked_id', $userId)->pluck('blocker_id'))
-            : collect();
-
-        $excludedIds = collect([$userId])
-            ->filter()
-            ->merge($followingIds)
-            ->merge($blockedIds)
-            ->unique();
-
-        $peopleYouMayKnow = collect();
-
-        if ($userId) {
-            // 1. Friends of people you follow (2nd-degree network)
-            if ($followingIds->isNotEmpty()) {
-                $followedByMyFollowings = DB::table('follows')
-                    ->join('users', 'follows.follower_id', '=', 'users.id')
-                    ->join('users as candidates', 'follows.following_id', '=', 'candidates.id')
-                    ->whereIn('follows.follower_id', $followingIds)
-                    ->where('follows.following_id', '!=', $userId)
-                    ->whereNotIn('follows.following_id', $excludedIds)
-                    ->whereNull('users.deleted_at')
-                    ->where(fn ($q) => $q->whereNull('users.status')->orWhere('users.status', 'active'))
-                    ->where(fn ($q) => $q->whereNull('users.role')->orWhere('users.role', '!=', 'admin'))
-                    ->whereNull('users.admin_role')
-                    ->whereNotIn('follows.follower_id', $blockedIds)
-                    ->whereNull('candidates.deleted_at')
-                    ->where(fn ($q) => $q->whereNull('candidates.status')->orWhere('candidates.status', 'active'))
-                    ->where(fn ($q) => $q->whereNull('candidates.role')->orWhere('candidates.role', '!=', 'admin'))
-                    ->whereNull('candidates.admin_role')
-                    ->select(
-                        'follows.following_id',
-                        DB::raw('count(*) as mutual_count'),
-                        DB::raw('min(users.username) as sample_username')
-                    )
-                    ->groupBy('follows.following_id')
-                    ->orderByDesc('mutual_count')
-                    ->limit(15)
-                    ->get();
-
-                if ($followedByMyFollowings->isNotEmpty()) {
-                    $targetIds = $followedByMyFollowings->pluck('following_id');
-                    $users = User::whereIn('id', $targetIds)
-                        ->whereNull('deleted_at')
-                        ->where(fn ($q) => $q->whereNull('status')->orWhere('status', 'active'))
-                        ->where(fn ($q) => $q->whereNull('role')->orWhere('role', '!=', 'admin'))
-                        ->whereNull('admin_role')
-                        ->withCount(['followers', 'posts'])
-                        ->get()
-                        ->keyBy('id');
-
-                    foreach ($followedByMyFollowings as $row) {
-                        if ($u = $users->get($row->following_id)) {
-                            $sampleUser = $row->sample_username ? "@{$row->sample_username}" : "someone you follow";
-                            $reason = $row->mutual_count > 1
-                                ? "Followed by {$sampleUser} and " . ($row->mutual_count - 1) . " other friends"
-                                : "Followed by {$sampleUser}";
-
-                            $peopleYouMayKnow->push([
-                                'id' => $u->id,
-                                'name' => $u->name,
-                                'username' => $u->username,
-                                'avatar' => $u->avatar,
-                                'avatar_url' => $u->avatar_url ?? $u->avatar,
-                                'bio' => $u->bio,
-                                'role' => $u->role,
-                                'followers_count' => $u->followers_count,
-                                'posts_count' => $u->posts_count,
-                                'followers' => $u->followers_count >= 1000 ? round($u->followers_count / 1000, 1) . 'K followers' : "{$u->followers_count} followers",
-                                'is_verified' => $u->hasActiveVerificationBadge(),
-                                'is_following' => false,
-                                'reason' => $reason,
-                                'type' => 'friend_of_followed',
-                            ]);
-                        }
-                    }
-                }
-            }
-
-            // 2. Users who follow you that you don't follow back
-            $myFollowersNotFollowed = DB::table('follows')
-                ->join('users', 'follows.follower_id', '=', 'users.id')
-                ->where('follows.following_id', $userId)
-                ->where('follows.follower_id', '!=', $userId)
-                ->whereNotIn('follows.follower_id', $excludedIds->merge($peopleYouMayKnow->pluck('id')))
-                ->whereNull('users.deleted_at')
-                ->where(fn ($q) => $q->whereNull('users.status')->orWhere('users.status', 'active'))
-                ->where(fn ($q) => $q->whereNull('users.role')->orWhere('users.role', '!=', 'admin'))
-                ->whereNull('users.admin_role')
-                ->limit(10)
-                ->pluck('follows.follower_id');
-
-            if ($myFollowersNotFollowed->isNotEmpty()) {
-                $followerUsers = User::whereIn('id', $myFollowersNotFollowed)
-                    ->whereNull('deleted_at')
-                    ->where(fn ($q) => $q->whereNull('status')->orWhere('status', 'active'))
-                    ->where(fn ($q) => $q->whereNull('role')->orWhere('role', '!=', 'admin'))
-                    ->whereNull('admin_role')
-                    ->withCount(['followers', 'posts'])
-                    ->get();
-
-                foreach ($followerUsers as $u) {
-                    $peopleYouMayKnow->push([
-                        'id' => $u->id,
-                        'name' => $u->name,
-                        'username' => $u->username,
-                        'avatar' => $u->avatar,
-                        'avatar_url' => $u->avatar_url ?? $u->avatar,
-                        'bio' => $u->bio,
-                        'role' => $u->role,
-                        'followers_count' => $u->followers_count,
-                        'posts_count' => $u->posts_count,
-                        'followers' => $u->followers_count >= 1000 ? round($u->followers_count / 1000, 1) . 'K followers' : "{$u->followers_count} followers",
-                        'is_verified' => $u->hasActiveVerificationBadge(),
-                        'is_following' => false,
-                        'reason' => 'Follows you',
-                        'type' => 'follows_you',
-                    ]);
-                }
-            }
-        }
-
-        // 3. Fallback / Suggested creators (top active creators)
-        $alreadyPicked = $peopleYouMayKnow->pluck('id')->merge($excludedIds);
-
-        $suggestedQuery = User::whereNull('deleted_at')
-            ->where(function ($sub) {
-                $sub->whereNull('role')->orWhere('role', '!=', 'admin');
-            })
-            ->whereNull('admin_role')
-            ->where(function ($sub) {
-                $sub->whereNull('status')->orWhere('status', 'active');
-            })
-            ->whereNotIn('id', $alreadyPicked)
-            ->withCount(['followers', 'posts'])
-            ->orderByDesc('followers_count')
-            ->orderByDesc('posts_count')
-            ->limit(20)
-            ->get();
-
-        $followingFlipped = $followingIds->flip();
-
-        $suggestedCreators = $suggestedQuery->map(fn (User $u) => [
-            'id' => $u->id,
-            'name' => $u->name,
-            'username' => $u->username,
-            'avatar' => $u->avatar,
-            'avatar_url' => $u->avatar_url ?? $u->avatar,
-            'bio' => $u->bio,
-            'role' => $u->role,
-            'followers_count' => $u->followers_count,
-            'posts_count' => $u->posts_count,
-            'followers' => $u->followers_count >= 1000 ? round($u->followers_count / 1000, 1) . 'K followers' : "{$u->followers_count} followers",
-            'is_verified' => $u->hasActiveVerificationBadge(),
-            'is_following' => $followingFlipped->has($u->id),
-            'reason' => 'Popular creator on MurihSpace',
-            'type' => 'suggested_creator',
-        ]);
+        $peopleYouMayKnow = $this->recommendations->suggestPeople($viewer, limit: 15);
+        $creatorsResult = $this->recommendations->suggestCreators($viewer, limit: 15);
+        $vendorsResult = $this->recommendations->suggestVendors($viewer, limit: 15);
 
         return response()->json([
             'people_you_may_know' => $peopleYouMayKnow->values(),
-            'suggested_creators' => $suggestedCreators->values(),
+            'suggested_creators' => $creatorsResult['items'],
+            'suggested_vendors' => $vendorsResult['items'],
         ]);
     }
 }
-

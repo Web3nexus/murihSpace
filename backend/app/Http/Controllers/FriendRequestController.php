@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\FriendRequest;
 use App\Models\User;
 use App\Services\NotificationService;
+use App\Services\Recommendation\UserRecommendationService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -14,6 +15,7 @@ class FriendRequestController extends Controller
 {
     public function __construct(
         private readonly NotificationService $notifications,
+        private readonly UserRecommendationService $recommendations,
     ) {}
 
     /**
@@ -22,8 +24,8 @@ class FriendRequestController extends Controller
     private function userPayload(User $user): array
     {
         $avatar = $user->avatar_url ?? $user->avatar;
-        if ($avatar && !str_starts_with($avatar, 'http')) {
-            $avatar = url(str_starts_with($avatar, '/') ? $avatar : '/storage/' . ltrim($avatar, '/'));
+        if ($avatar && ! str_starts_with($avatar, 'http')) {
+            $avatar = url(str_starts_with($avatar, '/') ? $avatar : '/storage/'.ltrim($avatar, '/'));
         }
 
         return [
@@ -162,11 +164,11 @@ class FriendRequestController extends Controller
                     ->orWhere('email', $like, "%{$q}%")
                     ->orWhere('mobile_number', $like, "%{$q}%");
             })
-            ->orderByRaw("CASE 
+            ->orderByRaw('CASE 
                 WHEN LOWER(username) = LOWER(?) THEN 0 
                 WHEN LOWER(username) LIKE LOWER(?) THEN 1 
                 WHEN LOWER(name) LIKE LOWER(?) THEN 2 
-                ELSE 3 END", [$cleanQ, "{$cleanQ}%", "{$q}%"])
+                ELSE 3 END', [$cleanQ, "{$cleanQ}%", "{$q}%"])
             ->limit(30)
             ->get()
             ->map(function (User $u) use ($userId) {
@@ -194,6 +196,7 @@ class FriendRequestController extends Controller
                 $payload['is_friend'] = $status === 'accepted';
                 $payload['phone'] = $u->mobile_number ?? '';
                 $payload['mobile_number'] = $u->mobile_number ?? '';
+
                 return $payload;
             });
 
@@ -247,14 +250,14 @@ class FriendRequestController extends Controller
                 $searchTerms->push(substr($phone, 1));
             }
             if (str_starts_with($phone, '+234') && strlen($phone) > 4) {
-                $searchTerms->push('0' . substr($phone, 4));
+                $searchTerms->push('0'.substr($phone, 4));
                 $searchTerms->push(substr($phone, 4));
             } elseif (str_starts_with($phone, '234') && strlen($phone) > 3) {
-                $searchTerms->push('0' . substr($phone, 3));
+                $searchTerms->push('0'.substr($phone, 3));
                 $searchTerms->push(substr($phone, 3));
             } elseif (str_starts_with($phone, '0') && strlen($phone) > 1) {
-                $searchTerms->push('+234' . substr($phone, 1));
-                $searchTerms->push('234' . substr($phone, 1));
+                $searchTerms->push('+234'.substr($phone, 1));
+                $searchTerms->push('234'.substr($phone, 1));
                 $searchTerms->push(substr($phone, 1));
             }
         }
@@ -272,7 +275,7 @@ class FriendRequestController extends Controller
             ->limit(100)
             ->get();
 
-        $followingIds = \Illuminate\Support\Facades\DB::table('follows')
+        $followingIds = DB::table('follows')
             ->where('follower_id', $userId)
             ->pluck('following_id')
             ->flip();
@@ -479,34 +482,24 @@ class FriendRequestController extends Controller
     }
 
     /**
-     * Get suggested users to add as friends.
+     * Get suggested users to add as friends (personalized ranking).
      */
     public function suggestions(Request $request): JsonResponse
     {
-        $userId = $request->user()->id;
+        $viewer = $request->user();
+        $people = $this->recommendations->suggestPeople($viewer, limit: 20);
 
-        $excludedUserIds = FriendRequest::where(fn (Builder $query) => $query
-            ->where('sender_id', $userId)
-            ->orWhere('receiver_id', $userId))
-            ->pluck('sender_id')
-            ->merge(FriendRequest::where(fn (Builder $query) => $query
-                ->where('sender_id', $userId)
-                ->orWhere('receiver_id', $userId))
-                ->pluck('receiver_id'))
-            ->push($userId)
-            ->unique();
+        $suggestions = $people->map(function ($item) use ($viewer) {
+            $u = User::find($item['id']);
+            if (! $u) {
+                return null;
+            }
+            $payload = $this->userPayload($u);
+            $payload['mutual_friends'] = $this->mutualFriendsCount($viewer->id, $u->id);
+            $payload['reason'] = $item['reason'] ?? null;
 
-        $suggestions = User::nonAdmin()
-            ->whereNotIn('id', $excludedUserIds)
-            ->whereNull('deleted_at')
-            ->where('status', 'active')
-            ->limit(20)
-            ->get()
-            ->map(function (User $u) use ($userId) {
-                $payload = $this->userPayload($u);
-                $payload['mutual_friends'] = $this->mutualFriendsCount($userId, $u->id);
-                return $payload;
-            });
+            return $payload;
+        })->filter()->values();
 
         return response()->json(['data' => $suggestions]);
     }

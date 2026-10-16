@@ -374,6 +374,11 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasOne(CreatorProfile::class);
     }
 
+    public function storefront(): HasOne
+    {
+        return $this->hasOne(Storefront::class);
+    }
+
     public function aiSetting(): HasOne
     {
         return $this->hasOne(AiSetting::class);

@@ -328,6 +328,8 @@ Route::prefix('v1')->group(function () {
     Route::get('/discover/hashtags/{tag}', [SearchController::class, 'hashtag'])->middleware('cache.public:60');
     Route::get('/discover/creators', [SearchController::class, 'suggestedCreators']);
     Route::get('/creators/suggested', [SearchController::class, 'suggestedCreators']);
+    Route::get('/discover/vendors', [SearchController::class, 'suggestedVendors']);
+    Route::get('/vendors/suggested', [SearchController::class, 'suggestedVendors']);
 
     // Public Storefront Profile Endpoint
     Route::get('/stores/{shortCode}', [StorefrontController::class, 'show'])->middleware('cache.public:600');
