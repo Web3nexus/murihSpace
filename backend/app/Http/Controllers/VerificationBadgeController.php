@@ -31,7 +31,13 @@ class VerificationBadgeController extends Controller
 
     private function canonicalProfileDomain(): string
     {
-        return (string) config('murihspace.canonical_profile_domain', 'murih.me');
+        $domain = (string) \App\Models\AdminSetting::get('canonical_profile_domain', config('murihspace.canonical_profile_domain'));
+        if (!empty($domain)) {
+            return $domain;
+        }
+        $frontendUrl = (string) config('app.frontend_url', env('FRONTEND_URL', ''));
+        $host = parse_url($frontendUrl, PHP_URL_HOST);
+        return $host ?: 'murih.me';
     }
 
     public function status(Request $request): JsonResponse

@@ -18,7 +18,19 @@ return [
     | settings, so staging and live can advertise different hosts. Keep the
     | host bare (no scheme); the URL is assembled elsewhere.
     */
-    'canonical_profile_domain' => env('CANONICAL_PROFILE_DOMAIN', 'murih.me'),
+    'canonical_profile_domain' => env('CANONICAL_PROFILE_DOMAIN', (function () {
+        $appUrl = (string) env('APP_URL', '');
+        $frontendUrl = (string) env('FRONTEND_URL', '');
+        if (str_contains($appUrl, 'staging') || str_contains($frontendUrl, 'staging')) {
+            $host = parse_url($frontendUrl, PHP_URL_HOST);
+            return $host ?: 'staging.murihspace.com';
+        }
+        if (env('APP_ENV') === 'local') {
+            $host = parse_url($frontendUrl, PHP_URL_HOST);
+            return $host ?: 'localhost:5173';
+        }
+        return 'murih.me';
+    })()),
 
     /*
     | QR / device-linking login.

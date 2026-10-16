@@ -136,8 +136,27 @@ export function profileDomain(): string {
 function profileOrigin(): string {
   const configured = import.meta.env.VITE_PROFILE_DOMAIN;
   if (typeof configured === "string" && configured.trim()) {
-    return configured.trim().replace(/\/+$/, "");
+    const trimmed = configured.trim().replace(/\/+$/, "");
+    if (typeof window !== "undefined") {
+      const { hostname, origin } = window.location;
+      // If running in a staging or local development environment, do not let a hardcoded production murih.me hijack staging!
+      if (
+        (hostname.includes("staging") || hostname === "localhost" || hostname === "127.0.0.1") &&
+        trimmed.includes("murih.me")
+      ) {
+        return origin;
+      }
+    }
+    return trimmed;
   }
+
+  if (typeof window !== "undefined") {
+    const { origin, hostname } = window.location;
+    if (hostname.includes("staging") || hostname === "localhost" || hostname === "127.0.0.1") {
+      return origin;
+    }
+  }
+
   return "https://murih.me";
 }
 
@@ -164,7 +183,17 @@ export function isProfileDomainHost(): boolean {
 export function mainSiteUrl(): string {
   const configured = import.meta.env.VITE_MAIN_SITE_URL;
   if (typeof configured === "string" && configured.trim()) {
-    return configured.trim().replace(/\/+$/, "");
+    const trimmed = configured.trim().replace(/\/+$/, "");
+    if (typeof window !== "undefined") {
+      const { hostname, origin } = window.location;
+      if (
+        (hostname.includes("staging") || hostname === "localhost" || hostname === "127.0.0.1") &&
+        trimmed.includes("web.murihspace.com")
+      ) {
+        return origin;
+      }
+    }
+    return trimmed;
   }
   return siteUrl();
 }

@@ -54,7 +54,7 @@ class AdminSettingsController extends Controller
                 'verification_badge_annual_fee' => (int) AdminSetting::get('verification_badge_annual_fee', 800),
                 'premium_username_monthly_fee' => (int) AdminSetting::get('premium_username_monthly_fee', (int) AdminSetting::get('verification_badge_fee', 100)),
                 'community_verification_monthly_fee' => (int) AdminSetting::get('community_verification_monthly_fee', 150),
-                'canonical_profile_domain' => config('murihspace.canonical_profile_domain'),
+                'canonical_profile_domain' => AdminSetting::get('canonical_profile_domain', config('murihspace.canonical_profile_domain')),
             ],
         ]);
     }
@@ -81,6 +81,7 @@ class AdminSettingsController extends Controller
             'verification_badge_annual_fee' => ['sometimes', 'integer', 'min:1'],
             'premium_username_monthly_fee' => ['sometimes', 'integer', 'min:1'],
             'community_verification_monthly_fee' => ['sometimes', 'integer', 'min:1'],
+            'canonical_profile_domain' => ['sometimes', 'nullable', 'string'],
         ]);
 
         if (isset($validated['commission_rates'])) {
@@ -148,6 +149,12 @@ class AdminSettingsController extends Controller
             AdminSetting::set('community_verification_monthly_fee', $validated['community_verification_monthly_fee']);
         }
 
+        if (array_key_exists('canonical_profile_domain', $validated)) {
+            $cleanDomain = preg_replace('#^https?://#i', '', trim((string) $validated['canonical_profile_domain']));
+            $cleanDomain = rtrim($cleanDomain, '/');
+            AdminSetting::set('canonical_profile_domain', $cleanDomain);
+        }
+
         return response()->json([
             'message' => 'Settings updated.',
             'data' => [
@@ -167,7 +174,7 @@ class AdminSettingsController extends Controller
                 'verification_badge_annual_fee' => (int) AdminSetting::get('verification_badge_annual_fee', 800),
                 'premium_username_monthly_fee' => (int) AdminSetting::get('premium_username_monthly_fee', (int) AdminSetting::get('verification_badge_fee', 100)),
                 'community_verification_monthly_fee' => (int) AdminSetting::get('community_verification_monthly_fee', 150),
-                'canonical_profile_domain' => config('murihspace.canonical_profile_domain'),
+                'canonical_profile_domain' => AdminSetting::get('canonical_profile_domain', config('murihspace.canonical_profile_domain')),
             ],
         ]);
     }

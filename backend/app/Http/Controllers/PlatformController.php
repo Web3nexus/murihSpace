@@ -34,6 +34,7 @@ class PlatformController extends Controller
 
         return response()->json([
             'platform_name' => config('app.name'),
+            'canonical_profile_domain' => AdminSetting::get('canonical_profile_domain', config('murihspace.canonical_profile_domain')),
             'web_disabled_roles' => array_values(array_unique(is_array($disabledRoles) ? $disabledRoles : [])),
             'web_purchases_enabled' => (bool) \App\Models\AdminSetting::get('web_purchases_enabled', true),
             'app_download_url' => $downloadUrl,
