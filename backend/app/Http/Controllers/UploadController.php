@@ -148,8 +148,13 @@ class UploadController extends Controller
         $resolvedFolder = $target['folder'];
 
         $diskConfig = config("filesystems.disks.{$disk}");
-        if (! $diskConfig) {
-            $disk = 'contabo';
+        $defaultUploadDisk = config('filesystems.upload_disk', 'local_uploads');
+        if (! $diskConfig || (in_array($diskConfig['driver'] ?? '', ['s3']) && empty($diskConfig['key']))) {
+            $disk = $defaultUploadDisk;
+            $diskConfig = config("filesystems.disks.{$disk}");
+        }
+        if (! $diskConfig || (in_array($diskConfig['driver'] ?? '', ['s3']) && empty($diskConfig['key']))) {
+            $disk = 'local_uploads';
         }
 
         $cleanExt = strtolower($file->getClientOriginalExtension() ?: 'bin');
@@ -184,7 +189,14 @@ class UploadController extends Controller
 
         $this->processingService->dispatchProcessingJob($media);
 
-        return response()->json($media, 201);
+        $mediaData = $media->toArray();
+
+        return response()->json(array_merge($mediaData, [
+            'success' => true,
+            'message' => 'File uploaded successfully.',
+            'url' => $url,
+            'data' => array_merge($mediaData, ['url' => $url]),
+        ]), 201);
     }
 
     public function destroy(Request $request, Media $media): JsonResponse

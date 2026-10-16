@@ -123,8 +123,8 @@ class PostController extends Controller
             'type' => ['required', Rule::in(['post', 'status', 'announcement', 'poll', 'media', 'event', 'product', 'service'])],
             'content' => ['required', 'string', 'max:50000'],
             'media_urls' => ['nullable', 'array'],
-            'media_urls.*' => ['string', 'url'],
-            'link_url' => ['nullable', 'string', 'url'],
+            'media_urls.*' => ['string', 'max:2048'],
+            'link_url' => ['nullable', 'string', 'max:2048'],
             'is_draft' => ['nullable', 'boolean'],
             'hashtags' => ['nullable', 'array'],
             'hashtags.*' => ['string', 'max:100'],
@@ -222,8 +222,12 @@ class PostController extends Controller
         $this->monitor->scan('post', $post->id, $post->user_id, (string) $post->content);
 
         return response()->json([
+            'success' => true,
             'message' => 'Post published successfully.',
             'post' => $post,
+            'data' => [
+                'post' => $post,
+            ],
         ], 201);
     }
 

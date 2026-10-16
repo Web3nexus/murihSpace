@@ -242,3 +242,4 @@ class UserRecommendationTest extends TestCase
         $this->assertStringContainsString('@my_friend', $fofData['reason']);
     }
 }
+

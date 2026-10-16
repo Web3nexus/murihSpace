@@ -156,8 +156,13 @@ class ProfileController extends Controller
         $folder = $target['folder'];
 
         $diskConfig = config("filesystems.disks.{$disk}");
-        if (! $diskConfig) {
-            $disk = 'contabo';
+        $defaultUploadDisk = config('filesystems.upload_disk', 'local_uploads');
+        if (! $diskConfig || (in_array($diskConfig['driver'] ?? '', ['s3']) && empty($diskConfig['key']))) {
+            $disk = $defaultUploadDisk;
+            $diskConfig = config("filesystems.disks.{$disk}");
+        }
+        if (! $diskConfig || (in_array($diskConfig['driver'] ?? '', ['s3']) && empty($diskConfig['key']))) {
+            $disk = 'local_uploads';
         }
 
         $cleanExt = strtolower($file->getClientOriginalExtension() ?: 'jpg');
@@ -192,6 +197,12 @@ class ProfileController extends Controller
             'avatar' => $url,
             'avatar_url' => $url,
             'url' => $url,
+            'data' => [
+                'avatar' => $url,
+                'avatar_url' => $url,
+                'url' => $url,
+                'user' => $this->formatUserProfile($user),
+            ],
             'user' => $this->formatUserProfile($user),
         ]);
     }
@@ -235,8 +246,13 @@ class ProfileController extends Controller
         $folder = $target['folder'];
 
         $diskConfig = config("filesystems.disks.{$disk}");
-        if (! $diskConfig) {
-            $disk = 'contabo';
+        $defaultUploadDisk = config('filesystems.upload_disk', 'local_uploads');
+        if (! $diskConfig || (in_array($diskConfig['driver'] ?? '', ['s3']) && empty($diskConfig['key']))) {
+            $disk = $defaultUploadDisk;
+            $diskConfig = config("filesystems.disks.{$disk}");
+        }
+        if (! $diskConfig || (in_array($diskConfig['driver'] ?? '', ['s3']) && empty($diskConfig['key']))) {
+            $disk = 'local_uploads';
         }
 
         $cleanExt = strtolower($file->getClientOriginalExtension() ?: 'jpg');
@@ -267,6 +283,11 @@ class ProfileController extends Controller
             'message' => 'Cover banner updated successfully.',
             'banner_url' => $url,
             'url' => $url,
+            'data' => [
+                'banner_url' => $url,
+                'url' => $url,
+                'user' => $this->formatUserProfile($user),
+            ],
             'user' => $this->formatUserProfile($user),
         ]);
     }
