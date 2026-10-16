@@ -7,14 +7,13 @@ use App\Models\PhoneOtpRequest;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
-use Laravel\Sanctum\Sanctum;
+use Illuminate\Testing\TestResponse;
 use Tests\Concerns\ActsAsSession;
 use Tests\TestCase;
 
 class PhoneOtpAuthTest extends TestCase
 {
     use ActsAsSession;
-
     use RefreshDatabase;
 
     private const NG_NUMBER = '+2348123456789';
@@ -47,7 +46,7 @@ class PhoneOtpAuthTest extends TestCase
         return (string) Cache::get('phone-otp:dev:'.$row->id);
     }
 
-    private function requestOtp(string $intent, array $extra = []): \Illuminate\Testing\TestResponse
+    private function requestOtp(string $intent, array $extra = []): TestResponse
     {
         return $this->postJson('/api/v1/auth/otp/request', array_merge([
             'intent' => $intent,
@@ -280,6 +279,47 @@ class PhoneOtpAuthTest extends TestCase
         $this->requestOtp('login')->assertOk();
         $this->requestOtp('login')->assertOk();
         $this->requestOtp('login')->assertStatus(422);
+    }
+
+    public function test_daily_rate_limit_enforced_same_day(): void
+    {
+        config(['services.twilio.max_daily_per_number' => 2]);
+        config(['services.twilio.max_per_number_per_hour' => 10]);
+        config(['services.twilio.resend_cooldown' => 0]);
+
+        $this->requestOtp('login')->assertOk();
+        $this->requestOtp('login')->assertOk();
+        $res = $this->requestOtp('login');
+        $res->assertStatus(422)
+            ->assertJsonValidationErrors('phone');
+        $this->assertStringContainsString('today', $res->json('errors.phone.0'));
+    }
+
+    public function test_daily_rate_limit_resets_on_next_day(): void
+    {
+        config(['services.twilio.max_daily_per_number' => 2]);
+        config(['services.twilio.max_per_number_per_hour' => 10]);
+        config(['services.twilio.resend_cooldown' => 0]);
+
+        // Yesterday's requests
+        $this->travelTo(now()->subDay());
+        $this->requestOtp('login')->assertOk();
+        $this->requestOtp('login')->assertOk();
+        $this->requestOtp('login')->assertStatus(422);
+
+        // Fast-forward back to today
+        $this->travelBack();
+        // Today starts fresh
+        $this->requestOtp('login')->assertOk();
+    }
+
+    public function test_legacy_daily_cache_key_is_purged_on_request(): void
+    {
+        // Simulate legacy un-dated key lingering from previous code
+        Cache::put('otp:req:daily:'.self::NG_NUMBER, 99, 86400);
+
+        $this->requestOtp('login')->assertOk();
+        $this->assertFalse(Cache::has('otp:req:daily:'.self::NG_NUMBER));
     }
 
     public function test_per_ip_rate_limit(): void

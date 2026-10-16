@@ -361,6 +361,11 @@ class PhoneOtpService
 
     private function assertRequestRateLimits(string $phone, Request $request): void
     {
+        // Purge any legacy non-date-bucketed daily key that may still linger in cache
+        if (Cache::has('otp:req:daily:'.$phone)) {
+            Cache::forget('otp:req:daily:'.$phone);
+        }
+
         $this->assertNotExceeded(
             'otp:req:num:'.$phone,
             (int) config('services.twilio.max_per_number_per_hour', 5),
@@ -380,8 +385,9 @@ class PhoneOtpService
             );
         }
 
+        $dailyKey = 'otp:req:daily:'.$phone.':'.now()->format('Y-m-d');
         $this->assertNotExceeded(
-            'otp:req:daily:'.$phone,
+            $dailyKey,
             (int) config('services.twilio.max_daily_per_number', 10),
             'Too many verification requests for this number today. Please try again later.',
         );
@@ -391,7 +397,10 @@ class PhoneOtpService
     {
         $this->bump('otp:req:num:'.$phone, 3600);
         $this->bump('otp:req:ip:'.$request->ip(), 3600);
-        $this->bump('otp:req:daily:'.$phone, 86400);
+
+        $dailyKey = 'otp:req:daily:'.$phone.':'.now()->format('Y-m-d');
+        $secondsUntilEndOfDay = max(60, (int) now()->diffInSeconds(now()->endOfDay()));
+        $this->bump($dailyKey, $secondsUntilEndOfDay);
 
         if ($request->input('device_id')) {
             $this->bump('otp:req:dev:'.$request->input('device_id'), 3600);
@@ -434,8 +443,6 @@ class PhoneOtpService
      * counts as an active device -- the code is pushed to a session that is
      * already authenticated as the account owner, which mainstream platforms
      * treat as an acceptable login-code destination.
-     *
-     * @return bool
      */
     private function hasActiveDeliveryDevice(User $user): bool
     {
@@ -454,6 +461,7 @@ class PhoneOtpService
                             // ignore
                         }
                     }
+
                     return true;
                 }))
             ->where(fn ($q) => $q->whereNull('expires_at')
@@ -480,8 +488,9 @@ class PhoneOtpService
 
     private function bump(string $key, int $seconds): void
     {
-        $next = (int) Cache::increment($key);
-        Cache::put($key, $next, now()->addSeconds($seconds));
+        if (! Cache::add($key, 1, $seconds)) {
+            Cache::increment($key);
+        }
     }
 
     private function driver(): OtpDriverInterface
