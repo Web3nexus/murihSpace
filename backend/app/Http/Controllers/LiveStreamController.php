@@ -389,7 +389,7 @@ class LiveStreamController extends Controller
     private function ensureHost(Request $request, LiveStream $stream): void
     {
         $user = $request->user();
-        if ($stream->user_id !== $user->id && $user->role !== 'admin') {
+        if ((int) $stream->user_id !== (int) $user->id && $user->role !== 'admin') {
             abort(403, 'Only the broadcast host can view live attribution.');
         }
     }
@@ -1266,7 +1266,7 @@ class LiveStreamController extends Controller
 
         $buyer = $request->user();
 
-        if ($buyer->id === $stream->user_id) {
+        if ((int) $buyer->id === (int) $stream->user_id) {
             return response()->json([
                 'message' => 'Hosts cannot purchase from their own live stream.',
                 'code' => 'SELF_PURCHASE_PROHIBITED',
@@ -1642,7 +1642,7 @@ class LiveStreamController extends Controller
         $stream = LiveStream::findOrFail($id);
         $user = $request->user();
 
-        if ($stream->user_id !== $user->id && $user->role !== 'admin') {
+        if ((int) $stream->user_id !== (int) $user->id && $user->role !== 'admin') {
             return response()->json(['message' => 'Only the broadcast host can end this live stream.'], 403);
         }
 
@@ -1812,7 +1812,7 @@ class LiveStreamController extends Controller
             return response()->json(['message' => 'Stream is not active.'], 422);
         }
 
-        if ($user->id === $stream->user_id) {
+        if ((int) $user->id === (int) $stream->user_id) {
             return response()->json(['message' => 'You are the broadcast host.'], 422);
         }
 

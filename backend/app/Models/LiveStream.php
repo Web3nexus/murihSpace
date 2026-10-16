@@ -44,6 +44,8 @@ class LiveStream extends Model
     }
 
     protected $casts = [
+        'user_id' => 'integer',
+        'community_id' => 'integer',
         'viewers_count' => 'integer',
         'peak_viewers' => 'integer',
         'likes_count' => 'integer',
