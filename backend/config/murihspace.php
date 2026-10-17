@@ -63,5 +63,12 @@ return [
         | Maximum characters an edited message may contain.
         */
         'edit_max_length' => (int) env('MURIHSPACE_CHAT_EDIT_MAX_LENGTH', 5000),
+
+        /*
+        | Time window (in minutes) during which a sender can delete an unread
+        | message for everyone. Once this window passes or the recipient reads it,
+        | the message can only be deleted locally (for me).
+        */
+        'delete_everyone_window_minutes' => (int) env('MURIHSPACE_CHAT_DELETE_WINDOW_MINUTES', 15),
     ],
 ];

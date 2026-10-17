@@ -666,13 +666,43 @@ class ConversationController extends Controller
         }
 
         if ($mode === 'everyone') {
-            if ($message->user_id !== $request->user()->id) {
+            $isSender = $message->user_id === $request->user()->id;
+            $isMod = false;
+            if (! $isSender) {
                 $isMod = CommunityMembership::where('community_id', $conversation->community_id)
                     ->where('user_id', $request->user()->id)
                     ->whereIn('role', ['admin', 'moderator'])
                     ->exists();
                 if (! $isMod) {
                     return response()->json(['message' => 'Only the sender or a moderator can delete for everyone.'], 403);
+                }
+            }
+
+            // Sender constraints for "Delete for everyone":
+            // 1. Recipient must not have read the message yet.
+            // 2. Message must be within the configured time window (default 15 minutes).
+            if ($isSender && ! $isMod) {
+                $otherLastReadAt = ConversationParticipant::where('conversation_id', $conversationId)
+                    ->where('user_id', '!=', $request->user()->id)
+                    ->pluck('last_read_at')
+                    ->filter()
+                    ->map(fn ($ts) => Carbon::parse($ts));
+
+                $isRead = $otherLastReadAt->contains(
+                    fn ($readAt) => $message->created_at && $message->created_at->lessThanOrEqualTo($readAt)
+                );
+
+                if ($isRead) {
+                    return response()->json([
+                        'message' => 'This message cannot be deleted for everyone because the recipient has already read it.',
+                    ], 422);
+                }
+
+                $windowMinutes = (int) config('murihspace.chat.delete_everyone_window_minutes', 15);
+                if ($windowMinutes > 0 && $message->created_at && $message->created_at->copy()->addMinutes($windowMinutes)->isPast()) {
+                    return response()->json([
+                        'message' => "Messages can only be deleted for everyone within {$windowMinutes} minutes of sending.",
+                    ], 422);
                 }
             }
 
