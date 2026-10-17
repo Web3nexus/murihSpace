@@ -84,7 +84,10 @@ class AdminUserController extends Controller
         $wallets = \App\Models\Wallet::where('user_id', $id)->get();
         $ordersCount = \App\Models\Order::where('buyer_id', $id)->orWhere('seller_id', $id)->count();
         $ledgerCount = \App\Models\LedgerTransaction::where('user_id', $id)->count();
-        $disputesCount = \App\Models\Dispute::where('buyer_id', $id)->orWhere('seller_id', $id)->count();
+        $disputesCount = \App\Models\Dispute::where('raised_by', $id)
+            ->orWhereHas('escrow', function ($q) use ($id) {
+                $q->where('buyer_id', $id)->orWhere('seller_id', $id);
+            })->count();
         $kycRecord = \App\Models\KycVerification::where('user_id', $id)->latest()->first();
 
         return response()->json([

@@ -194,17 +194,29 @@ class RoleTransitionService
     {
         $blockers = [];
 
-        // Skip blocker checks for upgrades (member → creator/vendor)
-        if ($user->role === 'member') {
+        // Skip blocker checks for upgrades (member/user → creator/vendor)
+        if ($user->role === 'member' || $user->role === 'user' || empty($user->role)) {
             return [];
         }
 
-        // Open disputes
-        $openDisputes = \App\Models\Dispute::where('user_id', $user->id)
-            ->whereIn('status', ['open', 'under_review'])
+        // Open disputes (escrow disputes or fulfilment disputes)
+        $openDisputes = \App\Models\Dispute::whereIn('status', ['open', 'under_review'])
+            ->where(function ($q) use ($user) {
+                $q->where('raised_by', $user->id)
+                    ->orWhereHas('escrow', function ($eq) use ($user) {
+                        $eq->where('buyer_id', $user->id)
+                            ->orWhere('seller_id', $user->id);
+                    });
+            })
             ->count();
-        if ($openDisputes > 0) {
-            $blockers[] = "{$openDisputes} open dispute(s) must be resolved first";
+
+        $openFulfilment = \App\Models\FulfilmentDispute::whereIn('status', ['open', 'under_review'])
+            ->where('raised_by', $user->id)
+            ->count();
+
+        $totalOpenDisputes = $openDisputes + $openFulfilment;
+        if ($totalOpenDisputes > 0) {
+            $blockers[] = "{$totalOpenDisputes} open dispute(s) must be resolved first";
         }
 
         // Pending withdrawals

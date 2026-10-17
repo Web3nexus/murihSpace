@@ -275,8 +275,24 @@ class PostController extends Controller
             ->pluck('option_index', 'post_id')
             ->toArray();
 
+        $savedPostIds = SavedPost::whereIn('post_id', $postIds)
+            ->where('user_id', $user->id)
+            ->pluck('post_id')
+            ->flip()
+            ->toArray();
+
+        $reactedPostIds = PostReaction::whereIn('post_id', $postIds)
+            ->where('user_id', $user->id)
+            ->pluck('post_id')
+            ->flip()
+            ->toArray();
+
         foreach ($posts->items() as $post) {
             $post->user_poll_vote = $votes[$post->id] ?? null;
+            $post->is_saved = isset($savedPostIds[$post->id]);
+            $post->saved_by_me = isset($savedPostIds[$post->id]);
+            $post->is_liked = isset($reactedPostIds[$post->id]);
+            $post->liked_by_me = isset($reactedPostIds[$post->id]);
         }
     }
 
