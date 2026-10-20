@@ -9,6 +9,7 @@ use App\Services\TwoFactorAuthService;
 use App\Support\AdminPermissionMatrix;
 use App\Support\AdminSession;
 use App\Support\ApiResponse;
+use App\Support\WebSession;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -146,7 +147,7 @@ class AdminAuthController extends Controller
         $session = $this->sessions->issueAdmin($user, $request);
 
         return ApiResponse::success([
-            'token' => $session['token'],
+            'token' => $this->sessions->deliver($request, $session['token']),
             'expires_at' => $session['expires_at'],
             'is_new_device' => $session['is_new_device'],
             'user' => $this->adminPayload($user),
@@ -272,6 +273,10 @@ class AdminAuthController extends Controller
     public function logout(Request $request): JsonResponse
     {
         $request->user()->currentAccessToken()?->delete();
+
+        if ($request->hasSession()) {
+            WebSession::end($request);
+        }
 
         return ApiResponse::success(null, 'Administrator session ended.');
     }

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router';
 import { ShieldDone as Shield, DangerTriangle as AlertTriangle, DangerSquare as AlertCircle } from "@/components/icons";
 import { Spinner as Loader2 } from "@/components/icons/rounded";;
@@ -22,7 +22,14 @@ interface EscrowItem {
   buyer: { id: number; name: string; username: string } | null;
   seller: { id: number; name: string; username: string } | null;
   order: { id: number; order_number: string } | null;
-  disputes: any[];
+  disputes: EscrowDispute[];
+}
+
+interface EscrowDispute {
+  id: number;
+  reason: string;
+  status: string;
+  raised_by: { username?: string } | null;
 }
 
 export function AdminEscrowPage() {
@@ -41,21 +48,27 @@ export function AdminEscrowPage() {
   const [page, setPage] = useState(1);
   const [lastPage, setLastPage] = useState(1);
 
-  const fetchEscrows = useCallback(async () => {
+  const [fetchEscrowsKey, setFetchEscrowsKey] = useState(0);
+  const fetchEscrows = () => {
     setFetchError(null);
-    try {
-      const params = new URLSearchParams();
-      if (statusFilter) params.set('status', statusFilter);
-      params.set('page', String(page));
-      params.set('per_page', '20');
-      const res = await authFetch(`/securegate/escrow?${params}`, {  });
-      if (res.ok) { const j = await res.json(); setEscrows(j?.data?.data ?? j?.data ?? []); setLastPage(j.data?.last_page ?? j.data?.data?.last_page ?? 1); }
-      else throw new Error(`HTTP ${res.status}`);
-    } catch (e) { setFetchError(e instanceof Error ? e.message : 'Failed to load escrows'); }
-    finally { setIsLoading(false); }
-  }, [statusFilter, page]);
+    setFetchEscrowsKey((k) => k + 1);
+  };
 
-  useEffect(() => { fetchEscrows(); }, [fetchEscrows]);
+  useEffect(() => {
+    (async () => {
+      try {
+        const params = new URLSearchParams();
+        if (statusFilter) params.set('status', statusFilter);
+        params.set('page', String(page));
+        params.set('per_page', '20');
+        const res = await authFetch(`/securegate/escrow?${params}`, {  });
+        if (res.ok) { const j = await res.json(); setEscrows(j?.data?.data ?? j?.data ?? []); setLastPage(j.data?.last_page ?? j.data?.data?.last_page ?? 1); }
+        else throw new Error(`HTTP ${res.status}`);
+      } catch (e) { setFetchError(e instanceof Error ? e.message : 'Failed to load escrows'); }
+      finally { setIsLoading(false); }
+    })();
+  }, [fetchEscrowsKey, statusFilter, page]);
+
 
   function handleTabChange(s: string) {
     setSearchParams(s ? { tab: s } : {});
@@ -84,7 +97,7 @@ export function AdminEscrowPage() {
     } catch { setMessage({ type: 'error', text: 'Network error.' }); }
   }
 
-  async function resolveDispute(_escrowId: number) {
+  async function resolveDispute() {
     if (!selectedEscrow) return;
     setSubmitting(true);
     try {
@@ -103,13 +116,13 @@ export function AdminEscrowPage() {
 
   if (isLoading) return <div className="w-full flex items-center justify-center h-64"><Loader2 weight="fill" className="w-6 h-6 animate-spin text-primary" /></div>;
 
-  const statusColors: Record<string, string> = { held: 'text-blue-400', released: 'text-emerald-400', refunded: 'text-amber-400', disputed: 'text-red-400' };
+  const statusColors: Record<string, string> = { held: 'text-[var(--shell-accent)]', released: 'text-emerald-400', refunded: 'text-amber-400', disputed: 'text-red-400' };
 
   return (
     <div className="w-full mx-auto max-w-[1400px] space-y-6 p-4 lg:p-10">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 sm:p-5 rounded-lg bg-gradient-to-br from-[#102840] via-[#173852] to-[#102840] text-white shadow-lg">
         <div className="space-y-1.5">
-          <span className="px-2.5 py-0.5 rounded-full bg-[#2164b6]/20 text-[#2164b6] dark:text-[#7ab0ff] text-xs font-semibold uppercase tracking-wider border border-[#2164b6]/30">Admin</span>
+          <span className="px-2.5 py-0.5 rounded-full bg-[var(--shell-accent-solid)]/20 text-[var(--shell-accent)] dark:text-[var(--shell-accent)] text-xs font-semibold uppercase tracking-wider border border-[var(--shell-accent)]/30">Admin</span>
           <h1 className="text-xl sm:text-xl font-extrabold tracking-tight">Escrow Management</h1>
           <p className="text-sm text-white/70 max-w-xl">View, release, refund escrows and resolve disputes.</p>
         </div>
@@ -148,7 +161,7 @@ export function AdminEscrowPage() {
               <div key={e.id} className="px-4 py-3.5 hover:bg-muted/10 transition-colors">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3 min-w-0 flex-1">
-                    <div className="p-2 rounded-lg bg-[#2164b6]/10 text-[#2164b6] dark:text-[#7ab0ff] shrink-0"><Shield weight="fill" className="h-4 w-4" /></div>
+                    <div className="p-2 rounded-lg bg-[var(--shell-accent-solid)]/10 text-[var(--shell-accent)] dark:text-[var(--shell-accent)] shrink-0"><Shield weight="fill" className="h-4 w-4" /></div>
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
                         <p className="text-sm font-bold text-foreground">{formatAmount(e.amount, e.currency)}</p>
@@ -183,7 +196,7 @@ export function AdminEscrowPage() {
                     {e.disputes?.length > 0 && (
                       <div className="mt-2">
                         <p className="font-semibold text-foreground">Disputes:</p>
-                        {e.disputes.map((d: any) => (
+                        {e.disputes.map((d) => (
                           <div key={d.id} className="pl-2 border-l-2 border-red-300 mt-1">
                             <p className="text-foreground">{d.reason}</p>
                             <p>Status: {d.status} · Raised by @{d.raised_by?.username ?? '?'}</p>
@@ -219,8 +232,8 @@ export function AdminEscrowPage() {
           </DialogHeader>
           <div className="space-y-3">
             <div>
-              <label className="block text-sm text-muted-foreground mb-1">Resolution</label>
-              <select value={disputeResolution} onChange={e => setDisputeResolution(e.target.value)}
+              <label htmlFor="f-pages-adminescrowpage-tsx-222" className="block text-sm text-muted-foreground mb-1">Resolution</label>
+              <select id="f-pages-adminescrowpage-tsx-222" value={disputeResolution} onChange={e => setDisputeResolution(e.target.value)}
                 className="w-full rounded-lg border-none bg-card px-3 py-2 text-sm text-foreground"
               >
                 <option value="resolved_buyer">Resolved — Refund to Buyer</option>
@@ -229,12 +242,12 @@ export function AdminEscrowPage() {
               </select>
             </div>
             <div>
-              <label className="block text-sm text-muted-foreground mb-1">Resolution Note</label>
-              <textarea value={disputeNote} onChange={e => setDisputeNote(e.target.value)} rows={3}
+              <label htmlFor="f-pages-adminescrowpage-tsx-232" className="block text-sm text-muted-foreground mb-1">Resolution Note</label>
+              <textarea id="f-pages-adminescrowpage-tsx-232" value={disputeNote} onChange={e => setDisputeNote(e.target.value)} rows={3}
                 className="w-full rounded-lg border-none bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground"
                 placeholder="Optional note explaining the decision..." />
             </div>
-            <Button onClick={() => selectedEscrow && resolveDispute(selectedEscrow.id)} disabled={submitting} className="w-full">
+            <Button onClick={() => selectedEscrow && resolveDispute()} disabled={submitting} className="w-full">
               {submitting && <Loader2 weight="fill" className="h-4 w-4 animate-spin mr-2" />}
               Resolve Dispute
             </Button>

@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Auth\BoundSessionGuard;
+use Illuminate\Support\Facades\Auth;
 use App\Models\AudioRoom;
 use App\Models\AuditLog;
 use App\Models\Community;
@@ -78,5 +80,23 @@ class AuthServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->registerPolicies();
+
+        // The session guard refuses a web session whose token was revoked (see BoundSessionGuard).
+        Auth::extend('session', function ($app, $name, array $config) {
+            $guard = new BoundSessionGuard(
+                $name,
+                Auth::createUserProvider($config['provider'] ?? null),
+                $app['session.store'],
+                rehashOnLogin: $app['config']->get('hashing.rehash_on_login', true),
+                timeboxDuration: $app['config']->get('auth.timebox_duration', 200000),
+                hashKey: $app['config']->get('app.key'),
+            );
+
+            $guard->setCookieJar($app['cookie']);
+            $guard->setDispatcher($app['events']);
+            $guard->setRequest($app->refresh('request', $guard, 'setRequest'));
+
+            return $guard;
+        });
     }
 }

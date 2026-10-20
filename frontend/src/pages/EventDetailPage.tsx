@@ -1,3 +1,5 @@
+import { authFetch } from "@/lib/api/authFetch";
+import { safeHref } from "@/lib/safeUrl";
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate, useLocation, Link } from "react-router";
 import { Calendar, TimeCircle as Clock, Location as MapPin, N2User as Users, Video, ArrowLeft, TickSquare as CheckCircle, CloseSquare as XCircle } from "@/components/icons";
@@ -9,15 +11,13 @@ import { SEOHead } from "@/components/common/SEOHead";
 import { ShareModal } from "@/components/common/ShareModal";
 import type { EventData } from "@/types/events";
 import { env } from "@/config/env";
-import { getAuthToken } from "@/lib/auth/token";
 import { useAuth } from "@/hooks/useAuth";
 import { eventUrl, absolute } from "@/lib/deepLinks";
 
 const API = env.VITE_API_BASE_URL;
 
 function getAuthHeaders(): Record<string, string> {
-  const token = getAuthToken();
-  return token ? { Authorization: `Bearer ${token}` } : {};
+  return {};
 }
 
 function formatDate(dateStr: string) {
@@ -88,7 +88,7 @@ export function EventDetailView({ eventId, isPublic = false }: EventDetailViewPr
     setIsLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${API}/events/${id}`, { headers: getAuthHeaders() });
+      const res = await authFetch(`${API}/events/${id}`, { headers: getAuthHeaders() });
       if (res.status === 404) {
         setEvent(null);
         return;
@@ -113,7 +113,7 @@ export function EventDetailView({ eventId, isPublic = false }: EventDetailViewPr
   const refreshRegistration = useCallback(async () => {
     if (!id || !isAuthenticated) return;
     try {
-      const res = await fetch(`${API}/my-registrations`, { headers: getAuthHeaders() });
+      const res = await authFetch(`${API}/my-registrations`, { headers: getAuthHeaders() });
       if (!res.ok) return;
       const body = await res.json();
       const rows: Array<{ event_id?: number }> = Array.isArray(body?.data) ? body.data : [];
@@ -134,7 +134,7 @@ export function EventDetailView({ eventId, isPublic = false }: EventDetailViewPr
       setIsRegistering(true);
       setRegistrationMessage(null);
       try {
-        const res = await fetch(`${API}/events/${id}/${path}`, {
+        const res = await authFetch(`${API}/events/${id}/${path}`, {
           method: "POST",
           headers: { "Content-Type": "application/json", ...getAuthHeaders() },
         });
@@ -242,7 +242,7 @@ export function EventDetailView({ eventId, isPublic = false }: EventDetailViewPr
               <div className="flex items-center gap-3">
                 <Video weight="fill" className="h-4 w-4 text-muted-foreground" />
                 <a
-                  href={event.meeting_url}
+                  href={safeHref(event.meeting_url)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-primary hover:underline inline-flex items-center gap-1"

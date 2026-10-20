@@ -1,5 +1,5 @@
+import { authFetch } from "@/lib/api/authFetch";
 import { useState, useEffect } from "react";
-import { getAuthToken } from "@/lib/auth/token";
 
 interface FeatureFlag {
   id: number;
@@ -12,8 +12,7 @@ interface FeatureFlag {
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? "http://localhost:8000/api/v1";
 
 function authHeaders() {
-  const t = getAuthToken();
-  return { Accept: "application/json", ...(t ? { Authorization: `Bearer ${t}` } : {}) };
+  return { Accept: "application/json", };
 }
 
 let cachedFlags: Record<string, boolean> = {};
@@ -21,7 +20,7 @@ const listeners = new Set<() => void>();
 
 async function fetchFlags(): Promise<void> {
   try {
-    const res = await fetch(`${API_BASE}/feature-flags`, { headers: authHeaders() });
+    const res = await authFetch(`${API_BASE}/feature-flags`, { headers: authHeaders() });
     if (!res.ok) return;
     const j = await res.json();
     const list = j?.data?.data ?? j?.data ?? j ?? [];

@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
+import { DismissOnEscape } from "@/components/ui/DismissOnEscape";
+import { useState, useEffect } from "react";
 import { Plus, TickSquare as Check, DangerSquare as AlertCircle, Edit, Delete as Trash2, Show as Eye, Hide as EyeOff, Video as FilmStrip, Document as FileText, ArrowRight as ChevronRight, ArrowDown as ChevronDown, N2User as Users } from "@/components/icons";
 import { BookOpen, Spinner as Loader2, DotsSixVertical } from "@/components/icons/rounded";;
 import { ImageUploader } from "@/components/upload/ImageUploader";
@@ -60,29 +61,35 @@ export default function CoursesPage() {
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
-  const fetchCourses = useCallback(async () => {
+  const [fetchCoursesKey, setFetchCoursesKey] = useState(0);
+  const fetchCourses = () => {
     setError(null);
-    try {
-      const res = await authFetch(`/courses?page=${page}&per_page=20`);
-      if (res.ok) {
-        const j = await res.json();
-        const paginator = j?.success ? j?.data : (j?.data ?? j);
-        const list = paginator?.data ?? (Array.isArray(paginator) ? paginator : []);
-        setCourses(Array.isArray(list) ? list : []);
-        setLastPage(paginator?.last_page ?? 1);
-      } else if (res.status === 401) {
-        setError("Your session has expired. Please sign in again.");
-      } else {
-        setError("Failed to load courses.");
-      }
-    } catch {
-      setError("Unable to connect.");
-    } finally {
-      setLoading(false);
-    }
-  }, [page]);
+    setFetchCoursesKey((k) => k + 1);
+  };
 
-  useEffect(() => { fetchCourses(); }, [fetchCourses]);
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await authFetch(`/courses?page=${page}&per_page=20`);
+        if (res.ok) {
+          const j = await res.json();
+          const paginator = j?.success ? j?.data : (j?.data ?? j);
+          const list = paginator?.data ?? (Array.isArray(paginator) ? paginator : []);
+          setCourses(Array.isArray(list) ? list : []);
+          setLastPage(paginator?.last_page ?? 1);
+        } else if (res.status === 401) {
+          setError("Your session has expired. Please sign in again.");
+        } else {
+          setError("Failed to load courses.");
+        }
+      } catch {
+        setError("Unable to connect.");
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [fetchCoursesKey, page]);
+
 
   const resetForm = () => {
     setTitle(""); setDescription(""); setCoverUrl(""); setPrice("29.99");
@@ -277,8 +284,10 @@ export default function CoursesPage() {
       )}
 
       {showForm && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 overflow-y-auto py-8" onClick={() => { setShowForm(false); resetForm(); }}>
-          <div className="w-full max-w-2xl rounded-lg border-none bg-card p-4 shadow-2xl mx-4" onClick={(e) => e.stopPropagation()}>
+        <div role="presentation" onKeyDown={(e) => { if (e.key === "Escape") e.currentTarget.click(); }}
+ className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 overflow-y-auto py-8" onClick={(e) => { if (e.target === e.currentTarget) { setShowForm(false); resetForm(); } }}>
+          <DismissOnEscape onDismiss={() => { setShowForm(false); resetForm(); }} />
+          <div role="dialog" aria-modal="true" className="w-full max-w-2xl rounded-lg border-none bg-card p-4 shadow-2xl mx-4">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-base font-bold text-foreground flex items-center gap-2">
                 <BookOpen weight="fill" className="h-5 w-5 text-secondary" /> {editing ? "Edit Course" : "Create Course"}
@@ -298,12 +307,12 @@ export default function CoursesPage() {
             <form onSubmit={handleSave} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="sm:col-span-2">
-                  <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block mb-1">Title</label>
-                  <input value={title} onChange={(e) => setTitle(e.target.value)} required placeholder="e.g. Mastering Digital Art" className="w-full rounded-lg border-none bg-background px-4 py-2.5 text-xs text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-secondary/50 transition-colors" />
+                  <label htmlFor="f-pages-coursespage-tsx-301" className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block mb-1">Title</label>
+                  <input id="f-pages-coursespage-tsx-301" value={title} onChange={(e) => setTitle(e.target.value)} required placeholder="e.g. Mastering Digital Art" className="w-full rounded-lg border-none bg-background px-4 py-2.5 text-xs text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-secondary/50 transition-colors" />
                 </div>
                 <div className="sm:col-span-2">
-                  <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block mb-1">Description</label>
-                  <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} placeholder="Course overview and what students will learn..." className="w-full rounded-lg border-none bg-background px-4 py-2.5 text-xs text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-secondary/50 transition-colors resize-none" />
+                  <label htmlFor="f-pages-coursespage-tsx-305" className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block mb-1">Description</label>
+                  <textarea id="f-pages-coursespage-tsx-305" value={description} onChange={(e) => setDescription(e.target.value)} rows={3} placeholder="Course overview and what students will learn..." className="w-full rounded-lg border-none bg-background px-4 py-2.5 text-xs text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-secondary/50 transition-colors resize-none" />
                 </div>
                 <div>
                   <ImageUploader
@@ -315,19 +324,19 @@ export default function CoursesPage() {
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block mb-1">Price</label>
-                    <input type="number" step="0.01" min="0" value={price} onChange={(e) => setPrice(e.target.value)} className="w-full rounded-lg border-none bg-background px-4 py-2.5 text-xs text-foreground focus:outline-none focus:border-secondary/50 transition-colors" />
+                    <label htmlFor="f-pages-coursespage-tsx-318" className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block mb-1">Price</label>
+                    <input id="f-pages-coursespage-tsx-318" type="number" step="0.01" min="0" value={price} onChange={(e) => setPrice(e.target.value)} className="w-full rounded-lg border-none bg-background px-4 py-2.5 text-xs text-foreground focus:outline-none focus:border-secondary/50 transition-colors" />
                   </div>
                   <div>
-                    <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block mb-1">Currency</label>
-                    <select value={currency} onChange={(e) => setCurrency(e.target.value)} className="w-full rounded-lg border-none bg-background px-4 py-2.5 text-xs text-foreground focus:outline-none focus:border-secondary/50 transition-colors">
+                    <label htmlFor="f-pages-coursespage-tsx-322" className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block mb-1">Currency</label>
+                    <select id="f-pages-coursespage-tsx-322" value={currency} onChange={(e) => setCurrency(e.target.value)} className="w-full rounded-lg border-none bg-background px-4 py-2.5 text-xs text-foreground focus:outline-none focus:border-secondary/50 transition-colors">
                       {["USD", "EUR", "GBP", "NGN"].map((c) => <option key={c} value={c}>{c}</option>)}
                     </select>
                   </div>
                 </div>
                 <div>
-                  <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block mb-1">Status</label>
-                  <select value={status} onChange={(e) => setStatus(e.target.value as "draft" | "published")} className="w-full rounded-lg border-none bg-background px-4 py-2.5 text-xs text-foreground focus:outline-none focus:border-secondary/50 transition-colors">
+                  <label htmlFor="f-pages-coursespage-tsx-329" className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block mb-1">Status</label>
+                  <select id="f-pages-coursespage-tsx-329" value={status} onChange={(e) => setStatus(e.target.value as "draft" | "published")} className="w-full rounded-lg border-none bg-background px-4 py-2.5 text-xs text-foreground focus:outline-none focus:border-secondary/50 transition-colors">
                     <option value="draft">Draft</option>
                     <option value="published">Published</option>
                   </select>
@@ -337,7 +346,7 @@ export default function CoursesPage() {
               {/* Modules */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Modules & Lessons</label>
+                  <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Modules & Lessons</span>
                   <button type="button" onClick={addModule} className="text-[11px] font-bold text-secondary hover:underline flex items-center gap-1">
                     <Plus weight="fill" className="h-3 w-3" /> Add Module
                   </button>
@@ -381,9 +390,9 @@ export default function CoursesPage() {
       )}
       {lastPage > 1 && (
         <div className="flex items-center justify-center gap-2 pt-4">
-          <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1} className="px-3 py-1.5 rounded-lg text-xs font-bold border-none bg-card hover:bg-muted disabled:opacity-40">Previous</button>
+          <button onClick={() => { setError(null); setPage(p => Math.max(1, p - 1)); }} disabled={page <= 1} className="px-3 py-1.5 rounded-lg text-xs font-bold border-none bg-card hover:bg-muted disabled:opacity-40">Previous</button>
           <span className="text-xs text-muted-foreground">Page {page} of {lastPage}</span>
-          <button onClick={() => setPage(p => Math.min(lastPage, p + 1))} disabled={page >= lastPage} className="px-3 py-1.5 rounded-lg text-xs font-bold border-none bg-card hover:bg-muted disabled:opacity-40">Next</button>
+          <button onClick={() => { setError(null); setPage(p => Math.min(lastPage, p + 1)); }} disabled={page >= lastPage} className="px-3 py-1.5 rounded-lg text-xs font-bold border-none bg-card hover:bg-muted disabled:opacity-40">Next</button>
         </div>
       )}
     </div>

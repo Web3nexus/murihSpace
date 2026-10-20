@@ -1,4 +1,3 @@
-import { getAuthToken } from "@/lib/auth/token";
 import { useEffect, useState } from "react";
 import { Download as FloppyDisk, Show as Eye, Hide as EyeOff, Lock, TickSquare as CheckCircle2, DangerSquare as AlertCircle, Discovery as Globe, Password as Key } from "@/components/icons";
 import { Spinner as Loader2, Link as LinkIcon, Question } from "@/components/icons/rounded";;
@@ -46,8 +45,7 @@ interface ProviderForm {
 const EMPTY_FORM: ProviderForm = { client_id: "", client_secret: "", redirect: "", team_id: "", key_id: "", private_key: "" };
 
 function authHeaders() {
-  const t = getAuthToken();
-  return { Accept: "application/json", "Content-Type": "application/json", ...(t ? { Authorization: `Bearer ${t}` } : {}) };
+  return { Accept: "application/json", "Content-Type": "application/json", };
 }
 
 const defaultRedirect = (id: string) =>
@@ -133,14 +131,14 @@ export default function AdminSocialLoginSettingsPage() {
   };
 
   if (loading) {
-    return <div className="flex justify-center py-24"><Loader2 weight="fill" className="h-8 w-8 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" /></div>;
+    return <div className="flex justify-center py-24"><Loader2 weight="fill" className="h-8 w-8 animate-spin text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" /></div>;
   }
 
   return (
     <div className="w-full mx-auto max-w-[860px] space-y-6 p-4 lg:p-10">
       <div>
         <h1 className="text-xl font-black tracking-tight flex items-center gap-2.5">
-          <LinkIcon weight="fill" className="h-6 w-6 text-[#2164b6] dark:text-[#7ab0ff]" /> Social Login
+          <LinkIcon weight="fill" className="h-6 w-6 text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" /> Social Login
         </h1>
         <p className="text-xs text-muted-foreground mt-1">
           Configure OAuth credentials for Google and Apple. Secrets are encrypted at rest. Sign-in buttons appear on the login and register screens once a provider is configured.
@@ -155,7 +153,7 @@ export default function AdminSocialLoginSettingsPage() {
             <div key={p.id} className="rounded-lg border-none bg-card p-4">
               <div className="flex items-center justify-between mb-2">
                 <div className={`h-9 w-9 rounded-lg bg-gradient-to-br ${p.color} flex items-center justify-center`}>
-                  <Globe weight="fill" className="h-4.5 w-4.5 text-[#2164b6] dark:text-[#7ab0ff]" />
+                  <Globe weight="fill" className="h-4.5 w-4.5 text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" />
                 </div>
                 <span
                   className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
@@ -288,7 +286,7 @@ export default function AdminSocialLoginSettingsPage() {
                     placeholder="-----BEGIN PRIVATE KEY-----&#10;...&#10;-----END PRIVATE KEY-----"
                     autoComplete="off"
                     rows={4}
-                    className="mt-1 w-full rounded-lg border-none bg-background px-3 py-2 text-xs font-mono text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-[#2164b6]/20"
+                    className="mt-1 w-full rounded-lg border-none bg-background px-3 py-2 text-xs font-mono text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-[var(--shell-accent)]/20"
                   />
                   <p className="text-[10px] text-muted-foreground mt-1">
                     Used to sign the ES256 JWT client secret. Never commit this key to the repository.

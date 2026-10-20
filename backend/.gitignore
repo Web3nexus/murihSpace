@@ -41,3 +41,6 @@ Thumbs.db
 firebase-auth.json
 *.p8
 
+
+# Playwright e2e database (isolated SQLite)
+database/e2e.sqlite

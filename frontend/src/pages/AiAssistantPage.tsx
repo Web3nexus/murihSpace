@@ -31,12 +31,17 @@ function TypingDots() {
       {[0, 1, 2].map((i) => (
         <div
           key={i}
-          className="h-2 w-2 rounded-full bg-gradient-to-br from-[#2164b6] to-[#1a6b9e] animate-bounce"
+          className="h-2 w-2 rounded-full bg-gradient-to-br from-[var(--shell-accent-solid)] to-[#1a6b9e] animate-bounce"
           style={{ animationDelay: `${i * 150}ms`, animationDuration: "0.8s" }}
         />
       ))}
     </div>
   );
+}
+
+// Wall-clock timestamp for a message; read only from event handlers
+function nowMs(): number {
+  return Date.now();
 }
 
 export default function AiAssistantPage() {
@@ -59,7 +64,7 @@ export default function AiAssistantPage() {
     const content = text ?? input;
     if (!content.trim() || busy) return;
     setShowSuggestions(false);
-    const userMsg: ChatMessage = { role: "user", content: content.trim(), at: Date.now() };
+    const userMsg: ChatMessage = { role: "user", content: content.trim(), at: nowMs() };
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
     setBusy(true);
@@ -118,10 +123,10 @@ export default function AiAssistantPage() {
 
   if (user && user.email_verified === false) {
     return (
-      <div className="flex min-h-full items-center justify-center bg-[#F0F2F5] dark:bg-[#18191A] p-4">
+      <div className="flex min-h-full items-center justify-center bg-[var(--shell-canvas)] dark:bg-[var(--shell-canvas)] p-4">
         <div className="w-full max-w-md border-none rounded-lg bg-card p-5 space-y-5 shadow-lg">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-[#2164b6] to-[#1a6b9e] flex items-center justify-center  shadow-[#2164b6]/20">
+            <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-[var(--shell-accent-solid)] to-[#1a6b9e] flex items-center justify-center  shadow-[#2164b6]/20">
               <EnvelopeSimple weight="fill" className="h-5 w-5 text-white" />
             </div>
             <div>
@@ -139,7 +144,7 @@ export default function AiAssistantPage() {
             onKeyDown={(e) => e.key === "Enter" && verify()}
             placeholder="6-digit code"
             inputMode="numeric"
-            className="w-full rounded-lg border-none bg-background px-4 py-3 text-center text-xl font-black tracking-[0.5em] text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-2 focus:ring-[#2164b6]/20"
+            className="w-full rounded-lg border-none bg-background px-4 py-3 text-center text-xl font-black tracking-[0.5em] text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-2 focus:ring-[var(--shell-accent)]/20"
           />
           {verifyMsg && (
             <p className={`text-[11px] font-semibold ${verifyMsg.ok ? "text-emerald-600" : "text-rose-500"}`}>{verifyMsg.text}</p>
@@ -147,19 +152,19 @@ export default function AiAssistantPage() {
           <button
             onClick={verify}
             disabled={verifying || !/^\d{6}$/.test(code)}
-            className="w-full py-3 rounded-lg bg-gradient-to-r from-[#2164b6] to-[#1a5091] text-white text-sm font-bold hover:from-[#1a5091] hover:to-[#154074] disabled:opacity-40 transition-all  hover: hover:shadow-[#2164b6]/20"
+            className="w-full py-3 rounded-lg bg-gradient-to-r from-[var(--shell-accent-solid)] to-[#1a5091] text-white text-sm font-bold hover:from-[#1a5091] hover:to-[#154074] disabled:opacity-40 transition-all  hover: hover:shadow-[#2164b6]/20"
           >
             {verifying ? <Loader2 weight="fill" className="h-4 w-4 animate-spin mx-auto" /> : "Verify & unlock Mera"}
           </button>
           <button
             onClick={sendCode}
-            className="w-full text-center text-[11px] font-bold text-[#2164b6] dark:text-[#7ab0ff] hover:underline underline-offset-2"
+            className="w-full text-center text-[11px] font-bold text-[var(--shell-accent)] dark:text-[var(--shell-accent)] hover:underline underline-offset-2"
           >
             {sent ? "Resend code" : "Send code"}
           </button>
           <p className="text-[10px] text-muted-foreground text-center">
             Not sure?{" "}
-            <Link to="/app/onboarding" className="font-bold text-[#2164b6] dark:text-[#7ab0ff] hover:underline underline-offset-2">
+            <Link to="/app/onboarding" className="font-bold text-[var(--shell-accent)] dark:text-[var(--shell-accent)] hover:underline underline-offset-2">
               Verify during onboarding
             </Link>
           </p>
@@ -169,13 +174,13 @@ export default function AiAssistantPage() {
   }
 
   return (
-    <div className="flex h-full min-h-0 overflow-hidden bg-[#F0F2F5] dark:bg-[#18191A]">
+    <div className="flex h-full min-h-0 overflow-hidden bg-[var(--shell-canvas)] dark:bg-[var(--shell-canvas)]">
       <div className="flex flex-col w-full max-w-7xl mx-auto">
         {/* Header */}
         <div className="shrink-0 px-6 pt-6 pb-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="relative">
-              <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-[#2164b6] to-[#1a6b9e] flex items-center justify-center  shadow-[#2164b6]/20">
+              <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-[var(--shell-accent-solid)] to-[#1a6b9e] flex items-center justify-center  shadow-[#2164b6]/20">
                 <MeraIcon className="h-5 w-5" />
               </div>
               <div className="absolute -top-0.5 -right-0.5 h-3 w-3 rounded-full bg-emerald-500 border-2 border-white dark:border-[#0f1f30]" />
@@ -183,7 +188,7 @@ export default function AiAssistantPage() {
             <div>
               <h1 className="text-lg font-black text-foreground tracking-tight">AI Assistant</h1>
               <p className="text-[11px] text-muted-foreground/70 flex items-center gap-1">
-                <Zap weight="fill" className="h-3 w-3 text-[#2164b6] dark:text-[#7ab0ff]" />
+                <Zap weight="fill" className="h-3 w-3 text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" />
                 Powered by advanced intelligence
               </p>
             </div>
@@ -203,8 +208,8 @@ export default function AiAssistantPage() {
           {messages.length === 0 && showSuggestions && (
             <div className="pt-8 pb-4 text-center space-y-6">
               <div className="space-y-2">
-                <div className="mx-auto w-16 h-16 rounded-3xl bg-gradient-to-br from-[#2164b6]/15 to-purple-500/15 flex items-center justify-center border border-[#2164b6]/10">
-                  <Zap weight="fill" className="h-7 w-7 text-[#2164b6] dark:text-[#7ab0ff]" />
+                <div className="mx-auto w-16 h-16 rounded-3xl bg-gradient-to-br from-[var(--shell-accent-solid)]/15 to-purple-500/15 flex items-center justify-center border border-[var(--shell-accent)]/10">
+                  <Zap weight="fill" className="h-7 w-7 text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" />
                 </div>
                 <h2 className="text-xl font-black text-foreground tracking-tight">How can I help you?</h2>
                 <p className="text-sm text-muted-foreground/60 max-w-md mx-auto text-center">
@@ -217,10 +222,10 @@ export default function AiAssistantPage() {
                   <button
                     key={s.label}
                     onClick={() => send(s.query)}
-                    className="flex items-center gap-3 px-4 py-3.5 rounded-lg border-none/60 bg-white dark:bg-[#242526]/60 hover:border-[#2164b6]/30 hover:bg-[#2164b6]/5 hover: hover:shadow-[#2164b6]/5 transition-all duration-200 text-left group"
+                    className="flex items-center gap-3 px-4 py-3.5 rounded-lg border-none/60 bg-white dark:bg-[var(--shell-surface)]/60 hover:border-[var(--shell-accent)]/30 hover:bg-[var(--shell-accent-solid)]/5 hover: hover:shadow-[#2164b6]/5 transition-all duration-200 text-left group"
                   >
-                    <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-[#2164b6]/10 to-purple-500/10 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                      <s.icon className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" />
+                    <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-[var(--shell-accent-solid)]/10 to-purple-500/10 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                      <s.icon className="h-4 w-4 text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" />
                     </div>
                     <div className="min-w-0">
                       <p className="text-xs font-bold text-foreground truncate">{s.label}</p>
@@ -236,7 +241,7 @@ export default function AiAssistantPage() {
             <div key={i} className={`flex gap-3 ${m.role === "user" ? "flex-row-reverse" : ""} ${m.role === "user" ? "animate-in slide-in-from-right-2 fade-in" : "animate-in slide-in-from-left-2 fade-in"} duration-200`}>
               <div className={`h-8 w-8 rounded-lg flex items-center justify-center shrink-0  ${
                 m.role === "assistant"
-                  ? "bg-gradient-to-br from-[#2164b6] to-[#1a6b9e] text-white"
+                  ? "bg-gradient-to-br from-[var(--shell-accent-solid)] to-[#1a6b9e] text-white"
                   : "bg-gradient-to-br from-[#102840] to-[#1a2e4a] text-white"
               }`}>
                 {m.role === "assistant" ? <MeraIcon className="h-4 w-4" /> : <MessageCircle weight="fill" className="h-4 w-4" />}
@@ -244,8 +249,8 @@ export default function AiAssistantPage() {
               <div className={`max-w-[75%] ${m.role === "user" ? "order-first" : ""}`}>
                 <div className={`px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap break-words ${
                   m.role === "assistant"
-                    ? "bg-white dark:bg-[#242526] border-none/50 text-foreground rounded-lg rounded-tl-sm "
-                    : "bg-gradient-to-r from-[#2164b6] to-[#1a5091] text-white rounded-lg rounded-tr-sm  shadow-[#2164b6]/10"
+                    ? "bg-white dark:bg-[var(--shell-surface)] border-none/50 text-foreground rounded-lg rounded-tl-sm "
+                    : "bg-gradient-to-r from-[var(--shell-accent-solid)] to-[#1a5091] text-white rounded-lg rounded-tr-sm  shadow-[#2164b6]/10"
                 }`}>
                   {m.content}
                 </div>
@@ -258,10 +263,10 @@ export default function AiAssistantPage() {
 
           {busy && (
             <div className="flex gap-3 animate-in fade-in slide-in-from-left-2 duration-200">
-              <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-[#2164b6] to-[#1a6b9e] flex items-center justify-center shrink-0 ">
+              <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-[var(--shell-accent-solid)] to-[#1a6b9e] flex items-center justify-center shrink-0 ">
                 <MeraIcon className="h-4 w-4" />
               </div>
-              <div className="bg-white dark:bg-[#242526] border-none/50 rounded-lg rounded-tl-sm px-4 py-2 ">
+              <div className="bg-white dark:bg-[var(--shell-surface)] border-none/50 rounded-lg rounded-tl-sm px-4 py-2 ">
                 <TypingDots />
               </div>
             </div>
@@ -273,8 +278,8 @@ export default function AiAssistantPage() {
         {/* Composer */}
         <div className="shrink-0 px-6 pb-6 pt-2">
           <div className="relative max-w-3xl mx-auto">
-            <div className="absolute inset-0 rounded-lg bg-gradient-to-r from-[#2164b6]/5 to-purple-500/5 blur-xl" />
-            <div className="relative flex items-center gap-2 bg-white dark:bg-[#242526] border-none/60 rounded-lg px-4 py-2.5  focus-within:border-[#2164b6]/30 focus-within: focus-within:shadow-[#2164b6]/5 transition-all">
+            <div className="absolute inset-0 rounded-lg bg-gradient-to-r from-[var(--shell-accent-solid)]/5 to-purple-500/5 blur-xl" />
+            <div className="relative flex items-center gap-2 bg-white dark:bg-[var(--shell-surface)] border-none/60 rounded-lg px-4 py-2.5  focus-within:border-[#2164b6]/30 focus-within: focus-within:shadow-[#2164b6]/5 transition-all">
               <input
                 type="text"
                 value={input}
@@ -287,7 +292,7 @@ export default function AiAssistantPage() {
                 <button
                   onClick={() => send()}
                   disabled={!input.trim() || busy}
-                  className="p-2 rounded-lg bg-gradient-to-r from-[#2164b6] to-[#1a5091] text-white hover:from-[#1a5091] hover:to-[#154074] disabled:opacity-40 transition-all shrink-0  hover: hover:shadow-[#2164b6]/20 disabled:shadow-none"
+                  className="p-2 rounded-lg bg-gradient-to-r from-[var(--shell-accent-solid)] to-[#1a5091] text-white hover:from-[#1a5091] hover:to-[#154074] disabled:opacity-40 transition-all shrink-0  hover: hover:shadow-[#2164b6]/20 disabled:shadow-none"
                 >
                   <Send weight="fill" className="h-4 w-4" />
                 </button>

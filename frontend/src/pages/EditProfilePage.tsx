@@ -1,3 +1,4 @@
+import { asApiError } from "@/lib/apiError";
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router";
 import { AnimatedPage } from "@/components/common/AnimatedPage";
@@ -55,9 +56,9 @@ function roleLabel(role?: string): string {
 }
 
 const inputClass =
-  "w-full rounded-lg bg-[#F0F2F5] dark:bg-[#3A3B3C] border border-transparent focus:border-[#2164b6]/50 focus:outline-none focus:ring-2 focus:ring-[#2164b6]/30 px-3 py-2 text-sm text-foreground";
+  "w-full rounded-lg bg-[var(--shell-canvas)] dark:bg-[var(--shell-hover)] border border-transparent focus:border-[var(--shell-accent)]/50 focus:outline-none focus:ring-2 focus:ring-[var(--shell-accent)]/30 px-3 py-2 text-sm text-foreground";
 const selectClass =
-  "w-full rounded-lg bg-[#F0F2F5] dark:bg-[#3A3B3C] border border-transparent focus:outline-none focus:ring-2 focus:ring-[#2164b6]/30 px-3 py-2 text-sm text-foreground appearance-none";
+  "w-full rounded-lg bg-[var(--shell-canvas)] dark:bg-[var(--shell-hover)] border border-transparent focus:outline-none focus:ring-2 focus:ring-[var(--shell-accent)]/30 px-3 py-2 text-sm text-foreground appearance-none";
 
 function PencilButton({ active, onClick, title }: { active?: boolean; onClick: () => void; title?: string }) {
   return (
@@ -68,8 +69,8 @@ function PencilButton({ active, onClick, title }: { active?: boolean; onClick: (
       className={cn(
         "h-8 w-8 inline-flex items-center justify-center rounded-lg transition-colors shrink-0",
         active
-          ? "bg-[#2164b6] text-white"
-          : "bg-[#F0F2F5] dark:bg-[#3A3B3C] text-[#65676B] dark:text-[#B0B3B8] hover:text-[#2164b6] dark:hover:text-[#7ab0ff]"
+          ? "bg-[var(--shell-accent-solid)] text-white"
+          : "bg-[var(--shell-canvas)] dark:bg-[var(--shell-hover)] text-[var(--shell-muted)] dark:text-[var(--shell-muted)] hover:text-[var(--shell-accent)] dark:hover:text-[var(--shell-accent)]"
       )}
     >
       <PencilSimple weight="fill" className="h-4 w-4" />
@@ -98,6 +99,13 @@ export default function EditProfilePage() {
   const [uploadingBanner, setUploadingBanner] = useState(false);
   const [editing, setEditing] = useState<FieldKey | null>(null);
 
+  // Opening a detail editor moves focus into its field, so keyboard users can
+  // type straight away instead of tabbing back past the pencil button.
+  useEffect(() => {
+    if (!editing) return;
+    document.getElementById(`profile-edit-${editing}`)?.focus();
+  }, [editing]);
+
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const bannerInputRef = useRef<HTMLInputElement>(null);
 
@@ -125,7 +133,7 @@ export default function EditProfilePage() {
       setWebsite(profile.website || "");
       setCategory(profile.category || "");
       setGender(profile.gender || "");
-      setBirthday(normalizeDate(profile.birthday as any));
+      setBirthday(normalizeDate(profile.birthday));
       setMobileNumber(profile.mobile_number || profile.phone || "");
       setAvatar(profile.avatar || profile.avatar_url || "");
       setBannerUrl(profile.banner_url || "");
@@ -147,7 +155,7 @@ export default function EditProfilePage() {
       website !== (profile.website || "") ||
       category !== (profile.category || "") ||
       gender !== (profile.gender || "") ||
-      birthday !== normalizeDate(profile.birthday as any) ||
+      birthday !== normalizeDate(profile.birthday) ||
       mobileNumber !== (profile.mobile_number || profile.phone || "") ||
       avatar !== (profile.avatar || profile.avatar_url || "") ||
       bannerUrl !== (profile.banner_url || "")
@@ -156,51 +164,49 @@ export default function EditProfilePage() {
 
   const location = [country, state].filter(Boolean).join(", ");
 
-  const loadMyGroups = React.useCallback(async () => {
-    try {
-      const res = await apiClient.get("/groups/mine");
-      const raw = res.data?.data ?? res.data;
-      const list = Array.isArray(raw) ? raw : [];
-      setGroups(
-        list.map((g: any) => ({
-          id: g.id,
-          name: g.name,
-          slug: g.slug,
-          avatar_url: g.avatar_url ?? g.avatar ?? null,
-          members_count: g.members_count ?? 0,
-          privacy: g.privacy ?? "public",
-          is_member: true,
-        }))
-      );
-    } catch {
-      setGroups([]);
-    }
-  }, []);
 
-  const loadMyCommunities = React.useCallback(async () => {
-    try {
-      const res = await apiClient.get("/my-communities");
-      const raw = res.data?.communities ?? res.data?.data ?? [];
-      const list = Array.isArray(raw) ? raw : [];
-      setCommunities(
-        list.map((c: any) => ({
-          id: c.id,
-          name: c.name,
-          slug: c.slug,
-          avatar: c.avatar_url ?? c.avatar ?? null,
-          members_count: c.members_count ?? 0,
-          is_following: true,
-        }))
-      );
-    } catch {
-      setCommunities([]);
-    }
-  }, []);
 
   useEffect(() => {
-    loadMyGroups();
-    loadMyCommunities();
-  }, [loadMyGroups, loadMyCommunities]);
+    (async () => {
+      try {
+        const res = await apiClient.get("/groups/mine");
+        const raw = res.data?.data ?? res.data;
+        const list = Array.isArray(raw) ? raw : [];
+        setGroups(
+          list.map((g) => ({
+            id: g.id,
+            name: g.name,
+            slug: g.slug,
+            avatar_url: g.avatar_url ?? g.avatar ?? null,
+            members_count: g.members_count ?? 0,
+            privacy: g.privacy ?? "public",
+            is_member: true,
+          }))
+        );
+      } catch {
+        setGroups([]);
+      }
+    })();
+    (async () => {
+      try {
+        const res = await apiClient.get("/my-communities");
+        const raw = res.data?.communities ?? res.data?.data ?? [];
+        const list = Array.isArray(raw) ? raw : [];
+        setCommunities(
+          list.map((c) => ({
+            id: c.id,
+            name: c.name,
+            slug: c.slug,
+            avatar: c.avatar_url ?? c.avatar ?? null,
+            members_count: c.members_count ?? 0,
+            is_following: true,
+          }))
+        );
+      } catch {
+        setCommunities([]);
+      }
+    })();
+  }, []);
 
   const toggleGroup = async (group: MyGroup) => {
     if (busyId) return;
@@ -270,7 +276,8 @@ export default function EditProfilePage() {
         toast.success("Profile photo updated. Tap Save to apply.");
       }
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Failed to upload avatar.");
+      const apiErr = asApiError(err);
+      toast.error(err instanceof Error ? apiErr.message : "Failed to upload avatar.");
     } finally {
       setUploadingAvatar(false);
     }
@@ -293,7 +300,8 @@ export default function EditProfilePage() {
         toast.success("Cover updated. Tap Save to apply.");
       }
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Failed to upload cover.");
+      const apiErr = asApiError(err);
+      toast.error(err instanceof Error ? apiErr.message : "Failed to upload cover.");
     } finally {
       setUploadingBanner(false);
     }
@@ -340,19 +348,19 @@ export default function EditProfilePage() {
 
   if (loading || (!profile && uploadingAvatar) || (!profile && uploadingBanner)) {
     return (
-      <AnimatedPage className="w-full min-h-screen bg-[#F0F2F5] dark:bg-[#18191A] flex items-center justify-center">
-        <Loader2 weight="fill" className="h-6 w-6 animate-spin text-[#2164b6]" />
+      <AnimatedPage className="w-full min-h-screen bg-[var(--shell-canvas)] dark:bg-[var(--shell-canvas)] flex items-center justify-center">
+        <Loader2 weight="fill" className="h-6 w-6 animate-spin text-[var(--shell-accent)]" />
       </AnimatedPage>
     );
   }
 
   if (!profile) {
     return (
-      <AnimatedPage className="w-full min-h-screen bg-[#F0F2F5] dark:bg-[#18191A] flex items-center justify-center">
+      <AnimatedPage className="w-full min-h-screen bg-[var(--shell-canvas)] dark:bg-[var(--shell-canvas)] flex items-center justify-center">
         <div className="text-center space-y-3 px-6">
           <Users weight="fill" className="h-10 w-10 mx-auto text-muted-foreground/50" />
           <h1 className="text-lg font-black text-foreground">Couldn't load your profile</h1>
-          <Link to="/app/feed" className="inline-block mt-2 px-4 py-2 rounded-xl bg-[#2164b6] text-white text-sm font-bold">
+          <Link to="/app/feed" className="inline-block mt-2 px-4 py-2 rounded-xl bg-[var(--shell-accent-solid)] text-white text-sm font-bold">
             Back to feed
           </Link>
         </div>
@@ -361,10 +369,10 @@ export default function EditProfilePage() {
   }
 
   return (
-    <AnimatedPage className="w-full min-h-screen bg-[#F0F2F5] dark:bg-[#18191A]">
+    <AnimatedPage className="w-full min-h-screen bg-[var(--shell-canvas)] dark:bg-[var(--shell-canvas)]">
       {/* ── Banner ── */}
       <div className="relative">
-        <div className="h-44 sm:h-60 w-full rounded-b-[32px] overflow-hidden bg-gradient-to-r from-[#2164b6] via-[#1a5091] to-[#0d2f5e]">
+        <div className="h-44 sm:h-60 w-full rounded-b-[32px] overflow-hidden bg-gradient-to-r from-[var(--shell-accent-solid)] via-[#1a5091] to-[#0d2f5e]">
           {bannerUrl ? (
             <img src={bannerUrl} alt="" className="w-full h-full object-cover" />
           ) : (
@@ -375,7 +383,7 @@ export default function EditProfilePage() {
         {/* Back to profile */}
         <Link
           to="/app/profile"
-          className="absolute left-4 top-4 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white/90 dark:bg-[#242526]/90 text-[#0d2f5e] dark:text-white text-xs font-bold shadow-lg backdrop-blur hover:bg-white dark:hover:bg-[#0d1117] transition-colors"
+          className="absolute left-4 top-4 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white/90 dark:bg-[var(--shell-surface)]/90 text-[#0d2f5e] dark:text-white text-xs font-bold shadow-lg backdrop-blur hover:bg-white dark:hover:bg-[#0d1117] transition-colors"
         >
           <ArrowLeft weight="bold" className="h-4 w-4" /> Profile
         </Link>
@@ -385,7 +393,7 @@ export default function EditProfilePage() {
           type="button"
           onClick={() => bannerInputRef.current?.click()}
           disabled={uploadingBanner}
-          className="absolute right-4 bottom-4 inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/90 dark:bg-[#242526]/90 text-[#0d2f5e] dark:text-white text-sm font-bold shadow-lg backdrop-blur hover:bg-white dark:hover:bg-[#0d1117] transition-colors disabled:opacity-60"
+          className="absolute right-4 bottom-4 inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/90 dark:bg-[var(--shell-surface)]/90 text-[#0d2f5e] dark:text-white text-sm font-bold shadow-lg backdrop-blur hover:bg-white dark:hover:bg-[#0d1117] transition-colors disabled:opacity-60"
         >
           {uploadingBanner ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera weight="fill" className="h-4 w-4" />}
           Change cover
@@ -397,7 +405,7 @@ export default function EditProfilePage() {
           type="button"
           onClick={handleSave}
           disabled={updating || !isDirty}
-          className="lg:hidden absolute right-4 top-16 inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#2164b6] hover:bg-[#1a5091] text-white text-sm font-bold shadow-lg disabled:opacity-50 transition-colors"
+          className="lg:hidden absolute right-4 top-16 inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[var(--shell-accent-solid)] hover:bg-[var(--shell-accent-hover)] text-white text-sm font-bold shadow-lg disabled:opacity-50 transition-colors"
         >
           {updating ? <Loader2 className="h-4 w-4 animate-spin" /> : <FloppyDisk weight="fill" className="h-4 w-4" />}
           Save
@@ -406,13 +414,13 @@ export default function EditProfilePage() {
 
       {/* ── Header card ── */}
       <div className="max-w-[1240px] mx-auto px-4 -mt-16 sm:-mt-20 relative z-10">
-        <div className="rounded-2xl bg-white dark:bg-[#242526] shadow-sm ring-1 ring-black/5 dark:ring-white/10 overflow-hidden">
-          <div className="h-1.5 w-full bg-gradient-to-r from-[#2164b6] to-[#7ab0ff]" />
+        <div className="rounded-2xl bg-white dark:bg-[var(--shell-surface)] shadow-sm ring-1 ring-black/5 dark:ring-white/10 overflow-hidden">
+          <div className="h-1.5 w-full bg-gradient-to-r from-[var(--shell-accent-solid)] to-[#7ab0ff]" />
           <div className="p-5 sm:p-7">
             <div className="flex flex-col sm:flex-row sm:items-end gap-5">
               {/* Avatar */}
               <div className="relative shrink-0">
-                <div className="h-28 w-28 sm:h-36 sm:w-36 rounded-full ring-4 ring-white dark:ring-[#0f1b30] bg-[#2164b6] flex items-center justify-center overflow-hidden">
+                <div className="h-28 w-28 sm:h-36 sm:w-36 rounded-full ring-4 ring-white dark:ring-[#0f1b30] bg-[var(--shell-accent-solid)] flex items-center justify-center overflow-hidden">
                   {avatar ? (
                     <img src={avatar} alt={name} className="w-full h-full object-cover" />
                   ) : (
@@ -424,7 +432,7 @@ export default function EditProfilePage() {
                   onClick={() => avatarInputRef.current?.click()}
                   disabled={uploadingAvatar}
                   title="Change photo"
-                  className="absolute bottom-1 right-1 h-9 w-9 rounded-full bg-white dark:bg-[#242526] shadow-lg ring-1 ring-black/10 dark:ring-white/10 flex items-center justify-center text-[#0d2f5e] dark:text-white hover:text-[#2164b6] dark:hover:text-[#7ab0ff] transition-colors disabled:opacity-60"
+                  className="absolute bottom-1 right-1 h-9 w-9 rounded-full bg-white dark:bg-[var(--shell-surface)] shadow-lg ring-1 ring-black/10 dark:ring-white/10 flex items-center justify-center text-[#0d2f5e] dark:text-white hover:text-[var(--shell-accent)] dark:hover:text-[var(--shell-accent)] transition-colors disabled:opacity-60"
                 >
                   {uploadingAvatar ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera weight="fill" className="h-4 w-4" />}
                 </button>
@@ -436,16 +444,16 @@ export default function EditProfilePage() {
                 <div className="flex items-center gap-2 flex-wrap">
                   {editing === "name" ? (
                     <input
-                      autoFocus
+                      id="profile-edit-name"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       onKeyDown={(e) => e.key === "Enter" && setEditing(null)}
-                      className="text-2xl sm:text-3xl font-black text-foreground tracking-tight rounded-lg px-2 bg-[#F0F2F5] dark:bg-[#3A3B3C] focus:outline-none focus:ring-2 focus:ring-[#2164b6]/40"
+                      className="text-2xl sm:text-3xl font-black text-foreground tracking-tight rounded-lg px-2 bg-[var(--shell-canvas)] dark:bg-[var(--shell-hover)] focus:outline-none focus:ring-2 focus:ring-[var(--shell-accent)]/40"
                     />
                   ) : (
                     <h1 className="text-2xl sm:text-3xl font-black text-foreground tracking-tight">{name}</h1>
                   )}
-                  <span className="px-2 py-0.5 rounded-md bg-[#2164b6]/10 text-[#2164b6] dark:text-[#7ab0ff] text-[11px] font-bold uppercase tracking-wide">
+                  <span className="px-2 py-0.5 rounded-md bg-[var(--shell-accent-solid)]/10 text-[var(--shell-accent)] dark:text-[var(--shell-accent)] text-[11px] font-bold uppercase tracking-wide">
                     {roleLabel(profile.role)}
                   </span>
                   <PencilButton active={editing === "name"} onClick={() => setEditing(editing === "name" ? null : "name")} title="Edit name" />
@@ -454,11 +462,11 @@ export default function EditProfilePage() {
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
                   {editing === "username" ? (
                     <input
-                      autoFocus
+                      id="profile-edit-username"
                       value={username}
                       onChange={(e) => setUsername(e.target.value.replace(/\s+/g, "").toLowerCase())}
                       onKeyDown={(e) => e.key === "Enter" && setEditing(null)}
-                      className="inline-flex items-center gap-1 rounded-lg px-2 py-1 bg-[#F0F2F5] dark:bg-[#3A3B3C] text-foreground font-semibold focus:outline-none focus:ring-2 focus:ring-[#2164b6]/40"
+                      className="inline-flex items-center gap-1 rounded-lg px-2 py-1 bg-[var(--shell-canvas)] dark:bg-[var(--shell-hover)] text-foreground font-semibold focus:outline-none focus:ring-2 focus:ring-[var(--shell-accent)]/40"
                       placeholder="username"
                     />
                   ) : (
@@ -474,15 +482,15 @@ export default function EditProfilePage() {
                         value={country}
                         onChange={(e) => setCountry(e.target.value)}
                         placeholder="Country"
-                        className="rounded-lg px-2 py-1 bg-[#F0F2F5] dark:bg-[#3A3B3C] text-foreground font-medium focus:outline-none focus:ring-2 focus:ring-[#2164b6]/40"
+                        className="rounded-lg px-2 py-1 bg-[var(--shell-canvas)] dark:bg-[var(--shell-hover)] text-foreground font-medium focus:outline-none focus:ring-2 focus:ring-[var(--shell-accent)]/40"
                       />
                       <input
                         value={state}
                         onChange={(e) => setState(e.target.value)}
                         placeholder="State / City"
-                        className="rounded-lg px-2 py-1 bg-[#F0F2F5] dark:bg-[#3A3B3C] text-foreground font-medium focus:outline-none focus:ring-2 focus:ring-[#2164b6]/40"
+                        className="rounded-lg px-2 py-1 bg-[var(--shell-canvas)] dark:bg-[var(--shell-hover)] text-foreground font-medium focus:outline-none focus:ring-2 focus:ring-[var(--shell-accent)]/40"
                       />
-                      <button onClick={() => setEditing(null)} className="h-7 w-7 inline-flex items-center justify-center rounded-lg bg-[#2164b6] text-white">
+                      <button onClick={() => setEditing(null)} className="h-7 w-7 inline-flex items-center justify-center rounded-lg bg-[var(--shell-accent-solid)] text-white">
                         <Check weight="bold" className="h-3.5 w-3.5" />
                       </button>
                     </div>
@@ -495,15 +503,15 @@ export default function EditProfilePage() {
 
                   {editing === "website" ? (
                     <input
-                      autoFocus
+                      id="profile-edit-website"
                       value={website}
                       onChange={(e) => setWebsite(e.target.value)}
                       onKeyDown={(e) => e.key === "Enter" && setEditing(null)}
                       placeholder="https://…"
-                      className="inline-flex rounded-lg px-2 py-1 bg-[#F0F2F5] dark:bg-[#3A3B3C] text-[#2164b6] dark:text-[#7ab0ff] font-semibold focus:outline-none focus:ring-2 focus:ring-[#2164b6]/40"
+                      className="inline-flex rounded-lg px-2 py-1 bg-[var(--shell-canvas)] dark:bg-[var(--shell-hover)] text-[var(--shell-accent)] dark:text-[var(--shell-accent)] font-semibold focus:outline-none focus:ring-2 focus:ring-[var(--shell-accent)]/40"
                     />
                   ) : (
-                    <span className="inline-flex items-center gap-1 font-semibold text-[#2164b6] dark:text-[#7ab0ff]">
+                    <span className="inline-flex items-center gap-1 font-semibold text-[var(--shell-accent)] dark:text-[var(--shell-accent)]">
                       <LinkSimple weight="fill" className="h-3.5 w-3.5" /> {website || "Add website"}
                     </span>
                   )}
@@ -517,19 +525,19 @@ export default function EditProfilePage() {
               {editing === "bio" ? (
                 <div className="flex-1">
                   <textarea
-                    autoFocus
+                    id="profile-edit-bio"
                     value={bio}
                     onChange={(e) => setBio(e.target.value)}
                     rows={3}
                     maxLength={200}
                     placeholder="Tell people about yourself…"
-                    className="w-full rounded-xl bg-[#F0F2F5] dark:bg-[#3A3B3C] p-3 text-sm text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-[#2164b6]/40"
+                    className="w-full rounded-xl bg-[var(--shell-canvas)] dark:bg-[var(--shell-hover)] p-3 text-sm text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-[var(--shell-accent)]/40"
                   />
                   <div className="flex items-center justify-end mt-1 gap-2">
                     <span className="text-[11px] text-muted-foreground font-semibold">{bio.length}/200</span>
                     <button
                       onClick={() => setEditing(null)}
-                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#2164b6] text-white text-xs font-bold"
+                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[var(--shell-accent-solid)] text-white text-xs font-bold"
                     >
                       <Check weight="bold" className="h-3.5 w-3.5" /> Done
                     </button>
@@ -550,7 +558,7 @@ export default function EditProfilePage() {
             {/* Stats */}
             <div className="mt-5 grid grid-cols-2 sm:grid-cols-4 gap-3">
               {stats.map((s) => (
-                <div key={s.label} className="rounded-xl bg-[#F0F2F5] dark:bg-[#3A3B3C] px-3 py-3 text-center">
+                <div key={s.label} className="rounded-xl bg-[var(--shell-canvas)] dark:bg-[var(--shell-hover)] px-3 py-3 text-center">
                   <p className="text-lg font-black text-foreground">{s.value.toLocaleString()}</p>
                   <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{s.label}</p>
                 </div>
@@ -563,14 +571,14 @@ export default function EditProfilePage() {
                 type="button"
                 onClick={handleSave}
                 disabled={updating || !isDirty}
-                className="hidden lg:inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#2164b6] hover:bg-[#1a5091] text-white text-sm font-bold transition-colors disabled:opacity-50"
+                className="hidden lg:inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[var(--shell-accent-solid)] hover:bg-[var(--shell-accent-hover)] text-white text-sm font-bold transition-colors disabled:opacity-50"
               >
                 {updating ? <Loader2 className="h-4 w-4 animate-spin" /> : <FloppyDisk weight="fill" className="h-4 w-4" />}
                 Save Changes
               </button>
               <Link
                 to="/app/profile"
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#2164b6]/10 text-[#2164b6] dark:text-[#7ab0ff] hover:bg-[#2164b6]/20 text-sm font-bold transition-colors"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[var(--shell-accent-solid)]/10 text-[var(--shell-accent)] dark:text-[var(--shell-accent)] hover:bg-[var(--shell-accent-solid)]/20 text-sm font-bold transition-colors"
               >
                 <CheckCircle weight="fill" className="h-4 w-4" /> View Profile
               </Link>
@@ -583,12 +591,12 @@ export default function EditProfilePage() {
           {/* LEFT COLUMN */}
           <div className="space-y-4 order-2 lg:order-1">
             {/* Groups */}
-            <div className="rounded-2xl bg-white dark:bg-[#242526] p-5 shadow-sm ring-1 ring-black/5 dark:ring-white/10">
+            <div className="rounded-2xl bg-white dark:bg-[var(--shell-surface)] p-5 shadow-sm ring-1 ring-black/5 dark:ring-white/10">
               <div className="flex items-center justify-between mb-3">
                 <h2 className="text-sm font-black text-foreground flex items-center gap-1.5">
-                  <Users weight="fill" className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" /> Groups you're in
+                  <Users weight="fill" className="h-4 w-4 text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" /> Groups you're in
                 </h2>
-                <Link to="/app/groups" className="text-[11px] font-bold text-[#2164b6] dark:text-[#7ab0ff] hover:underline">
+                <Link to="/app/groups" className="text-[11px] font-bold text-[var(--shell-accent)] dark:text-[var(--shell-accent)] hover:underline">
                   Find groups
                 </Link>
               </div>
@@ -597,7 +605,7 @@ export default function EditProfilePage() {
                   {groups.map((g) => (
                     <div key={g.id} className="flex items-center justify-between gap-3 rounded-lg py-1.5">
                       <div className="flex items-center gap-2.5 min-w-0">
-                        <span className="h-9 w-9 rounded-lg overflow-hidden bg-[#2164b6] flex items-center justify-center shrink-0">
+                        <span className="h-9 w-9 rounded-lg overflow-hidden bg-[var(--shell-accent-solid)] flex items-center justify-center shrink-0">
                           {g.avatar_url ? (
                             <img src={g.avatar_url} alt="" className="w-full h-full object-cover" />
                           ) : (
@@ -621,8 +629,8 @@ export default function EditProfilePage() {
                         className={cn(
                           "shrink-0 inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors disabled:opacity-50",
                           g.is_member || g.pending
-                            ? "bg-[#2164b6]/10 text-[#2164b6] dark:text-[#7ab0ff] hover:bg-[#2164b6]/20"
-                            : "bg-[#2164b6] text-white hover:bg-[#1a5091]"
+                            ? "bg-[var(--shell-accent-solid)]/10 text-[var(--shell-accent)] dark:text-[var(--shell-accent)] hover:bg-[var(--shell-accent-solid)]/20"
+                            : "bg-[var(--shell-accent-solid)] text-white hover:bg-[var(--shell-accent-hover)]"
                         )}
                       >
                         {busyId?.type === "group" && busyId.id === g.id ? (
@@ -642,7 +650,7 @@ export default function EditProfilePage() {
               ) : (
                 <div className="flex items-center justify-between gap-3">
                   <p className="text-xs text-muted-foreground">You're not in any groups yet.</p>
-                  <Link to="/app/groups" className="inline-flex items-center gap-1 text-xs font-bold text-[#2164b6] dark:text-[#7ab0ff] hover:underline">
+                  <Link to="/app/groups" className="inline-flex items-center gap-1 text-xs font-bold text-[var(--shell-accent)] dark:text-[var(--shell-accent)] hover:underline">
                     <UserPlus weight="fill" className="h-3.5 w-3.5" /> Join
                   </Link>
                 </div>
@@ -650,12 +658,12 @@ export default function EditProfilePage() {
             </div>
 
             {/* Communities */}
-            <div className="rounded-2xl bg-white dark:bg-[#242526] p-5 shadow-sm ring-1 ring-black/5 dark:ring-white/10">
+            <div className="rounded-2xl bg-white dark:bg-[var(--shell-surface)] p-5 shadow-sm ring-1 ring-black/5 dark:ring-white/10">
               <div className="flex items-center justify-between mb-3">
                 <h2 className="text-sm font-black text-foreground flex items-center gap-1.5">
-                  <Buildings weight="fill" className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" /> Communities you follow
+                  <Buildings weight="fill" className="h-4 w-4 text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" /> Communities you follow
                 </h2>
-                <Link to="/app/communities" className="text-[11px] font-bold text-[#2164b6] dark:text-[#7ab0ff] hover:underline">
+                <Link to="/app/communities" className="text-[11px] font-bold text-[var(--shell-accent)] dark:text-[var(--shell-accent)] hover:underline">
                   Discover
                 </Link>
               </div>
@@ -664,7 +672,7 @@ export default function EditProfilePage() {
                   {communities.map((c) => (
                     <div key={c.id} className="flex items-center justify-between gap-3 rounded-lg py-1.5">
                       <div className="flex items-center gap-2.5 min-w-0">
-                        <span className="h-9 w-9 rounded-lg overflow-hidden bg-[#2164b6] flex items-center justify-center shrink-0">
+                        <span className="h-9 w-9 rounded-lg overflow-hidden bg-[var(--shell-accent-solid)] flex items-center justify-center shrink-0">
                           {c.avatar ? (
                             <img src={c.avatar} alt="" className="w-full h-full object-cover" />
                           ) : (
@@ -690,8 +698,8 @@ export default function EditProfilePage() {
                         className={cn(
                           "shrink-0 inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors disabled:opacity-50",
                           c.is_following || c.pending
-                            ? "bg-[#2164b6]/10 text-[#2164b6] dark:text-[#7ab0ff] hover:bg-[#2164b6]/20"
-                            : "bg-[#2164b6] text-white hover:bg-[#1a5091]"
+                            ? "bg-[var(--shell-accent-solid)]/10 text-[var(--shell-accent)] dark:text-[var(--shell-accent)] hover:bg-[var(--shell-accent-solid)]/20"
+                            : "bg-[var(--shell-accent-solid)] text-white hover:bg-[var(--shell-accent-hover)]"
                         )}
                       >
                         {busyId?.type === "community" && busyId.id === c.id ? (
@@ -711,7 +719,7 @@ export default function EditProfilePage() {
               ) : (
                 <div className="flex items-center justify-between gap-3">
                   <p className="text-xs text-muted-foreground">You haven't joined any communities.</p>
-                  <Link to="/app/communities" className="inline-flex items-center gap-1 text-xs font-bold text-[#2164b6] dark:text-[#7ab0ff] hover:underline">
+                  <Link to="/app/communities" className="inline-flex items-center gap-1 text-xs font-bold text-[var(--shell-accent)] dark:text-[var(--shell-accent)] hover:underline">
                     <UserPlus weight="fill" className="h-3.5 w-3.5" /> Follow
                   </Link>
                 </div>
@@ -722,7 +730,7 @@ export default function EditProfilePage() {
           {/* RIGHT COLUMN */}
           <div className="space-y-4 order-1 lg:order-2 min-w-0">
             {/* Edit details */}
-            <div className="rounded-2xl bg-white dark:bg-[#242526] p-5 sm:p-6 shadow-sm ring-1 ring-black/5 dark:ring-white/10">
+            <div className="rounded-2xl bg-white dark:bg-[var(--shell-surface)] p-5 sm:p-6 shadow-sm ring-1 ring-black/5 dark:ring-white/10">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-sm font-black text-foreground">Profile details</h2>
                 <span className="text-[11px] text-muted-foreground font-semibold">Tap the pencil to edit</span>
@@ -734,7 +742,7 @@ export default function EditProfilePage() {
                   <div className="flex-1 min-w-0">
                     <p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Category</p>
                     {editing === "category" ? (
-                      <select autoFocus value={category} onChange={(e) => setCategory(e.target.value)} className={selectClass}>
+                      <select id="profile-edit-category" value={category} onChange={(e) => setCategory(e.target.value)} className={selectClass}>
                         <option value="">Select category</option>
                         {["Creator", "Brand / Vendor", "Influencer", "Tech", "Lifestyle", "Fashion", "Education", "Entertainment"].map((c) => (
                           <option key={c} value={c}>{c}</option>
@@ -752,7 +760,7 @@ export default function EditProfilePage() {
                   <div className="flex-1 min-w-0">
                     <p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Gender</p>
                     {editing === "gender" ? (
-                      <select autoFocus value={gender} onChange={(e) => setGender(e.target.value)} className={selectClass}>
+                      <select id="profile-edit-gender" value={gender} onChange={(e) => setGender(e.target.value)} className={selectClass}>
                         <option value="">Prefer not to say</option>
                         {["Male", "Female", "Non-binary"].map((g) => (
                           <option key={g} value={g}>{g}</option>
@@ -772,7 +780,7 @@ export default function EditProfilePage() {
                       <Calendar weight="fill" className="h-3 w-3" /> Birthday
                     </p>
                     {editing === "birthday" ? (
-                      <input autoFocus type="date" value={birthday} onChange={(e) => setBirthday(e.target.value)} className={inputClass} />
+                      <input id="profile-edit-birthday" type="date" value={birthday} onChange={(e) => setBirthday(e.target.value)} className={inputClass} />
                     ) : (
                       <p className="text-sm text-foreground font-medium mt-0.5">{birthday || <span className="text-muted-foreground/70">Not set</span>}</p>
                     )}
@@ -785,7 +793,7 @@ export default function EditProfilePage() {
                   <div className="flex-1 min-w-0">
                     <p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Mobile number</p>
                     {editing === "mobile" ? (
-                      <input autoFocus value={mobileNumber} onChange={(e) => setMobileNumber(e.target.value)} placeholder="+1 234 567 8900" className={inputClass} />
+                      <input id="profile-edit-mobile" value={mobileNumber} onChange={(e) => setMobileNumber(e.target.value)} placeholder="+1 234 567 8900" className={inputClass} />
                     ) : (
                       <p className="text-sm text-foreground font-medium mt-0.5">{mobileNumber || <span className="text-muted-foreground/70">Not set</span>}</p>
                     )}
@@ -802,7 +810,7 @@ export default function EditProfilePage() {
                   type="button"
                   onClick={handleSave}
                   disabled={updating || !isDirty}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#2164b6] hover:bg-[#1a5091] text-white text-sm font-bold transition-colors disabled:opacity-50"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[var(--shell-accent-solid)] hover:bg-[var(--shell-accent-hover)] text-white text-sm font-bold transition-colors disabled:opacity-50"
                 >
                   {updating ? <Loader2 className="h-4 w-4 animate-spin" /> : <FloppyDisk weight="fill" className="h-4 w-4" />}
                   Save Changes

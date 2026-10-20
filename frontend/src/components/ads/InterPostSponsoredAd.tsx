@@ -1,3 +1,4 @@
+import { safeHref } from "@/lib/safeUrl";
 import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router";
 import { apiClient } from "@/lib/api/client";
@@ -28,7 +29,6 @@ interface InterPostSponsoredAdProps {
 
 export function InterPostSponsoredAd({ ad, onDismiss }: InterPostSponsoredAdProps) {
   const [countdown, setCountdown] = useState(ad.skip_countdown ?? 5);
-  const [canSkip, setCanSkip] = useState((ad.skip_countdown ?? 5) <= 0);
   const [isDismissed, setIsDismissed] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(ad.likes ?? 342);
@@ -36,21 +36,14 @@ export function InterPostSponsoredAd({ ad, onDismiss }: InterPostSponsoredAdProp
   const impressionLogged = useRef(false);
 
   // Countdown timer: decrement by 1 second until 0
+  // Skip unlocks when the countdown reaches zero.
+  const canSkip = countdown <= 0;
+
   useEffect(() => {
-    if (countdown <= 0) {
-      setCanSkip(true);
-      return;
-    }
+    if (countdown <= 0) return;
 
     const timer = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          setCanSkip(true);
-          return 0;
-        }
-        return prev - 1;
-      });
+      setCountdown((prev) => Math.max(prev - 1, 0));
     }, 1000);
 
     return () => clearInterval(timer);
@@ -96,12 +89,12 @@ export function InterPostSponsoredAd({ ad, onDismiss }: InterPostSponsoredAdProp
       {/* ── Top Sponsored Header (Facebook / TikTok Style) ── */}
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-3">
-          <div className="h-11 w-11 rounded-full bg-gradient-to-tr from-[#2164b6] to-blue-500 p-[2px] shrink-0">
+          <div className="h-11 w-11 rounded-full bg-gradient-to-tr from-[var(--shell-accent-solid)] to-blue-500 p-[2px] shrink-0">
             <div className="w-full h-full rounded-full bg-card overflow-hidden flex items-center justify-center font-bold text-xs text-primary">
               {ad.advertiser_avatar ? (
                 <img src={ad.advertiser_avatar} alt="" className="w-full h-full object-cover" />
               ) : (
-                <Megaphone weight="fill" className="h-5 w-5 text-[#2164b6]" />
+                <Megaphone weight="fill" className="h-5 w-5 text-[var(--shell-accent)]" />
               )}
             </div>
           </div>
@@ -110,7 +103,7 @@ export function InterPostSponsoredAd({ ad, onDismiss }: InterPostSponsoredAdProp
             <div className="flex items-center gap-1.5">
               <span className="text-sm font-bold text-foreground">{ad.advertiser_name}</span>
               <SealCheck weight="fill" className="h-4 w-4 text-sky-500 shrink-0" />
-              <span className="ml-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-[#2164b6]/10 text-[#2164b6] dark:text-[#7ab0ff]">
+              <span className="ml-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-[var(--shell-accent-solid)]/10 text-[var(--shell-accent)] dark:text-[var(--shell-accent)]">
                 Sponsored
               </span>
             </div>
@@ -192,18 +185,18 @@ export function InterPostSponsoredAd({ ad, onDismiss }: InterPostSponsoredAdProp
             <Link
               to={ad.destination_url}
               onClick={handleAdClick}
-              className="w-full h-11 rounded-xl bg-[#2164b6] hover:bg-[#1a5091] text-white font-bold text-xs sm:text-sm transition-all shadow-md flex items-center justify-center gap-2"
+              className="w-full h-11 rounded-xl bg-[var(--shell-accent-solid)] hover:bg-[var(--shell-accent-hover)] text-white font-bold text-xs sm:text-sm transition-all shadow-md flex items-center justify-center gap-2"
             >
               <span>{ad.cta_text || "Learn More"}</span>
               <ArrowSquareOut weight="bold" className="w-4 h-4" />
             </Link>
           ) : (
             <a
-              href={ad.destination_url}
+              href={safeHref(ad.destination_url)}
               target="_blank"
               rel="noopener noreferrer"
               onClick={handleAdClick}
-              className="w-full h-11 rounded-xl bg-[#2164b6] hover:bg-[#1a5091] text-white font-bold text-xs sm:text-sm transition-all shadow-md flex items-center justify-center gap-2"
+              className="w-full h-11 rounded-xl bg-[var(--shell-accent-solid)] hover:bg-[var(--shell-accent-hover)] text-white font-bold text-xs sm:text-sm transition-all shadow-md flex items-center justify-center gap-2"
             >
               <span>{ad.cta_text || "Learn More"}</span>
               <ArrowSquareOut weight="bold" className="w-4 h-4" />

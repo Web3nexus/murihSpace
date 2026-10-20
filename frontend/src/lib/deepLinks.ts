@@ -65,10 +65,9 @@ export const APP_CLAIMED_PREFIXES = Object.values(PATHS);
 /**
  * Resolves the SPA origin that shared links must point at.
  *
- * Staging builds share staging links and production builds share production
- * links, so a link pasted from a staging device never leaks into production
- * chat. `VITE_APP_URL` wins when set, which is how each deployed build is
- * pinned; otherwise the current hostname decides.
+ * `VITE_APP_URL` pins each deployed build to its own origin, so a link shared
+ * from staging never points at production. Without it, the page's own origin is
+ * used. Nothing is guessed from the hostname.
  */
 export function siteUrl(): string {
   const configured = import.meta.env.VITE_APP_URL;
@@ -76,15 +75,9 @@ export function siteUrl(): string {
     return configured.trim().replace(/\/+$/, "");
   }
   if (typeof window !== "undefined") {
-    const { origin, hostname } = window.location;
-    // localhost must never be shared — fall back to the hosted origin.
-    if (hostname === "localhost" || hostname === "127.0.0.1") {
-      return "https://web.murihspace.com";
-    }
-    if (hostname.includes("staging")) return origin;
-    return "https://web.murihspace.com";
+    return window.location.origin;
   }
-  return "https://web.murihspace.com";
+  return "";
 }
 
 /** Strips a leading `@` from a handle and trims surrounding whitespace. */
@@ -118,8 +111,21 @@ export function chatUrl(conversationId: string | number): string {
   return `${PATHS.chat}/${encodeURIComponent(String(conversationId))}`;
 }
 
+/** Public profile link (`/@handle`) on the canonical domain; empty while unknown. */
 export function profileUrl(username: string): string {
-  return `${profileOrigin()}/@${encodeURIComponent(normaliseHandle(username))}`;
+  const origin = profileOrigin();
+  if (!origin) return "";
+  return `${origin}/@${encodeURIComponent(normaliseHandle(username))}`;
+}
+
+/**
+ * Link-in-bio link (`/l/handle`) on the canonical domain. Separate from the
+ * profile link. Empty while the canonical domain is unknown.
+ */
+export function linkInBioUrl(username: string): string {
+  const origin = profileOrigin();
+  if (!origin) return "";
+  return `${origin}/l/${encodeURIComponent(normaliseHandle(username))}`;
 }
 
 /**
@@ -132,32 +138,38 @@ export function profileDomain(): string {
   return profileOrigin().replace(/^https?:\/\//i, "");
 }
 
-/** Resolves the origin serving vanity profile / link-in-bio pages. */
+let backendProfileOrigin: string | null = null;
+
+/**
+ * Records the canonical profile domain the backend reports on `/platform`
+ * (its `canonical_profile_domain` setting). Called once at startup, so profile
+ * and bio links never depend on a value baked into the build.
+ */
+export function setBackendProfileDomain(domain: string | null | undefined): void {
+  const clean = (domain ?? "").trim().replace(/^https?:\/\//i, "").replace(/\/+$/, "");
+  if (clean) backendProfileOrigin = `https://${clean}`;
+}
+
+/**
+ * Resolves the origin serving vanity profile / link-in-bio pages: the backend's
+ * canonical domain first, then the build setting. Returns an empty string when
+ * neither is known, so no link is ever built on a guessed host.
+ */
 function profileOrigin(): string {
+  if (backendProfileOrigin) return backendProfileOrigin;
   const configured = import.meta.env.VITE_PROFILE_DOMAIN;
   if (typeof configured === "string" && configured.trim()) {
-    const trimmed = configured.trim().replace(/\/+$/, "");
-    if (typeof window !== "undefined") {
-      const { hostname, origin } = window.location;
-      // If running in a staging or local development environment, do not let a hardcoded production murih.me hijack staging!
-      if (
-        (hostname.includes("staging") || hostname === "localhost" || hostname === "127.0.0.1") &&
-        trimmed.includes("murih.me")
-      ) {
-        return origin;
-      }
-    }
-    return trimmed;
+    return configured.trim().replace(/\/+$/, "");
   }
 
   if (typeof window !== "undefined") {
     const { origin, hostname } = window.location;
-    if (hostname.includes("staging") || hostname === "localhost" || hostname === "127.0.0.1") {
+    if (hostname === "localhost" || hostname === "127.0.0.1") {
       return origin;
     }
   }
 
-  return "https://murih.me";
+  return "";
 }
 
 /**
@@ -183,27 +195,13 @@ export function isProfileDomainHost(): boolean {
 export function mainSiteUrl(): string {
   const configured = import.meta.env.VITE_MAIN_SITE_URL;
   if (typeof configured === "string" && configured.trim()) {
-    const trimmed = configured.trim().replace(/\/+$/, "");
-    if (typeof window !== "undefined") {
-      const { hostname, origin } = window.location;
-      if (
-        (hostname.includes("staging") || hostname === "localhost" || hostname === "127.0.0.1") &&
-        trimmed.includes("web.murihspace.com")
-      ) {
-        return origin;
-      }
-    }
-    return trimmed;
+    return configured.trim().replace(/\/+$/, "");
   }
   return siteUrl();
 }
 
 export function communityUrl(slug: string): string {
   return `${PATHS.community}/${encodeURIComponent(slug.trim())}`;
-}
-
-export function linkInBioUrl(username: string): string {
-  return `${PATHS.linkInBio}/${encodeURIComponent(normaliseHandle(username))}`;
 }
 
 export function storefrontUrl(shortCode: string): string {
@@ -412,13 +410,16 @@ export function isReturnableRoute(path: string): boolean {
     "/products/",
     "/meeting",
     "/meetings/",
+    "/ads/sso/authorize",
   ];
   // Match on a path-segment boundary. A bare `startsWith("/m")` would accept
   // `/marketplace` as a safe login destination, so each prefix is trimmed to
   // its segment and only an exact hit or a `/child` of it qualifies.
+  // The query string may carry a `state`, so match on the path alone.
+  const pathOnly = lower.split(/[?#]/, 1)[0];
   return prefixes.some((prefix) => {
     const segment = prefix.endsWith("/") ? prefix.slice(0, -1) : prefix;
-    return lower === segment || lower.startsWith(`${segment}/`);
+    return pathOnly === segment || pathOnly.startsWith(`${segment}/`);
   });
 }
 

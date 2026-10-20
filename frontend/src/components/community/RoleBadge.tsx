@@ -26,7 +26,7 @@ export function RoleBadge({ role = "member", isOwner = false, color, className =
   if (normalizedRole === "admin" || normalizedRole === "administrator") {
     return (
       <Badge
-        className={`bg-[#2164b6] text-white border-transparent gap-1 text-[11px] font-bold px-2 py-0.5 rounded-md shadow-2xs ${className}`}
+        className={`bg-[var(--shell-accent-solid)] text-white border-transparent gap-1 text-[11px] font-bold px-2 py-0.5 rounded-md shadow-2xs ${className}`}
       >
         <ShieldWarning weight="fill" className="h-3 w-3" />
         <span>Admin</span>

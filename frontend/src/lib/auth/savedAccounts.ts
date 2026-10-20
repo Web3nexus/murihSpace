@@ -1,9 +1,11 @@
 /**
  * Lightweight multi-account registry for the web app.
  *
- * Mirrors the mobile client's saved-accounts store: a small list of
- * previously authenticated accounts (token + basic profile) kept in
- * localStorage so the user can switch profiles without a full re-login.
+ * A small list of previously signed-in accounts (basic profile only) kept in
+ * localStorage so the account menu can show who has used this browser.
+ *
+ * It holds no credentials. Web sessions live in the httpOnly cookie, so
+ * switching to another account means signing in to it again.
  */
 
 export interface SavedAccount {
@@ -13,11 +15,17 @@ export interface SavedAccount {
   username?: string;
   role: string;
   avatar?: string;
-  token: string;
 }
 
 const STORAGE_KEY = "murihspace-saved-accounts";
 const MAX_ACCOUNTS = 5;
+
+/** Strips any credential an older build stored alongside the profile fields. */
+function toProfileOnly(entry: Record<string, unknown>): SavedAccount {
+  const profile: Record<string, unknown> = { ...entry };
+  delete profile.token;
+  return profile as unknown as SavedAccount;
+}
 
 export function getSavedAccounts(): SavedAccount[] {
   if (typeof window === "undefined") return [];
@@ -26,10 +34,14 @@ export function getSavedAccounts(): SavedAccount[] {
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
-    return parsed.filter(
-      (a): a is SavedAccount =>
-        a && typeof a === "object" && typeof a.token === "string" && typeof a.id === "number"
-    );
+    const accounts = parsed
+      .filter((a): a is Record<string, unknown> => a !== null && typeof a === "object" && typeof a.id === "number")
+      .map(toProfileOnly);
+    // Rewrite the list once if it still carries stored tokens from an older build.
+    if (parsed.some((a) => a && typeof a === "object" && "token" in a)) {
+      writeSavedAccounts(accounts);
+    }
+    return accounts;
   } catch {
     return [];
   }
@@ -46,10 +58,8 @@ function writeSavedAccounts(accounts: SavedAccount[]): void {
 
 /** Inserts (or refreshes) an account, most-recent first, capped at [MAX_ACCOUNTS]. */
 export function saveSavedAccount(account: SavedAccount): SavedAccount[] {
-  const accounts = getSavedAccounts().filter(
-    (a) => a.id !== account.id && a.token !== account.token
-  );
-  accounts.unshift(account);
+  const accounts = getSavedAccounts().filter((a) => a.id !== account.id);
+  accounts.unshift(toProfileOnly({ ...account }));
   const next = accounts.slice(0, MAX_ACCOUNTS);
   writeSavedAccounts(next);
   return next;

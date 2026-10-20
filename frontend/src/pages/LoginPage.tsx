@@ -19,7 +19,7 @@ import { cn } from "@/lib/utils";
 import { anyLoginMethodEnabled, loginVisibility } from "@/lib/loginVisibility";
 import { AuthLayout } from "@/components/layout/AuthLayout";
 import { stashSocialReturn, usePostAuthRedirect } from "@/lib/usePostAuthRedirect";
-import { clearImpersonationToken } from "@/lib/auth/token";
+import { setSessionHint } from "@/lib/auth/sessionHint";
 import QRCode from "qrcode";
 
 const DEFAULT_COUNTRY = "NG";
@@ -55,12 +55,13 @@ export function LoginPage() {
   const [qrImage, setQrImage] = useState<string | null>(null);
   const [qrPollToken, setQrPollToken] = useState<string | null>(null);
   const [qrStatus, setQrStatus] = useState<"pending" | "scanned" | "expired" | "error">("pending");
-  const [qrConfirmationCode, setQrConfirmationCode] = useState<string | null>(null);
   const [qrError, setQrError] = useState<string | null>(null);
   const [qrExpiresAt, setQrExpiresAt] = useState<number | null>(null);
   const [qrCountdown, setQrCountdown] = useState<number>(0);
   const qrPollRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const qrPollTokenRef = useRef<string | null>(null);
+  const qrStartingRef = useRef(false);
+  const qrRequestIdRef = useRef(0);
 
   const [socialLoading, setSocialLoading] = useState<string | null>(null);
   const [socialError, setSocialError] = useState<string | null>(null);
@@ -96,11 +97,15 @@ export function LoginPage() {
   };
 
   const startQr = async () => {
+    // One request at a time: the countdown can call this on several ticks.
+    if (qrStartingRef.current) return;
+    qrStartingRef.current = true;
+    const requestId = ++qrRequestIdRef.current;
     qrPollTokenRef.current = null;
     clearQrPoll();
+    setQrExpiresAt(null);
     setQrStatus("pending");
     setQrImage(null);
-    setQrConfirmationCode(null);
     setQrError(null);
     try {
       const res = await authFetch("/auth/qr/start", {
@@ -109,30 +114,34 @@ export function LoginPage() {
       });
       if (!res.ok) throw new Error(`The server returned ${res.status}. Please try again.`);
       const j = await res.json();
+      if (requestId !== qrRequestIdRef.current) return;
       const d = j?.success ? j?.data : j;
       const token = d?.qr_token as string | undefined;
       const poll = d?.poll_token as string | undefined;
-      const code = d?.confirmation_code as string | undefined;
       const expiresAt = d?.expires_at as string | undefined;
       if (!token || !poll) throw new Error("The server did not return a QR code.");
 
       qrPollTokenRef.current = poll;
       setQrPollToken(poll);
-      setQrConfirmationCode(code ?? null);
       const expires = expiresAt ? new Date(expiresAt).getTime() : Date.now() + 120_000;
       setQrExpiresAt(expires);
       setQrCountdown(Math.max(0, Math.floor((expires - Date.now()) / 1000)));
 
       const link = (d?.qr_deep_link as string) || (d?.qr_url as string) || `murihspace://qr-login?token=${token}`;
-      QRCode.toDataURL(link, { width: 512, margin: 1, errorCorrectionLevel: "M" })
-        .then((data) => setQrImage(data))
+      QRCode.toDataURL(link, { width: 512, margin: 1, errorCorrectionLevel: "H" })
+        .then((data) => {
+          if (requestId === qrRequestIdRef.current) setQrImage(data);
+        })
         .catch(() => {
           setQrError("Could not render the QR code image.");
           setQrStatus("error");
         });
     } catch (err) {
+      if (requestId !== qrRequestIdRef.current) return;
       setQrError(err instanceof Error ? err.message : "Could not reach the login server.");
       setQrStatus("error");
+    } finally {
+      qrStartingRef.current = false;
     }
   };
 
@@ -154,25 +163,23 @@ export function LoginPage() {
       const d = j?.data ?? j?.errors ?? j ?? {};
       const status = d?.status as string | undefined;
 
-      if (status === "approved" && d?.token) {
+      // The approval sets the session cookie server-side. No token is returned to the browser.
+      if (status === "approved") {
         const role = d?.user?.role;
         // The web dashboard is for creators and vendors only, mirroring the
         // phone-OTP path: admins use the securegate portal, members use the app.
         if (role === "admin" || role === "member") {
-          // The approval already minted a valid session token server-side.
-          // Revoke it before discarding so it can never be replayed, then route
-          // the user to the correct surface.
-          await authFetch("/auth/logout", {
-            method: "POST",
-            headers: { Authorization: `Bearer ${d.token as string}` },
-          }).catch(() => {});
+          // The approval already set a session cookie server-side. Revoke it
+          // before discarding so it can never be replayed, then route the user
+          // to the correct surface.
+          await authFetch("/auth/logout", { method: "POST" }).catch(() => {});
           if (role === "admin") setAdminBlocked(true);
           else setMemberBlocked(true);
           clearQrPoll();
           return;
         }
-        clearImpersonationToken();
-        localStorage.setItem("murihspace-token", d.token as string);
+        // A full load lets the auth provider pick up the new session from /user.
+        setSessionHint(true);
         window.location.assign(postAuthPath);
         return;
       }
@@ -188,7 +195,6 @@ export function LoginPage() {
         // Unexpected error payload — stop rather than loop forever, and drop
         // the now-stale QR image so it cannot be shown as if still valid.
         setQrImage(null);
-        setQrConfirmationCode(null);
         setQrStatus("error");
         return;
       }
@@ -209,8 +215,12 @@ export function LoginPage() {
       clearQrPoll();
       return;
     }
-    void startQr();
-    return () => clearQrPoll();
+    // Start just after the effect so the transaction's state updates are not synchronous in the effect body
+    const start = setTimeout(() => void startQr(), 0);
+    return () => {
+      clearTimeout(start);
+      clearQrPoll();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loginMode]);
 
@@ -229,8 +239,10 @@ export function LoginPage() {
       const diff = Math.max(0, Math.floor((qrExpiresAt - Date.now()) / 1000));
       setQrCountdown(diff);
       if (diff <= 0) {
-        setQrStatus("expired");
+        // Like a messenger's web login: when the code times out, a fresh one
+        // replaces it without any action from the user.
         clearQrPoll();
+        void startQr();
       }
     };
     tick();
@@ -314,10 +326,10 @@ export function LoginPage() {
     >
       <div className="flex flex-col gap-5">
         <div className="flex flex-col gap-1 text-left">
-          <h2 className="text-xl sm:text-xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+          <h2 className="text-xl sm:text-xl font-extrabold tracking-tight text-[var(--shell-text)] dark:text-white">
             Sign in to MurihSpace
           </h2>
-          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+          <p className="text-xs sm:text-sm text-[var(--shell-muted)] dark:text-[var(--shell-muted)]">
             {loginMode === "qr"
               ? "Scan this code with the MurihSpace mobile app to sign in instantly."
               : "We'll text you a code to verify it's you."}
@@ -341,14 +353,14 @@ export function LoginPage() {
         )}
 
         {memberBlocked && (
-          <div className="rounded-lg bg-blue-500/10 border border-blue-500/20 p-4 text-center ">
+          <div className="rounded-lg bg-[var(--shell-accent-solid)]/10 border border-[var(--shell-accent)]/20 p-4 text-center ">
             <div className="flex items-center justify-center mb-3">
-              <div className="bg-blue-100 dark:bg-blue-900/40 p-3 rounded-full text-blue-600 dark:text-blue-400">
+              <div className="bg-blue-100 dark:bg-blue-900/40 p-3 rounded-full text-[var(--shell-accent)] dark:text-[var(--shell-accent)]">
                 <Smartphone weight="fill" className="h-6 w-6" />
               </div>
             </div>
-            <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-2">Download the App</h3>
-            <p className="text-xs text-slate-600 dark:text-slate-400 mb-4 leading-relaxed">
+            <h3 className="text-sm font-bold text-[var(--shell-text)] dark:text-white mb-2">Download the App</h3>
+            <p className="text-xs text-[var(--shell-muted)] dark:text-[var(--shell-muted)] mb-4 leading-relaxed">
               The web dashboard is exclusively designed for Creators and Vendors. Please use the MurihSpace mobile app to connect safely with communities.
             </p>
             <div className="flex flex-col gap-2">
@@ -378,8 +390,8 @@ export function LoginPage() {
               className={cn(
                 "flex-1 flex items-center justify-center gap-1.5 h-10 rounded-md text-xs sm:text-sm font-bold transition-all",
                 loginMode === "qr"
-                  ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm"
-                  : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white",
+                  ? "bg-white dark:bg-slate-900 text-[var(--shell-text)] dark:text-white shadow-sm"
+                  : "text-[var(--shell-muted)] hover:text-[var(--shell-text)] dark:text-[var(--shell-muted)] dark:hover:text-white",
               )}
             >
               <ScanIcon className="h-4 w-4" />
@@ -392,8 +404,8 @@ export function LoginPage() {
               className={cn(
                 "flex-1 flex items-center justify-center gap-1.5 h-10 rounded-md text-xs sm:text-sm font-bold transition-all",
                 loginMode === "phone"
-                  ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm"
-                  : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white",
+                  ? "bg-white dark:bg-slate-900 text-[var(--shell-text)] dark:text-white shadow-sm"
+                  : "text-[var(--shell-muted)] hover:text-[var(--shell-text)] dark:text-[var(--shell-muted)] dark:hover:text-white",
               )}
             >
               <Smartphone className="h-4 w-4" />
@@ -413,7 +425,12 @@ export function LoginPage() {
         {/* QR login */}
         {loginMode === "qr" && anyLoginMethodEnabled(visibility) && (
           <div className="flex flex-col items-center justify-center gap-4 py-2">
-            <div className="relative flex items-center justify-center rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 p-5 shadow-sm">
+            <div className="relative flex items-center justify-center rounded-2xl border border-[var(--shell-border)] dark:border-[var(--shell-border)] bg-white dark:bg-slate-950 p-5 shadow-sm">
+              {qrImage && qrStatus === "pending" && (
+                <div className="pointer-events-none absolute left-1/2 top-1/2 z-20 flex h-14 w-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-xl bg-white p-1.5 shadow-md ring-1 ring-slate-200">
+                  <img src="/logos/member-icon-light.png" alt="" aria-hidden="true" className="h-full w-full object-contain" />
+                </div>
+              )}
               {qrImage ? (
                 <img src={qrImage} alt="QR code to sign in" className="h-56 w-56 sm:h-64 sm:w-64" />
               ) : (
@@ -428,14 +445,14 @@ export function LoginPage() {
                       </Button>
                     </div>
                   ) : (
-                    <Loader2 weight="fill" className="h-6 w-6 animate-spin text-slate-500" />
+                    <Loader2 weight="fill" className="h-6 w-6 animate-spin text-[var(--shell-muted)]" />
                   )}
                 </div>
               )}
 
               {qrStatus === "expired" && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 rounded-2xl bg-white/90 dark:bg-slate-950/90 backdrop-blur-sm">
-                  <span className="text-sm font-bold text-slate-900 dark:text-white">QR code expired</span>
+                  <span className="text-sm font-bold text-[var(--shell-text)] dark:text-white">QR code expired</span>
                   <Button type="button" size="sm" onClick={() => void startQr()}>
                     Refresh QR
                   </Button>
@@ -445,35 +462,22 @@ export function LoginPage() {
               {qrStatus === "scanned" && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 rounded-2xl bg-white/95 dark:bg-slate-950/95 backdrop-blur-sm">
                   <CheckCircle2 className="h-8 w-8 text-emerald-500" weight="fill" />
-                  <span className="text-sm font-bold text-slate-900 dark:text-white">Scanned</span>
-                  <p className="px-6 text-center text-xs text-slate-500 dark:text-slate-400">
+                  <span className="text-sm font-bold text-[var(--shell-text)] dark:text-white">Scanned</span>
+                  <p className="px-6 text-center text-xs text-[var(--shell-muted)] dark:text-[var(--shell-muted)]">
                     Approve the sign-in on your mobile device to continue.
                   </p>
                 </div>
               )}
             </div>
 
-            {qrConfirmationCode && (qrStatus === "pending" || qrStatus === "scanned") && (
-              <div className="flex flex-col items-center gap-1 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 px-5 py-3">
-                <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                  Confirmation code
-                </span>
-                <span className="font-mono text-2xl font-bold tracking-[0.35em] text-slate-900 dark:text-white">
-                  {qrConfirmationCode}
-                </span>
-                <span className="text-xs text-slate-500 dark:text-slate-400 text-center">
-                  Enter this code on your phone to approve the sign-in.
-                </span>
-              </div>
-            )}
 
             <div className="flex flex-col items-center gap-1 text-center">
-              <p className="text-xs text-slate-500 dark:text-slate-400">
+              <p className="text-xs text-[var(--shell-muted)] dark:text-[var(--shell-muted)]">
                 Open <span className="font-semibold text-slate-700 dark:text-slate-200">MurihSpace</span> on your phone, tap{" "}
                 <span className="font-semibold text-slate-700 dark:text-slate-200">Link a device</span>, then scan.
               </p>
               {qrExpiresAt !== null && qrStatus !== "expired" && (
-                <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">
+                <span className="text-xs font-semibold text-[var(--shell-muted)] dark:text-[var(--shell-muted)]">
                   Expires in {qrCountdown}s
                 </span>
               )}
@@ -488,7 +492,7 @@ export function LoginPage() {
               <form onSubmit={(e) => handleRequestPhoneOtp({ e })} className="space-y-4">
                 <FieldGroup className="space-y-4">
                   <Field>
-                    <FieldLabel htmlFor="login-phone" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    <FieldLabel htmlFor="login-phone" className="text-xs font-semibold text-slate-700 dark:text-[var(--shell-muted)]">
                       Mobile number
                     </FieldLabel>
                     <PhoneInput
@@ -500,7 +504,7 @@ export function LoginPage() {
                       }}
                       placeholder="801 234 5678"
                       disabled={loading}
-                      className="bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-800"
+                      className="bg-slate-50 dark:bg-slate-800/60 border-[var(--shell-border)] dark:border-[var(--shell-border)]"
                     />
                     {fieldErrors.phone_e164 && (
                       <p className="text-xs text-rose-500 mt-1">{fieldErrors.phone_e164[0]}</p>
@@ -510,7 +514,7 @@ export function LoginPage() {
                     id="login-phone-submit"
                     type="submit"
                     disabled={loading || !phoneE164}
-                    className="w-full h-12 rounded-lg bg-[#2164b6] hover:bg-[#1a5091] text-white text-base font-bold shadow-lg shadow-[#2164b6]/25 transition-all duration-200 active:scale-[0.99]"
+                    className="w-full h-12 rounded-lg bg-[var(--shell-accent-solid)] hover:bg-[var(--shell-accent-hover)] text-white text-base font-bold shadow-lg shadow-[#2164b6]/25 transition-all duration-200 active:scale-[0.99]"
                   >
                     {loading ? <><Loader2 weight="fill" className="mr-2 h-5 w-5 animate-spin" /> Sending code…</> : "Continue"}
                   </Button>
@@ -521,9 +525,9 @@ export function LoginPage() {
                 {otpChannel === "in_app_active_device" ? (
                   <div className="p-3.5 rounded-lg bg-sky-50 dark:bg-sky-950/40 border border-sky-200 dark:border-sky-800 space-y-2">
                     <div className="flex items-start gap-2.5">
-                      <Smartphone weight="fill" className="h-5 w-5 text-[#2164b6] dark:text-[#7ab0ff] shrink-0 mt-0.5" />
-                      <div className="text-xs text-slate-700 dark:text-slate-300 space-y-1">
-                        <p className="font-semibold text-slate-900 dark:text-white">
+                      <Smartphone weight="fill" className="h-5 w-5 text-[var(--shell-accent)] dark:text-[var(--shell-accent)] shrink-0 mt-0.5" />
+                      <div className="text-xs text-slate-700 dark:text-[var(--shell-muted)] space-y-1">
+                        <p className="font-semibold text-[var(--shell-text)] dark:text-white">
                           Sent to your active signed-in device
                         </p>
                         <p>
@@ -532,22 +536,22 @@ export function LoginPage() {
                       </div>
                     </div>
                     <div className="pt-1.5 border-t border-sky-100 dark:border-sky-900/60 flex items-center justify-between text-xs">
-                      <span className="text-slate-500 dark:text-slate-400">Didn't get the code?</span>
+                      <span className="text-[var(--shell-muted)] dark:text-[var(--shell-muted)]">Didn't get the code?</span>
                       <button
                         type="button"
                         onClick={() => handleRequestPhoneOtp({ forceSms: true })}
                         disabled={loading}
-                        className="font-bold text-[#2164b6] dark:text-[#7ab0ff] hover:underline cursor-pointer disabled:opacity-50"
+                        className="font-bold text-[var(--shell-accent)] dark:text-[var(--shell-accent)] hover:underline cursor-pointer disabled:opacity-50"
                       >
                         Send via SMS instead
                       </button>
                     </div>
                   </div>
                 ) : (
-                  <div className="p-3 rounded-lg bg-[#2164b6]/10 border border-[#2164b6]/20 flex items-center gap-2.5">
-                    <CheckCircle2 weight="fill" className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff] shrink-0" />
-                    <p className="text-xs font-medium text-slate-700 dark:text-slate-300">
-                      We sent a 6-digit code via SMS to <span className="font-bold text-[#2164b6] dark:text-[#7ab0ff]">{maskedPhone}</span>.
+                  <div className="p-3 rounded-lg bg-[var(--shell-accent-solid)]/10 border border-[var(--shell-accent)]/20 flex items-center gap-2.5">
+                    <CheckCircle2 weight="fill" className="h-4 w-4 text-[var(--shell-accent)] dark:text-[var(--shell-accent)] shrink-0" />
+                    <p className="text-xs font-medium text-slate-700 dark:text-[var(--shell-muted)]">
+                      We sent a 6-digit code via SMS to <span className="font-bold text-[var(--shell-accent)] dark:text-[var(--shell-accent)]">{maskedPhone}</span>.
                     </p>
                   </div>
                 )}
@@ -569,7 +573,7 @@ export function LoginPage() {
                       <p className="text-xs text-amber-600 dark:text-amber-400 font-medium">
                         No account is linked to this number.
                       </p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                      <p className="text-xs text-[var(--shell-muted)] dark:text-[var(--shell-muted)]">
                         Create one in the MurihSpace mobile app, then sign in here.
                       </p>
                     </div>
@@ -580,7 +584,7 @@ export function LoginPage() {
                       variant="ghost"
                       onClick={() => setPhoneStep("phone")}
                       disabled={loading}
-                      className="text-sm text-slate-600 dark:text-slate-400"
+                      className="text-sm text-[var(--shell-muted)] dark:text-[var(--shell-muted)]"
                     >
                       <ArrowLeft weight="fill" className="h-4 w-4 mr-1" /> Change number
                     </Button>
@@ -593,7 +597,7 @@ export function LoginPage() {
                         void handleRequestPhoneOtp({ forceSms: otpChannel === "in_app_active_device" });
                       }}
                       disabled={loading || resendIn > 0}
-                      className="flex-1 text-sm text-[#2164b6] dark:text-[#7ab0ff]"
+                      className="flex-1 text-sm text-[var(--shell-accent)] dark:text-[var(--shell-accent)]"
                     >
                       <RefreshCw weight="fill" className={cn("h-4 w-4 mr-1", resendIn > 0 && "opacity-50")} />
                       {resendIn > 0 ? `Resend in ${resendIn}s` : (otpChannel === "in_app_active_device" ? "Resend via SMS" : "Resend code")}
@@ -603,7 +607,7 @@ export function LoginPage() {
                     id="login-phone-verify"
                     type="submit"
                     disabled={loading || code.length < 6}
-                    className="w-full h-12 rounded-lg bg-[#2164b6] hover:bg-[#1a5091] text-white text-base font-bold shadow-lg shadow-[#2164b6]/25 transition-all duration-200 active:scale-[0.99]"
+                    className="w-full h-12 rounded-lg bg-[var(--shell-accent-solid)] hover:bg-[var(--shell-accent-hover)] text-white text-base font-bold shadow-lg shadow-[#2164b6]/25 transition-all duration-200 active:scale-[0.99]"
                   >
                     {loading ? <><Loader2 weight="fill" className="mr-2 h-5 w-5 animate-spin" /> Verifying…</> : "Log in"}
                   </Button>
@@ -618,10 +622,10 @@ export function LoginPage() {
           <>
             <div className="relative my-2">
               <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-slate-200 dark:border-slate-800" />
+                <div className="w-full border-t border-[var(--shell-border)] dark:border-[var(--shell-border)]" />
               </div>
               <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-white dark:bg-slate-900 px-3 text-slate-400 font-semibold tracking-wider">Or</span>
+                <span className="bg-white dark:bg-slate-900 px-3 text-[var(--shell-muted)] font-semibold tracking-wider">Or</span>
               </div>
             </div>
             <div className="flex gap-2">
@@ -633,7 +637,7 @@ export function LoginPage() {
                     type="button"
                     onClick={() => handleSocialLogin(p)}
                     disabled={socialLoading !== null}
-                    className={`flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-bold text-slate-700 dark:text-slate-300 hover:border-[#2164b6]/50 transition-all ${
+                    className={`flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border border-[var(--shell-border)] dark:border-[var(--shell-border)] bg-white dark:bg-slate-900 text-xs font-bold text-slate-700 dark:text-[var(--shell-muted)] hover:border-[var(--shell-accent)]/50 transition-all ${
                       socialLoadingState ? "opacity-50" : ""
                     }`}
                   >
@@ -650,8 +654,8 @@ export function LoginPage() {
 
         {/* Registration is mobile-only; point users at the app. */}
         <div className="flex flex-col gap-3">
-          <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 px-4 py-3 text-center">
-            <p className="text-xs text-slate-600 dark:text-slate-400">
+          <div className="rounded-lg border border-[var(--shell-border)] dark:border-[var(--shell-border)] bg-slate-50 dark:bg-slate-800/40 px-4 py-3 text-center">
+            <p className="text-xs text-[var(--shell-muted)] dark:text-[var(--shell-muted)]">
               New to MurihSpace?{" "}
               <span className="font-semibold text-slate-800 dark:text-slate-200">Create an account in the mobile app.</span>
             </p>
@@ -659,7 +663,7 @@ export function LoginPage() {
         </div>
 
         {/* Brand Watermark Footer */}
-        <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-center gap-2 text-xs text-slate-400">
+        <div className="mt-4 pt-4 border-t border-slate-100 dark:border-[var(--shell-border)] flex items-center justify-center gap-2 text-xs text-[var(--shell-muted)]">
           <span>Powered by</span>
           <img src="/logos/member-logo-light.png" alt="MurihSpace" className="h-4.5 w-auto object-contain dark:hidden" />
           <img src="/logos/member-logo-dark.png" alt="MurihSpace" className="h-4.5 w-auto object-contain hidden dark:block" />

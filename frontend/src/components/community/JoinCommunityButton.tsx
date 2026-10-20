@@ -1,3 +1,6 @@
+import { authFetch } from "@/lib/api/authFetch";
+import { useAuth } from "@/hooks/useAuth";
+import { asApiError } from "@/lib/apiError";
 import * as React from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -8,7 +11,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { AddUser as UserPlus, TickSquare as CheckCircle2, TimeCircle as Clock, Logout as LogOut, ArrowDown as ChevronDown, Lock } from "@/components/icons";
 import type { Community } from "@/types/community";
-import { getAuthToken } from "@/lib/auth/token";
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? 'http://localhost:8000/api/v1';
 
@@ -25,6 +27,7 @@ export function JoinCommunityButton({
   onGuestJoin,
   className = "",
 }: JoinCommunityButtonProps) {
+  const { user } = useAuth();
   const [status, setStatus] = React.useState<"active" | "pending" | "rejected" | "none">("none");
   const [isLoading, setIsLoading] = React.useState(false);
   const [error, setError] = React.useState("");
@@ -32,11 +35,9 @@ export function JoinCommunityButton({
   // Check initial membership status
   React.useEffect(() => {
     async function checkStatus() {
-      const token = getAuthToken();
-      if (!token || !community.id) return;
+      if (!community.id) return;
       try {
-        const res = await fetch(`${API_BASE}/communities/${community.id}/membership-status`, {
-          headers: { Authorization: `Bearer ${token}` },
+        const res = await authFetch(`${API_BASE}/communities/${community.id}/membership-status`, {
         });
         if (res.ok) {
           const data = await res.json();
@@ -56,8 +57,7 @@ export function JoinCommunityButton({
     setError("");
 
     try {
-      const token = getAuthToken();
-      if (!token) {
+      if (!user) {
         setIsLoading(false);
         if (onGuestJoin) {
           onGuestJoin();
@@ -67,12 +67,11 @@ export function JoinCommunityButton({
         return;
       }
 
-      const res = await fetch(`${API_BASE}/communities/${community.id}/join`, {
+      const res = await authFetch(`${API_BASE}/communities/${community.id}/join`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Accept: "application/json",
-          Authorization: `Bearer ${token}`,
         },
       });
 
@@ -92,7 +91,8 @@ export function JoinCommunityButton({
         onStatusChange(newStatus, updatedCount);
       }
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to join.");
+      const apiErr = asApiError(err);
+      setError(err instanceof Error ? apiErr.message : "Failed to join.");
     } finally {
       setIsLoading(false);
     }
@@ -103,13 +103,11 @@ export function JoinCommunityButton({
     setError("");
 
     try {
-      const token = getAuthToken();
-      const res = await fetch(`${API_BASE}/communities/${community.id}/leave`, {
+      const res = await authFetch(`${API_BASE}/communities/${community.id}/leave`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Accept: "application/json",
-          Authorization: `Bearer ${token}`,
         },
       });
 
@@ -123,7 +121,8 @@ export function JoinCommunityButton({
         onStatusChange("none", Math.max(0, community.members_count - 1));
       }
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to leave.");
+      const apiErr = asApiError(err);
+      setError(err instanceof Error ? apiErr.message : "Failed to leave.");
       setStatus("none");
       if (onStatusChange) {
         onStatusChange("none", Math.max(0, community.members_count - 1));

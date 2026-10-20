@@ -40,10 +40,10 @@ export function ForgotPasswordPage() {
     >
       <div className="flex flex-col gap-5">
         <div className="flex flex-col gap-1 text-left">
-          <h2 className="text-xl sm:text-xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+          <h2 className="text-xl sm:text-xl font-extrabold tracking-tight text-[var(--shell-text)] dark:text-white">
             Forgot password
           </h2>
-          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+          <p className="text-xs sm:text-sm text-[var(--shell-muted)] dark:text-[var(--shell-muted)]">
             {sent
               ? "Check your email for the reset link."
               : "Enter your email address to receive a reset link."}
@@ -71,7 +71,7 @@ export function ForgotPasswordPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <FieldGroup className="space-y-4">
               <Field>
-                <FieldLabel htmlFor="reset-email" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                <FieldLabel htmlFor="reset-email" className="text-xs font-semibold text-slate-700 dark:text-[var(--shell-muted)]">
                   Email address
                 </FieldLabel>
                 <Input
@@ -83,7 +83,7 @@ export function ForgotPasswordPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   disabled={loading}
-                  className="h-12 px-4 rounded-lg text-sm bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-800 focus:border-[#2164b6] focus:ring-2 focus:ring-[#2164b6]/20"
+                  className="h-12 px-4 rounded-lg text-sm bg-slate-50 dark:bg-slate-800/60 border-[var(--shell-border)] dark:border-[var(--shell-border)] focus:border-[var(--shell-accent)] focus:ring-2 focus:ring-[var(--shell-accent)]/20"
                 />
               </Field>
 
@@ -91,7 +91,7 @@ export function ForgotPasswordPage() {
                 <Button
                   type="submit"
                   disabled={loading || !email}
-                  className="w-full h-12 rounded-lg bg-[#2164b6] hover:bg-[#1a5091] text-white text-base font-bold shadow-lg shadow-[#2164b6]/25 transition-all duration-200 active:scale-[0.99]"
+                  className="w-full h-12 rounded-lg bg-[var(--shell-accent-solid)] hover:bg-[var(--shell-accent-hover)] text-white text-base font-bold shadow-lg shadow-[#2164b6]/25 transition-all duration-200 active:scale-[0.99]"
                 >
                   {loading ? (
                     <><Loader2 weight="fill" className="mr-2 h-5 w-5 animate-spin" /> Sending…</>
@@ -107,7 +107,7 @@ export function ForgotPasswordPage() {
         <div className="text-center">
           <Link
             to="/login"
-            className="inline-flex items-center gap-1.5 text-xs font-medium text-[#2164b6] dark:text-[#7ab0ff] hover:underline underline-offset-4"
+            className="inline-flex items-center gap-1.5 text-xs font-medium text-[var(--shell-accent)] dark:text-[var(--shell-accent)] hover:underline underline-offset-4"
           >
             <ArrowLeft weight="fill" className="h-3.5 w-3.5" />
             Back to login

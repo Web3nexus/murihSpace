@@ -58,9 +58,9 @@ final class AdminSession
      * named 'admin-token', and it does so only after a second factor has been
      * verified. The non-wildcard ability is kept as a secondary signal.
      *
-     * A stateful (cookie) session returns false: the administration surface is
-     * not reached that way, so an absent bearer token is a refusal rather than
-     * a pass.
+     * A web session passes only when it is bound to an admin-token row that was
+     * minted after a second factor (WebSession::bind, from verifyTwoFactor). A
+     * consumer web session is bound to an auth-token row and fails here.
      */
     public static function clearedMfa(Request $request): bool
     {

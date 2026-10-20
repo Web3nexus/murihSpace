@@ -39,7 +39,7 @@ class GiftController extends Controller
 
         $rateService = app(\App\Services\Payment\LiveExchangeRateService::class);
         $coinRate = CoinPackController::coinConversionRate();
-        $fxRate = $rateService->getRate('USD', $targetCurrency);
+        $fxRate = $rateService->chargeRate('USD', $targetCurrency);
 
         $payload = $gifts->map(function (Gift $gift) use ($targetCurrency, $coinRate, $fxRate, $rateService) {
             $priceUsd = $coinRate > 0 ? (float) $gift->coin_price / $coinRate : (float) $gift->coin_price;
@@ -51,8 +51,9 @@ class GiftController extends Controller
                 'icon_url' => $gift->icon_url,
                 'animation_url' => $gift->animation_url,
                 'coin_price' => (int) $gift->coin_price,
-                'creator_earns' => (int) $gift->creator_earns,
-                'platform_commission' => (int) $gift->platform_commission,
+                // The same split that send() credits, not the stored columns.
+                'creator_earns' => app(\App\Services\Commission\CommissionService::class)->splitGift((int) $gift->coin_price)['creator_earns'],
+                'platform_commission' => app(\App\Services\Commission\CommissionService::class)->splitGift((int) $gift->coin_price)['platform_commission'],
                 'category' => $gift->category,
                 'is_active' => (bool) $gift->is_active,
                 'sort_order' => (int) $gift->sort_order,
@@ -111,9 +112,10 @@ class GiftController extends Controller
         $sessionId    = $validated['session_id'] ?? null;
 
         // Calculate receiving fee before the transaction so we can validate it
-        $feeRes   = $this->feeCalculator->calculate('GIFT_RECEIVING', $grossAmount, $senderWallet->currency);
-        $feeAmt   = $feeRes['fee_amount'];
-        $netEarns = $feeRes['net_amount'];
+        // The sender pays only the coin price. The receiver's gift commission is the only fee.
+        $split    = app(\App\Services\Commission\CommissionService::class)->splitGift($grossAmount);
+        $feeAmt   = $split['platform_commission'];
+        $netEarns = $split['creator_earns'];
 
         $isAnonymous = (bool) ($validated['is_anonymous'] ?? false);
         $senderLabel = $isAnonymous
@@ -158,17 +160,16 @@ class GiftController extends Controller
                     idempotencyKey: $idemKey . '-debit'
                 );
 
-                // Credit Recipient Creator Wallet
-                $this->ledgerService->credit(
-                    user: $recipient,
+                // Credit Recipient Creator Wallet. Goes through the seller earnings rules, so
+                // the money is withdrawable only once the recipient's KYC is verified.
+                app(\App\Services\Wallet\SellerEarningsService::class)->credit(
+                    seller: $recipient,
                     amount: $netEarns,
                     currency: $senderWallet->currency,
-                    walletType: 'creator',
-                    balanceCategory: 'available',
                     type: 'creator_gift_receipt',
                     description: "Gift received from @{$user->username}: {$gift->name} (Net: {$netEarns}, Fee: {$feeAmt})",
                     idempotencyKey: $idemKey . '-credit',
-                    metadata: ['sender_id' => $user->id, 'gift_id' => $gift->id, 'fee_amount' => $feeAmt]
+                    metadata: ['sender_id' => $user->id, 'gift_id' => $gift->id, 'fee_amount' => $feeAmt],
                 );
 
                 // Credit the platform revenue account with the receiving fee so the ledger
@@ -490,6 +491,9 @@ class GiftController extends Controller
     public function adminApprovePayout(Request $request, $id): JsonResponse
     {
         $payout = \App\Models\CreatorPayout::findOrFail($id);
+        if ($blocked = $this->payeeNeedsKyc($payout)) {
+            return $blocked;
+        }
         $payout->update(['status' => 'approved']);
 
         return response()->json([
@@ -497,6 +501,21 @@ class GiftController extends Controller
             'message' => 'Payout approved.',
             'data' => $payout,
         ]);
+    }
+
+    /** No payout leaves the platform for a payee who has not completed KYC. */
+    private function payeeNeedsKyc(\App\Models\CreatorPayout $payout): ?JsonResponse
+    {
+        $payee = \App\Models\User::find($payout->user_id);
+        if ($payee?->hasVerifiedKyc()) {
+            return null;
+        }
+
+        return response()->json([
+            'success' => false,
+            'message' => 'The payee must complete identity verification (KYC) before any payout.',
+            'code' => 'KYC_REQUIRED',
+        ], 422);
     }
 
     public function adminRejectPayout(Request $request, $id): JsonResponse
@@ -507,18 +526,6 @@ class GiftController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Payout rejected.',
-            'data' => $payout,
-        ]);
-    }
-
-    public function adminMarkPaid(Request $request, $id): JsonResponse
-    {
-        $payout = \App\Models\CreatorPayout::findOrFail($id);
-        $payout->update(['status' => 'paid', 'paid_at' => now()]);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Payout marked as paid.',
             'data' => $payout,
         ]);
     }

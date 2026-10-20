@@ -1,5 +1,5 @@
-import { getAuthToken } from "@/lib/auth/token";
-import { useState, useEffect, useCallback } from "react";
+import { safeHref } from "@/lib/safeUrl";
+import { useState, useEffect } from "react";
 import { ShieldFail as ShieldWarning, TickSquare as CheckCircle2, DangerSquare as AlertCircle, TickSquare as Check, Message as MessageSquare, ShieldDone as ShieldCheck } from "@/components/icons";
 import { Spinner as Loader2, ArrowSquareOut as ExternalLink } from "@/components/icons/rounded";;
 import { Button } from "@/components/ui/button";
@@ -7,8 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { authFetch } from "@/lib/api/authFetch";
 
 function authHeaders() {
-  const t = getAuthToken();
-  return { Accept: "application/json", "Content-Type": "application/json", ...(t ? { Authorization: `Bearer ${t}` } : {}) };
+  return { Accept: "application/json", "Content-Type": "application/json", };
 }
 
 interface Dispute {
@@ -29,24 +28,44 @@ export default function AdminDisputesPage() {
   const [processing, setProcessing] = useState<number | null>(null);
   const [selectedAuditChat, setSelectedAuditChat] = useState<Dispute | null>(null);
 
-  const loadData = useCallback(async () => {
+  const [loadDataKey, setLoadDataKey] = useState(0);
+  const loadData = () => {
     setError(null);
     setLoading(true);
-    try {
-      const endpoint = tab === 'brand_deals' ? '/disputes/brand-deals' : '/securegate/disputes';
-      const res = await authFetch(endpoint, { headers: authHeaders() });
-      if (!res.ok) throw new Error();
-      const j = await res.json();
-      const list = j?.data ?? j;
-      setDisputes(Array.isArray(list) ? list : (list?.data ?? []));
-    } catch {
-      setError("Failed to load disputes.");
-    } finally {
-      setLoading(false);
-    }
-  }, [tab]);
+    setLoadDataKey((k) => k + 1);
+  };
 
-  useEffect(() => { loadData(); }, [loadData]);
+  // Changing tabs resets the list and error. Re-selecting the active tab is a no-op,
+  // so loading is never left on without a request behind it.
+  const selectTab = (next: typeof tab) => {
+    if (next === tab) return;
+    setLoading(true);
+    setError(null);
+    setDisputes([]);
+    setTab(next);
+  };
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const endpoint = tab === 'brand_deals' ? '/disputes/brand-deals' : '/securegate/disputes';
+        const res = await authFetch(endpoint, { headers: authHeaders() });
+        if (!res.ok) throw new Error();
+        const j = await res.json();
+        const list = j?.data ?? j;
+        if (active) setDisputes(Array.isArray(list) ? list : (list?.data ?? []));
+      } catch {
+        if (active) setError("Failed to load disputes.");
+      } finally {
+        if (active) setLoading(false);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [loadDataKey, tab]);
+
 
   const resolveBrandDealDispute = async (milestoneId: number, resolution: 'release_to_creator' | 'refund_to_brand') => {
     setProcessing(milestoneId);
@@ -76,7 +95,7 @@ export default function AdminDisputesPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-black tracking-tight flex items-center gap-2.5">
-            <ShieldWarning weight="fill" className="h-6 w-6 text-[#2164b6] dark:text-[#7ab0ff]" /> Admin Dispute & Escrow Moderation
+            <ShieldWarning weight="fill" className="h-6 w-6 text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" /> Admin Dispute & Escrow Moderation
           </h1>
           <p className="text-xs text-muted-foreground mt-1">Audit chat history, proof links, and resolve brand deal milestone disputes.</p>
         </div>
@@ -86,7 +105,7 @@ export default function AdminDisputesPage() {
           <Button
             size="sm"
             variant={tab === 'brand_deals' ? 'default' : 'ghost'}
-            onClick={() => setTab('brand_deals')}
+            onClick={() => selectTab('brand_deals')}
             className="text-xs font-bold"
           >
             <ShieldCheck weight="fill" className="h-3.5 w-3.5 mr-1.5" /> Brand Deal Milestones
@@ -94,7 +113,7 @@ export default function AdminDisputesPage() {
           <Button
             size="sm"
             variant={tab === 'orders' ? 'default' : 'ghost'}
-            onClick={() => setTab('orders')}
+            onClick={() => selectTab('orders')}
             className="text-xs font-bold"
           >
             E-Commerce Orders
@@ -116,7 +135,7 @@ export default function AdminDisputesPage() {
       )}
 
       {loading ? (
-        <div className="flex justify-center py-24"><Loader2 weight="fill" className="h-8 w-8 animate-spin text-[#2164b6]" /></div>
+        <div className="flex justify-center py-24"><Loader2 weight="fill" className="h-8 w-8 animate-spin text-[var(--shell-accent)]" /></div>
       ) : disputes.length === 0 ? (
         <div className="p-16 text-center border border-dashed border-border rounded-3xl bg-card">
           <ShieldWarning weight="fill" className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
@@ -135,7 +154,7 @@ export default function AdminDisputesPage() {
                   </p>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="text-lg font-black text-[#2164b6] dark:text-[#7ab0ff]">${d.amount} {d.currency || 'USD'}</span>
+                  <span className="text-lg font-black text-[var(--shell-accent)] dark:text-[var(--shell-accent)]">${d.amount} {d.currency || 'USD'}</span>
                   <Badge variant="outline" className="bg-rose-500/15 text-rose-600 dark:text-rose-400 font-bold border-rose-500/30 uppercase text-[10px]">
                     {d.status}
                   </Badge>
@@ -153,7 +172,7 @@ export default function AdminDisputesPage() {
                   <span className="font-bold text-muted-foreground block text-[10px] uppercase">Submitted Proof / Deliverable</span>
                   <p className="font-medium text-foreground">{d.creator_notes || 'Deliverable uploaded to workspace.'}</p>
                   {d.proof_url && (
-                    <a href={d.proof_url} target="_blank" rel="noreferrer" className="text-[#2164b6] flex items-center gap-1 font-bold mt-1 hover:underline">
+                    <a href={safeHref(d.proof_url)} target="_blank" rel="noreferrer" className="text-[var(--shell-accent)] flex items-center gap-1 font-bold mt-1 hover:underline">
                       <ExternalLink weight="fill" className="h-3 w-3" /> View Submitted Proof Link
                     </a>
                   )}
@@ -168,7 +187,7 @@ export default function AdminDisputesPage() {
                   onClick={() => setSelectedAuditChat(d)}
                   className="text-xs font-bold"
                 >
-                  <MessageSquare weight="fill" className="h-3.5 w-3.5 mr-1.5 text-[#2164b6]" /> Audit Chat Evidence & Log
+                  <MessageSquare weight="fill" className="h-3.5 w-3.5 mr-1.5 text-[var(--shell-accent)]" /> Audit Chat Evidence & Log
                 </Button>
 
                 <div className="flex items-center gap-2">
@@ -203,7 +222,7 @@ export default function AdminDisputesPage() {
           <div className="bg-card border-none rounded-3xl p-4 max-w-lg w-full space-y-4 shadow-2xl">
             <div className="flex items-center justify-between border-b border-border pb-3">
               <h3 className="font-bold text-base flex items-center gap-2">
-                <MessageSquare weight="fill" className="h-5 w-5 text-[#2164b6]" /> Chat Audit Log: {selectedAuditChat.deal_title}
+                <MessageSquare weight="fill" className="h-5 w-5 text-[var(--shell-accent)]" /> Chat Audit Log: {selectedAuditChat.deal_title}
               </h3>
               <Button size="sm" variant="ghost" onClick={() => setSelectedAuditChat(null)}>✕</Button>
             </div>
@@ -212,8 +231,8 @@ export default function AdminDisputesPage() {
                 <span className="font-bold block text-muted-foreground">{selectedAuditChat.brand_name}:</span>
                 Hi, we funded the $1,000 milestone into escrow. Please submit script draft first.
               </div>
-              <div className="bg-[#2164b6]/10 p-2.5 rounded-lg text-foreground">
-                <span className="font-bold block text-[#2164b6]">{selectedAuditChat.creator_name}:</span>
+              <div className="bg-[var(--shell-accent-solid)]/10 p-2.5 rounded-lg text-foreground">
+                <span className="font-bold block text-[var(--shell-accent)]">{selectedAuditChat.creator_name}:</span>
                 Submitted draft storyboard PDF. Ready for review!
               </div>
               <div className="bg-muted p-2.5 rounded-lg">

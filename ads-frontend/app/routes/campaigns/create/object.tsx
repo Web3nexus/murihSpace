@@ -38,8 +38,8 @@ export default function CreateCampaignObject() {
       </div>
       
       <div className="flex justify-between mt-4">
-        <Button variant="outline" asChild>
-          <Link to="/campaigns/create/objective">Back</Link>
+        <Button variant="outline" render={<Link to="/campaigns/create/objective" />}>
+          Back
         </Button>
       </div>
     </div>

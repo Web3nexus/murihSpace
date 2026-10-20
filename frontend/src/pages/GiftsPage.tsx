@@ -1,3 +1,5 @@
+import { DismissOnEscape } from "@/components/ui/DismissOnEscape";
+import { pickArray } from "@/lib/api/pickArray";
 import { useState, useEffect, useCallback } from "react";
 import { Discount as Gift, Search, Send, DangerSquare as AlertCircle, TickSquare as Check, Plus, CloseSquare as X, TimeCircle as ClockCounterClockwise, Bag as ShoppingBag, Discovery as Globe } from "@/components/icons";
 import { Spinner as Loader2, Coins, DeviceMobile as Smartphone } from "@/components/icons/rounded";;
@@ -64,7 +66,7 @@ function GiftIcon({ iconUrl, name, className = "w-full h-full object-contain dro
   const url = getAssetUrl(iconUrl);
 
   if (!url || failed) {
-    return <Gift weight="fill" className="w-9 h-9 text-[#1877f2]" />;
+    return <Gift weight="fill" className="w-9 h-9 text-[var(--shell-accent)]" />;
   }
 
   return (
@@ -82,17 +84,24 @@ function formatPrice(p: CoinPack) {
   return (syms[p.currency] ?? p.currency + " ") + ((p.price || 0) / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-function safeArray<T = any>(val: any): T[] {
-  if (Array.isArray(val)) return val;
-  if (Array.isArray(val?.data)) return val.data;
-  if (Array.isArray(val?.data?.data)) return val.data.data;
-  if (Array.isArray(val?.gifts)) return val.gifts;
-  if (Array.isArray(val?.packs)) return val.packs;
-  return [];
+function safeArray<T>(val: T[]): T[];
+function safeArray<T = unknown>(val: unknown): T[];
+function safeArray(val: unknown): unknown[] {
+  return pickArray(val, ["gifts", "packs"]);
 }
 
 const CACHE_KEY_GIFTS = "gifts_catalogue";
 const CACHE_KEY_PACKS = "coins_packs";
+interface GiftTransaction {
+  id: number | string;
+  gift?: { name?: string } | null;
+  recipient?: { name?: string } | null;
+  recipient_id: number | string;
+  message?: string | null;
+  created_at: string;
+  coin_price: number;
+}
+
 const CACHE_KEY_TRANSACTIONS = "gifts_transactions";
 const CACHE_KEY_BALANCE = "user_wallet_balance";
 
@@ -100,7 +109,7 @@ export default function GiftsPage() {
   const { web_purchases_enabled: webPurchasesEnabled, app_download_url: appDownloadUrl } = usePlatformConfig();
   const [gifts, setGifts] = useState<GiftItem[]>(() => getCachedData<GiftItem[]>(CACHE_KEY_GIFTS) ?? []);
   const [packs, setPacks] = useState<CoinPack[]>(() => getCachedData<CoinPack[]>(CACHE_KEY_PACKS) ?? []);
-  const [transactions, setTransactions] = useState<any[]>(() => getCachedData<any[]>(CACHE_KEY_TRANSACTIONS) ?? []);
+  const [transactions, setTransactions] = useState<GiftTransaction[]>(() => getCachedData<GiftTransaction[]>(CACHE_KEY_TRANSACTIONS) ?? []);
   const [balance, setBalance] = useState<number>(() => getCachedData<number>(CACHE_KEY_BALANCE) ?? 0);
   const [loading, setLoading] = useState<boolean>(!getCachedData<GiftItem[]>(CACHE_KEY_GIFTS));
 
@@ -140,7 +149,7 @@ export default function GiftsPage() {
       }
       if (tRes.ok) {
         const j = await tRes.json();
-        const parsedTx = safeArray<any>(j);
+        const parsedTx = safeArray<GiftTransaction>(j);
         setTransactions(parsedTx);
         setCachedData(CACHE_KEY_TRANSACTIONS, parsedTx);
       }
@@ -161,7 +170,9 @@ export default function GiftsPage() {
   }, []);
 
   useEffect(() => {
-    fetchData(Boolean(getCachedData(CACHE_KEY_GIFTS)));
+    // Deferred so the loading state is not set synchronously inside the effect body
+    const timer = setTimeout(() => fetchData(Boolean(getCachedData(CACHE_KEY_GIFTS))), 0);
+    return () => clearTimeout(timer);
   }, [fetchData]);
 
   const loadCoinCountries = useCallback(async () => {
@@ -215,13 +226,17 @@ export default function GiftsPage() {
   }, [packs]);
 
   useEffect(() => {
-    if (showCoinShop) loadCoinCountries();
+    if (!showCoinShop) return;
+    // Deferred so the loading state is not set synchronously inside the effect body
+    const timer = setTimeout(() => loadCoinCountries(), 0);
+    return () => clearTimeout(timer);
   }, [showCoinShop, loadCoinCountries]);
 
   useEffect(() => {
-    if (showCoinShop && buyCountry) {
-      fetchEstimates(buyCountry);
-    }
+    if (!(showCoinShop && buyCountry)) return;
+    // Deferred so the estimate state is not set synchronously inside the effect body
+    const timer = setTimeout(() => fetchEstimates(buyCountry), 0);
+    return () => clearTimeout(timer);
   }, [showCoinShop, buyCountry, fetchEstimates]);
 
   // Optimistic Coin Pack Purchase
@@ -342,7 +357,7 @@ export default function GiftsPage() {
 
   const safeGiftsList = safeArray<GiftItem>(gifts);
   const safePacksList = safeArray<CoinPack>(packs);
-  const safeTxList = safeArray<any>(transactions);
+  const safeTxList = safeArray<GiftTransaction>(transactions);
 
   const categories = ["all", ...Array.from(new Set(safeGiftsList.map(g => g.category).filter(Boolean)))];
   const filtered = safeGiftsList.filter(g =>
@@ -377,7 +392,7 @@ export default function GiftsPage() {
             <ActionTooltip content="Purchase MSH coins to send gifts">
               <Button
                 onClick={() => setShowCoinShop(true)}
-                className="bg-[#1877f2] hover:bg-[#166fe5] text-white font-bold h-10 px-4 rounded-lg gap-2 "
+                className="bg-[var(--shell-accent-solid)] hover:bg-[var(--shell-accent-hover)] text-white font-bold h-10 px-4 rounded-lg gap-2 "
               >
                 <Plus weight="fill" className="w-4 h-4" /> Buy Coins
               </Button>
@@ -389,7 +404,7 @@ export default function GiftsPage() {
               rel="noopener noreferrer"
               className="flex items-center gap-2 rounded-lg border border-border/70 bg-muted/30 px-3 py-2 text-[10px] font-bold text-muted-foreground hover:text-foreground hover:border-foreground/20"
             >
-              <Smartphone weight="fill" className="w-4 h-4 text-[#1877f2]" />
+              <Smartphone weight="fill" className="w-4 h-4 text-[var(--shell-accent)]" />
               Buying coins is app-only &middot; get the app
             </a>
           )}
@@ -404,7 +419,7 @@ export default function GiftsPage() {
               onClick={() => setTab("shop")}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-colors ${
                 tab === "shop"
-                  ? "bg-[#1877f2] text-white "
+                  ? "bg-[var(--shell-accent-solid)] text-white "
                   : "text-muted-foreground hover:bg-muted hover:text-foreground"
               }`}
             >
@@ -417,7 +432,7 @@ export default function GiftsPage() {
               onClick={() => setTab("history")}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-colors ${
                 tab === "history"
-                  ? "bg-[#1877f2] text-white "
+                  ? "bg-[var(--shell-accent-solid)] text-white "
                   : "text-muted-foreground hover:bg-muted hover:text-foreground"
               }`}
             >
@@ -447,7 +462,7 @@ export default function GiftsPage() {
                   onClick={() => setCategory(cat)}
                   className={`px-3.5 py-1.5 rounded-lg text-xs font-bold capitalize transition-colors ${
                     category === cat
-                      ? "bg-[#1877f2] text-white"
+                      ? "bg-[var(--shell-accent-solid)] text-white"
                       : "bg-card border-none text-muted-foreground hover:text-foreground hover:border-muted-foreground/30"
                   }`}
                 >
@@ -463,7 +478,7 @@ export default function GiftsPage() {
                 placeholder="Search gifts..."
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 bg-card border-none rounded-lg text-xs font-medium text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-[#1877f2]/30 focus:border-[#1877f2]"
+                className="w-full pl-10 pr-4 py-2 bg-card border-none rounded-lg text-xs font-medium text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-[var(--shell-accent)]/30 focus:border-[#1877f2]"
               />
             </div>
           </div>
@@ -483,8 +498,8 @@ export default function GiftsPage() {
                   onClick={() => setSelectedGift(gift)}
                   className={`group relative w-full border rounded-lg p-4 text-center transition-all duration-200 hover:-translate-y-0.5 flex flex-col items-center justify-between ${
                     selectedGift?.id === gift.id
-                      ? "border-[#1877f2] ring-2 ring-[#1877f2]/20 bg-[#1877f2]/10"
-                      : "border-border bg-card hover:border-[#1877f2]/40"
+                      ? "border-[var(--shell-accent)] ring-2 ring-[var(--shell-accent)]/20 bg-[var(--shell-accent-solid)]/10"
+                      : "border-border bg-card hover:border-[var(--shell-accent)]/40"
                   }`}
                 >
                   <span className={`self-end text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border mb-1 ${
@@ -523,13 +538,14 @@ export default function GiftsPage() {
 
           {/* Send Gift Modal Dialog (Meta Dark Mode Compliant) */}
           {selectedGift && (
-            <div
+            <div role="presentation" onKeyDown={(e) => { if (e.key === "Escape") e.currentTarget.click(); }}
               className="fixed inset-0 bg-black/70 backdrop-blur-xs z-50 flex items-center justify-center p-4"
-              onClick={() => setSelectedGift(null)}
+              onClick={(e) => { if (e.target === e.currentTarget) { setSelectedGift(null); } }}
             >
-              <div
+          <DismissOnEscape onDismiss={() => { setSelectedGift(null); }} />
+              <div role="dialog" aria-modal="true"
                 className="bg-card border-none text-foreground rounded-lg p-4 max-w-md w-full shadow-xl space-y-5 relative overflow-hidden"
-                onClick={e => e.stopPropagation()}
+               
               >
                 <ActionTooltip content="Close">
                   <button
@@ -557,8 +573,8 @@ export default function GiftsPage() {
 
                 <div className="space-y-3.5 pt-1">
                   <div className="space-y-1">
-                    <label className="text-xs font-bold text-foreground">Recipient User ID *</label>
-                    <Input
+                    <label htmlFor="f-pages-giftspage-tsx-560" className="text-xs font-bold text-foreground">Recipient User ID *</label>
+                    <Input id="f-pages-giftspage-tsx-560"
                       type="number"
                       value={recipient}
                       onChange={e => setRecipient(e.target.value)}
@@ -568,8 +584,8 @@ export default function GiftsPage() {
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-xs font-bold text-foreground">Message (optional)</label>
-                    <Textarea
+                    <label htmlFor="f-pages-giftspage-tsx-571" className="text-xs font-bold text-foreground">Message (optional)</label>
+                    <Textarea id="f-pages-giftspage-tsx-571"
                       value={message}
                       onChange={e => setMessage(e.target.value)}
                       placeholder="Say something encouraging..."
@@ -592,7 +608,7 @@ export default function GiftsPage() {
                     <Button
                       onClick={handleSend}
                       disabled={sending || !recipient}
-                      className="flex-1 bg-[#1877f2] hover:bg-[#166fe5] text-white font-bold h-10 rounded-lg"
+                      className="flex-1 bg-[var(--shell-accent-solid)] hover:bg-[var(--shell-accent-hover)] text-white font-bold h-10 rounded-lg"
                     >
                       {sending ? <Loader2 weight="fill" className="w-4 h-4 mr-2 animate-spin" /> : <Send weight="fill" className="w-4 h-4 mr-2" />}
                       Send Gift
@@ -625,7 +641,7 @@ export default function GiftsPage() {
             </div>
           ) : (
             <div className="divide-y divide-border">
-              {safeTxList.map((t: any) => (
+              {safeTxList.map((t) => (
                 <div key={t.id} className="p-4 flex items-center justify-between text-xs hover:bg-muted/30 transition-colors">
                   <div className="space-y-0.5">
                     <p className="font-bold text-foreground">
@@ -650,13 +666,14 @@ export default function GiftsPage() {
 
       {/* Buy Coins Modal Dialog (Meta Dark Mode Compliant) */}
       {showCoinShop && (
-        <div
+        <div role="presentation" onKeyDown={(e) => { if (e.key === "Escape") e.currentTarget.click(); }}
           className="fixed inset-0 bg-black/70 backdrop-blur-xs z-50 flex items-center justify-center p-4"
-          onClick={() => setShowCoinShop(false)}
+          onClick={(e) => { if (e.target === e.currentTarget) { setShowCoinShop(false); } }}
         >
-          <div
+          <DismissOnEscape onDismiss={() => { setShowCoinShop(false); }} />
+          <div role="dialog" aria-modal="true"
             className="bg-card border-none text-foreground rounded-lg p-4 max-w-lg w-full shadow-xl space-y-5 relative overflow-hidden"
-            onClick={e => e.stopPropagation()}
+           
           >
             <div className="flex items-center justify-between border-b border-border pb-3">
               <div className="flex items-center gap-2.5">
@@ -737,7 +754,7 @@ export default function GiftsPage() {
                     size="sm"
                     onClick={() => buyPack(pack)}
                     disabled={buying !== null}
-                    className="w-full bg-[#1877f2] hover:bg-[#166fe5] text-white font-bold rounded-lg h-9"
+                    className="w-full bg-[var(--shell-accent-solid)] hover:bg-[var(--shell-accent-hover)] text-white font-bold rounded-lg h-9"
                   >
                     {buying === pack.id ? <Loader2 weight="fill" className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <Plus weight="fill" className="w-3.5 h-3.5 mr-1.5" />}
                     Buy ${(payTotal / 100).toFixed(2)}

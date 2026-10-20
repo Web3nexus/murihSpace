@@ -1,10 +1,10 @@
+import { authFetch } from "@/lib/api/authFetch";
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router';
 import { Notification as Bell, TickSquare as CheckCheck, Message as MessageSquare, AddUser as UserPlus, ShieldFail as ShieldWarning } from "@/components/icons";
 import { ArrowSquareOut as ExternalLink, Lightning as Zap } from "@/components/icons/rounded";;
 import { formatDistanceToNow } from 'date-fns';
 import type { AppNotification } from '@/types/notification';
-import { getAuthToken } from "@/lib/auth/token";
 import { NOTIFICATION_STATE_EVENT_NAME, NOTIFICATION_EVENT_NAME } from '@/hooks/useGlobalRealtimeNotifications';
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? 'http://localhost:8000/api/v1';
@@ -15,14 +15,11 @@ export function NotificationDropdown() {
   const [unreadCount, setUnreadCount] = useState(0);
 
   const fetchNotifications = useCallback(async () => {
-    const token = getAuthToken();
-    if (!token) return;
 
     try {
-      const res = await fetch(`${API_BASE}/notifications`, {
+      const res = await authFetch(`${API_BASE}/notifications`, {
         headers: {
           Accept: 'application/json',
-          Authorization: `Bearer ${token}`,
         },
       });
       if (res.ok) {
@@ -63,15 +60,12 @@ export function NotificationDropdown() {
   }, [fetchNotifications]);
 
   const handleMarkAllRead = async () => {
-    const token = getAuthToken();
-    if (!token) return;
 
     try {
-      await fetch(`${API_BASE}/notifications/read-all`, {
+      await authFetch(`${API_BASE}/notifications/read-all`, {
         method: 'POST',
         headers: {
           Accept: 'application/json',
-          Authorization: `Bearer ${token}`,
         },
       });
       setNotifications((prev) =>
@@ -84,15 +78,12 @@ export function NotificationDropdown() {
   };
 
   const handleMarkRead = async (id: string) => {
-    const token = getAuthToken();
-    if (!token) return;
 
     try {
-      await fetch(`${API_BASE}/notifications/${id}/read`, {
+      await authFetch(`${API_BASE}/notifications/${id}/read`, {
         method: 'POST',
         headers: {
           Accept: 'application/json',
-          Authorization: `Bearer ${token}`,
         },
       });
       setNotifications((prev) =>

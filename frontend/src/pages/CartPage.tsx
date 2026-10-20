@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { Bag as ShoppingCart, Delete as Trash2, Plus, Bag as ShoppingBag, Wallet as CreditCard } from "@/components/icons";
 import { Minus, Spinner as Loader2 } from "@/components/icons/rounded";;
 import { authFetch } from "@/lib/api/authFetch";
@@ -42,7 +42,13 @@ export function CartPage() {
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [showCheckout, setShowCheckout] = useState(false);
 
-  const fetchCart = useCallback(async () => {
+  const [fetchCartKey, setFetchCartKey] = useState(0);
+  const fetchCart = () => {
+    setFetchCartKey((k) => k + 1);
+  };
+
+  // Awaited refresh after an update, so the busy flag clears only once the cart is current.
+  const refreshCart = async () => {
     try {
       const res = await authFetch(`/store/cart`, {  });
       if (res.ok) {
@@ -50,13 +56,26 @@ export function CartPage() {
         setCart(json.data?.data ?? null);
       }
     } catch {
-      // ignore
-    } finally {
-      setIsLoading(false);
+      // keep the current cart
     }
-  }, []);
+  };
 
-  useEffect(() => { fetchCart(); }, [fetchCart]);
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await authFetch(`/store/cart`, {  });
+        if (res.ok) {
+          const json = await res.json();
+          setCart(json.data?.data ?? null);
+        }
+      } catch {
+        // ignore
+      } finally {
+        setIsLoading(false);
+      }
+    })();
+  }, [fetchCartKey]);
+
 
   async function updateQty(itemId: number, quantity: number) {
     setUpdating(itemId);
@@ -69,7 +88,7 @@ export function CartPage() {
       });
       const json = await res.json();
       if (res.ok) {
-        await fetchCart();
+        await refreshCart();
       } else {
         setMessage({ type: 'error', text: json.message ?? 'Failed to update.' });
       }
@@ -89,7 +108,7 @@ export function CartPage() {
         
       });
       if (res.ok) {
-        await fetchCart();
+        await refreshCart();
       } else {
         setMessage({ type: 'error', text: 'Failed to remove item.' });
       }
@@ -108,7 +127,7 @@ export function CartPage() {
         
       });
       if (res.ok) {
-        await fetchCart();
+        await refreshCart();
         setMessage({ type: 'success', text: 'Cart cleared.' });
       }
     } catch {
@@ -119,7 +138,7 @@ export function CartPage() {
   if (isLoading) {
     return (
       <div className="w-full flex items-center justify-center h-64">
-        <Loader2 weight="fill" className="w-6 h-6 animate-spin text-gray-400" />
+        <Loader2 weight="fill" className="w-6 h-6 animate-spin text-[var(--shell-muted)]" />
       </div>
     );
   }
@@ -130,7 +149,7 @@ export function CartPage() {
         <div className="flex flex-col items-center text-center gap-4 py-16">
           <ShoppingBag weight="fill" className="w-16 h-16 text-gray-300" />
           <h2 className="text-xl font-semibold text-gray-700">Your cart is empty</h2>
-          <p className="text-gray-500">Browse physical products to add items to your cart.</p>
+          <p className="text-[var(--shell-muted)]">Browse physical products to add items to your cart.</p>
         </div>
       </div>
     );
@@ -138,7 +157,7 @@ export function CartPage() {
 
   return (
     <div className="space-y-6 w-full max-w-7xl mx-auto p-4 sm:p-4 lg:p-5">
-      <div className="relative overflow-hidden rounded-lg bg-gradient-to-br from-[#2164b6] to-[#1a5091] p-5 text-white">
+      <div className="relative overflow-hidden rounded-lg bg-gradient-to-br from-[var(--shell-accent-solid)] to-[#1a5091] p-5 text-white">
         <div className="relative z-10">
           <div className="flex items-center gap-3 mb-2">
             <ShoppingCart weight="fill" className="h-8 w-8 text-white/80" />

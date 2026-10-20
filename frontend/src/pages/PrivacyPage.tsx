@@ -1,3 +1,4 @@
+import { asApiError } from "@/lib/apiError";
 import { useState, useEffect } from "react";
 import { Lock, Show as Eye, Hide as EyeOff, Discovery as Globe, N2User as Users, Download, Delete as Trash2, TickSquare as Check, Chat as ChatCircleDots, TickSquare as CheckCheck, VolumeUp as SpeakerHigh } from "@/components/icons";
 import { apiClient } from "@/lib/api/client";
@@ -97,8 +98,9 @@ export default function PrivacyPage() {
       });
       localStorage.clear();
       window.location.href = "/login";
-    } catch (err: any) {
-      setDeleteError(err?.response?.data?.message ?? "Failed to delete account. Please verify your input.");
+    } catch (err: unknown) {
+      const apiErr = asApiError(err);
+      setDeleteError(apiErr.response?.data?.message || apiErr.message || "Failed to delete account. Please verify your input.");
     } finally {
       setDeleting(false);
     }
@@ -163,13 +165,14 @@ export default function PrivacyPage() {
             { key: "donations", label: "Show Donation & Tip Stats", desc: "Display your total received tips and donations on your profile.", val: showDonations, set: setShowDonations },
             { key: "tagging", label: "Allow Tagging", desc: "Allow other members to tag you in posts and comments.", val: allowTagging, set: setAllowTagging },
           ].map((item) => (
-            <label key={item.key} className="flex items-center justify-between p-3 rounded-lg border-none bg-muted/30 cursor-pointer hover:border-muted-foreground/30 transition-all">
+            <label key={item.key} htmlFor={`privacy-${item.key}`} aria-labelledby={`privacy-${item.key}-label`} className="flex items-center justify-between p-3 rounded-lg border-none bg-muted/30 cursor-pointer hover:border-muted-foreground/30 transition-all">
               <div className="space-y-0.5">
-                <p className="text-xs font-bold text-foreground">{item.label}</p>
+                <p id={`privacy-${item.key}-label`} className="text-xs font-bold text-foreground">{item.label}</p>
                 <p className="text-[10px] text-muted-foreground">{item.desc}</p>
               </div>
               <button
                 type="button"
+                id={`privacy-${item.key}`}
                 role="switch"
                 aria-checked={item.val}
                 onClick={() => item.set(!item.val)}
@@ -190,9 +193,9 @@ export default function PrivacyPage() {
         <div className="space-y-2">
 
           {/* Show Online Status */}
-          <label className="flex items-center justify-between p-3 rounded-lg border-none bg-muted/30 cursor-pointer hover:border-muted-foreground/30 transition-all">
+          <label htmlFor="privacy-online-status" aria-labelledby="privacy-online-status-label" className="flex items-center justify-between p-3 rounded-lg border-none bg-muted/30 cursor-pointer hover:border-muted-foreground/30 transition-all">
             <div className="space-y-0.5">
-              <p className="text-xs font-bold text-foreground flex items-center gap-2">
+              <p id="privacy-online-status-label" className="text-xs font-bold text-foreground flex items-center gap-2">
                 <span className={`w-2 h-2 rounded-full ${showOnlineStatus ? 'bg-[#34C759]' : 'bg-muted-foreground/40'}`} />
                 Show Online Status
               </p>
@@ -202,6 +205,7 @@ export default function PrivacyPage() {
             </div>
             <button
               type="button"
+              id="privacy-online-status"
               role="switch"
               aria-checked={showOnlineStatus}
               onClick={() => setShowOnlineStatus((v) => !v)}
@@ -212,9 +216,9 @@ export default function PrivacyPage() {
           </label>
 
           {/* Read Receipts */}
-          <label className="flex items-center justify-between p-3 rounded-lg border-none bg-muted/30 cursor-pointer hover:border-muted-foreground/30 transition-all">
+          <label htmlFor="privacy-read-receipts" aria-labelledby="privacy-read-receipts-label" className="flex items-center justify-between p-3 rounded-lg border-none bg-muted/30 cursor-pointer hover:border-muted-foreground/30 transition-all">
             <div className="space-y-0.5">
-              <p className="text-xs font-bold text-foreground flex items-center gap-2">
+              <p id="privacy-read-receipts-label" className="text-xs font-bold text-foreground flex items-center gap-2">
                 <CheckCheck weight="bold" className={`h-3.5 w-3.5 ${readReceipts ? 'text-[#34C759]' : 'text-muted-foreground/50'}`} />
                 Read Receipts
               </p>
@@ -224,6 +228,7 @@ export default function PrivacyPage() {
             </div>
             <button
               type="button"
+              id="privacy-read-receipts"
               role="switch"
               aria-checked={readReceipts}
               onClick={() => setReadReceipts((v) => !v)}
@@ -316,8 +321,8 @@ export default function PrivacyPage() {
                 </div>
               )}
               <div className="space-y-1">
-                <label className="text-[11px] font-semibold text-foreground">Account Password (if set)</label>
-                <input
+                <label htmlFor="f-pages-privacypage-tsx-319" className="text-[11px] font-semibold text-foreground">Account Password (if set)</label>
+                <input id="f-pages-privacypage-tsx-319"
                   type="password"
                   value={deletePassword}
                   onChange={(e) => setDeletePassword(e.target.value)}
@@ -326,8 +331,8 @@ export default function PrivacyPage() {
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-[11px] font-semibold text-foreground">Reason for leaving (optional)</label>
-                <input
+                <label htmlFor="f-pages-privacypage-tsx-329" className="text-[11px] font-semibold text-foreground">Reason for leaving (optional)</label>
+                <input id="f-pages-privacypage-tsx-329"
                   type="text"
                   value={deleteReason}
                   onChange={(e) => setDeleteReason(e.target.value)}

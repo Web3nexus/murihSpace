@@ -1,5 +1,4 @@
-import { getAuthToken } from "@/lib/auth/token";
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router';
 import { Document as FileText, DangerTriangle as AlertTriangle, TickSquare as CheckCircle2, CloseSquare as XCircle, Delete as Trash2, Chat as MessageCircle, Profile as UserIcon } from "@/components/icons";
 import { Spinner as Loader2, Flag, Prohibit } from "@/components/icons/rounded";;
@@ -8,8 +7,7 @@ import { authFetch } from "@/lib/api/authFetch";
 
 
 const authHeaders = () => {
-  const t = getAuthToken();
-  return { Accept: 'application/json', 'Content-Type': 'application/json', ...(t ? { Authorization: `Bearer ${t}` } : {}) };
+  return { Accept: 'application/json', 'Content-Type': 'application/json', };
 };
 
 interface Report {
@@ -38,7 +36,7 @@ const REASON_LABELS: Record<string, string> = {
 
 const STATUS_STYLES: Record<string, string> = {
   pending: 'bg-amber-500/20 text-amber-400',
-  reviewed: 'bg-blue-500/20 text-blue-400',
+  reviewed: 'bg-[var(--shell-accent-solid)]/20 text-[var(--shell-accent)]',
   dismissed: 'bg-muted text-muted-foreground',
   actioned: 'bg-emerald-500/20 text-emerald-400',
 };
@@ -62,29 +60,41 @@ export function AdminReportsPage() {
   const [page, setPage] = useState(1);
   const [lastPage, setLastPage] = useState(1);
 
-  const fetchReports = useCallback(async () => {
+  const [fetchReportsKey, setFetchReportsKey] = useState(0);
+  const fetchReports = () => {
     setLoading(true);
     setFetchError(null);
-    const params = new URLSearchParams();
-    if (statusFilter) params.set('status', statusFilter);
-    if (typeFilter) params.set('type', typeFilter);
-    params.set('page', String(page));
-    params.set('per_page', '20');
-    try {
-      const res = await authFetch(`/securegate/reports?${params}`, { headers: authHeaders() });
-      const j = await res.json();
-      if (res.ok) {
-        const list = j?.success ? j?.data : j;
-        setReports(Array.isArray(list?.data ?? list) ? (list?.data ?? list) : []);
-        setLastPage(j.data?.last_page ?? j.data?.data?.last_page ?? 1);
-      } else throw new Error(`HTTP ${res.status}`);
-    } catch (e) { setFetchError(e instanceof Error ? e.message : 'Failed to load reports'); setReports([]); }
-    finally { setLoading(false); }
-  }, [statusFilter, typeFilter, page]);
+    setFetchReportsKey((k) => k + 1);
+  };
 
-  useEffect(() => { fetchReports(); }, [fetchReports]);
+  useEffect(() => {
+    (async () => {
+      const params = new URLSearchParams();
+      if (statusFilter) params.set('status', statusFilter);
+      if (typeFilter) params.set('type', typeFilter);
+      params.set('page', String(page));
+      params.set('per_page', '20');
+      try {
+        const res = await authFetch(`/securegate/reports?${params}`, { headers: authHeaders() });
+        const j = await res.json();
+        if (res.ok) {
+          const list = j?.success ? j?.data : j;
+          setReports(Array.isArray(list?.data ?? list) ? (list?.data ?? list) : []);
+          setLastPage(j.data?.last_page ?? j.data?.data?.last_page ?? 1);
+        } else throw new Error(`HTTP ${res.status}`);
+      } catch (e) { setFetchError(e instanceof Error ? e.message : 'Failed to load reports'); setReports([]); }
+      finally { setLoading(false); }
+    })();
+  }, [fetchReportsKey, statusFilter, typeFilter, page]);
 
-  useEffect(() => { setPage(1); }, [statusFilter, typeFilter]);
+
+  // Back to page 1 whenever a filter changes.
+  const filterKey = `${statusFilter}|${typeFilter}`;
+  const [pagedFilterKey, setPagedFilterKey] = useState(filterKey);
+  if (filterKey !== pagedFilterKey) {
+    setPagedFilterKey(filterKey);
+    setPage(1);
+  }
 
   useEffect(() => {
     const next = new URLSearchParams();
@@ -107,7 +117,7 @@ export function AdminReportsPage() {
         setReviewNote('');
         fetchReports();
       }
-    } catch {}
+    } catch { /* ignored: best-effort, failure is non-fatal */ }
     setProcessing(false);
   };
 
@@ -125,7 +135,7 @@ export function AdminReportsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-black tracking-tight flex items-center gap-2.5">
-            <Flag weight="fill" className="h-6 w-6 text-[#2164b6] dark:text-[#7ab0ff]" /> Posts & Reports
+            <Flag weight="fill" className="h-6 w-6 text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" /> Posts & Reports
           </h1>
           <p className="text-xs text-muted-foreground mt-1">Review reported content and take action.</p>
         </div>
@@ -146,7 +156,7 @@ export function AdminReportsPage() {
             onClick={() => setStatusFilter(key)}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold transition-colors ${
               statusFilter === key
-                ? 'bg-[#2164b6] text-foreground'
+                ? 'bg-[var(--shell-accent-solid)] text-foreground'
                 : 'bg-muted text-muted-foreground hover:text-foreground'
             }`}
           >
@@ -163,7 +173,7 @@ export function AdminReportsPage() {
             key={t}
             onClick={() => setTypeFilter(t)}
             className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-colors flex items-center gap-1 ${
-              typeFilter === t ? 'bg-[#2164b6] text-foreground' : 'bg-muted text-muted-foreground hover:text-foreground'
+              typeFilter === t ? 'bg-[var(--shell-accent-solid)] text-foreground' : 'bg-muted text-muted-foreground hover:text-foreground'
             }`}
           >
             {t ? (t === 'post' ? 'Posts' : t === 'user' ? 'Users' : 'Comments') : 'All Types'}
@@ -172,7 +182,7 @@ export function AdminReportsPage() {
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-16"><Loader2 weight="fill" className="h-8 w-8 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" /></div>
+        <div className="flex justify-center py-16"><Loader2 weight="fill" className="h-8 w-8 animate-spin text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" /></div>
       ) : reports.length === 0 ? (
         <div className="p-16 text-center border border-dashed border-border rounded-3xl bg-card">
           <Flag weight="fill" className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />

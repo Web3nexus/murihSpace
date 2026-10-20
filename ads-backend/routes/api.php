@@ -10,10 +10,19 @@ use App\Http\Controllers\Api\AdController;
 use App\Http\Controllers\Api\AdminController;
 use App\Http\Controllers\Api\TrackingController;
 use App\Http\Controllers\Api\AnalyticsController;
-use App\Http\Controllers\Api\MurihSpaceAuthController;
+use App\Http\Controllers\Api\MurihSpaceSsoController;
+use App\Http\Controllers\Api\StaffHubAuthController;
 
 // ── MurihSpace Single Sign-On Authentication ──
-Route::post('/auth/murihspace-sso', [MurihSpaceAuthController::class, 'ssoLogin']);
+// "Continue with MurihSpace": the ads frontend callback posts the single-use code
+// it received from the main app. The exchange happens server-to-server here.
+Route::post('/auth/murihspace/complete', [MurihSpaceSsoController::class, 'complete'])
+    ->middleware('throttle:10,1');
+
+// Ads staff sign-in. The marketing hub is the only issuer: it posts a short-lived
+// signed staff token here and gets back an ads admin session. No passwords.
+Route::post('/auth/staff/hub-session', [StaffHubAuthController::class, 'session'])
+    ->middleware('throttle:10,1');
 
 Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/user', function (Request $request) {

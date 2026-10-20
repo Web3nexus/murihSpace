@@ -1,3 +1,4 @@
+import { authFetch } from "@/lib/api/authFetch";
 import { useState, useEffect } from "react";
 import { Swap as RefreshCwIcon, Send as SendIcon, TimeCircle as ClockIcon, TickSquare as CheckCircle2Icon, CloseSquare as XCircleIcon } from "@/components/icons";
 import { toast } from "sonner";
@@ -26,46 +27,54 @@ export default function AdminQualificationEventsPage() {
   const [statusFilter, setStatusFilter] = useState("");
   const [loading, setLoading] = useState(true);
   const [notifyingId, setNotifyingId] = useState<number | null>(null);
-
-  useEffect(() => {
-    fetchEvents();
-  }, [statusFilter]);
+  // Show the loading state in the render that changes the filter, rather than in the fetch effect.
+  const [prevStatusFilter, setPrevStatusFilter] = useState(statusFilter);
+  if (prevStatusFilter !== statusFilter) {
+    setPrevStatusFilter(statusFilter);
+    setLoading(true);
+  }
 
   const fetchEvents = async () => {
-    setLoading(true);
     try {
       const url = statusFilter
-        ? `/api/v1/securegate/creator-qualification/events?status=${statusFilter}`
-        : "/api/v1/securegate/creator-qualification/events";
-      const res = await fetch(url, { headers: { Accept: "application/json" } });
+        ? `/securegate/creator-qualification/events?status=${statusFilter}`
+        : "/securegate/creator-qualification/events";
+      const res = await authFetch(url, { headers: { Accept: "application/json" } });
       if (res.ok) {
         const d = await res.json();
         setEvents(d.data || []);
       } else {
         toast.error("Failed to load qualification events.");
       }
-    } catch (e) {
+    } catch {
       toast.error("Network error.");
     } finally {
       setLoading(false);
     }
   };
 
+  useEffect(() => {
+    (async () => {
+      await fetchEvents();
+    })();
+  }, [statusFilter]);
+
   const handleManualNotify = async (id: number) => {
     setNotifyingId(id);
     try {
-      const res = await fetch(`/api/v1/securegate/creator-qualification/events/${id}/notify`, {
+      const res = await authFetch(`/securegate/creator-qualification/events/${id}/notify`, {
         method: "POST",
         headers: { Accept: "application/json" },
       });
       if (res.ok) {
         toast.success("Outreach notification job dispatched!");
+        setLoading(true);
         fetchEvents();
       } else {
         const err = await res.json();
         toast.error(err.message || "Failed to notify.");
       }
-    } catch (e) {
+    } catch {
       toast.error("Error dispatching notification.");
     } finally {
       setNotifyingId(null);
@@ -127,7 +136,7 @@ export default function AdminQualificationEventsPage() {
             <option value="expired">Expired</option>
           </select>
           <button
-            onClick={fetchEvents}
+            onClick={() => { setLoading(true); fetchEvents(); }}
             className="p-2 rounded-lg border-none bg-card hover:bg-muted text-muted-foreground hover:text-foreground transition"
           >
             <RefreshCwIcon weight="fill" className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />

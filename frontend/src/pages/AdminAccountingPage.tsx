@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import { useState, useEffect, useCallback } from "react";
 import { Graph as TrendingUp, Document as FileText, Download, Swap as RefreshCw, Plus, ShieldDone as ShieldCheck, Discovery as Globe, Search, ArrowRight as ChevronRight, ArrowLeft as ChevronLeft } from "@/components/icons";
 import { CurrencyDollar as DollarSign, Receipt, Buildings as Building2, Stack as Layers, Percent, Coins, Spinner } from "@/components/icons/rounded";;
@@ -45,6 +46,8 @@ interface TaxRateRule {
   stream_rates: Record<string, number> | null;
   is_active: boolean;
   notes: string | null;
+  /** True for a country charged 0% until its rate is confirmed. */
+  needs_confirmation?: boolean;
 }
 
 interface TaxLiabilityItem {
@@ -81,6 +84,8 @@ export default function AdminAccountingPage() {
   const [taxRates, setTaxRates] = useState<TaxRateRule[]>([]);
   const [ratesLoading, setRatesLoading] = useState<boolean>(true);
   const [rateSearch, setRateSearch] = useState<string>("");
+  const [rateNeedsConfirmation, setRateNeedsConfirmation] = useState<boolean>(false);
+  const [unconfirmedRateTotal, setUnconfirmedRateTotal] = useState<number>(0);
   const [ratePage, setRatePage] = useState<number>(1);
   const [rateLastPage, setRateLastPage] = useState<number>(1);
   const [taxLiabilities, setTaxLiabilities] = useState<TaxLiabilityItem[]>([]);
@@ -135,7 +140,7 @@ export default function AdminAccountingPage() {
         setByCountry(tPayload.by_country || []);
       }
     } catch (e) {
-      console.error("Failed to load accounting data:", e);
+      logger.error("Failed to load accounting data:", e);
       toast.error("Failed to load accounting & tax data.");
     } finally {
       setLoading(false);
@@ -147,6 +152,7 @@ export default function AdminAccountingPage() {
     try {
       const params = new URLSearchParams();
       if (rateSearch) params.set("search", rateSearch);
+      if (rateNeedsConfirmation) params.set("status", "unconfirmed");
       params.set("page", String(ratePage));
       params.set("per_page", "25");
       const res = await authFetch(`/securegate/tax/rates?${params.toString()}`);
@@ -156,24 +162,25 @@ export default function AdminAccountingPage() {
         setTaxRates(rPayload.rates || []);
         const meta = rPayload.meta ?? rPayload.pagination ?? {};
         setRateLastPage(meta.last_page ?? 1);
+        setUnconfirmedRateTotal(meta.unconfirmed_total ?? 0);
       }
     } catch (e) {
-      console.error("Failed to load tax rates:", e);
+      logger.error("Failed to load tax rates:", e);
     } finally {
       setRatesLoading(false);
     }
-  }, [rateSearch, ratePage]);
+  }, [rateSearch, ratePage, rateNeedsConfirmation]);
 
   useEffect(() => {
-    loadRates();
+    // Deferred so the loading state is not set synchronously inside the effect body
+    const timer = setTimeout(() => loadRates(), 0);
+    return () => clearTimeout(timer);
   }, [loadRates]);
 
   useEffect(() => {
-    setRatePage(1);
-  }, [rateSearch]);
-
-  useEffect(() => {
-    loadData();
+    // Deferred so the loading state is not set synchronously inside the effect body
+    const timer = setTimeout(() => loadData(), 0);
+    return () => clearTimeout(timer);
   }, [loadData]);
 
   const handleCreateTaxRate = async (e: React.FormEvent) => {
@@ -208,7 +215,7 @@ export default function AdminAccountingPage() {
         toast.error(err.message || "Failed to save tax rate.");
       }
     } catch (err) {
-      console.error("Error saving tax rate:", err);
+      logger.error("Error saving tax rate:", err);
       toast.error("Network error saving tax rate.");
     } finally {
       setSavingRate(false);
@@ -236,7 +243,7 @@ export default function AdminAccountingPage() {
       a.remove();
       toast.success(`Downloaded ${filename}`);
     } catch (err) {
-      console.error("Export error:", err);
+      logger.error("Export error:", err);
       toast.error("Error downloading report.");
     } finally {
       setExportingType(null);
@@ -250,7 +257,7 @@ export default function AdminAccountingPage() {
       case "commerce":
         return "bg-emerald-500/10 text-emerald-400 border-emerald-500/20";
       case "subscription":
-        return "bg-blue-500/10 text-blue-400 border-blue-500/20";
+        return "bg-[var(--shell-accent-solid)]/10 text-[var(--shell-accent)] border-[var(--shell-accent)]/20";
       case "gifting":
         return "bg-pink-500/10 text-pink-400 border-pink-500/20";
       case "verification":
@@ -274,7 +281,7 @@ export default function AdminAccountingPage() {
       {/* Header Banner */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 sm:p-6 rounded-2xl bg-gradient-to-br from-[#102840] via-[#173852] to-[#102840] text-white shadow-xl border border-white/10">
         <div className="space-y-1.5">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#2164b6]/30 text-[#7ab0ff] text-xs font-bold uppercase tracking-wider border border-[#2164b6]/40">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[var(--shell-accent-solid)]/30 text-[var(--shell-accent)] text-xs font-bold uppercase tracking-wider border border-[var(--shell-accent)]/40">
             <Receipt weight="fill" className="h-3.5 w-3.5" /> Financial Accounting & Tax
           </div>
           <h1 className="text-2xl sm:text-3xl font-black tracking-tight">Financial Accounting & Tax Hub</h1>
@@ -292,7 +299,7 @@ export default function AdminAccountingPage() {
                 onClick={() => setCurrency(curr)}
                 className={`px-3 py-1 text-xs font-bold rounded-lg transition-all ${
                   currency === curr
-                    ? "bg-[#2164b6] text-white shadow-sm"
+                    ? "bg-[var(--shell-accent-solid)] text-white shadow-sm"
                     : "text-white/70 hover:text-white hover:bg-white/5"
                 }`}
               >
@@ -304,7 +311,7 @@ export default function AdminAccountingPage() {
           <Button
             onClick={loadData}
             disabled={loading}
-            className="bg-[#2164b6] hover:bg-[#2d94c2] text-white font-bold h-10 px-4 rounded-xl shadow-md transition-all gap-2"
+            className="bg-[var(--shell-accent-solid)] hover:bg-[#2d94c2] text-white font-bold h-10 px-4 rounded-xl shadow-md transition-all gap-2"
           >
             <RefreshCw weight="bold" className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
             Refresh
@@ -334,7 +341,7 @@ export default function AdminAccountingPage() {
         <div className="rounded-2xl border border-border/40 bg-card p-5 text-center shadow-sm flex flex-col justify-between hover:border-primary/40 transition-all">
           <div className="flex items-center justify-between text-muted-foreground text-xs font-bold uppercase tracking-wider">
             <span>Net Platform Revenue</span>
-            <span className="p-1.5 rounded-lg bg-blue-500/10 text-blue-500">
+            <span className="p-1.5 rounded-lg bg-[var(--shell-accent-solid)]/10 text-[var(--shell-accent)]">
               <TrendingUp weight="fill" className="h-4 w-4" />
             </span>
           </div>
@@ -389,7 +396,7 @@ export default function AdminAccountingPage() {
           onClick={() => setActiveTab("streams")}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
             activeTab === "streams"
-              ? "bg-[#2164b6] text-white shadow-md"
+              ? "bg-[var(--shell-accent-solid)] text-white shadow-md"
               : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
           }`}
         >
@@ -401,7 +408,7 @@ export default function AdminAccountingPage() {
           onClick={() => setActiveTab("tax")}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
             activeTab === "tax"
-              ? "bg-[#2164b6] text-white shadow-md"
+              ? "bg-[var(--shell-accent-solid)] text-white shadow-md"
               : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
           }`}
         >
@@ -413,7 +420,7 @@ export default function AdminAccountingPage() {
           onClick={() => setActiveTab("rates")}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
             activeTab === "rates"
-              ? "bg-[#2164b6] text-white shadow-md"
+              ? "bg-[var(--shell-accent-solid)] text-white shadow-md"
               : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
           }`}
         >
@@ -425,7 +432,7 @@ export default function AdminAccountingPage() {
           onClick={() => setActiveTab("exports")}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
             activeTab === "exports"
-              ? "bg-[#2164b6] text-white shadow-md"
+              ? "bg-[var(--shell-accent-solid)] text-white shadow-md"
               : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
           }`}
         >
@@ -575,7 +582,7 @@ export default function AdminAccountingPage() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-5 border-b border-border/40 bg-muted/20">
               <div>
                 <h2 className="text-base font-bold text-foreground flex items-center gap-2">
-                  <Globe weight="fill" className="h-4 w-4 text-[#2164b6]" />
+                  <Globe weight="fill" className="h-4 w-4 text-[var(--shell-accent)]" />
                   Tax per Country &amp; Currency
                 </h2>
                 <p className="text-xs text-muted-foreground mt-0.5">
@@ -614,7 +621,7 @@ export default function AdminAccountingPage() {
                     byCountry.map((item) => (
                       <tr key={`${item.country_code}|${item.currency}`} className="hover:bg-muted/15 transition-colors">
                         <td className="px-5 py-3.5 font-bold flex items-center gap-2">
-                          <Building2 weight="fill" className="h-4 w-4 text-[#2164b6]" />
+                          <Building2 weight="fill" className="h-4 w-4 text-[var(--shell-accent)]" />
                           {item.country_code}
                         </td>
                         <td className="px-4 py-3.5 text-muted-foreground text-xs font-medium font-mono">
@@ -704,7 +711,7 @@ export default function AdminAccountingPage() {
                           {item.period_identifier}
                         </td>
                         <td className="px-4 py-3.5 font-bold flex items-center gap-2">
-                          <Building2 weight="fill" className="h-4 w-4 text-[#2164b6]" />
+                          <Building2 weight="fill" className="h-4 w-4 text-[var(--shell-accent)]" />
                           <span>{item.country_code}</span>
                         </td>
                         <td className="px-4 py-3.5 text-muted-foreground text-xs font-medium">
@@ -728,7 +735,7 @@ export default function AdminAccountingPage() {
                               item.status === "remitted"
                                 ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
                                 : item.status === "reported"
-                                ? "bg-blue-500/10 text-blue-400 border-blue-500/30"
+                                ? "bg-[var(--shell-accent-solid)]/10 text-[var(--shell-accent)] border-[var(--shell-accent)]/30"
                                 : "bg-amber-500/10 text-amber-400 border-amber-500/30"
                             }`}
                           >
@@ -763,14 +770,29 @@ export default function AdminAccountingPage() {
                 <Search weight="fill" className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   value={rateSearch}
-                  onChange={(e) => setRateSearch(e.target.value)}
+                  onChange={(e) => {
+                    setRateSearch(e.target.value);
+                    setRatePage(1);
+                  }}
                   placeholder="Search country, code, or tax name..."
                   className="h-10 pl-9 rounded-xl border-border bg-card text-sm shadow-sm"
                 />
               </div>
               <Button
+                type="button"
+                variant={rateNeedsConfirmation ? "default" : "outline"}
+                onClick={() => {
+                  setRateNeedsConfirmation((on) => !on);
+                  setRatePage(1);
+                }}
+                className="h-10 px-4 rounded-xl font-bold gap-2"
+                aria-pressed={rateNeedsConfirmation}
+              >
+                Needs confirmation ({unconfirmedRateTotal})
+              </Button>
+              <Button
                 onClick={() => setShowAddRate(true)}
-                className="bg-[#2164b6] hover:bg-[#2d94c2] text-white font-bold h-10 px-4 rounded-xl shadow-md gap-2"
+                className="bg-[var(--shell-accent-solid)] hover:bg-[#2d94c2] text-white font-bold h-10 px-4 rounded-xl shadow-md gap-2"
               >
                 <Plus weight="bold" className="h-4 w-4" />
                 Add Country Tax Rule
@@ -818,11 +840,16 @@ export default function AdminAccountingPage() {
                       <tr key={r.id} className="hover:bg-muted/15 transition-colors">
                         <td className="px-5 py-3.5 font-medium">
                           <div className="flex items-center gap-2">
-                            <Globe weight="fill" className="h-4 w-4 text-[#2164b6]" />
+                            <Globe weight="fill" className="h-4 w-4 text-[var(--shell-accent)]" />
                             <span className="font-bold text-foreground">{r.country_name}</span>
                             <span className="text-xs font-mono text-muted-foreground px-1.5 py-0.5 rounded bg-muted/50 border border-border/40">
                               {r.country_code}
                             </span>
+                            {r.needs_confirmation && (
+                              <span className="text-[10px] font-bold uppercase tracking-wide text-amber-600 px-1.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/30">
+                                Confirm rate
+                              </span>
+                            )}
                           </div>
                         </td>
                         <td className="px-4 py-3.5 font-medium text-xs text-foreground">
@@ -988,7 +1015,7 @@ export default function AdminAccountingPage() {
                   <Button
                     type="submit"
                     disabled={savingRate}
-                    className="bg-[#2164b6] hover:bg-[#2d94c2] text-white font-bold rounded-xl h-10 px-5"
+                    className="bg-[var(--shell-accent-solid)] hover:bg-[#2d94c2] text-white font-bold rounded-xl h-10 px-5"
                   >
                     {savingRate ? <Spinner weight="bold" className="h-4 w-4 mr-2 animate-spin" /> : null}
                     Save Rule
@@ -1017,7 +1044,7 @@ export default function AdminAccountingPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="p-5 rounded-2xl border border-border/50 bg-muted/15 space-y-4 hover:border-primary/40 transition-all flex flex-col justify-between">
                 <div className="space-y-2">
-                  <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-500">
+                  <div className="w-10 h-10 rounded-xl bg-[var(--shell-accent-solid)]/10 border border-[var(--shell-accent)]/20 flex items-center justify-center text-[var(--shell-accent)]">
                     <FileText weight="fill" className="h-5 w-5" />
                   </div>
                   <h3 className="font-black text-sm text-foreground">Master Revenue Journal</h3>
@@ -1030,7 +1057,7 @@ export default function AdminAccountingPage() {
                     downloadReport("/securegate/accounting/export", "murihspace_revenue_journal.csv", "journal")
                   }
                   disabled={exportingType === "journal"}
-                  className="w-full bg-[#2164b6] hover:bg-[#2d94c2] text-white font-bold rounded-xl h-10 gap-2 shadow-sm"
+                  className="w-full bg-[var(--shell-accent-solid)] hover:bg-[#2d94c2] text-white font-bold rounded-xl h-10 gap-2 shadow-sm"
                 >
                   {exportingType === "journal" ? (
                     <Spinner weight="bold" className="h-4 w-4 animate-spin" />
@@ -1056,7 +1083,7 @@ export default function AdminAccountingPage() {
                     downloadReport("/securegate/tax/export", "murihspace_vat_schedule.csv", "vat")
                   }
                   disabled={exportingType === "vat"}
-                  className="w-full bg-[#2164b6] hover:bg-[#2d94c2] text-white font-bold rounded-xl h-10 gap-2 shadow-sm"
+                  className="w-full bg-[var(--shell-accent-solid)] hover:bg-[#2d94c2] text-white font-bold rounded-xl h-10 gap-2 shadow-sm"
                 >
                   {exportingType === "vat" ? (
                     <Spinner weight="bold" className="h-4 w-4 animate-spin" />
@@ -1082,7 +1109,7 @@ export default function AdminAccountingPage() {
                     downloadReport("/securegate/tax/export?type=wht", "murihspace_wht_schedule.csv", "wht")
                   }
                   disabled={exportingType === "wht"}
-                  className="w-full bg-[#2164b6] hover:bg-[#2d94c2] text-white font-bold rounded-xl h-10 gap-2 shadow-sm"
+                  className="w-full bg-[var(--shell-accent-solid)] hover:bg-[#2d94c2] text-white font-bold rounded-xl h-10 gap-2 shadow-sm"
                 >
                   {exportingType === "wht" ? (
                     <Spinner weight="bold" className="h-4 w-4 animate-spin" />

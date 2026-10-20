@@ -48,9 +48,7 @@ export function useProfile() {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
   const [pendingKycs, setPendingKycs] = useState<UserProfileData[]>([]);
 
-  const fetchProfile = async () => {
-    setLoading(true);
-    setError(null);
+  const loadProfile = async () => {
     try {
       let response;
       try {
@@ -175,8 +173,16 @@ export function useProfile() {
     }
   };
 
+  const fetchProfile = () => {
+    setLoading(true);
+    setError(null);
+    return loadProfile();
+  };
+
   useEffect(() => {
-    fetchProfile();
+    (async () => {
+      await loadProfile();
+    })();
   }, []);
 
   return {

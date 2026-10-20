@@ -154,8 +154,9 @@ class PaddleFulfillmentTest extends TestCase
 
         $this->finalize($payment, 500);
 
-        $feeRes = app(FeeCalculatorService::class)->calculate('GIFT_RECEIVING', 50, 'USD');
-        $net = (int) $feeRes['net_amount'];
+        // The gift commission schedule: the receiver's share is the coin price less the gift commission.
+        $split = app(\App\Services\Commission\CommissionService::class)->splitGift(50);
+        $net = $split['creator_earns'];
 
         $txn = GiftTransaction::where('sender_id', $sender->id)->first();
         $this->assertNotNull($txn);
@@ -166,7 +167,8 @@ class PaddleFulfillmentTest extends TestCase
         // Sender funded 50 coins then paid the 50 gift -> net zero
         $this->assertSame(0, (int) $walletService->getOrCreateWallet($sender, 'system')->available);
         // Recipient creator wallet receives net of fee
-        $this->assertSame($net, (int) $walletService->getOrCreateWallet($recipient, 'creator')->available);
+        // The recipient is not KYC-verified, so the net gift earnings are held in pending.
+        $this->assertSame($net, (int) $walletService->getOrCreateWallet($recipient, 'creator')->pending);
         // Fee floated to platform revenue
         $this->assertSame(50 - $net, (int) $walletService->getOrCreateWallet($platform, 'system')->available);
     }

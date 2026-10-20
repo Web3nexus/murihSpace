@@ -1,3 +1,5 @@
+import { logger } from "@/lib/logger";
+import { asApiError } from "@/lib/apiError";
 import * as React from "react";
 import { useNavigate } from "react-router";
 import { N3User as UsersThree, Plus, Search as MagnifyingGlass, Discovery as Globe, Lock, Message as EnvelopeSimple, Discovery as Compass, ArrowRight, Profile as UserIcon } from "@/components/icons";
@@ -7,6 +9,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CreateGroupModal } from "@/components/groups/CreateGroupModal";
 import type { Group, GroupInvitation } from "@/types/group";
+
+// The create response may return the group bare or wrapped in `data`.
+type CreatedGroupPayload = Partial<Group> & {
+  data?: { slug?: string; data?: { slug?: string } };
+};
 
 const CATEGORIES = [
   "All",
@@ -19,17 +26,16 @@ const CATEGORIES = [
   "Lifestyle & Hobbies",
 ];
 
-function safeArray<T = any>(val: any): T[] {
-  if (Array.isArray(val)) return val;
-  if (Array.isArray(val?.data)) return val.data;
-  if (Array.isArray(val?.data?.data)) return val.data.data;
-  if (Array.isArray(val?.groups)) return val.groups;
-  if (Array.isArray(val?.data?.groups)) return val.data.groups;
+function safeArray<T>(val: T[]): T[];
+function safeArray<T = unknown>(val: unknown): T[];
+function safeArray(val: unknown): unknown[] {
+  const rec = (val && typeof val === "object" ? val : {}) as Record<string, unknown>;
+  const inner = (rec.data && typeof rec.data === "object" ? rec.data : {}) as Record<string, unknown>;
+  const found = [val, rec.data, inner.data, rec.groups, inner.groups].find(Array.isArray);
+  if (found) return found;
   if (val && typeof val === "object" && !("message" in val)) {
     const vals = Object.values(val);
-    if (vals.length > 0 && typeof vals[0] === "object") {
-      return vals as T[];
-    }
+    if (vals.length > 0 && typeof vals[0] === "object") return vals;
   }
   return [];
 }
@@ -65,12 +71,11 @@ export function GroupsPage() {
   // Fetch My Groups
   const fetchMyGroups = React.useCallback(async () => {
     try {
-      setLoadingMyGroups(true);
       const res = await apiClient.get("/groups/mine");
       const list = safeArray<Group>(res.data);
       setMyGroups(list);
     } catch (err) {
-      console.error("Failed to load my groups", err);
+      logger.error("Failed to load my groups", err);
       setMyGroups([]);
     } finally {
       setLoadingMyGroups(false);
@@ -80,7 +85,6 @@ export function GroupsPage() {
   // Fetch Discover Groups
   const fetchDiscover = React.useCallback(async () => {
     try {
-      setLoadingDiscover(true);
       const params = new URLSearchParams();
       if (selectedCategory !== "All") params.set("category", selectedCategory);
       if (searchQuery.trim()) params.set("search", searchQuery.trim());
@@ -88,7 +92,7 @@ export function GroupsPage() {
       const res = await apiClient.get(`/groups?${params}`);
       setDiscoverGroups(safeArray<Group>(res.data));
     } catch (err) {
-      console.error("Failed to discover groups", err);
+      logger.error("Failed to discover groups", err);
       setDiscoverGroups([]);
     } finally {
       setLoadingDiscover(false);
@@ -98,11 +102,10 @@ export function GroupsPage() {
   // Fetch Invitations
   const fetchInvitations = React.useCallback(async () => {
     try {
-      setLoadingInvitations(true);
       const res = await apiClient.get("/groups/invitations");
       setInvitations(safeArray<GroupInvitation>(res.data));
     } catch (err) {
-      console.error("Failed to load invitations", err);
+      logger.error("Failed to load invitations", err);
       setInvitations([]);
     } finally {
       setLoadingInvitations(false);
@@ -110,13 +113,23 @@ export function GroupsPage() {
   }, []);
 
   React.useEffect(() => {
-    fetchMyGroups();
-    fetchInvitations();
+    (async () => {
+      await Promise.all([fetchMyGroups(), fetchInvitations()]);
+    })();
   }, [fetchMyGroups, fetchInvitations]);
+
+  // Show the discover spinner during the render that changes the request, rather than in the effect.
+  const [discoverRequest, setDiscoverRequest] = React.useState({ activeTab, fetchDiscover });
+  if (discoverRequest.activeTab !== activeTab || discoverRequest.fetchDiscover !== fetchDiscover) {
+    setDiscoverRequest({ activeTab, fetchDiscover });
+    if (activeTab === "discover") setLoadingDiscover(true);
+  }
 
   React.useEffect(() => {
     if (activeTab === "discover") {
-      fetchDiscover();
+      (async () => {
+        await fetchDiscover();
+      })();
     }
   }, [activeTab, fetchDiscover]);
 
@@ -133,8 +146,9 @@ export function GroupsPage() {
           prev.map((g) => (g.id === group.id ? { ...g, has_pending_request: true } : g))
         );
       }
-    } catch (err: any) {
-      alert(err.response?.data?.error || "Failed to join group.");
+    } catch (err: unknown) {
+      const apiErr = asApiError(err);
+      alert(apiErr.response?.data?.error || "Failed to join group.");
     } finally {
       setActionId(null);
     }
@@ -146,12 +160,14 @@ export function GroupsPage() {
       setActionId(inviteId);
       const res = await apiClient.post(`/groups/invitations/${inviteId}/respond`, { action });
       setInvitations((prev) => prev.filter((i) => i.id !== inviteId));
+      setLoadingMyGroups(true);
       fetchMyGroups();
       if (action === "accept" && res.data?.group_slug) {
         navigate(`/app/groups/${res.data.group_slug}`);
       }
-    } catch (err: any) {
-      alert(err.response?.data?.error || "Failed to respond to invitation.");
+    } catch (err: unknown) {
+      const apiErr = asApiError(err);
+      alert(apiErr.response?.data?.error || "Failed to respond to invitation.");
     } finally {
       setActionId(null);
     }
@@ -308,7 +324,7 @@ export function GroupsPage() {
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
                 {safeMyGroups.map((group) => (
-                  <div
+                  <div role="button" tabIndex={0} onKeyDown={(e) => { if (e.target !== e.currentTarget) return; if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.currentTarget.click(); } }}
                     key={group.id}
                     onClick={() => navigate(`/app/groups/${group.slug}`)}
                     className="group relative rounded-3xl border border-border/80 bg-card/70 hover:bg-card hover:border-primary/40 hover:shadow-lg transition-all overflow-hidden cursor-pointer flex flex-col justify-between"
@@ -398,7 +414,7 @@ export function GroupsPage() {
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
                 {safeDiscoverGroups.map((group) => (
-                  <div
+                  <div role="button" tabIndex={0} onKeyDown={(e) => { if (e.target !== e.currentTarget) return; if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.currentTarget.click(); } }}
                     key={group.id}
                     onClick={() => navigate(`/app/groups/${group.slug}`)}
                     className="group relative rounded-3xl border border-border/80 bg-card/70 hover:bg-card hover:border-primary/40 hover:shadow-lg transition-all overflow-hidden cursor-pointer flex flex-col justify-between"
@@ -564,14 +580,16 @@ export function GroupsPage() {
         open={createModalOpen}
         onOpenChange={setCreateModalOpen}
         onCreated={(newGroup) => {
+          const created = newGroup as CreatedGroupPayload;
           const targetSlug =
-            newGroup?.slug ||
-            (newGroup as any)?.data?.slug ||
-            (newGroup as any)?.data?.data?.slug ||
-            (newGroup as any)?.id;
+            created?.slug ||
+            created?.data?.slug ||
+            created?.data?.data?.slug ||
+            created?.id;
           if (targetSlug) {
             navigate(`/app/groups/${targetSlug}`);
           } else {
+            setLoadingMyGroups(true);
             fetchMyGroups();
             setActiveTab("my");
           }

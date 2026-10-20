@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useConfirm } from '@/components/ui/DialogProvider';
 import { Send as PaperPlaneRight, Plus, Delete as Trash2, TickSquare as Check, CloseSquare as X } from "@/components/icons";
 import { Spinner as Loader2, Buildings as Building2 } from "@/components/icons/rounded";;
@@ -33,7 +33,7 @@ interface Proposal {
 
 const KANBAN_STAGES = [
   { id: 'draft', label: 'Drafts', color: 'bg-muted/50 border-border/50 text-muted-foreground' },
-  { id: 'sent', label: 'Pitched', color: 'bg-blue-500/10 border-blue-500/20 text-blue-500' },
+  { id: 'sent', label: 'Pitched', color: 'bg-[var(--shell-accent-solid)]/10 border-[var(--shell-accent)]/20 text-[var(--shell-accent)]' },
   { id: 'viewed', label: 'Negotiating', color: 'bg-purple-500/10 border-purple-500/20 text-purple-500' },
   { id: 'accepted', label: 'Accepted', color: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500' },
   { id: 'declined', label: 'Declined', color: 'bg-rose-500/10 border-rose-500/20 text-rose-500' },
@@ -55,20 +55,26 @@ export function ProposalsPage() {
   const [draggedItem, setDraggedItem] = useState<number | null>(null);
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
 
-  const fetchAll = useCallback(async () => {
-    try {
-      const [pRes, bRes] = await Promise.all([
-        // Fetch all proposals for Kanban
-        authFetch(`/brand-proposals?page=1&per_page=100`, {  }),
-        authFetch(`/brands`, {  }),
-      ]);
-      if (pRes.ok) { const j = await pRes.json(); setProposals(j.data?.data ?? []); }
-      if (bRes.ok) { const j = await bRes.json(); setBrands(j.data?.data ?? []); }
-    } catch { /* ignore */ }
-    finally { setIsLoading(false); }
-  }, []);
+  const [fetchAllKey, setFetchAllKey] = useState(0);
+  const fetchAll = () => {
+    setFetchAllKey((k) => k + 1);
+  };
 
-  useEffect(() => { fetchAll(); }, [fetchAll]);
+  useEffect(() => {
+    (async () => {
+      try {
+        const [pRes, bRes] = await Promise.all([
+          // Fetch all proposals for Kanban
+          authFetch(`/brand-proposals?page=1&per_page=100`, {  }),
+          authFetch(`/brands`, {  }),
+        ]);
+        if (pRes.ok) { const j = await pRes.json(); setProposals(j.data?.data ?? []); }
+        if (bRes.ok) { const j = await bRes.json(); setBrands(j.data?.data ?? []); }
+      } catch { /* ignore */ }
+      finally { setIsLoading(false); }
+    })();
+  }, [fetchAllKey]);
+
 
   function resetForm() {
     setForm({ brand_id: '', brand_name: '', brand_email: '', title: '', pitch: '', proposed_budget: '', currency: 'NGN', deliverables: '' });
@@ -83,7 +89,7 @@ export function ProposalsPage() {
   async function createProposal(e: React.FormEvent) {
     e.preventDefault();
     try {
-      const body: Record<string, any> = {
+      const body: Record<string, unknown> = {
         title: form.title, pitch: form.pitch, currency: form.currency,
         deliverables: form.deliverables || null,
         proposed_budget: form.proposed_budget ? Number(form.proposed_budget) * 100 : null,
@@ -155,8 +161,8 @@ export function ProposalsPage() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
         <div className="relative">
-          <div className="absolute inset-0 rounded-full blur-xl bg-[#2164b6]/20 animate-pulse"></div>
-          <Loader2 weight="fill" className="h-10 w-10 animate-spin text-[#2164b6] relative z-10" />
+          <div className="absolute inset-0 rounded-full blur-xl bg-[var(--shell-accent-solid)]/20 animate-pulse"></div>
+          <Loader2 weight="fill" className="h-10 w-10 animate-spin text-[var(--shell-accent)] relative z-10" />
         </div>
         <p className="text-sm text-muted-foreground font-medium animate-pulse">Loading Kanban board...</p>
       </div>
@@ -183,7 +189,7 @@ export function ProposalsPage() {
             className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all shadow-xs ${
               showForm 
                 ? 'bg-muted text-foreground hover:bg-muted/80' 
-                : 'bg-[#2164b6] hover:bg-[#1a5091] text-white'
+                : 'bg-[var(--shell-accent-solid)] hover:bg-[var(--shell-accent-hover)] text-white'
             }`}
           >
             {showForm ? <X className="h-4 w-4" /> : <Plus weight="fill" className="h-4 w-4" />}
@@ -204,7 +210,7 @@ export function ProposalsPage() {
       {showForm && (
         <div className="shrink-0 rounded-lg border-none/50 bg-card/50 backdrop-blur-xl p-4 shadow-xl mb-6 animate-in slide-in-from-top-4 duration-500">
           <div className="mb-6 flex items-center gap-3 border-b border-border/50 pb-4">
-            <div className="p-2 rounded-lg bg-[#2164b6]/10 text-[#2164b6]">
+            <div className="p-2 rounded-lg bg-[var(--shell-accent-solid)]/10 text-[var(--shell-accent)]">
               <PaperPlaneRight weight="fill" className="h-5 w-5" />
             </div>
             <div>
@@ -219,7 +225,7 @@ export function ProposalsPage() {
                 <div className="space-y-2">
                   <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Target Brand</Label>
                   <Select value={form.brand_id} onValueChange={v => setForm({ ...form, brand_id: v })}>
-                    <SelectTrigger className="w-full h-12 rounded-lg border-border/50 bg-background/50 focus:ring-[#2164b6]/50">
+                    <SelectTrigger className="w-full h-12 rounded-lg border-border/50 bg-background/50 focus:ring-[var(--shell-accent)]/50">
                       <SelectValue placeholder="Select a registered brand..." />
                     </SelectTrigger>
                     <SelectContent>
@@ -244,7 +250,7 @@ export function ProposalsPage() {
                 
                 <div className="space-y-2">
                   <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Pitch Title</Label>
-                  <Input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} required className="h-12 rounded-lg bg-background/50 border-border/50 focus:ring-[#2164b6]/50" placeholder="e.g. Sponsored TikTok Integration for Q4" />
+                  <Input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} required className="h-12 rounded-lg bg-background/50 border-border/50 focus:ring-[var(--shell-accent)]/50" placeholder="e.g. Sponsored TikTok Integration for Q4" />
                 </div>
                 
                 <div className="grid grid-cols-2 gap-4">
@@ -252,19 +258,19 @@ export function ProposalsPage() {
                     <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Budget</Label>
                     <div className="flex gap-2">
                       <Select value={form.currency} onValueChange={v => setForm({ ...form, currency: v })}>
-                        <SelectTrigger className="w-24 h-12 rounded-lg border-border/50 bg-background/50 focus:ring-[#2164b6]/50"><SelectValue /></SelectTrigger>
+                        <SelectTrigger className="w-24 h-12 rounded-lg border-border/50 bg-background/50 focus:ring-[var(--shell-accent)]/50"><SelectValue /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="NGN">NGN</SelectItem>
                           <SelectItem value="USD">USD</SelectItem>
                           <SelectItem value="GBP">GBP</SelectItem>
                         </SelectContent>
                       </Select>
-                      <Input type="number" min="0" value={form.proposed_budget} onChange={e => setForm({ ...form, proposed_budget: e.target.value })} className="flex-1 h-12 rounded-lg bg-background/50 border-border/50 focus:ring-[#2164b6]/50" placeholder="500,000" />
+                      <Input type="number" min="0" value={form.proposed_budget} onChange={e => setForm({ ...form, proposed_budget: e.target.value })} className="flex-1 h-12 rounded-lg bg-background/50 border-border/50 focus:ring-[var(--shell-accent)]/50" placeholder="500,000" />
                     </div>
                   </div>
                   <div className="space-y-2">
                     <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Deliverables</Label>
-                    <Input value={form.deliverables} onChange={e => setForm({ ...form, deliverables: e.target.value })} className="h-12 rounded-lg bg-background/50 border-border/50 focus:ring-[#2164b6]/50" placeholder="1x Reel, 2x Stories" />
+                    <Input value={form.deliverables} onChange={e => setForm({ ...form, deliverables: e.target.value })} className="h-12 rounded-lg bg-background/50 border-border/50 focus:ring-[var(--shell-accent)]/50" placeholder="1x Reel, 2x Stories" />
                   </div>
                 </div>
               </div>
@@ -275,14 +281,14 @@ export function ProposalsPage() {
                   value={form.pitch} 
                   onChange={e => setForm({ ...form, pitch: e.target.value })} 
                   required 
-                  className="flex-1 min-h-[200px] rounded-lg bg-background/50 border-border/50 focus:ring-[#2164b6]/50 resize-none p-4" 
+                  className="flex-1 min-h-[200px] rounded-lg bg-background/50 border-border/50 focus:ring-[var(--shell-accent)]/50 resize-none p-4" 
                   placeholder="Introduce yourself, highlight your audience demographics, and explain exactly why your content is the perfect fit for their upcoming campaign..." 
                 />
               </div>
             </div>
             
             <div className="flex justify-end pt-4 border-t border-border/50">
-              <button type="submit" className="px-8 py-3 rounded-lg bg-[#2164b6] text-white text-sm font-bold hover:bg-[#1a5091] hover:shadow-lg transition-all duration-300">
+              <button type="submit" className="px-8 py-3 rounded-lg bg-[var(--shell-accent-solid)] text-white text-sm font-bold hover:bg-[var(--shell-accent-hover)] hover:shadow-lg transition-all duration-300">
                 Save to Pipeline
               </button>
             </div>

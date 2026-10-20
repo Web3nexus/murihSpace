@@ -14,8 +14,9 @@ use Illuminate\Support\Facades\Log;
  * logs the code (dev only), and keeps the plaintext code in a short-lived cache
  * key so local flows and automated tests can read it.
  *
- * This driver must never be used in production. The code is only logged in
- * non-production environments; the cache key is namespaced `phone-otp:dev:`.
+ * This driver must never be used in production. It refuses to start when
+ * APP_ENV is production, and no configuration flag can override that. Outside
+ * production, the code is logged and the cache key is namespaced `phone-otp:dev:`.
  */
 class LogOtpDriver implements OtpDriverInterface
 {
@@ -26,12 +27,10 @@ class LogOtpDriver implements OtpDriverInterface
 
     public function start(PhoneOtpRequest $request): void
     {
-        // Staging is expected to run this driver so codes can be read from the
-        // log instead of sending real SMS. Only a real `production` deploy is
-        // blocked, and it can be unblocked deliberately (never by accident)
-        // with OTP_ALLOW_LOG_DRIVER=true for teams that need it.
-        if (app()->environment('production')
-            && ! filter_var(config('services.twilio.allow_log_driver', false), FILTER_VALIDATE_BOOLEAN)) {
+        // Staging and local run this driver so codes can be read from the log
+        // instead of sending real SMS. Production never does: a code must not
+        // reach any log, so this refuses before a code is generated.
+        if (app()->environment('production')) {
             throw new OtpProviderException('The log OTP driver must never be used in production.');
         }
 
@@ -45,7 +44,7 @@ class LogOtpDriver implements OtpDriverInterface
             'phone' => $request->maskedPhone(),
             'intent' => $request->intent,
             'request_id' => $request->id,
-            'code' => $code, // dev only; never present with the Twilio driver
+            'code' => $code, // non-production only; start() refuses in production
         ]);
 
         Cache::put('phone-otp:dev:'.$request->id, $code, now()->addMinutes($ttlMinutes));

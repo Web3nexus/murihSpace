@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, useRef } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { Link } from "react-router";
 import { resolveDeepLink, type DeepLinkTarget, type DeepLinkType } from "@/lib/deepLinks";
 import { apiClient } from "@/lib/api/client";
@@ -52,28 +52,26 @@ function statusTtl(type: DeepLinkType): number | null {
 // Extract URLs from text
 const URL_REGEX = /(https?:\/\/[^\s]+|murihspace:\/\/[^\s]+)/gi;
 
-function getIconForType(type: DeepLinkType) {
-  switch (type) {
-    case "meeting":
-      return VideoCamera;
-    case "live":
-      return Broadcast;
-    case "event":
-      return CalendarBlank;
-    case "product":
-      return ShoppingBag;
-    case "community":
-      return UsersThree;
-    case "storefront":
-      return Storefront;
-    case "profile":
-    case "linkInBio":
-      return User;
-    case "chat":
-      return ChatCircleText;
-    default:
-      return ArrowSquareOut;
-  }
+// Module-level so the card looks its icon up instead of building one per render.
+const ICON_BY_TYPE: Record<DeepLinkType, React.ElementType> = {
+  meeting: VideoCamera,
+  live: Broadcast,
+  event: CalendarBlank,
+  product: ShoppingBag,
+  community: UsersThree,
+  storefront: Storefront,
+  profile: User,
+  linkInBio: User,
+  chat: ChatCircleText,
+  unknown: ArrowSquareOut,
+};
+
+/** The cached answer for a link, if it is still fresh enough to show as-is. */
+function freshCachedPreview(url: string | undefined, type: DeepLinkType | undefined): LinkPreviewData | null {
+  if (!url || !type) return null;
+  const entry = previewCache.get(url);
+  if (!entry || Date.now() - entry.at > previewTtl(type)) return null;
+  return entry.data;
 }
 
 function getDefaultLabel(type: DeepLinkType): string {
@@ -133,10 +131,10 @@ export function ChatMessageContent({ content, isMine = false, className }: ChatM
     let match: RegExpExecArray | null;
     let firstDeepLink: { url: string; target: DeepLinkTarget } | null = null;
 
-    // Reset regex index
-    URL_REGEX.lastIndex = 0;
+    // Own regex per parse: a shared global regex keeps lastIndex between calls
+    const urlRegex = new RegExp(URL_REGEX.source, URL_REGEX.flags);
 
-    while ((match = URL_REGEX.exec(content)) !== null) {
+    while ((match = urlRegex.exec(content)) !== null) {
       if (match.index > lastIndex) {
         rawParts.push({
           type: "text",
@@ -178,17 +176,18 @@ export function ChatMessageContent({ content, isMine = false, className }: ChatM
   const candidateType = deepLinkCandidate?.target.type;
   const [previewRefresh, setPreviewRefresh] = useState(0);
 
-  // Which URL the card on screen belongs to, so a refresh of the same link
-  // can revalidate without blanking a card the reader is looking at.
-  const previewUrlRef = useRef<string | null>(null);
+  // The link the card on screen belongs to. When it changes, the card starts
+  // from the fresh cached answer (or blank) rather than the previous link's data.
+  const [trackedUrl, setTrackedUrl] = useState(candidateUrl);
 
-  const [preview, setPreview] = useState<LinkPreviewData | null>(() => {
-    if (!candidateUrl || !candidateType) return null;
-    const entry = previewCache.get(candidateUrl);
-    if (!entry || Date.now() - entry.at > previewTtl(candidateType)) return null;
-    previewUrlRef.current = candidateUrl;
-    return entry.data;
-  });
+  const [preview, setPreview] = useState<LinkPreviewData | null>(() =>
+    freshCachedPreview(candidateUrl, candidateType)
+  );
+
+  if (candidateUrl !== trackedUrl) {
+    setTrackedUrl(candidateUrl);
+    setPreview(freshCachedPreview(candidateUrl, candidateType));
+  }
 
   // A mounted chat never changes candidateUrl, so a live or meeting card
   // would keep its status forever without a timer to revalidate it.
@@ -201,27 +200,14 @@ export function ChatMessageContent({ content, isMine = false, className }: ChatM
   }, [candidateUrl, candidateType, previewRefresh]);
 
   useEffect(() => {
-    if (!candidateUrl || !candidateType) {
-      setPreview(null);
-      previewUrlRef.current = null;
-      return;
-    }
+    if (!candidateUrl || !candidateType) return;
 
     const cached = previewCache.get(candidateUrl);
-    if (cached && Date.now() - cached.at <= previewTtl(candidateType)) {
-      setPreview(cached.data);
-      previewUrlRef.current = candidateUrl;
-      return;
-    }
+    if (cached && Date.now() - cached.at <= previewTtl(candidateType)) return;
 
-    // Drop the stale answer, and blank the card only when the URL actually
-    // changed: React keeps state at the same tree position, so a revalidation
-    // of this link should keep showing the old card until the new one lands.
+    // Drop the stale answer. A revalidation of this link keeps showing the old
+    // card until the new one lands; a new link was already blanked during render.
     previewCache.delete(candidateUrl);
-    if (previewUrlRef.current !== candidateUrl) {
-      setPreview(null);
-    }
-    previewUrlRef.current = candidateUrl;
 
     let isMounted = true;
     apiClient
@@ -277,7 +263,7 @@ export function ChatMessageContent({ content, isMine = false, className }: ChatM
                 to={part.target.route}
                 className={cn(
                   "underline underline-offset-2 font-medium hover:opacity-80 transition-opacity",
-                  isMine ? "text-amber-200" : "text-[#2164b6] dark:text-[#7ab0ff]"
+                  isMine ? "text-amber-200" : "text-[var(--shell-accent)] dark:text-[var(--shell-accent)]"
                 )}
               >
                 {part.value}
@@ -293,7 +279,7 @@ export function ChatMessageContent({ content, isMine = false, className }: ChatM
               rel="noopener noreferrer"
               className={cn(
                 "underline underline-offset-2 hover:opacity-80 transition-opacity",
-                isMine ? "text-white/90" : "text-[#2164b6] dark:text-[#7ab0ff]"
+                isMine ? "text-white/90" : "text-[var(--shell-accent)] dark:text-[var(--shell-accent)]"
               )}
             >
               {part.value}
@@ -329,7 +315,7 @@ interface DeepLinkCardProps {
 }
 
 function DeepLinkCard({ target, preview, isMine }: DeepLinkCardProps) {
-  const IconComponent = getIconForType(target.type);
+  const IconComponent = ICON_BY_TYPE[target.type];
   const isEnded = preview?.is_active === false;
   // An unknown or failed lookup is not proof that the stream is running.
   const isLive = target.type === "live" && preview?.is_active === true;
@@ -345,7 +331,7 @@ function DeepLinkCard({ target, preview, isMine }: DeepLinkCardProps) {
         "rounded-xl p-3 border transition-all mt-2 max-w-sm",
         isMine
           ? "bg-white/10 border-white/20 text-white"
-          : "bg-slate-50 dark:bg-slate-900/60 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 shadow-sm"
+          : "bg-slate-50 dark:bg-slate-900/60 border-[var(--shell-border)] dark:border-[var(--shell-border)] text-[var(--shell-text)] dark:text-slate-100 shadow-sm"
       )}
     >
       <div className="flex items-start gap-2.5">
@@ -355,10 +341,10 @@ function DeepLinkCard({ target, preview, isMine }: DeepLinkCardProps) {
             isLive
               ? "bg-rose-500/20 text-rose-500"
               : isEnded
-              ? "bg-slate-500/20 text-slate-400"
+              ? "bg-slate-500/20 text-[var(--shell-muted)]"
               : isMine
               ? "bg-white/20 text-white"
-              : "bg-[#2164b6]/15 dark:bg-[#7ab0ff]/15 text-[#2164b6] dark:text-[#7ab0ff]"
+              : "bg-[var(--shell-accent-solid)]/15 dark:bg-[var(--shell-accent)]/15 text-[var(--shell-accent)] dark:text-[var(--shell-accent)]"
           )}
         >
           <IconComponent weight="bold" className="h-5 w-5" />
@@ -372,7 +358,7 @@ function DeepLinkCard({ target, preview, isMine }: DeepLinkCardProps) {
                 Live
               </span>
             ) : isEnded ? (
-              <span className="inline-flex items-center text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-slate-500/20 text-slate-400 dark:text-slate-300">
+              <span className="inline-flex items-center text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-slate-500/20 text-[var(--shell-muted)] dark:text-[var(--shell-muted)]">
                 {target.type === "live" ? "Broadcast Ended" : target.type === "meeting" ? "Meeting Ended" : "Unavailable"}
               </span>
             ) : isMeeting ? (
@@ -381,7 +367,7 @@ function DeepLinkCard({ target, preview, isMine }: DeepLinkCardProps) {
                   "inline-flex items-center text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded",
                   isMine
                     ? "bg-white/20 text-white"
-                    : "bg-[#2164b6]/10 text-[#2164b6] dark:bg-[#7ab0ff]/15 dark:text-[#7ab0ff]"
+                    : "bg-[var(--shell-accent-solid)]/10 text-[var(--shell-accent)] dark:bg-[var(--shell-accent)]/15 dark:text-[var(--shell-accent)]"
                 )}
               >
                 Meeting Room
@@ -390,7 +376,7 @@ function DeepLinkCard({ target, preview, isMine }: DeepLinkCardProps) {
               <span
                 className={cn(
                   "inline-flex items-center text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded capitalize",
-                  isMine ? "bg-white/15 text-white" : "bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300"
+                  isMine ? "bg-white/15 text-white" : "bg-slate-200 dark:bg-slate-800 text-[var(--shell-muted)] dark:text-[var(--shell-muted)]"
                 )}
               >
                 {target.type}
@@ -439,10 +425,10 @@ function DeepLinkCard({ target, preview, isMine }: DeepLinkCardProps) {
               : isEnded
               ? isMine
                 ? "bg-white/20 hover:bg-white/30 text-white/90"
-                : "bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300"
+                : "bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-[var(--shell-muted)]"
               : isMine
-              ? "bg-white hover:bg-white/90 text-slate-900"
-              : "bg-[#2164b6] hover:bg-[#1a5196] text-white dark:bg-[#3b82f6] dark:hover:bg-[#2563eb]"
+              ? "bg-white hover:bg-white/90 text-[var(--shell-text)]"
+              : "bg-[var(--shell-accent-solid)] hover:bg-[#1a5196] text-white dark:bg-[#3b82f6] dark:hover:bg-[#2563eb]"
           )}
         >
           {label}

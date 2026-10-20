@@ -1,4 +1,4 @@
-import { useRef, useCallback, type ClipboardEvent, type KeyboardEvent } from "react";
+import { useEffect, useRef, useCallback, type ClipboardEvent, type KeyboardEvent } from "react";
 import { cn } from "@/lib/utils";
 
 interface OtpInputProps {
@@ -19,6 +19,13 @@ export function OtpInput({
   className = "",
 }: OtpInputProps) {
   const refs = useRef<Array<HTMLInputElement | null>>([]);
+
+  // Focus the first digit on mount only, matching the previous autoFocus attribute.
+  useEffect(() => {
+    if (autoFocus && !disabled) {
+      refs.current[0]?.focus();
+    }
+  }, []);
 
   const setChar = useCallback(
     (index: number, char: string) => {
@@ -77,13 +84,12 @@ export function OtpInput({
           autoComplete={index === 0 ? "one-time-code" : "off"}
           maxLength={2}
           disabled={disabled}
-          autoFocus={autoFocus && index === 0}
           value={value[index] ?? ""}
           onChange={(e) => handleChange(index, e.target.value)}
           onKeyDown={(e) => handleKeyDown(index, e)}
           onPaste={handlePaste}
           aria-label={`Code digit ${index + 1}`}
-          className="h-14 w-full max-w-14 rounded-lg border-none bg-card text-center text-xl font-bold text-foreground focus:outline-none focus:border-[#2164b6] focus:ring-2 focus:ring-[#2164b6] transition-all disabled:opacity-50"
+          className="h-14 w-full max-w-14 rounded-lg border-none bg-card text-center text-xl font-bold text-foreground focus:outline-none focus:border-[var(--shell-accent)] focus:ring-2 focus:ring-[var(--shell-accent)] transition-all disabled:opacity-50"
         />
       ))}
     </div>

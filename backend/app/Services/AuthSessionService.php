@@ -4,7 +4,9 @@ namespace App\Services;
 
 use App\Models\User;
 use App\Support\AdminSession;
+use App\Support\WebSession;
 use Illuminate\Http\Request;
+use Laravel\Sanctum\PersonalAccessToken;
 
 /**
  * Issues authenticated API sessions (Sanctum bearer tokens) consistently across
@@ -124,6 +126,34 @@ class AuthSessionService
             'expires_at' => $expiresAt->toIso8601String(),
             'is_new_device' => ! $knownDevice,
         ];
+    }
+
+    /**
+     * Decide what a freshly minted token becomes for the client that asked.
+     *
+     * Bearer clients (mobile) get the plain-text token back. A web request gets
+     * nothing: the token row is bound to its session and the httpOnly session
+     * cookie is the credential. Returns null for web.
+     *
+     * Pass $web when the caller already knows the client (the OAuth callback
+     * reads it from the signed state). Otherwise it is read from Origin/Referer.
+     */
+    public function deliver(Request $request, string $plainToken, ?bool $web = null): ?string
+    {
+        $web ??= WebSession::isWebRequest($request);
+
+        if (! $web) {
+            return $plainToken;
+        }
+
+        $token = PersonalAccessToken::findToken($plainToken);
+        $user = $token?->tokenable;
+
+        if ($token && $user instanceof User) {
+            WebSession::bind($request, $token, $user);
+        }
+
+        return null;
     }
 
     public function userPayload(User $user): array

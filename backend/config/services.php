@@ -178,10 +178,6 @@ return [
         'default_country' => env('TWILIO_DEFAULT_COUNTRY', 'NG'),
         'channel' => env('TWILIO_OTP_CHANNEL', 'sms'),
         'otp_driver' => env('OTP_DRIVER', env('APP_ENV') === 'production' ? 'twilio' : 'log'),
-        // Staging intentionally runs the 'log' driver so codes are readable in
-        // the log instead of sending real SMS. Only a real production deploy is
-        // blocked; set OTP_ALLOW_LOG_DRIVER=true to permit it deliberately.
-        'allow_log_driver' => env('OTP_ALLOW_LOG_DRIVER', str_contains((string) env('APP_URL', ''), 'staging')),
         'code_ttl' => (int) env('OTP_CODE_TTL', 10),
         'resend_cooldown' => (int) env('OTP_RESEND_COOLDOWN', 60),
         'max_per_number_per_hour' => (int) env('OTP_MAX_PER_NUMBER_PER_HOUR', env('APP_ENV') === 'production' ? 5 : 30),
@@ -197,5 +193,18 @@ return [
         'account_sid' => env('TWILIO_ACCOUNT_SID'),
         'auth_token' => env('TWILIO_AUTH_TOKEN'),
         'from_number' => env('TWILIO_SMS_FROM'),
+    ],
+    /*
+    |--------------------------------------------------------------------------
+    | Ads Manager single sign-on
+    |--------------------------------------------------------------------------
+    |
+    | The only URI an Ads Manager sign-in code is ever sent back to. It is
+    | read from here, never from the request.
+    */
+    'ads_sso' => [
+        // A set-but-blank ADS_SSO_REDIRECT_URI (as in .env.example) makes env() return '', not the default.
+        'redirect_uri' => env('ADS_SSO_REDIRECT_URI')
+            ?: (env('ADS_FRONTEND_URL') ? rtrim((string) env('ADS_FRONTEND_URL'), '/').'/auth/sso/callback' : null),
     ],
 ];

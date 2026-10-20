@@ -66,59 +66,59 @@ export function CreateEscrowModal({
 
         <form onSubmit={handleSubmit} className="space-y-4 pt-1">
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
+            <label htmlFor="f-s-wallet-createescrowmodal-tsx-69" className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
               Deal Title
             </label>
-            <input
+            <input id="f-s-wallet-createescrowmodal-tsx-69"
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g. Sponsored Video Campaign or Web Development"
-              className="w-full px-3 py-2 text-sm bg-muted/30 border border-border rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-[#2164b6]"
+              className="w-full px-3 py-2 text-sm bg-muted/30 border border-border rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-[var(--shell-accent)]"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
+            <label htmlFor="f-s-wallet-createescrowmodal-tsx-82" className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
               Counterparty (Seller / Creator Username)
             </label>
             <div className="relative">
               <User weight="bold" className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <input
+              <input id="f-s-wallet-createescrowmodal-tsx-82"
                 type="text"
                 value={sellerUsername}
                 onChange={(e) => setSellerUsername(e.target.value)}
                 placeholder="Username (e.g. apex_audio)"
-                className="w-full pl-9 pr-3 py-2 text-sm bg-muted/30 border border-border rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-[#2164b6]"
+                className="w-full pl-9 pr-3 py-2 text-sm bg-muted/30 border border-border rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-[var(--shell-accent)]"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
+            <label htmlFor="f-s-wallet-createescrowmodal-tsx-98" className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
               Escrow Amount ($ USD)
             </label>
-            <input
+            <input id="f-s-wallet-createescrowmodal-tsx-98"
               type="number"
               step="0.01"
               min="5"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               placeholder="100.00"
-              className="w-full px-3 py-2 text-base font-bold bg-muted/30 border border-border rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-[#2164b6]"
+              className="w-full px-3 py-2 text-base font-bold bg-muted/30 border border-border rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-[var(--shell-accent)]"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
+            <label htmlFor="f-s-wallet-createescrowmodal-tsx-113" className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
               Terms & Milestone Notes (Optional)
             </label>
-            <textarea
+            <textarea id="f-s-wallet-createescrowmodal-tsx-113"
               rows={2}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Delivery within 7 business days..."
-              className="w-full px-3 py-2 text-xs bg-muted/30 border border-border rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-[#2164b6] resize-none"
+              className="w-full px-3 py-2 text-xs bg-muted/30 border border-border rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-[var(--shell-accent)] resize-none"
             />
           </div>
 

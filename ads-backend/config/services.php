@@ -39,16 +39,18 @@ return [
     |--------------------------------------------------------------------------
     | MurihSpace SSO
     |--------------------------------------------------------------------------
-    |
-    | The core MurihSpace app signs ad-studio SSO tokens with its own APP_KEY
-    | (the literal `base64:...` string). Ads Studio must trust the exact same
-    | string to verify them. It is a cross-service trust secret and therefore
-    | has NO default: when it is unset every SSO attempt is rejected rather
-    | than silently falling back to a value that ships in the repository.
     */
 
     'murihspace' => [
-        'app_key' => env('MURIHSPACE_APP_KEY'),
+        // Browser SSO ("Continue with MurihSpace"). The browser obtains a single-use
+        // code from the main API; ads-backend exchanges it server-to-server at
+        // {sso_base_url}/internal/ads/sso/exchange with the internal service token.
+        // sso_base_url is the main backend ORIGIN (no /api suffix).
+        'sso_base_url' => env('MURIHSPACE_SSO_BASE_URL'),
+        // Must equal the main backend's INTERNAL_API_TOKEN. Server-side only.
+        'internal_token' => env('MURIHSPACE_INTERNAL_TOKEN'),
+        // Must equal the main backend's ADS_SSO_REDIRECT_URI (the ads frontend callback).
+        'redirect_uri' => env('MURIHSPACE_SSO_REDIRECT_URI'),
     ],
 
 ];

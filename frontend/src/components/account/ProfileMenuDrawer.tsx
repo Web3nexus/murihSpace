@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { Profile as UserIcon, Wallet, Folder, Notification as Bell, Lock, Discovery as Globe, Star, ShieldDone as ShieldCheck, ShieldDone as BadgeCheck, Activity as Waveform, Swap as ArrowCounterClockwise, Chat as ChatCircleDots, Bookmark, AddUser as UserPlus, Logout as SignOut, TickSquare as Check } from "@/components/icons";
 import { Swap as ArrowsLeftRight } from "@/components/icons";
-import { DeviceMobile as Smartphone, Sun, Sparkle, Storefront, Question, CurrencyDollar, Link as LinkIcon, Package, Truck } from "@/components/icons/rounded";;
+import { DeviceMobile as Smartphone, Sun, Crown, Storefront, Question, CurrencyDollar, Link as LinkIcon, Package, Truck } from "@/components/icons/rounded";;
 import { useAuth } from "@/hooks/useAuth";
 import { apiClient } from "@/lib/api/client";
 import {
@@ -104,7 +104,7 @@ function getRoleGroups(role: string): MenuGroup[] {
 
   const accountTier: MenuLink[] = [];
   if (role === "member") {
-    accountTier.push({ label: "Become a Creator or Vendor", to: "/app/settings/upgrade", icon: <Sparkle weight="fill" className={iconClass} /> });
+    accountTier.push({ label: "Become a Creator or Vendor", to: "/app/settings/upgrade", icon: <Crown weight="fill" className={iconClass} /> });
   }
   accountTier.push({ label: "My Stars & Gifts", to: "/app/gifts", icon: <Star weight="fill" className={iconClass} /> });
   accountTier.push({ label: "Support & Help Desk", to: "/app/settings/help", icon: <Question weight="fill" className={iconClass} /> });
@@ -153,7 +153,7 @@ function modeIcon(role: ProfileRole, className: string) {
     case "member":
       return <UserIcon weight="fill" className={className} />;
     case "creator":
-      return <Sparkle weight="fill" className={className} />;
+      return <Crown weight="fill" className={className} />;
     case "vendor":
       return <Storefront weight="fill" className={className} />;
     case "admin":
@@ -162,7 +162,7 @@ function modeIcon(role: ProfileRole, className: string) {
 }
 
 export function ProfileMenuDrawer({ open, onOpenChange }: ProfileMenuDrawerProps) {
-  const { user, savedAccounts, switchAccount, logout, switchRole } = useAuth();
+  const { user, savedAccounts, logout, switchRole } = useAuth();
   const navigate = useNavigate();
   const [addAccountOpen, setAddAccountOpen] = useState(false);
   const [switchingId, setSwitchingId] = useState<number | null>(null);
@@ -224,14 +224,12 @@ export function ProfileMenuDrawer({ open, onOpenChange }: ProfileMenuDrawerProps
     navigate(to);
   };
 
-  const handleSwitch = async (id: number, token: string) => {
+  // Saved accounts keep no credentials, so switching means signing in to that account again.
+  const handleSwitch = async (id: number) => {
     setSwitchingId(id);
-    const profile = await switchAccount(token);
-    setSwitchingId(null);
-    if (profile) {
-      onOpenChange(false);
-      navigate("/app/profile");
-    }
+    onOpenChange(false);
+    await logout();
+    navigate("/login");
   };
 
   const handleLogout = async () => {
@@ -257,7 +255,7 @@ export function ProfileMenuDrawer({ open, onOpenChange }: ProfileMenuDrawerProps
       <Sheet open={open} onOpenChange={onOpenChange}>
         <SheetContent
           side="left"
-          className="w-[340px] max-w-[90vw] p-0 flex flex-col gap-0 bg-white dark:bg-[#242526]"
+          className="w-[340px] max-w-[90vw] p-0 flex flex-col gap-0 bg-white dark:bg-[var(--shell-surface)]"
         >
           <SheetHeader className="p-0">
             <SheetTitle className="sr-only">Profile menu</SheetTitle>
@@ -267,9 +265,9 @@ export function ProfileMenuDrawer({ open, onOpenChange }: ProfileMenuDrawerProps
           <button
             type="button"
             onClick={() => go("/app/profile")}
-            className="flex items-center gap-3 p-4 text-left hover:bg-[#F0F2F5] dark:hover:bg-[#3A3B3C] transition-colors"
+            className="flex items-center gap-3 p-4 text-left hover:bg-[var(--shell-hover)] dark:hover:bg-[var(--shell-hover)] transition-colors"
           >
-            <div className="h-12 w-12 rounded-full bg-[#2164b6] text-white flex items-center justify-center shrink-0 overflow-hidden">
+            <div className="h-12 w-12 rounded-full bg-[var(--shell-accent-solid)] text-white flex items-center justify-center shrink-0 overflow-hidden">
               {user?.avatar_url || user?.avatar ? (
                 <img src={user.avatar_url || user.avatar} alt="" className="w-full h-full object-cover" />
               ) : (
@@ -281,7 +279,7 @@ export function ProfileMenuDrawer({ open, onOpenChange }: ProfileMenuDrawerProps
               <p className="text-xs text-muted-foreground truncate">
                 {user?.username ? `@${user.username}` : user?.email}
               </p>
-              <span className="inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#2164b6]/15 text-[#2164b6] dark:text-[#7ab0ff] capitalize">
+              <span className="inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-[var(--shell-accent-solid)]/15 text-[var(--shell-accent)] dark:text-[var(--shell-accent)] capitalize">
                 {role}
               </span>
             </div>
@@ -308,7 +306,7 @@ export function ProfileMenuDrawer({ open, onOpenChange }: ProfileMenuDrawerProps
                       onClick={() => !isCurrent && handleSwitchMode(mode)}
                       className={cn(
                         "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left text-xs transition-colors",
-                        isCurrent ? "bg-[#2164b6]/10" : "hover:bg-[#F0F2F5] dark:hover:bg-[#3A3B3C]"
+                        isCurrent ? "bg-[var(--shell-accent-solid)]/10" : "hover:bg-[var(--shell-hover)] dark:hover:bg-[var(--shell-hover)]"
                       )}
                     >
                       <span
@@ -364,15 +362,15 @@ export function ProfileMenuDrawer({ open, onOpenChange }: ProfileMenuDrawerProps
                       key={account.id}
                       type="button"
                       disabled={isCurrent || isSwitching}
-                      onClick={() => !isCurrent && handleSwitch(account.id, account.token)}
+                      onClick={() => !isCurrent && handleSwitch(account.id)}
                       className={cn(
                         "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left text-xs transition-colors",
                         isCurrent
-                          ? "bg-[#2164b6]/10"
-                          : "hover:bg-[#F0F2F5] dark:hover:bg-[#3A3B3C]"
+                          ? "bg-[var(--shell-accent-solid)]/10"
+                          : "hover:bg-[var(--shell-hover)] dark:hover:bg-[var(--shell-hover)]"
                       )}
                     >
-                      <div className="h-8 w-8 rounded-full bg-[#2164b6]/20 text-[#2164b6] flex items-center justify-center shrink-0 overflow-hidden font-bold text-[11px]">
+                      <div className="h-8 w-8 rounded-full bg-[var(--shell-accent-solid)]/20 text-[var(--shell-accent)] flex items-center justify-center shrink-0 overflow-hidden font-bold text-[11px]">
                         {account.avatar ? (
                           <img src={account.avatar} alt="" className="w-full h-full object-cover" />
                         ) : (
@@ -384,7 +382,7 @@ export function ProfileMenuDrawer({ open, onOpenChange }: ProfileMenuDrawerProps
                         <p className="text-[11px] text-muted-foreground truncate">{account.email}</p>
                       </div>
                       {isCurrent ? (
-                        <span className="flex items-center gap-1 text-[10px] font-bold text-[#2164b6] dark:text-[#7ab0ff]">
+                        <span className="flex items-center gap-1 text-[10px] font-bold text-[var(--shell-accent)] dark:text-[var(--shell-accent)]">
                           <Check weight="bold" className="h-3 w-3" /> Current
                         </span>
                       ) : (
@@ -447,7 +445,7 @@ function MenuRow({
     <button
       type="button"
       onClick={onClick}
-      className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium text-foreground hover:bg-[#F0F2F5] dark:hover:bg-[#3A3B3C] transition-colors text-left"
+      className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium text-foreground hover:bg-[var(--shell-hover)] dark:hover:bg-[var(--shell-hover)] transition-colors text-left"
     >
       {icon}
       <span className="flex-1 truncate">{label}</span>

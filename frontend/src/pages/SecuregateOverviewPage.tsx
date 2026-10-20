@@ -184,7 +184,7 @@ export function SecuregateOverviewPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-xl font-black tracking-tight flex items-center gap-3">
-              <span className="bg-gradient-to-r from-[#2164b6] to-[#102840] bg-clip-text text-transparent">Command Center</span>
+              <span className="bg-gradient-to-r from-[var(--shell-accent-solid)] to-[#102840] bg-clip-text text-transparent">Command Center</span>
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">Real-time platform intelligence</p>
           </div>
@@ -226,9 +226,9 @@ export function SecuregateOverviewPage() {
           <>
             {/* Pending Role Applications Alert Banner */}
             {pendingRoleApps > 0 && (
-              <div className="flex items-center justify-between p-4 rounded-lg border border-[#2164b6]/30 bg-[#2164b6]/10 text-foreground">
+              <div className="flex items-center justify-between p-4 rounded-lg border border-[var(--shell-accent)]/30 bg-[var(--shell-accent-solid)]/10 text-foreground">
                 <div className="flex items-center gap-3">
-                  <div className="p-2.5 rounded-lg bg-[#2164b6] text-white">
+                  <div className="p-2.5 rounded-lg bg-[var(--shell-accent-solid)] text-white">
                     <UserCheck weight="fill" className="h-5 w-5" />
                   </div>
                   <div>
@@ -242,7 +242,7 @@ export function SecuregateOverviewPage() {
                 </div>
                 <a
                   href="/app/securegate/role-applications"
-                  className="px-4 py-2 rounded-lg bg-[#2164b6] text-white text-xs font-bold shadow hover:bg-[#1a4f91] transition-all"
+                  className="px-4 py-2 rounded-lg bg-[var(--shell-accent-solid)] text-white text-xs font-bold shadow hover:bg-[#1a4f91] transition-all"
                 >
                   Review Applications →
                 </a>
@@ -251,7 +251,7 @@ export function SecuregateOverviewPage() {
 
             {/* Metric Cards */}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <MetricCard label="Total Revenue" value={formatCurrency(overview.revenue.digital_revenue, currency)} trend={`${formatNumber(overview.revenue.digital_orders)} orders`} trendUp icon={TrendingUp} color="bg-[#2164b6]/15 text-[#2164b6] dark:text-[#7ab0ff]" sparklineColor="#10B981" />
+              <MetricCard label="Total Revenue" value={formatCurrency(overview.revenue.digital_revenue, currency)} trend={`${formatNumber(overview.revenue.digital_orders)} orders`} trendUp icon={TrendingUp} color="bg-[var(--shell-accent-solid)]/15 text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" sparklineColor="#10B981" />
               <MetricCard label="Active Subscribers" value={formatNumber(overview.revenue.active_subscriptions)} trend={`${formatCurrency(overview.revenue.mrr, currency)} MRR`} trendUp icon={Users} color="bg-purple-500/15 text-purple-500" sparklineColor="#8B5CF6" />
               <MetricCard label="Platform Balance" value={formatCurrency(overview.wallet.platform_balance, currency)} trend={`${formatCurrency(overview.wallet.user_balances, currency)} in user wallets`} trendUp icon={Wallet} color="bg-amber-500/15 text-amber-500" sparklineColor="#F59E0B" />
               <MetricCard label="Pending KYC" value={formatNumber(overview.users.pending_kyc)} trend={`${formatNumber(overview.users.total)} total users`} icon={UserCheck} color="bg-rose-500/15 text-rose-500" sparklineColor="#EF4444" />

@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import { useState, useEffect, useCallback } from 'react';
 import { Download, Document as FileText, Image, Video } from "@/components/icons";
 import { Package, Spinner as Loader2, Headphones, Archive } from "@/components/icons/rounded";;
@@ -44,7 +45,7 @@ export function PurchasesPage() {
         setPurchases(json.data?.data ?? []);
         setLastPage(json.data?.last_page ?? 1);
       }
-    } catch (e) { console.error('Failed to fetch purchases', e); }
+    } catch (e) { logger.error('Failed to fetch purchases', e); }
   }, [page]);
 
   useEffect(() => {
@@ -61,9 +62,9 @@ export function PurchasesPage() {
       });
       if (res.ok) {
         const json = await res.json();
-        window.open((json.data?.data ?? json.data).download_url, '_blank');
+        window.open((json.data?.data ?? json.data).download_url, "_blank", "noopener,noreferrer");
       }
-    } catch (e) { console.error('Failed to download', e); }
+    } catch (e) { logger.error('Failed to download', e); }
     setDownloadingId(null);
   };
 

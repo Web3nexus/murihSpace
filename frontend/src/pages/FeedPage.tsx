@@ -1,4 +1,8 @@
-import { useState, useEffect, useRef } from "react";
+import { logger } from "@/lib/logger";
+import { safeHref } from "@/lib/safeUrl";
+import { DismissOnEscape } from "@/components/ui/DismissOnEscape";
+import type { ApiPost } from "@/lib/feed";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Link } from "react-router";
 import { AnimatedPage } from "@/components/common/AnimatedPage";
 import { useAuth } from "@/hooks/useAuth";
@@ -82,6 +86,8 @@ export default function FeedPage() {
   const [activeSubIndex, setActiveSubIndex] = useState<number>(0);
   const storyFileRef = useRef<HTMLInputElement>(null);
   const storyScrollRef = useRef<HTMLDivElement>(null);
+  // Stable ref callback that focuses the field once on mount (same effect as autoFocus, without refocusing on re-render)
+  const focusOnMount = useCallback((el: HTMLElement | null) => { el?.focus(); }, []);
   const [storyUploading, setStoryUploading] = useState(false);
 
   const [composerOpen, setComposerOpen] = useState(false);
@@ -100,7 +106,7 @@ export default function FeedPage() {
       setPosts((prev) =>
         prev.map((p) => (p.id === postId ? { ...p, commentList: comments } : p))
       );
-    } catch {}
+    } catch { /* ignored: best-effort, failure is non-fatal */ }
     setLoadingComments((prev) => {
       const next = new Set(prev);
       next.delete(postId);
@@ -114,8 +120,8 @@ export default function FeedPage() {
       try {
         const feedRes = await apiClient.get("/feed?page=1&per_page=20");
         const feedData = feedRes.data?.data ?? feedRes.data;
-        const apiPosts = feedData?.data ?? (Array.isArray(feedData) ? feedData : []);
-        const mapped: PostItem[] = apiPosts.map((p: any) => mapApiPost(p, user?.id));
+        const apiPosts: ApiPost[] = feedData?.data ?? (Array.isArray(feedData) ? feedData : []);
+        const mapped: PostItem[] = apiPosts.map((p) => mapApiPost(p, user?.id));
 
         if (user?.role !== "admin") {
           try {
@@ -123,14 +129,14 @@ export default function FeedPage() {
             const adsList = Array.isArray(adsRes.data?.data) ? adsRes.data.data : [];
             setInterPostAds(adsList);
           } catch (adErr) {
-            console.error("Failed to load sponsored ad", adErr);
+            logger.error("Failed to load sponsored ad", adErr);
           }
         } else {
           setInterPostAds([]);
         }
 
         setPosts(mapped);
-      } catch {}
+      } catch { /* ignored: best-effort, failure is non-fatal */ }
       setFeedLoading(false);
     }
 
@@ -151,7 +157,7 @@ export default function FeedPage() {
               }))
           : [];
         setStories(data);
-      } catch {}
+      } catch { /* ignored: best-effort, failure is non-fatal */ }
     }
 
     loadFeed();
@@ -208,7 +214,7 @@ export default function FeedPage() {
         )
       );
       setCommentInput("");
-    } catch {}
+    } catch { /* ignored: best-effort, failure is non-fatal */ }
     setSubmittingComment(false);
   }
 
@@ -304,7 +310,7 @@ export default function FeedPage() {
         success = true;
       }
     } catch (err) {
-      console.error("Post creation failed:", err);
+      logger.error("Post creation failed:", err);
     }
     if (success) {
       setPostText("");
@@ -320,7 +326,7 @@ export default function FeedPage() {
         .then((res) => {
           const raw = res.data?.communities ?? res.data?.data ?? [];
           const list = Array.isArray(raw)
-            ? raw.map((c: any) => ({ id: c.id, name: c.name, logo_url: c.logo_url }))
+            ? raw.map((c) => ({ id: c.id, name: c.name, logo_url: c.logo_url }))
             : [];
           setUserCommunities(list);
           if (list.length > 0 && !selectedCommunityId) {
@@ -378,7 +384,7 @@ export default function FeedPage() {
         ];
       });
     } catch (err) {
-      console.error("Story creation failed:", err);
+      logger.error("Story creation failed:", err);
       toast.error("Failed to create story. Please try again.");
     } finally {
       setStoryUploading(false);
@@ -400,14 +406,14 @@ export default function FeedPage() {
   }
 
   return (
-    <AnimatedPage className="w-full min-h-screen bg-[#F0F2F5] dark:bg-[#18191A]">
+    <AnimatedPage className="w-full min-h-screen bg-[var(--shell-canvas)] dark:bg-[var(--shell-canvas)]">
       <div className="max-w-[1240px] mx-auto p-4 sm:p-4 flex gap-6 justify-center">
         <div className="w-full max-w-[760px] space-y-5 min-w-0">
 
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-xl sm:text-xl font-black text-foreground flex items-center gap-2">
-              <Rss weight="fill" className="h-5 w-5 text-[#2164b6] dark:text-[#7ab0ff]" /> Community Feed
+              <Rss weight="fill" className="h-5 w-5 text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" /> Community Feed
             </h1>
             <p className="text-xs text-muted-foreground">Stay updated with content from creator communities you follow.</p>
           </div>
@@ -415,14 +421,14 @@ export default function FeedPage() {
 
         <div className="bg-card border-none  rounded-lg p-4 sm:p-5 space-y-4">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-full bg-[#1877f2] flex items-center justify-center text-white shrink-0 overflow-hidden">
+            <div className="h-10 w-10 rounded-full bg-[var(--shell-accent-solid)] flex items-center justify-center text-white shrink-0 overflow-hidden">
               {user?.avatar_url ? (
                 <img src={user.avatar_url} alt="" className="w-full h-full object-cover" />
               ) : (
                 <UserIcon weight="fill" className="text-white/90" style={{ width: 20, height: 20 }} />
               )}
             </div>
-            <div
+            <div role="button" tabIndex={0} onKeyDown={(e) => { if (e.target !== e.currentTarget) return; if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.currentTarget.click(); } }}
               onClick={() => { setComposerOpen(true); setCommunityPickerOpen(false); }}
               className="flex-1 rounded-full border-none/80 bg-muted/40 hover:bg-muted/70 transition-colors px-5 py-2.5 text-xs sm:text-sm text-muted-foreground cursor-pointer"
             >
@@ -436,8 +442,8 @@ export default function FeedPage() {
                 value={postText}
                 onChange={(e) => setPostText(e.target.value)}
                 placeholder="Write your post here..."
-                className="w-full h-28 p-3.5 text-xs sm:text-sm rounded-lg border-none bg-background focus:outline-none focus:ring-2 focus:ring-[#2164b6]/40 resize-none"
-                autoFocus
+                className="w-full h-28 p-3.5 text-xs sm:text-sm rounded-lg border-none bg-background focus:outline-none focus:ring-2 focus:ring-[var(--shell-accent)]/40 resize-none"
+                ref={focusOnMount}
               />
               <div className="relative">
                 <button
@@ -458,13 +464,13 @@ export default function FeedPage() {
                         type="button"
                         onClick={() => { setSelectedCommunityId(c.id); setCommunityPickerOpen(false); }}
                         className={`w-full text-left px-3 py-2 text-xs font-semibold hover:bg-muted transition-colors flex items-center gap-2 ${
-                          selectedCommunityId === c.id ? "text-[#2164b6] dark:text-[#7ab0ff]" : "text-foreground"
+                          selectedCommunityId === c.id ? "text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" : "text-foreground"
                         }`}
                       >
                         {c.logo_url ? (
                           <img src={c.logo_url} alt="" className="h-5 w-5 rounded-full object-cover" />
                         ) : (
-                          <div className="h-5 w-5 rounded-full bg-[#2164b6]/10 text-[#2164b6] dark:text-[#7ab0ff] flex items-center justify-center text-[9px] font-bold">
+                          <div className="h-5 w-5 rounded-full bg-[var(--shell-accent-solid)]/10 text-[var(--shell-accent)] dark:text-[var(--shell-accent)] flex items-center justify-center text-[9px] font-bold">
                             {c.name.charAt(0)}
                           </div>
                         )}
@@ -476,7 +482,7 @@ export default function FeedPage() {
                 {communityPickerOpen && userCommunities.length === 0 && (
                   <div className="absolute top-full left-0 mt-1 w-56 bg-card border-none rounded-lg shadow-lg z-30 py-3 px-3 text-xs text-muted-foreground text-center">
                     <p className="font-semibold mb-1">No communities yet</p>
-                    <Link to="/app/communities" className="text-[#2164b6] dark:text-[#7ab0ff] hover:underline" onClick={() => setCommunityPickerOpen(false)}>
+                    <Link to="/app/communities" className="text-[var(--shell-accent)] dark:text-[var(--shell-accent)] hover:underline" onClick={() => setCommunityPickerOpen(false)}>
                       Create a community first
                     </Link>
                   </div>
@@ -492,7 +498,7 @@ export default function FeedPage() {
                 <button
                   onClick={handleCreatePost}
                   disabled={submittingPost || !postText.trim() || !selectedCommunityId}
-                  className="px-4 py-2 rounded-lg bg-[#2164b6] hover:bg-[#1a5091] disabled:opacity-50 text-white font-bold text-xs transition-colors flex items-center gap-1.5 "
+                  className="px-4 py-2 rounded-lg bg-[var(--shell-accent-solid)] hover:bg-[var(--shell-accent-hover)] disabled:opacity-50 text-white font-bold text-xs transition-colors flex items-center gap-1.5 "
                 >
                   {submittingPost ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send weight="fill" className="h-3.5 w-3.5" />}
                   Publish
@@ -514,7 +520,7 @@ export default function FeedPage() {
             <button
               onClick={() => storyFileRef.current?.click()}
               disabled={storyUploading}
-              className="relative shrink-0 w-28 sm:w-32 h-44 rounded-lg overflow-hidden bg-gradient-to-b from-[#2164b6] to-blue-600  cursor-pointer group hover:scale-[1.02] transition-transform flex flex-col items-center justify-center text-white p-3 disabled:opacity-70 disabled:cursor-not-allowed"
+              className="relative shrink-0 w-28 sm:w-32 h-44 rounded-lg overflow-hidden bg-gradient-to-b from-[var(--shell-accent-solid)] to-blue-600  cursor-pointer group hover:scale-[1.02] transition-transform flex flex-col items-center justify-center text-white p-3 disabled:opacity-70 disabled:cursor-not-allowed"
             >
               <div className="h-10 w-10 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
                 {storyUploading ? <Loader2 className="h-6 w-6 text-white animate-spin" /> : <Plus weight="fill" className="h-6 w-6 text-white stroke-[2.5]" />}
@@ -523,7 +529,7 @@ export default function FeedPage() {
             </button>
 
             {stories.map((story, index) => (
-              <div
+              <div role="button" tabIndex={0} onKeyDown={(e) => { if (e.target !== e.currentTarget) return; if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.currentTarget.click(); } }}
                 key={story.id}
                 onClick={() => {
                   setActiveStoryIndex(index);
@@ -534,7 +540,7 @@ export default function FeedPage() {
                 {story.bg && <img src={story.bg} alt="" className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />}
                 <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/80" />
                 <div className="absolute top-2.5 left-2.5 z-10">
-                  <div className="h-9 w-9 rounded-full p-[2px] bg-[#1877f2]">
+                  <div className="h-9 w-9 rounded-full p-[2px] bg-[var(--shell-accent-solid)]">
                     {story.avatar ? (
                       <img src={story.avatar} alt="" className="w-full h-full rounded-full object-cover border-2 border-white/40" />
                     ) : (
@@ -575,7 +581,7 @@ export default function FeedPage() {
               <p className="text-sm font-semibold">No posts in the feed yet</p>
               <p className="text-xs">Be the first to share something with the community.</p>
               <Link to="/app/communities">
-                <button className="mt-2 px-4 py-2 rounded-lg bg-[#2164b6] hover:bg-[#1a5091] text-white font-bold text-xs transition-colors">
+                <button className="mt-2 px-4 py-2 rounded-lg bg-[var(--shell-accent-solid)] hover:bg-[var(--shell-accent-hover)] text-white font-bold text-xs transition-colors">
                   Browse Communities
                 </button>
               </Link>
@@ -593,7 +599,7 @@ export default function FeedPage() {
                 )}
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-full bg-[#1877f2] p-[2px]">
+                    <div className="h-10 w-10 rounded-full bg-[var(--shell-accent-solid)] p-[2px]">
                       {post.avatar ? (
                         <img src={post.avatar} alt="" className="w-full h-full rounded-full object-cover" />
                       ) : (
@@ -606,7 +612,7 @@ export default function FeedPage() {
                       <div className="flex items-center gap-1.5">
                         <span className="text-sm font-bold text-foreground">{post.author}</span>
                         {post.authorVerified && (
-                          <VerifiedBadge className="h-3.5 w-3.5 text-[#1B64F2]" aria-label="Verified" />
+                          <VerifiedBadge className="h-3.5 w-3.5 text-[var(--shell-accent)]" aria-label="Verified" />
                         )}
                       </div>
                       <p className="text-[11px] text-muted-foreground">{post.badge} · {post.time} · 🌐</p>
@@ -628,7 +634,7 @@ export default function FeedPage() {
                     </div>
                     <div className="p-3.5 flex flex-col justify-center bg-card flex-1 border-t sm:border-t-0 sm:border-l border-border">
                       <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider block mb-1">YOUTUBE.COM</span>
-                      <h4 className="text-xs sm:text-sm font-bold text-foreground leading-snug group-hover:text-[#2164b6] dark:text-[#7ab0ff] transition-colors">
+                      <h4 className="text-xs sm:text-sm font-bold text-foreground leading-snug group-hover:text-[var(--shell-accent)] transition-colors">
                         {post.embedTitle}
                       </h4>
                       <p className="text-[11px] text-muted-foreground mt-1 line-clamp-2 leading-tight">
@@ -640,7 +646,7 @@ export default function FeedPage() {
 
                 {post.embedType === "product" && (
                   <div className="p-3.5 rounded-lg border-none bg-slate-50/50 dark:bg-muted/30 flex items-center gap-4">
-                    <div className="h-20 w-16 rounded-lg bg-gradient-to-br from-[#2164b6] to-blue-700 shrink-0 overflow-hidden  flex items-center justify-center text-white p-2">
+                    <div className="h-20 w-16 rounded-lg bg-gradient-to-br from-[var(--shell-accent-solid)] to-blue-700 shrink-0 overflow-hidden  flex items-center justify-center text-white p-2">
                       <div className="text-center">
                         <p className="text-[8px] font-extrabold uppercase tracking-widest text-white/80">LINK</p>
                         <p className="text-[10px] font-black leading-tight mt-1">External</p>
@@ -653,7 +659,7 @@ export default function FeedPage() {
                       </p>
                     </div>
                     <Link to="/app/store">
-                      <button className="px-3.5 py-1.5 rounded-lg bg-[#2164b6]/10 text-[#2164b6] dark:text-[#7ab0ff] hover:bg-[#2164b6]/20 font-bold text-xs transition-colors shrink-0">
+                      <button className="px-3.5 py-1.5 rounded-lg bg-[var(--shell-accent-solid)]/10 text-[var(--shell-accent)] dark:text-[var(--shell-accent)] hover:bg-[var(--shell-accent-solid)]/20 font-bold text-xs transition-colors shrink-0">
                         View
                       </button>
                     </Link>
@@ -669,13 +675,13 @@ export default function FeedPage() {
                 {post.isSponsored && post.ctaUrl && (
                   <div className="pt-2">
                     <a 
-                      href={post.ctaUrl}
+                      href={safeHref(post.ctaUrl)}
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={() => {
                         if (post.clickUrl) fetch(post.clickUrl).catch(() => {});
                       }}
-                      className="block w-full text-center px-4 py-2.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-[#2164b6] dark:text-[#7ab0ff] font-bold text-xs transition-colors"
+                      className="block w-full text-center px-4 py-2.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-[var(--shell-accent)] dark:text-[var(--shell-accent)] font-bold text-xs transition-colors"
                     >
                       {post.ctaText} <ChevronRight weight="fill" className="inline-block h-4 w-4 ml-1 -mt-0.5" />
                     </a>
@@ -685,16 +691,16 @@ export default function FeedPage() {
                 <div className="flex items-center justify-between text-xs text-muted-foreground pt-1 border-t border-border/40">
                   <div className="flex items-center gap-1">
                     <span className="inline-flex -space-x-1">
-                      <span className="h-4 w-4 rounded-full bg-blue-500 flex items-center justify-center text-[9px] text-white">👍</span>
+                      <span className="h-4 w-4 rounded-full bg-[var(--shell-accent-solid)] flex items-center justify-center text-[9px] text-white">👍</span>
                       <span className="h-4 w-4 rounded-full bg-rose-500 flex items-center justify-center text-[9px] text-white">❤️</span>
                     </span>
                     <span className="font-semibold text-foreground text-[11px] ml-1">{post.likes}</span>
                   </div>
                   <div className="flex items-center gap-3 text-[11px]">
-                    <button onClick={() => handleClickComment(post.id)} className="hover:text-[#2164b6] dark:text-[#7ab0ff] transition-colors">
+                    <button onClick={() => handleClickComment(post.id)} className="hover:text-[var(--shell-accent)] transition-colors">
                       {post.comments} Comments
                     </button>
-                    <button onClick={() => handleShare(post)} className="hover:text-[#2164b6] dark:text-[#7ab0ff] transition-colors">
+                    <button onClick={() => handleShare(post)} className="hover:text-[var(--shell-accent)] transition-colors">
                       {post.shares} Shares
                     </button>
                   </div>
@@ -704,7 +710,7 @@ export default function FeedPage() {
                   <button
                     onClick={() => toggleLike(post.id)}
                     className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
-                      post.isLiked ? "text-[#2164b6] dark:text-[#7ab0ff] bg-[#2164b6]/10" : "text-muted-foreground hover:bg-muted"
+                      post.isLiked ? "text-[var(--shell-accent)] dark:text-[var(--shell-accent)] bg-[var(--shell-accent-solid)]/10" : "text-muted-foreground hover:bg-muted"
                     }`}
                   >
                     <Heart weight="fill" className={`h-4 w-4 ${post.isLiked ? "fill-[#2164b6]" : ""}`} /> Like
@@ -712,7 +718,7 @@ export default function FeedPage() {
                   <button
                     onClick={() => handleClickComment(post.id)}
                     className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
-                      isCommenting ? "text-[#2164b6] dark:text-[#7ab0ff] bg-[#2164b6]/10" : "text-muted-foreground hover:bg-muted"
+                      isCommenting ? "text-[var(--shell-accent)] dark:text-[var(--shell-accent)] bg-[var(--shell-accent-solid)]/10" : "text-muted-foreground hover:bg-muted"
                     }`}
                   >
                     <MessageCircle weight="fill" className="h-4 w-4" /> Comment
@@ -737,7 +743,7 @@ export default function FeedPage() {
                       <div className="space-y-2.5">
                         {post.commentList.map((cmt) => (
                           <div key={cmt.id} className="flex items-start gap-2.5 text-xs p-2.5 rounded-lg bg-slate-50 dark:bg-muted/40">
-                            <div className="h-7 w-7 rounded-full bg-[#1877f2] flex items-center justify-center text-white shrink-0">
+                            <div className="h-7 w-7 rounded-full bg-[var(--shell-accent-solid)] flex items-center justify-center text-white shrink-0">
                               {cmt.avatar_url ? <img src={cmt.avatar_url} alt="" className="w-full h-full rounded-full object-cover" /> : <UserIcon weight="fill" className="text-white/90" style={{ width: 14, height: 14 }} />}
                             </div>
                             <div className="flex-1 min-w-0">
@@ -745,7 +751,7 @@ export default function FeedPage() {
                                 <span className="font-bold text-foreground text-[11px]">
                                   {cmt.user_name}
                                   {cmt.verified && (
-                                    <VerifiedBadge size={12} className="inline-block ml-0.5 text-[#1B64F2] -mt-0.5" aria-label="Verified" />
+                                    <VerifiedBadge size={12} className="inline-block ml-0.5 text-[var(--shell-accent)] -mt-0.5" aria-label="Verified" />
                                   )}
                                 </span>
                                 <span className="text-[9px] text-muted-foreground">{cmt.time}</span>
@@ -764,12 +770,12 @@ export default function FeedPage() {
                         onChange={(e) => setCommentInput(e.target.value)}
                         onKeyDown={(e) => { if (e.key === "Enter") handleAddComment(post.id); }}
                         placeholder="Write a comment..."
-                        className="flex-1 h-9 px-3.5 text-xs rounded-full border-none bg-background focus:outline-none focus:ring-2 focus:ring-[#2164b6]/40"
+                        className="flex-1 h-9 px-3.5 text-xs rounded-full border-none bg-background focus:outline-none focus:ring-2 focus:ring-[var(--shell-accent)]/40"
                       />
                       <button
                         onClick={() => handleAddComment(post.id)}
                         disabled={submittingComment || !commentInput.trim()}
-                        className="px-3.5 h-9 rounded-full bg-[#2164b6] hover:bg-[#1a5091] disabled:opacity-50 text-white font-bold text-xs transition-colors flex items-center gap-1 shrink-0"
+                        className="px-3.5 h-9 rounded-full bg-[var(--shell-accent-solid)] hover:bg-[var(--shell-accent-hover)] disabled:opacity-50 text-white font-bold text-xs transition-colors flex items-center gap-1 shrink-0"
                       >
                         {submittingComment ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send weight="fill" className="h-3.5 w-3.5" />}
                       </button>
@@ -805,17 +811,18 @@ export default function FeedPage() {
       </div>
 
       {shareModalPost && (
-        <div
+        <div role="presentation" onKeyDown={(e) => { if (e.key === "Escape") e.currentTarget.click(); }}
           className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4"
-          onClick={() => setShareModalPost(null)}
+          onClick={(e) => { if (e.target === e.currentTarget) { setShareModalPost(null); } }}
         >
-          <div
+          <DismissOnEscape onDismiss={() => { setShareModalPost(null); }} />
+          <div role="dialog" aria-modal="true"
             className="bg-card border-none shadow-2xl rounded-lg p-5 max-w-sm w-full space-y-4 animate-in fade-in zoom-in-95 duration-200"
-            onClick={(e) => e.stopPropagation()}
+           
           >
             <div className="flex items-center justify-between border-b border-border pb-3">
               <h3 className="font-bold text-foreground text-sm flex items-center gap-2">
-                <Share2 weight="fill" className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" /> Share Post
+                <Share2 weight="fill" className="h-4 w-4 text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" /> Share Post
               </h3>
               <button onClick={() => setShareModalPost(null)} aria-label="Close share dialog" className="text-muted-foreground hover:text-foreground">
                 <X weight="fill" className="h-4 w-4" />
@@ -839,7 +846,7 @@ export default function FeedPage() {
                   setCopiedLink(true);
                   setTimeout(() => setCopiedLink(false), 3000);
                 }}
-                className="px-3 h-9 rounded-lg bg-[#2164b6] hover:bg-[#1a5091] text-white font-bold text-xs transition-colors flex items-center gap-1 shrink-0"
+                className="px-3 h-9 rounded-lg bg-[var(--shell-accent-solid)] hover:bg-[var(--shell-accent-hover)] text-white font-bold text-xs transition-colors flex items-center gap-1 shrink-0"
               >
                 {copiedLink ? <Check className="h-3.5 w-3.5" /> : <Copy weight="fill" className="h-3.5 w-3.5" />}
                 {copiedLink ? "Copied!" : "Copy"}
@@ -878,16 +885,16 @@ export default function FeedPage() {
 
       {/* ── Story Viewer Modal ── */}
       {activeStoryIndex !== null && stories[activeStoryIndex] && (
-        <div
+        <div role="button" tabIndex={0} aria-label="Close story viewer" onKeyDown={(e) => { if (e.key === "Escape") e.currentTarget.click(); }}
           className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4"
-          onClick={() => setActiveStoryIndex(null)}
+          onClick={(e) => { if (e.target === e.currentTarget) setActiveStoryIndex(null); }}
         >
+          <DismissOnEscape onDismiss={() => { setActiveStoryIndex(null); }} />
           <div
             role="dialog"
             aria-modal="true"
             aria-label={`Story by ${stories[activeStoryIndex].name}`}
             className="relative w-full max-w-sm h-[85vh] max-h-[640px] rounded-3xl overflow-hidden bg-slate-900 shadow-2xl flex flex-col justify-between"
-            onClick={(e) => e.stopPropagation()}
           >
             {/* Background Media */}
             {stories[activeStoryIndex].items[activeSubIndex]?.media_url && stories[activeStoryIndex].items[activeSubIndex]?.media_type === "video" ? (
@@ -906,7 +913,7 @@ export default function FeedPage() {
                 className="absolute inset-0 w-full h-full object-cover"
               />
             ) : (
-              <div className="absolute inset-0 bg-[#1877f2] flex items-center justify-center p-4 text-center text-white font-bold text-lg">
+              <div className="absolute inset-0 bg-[var(--shell-accent-solid)] flex items-center justify-center p-4 text-center text-white font-bold text-lg">
                 {stories[activeStoryIndex].items[activeSubIndex]?.caption ?? stories[activeStoryIndex].name}
               </div>
             )}
@@ -932,7 +939,7 @@ export default function FeedPage() {
               {/* User header */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                  <div className="h-9 w-9 rounded-full bg-[#1877f2] p-[2px]">
+                  <div className="h-9 w-9 rounded-full bg-[var(--shell-accent-solid)] p-[2px]">
                     {stories[activeStoryIndex].avatar ? (
                       <img src={stories[activeStoryIndex].avatar} alt="" className="w-full h-full rounded-full object-cover" />
                     ) : (
@@ -959,7 +966,7 @@ export default function FeedPage() {
 
             {/* Nav Tap Targets (Left/Right half click) */}
             <div className="absolute inset-0 z-0 flex">
-              <div
+              <div role="button" tabIndex={0} onKeyDown={(e) => { if (e.target !== e.currentTarget) return; if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.currentTarget.click(); } }}
                 className="w-1/2 h-full cursor-pointer"
                 onClick={() => {
                   if (activeSubIndex > 0) {
@@ -971,7 +978,7 @@ export default function FeedPage() {
                   }
                 }}
               />
-              <div
+              <div role="button" tabIndex={0} onKeyDown={(e) => { if (e.target !== e.currentTarget) return; if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.currentTarget.click(); } }}
                 className="w-1/2 h-full cursor-pointer"
                 onClick={() => {
                   const currGroup = stories[activeStoryIndex];

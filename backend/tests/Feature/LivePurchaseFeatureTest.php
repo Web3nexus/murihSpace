@@ -277,7 +277,7 @@ class LivePurchaseFeatureTest extends TestCase
         $this->assertEquals(2, $product->fresh()->download_count);
     }
 
-    public function test_escrow_holds_only_seller_share_excluding_tax(): void
+    public function test_escrow_holds_only_seller_share_excluding_tax_and_payout_matches_it(): void
     {
         $host = User::factory()->create();
         $buyer = User::factory()->create();
@@ -331,6 +331,13 @@ class LivePurchaseFeatureTest extends TestCase
         $this->assertLessThan($order->total - $order->platform_fee, $escrow->amount);
 
         $res->assertJsonPath('data.order.total', $order->total);
+
+        // The creator's payout matches the escrow credit: subtotal, not subtotal + tax.
+        app(\App\Services\Escrow\EscrowService::class)->release($escrow, $host->id);
+
+        $payout = \App\Models\FulfilmentPayout::where('fulfilment_order_id', $order->id)->firstOrFail();
+        $this->assertSame((int) $order->subtotal, (int) $payout->net_amount);
+        $this->assertSame((int) $escrow->fresh()->amount, (int) $payout->net_amount);
     }
 
     public function test_out_of_stock_physical_product_cannot_be_purchased(): void

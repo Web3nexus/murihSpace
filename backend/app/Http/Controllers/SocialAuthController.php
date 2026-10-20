@@ -11,6 +11,8 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
 use App\Services\SocialAccountService;
+use App\Services\AuthSessionService;
+use App\Support\WebSession;
 
 class SocialAuthController extends Controller
 {
@@ -33,7 +35,7 @@ class SocialAuthController extends Controller
             ], 400);
         }
 
-        $state = $this->oauth->state($provider);
+        $state = $this->oauth->state($provider, WebSession::isWebRequest($request));
 
         return response()->json([
             'redirect_url' => $this->oauth->authorizeUrl($provider, $state),
@@ -94,8 +96,12 @@ class SocialAuthController extends Controller
         $expiresAt  = now()->addMinutes($expiration > 0 ? $expiration : 43200);
         $token      = $user->createToken('auth-token', ['*'], $expiresAt)->plainTextToken;
 
+        // The state says whether the web app started this flow. The callback is a
+        // browser redirect from the provider, so Origin cannot be used here.
+        $web = $state !== null && $this->oauth->isWebState($state);
+
         $payload = [
-            'token' => $token,
+            'token' => app(AuthSessionService::class)->deliver($request, $token, $web),
             'user' => [
                 'id' => $user->id,
                 'name' => $user->name,
@@ -213,7 +219,8 @@ class SocialAuthController extends Controller
     {
         $frontend = rtrim((string) config('app.frontend_url'), '/').'/social/callback#';
 
-        $fragments = ['token='.urlencode($payload['token'])];
+        // A web sign-in carries no token: the session cookie set on this response is the credential.
+        $fragments = $payload['token'] !== null ? ['token='.urlencode($payload['token'])] : [];
         $fragments[] = 'user='.urlencode(base64_encode(json_encode($payload['user'])));
 
         if ($error) {

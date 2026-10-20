@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { Chart as BarChart3, TickSquare as Check, DangerSquare as AlertCircle, CloseSquare as X, Swap as RefreshCw, Wallet, Document as FileText, ShieldDone as ShieldCheck } from "@/components/icons";
 import { Spinner as Loader2 } from "@/components/icons/rounded";;
 import { authFetch } from "@/lib/api/authFetch";
@@ -7,62 +7,89 @@ import { authFetch } from "@/lib/api/authFetch";
 
 
 
+interface ReconSummary {
+  total_credits?: number;
+  total_debits?: number;
+  by_type?: { type: string; count: number; net: number }[];
+  escrow_summary?: { held?: number; released?: number; refunded?: number; disputed?: number; open_disputes?: number };
+}
+interface ReconIssue {
+  user?: { name?: string; username?: string; id?: number } | null;
+  currency?: string;
+  wallet_balance?: number;
+  ledger_balance?: number;
+  difference?: number;
+}
+interface ReconAudit {
+  audited_at?: string;
+  wallet_count?: number;
+  discrepancies?: number;
+  unbalanced_transactions?: number;
+  issues?: ReconIssue[];
+  unbalanced_txns?: { ulid: string; type: string; description?: string | null }[];
+}
+
+
+function StatCard({ label, value, color }: { label: string; value: string; color?: string }) {
+  return (
+    <div className="rounded-lg border-none bg-card p-4">
+      <p className="text-[11px] text-muted-foreground font-medium">{label}</p>
+      <p className={`text-lg font-extrabold mt-1 ${color ?? 'text-foreground'}`}>{value}</p>
+    </div>
+  );
+}
+
 function formatPrice(cents: number, currency = 'NGN'): string {
   const symbols: Record<string, string> = { NGN: '₦', USD: '$', GBP: '£', EUR: '€' };
   return (symbols[currency] ?? currency + ' ') + (cents / 100).toLocaleString(undefined, { minimumFractionDigits: 2 });
 }
 
 export function AdminReconciliationPage() {
-  const [summary, setSummary] = useState<any>(null);
-  const [audit, setAudit] = useState<any>(null);
+  const [summary, setSummary] = useState<ReconSummary | null>(null);
+  const [audit, setAudit] = useState<ReconAudit | null>(null);
   const [isLoadingSummary, setIsLoadingSummary] = useState(true);
   const [isLoadingAudit, setIsLoadingAudit] = useState(true);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  const fetchSummary = useCallback(async () => {
-    setIsLoadingSummary(true);
-    try {
-      const res = await authFetch(`/securegate/reconciliation/ledger-summary`, {  });
-      if (res.ok) {
-        const json = await res.json();
-        setSummary(json.data?.data ?? json.data);
-      }
-    } catch { /* silent */ }
-    setIsLoadingSummary(false);
-  }, []);
+  const [reloadKey, setReloadKey] = useState(0);
 
-  const fetchAudit = useCallback(async () => {
-    setIsLoadingAudit(true);
-    try {
-      const res = await authFetch(`/securegate/reconciliation/audit`, {  });
-      if (res.ok) {
-        const json = await res.json();
-        setAudit(json.data?.data ?? json.data);
-      }
-    } catch { /* silent */ }
-    setIsLoadingAudit(false);
-  }, []);
+  useEffect(() => {
+    (async () => {
+      setIsLoadingSummary(true);
+      try {
+        const res = await authFetch(`/securegate/reconciliation/ledger-summary`, {  });
+        if (res.ok) {
+          const json = await res.json();
+          setSummary(json.data?.data ?? json.data);
+        }
+      } catch { /* silent */ }
+      setIsLoadingSummary(false);
+    })();
 
-  useEffect(() => { fetchSummary(); fetchAudit(); }, [fetchSummary, fetchAudit]);
-
-  const StatCard = ({ label, value, color }: { label: string; value: string; color?: string }) => (
-    <div className="rounded-lg border-none bg-card p-4">
-      <p className="text-[11px] text-muted-foreground font-medium">{label}</p>
-      <p className={`text-lg font-extrabold mt-1 ${color ?? 'text-foreground'}`}>{value}</p>
-    </div>
-  );
+    (async () => {
+      setIsLoadingAudit(true);
+      try {
+        const res = await authFetch(`/securegate/reconciliation/audit`, {  });
+        if (res.ok) {
+          const json = await res.json();
+          setAudit(json.data?.data ?? json.data);
+        }
+      } catch { /* silent */ }
+      setIsLoadingAudit(false);
+    })();
+  }, [reloadKey]);
 
   return (
     <div className="w-full mx-auto max-w-[1400px] space-y-6 p-4 lg:p-10">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-black tracking-tight flex items-center gap-2.5">
-            <BarChart3 weight="fill" className="h-6 w-6 text-[#2164b6] dark:text-[#7ab0ff]" />
+            <BarChart3 weight="fill" className="h-6 w-6 text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" />
             Reconciliation & Audit
           </h1>
           <p className="text-xs text-muted-foreground mt-1">Ledger audit, wallet discrepancy detection, and escrow summary for platform ops.</p>
         </div>
-        <button onClick={() => { fetchSummary(); fetchAudit(); }} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#2164b6] text-foreground font-bold text-xs hover:bg-[#2164b6]/80 transition-all shrink-0">
+        <button onClick={() => setReloadKey((k) => k + 1)} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[var(--shell-accent-solid)] text-foreground font-bold text-xs hover:bg-[var(--shell-accent-solid)]/80 transition-all shrink-0">
           <RefreshCw weight="fill" className="h-3.5 w-3.5" /> Refresh
         </button>
       </div>
@@ -78,11 +105,11 @@ export function AdminReconciliationPage() {
       {/* Ledger Summary */}
       <div>
         <h2 className="text-sm font-bold text-foreground flex items-center gap-2 mb-3">
-          <FileText weight="fill" className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" />
+          <FileText weight="fill" className="h-4 w-4 text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" />
           Ledger Summary
         </h2>
         {isLoadingSummary ? (
-          <div className="py-8 text-center"><Loader2 weight="fill" className="h-5 w-5 animate-spin text-[#2164b6] dark:text-[#7ab0ff] mx-auto" /></div>
+          <div className="py-8 text-center"><Loader2 weight="fill" className="h-5 w-5 animate-spin text-[var(--shell-accent)] dark:text-[var(--shell-accent)] mx-auto" /></div>
         ) : summary ? (
           <div className="space-y-4">
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -104,7 +131,7 @@ export function AdminReconciliationPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {summary.by_type.map((item: any, i: number) => (
+                    {summary.by_type.map((item, i) => (
                       <tr key={i} className="border-b border-border/50 last:border-0">
                         <td className="px-4 py-2 font-medium capitalize">{item.type?.replace(/_/g, ' ')}</td>
                         <td className="px-4 py-2 text-right text-muted-foreground">{item.count}</td>
@@ -123,9 +150,9 @@ export function AdminReconciliationPage() {
                 <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
                   <StatCard label="Held" value={formatPrice(summary.escrow_summary.held ?? 0)} color="text-amber-500" />
                   <StatCard label="Released" value={formatPrice(summary.escrow_summary.released ?? 0)} color="text-emerald-500" />
-                  <StatCard label="Refunded" value={formatPrice(summary.escrow_summary.refunded ?? 0)} color="text-blue-500" />
+                  <StatCard label="Refunded" value={formatPrice(summary.escrow_summary.refunded ?? 0)} color="text-[var(--shell-accent)]" />
                   <StatCard label="Disputed" value={formatPrice(summary.escrow_summary.disputed ?? 0)} color="text-red-500" />
-                  <StatCard label="Open Disputes" value={String(summary.escrow_summary.open_disputes ?? 0)} color={summary.escrow_summary.open_disputes > 0 ? 'text-red-500' : 'text-muted-foreground'} />
+                  <StatCard label="Open Disputes" value={String(summary.escrow_summary.open_disputes ?? 0)} color={(summary.escrow_summary.open_disputes ?? 0) > 0 ? 'text-red-500' : 'text-muted-foreground'} />
                 </div>
               </div>
             )}
@@ -140,11 +167,11 @@ export function AdminReconciliationPage() {
       {/* Wallet Audit */}
       <div>
         <h2 className="text-sm font-bold text-foreground flex items-center gap-2 mb-3">
-          <Wallet weight="fill" className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" />
+          <Wallet weight="fill" className="h-4 w-4 text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" />
           Wallet Balance Audit
         </h2>
         {isLoadingAudit ? (
-          <div className="py-8 text-center"><Loader2 weight="fill" className="h-5 w-5 animate-spin text-[#2164b6] dark:text-[#7ab0ff] mx-auto" /></div>
+          <div className="py-8 text-center"><Loader2 weight="fill" className="h-5 w-5 animate-spin text-[var(--shell-accent)] dark:text-[var(--shell-accent)] mx-auto" /></div>
         ) : audit ? (
           <div className="space-y-3">
             <div className="grid grid-cols-3 gap-3">
@@ -169,7 +196,7 @@ export function AdminReconciliationPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {audit.issues.map((issue: any, i: number) => (
+                    {audit.issues.map((issue, i) => (
                       <tr key={i} className="border-b border-destructive/10 last:border-0">
                         <td className="px-4 py-2 font-medium">{issue.user?.name ?? 'Unknown'}</td>
                         <td className="px-4 py-2 text-right font-semibold">{formatPrice(issue.wallet_balance ?? 0, issue.currency)}</td>
@@ -189,7 +216,7 @@ export function AdminReconciliationPage() {
                   <span className="text-xs font-bold text-destructive">Unbalanced Transactions</span>
                 </div>
                 <div className="divide-y divide-destructive/10">
-                  {audit.unbalanced_txns.map((txn: any, i: number) => (
+                  {audit.unbalanced_txns.map((txn, i) => (
                     <div key={i} className="px-4 py-2.5 flex items-center justify-between">
                       <div>
                         <span className="text-xs font-semibold text-foreground">{txn.type}</span>

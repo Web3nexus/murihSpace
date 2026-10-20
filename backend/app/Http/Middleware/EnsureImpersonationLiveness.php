@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Models\AuditLog;
 use App\Models\User;
+use App\Support\ImpersonationSession;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -49,11 +50,18 @@ class EnsureImpersonationLiveness
 
     public function handle(Request $request, Closure $next): Response
     {
+        if (ImpersonationSession::active($request)) {
+            return $this->enforceSession($request, $next);
+        }
+
         $user = $request->user();
         if (! $user) {
             return $next($request);
         }
 
+        // Legacy bearer impersonation tokens, issued before web impersonation
+        // moved to the session. They expire within two hours and stay enforced
+        // until then. No new ones are issued.
         $token = $user->currentAccessToken();
         if (! $token instanceof PersonalAccessToken) {
             return $next($request);
@@ -157,6 +165,60 @@ class EnsureImpersonationLiveness
         // 3. Update Activity Timestamp
         $session['last_activity_at'] = now()->timestamp;
         Cache::put($sessionKey, $session, now()->addHours(2));
+
+        return $next($request);
+    }
+
+    /**
+     * Enforce an impersonation held in the web session.
+     *
+     * Ends in one of two ways. A timeout (absolute or idle) hands the session
+     * back to the administrator. An administrator who has lost rights, or whose
+     * MFA session has ended, takes the whole session with them.
+     */
+    private function enforceSession(Request $request, Closure $next): Response
+    {
+        $now = now()->timestamp;
+        $adminId = ImpersonationSession::impersonatorId($request);
+        $targetId = ImpersonationSession::targetId($request);
+        $startedAt = (int) $request->session()->get(ImpersonationSession::STARTED_KEY, 0);
+        $lastActivity = (int) $request->session()->get(ImpersonationSession::ACTIVITY_KEY, 0);
+
+        $admin = $adminId ? User::find($adminId) : null;
+        $adminTokenId = ImpersonationSession::adminTokenId($request);
+
+        if (! $admin || ! ImpersonationSession::adminStillAuthorised($admin, $adminTokenId)) {
+            ImpersonationSession::audit($adminId, 'user.impersonation_revoked', (int) $targetId, $request, [
+                'reason' => 'admin_session_ended',
+            ]);
+            ImpersonationSession::abandon($request);
+
+            return response()->json([
+                'message' => 'The authorizing admin session has expired or lost its rights. Impersonation ended.',
+                'code'    => 'ADMIN_SESSION_EXPIRED',
+            ], 401);
+        }
+
+        $idle = $now - $lastActivity;
+        $age = $now - $startedAt;
+
+        if ($age > ImpersonationSession::MAX_SECONDS || $idle > ImpersonationSession::IDLE_SECONDS) {
+            $reason = $age > ImpersonationSession::MAX_SECONDS ? 'time_limit' : 'inactivity';
+
+            ImpersonationSession::audit($adminId, 'user.impersonation_timed_out', (int) $targetId, $request, [
+                'reason'       => $reason,
+                'age_seconds'  => $age,
+                'idle_seconds' => $idle,
+            ]);
+            ImpersonationSession::stop($request);
+
+            return response()->json([
+                'message' => 'Impersonation session timed out.',
+                'code'    => 'IMPERSONATION_TIMEOUT',
+            ], 401);
+        }
+
+        $request->session()->put(ImpersonationSession::ACTIVITY_KEY, $now);
 
         return $next($request);
     }

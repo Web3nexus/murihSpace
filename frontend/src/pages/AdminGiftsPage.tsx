@@ -1,4 +1,18 @@
-import { useState, useEffect, useCallback } from "react";
+import { pickArray } from "@/lib/api/pickArray";
+interface AdminGift {
+  id: number;
+  name: string;
+  category: string;
+  coin_price: number;
+  creator_earns: number;
+  platform_commission: number;
+  icon_url?: string | null;
+  animation_url?: string | null;
+  sort_order?: number;
+  is_active: boolean;
+}
+
+import { useState, useEffect } from "react";
 import { Discount as Gift, Plus, Edit, Delete as Trash2, TickSquare as Check, DangerSquare as AlertCircle, Search as MagnifyingGlass } from "@/components/icons";
 import { Spinner as Loader2, ArrowsVertical, ToggleLeft, ToggleRight } from "@/components/icons/rounded";;
 import { Button } from "@/components/ui/button";
@@ -42,6 +56,9 @@ const AVAILABLE_ASSETS = [
   { name: "Mansion", url: "/gifts/mansion.png" },
 ];
 
+interface GiftStats { total_transactions?: number; total_sent_count?: number; total_commission?: number; total_platform_commission?: number }
+
+
 function getAssetUrl(path: string | null | undefined): string {
   if (!path) return "";
   if (path.startsWith("http://") || path.startsWith("https://") || path.startsWith("data:")) {
@@ -52,20 +69,18 @@ function getAssetUrl(path: string | null | undefined): string {
   return `${backendHost}${path.startsWith('/') ? '' : '/'}${path}`;
 }
 
-function safeArray<T = any>(val: any): T[] {
-  if (Array.isArray(val)) return val;
-  if (Array.isArray(val?.data)) return val.data;
-  if (Array.isArray(val?.data?.data)) return val.data.data;
-  if (Array.isArray(val?.gifts)) return val.gifts;
-  return [];
+function safeArray<T>(val: T[]): T[];
+function safeArray<T = unknown>(val: unknown): T[];
+function safeArray(val: unknown): unknown[] {
+  return pickArray(val, ["gifts"]);
 }
 
 export default function AdminGiftsPage() {
-  const [gifts, setGifts] = useState<any[]>([]);
-  const [stats, setStats] = useState<any>(null);
+  const [gifts, setGifts] = useState<AdminGift[]>([]);
+  const [stats, setStats] = useState<GiftStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [editing, setEditing] = useState<any | null>(null);
+  const [editing, setEditing] = useState<AdminGift | null>(null);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
@@ -83,34 +98,38 @@ export default function AdminGiftsPage() {
     sort_order: "",
   });
 
-  const fetchGifts = useCallback(async () => {
+  const [fetchGiftsKey, setFetchGiftsKey] = useState(0);
+  const fetchGifts = () => {
     setLoading(true);
-    try {
-      const [gRes, sRes] = await Promise.all([
-        authFetch(`/securegate/gifts`),
-        authFetch(`/securegate/gifts/stats`),
-      ]);
-      if (gRes.ok) {
-        const j = await gRes.json();
-        setGifts(safeArray(j));
-      } else {
-        const err = await gRes.json().catch(() => ({}));
-        setMsg({ ok: false, text: err.message || "Failed to load gifts catalogue." });
-      }
-      if (sRes.ok) {
-        const j = await sRes.json();
-        setStats(j?.data ?? null);
-      }
-    } catch {
-      setMsg({ ok: false, text: "Network error loading gifts." });
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+    setFetchGiftsKey((k) => k + 1);
+  };
 
   useEffect(() => {
-    fetchGifts();
-  }, [fetchGifts]);
+    (async () => {
+      try {
+        const [gRes, sRes] = await Promise.all([
+          authFetch(`/securegate/gifts`),
+          authFetch(`/securegate/gifts/stats`),
+        ]);
+        if (gRes.ok) {
+          const j = await gRes.json();
+          setGifts(safeArray(j));
+        } else {
+          const err = await gRes.json().catch(() => ({}));
+          setMsg({ ok: false, text: err.message || "Failed to load gifts catalogue." });
+        }
+        if (sRes.ok) {
+          const j = await sRes.json();
+          setStats(j?.data ?? null);
+        }
+      } catch {
+        setMsg({ ok: false, text: "Network error loading gifts." });
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [fetchGiftsKey]);
+
 
   const resetForm = () =>
     setForm({
@@ -126,7 +145,7 @@ export default function AdminGiftsPage() {
 
   const handlePriceChange = (val: string) => {
     const price = parseInt(val) || 0;
-    // Default 85% creator / 15% platform commission
+    // Default 70% creator / 30% platform commission
     const creator = Math.floor(price * 0.85);
     const platform = price - creator;
     setForm((f) => ({
@@ -180,7 +199,7 @@ export default function AdminGiftsPage() {
     }
   };
 
-  const handleEdit = (gift: any) => {
+  const handleEdit = (gift: AdminGift) => {
     setForm({
       name: gift.name,
       coin_price: String(gift.coin_price),
@@ -221,7 +240,7 @@ export default function AdminGiftsPage() {
     }
   };
 
-  const handleToggle = async (gift: any) => {
+  const handleToggle = async (gift: AdminGift) => {
     try {
       const res = await authFetch(`/securegate/gifts/${gift.id}`, {
         method: "PUT",
@@ -256,7 +275,7 @@ export default function AdminGiftsPage() {
     }
   };
 
-  const filteredGifts = safeArray(gifts).filter((g: any) => {
+  const filteredGifts = safeArray(gifts).filter((g) => {
     const matchesCat = selectedCategory === "all" || g.category === selectedCategory;
     const matchesSearch =
       searchTerm === "" ||
@@ -270,7 +289,7 @@ export default function AdminGiftsPage() {
       {/* Header Banner */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl bg-gradient-to-br from-[#102840] via-[#173852] to-[#102840] text-white shadow-xl border border-white/10">
         <div className="space-y-1.5">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#2164b6]/30 text-[#7ab0ff] text-xs font-bold uppercase tracking-wider border border-[#2164b6]/40">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[var(--shell-accent-solid)]/30 text-[var(--shell-accent)] text-xs font-bold uppercase tracking-wider border border-[var(--shell-accent)]/40">
             <Gift weight="fill" className="h-3.5 w-3.5" /> Virtual Currency & Gifting
           </div>
           <h1 className="text-2xl sm:text-3xl font-black tracking-tight">Gift Management</h1>
@@ -284,7 +303,7 @@ export default function AdminGiftsPage() {
             setEditing(null);
             resetForm();
           }}
-          className="bg-[#2164b6] hover:bg-[#2d94c2] text-white font-bold shadow-md h-11 px-5 rounded-xl transition-all"
+          className="bg-[var(--shell-accent-solid)] hover:bg-[#2d94c2] text-white font-bold shadow-md h-11 px-5 rounded-xl transition-all"
         >
           <Plus weight="bold" className="h-4 w-4 mr-2" />
           {showForm ? "Cancel" : "Add New Gift"}
@@ -295,7 +314,7 @@ export default function AdminGiftsPage() {
       {stats && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
           {[
-            { label: "Total Gifts", value: gifts.length, color: "text-[#2164b6] dark:text-[#7ab0ff]" },
+            { label: "Total Gifts", value: gifts.length, color: "text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" },
             { label: "Active in App", value: gifts.filter((g) => g.is_active).length, color: "text-emerald-500" },
             {
               label: "Gifts Sent",
@@ -474,7 +493,7 @@ export default function AdminGiftsPage() {
               <Button
                 type="submit"
                 disabled={saving}
-                className="bg-[#2164b6] hover:bg-[#2d94c2] text-white font-bold h-10 px-6 rounded-xl"
+                className="bg-[var(--shell-accent-solid)] hover:bg-[#2d94c2] text-white font-bold h-10 px-6 rounded-xl"
               >
                 {saving ? <Loader2 weight="bold" className="w-4 h-4 mr-2 animate-spin" /> : null}
                 {editing ? "Save Changes" : "Create Gift"}
@@ -551,7 +570,7 @@ export default function AdminGiftsPage() {
           </div>
         ) : (
           <div className="divide-y divide-border/30">
-            {filteredGifts.map((gift: any, idx: number) => {
+            {filteredGifts.map((gift, idx: number) => {
               const assetUrl = getAssetUrl(gift.icon_url);
               return (
                 <div

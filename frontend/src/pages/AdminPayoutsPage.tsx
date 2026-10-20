@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useConfirm } from '@/components/ui/DialogProvider';
 import { TickSquare as CheckCircle2, TimeCircle as Clock, DangerTriangle as AlertTriangle, DangerSquare as AlertCircle } from "@/components/icons";
 import { CurrencyDollar as DollarSign, Spinner as Loader2 } from "@/components/icons/rounded";;
@@ -37,21 +37,27 @@ export function AdminPayoutsPage() {
   const [page, setPage] = useState(1);
   const [lastPage, setLastPage] = useState(1);
 
-  const fetchPayouts = useCallback(async () => {
+  const [fetchPayoutsKey, setFetchPayoutsKey] = useState(0);
+  const fetchPayouts = () => {
     setFetchError(null);
-    try {
-      const params = new URLSearchParams();
-      if (statusFilter) params.set('status', statusFilter);
-      params.set('page', String(page));
-      params.set('per_page', '20');
-      const res = await authFetch(`/securegate/payouts?${params}`, {  });
-      if (res.ok) { const j = await res.json(); const d = j?.success ? j?.data : j; setPayouts(d?.data?.data ?? d?.data ?? []); setSummary(d?.summary ?? null); setLastPage(d?.data?.last_page ?? d?.last_page ?? 1); }
-      else throw new Error(`HTTP ${res.status}`);
-    } catch (e) { setFetchError(e instanceof Error ? e.message : 'Failed to load payouts'); }
-    finally { setIsLoading(false); }
-  }, [statusFilter, page]);
+    setFetchPayoutsKey((k) => k + 1);
+  };
 
-  useEffect(() => { fetchPayouts(); }, [fetchPayouts]);
+  useEffect(() => {
+    (async () => {
+      try {
+        const params = new URLSearchParams();
+        if (statusFilter) params.set('status', statusFilter);
+        params.set('page', String(page));
+        params.set('per_page', '20');
+        const res = await authFetch(`/securegate/payouts?${params}`, {  });
+        if (res.ok) { const j = await res.json(); const d = j?.success ? j?.data : j; setPayouts(d?.data?.data ?? d?.data ?? []); setSummary(d?.summary ?? null); setLastPage(d?.data?.last_page ?? d?.last_page ?? 1); }
+        else throw new Error(`HTTP ${res.status}`);
+      } catch (e) { setFetchError(e instanceof Error ? e.message : 'Failed to load payouts'); }
+      finally { setIsLoading(false); }
+    })();
+  }, [fetchPayoutsKey, statusFilter, page]);
+
 
   async function markPaid(id: number) {
     if (!await confirm({ title: 'Mark as Paid', message: 'Mark this payout as paid?' })) return;
@@ -69,7 +75,7 @@ export function AdminPayoutsPage() {
     <div className="w-full mx-auto max-w-[1400px] space-y-6 p-4 lg:p-10">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 sm:p-5 rounded-lg bg-gradient-to-br from-[#102840] via-[#173852] to-[#102840] text-white shadow-lg">
         <div className="space-y-1.5">
-          <span className="px-2.5 py-0.5 rounded-full bg-[#2164b6]/20 text-[#2164b6] dark:text-[#7ab0ff] text-xs font-semibold uppercase tracking-wider border border-[#2164b6]/30">Admin</span>
+          <span className="px-2.5 py-0.5 rounded-full bg-[var(--shell-accent-solid)]/20 text-[var(--shell-accent)] dark:text-[var(--shell-accent)] text-xs font-semibold uppercase tracking-wider border border-[var(--shell-accent)]/30">Admin</span>
           <h1 className="text-xl sm:text-xl font-extrabold tracking-tight">Fulfilment Payouts</h1>
           <p className="text-sm text-white/70 max-w-xl">Manage creator payouts for physical product orders.</p>
         </div>

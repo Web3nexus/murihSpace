@@ -1,0 +1,24 @@
+{
+  "event": "refund.failed",
+  "data": {
+    "status": "failed",
+    "transaction_reference": "PAY-20261019-XYZ999",
+    "refund_reference": null,
+    "amount": "5000",
+    "currency": "NGN",
+    "processor": "paystack",
+    "customer": {
+      "id": 181873746,
+      "first_name": "Chidi",
+      "last_name": "Okonkwo",
+      "email": "customer@example.com",
+      "customer_code": "CUS_xnxdt6s1zg1f4nx",
+      "phone": null,
+      "metadata": null,
+      "risk_action": "default",
+      "international_format_phone": null
+    },
+    "integration": 100032,
+    "domain": "test"
+  }
+}

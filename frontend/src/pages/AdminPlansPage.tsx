@@ -19,7 +19,7 @@ function TabButton({ active, onClick, children }: { active: boolean; onClick: ()
     <button
       onClick={onClick}
       className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${
-        active ? "bg-[#2164b6]/10 text-[#2164b6] dark:text-[#7ab0ff] " : "text-muted-foreground hover:text-foreground hover:bg-muted"
+        active ? "bg-[var(--shell-accent-solid)]/10 text-[var(--shell-accent)] dark:text-[var(--shell-accent)] " : "text-muted-foreground hover:text-foreground hover:bg-muted"
       }`}
     >
       {children}
@@ -51,7 +51,7 @@ export function AdminPlansPage() {
     <div className="w-full mx-auto max-w-[1400px] space-y-6 p-4 lg:p-10">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 sm:p-5 rounded-lg bg-gradient-to-br from-[#102840] via-[#173852] to-[#102840] text-white shadow-lg">
         <div className="space-y-1.5">
-          <span className="px-2.5 py-0.5 rounded-full bg-[#2164b6]/20 text-[#2164b6] dark:text-[#7ab0ff] text-xs font-semibold uppercase tracking-wider border border-[#2164b6]/30">Admin</span>
+          <span className="px-2.5 py-0.5 rounded-full bg-[var(--shell-accent-solid)]/20 text-[var(--shell-accent)] dark:text-[var(--shell-accent)] text-xs font-semibold uppercase tracking-wider border border-[var(--shell-accent)]/30">Admin</span>
           <h1 className="text-xl sm:text-xl font-extrabold tracking-tight">Plans &amp; Platform Fees</h1>
           <p className="text-sm text-white/70 max-w-xl">Manage subscription plans and configure platform fee rates.</p>
         </div>
@@ -81,9 +81,14 @@ function PlansTab() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [lastPage, setLastPage] = useState(1);
+  // Clear the error in the render that changes the filters, rather than in the fetch effect.
+  const [plansRequest, setPlansRequest] = useState({ page, search });
+  if (plansRequest.page !== page || plansRequest.search !== search) {
+    setPlansRequest({ page, search });
+    setFetchError(null);
+  }
 
   const fetchPlans = useCallback(async () => {
-    setFetchError(null);
     try {
       const params = new URLSearchParams({ page: String(page), per_page: "50" });
       if (search) params.set("search", search);
@@ -97,13 +102,13 @@ function PlansTab() {
     finally { setIsLoading(false); }
   }, [page, search]);
 
-  useEffect(() => { fetchPlans(); }, [fetchPlans]);
+  useEffect(() => { (async () => { await fetchPlans(); })(); }, [fetchPlans]);
 
   async function toggleActive(id: number) {
     try {
       const res = await authFetch(`/securegate/plans/${id}/toggle`, { method: "POST",  });
       const j = await res.json();
-      if (res.ok) { setMessage({ type: "success", text: "Plan toggled." }); fetchPlans(); }
+      if (res.ok) { setMessage({ type: "success", text: "Plan toggled." }); setFetchError(null); fetchPlans(); }
       else { setMessage({ type: "error", text: j.message ?? "Failed." }); }
     } catch { setMessage({ type: "error", text: "Network error." }); }
   }
@@ -115,7 +120,7 @@ function PlansTab() {
       {fetchError && (
         <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-xs text-destructive">
           <AlertCircle weight="fill" className="h-4 w-4 shrink-0" /> {fetchError}
-          <button onClick={() => { setIsLoading(true); fetchPlans(); }} className="ml-auto text-muted-foreground hover:text-foreground font-bold">Retry</button>
+          <button onClick={() => { setIsLoading(true); setFetchError(null); fetchPlans(); }} className="ml-auto text-muted-foreground hover:text-foreground font-bold">Retry</button>
         </div>
       )}
 
@@ -128,9 +133,9 @@ function PlansTab() {
       {summary && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
-            { label: "Total Plans", value: summary.total_plans, icon: Crown, color: "text-[#2164b6] dark:text-[#7ab0ff]" },
+            { label: "Total Plans", value: summary.total_plans, icon: Crown, color: "text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" },
             { label: "Active Plans", value: summary.active_plans, icon: ToggleRight, color: "text-emerald-500" },
-            { label: "Active Subscribers", value: summary.total_subscribers, icon: Users, color: "text-blue-500" },
+            { label: "Active Subscribers", value: summary.total_subscribers, icon: Users, color: "text-[var(--shell-accent)]" },
             { label: "MRR", value: formatAmount(summary.mrr), icon: DollarSign, color: "text-purple-500" },
           ].map(s => {
             const Icon = s.icon;
@@ -210,7 +215,6 @@ function FeesTab() {
   const [editValues, setEditValues] = useState<{ percentage: string; flat_fee: string }>({ percentage: "", flat_fee: "" });
 
   const fetchFees = useCallback(async () => {
-    setFetchError(null);
     try {
       const res = await authFetch(`/securegate/fees`, {  });
       if (!res.ok) throw new Error("Failed to load fees");
@@ -221,7 +225,7 @@ function FeesTab() {
     finally { setIsLoading(false); }
   }, []);
 
-  useEffect(() => { fetchFees(); }, [fetchFees]);
+  useEffect(() => { (async () => { await fetchFees(); })(); }, [fetchFees]);
 
   function startEdit(fee: FeeConfig) {
     setEditingId(fee.id);
@@ -252,6 +256,7 @@ function FeesTab() {
       if (res.ok) {
         setMessage({ type: "success", text: "Fee rate updated." });
         setEditingId(null);
+        setFetchError(null);
         fetchFees();
       } else {
         setMessage({ type: "error", text: j.message ?? "Failed to update." });
@@ -270,6 +275,7 @@ function FeesTab() {
       });
       if (res.ok) {
         setMessage({ type: "success", text: "Fee toggled." });
+        setFetchError(null);
         fetchFees();
       } else {
         const j = await res.json().catch(() => ({}));
@@ -296,7 +302,7 @@ function FeesTab() {
       {fetchError && (
         <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-xs text-destructive">
           <AlertCircle weight="fill" className="h-4 w-4 shrink-0" /> {fetchError}
-          <button onClick={() => { setIsLoading(true); fetchFees(); }} className="ml-auto text-muted-foreground hover:text-foreground font-bold">Retry</button>
+          <button onClick={() => { setIsLoading(true); setFetchError(null); fetchFees(); }} className="ml-auto text-muted-foreground hover:text-foreground font-bold">Retry</button>
         </div>
       )}
 
@@ -313,7 +319,7 @@ function FeesTab() {
         <p className="text-xs text-muted-foreground">
           Configure platform fee rates applied to transactions. Changes take effect immediately.
         </p>
-        <Button variant="ghost" size="sm" onClick={fetchFees} className="gap-1.5">
+        <Button variant="ghost" size="sm" onClick={() => { setFetchError(null); fetchFees(); }} className="gap-1.5">
           <RefreshCw weight="fill" className="h-3.5 w-3.5" /> Refresh
         </Button>
       </div>

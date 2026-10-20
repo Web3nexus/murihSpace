@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
+import { safeHref } from "@/lib/safeUrl";
+import { useState, useEffect } from 'react';
 import { useConfirm } from '@/components/ui/DialogProvider';
 import { Plus, N2User as Users, Bag as ShoppingBag, TickSquare as Check, Discount as Gift, Swap as RefreshCw, TickSquare as CheckCircle2 } from "@/components/icons";
 import { Link, Spinner as Loader2, CursorClick, Copy, ArrowSquareOut as ExternalLink, Power } from "@/components/icons/rounded";;
@@ -60,27 +61,33 @@ export function ReferralsPage() {
   const [newCode, setNewCode] = useState('');
   const [saving, setSaving] = useState(false);
 
-  const fetchAll = useCallback(async () => {
+  const [fetchAllKey, setFetchAllKey] = useState(0);
+  const fetchAll = () => {
     setIsLoading(true);
-    try {
-      const [pgRes, lkRes, stRes, rfRes] = await Promise.all([
-        authFetch(`/referrals/program`, {  }),
-        authFetch(`/referrals/links`, {  }),
-        authFetch(`/referrals/stats`, {  }),
-        authFetch(`/referrals`, {  }),
-      ]);
-      if (pgRes.ok) { 
-        const j = await pgRes.json(); 
-        setProgram(j.data?.data ?? { id: 0, is_active: true, reward_type: 'percentage', reward_value: 10, description: null }); 
-      }
-      if (lkRes.ok) { const j = await lkRes.json(); setLinks(j.data?.data ?? []); }
-      if (stRes.ok) { const j = await stRes.json(); setStats(j.data?.data ?? null); }
-      if (rfRes.ok) { const j = await rfRes.json(); setReferrals(j.data?.data ?? []); }
-    } catch { /* ignore */ }
-    finally { setIsLoading(false); }
-  }, []);
+    setFetchAllKey((k) => k + 1);
+  };
 
-  useEffect(() => { fetchAll(); }, [fetchAll]);
+  useEffect(() => {
+    (async () => {
+      try {
+        const [pgRes, lkRes, stRes, rfRes] = await Promise.all([
+          authFetch(`/referrals/program`, {  }),
+          authFetch(`/referrals/links`, {  }),
+          authFetch(`/referrals/stats`, {  }),
+          authFetch(`/referrals`, {  }),
+        ]);
+        if (pgRes.ok) { 
+          const j = await pgRes.json(); 
+          setProgram(j.data?.data ?? { id: 0, is_active: true, reward_type: 'percentage', reward_value: 10, description: null }); 
+        }
+        if (lkRes.ok) { const j = await lkRes.json(); setLinks(j.data?.data ?? []); }
+        if (stRes.ok) { const j = await stRes.json(); setStats(j.data?.data ?? null); }
+        if (rfRes.ok) { const j = await rfRes.json(); setReferrals(j.data?.data ?? []); }
+      } catch { /* ignore */ }
+      finally { setIsLoading(false); }
+    })();
+  }, [fetchAllKey]);
+
 
   async function saveProgram(e: React.FormEvent) {
     e.preventDefault();
@@ -145,8 +152,8 @@ export function ReferralsPage() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
         <div className="relative">
-          <div className="absolute inset-0 rounded-full blur-xl bg-[#2164b6]/20 animate-pulse"></div>
-          <Loader2 weight="fill" className="h-10 w-10 animate-spin text-[#2164b6] relative z-10" />
+          <div className="absolute inset-0 rounded-full blur-xl bg-[var(--shell-accent-solid)]/20 animate-pulse"></div>
+          <Loader2 weight="fill" className="h-10 w-10 animate-spin text-[var(--shell-accent)] relative z-10" />
         </div>
         <p className="text-sm text-muted-foreground font-medium animate-pulse">Loading referral program...</p>
       </div>
@@ -158,7 +165,7 @@ export function ReferralsPage() {
       {/* Header Section */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="space-y-2">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#2164b6]/10 text-[#2164b6] dark:text-[#7ab0ff] text-xs font-bold mb-2">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[var(--shell-accent-solid)]/10 text-[var(--shell-accent)] dark:text-[var(--shell-accent)] text-xs font-bold mb-2">
               <CheckCircle2 weight="fill" className="w-3.5 h-3.5" />
               Grow Your Audience
           </div>
@@ -204,7 +211,7 @@ export function ReferralsPage() {
           {/* Glassmorphic Stats Grid */}
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
             {[
-              { icon: CursorClick, label: 'Total Clicks', value: stats?.total_clicks ?? 0, color: 'text-blue-500', bg: 'bg-blue-500/10' },
+              { icon: CursorClick, label: 'Total Clicks', value: stats?.total_clicks ?? 0, color: 'text-[var(--shell-accent)]', bg: 'bg-[var(--shell-accent-solid)]/10' },
               { icon: Users, label: 'Signups', value: stats?.total_signups ?? 0, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
               { icon: ShoppingBag, label: 'Purchases', value: stats?.total_purchases ?? 0, color: 'text-purple-500', bg: 'bg-purple-500/10' },
               { icon: RefreshCw, label: 'Conversion', value: `${stats?.conversion_rate ?? 0}%`, color: 'text-amber-500', bg: 'bg-amber-500/10' },
@@ -235,12 +242,12 @@ export function ReferralsPage() {
             <form onSubmit={saveProgram} className="space-y-6 max-w-3xl">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-sm font-bold text-foreground">Reward Type</label>
+                  <label htmlFor="f-pages-referralspage-tsx-238" className="text-sm font-bold text-foreground">Reward Type</label>
                   <div className="relative">
-                    <select 
+                    <select id="f-pages-referralspage-tsx-238" 
                       value={program?.reward_type ?? 'percentage'}
                       onChange={e => setProgram(p => p ? { ...p, reward_type: e.target.value } : null)}
-                      className="w-full appearance-none rounded-lg border-none/50 bg-background px-4 py-3 text-sm font-medium text-foreground focus:ring-2 focus:ring-[#2164b6]/50 focus:border-[#2164b6] transition-all"
+                      className="w-full appearance-none rounded-lg border-none/50 bg-background px-4 py-3 text-sm font-medium text-foreground focus:ring-2 focus:ring-[var(--shell-accent)]/50 focus:border-[var(--shell-accent)] transition-all"
                     >
                       {REWARD_TYPES.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
                     </select>
@@ -251,13 +258,13 @@ export function ReferralsPage() {
                 </div>
                 
                 <div className="space-y-2">
-                  <label className="text-sm font-bold text-foreground">Reward Value</label>
+                  <label htmlFor="f-pages-referralspage-tsx-254" className="text-sm font-bold text-foreground">Reward Value</label>
                   <div className="relative">
-                    <input 
+                    <input id="f-pages-referralspage-tsx-254" 
                       type="number" min="1" 
                       value={program?.reward_value ?? 10}
                       onChange={e => setProgram(p => p ? { ...p, reward_value: Number(e.target.value) } : null)}
-                      className="w-full rounded-lg border-none/50 bg-background px-4 py-3 text-sm font-medium text-foreground focus:ring-2 focus:ring-[#2164b6]/50 focus:border-[#2164b6] transition-all pl-12" 
+                      className="w-full rounded-lg border-none/50 bg-background px-4 py-3 text-sm font-medium text-foreground focus:ring-2 focus:ring-[var(--shell-accent)]/50 focus:border-[var(--shell-accent)] transition-all pl-12" 
                     />
                     <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-muted-foreground font-bold">
                       {program?.reward_type === 'percentage' ? '%' : program?.reward_type === 'fixed' ? '₦' : '★'}
@@ -267,20 +274,20 @@ export function ReferralsPage() {
               </div>
               
               <div className="space-y-2">
-                <label className="text-sm font-bold text-foreground">Program Description <span className="text-muted-foreground font-normal">(Visible to Affiliates)</span></label>
-                <textarea 
+                <label htmlFor="f-pages-referralspage-tsx-270" className="text-sm font-bold text-foreground">Program Description <span className="text-muted-foreground font-normal">(Visible to Affiliates)</span></label>
+                <textarea id="f-pages-referralspage-tsx-270" 
                   value={program?.description ?? ''}
                   onChange={e => setProgram(p => p ? { ...p, description: e.target.value } : null)}
                   rows={3} 
-                  className="w-full rounded-lg border-none/50 bg-background p-4 text-sm font-medium text-foreground resize-none placeholder:text-muted-foreground/50 focus:ring-2 focus:ring-[#2164b6]/50 focus:border-[#2164b6] transition-all" 
+                  className="w-full rounded-lg border-none/50 bg-background p-4 text-sm font-medium text-foreground resize-none placeholder:text-muted-foreground/50 focus:ring-2 focus:ring-[var(--shell-accent)]/50 focus:border-[var(--shell-accent)] transition-all" 
                   placeholder="e.g. Earn 20% on all course sales you refer. Payouts happen every Friday." 
                 />
               </div>
               
               <div className="pt-4 flex items-center justify-between border-t border-border/50">
-                <label className="flex items-center gap-3 cursor-pointer group">
+                <label htmlFor="f-pages-referralspage-tsx-281" aria-label="Program Active" className="flex items-center gap-3 cursor-pointer group">
                   <div className="relative flex items-center">
-                    <input 
+                    <input id="f-pages-referralspage-tsx-281" 
                       type="checkbox" 
                       checked={program?.is_active ?? true}
                       onChange={e => setProgram(p => p ? { ...p, is_active: e.target.checked } : null)}
@@ -290,7 +297,7 @@ export function ReferralsPage() {
                     <div className="absolute left-1 top-1 h-4 w-4 rounded-full bg-white transition-transform peer-checked:translate-x-5 "></div>
                   </div>
                   <div>
-                    <span className="text-sm font-bold text-foreground group-hover:text-[#2164b6] transition-colors">Program Active</span>
+                    <span className="text-sm font-bold text-foreground group-hover:text-[var(--shell-accent)] transition-colors">Program Active</span>
                     <p className="text-[10px] text-muted-foreground">Toggle to pause new referrals.</p>
                   </div>
                 </label>
@@ -298,7 +305,7 @@ export function ReferralsPage() {
                 <button 
                   type="submit" 
                   disabled={saving}
-                  className="px-8 py-3 rounded-lg bg-gradient-to-r from-[#2164b6] to-[#1a5091] text-white text-sm font-bold hover:shadow-lg hover:shadow-[#2164b6]/25 transition-all duration-300 disabled:opacity-50 hover:-translate-y-0.5 active:translate-y-0 flex items-center gap-2"
+                  className="px-8 py-3 rounded-lg bg-gradient-to-r from-[var(--shell-accent-solid)] to-[#1a5091] text-white text-sm font-bold hover:shadow-lg hover:shadow-[#2164b6]/25 transition-all duration-300 disabled:opacity-50 hover:-translate-y-0.5 active:translate-y-0 flex items-center gap-2"
                 >
                   {saving ? <Loader2 weight="fill" className="h-4 w-4 animate-spin" /> : <Check weight="fill" className="h-4 w-4" />} 
                   Save Configuration
@@ -324,12 +331,12 @@ export function ReferralsPage() {
                   value={newCode} 
                   onChange={e => setNewCode(e.target.value)}
                   placeholder="custom-code (optional)"
-                  className="w-full rounded-lg border-none/50 bg-background py-3 pl-[150px] pr-4 text-sm font-mono text-foreground placeholder:text-muted-foreground/50 focus:ring-2 focus:ring-[#2164b6]/50 focus:border-[#2164b6] transition-all" 
+                  className="w-full rounded-lg border-none/50 bg-background py-3 pl-[150px] pr-4 text-sm font-mono text-foreground placeholder:text-muted-foreground/50 focus:ring-2 focus:ring-[var(--shell-accent)]/50 focus:border-[var(--shell-accent)] transition-all" 
                 />
               </div>
               <button 
                 onClick={createLink}
-                className="flex items-center justify-center gap-2 px-8 py-3 rounded-lg bg-[#2164b6] text-white text-sm font-bold hover:bg-[#1a5091] hover:shadow-lg transition-all duration-300 whitespace-nowrap"
+                className="flex items-center justify-center gap-2 px-8 py-3 rounded-lg bg-[var(--shell-accent-solid)] text-white text-sm font-bold hover:bg-[var(--shell-accent-hover)] hover:shadow-lg transition-all duration-300 whitespace-nowrap"
               >
                 <Plus weight="fill" className="h-4 w-4" /> Generate
               </button>
@@ -347,7 +354,7 @@ export function ReferralsPage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {links.map(l => (
-                <div key={l.id} className="group flex flex-col rounded-lg border-none/50 bg-card/50 backdrop-blur-xl overflow-hidden hover:border-[#2164b6]/50 transition-all duration-300">
+                <div key={l.id} className="group flex flex-col rounded-lg border-none/50 bg-card/50 backdrop-blur-xl overflow-hidden hover:border-[var(--shell-accent)]/50 transition-all duration-300">
                   <div className="p-5 flex-1 space-y-4">
                     <div className="flex items-start justify-between gap-2">
                       <div>
@@ -385,10 +392,10 @@ export function ReferralsPage() {
                   <div className="bg-background border-t border-border/50 p-3 flex items-center justify-between gap-3">
                     <div className="text-[11px] text-muted-foreground font-mono truncate px-2">{l.url}</div>
                     <div className="flex items-center shrink-0 gap-1">
-                      <button onClick={() => window.open(l.url, '_blank')} className="p-2 rounded-lg bg-card border-none/50 hover:border-[#2164b6]/50 hover:text-[#2164b6] transition-colors">
+                      <button onClick={() => { const url = safeHref(l.url); if (url) window.open(url, '_blank', 'noopener,noreferrer'); }} className="p-2 rounded-lg bg-card border-none/50 hover:border-[var(--shell-accent)]/50 hover:text-[var(--shell-accent)] transition-colors">
                         <ExternalLink weight="fill" className="h-3.5 w-3.5" />
                       </button>
-                      <button onClick={() => copyUrl(l.url)} className="p-2 rounded-lg bg-[#2164b6] text-white hover:bg-[#1a5091] transition-colors flex items-center gap-1.5 min-w-[70px] justify-center">
+                      <button onClick={() => copyUrl(l.url)} className="p-2 rounded-lg bg-[var(--shell-accent-solid)] text-white hover:bg-[var(--shell-accent-hover)] transition-colors flex items-center gap-1.5 min-w-[70px] justify-center">
                         {copied === l.url ? <Check className="h-3.5 w-3.5" /> : <Copy weight="fill" className="h-3.5 w-3.5" />}
                         <span className="text-[10px] font-bold">{copied === l.url ? 'Copied' : 'Copy'}</span>
                       </button>

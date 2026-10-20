@@ -43,7 +43,7 @@ export function TransactionDetailsModal({
       <DialogContent className="sm:max-w-md p-6">
         <DialogHeader className="text-center sm:text-left space-y-1">
           <DialogTitle className="flex items-center gap-2 text-lg font-bold">
-            <Receipt weight="bold" className="h-5 w-5 text-[#2164b6]" />
+            <Receipt weight="bold" className="h-5 w-5 text-[var(--shell-accent)]" />
             Transaction Receipt
           </DialogTitle>
           <DialogDescription className="text-xs text-muted-foreground">

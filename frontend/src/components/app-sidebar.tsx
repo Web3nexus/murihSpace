@@ -6,7 +6,7 @@ import {
   getUnreadCount,
   subscribeUnreadCount,
 } from "@/lib/chatUnread";
-import { getSidebarNav } from "@/navigation/getSidebarNav";
+import { getSidebarNav, resolveExternalItems } from "@/navigation/getSidebarNav";
 import { ROLE_LABELS } from "@/navigation/navTypes";
 import type { NavItem, NavGroup, UserRole } from "@/navigation/navTypes";
 import { useFeatureFlags } from "@/hooks/useFeatureFlags";
@@ -148,23 +148,20 @@ function NavRow({ item, onNavigate }: NavRowProps) {
   const { pathname, search } = useLocation();
   const active = isActiveRoute(item, pathname, search);
 
-  return (
-    <div className="flex flex-col">
-      <Link
-        to={item.url}
-        onClick={onNavigate}
-        className={`flex items-center gap-3 px-3 h-11 rounded-lg text-[14px] font-medium transition-all select-none ${
-          active
-            ? "bg-[#E7F3FF] dark:bg-[#2D3F54] text-[#2164b6] dark:text-[#7ab0ff] font-semibold shadow-2xs"
-            : "text-[#050505] dark:text-[#E4E6EB] hover:bg-[#E4E6EB]/60 dark:hover:bg-[#3A3B3C]"
-        }`}
-      >
+  const className = `flex items-center gap-3 px-3 h-11 rounded-lg text-[14px] font-medium transition-all select-none ${
+    active
+      ? "bg-[var(--shell-hover)] dark:bg-[var(--shell-hover-strong)] text-[var(--shell-accent)] dark:text-[var(--shell-accent)] font-semibold shadow-2xs"
+      : "text-[var(--shell-text)] dark:text-[var(--shell-text)] hover:bg-[var(--shell-hover)]/60 dark:hover:bg-[var(--shell-hover)]"
+  }`;
+
+  const content = (
+    <>
         {item.icon && (
           <span
             className={`shrink-0 text-[20px] transition-colors ${
               active
-                ? "text-[#2164b6] dark:text-[#7ab0ff]"
-                : "text-[#65676B] dark:text-[#B0B3B8]"
+                ? "text-[var(--shell-accent)] dark:text-[var(--shell-accent)]"
+                : "text-[var(--shell-muted)] dark:text-[var(--shell-muted)]"
             }`}
           >
             {item.icon}
@@ -176,7 +173,28 @@ function NavRow({ item, onNavigate }: NavRowProps) {
             {item.badge}
           </span>
         )}
-      </Link>
+    </>
+  );
+
+  return (
+    <div className="flex flex-col">
+      {item.external ? (
+        <a
+          href={item.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          title={item.description}
+          onClick={onNavigate}
+          className={className}
+        >
+          {content}
+          <span className="sr-only">(opens in a new tab)</span>
+        </a>
+      ) : (
+        <Link to={item.url} onClick={onNavigate} title={item.description} className={className}>
+          {content}
+        </Link>
+      )}
     </div>
   );
 }
@@ -235,7 +253,7 @@ export function AppSidebar({ className = "", onNavigate }: AppSidebarProps) {
   }, [role]);
 
   const rawNav = getSidebarNav(role);
-  const filtered = filterByFlags(rawNav, flags);
+  const filtered = filterByFlags(resolveExternalItems(rawNav), flags);
   const navGroups = injectBadges(filtered, unreadCount, adminCounts);
 
   const roleLabel = ROLE_LABELS[role] ?? "";
@@ -248,9 +266,9 @@ export function AppSidebar({ className = "", onNavigate }: AppSidebarProps) {
           <Link
             to="/app/profile"
             onClick={onNavigate}
-            className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-[#E4E6EB]/60 dark:hover:bg-[#3A3B3C] transition-colors"
+            className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-[var(--shell-hover)]/60 dark:hover:bg-[var(--shell-hover)] transition-colors"
           >
-            <div className="h-9 w-9 rounded-full overflow-hidden bg-[#2164b6] flex items-center justify-center text-white shrink-0">
+            <div className="h-9 w-9 rounded-full overflow-hidden bg-[var(--shell-accent-solid)] flex items-center justify-center text-white shrink-0">
               {user.avatar_url ? (
                 <img src={user.avatar_url} alt="" className="w-full h-full object-cover" />
               ) : (
@@ -258,10 +276,10 @@ export function AppSidebar({ className = "", onNavigate }: AppSidebarProps) {
               )}
             </div>
             <div className="min-w-0 flex-1 text-left">
-              <p className="text-[14px] font-semibold text-[#050505] dark:text-[#E4E6EB] truncate leading-tight">
+              <p className="text-[14px] font-semibold text-[var(--shell-text)] dark:text-[var(--shell-text)] truncate leading-tight">
                 {user.name}
               </p>
-              <p className="text-[12px] text-[#65676B] dark:text-[#B0B3B8] truncate leading-normal">
+              <p className="text-[12px] text-[var(--shell-muted)] dark:text-[var(--shell-muted)] truncate leading-normal">
                 {user.username ? `@${user.username}` : roleLabel}
               </p>
             </div>
@@ -278,17 +296,17 @@ export function AppSidebar({ className = "", onNavigate }: AppSidebarProps) {
           return (
             <React.Fragment key={group.title || groupIdx}>
               {groupIdx > 0 && (
-                <div className="my-2 border-t border-[#DADDE1] dark:border-[#3E4042] mx-2" />
+                <div className="my-2 border-t border-[var(--shell-border)] dark:border-[var(--shell-border)] mx-2" />
               )}
 
               {isNamedGroup && (
-                <div className="px-3 pt-2 pb-1 text-[11px] font-bold text-[#65676B] dark:text-[#B0B3B8] uppercase tracking-wider">
+                <div className="px-3 pt-2 pb-1 text-[11px] font-bold text-[var(--shell-muted)] dark:text-[var(--shell-muted)] uppercase tracking-wider">
                   {group.title}
                 </div>
               )}
 
               {isShortcutGroup && (
-                <div className="px-3 pt-1 pb-1 text-[12px] font-semibold text-[#65676B] dark:text-[#B0B3B8]">
+                <div className="px-3 pt-1 pb-1 text-[12px] font-semibold text-[var(--shell-muted)] dark:text-[var(--shell-muted)]">
                   Shortcuts
                 </div>
               )}
@@ -305,14 +323,14 @@ export function AppSidebar({ className = "", onNavigate }: AppSidebarProps) {
 
       {/* Subtle Bottom User Dropdown */}
       {!loading && user && (
-        <div className="shrink-0 pt-2 mt-auto border-t border-[#DADDE1] dark:border-[#3E4042]">
+        <div className="shrink-0 pt-2 mt-auto border-t border-[var(--shell-border)] dark:border-[var(--shell-border)]">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
-                className="w-full flex items-center gap-3 px-3 h-11 rounded-lg text-left hover:bg-[#E4E6EB]/60 dark:hover:bg-[#3A3B3C] transition-colors"
+                className="w-full flex items-center gap-3 px-3 h-11 rounded-lg text-left hover:bg-[var(--shell-hover)]/60 dark:hover:bg-[var(--shell-hover)] transition-colors"
               >
-                <div className="h-8 w-8 rounded-full overflow-hidden bg-[#2164b6] flex items-center justify-center text-white shrink-0">
+                <div className="h-8 w-8 rounded-full overflow-hidden bg-[var(--shell-accent-solid)] flex items-center justify-center text-white shrink-0">
                   {user.avatar_url ? (
                     <img src={user.avatar_url} alt="" className="w-full h-full object-cover" />
                   ) : (
@@ -320,14 +338,14 @@ export function AppSidebar({ className = "", onNavigate }: AppSidebarProps) {
                   )}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-[13px] font-semibold text-[#050505] dark:text-[#E4E6EB] truncate">
+                  <p className="text-[13px] font-semibold text-[var(--shell-text)] dark:text-[var(--shell-text)] truncate">
                     {user.name}
                   </p>
-                  <p className="text-[11px] text-[#65676B] dark:text-[#B0B3B8] truncate">
+                  <p className="text-[11px] text-[var(--shell-muted)] dark:text-[var(--shell-muted)] truncate">
                     {user.email}
                   </p>
                 </div>
-                <CaretDown weight="bold" className="h-3.5 w-3.5 text-[#65676B] dark:text-[#B0B3B8] shrink-0" />
+                <CaretDown weight="bold" className="h-3.5 w-3.5 text-[var(--shell-muted)] dark:text-[var(--shell-muted)] shrink-0" />
               </button>
             </DropdownMenuTrigger>
 

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { Graph as TrendingUp, TickSquare as CheckCircle, TimeCircle as Clock } from "@/components/icons";
 import { CurrencyDollar as DollarSign, Spinner as Loader2 } from "@/components/icons/rounded";;
 import { Badge } from "@/components/ui/badge";
@@ -32,29 +32,29 @@ export function PayoutsPage() {
   const [stats, setStats] = useState<{ pending: number; paid: number; total_orders: number } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const fetchPayouts = useCallback(async () => {
-    try {
-      const [payoutsRes, statsRes] = await Promise.all([
-        authFetch(`/store/payouts`, {  }),
-        authFetch(`/store/payouts/stats`, {  }),
-      ]);
-      if (payoutsRes.ok) {
-        const json = await payoutsRes.json();
-        setPayouts(json.data?.data ?? []);
-        setTotals(json.data?.totals ?? null);
+  useEffect(() => {
+    (async () => {
+      try {
+        const [payoutsRes, statsRes] = await Promise.all([
+          authFetch(`/store/payouts`, {  }),
+          authFetch(`/store/payouts/stats`, {  }),
+        ]);
+        if (payoutsRes.ok) {
+          const json = await payoutsRes.json();
+          setPayouts(json.data?.data ?? []);
+          setTotals(json.data?.totals ?? null);
+        }
+        if (statsRes.ok) {
+          const json = await statsRes.json();
+          setStats(json.data?.data ?? json.data ?? null);
+        }
+      } catch {
+        // ignore
+      } finally {
+        setIsLoading(false);
       }
-      if (statsRes.ok) {
-        const json = await statsRes.json();
-        setStats(json.data?.data ?? json.data ?? null);
-      }
-    } catch {
-      // ignore
-    } finally {
-      setIsLoading(false);
-    }
+    })();
   }, []);
-
-  useEffect(() => { fetchPayouts(); }, [fetchPayouts]);
 
   if (isLoading) {
     return (
@@ -90,7 +90,7 @@ export function PayoutsPage() {
         </div>
         <div className="rounded-xl border border-border/60 bg-card p-5 shadow-sm">
           <div className="flex items-center gap-2 text-muted-foreground mb-2">
-            <TrendingUp weight="fill" className="w-5 h-5 text-[#2164b6] dark:text-[#7ab0ff]" />
+            <TrendingUp weight="fill" className="w-5 h-5 text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" />
             <span className="text-sm font-medium">Orders Fulfilled</span>
           </div>
           <p className="text-2xl font-extrabold text-foreground">{stats?.total_orders ?? 0}</p>
@@ -142,7 +142,7 @@ export function PayoutsPage() {
               <p className="text-sm font-bold text-foreground">{formatPrice(p.net_amount)}</p>
               <Badge className={
                 p.status === 'paid'
-                  ? 'bg-[#2164b6]/20 text-[#2164b6] dark:text-[#7ab0ff] border-[#2164b6]/30'
+                  ? 'bg-[var(--shell-accent-solid)]/20 text-[var(--shell-accent)] dark:text-[var(--shell-accent)] border-[var(--shell-accent)]/30'
                   : 'bg-muted text-muted-foreground border-border'
               }>
                 {p.status === 'paid' ? 'Paid' : 'Pending'}

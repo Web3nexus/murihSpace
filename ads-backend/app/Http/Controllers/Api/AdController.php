@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreAdRequest;
 use App\Http\Requests\UpdateAdRequest;
 use App\Models\Ad;
+use App\Services\Reporting\AdMetricsAggregator;
 use Illuminate\Http\Request;
 
 use App\Models\AdAccountMember;
@@ -15,12 +16,14 @@ class AdController extends Controller
 {
     private function getAuthorizedAccountIds()
     {
-        return AdAccountMember::where('murihspace_user_id', request()->user()->id)
+        return AdAccountMember::where('murihspace_user_id', request()->user()->murihspace_user_id)
             ->pluck('ad_account_id');
     }
 
-    public function index(Request $request)
+    public function index(Request $request, AdMetricsAggregator $metrics)
     {
+        $request->validate(AdMetricsAggregator::rangeRules());
+
         $query = Ad::whereHas('adGroup.campaign', function($q) {
             $q->whereIn('advertiser_id', $this->getAuthorizedAccountIds());
         });
@@ -29,7 +32,10 @@ class AdController extends Controller
             $query->where('ad_group_id', $request->query('ad_group_id'));
         }
         
-        $ads = $query->with('creative')->paginate(20);
+        $ads = $query->with('creative')->paginate(AdMetricsAggregator::perPage($request));
+
+        $metrics->attach($ads, AdMetricsAggregator::LEVEL_AD, $request->query('start_date'), $request->query('end_date'));
+
         return response()->json($ads);
     }
 

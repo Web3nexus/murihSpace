@@ -24,7 +24,7 @@ export function WalletMshCoinsWidget({
           <button
             onClick={onViewAll}
             type="button"
-            className="text-xs font-semibold text-[#2164b6] hover:underline"
+            className="text-xs font-semibold text-[var(--shell-accent)] hover:underline"
           >
             View All
           </button>
@@ -48,7 +48,7 @@ export function WalletMshCoinsWidget({
       <Button
         type="button"
         onClick={onBuyCoins}
-        className="w-full bg-[#2164b6] hover:bg-[#1a5091] text-white font-bold text-sm h-10 rounded-xl shadow-xs transition-all duration-150"
+        className="w-full bg-[var(--shell-accent-solid)] hover:bg-[var(--shell-accent-hover)] text-white font-bold text-sm h-10 rounded-xl shadow-xs transition-all duration-150"
       >
         <Coins weight="fill" className="h-4 w-4 mr-2" />
         Buy Coins

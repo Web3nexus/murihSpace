@@ -74,6 +74,7 @@ function RoomVideoSurface({ session, room }: { session: LiveSessionRecord; room:
 
   return (
     <div className="relative h-full w-full bg-[#0B0F16]">
+      {/* eslint-disable-next-line jsx-a11y/media-has-caption -- live/camera stream has no caption source */}
       <video
         ref={videoRef}
         autoPlay

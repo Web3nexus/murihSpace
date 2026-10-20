@@ -45,8 +45,6 @@ use Illuminate\Validation\Rule;
 
 class LiveStreamController extends Controller
 {
-    public const DIGITAL_FEE_RATE = 0.10;
-
     public const PHYSICAL_FEE_RATE = 0.05;
 
     public function __construct(
@@ -374,16 +372,13 @@ class LiveStreamController extends Controller
 
     private function getLivekitHost(): string
     {
-        $defaultHost = app()->environment('production')
-            ? 'https://live.murihspace.com'
-            : 'https://live-staging.murihspace.com';
-
-        $host = (string) config('livekit.host', $defaultHost);
-        if (empty($host) || str_contains($host, 'localhost') || str_contains($host, '127.0.0.1')) {
-            $host = $defaultHost;
+        // LIVEKIT_HOST is required: there is no fallback domain (see App\Support\LiveKitUrl).
+        $host = rtrim(trim((string) config('livekit.host')), '/');
+        if ($host === '') {
+            throw new \RuntimeException('LIVEKIT_HOST is not set.');
         }
 
-        return rtrim($host, '/');
+        return $host;
     }
 
     private function ensureHost(Request $request, LiveStream $stream): void
@@ -1060,8 +1055,10 @@ class LiveStreamController extends Controller
             ], 402);
         }
 
-        $creatorEarns = (int) $gift->creator_earns;
-        $platformPortion = max(0, $coinPrice - $creatorEarns);
+        // The receiver's share and the platform commission come from the one fee schedule.
+        $split = app(\App\Services\Commission\CommissionService::class)->splitGift($coinPrice);
+        $creatorEarns = $split['creator_earns'];
+        $platformPortion = $split['platform_commission'];
         $idemKey = $validated['idempotency_key'] ?? ('LIVE-GIFT-' . Str::uuid());
 
         // Execute atomic deduction and host earnings credit
@@ -1101,16 +1098,15 @@ class LiveStreamController extends Controller
                 );
 
                 // Credit host Creator Wallet via the ledger
-                $this->ledgerService->credit(
-                    user: $host,
+                // Gift earnings follow the same KYC rule as every other seller credit.
+                app(\App\Services\Wallet\SellerEarningsService::class)->credit(
+                    seller: $host,
                     amount: $creatorEarns,
                     currency: $senderWallet->currency,
-                    walletType: 'creator',
-                    balanceCategory: 'available',
                     type: 'creator_gift_receipt',
                     description: "Gift received from @{$user->username}: {$gift->name} on live stream #{$stream->id}",
                     idempotencyKey: $idemKey . '-credit',
-                    metadata: ['sender_id' => $user->id, 'gift_id' => $gift->id, 'live_stream_id' => $stream->id]
+                    metadata: ['sender_id' => $user->id, 'gift_id' => $gift->id, 'live_stream_id' => $stream->id],
                 );
 
                 // Keep the ledger balanced: sender pays coin_price == host receives creator_earns + platform keeps the remainder.
@@ -1135,7 +1131,7 @@ class LiveStreamController extends Controller
                     'giftable_id' => $stream->id,
                     'coin_price' => $coinPrice,
                     'creator_earns' => $creatorEarns,
-                    'platform_commission' => $gift->platform_commission,
+                    'platform_commission' => $platformPortion,
                     'status' => 'completed',
                     'is_anonymous' => $validated['is_anonymous'] ?? false,
                     'sender_display_name' => ($validated['is_anonymous'] ?? false) ? 'Anonymous Fan' : $user->name,
@@ -1499,6 +1495,9 @@ class LiveStreamController extends Controller
 
         $product->increment('download_count');
 
+        // The seller is paid the same way as a checkout sale (held, then released).
+        app(\App\Services\Wallet\DigitalSaleService::class)->settleOrder($order);
+
         $this->accountingService->recordCommerceSale(
             orderNumber: $order->order_number,
             sourceId: $order->id,
@@ -1531,7 +1530,7 @@ class LiveStreamController extends Controller
     {
         $subtotal = round((float) $product->price, 2);
         $subtotalCents = (int) round($subtotal * 100);
-        $platformFee = $this->commissionService->calculateFee($subtotal, 'digital');
+        $platformFee = $this->commissionService->calculateFee($subtotal, 'digital_buyer');
 
         $storefront = Storefront::where('user_id', $product->creator_id)->first();
         $storefrontRate = $storefront ? (float) $storefront->tax_rate : 0.0;

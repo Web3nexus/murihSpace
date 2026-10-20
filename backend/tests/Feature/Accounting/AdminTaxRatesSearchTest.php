@@ -79,4 +79,17 @@ class AdminTaxRatesSearchTest extends TestCase
         $res2->assertOk();
         $res2->assertJsonPath('data.meta.total', 0);
     }
+
+    public function test_rates_can_be_filtered_to_those_needing_confirmation(): void
+    {
+        TaxRate::where('country_code', 'NGA')->update(['notes' => TaxRate::UNCONFIRMED_NOTE]);
+
+        $res = $this->actingAsSession($this->accountant)->getJson('/api/v1/securegate/tax/rates?status=unconfirmed');
+
+        $res->assertOk();
+        $res->assertJsonPath('data.meta.total', 1);
+        $res->assertJsonPath('data.meta.unconfirmed_total', 1);
+        $res->assertJsonPath('data.rates.0.country_code', 'NGA');
+        $res->assertJsonPath('data.rates.0.needs_confirmation', true);
+    }
 }

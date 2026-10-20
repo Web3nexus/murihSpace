@@ -1,9 +1,9 @@
+import { authFetch } from "@/lib/api/authFetch";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 import { N2User as Users, Heart, Discount as Gift, Play, Video as VideoCamera } from "@/components/icons";
 import { Radio, ShareNetwork, Broadcast } from "@/components/icons/rounded";;
 import { cn } from "@/lib/utils";
-import { getAuthToken } from "@/lib/auth/token";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? "http://localhost:8000/api/v1";
@@ -44,16 +44,11 @@ interface LiveListResponse {
   meta?: Record<string, unknown>;
 }
 
-function getToken(): string | null {
-  return getAuthToken();
-}
 
 async function fetchLiveStreams(): Promise<LiveStream[]> {
-  const token = getToken();
-  const res = await fetch(`${API_BASE}/live`, {
+  const res = await authFetch(`${API_BASE}/live`, {
     headers: {
       Accept: "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
   });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);

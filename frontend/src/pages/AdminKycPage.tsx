@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router';
 import { toast } from 'sonner';
 import { ShieldDone as ShieldCheck, TickSquare as CheckCircle2, CloseSquare as XCircle, DangerSquare as AlertCircle, TimeCircle as Clock, N2User as UsersIcon, CloseSquare as XSquare, Search, ArrowLeft as ChevronLeft, ArrowRight as ChevronRight, Document as FileText, Message as Envelope, Call as Phone, Download } from "@/components/icons";
@@ -14,7 +14,7 @@ const TABS = [
 
 const ROLE_COLORS: Record<string, string> = {
   admin: 'bg-purple-500/20 text-purple-400',
-  creator: 'bg-blue-500/20 text-blue-400',
+  creator: 'bg-[var(--shell-accent-solid)]/20 text-[var(--shell-accent)]',
   vendor: 'bg-amber-500/20 text-amber-400',
   member: 'bg-muted text-muted-foreground',
 };
@@ -57,24 +57,34 @@ export function AdminKycPage() {
   const [rejectTarget, setRejectTarget] = useState<number | null>(null);
   const [rejectReason, setRejectReason] = useState('');
 
-  const fetchKyc = useCallback(async () => {
+  const [fetchKycKey, setFetchKycKey] = useState(0);
+  const fetchKyc = () => {
     setLoading(true); setError(null);
-    try {
-      const params = new URLSearchParams({ status, page: String(page), per_page: '20' });
-      if (search) params.set('search', search);
-      const res = await apiClient.get(`/securegate/kyc?${params}`);
-      const d = res.data?.data ?? res.data;
-      const payload = d?.data ?? d;
-      setUsers(payload?.data ?? []);
-      setCounts(d?.counts ?? { pending: 0, verified: 0, rejected: 0, all: 0, unsubmitted: 0 });
-      setLastPage(payload?.last_page ?? d?.last_page ?? 1);
-    } catch (e) {
-      const err = e as { status?: number; message?: string };
-      setError(err?.message && err.status ? `Failed to load KYC submissions (${err.status}: ${err.message})` : `Failed to load KYC submissions (${err?.status ?? 'network'})`);
-    } finally { setLoading(false); }
-  }, [status, page, search]);
+    setFetchKycKey((k) => k + 1);
+  };
 
-  useEffect(() => { fetchKyc(); }, [fetchKyc]);
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const params = new URLSearchParams({ status, page: String(page), per_page: '20' });
+        if (search) params.set('search', search);
+        const res = await apiClient.get(`/securegate/kyc?${params}`);
+        const d = res.data?.data ?? res.data;
+        const payload = d?.data ?? d;
+        if (active) setUsers(payload?.data ?? []);
+        if (active) setCounts(d?.counts ?? { pending: 0, verified: 0, rejected: 0, all: 0, unsubmitted: 0 });
+        if (active) setLastPage(payload?.last_page ?? d?.last_page ?? 1);
+      } catch (e) {
+        const err = e as { status?: number; message?: string };
+        if (active) setError(err?.message && err.status ? `Failed to load KYC submissions (${err.status}: ${err.message})` : `Failed to load KYC submissions (${err?.status ?? 'network'})`);
+      } finally { if (active) setLoading(false); }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [fetchKycKey, status, page, search]);
+
 
   const openDetail = async (id: number) => {
     setDetailLoading(true); setDetail(null);
@@ -173,7 +183,7 @@ export function AdminKycPage() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 sm:p-5 rounded-lg bg-gradient-to-br from-[#102840] via-[#173852] to-[#102840] text-white shadow-lg">
           <div className="space-y-1.5">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#2164b6]/20 text-[#2164b6] dark:text-[#7ab0ff] text-xs font-semibold uppercase tracking-wider border border-[#2164b6]/30">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[var(--shell-accent-solid)]/20 text-[var(--shell-accent)] dark:text-[var(--shell-accent)] text-xs font-semibold uppercase tracking-wider border border-[var(--shell-accent)]/30">
               <ShieldCheck weight="fill" className="h-3.5 w-3.5" /> Admin
             </span>
             <h1 className="text-xl sm:text-xl font-extrabold tracking-tight">KYC Verification</h1>
@@ -186,7 +196,7 @@ export function AdminKycPage() {
           {TABS.map((t) => (
             <button
               key={t.key}
-              onClick={() => { setPage(1); setSearchParams({ status: t.key }); }}
+              onClick={() => { setLoading(true); setPage(1); setSearchParams({ status: t.key }); }}
               className={`flex items-center gap-2 rounded-lg px-4 py-2 text-xs font-semibold transition-all duration-200 ${
                 status === t.key
                   ? 'bg-primary text-primary-foreground '
@@ -211,13 +221,13 @@ export function AdminKycPage() {
             <input
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') { setSearch(searchInput.trim()); setPage(1); } }}
+              onKeyDown={(e) => { if (e.key === 'Enter') { setLoading(true); setSearch(searchInput.trim()); setPage(1); } }}
               placeholder="Search name, email, or username..."
               className="w-full h-9 pl-9 pr-4 rounded-lg border-none bg-card text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/10"
             />
           </div>
           {search && (
-            <button onClick={() => { setSearch(''); setSearchInput(''); setPage(1); }} className="text-xs text-muted-foreground hover:text-foreground">
+            <button onClick={() => { setLoading(true); setSearch(''); setSearchInput(''); setPage(1); }} className="text-xs text-muted-foreground hover:text-foreground">
               Clear search
             </button>
           )}
@@ -371,11 +381,11 @@ export function AdminKycPage() {
         {/* Pagination */}
         {lastPage > 1 && (
           <div className="flex items-center justify-center gap-2 pt-4">
-            <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1} className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold border-none bg-card hover:bg-muted disabled:opacity-40">
+            <button onClick={() => { setLoading(true); setPage(p => Math.max(1, p - 1)); }} disabled={page <= 1} className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold border-none bg-card hover:bg-muted disabled:opacity-40">
               <ChevronLeft weight="fill" className="h-3.5 w-3.5" /> Previous
             </button>
             <span className="text-xs text-muted-foreground">Page {page} of {lastPage}</span>
-            <button onClick={() => setPage(p => Math.min(lastPage, p + 1))} disabled={page >= lastPage} className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold border-none bg-card hover:bg-muted disabled:opacity-40">
+            <button onClick={() => { setLoading(true); setPage(p => Math.min(lastPage, p + 1)); }} disabled={page >= lastPage} className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold border-none bg-card hover:bg-muted disabled:opacity-40">
               Next <ChevronRight weight="fill" className="h-3.5 w-3.5" />
             </button>
           </div>

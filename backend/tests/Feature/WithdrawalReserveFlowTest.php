@@ -102,7 +102,7 @@ class WithdrawalReserveFlowTest extends TestCase
         $this->assertSame('rejected', $withdrawal->fresh()->status);
     }
 
-    public function test_approving_withdrawal_settles_from_reserved(): void
+    public function test_approval_is_refused_without_a_payout_destination_and_nothing_is_completed(): void
     {
         Mail::fake();
 
@@ -116,15 +116,13 @@ class WithdrawalReserveFlowTest extends TestCase
             ->postJson("/api/v1/securegate/withdrawals/{$withdrawal->id}/process", [
                 'action' => 'approve',
             ])
-            ->assertOk()->assertJsonPath('message', 'Withdrawal approved and processed.');
+            ->assertStatus(422)
+            ->assertJsonPath('errors.code', 'NO_PAYOUT_DESTINATION');
 
+        // Approval never completes a withdrawal by itself. The funds stay reserved, untouched.
         $wallet = $this->wallet($user);
-        // Reserved is consumed; withdrawable stays at the post-reserve value.
-        $this->assertSame(0, (int) $wallet->reserved);
-        $this->assertSame(60000, (int) $wallet->withdrawable);
-
-        $withdrawal->refresh();
-        $this->assertSame('completed', $withdrawal->status);
-        $this->assertNotNull($withdrawal->ledger_transaction_id);
+        $this->assertSame(40000, (int) $wallet->reserved);
+        $this->assertSame('pending', $withdrawal->fresh()->status);
+        $this->assertNull($withdrawal->fresh()->ledger_transaction_id);
     }
 }

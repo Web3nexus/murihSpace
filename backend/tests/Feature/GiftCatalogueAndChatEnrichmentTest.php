@@ -59,7 +59,8 @@ class GiftCatalogueAndChatEnrichmentTest extends TestCase
         $this->assertSame('NGN', $item['local_currency']);
         $this->assertSame(2.5, $item['price_usd']); // 25 coins / 10 coins-per-USD
 
-        $rate = app(LiveExchangeRateService::class)->getRate('USD', 'NGN');
+        // Buyers are charged at the high side of the spread (chargeRate), so local prices use it.
+        $rate = app(LiveExchangeRateService::class)->chargeRate('USD', 'NGN');
         $expectedLocal = round(2.5 * $rate, 2);
         $this->assertEqualsWithDelta($expectedLocal, $item['local_price'], 0.01);
         $this->assertStringContainsString('₦', $item['local_formatted']);

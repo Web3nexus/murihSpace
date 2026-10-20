@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useConfirm } from '@/components/ui/DialogProvider';
 import { Activity, TimeCircle as Clock, DangerTriangle as AlertTriangle, Swap as ArrowsClockwise, Delete as Trash2, ShieldDone as Shield, DangerSquare as AlertCircle } from "@/components/icons";
 import { Database, HardDrives, Cpu, HardDrive } from "@/components/icons/rounded";;
@@ -35,37 +35,43 @@ export function QueueMonitorPage() {
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [activeTab, setActiveTab] = useState<'overview' | 'failed' | 'system'>('overview');
 
-  const fetchAll = useCallback(async () => {
+  const [fetchAllKey, setFetchAllKey] = useState(0);
+  const fetchAll = () => {
     setFetchError(null);
-    try {
-      const [statsRes, failedRes, sysRes] = await Promise.all([
-        authFetch(`/securegate/queue/stats`, {  }),
-        authFetch(`/securegate/queue/failed-jobs?per_page=50`, {  }),
-        authFetch(`/securegate/queue/system-info`, {  }),
-      ]);
-      if (statsRes.ok) { 
-        const j = await statsRes.json(); 
-        const d = j?.data?.data ?? j?.data ?? j;
-        if (d && typeof d === 'object') setStats(d); 
-      }
-      if (failedRes.ok) { 
-        const j = await failedRes.json(); 
-        const f = j?.data?.data ?? j?.data?.items ?? j?.data ?? j; 
-        setFailedJobs(Array.isArray(f) ? f : []); 
-      }
-      if (sysRes.ok) { 
-        const j = await sysRes.json(); 
-        const s = j?.data?.data ?? j?.data ?? j;
-        if (s && typeof s === 'object') setSysInfo(s); 
-      }
+    setFetchAllKey((k) => k + 1);
+  };
 
-      const failed = [statsRes, failedRes, sysRes].filter(r => !r.ok);
-      if (failed.length > 0) setFetchError(`${failed.length} data source(s) failed to load.`);
-    } catch (e) { setFetchError(e instanceof Error ? e.message : 'Failed to load queue data'); }
-    finally { setIsLoading(false); }
-  }, []);
+  useEffect(() => {
+    (async () => {
+      try {
+        const [statsRes, failedRes, sysRes] = await Promise.all([
+          authFetch(`/securegate/queue/stats`, {  }),
+          authFetch(`/securegate/queue/failed-jobs?per_page=50`, {  }),
+          authFetch(`/securegate/queue/system-info`, {  }),
+        ]);
+        if (statsRes.ok) { 
+          const j = await statsRes.json(); 
+          const d = j?.data?.data ?? j?.data ?? j;
+          if (d && typeof d === 'object') setStats(d); 
+        }
+        if (failedRes.ok) { 
+          const j = await failedRes.json(); 
+          const f = j?.data?.data ?? j?.data?.items ?? j?.data ?? j; 
+          setFailedJobs(Array.isArray(f) ? f : []); 
+        }
+        if (sysRes.ok) { 
+          const j = await sysRes.json(); 
+          const s = j?.data?.data ?? j?.data ?? j;
+          if (s && typeof s === 'object') setSysInfo(s); 
+        }
 
-  useEffect(() => { fetchAll(); }, [fetchAll]);
+        const failed = [statsRes, failedRes, sysRes].filter(r => !r.ok);
+        if (failed.length > 0) setFetchError(`${failed.length} data source(s) failed to load.`);
+      } catch (e) { setFetchError(e instanceof Error ? e.message : 'Failed to load queue data'); }
+      finally { setIsLoading(false); }
+    })();
+  }, [fetchAllKey]);
+
 
   async function retryJob(id: number) {
     try {
@@ -108,7 +114,7 @@ export function QueueMonitorPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 sm:p-5 rounded-lg bg-gradient-to-br from-[#102840] via-[#173852] to-[#102840] text-white shadow-lg">
         <div className="space-y-1.5">
           <div className="flex items-center gap-2">
-            <span className="px-2.5 py-0.5 rounded-full bg-[#2164b6]/20 text-[#2164b6] dark:text-[#7ab0ff] text-xs font-semibold uppercase tracking-wider border border-[#2164b6]/30">
+            <span className="px-2.5 py-0.5 rounded-full bg-[var(--shell-accent-solid)]/20 text-[var(--shell-accent)] dark:text-[var(--shell-accent)] text-xs font-semibold uppercase tracking-wider border border-[var(--shell-accent)]/30">
               System
             </span>
           </div>
@@ -201,7 +207,7 @@ export function QueueMonitorPage() {
             <h3 className="font-semibold text-sm text-foreground mb-3">Links</h3>
             <div className="space-y-2">
               <a href={stats.horizon_path} target="_blank" rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 text-sm text-[#2164b6] dark:text-[#7ab0ff] hover:underline">
+                className="inline-flex items-center gap-2 text-sm text-[var(--shell-accent)] dark:text-[var(--shell-accent)] hover:underline">
                 <Activity weight="fill" className="h-4 w-4" /> Horizon Dashboard →
               </a>
             </div>
@@ -227,7 +233,7 @@ export function QueueMonitorPage() {
           ) : (
             <div className="space-y-3">
               {failedJobs.map(job => {
-                let display = '';
+                let display: string;
                 try { const p = JSON.parse(job.payload); display = p.displayName ?? p.job ?? 'Unknown'; } catch { display = job.queue; }
                 const exceptionPreview = job.exception?.substring(0, 300);
                 return (

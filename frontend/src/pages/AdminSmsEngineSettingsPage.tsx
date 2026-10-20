@@ -1,4 +1,3 @@
-import { getAuthToken } from "@/lib/auth/token";
 import { useEffect, useState } from "react";
 import { Message as ChatText, Download as FloppyDisk, Send, DangerSquare as AlertCircle, TickSquare as CheckCircle2, Show as Eye, Hide as EyeOff, Lock } from "@/components/icons";
 import { Spinner as Loader2, Archive } from "@/components/icons/rounded";;
@@ -38,8 +37,7 @@ interface SmsSettings {
 }
 
 function authHeaders() {
-  const t = getAuthToken();
-  return { Accept: "application/json", "Content-Type": "application/json", ...(t ? { Authorization: `Bearer ${t}` } : {}) };
+  return { Accept: "application/json", "Content-Type": "application/json", };
 }
 
 export default function AdminSmsEngineSettingsPage() {
@@ -136,7 +134,7 @@ export default function AdminSmsEngineSettingsPage() {
   };
 
   if (loading) {
-    return <div className="flex justify-center py-24"><Loader2 weight="fill" className="h-8 w-8 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" /></div>;
+    return <div className="flex justify-center py-24"><Loader2 weight="fill" className="h-8 w-8 animate-spin text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" /></div>;
   }
 
   if (!settings) {
@@ -149,7 +147,7 @@ export default function AdminSmsEngineSettingsPage() {
     <div className="w-full mx-auto max-w-[880px] space-y-6 p-4 lg:p-10">
       <div>
         <h1 className="text-xl font-black tracking-tight flex items-center gap-2.5">
-          <ChatText weight="fill" className="h-6 w-6 text-[#2164b6] dark:text-[#7ab0ff]" /> SMS Engine
+          <ChatText weight="fill" className="h-6 w-6 text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" /> SMS Engine
         </h1>
         <p className="text-xs text-muted-foreground mt-1">
           Choose the transport used for outbound SMS. Secrets are encrypted at rest and never exposed again; enter a new value to replace one.
@@ -165,14 +163,14 @@ export default function AdminSmsEngineSettingsPage() {
             <button
               key={t.id}
               onClick={() => patch(["transport"], t.id)}
-              className={`text-left rounded-lg border p-4 transition-all ${active ? "border-[#2164b6] ring-2 ring-[#2164b6]/20 bg-[#2164b6]/5" : "border-border bg-card hover:border-[#2164b6]/40"}`}
+              className={`text-left rounded-lg border p-4 transition-all ${active ? "border-[var(--shell-accent)] ring-2 ring-[var(--shell-accent)]/20 bg-[var(--shell-accent-solid)]/5" : "border-border bg-card hover:border-[var(--shell-accent)]/40"}`}
             >
               <div className="flex items-center justify-between mb-2">
                 <div className={`h-9 w-9 rounded-lg bg-gradient-to-br ${t.color} flex items-center justify-center`}>
-                  <Icon className="h-4.5 w-4.5 text-[#2164b6] dark:text-[#7ab0ff]" />
+                  <Icon className="h-4.5 w-4.5 text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" />
                 </div>
                 {active && (
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#2164b6]/15 text-[#2164b6] dark:text-[#7ab0ff]">
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[var(--shell-accent-solid)]/15 text-[var(--shell-accent)] dark:text-[var(--shell-accent)]">
                     Active
                   </span>
                 )}
@@ -188,7 +186,7 @@ export default function AdminSmsEngineSettingsPage() {
       {s.transport === "twilio" && (
         <div className="border-none rounded-lg bg-card p-4 space-y-4">
           <p className="text-xs font-black text-foreground uppercase tracking-wide flex items-center gap-1.5">
-            <ChatText weight="fill" className="h-3.5 w-3.5 text-[#2164b6] dark:text-[#7ab0ff]" /> Twilio settings
+            <ChatText weight="fill" className="h-3.5 w-3.5 text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" /> Twilio settings
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
@@ -240,7 +238,7 @@ export default function AdminSmsEngineSettingsPage() {
       {s.transport === "log" && (
         <div className="border-none rounded-lg bg-card p-4">
           <p className="text-xs font-black text-foreground uppercase tracking-wide flex items-center gap-1.5">
-            <Archive weight="fill" className="h-3.5 w-3.5 text-[#2164b6] dark:text-[#7ab0ff]" /> Log
+            <Archive weight="fill" className="h-3.5 w-3.5 text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" /> Log
           </p>
           <p className="text-[11px] text-muted-foreground mt-2 leading-relaxed">
             Messages are written to the server log instead of being delivered. Use this for development and testing.

@@ -1,5 +1,8 @@
 <?php
 
+use App\Http\Controllers\Api\Staff\StaffAccountController;
+use App\Http\Controllers\Api\Staff\StaffAdsTokenController;
+use App\Http\Controllers\Api\Staff\StaffLoginController;
 use App\Http\Controllers\Internal\SupportEventController;
 use App\Http\Controllers\Public\PublicAnnouncementController;
 use App\Http\Controllers\Public\PublicCmsController;
@@ -7,8 +10,10 @@ use App\Http\Controllers\Public\PublicCustomerTicketController;
 use App\Http\Controllers\Public\PublicHelpController;
 use App\Http\Controllers\Public\PublicTicketController;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Str;
 
 // ── Public read-only content API (marketing + apps) ─────────────
 Route::prefix('public')->middleware(['cache.public', 'throttle:public'])->group(function () {
@@ -60,3 +65,36 @@ Route::prefix('internal/events')
     });
 
 RateLimiter::for('public', fn () => Limit::perMinute(120)->by(optional(request()->user())->id ?: request()->ip()));
+
+// ── Staff identity API ───────────────────────────────────────────
+// Staff-only. Login is rate limited per IP and per email, and locked per account
+// (see StaffAuthenticator). Account management requires an active super admin.
+Route::prefix('staff')->group(function () {
+    Route::post('/login', [StaffLoginController::class, 'login'])
+        ->middleware('throttle:staff-api-login')
+        ->name('api.staff.login');
+
+    Route::post('/logout', [StaffLoginController::class, 'logout'])
+        ->middleware('auth:staff_api')
+        ->name('api.staff.logout');
+});
+
+Route::prefix('admin/staff')
+    ->middleware(['auth:staff_api', 'staff.super_admin', 'throttle:staff-admin'])
+    ->group(function () {
+        Route::get('/', [StaffAccountController::class, 'index'])->name('api.admin.staff.index');
+        Route::post('/', [StaffAccountController::class, 'store'])->name('api.admin.staff.store');
+        Route::patch('/{staff}', [StaffAccountController::class, 'update'])->name('api.admin.staff.update');
+        Route::post('/{staff}/disable', [StaffAccountController::class, 'disable'])->name('api.admin.staff.disable');
+        Route::post('/{staff}/enable', [StaffAccountController::class, 'enable'])->name('api.admin.staff.enable');
+        Route::post('/{staff}/ads-token', [StaffAdsTokenController::class, 'issue'])->name('api.admin.staff.ads-token');
+    });
+
+RateLimiter::for('staff-api-login', fn (Request $request) => [
+    Limit::perMinute(20)->by('ip|'.$request->ip()),
+    Limit::perMinute(10)->by('email|'.Str::lower((string) $request->input('email')).'|'.$request->ip()),
+]);
+
+RateLimiter::for('staff-admin', fn (Request $request) => Limit::perMinute(60)->by(
+    optional($request->user('staff_api'))->id ?: $request->ip()
+));

@@ -1,6 +1,6 @@
 import React, { useState, useRef } from "react";
-import { CloseSquare as X, Upload, Send } from "@/components/icons";
-import { Spinner as Loader2, Sparkle } from "@/components/icons/rounded";;
+import { CloseSquare as X, Upload, Send, Camera } from "@/components/icons";
+import { Spinner as Loader2 } from "@/components/icons/rounded";;
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { authFetch } from "@/lib/api/authFetch";
@@ -69,7 +69,7 @@ export const StoryCreateModal: React.FC<StoryCreateModalProps> = ({
       <div className="bg-card border-none rounded-3xl p-4 max-w-md w-full space-y-4 shadow-2xl relative">
         <div className="flex items-center justify-between border-b border-border pb-3">
           <h2 className="text-lg font-black tracking-tight flex items-center gap-2">
-            <Sparkle weight="fill" className="h-5 w-5 text-secondary" /> Create Story
+            <Camera weight="fill" className="h-5 w-5 text-secondary" /> Create Story
           </h2>
           <Button size="sm" variant="ghost" onClick={onClose}>
             <X weight="fill" className="h-4 w-4" />
@@ -92,13 +92,15 @@ export const StoryCreateModal: React.FC<StoryCreateModalProps> = ({
           />
 
           {/* Media Preview Box */}
-          <div
+          <div role="button" tabIndex={0} onKeyDown={(e) => { if (e.target !== e.currentTarget) return; if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.currentTarget.click(); } }}
             onClick={() => fileInputRef.current?.click()}
             className="relative h-56 w-full rounded-lg border-2 border-dashed border-border hover:border-secondary bg-muted/30 flex flex-col items-center justify-center cursor-pointer overflow-hidden transition-all group"
           >
             {previewUrl ? (
               file?.type.startsWith("video/") ? (
-                <video src={previewUrl} controls className="h-full w-full object-cover" />
+                <video src={previewUrl} controls className="h-full w-full object-cover">
+                  <track kind="captions" />
+                </video>
               ) : (
                 <img src={previewUrl} alt="Preview" className="h-full w-full object-cover" />
               )
@@ -114,8 +116,8 @@ export const StoryCreateModal: React.FC<StoryCreateModalProps> = ({
           </div>
 
           <div>
-            <label className="text-xs font-bold text-muted-foreground block mb-1">Story Caption / Text Overlay</label>
-            <Textarea
+            <label htmlFor="f-nts-story-storycreatemodal-tsx-117" className="text-xs font-bold text-muted-foreground block mb-1">Story Caption / Text Overlay</label>
+            <Textarea id="f-nts-story-storycreatemodal-tsx-117"
               value={caption}
               onChange={(e) => setCaption(e.target.value)}
               placeholder="What's on your mind?..."
@@ -128,7 +130,7 @@ export const StoryCreateModal: React.FC<StoryCreateModalProps> = ({
             <span className="text-xs font-bold text-muted-foreground">Audience Privacy:</span>
             <select
               value={privacy}
-              onChange={(e) => setPrivacy(e.target.value as any)}
+              onChange={(e) => setPrivacy(e.target.value as "public" | "followers")}
               className="text-xs font-bold bg-muted border-none rounded-lg px-3 py-1.5 outline-none"
             >
               <option value="public">Public (Everyone)</option>

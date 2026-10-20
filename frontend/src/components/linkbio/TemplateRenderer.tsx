@@ -1,3 +1,4 @@
+import { safeHref } from "@/lib/safeUrl";
 import { Discovery as Globe, Bag as ShoppingCart, Ticket as Tag, Camera, Video as FilmStrip, Chat as MessageCircle, Send, ArrowRight as ChevronRight } from "@/components/icons";
 import { ArrowSquareOut as ExternalLink, MusicNote as Music, Hash, Link as LinkIcon, Crown } from "@/components/icons/rounded";;
 import type { LinkBioPageData, LinkBioLinkItem, LinkBioProductItem, LinkBioSocial } from "@/lib/linkBioTypes";
@@ -48,7 +49,7 @@ function SocialRow({ socials, accent, size = "md", center = true }: { socials: L
       {socials.map((s) => (
         <a
           key={s.id}
-          href={s.url}
+          href={safeHref(s.url)}
           target="_blank"
           rel="noopener noreferrer"
           className={`${dim} rounded-full flex items-center justify-center transition-transform hover:scale-110`}
@@ -65,7 +66,7 @@ function LinkButton({ data, link, href, transparent }: { data: LinkBioPageData; 
   const def = templateBySlug(data.template);
   return (
     <a
-      href={href}
+      href={safeHref(href)}
       target="_blank"
       rel="noreferrer"
       className={`flex items-center justify-between px-5 py-3.5 text-sm font-bold transition-all hover:scale-[1.02] active:scale-[0.98] ${buttonRadius(data.button_style)}`}
@@ -103,7 +104,7 @@ function LinkButton({ data, link, href, transparent }: { data: LinkBioPageData; 
 function ProductCard({ data, p, href }: { data: LinkBioPageData; p: LinkBioProductItem; href: string }) {
   return (
     <a
-      href={href}
+      href={safeHref(href)}
       target="_blank"
       rel="noopener noreferrer"
       className={`flex items-center gap-3 p-3 text-left transition-all hover:scale-[1.01] active:scale-[0.99] ${buttonRadius(data.button_style)}`}
@@ -186,7 +187,7 @@ export default function TemplateRenderer({ data, linkHref, productHref }: Templa
               {links.map((link) => (
                 <a
                   key={link.id}
-                  href={hrefForLink(link)}
+                  href={safeHref(hrefForLink(link))}
                   target="_blank"
                   rel="noreferrer"
                   className={`flex flex-col items-center justify-center gap-1 px-3 py-5 text-sm font-bold text-center transition-all hover:scale-[1.02] ${buttonRadius(data.button_style)}`}
@@ -217,7 +218,7 @@ export default function TemplateRenderer({ data, linkHref, productHref }: Templa
               {links.map((link, i) => (
                 <a
                   key={link.id}
-                  href={hrefForLink(link)}
+                  href={safeHref(hrefForLink(link))}
                   target="_blank"
                   rel="noreferrer"
                   className={`flex items-center gap-4 px-5 py-4 text-sm font-bold transition-all hover:scale-[1.02] ${buttonRadius(data.button_style)}`}
@@ -256,7 +257,7 @@ export default function TemplateRenderer({ data, linkHref, productHref }: Templa
               {links.map((link) => (
                 <a
                   key={link.id}
-                  href={hrefForLink(link)}
+                  href={safeHref(hrefForLink(link))}
                   target="_blank"
                   rel="noreferrer"
                   className="flex items-center justify-between px-4 py-2.5 text-sm font-bold transition-colors hover:opacity-80"
@@ -288,7 +289,7 @@ export default function TemplateRenderer({ data, linkHref, productHref }: Templa
               {links.map((link) => (
                 <a
                   key={link.id}
-                  href={hrefForLink(link)}
+                  href={safeHref(hrefForLink(link))}
                   target="_blank"
                   rel="noreferrer"
                   className="flex items-center justify-between py-3.5 text-base font-bold transition-colors hover:opacity-70"
@@ -346,7 +347,7 @@ export default function TemplateRenderer({ data, linkHref, productHref }: Templa
               {links.map((link) => (
                 <a
                   key={link.id}
-                  href={hrefForLink(link)}
+                  href={safeHref(hrefForLink(link))}
                   target="_blank"
                   rel="noreferrer"
                   className="flex items-center justify-between px-5 py-4 text-sm font-bold transition-all hover:scale-[1.02]"
@@ -384,7 +385,7 @@ export default function TemplateRenderer({ data, linkHref, productHref }: Templa
                 {socials.map((s) => (
                   <a
                     key={s.id}
-                    href={s.url}
+                    href={safeHref(s.url)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className={`flex items-center justify-center gap-2 px-4 py-3 text-xs font-bold transition-transform hover:scale-[1.03] ${buttonRadius(data.button_style)}`}
@@ -421,7 +422,7 @@ export default function TemplateRenderer({ data, linkHref, productHref }: Templa
               {links.map((link) => (
                 <a
                   key={link.id}
-                  href={hrefForLink(link)}
+                  href={safeHref(hrefForLink(link))}
                   target="_blank"
                   rel="noreferrer"
                   className="flex items-center justify-between px-3.5 py-2.5 text-sm font-medium transition-colors hover:opacity-80"
@@ -453,7 +454,7 @@ export default function TemplateRenderer({ data, linkHref, productHref }: Templa
               {links.map((link) => (
                 <a
                   key={link.id}
-                  href={hrefForLink(link)}
+                  href={safeHref(hrefForLink(link))}
                   target="_blank"
                   rel="noreferrer"
                   className="flex items-center justify-between w-full px-5 py-4 text-sm font-black uppercase tracking-wide transition-transform hover:scale-[1.02] active:scale-[0.98]"

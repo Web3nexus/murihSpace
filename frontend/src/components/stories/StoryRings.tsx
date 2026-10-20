@@ -1,8 +1,8 @@
+import { authFetch } from "@/lib/api/authFetch";
 import { useState, useEffect } from 'react';
 import { Plus, CloseSquare as X, Send } from "@/components/icons";
 import { Spinner as Loader2 } from "@/components/icons/rounded";;
 import StoryViewer from './StoryViewer';
-import { getAuthToken } from "@/lib/auth/token";
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? 'http://localhost:8000/api/v1';
 
@@ -28,8 +28,7 @@ interface StoryGroup {
 }
 
 function getAuthHeaders(): Record<string, string> {
-  const token = getAuthToken();
-  return token ? { Authorization: `Bearer ${token}` } : {};
+  return {};
 }
 
 export default function StoryRings() {
@@ -41,7 +40,7 @@ export default function StoryRings() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    fetch(`${API_BASE}/stories`, { headers: getAuthHeaders() })
+    authFetch(`${API_BASE}/stories`, { headers: getAuthHeaders() })
       .then((r) => r.json())
       .then((json) => {
         const raw = json?.data?.data ?? json?.data ?? json ?? [];
@@ -61,7 +60,7 @@ export default function StoryRings() {
     if (!text || submitting) return;
     setSubmitting(true);
 
-    fetch(`${API_BASE}/stories`, {
+    authFetch(`${API_BASE}/stories`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
       body: JSON.stringify({ media_type: 'text', caption: text }),

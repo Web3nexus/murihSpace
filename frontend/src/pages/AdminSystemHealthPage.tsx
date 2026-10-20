@@ -1,4 +1,3 @@
-import { getAuthToken } from "@/lib/auth/token";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Activity, TickSquare as CheckCircle2, DangerTriangle as AlertTriangle, CloseSquare as XCircle, Swap as RefreshCw, DangerSquare as AlertCircle } from "@/components/icons";
 import { Spinner as Loader2 } from "@/components/icons/rounded";;
@@ -7,8 +6,7 @@ import { authFetch } from "@/lib/api/authFetch";
 
 
 function authHeaders() {
-  const t = getAuthToken();
-  return { Accept: "application/json", "Content-Type": "application/json", ...(t ? { Authorization: `Bearer ${t}` } : {}) };
+  return { Accept: "application/json", "Content-Type": "application/json", };
 }
 
 interface HealthCheck {
@@ -22,9 +20,7 @@ export default function AdminSystemHealthPage() {
   const [fetchError, setFetchError] = useState<string | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const loadData = useCallback(async (showSpinner = false) => {
-    setFetchError(null);
-    if (showSpinner) setRefreshing(true);
+  const loadData = useCallback(async () => {
     try {
       const res = await authFetch(`/securegate/system-health`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to load health data");
@@ -42,10 +38,10 @@ export default function AdminSystemHealthPage() {
     finally { setLoading(false); setRefreshing(false); }
   }, []);
 
-  useEffect(() => { loadData(); }, [loadData]);
+  useEffect(() => { (async () => { await loadData(); })(); }, [loadData]);
 
   useEffect(() => {
-    intervalRef.current = setInterval(loadData, 30000);
+    intervalRef.current = setInterval(() => { setFetchError(null); loadData(); }, 30000);
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
   }, [loadData]);
 
@@ -55,19 +51,19 @@ export default function AdminSystemHealthPage() {
   const total = checks.length;
   const healthy = checks.filter((c) => c.status === "healthy").length;
 
-  if (loading) return <div className="flex justify-center py-24"><Loader2 weight="fill" className="h-8 w-8 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" /></div>;
+  if (loading) return <div className="flex justify-center py-24"><Loader2 weight="fill" className="h-8 w-8 animate-spin text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" /></div>;
 
   return (
     <div className="w-full mx-auto max-w-[1400px] space-y-6 p-4 lg:p-10">
       <div className="flex items-center justify-between">
-        <div><h1 className="text-xl font-black tracking-tight flex items-center gap-2.5"><Activity weight="fill" className="h-6 w-6 text-[#2164b6] dark:text-[#7ab0ff]" /> System Health</h1><p className="text-xs text-muted-foreground mt-1">Monitor platform system health and uptime.</p></div>
-        <button onClick={() => loadData(true)} className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 font-bold"><RefreshCw weight="fill" className={`h-3 w-3 ${refreshing ? 'animate-spin' : ''}`} /> Refresh</button>
+        <div><h1 className="text-xl font-black tracking-tight flex items-center gap-2.5"><Activity weight="fill" className="h-6 w-6 text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" /> System Health</h1><p className="text-xs text-muted-foreground mt-1">Monitor platform system health and uptime.</p></div>
+        <button onClick={() => { setFetchError(null); setRefreshing(true); loadData(); }} className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 font-bold"><RefreshCw weight="fill" className={`h-3 w-3 ${refreshing ? 'animate-spin' : ''}`} /> Refresh</button>
       </div>
 
       {fetchError && (
         <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-xs text-destructive">
           <AlertCircle weight="fill" className="h-4 w-4 shrink-0" /> {fetchError}
-          <button onClick={() => loadData(true)} className="ml-auto text-muted-foreground hover:text-foreground font-bold">Retry</button>
+          <button onClick={() => { setFetchError(null); setRefreshing(true); loadData(); }} className="ml-auto text-muted-foreground hover:text-foreground font-bold">Retry</button>
         </div>
       )}
 

@@ -1,6 +1,10 @@
+import { authFetch } from "@/lib/api/authFetch";
+import { logger } from "@/lib/logger";
+import { safeHref } from "@/lib/safeUrl";
+import { DismissOnEscape } from "@/components/ui/DismissOnEscape";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Chat as MessageCircle, Search, Send, ArrowLeft, DangerSquare as AlertCircle, Swap as RotateCcw, TickSquare as CheckCheck, MoreSquare as MoreVertical, Document as FileText, VolumeUp as Volume2, Discount as Gift, Video, Call as Phone, Voice as Mic, CloseSquare as X, Profile as UserIcon, Chat as ChatCircleDots } from "@/components/icons";
-import { Spinner as Loader2, ArrowUUpLeft as Reply, Paperclip, BellSlash as BellOff, Hash, Stop as StopIcon, Sparkle } from "@/components/icons/rounded";;
+import { Spinner as Loader2, ArrowUUpLeft as Reply, Paperclip, BellSlash as BellOff, Hash, Stop as StopIcon, Lightning } from "@/components/icons/rounded";;
 import { safeFormatDistanceToNow, safeFormat } from "@/lib/date";
 import { extractMessages, messagePreview } from "@/lib/chatMessages";
 import { isEmojiOnlyMessage } from "@/lib/emoji";
@@ -14,15 +18,11 @@ import { LiveKitVideoConference } from "@/components/video/LiveKitVideoConferenc
 import { ChatMessageContent } from "@/components/chat/ChatMessageContent";
 import { VoiceMessagePlayer } from "@/components/chat/VoiceMessagePlayer";
 import { cn } from "@/lib/utils";
-import { getAuthToken } from "@/lib/auth/token";
 import { useNavigate } from "react-router";
 import { toast } from "sonner";
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? "http://localhost:8000/api/v1";
 
-function getToken(): string | null {
-  return getAuthToken();
-}
 
 function getUserData(): Record<string, unknown> {
   try {
@@ -32,14 +32,20 @@ function getUserData(): Record<string, unknown> {
   }
 }
 
+/** Send-message response: the saved message, optionally wrapped in `data`, plus any automated reply. */
+type SendMessageResponse = Partial<ChatMessage> & {
+  data?: ChatMessage & { automated_message?: ChatMessage };
+  automated_message?: ChatMessage;
+};
+
+type CommunityWithCount = NonNullable<ConversationItem["community"]> & { members_count?: number };
+
 async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
-  const token = getToken();
-  const res = await fetch(`${API_BASE}${path}`, {
+  const res = await authFetch(`${API_BASE}${path}`, {
     ...options,
     headers: {
       "Content-Type": "application/json",
       Accept: "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(options?.headers ?? {}),
     },
   });
@@ -61,7 +67,7 @@ function CommunityAvatar({ name, logo_url }: { name: string; logo_url?: string }
     );
   }
   return (
-    <div className="h-9 w-9 rounded-lg flex items-center justify-center text-white shrink-0  bg-gradient-to-br from-[#2164b6] to-[#2563eb]">
+    <div className="h-9 w-9 rounded-lg flex items-center justify-center text-white shrink-0  bg-gradient-to-br from-[var(--shell-accent-solid)] to-[#2563eb]">
       <UserIcon weight="fill" className="text-white/90" style={{ width: 17, height: 17 }} />
     </div>
   );
@@ -70,7 +76,7 @@ function CommunityAvatar({ name, logo_url }: { name: string; logo_url?: string }
 function UserAvatar({ size = 28 }: { name?: string; size?: number }) {
   return (
     <div
-      className="flex items-center justify-center rounded-full bg-gradient-to-br from-[#2164b6] to-[#1a6b9e] text-white shrink-0 "
+      className="flex items-center justify-center rounded-full bg-gradient-to-br from-[var(--shell-accent-solid)] to-[#1a6b9e] text-white shrink-0 "
       style={{ width: size, height: size }}
     >
       <UserIcon weight="fill" className="text-white/90" style={{ width: size * 0.55, height: size * 0.55 }} />
@@ -125,7 +131,7 @@ export default function CommunityChatPage() {
     try {
       const res = await apiFetch(`/conversations/${conv.id}/messages`);
       const list = extractMessages(res);
-      const formatted = list.map((m: any) => ({
+      const formatted = list.map((m) => ({
         ...m,
         status: m.read === true ? ("read" as MessageStatus) : ((m.status && m.status !== "sent" ? m.status : "sent") as MessageStatus),
       }));
@@ -231,22 +237,26 @@ export default function CommunityChatPage() {
     onMessageDelivered,
   });
 
-  const loadConversations = useCallback(async () => {
+  const [loadConversationsKey, setLoadConversationsKey] = useState(0);
+  const loadConversations = () => {
     setListError(null);
-    try {
-      const res = await apiFetch<{ data: ConversationItem[] } | ConversationItem[]>("/conversations");
-      const list = 'data' in res ? res.data : res;
-      setConversations((Array.isArray(list) ? list : []).filter((c) => c.type === "community"));
-    } catch (e) {
-      setListError(e instanceof Error ? e.message : "Failed to load communities");
-    } finally {
-      setIsLoadingList(false);
-    }
-  }, []);
+    setLoadConversationsKey((k) => k + 1);
+  };
 
   useEffect(() => {
-    loadConversations();
-  }, [loadConversations]);
+    (async () => {
+      try {
+        const res = await apiFetch<{ data: ConversationItem[] } | ConversationItem[]>("/conversations");
+        const list = 'data' in res ? res.data : res;
+        setConversations((Array.isArray(list) ? list : []).filter((c) => c.type === "community"));
+      } catch (e) {
+        setListError(e instanceof Error ? e.message : "Failed to load communities");
+      } finally {
+        setIsLoadingList(false);
+      }
+    })();
+  }, [loadConversationsKey]);
+
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -256,7 +266,7 @@ export default function CommunityChatPage() {
     if (!activeConv) return;
     setMessages((prev) => prev.map((m) => m.client_uuid === msg.client_uuid ? { ...m, status: "pending" as MessageStatus } : m));
     try {
-      const res = await apiFetch<any>(`/conversations/${activeConv.id}/messages`, {
+      const res = await apiFetch<SendMessageResponse>(`/conversations/${activeConv.id}/messages`, {
         method: "POST",
         body: JSON.stringify({
           content: msg.content,
@@ -266,7 +276,7 @@ export default function CommunityChatPage() {
           attachment_type: msg.attachment_type ?? null,
         }),
       });
-      const serverMsg: ChatMessage = res?.data?.id ? res.data : (res?.id ? res : res?.data);
+      const serverMsg = (res?.data?.id ? res.data : (res?.id ? res : res?.data)) as ChatMessage;
       const automatedMsg: ChatMessage | undefined = res?.automated_message ?? res?.data?.automated_message;
 
       setMessages((prev) => {
@@ -329,15 +339,13 @@ export default function CommunityChatPage() {
 
     setUploading(true);
     try {
-      const token = getToken();
       const formData = new FormData();
       formData.append("file", file);
 
-      const res = await fetch(`${API_BASE}/messages/attachments`, {
+      const res = await authFetch(`${API_BASE}/messages/attachments`, {
         method: "POST",
         headers: {
           Accept: "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: formData,
       });
@@ -363,7 +371,7 @@ export default function CommunityChatPage() {
       setMessages((prev) => [...prev, draft]);
       executeSendMessage(draft);
     } catch (err) {
-      console.error("Failed to upload file", err);
+      logger.error("Failed to upload file", err);
     } finally {
       setUploading(false);
     }
@@ -382,16 +390,14 @@ export default function CommunityChatPage() {
     if (!activeConv || !recorderSendRef.current) return;
     setIsSendingVoice(true);
     try {
-      const token = getToken();
       const formData = new FormData();
       const ext = blob.type.includes('ogg') ? 'ogg' : blob.type.includes('webm') ? 'webm' : 'm4a';
       formData.append('file', blob, `voice-${Date.now()}.${ext}`);
 
-      const res = await fetch(`${API_BASE}/messages/attachments`, {
+      const res = await authFetch(`${API_BASE}/messages/attachments`, {
         method: 'POST',
         headers: {
           Accept: 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: formData,
       });
@@ -416,7 +422,7 @@ export default function CommunityChatPage() {
       setMessages((prev) => [...prev, draft]);
       await executeSendMessage(draft);
     } catch (err) {
-      console.error("Failed to send voice message", err);
+      logger.error("Failed to send voice message", err);
       toast.error("Could not send voice message");
     } finally {
       setIsSendingVoice(false);
@@ -476,7 +482,7 @@ export default function CommunityChatPage() {
         setRecordingSeconds((s) => s + 1);
       }, 1000);
     } catch (err) {
-      console.error('Mic permission denied', err);
+      logger.error('Mic permission denied', err);
       toast.error('Microphone access is required to record a voice message');
     }
   };
@@ -509,7 +515,7 @@ export default function CommunityChatPage() {
       <div className="flex flex-1 min-h-0 w-full items-center justify-center">
         <div className="text-center space-y-3">
           <div className="relative mx-auto h-12 w-12">
-            <Loader2 weight="fill" className="h-12 w-12 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" />
+            <Loader2 weight="fill" className="h-12 w-12 animate-spin text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" />
           </div>
           <p className="text-sm font-medium text-muted-foreground">Loading community chat...</p>
         </div>
@@ -528,7 +534,7 @@ export default function CommunityChatPage() {
           <p className="text-xs text-muted-foreground">{listError}</p>
           <button
             onClick={() => { setIsLoadingList(true); loadConversations(); }}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#2164b6] dark:text-[#7ab0ff] hover:underline"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--shell-accent)] dark:text-[var(--shell-accent)] hover:underline"
           >
             <RotateCcw weight="fill" className="h-3.5 w-3.5" /> Try again
           </button>
@@ -541,8 +547,8 @@ export default function CommunityChatPage() {
     return (
       <div className="flex flex-1 min-h-0 w-full items-center justify-center p-4">
         <div className="max-w-sm text-center space-y-4">
-          <div className="mx-auto rounded-lg bg-[#2164b6]/10 p-4 w-fit">
-            <MessageCircle weight="fill" className="h-8 w-8 text-[#2164b6] dark:text-[#7ab0ff]" />
+          <div className="mx-auto rounded-lg bg-[var(--shell-accent-solid)]/10 p-4 w-fit">
+            <MessageCircle weight="fill" className="h-8 w-8 text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" />
           </div>
           <h3 className="text-base font-bold text-foreground">No Community Chats</h3>
           <p className="text-xs text-muted-foreground">
@@ -559,8 +565,8 @@ export default function CommunityChatPage() {
       <aside className={`${activeConv ? "hidden md:flex" : "flex"} w-full md:w-[320px] shrink-0 flex-col border-r border-border bg-card`}>
         <div className="flex items-center justify-between px-4 py-3.5 border-b border-border">
           <div className="flex items-center gap-2.5">
-            <div className="h-7 w-7 rounded-lg bg-[#2164b6]/15 flex items-center justify-center">
-              <Hash weight="fill" className="h-3.5 w-3.5 text-[#2164b6] dark:text-[#7ab0ff]" />
+            <div className="h-7 w-7 rounded-lg bg-[var(--shell-accent-solid)]/15 flex items-center justify-center">
+              <Hash weight="fill" className="h-3.5 w-3.5 text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" />
             </div>
             <h2 className="text-sm font-extrabold text-foreground tracking-tight">Community Chat</h2>
           </div>
@@ -577,7 +583,7 @@ export default function CommunityChatPage() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search channels..."
-              className="w-full pl-9 pr-3 py-1.5 text-xs rounded-lg bg-muted border-0 outline-none focus:ring-1 focus:ring-[#2164b6] placeholder:text-muted-foreground"
+              className="w-full pl-9 pr-3 py-1.5 text-xs rounded-lg bg-muted border-0 outline-none focus:ring-1 focus:ring-[var(--shell-accent)] placeholder:text-muted-foreground"
             />
           </div>
         </div>
@@ -601,7 +607,7 @@ export default function CommunityChatPage() {
                 className={cn(
                   "w-full flex items-center gap-3 px-4 py-3 text-left transition-all duration-150",
                   isSelected
-                    ? "bg-[#2164b6]/10 border-l-[3px] border-[#2164b6]"
+                    ? "bg-[var(--shell-accent-solid)]/10 border-l-[3px] border-[var(--shell-accent)]"
                     : "hover:bg-muted/40 border-l-[3px] border-transparent",
                 )}
               >
@@ -625,7 +631,7 @@ export default function CommunityChatPage() {
                   </p>
                 </div>
                 {c.unread_count > 0 && (
-                  <span className="h-4 min-w-[18px] px-1 rounded-full bg-[#2164b6] text-white text-[10px] font-extrabold flex items-center justify-center shrink-0 ">
+                  <span className="h-4 min-w-[18px] px-1 rounded-full bg-[var(--shell-accent-solid)] text-white text-[10px] font-extrabold flex items-center justify-center shrink-0 ">
                     {c.unread_count}
                   </span>
                 )}
@@ -659,7 +665,7 @@ export default function CommunityChatPage() {
                   </h3>
                   <p className="text-[10px] text-muted-foreground/70 flex items-center gap-1">
                     <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                    {activeConv.community?.name ? `${(activeConv.community as any).members_count ?? 0} members` : "Community channel"}
+                    {activeConv.community?.name ? `${(activeConv.community as CommunityWithCount).members_count ?? 0} members` : "Community channel"}
                   </p>
                 </div>
               </div>
@@ -692,7 +698,9 @@ export default function CommunityChatPage() {
                   </button>
                   {showHeaderMenu && (
                     <>
-                      <div className="fixed inset-0 z-40" onClick={() => setShowHeaderMenu(false)} />
+                      <div role="presentation" onKeyDown={(e) => { if (e.key === "Escape") e.currentTarget.click(); }}
+ className="fixed inset-0 z-40" onClick={() => setShowHeaderMenu(false)} />
+          <DismissOnEscape onDismiss={() => { setShowHeaderMenu(false); }} />
                       <div className="absolute right-0 top-5 z-50 w-44 rounded-lg border-none bg-card shadow-xl p-1 text-xs space-y-0.5">
                         <button
                           onClick={handleToggleMute}
@@ -730,7 +738,7 @@ export default function CommunityChatPage() {
                   </div>
                   <button
                     onClick={() => setActiveCallMode(null)}
-                    className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white text-xs font-bold flex items-center gap-1"
+                    className="p-1 rounded-lg hover:bg-slate-800 text-[var(--shell-muted)] hover:text-white text-xs font-bold flex items-center gap-1"
                   >
                     <X weight="fill" className="h-4 w-4" /> End Call
                   </button>
@@ -751,7 +759,7 @@ export default function CommunityChatPage() {
             <div className="flex-1 overflow-y-auto px-4 py-4 space-y-1 bg-[#F8FAFB] dark:bg-[#0a1a2a]/60">
               {isLoadingMsgs ? (
                 <div className="py-20 text-center space-y-2">
-                  <Loader2 weight="fill" className="h-5 w-5 animate-spin text-[#2164b6] dark:text-[#7ab0ff] mx-auto" />
+                  <Loader2 weight="fill" className="h-5 w-5 animate-spin text-[var(--shell-accent)] dark:text-[var(--shell-accent)] mx-auto" />
                   <p className="text-xs text-muted-foreground font-medium">Loading messages...</p>
                 </div>
               ) : messages.length === 0 ? (
@@ -835,9 +843,9 @@ export default function CommunityChatPage() {
                                 "inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded",
                                 isMine
                                   ? "bg-white/20 text-white"
-                                  : "bg-[#2164b6]/10 dark:bg-[#7ab0ff]/15 text-[#2164b6] dark:text-[#7ab0ff]"
+                                  : "bg-[var(--shell-accent-solid)]/10 dark:bg-[var(--shell-accent)]/15 text-[var(--shell-accent)] dark:text-[var(--shell-accent)]"
                               )}>
-                                <Sparkle weight="fill" className="h-2.5 w-2.5" />
+                                <Lightning weight="fill" className="h-2.5 w-2.5" />
                                 Automated Greeting
                               </span>
                             </div>
@@ -855,7 +863,7 @@ export default function CommunityChatPage() {
                                 <VoiceMessagePlayer src={msg.attachment_url} isMine={isMine} />
                               ) : (
                                 <a
-                                  href={msg.attachment_url}
+                                  href={safeHref(msg.attachment_url)}
                                   target="_blank"
                                   rel="noreferrer"
                                   className="flex items-center gap-2 text-xs font-semibold underline"
@@ -945,7 +953,7 @@ export default function CommunityChatPage() {
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploading}
-                className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-[#2164b6] transition-colors shrink-0 disabled:opacity-50"
+                className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-[var(--shell-accent)] transition-colors shrink-0 disabled:opacity-50"
                 title="Attach file"
               >
                 {uploading ? (
@@ -1025,7 +1033,7 @@ export default function CommunityChatPage() {
                   <button
                     type="submit"
                     disabled={!inputContent.trim() || uploading}
-                    className="p-1.5 rounded-full bg-[#2164b6] text-white font-bold hover:bg-[#1a5091] disabled:opacity-40 transition-all shrink-0 flex items-center justify-center h-8 w-8"
+                    className="p-1.5 rounded-full bg-[var(--shell-accent-solid)] text-white font-bold hover:bg-[var(--shell-accent-hover)] disabled:opacity-40 transition-all shrink-0 flex items-center justify-center h-8 w-8"
                   >
                     <Send weight="fill" className="h-3.5 w-3.5" />
                   </button>
@@ -1036,7 +1044,7 @@ export default function CommunityChatPage() {
                 type="button"
                 onClick={startVoiceRecording}
                 disabled={isSendingVoice || isRecording}
-                className={`p-1.5 rounded-full transition-colors shrink-0 disabled:opacity-50 ${isRecording ? "text-red-500 bg-red-500/10 animate-pulse" : "text-muted-foreground hover:bg-muted hover:text-[#2164b6]"}`}
+                className={`p-1.5 rounded-full transition-colors shrink-0 disabled:opacity-50 ${isRecording ? "text-red-500 bg-red-500/10 animate-pulse" : "text-muted-foreground hover:bg-muted hover:text-[var(--shell-accent)]"}`}
                 title={isRecording ? "Recording..." : "Record voice message"}
               >
                 <Mic weight="fill" className="h-3.5 w-3.5" />
@@ -1045,8 +1053,8 @@ export default function CommunityChatPage() {
           </>
         ) : (
           <div className="flex flex-1 flex-col items-center justify-center gap-4 text-center px-6">
-            <div className="rounded-lg bg-[#2164b6]/10 p-5 border border-[#2164b6]/20">
-              <Hash weight="fill" className="h-10 w-10 text-[#2164b6] dark:text-[#7ab0ff]" />
+            <div className="rounded-lg bg-[var(--shell-accent-solid)]/10 p-5 border border-[var(--shell-accent)]/20">
+              <Hash weight="fill" className="h-10 w-10 text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" />
             </div>
             <div className="space-y-1">
               <h3 className="text-base font-extrabold text-foreground">Community Chat</h3>

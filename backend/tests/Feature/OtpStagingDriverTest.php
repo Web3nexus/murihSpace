@@ -155,14 +155,6 @@ class OtpStagingDriverTest extends TestCase
         $this->assertStringNotContainsString('dev driver verification requested', $this->logContents());
     }
 
-    public function test_log_driver_can_be_allowed_in_production_explicitly(): void
-    {
-        config(['services.twilio.otp_driver' => 'log']);
-        config(['services.twilio.allow_log_driver' => true]);
-        $this->app['env'] = 'production';
-
-        $this->sendOtp()->assertOk();
-    }
 
     public function test_twilio_driver_names_the_missing_variables(): void
     {
@@ -210,6 +202,44 @@ class OtpStagingDriverTest extends TestCase
      * The in-app path delivers to an already-logged-in device. Staging testers
      * also need the code in the log when no other device is signed in.
      */
+    /**
+     * Production must not write an OTP to any log, through any channel. The
+     * in-app path still delivers the code to the signed-in device, so the code
+     * is read back from that delivery and searched for in the log.
+     */
+    public function test_production_writes_no_otp_to_the_log_on_any_path(): void
+    {
+        $this->loginUserWithActiveDevice('+2348012345678');
+        $this->app['env'] = 'production';
+
+        $this->sendOtp()->assertOk()->assertJsonPath('data.channel', 'in_app_active_device');
+
+        $row = PhoneOtpRequest::latest('id')->first();
+        $this->assertNull(Cache::get('phone-otp:dev:'.$row->id));
+
+        $notification = \Illuminate\Support\Facades\DB::table('notifications')
+            ->where('type', 'like', '%auth_login_otp%')
+            ->latest('created_at')
+            ->first();
+        $this->assertNotNull($notification);
+        $this->assertMatchesRegularExpression('/\b(\d{6})\b/', (string) $notification->data);
+        preg_match('/\b(\d{6})\b/', (string) $notification->data, $matches);
+
+        $this->assertStringNotContainsString($matches[1], $this->logContents());
+        $this->assertStringNotContainsString('in-app active-device code issued', $this->logContents());
+        $this->assertStringNotContainsString('dev driver verification requested', $this->logContents());
+    }
+
+    public function test_production_never_writes_an_otp_from_the_log_driver(): void
+    {
+        config(['services.twilio.otp_driver' => 'log']);
+        $this->app['env'] = 'production';
+
+        $this->sendOtp()->assertStatus(503);
+
+        $this->assertDoesNotMatchRegularExpression('/\b\d{6}\b/', $this->logContents());
+    }
+
     public function test_in_app_active_device_code_is_delivered_and_also_logged_in_staging(): void
     {
         $this->loginUserWithActiveDevice('+2348012345678');
@@ -243,24 +273,6 @@ class OtpStagingDriverTest extends TestCase
         );
     }
 
-    /**
-     * Staging commonly reports APP_ENV=production while still needing readable
-     * codes. OTP_ALLOW_LOG_DRIVER=true (the same knob LogOtpDriver honours)
-     * must let the in-app path write the code to the log too.
-     */
-    public function test_in_app_code_is_logged_in_production_when_explicitly_allowed(): void
-    {
-        $this->loginUserWithActiveDevice('+2348012345678');
-        config(['services.twilio.allow_log_driver' => true]);
-        $this->app['env'] = 'production';
-
-        $this->sendOtp()->assertOk()->assertJsonPath('data.channel', 'in_app_active_device');
-
-        $this->assertStringContainsString(
-            'in-app active-device code issued',
-            $this->logContents(),
-        );
-    }
 
     public function test_any_recently_used_login_session_receives_the_inapp_code(): void
     {

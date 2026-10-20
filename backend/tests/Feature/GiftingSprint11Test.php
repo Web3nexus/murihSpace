@@ -52,12 +52,14 @@ class GiftingSprint11Test extends TestCase
         // Sender System Wallet: 500,000 - 200,000 = 300,000 kobo
         $this->assertEquals(300000, $senderWallet->available);
 
-        // Recipient Creator Wallet: 200,000 minus 10% GIFT_RECEIVING fee (20,000) = 180,000 kobo
-        $this->assertEquals(180000, $recipientWallet->available);
+        // Recipient Creator Wallet: 200,000 minus the 15% gift commission (30,000) = 170,000 kobo.
+        // The recipient has no verified KYC, so the earnings wait in pending, as every creator credit does.
+        $this->assertEquals(140000, $recipientWallet->pending);
+        $this->assertEquals(0, $recipientWallet->available);
 
         // Platform revenue account receives the fee so the ledger balances:
-        // debit(200,000) == credit(180,000) + credit(20,000)
-        $this->assertEquals(20000, $platformWallet->available);
+        // debit(200,000) == credit(140,000) + credit(60,000)
+        $this->assertEquals(60000, $platformWallet->available);
     }
 
     public function test_gift_with_reused_idempotency_key_for_different_recipient_is_rejected(): void
@@ -145,5 +147,36 @@ class GiftingSprint11Test extends TestCase
 
         $response->assertStatus(403);
         $this->assertStringContainsString('System Wallet balance', $response->json('message'));
+    }
+
+    public function test_gift_to_a_kyc_verified_recipient_is_withdrawable(): void
+    {
+        $sender    = User::factory()->create(['role' => 'member']);
+        $recipient = User::factory()->create(['role' => 'creator', 'kyc_status' => 'verified']);
+        $platform  = User::factory()->create(['role' => 'admin']);
+
+        config()->set('wallet.platform_revenue_user_id', $platform->id);
+
+        (new LedgerService())->credit($sender, 500000, 'NGN', 'system', 'available', 'deposit');
+
+        $gift = Gift::create([
+            'name'                => 'Diamond Crown',
+            'coin_price'          => 200000,
+            'creator_earns'       => 180000,
+            'platform_commission' => 20000,
+            'icon'                => '👑',
+            'is_active'           => true,
+        ]);
+
+        $this->actingAs($sender)->postJson('/api/v1/gifts/send', [
+            'gift_id'         => $gift->id,
+            'recipient_id'    => $recipient->id,
+            'wallet_type'     => 'system',
+            'idempotency_key' => 'GIFT-TEST-KYC',
+        ])->assertStatus(201);
+
+        $recipientWallet = (new WalletService())->getOrCreateWallet($recipient, 'creator');
+        $this->assertEquals(140000, $recipientWallet->withdrawable);
+        $this->assertEquals(0, $recipientWallet->pending);
     }
 }

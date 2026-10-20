@@ -46,7 +46,7 @@ export default function AudiencesIndex() {
       </div>
       
       {/* Control Bar */}
-      <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-800">
+      <div className="flex flex-wrap items-center justify-between gap-2 p-4 border-b border-slate-200 dark:border-slate-800">
         <div className="flex items-center gap-2">
           <Button render={<Link to="/audiences/create" />} className="rounded-sm h-8 bg-primary hover:bg-primary/90">
           <Plus className="h-4 w-4 mr-1" /> Create Audience
@@ -60,7 +60,7 @@ export default function AudiencesIndex() {
             <Input 
               type="text" 
               placeholder="Search by name or ID" 
-              className="h-8 pl-8 w-[250px] rounded-sm bg-slate-50 dark:bg-slate-900 border-slate-200"
+              className="h-8 pl-8 w-full sm:w-[250px] rounded-sm bg-slate-50 dark:bg-slate-900 border-slate-200"
             />
           </div>
         </div>

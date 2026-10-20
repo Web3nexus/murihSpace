@@ -25,6 +25,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use App\Services\Chat\BusinessChatPolicy;
 
 class ConversationController extends Controller
 {
@@ -400,7 +401,11 @@ class ConversationController extends Controller
             return $message;
         });
 
-        return response()->json($messages);
+        // Lets the app hide "delete for everyone" while a business chat is locked, and show when it opens.
+        $body = $messages->toArray();
+        $body['delete_for_everyone_unlocks_at'] = app(BusinessChatPolicy::class)->unlocksAt($conversation)?->toIso8601String();
+
+        return response()->json($body);
     }
 
     /**
@@ -642,7 +647,7 @@ class ConversationController extends Controller
     /**
      * Delete a message (for me or for everyone).
      */
-    public function deleteMessage(Request $request, int $conversationId, int $messageId): JsonResponse
+    public function deleteMessage(Request $request, int $conversationId, int $messageId, BusinessChatPolicy $policy): JsonResponse
     {
         $conversation = Conversation::findOrFail($conversationId);
         $this->authorizeParticipant($request, $conversation);
@@ -652,17 +657,10 @@ class ConversationController extends Controller
 
         $mode = $request->input('mode', 'me');
 
-        // ── Financial / escrow chat deletion protection ──────────────────────
-        // Commerce/creator chats tagged as marketplace or with an active escrow
-        // deal must NEVER have individual messages deleted (neither for me nor
-        // for everyone). All records remain in the database for audit
-        // compliance, dispute arbitration, and fund verification.
-        if ($this->isFinancialConversation($conversation)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Messages in financial or escrow deal chats cannot be deleted. All records are legally preserved for audit compliance, dispute arbitration, and fund verification.',
-                'can_soft_clear' => false,
-            ], 403);
+        // Business chats keep their messages for both parties while they are active.
+        // Deleting for yourself stays allowed; deleting for everyone waits six months after the last message.
+        if ($mode === 'everyone' && $policy->deleteForEveryoneLocked($conversation)) {
+            return $this->businessChatLocked($policy, $conversation);
         }
 
         if ($mode === 'everyone') {
@@ -798,52 +796,29 @@ class ConversationController extends Controller
      * True for marketplace chats, or any chat whose participants are party to an
      * escrow that is currently held/active/pending/disputed.
      */
-    private function isFinancialConversation(Conversation $conversation): bool
+    private function businessChatLocked(BusinessChatPolicy $policy, Conversation $conversation): JsonResponse
     {
-        if ($conversation->type === 'marketplace') {
-            return true;
-        }
-
-        // Only direct conversations can be "financial" via a shared escrow.
-        // Community/group chats can have thousands of participants, where a
-        // single escrow between any two members would otherwise flag the whole
-        // channel and block moderators from deleting messages.
-        if ($conversation->type !== 'direct') {
-            return false;
-        }
-
-        $participantIds = $conversation->participants()->pluck('user_id');
-
-        return DB::table('escrows')
-            ->where(function ($q) use ($participantIds) {
-                $q->whereIn('buyer_id', $participantIds)
-                  ->whereIn('seller_id', $participantIds);
-            })
-            ->whereIn('status', ['held', 'active', 'pending', 'disputed'])
-            ->exists();
+        return response()->json([
+            'success' => false,
+            'message' => BusinessChatPolicy::LOCKED_MESSAGE,
+            'can_soft_clear' => true,
+            'unlocks_at' => $policy->unlocksAt($conversation)?->toIso8601String(),
+        ], 403);
     }
 
     /**
      * Clear all messages in a conversation (for me or for everyone).
      */
-    public function clearMessages(Request $request, int $conversationId): JsonResponse
+    public function clearMessages(Request $request, int $conversationId, BusinessChatPolicy $policy): JsonResponse
     {
         $conversation = Conversation::findOrFail($conversationId);
         $this->authorizeParticipant($request, $conversation);
 
         $mode = $request->input('mode', 'me');
 
-        // ── Financial / escrow chat hard-delete protection ───────────────────
-        // Commerce/creator chats tagged as marketplace or with an active escrow
-        // deal must NEVER be hard-deleted. All records remain in the database
-        // for audit compliance, dispute arbitration, and fund verification.
-        // Users may only soft-clear their own view (mode=me).
-        if ($mode === 'everyone' && $this->isFinancialConversation($conversation)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Financial and escrow deal chats cannot be permanently deleted. All records are legally preserved for audit compliance, dispute arbitration, and fund verification. You can soft-clear your personal view only.',
-                'can_soft_clear' => true,
-            ], 403);
+        // Business chats cannot be cleared for everyone until six months after the last message.
+        if ($mode === 'everyone' && $policy->deleteForEveryoneLocked($conversation)) {
+            return $this->businessChatLocked($policy, $conversation);
         }
 
         if ($mode === 'everyone') {

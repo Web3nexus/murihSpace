@@ -281,11 +281,21 @@ class PaystackProvider implements CollectionProviderInterface, PayoutProviderInt
         }
     }
 
-    public function verifyPayout(string $providerPayoutId): array
+    /**
+     * Verify Transfer (GET /transfer/verify/:reference).
+     *
+     * Paystack's path parameter is the transfer REFERENCE we sent when creating the transfer (the payout's
+     * public_reference, stored as provider_reference), not the numeric id or the transfer_code (TRF_...).
+     */
+    public function verifyPayout(string $reference): array
     {
-        $res = Http::withToken($this->secretKey)->get("{$this->baseUrl}/transfer/verify/{$providerPayoutId}");
+        $res = Http::withToken($this->secretKey)
+            ->timeout($this->timeout)
+            ->get("{$this->baseUrl}/transfer/verify/".rawurlencode($reference));
+        // A failed lookup says nothing about the transfer, so it is never reported as failed:
+        // a failed payout returns money to the seller, and that must not happen on a network error.
         if (! $res->successful()) {
-            return ['status' => 'failed', 'raw' => $res->json() ?? []];
+            return ['status' => 'processing', 'raw' => $res->json() ?? []];
         }
 
         $rawStatus = strtolower((string) $res->json('data.status'));
@@ -307,8 +317,9 @@ class PaystackProvider implements CollectionProviderInterface, PayoutProviderInt
             throw new ProviderUnavailableException('paystack', 'Paystack secret key is missing.');
         }
 
+        // Paystack looks the charge up by its own id or reference, never by our public reference.
         $payload = [
-            'transaction' => $request->paymentReference,
+            'transaction' => $request->providerPaymentId ?: $request->paymentReference,
             'amount' => $request->amount,
             'currency' => strtoupper($request->currency),
             'merchant_note' => $request->reason,
@@ -369,7 +380,12 @@ class PaystackProvider implements CollectionProviderInterface, PayoutProviderInt
         $event = (string) ($payload['event'] ?? '');
         $data = $payload['data'] ?? [];
 
+        // Transfer and refund ids live in their own id space, not the charge id space. Prefix them with the
+        // event name so a transfer id can never be deduplicated as a charge that already arrived.
         $eventId = (string) ($data['id'] ?? ('pstk_'.md5($request->getContent())));
+        if (str_starts_with($event, 'transfer.') || str_starts_with($event, 'refund.')) {
+            $eventId = "{$event}:{$eventId}";
+        }
         $reference = (string) ($data['reference'] ?? '');
         $amount = isset($data['amount']) ? (int) $data['amount'] : null;
         $currency = $data['currency'] ?? null;

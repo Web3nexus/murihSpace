@@ -10,6 +10,12 @@ Artisan::command('inspire', function () {
 // Scheduled queue monitoring heartbeat
 Schedule::command('horizon:snapshot')->everyFiveMinutes();
 
+// Settle dispute refunds still pending at the provider (backstop for lost refund webhooks)
+Schedule::command('refunds:reconcile-pending --hours=24')->hourly()->withoutOverlapping();
+
+// Escrow release timing: release due funds, hold undelivered escrows, send reminders
+Schedule::command('escrow:auto-release')->hourly()->withoutOverlapping();
+
 // Publish posts that were scheduled for future dates
 Schedule::command('content:publish-scheduled')->everyMinute();
 

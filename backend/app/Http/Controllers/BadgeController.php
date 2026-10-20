@@ -292,7 +292,7 @@ class BadgeController extends Controller
                 'description' => 'Consistent participant across discussion hubs, mutual spaces, and real-time community rooms.',
                 'icon' => '3 User',
                 'icon_3d' => '3d-trophy',
-                'color' => '#1A68D4',
+                'color' => '#2164b6',
                 'icon_gradient' => 'from-blue-400 via-sky-500 to-blue-700',
                 'criteria' => ['metric' => 'followers', 'value' => 20, 'rule' => 'Reached 20+ followers and community connections'],
             ],

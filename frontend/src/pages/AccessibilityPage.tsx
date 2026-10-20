@@ -133,6 +133,7 @@ export default function AccessibilityPage() {
             return (
               <label
                 key={t.key}
+                htmlFor={`a11y-toggle-${t.key}`}
                 className="flex items-center justify-between p-3 rounded-lg border-none bg-muted/30 cursor-pointer hover:border-muted-foreground/30 transition-all"
               >
                 <div className="flex items-center gap-3">
@@ -143,6 +144,7 @@ export default function AccessibilityPage() {
                   </div>
                 </div>
                 <button
+                  id={`a11y-toggle-${t.key}`}
                   type="button"
                   role="switch"
                   aria-checked={t.val}

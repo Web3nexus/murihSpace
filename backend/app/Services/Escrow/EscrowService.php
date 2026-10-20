@@ -210,12 +210,12 @@ class EscrowService
      */
     private function creditSeller(Escrow $escrow, string $description): LedgerTransaction
     {
-        return $this->ledgerService->credit(
-            user: $escrow->seller_id,
+        $seller = \App\Models\User::findOrFail($escrow->seller_id);
+
+        return app(\App\Services\Wallet\SellerEarningsService::class)->credit(
+            seller: $seller,
             amount: (int) $escrow->amount,
             currency: $escrow->currency,
-            walletType: 'creator',
-            balanceCategory: 'available',
             type: 'escrow_release',
             description: $description,
             idempotencyKey: 'ESCROW_RELEASE_'.$escrow->id,
@@ -224,6 +224,7 @@ class EscrowService
                 'order_id'             => $escrow->order_id,
                 'fulfilment_order_id'  => $escrow->fulfilment_order_id,
             ],
+            reviewPassed: ! $this->sellerHasBlockingEscrow($escrow),
         );
     }
 
@@ -266,6 +267,47 @@ class EscrowService
             'released_at'           => now(),
             'ledger_transaction_id' => $txn->id,
         ]);
+
+        // A creator's payout for a physical order is created once the escrow is released,
+        // never at delivery.
+        if ($escrow->fulfilment_order_id) {
+            $this->recordCreatorPayout($escrow);
+        }
+    }
+
+    /** True when another escrow of the seller is on hold or in dispute, so this release needs review. */
+    private function sellerHasBlockingEscrow(Escrow $escrow): bool
+    {
+        return Escrow::where('seller_id', $escrow->seller_id)
+            ->whereIn('status', ['disputed', 'on_hold'])
+            ->where('id', '!=', $escrow->id)
+            ->exists();
+    }
+
+    /** Creates the creator's payout record for a fulfilment order, once, on release. */
+    private function recordCreatorPayout(Escrow $escrow): void
+    {
+        $order = \App\Models\FulfilmentOrder::find($escrow->fulfilment_order_id);
+        if (! $order) {
+            return;
+        }
+
+        $gross = (int) $order->total;
+        $fee = (int) $order->platform_fee;
+
+        // The seller's net is the amount the escrow credited to their wallet. A live-stream order holds
+        // only the subtotal, so order->total - platform_fee would include tax the seller was never paid.
+        \App\Models\FulfilmentPayout::firstOrCreate(
+            ['fulfilment_order_id' => $order->id],
+            [
+                'creator_id' => $escrow->seller_id,
+                'gross_amount' => $gross,
+                'platform_fee' => $fee,
+                'net_amount' => (int) $escrow->amount,
+                'currency' => $order->currency,
+                'status' => 'pending',
+            ],
+        );
     }
 
     /**
@@ -407,7 +449,8 @@ class EscrowService
                 } elseif ($resolution === 'resolved_seller') {
                     $this->doRelease($escrow, "Dispute resolved in favour of seller (dispute #{$dispute->id})");
                 } else {
-                    $escrow->update(['status' => 'held']);
+                    // A dispute raised on a staff hold must not lift that hold when cancelled.
+                    $escrow->update(['status' => $escrow->hold_reason ? 'on_hold' : 'held']);
                 }
             });
         } catch (PaymentException $e) {

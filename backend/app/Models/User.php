@@ -16,11 +16,13 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\HasApiTokens;
+use Laravel\Sanctum\TransientToken;
 use Laravel\Scout\Searchable;
 use App\Enums\AdminPermission;
 use App\Enums\AdminRole;
 use App\Services\PermissionService;
 use App\Support\AdminPermissionMatrix;
+use App\Support\WebSession;
 
 #[Fillable([
     'uuid', 'name', 'email', 'password', 'username', 'country',
@@ -39,16 +41,43 @@ use App\Support\AdminPermissionMatrix;
     'last_seen_at', 'show_online_status', 'read_receipts_enabled', 'chat_sounds_enabled',
     'greeting_message_enabled', 'greeting_message', 'away_message_enabled', 'away_message',
 ])]
-#[Hidden(['password', 'remember_token', 'provider_id', 'kyc_document', 'kyc_rejection_reason', 'username_trial_ends_at', 'two_factor_secret', 'two_factor_recovery_codes'])]
+// Personal contact details never serialise by default. A response that needs them
+// for the account holder adds them explicitly, so a phone number or email can't
+// reach another user through this model's JSON.
+#[Hidden(['password', 'remember_token', 'provider_id', 'kyc_document', 'kyc_rejection_reason', 'username_trial_ends_at', 'two_factor_secret', 'two_factor_recovery_codes', 'mobile_number', 'email'])]
 class User extends Authenticatable implements MustVerifyEmail
 {
     /** @use HasFactory<UserFactory> */
-    use HasApiTokens, HasFactory, Notifiable, Searchable, SoftDeletes;
+    use HasApiTokens {
+        currentAccessToken as private sanctumAccessToken;
+    }
+    use HasFactory, Notifiable, Searchable, SoftDeletes;
 
     /**
      * @var list<string>
      */
     protected $appends = ['has_active_verification_badge', 'avatar_url'];
+
+    /**
+     * A web session is authenticated by the session guard, which Sanctum maps
+     * to a TransientToken. Resolve it to the token row the session is bound to
+     * so token-based checks (device list, admin:mfa, impersonation) see it.
+     */
+    public function currentAccessToken()
+    {
+        $token = $this->sanctumAccessToken();
+        $tokenId = WebSession::boundTokenId(request());
+
+        if ($token instanceof TransientToken && $tokenId !== null) {
+            $bound = $this->tokens()->whereKey($tokenId)->first();
+
+            if ($bound) {
+                return $this->withAccessToken($bound)->sanctumAccessToken();
+            }
+        }
+
+        return $token;
+    }
 
     /**
      * Get the attributes that should be cast.
@@ -262,6 +291,13 @@ class User extends Authenticatable implements MustVerifyEmail
 
     protected static function booted(): void
     {
+        // Verifying identity releases any earnings that were held until then.
+        static::updated(function (User $user) {
+            if ($user->wasChanged('kyc_status') && $user->hasVerifiedKyc()) {
+                app(\App\Services\Wallet\SellerEarningsService::class)->sweepAwaitingKyc($user);
+            }
+        });
+
         static::creating(function (User $user) {
             if ($user->uuid === null) {
                 $user->uuid = (string) Str::uuid();

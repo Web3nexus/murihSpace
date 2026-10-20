@@ -56,8 +56,9 @@ class CheckoutTaxTest extends TestCase
         $res->assertJsonPath('data.data.tax_rate', 10);
         $res->assertJsonPath('data.data.tax_type', 'vat');
         $res->assertJsonPath('data.data.tax_country_code', 'TST');
-        $res->assertJsonPath('data.data.platform_fee', 10);
-        $res->assertJsonPath('data.data.total', 120);
+        // Buyer fee is a flat 5% of the price and carries no VAT. VAT applies to the price only.
+        $res->assertJsonPath('data.data.platform_fee', 5);
+        $res->assertJsonPath('data.data.total', 115);
     }
 
     public function test_intent_applies_country_vat_and_records_ledger_on_completion(): void
@@ -79,7 +80,7 @@ class CheckoutTaxTest extends TestCase
             'tax_rate' => 10.00,
             'tax_country_code' => 'TST',
             'tax_type' => 'vat',
-            'total' => 120.00,
+            'total' => 115.00,
         ]);
 
         $done = $this->actingAs($this->buyer)->postJson('/api/v1/checkout/complete-mock', [

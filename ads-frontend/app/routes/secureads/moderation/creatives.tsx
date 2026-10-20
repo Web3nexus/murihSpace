@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Button } from "../../../components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "../../../components/ui/card";
 import { CheckCircle, XCircle } from "lucide-react";
+import { AdsApiError, adsRequest } from "../../../lib/ads-api";
 
 export default function ModerationCreatives() {
   const [creatives, setCreatives] = useState([
@@ -11,19 +12,12 @@ export default function ModerationCreatives() {
 
   const handleModerate = async (id: number, action: 'approve' | 'reject') => {
     try {
-      const res = await fetch(`${import.meta.env.VITE_ADS_API_URL}/api/admin/creatives/${id}/moderate`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action }),
-      });
-      if (res.ok) {
-        setCreatives(creatives.filter(c => c.id !== id));
-        alert(`Creative ${id} ${action}d successfully.`);
-      } else {
-        alert("Failed to moderate creative.");
-      }
+      await adsRequest(`/admin/creatives/${id}/moderate`, { method: "POST", body: { action } });
+      setCreatives((list) => list.filter((c) => c.id !== id));
+      alert(`Creative ${id} ${action}d successfully.`);
     } catch (err) {
-      alert("Error contacting API.");
+      // A 401 or 403 has already sent the user to staff sign-in.
+      alert(err instanceof AdsApiError ? err.message : "Error contacting API.");
     }
   };
 

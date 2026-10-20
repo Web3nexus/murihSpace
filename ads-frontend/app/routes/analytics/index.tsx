@@ -219,28 +219,7 @@ export default function AnalyticsDashboard() {
               <CardTitle className="text-base font-semibold">Top Campaigns</CardTitle>
             </CardHeader>
             <CardContent className="pt-0 px-0">
-              <div className="divide-y divide-slate-100 dark:divide-slate-800">
-                <div className="p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-900/50">
-                  <div>
-                    <p className="text-sm font-medium text-primary">Summer Collection</p>
-                    <p className="text-xs text-muted-foreground">Conv: 124</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-semibold">$14.50</p>
-                    <p className="text-xs text-muted-foreground">CPA</p>
-                  </div>
-                </div>
-                <div className="p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-900/50">
-                  <div>
-                    <p className="text-sm font-medium text-primary">Retargeting</p>
-                    <p className="text-xs text-muted-foreground">Conv: 89</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-semibold">$8.10</p>
-                    <p className="text-xs text-muted-foreground">CPA</p>
-                  </div>
-                </div>
-              </div>
+              <p className="p-4 text-sm text-muted-foreground">No campaign performance data yet.</p>
             </CardContent>
           </Card>
           
@@ -249,35 +228,7 @@ export default function AnalyticsDashboard() {
               <CardTitle className="text-base font-semibold">Demographics</CardTitle>
             </CardHeader>
             <CardContent className="pt-6 pb-6">
-              <div className="space-y-4">
-                <div>
-                  <div className="flex justify-between text-xs mb-1">
-                    <span className="font-medium text-slate-600">18-24</span>
-                    <span className="font-semibold">45%</span>
-                  </div>
-                  <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-                    <div className="bg-cyan-500 h-full" style={{ width: '45%' }}></div>
-                  </div>
-                </div>
-                <div>
-                  <div className="flex justify-between text-xs mb-1">
-                    <span className="font-medium text-slate-600">25-34</span>
-                    <span className="font-semibold">35%</span>
-                  </div>
-                  <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-                    <div className="bg-violet-500 h-full" style={{ width: '35%' }}></div>
-                  </div>
-                </div>
-                <div>
-                  <div className="flex justify-between text-xs mb-1">
-                    <span className="font-medium text-slate-600">35-44</span>
-                    <span className="font-semibold">15%</span>
-                  </div>
-                  <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-                    <div className="bg-indigo-500 h-full" style={{ width: '15%' }}></div>
-                  </div>
-                </div>
-              </div>
+              <p className="text-sm text-muted-foreground">No audience breakdown data yet.</p>
             </CardContent>
           </Card>
         </div>

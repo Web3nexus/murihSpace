@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useConfirm } from '@/components/ui/DialogProvider';
 import { Plus, Delete as Trash2, TimeCircle as Clock, TickSquare as Check, CloseSquare as X, Setting as SlidersHorizontal, Play, Send, ArrowDown } from "@/components/icons";
 import { ListNumbers, Spinner as Loader2, Power } from "@/components/icons/rounded";;
@@ -46,15 +46,21 @@ export function EmailSequencesPage() {
   const [page, setPage] = useState(1);
   const [lastPage, setLastPage] = useState(1);
 
-  const fetchAll = useCallback(async () => {
-    try {
-      const res = await authFetch(`/email-sequences?page=${page}&per_page=20`, {  });
-      if (res.ok) { const j = await res.json(); setSequences(j.data?.data ?? []); setLastPage(j.data?.last_page ?? 1); }
-    } catch { /* ignore */ }
-    finally { setIsLoading(false); }
-  }, [page]);
+  const [fetchAllKey, setFetchAllKey] = useState(0);
+  const fetchAll = () => {
+    setFetchAllKey((k) => k + 1);
+  };
 
-  useEffect(() => { fetchAll(); }, [fetchAll]);
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await authFetch(`/email-sequences?page=${page}&per_page=20`, {  });
+        if (res.ok) { const j = await res.json(); setSequences(j.data?.data ?? []); setLastPage(j.data?.last_page ?? 1); }
+      } catch { /* ignore */ }
+      finally { setIsLoading(false); }
+    })();
+  }, [fetchAllKey, page]);
+
 
   function showMsg(type: 'success' | 'error', text: string) {
     setMessage({ type, text });
@@ -146,8 +152,8 @@ export function EmailSequencesPage() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
         <div className="relative">
-          <div className="absolute inset-0 rounded-full blur-xl bg-[#2164b6]/20 animate-pulse"></div>
-          <Loader2 weight="fill" className="h-10 w-10 animate-spin text-[#2164b6] relative z-10" />
+          <div className="absolute inset-0 rounded-full blur-xl bg-[var(--shell-accent-solid)]/20 animate-pulse"></div>
+          <Loader2 weight="fill" className="h-10 w-10 animate-spin text-[var(--shell-accent)] relative z-10" />
         </div>
         <p className="text-sm text-muted-foreground font-medium animate-pulse">Loading Sequences...</p>
       </div>
@@ -176,7 +182,7 @@ export function EmailSequencesPage() {
             className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all shadow-xs ${
               showForm 
                 ? 'bg-muted text-foreground hover:bg-muted/80' 
-                : 'bg-[#2164b6] hover:bg-[#1a5091] text-white'
+                : 'bg-[var(--shell-accent-solid)] hover:bg-[var(--shell-accent-hover)] text-white'
             }`}
           >
             {showForm ? <X className="h-4 w-4" /> : <Plus weight="fill" className="h-4 w-4" />}
@@ -197,7 +203,7 @@ export function EmailSequencesPage() {
       {showForm && (
         <div className="rounded-lg border-none/50 bg-card/50 backdrop-blur-xl shadow-xl overflow-hidden animate-in slide-in-from-top-4 duration-500">
           <div className="p-4 border-b border-border/50 flex items-center gap-4 bg-background/50">
-            <div className="p-2.5 rounded-lg bg-[#2164b6]/10 text-[#2164b6] shrink-0">
+            <div className="p-2.5 rounded-lg bg-[var(--shell-accent-solid)]/10 text-[var(--shell-accent)] shrink-0">
               <SlidersHorizontal weight="fill" className="w-5 h-5" />
             </div>
             <div>
@@ -210,33 +216,33 @@ export function EmailSequencesPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Sequence Title</label>
-                  <input 
+                  <label htmlFor="f-pages-emailsequencespage-tsx-213" className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Sequence Title</label>
+                  <input id="f-pages-emailsequencespage-tsx-213" 
                     value={form.title} 
                     onChange={e => setForm({ ...form, title: e.target.value })} 
                     required
                     placeholder="e.g. Welcome Series for New Subscribers"
-                    className="w-full h-12 rounded-lg bg-background border-none/50 px-4 text-sm font-medium focus:ring-2 focus:ring-[#2164b6]/50 transition-all" 
+                    className="w-full h-12 rounded-lg bg-background border-none/50 px-4 text-sm font-medium focus:ring-2 focus:ring-[var(--shell-accent)]/50 transition-all" 
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Trigger Event</label>
-                  <select 
+                  <label htmlFor="f-pages-emailsequencespage-tsx-223" className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Trigger Event</label>
+                  <select id="f-pages-emailsequencespage-tsx-223" 
                     value={form.trigger_event} 
                     onChange={e => setForm({ ...form, trigger_event: e.target.value })} 
-                    className="w-full h-12 rounded-lg bg-background border-none/50 px-4 text-sm font-medium focus:ring-2 focus:ring-[#2164b6]/50 transition-all appearance-none"
+                    className="w-full h-12 rounded-lg bg-background border-none/50 px-4 text-sm font-medium focus:ring-2 focus:ring-[var(--shell-accent)]/50 transition-all appearance-none"
                   >
                     {TRIGGER_EVENTS.map(t => <option key={t.id} value={t.id}>{t.icon} {t.label}</option>)}
                   </select>
                 </div>
               </div>
               <div className="space-y-2 flex flex-col h-full">
-                <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Internal Description</label>
-                <textarea 
+                <label htmlFor="f-pages-emailsequencespage-tsx-234" className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Internal Description</label>
+                <textarea id="f-pages-emailsequencespage-tsx-234" 
                   value={form.description} 
                   onChange={e => setForm({ ...form, description: e.target.value })}
                   placeholder="What is the goal of this sequence? (Only visible to you)"
-                  className="w-full flex-1 rounded-lg bg-background border-none/50 p-4 text-sm font-medium focus:ring-2 focus:ring-[#2164b6]/50 transition-all resize-none min-h-[120px]" 
+                  className="w-full flex-1 rounded-lg bg-background border-none/50 p-4 text-sm font-medium focus:ring-2 focus:ring-[var(--shell-accent)]/50 transition-all resize-none min-h-[120px]" 
                 />
               </div>
             </div>
@@ -244,7 +250,7 @@ export function EmailSequencesPage() {
             <div className="pt-6 border-t border-border/50 flex items-center justify-end gap-3">
               <button 
                 type="submit" 
-                className="px-8 py-3 rounded-lg bg-[#2164b6] text-white text-sm font-bold hover:bg-[#1a5091] hover:shadow-lg transition-all duration-300"
+                className="px-8 py-3 rounded-lg bg-[var(--shell-accent-solid)] text-white text-sm font-bold hover:bg-[var(--shell-accent-hover)] hover:shadow-lg transition-all duration-300"
               >
                 {editId ? 'Update Sequence' : 'Create & Add Emails'}
               </button>
@@ -255,8 +261,8 @@ export function EmailSequencesPage() {
 
       {sequences.length === 0 ? (
         <div className="flex flex-col items-center justify-center text-center gap-4 py-24 rounded-3xl border border-dashed border-border/50 bg-card/30 backdrop-blur-sm">
-          <div className="w-20 h-20 rounded-3xl bg-[#2164b6]/10 flex items-center justify-center mb-2">
-            <ListNumbers weight="fill" className="h-10 w-10 text-[#2164b6]" />
+          <div className="w-20 h-20 rounded-3xl bg-[var(--shell-accent-solid)]/10 flex items-center justify-center mb-2">
+            <ListNumbers weight="fill" className="h-10 w-10 text-[var(--shell-accent)]" />
           </div>
           <h2 className="text-xl font-bold text-foreground tracking-tight">No sequences yet</h2>
           <p className="text-sm text-muted-foreground max-w-md">Build powerful email funnels that run on autopilot to convert followers into customers and welcome new subscribers.</p>
@@ -345,7 +351,7 @@ export function EmailSequencesPage() {
                             {/* Email Card */}
                             <div className="w-full max-w-2xl bg-card rounded-lg border-none/50  overflow-hidden group transition-all hover:border-primary/30">
                               <div className="p-4 flex items-start gap-4">
-                                <div className="w-10 h-10 shrink-0 rounded-lg bg-blue-500/10 text-blue-500 flex items-center justify-center font-black text-lg">
+                                <div className="w-10 h-10 shrink-0 rounded-lg bg-[var(--shell-accent-solid)]/10 text-[var(--shell-accent)] flex items-center justify-center font-black text-lg">
                                   {idx + 1}
                                 </div>
                                 <div className="flex-1 min-w-0 pt-1">
@@ -377,33 +383,33 @@ export function EmailSequencesPage() {
                       <div className="w-full max-w-2xl bg-card/30 rounded-lg border border-dashed border-border/80 p-5 space-y-4">
                         <div className="flex items-center gap-4">
                           <div className="w-24 shrink-0 space-y-1.5">
-                            <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Wait (Days)</label>
-                            <input 
+                            <label htmlFor="f-pages-emailsequencespage-tsx-380" className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Wait (Days)</label>
+                            <input id="f-pages-emailsequencespage-tsx-380" 
                               type="number" min="0"
                               value={getStepFormData(s.id).delay}
                               onChange={(e) => updateStepForm(s.id, 'delay', e.target.value)}
-                              className="w-full h-10 rounded-lg bg-background border-none/50 px-3 text-sm focus:ring-[#2164b6]/50" 
+                              className="w-full h-10 rounded-lg bg-background border-none/50 px-3 text-sm focus:ring-[var(--shell-accent)]/50" 
                             />
                           </div>
                           <div className="flex-1 space-y-1.5">
-                            <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Subject Line</label>
-                            <input 
+                            <label htmlFor="f-pages-emailsequencespage-tsx-389" className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Subject Line</label>
+                            <input id="f-pages-emailsequencespage-tsx-389" 
                               type="text"
                               value={getStepFormData(s.id).subject}
                               onChange={(e) => updateStepForm(s.id, 'subject', e.target.value)}
                               placeholder="e.g. Here is your free guide!"
-                              className="w-full h-10 rounded-lg bg-background border-none/50 px-3 text-sm focus:ring-[#2164b6]/50" 
+                              className="w-full h-10 rounded-lg bg-background border-none/50 px-3 text-sm focus:ring-[var(--shell-accent)]/50" 
                             />
                           </div>
                         </div>
                         <div className="space-y-1.5">
-                          <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Email Content</label>
-                          <textarea 
+                          <label htmlFor="f-pages-emailsequencespage-tsx-400" className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Email Content</label>
+                          <textarea id="f-pages-emailsequencespage-tsx-400" 
                             value={getStepFormData(s.id).content}
                             onChange={(e) => updateStepForm(s.id, 'content', e.target.value)}
                             placeholder="Write your email here..."
                             rows={3}
-                            className="w-full rounded-lg bg-background border-none/50 p-3 text-sm focus:ring-[#2164b6]/50 resize-none font-mono" 
+                            className="w-full rounded-lg bg-background border-none/50 p-3 text-sm focus:ring-[var(--shell-accent)]/50 resize-none font-mono" 
                           />
                         </div>
                         <div className="flex justify-end pt-2">

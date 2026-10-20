@@ -1,4 +1,3 @@
-import { getAuthToken } from "@/lib/auth/token";
 import { useState, useEffect, useCallback } from 'react';
 import { Document as FileText, Plus, Hide as EyeOff, Show as Eye, Delete as Trash2, DangerSquare as AlertCircle, TickSquare as CheckCircle2, Download as FloppyDisk, Send as PaperPlaneTilt, N2User as Users, Calendar as CalendarBlank } from "@/components/icons";
 import { Spinner as Loader2, Megaphone } from "@/components/icons/rounded";;
@@ -11,8 +10,7 @@ import type { PageSection } from '@/types/admin';
 import { authFetch } from "@/lib/api/authFetch";
 
 const authHeaders = () => {
-  const t = getAuthToken();
-  return { Accept: 'application/json', 'Content-Type': 'application/json', ...(t ? { Authorization: `Bearer ${t}` } : {}) };
+  return { Accept: 'application/json', 'Content-Type': 'application/json', };
 };
 
 const PAGES = ['home', 'features', 'pricing'];
@@ -246,7 +244,7 @@ export function AdminCmsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-black tracking-tight flex items-center gap-2.5">
-            <FileText weight="fill" className="h-6 w-6 text-[#2164b6] dark:text-[#7ab0ff]" /> CMS & System Broadcasts
+            <FileText weight="fill" className="h-6 w-6 text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" /> CMS & System Broadcasts
           </h1>
           <p className="text-xs text-muted-foreground mt-1">Manage landing page contents and dispatch official broadcasts to all ecosystem users.</p>
         </div>
@@ -296,7 +294,7 @@ export function AdminCmsPage() {
           </div>
 
           {loading ? (
-            <div className="flex justify-center py-12"><Loader2 weight="fill" className="h-8 w-8 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" /></div>
+            <div className="flex justify-center py-12"><Loader2 weight="fill" className="h-8 w-8 animate-spin text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" /></div>
           ) : sections.length === 0 ? (
             <div className="p-12 text-center border border-dashed border-border rounded-3xl bg-card">
               <FileText weight="fill" className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
@@ -448,8 +446,8 @@ export function AdminCmsPage() {
 
           <form onSubmit={sendBroadcast} className="space-y-4">
             <div>
-              <label className="text-xs font-bold text-foreground block mb-1">Broadcast Title</label>
-              <Input
+              <label htmlFor="f-pages-admincmspage-tsx-451" className="text-xs font-bold text-foreground block mb-1">Broadcast Title</label>
+              <Input id="f-pages-admincmspage-tsx-451"
                 placeholder="e.g. 📢 Platform Maintenance or 🚀 New Feature Available"
                 value={broadcastForm.title}
                 onChange={(e) => setBroadcastForm({ ...broadcastForm, title: e.target.value })}
@@ -460,8 +458,8 @@ export function AdminCmsPage() {
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-xs font-bold text-foreground block mb-1">Type</label>
-                <select
+                <label htmlFor="f-pages-admincmspage-tsx-463" className="text-xs font-bold text-foreground block mb-1">Type</label>
+                <select id="f-pages-admincmspage-tsx-463"
                   value={broadcastForm.type}
                   onChange={(e) => setBroadcastForm({ ...broadcastForm, type: e.target.value })}
                   className="w-full px-3 py-2 text-xs rounded-lg border border-border bg-muted/40 text-foreground"
@@ -474,8 +472,8 @@ export function AdminCmsPage() {
               </div>
 
               <div>
-                <label className="text-xs font-bold text-foreground block mb-1">Target Audience</label>
-                <select
+                <label htmlFor="f-pages-admincmspage-tsx-477" className="text-xs font-bold text-foreground block mb-1">Target Audience</label>
+                <select id="f-pages-admincmspage-tsx-477"
                   value={broadcastForm.target_audience}
                   onChange={(e) => setBroadcastForm({ ...broadcastForm, target_audience: e.target.value })}
                   className="w-full px-3 py-2 text-xs rounded-lg border border-border bg-muted/40 text-foreground"
@@ -489,8 +487,8 @@ export function AdminCmsPage() {
             </div>
 
             <div>
-              <label className="text-xs font-bold text-foreground block mb-1">Message Content</label>
-              <textarea
+              <label htmlFor="f-pages-admincmspage-tsx-492" className="text-xs font-bold text-foreground block mb-1">Message Content</label>
+              <textarea id="f-pages-admincmspage-tsx-492"
                 placeholder="Write your broadcast message..."
                 rows={4}
                 value={broadcastForm.body}
@@ -502,8 +500,8 @@ export function AdminCmsPage() {
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-xs font-bold text-foreground block mb-1">Action URL (Optional)</label>
-                <Input
+                <label htmlFor="f-pages-admincmspage-tsx-505" className="text-xs font-bold text-foreground block mb-1">Action URL (Optional)</label>
+                <Input id="f-pages-admincmspage-tsx-505"
                   placeholder="/app/communities or /kyc"
                   value={broadcastForm.action_url}
                   onChange={(e) => setBroadcastForm({ ...broadcastForm, action_url: e.target.value })}
@@ -512,8 +510,8 @@ export function AdminCmsPage() {
               </div>
 
               <div>
-                <label className="text-xs font-bold text-foreground block mb-1">Button Label (Optional)</label>
-                <Input
+                <label htmlFor="f-pages-admincmspage-tsx-515" className="text-xs font-bold text-foreground block mb-1">Button Label (Optional)</label>
+                <Input id="f-pages-admincmspage-tsx-515"
                   placeholder="e.g. Learn More or View"
                   value={broadcastForm.action_label}
                   onChange={(e) => setBroadcastForm({ ...broadcastForm, action_label: e.target.value })}
@@ -540,7 +538,7 @@ export function AdminCmsPage() {
         <DialogContent className="sm:max-w-2xl md:max-w-3xl max-h-[90vh] overflow-y-auto bg-card border-border shadow-2xl rounded-lg p-4 sm:p-5">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-base font-bold">
-              <FileText weight="fill" className="h-5 w-5 text-[#2164b6] dark:text-[#7ab0ff]" /> Edit: {editing?.label}
+              <FileText weight="fill" className="h-5 w-5 text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" /> Edit: {editing?.label}
             </DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground">Edit the JSON content for this section.</DialogDescription>
           </DialogHeader>
@@ -548,7 +546,7 @@ export function AdminCmsPage() {
           <textarea
             value={editContent}
             onChange={(e) => setEditContent(e.target.value)}
-            className="w-full h-64 rounded-lg border-none bg-muted/30 p-4 text-xs font-mono resize-y focus:outline-none focus:ring-2 focus:ring-[#2164b6]/30"
+            className="w-full h-64 rounded-lg border-none bg-muted/30 p-4 text-xs font-mono resize-y focus:outline-none focus:ring-2 focus:ring-[var(--shell-accent)]/30"
           />
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => setEditing(null)} className="text-xs">Cancel</Button>
@@ -564,7 +562,7 @@ export function AdminCmsPage() {
       <Dialog open={showCreate} onOpenChange={() => { setShowCreate(false); setMsg(null); }}>
         <DialogContent className="sm:max-w-lg md:max-w-xl bg-card border-border shadow-2xl rounded-lg p-4 sm:p-5">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-base font-bold"><FileText weight="fill" className="h-5 w-5 text-[#2164b6] dark:text-[#7ab0ff]" /> Add Section</DialogTitle>
+            <DialogTitle className="flex items-center gap-2 text-base font-bold"><FileText weight="fill" className="h-5 w-5 text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" /> Add Section</DialogTitle>
             <DialogDescription className="text-xs">Add a new content section to the {selectedPage} page.</DialogDescription>
           </DialogHeader>
           {msg && <div className={`p-3 rounded-lg text-xs font-bold flex items-center gap-2 ${msg.type === 'success' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}`}>{msg.type === 'success' ? <CheckCircle2 className="h-4 w-4 shrink-0" /> : <AlertCircle weight="fill" className="h-4 w-4 shrink-0" />}{msg.text}</div>}

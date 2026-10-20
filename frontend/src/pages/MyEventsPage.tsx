@@ -1,3 +1,5 @@
+import { authFetch } from "@/lib/api/authFetch";
+import { logger } from "@/lib/logger";
 import { useState, useEffect, useCallback } from "react";
 import { useConfirm } from "@/components/ui/DialogProvider";
 import { Link } from "react-router";
@@ -10,13 +12,11 @@ import { CreateEventModal } from "@/components/events/CreateEventModal";
 import { PageSecondaryNav, type PageNavTab } from "@/components/common/PageSecondaryNav";
 import type { EventData } from "@/types/events";
 import { env } from "@/config/env";
-import { getAuthToken } from "@/lib/auth/token";
 
 const API = env.VITE_API_BASE_URL;
 
 function getAuthHeaders(): Record<string, string> {
-  const token = getAuthToken();
-  return token ? { Authorization: `Bearer ${token}` } : {};
+  return {};
 }
 
 function formatDate(dateStr: string) {
@@ -61,7 +61,7 @@ export function MyEventsPage() {
     setIsLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${API}/my-events`, { headers: getAuthHeaders() });
+      const res = await authFetch(`${API}/my-events`, { headers: getAuthHeaders() });
       if (!res.ok) throw new Error("Failed to load events");
       const body = await res.json();
       setEvents(Array.isArray(body.data) ? body.data : body.data?.data ?? []);
@@ -77,7 +77,7 @@ export function MyEventsPage() {
 
   const handlePublish = async (id: number, status: string) => {
     try {
-      const res = await fetch(`${API}/my-events/${id}/publish`, {
+      const res = await authFetch(`${API}/my-events/${id}/publish`, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...getAuthHeaders() },
         body: JSON.stringify({ status }),
@@ -85,21 +85,21 @@ export function MyEventsPage() {
       if (!res.ok) throw new Error("Failed to update status");
       fetchEvents();
     } catch {
-      console.error("Failed to publish event");
+      logger.error("Failed to publish event");
     }
   };
 
   const handleDelete = async (id: number) => {
     if (!await confirm({ title: 'Delete Event', message: 'Delete this event?', variant: 'destructive' })) return;
     try {
-      const res = await fetch(`${API}/my-events/${id}`, {
+      const res = await authFetch(`${API}/my-events/${id}`, {
         method: "DELETE",
         headers: getAuthHeaders(),
       });
       if (!res.ok) throw new Error("Failed to delete");
       setEvents((prev) => prev.filter((e) => e.id !== id));
     } catch {
-      console.error("Failed to delete event");
+      logger.error("Failed to delete event");
     }
   };
 

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useConfirm } from '@/components/ui/DialogProvider';
 import { Search, Delete as Trash2, Show as Eye, Discovery as Globe, Lock, DangerSquare as AlertCircle } from "@/components/icons";
 import { Buildings as Building2, Spinner as Loader2 } from "@/components/icons/rounded";;
@@ -19,10 +19,13 @@ interface CommunitySummary {
   creator: { id: number; name: string; username: string; avatar: string | null } | null;
 }
 
+interface CommunityStats { total?: number; public?: number; private?: number; categories?: unknown[] }
+
+
 export function AdminCommunitiesPage() {
   const confirm = useConfirm();
   const [communities, setCommunities] = useState<CommunitySummary[]>([]);
-  const [stats, setStats] = useState<any>(null);
+  const [stats, setStats] = useState<CommunityStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
@@ -31,20 +34,26 @@ export function AdminCommunitiesPage() {
   const [page, setPage] = useState(1);
   const [lastPage, setLastPage] = useState(1);
 
-  const fetchCommunities = useCallback(async () => {
+  const [fetchCommunitiesKey, setFetchCommunitiesKey] = useState(0);
+  const fetchCommunities = () => {
     setFetchError(null);
-    try {
-      const params = new URLSearchParams({ page: String(page), per_page: '20' });
-      if (search) params.set('search', search);
-      if (visibility) params.set('visibility', visibility);
-      const res = await authFetch(`/securegate/communities?${params}`, {  });
-      if (res.ok) { const j = await res.json(); setCommunities(j.data?.data?.data ?? []); setStats(j.data?.stats ?? null); setLastPage(j.data?.data?.last_page ?? 1); }
-      else throw new Error(`HTTP ${res.status}`);
-    } catch (e) { setFetchError(e instanceof Error ? e.message : 'Failed to load communities'); }
-    finally { setIsLoading(false); }
-  }, [page, search, visibility]);
+    setFetchCommunitiesKey((k) => k + 1);
+  };
 
-  useEffect(() => { fetchCommunities(); }, [fetchCommunities]);
+  useEffect(() => {
+    (async () => {
+      try {
+        const params = new URLSearchParams({ page: String(page), per_page: '20' });
+        if (search) params.set('search', search);
+        if (visibility) params.set('visibility', visibility);
+        const res = await authFetch(`/securegate/communities?${params}`, {  });
+        if (res.ok) { const j = await res.json(); setCommunities(j.data?.data?.data ?? []); setStats(j.data?.stats ?? null); setLastPage(j.data?.data?.last_page ?? 1); }
+        else throw new Error(`HTTP ${res.status}`);
+      } catch (e) { setFetchError(e instanceof Error ? e.message : 'Failed to load communities'); }
+      finally { setIsLoading(false); }
+    })();
+  }, [fetchCommunitiesKey, page, search, visibility]);
+
 
   async function deleteCommunity(id: number, name: string) {
     if (!await confirm({ title: `Delete "${name}"`, message: 'This also removes all memberships. Cannot be undone.', variant: 'destructive' })) return;
@@ -63,7 +72,7 @@ export function AdminCommunitiesPage() {
     <div className="w-full mx-auto max-w-[1400px] space-y-6 p-4 lg:p-10">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 sm:p-5 rounded-lg bg-gradient-to-br from-[#102840] via-[#173852] to-[#102840] text-white shadow-lg">
         <div className="space-y-1.5">
-          <span className="px-2.5 py-0.5 rounded-full bg-[#2164b6]/20 text-[#2164b6] dark:text-[#7ab0ff] text-xs font-semibold uppercase tracking-wider border border-[#2164b6]/30">Admin</span>
+          <span className="px-2.5 py-0.5 rounded-full bg-[var(--shell-accent-solid)]/20 text-[var(--shell-accent)] dark:text-[var(--shell-accent)] text-xs font-semibold uppercase tracking-wider border border-[var(--shell-accent)]/30">Admin</span>
           <h1 className="text-xl sm:text-xl font-extrabold tracking-tight">Communities</h1>
           <p className="text-sm text-white/70 max-w-xl">Manage all communities on the platform.</p>
         </div>
@@ -85,7 +94,7 @@ export function AdminCommunitiesPage() {
       {stats && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
-            { label: 'Total', value: stats.total, color: 'text-[#2164b6] dark:text-[#7ab0ff]' },
+            { label: 'Total', value: stats.total, color: 'text-[var(--shell-accent)] dark:text-[var(--shell-accent)]' },
             { label: 'Public', value: stats.public, color: 'text-emerald-500' },
             { label: 'Private', value: stats.private, color: 'text-amber-500' },
             { label: 'Categories', value: stats.categories?.length ?? 0, color: 'text-muted-foreground' },
@@ -105,7 +114,7 @@ export function AdminCommunitiesPage() {
         </div>
         {['', 'public', 'private'].map(v => (
           <button key={v} onClick={() => { setVisibility(v); setPage(1); }}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${visibility === v ? 'bg-[#2164b6] text-foreground' : 'bg-white/[0.05] text-muted-foreground hover:text-foreground'}`}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${visibility === v ? 'bg-[var(--shell-accent-solid)] text-foreground' : 'bg-white/[0.05] text-muted-foreground hover:text-foreground'}`}
           >{v ? v.charAt(0).toUpperCase() + v.slice(1) : 'All'}</button>
         ))}
       </div>
@@ -121,7 +130,7 @@ export function AdminCommunitiesPage() {
             {communities.map(c => (
               <div key={c.id} className="flex items-center justify-between px-4 py-3.5 hover:bg-muted/10 transition-colors">
                 <div className="flex items-center gap-3 min-w-0 flex-1">
-                  <div className="p-2 rounded-lg bg-[#2164b6]/10 text-[#2164b6] dark:text-[#7ab0ff] shrink-0">
+                  <div className="p-2 rounded-lg bg-[var(--shell-accent-solid)]/10 text-[var(--shell-accent)] dark:text-[var(--shell-accent)] shrink-0">
                     <Building2 weight="fill" className="h-4 w-4" />
                   </div>
                   <div className="min-w-0">

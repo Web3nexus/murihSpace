@@ -1,3 +1,5 @@
+import { logger } from "@/lib/logger";
+import { safeHref } from "@/lib/safeUrl";
 import * as React from "react";
 import { Send as PaperPlaneTilt, Image as ImageIcon, CloseSquare as X, TickSquare as Check, Chat as ChatCircleDots, Lock } from "@/components/icons";
 import { Smiley, ArrowBendUpLeft, SpinnerGap, Crown } from "@/components/icons/rounded";;
@@ -45,6 +47,13 @@ export function GroupChatView({ group }: GroupChatViewProps) {
   const { user } = useAuth();
   const [messages, setMessages] = React.useState<ChatMessage[]>([]);
   const [loading, setLoading] = React.useState(true);
+  // Switching groups clears the previous group's messages during render.
+  const [chatGroupId, setChatGroupId] = React.useState(group.id);
+  if (chatGroupId !== group.id) {
+    setChatGroupId(group.id);
+    setMessages([]);
+    setLoading(true);
+  }
   const [sending, setSending] = React.useState(false);
   const [inputText, setInputText] = React.useState("");
   const [replyingTo, setReplyingTo] = React.useState<ChatMessage | null>(null);
@@ -65,25 +74,28 @@ export function GroupChatView({ group }: GroupChatViewProps) {
   };
 
   // Fetch message history
-  const fetchMessages = React.useCallback(async () => {
-    try {
-      setLoading(true);
-      const res = await apiClient.get(`/groups/${group.id}/chat/messages`);
-      const raw = res.data?.messages || res.data?.data?.data || [];
-      setMessages(raw);
-      setTimeout(() => scrollToBottom(false), 100);
-    } catch (err) {
-      console.error("Failed to load group messages", err);
-    } finally {
-      setLoading(false);
-    }
-  }, [group.id]);
-
+  // Results are written only after the request settles, so the effect never
+  // sets state synchronously. Loading is cleared once the first fetch completes.
   React.useEffect(() => {
-    if (group.is_member) {
-      fetchMessages();
-    }
-  }, [group.id, group.is_member, fetchMessages]);
+    if (!group.is_member) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await apiClient.get(`/groups/${group.id}/chat/messages`);
+        const raw = res.data?.messages || res.data?.data?.data || [];
+        if (cancelled) return;
+        setMessages(raw);
+        setTimeout(() => scrollToBottom(false), 100);
+      } catch (err) {
+        logger.error("Failed to load group messages", err);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [group.id, group.is_member]);
 
   // Real-time integration via Echo hook
   useRealtimeMessaging(conversationId, user?.id, {
@@ -153,7 +165,7 @@ export function GroupChatView({ group }: GroupChatViewProps) {
         id: user?.id || 0,
         name: user?.name || "You",
         username: user?.username || "you",
-        avatar_url: (user as any)?.avatar || (user as any)?.avatar_url,
+        avatar_url: user?.avatar || user?.avatar_url,
       },
     };
 
@@ -182,7 +194,7 @@ export function GroupChatView({ group }: GroupChatViewProps) {
         );
       }
     } catch (err) {
-      console.error("Failed to send message", err);
+      logger.error("Failed to send message", err);
       setMessages((prev) =>
         prev.map((m) => (m.client_uuid === clientUuid ? { ...m, status: "failed" } : m))
       );
@@ -357,15 +369,16 @@ export function GroupChatView({ group }: GroupChatViewProps) {
                     {msg.attachment_url && (
                       <div className="mb-2 rounded-xl overflow-hidden max-w-sm">
                         {msg.attachment_type === "image" ? (
-                          <img
-                            src={msg.attachment_url}
-                            alt="Attachment"
-                            className="max-h-60 w-auto rounded-xl object-cover hover:opacity-95 cursor-pointer"
-                            onClick={() => window.open(msg.attachment_url, "_blank")}
-                          />
+                          <a href={safeHref(msg.attachment_url)} target="_blank" rel="noopener noreferrer" className="block">
+                            <img
+                              src={msg.attachment_url}
+                              alt="Attachment"
+                              className="max-h-60 w-auto rounded-xl object-cover hover:opacity-95"
+                            />
+                          </a>
                         ) : (
                           <a
-                            href={msg.attachment_url}
+                            href={safeHref(msg.attachment_url)}
                             target="_blank"
                             rel="noreferrer"
                             className="flex items-center gap-2 p-2 rounded-xl bg-background/50 underline text-xs"

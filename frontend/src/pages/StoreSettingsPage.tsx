@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { Download as FloppyDisk, DangerSquare as AlertCircle, Chat as ChatCircleDots } from "@/components/icons";
-import { Storefront, Spinner as Loader2, Sparkle } from "@/components/icons/rounded";;
+import { Storefront, Spinner as Loader2, Medal } from "@/components/icons/rounded";;
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { authFetch } from "@/lib/api/authFetch";
@@ -17,25 +17,31 @@ export default function StoreSettingsPage() {
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
-  const fetchSettings = useCallback(async () => {
+  const [fetchSettingsKey, setFetchSettingsKey] = useState(0);
+  const fetchSettings = () => {
     setLoadError(null);
-    try {
-      const res = await authFetch(`/store/settings`);
-      if (res.ok) {
-        const j = await res.json();
-        const d = j?.success ? j?.data : j;
-        const data = d?.data ?? d;
-        if (data?.name) setName(data.name);
-        if (data?.description) setDescription(data.description);
-        if (data?.default_currency || data?.currency) setCurrency(data.default_currency || data.currency);
-        if (typeof data?.greeting_message_enabled === "boolean") setGreetingEnabled(data.greeting_message_enabled);
-        if (data?.greeting_message) setGreetingMessage(data.greeting_message);
-      }
-    } catch { setLoadError("Failed to load settings."); }
-    finally { setLoading(false); }
-  }, []);
+    setFetchSettingsKey((k) => k + 1);
+  };
 
-  useEffect(() => { fetchSettings(); }, [fetchSettings]);
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await authFetch(`/store/settings`);
+        if (res.ok) {
+          const j = await res.json();
+          const d = j?.success ? j?.data : j;
+          const data = d?.data ?? d;
+          if (data?.name) setName(data.name);
+          if (data?.description) setDescription(data.description);
+          if (data?.default_currency || data?.currency) setCurrency(data.default_currency || data.currency);
+          if (typeof data?.greeting_message_enabled === "boolean") setGreetingEnabled(data.greeting_message_enabled);
+          if (data?.greeting_message) setGreetingMessage(data.greeting_message);
+        }
+      } catch { setLoadError("Failed to load settings."); }
+      finally { setLoading(false); }
+    })();
+  }, [fetchSettingsKey]);
+
 
   const handleSave = async () => {
     setSaving(true);
@@ -60,13 +66,13 @@ export default function StoreSettingsPage() {
     } finally { setSaving(false); }
   };
 
-  if (loading) return <div className="flex justify-center py-24"><Loader2 weight="fill" className="h-8 w-8 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" /></div>;
+  if (loading) return <div className="flex justify-center py-24"><Loader2 weight="fill" className="h-8 w-8 animate-spin text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" /></div>;
 
   return (
     <div className="w-full max-w-7xl mx-auto space-y-6 p-4 lg:p-5">
       <div>
         <h1 className="text-xl font-black tracking-tight flex items-center gap-2.5">
-          <Storefront weight="fill" className="h-6 w-6 text-[#2164b6] dark:text-[#7ab0ff]" /> Storefront Settings
+          <Storefront weight="fill" className="h-6 w-6 text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" /> Storefront Settings
         </h1>
         <p className="text-xs text-muted-foreground mt-1">Configure your store profile and preferences.</p>
       </div>
@@ -80,16 +86,16 @@ export default function StoreSettingsPage() {
 
       <div className="border-none rounded-lg bg-card p-4 space-y-4">
         <div className="space-y-2">
-          <label className="text-xs font-bold text-muted-foreground">Storefront Name</label>
-          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="My Storefront" />
+          <label htmlFor="f-pages-storesettingspage-tsx-83" className="text-xs font-bold text-muted-foreground">Storefront Name</label>
+          <Input id="f-pages-storesettingspage-tsx-83" value={name} onChange={(e) => setName(e.target.value)} placeholder="My Storefront" />
         </div>
         <div className="space-y-2">
-          <label className="text-xs font-bold text-muted-foreground">Description</label>
-          <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} className="w-full rounded-lg border-none bg-card p-2.5 text-sm font-medium text-foreground placeholder:text-muted-foreground resize-none" placeholder="Tell customers about your store..." />
+          <label htmlFor="f-pages-storesettingspage-tsx-87" className="text-xs font-bold text-muted-foreground">Description</label>
+          <textarea id="f-pages-storesettingspage-tsx-87" value={description} onChange={(e) => setDescription(e.target.value)} rows={3} className="w-full rounded-lg border-none bg-card p-2.5 text-sm font-medium text-foreground placeholder:text-muted-foreground resize-none" placeholder="Tell customers about your store..." />
         </div>
         <div className="space-y-2">
-          <label className="text-xs font-bold text-muted-foreground">Default Currency</label>
-          <select value={currency} onChange={(e) => setCurrency(e.target.value)} className="w-full rounded-lg border-none bg-card p-2.5 text-sm font-medium text-foreground">
+          <label htmlFor="f-pages-storesettingspage-tsx-91" className="text-xs font-bold text-muted-foreground">Default Currency</label>
+          <select id="f-pages-storesettingspage-tsx-91" value={currency} onChange={(e) => setCurrency(e.target.value)} className="w-full rounded-lg border-none bg-card p-2.5 text-sm font-medium text-foreground">
             {["USD", "NGN", "GBP", "EUR"].map((c) => <option key={c} value={c}>{c}</option>)}
           </select>
         </div>
@@ -98,11 +104,11 @@ export default function StoreSettingsPage() {
         <div className="pt-4 border-t border-border/40 space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Sparkle weight="fill" className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" />
-              <label className="text-xs font-bold text-foreground">Automated Customer Greeting</label>
+              <Medal weight="fill" className="h-4 w-4 text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" />
+              <label htmlFor="f-pages-storesettingspage-tsx-104" className="text-xs font-bold text-foreground">Automated Customer Greeting</label>
             </div>
-            <label className="relative inline-flex items-center cursor-pointer shrink-0">
-              <input
+            <label htmlFor="f-pages-storesettingspage-tsx-104" aria-label="Automated Customer Greeting" className="relative inline-flex items-center cursor-pointer shrink-0">
+              <input id="f-pages-storesettingspage-tsx-104"
                 type="checkbox"
                 checked={greetingEnabled}
                 onChange={(e) => setGreetingEnabled(e.target.checked)}
@@ -128,7 +134,7 @@ export default function StoreSettingsPage() {
                 <span>{greetingMessage.length}/1000 characters</span>
                 <Link
                   to="/app/settings/automated-replies"
-                  className="font-bold text-[#2164b6] dark:text-[#7ab0ff] hover:underline flex items-center gap-1"
+                  className="font-bold text-[var(--shell-accent)] dark:text-[var(--shell-accent)] hover:underline flex items-center gap-1"
                 >
                   <ChatCircleDots weight="fill" className="h-3 w-3" />
                   Advanced auto-reply settings &gt;

@@ -3,6 +3,10 @@ interface WalletBalanceBreakdownProps {
   reservedFormatted: string;
   escrowFormatted: string;
   totalFormatted: string;
+  /** Money a seller holds for a dispute or chargeback. Cannot be withdrawn. */
+  heldFormatted?: string;
+  /** Released money that has cleared review and can be withdrawn. */
+  withdrawableFormatted?: string;
   isBalanceHidden?: boolean;
 }
 
@@ -15,9 +19,33 @@ export function WalletBalanceBreakdown({
   reservedFormatted,
   escrowFormatted,
   totalFormatted,
+  heldFormatted,
+  withdrawableFormatted,
   isBalanceHidden = false,
 }: WalletBalanceBreakdownProps) {
   const metrics = [
+    ...(withdrawableFormatted !== undefined
+      ? [
+          {
+            label: "Withdrawable",
+            value: withdrawableFormatted,
+            description: "Cleared and ready to withdraw",
+            accent: "text-emerald-600 dark:text-emerald-400 font-bold",
+            badge: "Ready",
+          },
+        ]
+      : []),
+    ...(heldFormatted !== undefined
+      ? [
+          {
+            label: "Held for dispute",
+            value: heldFormatted,
+            description: "Cannot be withdrawn while the dispute is open",
+            accent: "text-rose-600 dark:text-rose-400 font-bold",
+            badge: "Held",
+          },
+        ]
+      : []),
     {
       label: "Total Book Balance",
       value: totalFormatted,
@@ -36,7 +64,7 @@ export function WalletBalanceBreakdown({
       label: "Reserved Balance",
       value: reservedFormatted,
       description: "Security & dispute hold",
-      accent: "text-[#2164b6] dark:text-sky-400 font-bold",
+      accent: "text-[var(--shell-accent)] dark:text-sky-400 font-bold",
       badge: "Protected",
     },
     {

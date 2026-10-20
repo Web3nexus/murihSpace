@@ -13,13 +13,14 @@ class QrLoginService
 {
     /**
      * Max wrong confirmation-code guesses before the transaction is locked.
+     * Retained for transactions created before the code was removed.
      */
     private const CONFIRMATION_MAX_ATTEMPTS = 5;
 
     /**
      * Start a new unauthenticated QR login transaction for the desktop.
      *
-     * @return array{qr_token: string, poll_token: string, confirmation_code: string, expires_at: string, qr_deep_link: string, qr_url: string}
+     * @return array{qr_token: string, poll_token: string, expires_at: string, qr_deep_link: string, qr_url: string}
      */
     public function start(Request $request): array
     {
@@ -28,11 +29,6 @@ class QrLoginService
 
         $qrToken = bin2hex(random_bytes(32));
         $pollToken = Str::random(64);
-
-        // Short code shown only on this desktop. Kept out of the QR payload and
-        // every other response so only someone with the desktop in view can
-        // complete the pairing.
-        $confirmationCode = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
 
         $deviceId = $this->safeString($this->deviceId($request))
             ?? hash('sha256', ($request->ip() ?? 'unknown').'|'.($request->userAgent() ?? 'unknown'));
@@ -64,13 +60,16 @@ class QrLoginService
             'poll_token_hash' => hash('sha256', $pollToken),
             'status' => 'pending',
             'device_id' => $deviceId,
-            'device_name' => $this->safeString($request->input('device_name')) ?? $this->inferDeviceName($request),
-            'platform' => $this->safeString($request->input('platform'), 50) ?? $this->inferPlatform($request),
+            // Device details come from the request itself, not from client input,
+            // so the approval prompt cannot be filled with attacker-chosen names.
+            'device_name' => $this->inferDeviceName($request),
+            'platform' => $this->inferPlatform($request),
             'ip' => $request->ip(),
             'user_agent' => $request->userAgent(),
-            'location' => $this->safeString($request->input('location'), 100) ?? 'Unknown location',
+            // No geo lookup is configured, so the location is never client-supplied.
+            'location' => 'Unknown location',
             'expires_at' => $expiresAt,
-            'confirmation_code_hash' => hash('sha256', $confirmationCode),
+            'confirmation_code_hash' => null,
         ]);
 
         $baseWeb = rtrim((string) config('murihspace.qr_login.web_url'), '/');
@@ -78,7 +77,6 @@ class QrLoginService
         return [
             'qr_token' => $tx->qr_token,
             'poll_token' => $pollToken,
-            'confirmation_code' => $confirmationCode,
             'expires_at' => $tx->expires_at->toIso8601String(),
             'qr_deep_link' => "murihspace://qr-login?token={$tx->qr_token}",
             'qr_url' => "{$baseWeb}/qr-login?token={$tx->qr_token}",
@@ -222,7 +220,7 @@ class QrLoginService
      * a device session from the desktop's stored details — not the phone that
      * approved it. The desktop collects the token on its next poll.
      */
-    public function approve(int $id, User $approvingUser, string $confirmationCode, ?DeviceSession $session = null): void
+    public function approve(int $id, User $approvingUser, ?DeviceSession $session = null): void
     {
         $tx = QrLoginTransaction::findOrFail($id);
 
@@ -233,8 +231,6 @@ class QrLoginService
         if (! $tx->isOpen()) {
             throw new \InvalidArgumentException('Transaction is no longer open.');
         }
-
-        $this->assertConfirmationCode($tx, $confirmationCode);
 
         $expiration = (int) config('sanctum.expiration', 43200);
         $expiresAt = now()->addMinutes($expiration > 0 ? $expiration : 43200);
@@ -250,7 +246,6 @@ class QrLoginService
                 ->where('user_id', $approvingUser->id)
                 ->whereIn('status', ['pending', 'scanned'])
                 ->where('expires_at', '>', now())
-                ->where('confirmation_attempts', '<', self::CONFIRMATION_MAX_ATTEMPTS)
                 ->update([
                     'status' => 'approved',
                     'approved_by_device_session_id' => $session?->id,
@@ -315,42 +310,6 @@ class QrLoginService
         if ($claimed === 0) {
             throw new \InvalidArgumentException('Transaction is no longer open.');
         }
-    }
-
-    /**
-     * Verify the short confirmation code the phone read off the desktop. Locks
-     * the transaction after a handful of wrong guesses so the 6-digit space
-     * cannot be brute-forced within the (short) transaction TTL.
-     */
-    private function assertConfirmationCode(QrLoginTransaction $tx, string $code): void
-    {
-        $maxAttempts = self::CONFIRMATION_MAX_ATTEMPTS;
-        $normalized = preg_replace('/\D/', '', $code) ?? '';
-
-        $matches = $tx->confirmation_code_hash !== null
-            && hash_equals($tx->confirmation_code_hash, hash('sha256', $normalized));
-
-        if ($matches) {
-            return;
-        }
-
-        // Increment atomically so concurrent wrong guesses cannot both read the
-        // same stale count, then act on the persisted value.
-        QrLoginTransaction::where('id', $tx->id)
-            ->whereIn('status', ['pending', 'scanned'])
-            ->increment('confirmation_attempts');
-
-        $attempts = (int) QrLoginTransaction::where('id', $tx->id)->value('confirmation_attempts');
-
-        if ($attempts >= $maxAttempts) {
-            QrLoginTransaction::where('id', $tx->id)
-                ->whereIn('status', ['pending', 'scanned'])
-                ->update(['status' => 'denied', 'denied_at' => now()]);
-
-            throw new \InvalidArgumentException('Too many incorrect confirmation codes.');
-        }
-
-        throw new \InvalidArgumentException('Incorrect confirmation code.');
     }
 
     /**

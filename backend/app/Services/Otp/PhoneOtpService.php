@@ -94,13 +94,11 @@ class PhoneOtpService
                 ],
             ]);
 
-            // Staging delivers the code to the active device via websocket, but
-            // testers also need to read it from the log when no other device is
-            // signed in. Never emit the code in production; staging may report
-            // APP_ENV=production, so the explicit OTP_ALLOW_LOG_DRIVER flag
-            // (the same one LogOtpDriver honours) is the single override.
-            if (! app()->environment('production')
-                || filter_var(config('services.twilio.allow_log_driver', false), FILTER_VALIDATE_BOOLEAN)) {
+            // Staging delivers the code to the active device, and testers also read
+            // it from the log when no other device is signed in. In production the
+            // code is never written to the cache or the log. Delivery to the
+            // signed-in device is unchanged.
+            if (! app()->environment('production')) {
                 Cache::put('phone-otp:dev:'.$row->id, $code, now()->addMinutes($ttlMinutes));
 
                 Log::info('[phone-otp] in-app active-device code issued', [

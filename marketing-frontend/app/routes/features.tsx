@@ -1,5 +1,5 @@
 import { Link } from "react-router";
-import { Mic, Shield, Sparkles, CheckCircle2, ShoppingBag, Radio, Users, Hand, Lock, MessageSquare, Video, ArrowRight, Zap, Award } from "lucide-react";
+import { Mic, Shield, Sparkles, Radio, Users, Lock, MessageSquare, Video, ArrowRight, Zap, Award } from "lucide-react";
 import { getRegisterUrl } from "~/lib/env";
 
 export function meta() {

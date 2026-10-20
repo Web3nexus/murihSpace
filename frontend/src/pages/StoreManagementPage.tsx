@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { logger } from "@/lib/logger";
+import { asApiError } from "@/lib/apiError";
+import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router';
-import { getAuthToken } from "@/lib/auth/token";
 import { authFetch } from "@/lib/api/authFetch";
 import { useAuth } from "@/hooks/useAuth";
 import { ShareModal } from "@/components/common/ShareModal";
@@ -12,7 +13,7 @@ import { StoreCollectionsTab } from "@/components/store/tabs/StoreCollectionsTab
 import { StoreDesignTab } from "@/components/store/tabs/StoreDesignTab";
 import { StoreSettingsTab } from "@/components/store/tabs/StoreSettingsTab";
 import { Spinner as Loader2 } from "@/components/icons/rounded";
-import type { StorefrontLink } from "@/types/storefront";
+import type { Storefront, StorefrontLink } from "@/types/storefront";
 
 const SITE_BASE = window.location.origin;
 
@@ -34,7 +35,7 @@ export function StoreManagementPage() {
   };
 
   // Storefront backend state
-  const [storefront, setStorefront] = useState<any | null>(null);
+  const [storefront, setStorefront] = useState<Storefront | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isTogglingPublish, setIsTogglingPublish] = useState(false);
@@ -56,76 +57,78 @@ export function StoreManagementPage() {
   const [collectionsCount, setCollectionsCount] = useState(0);
 
   // Fetch Storefront data
-  const fetchStorefront = useCallback(async () => {
-    const token = getAuthToken();
-    try {
-      const res = await authFetch(`/storefront`, {
-        headers: {
-          Accept: 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-      });
-      if (res.ok) {
-        const json = await res.json();
-        const data: any = json.data?.data ?? json.data;
-        setStorefront(data);
-        setDisplayName(data.display_name ?? user?.name ?? '');
-        setTagline(data.tagline ?? 'Welcome to my official creator storefront.');
-        setBio(data.bio ?? 'Explore my digital products, community memberships, and exclusive content.');
-        setShortCode(data.short_code ?? user?.username ?? `user-${user?.id}`);
-        setCoverUrl(data.cover_url ?? '');
-        setAvatarUrl(data.avatar_url ?? user?.avatar_url ?? '');
-        setLinks(Array.isArray(data.links) ? data.links : []);
-      }
-    } catch {
-      setError('Failed to load storefront data.');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [user]);
 
-  // Fetch summary counts (digital products, physical products, collections)
-  const fetchCounts = useCallback(async () => {
-    const token = getAuthToken();
-    try {
-      const [digRes, physRes, colRes] = await Promise.allSettled([
-        authFetch(`/store/products?per_page=1`, {
-          headers: { Accept: 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-        }),
-        authFetch(`/store/physical-products/my?per_page=1`, {
-          headers: { Accept: 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-        }),
-        authFetch(`/store/categories`, {
-          headers: { Accept: 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-        }),
-      ]);
-
-      if (digRes.status === 'fulfilled' && digRes.value.ok) {
-        const j = await digRes.value.json();
-        const total = j?.data?.total ?? (Array.isArray(j?.data?.data) ? j.data.data.length : 0);
-        setDigitalCount(Number(total) || 0);
-      }
-
-      if (physRes.status === 'fulfilled' && physRes.value.ok) {
-        const j = await physRes.value.json();
-        const total = j?.data?.total ?? j?.total ?? (Array.isArray(j?.data) ? j.data.length : 0);
-        setPhysicalCount(Number(total) || 0);
-      }
-
-      if (colRes.status === 'fulfilled' && colRes.value.ok) {
-        const j = await colRes.value.json();
-        const list = j?.data ?? j;
-        setCollectionsCount(Array.isArray(list) ? list.length : 0);
-      }
-    } catch (e) {
-      console.warn('Could not fetch store counts', e);
-    }
-  }, []);
 
   useEffect(() => {
-    fetchStorefront();
-    fetchCounts();
-  }, [fetchStorefront, fetchCounts]);
+    // Cleared on cleanup, so a response from an older run or an unmounted page is dropped.
+    let active = true;
+    (async () => {
+      try {
+        const res = await authFetch(`/storefront`, {
+          headers: {
+            Accept: 'application/json',
+          },
+        });
+        if (res.ok && active) {
+          const json = await res.json();
+          const data: Storefront = json.data?.data ?? json.data;
+          setStorefront(data);
+          setDisplayName(data.display_name ?? user?.name ?? '');
+          setTagline(data.tagline ?? 'Welcome to my official creator storefront.');
+          setBio(data.bio ?? 'Explore my digital products, community memberships, and exclusive content.');
+          setShortCode(data.short_code ?? user?.username ?? `user-${user?.id}`);
+          setCoverUrl(data.cover_url ?? '');
+          setAvatarUrl(data.avatar_url ?? user?.avatar_url ?? '');
+          setLinks(Array.isArray(data.links) ? data.links : []);
+        }
+      } catch {
+        if (active) setError('Failed to load storefront data.');
+      } finally {
+        if (active) setIsLoading(false);
+      }
+    })();
+
+    // Fetch summary counts (digital products, physical products, collections)
+    (async () => {
+      try {
+        const [digRes, physRes, colRes] = await Promise.allSettled([
+          authFetch(`/store/products?per_page=1`, {
+            headers: { Accept: 'application/json', },
+          }),
+          authFetch(`/store/physical-products/my?per_page=1`, {
+            headers: { Accept: 'application/json', },
+          }),
+          authFetch(`/store/categories`, {
+            headers: { Accept: 'application/json', },
+          }),
+        ]);
+
+        if (digRes.status === 'fulfilled' && digRes.value.ok) {
+          const j = await digRes.value.json();
+          const total = j?.data?.total ?? (Array.isArray(j?.data?.data) ? j.data.data.length : 0);
+          if (active) setDigitalCount(Number(total) || 0);
+        }
+
+        if (physRes.status === 'fulfilled' && physRes.value.ok) {
+          const j = await physRes.value.json();
+          const total = j?.data?.total ?? j?.total ?? (Array.isArray(j?.data) ? j.data.length : 0);
+          if (active) setPhysicalCount(Number(total) || 0);
+        }
+
+        if (colRes.status === 'fulfilled' && colRes.value.ok) {
+          const j = await colRes.value.json();
+          const list = j?.data ?? j;
+          if (active) setCollectionsCount(Array.isArray(list) ? list.length : 0);
+        }
+      } catch (e) {
+        logger.warn('Could not fetch store counts', e);
+      }
+    })();
+
+    return () => {
+      active = false;
+    };
+  }, [user?.id, user?.name, user?.username, user?.avatar_url]);
 
   // Unified save method
   const handleSaveStorefront = async (overrides?: Partial<{
@@ -140,7 +143,6 @@ export function StoreManagementPage() {
     setIsSaving(true);
     setError(null);
 
-    const token = getAuthToken();
     const payload = {
       display_name: overrides?.displayName ?? displayName,
       tagline: overrides?.tagline ?? tagline,
@@ -157,7 +159,6 @@ export function StoreManagementPage() {
         headers: {
           'Content-Type': 'application/json',
           Accept: 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify(payload),
       });
@@ -177,7 +178,8 @@ export function StoreManagementPage() {
 
       return true;
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'An error occurred while saving.');
+      const apiErr = asApiError(err);
+      setError(err instanceof Error ? apiErr.message : 'An error occurred while saving.');
       return false;
     } finally {
       setIsSaving(false);
@@ -189,7 +191,6 @@ export function StoreManagementPage() {
     if (!storefront) return;
     setIsTogglingPublish(true);
 
-    const token = getAuthToken();
     const nextState = !storefront.is_published;
 
     try {
@@ -198,7 +199,6 @@ export function StoreManagementPage() {
         headers: {
           'Content-Type': 'application/json',
           Accept: 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({ is_published: nextState }),
       });
@@ -211,7 +211,7 @@ export function StoreManagementPage() {
         setError(json?.message || 'Failed to update store publish status.');
       }
     } catch (e) {
-      console.error('Failed to toggle publish', e);
+      logger.error('Failed to toggle publish', e);
       setError(e instanceof Error ? e.message : 'Network error updating store publish status.');
     } finally {
       setIsTogglingPublish(false);
@@ -231,8 +231,8 @@ export function StoreManagementPage() {
   if (isLoading) {
     return (
       <div className="py-28 text-center space-y-3">
-        <Loader2 weight="fill" className="h-8 w-8 animate-spin text-[#087FFF] mx-auto" />
-        <p className="text-xs text-[#A7B0BE] font-medium">Loading store dashboard…</p>
+        <Loader2 weight="fill" className="h-8 w-8 animate-spin text-[var(--shell-accent)] mx-auto" />
+        <p className="text-xs text-[var(--shell-muted)] font-medium">Loading store dashboard…</p>
       </div>
     );
   }

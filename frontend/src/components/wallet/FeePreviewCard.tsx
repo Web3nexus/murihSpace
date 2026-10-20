@@ -1,6 +1,6 @@
 import { Receipt } from "@/components/icons/rounded";;
 
-interface FeePreviewData {
+export interface FeePreviewData {
   gross_amount: number;
   platform_fee: number;
   processing_fee: number;

@@ -34,7 +34,7 @@ function SectionCard({ title, icon: Icon, description, children }: { title: stri
   return (
     <div className="rounded-lg border-none/50 bg-card/50 backdrop-blur-xl  overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="p-4 border-b border-border/50 flex items-start gap-4">
-        <div className="p-2.5 rounded-lg bg-[#2164b6]/10 text-[#2164b6] shrink-0">
+        <div className="p-2.5 rounded-lg bg-[var(--shell-accent-solid)]/10 text-[var(--shell-accent)] shrink-0">
           <Icon className="w-5 h-5" />
         </div>
         <div>
@@ -55,7 +55,7 @@ export function MediaKitPage() {
     engagement_rate: null, total_followers: 0, avg_views: 0,
     top_content: [], past_partnerships: [], rate_card: [], is_published: false,
   });
-  const [suggested, setSuggested] = useState<Record<string, any>>({});
+  const [suggested, setSuggested] = useState<Record<string, unknown>>({});
   const [creatorId, setCreatorId] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -93,7 +93,11 @@ export function MediaKitPage() {
     finally { setIsLoading(false); }
   }, []);
 
-  useEffect(() => { fetchKit(); }, [fetchKit]);
+  useEffect(() => {
+    // Deferred so the loading state is not set synchronously inside the effect body
+    const timer = setTimeout(() => fetchKit(), 0);
+    return () => clearTimeout(timer);
+  }, [fetchKit]);
 
   function showMsg(type: 'success' | 'error', text: string) {
     setMessage({ type, text });
@@ -137,8 +141,8 @@ export function MediaKitPage() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
         <div className="relative">
-          <div className="absolute inset-0 rounded-full blur-xl bg-[#2164b6]/20 animate-pulse"></div>
-          <Loader2 weight="fill" className="h-10 w-10 animate-spin text-[#2164b6] relative z-10" />
+          <div className="absolute inset-0 rounded-full blur-xl bg-[var(--shell-accent-solid)]/20 animate-pulse"></div>
+          <Loader2 weight="fill" className="h-10 w-10 animate-spin text-[var(--shell-accent)] relative z-10" />
         </div>
         <p className="text-sm text-muted-foreground font-medium animate-pulse">Loading Media Kit...</p>
       </div>
@@ -176,7 +180,7 @@ export function MediaKitPage() {
             <button 
               onClick={saveKit} 
               disabled={saving}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#2164b6] hover:bg-[#1a5091] text-white text-xs font-bold transition-all shadow-xs disabled:opacity-50"
+              className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[var(--shell-accent-solid)] hover:bg-[var(--shell-accent-hover)] text-white text-xs font-bold transition-all shadow-xs disabled:opacity-50"
             >
               {saving ? <Loader2 weight="fill" className="h-3.5 w-3.5 animate-spin" /> : <FloppyDisk weight="fill" className="h-3.5 w-3.5" />}
               Save Changes
@@ -196,7 +200,7 @@ export function MediaKitPage() {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <StatCard icon={Users} label="Total Followers" value={Number(kit.total_followers).toLocaleString()} color="bg-blue-500 text-blue-500" />
+        <StatCard icon={Users} label="Total Followers" value={Number(kit.total_followers).toLocaleString()} color="bg-[var(--shell-accent-solid)] text-[var(--shell-accent)]" />
         <StatCard icon={BarChart3} label="Engagement Rate" value={`${kit.engagement_rate ?? 0}%`} color="bg-emerald-500 text-emerald-500" />
         <StatCard icon={Eye} label="Avg. Views" value={Number(kit.avg_views).toLocaleString()} color="bg-purple-500 text-purple-500" />
       </div>
@@ -210,7 +214,7 @@ export function MediaKitPage() {
               value={kit.bio} 
               onChange={e => setKit({ ...kit, bio: e.target.value })}
               rows={4} 
-              className="w-full rounded-lg bg-background border-none/50 p-4 text-sm font-medium focus:ring-2 focus:ring-[#2164b6]/50 resize-none" 
+              className="w-full rounded-lg bg-background border-none/50 p-4 text-sm font-medium focus:ring-2 focus:ring-[var(--shell-accent)]/50 resize-none" 
               placeholder="Hi, I'm [Name] and I create content about..." 
             />
           </SectionCard>
@@ -228,10 +232,10 @@ export function MediaKitPage() {
                     type="number" step={f.step} min="0" 
                     value={f.val} 
                     onChange={e => setKit({ ...kit, [f.key]: e.target.value ? Number(e.target.value) : null })}
-                    className="w-full h-12 rounded-lg bg-background border-none/50 px-4 text-sm font-medium focus:ring-2 focus:ring-[#2164b6]/50"
+                    className="w-full h-12 rounded-lg bg-background border-none/50 px-4 text-sm font-medium focus:ring-2 focus:ring-[var(--shell-accent)]/50"
                   />
-                  {f.sug != null && f.sug > 0 && (
-                    <button type="button" onClick={() => setKit({ ...kit, [f.key]: f.sug })} className="text-[10px] font-bold text-[#2164b6] hover:underline flex items-center gap-1">
+                  {Number(f.sug) > 0 && (
+                    <button type="button" onClick={() => setKit({ ...kit, [f.key]: f.sug })} className="text-[10px] font-bold text-[var(--shell-accent)] hover:underline flex items-center gap-1">
                       <CheckCircle2 weight="fill" className="w-3 h-3" /> Auto-fill: {Number(f.sug).toLocaleString()}
                     </button>
                   )}
@@ -240,13 +244,13 @@ export function MediaKitPage() {
             </div>
 
             <div className="pt-6 mt-6 border-t border-border/50">
-              <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-4">Audience Demographics</label>
+              <label htmlFor="f-pages-mediakitpage-tsx-243" className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-4">Audience Demographics</label>
               <div className="flex gap-3 mb-4">
-                <input 
+                <input id="f-pages-mediakitpage-tsx-243" 
                   value={demographicsKey} 
                   onChange={e => setDemographicsKey(e.target.value)} 
                   placeholder="e.g. 18-24 years" 
-                  className="flex-1 h-12 rounded-lg bg-background border-none/50 px-4 text-sm focus:ring-[#2164b6]/50"
+                  className="flex-1 h-12 rounded-lg bg-background border-none/50 px-4 text-sm focus:ring-[var(--shell-accent)]/50"
                   onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addDemographic(); } }}
                 />
                 <input 
@@ -254,7 +258,7 @@ export function MediaKitPage() {
                   value={demographicsVal} 
                   onChange={e => setDemographicsVal(e.target.value)} 
                   placeholder="%" 
-                  className="w-24 shrink-0 h-12 rounded-lg bg-background border-none/50 px-4 text-sm focus:ring-[#2164b6]/50"
+                  className="w-24 shrink-0 h-12 rounded-lg bg-background border-none/50 px-4 text-sm focus:ring-[var(--shell-accent)]/50"
                   onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addDemographic(); } }}
                 />
                 <button type="button" onClick={addDemographic} className="h-12 px-6 rounded-lg bg-muted text-foreground font-bold hover:bg-muted/80 transition-colors">
@@ -290,7 +294,7 @@ export function MediaKitPage() {
                 value={newPartnership} 
                 onChange={e => setNewPartnership(e.target.value)} 
                 placeholder="Brand Name (e.g. Nike, Spotify)" 
-                className="flex-1 h-12 rounded-lg bg-background border-none/50 px-4 text-sm focus:ring-[#2164b6]/50"
+                className="flex-1 h-12 rounded-lg bg-background border-none/50 px-4 text-sm focus:ring-[var(--shell-accent)]/50"
                 onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addPartnership(); } }}
               />
               <button type="button" onClick={addPartnership} className="h-12 px-6 rounded-lg bg-muted text-foreground font-bold hover:bg-muted/80 transition-colors">
@@ -321,9 +325,9 @@ export function MediaKitPage() {
         <div className="space-y-8">
           
           <SectionCard title="Visibility" icon={Globe}>
-            <label className="flex items-center justify-between gap-4 p-4 rounded-lg border-none/50 bg-background cursor-pointer group">
+            <label aria-labelledby="media-kit-publish-label" className="flex items-center justify-between gap-4 p-4 rounded-lg border-none/50 bg-background cursor-pointer group">
               <div>
-                <span className="text-sm font-bold text-foreground block group-hover:text-[#2164b6] transition-colors">Publish Kit</span>
+                <span id="media-kit-publish-label" className="text-sm font-bold text-foreground block group-hover:text-[var(--shell-accent)] transition-colors">Publish Kit</span>
                 <span className="text-xs text-muted-foreground mt-0.5 block">Make your media kit public via your link in bio.</span>
               </div>
               <div className="relative flex items-center shrink-0">
@@ -351,14 +355,14 @@ export function MediaKitPage() {
                 value={newRateItem.type} 
                 onChange={e => setNewRateItem({ ...newRateItem, type: e.target.value })} 
                 placeholder="Deliverable (e.g. 1x Reel)" 
-                className="w-full h-10 rounded-lg bg-background border-none/50 px-3 text-sm focus:ring-[#2164b6]/50"
+                className="w-full h-10 rounded-lg bg-background border-none/50 px-3 text-sm focus:ring-[var(--shell-accent)]/50"
               />
               <div className="flex gap-2">
                 <input 
                   value={newRateItem.price} 
                   onChange={e => setNewRateItem({ ...newRateItem, price: e.target.value })} 
                   placeholder="Price (e.g. $500)" 
-                  className="flex-1 h-10 rounded-lg bg-background border-none/50 px-3 text-sm focus:ring-[#2164b6]/50"
+                  className="flex-1 h-10 rounded-lg bg-background border-none/50 px-3 text-sm focus:ring-[var(--shell-accent)]/50"
                   onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addRateItem(); } }}
                 />
                 <button type="button" onClick={addRateItem} className="h-10 w-10 shrink-0 flex items-center justify-center rounded-lg bg-muted text-foreground hover:bg-muted/80 transition-colors">

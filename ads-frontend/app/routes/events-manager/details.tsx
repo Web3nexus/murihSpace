@@ -4,6 +4,7 @@ import { Button } from "../../components/ui/button";
 import { ArrowLeft, Code, Activity, Search, Copy, CheckCircle } from "lucide-react";
 import { Input } from "../../components/ui/input";
 import { getAdvertiserId } from "../../lib/advertiser";
+import { mainAppUrl } from "../../lib/ads-api";
 
 export default function PixelDetails() {
   const { id } = useParams();
@@ -75,7 +76,7 @@ export default function PixelDetails() {
   if(!m._mspq)m._mspq=p;p.push=p;p.loaded=!0;p.version='1.0';p.queue=[];
   var e=u.createElement(r),s=u.getElementsByTagName(r)[0];
   e.async=1;e.src=i;s.parentNode.insertBefore(e,s)}(window,document,'script',
-  'https://murihspace.com/static/pixel.js');
+  '${mainAppUrl()}/static/pixel.js');
   
   MurihSpacePixel('init', '${pixel.pixel_uuid}');
   MurihSpacePixel('track', 'PageView');
@@ -85,10 +86,8 @@ export default function PixelDetails() {
   return (
     <div className="flex flex-col gap-6 max-w-[1400px] mx-auto w-full pb-12">
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" asChild className="rounded-full">
-          <Link to="/events-manager">
-            <ArrowLeft className="h-5 w-5" />
-          </Link>
+        <Button variant="ghost" size="icon" className="rounded-full" render={<Link to="/events-manager" aria-label="Back to events manager" />}>
+          <ArrowLeft className="h-5 w-5" />
         </Button>
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-50">{pixel.name}</h1>

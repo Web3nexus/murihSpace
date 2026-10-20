@@ -5,6 +5,7 @@ use App\Http\Middleware\EnsureInternalRequest;
 use App\Http\Middleware\EnsureSignedInternalRequest;
 use App\Http\Middleware\EnsureStaffAuthenticated;
 use App\Http\Middleware\EnsureStaffPermission;
+use App\Http\Middleware\EnsureStaffSuperAdmin;
 use App\Http\Middleware\SecurityHeaders;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
@@ -31,6 +32,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'security' => SecurityHeaders::class,
             'staff' => EnsureStaffAuthenticated::class,
             'staff.permission' => EnsureStaffPermission::class,
+            'staff.super_admin' => EnsureStaffSuperAdmin::class,
             'internal' => EnsureInternalRequest::class,
             'internal.signed' => EnsureSignedInternalRequest::class,
         ]);

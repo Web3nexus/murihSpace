@@ -48,6 +48,122 @@ class LedgerService
     }
 
     /**
+     * Credit earnings (escrow release, sale proceeds). Any debt on the wallet is
+     * repaid first, so the seller only receives what is left after the debt is cleared.
+     *
+     * @return LedgerTransaction The credit to the target category (the repayment is a separate debit).
+     */
+    public function creditEarnings(
+        User|int $user,
+        int $amount,
+        string $currency,
+        string $walletType,
+        string $balanceCategory,
+        string $type,
+        string $description,
+        string $idempotencyKey,
+        array $metadata = []
+    ): LedgerTransaction {
+        return DB::transaction(function () use ($user, $amount, $currency, $walletType, $balanceCategory, $type, $description, $idempotencyKey, $metadata) {
+            $userId = $user instanceof User ? $user->id : $user;
+
+            // A replay must not repay debt a second time.
+            if ($existing = LedgerTransaction::where('idempotency_key', $idempotencyKey)->first()) {
+                return $existing->load('entries');
+            }
+
+            $wallet = $this->lockWallet($userId, $walletType, $currency);
+
+            $repay = min((int) $wallet->debt, $amount);
+
+            $txn = $this->credit(
+                user: $userId,
+                amount: $amount,
+                currency: $currency,
+                walletType: $walletType,
+                balanceCategory: $balanceCategory,
+                type: $type,
+                description: $description,
+                idempotencyKey: $idempotencyKey,
+                metadata: array_merge($metadata, ['debt_repaid' => $repay]),
+            );
+
+            if ($repay > 0) {
+                $wallet->update(['debt' => (int) $wallet->debt - $repay]);
+                $this->debit(
+                    user: $userId,
+                    amount: $repay,
+                    currency: $currency,
+                    walletType: $walletType,
+                    balanceCategory: $balanceCategory,
+                    type: 'debt_recovery',
+                    description: 'Debt recovered from earnings',
+                    idempotencyKey: $idempotencyKey.'_DEBT',
+                    metadata: $metadata,
+                );
+            }
+
+            return $txn;
+        });
+    }
+
+    /**
+     * Take an amount back from a wallet (a clawback after a refund or chargeback).
+     * What the category can cover is debited. The remainder is recorded as debt,
+     * rather than failing or leaving the wallet negative.
+     *
+     * @return array{debited: int, debt_added: int}
+     */
+    public function debitAllowingDebt(
+        User|int $user,
+        int $amount,
+        string $currency,
+        string $walletType,
+        string $balanceCategory,
+        string $type,
+        string $description,
+        string $idempotencyKey,
+        array $metadata = []
+    ): array {
+        return DB::transaction(function () use ($user, $amount, $currency, $walletType, $balanceCategory, $type, $description, $idempotencyKey, $metadata) {
+            $userId = $user instanceof User ? $user->id : $user;
+            $wallet = $this->lockWallet($userId, $walletType, $currency);
+
+            $take = min((int) $wallet->{$balanceCategory}, $amount);
+            $owed = $amount - $take;
+
+            if ($take > 0) {
+                $this->debit(
+                    user: $userId,
+                    amount: $take,
+                    currency: $currency,
+                    walletType: $walletType,
+                    balanceCategory: $balanceCategory,
+                    type: $type,
+                    description: $description,
+                    idempotencyKey: $idempotencyKey,
+                    metadata: $metadata,
+                );
+            }
+
+            if ($owed > 0) {
+                $wallet->update(['debt' => (int) $wallet->debt + $owed]);
+            }
+
+            return ['debited' => $take, 'debt_added' => $owed];
+        });
+    }
+
+    /** Locks the user's wallet row, creating the wallet first if it does not exist yet. */
+    private function lockWallet(int $userId, string $walletType, string $currency): Wallet
+    {
+        $user = User::findOrFail($userId);
+        $wallet = app(\App\Services\Wallet\WalletService::class)->getOrCreateWallet($user, $walletType, $currency);
+
+        return Wallet::whereKey($wallet->id)->lockForUpdate()->firstOrFail();
+    }
+
+    /**
      * Debit a user's wallet category.
      */
     public function debit(

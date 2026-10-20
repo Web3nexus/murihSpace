@@ -10,6 +10,8 @@ export default [
 
     route("campaigns/create/object", "routes/campaigns/create/object.tsx"),
     route("campaigns/create/details", "routes/campaigns/create/details.tsx"),
+    route("ad-groups", "routes/ad-groups/index.tsx"),
+    route("ads", "routes/ads/index.tsx"),
     
     // Remaining Sections
     route("creative", "routes/creative/index.tsx"),
@@ -26,7 +28,7 @@ export default [
   
   // Auth Routes
   route("login", "routes/login.tsx"),
-  route("auth/sso", "routes/auth/sso.tsx"),
+  route("auth/sso/callback", "routes/auth/sso/callback.tsx"),
 
   // Admin Routes
   route("secureads/login", "routes/secureads/login.tsx"),

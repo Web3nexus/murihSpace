@@ -1,3 +1,4 @@
+import { safeHref } from "@/lib/safeUrl";
 import React, { useState, useEffect } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { Message as MessageSquare, MoreCircle as MoreHorizontal, Heart, ShieldFail as ShieldWarning, VerifiedBadge, Profile as UserIcon } from "@/components/icons";
@@ -124,7 +125,7 @@ export default function PostCard({ post, onReact, onComment, onPin, onUnpin, isM
             <span className="post-card-author">
               {post.author?.name ?? 'Unknown'}
               {post.author?.has_active_verification_badge && (
-                <VerifiedBadge size={14} className="inline-block ml-1 text-[#1B64F2] -mt-0.5" aria-label="Verified" />
+                <VerifiedBadge size={14} className="inline-block ml-1 text-[var(--shell-accent)] -mt-0.5" aria-label="Verified" />
               )}
             </span>
             {post.author?.username && (
@@ -220,7 +221,7 @@ export default function PostCard({ post, onReact, onComment, onPin, onUnpin, isM
         {/* Link preview */}
         {post.link_url && (
           <a
-            href={post.link_url}
+            href={safeHref(post.link_url)}
             target="_blank"
             rel="noopener noreferrer"
             className="post-card-link-preview"
@@ -319,7 +320,7 @@ export default function PostCard({ post, onReact, onComment, onPin, onUnpin, isM
                   <span className="post-card-comment-author">
                     {c.user?.name ?? 'User'}
                     {c.user?.has_active_verification_badge && (
-                      <VerifiedBadge size={12} className="inline-block ml-0.5 text-[#1B64F2] -mt-0.5" aria-label="Verified" />
+                      <VerifiedBadge size={12} className="inline-block ml-0.5 text-[var(--shell-accent)] -mt-0.5" aria-label="Verified" />
                     )}
                   </span>
                   <span className="post-card-comment-text">{c.content}</span>

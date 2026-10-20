@@ -1,3 +1,7 @@
+import { env } from "@/config/env";
+import { authFetch } from "@/lib/api/authFetch";
+import { logger } from "@/lib/logger";
+import type { CallSignal } from "@/types/calls";
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Call as Phone, Voice as Mic, Video, VolumeUp as SpeakerHigh, VolumeOff as SpeakerSlash, Message as MessageSquare, AddUser as UserPlus, CloseSquare as X, Search, MoreCircle as DotsThree, ArrowDown as CaretDown } from "@/components/icons";
 import { CallSilent as PhoneSlash, Swap as ArrowsLeftRight } from "@/components/icons";
@@ -12,10 +16,17 @@ import {
   AudioPresets,
 } from 'livekit-client';
 import { startOutgoingRingback, startIncomingRingtone, stopCallSounds } from '@/lib/sound';
-import { getEcho } from '@/lib/echo';
-import { getAuthToken } from '@/lib/auth/token';
+import { getEcho, type EchoInstance } from '@/lib/echo';
 import { useAuth } from '@/hooks/useAuth';
 import { AnimatedEmoji } from '@/components/chat/AnimatedEmoji';
+
+interface InviteSearchUser {
+  id: number;
+  name?: string;
+  username?: string;
+  avatar?: string;
+  avatar_url?: string;
+}
 
 function RemoteVideoTrackElement({ track, muted = false }: { track: Track; muted?: boolean }) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -27,7 +38,7 @@ function RemoteVideoTrackElement({ track, muted = false }: { track: Track; muted
       return () => {
         try {
           track.detach(el);
-        } catch (_) {}
+        } catch { /* ignored: best-effort, failure is non-fatal */ }
       };
     }
   }, [track]);
@@ -39,18 +50,18 @@ function RemoteVideoTrackElement({ track, muted = false }: { track: Track; muted
       playsInline
       muted={muted}
       className="w-full h-full object-cover transition-opacity duration-300 pointer-events-none"
-    />
+    >
+      <track kind="captions" />
+    </video>
   );
 }
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? 'https://api-staging.murihspace.com/api/v1';
+const API_BASE = env.VITE_API_BASE_URL;
 
 function getAuthHeaders() {
-  const token = getAuthToken();
   return {
     'Content-Type': 'application/json',
     Accept: 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
   };
 }
 
@@ -176,7 +187,7 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
   const [remoteParticipants, setRemoteParticipants] = useState<Participant[]>([]);
   const [isAddParticipantOpen, setIsAddParticipantOpen] = useState(false);
   const [participantSearchQuery, setParticipantSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searchResults, setSearchResults] = useState<InviteSearchUser[]>([]);
   const [isSearchingUsers, setIsSearchingUsers] = useState(false);
   const [invitingUserIds, setInvitingUserIds] = useState<Record<number, boolean>>({});
   const [invitedUserIds, setInvitedUserIds] = useState<Record<number, boolean>>({});
@@ -190,7 +201,7 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
     }
     setIsSearchingUsers(true);
     try {
-      const res = await fetch(`${API_BASE}/users/search?q=${encodeURIComponent(query)}`, {
+      const res = await authFetch(`${API_BASE}/users/search?q=${encodeURIComponent(query)}`, {
         headers: getAuthHeaders(),
       });
       if (res.ok) {
@@ -198,7 +209,8 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
         const users = Array.isArray(raw?.data) ? raw.data : (Array.isArray(raw) ? raw : []);
         setSearchResults(users);
       }
-    } catch (_) {
+    } catch {
+    /* ignored: best-effort, failure is non-fatal */
     } finally {
       setIsSearchingUsers(false);
     }
@@ -208,7 +220,7 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
     if (!callId) return;
     setInvitingUserIds((prev) => ({ ...prev, [userId]: true }));
     try {
-      const res = await fetch(`${API_BASE}/calls/${callId}/invite`, {
+      const res = await authFetch(`${API_BASE}/calls/${callId}/invite`, {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify({ user_id: userId }),
@@ -219,7 +231,7 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
       } else {
         setInviteFeedback({ message: 'Failed to send invite', isError: true });
       }
-    } catch (_) {
+    } catch {
       setInviteFeedback({ message: 'Network error', isError: true });
     } finally {
       setInvitingUserIds((prev) => ({ ...prev, [userId]: false }));
@@ -228,12 +240,51 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
 
   const { user } = useAuth();
 
-  // Sync props when new token/host arrive
-  useEffect(() => {
+  const cleanupAndDisconnect = useCallback(() => {
+    stopCallSounds();
+    if (roomRef.current) {
+      try {
+        roomRef.current.disconnect();
+      } catch { /* ignored: best-effort, failure is non-fatal */ }
+      roomRef.current = null;
+    }
+    attachedAudioElementsRef.current.forEach((el) => {
+      el.remove();
+    });
+    attachedAudioElementsRef.current.clear();
+  }, []);
+
+  const handleEndCall = () => {
+    if (hasEndedRef.current) return;
+    hasEndedRef.current = true;
+    stopCallSounds();
+    setCallState('ending');
+    if (callId) {
+      authFetch(`${API_BASE}/calls/${callId}/end`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ duration_seconds: durationRef.current }),
+      }).catch(() => {});
+    }
+    setTimeout(() => {
+      setCallState('ended');
+      cleanupAndDisconnect();
+      onClose();
+    }, 400);
+  };
+
+  // Sync props when new token/host arrive, in the render that receives them.
+  const [syncedProps, setSyncedProps] = useState({ initialToken, initialHost, initialRoomName });
+  if (
+    syncedProps.initialToken !== initialToken ||
+    syncedProps.initialHost !== initialHost ||
+    syncedProps.initialRoomName !== initialRoomName
+  ) {
+    setSyncedProps({ initialToken, initialHost, initialRoomName });
     if (initialToken) setActiveToken(initialToken);
     if (initialHost) setActiveHost(initialHost);
     if (initialRoomName) setActiveRoomName(initialRoomName);
-  }, [initialToken, initialHost, initialRoomName]);
+  }
 
   // Trigger floating reaction animation
   const triggerReaction = useCallback((emoji: string, broadcast = true) => {
@@ -252,7 +303,7 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
       try {
         const payload = new TextEncoder().encode(JSON.stringify({ type: 'reaction', emoji }));
         roomRef.current.localParticipant.publishData(payload, { reliable: false }).catch(() => {});
-      } catch (_) {}
+      } catch { /* ignored: best-effort, failure is non-fatal */ }
     }
   }, []);
 
@@ -278,6 +329,15 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
     };
   }, [isOpen, isMinimized, callState, initialMode]);
 
+  // Reset the duration in the render that leaves the connected state, rather than in the timer effect.
+  const [prevCallState, setPrevCallState] = useState(callState);
+  if (prevCallState !== callState) {
+    setPrevCallState(callState);
+    if (callState !== 'connected' && callState !== 'reconnecting') {
+      setDurationSeconds(0);
+    }
+  }
+
   // Duration timer: runs steadily while in connected state
   useEffect(() => {
     if (callState === 'connected') {
@@ -300,9 +360,6 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
         clearInterval(durationTimerRef.current);
         durationTimerRef.current = null;
       }
-      if (callState !== 'reconnecting') {
-        setDurationSeconds(0);
-      }
     }
 
     return () => {
@@ -322,7 +379,7 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
       stopCallSounds();
       setCallState('connection_failed');
       if (callId) {
-        fetch(`${API_BASE}/calls/${callId}/end`, {
+        authFetch(`${API_BASE}/calls/${callId}/end`, {
           method: 'POST',
           headers: getAuthHeaders(),
           body: JSON.stringify({ duration_seconds: 0 }),
@@ -341,7 +398,7 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
   useEffect(() => {
     if (!isOpen || !callId) return;
 
-    let echo: any;
+    let echo: EchoInstance | undefined;
     try {
       echo = getEcho();
     } catch {
@@ -353,7 +410,7 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
     const userChannel = user?.id ? echo.private(`user.${user.id}`) : null;
     const appUserChannel = user?.id ? echo.private(`App.Models.User.${user.id}`) : null;
 
-    const handleCallRinging = (raw?: any) => {
+    const handleCallRinging = (raw?: CallSignal) => {
       const data = raw?.call || raw?.data?.call || raw?.data || raw;
       const id = data?.id || raw?.id;
       if (id && callId && Number(id) !== Number(callId)) return;
@@ -362,7 +419,7 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
       }
     };
 
-    const handleCallAccepted = (raw: any) => {
+    const handleCallAccepted = (raw: CallSignal | undefined) => {
       const data = raw?.call || raw?.data?.call || raw?.data || raw;
       const id = data?.id || raw?.id;
       if (id && callId && Number(id) !== Number(callId)) return;
@@ -381,7 +438,7 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
       setCallState('connecting');
     };
 
-    const handleCallDeclined = (raw?: any) => {
+    const handleCallDeclined = (raw?: CallSignal) => {
       const data = raw?.call || raw?.data?.call || raw?.data || raw;
       const id = data?.id || raw?.id;
       if (id && callId && Number(id) !== Number(callId)) return;
@@ -393,7 +450,7 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
       }, 1500);
     };
 
-    const handleCallEnded = (raw?: any) => {
+    const handleCallEnded = (raw?: CallSignal) => {
       const data = raw?.call || raw?.data?.call || raw?.data || raw;
       const id = data?.id || raw?.id;
       if (id && callId && Number(id) !== Number(callId)) return;
@@ -444,7 +501,10 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
 
     const connectLiveKit = async () => {
       try {
-        let hostUrl = activeHost || 'wss://livekit.murihspace.com';
+        let hostUrl = activeHost || env.VITE_LIVEKIT_URL;
+        if (!hostUrl) {
+          throw new Error('The video server is not configured.');
+        }
         if (!hostUrl.startsWith('ws://') && !hostUrl.startsWith('wss://')) {
           hostUrl = `wss://${hostUrl}`;
         }
@@ -519,7 +579,7 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
             if (data?.type === 'reaction' && data.emoji) {
               triggerReaction(data.emoji, false);
             }
-          } catch (_) {}
+          } catch { /* ignored: best-effort, failure is non-fatal */ }
         });
 
         room.on(RoomEvent.ParticipantConnected, () => {
@@ -541,7 +601,7 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
 
         try {
           await room.startAudio();
-        } catch (_) {}
+        } catch { /* ignored: best-effort, failure is non-fatal */ }
 
         // Enable microphone
         await room.localParticipant.setMicrophoneEnabled(true);
@@ -562,7 +622,7 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
           setCallState('connected');
         }
       } catch (err) {
-        console.warn('[LiveKit] Connection error:', err);
+        logger.warn('[LiveKit] Connection error:', err);
         if (!isCancelled) {
           setCallState('connection_failed');
           setTimeout(() => {
@@ -582,46 +642,13 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
     };
   }, [isOpen, callState, activeToken, activeHost, callType, isVideoOn, onClose, triggerReaction]);
 
-  const cleanupAndDisconnect = useCallback(() => {
-    stopCallSounds();
-    if (roomRef.current) {
-      try {
-        roomRef.current.disconnect();
-      } catch (_) {}
-      roomRef.current = null;
-    }
-    attachedAudioElementsRef.current.forEach((el) => {
-      el.remove();
-    });
-    attachedAudioElementsRef.current.clear();
-  }, []);
-
-  const handleEndCall = () => {
-    if (hasEndedRef.current) return;
-    hasEndedRef.current = true;
-    stopCallSounds();
-    setCallState('ending');
-    if (callId) {
-      fetch(`${API_BASE}/calls/${callId}/end`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({ duration_seconds: durationRef.current }),
-      }).catch(() => {});
-    }
-    setTimeout(() => {
-      setCallState('ended');
-      cleanupAndDisconnect();
-      onClose();
-    }, 400);
-  };
-
   const handleDeclineCall = () => {
     if (hasEndedRef.current) return;
     hasEndedRef.current = true;
     stopCallSounds();
     setCallState('ended');
     if (callId) {
-      fetch(`${API_BASE}/calls/${callId}/decline`, {
+      authFetch(`${API_BASE}/calls/${callId}/decline`, {
         method: 'POST',
         headers: getAuthHeaders(),
       }).catch(() => {});
@@ -640,7 +667,7 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
 
     if (callId) {
       try {
-        const res = await fetch(`${API_BASE}/calls/${callId}/accept`, {
+        const res = await authFetch(`${API_BASE}/calls/${callId}/accept`, {
           method: 'POST',
           headers: getAuthHeaders(),
         });
@@ -648,7 +675,7 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
         const data = raw?.data ?? raw;
         if (data.livekit_token) setActiveToken(data.livekit_token);
         if (data.livekit_host) setActiveHost(data.livekit_host);
-      } catch (_) {}
+      } catch { /* ignored: best-effort, failure is non-fatal */ }
     }
   };
 
@@ -658,7 +685,7 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
     if (roomRef.current?.localParticipant) {
       try {
         await roomRef.current.localParticipant.setMicrophoneEnabled(!next);
-      } catch (_) {}
+      } catch { /* ignored: best-effort, failure is non-fatal */ }
     }
   };
 
@@ -677,7 +704,7 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
         } else {
           setLocalVideoTrack(null);
         }
-      } catch (_) {}
+      } catch { /* ignored: best-effort, failure is non-fatal */ }
     }
   };
 
@@ -687,7 +714,7 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
     if (roomRef.current?.localParticipant) {
       try {
         await roomRef.current.localParticipant.setScreenShareEnabled(next);
-      } catch (_) {
+      } catch {
         setIsScreenSharing(false);
       }
     }
@@ -725,9 +752,9 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
   // ── Render Floating Mini-Call Window on Web when minimized ──────────────────
   if (isMinimized) {
     return (
-      <div
+      <div role="button" tabIndex={0} onKeyDown={(e) => { if (e.target !== e.currentTarget) return; if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.currentTarget.click(); } }}
         className="fixed bottom-6 right-6 z-50 w-44 h-64 rounded-2xl bg-slate-900 border border-white/20 shadow-2xl overflow-hidden flex flex-col cursor-pointer transition-transform hover:scale-105"
-        onClick={onMinimize} // toggles / restores full screen
+        onClick={(e) => { if (!(e.target as HTMLElement).closest("[data-mini-controls]")) onMinimize?.(); }} // toggles / restores full screen
       >
         <div className="relative flex-1 bg-slate-950 overflow-hidden">
           {remoteVideoTrack ? (
@@ -761,9 +788,9 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
         </div>
 
         {/* Mini Controls */}
-        <div
+        <div role="toolbar" aria-label="Call controls" data-mini-controls
           className="h-12 bg-slate-900/90 backdrop-blur px-3 flex items-center justify-between border-t border-white/10"
-          onClick={(e) => e.stopPropagation()}
+         
         >
           <button
             type="button"
@@ -792,12 +819,13 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-xl animate-in fade-in duration-200 select-none"
+      role="presentation"
       onMouseMove={handlePipMouseMove}
       onMouseUp={handlePipMouseUp}
     >
       <div className="relative w-full h-full max-w-5xl max-h-[92vh] rounded-3xl bg-slate-950 border border-white/10 shadow-2xl overflow-hidden flex flex-col">
         {/* Background Video / Audio Pattern Canvas */}
-        <div
+        <div role="button" tabIndex={0} onKeyDown={(e) => { if (e.target !== e.currentTarget) return; if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.currentTarget.click(); } }}
           className="absolute inset-0 bg-slate-950 flex items-center justify-center overflow-hidden"
           onClick={() => {
             if (isPipExpanded) {
@@ -808,7 +836,7 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
           }}
         >
           {isConnected && (isSwapped ? localVideoTrack : remoteVideoTrack) ? (
-            <RemoteVideoTrackElement track={isSwapped ? (localVideoTrack as any) : remoteVideoTrack!} />
+            <RemoteVideoTrackElement track={isSwapped ? (localVideoTrack as Track) : remoteVideoTrack!} />
           ) : (
             <div className="relative w-full h-full flex flex-col items-center justify-center bg-gradient-to-b from-slate-900 via-slate-950 to-slate-900">
               <div className="absolute inset-0 opacity-15 bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:16px_16px]" />
@@ -1008,7 +1036,7 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
 
         {/* ── WhatsApp-Style Movable PiP Video Preview (Tap expands, Tap swaps) ─ */}
         {isConnected && (isSwapped ? remoteVideoTrack : localVideoTrack) && (
-          <div
+          <div role="button" tabIndex={0} onKeyDown={(e) => { if (e.target !== e.currentTarget) return; if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.currentTarget.click(); } }}
             style={{ right: `${pipPos.x}px`, bottom: `${pipPos.y}px` }}
             className={`absolute z-30 rounded-2xl border border-white/20 shadow-2xl bg-slate-900 overflow-hidden cursor-grab active:cursor-grabbing transition-all ${
               isPipExpanded ? 'w-56 h-80' : 'w-36 h-52'
@@ -1221,7 +1249,7 @@ export const CallOverlayModal: React.FC<CallOverlayModalProps> = ({
                     {participantSearchQuery ? 'No users found.' : 'Search for users to invite'}
                   </p>
                 ) : (
-                  searchResults.map((u: any) => (
+                  searchResults.map((u) => (
                     <div key={u.id} className="py-2.5 flex items-center justify-between gap-3">
                       <div className="flex items-center gap-2.5 min-w-0">
                         {u.avatar_url || u.avatar ? (

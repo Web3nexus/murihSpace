@@ -1,3 +1,5 @@
+import { authFetch } from "@/lib/api/authFetch";
+import { logger } from "@/lib/logger";
 import { useState, useEffect, useMemo, useRef } from "react";
 import { ArrowDown as ChevronDown } from "@/components/icons";
 import { Spinner as Loader2 } from "@/components/icons/rounded";;
@@ -60,19 +62,19 @@ export function PhoneInput({
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Sync countryIso2 prop updates
-  useEffect(() => {
-    if (countryIso2) {
-      setSelectedIso2(countryIso2);
-    }
-  }, [countryIso2]);
+  // Sync countryIso2 prop updates during render (no effect needed).
+  const [syncedIso2, setSyncedIso2] = useState(countryIso2);
+  if (countryIso2 !== syncedIso2) {
+    setSyncedIso2(countryIso2);
+    if (countryIso2) setSelectedIso2(countryIso2);
+  }
 
   // Fetch countries
   useEffect(() => {
     let active = true;
     async function loadCountries() {
       try {
-        const res = await fetch(`${API_BASE}/countries`, {
+        const res = await authFetch(`${API_BASE}/countries`, {
           headers: { Accept: "application/json" },
         });
         if (!res.ok) throw new Error("Failed to load countries");
@@ -86,7 +88,7 @@ export function PhoneInput({
               : [];
         if (active && list.length > 0) setCountries(list);
       } catch (e) {
-        console.error("PhoneInput fetch error:", e);
+        logger.error("PhoneInput fetch error:", e);
       } finally {
         if (active) setLoading(false);
       }
@@ -114,20 +116,21 @@ export function PhoneInput({
     return INITIAL_COUNTRIES.find((c) => c.iso2.toLowerCase() === selectedIso2.toLowerCase()) || DEFAULT_FALLBACK_COUNTRY;
   }, [selectedIso2, countries]);
 
-  // Parse incoming initial value if it starts with +
-  useEffect(() => {
-    if (value && value.startsWith("+") && countries.length > 0) {
-      const matched = countries.find((c) => value.startsWith(`+${c.calling_code}`));
-      if (matched) {
-        setSelectedIso2(matched.iso2);
-        setLocalNumber(value.replace(`+${matched.calling_code}`, "").trim());
-        return;
-      }
-    }
-    if (value && !value.startsWith("+")) {
+  // Parse incoming value during render when it, or the country list, changes.
+  const valueKey = `${value ?? ""}|${countries.map((c) => c.calling_code).join(",")}`;
+  const [parsedKey, setParsedKey] = useState<string | null>(null);
+  if (parsedKey !== valueKey) {
+    setParsedKey(valueKey);
+    const matched = value && value.startsWith("+") && countries.length > 0
+      ? countries.find((c) => value.startsWith(`+${c.calling_code}`))
+      : undefined;
+    if (value && matched) {
+      setSelectedIso2(matched.iso2);
+      setLocalNumber(value.replace(`+${matched.calling_code}`, "").trim());
+    } else if (value && !value.startsWith("+")) {
       setLocalNumber(value);
     }
-  }, [value, countries]);
+  }
 
   const handleNumberChange = (raw: string) => {
     const cleaned = raw.replace(/[^\d\s-]/g, "");
@@ -180,7 +183,7 @@ export function PhoneInput({
                 onClick={() => handleCountrySelect(c)}
                 className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
                   selectedIso2.toLowerCase() === c.iso2.toLowerCase()
-                    ? "bg-[#2164b6]/10 text-[#2164b6] dark:text-[#7ab0ff] font-bold"
+                    ? "bg-[var(--shell-accent-solid)]/10 text-[var(--shell-accent)] dark:text-[var(--shell-accent)] font-bold"
                     : "hover:bg-muted/50 text-foreground"
                 }`}
               >

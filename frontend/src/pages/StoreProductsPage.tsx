@@ -1,7 +1,6 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useConfirm } from "@/components/ui/DialogProvider";
 import { useAuth } from "@/hooks/useAuth";
-import { getAuthToken } from "@/lib/auth/token";
 import { Link } from "react-router";
 import { Plus, Edit, Delete as Trash2, Show as Eye, Hide as EyeOff, DangerSquare as AlertCircle, Swap as RotateCcw, ShieldDone as ShieldCheck } from "@/components/icons";
 import { Package, Spinner as Loader2, ShareNetwork, ArrowSquareOut } from "@/components/icons/rounded";;
@@ -22,6 +21,20 @@ interface StoreProduct {
   status: "draft" | "published";
   sales_count?: number;
   created_at: string;
+}
+
+/** Product as returned by the store endpoints (fields the list views read). */
+interface RawProduct {
+  id: number;
+  title: string;
+  price?: number | null;
+  currency?: string | null;
+  status?: string | null;
+  is_active?: boolean;
+  download_count?: number;
+  sales_count?: number;
+  created_at?: string | null;
+  sku?: string | null;
 }
 
 export default function StoreProductsPage() {
@@ -48,57 +61,65 @@ export default function StoreProductsPage() {
   const [currency, setCurrency] = useState("USD");
   const [productType, setProductType] = useState<"digital" | "physical">("digital");
 
-  const fetchProducts = useCallback(async () => {
+  const [fetchProductsKey, setFetchProductsKey] = useState(0);
+  const fetchProducts = () => {
     setLoading(true);
     setFetchError(null);
     setIsKycError(false);
-    const token = getAuthToken();
-    try {
-      const endpoint = role === "vendor" ? `/store/physical-products/my?page=${page}&per_page=20` : `/store/products?page=${page}&per_page=20`;
-      const res = await authFetch(endpoint, {
-        headers: {
-          Accept: "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-      });
+    setFetchProductsKey((k) => k + 1);
+  };
 
-      if (res.ok) {
-        const j = await res.json();
-        const raw = j?.data?.data ?? j?.data ?? j ?? [];
-        const items = safeArray(raw).map((p: any) => ({
-          id: p.id,
-          title: p.title,
-          price: p.price ?? 0,
-          currency: p.currency ?? "USD",
-          type: (p.sku ? "physical" : "digital") as "digital" | "physical",
-          status: p.status ?? (p.is_active ? "published" : "draft"),
-          sales_count: p.download_count ?? p.sales_count ?? 0,
-          created_at: p.created_at ?? new Date().toISOString(),
-        }));
-        setProducts(items);
-        setLastPage(j?.data?.last_page ?? j?.last_page ?? 1);
-      } else {
-        const errJson = await res.json().catch(() => ({}));
-        const errMsg = errJson.message ?? "Could not load products catalog. Identity verification or creator privileges required.";
-        setFetchError(errMsg);
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const endpoint = role === "vendor" ? `/store/physical-products/my?page=${page}&per_page=20` : `/store/products?page=${page}&per_page=20`;
+        const res = await authFetch(endpoint, {
+          headers: {
+            Accept: "application/json",
+          },
+        });
 
-        if (
-          res.status === 403 ||
-          errMsg.toLowerCase().includes('kyc') ||
-          errMsg.toLowerCase().includes('identity') ||
-          errMsg.toLowerCase().includes('verification')
-        ) {
-          setIsKycError(true);
+        if (res.ok) {
+          const j = await res.json();
+          const raw = j?.data?.data ?? j?.data ?? j ?? [];
+          const items = safeArray<RawProduct>(raw).map((p) => ({
+            id: p.id,
+            title: p.title,
+            price: p.price ?? 0,
+            currency: p.currency ?? "USD",
+            type: (p.sku ? "physical" : "digital") as "digital" | "physical",
+            status: (p.status === "published" || (!p.status && p.is_active) ? "published" : "draft") as "draft" | "published",
+            sales_count: p.download_count ?? p.sales_count ?? 0,
+            created_at: p.created_at ?? new Date().toISOString(),
+          }));
+          if (active) setProducts(items);
+          if (active) setLastPage(j?.data?.last_page ?? j?.last_page ?? 1);
+        } else {
+          const errJson = await res.json().catch(() => ({}));
+          const errMsg = errJson.message ?? "Could not load products catalog. Identity verification or creator privileges required.";
+          if (active) setFetchError(errMsg);
+
+          if (
+            res.status === 403 ||
+            errMsg.toLowerCase().includes('kyc') ||
+            errMsg.toLowerCase().includes('identity') ||
+            errMsg.toLowerCase().includes('verification')
+          ) {
+            if (active) setIsKycError(true);
+          }
         }
+      } catch (e) {
+        if (active) setFetchError(e instanceof Error ? e.message : "Network failure while fetching products.");
+      } finally {
+        if (active) setLoading(false);
       }
-    } catch (e) {
-      setFetchError(e instanceof Error ? e.message : "Network failure while fetching products.");
-    } finally {
-      setLoading(false);
-    }
-  }, [page, role]);
+    })();
+    return () => {
+      active = false;
+    };
+    }, [fetchProductsKey, page, role]);
 
-  useEffect(() => { fetchProducts(); }, [fetchProducts]);
 
   const resetForm = () => { setTitle(""); setPrice("19.99"); setCurrency("USD"); setProductType("digital"); setEditing(null); setShowForm(false); setMsg(null); };
 
@@ -107,7 +128,6 @@ export default function StoreProductsPage() {
     if (!title.trim() || !isKycVerified) return;
     setSaving(true);
     setMsg(null);
-    const token = getAuthToken();
     try {
       const parsedPrice = parseFloat(price) || 0;
       const body = {
@@ -127,7 +147,6 @@ export default function StoreProductsPage() {
         headers: {
           Accept: "application/json",
           "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify(body),
       });
@@ -143,7 +162,6 @@ export default function StoreProductsPage() {
   };
 
   const togglePublish = async (p: StoreProduct) => {
-    const token = getAuthToken();
     const nextStatus = p.status === "published" ? "draft" : "published";
     try {
       await authFetch(`/store/products/${p.id}`, {
@@ -151,7 +169,6 @@ export default function StoreProductsPage() {
         headers: {
           Accept: "application/json",
           "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({ status: nextStatus }),
       });
@@ -161,13 +178,11 @@ export default function StoreProductsPage() {
 
   const handleDelete = async (id: number) => {
     if (!await confirm({ title: 'Delete Product', message: 'Delete this product?', variant: 'destructive' })) return;
-    const token = getAuthToken();
     try {
       await authFetch(`/store/products/${id}`, {
         method: "DELETE",
         headers: {
           Accept: "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
       });
       fetchProducts();
@@ -179,7 +194,7 @@ export default function StoreProductsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 sm:p-5 rounded-lg bg-card border-none text-foreground ">
         <div className="space-y-1">
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#1877f2]/10 text-[#1877f2] text-xs font-bold uppercase tracking-wider border border-[#1877f2]/20">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[var(--shell-accent-solid)]/10 text-[var(--shell-accent)] text-xs font-bold uppercase tracking-wider border border-[var(--shell-accent)]/20">
             <Package weight="fill" className="h-3.5 w-3.5" /> Storefront Catalog
           </span>
           <h1 className="text-xl sm:text-xl font-bold tracking-tight text-foreground">Products</h1>
@@ -189,7 +204,7 @@ export default function StoreProductsPage() {
           <Button
             onClick={() => { if (isKycVerified) { resetForm(); setShowForm(true); } }}
             disabled={!isKycVerified}
-            className="bg-[#1877f2] hover:bg-[#166fe5] text-white font-bold h-10 px-4 rounded-lg shrink-0 gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="bg-[var(--shell-accent-solid)] hover:bg-[var(--shell-accent-hover)] text-white font-bold h-10 px-4 rounded-lg shrink-0 gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Plus weight="fill" className="h-4 w-4" /> New Product
           </Button>
@@ -235,29 +250,29 @@ export default function StoreProductsPage() {
           )}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
             <div className="space-y-1">
-              <label className="font-bold text-foreground uppercase tracking-wider">Title *</label>
-              <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Product title" required className="h-10 rounded-lg" />
+              <label htmlFor="f-pages-storeproductspage-tsx-238" className="font-bold text-foreground uppercase tracking-wider">Title *</label>
+              <Input id="f-pages-storeproductspage-tsx-238" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Product title" required className="h-10 rounded-lg" />
             </div>
             <div className="space-y-1">
-              <label className="font-bold text-foreground uppercase tracking-wider">Type</label>
-              <select value={productType} onChange={(e) => setProductType(e.target.value as "digital" | "physical")} className="w-full rounded-lg border-none bg-card p-2.5 text-xs font-bold text-foreground">
+              <label htmlFor="f-pages-storeproductspage-tsx-242" className="font-bold text-foreground uppercase tracking-wider">Type</label>
+              <select id="f-pages-storeproductspage-tsx-242" value={productType} onChange={(e) => setProductType(e.target.value as "digital" | "physical")} className="w-full rounded-lg border-none bg-card p-2.5 text-xs font-bold text-foreground">
                 <option value="digital">Digital Download</option>
                 <option value="physical">Physical Product</option>
               </select>
             </div>
             <div className="space-y-1">
-              <label className="font-bold text-foreground uppercase tracking-wider">Price</label>
-              <Input type="number" step="0.01" min="0" value={price} onChange={(e) => setPrice(e.target.value)} className="font-mono h-10 rounded-lg" />
+              <label htmlFor="f-pages-storeproductspage-tsx-249" className="font-bold text-foreground uppercase tracking-wider">Price</label>
+              <Input id="f-pages-storeproductspage-tsx-249" type="number" step="0.01" min="0" value={price} onChange={(e) => setPrice(e.target.value)} className="font-mono h-10 rounded-lg" />
             </div>
             <div className="space-y-1">
-              <label className="font-bold text-foreground uppercase tracking-wider">Currency</label>
-              <select value={currency} onChange={(e) => setCurrency(e.target.value)} className="w-full rounded-lg border-none bg-card p-2.5 text-xs font-bold text-foreground">
+              <label htmlFor="f-pages-storeproductspage-tsx-253" className="font-bold text-foreground uppercase tracking-wider">Currency</label>
+              <select id="f-pages-storeproductspage-tsx-253" value={currency} onChange={(e) => setCurrency(e.target.value)} className="w-full rounded-lg border-none bg-card p-2.5 text-xs font-bold text-foreground">
                 {["USD", "NGN", "GBP", "EUR"].map((c) => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
           </div>
           <div className="flex gap-2 pt-2">
-            <Button type="submit" disabled={saving || !title.trim() || !isKycVerified} className="bg-[#1877f2] hover:bg-[#166fe5] text-white font-bold h-10 px-5 rounded-lg text-xs disabled:opacity-50">
+            <Button type="submit" disabled={saving || !title.trim() || !isKycVerified} className="bg-[var(--shell-accent-solid)] hover:bg-[var(--shell-accent-hover)] text-white font-bold h-10 px-5 rounded-lg text-xs disabled:opacity-50">
               {saving ? <Loader2 weight="fill" className="h-4 w-4 animate-spin mr-2" /> : null}{editing ? "Update" : "Create"}
             </Button>
             <Button type="button" variant="outline" onClick={resetForm} className="h-10 rounded-lg text-xs">Cancel</Button>
@@ -267,7 +282,7 @@ export default function StoreProductsPage() {
 
       {loading ? (
         <div className="flex justify-center py-24">
-          <Loader2 weight="fill" className="h-8 w-8 animate-spin text-[#1877f2]" />
+          <Loader2 weight="fill" className="h-8 w-8 animate-spin text-[var(--shell-accent)]" />
         </div>
       ) : safeArray(products).length === 0 ? (
         <div className="p-16 text-center border border-dashed border-border rounded-3xl bg-card space-y-3 flex flex-col items-center justify-center">
@@ -281,14 +296,14 @@ export default function StoreProductsPage() {
           <div className="pt-2 flex justify-center gap-3">
             {role === "creator" && (
               <Link to="/app/store/digital">
-                <Button disabled={!isKycVerified} className="bg-[#1877f2] hover:bg-[#166fe5] text-white font-bold text-xs rounded-lg h-9 px-4 disabled:opacity-50">
+                <Button disabled={!isKycVerified} className="bg-[var(--shell-accent-solid)] hover:bg-[var(--shell-accent-hover)] text-white font-bold text-xs rounded-lg h-9 px-4 disabled:opacity-50">
                   Add Digital Product
                 </Button>
               </Link>
             )}
             {role === "vendor" && (
               <Link to="/app/store/physical-products">
-                <Button disabled={!isKycVerified} className="bg-[#1877f2] hover:bg-[#166fe5] text-white font-bold text-xs rounded-lg h-9 px-4 disabled:opacity-50">
+                <Button disabled={!isKycVerified} className="bg-[var(--shell-accent-solid)] hover:bg-[var(--shell-accent-hover)] text-white font-bold text-xs rounded-lg h-9 px-4 disabled:opacity-50">
                   Add Physical Product
                 </Button>
               </Link>
@@ -312,7 +327,7 @@ export default function StoreProductsPage() {
                     <td className="px-5 py-4 font-bold text-foreground">{p.title}</td>
                     <td className="px-5 py-4">
                       <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                        p.type === 'digital' ? 'bg-[#1877f2]/10 text-[#1877f2] border border-[#1877f2]/20' : 'bg-amber-500/10 text-amber-500 border border-amber-500/20'
+                        p.type === 'digital' ? 'bg-[var(--shell-accent-solid)]/10 text-[var(--shell-accent)] border border-[var(--shell-accent)]/20' : 'bg-amber-500/10 text-amber-500 border border-amber-500/20'
                       }`}>
                         {p.type}
                       </span>
@@ -371,8 +386,8 @@ export default function StoreProductsPage() {
         <div className="flex items-center justify-between border-t border-border px-6 py-3 bg-muted/10">
           <span className="text-xs text-muted-foreground font-medium">Page {page} of {lastPage}</span>
           <div className="flex items-center gap-2">
-            <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1} className="px-3 py-1.5 rounded-lg text-xs font-bold border-none bg-card hover:bg-muted disabled:opacity-40 transition-colors">Previous</button>
-            <button onClick={() => setPage(p => Math.min(lastPage, p + 1))} disabled={page >= lastPage} className="px-3 py-1.5 rounded-lg text-xs font-bold border-none bg-card hover:bg-muted disabled:opacity-40 transition-colors">Next</button>
+            <button onClick={() => { setLoading(true); setFetchError(null); setPage(p => Math.max(1, p - 1)); }} disabled={page <= 1} className="px-3 py-1.5 rounded-lg text-xs font-bold border-none bg-card hover:bg-muted disabled:opacity-40 transition-colors">Previous</button>
+            <button onClick={() => { setLoading(true); setFetchError(null); setPage(p => Math.min(lastPage, p + 1)); }} disabled={page >= lastPage} className="px-3 py-1.5 rounded-lg text-xs font-bold border-none bg-card hover:bg-muted disabled:opacity-40 transition-colors">Next</button>
           </div>
         </div>
       )}

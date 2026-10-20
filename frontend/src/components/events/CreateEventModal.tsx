@@ -1,3 +1,4 @@
+import { authFetch } from "@/lib/api/authFetch";
 import { useState, useEffect } from "react";
 import {
   Dialog,
@@ -21,7 +22,6 @@ import {
 import { env } from "@/config/env";
 import { ImageUploader } from "@/components/upload/ImageUploader";
 import { Calendar } from "@/components/icons";
-import { getAuthToken } from "@/lib/auth/token";
 import type { EventData } from "@/types/events";
 
 const API = env.VITE_API_BASE_URL;
@@ -32,8 +32,7 @@ interface Community {
 }
 
 function getAuthHeaders(): Record<string, string> {
-  const token = getAuthToken();
-  return token ? { Authorization: `Bearer ${token}` } : {};
+  return {};
 }
 
 /** Renders an ISO timestamp as the `YYYY-MM-DDTHH:mm` a datetime-local wants. */
@@ -98,7 +97,7 @@ export function CreateEventModal({ open, onClose, onCreated, event }: CreateEven
 
   useEffect(() => {
     if (!open) return;
-    fetch(`${API}/my-communities`, { headers: getAuthHeaders() })
+    authFetch(`${API}/my-communities`, { headers: getAuthHeaders() })
       .then((r) => r.json())
       .then((body) => setCommunities(body.data?.data ?? body.data ?? []))
       .catch(() => {});
@@ -127,7 +126,7 @@ export function CreateEventModal({ open, onClose, onCreated, event }: CreateEven
         ? new Date(form.registration_deadline).toISOString()
         : null;
 
-      const res = await fetch(
+      const res = await authFetch(
         isEdit ? `${API}/my-events/${event!.id}` : `${API}/my-events`,
         {
           method: isEdit ? "PUT" : "POST",

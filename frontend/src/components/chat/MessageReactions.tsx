@@ -1,6 +1,7 @@
+import { authFetch } from "@/lib/api/authFetch";
+import { logger } from "@/lib/logger";
 import { useState } from 'react';
 import type { MessageReaction } from '@/types/chat';
-import { getAuthToken } from "@/lib/auth/token";
 import { BubbleReactions } from '@/components/ui/bubble';
 import { cn } from '@/lib/utils';
 import { AnimatedEmoji } from '@/components/chat/AnimatedEmoji';
@@ -27,16 +28,14 @@ export function MessageReactions({
   const [showPicker, setShowPicker] = useState(false);
 
   const handleReact = async (emoji: string) => {
-    const token = getAuthToken();
     setShowPicker(false);
 
     try {
-      const res = await fetch(`${API_BASE}/messages/${messageId}/reactions`, {
+      const res = await authFetch(`${API_BASE}/messages/${messageId}/reactions`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Accept: 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({ emoji }),
       });
@@ -45,7 +44,7 @@ export function MessageReactions({
         onReactionToggle(messageId, json?.data?.reactions ?? json?.reactions ?? []);
       }
     } catch (e) {
-      console.error('Failed to add reaction', e);
+      logger.error('Failed to add reaction', e);
     }
   };
 
@@ -101,23 +100,25 @@ export function MessageReactions({
               }}
               role="presentation"
             />
-            <div
-              className="absolute bottom-7 left-0 z-50 flex gap-1 p-1.5 rounded-lg border border-border/80 bg-popover text-popover-foreground shadow-xl"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {QUICK_EMOJIS.map((emoji) => (
-                <button
-                  key={emoji}
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleReact(emoji);
-                  }}
-                  className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-muted transition-colors cursor-pointer"
-                >
-                  <AnimatedEmoji emoji={emoji} className="h-5 w-5" />
-                </button>
-              ))}
+            {/* Stops clicks on the picker padding from reaching the message's own click handler. */}
+            <div role="presentation" className="contents" onClick={(e) => e.stopPropagation()}>
+              <div role="dialog" aria-modal="true" aria-label="Choose a reaction"
+                className="absolute bottom-7 left-0 z-50 flex gap-1 p-1.5 rounded-lg border border-border/80 bg-popover text-popover-foreground shadow-xl"
+              >
+                {QUICK_EMOJIS.map((emoji) => (
+                  <button
+                    key={emoji}
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleReact(emoji);
+                    }}
+                    className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-muted transition-colors cursor-pointer"
+                  >
+                    <AnimatedEmoji emoji={emoji} className="h-5 w-5" />
+                  </button>
+                ))}
+              </div>
             </div>
           </>
         )}

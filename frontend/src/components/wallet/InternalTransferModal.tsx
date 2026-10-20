@@ -109,10 +109,10 @@ export function InternalTransferModal({
 
           {hasPin && (
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1 flex items-center gap-1">
+              <label htmlFor="f-llet-internaltransfermodal-tsx-112" className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1 flex items-center gap-1">
                 <Lock weight="fill" className="h-3 w-3" /> Transaction PIN
               </label>
-              <input
+              <input id="f-llet-internaltransfermodal-tsx-112"
                 type="password"
                 maxLength={4}
                 placeholder="4-digit PIN"

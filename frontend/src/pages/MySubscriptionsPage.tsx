@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import { useState, useEffect } from 'react';
 import { TickSquare as CheckCircle2, CloseSquare as XCircle, Calendar, Profile as UserIcon } from "@/components/icons";
 import { Crown, Spinner as Loader2, Prohibit } from "@/components/icons/rounded";;
@@ -28,7 +29,7 @@ export function MySubscriptionsPage() {
     authFetch(`/subscriptions/mine`, {  })
       .then((r) => r.json())
       .then((json) => setSubscriptions(json.data?.data ?? []))
-      .catch(console.error)
+      .catch((err) => logger.error("Failed to load subscriptions", err))
       .finally(() => setIsLoading(false));
   }, []);
 

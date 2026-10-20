@@ -1,8 +1,8 @@
+import { authFetch } from "@/lib/api/authFetch";
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { TickSquare as Check } from "@/components/icons";
 import { UserMinus } from "@/components/icons/rounded";;
-import { getAuthToken } from "@/lib/auth/token";
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? 'http://localhost:8000/api/v1';
 
@@ -23,16 +23,14 @@ export function BlockUserButton({
 
   const toggleBlock = async () => {
     setIsLoading(true);
-    const token = getAuthToken();
     const endpoint = `${API_BASE}/users/${userId}/block`;
     const method = isBlocked ? 'DELETE' : 'POST';
 
     try {
-      const res = await fetch(endpoint, {
+      const res = await authFetch(endpoint, {
         method,
         headers: {
           Accept: 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
       });
 

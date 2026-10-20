@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Lock, Wallet as Bank } from "@/components/icons";
@@ -15,6 +15,15 @@ interface WithdrawModalProps {
   onSuccess: () => void;
 }
 
+const DEST_CURRENCIES = [
+  { code: "USD", symbol: "$", rate: 1.0 },
+  { code: "NGN", symbol: "₦", rate: 1326.0 },
+  { code: "KES", symbol: "KSh", rate: 129.5 },
+  { code: "GHS", symbol: "GH₵", rate: 11.4 },
+  { code: "EUR", symbol: "€", rate: 0.86 },
+  { code: "GBP", symbol: "£", rate: 0.74 },
+];
+
 export function WithdrawModal({
   isOpen,
   onClose,
@@ -27,40 +36,23 @@ export function WithdrawModal({
   const [destCurrency, setDestCurrency] = useState("NGN");
   const [pin, setPin] = useState("");
   const [loading, setLoading] = useState(false);
-  const [preview, setPreview] = useState<{
-    fee_usd: number;
-    exchange_rate: number;
-    estimated_payout: number;
-  } | null>(null);
-
   const availableUsd = availableBalanceMinor / 100;
 
-  const destCurrencies = [
-    { code: "USD", symbol: "$", rate: 1.0 },
-    { code: "NGN", symbol: "₦", rate: 1326.0 },
-    { code: "KES", symbol: "KSh", rate: 129.5 },
-    { code: "GHS", symbol: "GH₵", rate: 11.4 },
-    { code: "EUR", symbol: "€", rate: 0.86 },
-    { code: "GBP", symbol: "£", rate: 0.74 },
-  ];
 
   // Calculate live estimate
-  useEffect(() => {
+  const preview = useMemo(() => {
     const raw = parseFloat(amountUsd) || 0;
-    if (raw <= 0) {
-      setPreview(null);
-      return;
-    }
-    const currObj = destCurrencies.find((c) => c.code === destCurrency) || destCurrencies[0];
+    if (raw <= 0) return null;
+    const currObj = DEST_CURRENCIES.find((c) => c.code === destCurrency) || DEST_CURRENCIES[0];
     const fee = Math.max(0.5, raw * 0.015); // 1.5% fee or min $0.50
     const net = Math.max(0, raw - fee);
     const estimated = net * currObj.rate;
 
-    setPreview({
+    return {
       fee_usd: fee,
       exchange_rate: currObj.rate,
       estimated_payout: estimated,
-    });
+    };
   }, [amountUsd, destCurrency]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -107,7 +99,7 @@ export function WithdrawModal({
     onClose();
   };
 
-  const currMeta = destCurrencies.find((c) => c.code === destCurrency) || destCurrencies[0];
+  const currMeta = DEST_CURRENCIES.find((c) => c.code === destCurrency) || DEST_CURRENCIES[0];
 
   return (
     <Dialog open={isOpen} onOpenChange={(val) => !val && handleClose()}>
@@ -132,7 +124,7 @@ export function WithdrawModal({
           {/* Amount and Currency inputs */}
           <div className="grid grid-cols-3 gap-3">
             <div className="col-span-2">
-              <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
+              <label htmlFor="withdraw-amount" className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
                 Amount (USD)
               </label>
               <div className="relative">
@@ -140,27 +132,28 @@ export function WithdrawModal({
                   $
                 </span>
                 <input
+                  id="withdraw-amount"
                   type="number"
                   step="0.01"
                   min="5"
                   value={amountUsd}
                   onChange={(e) => setAmountUsd(e.target.value)}
                   placeholder="0.00"
-                  className="w-full pl-8 pr-3 py-2 text-lg font-bold bg-muted/30 border border-border rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-[#2164b6]"
+                  className="w-full pl-8 pr-3 py-2 text-lg font-bold bg-muted/30 border border-border rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-[var(--shell-accent)]"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
+              <label htmlFor="f-nents-wallet-withdrawmodal-tsx-155" className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
                 Payout Currency
               </label>
-              <select
+              <select id="f-nents-wallet-withdrawmodal-tsx-155"
                 value={destCurrency}
                 onChange={(e) => setDestCurrency(e.target.value)}
-                className="w-full px-3 py-2.5 text-xs font-bold bg-muted/30 border border-border rounded-xl text-foreground focus:outline-none focus:ring-1 focus:ring-[#2164b6]"
+                className="w-full px-3 py-2.5 text-xs font-bold bg-muted/30 border border-border rounded-xl text-foreground focus:outline-none focus:ring-1 focus:ring-[var(--shell-accent)]"
               >
-                {destCurrencies.map((c) => (
+                {DEST_CURRENCIES.map((c) => (
                   <option key={c.code} value={c.code}>
                     {c.code} ({c.symbol})
                   </option>
@@ -201,18 +194,18 @@ export function WithdrawModal({
           {/* PIN Input if enabled */}
           {hasPin && (
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
+              <label htmlFor="f-nents-wallet-withdrawmodal-tsx-204" className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
                 4-Digit Security PIN
               </label>
               <div className="relative">
                 <Lock weight="bold" className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <input
+                <input id="f-nents-wallet-withdrawmodal-tsx-204"
                   type="password"
                   maxLength={4}
                   value={pin}
                   onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))}
                   placeholder="••••"
-                  className="w-full pl-9 pr-3 py-2 text-sm bg-muted/30 border border-border rounded-xl text-foreground tracking-widest font-mono text-center focus:outline-none focus:ring-1 focus:ring-[#2164b6]"
+                  className="w-full pl-9 pr-3 py-2 text-sm bg-muted/30 border border-border rounded-xl text-foreground tracking-widest font-mono text-center focus:outline-none focus:ring-1 focus:ring-[var(--shell-accent)]"
                 />
               </div>
             </div>

@@ -171,6 +171,7 @@ export function WebInAppNotification({
   return (
     <div
       onClick={handleClick}
+      onKeyDown={(e) => { if (e.target !== e.currentTarget) return; if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.currentTarget.click(); } }}
       role="button"
       tabIndex={0}
       className="group relative flex items-center gap-3.5 w-[360px] max-w-[calc(100vw-32px)] px-3.5 py-3 rounded-[20px] bg-[#141A16]/96 dark:bg-[#121814]/96 backdrop-blur-2xl border border-white/[0.12] shadow-[0_16px_40px_rgba(0,0,0,0.7),0_2px_8px_rgba(0,0,0,0.5)] text-white transition-all duration-200 hover:scale-[1.01] hover:border-emerald-500/35 hover:bg-[#18211b]/98 cursor-pointer select-none overflow-hidden"
@@ -268,6 +269,7 @@ export function WebInAppNotification({
  * Dispatches a WhatsApp-style desktop notification popup banner on Web.
  * Also triggers native OS desktop notifications if tab is hidden/minimized and permission is granted.
  */
+// eslint-disable-next-line react-refresh/only-export-components -- imperative helper; its only importer is outside this change set
 export function showWebInAppNotification(data: WebNotificationData) {
   // If the browser tab is hidden/minimized and desktop notifications are permitted, show native desktop notification
   if (
@@ -290,7 +292,7 @@ export function showWebInAppNotification(data: WebNotificationData) {
         }
         nativeNotif.close();
       };
-    } catch (_) {}
+    } catch { /* ignored: best-effort, failure is non-fatal */ }
   }
 
   // Display custom WhatsApp-style in-app banner

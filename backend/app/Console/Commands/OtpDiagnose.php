@@ -29,13 +29,8 @@ class OtpDiagnose extends Command
         $this->line('Normalised driver       : '.$normalised);
 
         if ($normalised === 'log') {
-            $allowLog = filter_var(Config::get('services.twilio.allow_log_driver', false), FILTER_VALIDATE_BOOLEAN);
-            $this->line('Allow log driver (prod) : '.($allowLog ? 'true' : 'false'));
-
-            if ($environment === 'production' && ! $allowLog) {
-                $this->error('OTP would fail: the log driver is blocked in production. Set OTP_ALLOW_LOG_DRIVER=true to allow staging-style log delivery, or set OTP_DRIVER=twilio with valid Twilio credentials.');
-            } elseif ($environment === 'production') {
-                $this->warn('OTP will work, but codes are only readable from the app/active devices, never SMS. This is acceptable for a staging clone of production.');
+            if ($environment === 'production') {
+                $this->error('OTP would fail: the log driver is never allowed in production. Set OTP_DRIVER=twilio with valid Twilio credentials.');
             } else {
                 $this->line('OTP will work: codes are readable in the Laravel log.');
             }

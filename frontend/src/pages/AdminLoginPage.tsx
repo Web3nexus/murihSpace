@@ -176,7 +176,7 @@ export function AdminLoginPage() {
         </Link>
         <Link
           to="/login"
-          className="text-xs font-medium text-slate-400 hover:text-white transition-colors"
+          className="text-xs font-medium text-[var(--shell-muted)] hover:text-white transition-colors"
         >
           User login
         </Link>
@@ -195,7 +195,7 @@ export function AdminLoginPage() {
               )}
             </div>
             <h1 className="text-xl font-bold text-white">Securegate</h1>
-            <p className="text-sm text-slate-400 mt-1">
+            <p className="text-sm text-[var(--shell-muted)] mt-1">
               {step === "credentials"
                 ? "Platform administration portal"
                 : step === "second-factor"
@@ -204,7 +204,7 @@ export function AdminLoginPage() {
             </p>
           </div>
 
-          <div className="bg-slate-900 border border-slate-800 rounded-lg p-4">
+          <div className="bg-slate-900 border border-[var(--shell-border)] rounded-lg p-4">
             {error && (
               <div className="mb-4 rounded-lg bg-rose-500/10 border border-rose-500/20 p-3 text-xs text-rose-400 text-center font-medium">
                 {error}
@@ -215,7 +215,7 @@ export function AdminLoginPage() {
               <form onSubmit={handleCredentials} className="space-y-4">
                 <FieldGroup className="space-y-4">
                   <Field>
-                    <FieldLabel htmlFor="admin-email" className="text-xs font-semibold text-slate-300">
+                    <FieldLabel htmlFor="admin-email" className="text-xs font-semibold text-[var(--shell-muted)]">
                       Admin email
                     </FieldLabel>
                     <Input
@@ -227,7 +227,7 @@ export function AdminLoginPage() {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       disabled={loading}
-                      className="h-11 px-4 rounded-lg text-sm bg-slate-800/60 border-slate-700 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 text-slate-100 placeholder:text-slate-500"
+                      className="h-11 px-4 rounded-lg text-sm bg-slate-800/60 border-slate-700 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 text-slate-100 placeholder:text-[var(--shell-muted)]"
                     />
                     {fieldErrors.email && (
                       <p className="text-xs text-rose-400 mt-1">{fieldErrors.email[0]}</p>
@@ -235,7 +235,7 @@ export function AdminLoginPage() {
                   </Field>
 
                   <Field>
-                    <FieldLabel htmlFor="admin-password" className="text-xs font-semibold text-slate-300">
+                    <FieldLabel htmlFor="admin-password" className="text-xs font-semibold text-[var(--shell-muted)]">
                       Password
                     </FieldLabel>
                     <Input
@@ -247,7 +247,7 @@ export function AdminLoginPage() {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       disabled={loading}
-                      className="h-11 px-4 rounded-lg text-sm bg-slate-800/60 border-slate-700 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 text-slate-100 placeholder:text-slate-500"
+                      className="h-11 px-4 rounded-lg text-sm bg-slate-800/60 border-slate-700 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 text-slate-100 placeholder:text-[var(--shell-muted)]"
                     />
                     {fieldErrors.password && (
                       <p className="text-xs text-rose-400 mt-1">{fieldErrors.password[0]}</p>
@@ -271,7 +271,7 @@ export function AdminLoginPage() {
               </form>
             ) : step === "enroll-secret" ? (
               <div className="space-y-4">
-                <p className="text-xs text-slate-400 leading-relaxed">
+                <p className="text-xs text-[var(--shell-muted)] leading-relaxed">
                   Your account has no second factor yet. Scan this with your
                   authenticator app (Google Authenticator, 1Password, Authy),
                   keep the recovery codes below somewhere safe, then continue.
@@ -287,15 +287,15 @@ export function AdminLoginPage() {
                   </div>
                 ) : (
                   <div className="flex justify-center py-1">
-                    <div className="h-52 w-52 rounded-lg border border-slate-700 bg-slate-800/60 flex items-center justify-center text-[10px] text-slate-500">
+                    <div className="h-52 w-52 rounded-lg border border-slate-700 bg-slate-800/60 flex items-center justify-center text-[10px] text-[var(--shell-muted)]">
                       Generating code…
                     </div>
                   </div>
                 )}
 
                 {enrollSecret && (
-                  <div className="rounded-lg border border-slate-800 bg-slate-800/40 p-3">
-                    <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1">
+                  <div className="rounded-lg border border-[var(--shell-border)] bg-slate-800/40 p-3">
+                    <p className="text-[10px] font-semibold text-[var(--shell-muted)] uppercase tracking-wide mb-1">
                       Can&apos;t scan? Enter this key manually
                     </p>
                     <p className="font-mono text-xs text-slate-200 break-all">{enrollSecret}</p>
@@ -311,7 +311,7 @@ export function AdminLoginPage() {
                       <button
                         type="button"
                         onClick={copyRecoveryCodes}
-                        className="inline-flex items-center gap-1 text-[10px] font-semibold text-slate-300 hover:text-white transition-colors"
+                        className="inline-flex items-center gap-1 text-[10px] font-semibold text-[var(--shell-muted)] hover:text-white transition-colors"
                       >
                         {recoveryCopied ? (
                           <><Check weight="bold" className="h-3 w-3" /> Copied</>
@@ -320,12 +320,12 @@ export function AdminLoginPage() {
                         )}
                       </button>
                     </div>
-                    <ul className="grid grid-cols-2 gap-x-3 gap-y-1 font-mono text-[11px] text-slate-300">
+                    <ul className="grid grid-cols-2 gap-x-3 gap-y-1 font-mono text-[11px] text-[var(--shell-muted)]">
                       {enrollRecoveryCodes.map((rc) => (
                         <li key={rc}>{rc}</li>
                       ))}
                     </ul>
-                    <p className="text-[10px] text-slate-500 mt-2 leading-relaxed">
+                    <p className="text-[10px] text-[var(--shell-muted)] mt-2 leading-relaxed">
                       Each code signs you in once if you lose your phone. They are
                       shown once and cannot be retrieved later.
                     </p>
@@ -344,7 +344,7 @@ export function AdminLoginPage() {
                 <button
                   type="button"
                   onClick={backToCredentials}
-                  className="w-full flex items-center justify-center gap-1.5 text-xs font-medium text-slate-400 hover:text-slate-200 transition-colors"
+                  className="w-full flex items-center justify-center gap-1.5 text-xs font-medium text-[var(--shell-muted)] hover:text-slate-200 transition-colors"
                 >
                   <ArrowLeft className="h-3.5 w-3.5" />
                   Use a different account
@@ -353,14 +353,14 @@ export function AdminLoginPage() {
             ) : step === "enroll-confirm" ? (
               <form onSubmit={handleEnrollConfirm} className="space-y-4">
                 <FieldGroup className="space-y-4">
-                  <p className="text-xs text-slate-400 leading-relaxed">
+                  <p className="text-xs text-[var(--shell-muted)] leading-relaxed">
                     Enter the six-digit code your authenticator app is showing for{" "}
                     <span className="text-slate-200 font-medium">{email}</span> to
                     finish setup.
                   </p>
 
                   <Field>
-                    <FieldLabel htmlFor="admin-enroll-code" className="text-xs font-semibold text-slate-300">
+                    <FieldLabel htmlFor="admin-enroll-code" className="text-xs font-semibold text-[var(--shell-muted)]">
                       Verification code
                     </FieldLabel>
                     <Input
@@ -374,7 +374,7 @@ export function AdminLoginPage() {
                       value={enrollCode}
                       onChange={(e) => setEnrollCode(e.target.value.replace(/\D/g, ""))}
                       disabled={loading}
-                      className="h-12 px-4 rounded-lg text-center text-lg font-semibold tracking-[0.3em] bg-slate-800/60 border-slate-700 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 text-slate-100 placeholder:text-slate-600"
+                      className="h-12 px-4 rounded-lg text-center text-lg font-semibold tracking-[0.3em] bg-slate-800/60 border-slate-700 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 text-slate-100 placeholder:text-[var(--shell-muted)]"
                     />
                     {fieldErrors.code && (
                       <p className="text-xs text-rose-400 mt-1">{fieldErrors.code[0]}</p>
@@ -399,7 +399,7 @@ export function AdminLoginPage() {
                     type="button"
                     onClick={() => setStep("enroll-secret")}
                     disabled={loading}
-                    className="w-full flex items-center justify-center gap-1.5 text-xs font-medium text-slate-400 hover:text-slate-200 transition-colors disabled:opacity-50"
+                    className="w-full flex items-center justify-center gap-1.5 text-xs font-medium text-[var(--shell-muted)] hover:text-slate-200 transition-colors disabled:opacity-50"
                   >
                     <ArrowLeft className="h-3.5 w-3.5" />
                     Back to the QR code
@@ -409,14 +409,14 @@ export function AdminLoginPage() {
             ) : (
               <form onSubmit={handleSecondFactor} className="space-y-4">
                 <FieldGroup className="space-y-4">
-                  <p className="text-xs text-slate-400 leading-relaxed">
+                  <p className="text-xs text-[var(--shell-muted)] leading-relaxed">
                     Enter the six-digit code from your authenticator app for{" "}
                     <span className="text-slate-200 font-medium">{email}</span>. You can
                     also use one of your recovery codes.
                   </p>
 
                   <Field>
-                    <FieldLabel htmlFor="admin-2fa" className="text-xs font-semibold text-slate-300">
+                    <FieldLabel htmlFor="admin-2fa" className="text-xs font-semibold text-[var(--shell-muted)]">
                       Verification code
                     </FieldLabel>
                     <Input
@@ -430,7 +430,7 @@ export function AdminLoginPage() {
                       value={code}
                       onChange={(e) => setCode(e.target.value)}
                       disabled={loading}
-                      className="h-12 px-4 rounded-lg text-center text-lg font-semibold tracking-[0.3em] bg-slate-800/60 border-slate-700 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 text-slate-100 placeholder:text-slate-600"
+                      className="h-12 px-4 rounded-lg text-center text-lg font-semibold tracking-[0.3em] bg-slate-800/60 border-slate-700 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 text-slate-100 placeholder:text-[var(--shell-muted)]"
                     />
                     {fieldErrors.code && (
                       <p className="text-xs text-rose-400 mt-1">{fieldErrors.code[0]}</p>
@@ -458,7 +458,7 @@ export function AdminLoginPage() {
                     type="button"
                     onClick={backToCredentials}
                     disabled={loading}
-                    className="w-full flex items-center justify-center gap-1.5 text-xs font-medium text-slate-400 hover:text-slate-200 transition-colors disabled:opacity-50"
+                    className="w-full flex items-center justify-center gap-1.5 text-xs font-medium text-[var(--shell-muted)] hover:text-slate-200 transition-colors disabled:opacity-50"
                   >
                     <ArrowLeft className="h-3.5 w-3.5" />
                     Use a different account
@@ -468,7 +468,7 @@ export function AdminLoginPage() {
             )}
           </div>
 
-          <p className="text-center text-xs text-slate-500 mt-6">
+          <p className="text-center text-xs text-[var(--shell-muted)] mt-6">
             &copy; {new Date().getFullYear()} MurihSpace Ecosystem
           </p>
         </div>

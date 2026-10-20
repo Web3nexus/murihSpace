@@ -191,29 +191,33 @@ export default function KycSettingsPage() {
     null
   );
 
-  const fetchStatus = useCallback(async () => {
-    try {
-      const res = await apiClient.get("/kyc/status");
-      const data = res.data?.data ?? res.data;
-      setState(
-        data ?? {
-          kyc_status: (user?.kyc_status as KycStatus) ?? "unsubmitted",
-          kyc_provider: "manual",
-        }
-      );
-    } catch {
-      setState({
-        kyc_status: (user?.kyc_status as KycStatus) ?? "unsubmitted",
-        kyc_provider: "manual",
-      });
-    } finally {
-      setLoading(false);
-    }
-  }, [user?.kyc_status]);
+  const [fetchStatusKey, setFetchStatusKey] = useState(0);
+  const fetchStatus = () => {
+    setFetchStatusKey((k) => k + 1);
+  };
 
   useEffect(() => {
-    fetchStatus();
-  }, [fetchStatus]);
+    (async () => {
+      try {
+        const res = await apiClient.get("/kyc/status");
+        const data = res.data?.data ?? res.data;
+        setState(
+          data ?? {
+            kyc_status: (user?.kyc_status as KycStatus) ?? "unsubmitted",
+            kyc_provider: "manual",
+          }
+        );
+      } catch {
+        setState({
+          kyc_status: (user?.kyc_status as KycStatus) ?? "unsubmitted",
+          kyc_provider: "manual",
+        });
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [fetchStatusKey, user?.kyc_status]);
+
 
   // Live polling every 5s while waiting for user to complete verification on mobile or while pending
   useEffect(() => {
@@ -221,11 +225,12 @@ export default function KycSettingsPage() {
       state?.kyc_status !== "verified" && state?.kyc_status !== "not_required";
     if (!isUnfinished) return;
 
+    // Bump the key directly so the timer is not reset by unrelated re-renders.
     const timer = window.setInterval(() => {
-      fetchStatus();
+      setFetchStatusKey((k) => k + 1);
     }, 5000);
     return () => window.clearInterval(timer);
-  }, [state?.kyc_status, fetchStatus]);
+  }, [state?.kyc_status]);
 
   const fetchBadge = useCallback(async () => {
     setBadgeLoading(true);
@@ -252,7 +257,10 @@ export default function KycSettingsPage() {
   }, []);
 
   useEffect(() => {
-    if (state?.kyc_status === "verified") fetchBadge();
+    if (state?.kyc_status !== "verified") return;
+    // Deferred so the loading state is not set synchronously inside the effect body
+    const timer = setTimeout(() => fetchBadge(), 0);
+    return () => clearTimeout(timer);
   }, [state?.kyc_status, fetchBadge]);
 
   const badgeAction = async (path: string, busyKey: string) => {
@@ -342,7 +350,7 @@ export default function KycSettingsPage() {
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-center gap-3.5">
               <div className="h-12 w-12 rounded-lg bg-sky-500/10 border border-sky-500/20 flex items-center justify-center">
-                <VerifiedBadge className="h-6 w-6 text-[#1B64F2]" />
+                <VerifiedBadge className="h-6 w-6 text-[var(--shell-accent)]" />
               </div>
               <div>
                 <h3 className="text-base font-bold text-foreground flex items-center gap-2">
@@ -387,7 +395,7 @@ export default function KycSettingsPage() {
 
               {badge.expires_at && badge.status === "active" && (
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <VerifiedBadge className="h-4 w-4 text-[#1B64F2]" />
+                  <VerifiedBadge className="h-4 w-4 text-[var(--shell-accent)]" />
                   Expires{" "}
                   {new Date(badge.expires_at).toLocaleDateString(undefined, {
                     year: "numeric",

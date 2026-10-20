@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { apiClient } from "@/lib/api/client";
@@ -10,6 +11,12 @@ interface PopChatRecipient {
   username?: string;
   is_online?: boolean;
   last_seen?: string | null;
+}
+
+// Loose extras some conversation payloads carry beyond ConversationItem
+interface ConversationExtras {
+  avatar_url?: string;
+  participants?: { id?: number }[];
 }
 
 interface PopChatContextType {
@@ -32,6 +39,7 @@ const PopChatContext = createContext<PopChatContextType | undefined>(undefined);
 
 export function PopChatProvider({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuth();
+  const [prevIsAuthenticated, setPrevIsAuthenticated] = useState(isAuthenticated);
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [activeConv, setActiveConv] = useState<ConversationItem | null>(null);
@@ -43,8 +51,8 @@ export function PopChatProvider({ children }: { children: React.ReactNode }) {
     try {
       const res = await apiClient.get<{ data: ConversationItem[] }>("/conversations");
       const body = res.data as unknown;
-      const list = body && typeof body === 'object' && 'data' in (body as any)
-        ? (body as any).data
+      const list = body && typeof body === 'object' && 'data' in body
+        ? (body as { data: unknown }).data
         : Array.isArray(body) ? body : [];
       setConversations(Array.isArray(list) ? list : []);
     } catch {
@@ -52,15 +60,25 @@ export function PopChatProvider({ children }: { children: React.ReactNode }) {
     }
   }, [isAuthenticated]);
 
-  useEffect(() => {
-    if (isAuthenticated) {
-      refreshConversations();
-      // Poll conversations unread counts periodically every 25 seconds
-      const timer = setInterval(refreshConversations, 25000);
-      return () => clearInterval(timer);
-    } else {
+  // Reset chat state when the auth status changes (logout clears the list and closes the panel)
+  if (prevIsAuthenticated !== isAuthenticated) {
+    setPrevIsAuthenticated(isAuthenticated);
+    if (!isAuthenticated) {
       setConversations([]);
       setIsOpen(false);
+    }
+  }
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      // First refresh runs just after the effect so its state updates are not synchronous in the effect body
+      const first = setTimeout(() => void refreshConversations(), 0);
+      // Poll conversations unread counts periodically every 25 seconds
+      const timer = setInterval(refreshConversations, 25000);
+      return () => {
+        clearTimeout(first);
+        clearInterval(timer);
+      };
     }
   }, [isAuthenticated, refreshConversations]);
 
@@ -91,7 +109,7 @@ export function PopChatProvider({ children }: { children: React.ReactNode }) {
     setActiveRecipient({
       id: conv.id,
       name: conv.title,
-      avatar: conv.other_user?.avatar_url || conv.community?.logo_url || (conv as any).avatar_url,
+      avatar: conv.other_user?.avatar_url || conv.community?.logo_url || (conv as ConversationItem & ConversationExtras).avatar_url,
       is_online: conv.other_user?.is_online,
       last_seen: conv.other_user?.last_seen,
     });
@@ -116,7 +134,9 @@ export function PopChatProvider({ children }: { children: React.ReactNode }) {
         (c) =>
           c.type === "direct" &&
           (c.other_user?.id === targetUserId ||
-            ((c as any).participants && Array.isArray((c as any).participants) && (c as any).participants.some((p: any) => p.id === targetUserId)))
+            (((c as ConversationItem & ConversationExtras).participants &&
+              Array.isArray((c as ConversationItem & ConversationExtras).participants) &&
+              (c as ConversationItem & ConversationExtras).participants?.some((p) => p.id === targetUserId))))
       );
       if (existing) {
         setActiveConv(existing);
@@ -131,7 +151,7 @@ export function PopChatProvider({ children }: { children: React.ReactNode }) {
         setConversations((prev) => [conv, ...prev.filter((c) => c.id !== conv.id)]);
       }
     } catch (err) {
-      console.error("Failed to start direct conversation", err);
+      logger.error("Failed to start direct conversation", err);
     }
   }, [conversations]);
 
@@ -158,6 +178,7 @@ export function PopChatProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
+// eslint-disable-next-line react-refresh/only-export-components -- hook stays beside PopChatProvider; moving it would touch every importer
 export function usePopChat() {
   const context = useContext(PopChatContext);
   if (!context) {

@@ -52,6 +52,11 @@ return Application::configure(basePath: dirname(__DIR__))
             return null;
         });
 
+        // Cookie sessions for the first-party web app (Sanctum SPA mode). Only
+        // requests whose Origin/Referer is in sanctum.stateful get the session
+        // stack and CSRF check; mobile bearer requests pass through unchanged.
+        $middleware->statefulApi();
+
         $middleware->api(prepend: [
             CaptureRequestAndEnvelopeResponse::class,
             SecurityHeaders::class,
@@ -65,6 +70,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'admin' => IsAdmin::class,
             'admin.permission' => EnsureAdminPermission::class,
+            'admin.super' => \App\Http\Middleware\EnsureSuperAdmin::class,
             'creator' => IsCreator::class,
             'vendor' => IsVendor::class,
             'store.owner' => IsStoreOwner::class,

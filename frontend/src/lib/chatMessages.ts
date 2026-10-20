@@ -112,3 +112,15 @@ export function extractMessages(payload: unknown): ChatMessage[] {
 
   return list;
 }
+/**
+ * The date a business chat's delete-for-everyone window opens, or null when it is open now.
+ * The messages response carries it under data.delete_for_everyone_unlocks_at.
+ */
+export function extractDeleteLock(payload: unknown): string | null {
+  if (!payload || typeof payload !== 'object') return null;
+  const inner = (payload as Record<string, unknown>).data;
+  if (!inner || typeof inner !== 'object') return null;
+  const value = (inner as Record<string, unknown>).delete_for_everyone_unlocks_at;
+  if (typeof value !== 'string') return null;
+  return new Date(value).getTime() > Date.now() ? value : null;
+}

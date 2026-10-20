@@ -1,3 +1,4 @@
+import { pickArray } from "@/lib/api/pickArray";
 import { useState, useEffect, useCallback } from "react";
 import { Plus, Edit, Delete as Trash2, TickSquare as Check, DangerSquare as AlertCircle } from "@/components/icons";
 import { Coins, Spinner as Loader2, ArrowsVertical, ToggleLeft, ToggleRight, Percent } from "@/components/icons/rounded";;
@@ -24,12 +25,10 @@ interface CoinPack {
   store_product_android?: string | null;
 }
 
-function safeArray<T = any>(val: any): T[] {
-  if (Array.isArray(val)) return val;
-  if (Array.isArray(val?.data)) return val.data;
-  if (Array.isArray(val?.data?.data)) return val.data.data;
-  if (Array.isArray(val?.packs)) return val.packs;
-  return [];
+function safeArray<T>(val: T[]): T[];
+function safeArray<T = unknown>(val: unknown): T[];
+function safeArray(val: unknown): unknown[] {
+  return pickArray(val, ["packs"]);
 }
 
 const CACHE_KEY_ADMIN_PACKS = "admin_coin_packs";
@@ -74,7 +73,9 @@ export default function AdminCoinPacksPage() {
   }, []);
 
   useEffect(() => {
-    fetchPacks(Boolean(getCachedData(CACHE_KEY_ADMIN_PACKS)));
+    // Deferred so the loading state is not set synchronously inside the effect body
+    const timer = setTimeout(() => fetchPacks(Boolean(getCachedData(CACHE_KEY_ADMIN_PACKS))), 0);
+    return () => clearTimeout(timer);
   }, [fetchPacks]);
 
   const resetForm = () => setForm({ name: "", coins: "", bonus_coins: "", price: "", currency: "USD", badge: "", sort_order: "", store_product_ios: "", store_product_android: "" });
@@ -192,7 +193,7 @@ export default function AdminCoinPacksPage() {
       {/* Header - Meta Dark Surface */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 sm:p-5 rounded-lg bg-card border-none text-foreground ">
         <div className="space-y-1">
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#1877f2]/10 text-[#1877f2] text-xs font-bold uppercase tracking-wider border border-[#1877f2]/20">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[var(--shell-accent-solid)]/10 text-[var(--shell-accent)] text-xs font-bold uppercase tracking-wider border border-[var(--shell-accent)]/20">
             <Coins weight="fill" className="h-3.5 w-3.5" /> SecureGate Admin
           </span>
           <h1 className="text-xl sm:text-xl font-bold tracking-tight text-foreground">Coin Packs</h1>
@@ -201,7 +202,7 @@ export default function AdminCoinPacksPage() {
         <ActionTooltip content={showForm ? "Close form" : "Create new coin pack"}>
           <Button
             onClick={() => { setShowForm(!showForm); setEditing(null); resetForm(); }}
-            className="bg-[#1877f2] hover:bg-[#166fe5] text-white font-bold h-10 px-4 rounded-lg"
+            className="bg-[var(--shell-accent-solid)] hover:bg-[var(--shell-accent-hover)] text-white font-bold h-10 px-4 rounded-lg"
           >
             <Plus weight="fill" className="h-4 w-4 mr-2" />{showForm ? "Cancel" : "Add Coin Pack"}
           </Button>
@@ -246,7 +247,7 @@ export default function AdminCoinPacksPage() {
               <Button
                 onClick={handleSaveRate}
                 disabled={!rateSavable || rateSaving || !parseFloat(rate) || parseFloat(rate) <= 0}
-                className="bg-[#1877f2] hover:bg-[#166fe5] text-white font-bold h-9 px-4 rounded-lg w-full"
+                className="bg-[var(--shell-accent-solid)] hover:bg-[var(--shell-accent-hover)] text-white font-bold h-9 px-4 rounded-lg w-full"
               >
                 {rateSaving ? <Loader2 weight="fill" className="w-4 h-4 mr-2 animate-spin" /> : null}Save
               </Button>
@@ -272,7 +273,7 @@ export default function AdminCoinPacksPage() {
             <div className="space-y-1"><Label className="text-xs font-bold">App Store Product ID</Label><Input value={form.store_product_ios} onChange={e => setForm(f => ({ ...f, store_product_ios: e.target.value }))} placeholder="e.g. com.murihspace.coins.275" className="h-10 rounded-lg" /></div>
             <div className="space-y-1"><Label className="text-xs font-bold">Play Store Product ID</Label><Input value={form.store_product_android} onChange={e => setForm(f => ({ ...f, store_product_android: e.target.value }))} placeholder="e.g. com.murihspace.coins.275" className="h-10 rounded-lg" /></div>
             <div className="md:col-span-3 flex gap-3 pt-2">
-              <Button type="submit" disabled={saving} className="bg-[#1877f2] hover:bg-[#166fe5] text-white font-bold h-10 px-5 rounded-lg">
+              <Button type="submit" disabled={saving} className="bg-[var(--shell-accent-solid)] hover:bg-[var(--shell-accent-hover)] text-white font-bold h-10 px-5 rounded-lg">
                 {saving ? <Loader2 weight="fill" className="w-4 h-4 mr-2 animate-spin" /> : null}{editing ? "Update" : "Create"}
               </Button>
               <Button type="button" variant="outline" onClick={() => { setShowForm(false); setEditing(null); }} className="h-10 rounded-lg">Cancel</Button>

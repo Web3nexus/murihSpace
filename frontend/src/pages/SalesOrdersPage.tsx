@@ -1,4 +1,4 @@
-import { getAuthToken } from "@/lib/auth/token";
+import { logger } from "@/lib/logger";
 import { useState, useEffect, useCallback } from 'react';
 import { Graph as TrendingUp, DangerSquare as AlertCircle } from "@/components/icons";
 import { CurrencyDollar as DollarSign, Package, Spinner as Loader2, Receipt, ArrowSquareOut as ExternalLink } from "@/components/icons/rounded";;
@@ -17,7 +17,7 @@ import { authFetch } from "@/lib/api/authFetch";
 const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
   completed:  { label: 'Completed',  color: 'bg-emerald-500/15 text-emerald-600 border-emerald-500/25' },
   pending:    { label: 'Pending',    color: 'bg-amber-500/15 text-amber-600 border-amber-500/25' },
-  processing: { label: 'Processing', color: 'bg-blue-500/15 text-blue-600 border-blue-500/25' },
+  processing: { label: 'Processing', color: 'bg-[var(--shell-accent-solid)]/15 text-[var(--shell-accent)] border-[var(--shell-accent)]/25' },
   failed:     { label: 'Failed',     color: 'bg-destructive/15 text-destructive border-destructive/25' },
   refunded:   { label: 'Refunded',   color: 'bg-muted text-muted-foreground border-border' },
 };
@@ -40,13 +40,11 @@ export function SalesOrdersPage() {
   const [lastPage, setLastPage] = useState(1);
 
   const fetchSales = useCallback(async () => {
-    const token = getAuthToken();
     setFetchError(null);
     try {
       const res = await authFetch(`/orders/sales?page=${page}&per_page=20`, {
         headers: {
           Accept: 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
       });
       if (res.ok) {
@@ -67,13 +65,11 @@ export function SalesOrdersPage() {
     fetchSales(); }, [fetchSales]);
 
   const openReceipt = async (orderId: number) => {
-    const token = getAuthToken();
 
     try {
       const res = await authFetch(`/orders/${orderId}/receipt`, {
         headers: {
           Accept: 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
       });
 
@@ -81,7 +77,7 @@ export function SalesOrdersPage() {
         const json = await res.json();
         setSelectedReceipt(json.data?.data ?? json.data);
       }
-    } catch (e) { console.error('Failed to fetch receipt', e); }
+    } catch (e) { logger.error('Failed to fetch receipt', e); }
   };
 
   // Summary metrics

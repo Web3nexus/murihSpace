@@ -1,7 +1,9 @@
 <?php
 
 use App\Http\Controllers\AdminManagementController;
+use App\Http\Controllers\AdsSsoController;
 use App\Http\Controllers\Internal\InternalEnforcementController;
+use App\Http\Controllers\Internal\InternalStaffSyncController;
 use App\Http\Controllers\Internal\SupportInternalController;
 use Illuminate\Support\Facades\Route;
 
@@ -44,4 +46,15 @@ Route::prefix('enforcement')->group(function () {
 Route::prefix('admin-staff')->group(function () {
     Route::get('/', [AdminManagementController::class, 'internalList']);
     Route::post('/verify', [AdminManagementController::class, 'internalVerify']);
+});
+
+// Staff accounts pushed by the marketing backend (the staff login). Upsert keyed on the
+// staff identity id, and a disable-only path so a removed staff member loses access here too.
+Route::prefix('staff')->group(function () {
+    Route::post('/sync', [InternalStaffSyncController::class, 'sync']);
+    Route::post('/disable', [InternalStaffSyncController::class, 'disable']);
+});
+
+Route::prefix('ads')->group(function () {
+    Route::post('/sso/exchange', [AdsSsoController::class, 'exchangeSsoCode']);
 });

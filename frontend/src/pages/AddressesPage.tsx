@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, Location as MapPin, Delete as Trash2, TickSquare as CheckCircle, Edit } from "@/components/icons";
 import { Spinner as Loader2, Circle } from "@/components/icons/rounded";;
 import { useConfirm } from '@/components/ui/DialogProvider';
@@ -44,21 +44,27 @@ export function AddressesPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [form, setForm] = useState(emptyForm);
 
-  const fetchAddresses = useCallback(async () => {
-    try {
-      const res = await authFetch(`/addresses`, {  });
-      if (res.ok) {
-        const json = await res.json();
-        setAddresses(json.data?.data ?? []);
-      }
-    } catch {
-      // ignore
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+  const [fetchAddressesKey, setFetchAddressesKey] = useState(0);
+  const fetchAddresses = () => {
+    setFetchAddressesKey((k) => k + 1);
+  };
 
-  useEffect(() => { fetchAddresses(); }, [fetchAddresses]);
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await authFetch(`/addresses`, {  });
+        if (res.ok) {
+          const json = await res.json();
+          setAddresses(json.data?.data ?? []);
+        }
+      } catch {
+        // ignore
+      } finally {
+        setIsLoading(false);
+      }
+    })();
+  }, [fetchAddressesKey]);
+
 
   function openNew() {
     setForm(emptyForm);
@@ -153,7 +159,7 @@ export function AddressesPage() {
           <h1 className="text-xl sm:text-2xl font-black tracking-tight">Delivery Addresses</h1>
           <p className="text-sm text-white/80 max-w-xl">Manage your verified shipping and billing delivery addresses.</p>
         </div>
-        <Button onClick={openNew} className="bg-[#2164b6] text-white hover:bg-[#1a5091] font-semibold h-11 px-5 rounded-lg gap-2 shrink-0 self-start sm:self-auto">
+        <Button onClick={openNew} className="bg-[var(--shell-accent-solid)] text-white hover:bg-[var(--shell-accent-hover)] font-semibold h-11 px-5 rounded-lg gap-2 shrink-0 self-start sm:self-auto">
           <Plus weight="fill" className="h-5 w-5" /> Add Address
         </Button>
       </div>
@@ -172,15 +178,15 @@ export function AddressesPage() {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm text-muted-foreground mb-1">Label</label>
-              <select value={form.label} onChange={e => setForm(p => ({ ...p, label: e.target.value }))}
+              <label htmlFor="f-pages-addressespage-tsx-175" className="block text-sm text-muted-foreground mb-1">Label</label>
+              <select id="f-pages-addressespage-tsx-175" value={form.label} onChange={e => setForm(p => ({ ...p, label: e.target.value }))}
                 className="w-full rounded-lg border-border bg-card px-3 py-2 text-sm text-foreground">
                 <option>Home</option><option>Work</option><option>Office</option><option>Other</option>
               </select>
             </div>
             <div>
-              <label className="block text-sm text-muted-foreground mb-1">Address Type</label>
-              <select value={form.type} onChange={e => setForm(p => ({ ...p, type: e.target.value }))}
+              <label htmlFor="f-pages-addressespage-tsx-182" className="block text-sm text-muted-foreground mb-1">Address Type</label>
+              <select id="f-pages-addressespage-tsx-182" value={form.type} onChange={e => setForm(p => ({ ...p, type: e.target.value }))}
                 className="w-full rounded-lg border-border bg-card px-3 py-2 text-sm text-foreground">
                 <option value="both">Shipping & Billing</option>
                 <option value="shipping">Shipping</option>
@@ -191,50 +197,50 @@ export function AddressesPage() {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm text-muted-foreground mb-1">Full Name *</label>
-              <Input value={form.full_name} onChange={e => setForm(p => ({ ...p, full_name: e.target.value }))}
+              <label htmlFor="f-pages-addressespage-tsx-194" className="block text-sm text-muted-foreground mb-1">Full Name *</label>
+              <Input id="f-pages-addressespage-tsx-194" value={form.full_name} onChange={e => setForm(p => ({ ...p, full_name: e.target.value }))}
                 required className="text-sm" />
             </div>
             <div>
-              <label className="block text-sm text-muted-foreground mb-1">Phone</label>
-              <Input value={form.phone} onChange={e => setForm(p => ({ ...p, phone: e.target.value }))}
+              <label htmlFor="f-pages-addressespage-tsx-199" className="block text-sm text-muted-foreground mb-1">Phone</label>
+              <Input id="f-pages-addressespage-tsx-199" value={form.phone} onChange={e => setForm(p => ({ ...p, phone: e.target.value }))}
                 className="text-sm" />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm text-muted-foreground mb-1">Street Line 1 *</label>
-            <Input value={form.street_line1} onChange={e => setForm(p => ({ ...p, street_line1: e.target.value }))}
+            <label htmlFor="f-pages-addressespage-tsx-206" className="block text-sm text-muted-foreground mb-1">Street Line 1 *</label>
+            <Input id="f-pages-addressespage-tsx-206" value={form.street_line1} onChange={e => setForm(p => ({ ...p, street_line1: e.target.value }))}
               required className="text-sm" />
           </div>
           <div>
-            <label className="block text-sm text-muted-foreground mb-1">Street Line 2</label>
-            <Input value={form.street_line2} onChange={e => setForm(p => ({ ...p, street_line2: e.target.value }))}
+            <label htmlFor="f-pages-addressespage-tsx-211" className="block text-sm text-muted-foreground mb-1">Street Line 2</label>
+            <Input id="f-pages-addressespage-tsx-211" value={form.street_line2} onChange={e => setForm(p => ({ ...p, street_line2: e.target.value }))}
               className="text-sm" />
           </div>
 
           <div className="grid grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm text-muted-foreground mb-1">City *</label>
-              <Input value={form.city} onChange={e => setForm(p => ({ ...p, city: e.target.value }))}
+              <label htmlFor="f-pages-addressespage-tsx-218" className="block text-sm text-muted-foreground mb-1">City *</label>
+              <Input id="f-pages-addressespage-tsx-218" value={form.city} onChange={e => setForm(p => ({ ...p, city: e.target.value }))}
                 required className="text-sm" />
             </div>
             <div>
-              <label className="block text-sm text-muted-foreground mb-1">State *</label>
-              <Input value={form.state} onChange={e => setForm(p => ({ ...p, state: e.target.value }))}
+              <label htmlFor="f-pages-addressespage-tsx-223" className="block text-sm text-muted-foreground mb-1">State *</label>
+              <Input id="f-pages-addressespage-tsx-223" value={form.state} onChange={e => setForm(p => ({ ...p, state: e.target.value }))}
                 required className="text-sm" />
             </div>
             <div>
-              <label className="block text-sm text-muted-foreground mb-1">Postal Code</label>
-              <Input value={form.postal_code} onChange={e => setForm(p => ({ ...p, postal_code: e.target.value }))}
+              <label htmlFor="f-pages-addressespage-tsx-228" className="block text-sm text-muted-foreground mb-1">Postal Code</label>
+              <Input id="f-pages-addressespage-tsx-228" value={form.postal_code} onChange={e => setForm(p => ({ ...p, postal_code: e.target.value }))}
                 className="text-sm" />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm text-muted-foreground mb-1">Country</label>
-              <select value={form.country} onChange={e => setForm(p => ({ ...p, country: e.target.value }))}
+              <label htmlFor="f-pages-addressespage-tsx-236" className="block text-sm text-muted-foreground mb-1">Country</label>
+              <select id="f-pages-addressespage-tsx-236" value={form.country} onChange={e => setForm(p => ({ ...p, country: e.target.value }))}
                 className="w-full rounded-lg border-border bg-card px-3 py-2 text-sm text-foreground">
                 {Object.entries(COUNTRY_NAMES).map(([code, name]) => (
                   <option key={code} value={code}>{name} ({code})</option>

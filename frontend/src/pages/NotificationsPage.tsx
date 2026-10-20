@@ -1,4 +1,4 @@
-import { getAuthToken } from "@/lib/auth/token";
+import { logger } from "@/lib/logger";
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Notification as Bell, TickSquare as CheckCheck, ShieldFail as ShieldWarning, ShieldDone as ShieldCheck, Message as MessageSquare, AddUser as UserPlus, Setting as Sliders, TickSquare as Check, Swap as RefreshCw, ArrowRight, Discount as Gift, Wallet, TickSquare as CheckCircle2, Send as PaperPlaneTilt, Delete as Trash, ArrowDown as CaretDown, ArrowUp as CaretUp, ArrowLeft as CaretLeft, ArrowRight as CaretRight, Search as MagnifyingGlass, Message as EnvelopeSimple, CloseSquare as XIcon } from "@/components/icons";
 import { Lightning as Zap, Spinner as Loader2, Lifebuoy, Medal as Award } from "@/components/icons/rounded";;
@@ -64,7 +64,7 @@ const TYPE_CONFIG: Record<
   ticket_created: {
     label: 'Support Ticket',
     description: 'When a support ticket you opened is created.',
-    icon: <Lifebuoy weight="fill" className="h-4 w-4 text-blue-500" />,
+    icon: <Lifebuoy weight="fill" className="h-4 w-4 text-[var(--shell-accent)]" />,
   },
   ticket_reply: {
     label: 'Support Reply',
@@ -74,7 +74,7 @@ const TYPE_CONFIG: Record<
   ticket_status_changed: {
     label: 'Ticket Status',
     description: 'When the status of your support ticket changes.',
-    icon: <RefreshCw weight="fill" className="h-4 w-4 text-blue-500" />,
+    icon: <RefreshCw weight="fill" className="h-4 w-4 text-[var(--shell-accent)]" />,
   },
   ticket_info_requested: {
     label: 'Ticket Update',
@@ -114,7 +114,7 @@ const TYPE_CONFIG: Record<
   kyc_requested: {
     label: 'KYC Action',
     description: 'Requests to submit identity documents for high-tier account features.',
-    icon: <ShieldWarning weight="fill" className="h-4 w-4 text-blue-500" />,
+    icon: <ShieldWarning weight="fill" className="h-4 w-4 text-[var(--shell-accent)]" />,
   },
   gift_received: {
     label: 'Gift Received',
@@ -154,7 +154,7 @@ const CATEGORY_GROUPS: Record<string, { label: string; types: NotificationType[]
 function formatNotificationMessage(content: unknown, fallback = 'You have a new notification.'): string {
   if (!content) return fallback;
   if (typeof content === 'object') {
-    const obj = content as Record<string, any>;
+    const obj = content as Record<string, unknown>;
     if (obj.call_id !== undefined || obj.status !== undefined) {
       const type = obj.call_type === 'video' ? 'Video' : 'Audio';
       if (obj.status === 'missed') return `Missed ${type} Call`;
@@ -290,23 +290,25 @@ export default function NotificationsPage() {
       else next.add(id);
       return next;
     });
-    // Check scroll geometry after height change
-    setTimeout(checkScroll, 200);
   };
+
+  // Check scroll geometry after height change
+  useEffect(() => {
+    const timer = setTimeout(checkScroll, 200);
+    return () => clearTimeout(timer);
+  }, [expandedIds, checkScroll]);
 
   const fetchNotifications = useCallback(
     async (quiet = false, targetPage = 1, currentFilter = activeFeedFilter, limit = perPage) => {
       if (!quiet) setIsLoading(true);
       else setIsRefreshing(true);
 
-      const token = getAuthToken();
       try {
         const res = await authFetch(
           `/notifications?page=${targetPage}&per_page=${limit}&filter=${currentFilter}`,
           {
             headers: {
               Accept: 'application/json',
-              ...(token ? { Authorization: `Bearer ${token}` } : {}),
             },
           }
         );
@@ -314,7 +316,7 @@ export default function NotificationsPage() {
           const json = await res.json();
           const root = json.data ?? json;
 
-          let rawList: any[] = [];
+          let rawList: Array<Omit<AppNotification, 'data'> & { data?: unknown }> = [];
           if (Array.isArray(root?.notifications)) {
             rawList = root.notifications;
           } else if (Array.isArray(root?.data?.data)) {
@@ -327,18 +329,18 @@ export default function NotificationsPage() {
             rawList = root;
           }
 
-          const normalizedList: AppNotification[] = rawList.map((item: any) => {
+          const normalizedList: AppNotification[] = rawList.map((item) => {
             let itemData = item.data;
             if (typeof itemData === 'string') {
               try {
                 itemData = JSON.parse(itemData);
-              } catch (_) {
+              } catch {
                 itemData = { message: itemData };
               }
             }
             return {
               ...item,
-              data: itemData || {},
+              data: (itemData || {}) as AppNotification['data'],
             };
           });
 
@@ -391,12 +393,10 @@ export default function NotificationsPage() {
   const fetchPreferences = useCallback(async () => {
     setIsPrefLoading(true);
     setPrefsLoadError(false);
-    const token = getAuthToken();
     try {
       const res = await authFetch(`/notification-preferences`, {
         headers: {
           Accept: 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
       });
       if (res.ok) {
@@ -413,7 +413,9 @@ export default function NotificationsPage() {
   }, []);
 
   useEffect(() => {
-    fetchNotifications(false, 1, activeFeedFilter);
+    // Deferred so the loading state is not set synchronously inside the effect body
+    const timer = setTimeout(() => fetchNotifications(false, 1, activeFeedFilter), 0);
+    return () => clearTimeout(timer);
   }, [fetchNotifications, activeFeedFilter]);
 
   useEffect(() => {
@@ -432,9 +434,10 @@ export default function NotificationsPage() {
   }, [fetchNotifications, activeFeedFilter]);
 
   useEffect(() => {
-    if (activeTab === 'preferences') {
-      fetchPreferences();
-    }
+    if (activeTab !== 'preferences') return;
+    // Deferred so the loading state is not set synchronously inside the effect body
+    const timer = setTimeout(() => fetchPreferences(), 0);
+    return () => clearTimeout(timer);
   }, [activeTab, fetchPreferences]);
 
   const handleFilterChange = (filter: 'all' | 'unread') => {
@@ -458,13 +461,11 @@ export default function NotificationsPage() {
   };
 
   const handleMarkAllRead = async () => {
-    const token = getAuthToken();
     try {
       await authFetch(`/notifications/read-all`, {
         method: 'POST',
         headers: {
           Accept: 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
       });
       setNotifications((prev) =>
@@ -475,19 +476,17 @@ export default function NotificationsPage() {
         fetchNotifications(true, 1, 'unread');
       }
     } catch (e) {
-      console.error('Failed to mark all read', e);
+      logger.error('Failed to mark all read', e);
     }
   };
 
   const handleMarkSingleRead = async (id: string, e?: React.MouseEvent) => {
     e?.stopPropagation();
-    const token = getAuthToken();
     try {
       await authFetch(`/notifications/${id}/read`, {
         method: 'POST',
         headers: {
           Accept: 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
       });
       setNotifications((prev) =>
@@ -499,19 +498,17 @@ export default function NotificationsPage() {
         setTotalCount((prev) => Math.max(0, prev - 1));
       }
     } catch (e) {
-      console.error('Failed to mark notification read', e);
+      logger.error('Failed to mark notification read', e);
     }
   };
 
   const handleMarkSingleUnread = async (id: string, e?: React.MouseEvent) => {
     e?.stopPropagation();
-    const token = getAuthToken();
     try {
       await authFetch(`/notifications/${id}/unread`, {
         method: 'POST',
         headers: {
           Accept: 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
       });
       setNotifications((prev) =>
@@ -519,20 +516,18 @@ export default function NotificationsPage() {
       );
       setUnreadCount((prev) => prev + 1);
     } catch (e) {
-      console.error('Failed to mark notification unread', e);
+      logger.error('Failed to mark notification unread', e);
     }
   };
 
   const handleDeleteSingle = async (id: string, e?: React.MouseEvent) => {
     e?.stopPropagation();
     setDeletingId(id);
-    const token = getAuthToken();
     try {
       const res = await authFetch(`/notifications/${id}`, {
         method: 'DELETE',
         headers: {
           Accept: 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
       });
       if (res.ok) {
@@ -545,7 +540,7 @@ export default function NotificationsPage() {
         setTotalAllCount((prev) => Math.max(0, prev - 1));
       }
     } catch (e) {
-      console.error('Failed to delete notification', e);
+      logger.error('Failed to delete notification', e);
     } finally {
       setDeletingId(null);
     }
@@ -553,13 +548,11 @@ export default function NotificationsPage() {
 
   const handleClearAll = async () => {
     setIsClearingAll(true);
-    const token = getAuthToken();
     try {
       const res = await authFetch(`/notifications/clear-all`, {
         method: 'DELETE',
         headers: {
           Accept: 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
       });
       if (res.ok) {
@@ -571,7 +564,7 @@ export default function NotificationsPage() {
         setShowClearConfirm(false);
       }
     } catch (e) {
-      console.error('Failed to clear notifications', e);
+      logger.error('Failed to clear notifications', e);
     } finally {
       setIsClearingAll(false);
     }
@@ -608,7 +601,6 @@ export default function NotificationsPage() {
     setIsSavingPref(true);
     setSaveSuccess(false);
 
-    const token = getAuthToken();
     const payloadItems: { type: NotificationType; channel: NotificationChannel; enabled: boolean }[] = [];
 
     (Object.keys(TYPE_CONFIG) as NotificationType[]).forEach((type) => {
@@ -627,7 +619,6 @@ export default function NotificationsPage() {
         headers: {
           'Content-Type': 'application/json',
           Accept: 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({ preferences: payloadItems }),
       });
@@ -683,14 +674,8 @@ export default function NotificationsPage() {
 
   const prefTotalPages = Math.max(1, Math.ceil(filteredPrefTypes.length / prefPerPage));
 
-  useEffect(() => {
-    setPrefPage(1);
-  }, [selectedPrefGroup, prefSearchQuery]);
-
-  const currentPrefTypes = useMemo(() => {
-    const start = (prefPage - 1) * prefPerPage;
-    return filteredPrefTypes.slice(start, start + prefPerPage);
-  }, [filteredPrefTypes, prefPage, prefPerPage]);
+  const prefStart = (prefPage - 1) * prefPerPage;
+  const currentPrefTypes = filteredPrefTypes.slice(prefStart, prefStart + prefPerPage);
 
   return (
     <div className="space-y-6 w-full max-w-4xl mx-auto p-4 sm:p-6 lg:p-8">
@@ -902,7 +887,7 @@ export default function NotificationsPage() {
                         const isVerified = n.data?.is_verified || isOfficial;
                         const channelName = isOfficial ? 'Murih Notifications Official' : (n.data?.sender_name ?? 'Notification');
 
-                        const bodyText = formatNotificationMessage(n.data?.body ?? n.data?.message ?? (n.data as any)?.content);
+                        const bodyText = formatNotificationMessage(n.data?.body ?? n.data?.message ?? n.data?.content);
                         const hasExtraMeta = Boolean(
                           n.data?.reason ||
                           n.data?.admin_note ||
@@ -915,7 +900,7 @@ export default function NotificationsPage() {
                         const isExpanded = expandedIds.has(n.id);
 
                         return (
-                          <div
+                          <div role="button" tabIndex={0} onKeyDown={(e) => { if (e.target !== e.currentTarget) return; if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.currentTarget.click(); } }}
                             key={n.id}
                             onClick={() => {
                               if (!n.read_at) handleMarkSingleRead(n.id);
@@ -994,31 +979,31 @@ export default function NotificationsPage() {
                                   {/* Accordion extra details when expanded */}
                                   {isExpanded && hasExtraMeta && (
                                     <div className="mt-2.5 p-3 rounded-xl bg-muted/60 border border-border/50 text-xs space-y-1.5 animate-in fade-in-50 duration-200">
-                                      {n.data?.reason && (
+                                      {!!n.data?.reason && (
                                         <div className="text-muted-foreground">
                                           <span className="font-bold text-foreground">Reason: </span>
                                           {String(n.data.reason)}
                                         </div>
                                       )}
-                                      {n.data?.admin_note && (
+                                      {!!n.data?.admin_note && (
                                         <div className="text-muted-foreground">
                                           <span className="font-bold text-foreground">Admin Note: </span>
                                           {String(n.data.admin_note)}
                                         </div>
                                       )}
-                                      {(n.data?.ticket_id || n.data?.ticket_code) && (
+                                      {!!(n.data?.ticket_id || n.data?.ticket_code) && (
                                         <div className="text-muted-foreground">
                                           <span className="font-bold text-foreground">Reference: </span>
                                           #{String(n.data.ticket_code || n.data.ticket_id)}
                                         </div>
                                       )}
-                                      {n.data?.amount && (
+                                      {!!n.data?.amount && (
                                         <div className="text-muted-foreground">
                                           <span className="font-bold text-foreground">Amount: </span>
-                                          {String(n.data.amount)} {n.data.currency || ''}
+                                          {String(n.data.amount)} {String(n.data.currency || '')}
                                         </div>
                                       )}
-                                      {n.data?.details && typeof n.data.details === 'string' && (
+                                      {typeof n.data?.details === 'string' && (
                                         <div className="text-muted-foreground">
                                           <span className="font-bold text-foreground">Details: </span>
                                           {String(n.data.details)}
@@ -1081,9 +1066,8 @@ export default function NotificationsPage() {
                                   </div>
 
                                   {/* Action Buttons: Mark as Read/Unread & Delete */}
-                                  <div
+                                  <div role="group" aria-label="Notification actions"
                                     className="flex items-center gap-1 opacity-80 group-hover/card:opacity-100 transition-opacity"
-                                    onClick={(e) => e.stopPropagation()}
                                   >
                                     {isUnread ? (
                                       <button
@@ -1261,7 +1245,10 @@ export default function NotificationsPage() {
                   <button
                     key={key}
                     type="button"
-                    onClick={() => setSelectedPrefGroup(key)}
+                    onClick={() => {
+                      setSelectedPrefGroup(key);
+                      setPrefPage(1);
+                    }}
                     className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
                       isSelected
                         ? 'bg-[#0088cc] text-white shadow-sm'
@@ -1281,13 +1268,19 @@ export default function NotificationsPage() {
                 type="text"
                 placeholder="Filter categories…"
                 value={prefSearchQuery}
-                onChange={(e) => setPrefSearchQuery(e.target.value)}
+                onChange={(e) => {
+                  setPrefSearchQuery(e.target.value);
+                  setPrefPage(1);
+                }}
                 className="w-full pl-9 pr-8 py-1.5 rounded-xl text-xs bg-card border border-border/70 text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-[#0088cc]/30"
               />
               {prefSearchQuery && (
                 <button
                   type="button"
-                  onClick={() => setPrefSearchQuery('')}
+                  onClick={() => {
+                    setPrefSearchQuery('');
+                    setPrefPage(1);
+                  }}
                   className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 >
                   <XIcon className="w-3.5 h-3.5" />
@@ -1311,6 +1304,7 @@ export default function NotificationsPage() {
                 onClick={() => {
                   setPrefSearchQuery('');
                   setSelectedPrefGroup('all');
+                  setPrefPage(1);
                 }}
                 className="rounded-xl text-xs"
               >

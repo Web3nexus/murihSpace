@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { Setting as Settings, Download as FloppyDisk, DangerSquare as AlertCircle, ShieldDone as ShieldCheck, Password as Key, ArrowDown as ChevronDown, ArrowUp as ChevronUp, Lock, CloseSquare as X, Message as Envelope } from "@/components/icons";
 import { Spinner as Loader2, Coins, DeviceMobile as Smartphone } from "@/components/icons/rounded";;
 import { toast } from "sonner";
@@ -78,41 +78,47 @@ export default function AdminSettingsPage() {
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
 
-  const fetchSettings = useCallback(async () => {
+  const [fetchSettingsKey, setFetchSettingsKey] = useState(0);
+  const fetchSettings = () => {
     setFetchError(null);
-    try {
-      const res = await authFetch(`/securegate/settings`);
-      if (!res.ok) throw new Error("Failed to load settings");
-      const j = await res.json();
-      const d = j?.data?.data ?? j?.data ?? j;
-      if (d?.platform_name) setPlatformName(d.platform_name);
-      if (d?.support_email) setSupportEmail(d.support_email);
-      if (d?.maintenance_mode !== undefined) setMaintenanceMode(Boolean(d.maintenance_mode));
-      if (d?.default_currency && SUPPORTED_CURRENCIES.includes(d.default_currency)) setDefaultCurrency(d.default_currency);
-      if (Array.isArray(d?.web_disabled_roles)) setWebDisabledRoles(d.web_disabled_roles);
-      if (d?.admin_notify_email !== undefined) setAdminNotifyEmail(d.admin_notify_email);
-      if (d?.telegram_bot_configured !== undefined) setTelegramBotConfigured(d.telegram_bot_configured);
-      if (d?.admin_notify_telegram_chat_id !== undefined) setAdminNotifyTelegramChatId(d.admin_notify_telegram_chat_id);
-      if (d?.kyc_enabled !== undefined) setKycEnabled(Boolean(d.kyc_enabled));
-      if (d?.charge_vat !== undefined) setChargeVat(Boolean(d.charge_vat));
-      if (d?.web_purchases_enabled !== undefined) setWebPurchasesEnabled(Boolean(d.web_purchases_enabled));
-      if (Array.isArray(d?.kyc_providers) && d.kyc_providers.length > 0) setKycProviders(d.kyc_providers);
-      if (d?.kyc_credentials && typeof d.kyc_credentials === "object") setKycCredentialsStatus(d.kyc_credentials);
-      if (Array.isArray(d?.kyc_providers_available)) {
-        const status: Record<string, boolean> = {};
-        d.kyc_providers_available.forEach((p: KycProviderInfo) => { status[p.name] = Boolean(p.enabled); });
-        setKycProviderStatus(status);
-      }
-    } catch (e) { setFetchError(e instanceof Error ? e.message : "Failed to load settings"); }
-    finally { setInitialLoading(false); }
-  }, []);
+    setFetchSettingsKey((k) => k + 1);
+  };
 
-  useEffect(() => { fetchSettings(); }, [fetchSettings]);
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await authFetch(`/securegate/settings`);
+        if (!res.ok) throw new Error("Failed to load settings");
+        const j = await res.json();
+        const d = j?.data?.data ?? j?.data ?? j;
+        if (d?.platform_name) setPlatformName(d.platform_name);
+        if (d?.support_email) setSupportEmail(d.support_email);
+        if (d?.maintenance_mode !== undefined) setMaintenanceMode(Boolean(d.maintenance_mode));
+        if (d?.default_currency && SUPPORTED_CURRENCIES.includes(d.default_currency)) setDefaultCurrency(d.default_currency);
+        if (Array.isArray(d?.web_disabled_roles)) setWebDisabledRoles(d.web_disabled_roles);
+        if (d?.admin_notify_email !== undefined) setAdminNotifyEmail(d.admin_notify_email);
+        if (d?.telegram_bot_configured !== undefined) setTelegramBotConfigured(d.telegram_bot_configured);
+        if (d?.admin_notify_telegram_chat_id !== undefined) setAdminNotifyTelegramChatId(d.admin_notify_telegram_chat_id);
+        if (d?.kyc_enabled !== undefined) setKycEnabled(Boolean(d.kyc_enabled));
+        if (d?.charge_vat !== undefined) setChargeVat(Boolean(d.charge_vat));
+        if (d?.web_purchases_enabled !== undefined) setWebPurchasesEnabled(Boolean(d.web_purchases_enabled));
+        if (Array.isArray(d?.kyc_providers) && d.kyc_providers.length > 0) setKycProviders(d.kyc_providers);
+        if (d?.kyc_credentials && typeof d.kyc_credentials === "object") setKycCredentialsStatus(d.kyc_credentials);
+        if (Array.isArray(d?.kyc_providers_available)) {
+          const status: Record<string, boolean> = {};
+          d.kyc_providers_available.forEach((p: KycProviderInfo) => { status[p.name] = Boolean(p.enabled); });
+          setKycProviderStatus(status);
+        }
+      } catch (e) { setFetchError(e instanceof Error ? e.message : "Failed to load settings"); }
+      finally { setInitialLoading(false); }
+    })();
+  }, [fetchSettingsKey]);
+
 
   const handleSave = async () => {
     setSaving(true);
     try {
-      const payload: Record<string, any> = {
+      const payload: Record<string, unknown> = {
         platform_name: platformName,
         support_email: supportEmail,
         maintenance_mode: maintenanceMode,
@@ -174,11 +180,11 @@ web_disabled_roles: webDisabledRoles,
     } finally { setSaving(false); }
   };
 
-  if (initialLoading) return <div className="flex justify-center py-24"><Loader2 weight="fill" className="h-8 w-8 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" /></div>;
+  if (initialLoading) return <div className="flex justify-center py-24"><Loader2 weight="fill" className="h-8 w-8 animate-spin text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" /></div>;
 
   return (
     <div className="w-full mx-auto max-w-[800px] space-y-6 p-4 lg:p-10">
-      <div><h1 className="text-xl font-black tracking-tight flex items-center gap-2.5"><Settings weight="fill" className="h-6 w-6 text-[#2164b6] dark:text-[#7ab0ff]" /> Admin Settings</h1><p className="text-xs text-muted-foreground mt-1">Platform configuration and settings.</p></div>
+      <div><h1 className="text-xl font-black tracking-tight flex items-center gap-2.5"><Settings weight="fill" className="h-6 w-6 text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" /> Admin Settings</h1><p className="text-xs text-muted-foreground mt-1">Platform configuration and settings.</p></div>
 
       {fetchError && (
         <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-xs text-destructive">
@@ -188,16 +194,16 @@ web_disabled_roles: webDisabledRoles,
       )}
 
       <div className="border-none rounded-lg bg-card p-4 space-y-4">
-        <div className="space-y-2"><label className="text-xs font-bold text-muted-foreground">Platform Name</label><Input value={platformName} onChange={(e) => setPlatformName(e.target.value)} /></div>
-        <div className="space-y-2"><label className="text-xs font-bold text-muted-foreground">Support Email</label><Input type="email" value={supportEmail} onChange={(e) => setSupportEmail(e.target.value)} /></div>
+        <div className="space-y-2"><label htmlFor="admin-platform-name" className="text-xs font-bold text-muted-foreground">Platform Name</label><Input id="admin-platform-name" value={platformName} onChange={(e) => setPlatformName(e.target.value)} /></div>
+        <div className="space-y-2"><label htmlFor="admin-support-email" className="text-xs font-bold text-muted-foreground">Support Email</label><Input id="admin-support-email" type="email" value={supportEmail} onChange={(e) => setSupportEmail(e.target.value)} /></div>
         <div className="space-y-2">
-          <label className="text-xs font-bold text-muted-foreground">Default Currency</label>
+          <label htmlFor="f-pages-adminsettingspage-tsx-194" className="text-xs font-bold text-muted-foreground">Default Currency</label>
           <div className="relative">
             <Coins weight="fill" className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-            <select
+            <select id="f-pages-adminsettingspage-tsx-194"
               value={defaultCurrency}
               onChange={(e) => setDefaultCurrency(e.target.value)}
-              className="appearance-none w-full h-10 pl-9 pr-8 rounded-lg border-none bg-background text-sm font-bold cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#2164b6]/30"
+              className="appearance-none w-full h-10 pl-9 pr-8 rounded-lg border-none bg-background text-sm font-bold cursor-pointer focus:outline-none focus:ring-2 focus:ring-[var(--shell-accent)]/30"
             >
               {SUPPORTED_CURRENCIES.map((c) => (
                 <option key={c} value={c}>{c} — {CURRENCY_SYMBOLS[c]}</option>
@@ -232,7 +238,7 @@ web_disabled_roles: webDisabledRoles,
         </div>
         <div className="rounded-lg border-none p-3 space-y-2">
           <div className="flex items-center gap-2">
-            <Smartphone weight="fill" className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" />
+            <Smartphone weight="fill" className="h-4 w-4 text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" />
             <p className="text-xs font-bold text-foreground">Web Dashboard Access</p>
           </div>
           <p className="text-[10px] text-muted-foreground">
@@ -265,7 +271,7 @@ web_disabled_roles: webDisabledRoles,
         <div className="rounded-lg border-none p-3 space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <ShieldCheck weight="fill" className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" />
+              <ShieldCheck weight="fill" className="h-4 w-4 text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" />
               <p className="text-xs font-bold text-foreground">Identity Verification (KYC) Providers</p>
             </div>
             <button
@@ -342,7 +348,7 @@ web_disabled_roles: webDisabledRoles,
                 {fields && isExpanded && (
                   <div className="border-t border-border/50 bg-background/50 p-3.5 space-y-3">
                     <p className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1.5">
-                      <Lock weight="fill" className="h-3.5 w-3.5 text-[#2164b6] dark:text-[#7ab0ff]" />
+                      <Lock weight="fill" className="h-3.5 w-3.5 text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" />
                       API Credentials for {p.label} (Encrypted at rest)
                     </p>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -415,7 +421,7 @@ web_disabled_roles: webDisabledRoles,
 
         <div className="rounded-lg border-none p-3 space-y-3">
           <div className="flex items-center gap-2">
-            <Envelope weight="fill" className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" />
+            <Envelope weight="fill" className="h-4 w-4 text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" />
             <p className="text-xs font-bold text-foreground">Admin Notifications & Alerts</p>
           </div>
           <p className="text-[10px] text-muted-foreground">
@@ -423,8 +429,8 @@ web_disabled_roles: webDisabledRoles,
           </p>
           <div className="space-y-3">
             <div className="space-y-1">
-              <label className="text-[11px] font-bold text-muted-foreground">Notification Email</label>
-              <Input
+              <label htmlFor="f-pages-adminsettingspage-tsx-426" className="text-[11px] font-bold text-muted-foreground">Notification Email</label>
+              <Input id="f-pages-adminsettingspage-tsx-426"
                 type="email"
                 placeholder="admin@murihspace.com"
                 value={adminNotifyEmail}
@@ -443,8 +449,8 @@ web_disabled_roles: webDisabledRoles,
               />
             </div>
             <div className="space-y-1">
-              <label className="text-[11px] font-bold text-muted-foreground">Telegram Chat ID (Optional)</label>
-              <Input
+              <label htmlFor="f-pages-adminsettingspage-tsx-446" className="text-[11px] font-bold text-muted-foreground">Telegram Chat ID (Optional)</label>
+              <Input id="f-pages-adminsettingspage-tsx-446"
                 type="text"
                 placeholder="-1001234567890"
                 value={adminNotifyTelegramChatId}

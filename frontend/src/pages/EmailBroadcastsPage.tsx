@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useConfirm } from '@/components/ui/DialogProvider';
 import { Message as Envelope, Send, Edit as Edit2, Delete as Trash2, TickSquare as Check, Show as Eye, Plus, CloseSquare as X, TimeCircle as Clock, Chart as BarChart2 } from "@/components/icons";
 import { Spinner as Loader2, CursorClick } from "@/components/icons/rounded";;
@@ -24,7 +24,7 @@ interface Broadcast {
 
 const statusStyles: Record<string, string> = {
   draft: 'bg-muted/50 text-muted-foreground border-border/50',
-  sending: 'bg-blue-500/10 text-blue-500 border-blue-500/20',
+  sending: 'bg-[var(--shell-accent-solid)]/10 text-[var(--shell-accent)] border-[var(--shell-accent)]/20',
   sent: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
   cancelled: 'bg-rose-500/10 text-rose-500 border-rose-500/20',
 };
@@ -42,15 +42,21 @@ export function EmailBroadcastsPage() {
   const [page, setPage] = useState(1);
   const [lastPage, setLastPage] = useState(1);
 
-  const fetchAll = useCallback(async () => {
-    try {
-      const res = await authFetch(`/email-broadcasts?page=${page}&per_page=20`, {  });
-      if (res.ok) { const j = await res.json(); setBroadcasts(j.data?.data ?? []); setLastPage(j.data?.last_page ?? 1); }
-    } catch { /* ignore */ }
-    finally { setIsLoading(false); }
-  }, [page]);
+  const [fetchAllKey, setFetchAllKey] = useState(0);
+  const fetchAll = () => {
+    setFetchAllKey((k) => k + 1);
+  };
 
-  useEffect(() => { fetchAll(); }, [fetchAll]);
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await authFetch(`/email-broadcasts?page=${page}&per_page=20`, {  });
+        if (res.ok) { const j = await res.json(); setBroadcasts(j.data?.data ?? []); setLastPage(j.data?.last_page ?? 1); }
+      } catch { /* ignore */ }
+      finally { setIsLoading(false); }
+    })();
+  }, [fetchAllKey, page]);
+
 
   function resetForm() { setForm({ title: '', subject: '', content: '' }); setEditId(null); setShowForm(false); }
 
@@ -100,8 +106,8 @@ export function EmailBroadcastsPage() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
         <div className="relative">
-          <div className="absolute inset-0 rounded-full blur-xl bg-[#2164b6]/20 animate-pulse"></div>
-          <Loader2 weight="fill" className="h-10 w-10 animate-spin text-[#2164b6] relative z-10" />
+          <div className="absolute inset-0 rounded-full blur-xl bg-[var(--shell-accent-solid)]/20 animate-pulse"></div>
+          <Loader2 weight="fill" className="h-10 w-10 animate-spin text-[var(--shell-accent)] relative z-10" />
         </div>
         <p className="text-sm text-muted-foreground font-medium animate-pulse">Loading Broadcasts...</p>
       </div>
@@ -130,7 +136,7 @@ export function EmailBroadcastsPage() {
             className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all shadow-xs ${
               showForm 
                 ? 'bg-muted text-foreground hover:bg-muted/80' 
-                : 'bg-[#2164b6] hover:bg-[#1a5091] text-white'
+                : 'bg-[var(--shell-accent-solid)] hover:bg-[var(--shell-accent-hover)] text-white'
             }`}
           >
             {showForm ? <X className="h-4 w-4" /> : <Plus weight="fill" className="h-4 w-4" />}
@@ -151,7 +157,7 @@ export function EmailBroadcastsPage() {
       {showForm && (
         <div className="rounded-lg border-none/50 bg-card/50 backdrop-blur-xl shadow-xl overflow-hidden animate-in slide-in-from-top-4 duration-500">
           <div className="p-4 border-b border-border/50 flex items-center gap-4 bg-background/50">
-            <div className="p-2.5 rounded-lg bg-[#2164b6]/10 text-[#2164b6] shrink-0">
+            <div className="p-2.5 rounded-lg bg-[var(--shell-accent-solid)]/10 text-[var(--shell-accent)] shrink-0">
               <Envelope weight="fill" className="w-5 h-5" />
             </div>
             <div>
@@ -163,39 +169,40 @@ export function EmailBroadcastsPage() {
           <form onSubmit={handleSubmit} className="p-4 space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Internal Campaign Name</label>
-                <input 
+                <label htmlFor="f-pages-emailbroadcastspage-tsx-166" className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Internal Campaign Name</label>
+                <input id="f-pages-emailbroadcastspage-tsx-166" 
                   value={form.title} 
                   onChange={e => setForm({ ...form, title: e.target.value })} 
                   required
                   placeholder="e.g. November Newsletter"
-                  className="w-full h-12 rounded-lg bg-background border-none/50 px-4 text-sm font-medium focus:ring-2 focus:ring-[#2164b6]/50 transition-all" 
+                  className="w-full h-12 rounded-lg bg-background border-none/50 px-4 text-sm font-medium focus:ring-2 focus:ring-[var(--shell-accent)]/50 transition-all" 
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Email Subject Line</label>
-                <input 
+                <label htmlFor="f-pages-emailbroadcastspage-tsx-176" className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Email Subject Line</label>
+                <input id="f-pages-emailbroadcastspage-tsx-176" 
                   value={form.subject} 
                   onChange={e => setForm({ ...form, subject: e.target.value })} 
                   required
                   placeholder="e.g. Exciting updates for this month! 🎉"
-                  className="w-full h-12 rounded-lg bg-background border-none/50 px-4 text-sm font-medium focus:ring-2 focus:ring-[#2164b6]/50 transition-all" 
+                  className="w-full h-12 rounded-lg bg-background border-none/50 px-4 text-sm font-medium focus:ring-2 focus:ring-[var(--shell-accent)]/50 transition-all" 
                 />
               </div>
             </div>
             
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Email Content (HTML)</label>
+                <label htmlFor="email-broadcast-content" className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Email Content (HTML)</label>
                 <span className="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-md">Supports standard HTML tags</span>
               </div>
-              <textarea 
+              <textarea
+                id="email-broadcast-content"
                 value={form.content} 
                 onChange={e => setForm({ ...form, content: e.target.value })} 
                 required
                 rows={12} 
                 placeholder="<h1>Hello!</h1><p>Write your email content here...</p>"
-                className="w-full rounded-lg bg-background border-none/50 p-4 text-sm font-mono focus:ring-2 focus:ring-[#2164b6]/50 transition-all resize-y" 
+                className="w-full rounded-lg bg-background border-none/50 p-4 text-sm font-mono focus:ring-2 focus:ring-[var(--shell-accent)]/50 transition-all resize-y" 
               />
             </div>
             
@@ -209,7 +216,7 @@ export function EmailBroadcastsPage() {
               </button>
               <button 
                 type="submit" 
-                className="px-8 py-3 rounded-lg bg-[#2164b6] text-white text-sm font-bold hover:bg-[#1a5091] hover:shadow-lg transition-all duration-300"
+                className="px-8 py-3 rounded-lg bg-[var(--shell-accent-solid)] text-white text-sm font-bold hover:bg-[var(--shell-accent-hover)] hover:shadow-lg transition-all duration-300"
               >
                 {editId ? 'Update Draft' : 'Save to Drafts'}
               </button>
@@ -220,8 +227,8 @@ export function EmailBroadcastsPage() {
 
       {broadcasts.length === 0 ? (
         <div className="flex flex-col items-center justify-center text-center gap-4 py-24 rounded-3xl border border-dashed border-border/50 bg-card/30 backdrop-blur-sm">
-          <div className="w-20 h-20 rounded-3xl bg-[#2164b6]/10 flex items-center justify-center mb-2">
-            <Envelope weight="fill" className="h-10 w-10 text-[#2164b6]" />
+          <div className="w-20 h-20 rounded-3xl bg-[var(--shell-accent-solid)]/10 flex items-center justify-center mb-2">
+            <Envelope weight="fill" className="h-10 w-10 text-[var(--shell-accent)]" />
           </div>
           <h2 className="text-xl font-bold text-foreground tracking-tight">No broadcasts yet</h2>
           <p className="text-sm text-muted-foreground max-w-md">Start engaging your audience by creating your first email broadcast. Send newsletters, announcements, or exclusive offers.</p>
@@ -239,7 +246,7 @@ export function EmailBroadcastsPage() {
               
               {/* Status Glow */}
               <div className={`absolute -right-16 -top-16 w-32 h-32 rounded-full blur-3xl opacity-0 group-hover:opacity-20 transition-opacity duration-500 ${
-                b.status === 'sent' ? 'bg-emerald-500' : b.status === 'draft' ? 'bg-muted-foreground' : 'bg-blue-500'
+                b.status === 'sent' ? 'bg-emerald-500' : b.status === 'draft' ? 'bg-muted-foreground' : 'bg-[var(--shell-accent-solid)]'
               }`}></div>
               
               <div className="relative z-10 flex flex-col md:flex-row md:items-start justify-between gap-4">
@@ -304,7 +311,7 @@ export function EmailBroadcastsPage() {
                       </button>
                       <button 
                         onClick={() => sendBroadcast(b.id)} 
-                        className="h-10 px-4 rounded-lg bg-[#2164b6] text-white text-sm font-bold hover:bg-[#1a5091] hover:shadow-lg transition-all flex items-center gap-2"
+                        className="h-10 px-4 rounded-lg bg-[var(--shell-accent-solid)] text-white text-sm font-bold hover:bg-[var(--shell-accent-hover)] hover:shadow-lg transition-all flex items-center gap-2"
                       >
                         <Send weight="fill" className="w-4 h-4" /> Send Now
                       </button>

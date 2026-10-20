@@ -1,5 +1,4 @@
-import { Link } from "react-router";
-import { ArrowRight, Globe, Monitor, Smartphone, Shield, Radio, Sparkles } from "lucide-react";
+import { ArrowRight, Globe, Shield } from "lucide-react";
 import { getWebClientUrl } from "~/lib/env";
 
 // Real store/installer URLs are deployment config. Only render a platform

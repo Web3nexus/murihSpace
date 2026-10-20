@@ -2,7 +2,7 @@ import { useEffect, useState, type ComponentType, type LazyExoticComponent, type
 import { Suspense } from "react";
 import { Outlet, useLocation } from "react-router";
 import { Profile as User, Folder, Notification as Bell, Lock, Discovery as Globe, ArrowRight as ChevronRight, ShieldDone as ShieldCheck, ShieldDone as BadgeCheck, Activity, Swap as RotateCcw, Chat as ChatCircleDots } from "@/components/icons";
-import { DeviceMobile as Smartphone, Sun, Sparkle, Question as HelpCircle, CurrencyDollar as DollarSign, Package, Truck } from "@/components/icons/rounded";
+import { DeviceMobile as Smartphone, Sun, Crown, Question as HelpCircle, CurrencyDollar as DollarSign, Package, Truck } from "@/components/icons/rounded";
 import { BrandPreloader } from "@/components/common/BrandPreloader";
 import { lazyWithRetry } from "@/lib/lazyWithRetry";
 import { useAuth } from "@/hooks/useAuth";
@@ -75,7 +75,7 @@ function RailCard({
             aria-current={active ? "true" : undefined}
             className={`w-full flex items-center justify-between p-3.5 transition-colors text-xs font-bold text-left ${
               active
-                ? "bg-[#2164b6]/15 text-[#2164b6] dark:text-[#7ab0ff]"
+                ? "bg-[var(--shell-accent-solid)]/15 text-[var(--shell-accent)] dark:text-[var(--shell-accent)]"
                 : "text-foreground hover:bg-muted/50"
             }`}
           >
@@ -136,7 +136,7 @@ export function SettingsLayout() {
           ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
           : isKycPending
           ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30"
-          : "bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30")
+          : "bg-[var(--shell-accent-solid)]/15 text-[var(--shell-accent)] dark:text-[var(--shell-accent)] border-[var(--shell-accent)]/30")
       : user?.role === "vendor"
       ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
       : "bg-secondary/15 text-secondary border-secondary/30";
@@ -173,7 +173,7 @@ export function SettingsLayout() {
         <aside className="lg:col-span-4 space-y-4">
           {/* Card 0: Profile Header Card */}
           <div className="p-4 rounded-3xl bg-card border-none/80  flex items-center gap-3">
-            <div className="h-14 w-14 rounded-full bg-[#2164b6] text-white flex items-center justify-center shrink-0 overflow-hidden">
+            <div className="h-14 w-14 rounded-full bg-[var(--shell-accent-solid)] text-white flex items-center justify-center shrink-0 overflow-hidden">
               {user?.avatar_url || user?.avatar ? (
                 <img src={user.avatar_url || user.avatar || ''} alt="" className="w-full h-full object-cover" />
               ) : (
@@ -203,7 +203,7 @@ export function SettingsLayout() {
               </p>
               <RailCard
                 entries={[
-                  { to: "/app/securegate/notifications", label: "Admin Notification Center", icon: <Bell weight="fill" className="h-4 w-4" />, iconBg: "bg-blue-600" },
+                  { to: "/app/securegate/notifications", label: "Admin Notification Center", icon: <Bell weight="fill" className="h-4 w-4" />, iconBg: "bg-[var(--shell-accent-solid)]" },
                   { to: "/app/securegate/users", label: "User Management", icon: <ShieldCheck weight="fill" className="h-4 w-4" />, iconBg: "bg-purple-600" },
                   { to: "/app/securegate/kyc", label: "KYC & Identity Verification", icon: <BadgeCheck weight="fill" className="h-4 w-4" />, iconBg: "bg-indigo-600" },
                   { to: "/app/securegate/fees", label: "Platform Fee Management", icon: <DollarSign weight="fill" className="h-4 w-4" />, iconBg: "bg-emerald-600" },
@@ -240,8 +240,8 @@ export function SettingsLayout() {
                 className="border border-emerald-500/30"
                 entries={[
                   { to: "/app/store/physical", label: "Physical Merchandise", icon: <Package weight="fill" className="h-4 w-4" />, iconBg: "bg-emerald-600" },
-                  { to: "/app/store/fulfilment", label: "Order Fulfilment", icon: <Truck weight="fill" className="h-4 w-4" />, iconBg: "bg-blue-600" },
-                  { to: "/app/store/returns", label: "Returns & Refund Policy", icon: <RotateCcw weight="fill" className="h-4 w-4" />, iconBg: "bg-[#2164b6]" },
+                  { to: "/app/store/fulfilment", label: "Order Fulfilment", icon: <Truck weight="fill" className="h-4 w-4" />, iconBg: "bg-[var(--shell-accent-solid)]" },
+                  { to: "/app/store/returns", label: "Returns & Refund Policy", icon: <RotateCcw weight="fill" className="h-4 w-4" />, iconBg: "bg-[var(--shell-accent-solid)]" },
                 ]}
                 activePanel={activePanel}
                 onSelect={setActivePanel}
@@ -298,7 +298,7 @@ export function SettingsLayout() {
               <RailCard
                 entries={[
                   ...(user?.role === "member"
-                    ? [{ to: "/app/settings/upgrade", label: "Become a Creator or Vendor", icon: <Sparkle weight="fill" className="h-4 w-4" />, iconBg: "bg-[#2164b6]" }]
+                    ? [{ to: "/app/settings/upgrade", label: "Become a Creator or Vendor", icon: <Crown weight="fill" className="h-4 w-4" />, iconBg: "bg-[var(--shell-accent-solid)]" }]
                     : []),
                   { to: "/app/settings/help", label: "Support & Help Desk", icon: <HelpCircle weight="fill" className="h-4 w-4" />, iconBg: "bg-amber-600" },
                 ]}

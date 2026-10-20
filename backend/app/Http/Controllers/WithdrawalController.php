@@ -2,9 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AuditLog;
 use App\Models\User;
 use App\Models\WithdrawalRequest;
 use App\Services\NotificationService;
+use App\Services\Payment\Exceptions\PaymentException;
+use App\Services\Payment\PayoutSettlementService;
 use App\Services\Wallet\LedgerService;
 use App\Services\Wallet\WalletService;
 use Illuminate\Http\JsonResponse;
@@ -48,6 +51,23 @@ class WithdrawalController extends Controller
         $walletService = $this->walletService;
         $wallet = $walletService->getOrCreateWallet($user, $walletType);
 
+        // Withdrawals stay locked while the wallet owes money or the seller has funds on hold
+        // or in dispute. The money is released only when those are cleared.
+        if ((int) $wallet->debt > 0) {
+            return response()->json([
+                'message' => 'Withdrawals are locked until your negative balance is cleared. Future earnings repay it automatically.',
+                'code' => 'NEGATIVE_BALANCE',
+                'debt' => (int) $wallet->debt,
+            ], 403);
+        }
+        if (\App\Models\Escrow::where('seller_id', $user->id)->whereIn('status', ['on_hold', 'disputed'])->exists()
+            || \App\Models\DigitalSaleSettlement::where('seller_id', $user->id)->where('status', 'disputed')->exists()) {
+            return response()->json([
+                'message' => 'Withdrawals are locked while an order you sold is on hold or in dispute.',
+                'code' => 'FUNDS_ON_HOLD',
+            ], 403);
+        }
+
         if (! $wallet->verifyPin($validated['pin'])) {
             return response()->json(['message' => 'Incorrect transaction PIN.', 'code' => 'INVALID_TRANSACTION_PIN'], 403);
         }
@@ -60,7 +80,7 @@ class WithdrawalController extends Controller
 
         $destCurrency = strtoupper($validated['currency'] ?? 'USD');
         $rateService = app(\App\Services\Payment\LiveExchangeRateService::class);
-        $rate = $rateService->getRate('USD', $destCurrency);
+        $rate = $rateService->payoutRate('USD', $destCurrency);
         $estimatedLocal = round(($validated['amount'] / 100.0) * $rate, 2);
 
         $withdrawal = \Illuminate\Support\Facades\DB::transaction(function () use ($user, $wallet, $walletType, $validated, $destCurrency) {
@@ -156,7 +176,7 @@ class WithdrawalController extends Controller
         $netUsd = max(0.0, $amountUsd - $feeUsd);
 
         $rateService = app(\App\Services\Payment\LiveExchangeRateService::class);
-        $rate = $rateService->getRate('USD', $targetCurrency);
+        $rate = $rateService->payoutRate('USD', $targetCurrency);
         $estimatedLocalPayout = round($netUsd * $rate, 2);
 
         $wallet = $this->walletService->getOrCreateWallet($user, $validated['wallet_type'] ?? 'creator');
@@ -219,6 +239,10 @@ class WithdrawalController extends Controller
             'rejection_reason' => ['required_if:action,reject', 'nullable', 'string', 'max:1000'],
         ]);
 
+        if ($validated['action'] === 'approve') {
+            return $this->approve($id, $request);
+        }
+
         return \Illuminate\Support\Facades\DB::transaction(function () use ($id, $validated, $request) {
             $withdrawal = WithdrawalRequest::where('id', $id)->lockForUpdate()->firstOrFail();
 
@@ -237,6 +261,14 @@ class WithdrawalController extends Controller
                     'rejection_reason' => $validated['rejection_reason'],
                     'processed_by' => $request->user()->id,
                     'processed_at' => now(),
+                ]);
+
+                AuditLog::create([
+                    'user_id' => $request->user()->id,
+                    'action' => 'withdrawal.rejected',
+                    'resource_type' => 'withdrawal_request',
+                    'resource_id' => (string) $withdrawal->id,
+                    'metadata' => ['reason' => $validated['rejection_reason']],
                 ]);
 
                 // Return the reserved funds to the user's withdrawable balance.
@@ -285,55 +317,60 @@ class WithdrawalController extends Controller
                 return response()->json(['message' => 'Withdrawal rejected.', 'data' => $withdrawal]);
             }
 
-            $user = User::find($withdrawal->user_id);
-            if (! $user || ! $user->hasVerifiedKyc()) {
-                return response()->json([
-                    'message' => 'This user has not completed KYC identity verification. Withdrawals are blocked until KYC is verified.',
-                    'code' => 'KYC_REQUIRED',
-                ], 403);
-            }
-
-            // Resolve wallet via WalletService (LedgerService no longer exposes getOrCreateWallet)
-            $walletType = $withdrawal->wallet_type ?? 'creator';
-            $wallet = $this->walletService->getOrCreateWallet($user, $walletType);
-
-            // Funds were frozen into `reserved` at request time; consume from there.
-            if ((int) $wallet->reserved < $withdrawal->amount) {
-                return response()->json(['message' => 'Reserved funds for this withdrawal are no longer available.', 'code' => 'INSUFFICIENT_BALANCE'], 422);
-            }
-
-            $ledgerTxn = $this->ledgerService->debit(
-                user: $user,
-                amount: $withdrawal->amount,
-                currency: $wallet->currency,
-                walletType: $walletType,
-                balanceCategory: 'reserved',
-                type: 'withdrawal',
-                description: "Withdrawal request #{$withdrawal->id}",
-                idempotencyKey: "WDR-{$withdrawal->id}",
-            );
-
-            $withdrawal->update([
-                'status' => 'completed',
-                'processed_by' => $request->user()->id,
-                'processed_at' => now(),
-                'ledger_transaction_id' => $ledgerTxn->id,
-            ]);
-
-            $this->notifications->actionEmail(
-                user: $user,
-                title: 'Your withdrawal has been processed',
-                bodyHtml: '<p>Your withdrawal of <strong>'.e($withdrawal->currency).' '.number_format($withdrawal->amount, 2).'</strong> has been approved and is being sent to your account. Funds will appear shortly.</p>',
-                actionLabel: 'View wallet',
-                actionUrl: NotificationService::link('wallet'),
-                template: 'withdrawal_approved',
-                data: [
-                    'currency' => e($withdrawal->currency),
-                    'amount' => number_format($withdrawal->amount, 2),
-                ],
-            );
-
-            return response()->json(['message' => 'Withdrawal approved and processed.', 'data' => $withdrawal->fresh()]);
+            return response()->json(['message' => 'Unsupported action.'], 422);
         });
+    }
+
+    /**
+     * Approval creates the provider transfer. The withdrawal is NOT completed here. It completes only when
+     * the provider confirms the transfer (webhook), so an admin cannot pay a withdrawal the provider has
+     * not confirmed.
+     */
+    private function approve(int $id, Request $request): JsonResponse
+    {
+        $withdrawal = WithdrawalRequest::find($id);
+        if (! $withdrawal) {
+            return response()->json(['message' => 'Withdrawal not found.'], 404);
+        }
+
+        try {
+            $payout = app(PayoutSettlementService::class)->dispatch($withdrawal, $request->user()->id);
+        } catch (PaymentException $e) {
+            return response()->json(['message' => $e->getMessage(), 'code' => $e->errorCode], $e->statusCode);
+        }
+
+        return response()->json([
+            'message' => 'Withdrawal approved. The transfer is with the provider and completes only when the provider confirms it.',
+            'data' => $withdrawal->fresh(),
+            'payout' => ['id' => $payout->id, 'status' => $payout->status->value, 'provider' => $payout->provider],
+        ], 202);
+    }
+
+    /**
+     * Recovery: re-sends a transfer the provider did not accept. The provider de-duplicates on the same
+     * reference. This never credits or debits the wallet, and it never completes the withdrawal.
+     */
+    public function adminRetryTransfer(Request $request, int $id): JsonResponse
+    {
+        if (! $request->user()->hasAdminPermission('payouts')) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
+        $withdrawal = WithdrawalRequest::find($id);
+        if (! $withdrawal) {
+            return response()->json(['message' => 'Withdrawal not found.'], 404);
+        }
+
+        try {
+            $payout = app(PayoutSettlementService::class)->retry($withdrawal, $request->user()->id);
+        } catch (PaymentException $e) {
+            return response()->json(['message' => $e->getMessage(), 'code' => $e->errorCode], $e->statusCode);
+        }
+
+        return response()->json([
+            'message' => 'Transfer sent again. The withdrawal completes only when the provider confirms it.',
+            'data' => $withdrawal->fresh(),
+            'payout' => ['id' => $payout->id, 'status' => $payout->status->value],
+        ], 202);
     }
 }

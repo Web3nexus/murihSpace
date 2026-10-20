@@ -1,10 +1,10 @@
-import { useEffect, useRef } from 'react';
+import { authFetch } from "@/lib/api/authFetch";
+import { useEffect, useLayoutEffect, useRef } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useLocation } from 'react-router';
 import { getEcho } from '@/lib/echo';
 import { playMessageReceivedSound, playNotificationSound } from '@/lib/sound';
 import { getUnreadCount, setUnreadCount, refreshUnreadCount } from '@/lib/chatUnread';
-import { getAuthToken } from '@/lib/auth/token';
 import { showWebInAppNotification } from '@/components/notifications/WebInAppNotification';
 
 export const NOTIFICATION_EVENT_NAME = 'murih:notification';
@@ -20,7 +20,9 @@ export function RealtimeNotificationsHost() {
   const { user } = useAuth();
   const { pathname } = useLocation();
   const pathnameRef = useRef(pathname);
-  pathnameRef.current = pathname;
+  useLayoutEffect(() => {
+    pathnameRef.current = pathname;
+  }, [pathname]);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -38,7 +40,7 @@ export function RealtimeNotificationsHost() {
 function parseNotificationContent(content: unknown, fallback = 'You have a new update.'): string {
   if (!content) return fallback;
   if (typeof content === 'object') {
-    const obj = content as Record<string, any>;
+    const obj = content as Record<string, unknown>;
     if (obj.call_id !== undefined || obj.status !== undefined) {
       const type = obj.call_type === 'video' ? 'Video' : 'Audio';
       if (obj.status === 'missed') return `Missed ${type} Call`;
@@ -72,7 +74,7 @@ function parseNotificationContent(content: unknown, fallback = 'You have a new u
 
     const onNotification = (e: Record<string, unknown>) => {
       playNotificationSound();
-      const rawData = (e.data && typeof e.data === 'object' ? e.data : {}) as Record<string, any>;
+      const rawData = (e.data && typeof e.data === 'object' ? e.data : {}) as Record<string, unknown>;
       const title = String(e.title ?? rawData.title ?? 'New notification');
       const rawMessage = e.message ?? e.body ?? rawData.message ?? rawData.body ?? rawData.content;
       const message = parseNotificationContent(rawMessage, 'You have a new update.');
@@ -115,18 +117,14 @@ function parseNotificationContent(content: unknown, fallback = 'You have a new u
       // Automatically acknowledge delivery for incoming message immediately
       if (e.id && e.conversation_id) {
         const apiBase = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1').replace(/\/$/, '');
-        const token = getAuthToken();
-        if (token) {
-          fetch(`${apiBase}/conversations/${e.conversation_id}/delivered`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Accept: 'application/json',
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({ message_ids: [e.id] }),
-          }).catch(() => {});
-        }
+        authFetch(`${apiBase}/conversations/${e.conversation_id}/delivered`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+          },
+          body: JSON.stringify({ message_ids: [e.id] }),
+        }).catch(() => {});
       }
 
       // Bump the global unread badge immediately so the header icon updates
@@ -193,15 +191,12 @@ function parseNotificationContent(content: unknown, fallback = 'You have a new u
 
     // Periodic presence heartbeat so user stays marked as online
     const heartbeatInterval = setInterval(() => {
-      const token = getAuthToken();
-      if (!token) return;
       const apiBase = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1').replace(/\/$/, '');
-      fetch(`${apiBase}/chat/heartbeat`, {
+      authFetch(`${apiBase}/chat/heartbeat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Accept: 'application/json',
-          Authorization: `Bearer ${token}`,
         },
       }).catch(() => {});
     }, 60000);

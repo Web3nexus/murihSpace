@@ -1,3 +1,4 @@
+import { pickArray } from "@/lib/api/pickArray";
 import * as React from "react";
 import { Link, useNavigate } from "react-router";
 import { AnimatedPage } from "@/components/common/AnimatedPage";
@@ -30,13 +31,10 @@ const CATEGORIES = [
   "Gaming", "Education", "Lifestyle", "Fitness", "General",
 ];
 
-function safeArray<T = any>(val: any): T[] {
-  if (Array.isArray(val)) return val;
-  if (Array.isArray(val?.data)) return val.data;
-  if (Array.isArray(val?.data?.data)) return val.data.data;
-  if (Array.isArray(val?.communities)) return val.communities;
-  if (Array.isArray(val?.data?.communities)) return val.data.communities;
-  return [];
+function safeArray<T>(val: T[]): T[];
+function safeArray<T = unknown>(val: unknown): T[];
+function safeArray(val: unknown): unknown[] {
+  return pickArray(val, ["communities"]);
 }
 
 function timeAgo(dateStr: string): string {
@@ -74,69 +72,69 @@ export function CommunitiesPage() {
   const discoverSeq = React.useRef(0);
 
   // Fetch my communities
-  const fetchMyCommunities = React.useCallback(async () => {
-    try {
-      const res = await apiClient.get("/my-communities?per_page=50");
-      setMyCommunities(safeArray<Community>(res.data));
-    } catch {
-      setMyCommunities([]);
-    } finally {
-      setLoadingCommunities(false);
-    }
+  React.useEffect(() => {
+    (async () => {
+      try {
+        const res = await apiClient.get("/my-communities?per_page=50");
+        setMyCommunities(safeArray<Community>(res.data));
+      } catch {
+        setMyCommunities([]);
+      } finally {
+        setLoadingCommunities(false);
+      }
+    })();
   }, []);
-
-  // Fetch all / discover communities
-  const fetchAllCommunities = React.useCallback(async () => {
-    const seq = ++discoverSeq.current;
-    try {
-      const params = new URLSearchParams({ page: String(discoverPage), per_page: "18" });
-      if (selectedCategory !== "All") params.set("category", selectedCategory);
-      if (debouncedQuery) params.set("search", debouncedQuery);
-      const res = await apiClient.get(`/communities?${params}`);
-      if (seq !== discoverSeq.current) return;
-      const parsed = safeArray<Community>(res.data);
-      setAllCommunities(parsed);
-      setDiscoverLastPage(res.data?.data?.last_page ?? res.data?.last_page ?? 1);
-    } catch {
-      if (seq === discoverSeq.current) setAllCommunities([]);
-    }
-  }, [discoverPage, selectedCategory, debouncedQuery]);
-
   // Fetch community activity feed
-  const fetchFeed = React.useCallback(async () => {
-    setLoadingFeed(true);
-    try {
-      const res = await apiClient.get("/feed?per_page=20");
-      const raw = safeArray(res.data);
-      const posts: FeedPost[] = raw.map(
-        (p: Record<string, unknown>) => ({
-          id: Number(p.id),
-          author: (p.author_name ?? (p.user as Record<string, unknown> | undefined)?.name ?? "Community Member") as string,
-          avatar_url: (p.avatar_url ?? (p.user as Record<string, unknown> | undefined)?.avatar_url) as string | undefined,
-          community_name: ((p.community as Record<string, unknown> | undefined)?.name ?? "Community") as string,
-          community_avatar: (p.community as Record<string, unknown> | undefined)?.logo_url as string | undefined,
-          community_slug: ((p.community as Record<string, unknown> | undefined)?.slug ?? "#") as string,
-          badge: (p.author_badge ?? p.badge) as string | undefined,
-          time: timeAgo(p.created_at as string ?? new Date().toISOString()),
-          content: (p.content ?? p.body ?? "") as string,
-          media_url: (p.media_url ?? p.embed_url) as string | undefined,
-          likes: Number(p.likes_count ?? p.likes ?? 0),
-          comments: Number(p.comments_count ?? p.comments ?? 0),
-          shares: Number(p.shares_count ?? p.shares ?? 0),
-          isLiked: Boolean(p.is_liked),
-        })
-      );
-      setFeedPosts(posts);
-    } catch {
-      setFeedPosts([]);
-    } finally {
-      setLoadingFeed(false);
-    }
+  React.useEffect(() => {
+    (async () => {
+      setLoadingFeed(true);
+      try {
+        const res = await apiClient.get("/feed?per_page=20");
+        const raw = safeArray<Record<string, unknown>>(res.data);
+        const posts: FeedPost[] = raw.map(
+          (p: Record<string, unknown>) => ({
+            id: Number(p.id),
+            author: (p.author_name ?? (p.user as Record<string, unknown> | undefined)?.name ?? "Community Member") as string,
+            avatar_url: (p.avatar_url ?? (p.user as Record<string, unknown> | undefined)?.avatar_url) as string | undefined,
+            community_name: ((p.community as Record<string, unknown> | undefined)?.name ?? "Community") as string,
+            community_avatar: (p.community as Record<string, unknown> | undefined)?.logo_url as string | undefined,
+            community_slug: ((p.community as Record<string, unknown> | undefined)?.slug ?? "#") as string,
+            badge: (p.author_badge ?? p.badge) as string | undefined,
+            time: timeAgo(p.created_at as string ?? new Date().toISOString()),
+            content: (p.content ?? p.body ?? "") as string,
+            media_url: (p.media_url ?? p.embed_url) as string | undefined,
+            likes: Number(p.likes_count ?? p.likes ?? 0),
+            comments: Number(p.comments_count ?? p.comments ?? 0),
+            shares: Number(p.shares_count ?? p.shares ?? 0),
+            isLiked: Boolean(p.is_liked),
+          })
+        );
+        setFeedPosts(posts);
+      } catch {
+        setFeedPosts([]);
+      } finally {
+        setLoadingFeed(false);
+      }
+    })();
   }, []);
-
-  React.useEffect(() => { fetchMyCommunities(); }, [fetchMyCommunities]);
-  React.useEffect(() => { fetchFeed(); }, [fetchFeed]);
-  React.useEffect(() => { fetchAllCommunities(); }, [fetchAllCommunities]);
+  // Fetch all / discover communities
+  React.useEffect(() => {
+    (async () => {
+      const seq = ++discoverSeq.current;
+      try {
+        const params = new URLSearchParams({ page: String(discoverPage), per_page: "18" });
+        if (selectedCategory !== "All") params.set("category", selectedCategory);
+        if (debouncedQuery) params.set("search", debouncedQuery);
+        const res = await apiClient.get(`/communities?${params}`);
+        if (seq !== discoverSeq.current) return;
+        const parsed = safeArray<Community>(res.data);
+        setAllCommunities(parsed);
+        setDiscoverLastPage(res.data?.data?.last_page ?? res.data?.last_page ?? 1);
+      } catch {
+        if (seq === discoverSeq.current) setAllCommunities([]);
+      }
+    })();
+  }, [discoverPage, selectedCategory, debouncedQuery]);
 
   function handleCreated(newCommunity: Community) {
     setMyCommunities((prev) => [newCommunity, ...safeArray(prev)]);
@@ -214,7 +212,7 @@ export function CommunitiesPage() {
               </p>
               <button
                 onClick={() => setPanel("discover")}
-                className="mt-4 px-4 py-2 rounded-lg bg-[#1877f2] text-white text-sm font-bold hover:bg-[#166fe5] transition-colors"
+                className="mt-4 px-4 py-2 rounded-lg bg-[var(--shell-accent-solid)] text-white text-sm font-bold hover:bg-[var(--shell-accent-hover)] transition-colors"
               >
                 Discover Communities
               </button>
@@ -230,7 +228,7 @@ export function CommunitiesPage() {
                         {post.community_avatar ? (
                           <img src={post.community_avatar} alt="" className="w-full h-full object-cover" />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center bg-[#1877f2] text-white font-bold text-sm">
+                          <div className="w-full h-full flex items-center justify-center bg-[var(--shell-accent-solid)] text-white font-bold text-sm">
                             <UserIcon weight="fill" className="text-white/90" style={{ width: 20, height: 20 }} />
                           </div>
                         )}
@@ -240,7 +238,7 @@ export function CommunitiesPage() {
                         {post.avatar_url ? (
                           <img src={post.avatar_url} alt="" className="w-full h-full object-cover" />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center bg-[#1877f2] text-white text-[8px] font-bold">
+                          <div className="w-full h-full flex items-center justify-center bg-[var(--shell-accent-solid)] text-white text-[8px] font-bold">
                             <UserIcon weight="fill" className="text-white/90" style={{ width: 12, height: 12 }} />
                           </div>
                         )}
@@ -257,7 +255,7 @@ export function CommunitiesPage() {
                       <p className="text-[12px] text-muted-foreground">
                         {post.author}
                         {post.badge && (
-                          <span className="ml-1.5 text-[#1877f2] dark:text-[#4599ff] font-semibold">
+                          <span className="ml-1.5 text-[var(--shell-accent)] dark:text-[#4599ff] font-semibold">
                             · {post.badge}
                           </span>
                         )}
@@ -360,7 +358,7 @@ export function CommunitiesPage() {
                 onClick={() => { setSelectedCategory(cat); setDiscoverPage(1); }}
                 className={`px-3.5 py-1.5 rounded-full text-[12px] font-semibold whitespace-nowrap transition-all ${
                   selectedCategory === cat
-                    ? "bg-[#1877f2] text-white"
+                    ? "bg-[var(--shell-accent-solid)] text-white"
                     : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
                 }`}
               >
@@ -381,7 +379,7 @@ export function CommunitiesPage() {
               filteredDiscover.map((c) => {
                 const isJoined = safeMyList.some((m) => m.id === c.id);
                 return (
-                  <div key={c.id} className="bg-card border-none rounded-lg overflow-hidden  hover: hover:border-[#1877f2]/40 transition-all group">
+                  <div key={c.id} className="bg-card border-none rounded-lg overflow-hidden  hover: hover:border-[var(--shell-accent)]/40 transition-all group">
                     {/* Cover */}
                     <div className="h-24 w-full relative overflow-hidden bg-gradient-to-r from-[#1877f2] to-blue-700">
                       {c.cover_url && (
@@ -390,7 +388,7 @@ export function CommunitiesPage() {
                     </div>
                     <div className="p-4 pt-0">
                       <div className="-mt-7 mb-3 flex items-end gap-3">
-                        <div className="h-12 w-12 rounded-lg border-2 border-card  overflow-hidden bg-[#1877f2] flex items-center justify-center text-white font-black text-base">
+                        <div className="h-12 w-12 rounded-lg border-2 border-card  overflow-hidden bg-[var(--shell-accent-solid)] flex items-center justify-center text-white font-black text-base">
                           {c.logo_url
                             ? <img src={c.logo_url} alt="" className="w-full h-full object-cover" />
                             : <UserIcon weight="fill" className="text-white/90" style={{ width: 24, height: 24 }} />
@@ -413,7 +411,7 @@ export function CommunitiesPage() {
                         className={`w-full py-2 rounded-lg text-[13px] font-bold transition-colors ${
                           isJoined
                             ? "bg-muted text-foreground hover:bg-muted/80"
-                            : "bg-[#1877f2]/10 text-[#1877f2] dark:text-[#4599ff] hover:bg-[#1877f2]/20"
+                            : "bg-[var(--shell-accent-solid)]/10 text-[var(--shell-accent)] dark:text-[#4599ff] hover:bg-[#1877f2]/20"
                         }`}
                       >
                         {isJoined ? "View Group" : "+ Join"}
@@ -462,7 +460,7 @@ export function CommunitiesPage() {
             <p className="text-sm text-muted-foreground mt-1">Create or join communities to see them here.</p>
             <button
               onClick={() => setIsModalOpen(true)}
-              className="mt-4 px-4 py-2 rounded-lg bg-[#1877f2] text-white text-sm font-bold hover:bg-[#166fe5] transition-colors"
+              className="mt-4 px-4 py-2 rounded-lg bg-[var(--shell-accent-solid)] text-white text-sm font-bold hover:bg-[var(--shell-accent-hover)] transition-colors"
             >
               + Create Community
             </button>
@@ -473,9 +471,9 @@ export function CommunitiesPage() {
               <Link
                 key={c.id}
                 to={`/app/communities/${c.slug}`}
-                className="flex items-center gap-3 p-3 bg-card border-none rounded-lg hover:border-[#1877f2]/40 hover: transition-all group"
+                className="flex items-center gap-3 p-3 bg-card border-none rounded-lg hover:border-[var(--shell-accent)]/40 hover: transition-all group"
               >
-                <div className="h-12 w-12 rounded-lg overflow-hidden bg-[#1877f2] flex items-center justify-center text-white font-black text-base shrink-0">
+                <div className="h-12 w-12 rounded-lg overflow-hidden bg-[var(--shell-accent-solid)] flex items-center justify-center text-white font-black text-base shrink-0">
                   {c.logo_url
                     ? <img src={c.logo_url} alt="" className="w-full h-full object-cover" />
                     : <UserIcon weight="fill" className="text-white/90" style={{ width: 24, height: 24 }} />
@@ -499,7 +497,7 @@ export function CommunitiesPage() {
   };
 
   return (
-    <AnimatedPage className="w-full h-full flex flex-col bg-[#F0F2F5] dark:bg-background">
+    <AnimatedPage className="w-full h-full flex flex-col bg-[var(--shell-canvas)] dark:bg-background">
       <div className="flex flex-1 min-h-0 w-full">
 
         {/* ── LEFT PANEL ── */}
@@ -510,7 +508,7 @@ export function CommunitiesPage() {
             <h1 className="text-[22px] font-black text-foreground">Communities</h1>
             <button
               onClick={() => setIsModalOpen(true)}
-              className="h-9 w-9 rounded-full bg-[#F0F2F5] dark:bg-muted hover:bg-[#E4E6EB] flex items-center justify-center text-foreground transition-colors"
+              className="h-9 w-9 rounded-full bg-[var(--shell-canvas)] dark:bg-muted hover:bg-[var(--shell-hover)] flex items-center justify-center text-foreground transition-colors"
             >
               <Settings weight="fill" className="h-4 w-4" />
             </button>
@@ -519,13 +517,13 @@ export function CommunitiesPage() {
           {/* Search */}
           <div className="px-4 pb-4">
             <div className="relative">
-              <Search weight="fill" className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#65676B]" />
+              <Search weight="fill" className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--shell-muted)]" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => { setSearchQuery(e.target.value); setDiscoverPage(1); }}
                 placeholder="Search communities"
-                className="w-full h-9 pl-9 pr-3 text-[13px] rounded-full border-none bg-[#F0F2F5] dark:bg-muted placeholder:text-[#65676B] text-foreground focus:outline-none focus:ring-2 focus:ring-[#1877f2]/30 focus:border-[#1877f2] transition-all"
+                className="w-full h-9 pl-9 pr-3 text-[13px] rounded-full border-none bg-[var(--shell-canvas)] dark:bg-muted placeholder:text-[var(--shell-muted)] text-foreground focus:outline-none focus:ring-2 focus:ring-[var(--shell-accent)]/30 focus:border-[#1877f2] transition-all"
               />
             </div>
           </div>
@@ -542,11 +540,11 @@ export function CommunitiesPage() {
                 onClick={() => setPanel(item.id as "feed" | "discover" | "my")}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[14px] font-semibold transition-colors ${
                   panel === item.id
-                    ? "bg-[#1877f2]/10 text-[#1877f2] dark:text-[#4599ff]"
+                    ? "bg-[var(--shell-accent-solid)]/10 text-[var(--shell-accent)] dark:text-[#4599ff]"
                     : "text-foreground hover:bg-muted"
                 }`}
               >
-                <span className={`p-2 rounded-full ${panel === item.id ? "bg-[#1877f2]/15" : "bg-muted"}`}>
+                <span className={`p-2 rounded-full ${panel === item.id ? "bg-[var(--shell-accent-solid)]/15" : "bg-muted"}`}>
                   {item.icon}
                 </span>
                 {item.label}
@@ -558,7 +556,7 @@ export function CommunitiesPage() {
           <div className="px-4 py-4">
             <button
               onClick={() => setIsModalOpen(true)}
-              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg border-2 border-[#1877f2]/30 text-[#1877f2] dark:text-[#4599ff] text-[13px] font-bold hover:bg-[#1877f2]/5 transition-colors"
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg border-2 border-[var(--shell-accent)]/30 text-[var(--shell-accent)] dark:text-[#4599ff] text-[13px] font-bold hover:bg-[#1877f2]/5 transition-colors"
             >
               <Plus weight="fill" className="h-4 w-4" />
               Create New Community
@@ -572,7 +570,7 @@ export function CommunitiesPage() {
             <h3 className="text-[13px] font-bold text-foreground">Communities you've joined</h3>
             <button
               onClick={() => setPanel("my")}
-              className="text-[12px] font-bold text-[#1877f2] dark:text-[#4599ff] hover:underline"
+              className="text-[12px] font-bold text-[var(--shell-accent)] dark:text-[#4599ff] hover:underline"
             >
               See all
             </button>
@@ -602,7 +600,7 @@ export function CommunitiesPage() {
                   to={`/app/communities/${c.slug}`}
                   className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted transition-colors group"
                 >
-                  <div className="h-10 w-10 rounded-lg overflow-hidden bg-[#1877f2] flex items-center justify-center text-white font-bold text-sm shrink-0">
+                  <div className="h-10 w-10 rounded-lg overflow-hidden bg-[var(--shell-accent-solid)] flex items-center justify-center text-white font-bold text-sm shrink-0">
                     {c.logo_url
                       ? <img src={c.logo_url} alt="" className="w-full h-full object-cover" />
                       : <UserIcon weight="fill" className="text-white/90" style={{ width: 20, height: 20 }} />

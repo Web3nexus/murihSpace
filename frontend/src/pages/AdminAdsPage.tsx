@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useConfirm, usePrompt } from "@/components/ui/DialogProvider";
 import { DangerSquare as AlertCircle, Search, CloseSquare as X } from "@/components/icons";
 import { CurrencyDollar as DollarSign, Spinner as Loader2, Megaphone, ThumbsUp, ThumbsDown } from "@/components/icons/rounded";;
@@ -16,7 +16,7 @@ const STATUS_COLORS: Record<string, string> = {
   draft: "bg-gray-100 text-gray-700",
   active: "bg-green-100 text-green-700",
   paused: "bg-yellow-100 text-yellow-700",
-  completed: "bg-blue-100 text-blue-700",
+  completed: "bg-blue-100 text-[var(--shell-accent)]",
   cancelled: "bg-red-100 text-red-700",
 };
 
@@ -25,44 +25,66 @@ const REVIEW_COLORS: Record<string, string> = {
   approved: "bg-green-100 text-green-700",
   rejected: "bg-red-100 text-red-700",
   suspended: "bg-orange-100 text-orange-700",
-  removed: "bg-gray-100 text-gray-500",
+  removed: "bg-gray-100 text-[var(--shell-muted)]",
 };
 
+interface AdsStats { total_campaigns?: number; active_campaigns?: number; pending_review?: number }
+interface AdsRevenue { total_revenue?: number | string; active_campaigns?: number }
+
+
+interface AdCampaign {
+  id: number;
+  name?: string | null;
+  status?: string | null;
+  review_status?: string | null;
+  review_notes?: string | null;
+  total_budget?: number | string | null;
+  created_at?: string | null;
+  user?: { name?: string | null; role?: string | null } | null;
+}
+
 export default function AdminAdsPage() {
-  const [campaigns, setCampaigns] = useState<any[]>([]);
+  const [campaigns, setCampaigns] = useState<AdCampaign[]>([]);
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState<any>(null);
-  const [revenue, setRevenue] = useState<any>(null);
+  const [stats, setStats] = useState<AdsStats | null>(null);
+  const [revenue, setRevenue] = useState<AdsRevenue | null>(null);
   const [search, setSearch] = useState("");
   const [tab, setTab] = useState<"campaigns" | "revenue">("campaigns");
 
-  const fetchData = useCallback(async () => {
+  // Reloads bump reloadKey. The loader runs in the effect, so its state updates
+  // all happen after a request settles.
+  const [reloadKey, setReloadKey] = useState(0);
+  const reload = () => {
     setLoading(true);
-    try {
-      const [cRes, sRes, rRes] = await Promise.all([
-        authFetch(`${ADS_API_BASE}`, { }),
-        authFetch(`${ADS_API_BASE}/stats`, { }),
-        authFetch(`${ADS_API_BASE}/revenue`, { }),
-      ]);
-      if (cRes.ok) {
-        const j = await cRes.json();
-        const payload = j?.data ?? j;
-        const list = Array.isArray(payload)
-          ? payload
-          : Array.isArray(payload?.data)
-            ? payload.data
-            : Array.isArray(j?.data?.data)
-              ? j.data.data
-              : [];
-        setCampaigns(list);
-      }
-      if (sRes.ok) setStats(await sRes.json());
-      if (rRes.ok) setRevenue(await rRes.json());
-    } catch { /* ignore */ }
-    finally { setLoading(false); }
-  }, []);
+    setReloadKey((k) => k + 1);
+  };
 
-  useEffect(() => { fetchData(); }, [fetchData]);
+  useEffect(() => {
+    (async () => {
+      try {
+        const [cRes, sRes, rRes] = await Promise.all([
+          authFetch(`${ADS_API_BASE}`, { }),
+          authFetch(`${ADS_API_BASE}/stats`, { }),
+          authFetch(`${ADS_API_BASE}/revenue`, { }),
+        ]);
+        if (cRes.ok) {
+          const j = await cRes.json();
+          const payload = j?.data ?? j;
+          const list = Array.isArray(payload)
+            ? payload
+            : Array.isArray(payload?.data)
+              ? payload.data
+              : Array.isArray(j?.data?.data)
+                ? j.data.data
+                : [];
+          setCampaigns(list);
+        }
+        if (sRes.ok) setStats(await sRes.json());
+        if (rRes.ok) setRevenue(await rRes.json());
+      } catch { /* ignore */ }
+      finally { setLoading(false); }
+    })();
+  }, [reloadKey]);
 
   const confirm = useConfirm();
   const prompt = usePrompt();
@@ -80,12 +102,12 @@ export default function AdminAdsPage() {
       const opts: RequestInit = { method: action === "remove" ? "DELETE" : "POST",  };
       if (reason) opts.body = JSON.stringify({ reason });
       const res = await authFetch(url, opts);
-      if (res.ok) fetchData();
+      if (res.ok) reload();
     } catch { /* ignore */ }
   };
 
   const campaignList = Array.isArray(campaigns) ? campaigns : [];
-  const filtered = campaignList.filter((c: any) =>
+  const filtered = campaignList.filter((c) =>
     c?.name?.toLowerCase().includes(search.toLowerCase()) ||
     c?.user?.name?.toLowerCase().includes(search.toLowerCase())
   );
@@ -95,7 +117,7 @@ export default function AdminAdsPage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-xl font-bold flex items-center gap-2"><Megaphone weight="fill" className="w-6 h-6 text-purple-500" /> Advertisements</h1>
-          <p className="text-sm text-gray-500 mt-1">Review, approve, and manage platform advertisements</p>
+          <p className="text-sm text-[var(--shell-muted)] mt-1">Review, approve, and manage platform advertisements</p>
         </div>
         <div className="flex gap-2">
           <Button variant={tab === "campaigns" ? "default" : "outline"} size="sm" onClick={() => setTab("campaigns")}>Campaigns</Button>
@@ -106,15 +128,15 @@ export default function AdminAdsPage() {
       {stats && (
         <div className="grid grid-cols-3 gap-4 mb-6">
           <div className="bg-white border rounded-lg p-4 ">
-            <p className="text-sm text-gray-500">Total Campaigns</p>
+            <p className="text-sm text-[var(--shell-muted)]">Total Campaigns</p>
             <p className="text-xl font-bold">{stats.total_campaigns}</p>
           </div>
           <div className="bg-white border rounded-lg p-4 ">
-            <p className="text-sm text-gray-500">Active</p>
+            <p className="text-sm text-[var(--shell-muted)]">Active</p>
             <p className="text-xl font-bold text-green-600">{stats.active_campaigns}</p>
           </div>
           <div className="bg-white border rounded-lg p-4 ">
-            <p className="text-sm text-gray-500">Pending Review</p>
+            <p className="text-sm text-[var(--shell-muted)]">Pending Review</p>
             <p className="text-xl font-bold text-yellow-600">{stats.pending_review}</p>
           </div>
         </div>
@@ -125,11 +147,11 @@ export default function AdminAdsPage() {
           <h2 className="font-semibold text-lg mb-4 flex items-center gap-2"><DollarSign weight="fill" className="w-5 h-5 text-green-500" /> Advertising Revenue</h2>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <p className="text-sm text-gray-500">Total Revenue</p>
-              <p className="text-xl font-bold">${parseFloat(revenue.total_revenue || 0).toLocaleString()}</p>
+              <p className="text-sm text-[var(--shell-muted)]">Total Revenue</p>
+              <p className="text-xl font-bold">${parseFloat(String(revenue.total_revenue || 0)).toLocaleString()}</p>
             </div>
             <div>
-              <p className="text-sm text-gray-500">Active Campaigns</p>
+              <p className="text-sm text-[var(--shell-muted)]">Active Campaigns</p>
               <p className="text-xl font-bold">{revenue.active_campaigns}</p>
             </div>
           </div>
@@ -137,7 +159,7 @@ export default function AdminAdsPage() {
       )}
 
       <div className="relative mb-4">
-        <Search weight="fill" className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+        <Search weight="fill" className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--shell-muted)]" />
         <input type="text" placeholder="Search campaigns by name or advertiser..." value={search} onChange={e => setSearch(e.target.value)} className="w-full pl-10 pr-4 py-2 border rounded-lg text-sm" />
       </div>
 
@@ -146,28 +168,28 @@ export default function AdminAdsPage() {
           <h2 className="font-semibold">{filtered.length} Campaigns</h2>
         </div>
         {loading ? (
-          <div className="flex items-center justify-center py-12"><Loader2 weight="fill" className="w-6 h-6 animate-spin text-gray-400" /></div>
+          <div className="flex items-center justify-center py-12"><Loader2 weight="fill" className="w-6 h-6 animate-spin text-[var(--shell-muted)]" /></div>
         ) : filtered.length === 0 ? (
-          <div className="text-center py-12 text-gray-400">
+          <div className="text-center py-12 text-[var(--shell-muted)]">
             <Megaphone weight="fill" className="w-12 h-12 mx-auto mb-3 opacity-40" />
             <p>No campaigns found.</p>
           </div>
         ) : (
           <div className="divide-y">
-            {filtered.map((c: any) => (
+            {filtered.map((c) => (
               <div key={c.id} className="p-4 hover:bg-gray-50">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
                       <h3 className="font-medium">{c.name}</h3>
-                      <Badge className={STATUS_COLORS[c.status] || ""}>{c.status}</Badge>
-                      <Badge className={REVIEW_COLORS[c.review_status] || ""}>{c.review_status}</Badge>
+                      <Badge className={STATUS_COLORS[c.status ?? ""] || ""}>{c.status}</Badge>
+                      <Badge className={REVIEW_COLORS[c.review_status ?? ""] || ""}>{c.review_status}</Badge>
                     </div>
-                    <p className="text-sm text-gray-500 mt-1">
+                    <p className="text-sm text-[var(--shell-muted)] mt-1">
                       by {c.user?.name || "Unknown"} ({c.user?.role})
                       {c.total_budget && <span className="ml-3">Budget: ${c.total_budget}</span>}
                     </p>
-                    <p className="text-xs text-gray-400 mt-1">Created {new Date(c.created_at).toLocaleDateString()}</p>
+                    <p className="text-xs text-[var(--shell-muted)] mt-1">Created {new Date(c.created_at ?? "").toLocaleDateString()}</p>
                   </div>
                   <div className="flex items-center gap-1">
                     <Button variant="ghost" size="sm" onClick={() => handleAction(c.id, "approve")} className="text-green-600" title="Approve"><ThumbsUp weight="fill" className="w-4 h-4" /></Button>

@@ -15,6 +15,7 @@ class Payout extends Model
         'user_id',
         'business_id',
         'payout_destination_id',
+        'withdrawal_request_id',
         'amount',
         'currency',
         'fee_amount',
@@ -26,6 +27,8 @@ class Payout extends Model
         'failure_reason',
         'idempotency_key',
         'dispatched_at',
+        'dispatch_attempts',
+        'dispatch_error',
         'completed_at',
     ];
 
@@ -34,6 +37,7 @@ class Payout extends Model
         'fee_amount' => 'integer',
         'net_amount' => 'integer',
         'status' => PayoutStatus::class,
+        'dispatch_attempts' => 'integer',
         'dispatched_at' => 'datetime',
         'completed_at' => 'datetime',
     ];

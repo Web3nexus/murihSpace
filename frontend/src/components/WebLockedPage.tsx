@@ -52,8 +52,8 @@ export function WebLockedPage({ role, embedded = false }: WebLockedPageProps) {
 
   const content = (
     <div className="w-full max-w-sm mx-auto text-center space-y-5">
-      <div className="mx-auto h-16 w-16 rounded-lg bg-[#2164b6]/10 flex items-center justify-center">
-        <Smartphone weight="fill" className="h-8 w-8 text-[#2164b6] dark:text-[#7ab0ff]" />
+      <div className="mx-auto h-16 w-16 rounded-lg bg-[var(--shell-accent-solid)]/10 flex items-center justify-center">
+        <Smartphone weight="fill" className="h-8 w-8 text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" />
       </div>
 
       <div className="space-y-1.5">
@@ -68,7 +68,7 @@ export function WebLockedPage({ role, embedded = false }: WebLockedPageProps) {
 
       {cfg.loading ? (
         <div className="flex justify-center py-8">
-          <Loader2 weight="fill" className="h-5 w-5 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" />
+          <Loader2 weight="fill" className="h-5 w-5 animate-spin text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" />
         </div>
       ) : (
         <div className="space-y-3">
@@ -79,7 +79,7 @@ export function WebLockedPage({ role, embedded = false }: WebLockedPageProps) {
             href={cfg.app_download_url}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg bg-[#2164b6] hover:bg-[#1a5091] text-white text-xs font-bold transition-colors "
+            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg bg-[var(--shell-accent-solid)] hover:bg-[var(--shell-accent-hover)] text-white text-xs font-bold transition-colors "
           >
             <Download weight="fill" className="h-4 w-4" /> Download the app
           </a>
@@ -96,7 +96,7 @@ export function WebLockedPage({ role, embedded = false }: WebLockedPageProps) {
   }
 
   return (
-    <div className="min-h-screen w-full bg-[#F0F2F5] dark:bg-[#18191A] flex items-center justify-center p-4">
+    <div className="min-h-screen w-full bg-[var(--shell-canvas)] dark:bg-[var(--shell-canvas)] flex items-center justify-center p-4">
       <div className="w-full max-w-md bg-card border-none rounded-3xl  p-5">
         {content}
         <div className="mt-6 pt-6 border-t border-border/60 text-center">

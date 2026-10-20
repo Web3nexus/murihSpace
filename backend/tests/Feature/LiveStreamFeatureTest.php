@@ -163,8 +163,8 @@ class LiveStreamFeatureTest extends TestCase
         $gift = Gift::create([
             'name' => 'Diamond Rocket',
             'coin_price' => 1000,
-            'creator_earns' => 800,
-            'platform_commission' => 200,
+            'creator_earns' => 700,
+            'platform_commission' => 150,
             'is_active' => true,
         ]);
 
@@ -188,7 +188,8 @@ class LiveStreamFeatureTest extends TestCase
             ->assertJsonPath('data.stream_total_coins', 1000);
 
         $this->assertEquals(4000, $viewerWallet->fresh()->available);
-        $this->assertEquals(800, $hostWallet->fresh()->available);
+        // The host is not KYC-verified here, so the gift earnings are held in pending.
+        $this->assertEquals(700, $hostWallet->fresh()->pending);
         $this->assertEquals(1000, $stream->fresh()->total_coins_earned);
     }
 

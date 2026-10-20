@@ -85,6 +85,35 @@ class LiveExchangeRateService
     }
 
     /**
+     * Admin-set spread, as a fraction. A 2% spread is 0.02.
+     */
+    public function spread(): float
+    {
+        $pct = \App\Models\AdminSetting::get('fx_spread_percentage');
+        $pct = is_numeric($pct) ? (float) $pct : 2.0;
+
+        return max(0.0, min(20.0, $pct)) / 100.0;
+    }
+
+    /**
+     * Rate for money we collect from a user (charges). The high side of the spread:
+     * the user pays slightly more local currency per USD.
+     */
+    public function chargeRate(string $from, string $to): float
+    {
+        return $this->getRate($from, $to) * (1 + $this->spread());
+    }
+
+    /**
+     * Rate for money we pay out (withdrawals, payouts). The low side of the spread:
+     * the user receives slightly less local currency per USD.
+     */
+    public function payoutRate(string $from, string $to): float
+    {
+        return $this->getRate($from, $to) * (1 - $this->spread());
+    }
+
+    /**
      * Get live exchange rate between any two currencies.
      */
     public function getRate(string $from, string $to): float

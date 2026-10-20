@@ -33,6 +33,7 @@ class Wallet extends Model
         'withdrawable',
         'non_withdrawable',
         'disputed',
+        'debt',
         'currency',
         'pin_hash',
         'pin_set_at',
@@ -46,6 +47,7 @@ class Wallet extends Model
         'escrow'           => 'integer',
         'withdrawable'     => 'integer',
         'non_withdrawable' => 'integer',
+        'debt' => 'integer',
         'disputed'         => 'integer',
         'pin_set_at'       => 'datetime',
     ];

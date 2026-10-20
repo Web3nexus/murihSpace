@@ -460,7 +460,7 @@ class WalletController extends Controller
         // 1.0 keeps the response well-formed and, together with the null
         // formatted estimate, tells the client not to show a converted number.
         try {
-            $localRate = (float) $rateService->getRate($w->currency, $targetCurrency);
+            $localRate = (float) $rateService->payoutRate($w->currency, $targetCurrency);
         } catch (\Throwable $e) {
             \Log::warning('[Wallet] exchange rate unavailable: '.$e->getMessage(), [
                 'from' => $w->currency,
@@ -489,6 +489,11 @@ class WalletController extends Controller
             'withdrawable'             => $w->withdrawable,
             'non_withdrawable'         => $w->non_withdrawable,
             'disputed'                 => $w->disputed,
+            'held'                     => $w->disputed,
+            'debt'                     => (int) $w->debt,
+            // Money is withdrawable but the owner has not verified their identity yet, so
+            // the withdrawal is refused. Clients show a "verify to withdraw" prompt.
+            'kyc_required_to_withdraw'  => (int) $w->withdrawable > 0 && ! ($w->user?->hasVerifiedKyc() ?? false),
             'total'                    => $w->totalBalance(),
             'currency'                 => $w->currency,
             'amount_usd'               => $availableUsd,

@@ -16,8 +16,8 @@ const STORY_TYPES = [
     label: "Image Stories",
     description: "Users can create stories with image media.",
     icon: Image,
-    color: "text-blue-500",
-    bg: "bg-blue-500/10",
+    color: "text-[var(--shell-accent)]",
+    bg: "bg-[var(--shell-accent-solid)]/10",
   },
   {
     key: "story_type_text_enabled" as const,
@@ -95,7 +95,7 @@ export default function AdminStoriesPage() {
     <AnimatedPage className="p-4 max-w-3xl mx-auto space-y-6">
       <div>
         <h1 className="text-xl font-black text-foreground flex items-center gap-2">
-          <BookOpen weight="fill" className="h-6 w-6 text-[#2164b6] dark:text-[#7ab0ff]" /> Story Settings
+          <BookOpen weight="fill" className="h-6 w-6 text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" /> Story Settings
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
           Control which story types users can create on the platform.
@@ -133,8 +133,8 @@ export default function AdminStoriesPage() {
               role="switch"
               aria-checked={settings?.[key] === "1"}
               onClick={() => toggle(key)}
-              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2164b6] focus-visible:ring-offset-2 ${
-                settings?.[key] === "1" ? "bg-[#2164b6]" : "bg-muted"
+              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--shell-accent)] focus-visible:ring-offset-2 ${
+                settings?.[key] === "1" ? "bg-[var(--shell-accent-solid)]" : "bg-muted"
               }`}
             >
               <span
@@ -154,7 +154,7 @@ export default function AdminStoriesPage() {
         <button
           onClick={handleSave}
           disabled={saving}
-          className="px-5 py-2 rounded-lg bg-[#2164b6] hover:bg-[#1a5091] disabled:opacity-50 text-white font-bold text-xs transition-colors flex items-center gap-1.5 "
+          className="px-5 py-2 rounded-lg bg-[var(--shell-accent-solid)] hover:bg-[var(--shell-accent-hover)] disabled:opacity-50 text-white font-bold text-xs transition-colors flex items-center gap-1.5 "
         >
           {saving ? <Loader2 weight="fill" className="h-3.5 w-3.5 animate-spin" /> : <FloppyDisk weight="fill" className="h-3.5 w-3.5" />}
           Save Changes

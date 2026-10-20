@@ -19,6 +19,15 @@ class IsAdmin
             ], 403);
         }
 
+        // A disabled administrator (for example a staff member removed in the marketing
+        // backend) loses access on the next request, even with a token issued earlier.
+        if ($user->trashed() || in_array($user->status, ['banned', 'suspended', 'deleted'], true)) {
+            return response()->json([
+                'message' => 'This administrator account is disabled.',
+                'code' => 'admin_account_disabled',
+            ], 403);
+        }
+
         // A role check is not a session check. Administrators can still sign in
         // through the shared consumer login — they have to, because that is how a
         // second factor gets enrolled — and that session is a normal consumer

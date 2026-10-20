@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from 'react';
+import { asApiError } from "@/lib/apiError";
+import { useEffect, useState } from 'react';
 import { Wallet as CreditCard, TickSquare as CheckCircle2, DangerSquare as AlertCircle, Discovery as Globe, Location as MapPin } from "@/components/icons";
 import { Package, Spinner as Loader2 } from "@/components/icons/rounded";;
 import {
@@ -78,58 +79,69 @@ export function PhysicalCheckoutModal({ open, onClose, onPlaced }: PhysicalCheck
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [placed, setPlaced] = useState<PlacedOrder | null>(null);
 
-  const loadAddresses = useCallback(async () => {
-    try {
-      const res = await authFetch(`/addresses`, {});
-      if (res.ok) {
-        const json = await res.json();
-        const list = Array.isArray(json?.data?.data)
-          ? json.data.data
-          : Array.isArray(json?.data)
-            ? json.data
-            : [];
-        setAddresses(list);
-        const def = list.find((a: ShippingAddress) => a.is_default) ?? list[0];
-        setAddressId((prev) => prev ?? (def?.id ?? null));
-      }
-    } catch {
-      // address list is optional; checkout requires a chosen address
-    }
-  }, []);
 
-  useEffect(() => {
+  // Reset the checkout each time it opens (derived during render, not in the effect)
+  const [wasOpen, setWasOpen] = useState(open);
+  if (open !== wasOpen) {
+    setWasOpen(open);
     if (open) {
       setStep('review');
       setEstimate(null);
       setErrorMsg(null);
       setPlaced(null);
-      loadAddresses();
     }
-  }, [open, loadAddresses]);
-
-  const fetchEstimate = useCallback(async (id: number) => {
-    setEstimating(true);
-    try {
-      const res = await authFetch(`${API_BASE}/store/fulfilment/checkout-estimate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ shipping_address_id: id }),
-      });
-      if (!res.ok) return;
-      const json = await res.json();
-      setEstimate(json?.data?.data ?? json?.data ?? null);
-    } catch {
-      // keep previous estimate
-    } finally {
-      setEstimating(false);
-    }
-  }, []);
+  }
 
   useEffect(() => {
-    if (open && step === 'review' && addressId) {
-      fetchEstimate(addressId);
+    if (open) {
+      (async () => {
+        try {
+          const res = await authFetch(`/addresses`, {});
+          if (res.ok) {
+            const json = await res.json();
+            const list = Array.isArray(json?.data?.data)
+              ? json.data.data
+              : Array.isArray(json?.data)
+                ? json.data
+                : [];
+            setAddresses(list);
+            const def = list.find((a: ShippingAddress) => a.is_default) ?? list[0];
+            setAddressId((prev) => prev ?? (def?.id ?? null));
+          }
+        } catch {
+          // address list is optional; checkout requires a chosen address
+        }
+      })();
     }
-  }, [open, step, addressId, fetchEstimate]);
+  }, [open]);
+
+
+  useEffect(() => {
+    let cancelled = false;
+    if (open && step === 'review' && addressId) {
+      (async () => {
+        const id = addressId;
+        setEstimating(true);
+        try {
+          const res = await authFetch(`${API_BASE}/store/fulfilment/checkout-estimate`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ shipping_address_id: id }),
+          });
+          if (cancelled || !res.ok) return;
+          const json = await res.json();
+          if (!cancelled) setEstimate(json?.data?.data ?? json?.data ?? null);
+        } catch {
+          // keep previous estimate
+        } finally {
+          if (!cancelled) setEstimating(false);
+        }
+      })();
+    }
+    return () => {
+      cancelled = true;
+    };
+  }, [open, step, addressId]);
 
   const handlePlaceOrder = async () => {
     if (!addressId) {
@@ -156,7 +168,8 @@ export function PhysicalCheckoutModal({ open, onClose, onPlaced }: PhysicalCheck
       setStep('success');
       onPlaced();
     } catch (err: unknown) {
-      setErrorMsg(err instanceof Error ? err.message : 'An error occurred during checkout.');
+      const apiErr = asApiError(err);
+      setErrorMsg(err instanceof Error ? apiErr.message : 'An error occurred during checkout.');
       setStep('error');
     } finally {
       setPlacing(false);

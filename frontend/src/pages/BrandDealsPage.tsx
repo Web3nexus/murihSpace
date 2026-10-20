@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useConfirm } from '@/components/ui/DialogProvider';
 import { Work as Briefcase, Plus, Edit as Edit2, Delete as Trash2, TickSquare as Check, DangerSquare as AlertCircle, CloseSquare as X } from "@/components/icons";
 import { Spinner as Loader2, Buildings as Building2, CurrencyDollar as DollarSign } from "@/components/icons/rounded";;
@@ -40,7 +40,7 @@ const DEAL_TYPES = ['sponsored_post', 'affiliate', 'collaboration', 'event', 'ot
 
 const DEAL_STATUS_STYLES: Record<string, string> = {
   pending: 'bg-amber-500/15 text-amber-600 border-amber-500/30',
-  negotiating: 'bg-blue-500/15 text-blue-600 border-blue-500/30',
+  negotiating: 'bg-[var(--shell-accent-solid)]/15 text-[var(--shell-accent)] border-[var(--shell-accent)]/30',
   active: 'bg-emerald-500/15 text-emerald-600 border-emerald-500/30',
   completed: 'bg-muted text-muted-foreground border-border',
   cancelled: 'bg-red-500/15 text-red-600 border-red-500/30',
@@ -67,19 +67,25 @@ export function BrandDealsPage() {
   const [page, setPage] = useState(1);
   const [lastPage, setLastPage] = useState(1);
 
-  const fetchAll = useCallback(async () => {
-    try {
-      const [dRes, bRes] = await Promise.all([
-        authFetch(`/brand-deals?page=${page}&per_page=20`, {  }),
-        authFetch(`/brands`, {  }),
-      ]);
-      if (dRes.ok) { const j = await dRes.json(); setDeals(j.data?.data ?? []); setLastPage(j.data?.last_page ?? 1); }
-      if (bRes.ok) { const j = await bRes.json(); setBrands(j.data?.data ?? []); }
-    } catch { /* ignore */ }
-    finally { setIsLoading(false); }
-  }, [page]);
+  const [fetchAllKey, setFetchAllKey] = useState(0);
+  const fetchAll = () => {
+    setFetchAllKey((k) => k + 1);
+  };
 
-  useEffect(() => { fetchAll(); }, [fetchAll]);
+  useEffect(() => {
+    (async () => {
+      try {
+        const [dRes, bRes] = await Promise.all([
+          authFetch(`/brand-deals?page=${page}&per_page=20`, {  }),
+          authFetch(`/brands`, {  }),
+        ]);
+        if (dRes.ok) { const j = await dRes.json(); setDeals(j.data?.data ?? []); setLastPage(j.data?.last_page ?? 1); }
+        if (bRes.ok) { const j = await bRes.json(); setBrands(j.data?.data ?? []); }
+      } catch { /* ignore */ }
+      finally { setIsLoading(false); }
+    })();
+  }, [fetchAllKey, page]);
+
 
   function resetForm() {
     setForm({ brand_id: '', title: '', deal_type: 'sponsored_post', budget: '', currency: 'NGN', description: '', deliverables: '', starts_at: '', ends_at: '' });
@@ -146,11 +152,11 @@ export function BrandDealsPage() {
       <PageSecondaryNav
         title="Brand Studio"
         subtitle="Discover brand campaigns, review briefs, apply to sponsorships & manage escrow payouts."
-        icon={<Briefcase weight="fill" className="h-5 w-5 text-[#2164b6]" />}
+        icon={<Briefcase weight="fill" className="h-5 w-5 text-[var(--shell-accent)]" />}
         tabs={brandDealTabs}
         actions={
           <Button onClick={() => { resetForm(); setShowForm(!showForm); }}
-            variant={showForm ? "outline" : "default"} className="shrink-0 text-xs font-bold bg-[#2164b6] hover:bg-[#2164b6]/90 text-white">
+            variant={showForm ? "outline" : "default"} className="shrink-0 text-xs font-bold bg-[var(--shell-accent-solid)] hover:bg-[var(--shell-accent-solid)]/90 text-white">
             {showForm ? <X className="h-4 w-4 mr-1.5" /> : <Plus weight="fill" className="h-4 w-4 mr-1.5" />}
             {showForm ? 'Cancel' : 'New Deal'}
           </Button>
@@ -237,8 +243,8 @@ export function BrandDealsPage() {
 
       {deals.length === 0 ? (
         <div className="rounded-3xl border border-dashed border-border bg-card p-12 flex flex-col items-center justify-center text-center space-y-3.5 w-full min-h-[240px]">
-          <div className="w-14 h-14 rounded-lg bg-[#2164b6]/10 flex items-center justify-center">
-            <Briefcase weight="fill" className="h-7 w-7 text-[#2164b6]" />
+          <div className="w-14 h-14 rounded-lg bg-[var(--shell-accent-solid)]/10 flex items-center justify-center">
+            <Briefcase weight="fill" className="h-7 w-7 text-[var(--shell-accent)]" />
           </div>
           <div className="space-y-1 max-w-md mx-auto text-center">
             <h3 className="text-base font-extrabold text-foreground">No brand deals yet</h3>
@@ -246,7 +252,7 @@ export function BrandDealsPage() {
               Create your first brand partnership deal to get started earning from sponsorships.
             </p>
           </div>
-          <Button size="sm" className="bg-[#2164b6] hover:bg-[#2164b6]/90 text-white font-bold text-xs mx-auto flex items-center gap-1.5" onClick={() => { resetForm(); setShowForm(true); }}>
+          <Button size="sm" className="bg-[var(--shell-accent-solid)] hover:bg-[var(--shell-accent-solid)]/90 text-white font-bold text-xs mx-auto flex items-center gap-1.5" onClick={() => { resetForm(); setShowForm(true); }}>
             <Plus weight="fill" className="h-4 w-4" /> New Deal
           </Button>
         </div>

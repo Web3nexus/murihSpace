@@ -1,4 +1,3 @@
-import { getAuthToken } from "@/lib/auth/token";
 import { useEffect, useState } from "react";
 import { Download as FloppyDisk, DangerSquare as AlertCircle, TickSquare as CheckCircle2, Show as Eye, Hide as EyeOff, Lock } from "@/components/icons";
 import { Spinner as Loader2, Plug } from "@/components/icons/rounded";;
@@ -39,8 +38,7 @@ interface ProviderMeta {
 }
 
 function authHeaders() {
-  const t = getAuthToken();
-  return { Accept: "application/json", "Content-Type": "application/json", ...(t ? { Authorization: `Bearer ${t}` } : {}) };
+  return { Accept: "application/json", "Content-Type": "application/json", };
 }
 
 interface Guardrails {
@@ -183,7 +181,7 @@ export default function AdminAiSettingsPage() {
   };
 
   if (loading) {
-    return <div className="flex justify-center py-24"><Loader2 weight="fill" className="h-8 w-8 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" /></div>;
+    return <div className="flex justify-center py-24"><Loader2 weight="fill" className="h-8 w-8 animate-spin text-[var(--shell-accent)]" /></div>;
   }
 
   return (
@@ -207,7 +205,7 @@ export default function AdminAiSettingsPage() {
             <button
               key={p.id}
               onClick={() => setProvider(p.id)}
-              className={`text-left rounded-lg border p-4 transition-all ${active ? "border-[#2164b6] ring-2 ring-[#2164b6]/20 bg-[#2164b6]/5" : "border-border bg-card hover:border-[#2164b6]/40"}`}
+              className={`text-left rounded-lg border p-4 transition-all ${active ? "border-[var(--shell-accent)] ring-2 ring-[var(--shell-accent)]/20 bg-[var(--shell-accent-solid)]/5" : "border-border bg-card hover:border-[var(--shell-accent)]/40"}`}
             >
               <div className={`flex items-center justify-between mb-2`}>
                 <div className={`h-9 w-9 rounded-lg bg-gradient-to-br ${p.color} flex items-center justify-center`}>
@@ -226,8 +224,8 @@ export default function AdminAiSettingsPage() {
               <p className="text-sm font-bold text-foreground">{p.label}</p>
               <p className="text-[11px] text-muted-foreground leading-relaxed mt-1">{p.desc}</p>
               {active && (
-                <p className="text-[10px] font-bold text-[#2164b6] dark:text-[#7ab0ff] mt-2 flex items-center gap-1">
-                  <span className="h-1.5 w-1.5 rounded-full bg-[#2164b6]" /> Active provider
+                <p className="text-[10px] font-bold text-[var(--shell-accent)] mt-2 flex items-center gap-1">
+                  <span className="h-1.5 w-1.5 rounded-full bg-[var(--shell-accent-solid)]" /> Active provider
                 </p>
               )}
             </button>
@@ -246,7 +244,7 @@ export default function AdminAiSettingsPage() {
                 <button
                   onClick={() => test(p.id)}
                   disabled={testing === p.id}
-                  className="inline-flex items-center gap-1.5 text-[11px] font-bold text-muted-foreground hover:text-[#2164b6] dark:text-[#7ab0ff] disabled:opacity-50 transition-colors"
+                  className="inline-flex items-center gap-1.5 text-[11px] font-bold text-muted-foreground hover:text-[var(--shell-accent)] disabled:opacity-50 transition-colors"
                 >
                   {testing === p.id ? <Loader2 weight="fill" className="h-3.5 w-3.5 animate-spin" /> : <Plug weight="fill" className="h-3.5 w-3.5" />}
                   Test connection
@@ -264,11 +262,11 @@ export default function AdminAiSettingsPage() {
               )}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[11px] font-bold text-muted-foreground flex items-center gap-1">
+                  <label htmlFor={`ai-key-${p.id}`} className="text-[11px] font-bold text-muted-foreground flex items-center gap-1">
                     <Lock weight="fill" className="h-3 w-3" /> API key
                   </label>
                   <div className="relative mt-1">
-                    <Input
+                    <Input id={`ai-key-${p.id}`}
                       type={reveal[p.id] ? "text" : "password"}
                       value={keys[p.id] ?? ""}
                       onChange={(e) => setKeys((prev) => ({ ...prev, [p.id]: e.target.value }))}
@@ -292,8 +290,8 @@ export default function AdminAiSettingsPage() {
                   </div>
                 </div>
                 <div>
-                  <label className="text-[11px] font-bold text-muted-foreground">Model</label>
-                  <Input
+                  <label htmlFor={`ai-model-${p.id}`} className="text-[11px] font-bold text-muted-foreground">Model</label>
+                  <Input id={`ai-model-${p.id}`}
                     value={models[p.id] ?? ""}
                     onChange={(e) => setModels((prev) => ({ ...prev, [p.id]: e.target.value }))}
                     placeholder={meta?.model ?? "Model name"}
@@ -311,7 +309,7 @@ export default function AdminAiSettingsPage() {
         <div className="flex items-center gap-2">
           <MeraIcon className="h-5 w-5" />
           <p className="text-xs font-black text-foreground uppercase tracking-wide">Mera behavior & guardrails</p>
-          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#2164b6]/15 text-[#2164b6] dark:text-[#7ab0ff]">
+          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[var(--shell-accent-solid)]/15 text-[var(--shell-accent)]">
             Admin only
           </span>
         </div>
@@ -336,7 +334,7 @@ export default function AdminAiSettingsPage() {
               id="guardrails-tone"
               value={guardrails.tone}
               onChange={(e) => setGuardrails((prev) => ({ ...prev, tone: e.target.value }))}
-              className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm  outline-none focus:border-[#2164b6]/40 focus:ring-2 focus:ring-[#2164b6]/15"
+              className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm  outline-none focus:border-[var(--shell-accent)]/40 focus:ring-2 focus:ring-[var(--shell-accent)]/15"
             >
               {TONE_OPTIONS.map((t) => (
                 <option key={t.value} value={t.value}>
@@ -355,7 +353,7 @@ export default function AdminAiSettingsPage() {
                 <label
                   key={o.value}
                   className={`flex items-center gap-2.5 rounded-lg border px-3 py-2 cursor-pointer ${
-                    guardrails.off_topic_mode === o.value ? "border-[#2164b6]/40 bg-[#2164b6]/5" : "border-border/60"
+                    guardrails.off_topic_mode === o.value ? "border-[var(--shell-accent)]/40 bg-[var(--shell-accent-solid)]/5" : "border-border/60"
                   }`}
                 >
                   <input
@@ -379,7 +377,7 @@ export default function AdminAiSettingsPage() {
                 role="switch"
                 aria-checked={guardrails.keep_on_topic}
                 onClick={() => setGuardrails((prev) => ({ ...prev, keep_on_topic: !prev.keep_on_topic }))}
-                className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${guardrails.keep_on_topic ? "bg-[#2164b6]" : "bg-muted"}`}
+                className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${guardrails.keep_on_topic ? "bg-[var(--shell-accent-solid)]" : "bg-muted"}`}
               >
                 <span
                   className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${guardrails.keep_on_topic ? "left-[22px]" : "left-0.5"}`}

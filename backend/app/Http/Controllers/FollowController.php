@@ -3,16 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
-use App\Services\NotificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class FollowController extends Controller
 {
-    public function __construct(
-        private readonly NotificationService $notifications,
-    ) {}
-
     /**
      * Toggle follow status for a target user.
      * POST /api/v1/users/{id}/follow
@@ -43,17 +38,14 @@ class FollowController extends Controller
 
             // Notify target user
             try {
-                $this->notifications->push(
-                    user: $targetUser,
+                $targetUser->notify(new \App\Notifications\MurihOfficialNotification(
+                    type: 'new_follower',
                     title: 'New Follower',
                     body: "{$authUser->name} started following you on MurihSpace.",
-                    data: [
-                        'type' => 'new_follower',
+                    metadata: ['type' => 'new_follower',
                         'follower_id' => $authUser->id,
-                        'follower_name' => $authUser->name,
-                        'route' => "/profile/{$authUser->id}",
-                    ],
-                );
+                        'follower_name' => $authUser->name], route: "/profile/{$authUser->id}",
+                ));
             } catch (\Throwable $e) {
                 \Log::warning("Follow notification failed: {$e->getMessage()}");
             }
@@ -87,15 +79,13 @@ class FollowController extends Controller
             $authUser->follows()->attach($targetUser->id);
 
             try {
-                $this->notifications->push(
-                    user: $targetUser,
+                $targetUser->notify(new \App\Notifications\MurihOfficialNotification(
+                    type: 'new_follower',
                     title: 'New Follower',
                     body: "{$authUser->name} started following you.",
-                    data: [
-                        'type' => 'new_follower',
-                        'follower_id' => $authUser->id,
-                    ],
-                );
+                    metadata: ['type' => 'new_follower',
+                        'follower_id' => $authUser->id],
+                ));
             } catch (\Throwable $e) {
                 \Log::warning("Follow notification failed: {$e->getMessage()}");
             }

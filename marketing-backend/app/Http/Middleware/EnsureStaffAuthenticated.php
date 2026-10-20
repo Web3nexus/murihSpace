@@ -11,7 +11,16 @@ class EnsureStaffAuthenticated
 {
     public function handle(Request $request, Closure $next): Response
     {
-        if (! $request->user('staff')) {
+        $staff = $request->user('staff');
+
+        if (! $staff || ! $staff->isActive()) {
+            if ($staff) {
+                // A session belonging to a since-disabled account ends here.
+                auth('staff')->logout();
+                $request->session()->invalidate();
+                $request->session()->regenerateToken();
+            }
+
             if ($request->expectsJson() || $request->is('api/*')) {
                 throw new AuthenticationException('Unauthenticated.', ['staff']);
             }

@@ -1,3 +1,5 @@
+import { logger } from "@/lib/logger";
+import { asApiError } from "@/lib/apiError";
 import { useState, useRef } from "react";
 import { Upload, Video as FilmStrip, Image as ImageIcon, DangerSquare as AlertCircle, Swap as RefreshCw } from "@/components/icons";
 import { Spinner as Loader2 } from "@/components/icons/rounded";;
@@ -69,7 +71,7 @@ export function MediaUploader({
           }
         }
       } catch (err) {
-        console.error("Error polling media status:", err);
+        logger.error("Error polling media status:", err);
       }
 
       if (attempts >= maxAttempts) {
@@ -194,10 +196,11 @@ export function MediaUploader({
       } else {
         setStatus("ready");
       }
-    } catch (err: any) {
-      console.error("Upload error:", err);
+    } catch (err: unknown) {
+      const apiErr = asApiError(err);
+      logger.error("Upload error:", err);
       setStatus("error");
-      setErrorMsg(err.message || "An unexpected error occurred during upload.");
+      setErrorMsg(apiErr.message || "An unexpected error occurred during upload.");
     }
   };
 

@@ -62,7 +62,7 @@ export function TransactionTable({
     if (desc.includes("bank") || desc.includes("withdraw") || type.includes("withdraw")) {
       return {
         icon: Bank,
-        iconBg: "bg-blue-500/10 text-[#2164b6] dark:text-blue-400",
+        iconBg: "bg-[var(--shell-accent-solid)]/10 text-[var(--shell-accent)] dark:text-[var(--shell-accent)]",
         label: "Withdrawal",
       };
     }
@@ -82,7 +82,7 @@ export function TransactionTable({
     }
     return {
       icon: ArrowUpRight,
-      iconBg: "bg-sky-500/10 text-[#2164b6] dark:text-sky-400",
+      iconBg: "bg-sky-500/10 text-[var(--shell-accent)] dark:text-sky-400",
       label: "Transfer",
     };
   };
@@ -100,7 +100,7 @@ export function TransactionTable({
       return {
         label: "Processing",
         icon: Clock,
-        style: "bg-blue-500/10 text-[#2164b6] dark:text-blue-400 border-blue-500/20",
+        style: "bg-[var(--shell-accent-solid)]/10 text-[var(--shell-accent)] dark:text-[var(--shell-accent)] border-[var(--shell-accent)]/20",
       };
     }
     if (s === "failed" || s === "reversed") {
@@ -168,7 +168,7 @@ export function TransactionTable({
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search transactions..."
-              className="pl-8 pr-3 py-1.5 text-xs bg-muted/40 border border-border/80 rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-[#2164b6] w-40 sm:w-56"
+              className="pl-8 pr-3 py-1.5 text-xs bg-muted/40 border border-border/80 rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-[var(--shell-accent)] w-40 sm:w-56"
             />
           </div>
 
@@ -200,7 +200,7 @@ export function TransactionTable({
               onClick={() => setActiveFilter(tab.id)}
               className={`px-3 py-1 rounded-full text-xs font-semibold transition-all whitespace-nowrap focus:outline-none ${
                 isActive
-                  ? "bg-[#2164b6] text-white shadow-xs font-bold"
+                  ? "bg-[var(--shell-accent-solid)] text-white shadow-xs font-bold"
                   : "bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted"
               }`}
             >

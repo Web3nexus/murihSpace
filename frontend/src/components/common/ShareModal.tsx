@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import { useState, useEffect } from "react";
 import QRCode from "qrcode";
 import { TickSquare as Check, Scan as QrCode, Message as EnvelopeSimple, Download as DownloadSimple, CloseSquare as XIcon, Show as Eye } from "@/components/icons";
@@ -41,12 +42,17 @@ export function ShareModal({
   const [activeTab, setActiveTab] = useState<"link" | "qr" | "embed">("link");
   const [qrDataUrl, setQrDataUrl] = useState<string>("");
   const [qrLoading, setQrLoading] = useState<boolean>(true);
+  // Show the loading state again whenever the link changes (adjusted during render).
+  const [qrFor, setQrFor] = useState<string | null>(null);
 
   const fullUrl = url.startsWith("http") ? url : absolute(url);
+  if (fullUrl !== qrFor) {
+    setQrFor(fullUrl);
+    setQrLoading(true);
+  }
 
   useEffect(() => {
     let isMounted = true;
-    setQrLoading(true);
     QRCode.toDataURL(fullUrl, {
       width: 480,
       margin: 2,
@@ -63,7 +69,7 @@ export function ShareModal({
         }
       })
       .catch((err) => {
-        console.error("Failed to generate QR code", err);
+        logger.error("Failed to generate QR code", err);
         if (isMounted) {
           setQrLoading(false);
         }
@@ -120,8 +126,8 @@ export function ShareModal({
     },
     {
       name: "Facebook",
-      icon: <FacebookLogo weight="fill" className="h-5 w-5 text-blue-600" />,
-      bg: "bg-blue-600/10 hover:bg-blue-600/20 text-blue-600 dark:text-blue-400",
+      icon: <FacebookLogo weight="fill" className="h-5 w-5 text-[var(--shell-accent)]" />,
+      bg: "bg-[var(--shell-accent-solid)]/10 hover:bg-[var(--shell-accent-hover)]/20 text-[var(--shell-accent)] dark:text-[var(--shell-accent)]",
       href: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`,
     },
     {
@@ -132,8 +138,8 @@ export function ShareModal({
     },
     {
       name: "LinkedIn",
-      icon: <LinkedinLogo weight="fill" className="h-5 w-5 text-blue-700" />,
-      bg: "bg-blue-700/10 hover:bg-blue-700/20 text-blue-700 dark:text-blue-300",
+      icon: <LinkedinLogo weight="fill" className="h-5 w-5 text-[var(--shell-accent)]" />,
+      bg: "bg-[var(--shell-accent-hover)]/10 hover:bg-[var(--shell-accent-hover)]/20 text-[var(--shell-accent)] dark:text-blue-300",
       href: `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`,
     },
     {
@@ -176,9 +182,9 @@ export function ShareModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in">
-      <div
+      <div role="dialog" aria-modal="true" aria-label={`Share ${title}`}
         className="relative w-full max-w-lg rounded-2xl bg-card border border-border/80 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-150"
-        onClick={(e) => e.stopPropagation()}
+       
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-border/60 bg-muted/20">
@@ -317,9 +323,9 @@ export function ShareModal({
 
               {/* Social Channels */}
               <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                   Share directly to social apps
-                </label>
+                </span>
                 <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
                   {socialLinks.map((social) => (
                     <a

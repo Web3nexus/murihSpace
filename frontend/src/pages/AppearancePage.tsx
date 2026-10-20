@@ -139,14 +139,13 @@ export default function AppearancePage() {
           <Eye weight="fill" className="h-3.5 w-3.5 text-secondary" /> Accessibility
         </h3>
         <div className="space-y-3">
-          <label className="flex items-center justify-between p-3 rounded-lg border-none bg-muted/30 cursor-pointer hover:border-muted-foreground/30 transition-all">
-            <div className="space-y-0.5">
-              <p className="text-xs font-bold text-foreground">Reduced Motion</p>
-              <p className="text-[10px] text-muted-foreground">
-                Minimize animations and transitions throughout the interface.
-              </p>
-            </div>
+          <label htmlFor="appearance-reduced-motion" aria-label="Reduced Motion" className="flex items-center justify-between p-3 rounded-lg border-none bg-muted/30 cursor-pointer hover:border-muted-foreground/30 transition-all">
+            <span className="block space-y-0.5">
+              <span className="block text-xs font-bold text-foreground">Reduced Motion</span>
+              <span className="block text-[10px] text-muted-foreground">Minimize animations and transitions throughout the interface.</span>
+            </span>
             <button
+              id="appearance-reduced-motion"
               type="button"
               role="switch"
               aria-checked={reducedMotion}

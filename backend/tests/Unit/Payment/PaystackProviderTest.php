@@ -3,6 +3,7 @@
 namespace Tests\Unit\Payment;
 
 use App\Services\Payment\DTO\PaymentIntentRequest;
+use App\Services\Payment\ProviderResultResolver;
 use App\Services\Payment\Providers\PaystackProvider;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
@@ -101,5 +102,79 @@ class PaystackProviderTest extends TestCase
         $provider = new PaystackProvider();
         $this->assertFalse($provider->verifyWebhookSignature($request));
     }
-}
 
+    public function test_transfer_verify_uses_the_reference_we_sent_not_the_transfer_code(): void
+    {
+        Http::fake([
+            'https://api.paystack.co/transfer/verify/*' => Http::response([
+                'status' => true,
+                'data' => ['status' => 'success', 'reference' => 'PO-20261020-ABCDEFGH', 'transfer_code' => 'TRF_8c4bnb0iy3qwx9b'],
+            ], 200),
+        ]);
+
+        $result = (new PaystackProvider())->verifyPayout('PO-20261020-ABCDEFGH');
+
+        Http::assertSent(fn ($request) => $request->method() === 'GET'
+            && $request->url() === 'https://api.paystack.co/transfer/verify/PO-20261020-ABCDEFGH');
+        Http::assertNotSent(fn ($request) => str_contains($request->url(), 'TRF_'));
+        $this->assertSame('successful', $result['status']);
+    }
+
+    public function test_transfer_verify_maps_reversed_and_pending_statuses(): void
+    {
+        Http::fake([
+            'https://api.paystack.co/transfer/verify/PO-REVERSED' => Http::response(['status' => true, 'data' => ['status' => 'reversed']], 200),
+            'https://api.paystack.co/transfer/verify/PO-PENDING' => Http::response(['status' => true, 'data' => ['status' => 'otp']], 200),
+        ]);
+
+        $provider = new PaystackProvider();
+        $this->assertSame('failed', $provider->verifyPayout('PO-REVERSED')['status']);
+        $this->assertSame('processing', $provider->verifyPayout('PO-PENDING')['status']);
+    }
+
+    public function test_refund_processing_and_pending_are_not_results_and_final_refunds_carry_the_matching_fields(): void
+    {
+        $fixture = fn (string $name) => json_decode(file_get_contents(base_path("tests/Fixtures/paystack/{$name}.json")), true);
+
+        foreach (['refund.processing', 'refund.pending'] as $name) {
+            $this->assertNull(ProviderResultResolver::refund('paystack', $name, $fixture($name)));
+        }
+
+        $processed = ProviderResultResolver::refund('paystack', 'refund.processed', $fixture('refund.processed'));
+        $this->assertSame('successful', $processed['outcome']);
+        $this->assertSame('', $processed['provider_refund_id']);
+        $this->assertSame('PAY-20261019-XYZ999', $processed['transaction_reference']);
+        $this->assertSame(5000, $processed['amount']);
+        $this->assertSame('NGN', $processed['currency']);
+        $this->assertSame('RFN_0q9ht4qw3l3gq2x', $processed['refund_reference']);
+
+        $failed = ProviderResultResolver::refund('paystack', 'refund.failed', $fixture('refund.failed'));
+        $this->assertSame('failed', $failed['outcome']);
+        $this->assertNull($failed['refund_reference']);
+    }
+
+    public function test_refund_request_sends_the_paystack_charge_reference_not_our_reference(): void
+    {
+        Http::fake([
+            'api.paystack.co/refund' => Http::response([
+                'status' => true,
+                'message' => 'Refund has been queued for processing',
+                'data' => ['id' => 3018284, 'status' => 'pending'],
+            ], 200),
+        ]);
+
+        $response = app(PaystackProvider::class)->processRefund(new \App\Services\Payment\DTO\RefundRequest(
+            internalReference: 'int_1',
+            paymentReference: 'PAY-OUR-REF',
+            providerPaymentId: 'T685312322670591',
+            amount: 10000,
+            currency: 'NGN',
+            reason: 'Buyer requested refund',
+            idempotencyKey: 'refund-key-1',
+        ));
+
+        Http::assertSent(fn ($request) => $request->url() === 'https://api.paystack.co/refund'
+            && $request['transaction'] === 'T685312322670591');
+        $this->assertSame('3018284', $response->providerRefundId);
+    }
+}

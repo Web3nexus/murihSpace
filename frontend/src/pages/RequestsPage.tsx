@@ -1,5 +1,4 @@
-import { getAuthToken } from "@/lib/auth/token";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { AddUser as UserPlus, N2User as Users, TimeCircle as Clock, TickSquare as Check, CloseSquare as X, Search, Login as SignIn, Profile as UserIcon } from "@/components/icons";
 import { Spinner as Loader2, UserCheck, Prohibit } from "@/components/icons/rounded";;
 import { authFetch } from "@/lib/api/authFetch";
@@ -7,8 +6,7 @@ import { authFetch } from "@/lib/api/authFetch";
 
 
 function authHeaders() {
-  const t = getAuthToken();
-  return { "Content-Type": "application/json", Accept: "application/json", ...(t ? { Authorization: `Bearer ${t}` } : {}) };
+  return { "Content-Type": "application/json", Accept: "application/json", };
 }
 
 type RequestTab = "friends" | "communities" | "sent";
@@ -43,7 +41,7 @@ function Avatar({ name, url, size = 40 }: { name: string; url?: string; size?: n
   if (url) return <img src={url} alt={name} className="rounded-full object-cover shrink-0" style={{ width: size, height: size }} />;
   return (
     <div
-      className="rounded-full bg-gradient-to-br from-[#2164b6] to-[#1a6b9e] text-white flex items-center justify-center shrink-0"
+      className="rounded-full bg-gradient-to-br from-[var(--shell-accent-solid)] to-[#1a6b9e] text-white flex items-center justify-center shrink-0"
       style={{ width: size, height: size }}
     >
       <UserIcon weight="fill" className="text-white/90" style={{ width: size * 0.55, height: size * 0.55 }} />
@@ -60,22 +58,23 @@ export default function RequestsPage() {
   const [search, setSearch] = useState("");
   const [actionLoading, setActionLoading] = useState<number | null>(null);
 
-  const fetchAll = useCallback(async () => {
-    setLoading(true);
-    try {
-      const [fRes, cRes, sRes] = await Promise.all([
-        authFetch(`/friends/requests`, { headers: authHeaders() }),
-        authFetch(`/community-requests`, { headers: authHeaders() }),
-        authFetch(`/friends/requests/sent`, { headers: authHeaders() }),
-      ]);
-      if (fRes.ok) { const j = await fRes.json(); setFriendReqs(asList(j?.data) as FriendRequest[]); }
-      if (cRes.ok) { const j = await cRes.json(); setCommunityReqs(asList(j?.data) as CommunityRequest[]); }
-      if (sRes.ok) { const j = await sRes.json(); setSentReqs(asList(j?.data) as FriendRequest[]); }
-    } catch { /* ignore */ }
-    finally { setLoading(false); }
-  }, []);
 
-  useEffect(() => { fetchAll(); }, [fetchAll]);
+  useEffect(() => {
+    (async () => {
+      setLoading(true);
+      try {
+        const [fRes, cRes, sRes] = await Promise.all([
+          authFetch(`/friends/requests`, { headers: authHeaders() }),
+          authFetch(`/community-requests`, { headers: authHeaders() }),
+          authFetch(`/friends/requests/sent`, { headers: authHeaders() }),
+        ]);
+        if (fRes.ok) { const j = await fRes.json(); setFriendReqs(asList(j?.data) as FriendRequest[]); }
+        if (cRes.ok) { const j = await cRes.json(); setCommunityReqs(asList(j?.data) as CommunityRequest[]); }
+        if (sRes.ok) { const j = await sRes.json(); setSentReqs(asList(j?.data) as FriendRequest[]); }
+      } catch { /* ignore */ }
+      finally { setLoading(false); }
+    })();
+  }, []);
 
   const handleFriendAction = async (id: number, action: "accept" | "decline") => {
     setActionLoading(id);
@@ -123,7 +122,7 @@ export default function RequestsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-[#2164b6] to-[#1a6b9e] flex items-center justify-center ">
+          <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-[var(--shell-accent-solid)] to-[#1a6b9e] flex items-center justify-center ">
             <UserPlus weight="fill" className="h-5 w-5 text-white" />
           </div>
           <div>
@@ -138,7 +137,7 @@ export default function RequestsPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search requests..."
-            className="w-full pl-9 pr-3 py-2 text-xs rounded-lg bg-muted/60 border-none/50 outline-none focus:ring-1 focus:ring-[#2164b6]/30 focus:border-[#2164b6]/30 placeholder:text-muted-foreground/40 transition-all"
+            className="w-full pl-9 pr-3 py-2 text-xs rounded-lg bg-muted/60 border-none/50 outline-none focus:ring-1 focus:ring-[var(--shell-accent)]/30 focus:border-[var(--shell-accent)]/30 placeholder:text-muted-foreground/40 transition-all"
           />
         </div>
       </div>
@@ -151,14 +150,14 @@ export default function RequestsPage() {
             onClick={() => setTab(t.key)}
             className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-bold transition-all flex-1 justify-center ${
               tab === t.key
-                ? "bg-white dark:bg-[#242526] text-foreground  border-none/50"
+                ? "bg-white dark:bg-[var(--shell-surface)] text-foreground  border-none/50"
                 : "text-muted-foreground/60 hover:text-foreground hover:bg-muted/50"
             }`}
           >
             <t.icon className="h-4 w-4" />
             <span className="hidden sm:inline">{t.label}</span>
             {t.count > 0 && (
-              <span className="h-4 min-w-[18px] px-1 rounded-full bg-[#2164b6] text-white text-[9px] font-extrabold flex items-center justify-center">
+              <span className="h-4 min-w-[18px] px-1 rounded-full bg-[var(--shell-accent-solid)] text-white text-[9px] font-extrabold flex items-center justify-center">
                 {t.count > 99 ? "99+" : t.count}
               </span>
             )}
@@ -169,13 +168,13 @@ export default function RequestsPage() {
       {/* Content */}
       {loading ? (
         <div className="flex h-64 items-center justify-center">
-          <Loader2 weight="fill" className="h-7 w-7 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" />
+          <Loader2 weight="fill" className="h-7 w-7 animate-spin text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" />
         </div>
       ) : tab === "friends" ? (
         filteredFriend.length === 0 ? (
           <div className="flex flex-col items-center gap-4 rounded-lg border border-dashed border-border/60 bg-card p-12 text-center">
-            <div className="rounded-lg bg-[#2164b6]/10 p-4">
-              <UserCheck weight="fill" className="h-8 w-8 text-[#2164b6] dark:text-[#7ab0ff]" />
+            <div className="rounded-lg bg-[var(--shell-accent-solid)]/10 p-4">
+              <UserCheck weight="fill" className="h-8 w-8 text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" />
             </div>
             <div>
               <h3 className="text-sm font-bold text-foreground">No pending requests</h3>
@@ -185,7 +184,7 @@ export default function RequestsPage() {
         ) : (
           <div className="space-y-2">
             {filteredFriend.map((r) => (
-              <div key={r.id} className="flex items-center gap-4 rounded-lg border-none/60 bg-card p-4 hover: hover:border-[#2164b6]/20 transition-all duration-200">
+              <div key={r.id} className="flex items-center gap-4 rounded-lg border-none/60 bg-card p-4 hover: hover:border-[var(--shell-accent)]/20 transition-all duration-200">
                 <Avatar name={r.sender.name} url={r.sender.avatar_url} size={48} />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-bold text-foreground truncate">{r.sender.name}</p>
@@ -200,7 +199,7 @@ export default function RequestsPage() {
                   <button
                     onClick={() => handleFriendAction(r.id, "accept")}
                     disabled={actionLoading === r.id}
-                    className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#2164b6] text-white text-xs font-bold hover:bg-[#1a5091] transition-all  hover: hover:shadow-[#2164b6]/20 disabled:opacity-50"
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[var(--shell-accent-solid)] text-white text-xs font-bold hover:bg-[var(--shell-accent-hover)] transition-all  hover: hover:shadow-[#2164b6]/20 disabled:opacity-50"
                   >
                     {actionLoading === r.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check weight="fill" className="h-3.5 w-3.5" />}
                     Confirm

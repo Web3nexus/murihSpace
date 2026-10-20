@@ -1,3 +1,6 @@
+import { env } from "@/config/env";
+import { logger } from "@/lib/logger";
+import { asApiError } from "@/lib/apiError";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowLeft, TickSquare as Check, Discount as GiftIcon, Heart, Voice as Microphone, Send as PaperPlaneRight, Bag as ShoppingBag, VolumeUp as SpeakerHigh, VolumeOff as SpeakerSimpleSlash, N2User as Users, Video as VideoCamera, DangerSquare as WarningCircle, CloseSquare as X } from "@/components/icons";
 import { CallSilent as PhoneSlash } from "@/components/icons";
@@ -13,6 +16,8 @@ import {
 } from "livekit-client";
 import { toast } from "sonner";
 import { LiveGiftOverlay, type GiftEventPayload } from "@/components/gifts/LiveGiftOverlay";
+import { LiveGuestGrid, type GuestProfileTarget } from "@/components/live/LiveGuestGrid";
+import { LiveFollowButton, LiveJoinGuestSheet, LiveViewerProfileSheet } from "@/components/live/LiveSocialSheets";
 import { LiveGiftTrayModal } from "@/components/gifts/LiveGiftTrayModal";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -33,6 +38,24 @@ interface LiveCommunity {
   id: number;
   name: string;
   slug?: string | null;
+}
+
+/** Realtime live-stream event payloads (LiveStream* broadcasts). Optional because each event sends a subset. */
+interface LiveEventPayload {
+  total_likes?: number;
+  count?: number;
+  viewers_count?: number;
+  total_coins_earned?: number;
+  action?: string;
+  reason?: string;
+  gift?: { id?: number; name?: string; icon?: string; icon_url?: string; animation_tier?: string; coin_price?: number; animation_type?: "micro" | "standard" | "premium" | "full_screen" };
+  sender?: { id?: number; name?: string; username?: string; avatar?: string; avatar_url?: string };
+  guest?: { name?: string };
+  message?: { id: number; message: string; gift_id?: number | null; user: { id: number; name: string; username?: string | null; avatar?: string | null; role?: string }; created_at?: string };
+  product?: { id: number; title: string; [key: string]: unknown };
+  comment?: { id: number; message: string; user: { id?: number; name?: string; username?: string | null; avatar_url?: string | null }; pinned_at?: string };
+  participant?: LiveParticipant;
+  participant_payload?: LiveParticipant;
 }
 
 interface LiveParticipant {
@@ -74,6 +97,15 @@ export interface LiveKitAccess {
   isPublisher: boolean;
 }
 
+// Raw chat row as the API returns it, before it is mapped to ChatMessage
+interface RawChatItem {
+  id: number | string;
+  message?: string | null;
+  user?: ChatMessage["user"];
+  created_at?: string;
+  type?: string;
+}
+
 interface ChatMessage {
   id: number | string;
   message: string;
@@ -105,6 +137,8 @@ interface Props {
 
 export function PublicLiveStage({ stream, liveKitAccess, isHost, currentUserId, onLeave, onStreamEnded }: Props) {
   const sessionId = `live:${stream.id}`;
+  // LiveKit identity of the broadcaster (see the token issuer in LiveStreamController).
+  const hostIdentity = stream.host?.id ? `user_${stream.host.id}` : null;
   // LiveKit state. The room itself belongs to the session store so navigating
   // away keeps the broadcast (and the roster) alive for everyone else.
   const [room, setRoom] = useState<Room | null>(liveSessionStore.getRoom(sessionId));
@@ -155,6 +189,9 @@ export function PublicLiveStage({ stream, liveKitAccess, isHost, currentUserId, 
 
   // Floating hearts
   const [floatingHearts, setFloatingHearts] = useState<FloatingHeartItem[]>([]);
+  const [guestRequest, setGuestRequest] = useState<"idle" | "sending" | "sent">("idle");
+  const [joinSheetOpen, setJoinSheetOpen] = useState(false);
+  const [profileTarget, setProfileTarget] = useState<GuestProfileTarget | null>(null);
 
   // DOM refs
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -270,7 +307,7 @@ onStreamEnded({
 
       if (chatRes.ok) {
         const json = await chatRes.json().catch(() => ({}));
-        const list: any[] = json?.data?.data || json?.data || [];
+        const list: RawChatItem[] = json?.data?.data || json?.data || [];
         if (Array.isArray(list)) {
           const parsed: ChatMessage[] = list.map((item) => ({
             id: item.id,
@@ -316,9 +353,13 @@ onStreamEnded({
   }, [onStreamEnded, stream.id, stream.started_at, stream.status, stream.title, stream.tracking_id, stream.likes_count, stream.total_coins_earned]);
 
   useEffect(() => {
-    void pollMetricsAndChat();
+    // First poll runs just after the effect so its state updates are not synchronous in the effect body
+    const first = setTimeout(() => void pollMetricsAndChat(), 0);
     const interval = setInterval(pollMetricsAndChat, 3000);
-    return () => clearInterval(interval);
+    return () => {
+      clearTimeout(first);
+      clearInterval(interval);
+    };
   }, [pollMetricsAndChat]);
 
   // Scroll to bottom when messages list updates
@@ -389,11 +430,12 @@ onStreamEnded({
     const channel = echo.channel(`live-stream.${stream.id}`);
 
     // 1. Synchronized real-time Likes
-    channel.listen("LiveStreamLiked", (payload: any) => {
+    channel.listen("LiveStreamLiked", (payload: LiveEventPayload) => {
       if (typeof payload.total_likes === "number") {
         setLikesCount(payload.total_likes);
       } else if (typeof payload.count === "number") {
-        setLikesCount((prev) => prev + payload.count);
+        const added = payload.count ?? 0;
+        setLikesCount((prev) => prev + added);
       }
       const count = Math.min(payload.count || 1, 6);
       for (let i = 0; i < count; i++) {
@@ -402,7 +444,7 @@ onStreamEnded({
     });
 
     // 2. Synchronized real-time Gifts
-    channel.listen("LiveStreamGiftSent", (payload: any) => {
+    channel.listen("LiveStreamGiftSent", (payload: LiveEventPayload) => {
       if (typeof payload.total_coins_earned === "number") {
         setTotalCoins(payload.total_coins_earned);
       }
@@ -419,7 +461,7 @@ onStreamEnded({
           id: gift.id || 1,
           name: gift.name || "Gift",
           icon: gift.icon_url || "🎁",
-          animation_type: gift.animation_tier || "premium",
+          animation_type: (["micro", "standard", "premium", "full_screen"] as const).find((t) => t === gift.animation_tier) ?? "premium",
         },
         amount: gift.coin_price || 100,
         currency: "COINS",
@@ -428,7 +470,7 @@ onStreamEnded({
     });
 
     // 3. Real-time Chat Messages
-    channel.listen("LiveStreamChatMessage", (payload: any) => {
+    channel.listen("LiveStreamChatMessage", (payload: LiveEventPayload) => {
       const msg = payload.message;
       if (msg) {
         setChatMessages((prev) => {
@@ -440,7 +482,7 @@ onStreamEnded({
               message: msg.message || "",
               user: msg.user || { id: 0, name: "Viewer" },
               created_at: msg.created_at,
-              is_gift: Boolean(msg.gift_id || msg.message?.includes("🎁")),
+              is_gift: Boolean(msg.gift_id) || Boolean(msg.message?.includes("🎁")),
             },
           ];
         });
@@ -449,9 +491,9 @@ onStreamEnded({
     });
 
     // 4. Product Pinning
-    channel.listen("LiveStreamProductPinned", (payload: any) => {
-      if (payload.product) {
-        setPinnedProduct(payload.product);
+    channel.listen("LiveStreamProductPinned", (payload: LiveEventPayload) => {
+      if (payload.product && typeof payload.product.id === "number" && typeof payload.product.title === "string" && typeof payload.product.price === "number") {
+        setPinnedProduct(payload.product as typeof pinnedProduct);
         toast.info(`Featured Product: ${payload.product.title}`);
       }
     });
@@ -462,7 +504,7 @@ onStreamEnded({
     });
 
     // 6. Comment Pinning
-    channel.listen("LiveStreamCommentPinned", (payload: any) => {
+    channel.listen("LiveStreamCommentPinned", (payload: LiveEventPayload) => {
       if (payload.comment) {
         setPinnedComment(payload.comment);
       }
@@ -474,7 +516,7 @@ onStreamEnded({
     });
 
     // 8. Guest Action
-    channel.listen("LiveStreamGuestAction", (payload: any) => {
+    channel.listen("LiveStreamGuestAction", (payload: LiveEventPayload) => {
       if (payload.action === "requested" && isHost) {
         toast.info(`${payload.guest?.name || "A viewer"} requested to join as co-host!`);
       } else if (payload.action === "invited") {
@@ -483,7 +525,7 @@ onStreamEnded({
     });
 
     // 9. Viewer Count Update
-    channel.listen("LiveStreamViewerCountUpdated", (payload: any) => {
+    channel.listen("LiveStreamViewerCountUpdated", (payload: LiveEventPayload) => {
       if (typeof payload.viewers_count === "number") {
         setViewerCount(payload.viewers_count);
       }
@@ -500,8 +542,8 @@ onStreamEnded({
         channel.stopListening("LiveStreamCommentUnpinned");
         channel.stopListening("LiveStreamGuestAction");
         channel.stopListening("LiveStreamViewerCountUpdated");
-        (channel as any).leave?.();
-      } catch {}
+        (channel as unknown as { leave?: () => void }).leave?.();
+      } catch { /* ignored: best-effort, failure is non-fatal */ }
     };
   }, [isHost, scrollToBottom, spawnFloatingHeart, stream.id]);
 
@@ -517,7 +559,7 @@ onStreamEnded({
     const echo = getEcho();
     const roomChannel = echo.private(`live-room.${stream.id}`);
 
-    roomChannel.listen("LiveStreamParticipantPresence", (payload: any) => {
+    roomChannel.listen("LiveStreamParticipantPresence", (payload: LiveEventPayload) => {
       // Keep an open roster panel fresh.
       setParticipants((prev) => {
         if (prev.length === 0) return prev;
@@ -550,8 +592,8 @@ onStreamEnded({
     return () => {
       try {
         roomChannel.stopListening("LiveStreamParticipantPresence");
-        (roomChannel as any).leave?.();
-      } catch {}
+        (roomChannel as unknown as { leave?: () => void }).leave?.();
+      } catch { /* ignored: best-effort, failure is non-fatal */ }
     };
   }, [stream.id, currentUserId, room]);
 
@@ -615,9 +657,7 @@ onStreamEnded({
 
         let host = liveKitAccess.host;
         if (!host || host.includes("localhost") || host.includes("127.0.0.1")) {
-          host = window.location.hostname.includes("murihspace.com")
-            ? "https://live-staging.murihspace.com"
-            : host;
+          host = env.VITE_LIVEKIT_URL || host;
         }
 
         await roomInstance.connect(host, liveKitAccess.token);
@@ -650,7 +690,7 @@ onStreamEnded({
               await local.setMicrophoneEnabled(true);
               setIsMicOn(true);
             } catch (micErr) {
-              console.warn("Could not publish microphone track:", micErr);
+              logger.warn("Could not publish microphone track:", micErr);
             }
 
             if (stream.stream_mode !== "audio") {
@@ -662,7 +702,7 @@ onStreamEnded({
                   localVideoPub.track.attach(videoRef.current);
                 }
               } catch (camErr) {
-                console.warn("Could not publish camera track:", camErr);
+                logger.warn("Could not publish camera track:", camErr);
               }
             }
           }
@@ -673,8 +713,9 @@ onStreamEnded({
 
         setConnecting(false);
       } catch (err: unknown) {
+      const apiErr = asApiError(err);
         if (!isDisposed) {
-          setConnectionError(err instanceof Error ? err.message : "Failed to connect to live stream.");
+          setConnectionError(err instanceof Error ? apiErr.message : "Failed to connect to live stream.");
           setConnecting(false);
         }
       }
@@ -698,7 +739,11 @@ onStreamEnded({
     const roomInstance = room;
     if (!roomInstance) return;
 
-    const attachVideoTrack = (track: Track) => {
+    // Only the broadcaster's camera goes to the shared element. Guest cameras
+    // are attached by their own tiles in LiveGuestGrid.
+    const attachVideoTrack = (track: Track, identity: string) => {
+      // Without a known host identity, no camera goes to the shared element.
+      if (identity !== hostIdentity) return;
       if (videoRef.current && track.kind === Track.Kind.Video) {
         track.attach(videoRef.current);
       }
@@ -742,14 +787,14 @@ onStreamEnded({
     const syncParticipantTracks = (participant: Participant) => {
       participant.trackPublications.forEach((pub: TrackPublication) => {
         if (pub.track) {
-          if (pub.kind === Track.Kind.Video) attachVideoTrack(pub.track);
+          if (pub.kind === Track.Kind.Video) attachVideoTrack(pub.track, participant.identity);
           if (pub.kind === Track.Kind.Audio) attachAudioTrack(pub.track);
         }
       });
     };
 
-    const onTrackSubscribed = (track: Track) => {
-      if (track.kind === Track.Kind.Video) attachVideoTrack(track);
+    const onTrackSubscribed = (track: Track, _publication: TrackPublication, participant: RemoteParticipant) => {
+      if (track.kind === Track.Kind.Video) attachVideoTrack(track, participant.identity);
       if (track.kind === Track.Kind.Audio) attachAudioTrack(track);
     };
 
@@ -800,7 +845,20 @@ onStreamEnded({
       roomInstance.off(RoomEvent.Disconnected, onDisconnected);
       roomInstance.off(RoomEvent.ConnectionStateChanged, onConnectionStateChanged);
     };
-  }, [applyAudioMute, room, sessionId]);
+  }, [applyAudioMute, hostIdentity, room, sessionId]);
+
+  // A guest request goes to the host, who decides whether to bring the viewer on.
+  async function requestToJoinAsGuest() {
+    setGuestRequest("sending");
+    try {
+      await apiClient.post(`/live/${stream.id}/guest-request`);
+      setGuestRequest("sent");
+      toast.success("Request sent to the host.");
+    } catch (err) {
+      setGuestRequest("idle");
+      toast.error(asApiError(err).message || "Could not send your request.");
+    }
+  }
 
   // Explicit, user-initiated leave: posts the presence leave exactly once and
   // tears the media down. Navigating away must never call this.
@@ -825,7 +883,7 @@ onStreamEnded({
         applyAudioMute(false, true);
         toast.success("Audio unmuted!");
       } catch (err) {
-        console.error("Audio playback error:", err);
+        logger.error("Audio playback error:", err);
       }
     }
   };
@@ -897,7 +955,8 @@ onStreamEnded({
       await pollMetricsAndChat();
       scrollToBottom();
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Failed to send message.");
+      const apiErr = asApiError(err);
+      toast.error(err instanceof Error ? apiErr.message : "Failed to send message.");
     } finally {
       setSendingChat(false);
     }
@@ -945,6 +1004,7 @@ onStreamEnded({
         setRankings(json?.data ?? json);
       }
     } catch {
+    /* ignored: best-effort, failure is non-fatal */
     } finally {
       setLoadingRankings(false);
     }
@@ -1101,7 +1161,9 @@ onStreamEnded({
       />
 
       {/* Audio element for remote sound */}
-      <audio ref={audioRef} autoPlay />
+      <audio ref={audioRef} autoPlay>
+        <track kind="captions" />
+      </audio>
 
       {/* LEFT COLUMN: LIVE BROADCAST STAGE */}
       <div
@@ -1145,18 +1207,26 @@ onStreamEnded({
                 LIVE
               </span>
             </div>
-            <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="truncate text-sm font-bold text-white">{stream.host?.name}</span>
-              </div>
-              <p className="truncate text-xs font-medium text-white/70">{hostUsername}</p>
-            </div>
+            <button
+              type="button"
+              disabled={!stream.host?.id}
+              onClick={() => {
+                if (stream.host?.id) setProfileTarget({ id: stream.host.id, name: stream.host.name, username: stream.host.username, avatar_url: stream.host.avatar_url });
+              }}
+              className="min-w-0 text-left disabled:cursor-default"
+            >
+              <span className="block truncate text-sm font-bold text-white">{stream.host?.name}</span>
+              <span className="block truncate text-xs font-medium text-white/70">{hostUsername}</span>
+            </button>
+            {!isHost && stream.host?.id && currentUserId !== stream.host.id && (
+              <LiveFollowButton userId={stream.host.id} className="h-8 shrink-0 px-3" />
+            )}
           </div>
 
           <div className="flex items-center gap-2">
             {/* Viewer Count Badge */}
             <div className="flex items-center gap-1.5 rounded-full bg-black/60 px-3 py-1 text-xs font-semibold backdrop-blur-md border border-white/10">
-              <Users weight="fill" className="h-3.5 w-3.5 text-blue-400" />
+              <Users weight="fill" className="h-3.5 w-3.5 text-[var(--shell-accent)]" />
               <span>{viewerCount}</span>
             </div>
 
@@ -1200,7 +1270,7 @@ onStreamEnded({
         </div>
 
         {/* MAIN VIDEO / AUDIO CANVAS (Tap anywhere to send hearts!) */}
-        <div
+        <div role="button" tabIndex={0} onKeyDown={(e) => { if (e.target !== e.currentTarget) return; if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.currentTarget.click(); } }}
           onClick={(e) => {
             const target = e.target as HTMLElement;
             if (target.closest("button") || target.closest("input") || target.closest("a") || target.closest(".interactive-card")) {
@@ -1243,13 +1313,21 @@ onStreamEnded({
 
           {/* Video Player */}
           {stream.stream_mode !== "audio" ? (
-            <video
-              ref={videoRef}
-              autoPlay
-              playsInline
-              muted={isHost}
-              className="h-full w-full object-contain"
-            />
+            <div className="relative h-full w-full">
+              <LiveGuestGrid
+                room={room}
+                hostIdentity={hostIdentity}
+                hostId={stream.host?.id}
+                hostName={stream.host?.name ?? "Host"}
+                hostAvatar={stream.host?.avatar_url}
+                hostVideoRef={videoRef}
+                isHostView={isHost}
+                canRequest={!isHost}
+                requestSent={guestRequest !== "idle"}
+                onRequestSlot={() => setJoinSheetOpen(true)}
+                onOpenProfile={setProfileTarget}
+              />
+            </div>
           ) : (
             /* Audio Room Stage Visualizer */
             <div className="flex flex-col items-center justify-center gap-5">
@@ -1267,6 +1345,17 @@ onStreamEnded({
                 <h2 className="text-lg font-bold text-white">{stream.title}</h2>
                 <p className="text-xs text-white/60">Live Audio Broadcast</p>
               </div>
+              {!isHost && (
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => setJoinSheetOpen(true)}
+                  disabled={guestRequest !== "idle"}
+                  className="rounded-full bg-[#fe2c55] px-4 text-xs font-bold text-white hover:bg-[#e6264c] disabled:opacity-60"
+                >
+                  {guestRequest === "idle" ? "Request to speak" : guestRequest === "sent" ? "Request sent" : "Sending…"}
+                </Button>
+              )}
             </div>
           )}
 
@@ -1488,6 +1577,18 @@ onStreamEnded({
             )}
           </div>
         </div>
+
+        {!isHost && (
+          <LiveJoinGuestSheet
+            open={joinSheetOpen}
+            onClose={() => setJoinSheetOpen(false)}
+            hostName={stream.host?.name ?? "the host"}
+            requestSent={guestRequest === "sent"}
+            sending={guestRequest === "sending"}
+            onJoin={() => void requestToJoinAsGuest()}
+          />
+        )}
+        <LiveViewerProfileSheet target={profileTarget} onClose={() => setProfileTarget(null)} />
       </div>
 
       {/* RIGHT COLUMN: DEDICATED LIVE CHAT & GIFTING SIDEBAR */}
@@ -1564,7 +1665,7 @@ onStreamEnded({
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between gap-1.5">
                       <div className="flex items-center gap-1.5">
-                        <span className={`font-bold ${isHostMsg ? "text-red-400 font-extrabold" : "text-blue-400"}`}>
+                        <span className={`font-bold ${isHostMsg ? "text-red-400 font-extrabold" : "text-[var(--shell-accent)]"}`}>
                           {msg.user.name}
                         </span>
                         {isHostMsg && (

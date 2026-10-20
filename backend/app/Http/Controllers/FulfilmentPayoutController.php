@@ -88,41 +88,4 @@ class FulfilmentPayoutController extends Controller
 
         return response()->json(['data' => $payouts, 'summary' => $summary]);
     }
-
-    public function adminMarkPaid(int $id): JsonResponse
-    {
-        $payout = FulfilmentPayout::findOrFail($id);
-
-        if ($payout->status !== 'pending') {
-            return response()->json(['message' => 'Payout is not pending.'], 400);
-        }
-
-        $creator = $payout->creator;
-        if (! $creator || ! $creator->hasVerifiedKyc()) {
-            return response()->json([
-                'message' => 'This creator has not completed KYC identity verification. Payouts are blocked until KYC is verified.',
-                'code' => 'KYC_REQUIRED',
-            ], 403);
-        }
-
-        $payout->update([
-            'status' => 'paid',
-            'paid_at' => now(),
-        ]);
-
-        $this->notifications->actionEmail(
-            user: $creator,
-            title: 'Your payout has been paid',
-            bodyHtml: '<p>Your MurihSpace payout of <strong>'.e($payout->currency ?? 'USD').' '.number_format((float) $payout->net_amount, 2).'</strong> has been <strong>paid</strong> and is on its way to your account.</p>',
-            actionLabel: 'View payouts',
-            actionUrl: NotificationService::link('settings/payouts'),
-            template: 'fulfilment_payout_paid',
-            data: [
-                'currency' => e($payout->currency ?? 'USD'),
-                'amount' => number_format((float) $payout->net_amount, 2),
-            ],
-        );
-
-        return response()->json(['data' => $payout->fresh()->load('creator:id,name,username')]);
-    }
 }

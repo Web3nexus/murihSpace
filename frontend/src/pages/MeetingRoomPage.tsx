@@ -1,3 +1,4 @@
+import { asApiError } from "@/lib/apiError";
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router';
 import { Video as VideoCamera, Plus, ArrowRight, DangerSquare as WarningCircle, Calendar as CalendarCheck, N2User as Users, Lock as LockKey, TickSquare as Check, TimeCircle as Clock, Delete as Trash, ShieldDone as ShieldCheck } from "@/components/icons";
@@ -56,11 +57,7 @@ export function MeetingRoomPage() {
   const [isCreatingInstant, setIsCreatingInstant] = useState(false);
   const [instantError, setInstantError] = useState<string | null>(null);
   const [copiedCode, setCopiedCode] = useState(false);
-  const [recentMeetings, setRecentMeetings] = useState<RecentMeeting[]>([]);
-
-  useEffect(() => {
-    setRecentMeetings(getStoredRecentMeetings());
-  }, []);
+  const [recentMeetings, setRecentMeetings] = useState<RecentMeeting[]>(() => getStoredRecentMeetings());
 
   // Record room to recents if roomCode is mounted
   useEffect(() => {
@@ -70,12 +67,16 @@ export function MeetingRoomPage() {
   }, [roomCode]);
 
   const [meetingEnded, setMeetingEnded] = useState(false);
+  // React keeps state when only the route params change, so an earlier room's
+  // result is cleared during render before this room is looked up.
+  const [endedCheckRoom, setEndedCheckRoom] = useState(roomCode);
+  if (roomCode !== endedCheckRoom) {
+    setEndedCheckRoom(roomCode);
+    if (roomCode) setMeetingEnded(false);
+  }
 
   useEffect(() => {
     if (!roomCode) return;
-    // React keeps state when only the route params change, so an earlier
-    // room's result has to be cleared before this one is looked up.
-    setMeetingEnded(false);
     let active = true;
     apiClient
       .get("/link-preview", { params: { url: `/m/${roomCode.toLowerCase()}` } })
@@ -243,7 +244,8 @@ export function MeetingRoomPage() {
       storeRecentMeeting(code);
       navigate(`/app/meeting/${code}`);
     } catch (err: unknown) {
-      setInstantError(err instanceof Error ? err.message : 'Could not launch meeting.');
+      const apiErr = asApiError(err);
+      setInstantError(err instanceof Error ? apiErr.message : 'Could not launch meeting.');
     } finally {
       setIsCreatingInstant(false);
     }

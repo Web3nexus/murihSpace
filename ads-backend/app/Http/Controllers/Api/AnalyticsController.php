@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Campaign;
+use App\Services\Reporting\AdMetricsAggregator;
 use Illuminate\Support\Facades\DB;
 
 class AnalyticsController extends Controller
@@ -26,12 +27,16 @@ class AnalyticsController extends Controller
         }
 
         $isMember = \App\Models\AdAccountMember::where('ad_account_id', $advertiserId)
-            ->where('murihspace_user_id', $user->id)
+            ->where('murihspace_user_id', $user->murihspace_user_id)
             ->exists();
 
         if (!$isMember) {
             return response()->json(['error' => 'Unauthorized access to this ad account'], 403);
         }
+
+        $request->validate(AdMetricsAggregator::rangeRules());
+        $startDate = $request->query('start_date');
+        $endDate = $request->query('end_date');
 
         // Fetch total metrics for this advertiser
         $campaigns = Campaign::where('ad_account_id', $advertiserId)->pluck('id');
@@ -40,6 +45,8 @@ class AnalyticsController extends Controller
             ->join('ads', 'ad_metrics.ad_id', '=', 'ads.id')
             ->join('ad_groups', 'ads.ad_group_id', '=', 'ad_groups.id')
             ->whereIn('ad_groups.campaign_id', $campaigns)
+            ->when($startDate, fn ($q) => $q->where('ad_metrics.date', '>=', $startDate))
+            ->when($endDate, fn ($q) => $q->where('ad_metrics.date', '<=', $endDate))
             ->selectRaw('
                 SUM(impressions) as total_impressions,
                 SUM(clicks) as total_clicks,
@@ -64,7 +71,10 @@ class AnalyticsController extends Controller
             ->join('ads', 'ad_metrics.ad_id', '=', 'ads.id')
             ->join('ad_groups', 'ads.ad_group_id', '=', 'ad_groups.id')
             ->whereIn('ad_groups.campaign_id', $campaigns)
-            ->where('date', '>=', now()->subDays(7)->toDateString())
+            ->where('date', '>=', $startDate ?? ($endDate
+                ? \Illuminate\Support\Carbon::parse($endDate)->subDays(7)->toDateString()
+                : now()->subDays(7)->toDateString()))
+            ->when($endDate, fn ($q) => $q->where('date', '<=', $endDate))
             ->groupBy('date')
             ->orderBy('date', 'asc')
             ->selectRaw('date, SUM(impressions) as impressions, SUM(clicks) as clicks, SUM(spend) as spend, SUM(conversions) as conversions, SUM(conversion_value) as conversion_value')

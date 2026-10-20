@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { Ticket as Tag, Plus, Edit, Delete as Trash2 } from "@/components/icons";
 import { Spinner as Loader2 } from "@/components/icons/rounded";;
 import { Button } from "@/components/ui/button";
@@ -23,18 +23,24 @@ export default function CategoriesPage() {
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
-  const fetchCategories = useCallback(async () => {
-    try {
-      const res = await authFetch(`/store/categories`, {  });
-      if (!res.ok) throw new Error();
-      const j = await res.json();
-      const list = j?.success ? j?.data : j;
-      setCategories(list?.data ?? list ?? []);
-    } catch { /* ignore */ }
-    finally { setLoading(false); }
-  }, []);
+  const [fetchCategoriesKey, setFetchCategoriesKey] = useState(0);
+  const fetchCategories = () => {
+    setFetchCategoriesKey((k) => k + 1);
+  };
 
-  useEffect(() => { fetchCategories(); }, [fetchCategories]);
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await authFetch(`/store/categories`, {  });
+        if (!res.ok) throw new Error();
+        const j = await res.json();
+        const list = j?.success ? j?.data : j;
+        setCategories(list?.data ?? list ?? []);
+      } catch { /* ignore */ }
+      finally { setLoading(false); }
+    })();
+  }, [fetchCategoriesKey]);
+
 
   const resetForm = () => { setName(""); setEditing(null); setShowForm(false); setMsg(null); };
 
@@ -64,14 +70,14 @@ export default function CategoriesPage() {
     fetchCategories();
   };
 
-  if (loading) return <div className="flex justify-center py-24"><Loader2 weight="fill" className="h-8 w-8 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" /></div>;
+  if (loading) return <div className="flex justify-center py-24"><Loader2 weight="fill" className="h-8 w-8 animate-spin text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" /></div>;
 
   return (
     <div className="w-full max-w-7xl mx-auto space-y-6 p-4 lg:p-5">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-black tracking-tight flex items-center gap-2.5">
-            <Tag weight="fill" className="h-6 w-6 text-[#2164b6] dark:text-[#7ab0ff]" /> Categories
+            <Tag weight="fill" className="h-6 w-6 text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" /> Categories
           </h1>
           <p className="text-xs text-muted-foreground mt-1">Organize products into categories.</p>
         </div>
@@ -84,8 +90,8 @@ export default function CategoriesPage() {
         <form onSubmit={handleSave} className="border-none rounded-lg bg-card p-4 space-y-4">
           {msg && <div className={`p-3 rounded-lg text-xs font-bold ${msg.ok ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'}`}>{msg.text}</div>}
           <div className="space-y-2">
-            <label className="text-xs font-bold text-muted-foreground">Category Name</label>
-            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Electronics" required />
+            <label htmlFor="f-pages-categoriespage-tsx-87" className="text-xs font-bold text-muted-foreground">Category Name</label>
+            <Input id="f-pages-categoriespage-tsx-87" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Electronics" required />
           </div>
           <div className="flex gap-2">
             <Button type="submit" disabled={saving || !name.trim()} className="text-sm font-bold">

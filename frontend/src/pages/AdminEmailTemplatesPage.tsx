@@ -1,4 +1,3 @@
-import { getAuthToken } from "@/lib/auth/token";
 import { useEffect, useMemo, useState } from "react";
 import { Message as Envelope, Download as FloppyDisk, Swap as RotateCcw, TickSquare as CheckCircle2, DangerSquare as AlertCircle, Search } from "@/components/icons";
 import { Spinner as Loader2 } from "@/components/icons/rounded";;
@@ -23,8 +22,7 @@ interface EmailTemplate {
 }
 
 function authHeaders() {
-  const t = getAuthToken();
-  return { Accept: "application/json", "Content-Type": "application/json", ...(t ? { Authorization: `Bearer ${t}` } : {}) };
+  return { Accept: "application/json", "Content-Type": "application/json", };
 }
 
 function unwrap<T>(j: unknown): T {
@@ -45,31 +43,33 @@ export default function AdminEmailTemplatesPage() {
   const [saving, setSaving] = useState(false);
   const [resetting, setResetting] = useState<string | null>(null);
 
-  const load = async () => {
-    try {
-      const res = await authFetch(`/securegate/email-templates`, { headers: authHeaders() });
-      if (!res.ok) throw new Error("Failed to load email templates");
-      const j = await res.json();
-      const list = unwrap<EmailTemplate[]>(j);
-      setTemplates(list);
-      if (!selectedKey && list.length) setSelectedKey(list[0].key);
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed to load templates");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   useEffect(() => {
-    void load();
+    (async () => {
+      try {
+        const res = await authFetch(`/securegate/email-templates`, { headers: authHeaders() });
+        if (!res.ok) throw new Error("Failed to load email templates");
+        const j = await res.json();
+        const list = unwrap<EmailTemplate[]>(j);
+        setTemplates(list);
+        if (!selectedKey && list.length) setSelectedKey(list[0].key);
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : "Failed to load templates");
+      } finally {
+        setLoading(false);
+      }
+    })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const selected = useMemo(() => templates.find((t) => t.key === selectedKey) ?? null, [templates, selectedKey]);
 
-  useEffect(() => {
+  // Reset the editable draft when a different template is selected (derived during render, not in an effect)
+  const [draftSource, setDraftSource] = useState(selected);
+  if (selected !== draftSource) {
+    setDraftSource(selected);
     if (selected) setDraft({ ...selected });
-  }, [selected]);
+  }
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -123,14 +123,14 @@ export default function AdminEmailTemplatesPage() {
   };
 
   if (loading) {
-    return <div className="flex justify-center py-24"><Loader2 weight="fill" className="h-8 w-8 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" /></div>;
+    return <div className="flex justify-center py-24"><Loader2 weight="fill" className="h-8 w-8 animate-spin text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" /></div>;
   }
 
   return (
     <div className="w-full mx-auto max-w-[980px] space-y-6 p-4 lg:p-10">
       <div>
         <h1 className="text-xl font-black tracking-tight flex items-center gap-2.5">
-          <Envelope weight="fill" className="h-6 w-6 text-[#2164b6] dark:text-[#7ab0ff]" /> Email Templates
+          <Envelope weight="fill" className="h-6 w-6 text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" /> Email Templates
         </h1>
         <p className="text-xs text-muted-foreground mt-1">
           Customise the transactional emails sent to members. Placeholders like {"{{name}}"}, {"{{action_label}}"} and {"{{action_url}}"} are always available; others ({"{{currency}}"}, {"{{amount}}"}, {"{{reason}}"}, {"{{role}}"}) depend on the email type.
@@ -158,7 +158,7 @@ export default function AdminEmailTemplatesPage() {
                   onClick={() => setSelectedKey(t.key)}
                   className={cn(
                     "w-full text-left rounded-lg border px-3 py-2.5 transition-all",
-                    active ? "border-[#2164b6] bg-[#2164b6]/5 ring-1 ring-[#2164b6]/20" : "border-border bg-card hover:border-[#2164b6]/40"
+                    active ? "border-[var(--shell-accent)] bg-[var(--shell-accent-solid)]/5 ring-1 ring-[var(--shell-accent)]/20" : "border-border bg-card hover:border-[var(--shell-accent)]/40"
                   )}
                 >
                   <div className="flex items-center justify-between gap-2">
@@ -186,14 +186,15 @@ export default function AdminEmailTemplatesPage() {
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="text-sm font-black text-foreground">{draft.name}</p>
-                <p className="text-[11px] font-mono text-[#2164b6] dark:text-[#7ab0ff]">{draft.key}</p>
+                <p className="text-[11px] font-mono text-[var(--shell-accent)] dark:text-[var(--shell-accent)]">{draft.key}</p>
                 {draft.description && (
                   <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed">{draft.description}</p>
                 )}
               </div>
               <div className="flex items-center gap-2">
-                <label className="text-[11px] font-bold text-muted-foreground">Active</label>
+                <label htmlFor="f-es-adminemailtemplatespage-tsx-active" className="text-[11px] font-bold text-muted-foreground">Active</label>
                 <Switch
+                  id="f-es-adminemailtemplatespage-tsx-active"
                   checked={draft.is_active}
                   onCheckedChange={(v) => setDraft({ ...draft, is_active: v })}
                 />
@@ -201,8 +202,8 @@ export default function AdminEmailTemplatesPage() {
             </div>
 
             <div>
-              <label className="text-[11px] font-bold text-muted-foreground">Subject</label>
-              <Input
+              <label htmlFor="f-es-adminemailtemplatespage-tsx-204" className="text-[11px] font-bold text-muted-foreground">Subject</label>
+              <Input id="f-es-adminemailtemplatespage-tsx-204"
                 value={draft.subject ?? ""}
                 onChange={(e) => setDraft({ ...draft, subject: e.target.value })}
                 placeholder="Email subject line"
@@ -211,8 +212,8 @@ export default function AdminEmailTemplatesPage() {
             </div>
 
             <div>
-              <label className="text-[11px] font-bold text-muted-foreground">Body (HTML)</label>
-              <Textarea
+              <label htmlFor="f-es-adminemailtemplatespage-tsx-214" className="text-[11px] font-bold text-muted-foreground">Body (HTML)</label>
+              <Textarea id="f-es-adminemailtemplatespage-tsx-214"
                 value={draft.body_html ?? ""}
                 onChange={(e) => setDraft({ ...draft, body_html: e.target.value })}
                 placeholder="<p>Hello {{name}},</p>"
@@ -220,7 +221,7 @@ export default function AdminEmailTemplatesPage() {
                 className="mt-1 font-mono text-[12px] leading-relaxed"
               />
               <p className="text-[10px] text-muted-foreground mt-1.5">
-                Available placeholders: <code className="text-[#2164b6] dark:text-[#7ab0ff]">{"{{name}}"}</code>, <code className="text-[#2164b6] dark:text-[#7ab0ff]">{"{{action_label}}"}</code>, <code className="text-[#2164b6] dark:text-[#7ab0ff]">{"{{action_url}}"}</code>, <code className="text-[#2164b6] dark:text-[#7ab0ff]">{"{{footnote}}"}</code> and type-specific ones (<code className="text-[#2164b6] dark:text-[#7ab0ff]">{"{{currency}}"}</code>, <code className="text-[#2164b6] dark:text-[#7ab0ff]">{"{{amount}}"}</code>, <code className="text-[#2164b6] dark:text-[#7ab0ff]">{"{{reason}}"}</code>, <code className="text-[#2164b6] dark:text-[#7ab0ff]">{"{{role}}"}</code>).
+                Available placeholders: <code className="text-[var(--shell-accent)] dark:text-[var(--shell-accent)]">{"{{name}}"}</code>, <code className="text-[var(--shell-accent)] dark:text-[var(--shell-accent)]">{"{{action_label}}"}</code>, <code className="text-[var(--shell-accent)] dark:text-[var(--shell-accent)]">{"{{action_url}}"}</code>, <code className="text-[var(--shell-accent)] dark:text-[var(--shell-accent)]">{"{{footnote}}"}</code> and type-specific ones (<code className="text-[var(--shell-accent)] dark:text-[var(--shell-accent)]">{"{{currency}}"}</code>, <code className="text-[var(--shell-accent)] dark:text-[var(--shell-accent)]">{"{{amount}}"}</code>, <code className="text-[var(--shell-accent)] dark:text-[var(--shell-accent)]">{"{{reason}}"}</code>, <code className="text-[var(--shell-accent)] dark:text-[var(--shell-accent)]">{"{{role}}"}</code>).
               </p>
             </div>
 

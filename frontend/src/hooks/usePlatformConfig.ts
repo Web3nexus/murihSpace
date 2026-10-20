@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { apiClient } from "@/lib/api/client";
 
 export interface AuthMethodFlags {
@@ -73,32 +73,30 @@ export function usePlatformConfig(): PlatformConfig {
   const [cfg, setCfg] = useState<Omit<PlatformConfig, "loading">>(EMPTY);
   const [loading, setLoading] = useState(true);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await apiClient.get("/platform");
-      const j = res.data;
-      const d = j?.success ? (j?.data?.data ?? j?.data) : j;
-      if (d) {
-        setCfg({
-          platform_name: d.platform_name || EMPTY.platform_name,
-          web_disabled_roles: Array.isArray(d.web_disabled_roles) ? d.web_disabled_roles : [],
-          web_purchases_enabled: typeof d.web_purchases_enabled === "boolean" ? d.web_purchases_enabled : true,
-          app_download_url: d.app_download_url || EMPTY.app_download_url,
-          app_qr_content: d.app_qr_content || d.app_download_url || EMPTY.app_qr_content,
-          auth_methods: normalizeMethods(d.auth_methods),
-        });
-      }
-    } catch {
-      // keep defaults on network failure
-    } finally {
-      setLoading(false);
-    }
-  }, []);
 
   useEffect(() => {
-    load();
-  }, [load]);
+    (async () => {
+      try {
+        const res = await apiClient.get("/platform");
+        const j = res.data;
+        const d = j?.success ? (j?.data?.data ?? j?.data) : j;
+        if (d) {
+          setCfg({
+            platform_name: d.platform_name || EMPTY.platform_name,
+            web_disabled_roles: Array.isArray(d.web_disabled_roles) ? d.web_disabled_roles : [],
+            web_purchases_enabled: typeof d.web_purchases_enabled === "boolean" ? d.web_purchases_enabled : true,
+            app_download_url: d.app_download_url || EMPTY.app_download_url,
+            app_qr_content: d.app_qr_content || d.app_download_url || EMPTY.app_qr_content,
+            auth_methods: normalizeMethods(d.auth_methods),
+          });
+        }
+      } catch {
+        // keep defaults on network failure
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
 
   return { ...cfg, loading };
 }

@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
 import { Wallet, Send } from "@/components/icons";
-import { Spinner as Loader2, Sparkle } from "@/components/icons/rounded";;
+import { Spinner as Loader2, Coins } from "@/components/icons/rounded";;
 import { toast } from "sonner";
 import { apiClient, type ApiError } from "@/lib/api/client";
-import { FeePreviewCard } from "@/components/wallet/FeePreviewCard";
+import { FeePreviewCard, type FeePreviewData } from "@/components/wallet/FeePreviewCard";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 interface GiftItem {
@@ -39,11 +39,9 @@ export function LiveGiftTrayModal({
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
-  const [feePreview, setFeePreview] = useState<any>(null);
+  const [feePreview, setFeePreview] = useState<FeePreviewData | null>(null);
 
   const fetchGiftsAndWallet = useCallback(async () => {
-    setLoading(true);
-    setLoadError(null);
     try {
       const [gRes, wRes] = await Promise.all([
         apiClient.get("/gifts/catalogue"),
@@ -78,13 +76,31 @@ export function LiveGiftTrayModal({
     }
   }, []);
 
+  // Reset the loading state while rendering when the tray opens, rather than in an effect.
+  const [wasOpen, setWasOpen] = useState(isOpen);
+  if (isOpen !== wasOpen) {
+    setWasOpen(isOpen);
+    if (isOpen) {
+      setLoading(true);
+      setLoadError(null);
+    }
+  }
+
+  const retryLoad = () => {
+    setLoading(true);
+    setLoadError(null);
+    void fetchGiftsAndWallet();
+  };
+
   useEffect(() => {
-    if (isOpen) fetchGiftsAndWallet();
+    (async () => {
+      if (isOpen) await fetchGiftsAndWallet();
+    })();
   }, [isOpen, fetchGiftsAndWallet]);
 
   // Pre-flight fee calculation when selected gift changes
   useEffect(() => {
-    if (!selectedGift) { setFeePreview(null); return; }
+    if (!selectedGift) return;
     let isMounted = true;
 
     apiClient
@@ -145,7 +161,7 @@ export function LiveGiftTrayModal({
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-lg">
-            <Sparkle weight="fill" className="h-5 w-5 text-purple-500" /> Send Live Gift to {recipientName}
+            <Coins weight="fill" className="h-5 w-5 text-purple-500" /> Send Live Gift to {recipientName}
           </DialogTitle>
           <DialogDescription>
             Gifts are debited in <strong className="text-foreground">MSH Coins (🪙)</strong> from your available balance and credited directly to the creator.
@@ -171,7 +187,7 @@ export function LiveGiftTrayModal({
             <p className="text-sm font-semibold text-muted-foreground">{loadError}</p>
             <button
               type="button"
-              onClick={() => void fetchGiftsAndWallet()}
+              onClick={retryLoad}
               className="rounded-lg bg-purple-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-purple-700"
             >
               Try again
@@ -182,7 +198,7 @@ export function LiveGiftTrayModal({
             <p className="text-sm font-semibold text-muted-foreground">No gifts are available right now.</p>
             <button
               type="button"
-              onClick={() => void fetchGiftsAndWallet()}
+              onClick={retryLoad}
               className="rounded-lg bg-purple-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-purple-700"
             >
               Reload

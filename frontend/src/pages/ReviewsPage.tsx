@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useConfirm } from '@/components/ui/DialogProvider';
 import { useAuth } from '@/hooks/useAuth';
 import { Message as MessageSquare, Plus, Delete as Trash2, Edit, TimeCircle as Clock, TickSquare as CheckCircle, Chat as ChatCircleDots } from "@/components/icons";
@@ -80,42 +80,46 @@ export function ReviewsPage() {
   const [replyText, setReplyText] = useState('');
   const [isReplying, setIsReplying] = useState(false);
 
-  const [now, setNow] = useState(Date.now());
+  const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 30000);
     return () => clearInterval(id);
   }, []);
 
-  const fetchReviews = useCallback(async () => {
+  const [fetchReviewsKey, setFetchReviewsKey] = useState(0);
+  const fetchReviews = () => {
     setIsLoading(true);
-    try {
-      const endpoint = isVendor ? '/store/reviews/vendor' : '/store/reviews/my';
-      const res = await authFetch(endpoint);
-      if (res.ok) {
-        const json = await res.json();
-        const rawData = json?.data?.data ?? json?.data ?? [];
-        const reviewList: Review[] = Array.isArray(rawData)
-          ? rawData
-          : Array.isArray(rawData?.data)
-          ? rawData.data
-          : [];
-        setReviews(reviewList);
-        const statsData = json?.data?.stats ?? json?.stats ?? null;
-        if (statsData) {
-          setStats(statsData);
-        }
-      }
-    } catch {
-      /* ignore */
-    } finally {
-      setIsLoading(false);
-    }
-  }, [isVendor]);
+    setFetchReviewsKey((k) => k + 1);
+  };
 
   useEffect(() => {
-    fetchReviews();
-  }, [fetchReviews]);
+    (async () => {
+      try {
+        const endpoint = isVendor ? '/store/reviews/vendor' : '/store/reviews/my';
+        const res = await authFetch(endpoint);
+        if (res.ok) {
+          const json = await res.json();
+          const rawData = json?.data?.data ?? json?.data ?? [];
+          const reviewList: Review[] = Array.isArray(rawData)
+            ? rawData
+            : Array.isArray(rawData?.data)
+            ? rawData.data
+            : [];
+          setReviews(reviewList);
+          const statsData = json?.data?.stats ?? json?.stats ?? null;
+          if (statsData) {
+            setStats(statsData);
+          }
+        }
+      } catch {
+        /* ignore */
+      } finally {
+        setIsLoading(false);
+      }
+    })();
+  }, [fetchReviewsKey, isVendor]);
+
 
   // Buyer: Open New Review
   function openNew() {
@@ -242,7 +246,7 @@ export function ReviewsPage() {
         {!isVendor && (
           <Button
             onClick={openNew}
-            className="bg-[#2164b6] text-white hover:bg-[#1a5091] font-semibold h-11 px-5 rounded-lg gap-2 shrink-0 self-start sm:self-auto shadow-sm"
+            className="bg-[var(--shell-accent-solid)] text-white hover:bg-[var(--shell-accent-hover)] font-semibold h-11 px-5 rounded-lg gap-2 shrink-0 self-start sm:self-auto shadow-sm"
           >
             <Plus weight="fill" className="h-5 w-5" /> Write Review
           </Button>
@@ -265,7 +269,7 @@ export function ReviewsPage() {
 
           <div className="rounded-xl border border-border/60 bg-card p-5 shadow-sm">
             <div className="flex items-center gap-2 text-muted-foreground mb-2">
-              <MessageSquare weight="fill" className="w-5 h-5 text-[#2164b6] dark:text-[#7ab0ff]" />
+              <MessageSquare weight="fill" className="w-5 h-5 text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" />
               <span className="text-sm font-medium">Total Customer Reviews</span>
             </div>
             <p className="text-3xl font-black text-foreground">{stats.total ?? 0}</p>
@@ -296,8 +300,8 @@ export function ReviewsPage() {
 
           {!editing && (
             <div>
-              <label className="block text-xs font-semibold text-muted-foreground mb-1 uppercase tracking-wider">Product ID *</label>
-              <Input
+              <label htmlFor="f-pages-reviewspage-tsx-299" className="block text-xs font-semibold text-muted-foreground mb-1 uppercase tracking-wider">Product ID *</label>
+              <Input id="f-pages-reviewspage-tsx-299"
                 value={fProductId}
                 onChange={e => setFProductId(e.target.value)}
                 required
@@ -309,7 +313,7 @@ export function ReviewsPage() {
           )}
 
           <div>
-            <label className="block text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wider">Rating *</label>
+            <span className="block text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wider">Rating *</span>
             <div className="flex items-center gap-2">
               {[1, 2, 3, 4, 5].map(s => (
                 <button key={s} type="button" onClick={() => setFRating(s)} className="p-1 hover:scale-110 transition-transform">
@@ -321,8 +325,8 @@ export function ReviewsPage() {
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-muted-foreground mb-1 uppercase tracking-wider">Review Headline</label>
-            <Input
+            <label htmlFor="f-pages-reviewspage-tsx-324" className="block text-xs font-semibold text-muted-foreground mb-1 uppercase tracking-wider">Review Headline</label>
+            <Input id="f-pages-reviewspage-tsx-324"
               value={fTitle}
               onChange={e => setFTitle(e.target.value)}
               className="text-sm"
@@ -331,8 +335,8 @@ export function ReviewsPage() {
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-muted-foreground mb-1 uppercase tracking-wider">Your Experience</label>
-            <textarea
+            <label htmlFor="f-pages-reviewspage-tsx-334" className="block text-xs font-semibold text-muted-foreground mb-1 uppercase tracking-wider">Your Experience</label>
+            <textarea id="f-pages-reviewspage-tsx-334"
               value={fBody}
               onChange={e => setFBody(e.target.value)}
               rows={4}
@@ -342,7 +346,7 @@ export function ReviewsPage() {
           </div>
 
           <div className="flex gap-3 pt-2">
-            <Button type="submit" disabled={isSubmitting} className="gap-2 bg-[#2164b6] hover:bg-[#1a5091] text-white">
+            <Button type="submit" disabled={isSubmitting} className="gap-2 bg-[var(--shell-accent-solid)] hover:bg-[var(--shell-accent-hover)] text-white">
               {isSubmitting && <Loader2 weight="fill" className="w-4 h-4 animate-spin" />}
               {editing ? 'Update Review' : 'Submit Review'}
             </Button>
@@ -413,7 +417,7 @@ export function ReviewsPage() {
                         className={`h-9 text-xs font-semibold gap-1.5 rounded-lg ${
                           r.vendor_reply
                             ? 'border-border text-foreground hover:bg-muted'
-                            : 'bg-[#2164b6] hover:bg-[#1a5091] text-white'
+                            : 'bg-[var(--shell-accent-solid)] hover:bg-[var(--shell-accent-hover)] text-white'
                         }`}
                       >
                         <ArrowBendDownRight weight="fill" className="w-4 h-4" />
@@ -444,7 +448,7 @@ export function ReviewsPage() {
                       </span>
                     )}
                     {!isVendor && r.edit_expires_at && (
-                      <span className={`flex items-center gap-1 ${canEdit ? 'text-blue-500' : 'text-muted-foreground/60'}`}>
+                      <span className={`flex items-center gap-1 ${canEdit ? 'text-[var(--shell-accent)]' : 'text-muted-foreground/60'}`}>
                         <Clock weight="fill" className="w-3.5 h-3.5" />
                         {canEdit ? `${formatTimeLeft(r.edit_expires_at)} left to edit` : 'Edit window closed'}
                       </span>
@@ -454,9 +458,9 @@ export function ReviewsPage() {
 
                 {/* ── Vendor Official Response ── */}
                 {r.vendor_reply && (
-                  <div className="ml-4 sm:ml-8 rounded-xl bg-[#2164b6]/5 border-l-4 border-[#2164b6] p-4 space-y-1.5">
+                  <div className="ml-4 sm:ml-8 rounded-xl bg-[var(--shell-accent-solid)]/5 border-l-4 border-[var(--shell-accent)] p-4 space-y-1.5">
                     <div className="flex items-center justify-between text-xs">
-                      <span className="font-bold text-[#2164b6] dark:text-[#7ab0ff] flex items-center gap-1.5">
+                      <span className="font-bold text-[var(--shell-accent)] dark:text-[var(--shell-accent)] flex items-center gap-1.5">
                         <Storefront weight="fill" className="w-3.5 h-3.5" /> Vendor Response
                       </span>
                       {r.vendor_replied_at && (
@@ -498,10 +502,10 @@ export function ReviewsPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-muted-foreground mb-1 uppercase tracking-wider">
+                <label htmlFor="f-pages-reviewspage-tsx-501" className="block text-xs font-semibold text-muted-foreground mb-1 uppercase tracking-wider">
                   Your Official Response *
                 </label>
-                <textarea
+                <textarea id="f-pages-reviewspage-tsx-501"
                   rows={5}
                   value={replyText}
                   onChange={e => setReplyText(e.target.value)}
@@ -517,7 +521,7 @@ export function ReviewsPage() {
                 <Button type="button" variant="outline" onClick={() => setReplyReview(null)}>
                   Cancel
                 </Button>
-                <Button type="submit" disabled={isReplying || !replyText.trim()} className="bg-[#2164b6] hover:bg-[#1a5091] text-white gap-2">
+                <Button type="submit" disabled={isReplying || !replyText.trim()} className="bg-[var(--shell-accent-solid)] hover:bg-[var(--shell-accent-hover)] text-white gap-2">
                   {isReplying && <Loader2 weight="fill" className="w-4 h-4 animate-spin" />}
                   Publish Reply
                 </Button>

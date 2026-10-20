@@ -8,7 +8,7 @@ export function AnimationVerify() {
   const [showScale, setShowScale] = useState(true);
 
   return (
-    <div className="p-4 border border-gray-200 dark:border-gray-800 rounded-lg max-w-2xl mx-auto my-8 space-y-8 bg-card text-card-foreground ">
+    <div className="p-4 border border-[var(--shell-border)] dark:border-gray-800 rounded-lg max-w-2xl mx-auto my-8 space-y-8 bg-card text-card-foreground ">
       <h2 className="text-xl font-bold border-b pb-2">Motion Animation Verification</h2>
       
       {/* Fade section */}
@@ -17,7 +17,7 @@ export function AnimationVerify() {
         <button 
           type="button"
           onClick={() => setShowFade(!showFade)}
-          className="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 transition-colors"
+          className="px-3 py-1 bg-[var(--shell-accent-solid)] text-white rounded text-sm hover:bg-[var(--shell-accent-hover)] transition-colors"
         >
           Toggle Fade
         </button>
@@ -44,7 +44,7 @@ export function AnimationVerify() {
         <button 
           type="button"
           onClick={() => setShowSlide(!showSlide)}
-          className="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 transition-colors"
+          className="px-3 py-1 bg-[var(--shell-accent-solid)] text-white rounded text-sm hover:bg-[var(--shell-accent-hover)] transition-colors"
         >
           Toggle Slide
         </button>
@@ -71,7 +71,7 @@ export function AnimationVerify() {
         <button 
           type="button"
           onClick={() => setShowScale(!showScale)}
-          className="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 transition-colors"
+          className="px-3 py-1 bg-[var(--shell-accent-solid)] text-white rounded text-sm hover:bg-[var(--shell-accent-hover)] transition-colors"
         >
           Toggle Scales
         </button>
@@ -94,8 +94,8 @@ export function AnimationVerify() {
 
       {/* Info section for reduced motion */}
       <div className="p-3 bg-gray-100 dark:bg-gray-800 rounded text-xs space-y-1 text-left">
-        <p className="font-semibold text-gray-700 dark:text-gray-300">Reduced Motion Compatibility:</p>
-        <p className="text-gray-600 dark:text-gray-400">
+        <p className="font-semibold text-gray-700 dark:text-[var(--shell-muted)]">Reduced Motion Compatibility:</p>
+        <p className="text-[var(--shell-muted)] dark:text-[var(--shell-muted)]">
           This panel respects standard OS preferences via the <code>reducedMotion="user"</code> global configuration in <code>MotionProvider</code>.
         </p>
       </div>

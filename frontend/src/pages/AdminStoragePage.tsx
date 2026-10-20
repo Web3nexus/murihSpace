@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { Plus, Delete as Trash2, Download as FloppyDisk, DangerSquare as AlertCircle, TickSquare as CheckCircle2 } from "@/components/icons";
 import { HardDrive, Spinner as Loader2 } from "@/components/icons/rounded";;
 import { Button } from "@/components/ui/button";
@@ -35,19 +35,18 @@ export default function AdminStoragePage() {
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
-  const loadConfig = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await authFetch(`/securegate/storage`, {  });
-      const j = await res.json();
-      const d = j?.data?.data ?? j?.data ?? j;
-      setConfig(d.config ?? d);
-      setDisks(d.available_disks ?? []);
-    } catch { setMsg({ ok: false, text: "Failed to load storage config" }); }
-    finally { setLoading(false); }
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await authFetch(`/securegate/storage`, {  });
+        const j = await res.json();
+        const d = j?.data?.data ?? j?.data ?? j;
+        setConfig(d.config ?? d);
+        setDisks(d.available_disks ?? []);
+      } catch { setMsg({ ok: false, text: "Failed to load storage config" }); }
+      finally { setLoading(false); }
+    })();
   }, []);
-
-  useEffect(() => { loadConfig(); }, [loadConfig]);
 
   const save = async () => {
     if (!config) return;
@@ -120,8 +119,8 @@ export default function AdminStoragePage() {
           <h2 className="text-sm font-bold text-foreground">Default Settings</h2>
           <div className="grid grid-cols-3 gap-4">
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Default Disk</label>
-              <select
+              <label htmlFor="f-pages-adminstoragepage-tsx-123" className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Default Disk</label>
+              <select id="f-pages-adminstoragepage-tsx-123"
                 value={config?.default ?? ""}
                 onChange={(e) => setConfig((prev) => prev ? { ...prev, default: e.target.value } : prev)}
                 className="w-full rounded-lg border-none bg-muted px-3 py-2 text-sm"
@@ -132,8 +131,8 @@ export default function AdminStoragePage() {
               </select>
             </div>
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Private Files Disk</label>
-              <select
+              <label htmlFor="f-pages-adminstoragepage-tsx-135" className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Private Files Disk</label>
+              <select id="f-pages-adminstoragepage-tsx-135"
                 value={config?.private_disk ?? ""}
                 onChange={(e) => setConfig((prev) => prev ? { ...prev, private_disk: e.target.value } : prev)}
                 className="w-full rounded-lg border-none bg-muted px-3 py-2 text-sm"
@@ -144,8 +143,8 @@ export default function AdminStoragePage() {
               </select>
             </div>
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Default Folder</label>
-              <input
+              <label htmlFor="f-pages-adminstoragepage-tsx-147" className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Default Folder</label>
+              <input id="f-pages-adminstoragepage-tsx-147"
                 type="text"
                 value={config?.default_folder ?? ""}
                 onChange={(e) => setConfig((prev) => prev ? { ...prev, default_folder: e.target.value } : prev)}
@@ -173,8 +172,8 @@ export default function AdminStoragePage() {
             {config?.rules.map((rule, i) => (
               <div key={i} className="grid grid-cols-12 gap-2 items-end p-3 rounded-lg bg-muted/40">
                 <div className="col-span-3 space-y-1">
-                  <label className="text-[10px] font-bold text-muted-foreground">Label</label>
-                  <input
+                  <label htmlFor="f-pages-adminstoragepage-tsx-176" className="text-[10px] font-bold text-muted-foreground">Label</label>
+                  <input id="f-pages-adminstoragepage-tsx-176"
                     type="text"
                     value={rule.label}
                     onChange={(e) => updateRule(i, "label", e.target.value)}
@@ -183,8 +182,8 @@ export default function AdminStoragePage() {
                   />
                 </div>
                 <div className="col-span-2 space-y-1">
-                  <label className="text-[10px] font-bold text-muted-foreground">MIME Pattern</label>
-                  <input
+                  <label htmlFor="f-pages-adminstoragepage-tsx-186" className="text-[10px] font-bold text-muted-foreground">MIME Pattern</label>
+                  <input id="f-pages-adminstoragepage-tsx-186"
                     type="text"
                     value={rule.mime_pattern}
                     onChange={(e) => updateRule(i, "mime_pattern", e.target.value)}
@@ -193,8 +192,8 @@ export default function AdminStoragePage() {
                   />
                 </div>
                 <div className="col-span-3 space-y-1">
-                  <label className="text-[10px] font-bold text-muted-foreground">Disk</label>
-                  <select
+                  <label htmlFor="f-pages-adminstoragepage-tsx-196" className="text-[10px] font-bold text-muted-foreground">Disk</label>
+                  <select id="f-pages-adminstoragepage-tsx-196"
                     value={rule.disk}
                     onChange={(e) => updateRule(i, "disk", e.target.value)}
                     className="w-full rounded-md border-none bg-card px-2 py-1.5 text-xs"
@@ -205,8 +204,8 @@ export default function AdminStoragePage() {
                   </select>
                 </div>
                 <div className="col-span-3 space-y-1">
-                  <label className="text-[10px] font-bold text-muted-foreground">Folder</label>
-                  <input
+                  <label htmlFor="f-pages-adminstoragepage-tsx-208" className="text-[10px] font-bold text-muted-foreground">Folder</label>
+                  <input id="f-pages-adminstoragepage-tsx-208"
                     type="text"
                     value={rule.folder}
                     onChange={(e) => updateRule(i, "folder", e.target.value)}

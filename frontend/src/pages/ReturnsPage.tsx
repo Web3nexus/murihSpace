@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { Swap as RotateCcw, TickSquare as CheckCircle2, CloseSquare as XCircle, Show as Eye } from "@/components/icons";
 import { Spinner as Loader2 } from "@/components/icons/rounded";;
 import { Button } from "@/components/ui/button";
@@ -25,18 +25,24 @@ export default function ReturnsPage() {
   const [processing, setProcessing] = useState<number | null>(null);
   const [expanded, setExpanded] = useState<number | null>(null);
 
-  const fetchReturns = useCallback(async () => {
-    try {
-      const res = await authFetch(`/store/returns`, {  });
-      if (!res.ok) throw new Error();
-      const j = await res.json();
-      const list = j?.success ? j?.data : j;
-      setReturns(list?.data ?? list ?? []);
-    } catch { /* ignore */ }
-    finally { setLoading(false); }
-  }, []);
+  const [fetchReturnsKey, setFetchReturnsKey] = useState(0);
+  const fetchReturns = () => {
+    setFetchReturnsKey((k) => k + 1);
+  };
 
-  useEffect(() => { fetchReturns(); }, [fetchReturns]);
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await authFetch(`/store/returns`, {  });
+        if (!res.ok) throw new Error();
+        const j = await res.json();
+        const list = j?.success ? j?.data : j;
+        setReturns(list?.data ?? list ?? []);
+      } catch { /* ignore */ }
+      finally { setLoading(false); }
+    })();
+  }, [fetchReturnsKey]);
+
 
   const handleAction = async (id: number, action: "approve" | "reject") => {
     setProcessing(id);
@@ -49,13 +55,13 @@ export default function ReturnsPage() {
     } finally { setProcessing(null); }
   };
 
-  if (loading) return <div className="flex justify-center py-24"><Loader2 weight="fill" className="h-8 w-8 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" /></div>;
+  if (loading) return <div className="flex justify-center py-24"><Loader2 weight="fill" className="h-8 w-8 animate-spin text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" /></div>;
 
   return (
     <div className="w-full max-w-7xl mx-auto space-y-6 p-4 lg:p-5">
       <div>
         <h1 className="text-xl font-black tracking-tight flex items-center gap-2.5">
-          <RotateCcw weight="fill" className="h-6 w-6 text-[#2164b6] dark:text-[#7ab0ff]" /> Returns Management
+          <RotateCcw weight="fill" className="h-6 w-6 text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" /> Returns Management
         </h1>
         <p className="text-xs text-muted-foreground mt-1">Process customer returns and exchanges.</p>
       </div>
@@ -69,7 +75,7 @@ export default function ReturnsPage() {
         <div className="space-y-3">
           {returns.map((r) => (
             <div key={r.id} className="border-none rounded-lg bg-card overflow-hidden">
-              <div className="flex items-center justify-between px-4 py-3 hover:bg-muted/10 transition-colors cursor-pointer" onClick={() => setExpanded(expanded === r.id ? null : r.id)}>
+              <div role="button" tabIndex={0} onKeyDown={(e) => { if (e.target !== e.currentTarget) return; if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.currentTarget.click(); } }} className="flex items-center justify-between px-4 py-3 hover:bg-muted/10 transition-colors cursor-pointer" onClick={() => setExpanded(expanded === r.id ? null : r.id)}>
                 <div className="flex items-center gap-3 min-w-0">
                   <RotateCcw weight="fill" className="h-4 w-4 text-muted-foreground shrink-0" />
                   <div className="min-w-0">

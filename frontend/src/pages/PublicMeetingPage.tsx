@@ -38,24 +38,26 @@ export function PublicMeetingPage() {
   // state instead of being folded into "ended".
   const [statusFailed, setStatusFailed] = useState(false);
   const [attempt, setAttempt] = useState(0);
+  const [trackedRoomCode, setTrackedRoomCode] = useState<string | null>(null);
 
   const roomCode = useMemo(() => (code ?? "").trim().toLowerCase(), [code]);
   const isValid =
     ROOM_CODE_PATTERN.test(roomCode) && !RESERVED_ROOM_CODES.has(roomCode);
+  // Route params can change in place, so drop whatever the previous code
+  // resolved to before looking this one up.
+  if (roomCode !== trackedRoomCode) {
+    setTrackedRoomCode(roomCode);
+    setChecking(isValid);
+    setMeetingState(null);
+    setStatusFailed(false);
+  }
+
   const { isAuthenticated } = useAuth();
   const canonicalPath = isValid ? meetingUrl(roomCode) : "/m";
   const shareUrl = absolute(canonicalPath);
 
   useEffect(() => {
-    if (!isValid) {
-      setChecking(false);
-      return;
-    }
-    // Route params can change in place, so drop whatever the previous code
-    // resolved to before looking this one up.
-    setChecking(true);
-    setMeetingState(null);
-    setStatusFailed(false);
+    if (!isValid) return;
     let active = true;
     apiClient
       .get("/link-preview", { params: { url: `/m/${roomCode}` } })

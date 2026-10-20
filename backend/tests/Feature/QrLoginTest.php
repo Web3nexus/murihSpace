@@ -35,27 +35,23 @@ class QrLoginTest extends TestCase
 
         $res->assertStatus(200)
             ->assertJsonStructure([
-                'data' => ['qr_token', 'poll_token', 'confirmation_code', 'expires_at', 'qr_deep_link', 'qr_url'],
+                'data' => ['qr_token', 'poll_token', 'expires_at', 'qr_deep_link', 'qr_url'],
             ]);
 
         $data = $this->body($res);
         $this->assertNotEmpty($data['qr_token']);
         $this->assertNotEmpty($data['poll_token']);
-        $this->assertMatchesRegularExpression('/^\d{6}$/', $data['confirmation_code']);
+        $this->assertArrayNotHasKey('confirmation_code', $data);
         $this->assertStringContainsString('murihspace://qr-login?token=', $data['qr_deep_link']);
         $this->assertStringContainsString('/qr-login?token=', $data['qr_url']);
-
-        // The code is shown only on the desktop; the QR/deep link must not carry
-        // it, and the raw code is never persisted (only its hash).
-        $this->assertStringNotContainsString($data['confirmation_code'], $data['qr_deep_link']);
-        $this->assertStringNotContainsString($data['confirmation_code'], $data['qr_url']);
 
         $this->assertDatabaseHas('qr_login_transactions', [
             'qr_token' => $data['qr_token'],
             'status' => 'pending',
         ]);
-        $this->assertDatabaseMissing('qr_login_transactions', [
-            'confirmation_code_hash' => $data['confirmation_code'],
+        $this->assertDatabaseHas('qr_login_transactions', [
+            'qr_token' => $data['qr_token'],
+            'confirmation_code_hash' => null,
         ]);
     }
 
@@ -84,7 +80,6 @@ class QrLoginTest extends TestCase
         $start = $this->body($this->postJson('/api/v1/auth/qr/start'));
         $qrToken = $start['qr_token'];
         $pollToken = $start['poll_token'];
-        $confirmationCode = $start['confirmation_code'];
 
         // Mobile scans while authenticated.
         $scan = $this->actingAs($user, 'sanctum')
@@ -94,18 +89,13 @@ class QrLoginTest extends TestCase
         $this->assertSame('scanned', $scanBody['status']);
         $txId = $scanBody['transaction_id'];
 
-        // The scan payload must NOT expose the confirmation code, otherwise the
-        // phone could approve without the user seeing the desktop.
-        $this->assertArrayNotHasKey('confirmation_code', $scanBody);
-        $this->assertStringNotContainsString($confirmationCode, json_encode($scanBody));
-
         // Desktop now observes the scanned state.
         $polled = $this->body($this->postJson('/api/v1/auth/qr/poll', ['poll_token' => $pollToken]));
         $this->assertSame('scanned', $polled['status']);
 
-        // Mobile approves, echoing the code shown on the desktop.
+        // Mobile approves the sign-in it was shown (device details, no code).
         $this->actingAs($user, 'sanctum')
-            ->postJson("/api/v1/auth/qr/{$txId}/approve", ['confirmation_code' => $confirmationCode])
+            ->postJson("/api/v1/auth/qr/{$txId}/approve")
             ->assertStatus(200)
             ->assertJsonPath('data.status', 'approved');
 
@@ -141,77 +131,8 @@ class QrLoginTest extends TestCase
         )['transaction_id'];
 
         $this->actingAs($other, 'sanctum')
-            ->postJson("/api/v1/auth/qr/{$txId}/approve", ['confirmation_code' => '123456'])
-            ->assertStatus(403);
-    }
-
-    public function test_approve_with_wrong_confirmation_code_is_rejected(): void
-    {
-        $user = User::factory()->create();
-
-        $start = $this->body($this->postJson('/api/v1/auth/qr/start'));
-        $txId = $this->body(
-            $this->actingAs($user, 'sanctum')->postJson('/api/v1/auth/qr/scan', ['qr_token' => $start['qr_token']])
-        )['transaction_id'];
-
-        $wrong = $start['confirmation_code'] === '000000' ? '000001' : '000000';
-
-        $this->actingAs($user, 'sanctum')
-            ->postJson("/api/v1/auth/qr/{$txId}/approve", ['confirmation_code' => $wrong])
-            ->assertStatus(422);
-
-        // Transaction stays open for a correct retry.
-        $this->assertDatabaseHas('qr_login_transactions', [
-            'id' => $txId,
-            'status' => 'scanned',
-        ]);
-
-        // The correct code still works afterwards.
-        $this->actingAs($user, 'sanctum')
-            ->postJson("/api/v1/auth/qr/{$txId}/approve", ['confirmation_code' => $start['confirmation_code']])
-            ->assertStatus(200);
-    }
-
-    public function test_approve_without_confirmation_code_is_rejected(): void
-    {
-        $user = User::factory()->create();
-
-        $start = $this->body($this->postJson('/api/v1/auth/qr/start'));
-        $txId = $this->body(
-            $this->actingAs($user, 'sanctum')->postJson('/api/v1/auth/qr/scan', ['qr_token' => $start['qr_token']])
-        )['transaction_id'];
-
-        $this->actingAs($user, 'sanctum')
             ->postJson("/api/v1/auth/qr/{$txId}/approve")
-            ->assertStatus(422);
-    }
-
-    public function test_approve_locks_transaction_after_too_many_wrong_codes(): void
-    {
-        $user = User::factory()->create();
-
-        $start = $this->body($this->postJson('/api/v1/auth/qr/start'));
-        $txId = $this->body(
-            $this->actingAs($user, 'sanctum')->postJson('/api/v1/auth/qr/scan', ['qr_token' => $start['qr_token']])
-        )['transaction_id'];
-
-        $wrong = $start['confirmation_code'] === '000000' ? '000001' : '000000';
-
-        for ($i = 0; $i < 5; $i++) {
-            $this->actingAs($user, 'sanctum')
-                ->postJson("/api/v1/auth/qr/{$txId}/approve", ['confirmation_code' => $wrong])
-                ->assertStatus(422);
-        }
-
-        $this->assertDatabaseHas('qr_login_transactions', [
-            'id' => $txId,
-            'status' => 'denied',
-        ]);
-
-        // Even the correct code is now refused.
-        $this->actingAs($user, 'sanctum')
-            ->postJson("/api/v1/auth/qr/{$txId}/approve", ['confirmation_code' => $start['confirmation_code']])
-            ->assertStatus(422);
+            ->assertStatus(403);
     }
 
     public function test_deny_then_poll_reports_denied(): void

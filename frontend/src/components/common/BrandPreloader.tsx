@@ -28,7 +28,7 @@ export function BrandPreloader({
       {/* Brand Icon with glowing pulse animation */}
       <div className="relative flex items-center justify-center">
         {/* Soft background aura glow */}
-        <div className="absolute inset-0 rounded-full bg-[#2164b6]/20 blur-xl animate-pulse" />
+        <div className="absolute inset-0 rounded-full bg-[var(--shell-accent-solid)]/20 blur-xl animate-pulse" />
 
         {/* Light Mode Icon */}
         <img
@@ -61,7 +61,7 @@ export function BrandPreloader({
             selectedSize.bar
           )}
         >
-          <div className="absolute inset-y-0 left-0 w-1/2 bg-[#2164b6] rounded-full animate-murih-shimmer" />
+          <div className="absolute inset-y-0 left-0 w-1/2 bg-[var(--shell-accent-solid)] rounded-full animate-murih-shimmer" />
         </div>
       )}
 

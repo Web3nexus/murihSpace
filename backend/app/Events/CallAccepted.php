@@ -38,15 +38,7 @@ class CallAccepted implements ShouldBroadcastNow
 
     public function broadcastWith(): array
     {
-        $host = (string) config('livekit.host', 'https://live-staging.murihspace.com');
-        $host = rtrim($host, '/');
-        if (str_starts_with($host, 'https://')) {
-            $livekitHost = 'wss://' . substr($host, 8);
-        } elseif (str_starts_with($host, 'http://')) {
-            $livekitHost = 'ws://' . substr($host, 7);
-        } else {
-            $livekitHost = $host;
-        }
+        $livekitHost = \App\Support\LiveKitUrl::websocket();
 
         // Generate a fresh LiveKit token for the CALLER so they can join the room
         // now that the call is confirmed accepted (original initiate token may have aged).

@@ -1,5 +1,7 @@
-import { getAuthToken } from "@/lib/auth/token";
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { logger } from "@/lib/logger";
+import { pickArray } from "@/lib/api/pickArray";
+import { asApiError } from "@/lib/apiError";
+import React, { useState, useEffect, useRef } from 'react';
 import { useConfirm } from '@/components/ui/DialogProvider';
 import { useAuth } from '@/hooks/useAuth';
 import { Link } from 'react-router';
@@ -32,12 +34,10 @@ const CATEGORIES: { value: ProductCategory; label: string }[] = [
   { value: 'other', label: 'Other Asset' },
 ];
 
-function safeArray<T = any>(val: any): T[] {
-  if (Array.isArray(val)) return val;
-  if (Array.isArray(val?.data)) return val.data;
-  if (Array.isArray(val?.data?.data)) return val.data.data;
-  if (Array.isArray(val?.products)) return val.products;
-  return [];
+function safeArray<T>(val: T[]): T[];
+function safeArray<T = unknown>(val: unknown): T[];
+function safeArray(val: unknown): unknown[] {
+  return pickArray(val, ["products"]);
 }
 
 export function DigitalProductsPage() {
@@ -75,52 +75,54 @@ export function DigitalProductsPage() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const fetchProducts = useCallback(async () => {
+  const [fetchProductsKey, setFetchProductsKey] = useState(0);
+  const fetchProducts = () => {
     setIsLoading(true);
     setHasError(false);
     setErrorMessage('');
     setIsKycError(false);
-    const token = getAuthToken();
-    try {
-      const res = await authFetch(`/store/products?page=${page}&per_page=20`, {
-        headers: {
-          Accept: 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-      });
-      if (res.ok) {
-        const json = await res.json();
-        const items = safeArray<DigitalProduct>(json);
-        setProducts(items);
-        setLastPage(json.data?.last_page ?? json.last_page ?? 1);
-      } else {
-        const errJson = await res.json().catch(() => ({}));
-        const msg = errJson.message ?? 'Failed to load digital products from server.';
-        setHasError(true);
-        setErrorMessage(msg);
-
-        // Check if error is KYC or authorization related
-        if (
-          res.status === 403 ||
-          msg.toLowerCase().includes('kyc') ||
-          msg.toLowerCase().includes('identity') ||
-          msg.toLowerCase().includes('verification')
-        ) {
-          setIsKycError(true);
-        }
-      }
-    } catch (e) {
-      console.error('Failed to fetch products', e);
-      setHasError(true);
-      setErrorMessage('Network failure while fetching products.');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [page]);
+    setFetchProductsKey((k) => k + 1);
+  };
 
   useEffect(() => {
-    fetchProducts();
-  }, [fetchProducts]);
+    (async () => {
+      try {
+        const res = await authFetch(`/store/products?page=${page}&per_page=20`, {
+          headers: {
+            Accept: 'application/json',
+          },
+        });
+        if (res.ok) {
+          const json = await res.json();
+          const items = safeArray<DigitalProduct>(json);
+          setProducts(items);
+          setLastPage(json.data?.last_page ?? json.last_page ?? 1);
+        } else {
+          const errJson = await res.json().catch(() => ({}));
+          const msg = errJson.message ?? 'Failed to load digital products from server.';
+          setHasError(true);
+          setErrorMessage(msg);
+
+          // Check if error is KYC or authorization related
+          if (
+            res.status === 403 ||
+            msg.toLowerCase().includes('kyc') ||
+            msg.toLowerCase().includes('identity') ||
+            msg.toLowerCase().includes('verification')
+          ) {
+            setIsKycError(true);
+          }
+        }
+      } catch (e) {
+        logger.error('Failed to fetch products', e);
+        setHasError(true);
+        setErrorMessage('Network failure while fetching products.');
+      } finally {
+        setIsLoading(false);
+      }
+    })();
+  }, [fetchProductsKey, page]);
+
 
   const openCreateModal = () => {
     if (!isKycVerified) return;
@@ -156,7 +158,6 @@ export function DigitalProductsPage() {
     setIsSubmitting(true);
     setError(null);
 
-    const token = getAuthToken();
     const formData = new FormData();
     formData.append('title', title);
     formData.append('description', description);
@@ -180,7 +181,6 @@ export function DigitalProductsPage() {
         method: 'POST',
         headers: {
           Accept: 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: formData,
       });
@@ -191,14 +191,14 @@ export function DigitalProductsPage() {
       setShowModal(false);
       fetchProducts();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'An error occurred.');
+      const apiErr = asApiError(err);
+      setError(err instanceof Error ? apiErr.message : 'An error occurred.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleTogglePublish = async (p: DigitalProduct) => {
-    const token = getAuthToken();
     const nextStatus = p.status === 'published' ? 'draft' : 'published';
 
     try {
@@ -207,7 +207,6 @@ export function DigitalProductsPage() {
         headers: {
           'Content-Type': 'application/json',
           Accept: 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({ status: nextStatus }),
       });
@@ -217,33 +216,30 @@ export function DigitalProductsPage() {
           safeArray(prev).map((item) => (item.id === p.id ? { ...item, status: nextStatus } : item))
         );
       }
-    } catch (e) { console.error('Failed to toggle publish', e); }
+    } catch (e) { logger.error('Failed to toggle publish', e); }
   };
 
   const handleDelete = async (id: number) => {
     if (!await confirm({ title: 'Delete Digital Product', message: 'Are you sure you want to delete this digital product?', variant: 'destructive' })) return;
-    const token = getAuthToken();
 
     try {
       const res = await authFetch(`/store/products/${id}`, {
         method: 'DELETE',
         headers: {
           Accept: 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
       });
 
       if (res.ok) {
         setProducts((prev) => safeArray(prev).filter((p) => p.id !== id));
       }
-    } catch (e) { console.error('Failed to delete product', e); }
+    } catch (e) { logger.error('Failed to delete product', e); }
   };
 
   const handleDownload = async (id: number) => {
-    const token = getAuthToken();
     try {
       const res = await authFetch(`/products/${id}/download`, {
-        headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        headers: { },
       });
       if (!res.ok) return;
       const blob = await res.blob();
@@ -279,7 +275,7 @@ export function DigitalProductsPage() {
       <PageSecondaryNav 
         title="Digital Products Catalog"
         subtitle="Create, publish, and manage downloadable assets (E-books, templates, audio, course materials)."
-        icon={<Package weight="fill" className="h-5 w-5 text-[#1877f2]" />}
+        icon={<Package weight="fill" className="h-5 w-5 text-[var(--shell-accent)]" />}
         tabs={storeTabs}
         actions={
           <ActionTooltip content={!isKycVerified ? "Complete identity verification (KYC) to add products" : "Create new digital product"}>
@@ -287,7 +283,7 @@ export function DigitalProductsPage() {
               onClick={openCreateModal}
               disabled={!isKycVerified}
               size="sm"
-              className="shrink-0 bg-[#1877f2] hover:bg-[#166fe5] text-white font-bold text-xs h-9 px-3.5 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+              className="shrink-0 bg-[var(--shell-accent-solid)] hover:bg-[var(--shell-accent-hover)] text-white font-bold text-xs h-9 px-3.5 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Plus weight="fill" className="h-4 w-4 mr-1.5" />
               Add Digital Product
@@ -316,8 +312,8 @@ export function DigitalProductsPage() {
 
       {/* Role Guidance Banner if Creator */}
       {role === 'creator' && (
-        <div className="flex items-center gap-2.5 p-3.5 rounded-lg bg-[#1877f2]/10 border border-[#1877f2]/20 text-[#1877f2] text-xs font-medium">
-                  <CheckCircle2 weight="fill" className="h-4 w-4 shrink-0 text-[#1877f2]" />
+        <div className="flex items-center gap-2.5 p-3.5 rounded-lg bg-[var(--shell-accent-solid)]/10 border border-[var(--shell-accent)]/20 text-[var(--shell-accent)] text-xs font-medium">
+                  <CheckCircle2 weight="fill" className="h-4 w-4 shrink-0 text-[var(--shell-accent)]" />
                   <span>
             <strong>Creator Store:</strong> Publish digital products, eBooks, downloadable templates, and course files for instant download by your audience.
           </span>
@@ -332,7 +328,7 @@ export function DigitalProductsPage() {
             onClick={() => setSelectedCategory('all')}
             className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
               selectedCategory === 'all'
-                ? 'bg-[#1877f2] text-white '
+                ? 'bg-[var(--shell-accent-solid)] text-white '
                 : 'bg-card border-none text-muted-foreground hover:text-foreground'
             }`}
           >
@@ -344,7 +340,7 @@ export function DigitalProductsPage() {
               onClick={() => setSelectedCategory(c.value)}
               className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
                 selectedCategory === c.value
-                  ? 'bg-[#1877f2] text-white '
+                  ? 'bg-[var(--shell-accent-solid)] text-white '
                   : 'bg-card border-none text-muted-foreground hover:text-foreground'
               }`}
             >
@@ -361,7 +357,7 @@ export function DigitalProductsPage() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search products…"
-            className="w-full pl-9 pr-3 py-2 text-xs rounded-lg bg-card border-none outline-none focus:ring-1 focus:ring-[#1877f2]"
+            className="w-full pl-9 pr-3 py-2 text-xs rounded-lg bg-card border-none outline-none focus:ring-1 focus:ring-[var(--shell-accent)]"
           />
         </div>
       </div>
@@ -369,7 +365,7 @@ export function DigitalProductsPage() {
       {/* Products Grid / Error Retry / Skeleton */}
       {isLoading ? (
         <div className="py-20 text-center space-y-2">
-          <Loader2 weight="fill" className="h-8 w-8 animate-spin text-[#1877f2] mx-auto" />
+          <Loader2 weight="fill" className="h-8 w-8 animate-spin text-[var(--shell-accent)] mx-auto" />
           <p className="text-xs text-muted-foreground font-medium">Loading products catalog…</p>
         </div>
       ) : hasError ? (
@@ -392,7 +388,7 @@ export function DigitalProductsPage() {
           ) : (
             <Button
               onClick={fetchProducts}
-              className="bg-[#1877f2] hover:bg-[#166fe5] text-white font-bold text-xs h-9 px-5 rounded-lg inline-flex items-center gap-2"
+              className="bg-[var(--shell-accent-solid)] hover:bg-[var(--shell-accent-hover)] text-white font-bold text-xs h-9 px-5 rounded-lg inline-flex items-center gap-2"
             >
               <RotateCcw weight="fill" className="h-3.5 w-3.5" /> Retry
             </Button>
@@ -444,11 +440,11 @@ export function DigitalProductsPage() {
               {/* Product Info */}
               <div className="p-4 space-y-2 flex-1">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-[10px] font-bold text-[#1877f2] uppercase tracking-wider">
+                  <span className="text-[10px] font-bold text-[var(--shell-accent)] uppercase tracking-wider">
                     {CATEGORIES.find((c) => c.value === p.category)?.label ?? p.category}
                   </span>
                   <span className="text-[10px] font-medium text-muted-foreground flex items-center gap-1">
-                    <Download weight="fill" className="h-3 w-3 text-[#1877f2]" /> {p.download_count} downloads
+                    <Download weight="fill" className="h-3 w-3 text-[var(--shell-accent)]" /> {p.download_count} downloads
                   </span>
                 </div>
 
@@ -507,7 +503,7 @@ export function DigitalProductsPage() {
                     onClick={() => handleDownload(p.id)}
                     className="h-8 text-xs font-semibold gap-1.5 rounded-lg"
                   >
-                    <Download weight="fill" className="h-3.5 w-3.5 text-[#1877f2]" />
+                    <Download weight="fill" className="h-3.5 w-3.5 text-[var(--shell-accent)]" />
                     Download File
                   </Button>
                 )}
@@ -546,7 +542,7 @@ export function DigitalProductsPage() {
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="e.g. Creator Growth Playbook 2026"
                   required
-                  className="w-full px-3.5 py-2 text-xs rounded-lg bg-muted border-0 outline-none focus:ring-1 focus:ring-[#1877f2]"
+                  className="w-full px-3.5 py-2 text-xs rounded-lg bg-muted border-0 outline-none focus:ring-1 focus:ring-[var(--shell-accent)]"
                 />
               </div>
 
@@ -559,7 +555,7 @@ export function DigitalProductsPage() {
                     id="dp-category"
                     value={category}
                     onChange={(e) => setCategory(e.target.value as ProductCategory)}
-                    className="w-full px-3.5 py-2 text-xs rounded-lg bg-muted border-0 outline-none focus:ring-1 focus:ring-[#1877f2] capitalize"
+                    className="w-full px-3.5 py-2 text-xs rounded-lg bg-muted border-0 outline-none focus:ring-1 focus:ring-[var(--shell-accent)] capitalize"
                   >
                     {CATEGORIES.map((c) => (
                       <option key={c.value} value={c.value}>
@@ -577,7 +573,7 @@ export function DigitalProductsPage() {
                     id="dp-status"
                     value={status}
                     onChange={(e) => setStatus(e.target.value as ProductStatus)}
-                    className="w-full px-3.5 py-2 text-xs rounded-lg bg-muted border-0 outline-none focus:ring-1 focus:ring-[#1877f2] capitalize"
+                    className="w-full px-3.5 py-2 text-xs rounded-lg bg-muted border-0 outline-none focus:ring-1 focus:ring-[var(--shell-accent)] capitalize"
                   >
                     <option value="published">Published (Live)</option>
                     <option value="draft">Draft (Hidden)</option>
@@ -610,7 +606,7 @@ export function DigitalProductsPage() {
                       value={price}
                       onChange={(e) => setPrice(e.target.value)}
                       placeholder="9.99"
-                      className="w-full px-3.5 py-2 text-xs rounded-lg bg-card border-none outline-none focus:ring-1 focus:ring-[#1877f2] font-mono"
+                      className="w-full px-3.5 py-2 text-xs rounded-lg bg-card border-none outline-none focus:ring-1 focus:ring-[var(--shell-accent)] font-mono"
                     />
                   </div>
                 )}
@@ -626,7 +622,7 @@ export function DigitalProductsPage() {
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="What is included in this digital product?"
                   rows={3}
-                  className="w-full px-3.5 py-2 text-xs rounded-lg bg-muted border-0 outline-none focus:ring-1 focus:ring-[#1877f2] resize-none"
+                  className="w-full px-3.5 py-2 text-xs rounded-lg bg-muted border-0 outline-none focus:ring-1 focus:ring-[var(--shell-accent)] resize-none"
                 />
               </div>
 
@@ -658,9 +654,9 @@ export function DigitalProductsPage() {
                   onKeyDown={(e) => e.key === 'Enter' && fileInputRef.current?.click()}
                   role="button"
                   tabIndex={0}
-                  className="p-4 border-2 border-dashed border-border hover:border-[#1877f2] rounded-lg bg-muted/20 text-center cursor-pointer transition-colors space-y-1"
+                  className="p-4 border-2 border-dashed border-border hover:border-[var(--shell-accent)] rounded-lg bg-muted/20 text-center cursor-pointer transition-colors space-y-1"
                 >
-                  <CloudArrowUp weight="fill" className="h-6 w-6 text-[#1877f2] mx-auto" />
+                  <CloudArrowUp weight="fill" className="h-6 w-6 text-[var(--shell-accent)] mx-auto" />
                   <p className="text-xs font-semibold text-foreground">
                     {selectedFile ? selectedFile.name : editingProduct?.file_original_name ?? 'Click to select private file'}
                   </p>
@@ -683,7 +679,7 @@ export function DigitalProductsPage() {
                 <Button
                   type="submit"
                   disabled={isSubmitting}
-                  className="text-xs font-bold bg-[#1877f2] hover:bg-[#166fe5] text-white gap-2"
+                  className="text-xs font-bold bg-[var(--shell-accent-solid)] hover:bg-[var(--shell-accent-hover)] text-white gap-2"
                 >
                   {isSubmitting ? (
                     <>

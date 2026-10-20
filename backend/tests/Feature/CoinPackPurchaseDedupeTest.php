@@ -34,6 +34,8 @@ class CoinPackPurchaseDedupeTest extends TestCase
 
     public function test_purchase_with_same_reference_credits_once(): void
     {
+        $platform = \App\Models\User::factory()->create(['role' => 'admin']);
+        config()->set('wallet.platform_revenue_user_id', $platform->id);
         $pack = $this->pack();
         $user = User::factory()->create();
 
@@ -57,6 +59,8 @@ class CoinPackPurchaseDedupeTest extends TestCase
 
     public function test_distinct_references_credit_separately(): void
     {
+        $platform = \App\Models\User::factory()->create(['role' => 'admin']);
+        config()->set('wallet.platform_revenue_user_id', $platform->id);
         $pack = $this->pack();
         $user = User::factory()->create();
 

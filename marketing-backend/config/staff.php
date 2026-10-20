@@ -125,6 +125,45 @@ return [
         ],
         'support_admin' => [],
 
+        // Super admin: may manage staff accounts (routes under /api/admin/staff).
+        // Effective permissions are always ['*'] (see StaffUser::allPermissions).
+        'super_admin' => [],
+
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Staff login lockout
+    |--------------------------------------------------------------------------
+    |
+    | After max_attempts consecutive failed password checks the account is
+    | locked for lock_minutes. A successful login resets the counter.
+    |
+    */
+
+    'lockout' => [
+        'max_attempts' => (int) env('STAFF_LOGIN_MAX_ATTEMPTS', 5),
+        'lock_minutes' => (int) env('STAFF_LOGIN_LOCK_MINUTES', 15),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Staff API tokens
+    |--------------------------------------------------------------------------
+    */
+
+    'token_minutes' => (int) env('STAFF_API_TOKEN_MINUTES', 480),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Local bootstrap super admin (seeder only, local/testing environments)
+    |--------------------------------------------------------------------------
+    */
+
+    'bootstrap' => [
+        'email' => env('STAFF_BOOTSTRAP_EMAIL'),
+        'password' => env('STAFF_BOOTSTRAP_PASSWORD'),
+        'name' => env('STAFF_BOOTSTRAP_NAME', 'Super Admin'),
     ],
 
     /*

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\NativeStorePurchase;
+use App\Services\NativeStore\AppleNotificationVerifier;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -16,14 +17,13 @@ use Illuminate\Support\Facades\Log;
  */
 class NativeStoreWebhookController extends Controller
 {
-    public function apple(Request $request): JsonResponse
+    public function apple(Request $request, AppleNotificationVerifier $verifier): JsonResponse
     {
-        $expectedToken = config('payments.stores.apple.webhook_token');
-        if ($expectedToken) {
-            $token = $request->query('token') ?: $request->header('X-Webhook-Token');
-            if (! $token || ! hash_equals((string) $expectedToken, (string) $token)) {
-                return response()->json(['error' => 'Unauthorized webhook.'], 401);
-            }
+        // Fail closed: both the shared token and the Apple JWS signature must pass.
+        $expectedToken = (string) config('payments.stores.apple.webhook_token');
+        $token = $request->query('token') ?: $request->header('X-Webhook-Token');
+        if ($expectedToken === '' || ! $token || ! hash_equals($expectedToken, (string) $token)) {
+            return response()->json(['error' => 'Unauthorized webhook.'], 401);
         }
 
         $signedPayload = is_string($request->input('signedPayload')) ? $request->input('signedPayload') : null;
@@ -33,7 +33,14 @@ class NativeStoreWebhookController extends Controller
         }
 
         try {
-            $payload = $this->decodeJwsPayload($signedPayload);
+            $payload = $verifier->verify($signedPayload);
+        } catch (\Throwable $e) {
+            Log::warning('Apple store notification failed signature verification', ['error' => $e->getMessage()]);
+
+            return response()->json(['error' => 'Invalid signedPayload signature.'], 401);
+        }
+
+        try {
             $type = $payload['notificationType'] ?? null;
 
             if (in_array($type, ['REFUND', 'REVOKE'], true)) {
@@ -73,12 +80,11 @@ class NativeStoreWebhookController extends Controller
 
     public function google(Request $request): JsonResponse
     {
-        $expectedToken = config('payments.stores.google.webhook_token');
-        if ($expectedToken) {
-            $token = $request->query('token') ?: $request->header('X-Webhook-Token');
-            if (! $token || ! hash_equals((string) $expectedToken, (string) $token)) {
-                return response()->json(['error' => 'Unauthorized webhook.'], 401);
-            }
+        // Fail closed: the payload is not signature-checked, so the shared token is the only proof of origin.
+        $expectedToken = (string) config('payments.stores.google.webhook_token');
+        $token = $request->query('token') ?: $request->header('X-Webhook-Token');
+        if ($expectedToken === '' || ! $token || ! hash_equals($expectedToken, (string) $token)) {
+            return response()->json(['error' => 'Unauthorized webhook.'], 401);
         }
 
         $data = $request->input('message.data');

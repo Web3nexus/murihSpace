@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Discount as Gift } from "@/components/icons";
-import { Sparkle, Fire as Flame } from "@/components/icons/rounded";;
+import { Coins, Fire as Flame } from "@/components/icons/rounded";;
 
 export interface GiftEventPayload {
   sender: {
@@ -26,11 +26,16 @@ interface LiveGiftOverlayProps {
 }
 
 export function LiveGiftOverlay({ giftEvent, onAnimationComplete }: LiveGiftOverlayProps) {
-  const [activeGift, setActiveGift] = useState<GiftEventPayload | null>(null);
+  // Show each new gift during render; the effect only schedules the hide timer.
+  const [activeGift, setActiveGift] = useState<GiftEventPayload | null>(giftEvent ?? null);
+  const [shownEvent, setShownEvent] = useState(giftEvent);
+  if (giftEvent !== shownEvent) {
+    setShownEvent(giftEvent);
+    setActiveGift(giftEvent ?? null);
+  }
 
   useEffect(() => {
     if (!giftEvent) return;
-    setActiveGift(giftEvent);
 
     const duration = giftEvent.gift.animation_type === "full_screen" ? 5000 : 3500;
     const timer = setTimeout(() => {
@@ -68,7 +73,7 @@ export function LiveGiftOverlay({ giftEvent, onAnimationComplete }: LiveGiftOver
             )}
           </div>
           {isPremium && (
-            <Sparkle weight="fill" className="h-5 w-5 text-amber-400 absolute -top-1 -right-1 animate-spin" />
+            <Coins weight="fill" className="h-5 w-5 text-amber-400 absolute -top-1 -right-1 animate-spin" />
           )}
         </div>
 

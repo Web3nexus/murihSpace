@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Message as MessageSquare, Send, DangerSquare as AlertCircle, Plus, ArrowLeft as ChevronLeft, Star, CloseSquare as X, Swap as RotateCcw, TickSquare as CheckCircle2 } from "@/components/icons";
 import { Spinner as Loader2, Paperclip } from "@/components/icons/rounded";;
 import { Button } from "@/components/ui/button";
@@ -66,7 +66,7 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 const STATUS_STYLES: Record<string, string> = {
-  new: "bg-[#2164b6]/15 text-[#2164b6] dark:bg-[#7ab0ff]/15 dark:text-[#7ab0ff]",
+  new: "bg-[var(--shell-accent-solid)]/15 text-[var(--shell-accent)] dark:bg-[var(--shell-accent)]/15 dark:text-[var(--shell-accent)]",
   open: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400",
   pending_customer: "bg-amber-500/15 text-amber-600 dark:text-amber-400",
   pending_internal: "bg-violet-500/15 text-violet-600 dark:text-violet-400",
@@ -158,12 +158,14 @@ export default function SupportThreadsPage() {
   const [ratingComment, setRatingComment] = useState("");
   const [ratingSent, setRatingSent] = useState(false);
 
+  const ticketsRequestRef = useRef(0);
   const fetchTickets = useCallback(async () => {
-    setFetchError(null);
+    const requestId = ++ticketsRequestRef.current;
     try {
       const res = await apiClient.get<{ success: boolean; data: TicketSummary[] }>("/tickets", {
         params: { status: statusFilter === "all" ? undefined : statusFilter },
       });
+      if (requestId !== ticketsRequestRef.current) return;
       const list = res.data?.data ?? [];
       setTickets(list);
       setSelectedId((current) => {
@@ -174,28 +176,28 @@ export default function SupportThreadsPage() {
         return current;
       });
     } catch (e) {
+      if (requestId !== ticketsRequestRef.current) return;
       setFetchError((e as { message?: string })?.message ?? "Failed to load tickets");
     } finally {
-      setLoading(false);
+      if (requestId === ticketsRequestRef.current) setLoading(false);
     }
   }, [statusFilter]);
 
-  const fetchCategories = useCallback(async () => {
-    try {
-      const res = await apiClient.get<{ success: boolean; data: TicketCategory[] }>("/tickets/categories");
-      setCategories(res.data?.data ?? []);
-    } catch {
-      setCategories([]);
-    }
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await apiClient.get<{ success: boolean; data: TicketCategory[] }>("/tickets/categories");
+        setCategories(res.data?.data ?? []);
+      } catch {
+        setCategories([]);
+      }
+    })();
   }, []);
 
   useEffect(() => {
-    fetchCategories();
-  }, [fetchCategories]);
-
-  useEffect(() => {
-    setLoading(true);
-    fetchTickets();
+    (async () => {
+      await fetchTickets();
+    })();
   }, [fetchTickets]);
 
   const openTicket = useCallback(async (id: number) => {
@@ -248,6 +250,7 @@ export default function SupportThreadsPage() {
         if (statusFilter === "all" || statusFilter === ticket.status) {
           setTickets((prev) => [ticket as TicketSummary, ...prev]);
         }
+        setFetchError(null);
         await fetchTickets();
         await openTicket(ticket.id);
       }
@@ -279,6 +282,7 @@ export default function SupportThreadsPage() {
     try {
       await apiClient.post(`/tickets/${selectedId}/status`, { status });
       await openTicket(selectedId);
+      setFetchError(null);
       await fetchTickets();
     } catch (e) {
       setActionError((e as { message?: string })?.message ?? "Failed to update status");
@@ -307,7 +311,7 @@ export default function SupportThreadsPage() {
   const canReply = detail && !["resolved", "closed"].includes(detail.status);
 
   if (loading) {
-    return <div className="flex justify-center py-24"><Loader2 weight="fill" className="h-8 w-8 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" /></div>;
+    return <div className="flex justify-center py-24"><Loader2 weight="fill" className="h-8 w-8 animate-spin text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" /></div>;
   }
 
   return (
@@ -315,7 +319,7 @@ export default function SupportThreadsPage() {
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-xl font-black tracking-tight flex items-center gap-2.5">
-            <MessageSquare weight="fill" className="h-6 w-6 text-[#2164b6] dark:text-[#7ab0ff]" /> My Tickets
+            <MessageSquare weight="fill" className="h-6 w-6 text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" /> My Tickets
           </h1>
           <p className="text-xs text-muted-foreground mt-1">
             Track your requests, reply to support, and rate our help.
@@ -329,7 +333,7 @@ export default function SupportThreadsPage() {
       {fetchError && (
         <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-xs text-destructive">
           <AlertCircle weight="fill" className="h-4 w-4 shrink-0" /> {fetchError}
-          <button onClick={() => { setLoading(true); fetchTickets(); }} className="ml-auto text-muted-foreground hover:text-foreground font-bold">Retry</button>
+          <button onClick={() => { setLoading(true); setFetchError(null); fetchTickets(); }} className="ml-auto text-muted-foreground hover:text-foreground font-bold">Retry</button>
         </div>
       )}
 
@@ -442,9 +446,17 @@ export default function SupportThreadsPage() {
         {["all", "open", "resolved", "closed"].map((f) => (
           <button
             key={f}
-            onClick={() => { setStatusFilter(f); setSelectedId(null); setDetail(null); }}
+            onClick={() => {
+              if (f !== statusFilter) {
+                setLoading(true);
+                setFetchError(null);
+              }
+              setStatusFilter(f);
+              setSelectedId(null);
+              setDetail(null);
+            }}
             className={`px-3 py-1.5 rounded-full text-xs font-bold transition-colors ${
-              statusFilter === f ? "bg-[#2164b6] text-white dark:bg-[#7ab0ff] dark:text-[#0d1b2a]" : "bg-muted text-muted-foreground hover:bg-muted/60"
+              statusFilter === f ? "bg-[var(--shell-accent-solid)] text-white dark:bg-[var(--shell-accent)] dark:text-[#0d1b2a]" : "bg-muted text-muted-foreground hover:bg-muted/60"
             }`}
           >
             {f === "all" ? "All" : STATUS_LABELS[f] ?? f}
@@ -506,7 +518,7 @@ export default function SupportThreadsPage() {
             </div>
           ) : detailLoading ? (
             <div className="flex-1 flex items-center justify-center">
-              <Loader2 weight="fill" className="h-8 w-8 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" />
+              <Loader2 weight="fill" className="h-8 w-8 animate-spin text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" />
             </div>
           ) : detail ? (
             <>
@@ -548,7 +560,7 @@ export default function SupportThreadsPage() {
 
                 {detail.messages.map((m) => (
                   <div key={m.id} className={`flex ${m.author === "customer" ? "justify-start" : "justify-end"}`}>
-                    <div className={`max-w-[85%] p-3 rounded-lg text-xs ${m.author === "customer" ? "bg-muted text-foreground" : "bg-[#2164b6]/15 text-foreground"}`}>
+                    <div className={`max-w-[85%] p-3 rounded-lg text-xs ${m.author === "customer" ? "bg-muted text-foreground" : "bg-[var(--shell-accent-solid)]/15 text-foreground"}`}>
                       <p className="font-bold text-[10px] text-muted-foreground mb-1">
                         {m.author === "customer" ? "You" : "Support"}
                       </p>

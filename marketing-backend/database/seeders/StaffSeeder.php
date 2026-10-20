@@ -12,41 +12,32 @@ class StaffSeeder extends Seeder
     use WithoutModelEvents;
 
     /**
-     * Seed default SecureCRM accounts.
+     * Creates one bootstrap super admin for local development, and only when
+     * STAFF_BOOTSTRAP_EMAIL and STAFF_BOOTSTRAP_PASSWORD are set in the
+     * environment. No account or password is hardcoded here.
      */
     public function run(): void
     {
         if (! app()->environment(['local', 'testing'])) {
             return;
         }
+
+        $email = config('staff.bootstrap.email');
+        $password = config('staff.bootstrap.password');
+
+        if (! $email || ! $password) {
+            return;
+        }
+
         StaffUser::firstOrCreate(
-            ['email' => 'admin@murihspace.com'],
+            ['email' => $email],
             [
-                'name' => 'SecureCRM Admin',
-                'password' => Hash::make('password'),
-                'role' => 'support_admin',
-                'is_active' => true,
+                'name' => config('staff.bootstrap.name'),
+                'password' => Hash::make($password),
+                'role' => StaffUser::ROLE_SUPER_ADMIN,
+                'status' => StaffUser::STATUS_ACTIVE,
                 'permissions' => null,
             ]
         );
-
-        $demoStaff = [
-            'agent@murihspace.com' => ['SecureCRM Agent', 'support_agent'],
-            'manager@murihspace.com' => ['SecureCRM Manager', 'support_manager'],
-            'content@murihspace.com' => ['Help Center Editor', 'content_manager'],
-        ];
-
-        foreach ($demoStaff as $email => [$name, $role]) {
-            StaffUser::firstOrCreate(
-                ['email' => $email],
-                [
-                    'name' => $name,
-                    'password' => Hash::make('password'),
-                    'role' => $role,
-                    'is_active' => true,
-                    'permissions' => null,
-                ]
-            );
-        }
     }
 }

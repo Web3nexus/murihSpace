@@ -23,7 +23,7 @@ interface PublicBadgeItem {
   icon_3d?: string | null;
   color?: string | null;
   icon_gradient?: string | null;
-  criteria?: any;
+  criteria?: unknown;
   earned_at?: string;
 }
 
@@ -156,87 +156,82 @@ export default function PublicProfilePage() {
 
   const isSelf = isAuthenticated && currentUser?.username?.toLowerCase() === cleanUsername;
 
-  const loadProfile = React.useCallback(async () => {
-    if (!cleanUsername) return;
-    setLoading(true);
-    setNotFound(false);
-    try {
-      // Use ?refresh=1 and Cache-Control: no-cache to guarantee fresh live data for profile owners & visitors
-      const res = await authFetch(`/users/${encodeURIComponent(cleanUsername)}/public?refresh=1`, {
-        headers: { "Cache-Control": "no-cache" },
-      });
-      if (!res.ok) {
+  React.useEffect(() => {
+    (async () => {
+      if (!cleanUsername) return;
+      setLoading(true);
+      setNotFound(false);
+      try {
+        // Use ?refresh=1 and Cache-Control: no-cache to guarantee fresh live data for profile owners & visitors
+        const res = await authFetch(`/users/${encodeURIComponent(cleanUsername)}/public?refresh=1`, {
+          headers: { "Cache-Control": "no-cache" },
+        });
+        if (!res.ok) {
+          setNotFound(true);
+          return;
+        }
+        const json = await res.json();
+        const data: PublicUserProfile = json?.data?.data ?? json?.data ?? json;
+        if (!data || !data.id) {
+          setNotFound(true);
+          return;
+        }
+        setProfile(data);
+        setFollowersCount(data.followers_count ?? 0);
+      } catch {
         setNotFound(true);
-        return;
+      } finally {
+        setLoading(false);
       }
-      const json = await res.json();
-      const data: PublicUserProfile = json?.data?.data ?? json?.data ?? json;
-      if (!data || !data.id) {
-        setNotFound(true);
-        return;
+    })();
+
+    (async () => {
+      if (!cleanUsername) return;
+      setReviewsLoading(true);
+      try {
+        const res = await authFetch(`/users/${encodeURIComponent(cleanUsername)}/reviews`);
+        if (res.ok) {
+          const json = await res.json();
+          const payload = json?.data?.data ?? json?.data ?? [];
+          const stats = json?.data?.stats ?? json?.stats ?? null;
+          setReviews(Array.isArray(payload) ? payload : []);
+          if (stats) setReviewStats(stats);
+        }
+      } catch {
+        // Ignore
+      } finally {
+        setReviewsLoading(false);
       }
-      setProfile(data);
-      setFollowersCount(data.followers_count ?? 0);
-    } catch {
-      setNotFound(true);
-    } finally {
-      setLoading(false);
-    }
+    })();
   }, [cleanUsername]);
 
-  const loadReviews = React.useCallback(async () => {
-    if (!cleanUsername) return;
-    setReviewsLoading(true);
-    try {
-      const res = await authFetch(`/users/${encodeURIComponent(cleanUsername)}/reviews`);
-      if (res.ok) {
-        const json = await res.json();
-        const payload = json?.data?.data ?? json?.data ?? [];
-        const stats = json?.data?.stats ?? json?.stats ?? null;
-        setReviews(Array.isArray(payload) ? payload : []);
-        if (stats) setReviewStats(stats);
-      }
-    } catch {
-      // Ignore
-    } finally {
-      setReviewsLoading(false);
-    }
-  }, [cleanUsername]);
+  React.useEffect(() => {
+    if (!profile?.id) return;
+    const userId = profile.id;
+    (async () => {
+      if (activeTab === "communities" || activeTab === "reviews") return;
+      setPostsLoading(true);
+      try {
+        let queryType = "all";
+        if (activeTab === "reels") queryType = "reels";
+        if (activeTab === "live") queryType = "live";
 
-  const loadTabPosts = React.useCallback(async (userId: number, tab: TabType) => {
-    if (tab === "communities" || tab === "reviews") return;
-    setPostsLoading(true);
-    try {
-      let queryType = "all";
-      if (tab === "reels") queryType = "reels";
-      if (tab === "live") queryType = "live";
-
-      const res = await authFetch(`/users/${userId}/posts?type=${queryType}`);
-      if (res.ok) {
-        const json = await res.json();
-        const raw = json?.data ?? json;
-        const list = Array.isArray(raw) ? raw : (Array.isArray(raw?.data) ? raw.data : []);
-        setTabPosts(list);
-      } else {
+        const res = await authFetch(`/users/${userId}/posts?type=${queryType}`);
+        if (res.ok) {
+          const json = await res.json();
+          const raw = json?.data ?? json;
+          const list = Array.isArray(raw) ? raw : (Array.isArray(raw?.data) ? raw.data : []);
+          setTabPosts(list);
+        } else {
+          setTabPosts([]);
+        }
+      } catch {
         setTabPosts([]);
+      } finally {
+        setPostsLoading(false);
       }
-    } catch {
-      setTabPosts([]);
-    } finally {
-      setPostsLoading(false);
-    }
-  }, []);
-
-  React.useEffect(() => {
-    loadProfile();
-    loadReviews();
-  }, [loadProfile, loadReviews]);
-
-  React.useEffect(() => {
-    if (profile?.id) {
-      loadTabPosts(profile.id, activeTab);
-    }
-  }, [profile?.id, activeTab, loadTabPosts]);
+    })();
+  }, [profile?.id, activeTab]);
 
   const handleShare = () => {
     setShowShareModal(true);
@@ -282,7 +277,7 @@ export default function PublicProfilePage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 weight="fill" className="h-8 w-8 animate-spin text-[#2164b6]" />
+        <Loader2 weight="fill" className="h-8 w-8 animate-spin text-[var(--shell-accent)]" />
       </div>
     );
   }
@@ -299,7 +294,7 @@ export default function PublicProfilePage() {
         </p>
         <Link
           to={isAuthenticated ? "/app" : "/"}
-          className="text-xs font-bold text-[#2164b6] hover:underline inline-flex items-center gap-1.5"
+          className="text-xs font-bold text-[var(--shell-accent)] hover:underline inline-flex items-center gap-1.5"
         >
           <ArrowLeft weight="fill" className="h-3.5 w-3.5" /> Go to MurihSpace
         </Link>
@@ -328,15 +323,15 @@ export default function PublicProfilePage() {
 
       {/* ── Profile Preview Banner for Self ── */}
       {isSelf && (
-        <div className="sticky top-0 z-50 bg-[#2164b6]/10 text-[#2164b6] border-b border-[#2164b6]/20 px-4 py-2.5 backdrop-blur-md flex items-center justify-between text-xs font-semibold">
+        <div className="sticky top-0 z-50 bg-[var(--shell-accent-solid)]/10 text-[var(--shell-accent)] border-b border-[var(--shell-accent)]/20 px-4 py-2.5 backdrop-blur-md flex items-center justify-between text-xs font-semibold">
           <div className="flex items-center gap-2">
-            <span className="h-2 w-2 rounded-full bg-[#2164b6] animate-pulse" />
+            <span className="h-2 w-2 rounded-full bg-[var(--shell-accent-solid)] animate-pulse" />
             <span>
               <strong>Profile Preview Mode</strong> — You are viewing your public profile as visitors see it.
             </span>
           </div>
           <Link to="/app/settings/profile">
-            <Button size="sm" className="h-7 text-xs font-bold rounded-lg bg-[#2164b6] text-white hover:bg-[#2164b6]/90 gap-1.5 shadow-sm">
+            <Button size="sm" className="h-7 text-xs font-bold rounded-lg bg-[var(--shell-accent-solid)] text-white hover:bg-[var(--shell-accent-solid)]/90 gap-1.5 shadow-sm">
               <PencilSimple weight="bold" className="h-3.5 w-3.5" />
               Edit Profile
             </Button>
@@ -376,7 +371,7 @@ export default function PublicProfilePage() {
                   });
                   setIsAuthModalOpen(true);
                 }}
-                className="h-8 text-xs font-bold bg-[#2164b6] text-white hover:bg-[#2164b6]/90 rounded-xl"
+                className="h-8 text-xs font-bold bg-[var(--shell-accent-solid)] text-white hover:bg-[var(--shell-accent-solid)]/90 rounded-xl"
               >
                 Log In
               </Button>
@@ -390,11 +385,11 @@ export default function PublicProfilePage() {
         {/* Profile Header Card */}
         <div className="overflow-hidden rounded-3xl border border-border bg-card shadow-sm">
           {/* Banner Surface */}
-          <div className="h-44 sm:h-56 w-full bg-[#131b26] dark:bg-[#0d131d] relative overflow-hidden">
+          <div className="h-44 sm:h-56 w-full bg-[var(--shell-canvas)] dark:bg-[var(--shell-canvas)] relative overflow-hidden">
             {profile.banner_url ? (
               <img src={profile.banner_url} alt="Cover Banner" className="w-full h-full object-cover" />
             ) : (
-              <div className="absolute inset-0 bg-[#131b26] dark:bg-[#0d131d] flex items-center justify-end pr-8">
+              <div className="absolute inset-0 bg-[var(--shell-canvas)] dark:bg-[var(--shell-canvas)] flex items-center justify-end pr-8">
                 <div
                   className="absolute inset-0 opacity-[0.07]"
                   style={{
@@ -433,7 +428,7 @@ export default function PublicProfilePage() {
                       {profile.name}
                     </h1>
                     {profile.has_active_verification_badge && (
-                      <VerifiedBadge className="h-5 w-5 text-[#1B64F2] shrink-0" aria-label="Verified" />
+                      <VerifiedBadge className="h-5 w-5 text-[var(--shell-accent)] shrink-0" aria-label="Verified" />
                     )}
                   </div>
                   <p className="text-xs font-bold text-muted-foreground font-mono">
@@ -449,7 +444,7 @@ export default function PublicProfilePage() {
                     <Link to="/app/settings/profile">
                       <Button
                         size="sm"
-                        className="h-9 text-xs font-bold gap-1.5 bg-[#2164b6] hover:bg-[#2164b6]/90 text-white rounded-xl shadow-sm"
+                        className="h-9 text-xs font-bold gap-1.5 bg-[var(--shell-accent-solid)] hover:bg-[var(--shell-accent-solid)]/90 text-white rounded-xl shadow-sm"
                       >
                         <PencilSimple weight="bold" className="h-3.5 w-3.5" /> Edit Profile
                       </Button>
@@ -472,7 +467,7 @@ export default function PublicProfilePage() {
                       className={`h-9 text-xs font-bold gap-1.5 rounded-xl ${
                         isFollowing
                           ? "bg-muted text-foreground hover:bg-muted/80 border border-border"
-                          : "bg-[#2164b6] text-white hover:bg-[#2164b6]/90 shadow-sm"
+                          : "bg-[var(--shell-accent-solid)] text-white hover:bg-[var(--shell-accent-solid)]/90 shadow-sm"
                       }`}
                     >
                       {isFollowing ? (
@@ -492,7 +487,7 @@ export default function PublicProfilePage() {
                       onClick={handleMessageClick}
                       className="h-9 text-xs font-semibold gap-1.5 border-border rounded-xl hover:bg-muted"
                     >
-                      <MessageSquare weight="bold" className="h-3.5 w-3.5 text-[#2164b6]" /> Message
+                      <MessageSquare weight="bold" className="h-3.5 w-3.5 text-[var(--shell-accent)]" /> Message
                     </Button>
 
                     {profile.storefront && (
@@ -502,7 +497,7 @@ export default function PublicProfilePage() {
                           variant="outline"
                           className="h-9 text-xs font-bold gap-1.5 border-border rounded-xl hover:bg-muted"
                         >
-                          <Storefront weight="bold" className="h-3.5 w-3.5 text-[#2164b6]" /> Store
+                          <Storefront weight="bold" className="h-3.5 w-3.5 text-[var(--shell-accent)]" /> Store
                         </Button>
                       </Link>
                     )}
@@ -522,7 +517,7 @@ export default function PublicProfilePage() {
 
             {/* Role & Badges */}
             <div className="flex flex-wrap items-center gap-2 mb-4">
-              <span className="px-2.5 py-0.5 rounded-full bg-[#2164b6]/10 text-[#2164b6] text-[11px] font-bold capitalize">
+              <span className="px-2.5 py-0.5 rounded-full bg-[var(--shell-accent-solid)]/10 text-[var(--shell-accent)] text-[11px] font-bold capitalize">
                 {profile.role || "Member"}
               </span>
               {(profile.average_rating || (reviewStats?.total ?? 0) > 0) && (
@@ -621,7 +616,7 @@ export default function PublicProfilePage() {
                 href={`/l/${profile.username}`}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#2164b6]/10 text-[#2164b6] text-xs font-bold hover:bg-[#2164b6]/15 transition-colors border border-[#2164b6]/20"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[var(--shell-accent-solid)]/10 text-[var(--shell-accent)] text-xs font-bold hover:bg-[var(--shell-accent-solid)]/15 transition-colors border border-[var(--shell-accent)]/20"
               >
                 <ExternalLink weight="bold" className="h-3.5 w-3.5" />
                 <span>{profileDomain()}/l/{profile.username}</span>
@@ -632,7 +627,7 @@ export default function PublicProfilePage() {
                   to={`/store/${profile.storefront.short_code}`}
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-muted text-foreground text-xs font-semibold hover:bg-muted/80 transition-colors border border-border"
                 >
-                  <Storefront weight="bold" className="h-3.5 w-3.5 text-[#2164b6]" />
+                  <Storefront weight="bold" className="h-3.5 w-3.5 text-[var(--shell-accent)]" />
                   <span>{profile.storefront.display_name || "Official Storefront"}</span>
                 </Link>
               )}
@@ -647,7 +642,7 @@ export default function PublicProfilePage() {
             onClick={() => setActiveTab("posts")}
             className={`px-4 py-3 text-xs font-bold flex items-center gap-2 border-b-2 transition-all whitespace-nowrap ${
               activeTab === "posts"
-                ? "border-[#2164b6] text-[#2164b6]"
+                ? "border-[var(--shell-accent)] text-[var(--shell-accent)]"
                 : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
           >
@@ -661,7 +656,7 @@ export default function PublicProfilePage() {
             onClick={() => setActiveTab("reels")}
             className={`px-4 py-3 text-xs font-bold flex items-center gap-2 border-b-2 transition-all whitespace-nowrap ${
               activeTab === "reels"
-                ? "border-[#2164b6] text-[#2164b6]"
+                ? "border-[var(--shell-accent)] text-[var(--shell-accent)]"
                 : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
           >
@@ -674,7 +669,7 @@ export default function PublicProfilePage() {
             onClick={() => setActiveTab("live")}
             className={`px-4 py-3 text-xs font-bold flex items-center gap-2 border-b-2 transition-all whitespace-nowrap ${
               activeTab === "live"
-                ? "border-[#2164b6] text-[#2164b6]"
+                ? "border-[var(--shell-accent)] text-[var(--shell-accent)]"
                 : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
           >
@@ -687,7 +682,7 @@ export default function PublicProfilePage() {
             onClick={() => setActiveTab("communities")}
             className={`px-4 py-3 text-xs font-bold flex items-center gap-2 border-b-2 transition-all whitespace-nowrap ${
               activeTab === "communities"
-                ? "border-[#2164b6] text-[#2164b6]"
+                ? "border-[var(--shell-accent)] text-[var(--shell-accent)]"
                 : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
           >
@@ -704,7 +699,7 @@ export default function PublicProfilePage() {
               onClick={() => setActiveTab("reviews")}
               className={`px-4 py-3 text-xs font-bold flex items-center gap-2 border-b-2 transition-all whitespace-nowrap ${
                 activeTab === "reviews"
-                  ? "border-[#2164b6] text-[#2164b6]"
+                  ? "border-[var(--shell-accent)] text-[var(--shell-accent)]"
                   : "border-transparent text-muted-foreground hover:text-foreground"
               }`}
             >
@@ -722,7 +717,7 @@ export default function PublicProfilePage() {
           <div>
             {postsLoading ? (
               <div className="py-16 text-center">
-                <Loader2 weight="fill" className="h-7 w-7 animate-spin text-[#2164b6] mx-auto mb-2" />
+                <Loader2 weight="fill" className="h-7 w-7 animate-spin text-[var(--shell-accent)] mx-auto mb-2" />
                 <p className="text-xs text-muted-foreground">Loading posts...</p>
               </div>
             ) : tabPosts.length === 0 ? (
@@ -736,7 +731,7 @@ export default function PublicProfilePage() {
                 </p>
                 {isSelf && (
                   <Link to="/app">
-                    <Button size="sm" className="h-8 text-xs font-bold bg-[#2164b6] text-white hover:bg-[#2164b6]/90 rounded-xl mt-2">
+                    <Button size="sm" className="h-8 text-xs font-bold bg-[var(--shell-accent-solid)] text-white hover:bg-[var(--shell-accent-solid)]/90 rounded-xl mt-2">
                       Create Post
                     </Button>
                   </Link>
@@ -747,7 +742,7 @@ export default function PublicProfilePage() {
                 {tabPosts.map((post) => (
                   <div
                     key={post.id}
-                    className="group rounded-2xl bg-card border border-border/70 overflow-hidden shadow-sm hover:border-[#2164b6]/50 transition-all flex flex-col justify-between"
+                    className="group rounded-2xl bg-card border border-border/70 overflow-hidden shadow-sm hover:border-[var(--shell-accent)]/50 transition-all flex flex-col justify-between"
                   >
                     <div>
                       {post.media_urls && post.media_urls.length > 0 && (
@@ -766,7 +761,7 @@ export default function PublicProfilePage() {
                       )}
                       <div className="p-4 space-y-2">
                         {post.community && (
-                          <span className="text-[10px] font-bold text-[#2164b6] bg-[#2164b6]/10 px-2 py-0.5 rounded-full inline-block">
+                          <span className="text-[10px] font-bold text-[var(--shell-accent)] bg-[var(--shell-accent-solid)]/10 px-2 py-0.5 rounded-full inline-block">
                             {post.community.name}
                           </span>
                         )}
@@ -809,7 +804,7 @@ export default function PublicProfilePage() {
           <div>
             {postsLoading ? (
               <div className="py-16 text-center">
-                <Loader2 weight="fill" className="h-7 w-7 animate-spin text-[#2164b6] mx-auto mb-2" />
+                <Loader2 weight="fill" className="h-7 w-7 animate-spin text-[var(--shell-accent)] mx-auto mb-2" />
                 <p className="text-xs text-muted-foreground">Loading media...</p>
               </div>
             ) : tabPosts.length === 0 ? (
@@ -870,7 +865,7 @@ export default function PublicProfilePage() {
           <div>
             {postsLoading ? (
               <div className="py-16 text-center">
-                <Loader2 weight="fill" className="h-7 w-7 animate-spin text-[#2164b6] mx-auto mb-2" />
+                <Loader2 weight="fill" className="h-7 w-7 animate-spin text-[var(--shell-accent)] mx-auto mb-2" />
                 <p className="text-xs text-muted-foreground">Loading streams...</p>
               </div>
             ) : tabPosts.length === 0 ? (
@@ -931,7 +926,7 @@ export default function PublicProfilePage() {
                   <Link
                     key={comm.id}
                     to={`/c/${comm.slug}`}
-                    className="group rounded-2xl border border-border bg-card p-4 hover:border-[#2164b6]/50 transition flex items-center gap-3.5 shadow-sm"
+                    className="group rounded-2xl border border-border bg-card p-4 hover:border-[var(--shell-accent)]/50 transition flex items-center gap-3.5 shadow-sm"
                   >
                     <div className="h-14 w-14 rounded-2xl bg-slate-800 flex items-center justify-center overflow-hidden shrink-0">
                       {comm.logo_url ? (
@@ -941,7 +936,7 @@ export default function PublicProfilePage() {
                       )}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <h3 className="text-sm font-bold text-foreground group-hover:text-[#2164b6] transition truncate">
+                      <h3 className="text-sm font-bold text-foreground group-hover:text-[var(--shell-accent)] transition truncate">
                         {comm.name}
                       </h3>
                       <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">
@@ -951,7 +946,7 @@ export default function PublicProfilePage() {
                         <Badge variant="outline" className="text-[10px] font-semibold px-2 py-0">
                           {comm.members_count} member{comm.members_count === 1 ? "" : "s"}
                         </Badge>
-                        <span className="text-[11px] font-bold text-[#2164b6]">
+                        <span className="text-[11px] font-bold text-[var(--shell-accent)]">
                           {comm.pricing_type === "paid" ? `$${comm.price_amount}` : "Free"}
                         </span>
                       </div>
@@ -1014,7 +1009,7 @@ export default function PublicProfilePage() {
             {/* Reviews List */}
             {reviewsLoading ? (
               <div className="py-12 text-center bg-card rounded-2xl border border-border">
-                <Loader2 weight="fill" className="h-6 w-6 animate-spin text-[#2164b6] mx-auto mb-2" />
+                <Loader2 weight="fill" className="h-6 w-6 animate-spin text-[var(--shell-accent)] mx-auto mb-2" />
                 <p className="text-xs text-muted-foreground">Loading reviews...</p>
               </div>
             ) : reviews.length === 0 ? (
@@ -1031,7 +1026,7 @@ export default function PublicProfilePage() {
                   <div key={rev.id} className="rounded-2xl bg-card border border-border p-4 sm:p-5 space-y-3 shadow-sm">
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex items-center gap-3">
-                        <div className="h-9 w-9 rounded-full bg-[#2164b6] flex items-center justify-center overflow-hidden shrink-0">
+                        <div className="h-9 w-9 rounded-full bg-[var(--shell-accent-solid)] flex items-center justify-center overflow-hidden shrink-0">
                           {rev.buyer?.avatar_url || rev.buyer?.avatar ? (
                             <img
                               src={rev.buyer.avatar_url || rev.buyer.avatar}
@@ -1084,9 +1079,9 @@ export default function PublicProfilePage() {
                     )}
 
                     {rev.vendor_reply && (
-                      <div className="mt-3 pl-3.5 border-l-2 border-[#2164b6] bg-[#2164b6]/5 dark:bg-[#2164b6]/10 rounded-r-xl p-3 space-y-1">
+                      <div className="mt-3 pl-3.5 border-l-2 border-[var(--shell-accent)] bg-[var(--shell-accent-solid)]/5 dark:bg-[var(--shell-accent-solid)]/10 rounded-r-xl p-3 space-y-1">
                         <div className="flex items-center justify-between">
-                          <span className="text-xs font-bold text-[#2164b6] flex items-center gap-1.5">
+                          <span className="text-xs font-bold text-[var(--shell-accent)] flex items-center gap-1.5">
                             <Storefront weight="fill" className="h-3.5 w-3.5" />
                             Response from seller ({profile.name})
                           </span>
@@ -1111,7 +1106,7 @@ export default function PublicProfilePage() {
         {/* Guest Preview Gating Card */}
         {!isAuthenticated && (
           <div className="rounded-3xl border border-dashed border-border bg-muted/20 p-6 text-center space-y-3 mt-6">
-            <div className="h-12 w-12 rounded-2xl bg-[#2164b6]/10 text-[#2164b6] flex items-center justify-center mx-auto">
+            <div className="h-12 w-12 rounded-2xl bg-[var(--shell-accent-solid)]/10 text-[var(--shell-accent)] flex items-center justify-center mx-auto">
               <Lock weight="fill" className="h-6 w-6" />
             </div>
             <div className="space-y-1">
@@ -1131,7 +1126,7 @@ export default function PublicProfilePage() {
                   });
                   setIsAuthModalOpen(true);
                 }}
-                className="h-9 px-5 rounded-xl text-xs font-bold bg-[#2164b6] text-white hover:bg-[#2164b6]/90"
+                className="h-9 px-5 rounded-xl text-xs font-bold bg-[var(--shell-accent-solid)] text-white hover:bg-[var(--shell-accent-solid)]/90"
               >
                 Create Account
               </Button>

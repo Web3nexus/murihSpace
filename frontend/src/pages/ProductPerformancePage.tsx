@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { Chart as BarChart3, Graph as TrendingUp } from "@/components/icons";
 import { Graph as TrendDown } from "@/components/icons";
 import { Spinner as Loader2, Minus } from "@/components/icons/rounded";;
@@ -17,20 +17,20 @@ export default function ProductPerformancePage() {
   const [stats, setStats] = useState<ProductStats[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchStats = useCallback(async () => {
-    try {
-      const res = await authFetch(`/analytics/products`, {  });
-      if (!res.ok) throw new Error();
-      const j = await res.json();
-      const list = j?.success ? j?.data : j;
-      setStats(list?.data ?? list ?? []);
-    } catch { /* ignore */ }
-    finally { setLoading(false); }
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await authFetch(`/analytics/products`, {  });
+        if (!res.ok) throw new Error();
+        const j = await res.json();
+        const list = j?.success ? j?.data : j;
+        setStats(list?.data ?? list ?? []);
+      } catch { /* ignore */ }
+      finally { setLoading(false); }
+    })();
   }, []);
 
-  useEffect(() => { fetchStats(); }, [fetchStats]);
-
-  if (loading) return <div className="flex justify-center py-24"><Loader2 weight="fill" className="h-8 w-8 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" /></div>;
+  if (loading) return <div className="flex justify-center py-24"><Loader2 weight="fill" className="h-8 w-8 animate-spin text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" /></div>;
 
   const totalRevenue = stats.reduce((sum, s) => sum + s.total_revenue, 0);
   const totalSales = stats.reduce((sum, s) => sum + s.total_sales, 0);
@@ -39,7 +39,7 @@ export default function ProductPerformancePage() {
     <div className="w-full max-w-7xl mx-auto space-y-6 p-4 lg:p-5">
       <div>
         <h1 className="text-xl font-black tracking-tight flex items-center gap-2.5">
-          <BarChart3 weight="fill" className="h-6 w-6 text-[#2164b6] dark:text-[#7ab0ff]" /> Product Performance
+          <BarChart3 weight="fill" className="h-6 w-6 text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" /> Product Performance
         </h1>
         <p className="text-xs text-muted-foreground mt-1">Analytics for your product performance.</p>
       </div>

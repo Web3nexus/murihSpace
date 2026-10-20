@@ -1,3 +1,5 @@
+import { authFetch } from "@/lib/api/authFetch";
+import { asApiError } from "@/lib/apiError";
 import { useCallback, useEffect, useState } from 'react';
 import { Bag as ShoppingCart, Wallet as CreditCard, TickSquare as CheckCircle2, DangerSquare as AlertCircle, Download, Ticket as Tag, Discovery as Globe } from "@/components/icons";
 import { Spinner as Loader2, Package, Lightning as Zap } from "@/components/icons/rounded";;
@@ -11,7 +13,6 @@ import {
 import { Button } from '@/components/ui/button';
 import type { DigitalProduct } from '@/types/digitalProduct';
 import type { CheckoutEstimate, CheckoutResult, PaymentProvider } from '@/types/order';
-import { getAuthToken } from '@/lib/auth/token';
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? 'http://localhost:8000/api/v1';
 const PLATFORM_FEE_RATE = 0.10;
@@ -61,7 +62,7 @@ export function CheckoutModal({ product, open, onClose }: CheckoutModalProps) {
 
   const loadCountries = useCallback(async () => {
     try {
-      const res = await fetch(`${API_BASE}/countries`, {
+      const res = await authFetch(`${API_BASE}/countries`, {
         headers: { Accept: 'application/json' },
       });
       if (!res.ok) return;
@@ -84,13 +85,11 @@ export function CheckoutModal({ product, open, onClose }: CheckoutModalProps) {
     async (code: string) => {
       setEstimating(true);
       try {
-        const token = getAuthToken();
-        const res = await fetch(`${API_BASE}/checkout/estimate`, {
+        const res = await authFetch(`${API_BASE}/checkout/estimate`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             Accept: 'application/json',
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
           },
           body: JSON.stringify({ product_id: product.id, country_code: code }),
         });
@@ -107,32 +106,32 @@ export function CheckoutModal({ product, open, onClose }: CheckoutModalProps) {
   );
 
   useEffect(() => {
-    if (open) {
-      loadCountries();
-    }
+    if (!open) return;
+    // Deferred so the loading state is not set synchronously inside the effect body
+    const timer = setTimeout(() => loadCountries(), 0);
+    return () => clearTimeout(timer);
   }, [open, loadCountries]);
 
   useEffect(() => {
-    if (open && !product.is_free && countryCode) {
-      fetchEstimate(countryCode);
-    }
+    if (!(open && !product.is_free && countryCode)) return;
+    // Deferred so the loading state is not set synchronously inside the effect body
+    const timer = setTimeout(() => fetchEstimate(countryCode), 0);
+    return () => clearTimeout(timer);
   }, [open, product.is_free, countryCode, fetchEstimate]);
 
   const handlePurchase = async () => {
     setStep('processing');
     setErrorMsg(null);
 
-    const token = getAuthToken();
     const idempotencyKey = `${product.id}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
     try {
       // Step 1: Create checkout intent
-      const intentRes = await fetch(`${API_BASE}/checkout/intent`, {
+      const intentRes = await authFetch(`${API_BASE}/checkout/intent`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Accept: 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({
           product_id: product.id,
@@ -157,12 +156,11 @@ export function CheckoutModal({ product, open, onClose }: CheckoutModalProps) {
 
       // Step 2: Complete mock payment (test mode)
       if (provider === 'mock') {
-        const completeRes = await fetch(`${API_BASE}/checkout/complete-mock`, {
+        const completeRes = await authFetch(`${API_BASE}/checkout/complete-mock`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             Accept: 'application/json',
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
           },
           body: JSON.stringify({ order_id: orderId }),
         });
@@ -171,10 +169,9 @@ export function CheckoutModal({ product, open, onClose }: CheckoutModalProps) {
         if (!completeRes.ok) throw new Error(completeJson.message ?? 'Payment completion failed.');
 
         // Step 3: Get full receipt
-        const receiptRes = await fetch(`${API_BASE}/orders/${orderId}/receipt`, {
+        const receiptRes = await authFetch(`${API_BASE}/orders/${orderId}/receipt`, {
           headers: {
             Accept: 'application/json',
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
           },
         });
 
@@ -183,7 +180,8 @@ export function CheckoutModal({ product, open, onClose }: CheckoutModalProps) {
         setStep('success');
       }
     } catch (err: unknown) {
-      setErrorMsg(err instanceof Error ? err.message : 'An error occurred during checkout.');
+      const apiErr = asApiError(err);
+      setErrorMsg(err instanceof Error ? apiErr.message : 'An error occurred during checkout.');
       setStep('error');
     }
   };

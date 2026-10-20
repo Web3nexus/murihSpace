@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useConfirm } from "@/components/ui/DialogProvider";
 import { Plus, Edit as Pencil, Delete as Trash2, Download as FloppyDisk, CloseSquare as X, TickSquare as Check, DangerSquare as AlertCircle, TickSquare as CheckCircle2, Show as Eye, Hide as EyeOff, ArrowRight as ChevronRight } from "@/components/icons";
 import { HardDrive, Spinner as Loader2, Question as HelpCircle, ArrowSquareOut as ExternalLink } from "@/components/icons/rounded";;
@@ -47,21 +47,27 @@ export default function AdminObjectStorageProvidersPage() {
   const [showSecret, setShowSecret] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
-  const loadProviders = useCallback(async () => {
+  const [loadProvidersKey, setLoadProvidersKey] = useState(0);
+  const loadProviders = () => {
     setLoading(true);
-    try {
-      const res = await authFetch(`/securegate/storage/providers`, {  });
-      const j = await res.json();
-      const list = j?.data?.data ?? j?.data ?? j?.providers ?? [];
-      setProviders(Array.isArray(list) ? list : []);
-    } catch {
-      setMsg({ ok: false, text: "Failed to load providers" });
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+    setLoadProvidersKey((k) => k + 1);
+  };
 
-  useEffect(() => { loadProviders(); }, [loadProviders]);
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await authFetch(`/securegate/storage/providers`, {  });
+        const j = await res.json();
+        const list = j?.data?.data ?? j?.data ?? j?.providers ?? [];
+        setProviders(Array.isArray(list) ? list : []);
+      } catch {
+        setMsg({ ok: false, text: "Failed to load providers" });
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [loadProvidersKey]);
+
 
   function beginAdd() {
     setEditing({ ...emptyForm });
@@ -265,8 +271,8 @@ export default function AdminObjectStorageProvidersPage() {
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Machine Key</label>
-              <input
+              <label htmlFor="f-objectstorageproviderspage-tsx-268" className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Machine Key</label>
+              <input id="f-objectstorageproviderspage-tsx-268"
                 type="text"
                 value={editing.key ?? ""}
                 onChange={(e) => setField("key", e.target.value)}
@@ -276,8 +282,8 @@ export default function AdminObjectStorageProvidersPage() {
               <p className="text-[10px] text-muted-foreground">Unique identifier (lowercase, no spaces)</p>
             </div>
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Display Label</label>
-              <input
+              <label htmlFor="f-objectstorageproviderspage-tsx-279" className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Display Label</label>
+              <input id="f-objectstorageproviderspage-tsx-279"
                 type="text"
                 value={editing.label ?? ""}
                 onChange={(e) => setField("label", e.target.value)}
@@ -289,8 +295,8 @@ export default function AdminObjectStorageProvidersPage() {
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Access Key ID</label>
-              <input
+              <label htmlFor="f-objectstorageproviderspage-tsx-292" className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Access Key ID</label>
+              <input id="f-objectstorageproviderspage-tsx-292"
                 type="text"
                 value={editing.access_key ?? ""}
                 onChange={(e) => setField("access_key", e.target.value)}
@@ -298,9 +304,9 @@ export default function AdminObjectStorageProvidersPage() {
               />
             </div>
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Secret Access Key</label>
+              <label htmlFor="f-objectstorageproviderspage-tsx-301" className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Secret Access Key</label>
               <div className="relative">
-                <input
+                <input id="f-objectstorageproviderspage-tsx-301"
                   type={showSecret ? "text" : "password"}
                   value={editing.secret_key ?? ""}
                   onChange={(e) => setField("secret_key", e.target.value)}
@@ -320,8 +326,8 @@ export default function AdminObjectStorageProvidersPage() {
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Bucket</label>
-              <input
+              <label htmlFor="f-objectstorageproviderspage-tsx-323" className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Bucket</label>
+              <input id="f-objectstorageproviderspage-tsx-323"
                 type="text"
                 value={editing.bucket ?? ""}
                 onChange={(e) => setField("bucket", e.target.value)}
@@ -330,8 +336,8 @@ export default function AdminObjectStorageProvidersPage() {
               />
             </div>
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Region</label>
-              <input
+              <label htmlFor="f-objectstorageproviderspage-tsx-333" className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Region</label>
+              <input id="f-objectstorageproviderspage-tsx-333"
                 type="text"
                 value={editing.region ?? ""}
                 onChange={(e) => setField("region", e.target.value)}
@@ -343,8 +349,8 @@ export default function AdminObjectStorageProvidersPage() {
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Endpoint URL</label>
-              <input
+              <label htmlFor="f-objectstorageproviderspage-tsx-346" className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Endpoint URL</label>
+              <input id="f-objectstorageproviderspage-tsx-346"
                 type="text"
                 value={editing.endpoint ?? ""}
                 onChange={(e) => setField("endpoint", e.target.value)}
@@ -353,8 +359,8 @@ export default function AdminObjectStorageProvidersPage() {
               />
             </div>
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">CDN / Public URL</label>
-              <input
+              <label htmlFor="f-objectstorageproviderspage-tsx-356" className="text-xs font-bold text-muted-foreground uppercase tracking-wider">CDN / Public URL</label>
+              <input id="f-objectstorageproviderspage-tsx-356"
                 type="text"
                 value={editing.url ?? ""}
                 onChange={(e) => setField("url", e.target.value)}

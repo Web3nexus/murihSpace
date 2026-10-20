@@ -81,14 +81,14 @@ export const StoreSettingsTab: React.FC<StoreSettingsTabProps> = ({
   return (
     <div className="space-y-6 pt-2 max-w-4xl">
       {/* Top Banner */}
-      <div className="bg-[#171D25] border border-[#29313C] rounded-2xl p-5 flex items-center justify-between shadow-sm">
+      <div className="bg-[var(--shell-surface)] border border-[var(--shell-border)] rounded-2xl p-5 flex items-center justify-between shadow-sm">
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-[#087FFF]">
+          <div className="h-10 w-10 rounded-xl bg-[var(--shell-accent-solid)]/10 border border-[var(--shell-accent)]/20 flex items-center justify-center text-[var(--shell-accent)]">
             <GearSix className="h-5 w-5" />
           </div>
           <div>
             <h3 className="text-base font-bold text-white tracking-tight">Store Settings</h3>
-            <p className="text-xs text-[#A7B0BE] mt-0.5">
+            <p className="text-xs text-[var(--shell-muted)] mt-0.5">
               Configure your store handle, visibility preferences, and public metadata.
             </p>
           </div>
@@ -110,21 +110,22 @@ export const StoreSettingsTab: React.FC<StoreSettingsTabProps> = ({
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Store Handle & URL Section */}
-        <div className="bg-[#171D25] border border-[#29313C] rounded-2xl p-6 space-y-4">
-          <div className="flex items-center gap-2 pb-3 border-b border-[#29313C]/60">
-            <Globe className="h-4 w-4 text-[#087FFF]" />
+        <div className="bg-[var(--shell-surface)] border border-[var(--shell-border)] rounded-2xl p-6 space-y-4">
+          <div className="flex items-center gap-2 pb-3 border-b border-[var(--shell-border)]/60">
+            <Globe className="h-4 w-4 text-[var(--shell-accent)]" />
             <h4 className="text-sm font-bold text-white">Public URL & Slug</h4>
           </div>
 
           <div className="space-y-2">
-            <label className="text-xs font-bold text-[#A7B0BE] uppercase tracking-wider">
+            <label htmlFor="store-short-handle" className="text-xs font-bold text-[var(--shell-muted)] uppercase tracking-wider">
               Custom Short Handle
             </label>
-            <div className="flex items-center bg-[#0B0F14] border border-[#29313C] rounded-xl overflow-hidden focus-within:border-[#087FFF]">
-              <span className="px-3.5 text-xs text-[#A7B0BE] font-semibold bg-[#202731] border-r border-[#29313C] py-2.5">
+            <div className="flex items-center bg-[var(--shell-canvas)] border border-[var(--shell-border)] rounded-xl overflow-hidden focus-within:border-[#087FFF]">
+              <span className="px-3.5 text-xs text-[var(--shell-muted)] font-semibold bg-[var(--shell-surface)] border-r border-[var(--shell-border)] py-2.5">
                 {window.location.origin}/store/
               </span>
               <input
+                id="store-short-handle"
                 type="text"
                 value={formShortCode}
                 onChange={(e) => setFormShortCode(e.target.value)}
@@ -132,7 +133,7 @@ export const StoreSettingsTab: React.FC<StoreSettingsTabProps> = ({
                 placeholder="web3nexus"
               />
             </div>
-            <p className="text-[11px] text-[#5A6577]">
+            <p className="text-[11px] text-[var(--shell-muted)]">
               Buyers access your store at this link. Use letters, numbers, and hyphens only.
             </p>
           </div>
@@ -143,7 +144,7 @@ export const StoreSettingsTab: React.FC<StoreSettingsTabProps> = ({
               variant="outline"
               size="sm"
               onClick={handleCopyLink}
-              className="bg-[#202731] border-[#29313C] text-[#F5F7FA] hover:text-white text-xs font-semibold gap-1.5"
+              className="bg-[var(--shell-surface)] border-[var(--shell-border)] text-[var(--shell-text)] hover:text-white text-xs font-semibold gap-1.5"
             >
               <Copy className="h-3.5 w-3.5" />
               {copied ? 'Link Copied!' : 'Copy Full Link'}
@@ -152,7 +153,7 @@ export const StoreSettingsTab: React.FC<StoreSettingsTabProps> = ({
               href={`/store/${encodeURIComponent(formShortCode || shortCode)}?preview=true`}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg border bg-[#202731] border-[#29313C] text-[#F5F7FA] hover:text-white text-xs font-semibold"
+              className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg border bg-[var(--shell-surface)] border-[var(--shell-border)] text-[var(--shell-text)] hover:text-white text-xs font-semibold"
             >
               <ArrowSquareOut className="h-3.5 w-3.5" />
               Visit Public Store
@@ -161,58 +162,58 @@ export const StoreSettingsTab: React.FC<StoreSettingsTabProps> = ({
         </div>
 
         {/* Store Profile Details */}
-        <div className="bg-[#171D25] border border-[#29313C] rounded-2xl p-6 space-y-4">
-          <div className="flex items-center gap-2 pb-3 border-b border-[#29313C]/60">
-            <ShieldCheck className="h-4 w-4 text-[#087FFF]" />
+        <div className="bg-[var(--shell-surface)] border border-[var(--shell-border)] rounded-2xl p-6 space-y-4">
+          <div className="flex items-center gap-2 pb-3 border-b border-[var(--shell-border)]/60">
+            <ShieldCheck className="h-4 w-4 text-[var(--shell-accent)]" />
             <h4 className="text-sm font-bold text-white">Store Identity Details</h4>
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-[#A7B0BE] uppercase tracking-wider mb-1.5">
+            <label htmlFor="f-tore-tabs-storesettingstab-tsx-171" className="block text-xs font-bold text-[var(--shell-muted)] uppercase tracking-wider mb-1.5">
               Store Title
             </label>
-            <input
+            <input id="f-tore-tabs-storesettingstab-tsx-171"
               type="text"
               value={formDisplayName}
               onChange={(e) => setFormDisplayName(e.target.value)}
-              className="w-full bg-[#0B0F14] border border-[#29313C] rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-[#087FFF]"
+              className="w-full bg-[var(--shell-canvas)] border border-[var(--shell-border)] rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-[var(--shell-accent)]"
               placeholder="e.g. Vincent"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-[#A7B0BE] uppercase tracking-wider mb-1.5">
+            <label htmlFor="f-tore-tabs-storesettingstab-tsx-184" className="block text-xs font-bold text-[var(--shell-muted)] uppercase tracking-wider mb-1.5">
               Tagline
             </label>
-            <input
+            <input id="f-tore-tabs-storesettingstab-tsx-184"
               type="text"
               value={formTagline}
               onChange={(e) => setFormTagline(e.target.value)}
-              className="w-full bg-[#0B0F14] border border-[#29313C] rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-[#087FFF]"
+              className="w-full bg-[var(--shell-canvas)] border border-[var(--shell-border)] rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-[var(--shell-accent)]"
               placeholder="Welcome to my official creator storefront."
             />
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-[#A7B0BE] uppercase tracking-wider mb-1.5">
+            <label htmlFor="f-tore-tabs-storesettingstab-tsx-197" className="block text-xs font-bold text-[var(--shell-muted)] uppercase tracking-wider mb-1.5">
               Biography & About
             </label>
-            <textarea
+            <textarea id="f-tore-tabs-storesettingstab-tsx-197"
               rows={3}
               value={formBio}
               onChange={(e) => setFormBio(e.target.value)}
-              className="w-full bg-[#0B0F14] border border-[#29313C] rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-[#087FFF] resize-none"
+              className="w-full bg-[var(--shell-canvas)] border border-[var(--shell-border)] rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-[var(--shell-accent)] resize-none"
               placeholder="Tell visitors what you make and share..."
             />
           </div>
         </div>
 
         {/* Visibility & Publication */}
-        <div className="bg-[#171D25] border border-[#29313C] rounded-2xl p-6 space-y-4">
+        <div className="bg-[var(--shell-surface)] border border-[var(--shell-border)] rounded-2xl p-6 space-y-4">
           <div className="flex items-center justify-between">
             <div>
               <h4 className="text-sm font-bold text-white">Storefront Visibility</h4>
-              <p className="text-xs text-[#A7B0BE] mt-0.5">
+              <p className="text-xs text-[var(--shell-muted)] mt-0.5">
                 {isPublished
                   ? 'Your store is currently live and viewable by everyone.'
                   : 'Your store is currently in draft mode and hidden from public visitors.'}
@@ -225,7 +226,7 @@ export const StoreSettingsTab: React.FC<StoreSettingsTabProps> = ({
               className={`text-xs font-bold rounded-xl px-4 py-2 ${
                 isPublished
                   ? 'bg-amber-500/15 border border-amber-500/30 text-amber-400 hover:bg-amber-500/25'
-                  : 'bg-[#087FFF] hover:bg-[#0770E3] text-white'
+                  : 'bg-[var(--shell-accent-solid)] hover:bg-[var(--shell-accent-hover)] text-white'
               }`}
             >
               {isTogglingPublish ? 'Updating…' : isPublished ? 'Unpublish Store' : 'Publish Store Now'}
@@ -237,7 +238,7 @@ export const StoreSettingsTab: React.FC<StoreSettingsTabProps> = ({
           <Button
             type="submit"
             disabled={isSaving}
-            className="h-10 px-6 bg-[#087FFF] hover:bg-[#0770E3] text-white font-bold text-xs rounded-xl shadow-md transition-all"
+            className="h-10 px-6 bg-[var(--shell-accent-solid)] hover:bg-[var(--shell-accent-hover)] text-white font-bold text-xs rounded-xl shadow-md transition-all"
           >
             {isSaving ? 'Saving…' : 'Save Settings'}
           </Button>

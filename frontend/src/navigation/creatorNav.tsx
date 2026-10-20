@@ -1,5 +1,5 @@
 import { Chart as ChartBar, N2User as Users, N3User as UsersThree, Chat as ChatCircleDots, Video as VideoCamera, Video as VideoConference, Calendar as CalendarCheck, Bag as ShoppingBag, Graph as TrendUp, Discount as Gift, Star, Wallet, Setting as Gear, ShieldDone as ShieldCheck } from "@/components/icons";
-import { LinkSimple, GraduationCap, Megaphone, Broadcast, Handshake } from "@/components/icons/rounded";;
+import { LinkSimple, GraduationCap, Megaphone, Handshake } from "@/components/icons/rounded";;
 import type { NavGroup } from "./navTypes";
 
 export const creatorNav: NavGroup[] = [
@@ -64,14 +64,10 @@ export const creatorNav: NavGroup[] = [
       },
       {
         title: "Ads Manager",
-        url: "/app/ads",
+        url: "",
+        external: "ads-manager",
+        description: "Sign in with your MurihSpace account on the Ads Manager site. Opens in a new tab.",
         icon: <Megaphone weight="fill" className="h-5 w-5" />,
-      },
-      {
-        title: "Marketing",
-        url: "/app/marketing",
-        icon: <Broadcast weight="fill" className="h-5 w-5" />,
-        featureFlag: "email_broadcasts",
       },
       {
         title: "Brand Deals",

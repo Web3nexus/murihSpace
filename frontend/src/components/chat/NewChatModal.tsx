@@ -17,7 +17,7 @@ export const NewChatModal: React.FC<NewChatModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-200">
       {/* Backdrop click handler */}
-      <div className="fixed inset-0" onClick={onClose} role="button" tabIndex={-1} aria-label="Close modal" />
+      <button type="button" className="fixed inset-0" onClick={onClose} tabIndex={-1} aria-label="Close modal" />
 
       {/* Modal Sheet */}
       <div className="relative z-10 w-full max-w-sm rounded-t-3xl sm:rounded-3xl bg-card border-none/80 shadow-2xl p-5 space-y-4 animate-in slide-in-from-bottom duration-300">

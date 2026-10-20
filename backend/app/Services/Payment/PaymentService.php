@@ -328,7 +328,9 @@ class PaymentService
     protected function fulfillCoinPurchase(Payment $payment): void
     {
         $coinRate = CoinPackControllerAlias::coinConversionRate();
-        $usdMinor = $payment->amount;
+        // The charge includes the transaction fee. Coins and the recorded price use the pre-fee amount.
+        $usdMinor = (int) ($payment->metadata['amount_usd_minor'] ?? $payment->amount);
+        $txFee = (int) ($payment->metadata['transaction_fee'] ?? 0);
 
         $pack = null;
         if (! empty($payment->metadata['coin_pack_id'])) {
@@ -373,6 +375,7 @@ class PaymentService
             'coins' => $coins,
             'bonus_coins' => $bonus,
             'amount_paid' => $usdMinor,
+            'transaction_fee' => $txFee,
             'currency' => 'USD',
             'status' => 'completed',
             'provider' => $payment->provider,
@@ -384,6 +387,17 @@ class PaymentService
             'tax_type' => $metadata['tax_type'] ?? 'provider_handled',
             'tax_name' => $metadata['tax_name'] ?? null,
         ]);
+
+        // The transaction fee is platform revenue, as on the mock path.
+        if ($txFee > 0) {
+            $this->ledgerService->creditPlatformRevenue(
+                amount: $txFee,
+                currency: 'USD',
+                description: "Coin purchase transaction fee via {$payment->provider}",
+                idempotencyKey: 'COIN_FEE_'.$payment->idempotency_key,
+                metadata: ['payment_id' => $payment->id, 'provider' => $payment->provider],
+            );
+        }
     }
 
     /**
@@ -461,9 +475,9 @@ class PaymentService
         }
 
         // Fee split mirrors GiftController::send
-        $feeRes = app(\App\Services\Wallet\FeeCalculatorService::class)->calculate('GIFT_RECEIVING', $giftPrice, 'USD');
-        $feeAmt = (int) $feeRes['fee_amount'];
-        $netEarns = (int) $feeRes['net_amount'];
+        $split = app(\App\Services\Commission\CommissionService::class)->splitGift($giftPrice);
+        $feeAmt = $split['platform_commission'];
+        $netEarns = $split['creator_earns'];
 
         DB::transaction(function () use ($payment, $sender, $recipient, $gift, $grossCoins, $giftPrice, $feeAmt, $netEarns, $coinRate) {
             // 1. Fund the sender's coin balance with the priced amount
@@ -492,12 +506,10 @@ class PaymentService
             );
 
             // 3. Credit recipient creator wallet (net of platform fee)
-            $this->ledgerService->credit(
-                user: $recipient,
+            app(\App\Services\Wallet\SellerEarningsService::class)->credit(
+                seller: $recipient,
                 amount: $netEarns,
                 currency: 'USD',
-                walletType: 'creator',
-                balanceCategory: 'available',
                 type: 'creator_gift_receipt',
                 description: "Gift received from @{$sender->username}: {$gift->name} (Net: {$netEarns}, Fee: {$feeAmt})",
                 idempotencyKey: 'GIFT_'.$payment->idempotency_key.'-credit',

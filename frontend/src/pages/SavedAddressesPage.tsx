@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { Location as MapPin, Plus, Edit, Delete as Trash2, TickSquare as CheckCircle } from "@/components/icons";
 import { Spinner as Loader2 } from "@/components/icons/rounded";;
 import { Button } from "@/components/ui/button";
@@ -45,18 +45,24 @@ export default function SavedAddressesPage() {
   const [zip, setZip] = useState("");
   const [phone, setPhone] = useState("");
 
-  const fetchAddresses = useCallback(async () => {
-    try {
-      const res = await authFetch(`/addresses`, {  });
-      if (!res.ok) throw new Error("Failed to load");
-      const j = await res.json();
-      const list = j?.success ? j?.data : j;
-      setAddresses(list?.data ?? list ?? []);
-    } catch { /* ignore */ }
-    finally { setLoading(false); }
-  }, []);
+  const [fetchAddressesKey, setFetchAddressesKey] = useState(0);
+  const fetchAddresses = () => {
+    setFetchAddressesKey((k) => k + 1);
+  };
 
-  useEffect(() => { fetchAddresses(); }, [fetchAddresses]);
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await authFetch(`/addresses`, {  });
+        if (!res.ok) throw new Error("Failed to load");
+        const j = await res.json();
+        const list = j?.success ? j?.data : j;
+        setAddresses(list?.data ?? list ?? []);
+      } catch { /* ignore */ }
+      finally { setLoading(false); }
+    })();
+  }, [fetchAddressesKey]);
+
 
   const resetForm = () => {
     setLabel(""); setFullName(""); setStreet(""); setCity(""); setState(""); setCountry("NG"); setZip(""); setPhone("");
@@ -106,14 +112,14 @@ export default function SavedAddressesPage() {
     fetchAddresses();
   };
 
-  if (loading) return <div className="flex justify-center py-24"><Loader2 weight="fill" className="h-8 w-8 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" /></div>;
+  if (loading) return <div className="flex justify-center py-24"><Loader2 weight="fill" className="h-8 w-8 animate-spin text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" /></div>;
 
   return (
     <div className="w-full max-w-7xl mx-auto space-y-6 p-4 lg:p-5">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-black tracking-tight flex items-center gap-2.5">
-            <MapPin weight="fill" className="h-6 w-6 text-[#2164b6] dark:text-[#7ab0ff]" /> Saved Addresses
+            <MapPin weight="fill" className="h-6 w-6 text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" /> Saved Addresses
           </h1>
           <p className="text-xs text-muted-foreground mt-1">Manage your shipping and billing addresses.</p>
         </div>
@@ -127,35 +133,35 @@ export default function SavedAddressesPage() {
           {msg && <div className={`p-3 rounded-lg text-xs font-bold ${msg.ok ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'}`}>{msg.text}</div>}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <label className="text-xs font-bold text-muted-foreground">Label</label>
-              <Input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Home / Work" required />
+              <label htmlFor="f-pages-savedaddressespage-tsx-130" className="text-xs font-bold text-muted-foreground">Label</label>
+              <Input id="f-pages-savedaddressespage-tsx-130" value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Home / Work" required />
             </div>
             <div className="space-y-2">
-              <label className="text-xs font-bold text-muted-foreground">Full Name</label>
-              <Input value={fullName} onChange={(e) => setFullName(e.target.value)} required />
+              <label htmlFor="f-pages-savedaddressespage-tsx-134" className="text-xs font-bold text-muted-foreground">Full Name</label>
+              <Input id="f-pages-savedaddressespage-tsx-134" value={fullName} onChange={(e) => setFullName(e.target.value)} required />
             </div>
             <div className="space-y-2 md:col-span-2">
-              <label className="text-xs font-bold text-muted-foreground">Street Address</label>
-              <Input value={street} onChange={(e) => setStreet(e.target.value)} required />
+              <label htmlFor="f-pages-savedaddressespage-tsx-138" className="text-xs font-bold text-muted-foreground">Street Address</label>
+              <Input id="f-pages-savedaddressespage-tsx-138" value={street} onChange={(e) => setStreet(e.target.value)} required />
             </div>
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-muted-foreground">Country</label>
+            <div role="group" aria-labelledby="addr-country-label" className="space-y-2">
+              <span id="addr-country-label" className="text-xs font-bold text-muted-foreground">Country</span>
               <CountrySelect value={country} onChange={(iso2) => setCountry(iso2)} />
             </div>
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-muted-foreground">State / Province</label>
+            <div role="group" aria-labelledby="addr-state-label" className="space-y-2">
+              <span id="addr-state-label" className="text-xs font-bold text-muted-foreground">State / Province</span>
               <StateSelect countryIso2={country} value={state} onChange={setState} />
             </div>
             <div className="space-y-2">
-              <label className="text-xs font-bold text-muted-foreground">City</label>
-              <Input value={city} onChange={(e) => setCity(e.target.value)} required />
+              <label htmlFor="f-pages-savedaddressespage-tsx-150" className="text-xs font-bold text-muted-foreground">City</label>
+              <Input id="f-pages-savedaddressespage-tsx-150" value={city} onChange={(e) => setCity(e.target.value)} required />
             </div>
             <div className="space-y-2">
-              <label className="text-xs font-bold text-muted-foreground">ZIP / Postal Code</label>
-              <Input value={zip} onChange={(e) => setZip(e.target.value)} />
+              <label htmlFor="f-pages-savedaddressespage-tsx-154" className="text-xs font-bold text-muted-foreground">ZIP / Postal Code</label>
+              <Input id="f-pages-savedaddressespage-tsx-154" value={zip} onChange={(e) => setZip(e.target.value)} />
             </div>
-            <div className="space-y-2 md:col-span-2">
-              <label className="text-xs font-bold text-muted-foreground">Phone</label>
+            <div role="group" aria-labelledby="addr-phone-label" className="space-y-2 md:col-span-2">
+              <span id="addr-phone-label" className="text-xs font-bold text-muted-foreground">Phone</span>
               <PhoneInput countryIso2={country} value={phone} onChange={setPhone} />
             </div>
           </div>
@@ -180,7 +186,7 @@ export default function SavedAddressesPage() {
             <div key={a.id} className="border-none rounded-lg bg-card p-5 space-y-3 hover: transition-shadow relative">
               {a.is_default && <span className="absolute top-3 right-3 text-emerald-400"><CheckCircle weight="fill" className="h-4 w-4" /></span>}
               <div className="flex items-center gap-2">
-                <MapPin weight="fill" className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" />
+                <MapPin weight="fill" className="h-4 w-4 text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" />
                 <span className="text-xs font-bold text-foreground">{a.label}</span>
                 {a.is_default && <span className="text-[10px] text-emerald-400 font-bold">Default</span>}
               </div>

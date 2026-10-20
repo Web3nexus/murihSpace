@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { Discount as Gift } from "@/components/icons";
 import { Trophy, Crown, Spinner as Loader2 } from "@/components/icons/rounded";;
 import { apiClient } from "@/lib/api/client";
@@ -23,23 +23,26 @@ export function TopGiftersLeaderboard({ sessionId }: TopGiftersLeaderboardProps)
   const [gifters, setGifters] = useState<TopGifter[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchLeaderboard = useCallback(async () => {
-    try {
-      const res = await apiClient.get(`/gifts/leaderboard/${sessionId}`);
-      const list = res.data?.data || [];
-      setGifters(list);
-    } catch {
-      /* ignore */
-    } finally {
-      setLoading(false);
-    }
-  }, [sessionId]);
-
   useEffect(() => {
+    let cancelled = false;
+    const fetchLeaderboard = async () => {
+      try {
+        const res = await apiClient.get(`/gifts/leaderboard/${sessionId}`);
+        const list = res.data?.data || [];
+        if (!cancelled) setGifters(list);
+      } catch {
+        /* ignore */
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
     fetchLeaderboard();
     const interval = setInterval(fetchLeaderboard, 10000); // refresh every 10s
-    return () => clearInterval(interval);
-  }, [fetchLeaderboard]);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [sessionId]);
 
   if (loading && gifters.length === 0) {
     return (
@@ -68,7 +71,7 @@ export function TopGiftersLeaderboard({ sessionId }: TopGiftersLeaderboardProps)
           return (
             <div key={g.sender_id} className="flex items-center justify-between text-xs py-1 px-1.5 rounded-lg hover:bg-muted/30">
               <div className="flex items-center gap-2">
-                <span className={`w-5 text-center font-bold text-xs ${rank === 1 ? "text-amber-500" : rank === 2 ? "text-slate-400" : rank === 3 ? "text-amber-700" : "text-muted-foreground"}`}>
+                <span className={`w-5 text-center font-bold text-xs ${rank === 1 ? "text-amber-500" : rank === 2 ? "text-[var(--shell-muted)]" : rank === 3 ? "text-amber-700" : "text-muted-foreground"}`}>
                   {rank === 1 ? <Crown weight="fill" className="h-3.5 w-3.5 mx-auto text-amber-500" /> : `#${rank}`}
                 </span>
                 <span className="font-semibold text-foreground truncate max-w-[100px]">

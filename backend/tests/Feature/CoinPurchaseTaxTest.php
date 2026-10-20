@@ -73,7 +73,7 @@ class CoinPurchaseTaxTest extends TestCase
             'id' => $purchaseId,
             'amount_paid' => 500,
             'tax' => 50,
-            'total_charged' => 550,
+            'total_charged' => 575, // 500 price + 50 VAT + 25 transaction fee (5%)
             'tax_country_code' => 'TST',
             'tax_type' => 'vat',
         ]);

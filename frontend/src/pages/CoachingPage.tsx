@@ -1,3 +1,4 @@
+import { asApiError } from "@/lib/apiError";
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router';
 import { useConfirm } from '@/components/ui/DialogProvider';
@@ -66,6 +67,17 @@ interface CoachingBooking {
 }
 
 type Tab = 'browse' | 'my-services' | 'my-bookings' | 'my-sessions';
+
+/** Loads one paginated coaching list into `setItems`. Failures are silent, as before. */
+async function fetchCoachingList<T>(url: string, setItems: (items: T[]) => void) {
+  try {
+    const res = await authFetch(url);
+    if (res.ok) {
+      const json = await res.json();
+      setItems(json.data?.data ?? []);
+    }
+  } catch { /* silent */ }
+}
 
 function formatDateTime(iso: string) {
   const d = new Date(iso);
@@ -269,7 +281,7 @@ function BookingRow({
         {booking.status === 'confirmed' && isOnline && (
           <Button
             onClick={() => onJoinMeeting(booking)}
-            className="h-10 px-4 rounded-2xl bg-[#1877f2] hover:bg-[#166fe5] text-white text-xs font-bold gap-2 shadow-sm shadow-[#1877f2]/20"
+            className="h-10 px-4 rounded-2xl bg-[var(--shell-accent-solid)] hover:bg-[var(--shell-accent-hover)] text-white text-xs font-bold gap-2 shadow-sm shadow-[#1877f2]/20"
           >
             <VideoCamera weight="fill" className="h-4 w-4 animate-pulse" />
             Join MurihSpace Meeting
@@ -345,45 +357,25 @@ export function CoachingPage() {
   const sessionsPage = 1;
 
   // ── Data fetching ──────────────────────────────────────────────
-  const fetchPublicServices = useCallback(async () => {
-    try {
-      const res = await authFetch(`/coaching/services?page=${browsePage}&per_page=20`);
-      if (res.ok) {
-        const json = await res.json();
-        setServices(json.data?.data ?? []);
-      }
-    } catch { /* silent */ }
-  }, [browsePage]);
+  const fetchPublicServices = useCallback(
+    () => fetchCoachingList(`/coaching/services?page=${browsePage}&per_page=20`, setServices),
+    [browsePage],
+  );
 
-  const fetchMyServices = useCallback(async () => {
-    try {
-      const res = await authFetch(`/coaching/my-services?page=${servicesPage}&per_page=20`);
-      if (res.ok) {
-        const json = await res.json();
-        setMyServices(json.data?.data ?? []);
-      }
-    } catch { /* silent */ }
-  }, [servicesPage]);
+  const fetchMyServices = useCallback(
+    () => fetchCoachingList(`/coaching/my-services?page=${servicesPage}&per_page=20`, setMyServices),
+    [servicesPage],
+  );
 
-  const fetchMyBookings = useCallback(async () => {
-    try {
-      const res = await authFetch(`/coaching/my-bookings?page=${bookingsPage}&per_page=20`);
-      if (res.ok) {
-        const json = await res.json();
-        setMyBookings(json.data?.data ?? []);
-      }
-    } catch { /* silent */ }
-  }, [bookingsPage]);
+  const fetchMyBookings = useCallback(
+    () => fetchCoachingList(`/coaching/my-bookings?page=${bookingsPage}&per_page=20`, setMyBookings),
+    [bookingsPage],
+  );
 
-  const fetchMySessions = useCallback(async () => {
-    try {
-      const res = await authFetch(`/coaching/my-sessions?page=${sessionsPage}&per_page=20`);
-      if (res.ok) {
-        const json = await res.json();
-        setMySessions(json.data?.data ?? []);
-      }
-    } catch { /* silent */ }
-  }, [sessionsPage]);
+  const fetchMySessions = useCallback(
+    () => fetchCoachingList(`/coaching/my-sessions?page=${sessionsPage}&per_page=20`, setMySessions),
+    [sessionsPage],
+  );
 
   useEffect(() => { fetchPublicServices().finally(() => setIsLoadingServices(false)); }, [fetchPublicServices]);
   useEffect(() => { fetchMyServices(); }, [fetchMyServices]);
@@ -447,7 +439,8 @@ export function CoachingPage() {
       fetchMyServices();
       fetchPublicServices();
     } catch (err: unknown) {
-      setMessage({ type: 'error', text: err instanceof Error ? err.message : 'An error occurred.' });
+      const apiErr = asApiError(err);
+      setMessage({ type: 'error', text: err instanceof Error ? apiErr.message : 'An error occurred.' });
     }
     setIsSubmitting(false);
   };
@@ -461,7 +454,8 @@ export function CoachingPage() {
       setMyServices((prev) => prev.filter((s) => s.id !== id));
       setMessage({ type: 'success', text: 'Service deleted.' });
     } catch (err: unknown) {
-      setMessage({ type: 'error', text: err instanceof Error ? err.message : 'Delete failed.' });
+      const apiErr = asApiError(err);
+      setMessage({ type: 'error', text: err instanceof Error ? apiErr.message : 'Delete failed.' });
     }
   };
 
@@ -501,7 +495,8 @@ export function CoachingPage() {
         setTab('my-bookings');
       }
     } catch (err: unknown) {
-      setMessage({ type: 'error', text: err instanceof Error ? err.message : 'Booking failed.' });
+      const apiErr = asApiError(err);
+      setMessage({ type: 'error', text: err instanceof Error ? apiErr.message : 'Booking failed.' });
     }
     setIsSubmitting(false);
   };
@@ -516,7 +511,8 @@ export function CoachingPage() {
       fetchMyBookings();
       fetchMySessions();
     } catch (err: unknown) {
-      setMessage({ type: 'error', text: err instanceof Error ? err.message : 'Cancellation failed.' });
+      const apiErr = asApiError(err);
+      setMessage({ type: 'error', text: err instanceof Error ? apiErr.message : 'Cancellation failed.' });
     }
   };
 
@@ -528,7 +524,8 @@ export function CoachingPage() {
       setMessage({ type: 'success', text: json.message });
       fetchMySessions();
     } catch (err: unknown) {
-      setMessage({ type: 'error', text: err instanceof Error ? err.message : 'Failed to complete session.' });
+      const apiErr = asApiError(err);
+      setMessage({ type: 'error', text: err instanceof Error ? apiErr.message : 'Failed to complete session.' });
     }
   };
 
@@ -828,10 +825,10 @@ export function CoachingPage() {
             <form onSubmit={handleSaveService} className="p-6 space-y-5">
               {/* Service Title */}
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-foreground uppercase tracking-wider">
+                <label htmlFor="f-pages-coachingpage-tsx-831" className="text-xs font-bold text-foreground uppercase tracking-wider">
                   Service Title *
                 </label>
-                <Input
+                <Input id="f-pages-coachingpage-tsx-831"
                   value={sfName}
                   onChange={(e) => setSfName(e.target.value)}
                   required
@@ -842,10 +839,10 @@ export function CoachingPage() {
 
               {/* Description */}
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-foreground uppercase tracking-wider">
+                <label htmlFor="f-pages-coachingpage-tsx-845" className="text-xs font-bold text-foreground uppercase tracking-wider">
                   Description
                 </label>
-                <textarea
+                <textarea id="f-pages-coachingpage-tsx-845"
                   value={sfDesc}
                   onChange={(e) => setSfDesc(e.target.value)}
                   placeholder="What topics will you cover in this session?"
@@ -856,9 +853,9 @@ export function CoachingPage() {
 
               {/* Location Type / Meeting Mode Visual Selector */}
               <div className="space-y-2">
-                <label className="text-xs font-bold text-foreground uppercase tracking-wider">
+                <span className="text-xs font-bold text-foreground uppercase tracking-wider">
                   Meeting Location *
-                </label>
+                </span>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {/* MurihSpace Meeting */}
                   <button
@@ -928,10 +925,10 @@ export function CoachingPage() {
                 {/* If in_person: Show venue input */}
                 {sfLocation === 'in_person' && (
                   <div className="space-y-1 pt-1">
-                    <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+                    <label htmlFor="f-pages-coachingpage-tsx-931" className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
                       Meeting Venue / Address
                     </label>
-                    <Input
+                    <Input id="f-pages-coachingpage-tsx-931"
                       value={sfVenue}
                       onChange={(e) => setSfVenue(e.target.value)}
                       placeholder="e.g. Starbucks, Victoria Island, Lagos"
@@ -945,9 +942,9 @@ export function CoachingPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* Duration */}
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-foreground uppercase tracking-wider">
+                  <span className="text-xs font-bold text-foreground uppercase tracking-wider">
                     Duration (Minutes) *
-                  </label>
+                  </span>
                   <div className="flex items-center gap-1.5 flex-wrap">
                     {['15', '30', '45', '60'].map((mins) => (
                       <button
@@ -979,7 +976,7 @@ export function CoachingPage() {
 
                 {/* Price */}
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-foreground uppercase tracking-wider">
+                  <label htmlFor="coaching-service-price" className="text-xs font-bold text-foreground uppercase tracking-wider">
                     Price (NGN ₦)
                   </label>
                   <div className="relative">
@@ -987,6 +984,7 @@ export function CoachingPage() {
                       ₦
                     </span>
                     <Input
+                      id="coaching-service-price"
                       type="number"
                       value={sfPrice}
                       onChange={(e) => setSfPrice(e.target.value)}
@@ -1005,10 +1003,10 @@ export function CoachingPage() {
               {/* Scheduling Settings */}
               <div className="grid grid-cols-2 gap-3 pt-2 border-t border-border/40">
                 <div className="space-y-1">
-                  <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+                  <label htmlFor="f-pages-coachingpage-tsx-1008" className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
                     Buffer Time (min)
                   </label>
-                  <Input
+                  <Input id="f-pages-coachingpage-tsx-1008"
                     type="number"
                     value={sfBuffer}
                     onChange={(e) => setSfBuffer(e.target.value)}
@@ -1018,10 +1016,10 @@ export function CoachingPage() {
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+                  <label htmlFor="f-pages-coachingpage-tsx-1021" className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
                     Daily Limit
                   </label>
-                  <Input
+                  <Input id="f-pages-coachingpage-tsx-1021"
                     type="number"
                     value={sfMaxDaily}
                     onChange={(e) => setSfMaxDaily(e.target.value)}
@@ -1114,8 +1112,8 @@ export function CoachingPage() {
               )}
 
               <div className="space-y-1">
-                <label className="text-xs font-bold text-foreground uppercase tracking-wider">Notes for host (optional)</label>
-                <textarea
+                <label htmlFor="f-pages-coachingpage-tsx-1117" className="text-xs font-bold text-foreground uppercase tracking-wider">Notes for host (optional)</label>
+                <textarea id="f-pages-coachingpage-tsx-1117"
                   value={bookingNotes}
                   onChange={(e) => setBookingNotes(e.target.value)}
                   placeholder="What would you like to discuss during this session?"

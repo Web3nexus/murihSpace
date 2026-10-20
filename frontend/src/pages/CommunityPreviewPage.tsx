@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import { authFetch } from "@/lib/api/authFetch";
 import * as React from "react";
 import { useParams, Link, useNavigate } from "react-router";
@@ -83,7 +84,7 @@ export function CommunityPreviewPage() {
       }
       setError("Community not found.");
     } catch (e) {
-      console.error('Failed to load community', e);
+      logger.error('Failed to load community', e);
       setError("Unable to connect to the server. Please check your connection and try again.");
     } finally {
       setIsLoading(false);
@@ -128,7 +129,9 @@ export function CommunityPreviewPage() {
   };
 
   React.useEffect(() => {
-    loadCommunity();
+    // Deferred so the loading state is not set synchronously inside the effect body
+    const timer = setTimeout(() => loadCommunity(), 0);
+    return () => clearTimeout(timer);
   }, [loadCommunity]);
 
   const loadMembers = React.useCallback(async () => {
@@ -147,7 +150,7 @@ export function CommunityPreviewPage() {
       }
       setMembersError("Failed to load members.");
     } catch (e) {
-      console.error('Failed to load members', e);
+      logger.error('Failed to load members', e);
       setMembersError("Unable to load members.");
     } finally {
       setMembersLoading(false);
@@ -179,7 +182,7 @@ export function CommunityPreviewPage() {
             });
           }
         }
-      } catch (_) {}
+      } catch { /* ignored: best-effort, failure is non-fatal */ }
 
       // Fetch Digital Products
       try {
@@ -201,25 +204,28 @@ export function CommunityPreviewPage() {
             });
           }
         }
-      } catch (_) {}
+      } catch { /* ignored: best-effort, failure is non-fatal */ }
 
       setCoursesGoods(items);
-    } catch (_) {
+    } catch {
+    /* ignored: best-effort, failure is non-fatal */
     } finally {
       setCoursesGoodsLoading(false);
     }
   }, []);
 
   React.useEffect(() => {
-    if (activeTab === "courses") {
-      loadCoursesGoods();
-    }
+    if (activeTab !== "courses") return;
+    // Deferred so the loading state is not set synchronously inside the effect body
+    const timer = setTimeout(() => loadCoursesGoods(), 0);
+    return () => clearTimeout(timer);
   }, [activeTab, loadCoursesGoods]);
 
   React.useEffect(() => {
-    if (activeTab === "members" && community) {
-      loadMembers();
-    }
+    if (!(activeTab === "members" && community)) return;
+    // Deferred so the loading state is not set synchronously inside the effect body
+    const timer = setTimeout(() => loadMembers(), 0);
+    return () => clearTimeout(timer);
   }, [activeTab, community, loadMembers]);
 
   const handleStatusChange = (_newStatus: "active" | "pending" | "none", newCount: number) => {
@@ -325,7 +331,7 @@ export function CommunityPreviewPage() {
       {/* Hero Banner */}
       <div className="relative rounded-3xl overflow-hidden border-none bg-card ">
         {/* Cover Photo */}
-        <div className="h-64 sm:h-80 w-full relative bg-gradient-to-r from-[#102840] via-[#173852] to-[#2164b6]/50">
+        <div className="h-64 sm:h-80 w-full relative bg-gradient-to-r from-[#102840] via-[#173852] to-[var(--shell-accent-solid)]/50">
           {community.cover_url && (
             <img
               src={community.cover_url}
@@ -349,7 +355,7 @@ export function CommunityPreviewPage() {
               )}
             </Badge>
 
-            <Badge className="bg-[#2164b6] text-white font-bold px-3 py-1 text-xs">
+            <Badge className="bg-[var(--shell-accent-solid)] text-white font-bold px-3 py-1 text-xs">
               {community.pricing_type === "paid"
                 ? `$${community.price_amount}`
                 : "FREE ACCESS"}

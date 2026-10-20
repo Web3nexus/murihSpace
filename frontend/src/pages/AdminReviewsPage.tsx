@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useConfirm } from '@/components/ui/DialogProvider';
 import { Message as MessageSquare, TickSquare as CheckCircle2, CloseSquare as XCircle, Delete as Trash2, DangerSquare as AlertCircle } from "@/components/icons";
 import { Medal as Award, Spinner as Loader2 } from "@/components/icons/rounded";;
@@ -37,19 +37,25 @@ export function AdminReviewsPage() {
   const [page, setPage] = useState(1);
   const [lastPage, setLastPage] = useState(1);
 
-  const fetchReviews = useCallback(async () => {
+  const [fetchReviewsKey, setFetchReviewsKey] = useState(0);
+  const fetchReviews = () => {
     setFetchError(null);
-    try {
-      const params = new URLSearchParams({ page: String(page), per_page: '20' });
-      if (filter !== 'all') params.set('status', filter);
-      const res = await authFetch(`/securegate/reviews?${params}`, {  });
-      if (res.ok) { const j = await res.json(); setReviews(j?.data?.data ?? j?.data ?? []); setLastPage(j.data?.last_page ?? j.data?.data?.last_page ?? 1); }
-      else throw new Error(`HTTP ${res.status}`);
-    } catch (e) { setFetchError(e instanceof Error ? e.message : 'Failed to load reviews'); }
-    finally { setIsLoading(false); }
-  }, [page, filter]);
+    setFetchReviewsKey((k) => k + 1);
+  };
 
-  useEffect(() => { fetchReviews(); }, [fetchReviews]);
+  useEffect(() => {
+    (async () => {
+      try {
+        const params = new URLSearchParams({ page: String(page), per_page: '20' });
+        if (filter !== 'all') params.set('status', filter);
+        const res = await authFetch(`/securegate/reviews?${params}`, {  });
+        if (res.ok) { const j = await res.json(); setReviews(j?.data?.data ?? j?.data ?? []); setLastPage(j.data?.last_page ?? j.data?.data?.last_page ?? 1); }
+        else throw new Error(`HTTP ${res.status}`);
+      } catch (e) { setFetchError(e instanceof Error ? e.message : 'Failed to load reviews'); }
+      finally { setIsLoading(false); }
+    })();
+  }, [fetchReviewsKey, page, filter]);
+
 
   async function toggleApprove(id: number) {
     try {
@@ -77,7 +83,7 @@ export function AdminReviewsPage() {
     <div className="w-full mx-auto max-w-[1400px] space-y-6 p-4 lg:p-10">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 sm:p-5 rounded-lg bg-gradient-to-br from-[#102840] via-[#173852] to-[#102840] text-white shadow-lg">
         <div className="space-y-1.5">
-          <span className="px-2.5 py-0.5 rounded-full bg-[#2164b6]/20 text-[#2164b6] dark:text-[#7ab0ff] text-xs font-semibold uppercase tracking-wider border border-[#2164b6]/30">Admin</span>
+          <span className="px-2.5 py-0.5 rounded-full bg-[var(--shell-accent-solid)]/20 text-[var(--shell-accent)] dark:text-[var(--shell-accent)] text-xs font-semibold uppercase tracking-wider border border-[var(--shell-accent)]/30">Admin</span>
           <h1 className="text-xl sm:text-xl font-extrabold tracking-tight">Review Moderation</h1>
           <p className="text-sm text-white/70 max-w-xl">Approve, reject, or remove product reviews.</p>
         </div>

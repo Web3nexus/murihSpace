@@ -1,3 +1,5 @@
+import { authFetch } from "@/lib/api/authFetch";
+import { asApiError } from "@/lib/apiError";
 import * as React from "react";
 import {
   Dialog,
@@ -16,7 +18,6 @@ import { ErrorState, EmptyState } from "@/components/common/UIStateComponents";
 import { RoleBadge } from "@/components/community/RoleBadge";
 import { Plus, TickSquare as Check, DangerSquare as AlertCircle, Password as Key, ShieldDone as ShieldCheck } from "@/components/icons";
 import type { CommunityRole, PermissionDefinition } from "@/types/community";
-import { getAuthToken } from "@/lib/auth/token";
 
 interface RoleManagementModalProps {
   open: boolean;
@@ -70,7 +71,7 @@ const DEFAULT_PERMISSIONS: PermissionDefinition[] = [
   },
 ];
 
-export function RoleManagementModal({
+function RoleManagementModalContent({
   open,
   onOpenChange,
   communityId,
@@ -79,7 +80,8 @@ export function RoleManagementModal({
   const [roles, setRoles] = React.useState<CommunityRole[]>([]);
   const [permissionsMatrix] = React.useState<PermissionDefinition[]>(DEFAULT_PERMISSIONS);
   const [tab, setTab] = React.useState<"roles" | "create">("roles");
-  const [isLoadingRoles, setIsLoadingRoles] = React.useState(false);
+  // Mounted only while open (see RoleManagementModal), so loading starts true.
+  const [isLoadingRoles, setIsLoadingRoles] = React.useState(true);
   const [rolesError, setRolesError] = React.useState<string | null>(null);
 
   // New role form state
@@ -91,35 +93,41 @@ export function RoleManagementModal({
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [error, setError] = React.useState("");
 
-  // Fetch community roles
-  const fetchRoles = React.useCallback(async () => {
-    if (!open || !communityId) return;
-    setIsLoadingRoles(true);
-    setRolesError(null);
-    try {
-      const token = getAuthToken();
-      const res = await fetch(`${API_BASE}/communities/${communityId}/roles`, {
-        headers: {
-          Accept: "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setRoles(data.data?.roles ?? data.roles ?? []);
-      } else {
-        setRolesError("Failed to load roles. Please try again.");
-      }
-    } catch {
-      setRolesError("Unable to connect to the server. Please check your connection and try again.");
-    } finally {
-      setIsLoadingRoles(false);
-    }
-  }, [open, communityId]);
+  const [attempt, setAttempt] = React.useState(0);
 
+  // Fetch community roles. Results are written only after the request settles.
   React.useEffect(() => {
-    fetchRoles();
-  }, [fetchRoles]);
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await authFetch(`${API_BASE}/communities/${communityId}/roles`, {
+          headers: {
+            Accept: "application/json",
+          },
+        });
+        if (cancelled) return;
+        if (res.ok) {
+          const data = await res.json();
+          setRoles(data.data?.roles ?? data.roles ?? []);
+        } else {
+          setRolesError("Failed to load roles. Please try again.");
+        }
+      } catch {
+        if (!cancelled) setRolesError("Unable to connect to the server. Please check your connection and try again.");
+      } finally {
+        if (!cancelled) setIsLoadingRoles(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [communityId, attempt]);
+
+  const retryRoles = () => {
+    setRolesError(null);
+    setIsLoadingRoles(true);
+    setAttempt((n) => n + 1);
+  };
 
   const togglePermission = (key: string) => {
     setSelectedPermissions((prev) =>
@@ -138,13 +146,11 @@ export function RoleManagementModal({
     setIsSubmitting(true);
 
     try {
-      const token = getAuthToken();
-      const res = await fetch(`${API_BASE}/communities/${communityId}/roles`, {
+      const res = await authFetch(`${API_BASE}/communities/${communityId}/roles`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Accept: "application/json",
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           name: roleName.trim(),
@@ -163,7 +169,8 @@ export function RoleManagementModal({
       setSelectedPermissions(["create_posts"]);
       setTab("roles");
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to create role.");
+      const apiErr = asApiError(err);
+      setError(err instanceof Error ? apiErr.message : "Failed to create role.");
     } finally {
       setIsSubmitting(false);
     }
@@ -222,7 +229,7 @@ export function RoleManagementModal({
               <ErrorState
                 title="Failed to load roles"
                 description={rolesError}
-                onRetry={fetchRoles}
+                onRetry={retryRoles}
               />
             ) : roles.length === 0 ? (
               <EmptyState
@@ -388,4 +395,9 @@ export function RoleManagementModal({
       </DialogContent>
     </Dialog>
   );
+}
+
+export function RoleManagementModal(props: RoleManagementModalProps) {
+  if (!props.open) return null;
+  return <RoleManagementModalContent {...props} />;
 }

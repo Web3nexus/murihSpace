@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { AddUser as UserPlus, N2User as Users, TimeCircle as Clock, TickSquare as Check, CloseSquare as X, Search as MagnifyingGlass, Message as ChatTeardropText, N3User as UsersThree, MoreCircle as DotsThree, MoreSquare as DotsThreeVertical, Discount as Gift, Star, Work as Briefcase, Show as Eye, Setting as SlidersHorizontal, Category as SquaresFour, Plus, Delete as Trash, VerifiedBadge, Heart, Profile as User, Scan as QrCode } from "@/components/icons";
 import { Spinner, UserCheck, UserMinus, Prohibit, Cake, Palette, ListDashes } from "@/components/icons/rounded";;
 import { apiClient } from "@/lib/api/client";
@@ -141,7 +141,7 @@ function Avatar({
   }
   return (
     <div
-      className={`rounded-full bg-gradient-to-br from-[#2164b6] to-[#1a6b9e] text-white flex items-center justify-center shrink-0 select-none ${className}`}
+      className={`rounded-full bg-gradient-to-br from-[var(--shell-accent-solid)] to-[#1a6b9e] text-white flex items-center justify-center shrink-0 select-none ${className}`}
       style={{ width: size, height: size }}
     >
       <User weight="fill" className="text-white/90" style={{ width: size * 0.55, height: size * 0.55 }} />
@@ -225,49 +225,50 @@ export default function FriendsPage({ initialTab }: FriendsPageProps) {
   }, [customLists]);
 
   // Fetch all friend data
-  const fetchAll = useCallback(async () => {
+  const [fetchAllKey, setFetchAllKey] = useState(0);
+  const fetchAll = () => {
     setLoading(true);
     setError(null);
-    try {
-      const [fRes, rRes, sRes, sugRes, bRes] = await Promise.all([
-        apiClient.get("/friends").catch(() => ({ data: { data: [] } })),
-        apiClient.get("/friends/requests").catch(() => ({ data: { data: [] } })),
-        apiClient.get("/friends/requests/sent").catch(() => ({ data: { data: [] } })),
-        apiClient.get("/friends/suggestions").catch(() => ({ data: { data: [] } })),
-        apiClient.get("/friends/birthdays").catch(() => ({ data: { data: { today: [], upcoming: [], total_with_birthdays: 0 } } })),
-      ]);
-
-      setFriends(unwrapList<FriendListItem>(fRes.data?.data ?? fRes.data));
-      setIncoming(unwrapList<FriendRequestItem>(rRes.data?.data ?? rRes.data));
-      setOutgoing(unwrapList<FriendRequestItem>(sRes.data?.data ?? sRes.data));
-      setSuggestions(unwrapList<FriendUser>(sugRes.data?.data ?? sugRes.data));
-
-      const bdayData = bRes.data?.data ?? bRes.data;
-      if (bdayData && typeof bdayData === "object") {
-        setBirthdays({
-          today: Array.isArray(bdayData.today) ? bdayData.today : [],
-          upcoming: Array.isArray(bdayData.upcoming) ? bdayData.upcoming : [],
-          total_with_birthdays: Number(bdayData.total_with_birthdays ?? 0),
-        });
-      }
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to load friends.");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+    setFetchAllKey((k) => k + 1);
+  };
 
   useEffect(() => {
-    fetchAll();
-  }, [fetchAll]);
+    (async () => {
+      try {
+        const [fRes, rRes, sRes, sugRes, bRes] = await Promise.all([
+          apiClient.get("/friends").catch(() => ({ data: { data: [] } })),
+          apiClient.get("/friends/requests").catch(() => ({ data: { data: [] } })),
+          apiClient.get("/friends/requests/sent").catch(() => ({ data: { data: [] } })),
+          apiClient.get("/friends/suggestions").catch(() => ({ data: { data: [] } })),
+          apiClient.get("/friends/birthdays").catch(() => ({ data: { data: { today: [], upcoming: [], total_with_birthdays: 0 } } })),
+        ]);
+
+        setFriends(unwrapList<FriendListItem>(fRes.data?.data ?? fRes.data));
+        setIncoming(unwrapList<FriendRequestItem>(rRes.data?.data ?? rRes.data));
+        setOutgoing(unwrapList<FriendRequestItem>(sRes.data?.data ?? sRes.data));
+        setSuggestions(unwrapList<FriendUser>(sugRes.data?.data ?? sugRes.data));
+
+        const bdayData = bRes.data?.data ?? bRes.data;
+        if (bdayData && typeof bdayData === "object") {
+          setBirthdays({
+            today: Array.isArray(bdayData.today) ? bdayData.today : [],
+            upcoming: Array.isArray(bdayData.upcoming) ? bdayData.upcoming : [],
+            total_with_birthdays: Number(bdayData.total_with_birthdays ?? 0),
+          });
+        }
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Failed to load friends.");
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [fetchAllKey]);
+
 
   // Live search debouncing
   useEffect(() => {
     const q = searchQuery.trim();
-    if (!q) {
-      setGlobalSearchResults([]);
-      return;
-    }
+    if (!q) return;
     if (searchTimer.current) clearTimeout(searchTimer.current);
     searchTimer.current = setTimeout(async () => {
       setSearchLoading(true);
@@ -448,18 +449,18 @@ export default function FriendsPage({ initialTab }: FriendsPageProps) {
   const isGlobalSearching = searchQuery.trim().length > 0;
 
   return (
-    <div className="w-full min-h-screen bg-[#F0F2F5] dark:bg-[#18191A] text-foreground pb-20">
+    <div className="w-full min-h-screen bg-[var(--shell-canvas)] dark:bg-[var(--shell-canvas)] text-foreground pb-20">
       {/* ────────────────── TOP PAGE HEADER ────────────────── */}
-      <header className="w-full bg-white dark:bg-[#242526] border-b border-[#DADDE1] dark:border-[#3E4042] sticky top-0 z-20 shadow-xs">
+      <header className="w-full bg-white dark:bg-[var(--shell-surface)] border-b border-[var(--shell-border)] dark:border-[var(--shell-border)] sticky top-0 z-20 shadow-xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-5">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             {/* Title & Subtitle */}
             <div>
               <div className="flex items-center gap-2.5">
-                <div className="h-9 w-9 rounded-xl bg-[#2164b6]/10 dark:bg-[#2164b6]/20 flex items-center justify-center text-[#2164b6] dark:text-[#7ab0ff]">
+                <div className="h-9 w-9 rounded-xl bg-[var(--shell-accent-solid)]/10 dark:bg-[var(--shell-accent-solid)]/20 flex items-center justify-center text-[var(--shell-accent)] dark:text-[var(--shell-accent)]">
                   <Users weight="fill" className="h-5 w-5" />
                 </div>
-                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#050505] dark:text-[#E4E6EB]">
+                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[var(--shell-text)] dark:text-[var(--shell-text)]">
                   Friends
                 </h1>
               </div>
@@ -479,9 +480,12 @@ export default function FriendsPage({ initialTab }: FriendsPageProps) {
                 <input
                   type="search"
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    if (!e.target.value.trim()) setGlobalSearchResults([]);
+                  }}
                   placeholder="Search people on MurihSpace…"
-                  className="w-full pl-9 pr-9 py-2 text-sm rounded-lg bg-[#F0F2F5] dark:bg-[#3A3B3C] border-none text-[#050505] dark:text-[#E4E6EB] placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-[#2164b6]/50 transition-all"
+                  className="w-full pl-9 pr-9 py-2 text-sm rounded-lg bg-[var(--shell-canvas)] dark:bg-[var(--shell-hover)] border-none text-[var(--shell-text)] dark:text-[var(--shell-text)] placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-[var(--shell-accent)]/50 transition-all"
                 />
                 {searchLoading && (
                   <Spinner
@@ -491,7 +495,7 @@ export default function FriendsPage({ initialTab }: FriendsPageProps) {
                 )}
                 {searchQuery && !searchLoading && (
                   <button
-                    onClick={() => setSearchQuery("")}
+                    onClick={() => { setSearchQuery(""); setGlobalSearchResults([]); }}
                     className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 text-muted-foreground hover:text-foreground"
                     title="Clear search"
                   >
@@ -503,7 +507,7 @@ export default function FriendsPage({ initialTab }: FriendsPageProps) {
               {/* Action Button: Invite & QR */}
               <button
                 onClick={() => setShowShareModal(true)}
-                className="h-9 px-3 rounded-lg border border-[#2164b6]/30 bg-[#2164b6]/10 hover:bg-[#2164b6]/20 text-[#2164b6] dark:text-[#7ab0ff] text-sm font-semibold flex items-center gap-1.5 shrink-0 transition-colors shadow-2xs cursor-pointer"
+                className="h-9 px-3 rounded-lg border border-[var(--shell-accent)]/30 bg-[var(--shell-accent-solid)]/10 hover:bg-[var(--shell-accent-solid)]/20 text-[var(--shell-accent)] dark:text-[var(--shell-accent)] text-sm font-semibold flex items-center gap-1.5 shrink-0 transition-colors shadow-2xs cursor-pointer"
                 title="Share Invite Link & QR Code"
               >
                 <QrCode weight="bold" className="h-4 w-4" />
@@ -513,30 +517,30 @@ export default function FriendsPage({ initialTab }: FriendsPageProps) {
               {/* Action Button: Custom Lists / Quick Create */}
               <button
                 onClick={() => setCreateListOpen(true)}
-                className="h-9 px-3 rounded-lg border border-[#DADDE1] dark:border-[#3E4042] bg-white dark:bg-[#242526] hover:bg-[#F0F2F5] dark:hover:bg-[#3A3B3C] text-sm font-semibold flex items-center gap-1.5 shrink-0 transition-colors shadow-2xs cursor-pointer"
+                className="h-9 px-3 rounded-lg border border-[var(--shell-border)] dark:border-[var(--shell-border)] bg-white dark:bg-[var(--shell-surface)] hover:bg-[var(--shell-hover)] dark:hover:bg-[var(--shell-hover)] text-sm font-semibold flex items-center gap-1.5 shrink-0 transition-colors shadow-2xs cursor-pointer"
                 title="Create Custom List"
               >
-                <Plus weight="bold" className="h-4 w-4 text-[#2164b6]" />
+                <Plus weight="bold" className="h-4 w-4 text-[var(--shell-accent)]" />
                 <span className="hidden sm:inline">New List</span>
               </button>
             </div>
           </div>
 
           {/* ────────────────── HORIZONTAL NAVIGATION TABS ────────────────── */}
-          <nav className="flex items-center gap-1 sm:gap-2 mt-4 pt-1 overflow-x-auto no-scrollbar border-t border-[#DADDE1]/60 dark:border-[#3E4042]/60">
+          <nav className="flex items-center gap-1 sm:gap-2 mt-4 pt-1 overflow-x-auto no-scrollbar border-t border-[var(--shell-border)]/60 dark:border-[var(--shell-border)]/60">
             {tabs.map((t) => {
               const isActive = currentTab === t.key && !isGlobalSearching;
               return (
                 <button
                   key={t.key}
                   onClick={() => {
-                    setSearchQuery("");
+                    setSearchQuery(""); setGlobalSearchResults([]);
                     setTab(t.key);
                   }}
                   className={`relative flex items-center gap-2 px-3.5 py-2.5 text-sm font-semibold rounded-md transition-all whitespace-nowrap cursor-pointer ${
                     isActive
-                      ? "text-[#2164b6] dark:text-[#7ab0ff] bg-[#2164b6]/10 dark:bg-[#2164b6]/20 font-bold"
-                      : "text-muted-foreground hover:text-[#050505] dark:hover:text-[#E4E6EB] hover:bg-black/5 dark:hover:bg-white/5"
+                      ? "text-[var(--shell-accent)] dark:text-[var(--shell-accent)] bg-[var(--shell-accent-solid)]/10 dark:bg-[var(--shell-accent-solid)]/20 font-bold"
+                      : "text-muted-foreground hover:text-[var(--shell-text)] dark:hover:text-[var(--shell-text)] hover:bg-black/5 dark:hover:bg-white/5"
                   }`}
                 >
                   <span>{t.label}</span>
@@ -546,15 +550,15 @@ export default function FriendsPage({ initialTab }: FriendsPageProps) {
                         t.hasBadge
                           ? "bg-rose-500 text-white"
                           : isActive
-                          ? "bg-[#2164b6] text-white"
-                          : "bg-[#DADDE1] dark:bg-[#3E4042] text-foreground"
+                          ? "bg-[var(--shell-accent-solid)] text-white"
+                          : "bg-[var(--shell-border)] dark:bg-[var(--shell-border)] text-foreground"
                       }`}
                     >
                       {t.count > 99 ? "99+" : t.count}
                     </span>
                   )}
                   {isActive && (
-                    <span className="absolute bottom-0 left-3 right-3 h-[2.5px] bg-[#2164b6] dark:bg-[#7ab0ff] rounded-t-full" />
+                    <span className="absolute bottom-0 left-3 right-3 h-[2.5px] bg-[var(--shell-accent-solid)] dark:bg-[var(--shell-accent)] rounded-t-full" />
                   )}
                 </button>
               );
@@ -581,12 +585,12 @@ export default function FriendsPage({ initialTab }: FriendsPageProps) {
           <section className="space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-base font-bold text-foreground flex items-center gap-2">
-                <MagnifyingGlass weight="bold" className="h-4 w-4 text-[#2164b6]" />
+                <MagnifyingGlass weight="bold" className="h-4 w-4 text-[var(--shell-accent)]" />
                 Search results for &ldquo;{searchQuery}&rdquo;
               </h2>
               <button
-                onClick={() => setSearchQuery("")}
-                className="text-xs font-semibold text-[#2164b6] hover:underline cursor-pointer"
+                onClick={() => { setSearchQuery(""); setGlobalSearchResults([]); }}
+                className="text-xs font-semibold text-[var(--shell-accent)] hover:underline cursor-pointer"
               >
                 Clear Search
               </button>
@@ -594,7 +598,7 @@ export default function FriendsPage({ initialTab }: FriendsPageProps) {
 
             {searchLoading ? (
               <div className="flex h-48 items-center justify-center">
-                <Spinner weight="bold" className="h-7 w-7 animate-spin text-[#2164b6]" />
+                <Spinner weight="bold" className="h-7 w-7 animate-spin text-[var(--shell-accent)]" />
               </div>
             ) : globalSearchResults.length === 0 ? (
               <EmptySocialState
@@ -624,7 +628,7 @@ export default function FriendsPage({ initialTab }: FriendsPageProps) {
           </section>
         ) : loading ? (
           <div className="flex h-64 items-center justify-center">
-            <Spinner weight="bold" className="h-8 w-8 animate-spin text-[#2164b6]" />
+            <Spinner weight="bold" className="h-8 w-8 animate-spin text-[var(--shell-accent)]" />
           </div>
         ) : (
           <>
@@ -632,13 +636,13 @@ export default function FriendsPage({ initialTab }: FriendsPageProps) {
             {currentTab === "all" && (
               <section className="space-y-5">
                 {/* Control bar */}
-                <div className="bg-white dark:bg-[#242526] border border-[#DADDE1] dark:border-[#3E4042] rounded-xl p-3 sm:p-4 shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-3">
+                <div className="bg-white dark:bg-[var(--shell-surface)] border border-[var(--shell-border)] dark:border-[var(--shell-border)] rounded-xl p-3 sm:p-4 shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
-                    <span className="text-base sm:text-lg font-bold text-[#050505] dark:text-[#E4E6EB]">
+                    <span className="text-base sm:text-lg font-bold text-[var(--shell-text)] dark:text-[var(--shell-text)]">
                       {activeListId ? (
                         <span className="flex items-center gap-2">
                           <span className="text-muted-foreground font-normal">List:</span>
-                          <span className="text-[#2164b6]">
+                          <span className="text-[var(--shell-accent)]">
                             {customLists.find((l) => l.id === activeListId)?.name}
                           </span>
                           <button
@@ -673,13 +677,13 @@ export default function FriendsPage({ initialTab }: FriendsPageProps) {
                         value={friendFilter}
                         onChange={(e) => setFriendFilter(e.target.value)}
                         placeholder="Filter friends…"
-                        className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg bg-[#F0F2F5] dark:bg-[#3A3B3C] border-none text-foreground placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-[#2164b6]/50"
+                        className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg bg-[var(--shell-canvas)] dark:bg-[var(--shell-hover)] border-none text-foreground placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-[var(--shell-accent)]/50"
                       />
                     </div>
 
                     {/* Sort Dropdown */}
                     <DropdownMenu>
-                      <DropdownMenuTrigger className="h-8 px-3 rounded-lg border border-[#DADDE1] dark:border-[#3E4042] bg-white dark:bg-[#242526] hover:bg-[#F0F2F5] dark:hover:bg-[#3A3B3C] text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-2xs cursor-pointer">
+                      <DropdownMenuTrigger className="h-8 px-3 rounded-lg border border-[var(--shell-border)] dark:border-[var(--shell-border)] bg-white dark:bg-[var(--shell-surface)] hover:bg-[var(--shell-hover)] dark:hover:bg-[var(--shell-hover)] text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-2xs cursor-pointer">
                         <SlidersHorizontal weight="bold" className="h-3.5 w-3.5 text-muted-foreground" />
                         <span>
                           {friendSort === "recent"
@@ -706,12 +710,12 @@ export default function FriendsPage({ initialTab }: FriendsPageProps) {
                     </DropdownMenu>
 
                     {/* Grid / List View Toggle */}
-                    <div className="flex items-center bg-[#F0F2F5] dark:bg-[#3A3B3C] p-0.5 rounded-lg border border-[#DADDE1]/50 dark:border-[#3E4042]/50">
+                    <div className="flex items-center bg-[var(--shell-canvas)] dark:bg-[var(--shell-hover)] p-0.5 rounded-lg border border-[var(--shell-border)]/50 dark:border-[var(--shell-border)]/50">
                       <button
                         onClick={() => setViewMode("grid")}
                         className={`p-1.5 rounded-md transition-colors cursor-pointer ${
                           viewMode === "grid"
-                            ? "bg-white dark:bg-[#242526] text-[#2164b6] shadow-2xs"
+                            ? "bg-white dark:bg-[var(--shell-surface)] text-[var(--shell-accent)] shadow-2xs"
                             : "text-muted-foreground hover:text-foreground"
                         }`}
                         title="Grid View"
@@ -722,7 +726,7 @@ export default function FriendsPage({ initialTab }: FriendsPageProps) {
                         onClick={() => setViewMode("list")}
                         className={`p-1.5 rounded-md transition-colors cursor-pointer ${
                           viewMode === "list"
-                            ? "bg-white dark:bg-[#242526] text-[#2164b6] shadow-2xs"
+                            ? "bg-white dark:bg-[var(--shell-surface)] text-[var(--shell-accent)] shadow-2xs"
                             : "text-muted-foreground hover:text-foreground"
                         }`}
                         title="List View"
@@ -781,7 +785,7 @@ export default function FriendsPage({ initialTab }: FriendsPageProps) {
                     })}
                   </div>
                 ) : (
-                  <div className="bg-white dark:bg-[#242526] border border-[#DADDE1] dark:border-[#3E4042] rounded-xl divide-y divide-[#DADDE1]/60 dark:divide-[#3E4042]/60 overflow-hidden shadow-2xs">
+                  <div className="bg-white dark:bg-[var(--shell-surface)] border border-[var(--shell-border)] dark:border-[var(--shell-border)] rounded-xl divide-y divide-[#DADDE1]/60 dark:divide-[#3E4042]/60 overflow-hidden shadow-2xs">
                     {filteredFriends.map((item) => {
                       if (!item.friend) return null;
                       return (
@@ -809,8 +813,8 @@ export default function FriendsPage({ initialTab }: FriendsPageProps) {
                 {/* Incoming Requests */}
                 <div>
                   <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-lg font-bold text-[#050505] dark:text-[#E4E6EB] flex items-center gap-2">
-                      <UserCheck weight="fill" className="h-5 w-5 text-[#2164b6]" />
+                    <h2 className="text-lg font-bold text-[var(--shell-text)] dark:text-[var(--shell-text)] flex items-center gap-2">
+                      <UserCheck weight="fill" className="h-5 w-5 text-[var(--shell-accent)]" />
                       Friend Requests
                       <span className="text-sm font-semibold text-muted-foreground">
                         ({incoming.length})
@@ -848,7 +852,7 @@ export default function FriendsPage({ initialTab }: FriendsPageProps) {
 
                 {/* Sent Requests Collapsible */}
                 {outgoing.length > 0 && (
-                  <div className="pt-4 border-t border-[#DADDE1] dark:border-[#3E4042]">
+                  <div className="pt-4 border-t border-[var(--shell-border)] dark:border-[var(--shell-border)]">
                     <button
                       onClick={() => setShowSentRequests((prev) => !prev)}
                       className="flex items-center justify-between w-full py-2 text-sm font-bold text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
@@ -857,7 +861,7 @@ export default function FriendsPage({ initialTab }: FriendsPageProps) {
                         <Clock weight="fill" className="h-4 w-4" />
                         Sent Requests ({outgoing.length})
                       </span>
-                      <span className="text-xs text-[#2164b6]">
+                      <span className="text-xs text-[var(--shell-accent)]">
                         {showSentRequests ? "Hide" : "Show Sent Requests"}
                       </span>
                     </button>
@@ -887,8 +891,8 @@ export default function FriendsPage({ initialTab }: FriendsPageProps) {
               <section className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h2 className="text-lg font-bold text-[#050505] dark:text-[#E4E6EB] flex items-center gap-2">
-                      <UsersThree weight="fill" className="h-5 w-5 text-[#2164b6]" />
+                    <h2 className="text-lg font-bold text-[var(--shell-text)] dark:text-[var(--shell-text)] flex items-center gap-2">
+                      <UsersThree weight="fill" className="h-5 w-5 text-[var(--shell-accent)]" />
                       People You May Know
                     </h2>
                     <p className="text-xs text-muted-foreground mt-0.5">
@@ -938,13 +942,13 @@ export default function FriendsPage({ initialTab }: FriendsPageProps) {
               <section className="space-y-6">
                 {/* Today's Birthdays */}
                 {birthdays.today.length > 0 && (
-                  <div className="bg-gradient-to-r from-[#2164b6]/10 via-[#2164b6]/5 to-transparent border border-[#2164b6]/30 rounded-2xl p-5 shadow-xs">
+                  <div className="bg-gradient-to-r from-[var(--shell-accent-solid)]/10 via-[var(--shell-accent-solid)]/5 to-transparent border border-[var(--shell-accent)]/30 rounded-2xl p-5 shadow-xs">
                     <div className="flex items-center gap-2.5 mb-4">
-                      <div className="h-9 w-9 rounded-xl bg-[#2164b6] text-white flex items-center justify-center shadow-xs">
+                      <div className="h-9 w-9 rounded-xl bg-[var(--shell-accent-solid)] text-white flex items-center justify-center shadow-xs">
                         <Cake weight="fill" className="h-5 w-5" />
                       </div>
                       <div>
-                        <h2 className="text-base sm:text-lg font-bold text-[#050505] dark:text-[#E4E6EB]">
+                        <h2 className="text-base sm:text-lg font-bold text-[var(--shell-text)] dark:text-[var(--shell-text)]">
                           Today&apos;s Birthdays 🎂
                         </h2>
                         <p className="text-xs text-muted-foreground">
@@ -957,29 +961,29 @@ export default function FriendsPage({ initialTab }: FriendsPageProps) {
                       {birthdays.today.map((user) => (
                         <div
                           key={user.id}
-                          className="bg-white dark:bg-[#242526] border border-[#2164b6]/40 rounded-xl p-4 flex items-center gap-3 shadow-xs"
+                          className="bg-white dark:bg-[var(--shell-surface)] border border-[var(--shell-accent)]/40 rounded-xl p-4 flex items-center gap-3 shadow-xs"
                         >
                           <Avatar
                             name={user.name}
                             url={user.avatar_url ?? user.avatar}
                             size={52}
-                            className="ring-2 ring-[#2164b6]/40"
+                            className="ring-2 ring-[var(--shell-accent)]/40"
                           />
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-1.5">
                               <p className="text-sm font-bold text-foreground truncate">{user.name}</p>
                               {user.has_active_verification_badge && (
-                                <VerifiedBadge className="h-4 w-4 text-[#1B64F2] shrink-0" aria-label="Verified" />
+                                <VerifiedBadge className="h-4 w-4 text-[var(--shell-accent)] shrink-0" aria-label="Verified" />
                               )}
                             </div>
                             <p className="text-xs text-muted-foreground truncate">@{user.username}</p>
-                            <span className="inline-block mt-1 text-[11px] font-bold text-[#2164b6] bg-[#2164b6]/10 px-2 py-0.5 rounded-full">
+                            <span className="inline-block mt-1 text-[11px] font-bold text-[var(--shell-accent)] bg-[var(--shell-accent-solid)]/10 px-2 py-0.5 rounded-full">
                               Celebrating Today 🎉
                             </span>
                           </div>
                           <Link
                             to={`/app/messages?user=${user.id}`}
-                            className="px-3 py-2 rounded-lg bg-[#2164b6] text-white text-xs font-bold hover:bg-[#1a5091] transition-colors flex items-center gap-1.5 shrink-0 shadow-2xs"
+                            className="px-3 py-2 rounded-lg bg-[var(--shell-accent-solid)] text-white text-xs font-bold hover:bg-[var(--shell-accent-hover)] transition-colors flex items-center gap-1.5 shrink-0 shadow-2xs"
                           >
                             <Gift weight="fill" className="h-4 w-4" />
                             <span>Wish</span>
@@ -992,8 +996,8 @@ export default function FriendsPage({ initialTab }: FriendsPageProps) {
 
                 {/* Upcoming Birthdays */}
                 <div>
-                  <h3 className="text-base font-bold text-[#050505] dark:text-[#E4E6EB] mb-3 flex items-center gap-2">
-                    <Cake weight="fill" className="h-4 w-4 text-[#2164b6]" />
+                  <h3 className="text-base font-bold text-[var(--shell-text)] dark:text-[var(--shell-text)] mb-3 flex items-center gap-2">
+                    <Cake weight="fill" className="h-4 w-4 text-[var(--shell-accent)]" />
                     Upcoming Birthdays
                   </h3>
 
@@ -1012,7 +1016,7 @@ export default function FriendsPage({ initialTab }: FriendsPageProps) {
                       No other birthdays in the next 60 days.
                     </p>
                   ) : (
-                    <div className="bg-white dark:bg-[#242526] border border-[#DADDE1] dark:border-[#3E4042] rounded-xl divide-y divide-[#DADDE1]/60 dark:divide-[#3E4042]/60 overflow-hidden shadow-2xs">
+                    <div className="bg-white dark:bg-[var(--shell-surface)] border border-[var(--shell-border)] dark:border-[var(--shell-border)] rounded-xl divide-y divide-[#DADDE1]/60 dark:divide-[#3E4042]/60 overflow-hidden shadow-2xs">
                       {birthdays.upcoming.map((user) => (
                         <div
                           key={user.id}
@@ -1023,7 +1027,7 @@ export default function FriendsPage({ initialTab }: FriendsPageProps) {
                             <div className="flex items-center gap-1.5">
                               <p className="text-sm font-bold text-foreground truncate">{user.name}</p>
                               {user.has_active_verification_badge && (
-                                <VerifiedBadge className="h-3.5 w-3.5 text-[#1B64F2] shrink-0" aria-label="Verified" />
+                                <VerifiedBadge className="h-3.5 w-3.5 text-[var(--shell-accent)] shrink-0" aria-label="Verified" />
                               )}
                             </div>
                             <p className="text-xs text-muted-foreground truncate">
@@ -1041,9 +1045,9 @@ export default function FriendsPage({ initialTab }: FriendsPageProps) {
                             </span>
                             <Link
                               to={`/app/messages?user=${user.id}`}
-                              className="px-3 py-1.5 rounded-lg border border-[#DADDE1] dark:border-[#3E4042] hover:bg-[#F0F2F5] dark:hover:bg-[#3A3B3C] text-xs font-bold text-foreground transition-colors flex items-center gap-1.5"
+                              className="px-3 py-1.5 rounded-lg border border-[var(--shell-border)] dark:border-[var(--shell-border)] hover:bg-[var(--shell-hover)] dark:hover:bg-[var(--shell-hover)] text-xs font-bold text-foreground transition-colors flex items-center gap-1.5"
                             >
-                              <ChatTeardropText weight="fill" className="h-3.5 w-3.5 text-[#2164b6]" />
+                              <ChatTeardropText weight="fill" className="h-3.5 w-3.5 text-[var(--shell-accent)]" />
                               <span>Message</span>
                             </Link>
                           </div>
@@ -1060,8 +1064,8 @@ export default function FriendsPage({ initialTab }: FriendsPageProps) {
               <section className="space-y-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h2 className="text-lg font-bold text-[#050505] dark:text-[#E4E6EB] flex items-center gap-2">
-                      <Star weight="fill" className="h-5 w-5 text-[#2164b6]" />
+                    <h2 className="text-lg font-bold text-[var(--shell-text)] dark:text-[var(--shell-text)] flex items-center gap-2">
+                      <Star weight="fill" className="h-5 w-5 text-[var(--shell-accent)]" />
                       Custom Friend Lists
                     </h2>
                     <p className="text-xs text-muted-foreground mt-0.5">
@@ -1070,7 +1074,7 @@ export default function FriendsPage({ initialTab }: FriendsPageProps) {
                   </div>
                   <button
                     onClick={() => setCreateListOpen(true)}
-                    className="px-3.5 py-2 rounded-lg bg-[#2164b6] text-white text-xs font-bold hover:bg-[#1a5091] flex items-center gap-1.5 transition-colors shadow-2xs cursor-pointer"
+                    className="px-3.5 py-2 rounded-lg bg-[var(--shell-accent-solid)] text-white text-xs font-bold hover:bg-[var(--shell-accent-hover)] flex items-center gap-1.5 transition-colors shadow-2xs cursor-pointer"
                   >
                     <Plus weight="bold" className="h-4 w-4" />
                     <span>Create List</span>
@@ -1087,10 +1091,10 @@ export default function FriendsPage({ initialTab }: FriendsPageProps) {
                     return (
                       <div
                         key={list.id}
-                        className={`bg-white dark:bg-[#242526] border rounded-xl p-4.5 flex flex-col justify-between transition-all shadow-2xs hover:shadow-md ${
+                        className={`bg-white dark:bg-[var(--shell-surface)] border rounded-xl p-4.5 flex flex-col justify-between transition-all shadow-2xs hover:shadow-md ${
                           isSelected
-                            ? "border-[#2164b6] ring-2 ring-[#2164b6]/20"
-                            : "border-[#DADDE1] dark:border-[#3E4042]"
+                            ? "border-[var(--shell-accent)] ring-2 ring-[var(--shell-accent)]/20"
+                            : "border-[var(--shell-border)] dark:border-[var(--shell-border)]"
                         }`}
                       >
                         <div>
@@ -1141,7 +1145,7 @@ export default function FriendsPage({ initialTab }: FriendsPageProps) {
                           </p>
                         </div>
 
-                        <div className="mt-4 pt-3 border-t border-[#DADDE1]/60 dark:border-[#3E4042]/60">
+                        <div className="mt-4 pt-3 border-t border-[var(--shell-border)]/60 dark:border-[var(--shell-border)]/60">
                           {/* Member avatars preview */}
                           <div className="flex items-center justify-between">
                             <div className="flex items-center -space-x-2">
@@ -1151,7 +1155,7 @@ export default function FriendsPage({ initialTab }: FriendsPageProps) {
                                   name={f.friend?.name || "Friend"}
                                   url={f.friend?.avatar_url ?? f.friend?.avatar}
                                   size={26}
-                                  className="ring-2 ring-white dark:ring-[#242526]"
+                                  className="ring-2 ring-white dark:ring-[var(--shell-surface)]"
                                 />
                               ))}
                               {listFriends.length === 0 && (
@@ -1160,7 +1164,7 @@ export default function FriendsPage({ initialTab }: FriendsPageProps) {
                                 </span>
                               )}
                             </div>
-                            <span className="text-xs font-bold text-[#2164b6]">
+                            <span className="text-xs font-bold text-[var(--shell-accent)]">
                               {list.memberIds.length} {list.memberIds.length === 1 ? "friend" : "friends"}
                             </span>
                           </div>
@@ -1170,7 +1174,7 @@ export default function FriendsPage({ initialTab }: FriendsPageProps) {
                               setActiveListId(list.id);
                               setTab("all");
                             }}
-                            className="mt-3 w-full py-1.5 text-xs font-bold rounded-lg border border-[#DADDE1] dark:border-[#3E4042] hover:bg-[#F0F2F5] dark:hover:bg-[#3A3B3C] text-foreground transition-colors cursor-pointer"
+                            className="mt-3 w-full py-1.5 text-xs font-bold rounded-lg border border-[var(--shell-border)] dark:border-[var(--shell-border)] hover:bg-[var(--shell-hover)] dark:hover:bg-[var(--shell-hover)] text-foreground transition-colors cursor-pointer"
                           >
                             Filter Friends
                           </button>
@@ -1187,7 +1191,7 @@ export default function FriendsPage({ initialTab }: FriendsPageProps) {
 
       {/* ────────────────── CREATE CUSTOM LIST MODAL ────────────────── */}
       <Dialog open={createListOpen} onOpenChange={setCreateListOpen}>
-        <DialogContent className="sm:max-w-md bg-white dark:bg-[#242526] border border-[#DADDE1] dark:border-[#3E4042]">
+        <DialogContent className="sm:max-w-md bg-white dark:bg-[var(--shell-surface)] border border-[var(--shell-border)] dark:border-[var(--shell-border)]">
           <DialogHeader>
             <DialogTitle className="text-lg font-bold text-foreground">
               Create New Friend List
@@ -1199,36 +1203,36 @@ export default function FriendsPage({ initialTab }: FriendsPageProps) {
 
           <div className="space-y-4 py-2">
             <div>
-              <label className="text-xs font-bold text-foreground block mb-1.5">
+              <label htmlFor="f-pages-friendspage-tsx-1202" className="text-xs font-bold text-foreground block mb-1.5">
                 List Name
               </label>
-              <input
+              <input id="f-pages-friendspage-tsx-1202"
                 type="text"
                 value={newListName}
                 onChange={(e) => setNewListName(e.target.value)}
                 placeholder="e.g. Designers, University Friends, Gym Buddies…"
-                className="w-full px-3 py-2 text-sm rounded-lg bg-[#F0F2F5] dark:bg-[#3A3B3C] border border-[#DADDE1] dark:border-[#3E4042] text-foreground focus:outline-hidden focus:ring-2 focus:ring-[#2164b6]/50"
+                className="w-full px-3 py-2 text-sm rounded-lg bg-[var(--shell-canvas)] dark:bg-[var(--shell-hover)] border border-[var(--shell-border)] dark:border-[var(--shell-border)] text-foreground focus:outline-hidden focus:ring-2 focus:ring-[var(--shell-accent)]/50"
               />
             </div>
 
             <div>
-              <label className="text-xs font-bold text-foreground block mb-1.5">
+              <label htmlFor="f-pages-friendspage-tsx-1215" className="text-xs font-bold text-foreground block mb-1.5">
                 Description (Optional)
               </label>
-              <input
+              <input id="f-pages-friendspage-tsx-1215"
                 type="text"
                 value={newListDesc}
                 onChange={(e) => setNewListDesc(e.target.value)}
                 placeholder="Brief note about this list…"
-                className="w-full px-3 py-2 text-sm rounded-lg bg-[#F0F2F5] dark:bg-[#3A3B3C] border border-[#DADDE1] dark:border-[#3E4042] text-foreground focus:outline-hidden focus:ring-2 focus:ring-[#2164b6]/50"
+                className="w-full px-3 py-2 text-sm rounded-lg bg-[var(--shell-canvas)] dark:bg-[var(--shell-hover)] border border-[var(--shell-border)] dark:border-[var(--shell-border)] text-foreground focus:outline-hidden focus:ring-2 focus:ring-[var(--shell-accent)]/50"
               />
             </div>
 
             {/* Icon Picker */}
             <div>
-              <label className="text-xs font-bold text-foreground block mb-1.5">
+              <span className="text-xs font-bold text-foreground block mb-1.5">
                 Icon
-              </label>
+              </span>
               <div className="flex items-center gap-2">
                 {[
                   { id: "star", icon: Star, label: "Star" },
@@ -1245,8 +1249,8 @@ export default function FriendsPage({ initialTab }: FriendsPageProps) {
                       onClick={() => setNewListIcon(item.id as CustomList["icon"])}
                       className={`h-9 w-9 rounded-lg flex items-center justify-center transition-all cursor-pointer ${
                         newListIcon === item.id
-                          ? "bg-[#2164b6] text-white shadow-xs scale-105"
-                          : "bg-[#F0F2F5] dark:bg-[#3A3B3C] text-muted-foreground hover:text-foreground"
+                          ? "bg-[var(--shell-accent-solid)] text-white shadow-xs scale-105"
+                          : "bg-[var(--shell-canvas)] dark:bg-[var(--shell-hover)] text-muted-foreground hover:text-foreground"
                       }`}
                     >
                       <Icon weight="fill" className="h-5 w-5" />
@@ -1258,9 +1262,9 @@ export default function FriendsPage({ initialTab }: FriendsPageProps) {
 
             {/* Color Picker */}
             <div>
-              <label className="text-xs font-bold text-foreground block mb-1.5">
+              <span className="text-xs font-bold text-foreground block mb-1.5">
                 Color Tag
-              </label>
+              </span>
               <div className="flex items-center gap-2">
                 {[
                   "#2164b6",
@@ -1276,7 +1280,7 @@ export default function FriendsPage({ initialTab }: FriendsPageProps) {
                     type="button"
                     onClick={() => setNewListColor(color)}
                     className={`h-7 w-7 rounded-full transition-transform cursor-pointer ${
-                      newListColor === color ? "scale-125 ring-2 ring-offset-2 ring-[#2164b6]" : ""
+                      newListColor === color ? "scale-125 ring-2 ring-offset-2 ring-[var(--shell-accent)]" : ""
                     }`}
                     style={{ backgroundColor: color }}
                   />
@@ -1289,7 +1293,7 @@ export default function FriendsPage({ initialTab }: FriendsPageProps) {
             <button
               type="button"
               onClick={() => setCreateListOpen(false)}
-              className="px-4 py-2 rounded-lg border border-[#DADDE1] dark:border-[#3E4042] text-xs font-bold hover:bg-muted transition-colors cursor-pointer"
+              className="px-4 py-2 rounded-lg border border-[var(--shell-border)] dark:border-[var(--shell-border)] text-xs font-bold hover:bg-muted transition-colors cursor-pointer"
             >
               Cancel
             </button>
@@ -1297,7 +1301,7 @@ export default function FriendsPage({ initialTab }: FriendsPageProps) {
               type="button"
               onClick={handleCreateList}
               disabled={!newListName.trim()}
-              className="px-4 py-2 rounded-lg bg-[#2164b6] text-white text-xs font-bold hover:bg-[#1a5091] disabled:opacity-50 transition-colors shadow-2xs cursor-pointer"
+              className="px-4 py-2 rounded-lg bg-[var(--shell-accent-solid)] text-white text-xs font-bold hover:bg-[var(--shell-accent-hover)] disabled:opacity-50 transition-colors shadow-2xs cursor-pointer"
             >
               Create List
             </button>
@@ -1342,7 +1346,7 @@ function FriendCardGrid({
   onUnfriend: () => void;
 }) {
   return (
-    <div className="group bg-white dark:bg-[#242526] border border-[#DADDE1] dark:border-[#3E4042] rounded-xl p-4 flex flex-col justify-between hover:shadow-md transition-all duration-200">
+    <div className="group bg-white dark:bg-[var(--shell-surface)] border border-[var(--shell-border)] dark:border-[var(--shell-border)] rounded-xl p-4 flex flex-col justify-between hover:shadow-md transition-all duration-200">
       <div>
         <div className="flex items-start justify-between gap-2">
           {/* Avatar with status indicator */}
@@ -1351,10 +1355,10 @@ function FriendCardGrid({
               name={friend.name}
               url={friend.avatar_url ?? friend.avatar}
               size={56}
-              className="ring-2 ring-white dark:ring-[#242526]"
+              className="ring-2 ring-white dark:ring-[var(--shell-surface)]"
             />
             {friend.is_online && (
-              <span className="absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-[#242526]" />
+              <span className="absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-[var(--shell-surface)]" />
             )}
           </div>
 
@@ -1384,7 +1388,7 @@ function FriendCardGrid({
                     className="flex items-center justify-between cursor-pointer"
                   >
                     <span className="text-xs truncate">{l.name}</span>
-                    {inList && <Check weight="bold" className="h-3.5 w-3.5 text-[#2164b6]" />}
+                    {inList && <Check weight="bold" className="h-3.5 w-3.5 text-[var(--shell-accent)]" />}
                   </DropdownMenuItem>
                 );
               })}
@@ -1410,11 +1414,11 @@ function FriendCardGrid({
         <div className="mt-3">
           <Link
             to={`/u/${friend.username}`}
-            className="text-base font-bold text-[#050505] dark:text-[#E4E6EB] hover:underline flex items-center gap-1.5 line-clamp-1"
+            className="text-base font-bold text-[var(--shell-text)] dark:text-[var(--shell-text)] hover:underline flex items-center gap-1.5 line-clamp-1"
           >
             <span>{friend.name}</span>
             {friend.has_active_verification_badge && (
-              <VerifiedBadge className="h-4 w-4 text-[#1B64F2] shrink-0" aria-label="Verified" />
+              <VerifiedBadge className="h-4 w-4 text-[var(--shell-accent)] shrink-0" aria-label="Verified" />
             )}
           </Link>
           <p className="text-xs text-muted-foreground mt-0.5">@{friend.username}</p>
@@ -1423,7 +1427,7 @@ function FriendCardGrid({
         {/* Mutual friends count */}
         {mutualCount > 0 ? (
           <p className="text-[11px] text-muted-foreground/80 mt-1.5 flex items-center gap-1">
-            <Users weight="fill" className="h-3.5 w-3.5 text-[#2164b6]" />
+            <Users weight="fill" className="h-3.5 w-3.5 text-[var(--shell-accent)]" />
             <span>{mutualCount} mutual connections</span>
           </p>
         ) : friend.bio ? (
@@ -1434,10 +1438,10 @@ function FriendCardGrid({
       </div>
 
       {/* Card Action Button */}
-      <div className="mt-4 pt-3 border-t border-[#DADDE1]/60 dark:border-[#3E4042]/60 flex items-center gap-2">
+      <div className="mt-4 pt-3 border-t border-[var(--shell-border)]/60 dark:border-[var(--shell-border)]/60 flex items-center gap-2">
         <Link
           to={`/app/messages?user=${friend.id}`}
-          className="flex-1 py-1.5 rounded-lg bg-[#2164b6]/10 text-[#2164b6] dark:text-[#7ab0ff] hover:bg-[#2164b6]/20 text-xs font-bold transition-colors flex items-center justify-center gap-1.5"
+          className="flex-1 py-1.5 rounded-lg bg-[var(--shell-accent-solid)]/10 text-[var(--shell-accent)] dark:text-[var(--shell-accent)] hover:bg-[var(--shell-accent-solid)]/20 text-xs font-bold transition-colors flex items-center justify-center gap-1.5"
         >
           <ChatTeardropText weight="fill" className="h-4 w-4" />
           <span>Message</span>
@@ -1470,7 +1474,7 @@ function FriendCardListRow({
       <div className="relative">
         <Avatar name={friend.name} url={friend.avatar_url ?? friend.avatar} size={48} />
         {friend.is_online && (
-          <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-[#242526]" />
+          <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-[var(--shell-surface)]" />
         )}
       </div>
 
@@ -1483,7 +1487,7 @@ function FriendCardListRow({
             {friend.name}
           </Link>
           {friend.has_active_verification_badge && (
-            <VerifiedBadge className="h-3.5 w-3.5 text-[#1B64F2] shrink-0" aria-label="Verified" />
+            <VerifiedBadge className="h-3.5 w-3.5 text-[var(--shell-accent)] shrink-0" aria-label="Verified" />
           )}
         </div>
         <p className="text-xs text-muted-foreground truncate">
@@ -1495,7 +1499,7 @@ function FriendCardListRow({
       <div className="flex items-center gap-2 shrink-0">
         <Link
           to={`/app/messages?user=${friend.id}`}
-          className="px-3 py-1.5 rounded-lg bg-[#2164b6]/10 text-[#2164b6] dark:text-[#7ab0ff] hover:bg-[#2164b6]/20 text-xs font-bold transition-colors flex items-center gap-1.5"
+          className="px-3 py-1.5 rounded-lg bg-[var(--shell-accent-solid)]/10 text-[var(--shell-accent)] dark:text-[var(--shell-accent)] hover:bg-[var(--shell-accent-solid)]/20 text-xs font-bold transition-colors flex items-center gap-1.5"
         >
           <ChatTeardropText weight="fill" className="h-3.5 w-3.5" />
           <span className="hidden sm:inline">Message</span>
@@ -1526,7 +1530,7 @@ function FriendCardListRow({
                   className="flex items-center justify-between cursor-pointer"
                 >
                   <span className="text-xs truncate">{l.name}</span>
-                  {inList && <Check weight="bold" className="h-3.5 w-3.5 text-[#2164b6]" />}
+                  {inList && <Check weight="bold" className="h-3.5 w-3.5 text-[var(--shell-accent)]" />}
                 </DropdownMenuItem>
               );
             })}
@@ -1565,10 +1569,10 @@ function IncomingRequestCard({
   if (!sender) return null;
 
   return (
-    <div className="bg-white dark:bg-[#242526] border border-[#DADDE1] dark:border-[#3E4042] rounded-xl overflow-hidden shadow-2xs hover:shadow-md transition-all duration-200 flex flex-col justify-between">
+    <div className="bg-white dark:bg-[var(--shell-surface)] border border-[var(--shell-border)] dark:border-[var(--shell-border)] rounded-xl overflow-hidden shadow-2xs hover:shadow-md transition-all duration-200 flex flex-col justify-between">
       {/* Card Header & Avatar */}
       <div>
-        <div className="h-14 bg-gradient-to-r from-[#2164b6]/20 via-[#2164b6]/10 to-transparent relative">
+        <div className="h-14 bg-gradient-to-r from-[var(--shell-accent-solid)]/20 via-[var(--shell-accent-solid)]/10 to-transparent relative">
           <div className="absolute top-2 right-2">
             <DropdownMenu>
               <DropdownMenuTrigger className="p-1 rounded-full bg-white/70 dark:bg-black/50 hover:bg-white text-muted-foreground hover:text-foreground shadow-2xs cursor-pointer">
@@ -1588,25 +1592,25 @@ function IncomingRequestCard({
             name={sender.name}
             url={sender.avatar_url ?? sender.avatar}
             size={58}
-            className="ring-3 ring-white dark:ring-[#242526] shadow-xs"
+            className="ring-3 ring-white dark:ring-[var(--shell-surface)] shadow-xs"
           />
         </div>
 
         <div className="p-4 pt-2">
           <Link
             to={`/u/${sender.username}`}
-            className="text-base font-bold text-[#050505] dark:text-[#E4E6EB] hover:underline flex items-center gap-1.5 line-clamp-1"
+            className="text-base font-bold text-[var(--shell-text)] dark:text-[var(--shell-text)] hover:underline flex items-center gap-1.5 line-clamp-1"
           >
             <span>{sender.name}</span>
             {sender.has_active_verification_badge && (
-              <VerifiedBadge className="h-4 w-4 text-[#1B64F2] shrink-0" aria-label="Verified" />
+              <VerifiedBadge className="h-4 w-4 text-[var(--shell-accent)] shrink-0" aria-label="Verified" />
             )}
           </Link>
           <p className="text-xs text-muted-foreground">@{sender.username}</p>
 
           {request.mutual_friends > 0 ? (
             <p className="text-[11px] text-muted-foreground mt-2 flex items-center gap-1">
-              <Users weight="fill" className="h-3.5 w-3.5 text-[#2164b6]" />
+              <Users weight="fill" className="h-3.5 w-3.5 text-[var(--shell-accent)]" />
               <span>{request.mutual_friends} mutual friends</span>
             </p>
           ) : sender.bio ? (
@@ -1622,7 +1626,7 @@ function IncomingRequestCard({
         <button
           onClick={onAccept}
           disabled={isBusy}
-          className="w-full py-2 rounded-lg bg-[#2164b6] hover:bg-[#1a5091] text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-colors shadow-2xs disabled:opacity-50 cursor-pointer"
+          className="w-full py-2 rounded-lg bg-[var(--shell-accent-solid)] hover:bg-[var(--shell-accent-hover)] text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-colors shadow-2xs disabled:opacity-50 cursor-pointer"
         >
           {isBusy ? (
             <Spinner weight="bold" className="h-4 w-4 animate-spin" />
@@ -1634,7 +1638,7 @@ function IncomingRequestCard({
         <button
           onClick={onDecline}
           disabled={isBusy}
-          className="w-full py-2 rounded-lg bg-[#E4E6EB] hover:bg-[#D8DADF] dark:bg-[#3A3B3C] dark:hover:bg-[#4E4F50] text-[#050505] dark:text-[#E4E6EB] text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50 cursor-pointer"
+          className="w-full py-2 rounded-lg bg-[var(--shell-hover)] hover:bg-[var(--shell-hover-strong)] dark:bg-[var(--shell-hover)] dark:hover:bg-[var(--shell-hover-strong)] text-[var(--shell-text)] dark:text-[var(--shell-text)] text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50 cursor-pointer"
         >
           <X weight="bold" className="h-3.5 w-3.5" />
           <span>Delete Request</span>
@@ -1660,7 +1664,7 @@ function SentRequestCard({
   if (!receiver) return null;
 
   return (
-    <div className="bg-white dark:bg-[#242526] border border-[#DADDE1] dark:border-[#3E4042] rounded-xl p-4 flex items-center gap-3 shadow-2xs opacity-90">
+    <div className="bg-white dark:bg-[var(--shell-surface)] border border-[var(--shell-border)] dark:border-[var(--shell-border)] rounded-xl p-4 flex items-center gap-3 shadow-2xs opacity-90">
       <Avatar name={receiver.name} url={receiver.avatar_url ?? receiver.avatar} size={48} />
       <div className="flex-1 min-w-0">
         <p className="text-sm font-bold text-foreground truncate">{receiver.name}</p>
@@ -1673,7 +1677,7 @@ function SentRequestCard({
       <button
         onClick={onCancel}
         disabled={isBusy}
-        className="px-3 py-1.5 rounded-lg border border-[#DADDE1] dark:border-[#3E4042] text-xs font-semibold hover:bg-muted text-muted-foreground hover:text-foreground transition-colors shrink-0 disabled:opacity-50 cursor-pointer"
+        className="px-3 py-1.5 rounded-lg border border-[var(--shell-border)] dark:border-[var(--shell-border)] text-xs font-semibold hover:bg-muted text-muted-foreground hover:text-foreground transition-colors shrink-0 disabled:opacity-50 cursor-pointer"
       >
         {isBusy ? <Spinner weight="bold" className="h-3.5 w-3.5 animate-spin" /> : "Cancel"}
       </button>
@@ -1702,11 +1706,11 @@ function SuggestionCard({
   const hasCover = Boolean(user.banner_url);
 
   return (
-    <div className="group bg-white dark:bg-[#242526] border border-[#DADDE1] dark:border-[#3E4042] rounded-xl overflow-hidden shadow-2xs hover:shadow-md transition-all duration-200 flex flex-col justify-between">
+    <div className="group bg-white dark:bg-[var(--shell-surface)] border border-[var(--shell-border)] dark:border-[var(--shell-border)] rounded-xl overflow-hidden shadow-2xs hover:shadow-md transition-all duration-200 flex flex-col justify-between">
       <div>
         {/* Cover / Banner area */}
         <div
-          className="h-16 relative bg-gradient-to-r from-[#2164b6]/20 via-[#1a6b9e]/20 to-indigo-500/20 bg-cover bg-center"
+          className="h-16 relative bg-gradient-to-r from-[var(--shell-accent-solid)]/20 via-[#1a6b9e]/20 to-indigo-500/20 bg-cover bg-center"
           style={hasCover ? { backgroundImage: `url(${user.banner_url})` } : {}}
         >
           <button
@@ -1724,7 +1728,7 @@ function SuggestionCard({
             name={user.name}
             url={user.avatar_url ?? user.avatar}
             size={58}
-            className="ring-3 ring-white dark:ring-[#242526] shadow-xs"
+            className="ring-3 ring-white dark:ring-[var(--shell-surface)] shadow-xs"
           />
         </div>
 
@@ -1732,18 +1736,18 @@ function SuggestionCard({
         <div className="p-4 pt-2">
           <Link
             to={`/u/${user.username}`}
-            className="text-base font-bold text-[#050505] dark:text-[#E4E6EB] hover:underline flex items-center gap-1.5 line-clamp-1"
+            className="text-base font-bold text-[var(--shell-text)] dark:text-[var(--shell-text)] hover:underline flex items-center gap-1.5 line-clamp-1"
           >
             <span>{user.name}</span>
             {user.has_active_verification_badge && (
-              <VerifiedBadge className="h-4 w-4 text-[#1B64F2] shrink-0" aria-label="Verified" />
+              <VerifiedBadge className="h-4 w-4 text-[var(--shell-accent)] shrink-0" aria-label="Verified" />
             )}
           </Link>
           <p className="text-xs text-muted-foreground">@{user.username}</p>
 
           {(user.mutual_friends ?? 0) > 0 ? (
             <p className="text-[11px] text-muted-foreground mt-2 flex items-center gap-1">
-              <Users weight="fill" className="h-3.5 w-3.5 text-[#2164b6]" />
+              <Users weight="fill" className="h-3.5 w-3.5 text-[var(--shell-accent)]" />
               <span>{user.mutual_friends} mutual connections</span>
             </p>
           ) : user.bio ? (
@@ -1779,7 +1783,7 @@ function SuggestionCard({
             <button
               onClick={onAdd}
               disabled={isBusy}
-              className="w-full py-2 rounded-lg bg-[#2164b6] hover:bg-[#1a5091] text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-colors shadow-2xs disabled:opacity-50 cursor-pointer"
+              className="w-full py-2 rounded-lg bg-[var(--shell-accent-solid)] hover:bg-[var(--shell-accent-hover)] text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-colors shadow-2xs disabled:opacity-50 cursor-pointer"
             >
               {isBusy ? (
                 <Spinner weight="bold" className="h-4 w-4 animate-spin" />
@@ -1818,11 +1822,11 @@ function EmptySocialState({
   secondaryAction?: { label: string; onClick?: () => void; href?: string };
 }) {
   return (
-    <div className="bg-white dark:bg-[#242526] border border-[#DADDE1] dark:border-[#3E4042] rounded-2xl p-10 sm:p-14 text-center max-w-xl mx-auto shadow-2xs my-4">
-      <div className="h-16 w-16 rounded-2xl bg-[#2164b6]/10 text-[#2164b6] dark:text-[#7ab0ff] flex items-center justify-center mx-auto mb-4">
+    <div className="bg-white dark:bg-[var(--shell-surface)] border border-[var(--shell-border)] dark:border-[var(--shell-border)] rounded-2xl p-10 sm:p-14 text-center max-w-xl mx-auto shadow-2xs my-4">
+      <div className="h-16 w-16 rounded-2xl bg-[var(--shell-accent-solid)]/10 text-[var(--shell-accent)] dark:text-[var(--shell-accent)] flex items-center justify-center mx-auto mb-4">
         <Icon weight="fill" className="h-8 w-8" />
       </div>
-      <h3 className="text-lg sm:text-xl font-bold text-[#050505] dark:text-[#E4E6EB]">
+      <h3 className="text-lg sm:text-xl font-bold text-[var(--shell-text)] dark:text-[var(--shell-text)]">
         {title}
       </h3>
       <p className="text-xs sm:text-sm text-muted-foreground mt-2 max-w-md mx-auto leading-relaxed">
@@ -1835,14 +1839,14 @@ function EmptySocialState({
             (primaryAction.href ? (
               <Link
                 to={primaryAction.href}
-                className="px-5 py-2.5 rounded-lg bg-[#2164b6] hover:bg-[#1a5091] text-white text-xs sm:text-sm font-bold transition-colors shadow-2xs"
+                className="px-5 py-2.5 rounded-lg bg-[var(--shell-accent-solid)] hover:bg-[var(--shell-accent-hover)] text-white text-xs sm:text-sm font-bold transition-colors shadow-2xs"
               >
                 {primaryAction.label}
               </Link>
             ) : (
               <button
                 onClick={primaryAction.onClick}
-                className="px-5 py-2.5 rounded-lg bg-[#2164b6] hover:bg-[#1a5091] text-white text-xs sm:text-sm font-bold transition-colors shadow-2xs cursor-pointer"
+                className="px-5 py-2.5 rounded-lg bg-[var(--shell-accent-solid)] hover:bg-[var(--shell-accent-hover)] text-white text-xs sm:text-sm font-bold transition-colors shadow-2xs cursor-pointer"
               >
                 {primaryAction.label}
               </button>
@@ -1852,14 +1856,14 @@ function EmptySocialState({
             (secondaryAction.href ? (
               <Link
                 to={secondaryAction.href}
-                className="px-4 py-2.5 rounded-lg border border-[#DADDE1] dark:border-[#3E4042] hover:bg-[#F0F2F5] dark:hover:bg-[#3A3B3C] text-xs sm:text-sm font-bold text-foreground transition-colors"
+                className="px-4 py-2.5 rounded-lg border border-[var(--shell-border)] dark:border-[var(--shell-border)] hover:bg-[var(--shell-hover)] dark:hover:bg-[var(--shell-hover)] text-xs sm:text-sm font-bold text-foreground transition-colors"
               >
                 {secondaryAction.label}
               </Link>
             ) : (
               <button
                 onClick={secondaryAction.onClick}
-                className="px-4 py-2.5 rounded-lg border border-[#DADDE1] dark:border-[#3E4042] hover:bg-[#F0F2F5] dark:hover:bg-[#3A3B3C] text-xs sm:text-sm font-bold text-foreground transition-colors cursor-pointer"
+                className="px-4 py-2.5 rounded-lg border border-[var(--shell-border)] dark:border-[var(--shell-border)] hover:bg-[var(--shell-hover)] dark:hover:bg-[var(--shell-hover)] text-xs sm:text-sm font-bold text-foreground transition-colors cursor-pointer"
               >
                 {secondaryAction.label}
               </button>

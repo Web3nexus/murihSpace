@@ -33,11 +33,12 @@ function formatNumber(n: number): string {
 export function PublicMediaKitPage() {
   const { creatorId } = useParams<{ creatorId: string }>();
   const [kit, setKit] = useState<MediaKitData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [notFound, setNotFound] = useState(false);
+  // A missing creatorId is shown as not-found straight away, so the effect only fetches real ids.
+  const [loading, setLoading] = useState(() => Boolean(creatorId));
+  const [notFound, setNotFound] = useState(() => !creatorId);
 
   useEffect(() => {
-    if (!creatorId) { setNotFound(true); setLoading(false); return; }
+    if (!creatorId) return;
     (async () => {
       try {
         const res = await authFetch(`/media-kit/${encodeURIComponent(creatorId)}`, { headers: { Accept: "application/json" } });

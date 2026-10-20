@@ -1,5 +1,4 @@
-import { getAuthToken } from "@/lib/auth/token";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { ShieldDone as Shield, DangerSquare as AlertCircle } from "@/components/icons";
 import { Spinner as Loader2 } from "@/components/icons/rounded";;
 import { authFetch } from "@/lib/api/authFetch";
@@ -7,8 +6,7 @@ import { authFetch } from "@/lib/api/authFetch";
 
 
 function authHeaders() {
-  const t = getAuthToken();
-  return { Accept: "application/json", "Content-Type": "application/json", ...(t ? { Authorization: `Bearer ${t}` } : {}) };
+  return { Accept: "application/json", "Content-Type": "application/json", };
 }
 
 interface LogEntry {
@@ -24,26 +22,32 @@ export default function AdminModerationLogsPage() {
   const [page, setPage] = useState(1);
   const [lastPage, setLastPage] = useState(1);
 
-  const loadData = useCallback(async () => {
+  const [loadDataKey, setLoadDataKey] = useState(0);
+  const loadData = () => {
     setFetchError(null);
-    try {
-      const res = await authFetch(`/securegate/moderation-logs?page=${page}&per_page=20`, { headers: authHeaders() });
-      if (!res.ok) throw new Error("Failed to load moderation logs");
-      const j = await res.json();
-      const list = j?.success ? j?.data : j;
-      setLogs(Array.isArray(list?.data ?? list) ? (list?.data ?? list) : []);
-      setLastPage(j.data?.last_page ?? j.data?.data?.last_page ?? 1);
-    } catch (e) { setFetchError(e instanceof Error ? e.message : "Failed to load moderation logs"); }
-    finally { setLoading(false); }
-  }, [page]);
+    setLoadDataKey((k) => k + 1);
+  };
 
-  useEffect(() => { loadData(); }, [loadData]);
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await authFetch(`/securegate/moderation-logs?page=${page}&per_page=20`, { headers: authHeaders() });
+        if (!res.ok) throw new Error("Failed to load moderation logs");
+        const j = await res.json();
+        const list = j?.success ? j?.data : j;
+        setLogs(Array.isArray(list?.data ?? list) ? (list?.data ?? list) : []);
+        setLastPage(j.data?.last_page ?? j.data?.data?.last_page ?? 1);
+      } catch (e) { setFetchError(e instanceof Error ? e.message : "Failed to load moderation logs"); }
+      finally { setLoading(false); }
+    })();
+  }, [loadDataKey, page]);
 
-  if (loading) return <div className="flex justify-center py-24"><Loader2 weight="fill" className="h-8 w-8 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" /></div>;
+
+  if (loading) return <div className="flex justify-center py-24"><Loader2 weight="fill" className="h-8 w-8 animate-spin text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" /></div>;
 
   return (
     <div className="w-full mx-auto max-w-[1400px] space-y-6 p-4 lg:p-10">
-      <div><h1 className="text-xl font-black tracking-tight flex items-center gap-2.5"><Shield weight="fill" className="h-6 w-6 text-[#2164b6] dark:text-[#7ab0ff]" /> Moderation Logs</h1><p className="text-xs text-muted-foreground mt-1">View content moderation history.</p></div>
+      <div><h1 className="text-xl font-black tracking-tight flex items-center gap-2.5"><Shield weight="fill" className="h-6 w-6 text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" /> Moderation Logs</h1><p className="text-xs text-muted-foreground mt-1">View content moderation history.</p></div>
 
       {fetchError && (
         <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-xs text-destructive">

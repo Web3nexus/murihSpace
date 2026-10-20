@@ -1,3 +1,5 @@
+import { logger } from "@/lib/logger";
+import { asApiError } from "@/lib/apiError";
 import { useState, useEffect, useCallback, useId } from "react";
 import { Link } from "react-router";
 import { Show as Eye, Chat as ChatCircleDots, N2User as Users, Document as FileText, Calendar, ArrowUp, ArrowDown, ArrowDown as CaretDown, Plus, DangerSquare as WarningCircle, TimeCircle as Clock, ArrowRight } from "@/components/icons";
@@ -126,7 +128,7 @@ function PerformanceChart({
 
   if (!data || data.length === 0) {
     return (
-      <div className="h-64 flex items-center justify-center text-xs text-[#65676B] dark:text-[#B0B3B8]">
+      <div className="h-64 flex items-center justify-center text-xs text-[var(--shell-muted)] dark:text-[var(--shell-muted)]">
         No trend data available for this range
       </div>
     );
@@ -277,7 +279,7 @@ function PerformanceChart({
         >
           <span>
             {points[hoveredIdx].point.label}:{" "}
-            <strong className="text-[#7ab0ff]">
+            <strong className="text-[var(--shell-accent)]">
               {METRIC_CONFIG[metric].format(points[hoveredIdx].val)}
             </strong>{" "}
             {METRIC_CONFIG[metric].label.toLowerCase()}
@@ -286,7 +288,7 @@ function PerformanceChart({
       )}
 
       {/* X-axis date labels */}
-      <div className="flex justify-between px-10 pt-1 text-[11px] text-[#65676B] dark:text-[#B0B3B8]">
+      <div className="flex justify-between px-10 pt-1 text-[11px] text-[var(--shell-muted)] dark:text-[var(--shell-muted)]">
         {sampledLabels.map((lbl, idx) => (
           <span key={idx}>{lbl.label}</span>
         ))}
@@ -302,10 +304,15 @@ export function AnalyticsPage() {
   const [data, setData] = useState<CreatorPerformanceData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  const fetchInsights = useCallback(async (r: DateRange) => {
+  // Reset loading in the render that changes the range, rather than in the fetch effect.
+  const [prevRange, setPrevRange] = useState(range);
+  if (prevRange !== range) {
+    setPrevRange(range);
     setLoading(true);
     setError(null);
+  }
+
+  const fetchInsights = useCallback(async (r: DateRange) => {
     try {
       const res = await authFetch(`/analytics/creator-performance?range=${r}`);
       if (!res.ok) {
@@ -316,7 +323,7 @@ export function AnalyticsPage() {
         try {
           const errData = await res.json();
           if (errData?.message) serverMessage = errData.message;
-        } catch {}
+        } catch { /* ignored: best-effort, failure is non-fatal */ }
         throw new Error(serverMessage);
       }
 
@@ -336,10 +343,11 @@ export function AnalyticsPage() {
         throw new Error("Invalid response format received from analytics service.");
       }
     } catch (err: unknown) {
-      console.error("Failed to load insights:", err);
+      const apiErr = asApiError(err);
+      logger.error("Failed to load insights:", err);
       const message =
         err instanceof Error
-          ? err.message
+          ? apiErr.message
           : typeof err === "object" && err && "message" in err
           ? String((err as { message: unknown }).message)
           : "Failed to load performance insights. Please try again.";
@@ -350,15 +358,17 @@ export function AnalyticsPage() {
   }, []);
 
   useEffect(() => {
-    fetchInsights(range);
+    (async () => {
+      await fetchInsights(range);
+    })();
   }, [range, fetchInsights]);
 
   if (loading && !data) {
     return (
       <AnimatedPage className="w-full min-h-[60vh] flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">
-          <Spinner weight="bold" className="h-7 w-7 animate-spin text-[#2164b6]" />
-          <p className="text-xs font-semibold text-[#65676B] dark:text-[#B0B3B8]">
+          <Spinner weight="bold" className="h-7 w-7 animate-spin text-[var(--shell-accent)]" />
+          <p className="text-xs font-semibold text-[var(--shell-muted)] dark:text-[var(--shell-muted)]">
             Loading creator insights…
           </p>
         </div>
@@ -369,14 +379,14 @@ export function AnalyticsPage() {
   if (error && !data) {
     return (
       <AnimatedPage className="w-full min-h-[60vh] flex items-center justify-center p-4">
-        <div className="text-center space-y-3 max-w-sm bg-white dark:bg-[#242526] p-6 rounded-lg shadow-xs">
+        <div className="text-center space-y-3 max-w-sm bg-white dark:bg-[var(--shell-surface)] p-6 rounded-lg shadow-xs">
           <WarningCircle weight="fill" className="h-8 w-8 text-rose-500 mx-auto" />
-          <h2 className="text-base font-bold text-[#050505] dark:text-[#E4E6EB]">Unable to Load Insights</h2>
-          <p className="text-xs text-[#65676B] dark:text-[#B0B3B8]">{error}</p>
+          <h2 className="text-base font-bold text-[var(--shell-text)] dark:text-[var(--shell-text)]">Unable to Load Insights</h2>
+          <p className="text-xs text-[var(--shell-muted)] dark:text-[var(--shell-muted)]">{error}</p>
           <div className="flex items-center justify-center gap-2 pt-2">
             <button
-              onClick={() => fetchInsights(range)}
-              className="px-4 py-2 rounded-lg bg-[#2164b6] hover:bg-[#1a5091] text-white text-xs font-semibold transition-colors"
+              onClick={() => { setLoading(true); setError(null); fetchInsights(range); }}
+              className="px-4 py-2 rounded-lg bg-[var(--shell-accent-solid)] hover:bg-[var(--shell-accent-hover)] text-white text-xs font-semibold transition-colors"
             >
               Retry
             </button>
@@ -411,7 +421,7 @@ export function AnalyticsPage() {
                   planned_content: [],
                 });
               }}
-              className="px-4 py-2 rounded-lg bg-[#F0F2F5] dark:bg-[#3A3B3C] text-[#050505] dark:text-[#E4E6EB] text-xs font-semibold hover:bg-[#E4E6EB] transition-colors"
+              className="px-4 py-2 rounded-lg bg-[var(--shell-canvas)] dark:bg-[var(--shell-hover)] text-[var(--shell-text)] dark:text-[var(--shell-text)] text-xs font-semibold hover:bg-[var(--shell-hover)] transition-colors"
             >
               View Baseline
             </button>
@@ -435,17 +445,17 @@ export function AnalyticsPage() {
     (!data?.top_content || data.top_content.length === 0);
 
   return (
-    <AnimatedPage className="w-full min-h-full bg-[#F0F2F5] dark:bg-[#18191A] text-[#050505] dark:text-[#E4E6EB] py-5 px-3 sm:px-6">
+    <AnimatedPage className="w-full min-h-full bg-[var(--shell-canvas)] dark:bg-[var(--shell-canvas)] text-[var(--shell-text)] dark:text-[var(--shell-text)] py-5 px-3 sm:px-6">
       <div className="max-w-[1240px] mx-auto flex flex-col lg:flex-row gap-6 items-start">
         {/* ── MAIN INSIGHTS AREA (700–850px) ── */}
         <div className="flex-1 min-w-0 w-full max-w-[850px] space-y-5">
           {/* 1. Insights Page Identity Header */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-[#242526] p-4 sm:p-5 rounded-lg shadow-xs">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-[var(--shell-surface)] p-4 sm:p-5 rounded-lg shadow-xs">
             <div>
-              <h1 className="text-2xl sm:text-[26px] font-bold text-[#050505] dark:text-[#E4E6EB] tracking-tight leading-tight">
+              <h1 className="text-2xl sm:text-[26px] font-bold text-[var(--shell-text)] dark:text-[var(--shell-text)] tracking-tight leading-tight">
                 Insights
               </h1>
-              <p className="text-xs sm:text-[13px] text-[#65676B] dark:text-[#B0B3B8] mt-1">
+              <p className="text-xs sm:text-[13px] text-[var(--shell-muted)] dark:text-[var(--shell-muted)] mt-1">
                 Understand how your content, audience and creator business are performing.
               </p>
             </div>
@@ -456,7 +466,7 @@ export function AnalyticsPage() {
                 <select
                   value={range}
                   onChange={(e) => setRange(e.target.value as DateRange)}
-                  className="appearance-none h-9 pl-3 pr-8 rounded-lg bg-[#F0F2F5] dark:bg-[#3A3B3C] text-[#050505] dark:text-[#E4E6EB] text-xs font-semibold border-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#2164b6]/40 transition-all"
+                  className="appearance-none h-9 pl-3 pr-8 rounded-lg bg-[var(--shell-canvas)] dark:bg-[var(--shell-hover)] text-[var(--shell-text)] dark:text-[var(--shell-text)] text-xs font-semibold border-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-[var(--shell-accent)]/40 transition-all"
                 >
                   <option value="7d">Last 7 days</option>
                   <option value="28d">Last 28 days</option>
@@ -464,7 +474,7 @@ export function AnalyticsPage() {
                 </select>
                 <CaretDown
                   weight="bold"
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[#65676B] dark:text-[#B0B3B8] pointer-events-none"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[var(--shell-muted)] dark:text-[var(--shell-muted)] pointer-events-none"
                 />
               </div>
             </div>
@@ -472,18 +482,18 @@ export function AnalyticsPage() {
 
           {/* 2. Empty State if brand new account with 0 data */}
           {hasZeroActivity && (
-            <div className="bg-white dark:bg-[#242526] rounded-lg shadow-xs p-8 text-center space-y-3 flex flex-col items-center justify-center">
-              <div className="h-12 w-12 rounded-full bg-[#2164b6]/10 text-[#2164b6] flex items-center justify-center mx-auto">
+            <div className="bg-white dark:bg-[var(--shell-surface)] rounded-lg shadow-xs p-8 text-center space-y-3 flex flex-col items-center justify-center">
+              <div className="h-12 w-12 rounded-full bg-[var(--shell-accent-solid)]/10 text-[var(--shell-accent)] flex items-center justify-center mx-auto">
                 <Users weight="fill" className="h-6 w-6" />
               </div>
-              <h3 className="text-base font-bold text-[#050505] dark:text-[#E4E6EB] text-center">
+              <h3 className="text-base font-bold text-[var(--shell-text)] dark:text-[var(--shell-text)] text-center">
                 No performance data yet
               </h3>
-              <p className="text-xs sm:text-sm text-[#65676B] dark:text-[#B0B3B8] max-w-md mx-auto leading-relaxed text-center">
+              <p className="text-xs sm:text-sm text-[var(--shell-muted)] dark:text-[var(--shell-muted)] max-w-md mx-auto leading-relaxed text-center">
                 Once you publish content, your views, engagement and audience insights will automatically appear here.
               </p>
               <Link to="/app/feed" className="inline-block pt-1 text-center">
-                <button className="px-4 py-2 rounded-lg bg-[#2164b6] hover:bg-[#1a5091] text-white text-xs font-bold transition-colors">
+                <button className="px-4 py-2 rounded-lg bg-[var(--shell-accent-solid)] hover:bg-[var(--shell-accent-hover)] text-white text-xs font-bold transition-colors">
                   Create your first post
                 </button>
               </Link>
@@ -491,13 +501,13 @@ export function AnalyticsPage() {
           )}
 
           {/* 3. Primary Performance Area (Metric Selectors + Interactive Chart) */}
-          <div className="bg-white dark:bg-[#242526] rounded-lg shadow-xs p-4 sm:p-5 space-y-4">
+          <div className="bg-white dark:bg-[var(--shell-surface)] rounded-lg shadow-xs p-4 sm:p-5 space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-[17px] font-bold text-[#050505] dark:text-[#E4E6EB]">
+                <h2 className="text-[17px] font-bold text-[var(--shell-text)] dark:text-[var(--shell-text)]">
                   Performance Overview
                 </h2>
-                <p className="text-[12px] text-[#65676B] dark:text-[#B0B3B8]">
+                <p className="text-[12px] text-[var(--shell-muted)] dark:text-[var(--shell-muted)]">
                   Select a metric below to visualize trends over the past{" "}
                   {range === "7d" ? "7 days" : range === "90d" ? "90 days" : "28 days"}.
                 </p>
@@ -519,16 +529,16 @@ export function AnalyticsPage() {
                     onClick={() => setSelectedMetric(key)}
                     className={`flex flex-col text-left p-3 rounded-lg border transition-all cursor-pointer select-none ${
                       isSelected
-                        ? "border-[#2164b6] bg-[#E7F3FF]/70 dark:bg-[#2D3F54]/50 shadow-2xs"
-                        : "border-[#DADDE1] dark:border-[#3E4042] hover:bg-[#F7F8FA] dark:hover:bg-[#2F3031]"
+                        ? "border-[var(--shell-accent)] bg-[var(--shell-accent-tint)]/70 dark:bg-[var(--shell-accent-tint)]/50 shadow-2xs"
+                        : "border-[var(--shell-border)] dark:border-[var(--shell-border)] hover:bg-[var(--shell-hover)] dark:hover:bg-[var(--shell-hover)]"
                     }`}
                   >
                     <div className="flex items-center justify-between w-full mb-1">
                       <span
                         className={`text-[12px] font-semibold truncate ${
                           isSelected
-                            ? "text-[#2164b6] dark:text-[#7ab0ff]"
-                            : "text-[#65676B] dark:text-[#B0B3B8]"
+                            ? "text-[var(--shell-accent)] dark:text-[var(--shell-accent)]"
+                            : "text-[var(--shell-muted)] dark:text-[var(--shell-muted)]"
                         }`}
                       >
                         {metricMeta.label}
@@ -537,13 +547,13 @@ export function AnalyticsPage() {
                         weight="fill"
                         className={`h-4 w-4 shrink-0 ${
                           isSelected
-                            ? "text-[#2164b6] dark:text-[#7ab0ff]"
-                            : "text-[#65676B] dark:text-[#B0B3B8]"
+                            ? "text-[var(--shell-accent)] dark:text-[var(--shell-accent)]"
+                            : "text-[var(--shell-muted)] dark:text-[var(--shell-muted)]"
                         }`}
                       />
                     </div>
 
-                    <div className="text-[22px] sm:text-[24px] font-bold text-[#050505] dark:text-[#E4E6EB] tracking-tight leading-tight">
+                    <div className="text-[22px] sm:text-[24px] font-bold text-[var(--shell-text)] dark:text-[var(--shell-text)] tracking-tight leading-tight">
                       {metricMeta.format(itemSummary.value)}
                     </div>
 
@@ -559,7 +569,7 @@ export function AnalyticsPage() {
                           {Math.abs(itemSummary.delta)}%
                         </span>
                       )}
-                      <span className="text-[#65676B] dark:text-[#B0B3B8] font-normal text-[10px]">
+                      <span className="text-[var(--shell-muted)] dark:text-[var(--shell-muted)] font-normal text-[10px]">
                         vs prior period
                       </span>
                     </div>
@@ -569,25 +579,25 @@ export function AnalyticsPage() {
             </div>
 
             {/* Performance Line Chart */}
-            <div className="pt-2 border-t border-[#DADDE1] dark:border-[#3E4042]">
+            <div className="pt-2 border-t border-[var(--shell-border)] dark:border-[var(--shell-border)]">
               <PerformanceChart data={data?.time_series ?? []} metric={selectedMetric} />
             </div>
           </div>
 
           {/* 4. Content Performance Section */}
-          <div className="bg-white dark:bg-[#242526] rounded-lg shadow-xs p-4 sm:p-5 space-y-3">
-            <div className="flex items-center justify-between border-b border-[#DADDE1] dark:border-[#3E4042] pb-3">
+          <div className="bg-white dark:bg-[var(--shell-surface)] rounded-lg shadow-xs p-4 sm:p-5 space-y-3">
+            <div className="flex items-center justify-between border-b border-[var(--shell-border)] dark:border-[var(--shell-border)] pb-3">
               <div>
-                <h2 className="text-[17px] font-bold text-[#050505] dark:text-[#E4E6EB]">
+                <h2 className="text-[17px] font-bold text-[var(--shell-text)] dark:text-[var(--shell-text)]">
                   Content Performance
                 </h2>
-                <p className="text-[12px] text-[#65676B] dark:text-[#B0B3B8]">
+                <p className="text-[12px] text-[var(--shell-muted)] dark:text-[var(--shell-muted)]">
                   Recent posts and stories performance
                 </p>
               </div>
               <Link
                 to="/app/feed"
-                className="text-xs font-semibold text-[#2164b6] dark:text-[#7ab0ff] hover:underline flex items-center gap-1"
+                className="text-xs font-semibold text-[var(--shell-accent)] dark:text-[var(--shell-accent)] hover:underline flex items-center gap-1"
               >
                 <span>View all posts</span>
                 <ArrowRight weight="bold" className="h-3 w-3" />
@@ -596,7 +606,7 @@ export function AnalyticsPage() {
 
             {/* Content Rows */}
             {(!data?.top_content || data.top_content.length === 0) ? (
-              <p className="text-xs text-[#65676B] dark:text-[#B0B3B8] py-4 text-center">
+              <p className="text-xs text-[var(--shell-muted)] dark:text-[var(--shell-muted)] py-4 text-center">
                 No recent posts published in this date range.
               </p>
             ) : (
@@ -604,10 +614,10 @@ export function AnalyticsPage() {
                 {data.top_content.map((post) => (
                   <div
                     key={post.id}
-                    className="flex items-center gap-3 py-3 hover:bg-[#F7F8FA] dark:hover:bg-[#2F3031] -mx-2 px-2 rounded-lg transition-colors"
+                    className="flex items-center gap-3 py-3 hover:bg-[var(--shell-hover)] dark:hover:bg-[var(--shell-hover)] -mx-2 px-2 rounded-lg transition-colors"
                   >
                     {/* Thumbnail: 76px x 52px, 6px radius */}
-                    <div className="w-[76px] h-[52px] rounded-[6px] overflow-hidden bg-[#F0F2F5] dark:bg-[#3A3B3C] shrink-0 flex items-center justify-center text-muted-foreground">
+                    <div className="w-[76px] h-[52px] rounded-[6px] overflow-hidden bg-[var(--shell-canvas)] dark:bg-[var(--shell-hover)] shrink-0 flex items-center justify-center text-muted-foreground">
                       {post.thumbnail ? (
                         <img
                           src={post.thumbnail}
@@ -615,16 +625,16 @@ export function AnalyticsPage() {
                           className="w-full h-full object-cover"
                         />
                       ) : (
-                        <FileText weight="fill" className="h-5 w-5 text-[#65676B] dark:text-[#B0B3B8]" />
+                        <FileText weight="fill" className="h-5 w-5 text-[var(--shell-muted)] dark:text-[var(--shell-muted)]" />
                       )}
                     </div>
 
                     {/* Post Info */}
                     <div className="min-w-0 flex-1">
-                      <p className="text-[13px] font-semibold text-[#050505] dark:text-[#E4E6EB] line-clamp-1 leading-snug">
+                      <p className="text-[13px] font-semibold text-[var(--shell-text)] dark:text-[var(--shell-text)] line-clamp-1 leading-snug">
                         {post.title}
                       </p>
-                      <p className="text-[11px] text-[#65676B] dark:text-[#B0B3B8] mt-0.5 flex items-center gap-2">
+                      <p className="text-[11px] text-[var(--shell-muted)] dark:text-[var(--shell-muted)] mt-0.5 flex items-center gap-2">
                         <span>{formatCompactTime(post.created_at)}</span>
                         <span>·</span>
                         <span>Post</span>
@@ -634,16 +644,16 @@ export function AnalyticsPage() {
                     {/* Metrics Values */}
                     <div className="flex items-center gap-4 sm:gap-6 text-right shrink-0">
                       <div>
-                        <p className="text-[13px] font-bold text-[#050505] dark:text-[#E4E6EB]">
+                        <p className="text-[13px] font-bold text-[var(--shell-text)] dark:text-[var(--shell-text)]">
                           {post.views.toLocaleString()}
                         </p>
-                        <p className="text-[10px] text-[#65676B] dark:text-[#B0B3B8]">Views</p>
+                        <p className="text-[10px] text-[var(--shell-muted)] dark:text-[var(--shell-muted)]">Views</p>
                       </div>
                       <div>
-                        <p className="text-[13px] font-bold text-[#050505] dark:text-[#E4E6EB]">
+                        <p className="text-[13px] font-bold text-[var(--shell-text)] dark:text-[var(--shell-text)]">
                           {post.engagement.toLocaleString()}
                         </p>
-                        <p className="text-[10px] text-[#65676B] dark:text-[#B0B3B8]">Engaged</p>
+                        <p className="text-[10px] text-[var(--shell-muted)] dark:text-[var(--shell-muted)]">Engaged</p>
                       </div>
                     </div>
                   </div>
@@ -653,21 +663,21 @@ export function AnalyticsPage() {
           </div>
 
           {/* 5. Audience Insights Section */}
-          <div className="bg-white dark:bg-[#242526] rounded-lg shadow-xs p-4 sm:p-5 space-y-4">
-            <div className="border-b border-[#DADDE1] dark:border-[#3E4042] pb-3">
-              <h2 className="text-[17px] font-bold text-[#050505] dark:text-[#E4E6EB]">
+          <div className="bg-white dark:bg-[var(--shell-surface)] rounded-lg shadow-xs p-4 sm:p-5 space-y-4">
+            <div className="border-b border-[var(--shell-border)] dark:border-[var(--shell-border)] pb-3">
+              <h2 className="text-[17px] font-bold text-[var(--shell-text)] dark:text-[var(--shell-text)]">
                 Audience Insights
               </h2>
-              <p className="text-[12px] text-[#65676B] dark:text-[#B0B3B8]">
+              <p className="text-[12px] text-[var(--shell-muted)] dark:text-[var(--shell-muted)]">
                 Growth, retention, and geographic reach
               </p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Left: Follower Growth & Retention */}
-              <div className="p-3.5 rounded-lg bg-[#F7F8FA] dark:bg-[#2F3031] space-y-3">
+              <div className="p-3.5 rounded-lg bg-[var(--shell-subtle)] dark:bg-[#2F3031] space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-[#65676B] dark:text-[#B0B3B8]">
+                  <span className="text-xs font-semibold text-[var(--shell-muted)] dark:text-[var(--shell-muted)]">
                     Followers Retention
                   </span>
                   <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
@@ -678,23 +688,23 @@ export function AnalyticsPage() {
                 <div className="space-y-2 pt-1">
                   <div>
                     <div className="flex justify-between text-xs mb-1">
-                      <span className="text-[#050505] dark:text-[#E4E6EB] font-medium">Returning Viewers</span>
-                      <span className="font-bold text-[#050505] dark:text-[#E4E6EB]">
+                      <span className="text-[var(--shell-text)] dark:text-[var(--shell-text)] font-medium">Returning Viewers</span>
+                      <span className="font-bold text-[var(--shell-text)] dark:text-[var(--shell-text)]">
                         {data?.audience?.returning_percentage ?? 0}%
                       </span>
                     </div>
-                    <div className="h-2 w-full rounded-full bg-[#E4E6EB] dark:bg-[#3A3B3C] overflow-hidden">
+                    <div className="h-2 w-full rounded-full bg-[var(--shell-hover)] dark:bg-[var(--shell-hover)] overflow-hidden">
                       <div
-                        className="h-full rounded-full bg-[#2164b6]"
+                        className="h-full rounded-full bg-[var(--shell-accent-solid)]"
                         style={{ width: `${data?.audience?.returning_percentage ?? 0}%` }}
                       />
                     </div>
                   </div>
 
-                  <div className="pt-2 flex items-center justify-between text-xs border-t border-[#DADDE1] dark:border-[#3E4042]">
-                    <span className="text-[#65676B] dark:text-[#B0B3B8]">Peak Activity Hours:</span>
-                    <span className="font-semibold text-[#050505] dark:text-[#E4E6EB] flex items-center gap-1">
-                      <Clock weight="fill" className="h-3.5 w-3.5 text-[#2164b6]" />
+                  <div className="pt-2 flex items-center justify-between text-xs border-t border-[var(--shell-border)] dark:border-[var(--shell-border)]">
+                    <span className="text-[var(--shell-muted)] dark:text-[var(--shell-muted)]">Peak Activity Hours:</span>
+                    <span className="font-semibold text-[var(--shell-text)] dark:text-[var(--shell-text)] flex items-center gap-1">
+                      <Clock weight="fill" className="h-3.5 w-3.5 text-[var(--shell-accent)]" />
                       {data?.audience?.activity_peak ?? "No recent activity"}
                     </span>
                   </div>
@@ -702,12 +712,12 @@ export function AnalyticsPage() {
               </div>
 
               {/* Right: Top Locations */}
-              <div className="p-3.5 rounded-lg bg-[#F7F8FA] dark:bg-[#2F3031] space-y-2">
-                <span className="text-xs font-semibold text-[#65676B] dark:text-[#B0B3B8] block mb-1">
+              <div className="p-3.5 rounded-lg bg-[var(--shell-subtle)] dark:bg-[#2F3031] space-y-2">
+                <span className="text-xs font-semibold text-[var(--shell-muted)] dark:text-[var(--shell-muted)] block mb-1">
                   Top Locations
                 </span>
                 {(!data?.audience?.top_locations || data.audience.top_locations.length === 0) ? (
-                  <p className="text-xs text-[#65676B] dark:text-[#B0B3B8] py-2 text-center">
+                  <p className="text-xs text-[var(--shell-muted)] dark:text-[var(--shell-muted)] py-2 text-center">
                     No location data available yet.
                   </p>
                 ) : (
@@ -715,12 +725,12 @@ export function AnalyticsPage() {
                     {data.audience.top_locations.map((loc) => (
                       <div key={loc.name}>
                         <div className="flex justify-between text-xs mb-0.5">
-                          <span className="text-[#050505] dark:text-[#E4E6EB] font-medium">{loc.name}</span>
-                          <span className="font-bold text-[#65676B] dark:text-[#B0B3B8]">{loc.percentage}%</span>
+                          <span className="text-[var(--shell-text)] dark:text-[var(--shell-text)] font-medium">{loc.name}</span>
+                          <span className="font-bold text-[var(--shell-muted)] dark:text-[var(--shell-muted)]">{loc.percentage}%</span>
                         </div>
-                        <div className="h-1.5 w-full rounded-full bg-[#E4E6EB] dark:bg-[#3A3B3C] overflow-hidden">
+                        <div className="h-1.5 w-full rounded-full bg-[var(--shell-hover)] dark:bg-[var(--shell-hover)] overflow-hidden">
                           <div
-                            className="h-full rounded-full bg-[#2164b6]"
+                            className="h-full rounded-full bg-[var(--shell-accent-solid)]"
                             style={{ width: `${loc.percentage}%` }}
                           />
                         </div>
@@ -736,9 +746,9 @@ export function AnalyticsPage() {
         {/* ── RIGHT CONTEXT PANEL (280–320px) ── */}
         <div className="w-full lg:w-[300px] xl:w-[320px] shrink-0 space-y-4">
           {/* 1. Profile Status Widget */}
-          <div className="bg-white dark:bg-[#242526] rounded-lg shadow-xs p-4 space-y-3">
+          <div className="bg-white dark:bg-[var(--shell-surface)] rounded-lg shadow-xs p-4 space-y-3">
             <div className="flex items-center gap-3">
-              <div className="h-11 w-11 rounded-full overflow-hidden bg-[#2164b6] flex items-center justify-center text-white font-bold text-sm shrink-0">
+              <div className="h-11 w-11 rounded-full overflow-hidden bg-[var(--shell-accent-solid)] flex items-center justify-center text-white font-bold text-sm shrink-0">
                 {data?.profile_status?.avatar ? (
                   <img
                     src={data.profile_status.avatar}
@@ -750,46 +760,46 @@ export function AnalyticsPage() {
                 )}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-[14px] font-bold text-[#050505] dark:text-[#E4E6EB] truncate leading-tight">
+                <p className="text-[14px] font-bold text-[var(--shell-text)] dark:text-[var(--shell-text)] truncate leading-tight">
                   {data?.profile_status?.name ?? user?.name}
                 </p>
-                <p className="text-[11px] text-[#65676B] dark:text-[#B0B3B8] truncate leading-normal">
+                <p className="text-[11px] text-[var(--shell-muted)] dark:text-[var(--shell-muted)] truncate leading-normal">
                   @{data?.profile_status?.username ?? user?.username ?? "creator"}
                 </p>
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-2 py-2 border-y border-[#DADDE1] dark:border-[#3E4042] text-center">
+            <div className="grid grid-cols-3 gap-2 py-2 border-y border-[var(--shell-border)] dark:border-[var(--shell-border)] text-center">
               <div>
-                <p className="text-[14px] font-bold text-[#050505] dark:text-[#E4E6EB]">
+                <p className="text-[14px] font-bold text-[var(--shell-text)] dark:text-[var(--shell-text)]">
                   {(data?.profile_status?.profile_views ?? 0).toLocaleString()}
                 </p>
-                <p className="text-[10px] text-[#65676B] dark:text-[#B0B3B8]">Views</p>
+                <p className="text-[10px] text-[var(--shell-muted)] dark:text-[var(--shell-muted)]">Views</p>
               </div>
               <div>
-                <p className="text-[14px] font-bold text-[#050505] dark:text-[#E4E6EB]">
+                <p className="text-[14px] font-bold text-[var(--shell-text)] dark:text-[var(--shell-text)]">
                   {(data?.profile_status?.followers ?? 0).toLocaleString()}
                 </p>
-                <p className="text-[10px] text-[#65676B] dark:text-[#B0B3B8]">Followers</p>
+                <p className="text-[10px] text-[var(--shell-muted)] dark:text-[var(--shell-muted)]">Followers</p>
               </div>
               <div>
-                <p className="text-[14px] font-bold text-[#050505] dark:text-[#E4E6EB]">
+                <p className="text-[14px] font-bold text-[var(--shell-text)] dark:text-[var(--shell-text)]">
                   {data?.profile_status?.engagement_rate ?? "0%"}
                 </p>
-                <p className="text-[10px] text-[#65676B] dark:text-[#B0B3B8]">Engagement</p>
+                <p className="text-[10px] text-[var(--shell-muted)] dark:text-[var(--shell-muted)]">Engagement</p>
               </div>
             </div>
 
             <div>
               <div className="flex justify-between text-[11px] mb-1">
-                <span className="text-[#65676B] dark:text-[#B0B3B8] font-medium">Weekly Growth Goal</span>
-                <span className="font-bold text-[#2164b6] dark:text-[#7ab0ff]">
+                <span className="text-[var(--shell-muted)] dark:text-[var(--shell-muted)] font-medium">Weekly Growth Goal</span>
+                <span className="font-bold text-[var(--shell-accent)] dark:text-[var(--shell-accent)]">
                   {data?.profile_status?.weekly_progress ?? 0}%
                 </span>
               </div>
-              <div className="h-1.5 w-full rounded-full bg-[#E4E6EB] dark:bg-[#3A3B3C] overflow-hidden">
+              <div className="h-1.5 w-full rounded-full bg-[var(--shell-hover)] dark:bg-[var(--shell-hover)] overflow-hidden">
                 <div
-                  className="h-full rounded-full bg-[#2164b6]"
+                  className="h-full rounded-full bg-[var(--shell-accent-solid)]"
                   style={{ width: `${data?.profile_status?.weekly_progress ?? 0}%` }}
                 />
               </div>
@@ -797,15 +807,15 @@ export function AnalyticsPage() {
 
             <Link
               to="/app/settings/profile"
-              className="block text-center text-xs font-semibold text-[#2164b6] dark:text-[#7ab0ff] hover:underline pt-1"
+              className="block text-center text-xs font-semibold text-[var(--shell-accent)] dark:text-[var(--shell-accent)] hover:underline pt-1"
             >
               See public profile →
             </Link>
           </div>
 
           {/* 2. Professional Creator Tools */}
-          <div className="bg-white dark:bg-[#242526] rounded-lg shadow-xs p-4 space-y-2">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-[#65676B] dark:text-[#B0B3B8] mb-2">
+          <div className="bg-white dark:bg-[var(--shell-surface)] rounded-lg shadow-xs p-4 space-y-2">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--shell-muted)] dark:text-[var(--shell-muted)] mb-2">
               Creator Tools
             </h3>
 
@@ -819,27 +829,27 @@ export function AnalyticsPage() {
                 <Link
                   key={tool.label}
                   to={tool.url}
-                  className="flex items-center justify-between p-2.5 rounded-lg hover:bg-[#F7F8FA] dark:hover:bg-[#2F3031] text-[13px] font-medium text-[#050505] dark:text-[#E4E6EB] transition-colors"
+                  className="flex items-center justify-between p-2.5 rounded-lg hover:bg-[var(--shell-hover)] dark:hover:bg-[var(--shell-hover)] text-[13px] font-medium text-[var(--shell-text)] dark:text-[var(--shell-text)] transition-colors"
                 >
                   <div className="flex items-center gap-2.5">
-                    <tool.icon weight="fill" className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" />
+                    <tool.icon weight="fill" className="h-4 w-4 text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" />
                     <span>{tool.label}</span>
                   </div>
-                  <ArrowRight weight="bold" className="h-3 w-3 text-[#65676B] dark:text-[#B0B3B8]" />
+                  <ArrowRight weight="bold" className="h-3 w-3 text-[var(--shell-muted)] dark:text-[var(--shell-muted)]" />
                 </Link>
               ))}
             </div>
           </div>
 
           {/* 3. Planned Content Calendar Preview */}
-          <div className="bg-white dark:bg-[#242526] rounded-lg shadow-xs p-4 space-y-3">
+          <div className="bg-white dark:bg-[var(--shell-surface)] rounded-lg shadow-xs p-4 space-y-3">
             <div className="flex items-center justify-between">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-[#65676B] dark:text-[#B0B3B8]">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--shell-muted)] dark:text-[var(--shell-muted)]">
                 Planned Content
               </h3>
               <Link
                 to="/app/marketing"
-                className="text-[11px] font-semibold text-[#2164b6] dark:text-[#7ab0ff] hover:underline"
+                className="text-[11px] font-semibold text-[var(--shell-accent)] dark:text-[var(--shell-accent)] hover:underline"
               >
                 Calendar
               </Link>
@@ -847,12 +857,12 @@ export function AnalyticsPage() {
 
             {(!data?.planned_content || data.planned_content.length === 0) ? (
               <div className="flex flex-col items-center justify-center text-center py-4 space-y-2">
-                <Calendar weight="fill" className="h-6 w-6 text-[#65676B] dark:text-[#B0B3B8] mx-auto opacity-40" />
-                <p className="text-[11px] text-[#65676B] dark:text-[#B0B3B8] text-center mx-auto">
+                <Calendar weight="fill" className="h-6 w-6 text-[var(--shell-muted)] dark:text-[var(--shell-muted)] mx-auto opacity-40" />
+                <p className="text-[11px] text-[var(--shell-muted)] dark:text-[var(--shell-muted)] text-center mx-auto">
                   No upcoming posts scheduled
                 </p>
                 <Link to="/app/feed" className="inline-flex justify-center">
-                  <button className="px-3 py-1 rounded-md bg-[#F0F2F5] dark:bg-[#3A3B3C] hover:bg-[#E4E6EB] text-xs font-semibold text-[#050505] dark:text-[#E4E6EB] transition-colors">
+                  <button className="px-3 py-1 rounded-md bg-[var(--shell-canvas)] dark:bg-[var(--shell-hover)] hover:bg-[var(--shell-hover)] text-xs font-semibold text-[var(--shell-text)] dark:text-[var(--shell-text)] transition-colors">
                     + Schedule post
                   </button>
                 </Link>
@@ -867,12 +877,12 @@ export function AnalyticsPage() {
                   return (
                     <div
                       key={item.id}
-                      className="flex items-center gap-2.5 p-2 rounded-lg bg-[#F7F8FA] dark:bg-[#2F3031]"
+                      className="flex items-center gap-2.5 p-2 rounded-lg bg-[var(--shell-subtle)] dark:bg-[#2F3031]"
                     >
-                      <div className="px-2 py-1 rounded bg-[#2164b6]/10 text-[#2164b6] font-bold text-[10px] shrink-0 text-center leading-tight">
+                      <div className="px-2 py-1 rounded bg-[var(--shell-accent-solid)]/10 text-[var(--shell-accent)] font-bold text-[10px] shrink-0 text-center leading-tight">
                         {dayStr}
                       </div>
-                      <p className="text-[12px] font-medium text-[#050505] dark:text-[#E4E6EB] truncate">
+                      <p className="text-[12px] font-medium text-[var(--shell-text)] dark:text-[var(--shell-text)] truncate">
                         {item.title}
                       </p>
                     </div>

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router";
 import { toast } from "sonner";
 import { Send, Plus, CloseSquare as X, TickSquare as Check, ArrowRight as ChevronRight, ArrowLeft as ChevronLeft, Camera, Video as FilmStrip, Chat as MessageCircle, Bag as ShoppingCart, ArrowRight, Profile as UserIcon, Discovery as Globe } from "@/components/icons";
@@ -64,6 +64,28 @@ const QUICK_PROMPTS = [
 
 
 
+const VENDOR_DEFAULT_STEPS = [
+  { key: "business", label: "Business Info" },
+  { key: "products", label: "Products & Fulfilment" },
+  { key: "target", label: "Target Market" },
+  { key: "brand", label: "Brand & Socials" },
+  { key: "setup", label: "Dashboard Setup" },
+];
+
+const CREATOR_DEFAULT_STEPS = [
+  { key: "ai", label: "Meet Mera" },
+  { key: "socials", label: "Connect Socials" },
+  { key: "interests", label: "Your Interests" },
+  { key: "profile", label: "AI Profile" },
+  { key: "template", label: "Pick Template" },
+];
+
+const MEMBER_DEFAULT_STEPS = [
+  { key: "profile", label: "Profile Setup" },
+  { key: "interests", label: "Community Interests" },
+  { key: "preferences", label: "Preferences" },
+];
+
 export default function OnboardingPage() {
   const navigate = useNavigate();
   const { user, markOnboardingCompleted, refreshUser } = useAuth();
@@ -115,87 +137,66 @@ export default function OnboardingPage() {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const VENDOR_DEFAULT_STEPS = [
-    { key: "business", label: "Business Info" },
-    { key: "products", label: "Products & Fulfilment" },
-    { key: "target", label: "Target Market" },
-    { key: "brand", label: "Brand & Socials" },
-    { key: "setup", label: "Dashboard Setup" },
-  ];
-
-  const CREATOR_DEFAULT_STEPS = [
-    { key: "ai", label: "Meet Mera" },
-    { key: "socials", label: "Connect Socials" },
-    { key: "interests", label: "Your Interests" },
-    { key: "profile", label: "AI Profile" },
-    { key: "template", label: "Pick Template" },
-  ];
-
-  const MEMBER_DEFAULT_STEPS = [
-    { key: "profile", label: "Profile Setup" },
-    { key: "interests", label: "Community Interests" },
-    { key: "preferences", label: "Preferences" },
-  ];
-
   // Load config & saved progress
-  const loadConfig = useCallback(async () => {
-    const userRole = (user?.role as string) ?? "member";
-    if (userRole === "admin") {
-      markOnboardingCompleted();
-      navigate("/app/securegate", { replace: true });
-      return;
-    }
 
-    try {
-      const res = await authFetch(`/onboarding/config`);
-      const j = await res.json();
-      const d = j?.data?.data ?? j?.data ?? j;
-      if (d) {
-        const resolvedRole = d.role ?? user?.role ?? "member";
-        setRole(resolvedRole);
-
-        const defaultSteps =
-          resolvedRole === "vendor"
-            ? VENDOR_DEFAULT_STEPS
-            : resolvedRole === "creator"
-            ? CREATOR_DEFAULT_STEPS
-            : MEMBER_DEFAULT_STEPS;
-
-        setSteps(Array.isArray(d.steps) && d.steps.length > 0 ? d.steps : defaultSteps);
-
-        // Restore saved progress if available
-        const saved = d.saved_progress;
-        if (saved && typeof saved.step === "number") {
-          setStep(saved.step);
-        }
-
-        const p = d.profile ?? {};
-        setAbout(p.about ?? "");
-        setNiche(p.niche ?? "");
-        setCommunityInterests(p.community_interests ?? []);
-        setContentInterests(p.content_interests ?? []);
-
-        if (d.storefront) {
-          setBusinessName(d.storefront.name ?? "");
-          setVendorBio(d.storefront.bio ?? "");
-          if (d.storefront.tagline) setBusinessCategory(d.storefront.tagline);
-        }
-      }
-    } catch {
+  useEffect(() => {
+    (async () => {
       const userRole = (user?.role as string) ?? "member";
-      setRole(userRole);
-      setSteps(
-        userRole === "vendor"
-          ? VENDOR_DEFAULT_STEPS
-          : userRole === "creator"
-          ? CREATOR_DEFAULT_STEPS
-          : MEMBER_DEFAULT_STEPS
-      );
-    }
-    finally { setLoading(false); }
-  }, [user, markOnboardingCompleted, navigate]);
+      if (userRole === "admin") {
+        markOnboardingCompleted();
+        navigate("/app/securegate", { replace: true });
+        return;
+      }
 
-  useEffect(() => { loadConfig(); }, [loadConfig]);
+      try {
+        const res = await authFetch(`/onboarding/config`);
+        const j = await res.json();
+        const d = j?.data?.data ?? j?.data ?? j;
+        if (d) {
+          const resolvedRole = d.role ?? user?.role ?? "member";
+          setRole(resolvedRole);
+
+          const defaultSteps =
+            resolvedRole === "vendor"
+              ? VENDOR_DEFAULT_STEPS
+              : resolvedRole === "creator"
+              ? CREATOR_DEFAULT_STEPS
+              : MEMBER_DEFAULT_STEPS;
+
+          setSteps(Array.isArray(d.steps) && d.steps.length > 0 ? d.steps : defaultSteps);
+
+          // Restore saved progress if available
+          const saved = d.saved_progress;
+          if (saved && typeof saved.step === "number") {
+            setStep(saved.step);
+          }
+
+          const p = d.profile ?? {};
+          setAbout(p.about ?? "");
+          setNiche(p.niche ?? "");
+          setCommunityInterests(p.community_interests ?? []);
+          setContentInterests(p.content_interests ?? []);
+
+          if (d.storefront) {
+            setBusinessName(d.storefront.name ?? "");
+            setVendorBio(d.storefront.bio ?? "");
+            if (d.storefront.tagline) setBusinessCategory(d.storefront.tagline);
+          }
+        }
+      } catch {
+        const userRole = (user?.role as string) ?? "member";
+        setRole(userRole);
+        setSteps(
+          userRole === "vendor"
+            ? VENDOR_DEFAULT_STEPS
+            : userRole === "creator"
+            ? CREATOR_DEFAULT_STEPS
+            : MEMBER_DEFAULT_STEPS
+        );
+      }
+      finally { setLoading(false); }
+    })();
+  }, [user, markOnboardingCompleted, navigate]);
 
   const saveProgress = async (newStep: number) => {
     const validStep = typeof newStep === 'number' && !isNaN(newStep) ? Math.max(0, Math.floor(newStep)) : 0;
@@ -396,7 +397,7 @@ export default function OnboardingPage() {
     products: [],
   };
 
-  if (loading) return <div className="flex justify-center py-24"><Loader2 weight="fill" className="h-8 w-8 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" /></div>;
+  if (loading) return <div className="flex justify-center py-24"><Loader2 weight="fill" className="h-8 w-8 animate-spin text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" /></div>;
 
 
 
@@ -405,7 +406,7 @@ export default function OnboardingPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-xl font-black tracking-tight flex items-center gap-2.5">
-            <MagicWand weight="fill" className="h-6 w-6 text-[#2164b6] dark:text-[#7ab0ff]" />
+            <MagicWand weight="fill" className="h-6 w-6 text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" />
             {role === "vendor" ? "Vendor AI Onboarding" : role === "creator" ? "Creator AI Onboarding" : "Account Setup"}
           </h1>
           <p className="text-xs text-muted-foreground mt-1">
@@ -421,7 +422,7 @@ export default function OnboardingPage() {
           variant="outline"
           onClick={role === "creator" ? handleFinishCreator : role === "vendor" ? handleFinishVendor : handleFinishMember}
           disabled={saving}
-          className="text-xs font-bold gap-1.5 border-[#2164b6] text-[#2164b6] hover:bg-[#2164b6] hover:text-white transition-all shrink-0"
+          className="text-xs font-bold gap-1.5 border-[var(--shell-accent)] text-[var(--shell-accent)] hover:bg-[var(--shell-accent-solid)] hover:text-white transition-all shrink-0"
         >
           {saving ? <Loader2 weight="fill" className="h-3.5 w-3.5 animate-spin" /> : <Check weight="fill" className="h-3.5 w-3.5" />} Skip & Complete Setup
         </Button>
@@ -431,7 +432,7 @@ export default function OnboardingPage() {
       <div className="flex items-center gap-1 bg-muted p-1 rounded-lg overflow-x-auto scrollbar-none">
         {steps.map((s, i) => (
           <div key={s.key} className={`flex-1 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold whitespace-nowrap ${i === step ? "bg-card text-foreground " : i < step ? "text-emerald-400" : "text-muted-foreground"}`}>
-            <span className={`h-4 w-4 rounded-full flex items-center justify-center text-[9px] ${i < step ? "bg-emerald-500 text-white" : i === step ? "bg-[#2164b6] text-white" : "bg-muted-foreground/20"}`}>{i < step ? <Check weight="fill" className="h-2.5 w-2.5" /> : i + 1}</span>
+            <span className={`h-4 w-4 rounded-full flex items-center justify-center text-[9px] ${i < step ? "bg-emerald-500 text-white" : i === step ? "bg-[var(--shell-accent-solid)] text-white" : "bg-muted-foreground/20"}`}>{i < step ? <Check weight="fill" className="h-2.5 w-2.5" /> : i + 1}</span>
             {s.label}
           </div>
         ))}
@@ -443,13 +444,13 @@ export default function OnboardingPage() {
           {step === 0 && (
             <div className="space-y-4">
               <div className="flex items-center gap-2">
-                <UserIcon weight="fill" className="h-5 w-5 text-[#2164b6] dark:text-[#7ab0ff]" />
+                <UserIcon weight="fill" className="h-5 w-5 text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" />
                 <h2 className="text-sm font-bold text-foreground">Welcome, @{user?.username}!</h2>
               </div>
               <p className="text-xs text-muted-foreground">Your account is ready. Let's customize your experience.</p>
               <div className="space-y-2">
-                <label className="text-xs font-bold text-muted-foreground">Display Name</label>
-                <Input value={user?.name ?? ""} disabled className="bg-muted/50" />
+                <label htmlFor="f-pages-onboardingpage-tsx-451" className="text-xs font-bold text-muted-foreground">Display Name</label>
+                <Input id="f-pages-onboardingpage-tsx-451" value={user?.name ?? ""} disabled className="bg-muted/50" />
               </div>
               <div className="flex justify-end">
                 <Button size="sm" onClick={() => saveProgress(1)} className="text-xs font-bold">Continue <ChevronRight weight="fill" className="h-3 w-3 ml-1" /></Button>
@@ -463,7 +464,7 @@ export default function OnboardingPage() {
               <div className="flex flex-wrap gap-1.5">
                 {COMMUNITY_OPTIONS.map((o) => (
                   <button key={o} onClick={() => toggle(memberInterests, setMemberInterests, o)}
-                    className={`px-3 py-1.5 rounded-full text-xs font-bold transition-colors ${memberInterests.includes(o) ? "bg-[#2164b6] text-white" : "bg-muted text-muted-foreground hover:text-foreground"}`}>{o}</button>
+                    className={`px-3 py-1.5 rounded-full text-xs font-bold transition-colors ${memberInterests.includes(o) ? "bg-[var(--shell-accent-solid)] text-white" : "bg-muted text-muted-foreground hover:text-foreground"}`}>{o}</button>
                 ))}
               </div>
               <div className="flex justify-between pt-2">
@@ -500,22 +501,22 @@ export default function OnboardingPage() {
           {step === 0 && (
             <div className="space-y-4">
               <div className="flex items-center gap-2">
-                <Storefront weight="fill" className="h-5 w-5 text-[#2164b6] dark:text-[#7ab0ff]" />
+                <Storefront weight="fill" className="h-5 w-5 text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" />
                 <h2 className="text-sm font-bold text-foreground">Tell us about your business</h2>
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-bold text-muted-foreground">Storefront / Business Name *</label>
-                <Input value={businessName} onChange={(e) => setBusinessName(e.target.value)} placeholder="e.g. Acme Outfitters" required />
+                <label htmlFor="f-pages-onboardingpage-tsx-507" className="text-xs font-bold text-muted-foreground">Storefront / Business Name *</label>
+                <Input id="f-pages-onboardingpage-tsx-507" value={businessName} onChange={(e) => setBusinessName(e.target.value)} placeholder="e.g. Acme Outfitters" required />
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-bold text-muted-foreground">Business Category</label>
-                <select value={businessCategory} onChange={(e) => setBusinessCategory(e.target.value)} className="w-full rounded-lg border-none bg-card p-2.5 text-xs font-medium text-foreground">
+                <label htmlFor="f-pages-onboardingpage-tsx-511" className="text-xs font-bold text-muted-foreground">Business Category</label>
+                <select id="f-pages-onboardingpage-tsx-511" value={businessCategory} onChange={(e) => setBusinessCategory(e.target.value)} className="w-full rounded-lg border-none bg-card p-2.5 text-xs font-medium text-foreground">
                   {BUSINESS_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-bold text-muted-foreground">Short Bio / Tagline</label>
-                <textarea value={vendorBio} onChange={(e) => setVendorBio(e.target.value)} rows={3} placeholder="Describe your store in a few words..." className="w-full rounded-lg border-none bg-card p-2.5 text-sm font-medium text-foreground resize-none" />
+                <label htmlFor="f-pages-onboardingpage-tsx-517" className="text-xs font-bold text-muted-foreground">Short Bio / Tagline</label>
+                <textarea id="f-pages-onboardingpage-tsx-517" value={vendorBio} onChange={(e) => setVendorBio(e.target.value)} rows={3} placeholder="Describe your store in a few words..." className="w-full rounded-lg border-none bg-card p-2.5 text-sm font-medium text-foreground resize-none" />
               </div>
               <div className="flex justify-end">
                 <Button size="sm" onClick={goNext} disabled={!businessName.trim()} className="text-xs font-bold">Continue <ChevronRight weight="fill" className="h-3 w-3 ml-1" /></Button>
@@ -526,12 +527,12 @@ export default function OnboardingPage() {
           {step === 1 && (
             <div className="space-y-4">
               <div className="flex items-center gap-2">
-                <Package weight="fill" className="h-5 w-5 text-[#2164b6] dark:text-[#7ab0ff]" />
+                <Package weight="fill" className="h-5 w-5 text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" />
                 <h2 className="text-sm font-bold text-foreground">Fulfilment & Shipping</h2>
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-bold text-muted-foreground">Fulfilment Model</label>
-                <select value={fulfilmentModel} onChange={(e) => setFulfilmentModel(e.target.value)} className="w-full rounded-lg border-none bg-card p-2.5 text-xs font-medium text-foreground">
+                <label htmlFor="f-pages-onboardingpage-tsx-533" className="text-xs font-bold text-muted-foreground">Fulfilment Model</label>
+                <select id="f-pages-onboardingpage-tsx-533" value={fulfilmentModel} onChange={(e) => setFulfilmentModel(e.target.value)} className="w-full rounded-lg border-none bg-card p-2.5 text-xs font-medium text-foreground">
                   {FULFILMENT_MODELS.map((m) => <option key={m} value={m}>{m}</option>)}
                 </select>
               </div>
@@ -545,11 +546,11 @@ export default function OnboardingPage() {
           {step === 2 && (
             <div className="space-y-4">
               <div className="flex items-center gap-2">
-                <Globe weight="fill" className="h-5 w-5 text-[#2164b6] dark:text-[#7ab0ff]" />
+                <Globe weight="fill" className="h-5 w-5 text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" />
                 <h2 className="text-sm font-bold text-foreground">Target Country</h2>
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-bold text-muted-foreground">Primary Sales Country</label>
+                <span className="block text-xs font-bold text-muted-foreground">Primary Sales Country</span>
                 <CountrySelect value={vendorCountry} onChange={(iso2) => setVendorCountry(iso2)} />
               </div>
               <div className="flex justify-between pt-2">
@@ -562,7 +563,7 @@ export default function OnboardingPage() {
           {step === 3 && (
             <div className="space-y-4">
               <div className="flex items-center gap-2">
-                <Target weight="fill" className="h-5 w-5 text-[#2164b6] dark:text-[#7ab0ff]" />
+                <Target weight="fill" className="h-5 w-5 text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" />
                 <h2 className="text-sm font-bold text-foreground">Brand & Social Accounts</h2>
               </div>
               <div className="flex gap-2">
@@ -591,7 +592,7 @@ export default function OnboardingPage() {
 
           {step === 4 && (
             <div className="space-y-4 text-center">
-              <div className="mx-auto h-12 w-12 rounded-lg bg-[#2164b6]/10 flex items-center justify-center text-[#2164b6] dark:text-[#7ab0ff]">
+              <div className="mx-auto h-12 w-12 rounded-lg bg-[var(--shell-accent-solid)]/10 flex items-center justify-center text-[var(--shell-accent)] dark:text-[var(--shell-accent)]">
                 <Storefront weight="fill" className="h-6 w-6" />
               </div>
               <h2 className="text-base font-black">Your Storefront is Ready</h2>
@@ -615,7 +616,7 @@ export default function OnboardingPage() {
             {step === 0 && (
               <div className="border-none rounded-lg bg-card overflow-hidden flex flex-col">
                 <div className="px-5 py-4 border-b border-border flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#2164b6] to-[#2164b6] flex items-center justify-center text-white"><MeraIcon className="h-4 w-4" /></div>
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[var(--shell-accent-solid)] to-[var(--shell-accent-solid)] flex items-center justify-center text-white"><MeraIcon className="h-4 w-4" /></div>
                   <div>
                     <p className="text-xs font-black">Mera — your AI assistant</p>
                     <p className="text-[10px] text-muted-foreground">I'll remember what you tell me to build your profile.</p>
@@ -624,18 +625,18 @@ export default function OnboardingPage() {
                 <div className="p-4 h-72 overflow-y-auto space-y-3 bg-muted/30">
                   {[greeting, ...messages].map((m, i) => (
                     <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
-                      <div className={`max-w-[85%] px-3.5 py-2.5 text-xs leading-relaxed ${m.role === "user" ? "bg-[#2164b6] text-white rounded-lg rounded-br-sm" : "bg-card border-none text-foreground rounded-lg rounded-bl-sm"}`}>
+                      <div className={`max-w-[85%] px-3.5 py-2.5 text-xs leading-relaxed ${m.role === "user" ? "bg-[var(--shell-accent-solid)] text-white rounded-lg rounded-br-sm" : "bg-card border-none text-foreground rounded-lg rounded-bl-sm"}`}>
                         {m.content}
                       </div>
                     </div>
                   ))}
-                  {chatSending && <div className="flex justify-start"><div className="px-3.5 py-2.5 text-xs bg-card border-none rounded-lg rounded-bl-sm"><Loader2 weight="fill" className="h-3.5 w-3.5 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" /></div></div>}
+                  {chatSending && <div className="flex justify-start"><div className="px-3.5 py-2.5 text-xs bg-card border-none rounded-lg rounded-bl-sm"><Loader2 weight="fill" className="h-3.5 w-3.5 animate-spin text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" /></div></div>}
                   <div ref={chatEndRef} />
                 </div>
                 <div className="p-3 border-t border-border space-y-2.5">
                   <div className="flex flex-wrap gap-1.5">
                     {QUICK_PROMPTS.map((q) => (
-                      <button key={q} onClick={() => sendChat(q)} className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-muted text-muted-foreground hover:bg-[#2164b6]/10 hover:text-[#2164b6] dark:text-[#7ab0ff] transition-colors">{q}</button>
+                      <button key={q} onClick={() => sendChat(q)} className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-muted text-muted-foreground hover:bg-[var(--shell-accent-solid)]/10 hover:text-[var(--shell-accent)] dark:text-[var(--shell-accent)] transition-colors">{q}</button>
                     ))}
                   </div>
                   <div className="flex gap-2">
@@ -650,12 +651,12 @@ export default function OnboardingPage() {
               <div className="border-none rounded-lg bg-card p-4 space-y-4">
                 <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">What do you create?</h2>
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-muted-foreground">About your brand</label>
-                  <textarea value={about} onChange={(e) => setAbout(e.target.value)} rows={3} placeholder="e.g. I'm a fitness coach sharing workout plans and healthy recipes" className="w-full rounded-lg border-none bg-card p-2.5 text-sm font-medium text-foreground placeholder:text-muted-foreground resize-none" />
+                  <label htmlFor="f-pages-onboardingpage-tsx-653" className="text-xs font-bold text-muted-foreground">About your brand</label>
+                  <textarea id="f-pages-onboardingpage-tsx-653" value={about} onChange={(e) => setAbout(e.target.value)} rows={3} placeholder="e.g. I'm a fitness coach sharing workout plans and healthy recipes" className="w-full rounded-lg border-none bg-card p-2.5 text-sm font-medium text-foreground placeholder:text-muted-foreground resize-none" />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-muted-foreground">Niche (one word works)</label>
-                  <Input value={niche} onChange={(e) => setNiche(e.target.value)} placeholder="e.g. fitness, art, gaming, food" />
+                  <label htmlFor="f-pages-onboardingpage-tsx-657" className="text-xs font-bold text-muted-foreground">Niche (one word works)</label>
+                  <Input id="f-pages-onboardingpage-tsx-657" value={niche} onChange={(e) => setNiche(e.target.value)} placeholder="e.g. fitness, art, gaming, food" />
                 </div>
                 <div className="flex justify-end">
                   <Button size="sm" onClick={goNext} className="text-xs font-bold">Continue <ChevronRight weight="fill" className="h-3 w-3 ml-1" /></Button>
@@ -667,7 +668,7 @@ export default function OnboardingPage() {
             {step === 1 && (
               <div className="border-none rounded-lg bg-card p-4 space-y-4">
                 <div className="flex items-center gap-2">
-                  <Send weight="fill" className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" />
+                  <Send weight="fill" className="h-4 w-4 text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" />
                   <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Connect your socials</h2>
                 </div>
                 <div className="flex gap-2">
@@ -702,7 +703,7 @@ export default function OnboardingPage() {
                   <div className="flex flex-wrap gap-1.5 mt-2">
                     {COMMUNITY_OPTIONS.map((o) => (
                       <button key={o} onClick={() => toggle(communityInterests, setCommunityInterests, o)}
-                        className={`px-2.5 py-1.5 rounded-full text-[10px] font-bold transition-colors ${communityInterests.includes(o) ? "bg-[#2164b6] text-white" : "bg-muted text-muted-foreground hover:text-foreground"}`}>{o}</button>
+                        className={`px-2.5 py-1.5 rounded-full text-[10px] font-bold transition-colors ${communityInterests.includes(o) ? "bg-[var(--shell-accent-solid)] text-white" : "bg-muted text-muted-foreground hover:text-foreground"}`}>{o}</button>
                     ))}
                   </div>
                 </div>
@@ -711,7 +712,7 @@ export default function OnboardingPage() {
                   <div className="flex flex-wrap gap-1.5 mt-2">
                     {CONTENT_OPTIONS.map((o) => (
                       <button key={o} onClick={() => toggle(contentInterests, setContentInterests, o)}
-                        className={`px-2.5 py-1.5 rounded-full text-[10px] font-bold transition-colors ${contentInterests.includes(o) ? "bg-[#2164b6] text-white" : "bg-muted text-muted-foreground hover:text-foreground"}`}>{o}</button>
+                        className={`px-2.5 py-1.5 rounded-full text-[10px] font-bold transition-colors ${contentInterests.includes(o) ? "bg-[var(--shell-accent-solid)] text-white" : "bg-muted text-muted-foreground hover:text-foreground"}`}>{o}</button>
                     ))}
                   </div>
                 </div>
@@ -726,18 +727,18 @@ export default function OnboardingPage() {
             {step === 3 && (
               <div className="border-none rounded-lg bg-card p-4 space-y-4">
                 <div className="flex items-center gap-2">
-                  <MagicWand weight="fill" className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" />
+                  <MagicWand weight="fill" className="h-4 w-4 text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" />
                   <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Your AI-drafted profile</h2>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-muted-foreground">Display name</label>
-                  <Input value={profileName} onChange={(e) => setProfileName(e.target.value)} placeholder="Your name" />
+                  <label htmlFor="f-pages-onboardingpage-tsx-733" className="text-xs font-bold text-muted-foreground">Display name</label>
+                  <Input id="f-pages-onboardingpage-tsx-733" value={profileName} onChange={(e) => setProfileName(e.target.value)} placeholder="Your name" />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-muted-foreground">Bio</label>
-                  <textarea value={profileBio} onChange={(e) => setProfileBio(e.target.value)} rows={3} className="w-full rounded-lg border-none bg-card p-2.5 text-sm font-medium text-foreground resize-none" />
+                  <label htmlFor="f-pages-onboardingpage-tsx-737" className="text-xs font-bold text-muted-foreground">Bio</label>
+                  <textarea id="f-pages-onboardingpage-tsx-737" value={profileBio} onChange={(e) => setProfileBio(e.target.value)} rows={3} className="w-full rounded-lg border-none bg-card p-2.5 text-sm font-medium text-foreground resize-none" />
                 </div>
-                <Button variant="ghost" size="sm" onClick={generateDraft} disabled={draftLoading} className="text-xs font-bold text-[#2164b6] dark:text-[#7ab0ff]">
+                <Button variant="ghost" size="sm" onClick={generateDraft} disabled={draftLoading} className="text-xs font-bold text-[var(--shell-accent)] dark:text-[var(--shell-accent)]">
                   {draftLoading ? <Loader2 weight="fill" className="h-3 w-3 animate-spin mr-1" /> : <MagicWand weight="fill" className="h-3 w-3 mr-1" />} Regenerate with AI
                 </Button>
                 <div className="flex justify-between">
@@ -751,7 +752,7 @@ export default function OnboardingPage() {
             {step === 4 && (
               <div className="border-none rounded-lg bg-card p-4 space-y-4">
                 <div className="flex items-center gap-2">
-                  <Palette weight="fill" className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" />
+                  <Palette weight="fill" className="h-4 w-4 text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" />
                   <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Pick your template</h2>
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -759,8 +760,8 @@ export default function OnboardingPage() {
                     const isActive = template === t.slug;
                     return (
                       <button key={t.slug} onClick={() => setTemplate(t.slug)}
-                        className={`relative rounded-lg border-2 transition-all overflow-hidden text-left ${isActive ? "border-[#2164b6] " : "border-border hover:border-[#2164b6]/50"}`}>
-                        {isActive && <span className="absolute top-1.5 left-1.5 z-10 bg-[#2164b6] text-white rounded-full p-0.5"><Check weight="fill" className="h-3 w-3" /></span>}
+                        className={`relative rounded-lg border-2 transition-all overflow-hidden text-left ${isActive ? "border-[var(--shell-accent)] " : "border-border hover:border-[var(--shell-accent)]/50"}`}>
+                        {isActive && <span className="absolute top-1.5 left-1.5 z-10 bg-[var(--shell-accent-solid)] text-white rounded-full p-0.5"><Check weight="fill" className="h-3 w-3" /></span>}
                         <div className="p-2"><TemplateThumb template={t} /></div>
                         <div className="px-2.5 pb-2.5">
                           <p className="text-xs font-bold truncate text-foreground">{t.name}</p>

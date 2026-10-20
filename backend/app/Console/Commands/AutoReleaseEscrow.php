@@ -2,73 +2,35 @@
 
 namespace App\Console\Commands;
 
-use App\Models\Escrow;
-use App\Services\Wallet\LedgerService;
+use App\Services\Escrow\EscrowTimingService;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\DB;
 
+/**
+ * Runs the escrow timing pass: releases due funds, holds escrows with no delivery,
+ * and sends the 24-hour release reminders. It never refunds automatically.
+ */
 class AutoReleaseEscrow extends Command
 {
     protected $signature = 'escrow:auto-release';
-    protected $description = 'Auto-release escrow funds after delivery confirmation window';
 
-    public function handle(LedgerService $ledgerService): int
+    protected $description = 'Release due escrow funds, hold undelivered escrows, and send release reminders';
+
+    public function handle(EscrowTimingService $timing): int
     {
-        $this->info('Checking escrows for auto-release...');
+        $counts = $timing->processDue();
 
-        $released = 0;
-        $refunded = 0;
+        // Digital sales whose 48-hour window has closed with no open dispute are released too.
+        $digitalReleased = app(\App\Services\Wallet\DigitalSaleService::class)->releaseDue();
+        $this->info("Digital sales released: {$digitalReleased}.");
 
-        Escrow::where('status', 'held')
-            ->chunk(100, function ($escrows) use ($ledgerService, &$released, &$refunded) {
-                foreach ($escrows as $escrow) {
-                    $autoDate = $escrow->autoReleaseDate();
-                    if (! $autoDate || $autoDate->isFuture()) {
-                        continue;
-                    }
+        $this->info(sprintf(
+            'Released %d, held %d (no delivery), reminded %d, failed %d.',
+            $counts['released'],
+            $counts['held_no_delivery'],
+            $counts['reminded'],
+            $counts['failed'],
+        ));
 
-                    DB::transaction(function () use ($escrow, $ledgerService, &$released, &$refunded) {
-                        $order = $escrow->order;
-
-                        $deliveryConfirmed = $order && $order->status === 'delivered';
-
-                        if ($deliveryConfirmed) {
-                            $txn = $ledgerService->credit(
-                                $escrow->seller_id,
-                                $escrow->amount,
-                                $escrow->currency,
-                                'escrow_auto_release',
-                                "Auto-release for order #{$escrow->order_id}",
-                                ['escrow_id' => $escrow->id],
-                            );
-
-                            $escrow->update([
-                                'status' => 'released',
-                                'released_at' => now(),
-                                'ledger_transaction_id' => $txn->id,
-                            ]);
-                            $released++;
-                        } else {
-                            $txn = $ledgerService->credit(
-                                $escrow->buyer_id,
-                                $escrow->amount,
-                                $escrow->currency,
-                                'escrow_auto_refund',
-                                "Auto-refund for undelivered order #{$escrow->order_id}",
-                                ['escrow_id' => $escrow->id],
-                            );
-
-                            $escrow->update([
-                                'status' => 'refunded',
-                                'ledger_transaction_id' => $txn->id,
-                            ]);
-                            $refunded++;
-                        }
-                    });
-                }
-            });
-
-        $this->info("Auto-release complete. Released: {$released}, Refunded: {$refunded}.");
-        return Command::SUCCESS;
+        return self::SUCCESS;
     }
 }

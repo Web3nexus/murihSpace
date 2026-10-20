@@ -1,3 +1,4 @@
+import { asApiError } from "@/lib/apiError";
 import * as React from "react";
 import { absolute } from "@/lib/deepLinks";
 import {
@@ -11,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Discovery as Globe, Lock, ShieldDone as ShieldCheck, N3User as UsersThree, Image as ImageIcon, Location as MapPin, Ticket as Tag, ArrowRight, ArrowLeft, Show as Eye, TickSquare as Check } from "@/components/icons";
-import { Sparkle, BookOpen } from "@/components/icons/rounded";;
+import { Medal, BookOpen } from "@/components/icons/rounded";;
 import { apiClient } from "@/lib/api/client";
 import { ImageUploader } from "@/components/upload/ImageUploader";
 import type { Group, GroupPrivacy } from "@/types/group";
@@ -61,6 +62,12 @@ export function CreateGroupModal({
   const [rules, setRules] = React.useState("");
   const [tagsInput, setTagsInput] = React.useState("");
   const [showPreviewMobile, setShowPreviewMobile] = React.useState(false);
+  const nameInputRef = React.useRef<HTMLInputElement>(null);
+
+  // Focus the name field whenever step 1 is shown while the dialog is open, as autoFocus did.
+  React.useEffect(() => {
+    if (open && step === 1) nameInputRef.current?.focus();
+  }, [open, step]);
 
   const resetForm = () => {
     setStep(1);
@@ -144,10 +151,11 @@ export function CreateGroupModal({
       if (newGroup) {
         onCreated(newGroup);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const apiErr = asApiError(err);
       setError(
-        err.response?.data?.message ||
-          err.response?.data?.error ||
+        apiErr.response?.data?.message ||
+          apiErr.response?.data?.error ||
           "Failed to create group. Please try again."
       );
     } finally {
@@ -198,7 +206,7 @@ export function CreateGroupModal({
               <button
                 key={s.num}
                 type="button"
-                onClick={() => setStep(s.num as any)}
+                onClick={() => setStep(s.num as 1 | 2 | 3)}
                 className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
                   step === s.num
                     ? "bg-primary text-primary-foreground shadow-sm ring-2 ring-primary/20"
@@ -246,12 +254,12 @@ export function CreateGroupModal({
                     </Label>
                     <Input
                       id="group-name"
+                      ref={nameInputRef}
                       placeholder="e.g. NextGen Web3 Founders"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       maxLength={80}
                       required
-                      autoFocus
                       className="h-12 text-base rounded-2xl bg-background border-border/80 focus-visible:ring-primary shadow-xs"
                     />
                     <p className="text-[11px] text-muted-foreground flex items-center gap-1 font-mono">
@@ -529,7 +537,7 @@ export function CreateGroupModal({
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => setStep((step - 1) as any)}
+                    onClick={() => setStep((step - 1) as 1 | 2 | 3)}
                     className="rounded-xl px-4 h-11 border-border/80 gap-1.5 text-xs font-semibold"
                   >
                     <ArrowLeft className="h-4 w-4" />
@@ -555,7 +563,7 @@ export function CreateGroupModal({
                         return;
                       }
                       setError(null);
-                      setStep((step + 1) as any);
+                      setStep((step + 1) as 1 | 2 | 3);
                     }}
                     className="rounded-xl px-6 h-11 bg-primary text-primary-foreground font-semibold hover:bg-primary/90 gap-1.5 text-xs shadow-xs"
                   >
@@ -575,7 +583,7 @@ export function CreateGroupModal({
                       </>
                     ) : (
                       <>
-                        <Sparkle weight="fill" className="h-4 w-4 text-amber-300" />
+                        <Medal weight="fill" className="h-4 w-4 text-amber-300" />
                         <span>Create Community</span>
                       </>
                     )}
@@ -688,7 +696,7 @@ export function CreateGroupModal({
               {/* Tips Callout */}
               <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4 space-y-1.5 text-xs text-muted-foreground">
                 <div className="flex items-center gap-1.5 font-bold text-foreground">
-                  <Sparkle weight="fill" className="h-4 w-4 text-primary" />
+                  <Medal weight="fill" className="h-4 w-4 text-primary" />
                   <span>Community Launch Perks</span>
                 </div>
                 <p className="leading-relaxed text-[11px]">

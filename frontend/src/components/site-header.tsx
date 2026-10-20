@@ -5,6 +5,7 @@ import { Package, List, Megaphone, Handshake } from "@/components/icons/rounded"
 import { useAuth } from "@/hooks/useAuth";
 import { apiClient } from "@/lib/api/client";
 import { getLogo } from "@/lib/logoConfig";
+import { getAdsManagerHref } from "@/lib/adsManager";
 import { subscribeUnreadCount, getUnreadCount } from "@/lib/chatUnread";
 import type { UserRole } from "@/navigation/navTypes";
 import {
@@ -26,6 +27,7 @@ export function SiteHeader({ onOpenMobileSidebar }: SiteHeaderProps) {
   const { user, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
+  const adsManagerHref = getAdsManagerHref();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [showQuickMenu, setShowQuickMenu] = useState(false);
@@ -38,11 +40,10 @@ export function SiteHeader({ onOpenMobileSidebar }: SiteHeaderProps) {
 
   // Real notification + message counts
   const [notifCount, setNotifCount] = useState(0);
-  const [msgCount, setMsgCount] = useState(0);
+  const [msgCount, setMsgCount] = useState(() => getUnreadCount());
 
   // Live, authoritative unread total — same store as the sidebar & chat layout
   useEffect(() => {
-    setMsgCount(getUnreadCount());
     return subscribeUnreadCount(() => setMsgCount(getUnreadCount()));
   }, []);
 
@@ -58,8 +59,9 @@ export function SiteHeader({ onOpenMobileSidebar }: SiteHeaderProps) {
   // Debounced search suggestions
   useEffect(() => {
     if (!searchQuery.trim() || searchQuery.length < 2) {
-      setSuggestions([]);
-      return;
+      // Deferred so the reset is not set synchronously inside the effect body
+      const clearTimer = setTimeout(() => setSuggestions([]), 0);
+      return () => clearTimeout(clearTimer);
     }
     const timer = setTimeout(async () => {
       try {
@@ -139,14 +141,14 @@ export function SiteHeader({ onOpenMobileSidebar }: SiteHeaderProps) {
   };
 
   return (
-    <header className="sticky top-0 z-40 h-14 w-full shrink-0 flex items-center justify-between border-b border-[#DADDE1] dark:border-[#3E4042] bg-white dark:bg-[#242526] px-3 sm:px-4 select-none">
+    <header className="sticky top-0 z-40 h-14 w-full shrink-0 flex items-center justify-between border-b border-[var(--shell-border)] dark:border-[var(--shell-border)] bg-white dark:bg-[var(--shell-surface)] px-3 sm:px-4 select-none">
       {/* ── LEFT: Logo + Mobile Hamburger + Search ── */}
-      <div className="flex items-center gap-2.5 shrink-0 min-w-0">
+      <div className="flex items-center gap-2.5 min-w-0 flex-1 md:flex-none">
         {/* Profile menu trigger — desktop */}
         <button
           type="button"
           onClick={() => setProfileMenuOpen(true)}
-          className="hidden md:flex h-9 w-9 rounded-full bg-[#F0F2F5] dark:bg-[#3A3B3C] text-[#050505] dark:text-[#E4E6EB] hover:bg-[#E4E6EB] dark:hover:bg-[#4E4F50] items-center justify-center transition-colors"
+          className="hidden md:flex h-9 w-9 rounded-full bg-[var(--shell-canvas)] dark:bg-[var(--shell-hover)] text-[var(--shell-text)] dark:text-[var(--shell-text)] hover:bg-[var(--shell-hover)] dark:hover:bg-[var(--shell-hover-strong)] items-center justify-center transition-colors"
           title="Profile menu"
         >
           <List weight="bold" className="h-5 w-5" />
@@ -156,7 +158,7 @@ export function SiteHeader({ onOpenMobileSidebar }: SiteHeaderProps) {
         <button
           type="button"
           onClick={onOpenMobileSidebar}
-          className="md:hidden h-9 w-9 rounded-full bg-[#F0F2F5] dark:bg-[#3A3B3C] text-[#050505] dark:text-[#E4E6EB] hover:bg-[#E4E6EB] flex items-center justify-center transition-colors"
+          className="md:hidden h-9 w-9 rounded-full bg-[var(--shell-canvas)] dark:bg-[var(--shell-hover)] text-[var(--shell-text)] dark:text-[var(--shell-text)] hover:bg-[var(--shell-hover)] flex items-center justify-center transition-colors"
           title="Open Menu"
         >
           <List weight="bold" className="h-5 w-5" />
@@ -175,10 +177,10 @@ export function SiteHeader({ onOpenMobileSidebar }: SiteHeaderProps) {
         </Link>
 
         {/* Global Search Bar */}
-        <div className="relative w-[180px] sm:w-[220px] lg:w-[260px]">
+        <div className="relative min-w-0 flex-1 max-w-[200px] sm:max-w-none sm:w-[220px] lg:w-[260px]">
           <Search
             weight="bold"
-            className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#65676B] dark:text-[#B0B3B8]"
+            className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--shell-muted)] dark:text-[var(--shell-muted)]"
           />
           <input
             ref={inputRef}
@@ -187,7 +189,7 @@ export function SiteHeader({ onOpenMobileSidebar }: SiteHeaderProps) {
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Search MurihSpace"
-            className="w-full h-10 pl-9 pr-8 text-[14px] rounded-full border-none bg-[#F0F2F5] dark:bg-[#3A3B3C] placeholder:text-[#65676B] dark:placeholder:text-[#B0B3B8] text-[#050505] dark:text-[#E4E6EB] focus:outline-none focus:ring-2 focus:ring-[#2164b6]/40 transition-all"
+            className="w-full h-10 pl-9 pr-8 text-[14px] rounded-full border-none bg-[var(--shell-canvas)] dark:bg-[var(--shell-hover)] placeholder:text-[var(--shell-muted)] dark:placeholder:text-[var(--shell-muted)] text-[var(--shell-text)] dark:text-[var(--shell-text)] focus:outline-none focus:ring-2 focus:ring-[var(--shell-accent)]/40 transition-all"
           />
           {searchQuery && (
             <button
@@ -195,7 +197,7 @@ export function SiteHeader({ onOpenMobileSidebar }: SiteHeaderProps) {
                 setSearchQuery("");
                 setSuggestions([]);
               }}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-[#65676B] hover:text-[#050505] dark:hover:text-white"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--shell-muted)] hover:text-[var(--shell-text)] dark:hover:text-white"
             >
               <X weight="bold" className="h-3.5 w-3.5" />
             </button>
@@ -203,7 +205,7 @@ export function SiteHeader({ onOpenMobileSidebar }: SiteHeaderProps) {
 
           {/* Search Dropdown */}
           {suggestions.length > 0 && (
-            <div className="absolute top-full left-0 right-0 mt-1.5 rounded-lg border border-[#DADDE1] dark:border-[#3E4042] bg-white dark:bg-[#242526] shadow-xl overflow-hidden z-50">
+            <div className="absolute top-full left-0 right-0 mt-1.5 rounded-lg border border-[var(--shell-border)] dark:border-[var(--shell-border)] bg-white dark:bg-[var(--shell-surface)] shadow-xl overflow-hidden z-50">
               {suggestions.map((s, idx) => (
                 <button
                   key={`${s.type}-${s.id}-${idx}`}
@@ -220,7 +222,7 @@ export function SiteHeader({ onOpenMobileSidebar }: SiteHeaderProps) {
                     setSearchQuery("");
                     setSuggestions([]);
                   }}
-                  className="w-full flex items-center gap-3 px-3.5 py-2.5 text-xs hover:bg-[#F0F2F5] dark:hover:bg-[#3A3B3C] transition-colors text-left"
+                  className="w-full flex items-center gap-3 px-3.5 py-2.5 text-xs hover:bg-[var(--shell-hover)] dark:hover:bg-[var(--shell-hover)] transition-colors text-left"
                 >
                   <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center text-[10px] font-bold text-muted-foreground overflow-hidden shrink-0">
                     {s.avatar ? (
@@ -230,8 +232,8 @@ export function SiteHeader({ onOpenMobileSidebar }: SiteHeaderProps) {
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-[#050505] dark:text-[#E4E6EB] truncate">{s.name}</p>
-                    <p className="text-[10px] text-[#65676B] dark:text-[#B0B3B8] capitalize">{s.type}</p>
+                    <p className="font-semibold text-[var(--shell-text)] dark:text-[var(--shell-text)] truncate">{s.name}</p>
+                    <p className="text-[10px] text-[var(--shell-muted)] dark:text-[var(--shell-muted)] capitalize">{s.type}</p>
                   </div>
                 </button>
               ))}
@@ -251,24 +253,24 @@ export function SiteHeader({ onOpenMobileSidebar }: SiteHeaderProps) {
                 to={tab.to}
                 className={`relative flex items-center justify-center flex-1 h-full px-2 text-[13px] font-medium transition-colors group ${
                   isActive
-                    ? "text-[#2164b6] dark:text-[#7ab0ff]"
-                    : "text-[#65676B] dark:text-[#B0B3B8]"
+                    ? "text-[var(--shell-accent)] dark:text-[var(--shell-accent)]"
+                    : "text-[var(--shell-muted)] dark:text-[var(--shell-muted)]"
                 }`}
               >
                 <div
                   className={`flex flex-col items-center justify-center gap-0.5 w-full h-[46px] rounded-lg transition-colors ${
                     isActive
                       ? ""
-                      : "hover:bg-[#F0F2F5] dark:hover:bg-[#3A3B3C] text-[#65676B] hover:text-[#050505] dark:hover:text-[#E4E6EB]"
+                      : "hover:bg-[var(--shell-hover)] dark:hover:bg-[var(--shell-hover)] text-[var(--shell-muted)] hover:text-[var(--shell-text)] dark:hover:text-[var(--shell-text)]"
                   }`}
                 >
-                  <span className={`transition-colors ${isActive ? "text-[#2164b6] dark:text-[#7ab0ff]" : ""}`}>
+                  <span className={`transition-colors ${isActive ? "text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" : ""}`}>
                     {tab.icon}
                   </span>
                   <span className="text-[11px] font-medium leading-none">{tab.label}</span>
                 </div>
                 {isActive && (
-                  <div className="absolute bottom-0 left-2 right-2 h-[3px] bg-[#2164b6] dark:bg-[#7ab0ff] rounded-t-full" />
+                  <div className="absolute bottom-0 left-2 right-2 h-[3px] bg-[var(--shell-accent-solid)] dark:bg-[var(--shell-accent)] rounded-t-full" />
                 )}
               </Link>
             );
@@ -283,29 +285,29 @@ export function SiteHeader({ onOpenMobileSidebar }: SiteHeaderProps) {
           <div className="relative">
             <button
               onClick={() => setShowQuickMenu((prev) => !prev)}
-              className="h-10 w-10 rounded-full bg-[#E4E6EB] hover:bg-[#D8DADF] dark:bg-[#3A3B3C] dark:hover:bg-[#4E4F50] flex items-center justify-center text-[#050505] dark:text-[#E4E6EB] transition-colors"
+              className="h-10 w-10 rounded-full bg-[var(--shell-hover)] hover:bg-[var(--shell-hover-strong)] dark:bg-[var(--shell-hover)] dark:hover:bg-[var(--shell-hover-strong)] flex items-center justify-center text-[var(--shell-text)] dark:text-[var(--shell-text)] transition-colors"
               title="Create"
             >
               <Plus weight="bold" className="h-5 w-5" />
             </button>
 
             {showQuickMenu && (
-              <div className="absolute right-0 top-12 w-56 bg-white dark:bg-[#242526] border border-[#DADDE1] dark:border-[#3E4042] rounded-lg shadow-xl z-50 p-1.5 space-y-1 text-xs">
-                <div className="px-3 py-1.5 font-bold text-[11px] text-[#65676B] dark:text-[#B0B3B8] uppercase tracking-wider border-b border-[#DADDE1] dark:border-[#3E4042] mb-1">
+              <div className="absolute right-0 top-12 w-56 bg-white dark:bg-[var(--shell-surface)] border border-[var(--shell-border)] dark:border-[var(--shell-border)] rounded-lg shadow-xl z-50 p-1.5 space-y-1 text-xs">
+                <div className="px-3 py-1.5 font-bold text-[11px] text-[var(--shell-muted)] dark:text-[var(--shell-muted)] uppercase tracking-wider border-b border-[var(--shell-border)] dark:border-[var(--shell-border)] mb-1">
                   Create
                 </div>
                 <Link
                   to="/app/feed"
                   onClick={() => setShowQuickMenu(false)}
-                  className="flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-[#F0F2F5] dark:hover:bg-[#3A3B3C] transition-colors font-medium text-[#050505] dark:text-[#E4E6EB]"
+                  className="flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-[var(--shell-hover)] dark:hover:bg-[var(--shell-hover)] transition-colors font-medium text-[var(--shell-text)] dark:text-[var(--shell-text)]"
                 >
-                  <FileText weight="fill" className="h-4 w-4 text-[#2164b6]" />
+                  <FileText weight="fill" className="h-4 w-4 text-[var(--shell-accent)]" />
                   <span>Create Post</span>
                 </Link>
                 <Link
                   to="/app/communities"
                   onClick={() => setShowQuickMenu(false)}
-                  className="flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-[#F0F2F5] dark:hover:bg-[#3A3B3C] transition-colors font-medium text-[#050505] dark:text-[#E4E6EB]"
+                  className="flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-[var(--shell-hover)] dark:hover:bg-[var(--shell-hover)] transition-colors font-medium text-[var(--shell-text)] dark:text-[var(--shell-text)]"
                 >
                   <Users weight="fill" className="h-4 w-4 text-emerald-500" />
                   <span>Create Community</span>
@@ -313,7 +315,7 @@ export function SiteHeader({ onOpenMobileSidebar }: SiteHeaderProps) {
                 <Link
                   to="/app/audio-rooms"
                   onClick={() => setShowQuickMenu(false)}
-                  className="flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-[#F0F2F5] dark:hover:bg-[#3A3B3C] transition-colors font-medium text-[#050505] dark:text-[#E4E6EB]"
+                  className="flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-[var(--shell-hover)] dark:hover:bg-[var(--shell-hover)] transition-colors font-medium text-[var(--shell-text)] dark:text-[var(--shell-text)]"
                 >
                   <VideoCamera weight="fill" className="h-4 w-4 text-red-500" />
                   <span>Live Studio</span>
@@ -321,7 +323,7 @@ export function SiteHeader({ onOpenMobileSidebar }: SiteHeaderProps) {
                 <Link
                   to="/app/meetings"
                   onClick={() => setShowQuickMenu(false)}
-                  className="flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-[#F0F2F5] dark:hover:bg-[#3A3B3C] transition-colors font-medium text-[#050505] dark:text-[#E4E6EB]"
+                  className="flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-[var(--shell-hover)] dark:hover:bg-[var(--shell-hover)] transition-colors font-medium text-[var(--shell-text)] dark:text-[var(--shell-text)]"
                 >
                   <VideoCamera weight="fill" className="h-4 w-4 text-indigo-500" />
                   <span>Meeting &amp; Conference</span>
@@ -329,7 +331,7 @@ export function SiteHeader({ onOpenMobileSidebar }: SiteHeaderProps) {
                 <Link
                   to="/app/store"
                   onClick={() => setShowQuickMenu(false)}
-                  className="flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-[#F0F2F5] dark:hover:bg-[#3A3B3C] transition-colors font-medium text-[#050505] dark:text-[#E4E6EB]"
+                  className="flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-[var(--shell-hover)] dark:hover:bg-[var(--shell-hover)] transition-colors font-medium text-[var(--shell-text)] dark:text-[var(--shell-text)]"
                 >
                   <ShoppingBag weight="fill" className="h-4 w-4 text-amber-500" />
                   <span>Add Product</span>
@@ -343,7 +345,7 @@ export function SiteHeader({ onOpenMobileSidebar }: SiteHeaderProps) {
         {!isAdmin && (
           <Link to="/app/messages">
             <button
-              className="relative h-10 w-10 rounded-full bg-[#E4E6EB] hover:bg-[#D8DADF] dark:bg-[#3A3B3C] dark:hover:bg-[#4E4F50] flex items-center justify-center text-[#050505] dark:text-[#E4E6EB] transition-colors"
+              className="relative h-10 w-10 rounded-full bg-[var(--shell-hover)] hover:bg-[var(--shell-hover-strong)] dark:bg-[var(--shell-hover)] dark:hover:bg-[var(--shell-hover-strong)] flex items-center justify-center text-[var(--shell-text)] dark:text-[var(--shell-text)] transition-colors"
               title="Messages"
             >
               <MessageSquare weight="fill" className="h-5 w-5" />
@@ -359,7 +361,7 @@ export function SiteHeader({ onOpenMobileSidebar }: SiteHeaderProps) {
         {/* Notifications */}
         <Link to="/app/settings/notifications">
           <button
-            className="relative h-10 w-10 rounded-full bg-[#E4E6EB] hover:bg-[#D8DADF] dark:bg-[#3A3B3C] dark:hover:bg-[#4E4F50] flex items-center justify-center text-[#050505] dark:text-[#E4E6EB] transition-colors"
+            className="relative h-10 w-10 rounded-full bg-[var(--shell-hover)] hover:bg-[var(--shell-hover-strong)] dark:bg-[var(--shell-hover)] dark:hover:bg-[var(--shell-hover-strong)] flex items-center justify-center text-[var(--shell-text)] dark:text-[var(--shell-text)] transition-colors"
             title="Notifications"
           >
             <Bell weight="fill" className="h-5 w-5" />
@@ -376,7 +378,7 @@ export function SiteHeader({ onOpenMobileSidebar }: SiteHeaderProps) {
           <DropdownMenuTrigger asChild>
             <button
               type="button"
-              className="h-10 w-10 rounded-full overflow-hidden bg-[#2164b6] flex items-center justify-center text-white font-bold text-xs cursor-pointer hover:ring-2 hover:ring-[#2164b6]/50 transition-all ml-0.5"
+              className="h-10 w-10 rounded-full overflow-hidden bg-[var(--shell-accent-solid)] flex items-center justify-center text-white font-bold text-xs cursor-pointer hover:ring-2 hover:ring-[var(--shell-accent)]/50 transition-all ml-0.5"
               title="Account"
             >
               {user?.avatar_url ? (
@@ -388,89 +390,93 @@ export function SiteHeader({ onOpenMobileSidebar }: SiteHeaderProps) {
           </DropdownMenuTrigger>
 
           <DropdownMenuContent
-            className="w-60 rounded-lg bg-white dark:bg-[#242526] border border-[#DADDE1] dark:border-[#3E4042] shadow-xl p-1 text-xs z-50"
+            className="w-60 rounded-lg bg-white dark:bg-[var(--shell-surface)] border border-[var(--shell-border)] dark:border-[var(--shell-border)] shadow-xl p-1 text-xs z-50"
             align="end"
             sideOffset={6}
           >
             <DropdownMenuLabel className="px-3 py-2">
-              <p className="font-bold text-[#050505] dark:text-[#E4E6EB] text-sm truncate">{user?.name}</p>
-              <p className="text-[11px] text-[#65676B] dark:text-[#B0B3B8] font-normal truncate">{user?.email}</p>
+              <p className="font-bold text-[var(--shell-text)] dark:text-[var(--shell-text)] text-sm truncate">{user?.name}</p>
+              <p className="text-[11px] text-[var(--shell-muted)] dark:text-[var(--shell-muted)] font-normal truncate">{user?.email}</p>
             </DropdownMenuLabel>
-            <DropdownMenuSeparator className="bg-[#DADDE1] dark:bg-[#3E4042]" />
+            <DropdownMenuSeparator className="bg-[var(--shell-border)] dark:bg-[var(--shell-border)]" />
             <DropdownMenuItem
               onClick={() => navigate("/app/profile")}
-              className="cursor-pointer text-xs flex items-center gap-2 px-3 py-2 rounded-md hover:bg-[#F0F2F5] dark:hover:bg-[#3A3B3C]"
+              className="cursor-pointer text-xs flex items-center gap-2 px-3 py-2 rounded-md hover:bg-[var(--shell-hover)] dark:hover:bg-[var(--shell-hover)]"
             >
-              <User weight="fill" className="h-4 w-4 text-[#65676B] dark:text-[#B0B3B8]" />
+              <User weight="fill" className="h-4 w-4 text-[var(--shell-muted)] dark:text-[var(--shell-muted)]" />
               <span>View Profile</span>
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => navigate("/app/settings/profile")}
-              className="cursor-pointer text-xs flex items-center gap-2 px-3 py-2 rounded-md hover:bg-[#F0F2F5] dark:hover:bg-[#3A3B3C]"
+              className="cursor-pointer text-xs flex items-center gap-2 px-3 py-2 rounded-md hover:bg-[var(--shell-hover)] dark:hover:bg-[var(--shell-hover)]"
             >
-              <UserCircle weight="fill" className="h-4 w-4 text-[#65676B] dark:text-[#B0B3B8]" />
+              <UserCircle weight="fill" className="h-4 w-4 text-[var(--shell-muted)] dark:text-[var(--shell-muted)]" />
               <span>Profile Settings</span>
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => setProfileMenuOpen(true)}
-              className="cursor-pointer text-xs flex items-center gap-2 px-3 py-2 rounded-md hover:bg-[#F0F2F5] dark:hover:bg-[#3A3B3C]"
+              className="cursor-pointer text-xs flex items-center gap-2 px-3 py-2 rounded-md hover:bg-[var(--shell-hover)] dark:hover:bg-[var(--shell-hover)]"
             >
-              <List weight="bold" className="h-4 w-4 text-[#65676B] dark:text-[#B0B3B8]" />
+              <List weight="bold" className="h-4 w-4 text-[var(--shell-muted)] dark:text-[var(--shell-muted)]" />
               <span>Profile menu</span>
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => setAddAccountOpen(true)}
-              className="cursor-pointer text-xs flex items-center gap-2 px-3 py-2 rounded-md hover:bg-[#F0F2F5] dark:hover:bg-[#3A3B3C]"
+              className="cursor-pointer text-xs flex items-center gap-2 px-3 py-2 rounded-md hover:bg-[var(--shell-hover)] dark:hover:bg-[var(--shell-hover)]"
             >
-              <UserPlus weight="fill" className="h-4 w-4 text-[#65676B] dark:text-[#B0B3B8]" />
+              <UserPlus weight="fill" className="h-4 w-4 text-[var(--shell-muted)] dark:text-[var(--shell-muted)]" />
               <span>Add account</span>
             </DropdownMenuItem>
             {!isAdmin && (
               <>
                 <DropdownMenuItem
                   onClick={() => navigate("/app/wallet")}
-                  className="cursor-pointer text-xs flex items-center gap-2 px-3 py-2 rounded-md hover:bg-[#F0F2F5] dark:hover:bg-[#3A3B3C]"
+                  className="cursor-pointer text-xs flex items-center gap-2 px-3 py-2 rounded-md hover:bg-[var(--shell-hover)] dark:hover:bg-[var(--shell-hover)]"
                 >
-                  <Wallet weight="fill" className="h-4 w-4 text-[#65676B] dark:text-[#B0B3B8]" />
+                  <Wallet weight="fill" className="h-4 w-4 text-[var(--shell-muted)] dark:text-[var(--shell-muted)]" />
                   <span>MurihPay Wallet</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => navigate("/app/kyc")}
-                  className="cursor-pointer text-xs flex items-center gap-2 px-3 py-2 rounded-md hover:bg-[#F0F2F5] dark:hover:bg-[#3A3B3C]"
+                  className="cursor-pointer text-xs flex items-center gap-2 px-3 py-2 rounded-md hover:bg-[var(--shell-hover)] dark:hover:bg-[var(--shell-hover)]"
                 >
-                  <ShieldCheck weight="fill" className="h-4 w-4 text-[#65676B] dark:text-[#B0B3B8]" />
+                  <ShieldCheck weight="fill" className="h-4 w-4 text-[var(--shell-muted)] dark:text-[var(--shell-muted)]" />
                   <span>KYC Verification</span>
                 </DropdownMenuItem>
                 {role === "creator" && (
                   <>
-                    <DropdownMenuSeparator className="bg-[#DADDE1] dark:bg-[#3E4042]" />
-                    <div className="px-3 py-1 text-[10px] font-bold text-[#65676B] dark:text-[#B0B3B8] uppercase tracking-wider">
+                    <DropdownMenuSeparator className="bg-[var(--shell-border)] dark:bg-[var(--shell-border)]" />
+                    <div className="px-3 py-1 text-[10px] font-bold text-[var(--shell-muted)] dark:text-[var(--shell-muted)] uppercase tracking-wider">
                       Creator Tools
                     </div>
                     <DropdownMenuItem
                       onClick={() => navigate("/app/insights")}
-                      className="cursor-pointer text-xs flex items-center gap-2 px-3 py-2 rounded-md hover:bg-[#F0F2F5] dark:hover:bg-[#3A3B3C]"
+                      className="cursor-pointer text-xs flex items-center gap-2 px-3 py-2 rounded-md hover:bg-[var(--shell-hover)] dark:hover:bg-[var(--shell-hover)]"
                     >
-                      <ChartBar weight="fill" className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" />
+                      <ChartBar weight="fill" className="h-4 w-4 text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" />
                       <span>Performance Insights</span>
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       onClick={() => navigate("/app/events")}
-                      className="cursor-pointer text-xs flex items-center gap-2 px-3 py-2 rounded-md hover:bg-[#F0F2F5] dark:hover:bg-[#3A3B3C]"
+                      className="cursor-pointer text-xs flex items-center gap-2 px-3 py-2 rounded-md hover:bg-[var(--shell-hover)] dark:hover:bg-[var(--shell-hover)]"
                     >
                       <Calendar weight="fill" className="h-4 w-4 text-rose-500" />
                       <span>Events &amp; Live Studio</span>
                     </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => navigate("/app/marketing")}
-                      className="cursor-pointer text-xs flex items-center gap-2 px-3 py-2 rounded-md hover:bg-[#F0F2F5] dark:hover:bg-[#3A3B3C]"
-                    >
-                      <Megaphone weight="fill" className="h-4 w-4 text-purple-500" />
-                      <span>Marketing Hub</span>
-                    </DropdownMenuItem>
+                    {adsManagerHref && (
+                      <DropdownMenuItem
+                        asChild
+                        className="cursor-pointer text-xs flex items-center gap-2 px-3 py-2 rounded-md hover:bg-[var(--shell-hover)] dark:hover:bg-[var(--shell-hover)]"
+                      >
+                        <a href={adsManagerHref} target="_blank" rel="noopener noreferrer">
+                          <Megaphone weight="fill" className="h-4 w-4 text-purple-500" />
+                          <span>Ads Manager</span>
+                        </a>
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuItem
                       onClick={() => navigate("/app/brand-deals")}
-                      className="cursor-pointer text-xs flex items-center gap-2 px-3 py-2 rounded-md hover:bg-[#F0F2F5] dark:hover:bg-[#3A3B3C]"
+                      className="cursor-pointer text-xs flex items-center gap-2 px-3 py-2 rounded-md hover:bg-[var(--shell-hover)] dark:hover:bg-[var(--shell-hover)]"
                     >
                       <Handshake weight="fill" className="h-4 w-4 text-emerald-500" />
                       <span>Brand Deals</span>
@@ -479,7 +485,7 @@ export function SiteHeader({ onOpenMobileSidebar }: SiteHeaderProps) {
                 )}
               </>
             )}
-            <DropdownMenuSeparator className="bg-[#DADDE1] dark:bg-[#3E4042]" />
+            <DropdownMenuSeparator className="bg-[var(--shell-border)] dark:bg-[var(--shell-border)]" />
             <DropdownMenuItem
               onClick={() => logout()}
               className="cursor-pointer text-xs flex items-center gap-2 px-3 py-2 rounded-md text-destructive focus:text-destructive hover:bg-red-50 dark:hover:bg-red-950/30"

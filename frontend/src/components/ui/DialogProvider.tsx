@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useContext, useEffect, useRef, useState } from "react";
 import { DangerTriangle as AlertTriangleIcon, CloseSquare as XIcon } from "@/components/icons";
 import { Question as HelpCircleIcon } from "@/components/icons/rounded";;
 
@@ -41,6 +41,13 @@ export const DialogProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     value: string;
     resolve: (val: string | null) => void;
   } | null>(null);
+
+  // Focus the prompt field each time a prompt opens, as autoFocus did.
+  const promptInputRef = useRef<HTMLInputElement>(null);
+  const promptOpen = promptState?.open === true;
+  useEffect(() => {
+    if (promptOpen) promptInputRef.current?.focus();
+  }, [promptOpen]);
 
   const confirm = (options: ConfirmOptions | string): Promise<boolean> => {
     const opts: ConfirmOptions = typeof options === "string" ? { message: options } : options;
@@ -186,7 +193,7 @@ export const DialogProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                 }
                 placeholder={promptState.options.placeholder || "Enter value..."}
                 className="w-full h-11 rounded-2xl border border-border/70 bg-muted/30 px-4 text-sm outline-none focus:ring-2 focus:ring-primary/40 transition-all"
-                autoFocus
+                ref={promptInputRef}
               />
 
               <div className="flex items-center justify-end gap-2.5 pt-2">
@@ -212,6 +219,7 @@ export const DialogProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   );
 };
 
+// eslint-disable-next-line react-refresh/only-export-components -- hook is imported by ~40 files; moving it is out of scope
 export const useConfirm = () => {
   const context = useContext(DialogContext);
   if (!context) {
@@ -220,6 +228,7 @@ export const useConfirm = () => {
   return context.confirm;
 };
 
+// eslint-disable-next-line react-refresh/only-export-components -- hook is imported by ~40 files; moving it is out of scope
 export const usePrompt = () => {
   const context = useContext(DialogContext);
   if (!context) {

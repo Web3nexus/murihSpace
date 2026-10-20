@@ -29,6 +29,17 @@ class EscrowWalletFlowTest extends TestCase
         $wallet->update(['available' => $available]);
     }
 
+    /**
+     * What the seller has received, whichever bucket it sits in. Released funds land in
+     * `withdrawable` once the seller passes the review, or in `pending` until then.
+     */
+    private function earnedBy(User $user): int
+    {
+        $wallet = Wallet::where('user_id', $user->id)->where('wallet_type', 'creator')->first();
+
+        return (int) ($wallet?->available ?? 0) + (int) ($wallet?->withdrawable ?? 0) + (int) ($wallet?->pending ?? 0);
+    }
+
     private function balance(User $user, string $type, string $category = 'available'): int
     {
         $wallet = Wallet::where('user_id', $user->id)->where('wallet_type', $type)->first();
@@ -60,7 +71,7 @@ class EscrowWalletFlowTest extends TestCase
 
         $response->assertOk()->assertJsonPath('message', 'Escrow released to seller.');
 
-        $this->assertSame(50000, $this->balance($seller, 'creator'));
+        $this->assertSame(50000, $this->earnedBy($seller));
         // The buyer is NOT debited: their funds were collected externally
         // (Paddle), so releasing must not double-charge the wallet.
         $this->assertSame(50000, $this->balance($buyer, 'system'));
@@ -89,7 +100,7 @@ class EscrowWalletFlowTest extends TestCase
             ->assertStatus(400);
 
         // Second call must not credit the seller again.
-        $this->assertSame(50000, $this->balance($seller, 'creator'));
+        $this->assertSame(50000, $this->earnedBy($seller));
         $this->assertSame(
             1,
             LedgerTransaction::where('idempotency_key', "ESCROW_RELEASE_{$escrow->id}")->count()
@@ -143,7 +154,7 @@ class EscrowWalletFlowTest extends TestCase
         $this->assertSame(50000, $this->balance($buyer, 'system'));
         // The seller is NOT debited: funds were never credited on a refund
         // from `held`, so clawing back would 500 on a short wallet.
-        $this->assertSame(50000, $this->balance($seller, 'creator'));
+        $this->assertSame(50000, $this->earnedBy($seller));
         $this->assertSame('refunded', $escrow->fresh()->status);
         $this->assertNotNull($escrow->fresh()->refunded_at);
         $this->assertDatabaseHas('ledger_transactions', [
@@ -203,7 +214,7 @@ class EscrowWalletFlowTest extends TestCase
             ->postJson("/api/v1/wallet/escrow/{$escrow->id}/release")
             ->assertOk();
 
-        $this->assertSame(50000, $this->balance($seller, 'creator'));
+        $this->assertSame(50000, $this->earnedBy($seller));
         $this->assertSame('released', $escrow->fresh()->status);
     }
 
@@ -274,7 +285,7 @@ class EscrowWalletFlowTest extends TestCase
 
         app(EscrowService::class)->resolveDispute($dispute, 'resolved_seller', $admin->id, 'Seller delivered.');
 
-        $this->assertSame(50000, $this->balance($seller, 'creator'));
+        $this->assertSame(50000, $this->earnedBy($seller));
         $this->assertSame(0, $this->balance($buyer, 'system'));
         $escrow->refresh();
         $this->assertSame('released', $escrow->status);
@@ -301,7 +312,7 @@ class EscrowWalletFlowTest extends TestCase
         app(EscrowService::class)->resolveDispute($dispute, 'resolved_buyer', $admin->id, 'Not delivered.');
 
         $this->assertSame(50000, $this->balance($buyer, 'system'));
-        $this->assertSame(0, $this->balance($seller, 'creator'));
+        $this->assertSame(0, $this->earnedBy($seller));
         $escrow->refresh();
         $this->assertSame('refunded', $escrow->status);
         $this->assertNotNull($escrow->refunded_at);
@@ -327,7 +338,7 @@ class EscrowWalletFlowTest extends TestCase
         $escrow->refresh();
         $this->assertSame('held', $escrow->status);
         $this->assertSame(0, $this->balance($buyer, 'system'));
-        $this->assertSame(0, $this->balance($seller, 'creator'));
+        $this->assertSame(0, $this->earnedBy($seller));
         $this->assertSame('cancelled', $dispute->fresh()->status);
     }
 
@@ -374,7 +385,7 @@ class EscrowWalletFlowTest extends TestCase
             $this->assertSame('ESCROW_NOT_DISPUTED', $e->errorCode);
         }
 
-        $this->assertSame(0, $this->balance($seller, 'creator'));
+        $this->assertSame(0, $this->earnedBy($seller));
     }
 
     public function test_admin_resolves_dispute_via_http_endpoint(): void

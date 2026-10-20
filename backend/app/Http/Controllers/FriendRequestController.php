@@ -4,11 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Models\FriendRequest;
 use App\Models\User;
+use App\Models\UserLocation;
 use App\Services\NotificationService;
 use App\Services\Recommendation\UserRecommendationService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 class FriendRequestController extends Controller
@@ -159,10 +161,10 @@ class FriendRequestController extends Controller
             ->where('id', '!=', $userId)
             ->whereNull('deleted_at')
             ->where(function (Builder $query) use ($q, $cleanQ, $like) {
+                // People are found by name or username only. Phone numbers and
+                // emails are never searchable, so they can't be used to look up accounts.
                 $query->where('name', $like, "%{$q}%")
-                    ->orWhere('username', $like, "%{$cleanQ}%")
-                    ->orWhere('email', $like, "%{$q}%")
-                    ->orWhere('mobile_number', $like, "%{$q}%");
+                    ->orWhere('username', $like, "%{$cleanQ}%");
             })
             ->orderByRaw('CASE 
                 WHEN LOWER(username) = LOWER(?) THEN 0 
@@ -194,8 +196,6 @@ class FriendRequestController extends Controller
                 $payload['mutual_friends'] = $this->mutualFriendsCount($userId, $u->id);
                 $payload['status'] = $status;
                 $payload['is_friend'] = $status === 'accepted';
-                $payload['phone'] = $u->mobile_number ?? '';
-                $payload['mobile_number'] = $u->mobile_number ?? '';
 
                 return $payload;
             });
@@ -303,7 +303,6 @@ class FriendRequestController extends Controller
                 'request_id' => $requestId,
                 'name' => $u->name,
                 'username' => $u->username,
-                'phone' => $u->mobile_number ?? '',
                 'avatar_url' => $u->avatar_url ?? $u->avatar,
                 'avatar_color' => '0xFF007AFF',
                 'bio' => $u->bio,
@@ -484,12 +483,65 @@ class FriendRequestController extends Controller
     /**
      * Get suggested users to add as friends (personalized ranking).
      */
+    /**
+     * Members who opted in to sharing an approximate location and are within the
+     * nearby radius, excluding anyone already connected to, following, or blocked
+     * by the viewer.
+     */
+    private function nearbyCandidates(User $viewer, UserLocation $me, int $limit = 10): Collection
+    {
+        $latDelta = UserLocation::NEARBY_KM / 111.0;
+        $lngDelta = UserLocation::NEARBY_KM / max(1.0, 111.0 * cos(deg2rad($me->latitude)));
+
+        $excluded = collect([$viewer->id])
+            ->merge($viewer->follows()->pluck('users.id'))
+            ->merge(FriendRequest::where('sender_id', $viewer->id)->pluck('receiver_id'))
+            ->merge(FriendRequest::where('receiver_id', $viewer->id)->pluck('sender_id'))
+            ->merge(DB::table('user_blocks')->where('blocker_id', $viewer->id)->pluck('blocked_id'))
+            ->merge(DB::table('user_blocks')->where('blocked_id', $viewer->id)->pluck('blocker_id'))
+            ->unique()
+            ->all();
+
+        return UserLocation::query()
+            ->where('sharing_enabled', true)
+            ->whereNotNull('latitude')
+            ->whereNotNull('longitude')
+            ->whereNotIn('user_id', $excluded)
+            ->whereHas('user', fn (Builder $q) => $q->nonAdmin()->whereNull('deleted_at'))
+            ->whereBetween('latitude', [$me->latitude - $latDelta, $me->latitude + $latDelta])
+            ->whereBetween('longitude', [$me->longitude - $lngDelta, $me->longitude + $lngDelta])
+            ->get()
+            ->map(fn (UserLocation $other) => [
+                'id' => $other->user_id,
+                'reason' => 'Nearby',
+                'km' => UserLocation::distanceKm($me->latitude, $me->longitude, $other->latitude, $other->longitude),
+            ])
+            ->filter(fn (array $row) => $row['km'] <= UserLocation::NEARBY_KM)
+            ->sortBy('km')
+            ->take($limit)
+            ->values();
+    }
+
     public function suggestions(Request $request): JsonResponse
     {
         $viewer = $request->user();
         $people = $this->recommendations->suggestPeople($viewer, limit: 20);
 
-        $suggestions = $people->map(function ($item) use ($viewer) {
+        // Nearby ranking only applies when both people have opted in to sharing
+        // an approximate location. The distance itself is never returned, since
+        // distances from several points would reveal where someone is.
+        $viewerLocation = UserLocation::firstWhere('user_id', $viewer->id);
+        $viewerShared = $viewerLocation?->isShared() ?? false;
+
+        // Nearby members are added even without other signals, so location can
+        // surface someone the recommender would otherwise leave out.
+        if ($viewerShared) {
+            $nearby = $this->nearbyCandidates($viewer, $viewerLocation);
+            $existing = $people->pluck('id')->all();
+            $people = $people->concat($nearby->reject(fn ($row) => in_array($row['id'], $existing, true)));
+        }
+
+        $ranked = $people->map(function ($item, int $position) use ($viewer, $viewerLocation, $viewerShared) {
             $u = User::find($item['id']);
             if (! $u) {
                 return null;
@@ -498,10 +550,28 @@ class FriendRequestController extends Controller
             $payload['mutual_friends'] = $this->mutualFriendsCount($viewer->id, $u->id);
             $payload['reason'] = $item['reason'] ?? null;
 
-            return $payload;
-        })->filter()->values();
+            $distance = null;
+            if ($viewerShared) {
+                $other = UserLocation::firstWhere('user_id', $u->id);
+                if ($other?->isShared()) {
+                    $km = UserLocation::distanceKm(
+                        $viewerLocation->latitude,
+                        $viewerLocation->longitude,
+                        $other->latitude,
+                        $other->longitude,
+                    );
+                    if ($km <= UserLocation::NEARBY_KM) {
+                        $distance = $km;
+                        $payload['reason'] = 'Nearby';
+                    }
+                }
+            }
 
-        return response()->json(['data' => $suggestions]);
+            return ['payload' => $payload, 'sort' => $distance ?? (1000 + $position)];
+        })->filter()->sortBy('sort')->values()
+            ->map(fn (array $row) => $row['payload']);
+
+        return response()->json(['data' => $ranked]);
     }
 
     /**

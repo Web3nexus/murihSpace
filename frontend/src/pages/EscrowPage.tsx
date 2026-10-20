@@ -1,7 +1,10 @@
-import { useState, useEffect, useCallback } from 'react';
+import { asApiError } from "@/lib/apiError";
+import { useState, useEffect } from 'react';
 import { ShieldDone as ShieldCheck, ShieldFail as ShieldWarning, TickSquare as Check, CloseSquare as X, DangerSquare as AlertCircle, ArrowRight as ChevronRight, Profile as UserIcon } from "@/components/icons";
 import { Spinner as Loader2 } from "@/components/icons/rounded";;
 import { authFetch } from "@/lib/api/authFetch";
+import { useAuth } from "@/hooks/useAuth";
+import { EscrowHoldActions } from "@/components/wallet/EscrowHoldActions";
 
 
 
@@ -39,19 +42,20 @@ interface Dispute {
 const STATUS_BADGE: Record<string, { color: string; label: string }> = {
   held: { color: 'bg-amber-500/15 text-amber-600 border-amber-500/30', label: 'Held' },
   released: { color: 'bg-emerald-500/15 text-emerald-600 border-emerald-500/30', label: 'Released' },
-  refunded: { color: 'bg-blue-500/15 text-blue-600 border-blue-500/30', label: 'Refunded' },
+  refunded: { color: 'bg-[var(--shell-accent-solid)]/15 text-[var(--shell-accent)] border-[var(--shell-accent)]/30', label: 'Refunded' },
   disputed: { color: 'bg-red-500/15 text-red-600 border-red-500/30', label: 'Disputed' },
 };
 
 const DISPUTE_STATUS_BADGE: Record<string, { color: string; label: string }> = {
   open: { color: 'bg-red-500/15 text-red-600 border-red-500/30', label: 'Open' },
   under_review: { color: 'bg-amber-500/15 text-amber-600 border-amber-500/30', label: 'Under Review' },
-  resolved_buyer: { color: 'bg-blue-500/15 text-blue-600 border-blue-500/30', label: 'Resolved (Buyer)' },
+  resolved_buyer: { color: 'bg-[var(--shell-accent-solid)]/15 text-[var(--shell-accent)] border-[var(--shell-accent)]/30', label: 'Resolved (Buyer)' },
   resolved_seller: { color: 'bg-emerald-500/15 text-emerald-600 border-emerald-500/30', label: 'Resolved (Seller)' },
   cancelled: { color: 'bg-muted text-muted-foreground border-border', label: 'Cancelled' },
 };
 
 export function EscrowPage() {
+  const { user } = useAuth();
   const [escrows, setEscrows] = useState<Escrow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -61,19 +65,25 @@ export function EscrowPage() {
   const [page, setPage] = useState(1);
   const [lastPage, setLastPage] = useState(1);
 
-  const fetchEscrows = useCallback(async () => {
-    try {
-      const res = await authFetch(`/wallet/escrow?page=${page}&per_page=20`, {  });
-      if (res.ok) {
-        const json = await res.json();
-        setEscrows(json.data?.data ?? []);
-        setLastPage(json.data?.last_page ?? 1);
-      }
-    } catch { /* silent */ }
-    setIsLoading(false);
-  }, [page]);
+  const [fetchEscrowsKey, setFetchEscrowsKey] = useState(0);
+  const fetchEscrows = () => {
+    setFetchEscrowsKey((k) => k + 1);
+  };
 
-  useEffect(() => { fetchEscrows(); }, [fetchEscrows]);
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await authFetch(`/wallet/escrow?page=${page}&per_page=20`, {  });
+        if (res.ok) {
+          const json = await res.json();
+          setEscrows(json.data?.data ?? []);
+          setLastPage(json.data?.last_page ?? 1);
+        }
+      } catch { /* silent */ }
+      setIsLoading(false);
+    })();
+  }, [fetchEscrowsKey, page]);
+
 
   const handleAction = async (action: string, id: number) => {
     setMessage(null);
@@ -88,7 +98,8 @@ export function EscrowPage() {
       setMessage({ type: 'success', text: json.message ?? 'Done.' });
       fetchEscrows();
     } catch (err: unknown) {
-      setMessage({ type: 'error', text: err instanceof Error ? err.message : 'Action failed.' });
+      const apiErr = asApiError(err);
+      setMessage({ type: 'error', text: err instanceof Error ? apiErr.message : 'Action failed.' });
     }
   };
 
@@ -110,7 +121,8 @@ export function EscrowPage() {
       setMessage({ type: 'success', text: 'Dispute opened. An admin will review it shortly.' });
       fetchEscrows();
     } catch (err: unknown) {
-      setMessage({ type: 'error', text: err instanceof Error ? err.message : 'Failed.' });
+      const apiErr = asApiError(err);
+      setMessage({ type: 'error', text: err instanceof Error ? apiErr.message : 'Failed.' });
     }
   };
 
@@ -156,7 +168,7 @@ export function EscrowPage() {
           {escrows.map((escrow) => {
             const badge = STATUS_BADGE[escrow.status] ?? STATUS_BADGE.held;
             return (
-              <div
+              <div role="button" tabIndex={0} onKeyDown={(e) => { if (e.target !== e.currentTarget) return; if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.currentTarget.click(); } }}
                 key={escrow.id}
                 onClick={() => setSelectedEscrow(escrow)}
                 className="rounded-lg border-none bg-card p-4 flex items-center justify-between gap-4 cursor-pointer hover:bg-muted/30 transition-colors"
@@ -185,6 +197,17 @@ export function EscrowPage() {
         </div>
       ) : (
         <div className="space-y-4">
+          {selectedEscrow && (
+            <EscrowHoldActions
+              escrow={selectedEscrow}
+              currentUserId={user?.id}
+              onChanged={() => {
+                fetchEscrows();
+                setSelectedEscrow(null);
+              }}
+            />
+          )}
+
           <button onClick={() => setSelectedEscrow(null)} className="text-xs font-semibold text-muted-foreground hover:text-foreground flex items-center gap-1">← Back to escrows</button>
 
           <div className="rounded-lg border-none bg-card p-4 space-y-4">
@@ -278,8 +301,8 @@ export function EscrowPage() {
               Dispute escrow #{selectedEscrow.id} — {formatPrice(selectedEscrow.amount, selectedEscrow.currency)}
             </p>
             <div className="space-y-1">
-              <label className="text-xs font-bold text-foreground uppercase tracking-wider">Reason for dispute</label>
-              <textarea
+              <label htmlFor="f-pages-escrowpage-tsx-281" className="text-xs font-bold text-foreground uppercase tracking-wider">Reason for dispute</label>
+              <textarea id="f-pages-escrowpage-tsx-281"
                 value={disputeReason}
                 onChange={(e) => setDisputeReason(e.target.value)}
                 placeholder="Describe the issue in detail (min 10 characters)..."

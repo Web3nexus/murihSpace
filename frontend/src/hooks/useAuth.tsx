@@ -1,7 +1,9 @@
+import { logger } from "@/lib/logger";
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react";
 import { toast } from "sonner";
 import { apiClient, type ApiError } from "@/lib/api/client";
-import { getAuthToken, clearAuthTokens, clearImpersonationToken } from "@/lib/auth/token";
+import { purgeLegacyTokenStorage } from "@/lib/auth/token";
+import { hasSessionHint, setSessionHint } from "@/lib/auth/sessionHint";
 import {
   getSavedAccounts,
   saveSavedAccount,
@@ -10,13 +12,14 @@ import {
 } from "@/lib/auth/savedAccounts";
 
 /**
- * Establishes a real user session from an auth token. Ends any lingering admin
- * impersonation first so a stale impersonation token can never override the
- * freshly authenticated account (which would surface another user's data).
+ * Loads the signed-in user from the session cookie. Rejects when there is no session.
  */
-function adoptSessionToken(token: string): void {
-  clearImpersonationToken();
-  localStorage.setItem("murihspace-token", token);
+async function fetchCurrentUser(): Promise<UserProfile> {
+  const res = await apiClient.get("/user");
+  const responseData = res.data;
+  const profile = (responseData && responseData.success ? responseData.data : responseData) as UserProfile | undefined;
+  if (!profile) throw new Error("No profile");
+  return profile;
 }
 
 export interface UserProfile {
@@ -34,6 +37,8 @@ export interface UserProfile {
   mobile_number?: string;
   country?: string;
   onboarding_completed?: boolean;
+  /** True while an administrator is viewing the app as this account. Set by the server. */
+  impersonating?: boolean;
 }
 
 /**
@@ -114,9 +119,10 @@ interface AuthContextValue {
   isCreatorOrAdmin: boolean;
   hasPermission: (permission: string) => boolean;
   refreshUser: () => Promise<void>;
+  startImpersonation: (userId: number) => Promise<boolean>;
+  stopImpersonation: () => Promise<boolean>;
   markOnboardingCompleted: () => void;
   savedAccounts: SavedAccount[];
-  switchAccount: (token: string) => Promise<UserProfile | null>;
   addAccount: (email: string, password: string) => Promise<UserProfile | null>;
   removeSavedAccount: (id: number) => void;
   refreshSavedAccounts: () => void;
@@ -139,7 +145,7 @@ export interface RegisterData {
   phoneE164?: string;
 }
 
-function toSavedAccount(user: UserProfile, token: string): SavedAccount {
+function toSavedAccount(user: UserProfile): SavedAccount {
   return {
     id: user.id,
     name: user.name,
@@ -147,7 +153,6 @@ function toSavedAccount(user: UserProfile, token: string): SavedAccount {
     username: user.username,
     role: user.role,
     avatar: user.avatar_url || user.avatar,
-    token,
   };
 }
 
@@ -155,7 +160,8 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<UserProfile | null>(null);
-  const [loading, setLoading] = useState(true);
+  // A remembered sign-in means /user must be checked before the app is usable.
+  const [loading, setLoading] = useState(() => hasSessionHint());
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
   const [savedAccounts, setSavedAccounts] = useState<SavedAccount[]>(() => getSavedAccounts());
@@ -164,30 +170,50 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSavedAccounts(getSavedAccounts());
   }, []);
 
+  /**
+   * Starts the in-app session the server set up with its cookie, then loads /user.
+   */
+  const startSession = useCallback(async (): Promise<UserProfile | null> => {
+    try {
+      const profile = await fetchCurrentUser();
+      setSessionHint(true);
+      setUser(profile);
+      saveSavedAccount(toSavedAccount(profile));
+      refreshSavedAccounts();
+      return profile;
+    } catch {
+      return null;
+    }
+  }, [refreshSavedAccounts]);
+
   useEffect(() => {
-    const token = getAuthToken();
-    if (!token) {
-      setLoading(false);
+    // Drop bearer tokens an older build left in storage. Only a browser that
+    // has signed in before asks the server whether its session cookie is still valid.
+    purgeLegacyTokenStorage();
+    if (!hasSessionHint()) {
       return;
     }
-    apiClient
-      .get("/user")
-      .then((res) => {
-        const responseData = res.data;
-        const profile = responseData && responseData.success ? responseData.data : responseData;
+    let cancelled = false;
+    fetchCurrentUser()
+      .then((profile) => {
+        if (cancelled) return;
         setUser(profile);
-        if (profile) {
-          saveSavedAccount(toSavedAccount(profile as UserProfile, token));
-          refreshSavedAccounts();
-        }
+        saveSavedAccount(toSavedAccount(profile));
+        refreshSavedAccounts();
       })
       .catch(() => {
-        clearAuthTokens();
-        setUser(null);
+        // The session has expired or was revoked: the visitor is a guest again.
+        if (!cancelled) {
+          setSessionHint(false);
+          setUser(null);
+        }
       })
       .finally(() => {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       });
+    return () => {
+      cancelled = true;
+    };
   }, [refreshSavedAccounts]);
 
   const login = useCallback(async (email: string, password: string): Promise<UserProfile | null> => {
@@ -206,16 +232,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return null;
       }
 
-      const token = responseData.token;
-      const userProfile = responseData.user as UserProfile;
-      if (!token || !userProfile) {
-        setError("Invalid response: missing credentials.");
+      // The server set the session cookie. The token is not returned to the browser.
+      const userProfile = await startSession();
+      if (!userProfile) {
+        setError("Could not load your account. Please try again.");
         return null;
       }
-      adoptSessionToken(token);
-      setUser(userProfile);
-      saveSavedAccount(toSavedAccount(userProfile, token));
-      refreshSavedAccounts();
       toast.success(`Welcome back, ${userProfile.name}!`);
       return userProfile;
     } catch (err: unknown) {
@@ -227,7 +249,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }, [refreshSavedAccounts]);
+  }, [startSession]);
 
 
   /**
@@ -294,21 +316,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setError(null);
     setFieldErrors({});
     try {
-      const response = await apiClient.post("/securegate/auth/2fa/verify", { challenge, code });
-      const envelope = response.data;
-      const responseData = envelope?.success ? envelope.data : envelope;
-
-      const token = responseData?.token;
-      const userProfile = responseData?.user as UserProfile | undefined;
-      if (!token || !userProfile) {
-        setError("Invalid response: missing credentials.");
+      await apiClient.post("/securegate/auth/2fa/verify", { challenge, code });
+      const userProfile = await startSession();
+      if (!userProfile) {
+        setError("Could not load your account. Please try again.");
         return null;
       }
-
-      adoptSessionToken(token);
-      setUser(userProfile);
-      saveSavedAccount(toSavedAccount(userProfile, token));
-      refreshSavedAccounts();
       toast.success(`Signed in as ${userProfile.name}.`);
       return userProfile;
     } catch (err: unknown) {
@@ -319,7 +332,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }, [refreshSavedAccounts]);
+  }, [startSession]);
 
   /**
    * Fetch the secret for a first factor. Nothing is admitted by this; it only
@@ -436,12 +449,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Unwrap the response envelope
       const envelope = response.data;
       const data = (envelope?.success ? envelope.data : envelope) as Partial<OtpVerifyResult> & { message?: string };
-      if (payload.intent === "login" && data.account_exists && data.token && data.user) {
-        adoptSessionToken(data.token);
-        setUser(data.user);
-        saveSavedAccount(toSavedAccount(data.user, data.token));
-        refreshSavedAccounts();
-        toast.success(`Welcome back, ${data.user.name}!`);
+      if (payload.intent === "login" && data.account_exists && data.verified) {
+        const profile = await startSession();
+        if (!profile) {
+          // The code was accepted but the session did not load, so report it rather than return a signed-out result.
+          setError("Could not load your account. Please try again.");
+          return null;
+        }
+        toast.success(`Welcome back, ${profile.name}!`);
       }
       return {
         verified: data.verified ?? false,
@@ -462,7 +477,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }, [refreshSavedAccounts]);
+  }, [startSession]);
 
   const register = useCallback(async (signUpData: RegisterData): Promise<boolean> => {
     setLoading(true);
@@ -488,15 +503,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         body.country = signUpData.country;
         body.mobile_number = signUpData.mobileNumber;
       }
-      const response = await apiClient.post("/auth/register", body);
-      const envelope = response.data;
-      const responseData = envelope.success ? envelope.data : envelope;
-      const token = responseData.token;
-      const userProfile = responseData.user;
-      adoptSessionToken(token);
-      setUser(userProfile);
-      saveSavedAccount(toSavedAccount(userProfile, token));
-      refreshSavedAccounts();
+      await apiClient.post("/auth/register", body);
+      await startSession();
       return true;
     } catch (err: unknown) {
       const apiErr = err as ApiError;
@@ -506,22 +514,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }, [refreshSavedAccounts]);
+  }, [startSession]);
 
   const logout = useCallback(async () => {
     setLoading(true);
+    const signedInId = user?.id;
     try {
       await apiClient.post("/auth/logout");
       toast.info("You have been signed out. See you soon!");
     } catch (err) {
-      console.error("Logout request failed:", err);
+      // Log the message only: an Axios error carries request headers in its config.
+      logger.error("Logout request failed:", err instanceof Error ? err.message : "unknown error");
     } finally {
-      clearImpersonationToken();
-      localStorage.removeItem("murihspace-token");
+      purgeLegacyTokenStorage();
+      setSessionHint(false);
+      // The account stays in the saved list only while it is signed in here.
+      if (signedInId !== undefined) setSavedAccounts(removeSavedAccountFromStore(signedInId));
+      localStorage.removeItem("user_data");
       setUser(null);
       setLoading(false);
     }
-  }, []);
+  }, [user]);
 
   const refreshUser = useCallback(async () => {
     try {
@@ -535,38 +548,56 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch { /* ignore */ }
   }, []);
 
+  /**
+   * Views the app as another account. The server switches this browser's session
+   * cookie to that account, so no token is stored here. Returns false when the
+   * server refuses. The caller should reload the page so cached data is not shown
+   * for the wrong account.
+   */
+  const startImpersonation = useCallback(async (userId: number): Promise<boolean> => {
+    try {
+      const res = await apiClient.post(`/securegate/users/${userId}/impersonate`);
+      const envelope = res.data;
+      const data = envelope?.success ? envelope.data : envelope;
+      if (data?.impersonating !== true) {
+        toast.error("Impersonation was not started.");
+        return false;
+      }
+    } catch (err: unknown) {
+      const apiErr = err && typeof err === "object" ? (err as ApiError) : undefined;
+      toast.error(apiErr?.message || "Impersonation failed. Please try again.");
+      return false;
+    }
+    await refreshUser();
+    return true;
+  }, [refreshUser]);
+
+  /**
+   * Ends impersonation: the server restores the administrator's session on this
+   * browser, then the administrator is reloaded from /user. The reload runs even
+   * when the stop request fails, so the banner always reflects the server.
+   */
+  const stopImpersonation = useCallback(async (): Promise<boolean> => {
+    let stopped = true;
+    try {
+      await apiClient.post("/auth/stop-impersonate");
+    } catch (err) {
+      stopped = false;
+      logger.error("Stop impersonation request failed:", err instanceof Error ? err.message : "unknown error");
+      toast.error("Could not confirm that impersonation ended. Reloading your account.");
+    }
+    await refreshUser();
+    return stopped;
+  }, [refreshUser]);
+
   const markOnboardingCompleted = useCallback(() => {
     setUser((prev) => (prev ? { ...prev, onboarding_completed: true } : prev));
   }, []);
 
-  /** Swaps the active session to a previously saved account token. */
-  const switchAccount = useCallback(async (token: string): Promise<UserProfile | null> => {
-    const previousToken = getAuthToken();
-    adoptSessionToken(token);
-    try {
-      const res = await apiClient.get("/user");
-      const responseData = res.data;
-      const profile = (responseData && responseData.success ? responseData.data : responseData) as UserProfile;
-      if (!profile) throw new Error("No profile");
-      setUser(profile);
-      saveSavedAccount(toSavedAccount(profile, token));
-      refreshSavedAccounts();
-      toast.success(`Switched to ${profile.name}.`);
-      return profile;
-    } catch {
-      if (previousToken) {
-        adoptSessionToken(previousToken);
-      }
-      toast.error("Could not switch account. Please try again.");
-      return null;
-    }
-  }, [refreshSavedAccounts]);
-
   /** Signs into another account and remembers it, keeping the current one saved. */
   const addAccount = useCallback(async (email: string, password: string): Promise<UserProfile | null> => {
-    const currentToken = getAuthToken();
-    if (user && currentToken) {
-      saveSavedAccount(toSavedAccount(user, currentToken));
+    if (user) {
+      saveSavedAccount(toSavedAccount(user));
       refreshSavedAccounts();
     }
     return login(email, password);
@@ -585,8 +616,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser((prev) => {
         if (!prev) return prev;
         const next = { ...prev, role: updatedRole };
-        const token = getAuthToken();
-        if (token) saveSavedAccount(toSavedAccount(next, token));
+        saveSavedAccount(toSavedAccount(next));
         return next;
       });
       refreshSavedAccounts();
@@ -624,9 +654,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return user.permissions?.includes(permission) ?? false;
     },
     refreshUser,
+    startImpersonation,
+    stopImpersonation,
     markOnboardingCompleted,
     savedAccounts,
-    switchAccount,
     addAccount,
     removeSavedAccount,
     refreshSavedAccounts,
@@ -636,6 +667,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
+// eslint-disable-next-line react-refresh/only-export-components -- hook stays beside AuthProvider; moving it would touch every importer
 export function useAuth(): AuthContextValue {
   const context = useContext(AuthContext);
   if (!context) {

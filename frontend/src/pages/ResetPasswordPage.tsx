@@ -63,10 +63,10 @@ export function ResetPasswordPage() {
     >
       <div className="flex flex-col gap-5">
         <div className="flex flex-col gap-1 text-left">
-          <h2 className="text-xl sm:text-xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+          <h2 className="text-xl sm:text-xl font-extrabold tracking-tight text-[var(--shell-text)] dark:text-white">
             Reset password
           </h2>
-          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+          <p className="text-xs sm:text-sm text-[var(--shell-muted)] dark:text-[var(--shell-muted)]">
             {reset ? "Your password has been reset." : "Enter your new password below."}
           </p>
         </div>
@@ -86,7 +86,7 @@ export function ResetPasswordPage() {
             </p>
             <Link
               to="/login"
-              className="inline-flex items-center justify-center w-full h-12 rounded-lg bg-[#2164b6] hover:bg-[#1a5091] text-white text-base font-bold shadow-lg shadow-[#2164b6]/25 transition-all duration-200"
+              className="inline-flex items-center justify-center w-full h-12 rounded-lg bg-[var(--shell-accent-solid)] hover:bg-[var(--shell-accent-hover)] text-white text-base font-bold shadow-lg shadow-[#2164b6]/25 transition-all duration-200"
             >
               Log in with new password
             </Link>
@@ -95,7 +95,7 @@ export function ResetPasswordPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <FieldGroup className="space-y-4">
               <Field>
-                <FieldLabel htmlFor="reset-email" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                <FieldLabel htmlFor="reset-email" className="text-xs font-semibold text-slate-700 dark:text-[var(--shell-muted)]">
                   Email address
                 </FieldLabel>
                 <Input
@@ -107,7 +107,7 @@ export function ResetPasswordPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   disabled={loading || !!emailFromUrl}
-                  className="h-12 px-4 rounded-lg text-sm bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-800 focus:border-[#2164b6] focus:ring-2 focus:ring-[#2164b6]/20"
+                  className="h-12 px-4 rounded-lg text-sm bg-slate-50 dark:bg-slate-800/60 border-[var(--shell-border)] dark:border-[var(--shell-border)] focus:border-[var(--shell-accent)] focus:ring-2 focus:ring-[var(--shell-accent)]/20"
                 />
                 {fieldErrors.email && (
                   <p className="text-xs text-rose-500 mt-1">{fieldErrors.email[0]}</p>
@@ -115,7 +115,7 @@ export function ResetPasswordPage() {
               </Field>
 
               <Field>
-                <FieldLabel htmlFor="reset-password" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                <FieldLabel htmlFor="reset-password" className="text-xs font-semibold text-slate-700 dark:text-[var(--shell-muted)]">
                   New password
                 </FieldLabel>
                 <div className="relative">
@@ -128,7 +128,7 @@ export function ResetPasswordPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     disabled={loading}
-                    className="h-12 px-4 rounded-lg text-sm bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-800 focus:border-[#2164b6] focus:ring-2 focus:ring-[#2164b6]/20 pr-10"
+                    className="h-12 px-4 rounded-lg text-sm bg-slate-50 dark:bg-slate-800/60 border-[var(--shell-border)] dark:border-[var(--shell-border)] focus:border-[var(--shell-accent)] focus:ring-2 focus:ring-[var(--shell-accent)]/20 pr-10"
                     aria-describedby="password-requirements"
                   />
                 </div>
@@ -137,7 +137,7 @@ export function ResetPasswordPage() {
                     {PASSWORD_RULES.map((rule, idx) => (
                       <div key={idx} className="flex items-center gap-2">
                         {rule.check(password) ? <Check weight="fill" className="w-3.5 h-3.5 text-emerald-500" /> : <div className="w-3.5 h-3.5 rounded-full border border-slate-300 dark:border-slate-700" />}
-                        <span className={`text-[11px] font-medium ${rule.check(password) ? 'text-emerald-500' : 'text-slate-500 dark:text-slate-400'}`}>{rule.label}</span>
+                        <span className={`text-[11px] font-medium ${rule.check(password) ? 'text-emerald-500' : 'text-[var(--shell-muted)] dark:text-[var(--shell-muted)]'}`}>{rule.label}</span>
                       </div>
                     ))}
                   </div>
@@ -145,7 +145,7 @@ export function ResetPasswordPage() {
               </Field>
 
               <Field>
-                <FieldLabel htmlFor="reset-confirm" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                <FieldLabel htmlFor="reset-confirm" className="text-xs font-semibold text-slate-700 dark:text-[var(--shell-muted)]">
                   Confirm new password
                 </FieldLabel>
                 <Input
@@ -157,7 +157,7 @@ export function ResetPasswordPage() {
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   disabled={loading}
-                  className="h-12 px-4 rounded-lg text-sm bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-800 focus:border-[#2164b6] focus:ring-2 focus:ring-[#2164b6]/20"
+                  className="h-12 px-4 rounded-lg text-sm bg-slate-50 dark:bg-slate-800/60 border-[var(--shell-border)] dark:border-[var(--shell-border)] focus:border-[var(--shell-accent)] focus:ring-2 focus:ring-[var(--shell-accent)]/20"
                 />
               </Field>
 
@@ -168,7 +168,7 @@ export function ResetPasswordPage() {
                   onChange={() => setShowPasswords(!showPasswords)}
                   className="rounded border-slate-300 dark:border-slate-600"
                 />
-                <span className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                <span className="text-xs text-[var(--shell-muted)] dark:text-[var(--shell-muted)] flex items-center gap-1">
                   {showPasswords ? <EyeOff className="h-3 w-3" /> : <Eye weight="fill" className="h-3 w-3" />}
                   Show passwords
                 </span>
@@ -178,7 +178,7 @@ export function ResetPasswordPage() {
                 <Button
                   type="submit"
                   disabled={loading || !email || !password || !confirmPassword}
-                  className="w-full h-12 rounded-lg bg-[#2164b6] hover:bg-[#1a5091] text-white text-base font-bold shadow-lg shadow-[#2164b6]/25 transition-all duration-200 active:scale-[0.99]"
+                  className="w-full h-12 rounded-lg bg-[var(--shell-accent-solid)] hover:bg-[var(--shell-accent-hover)] text-white text-base font-bold shadow-lg shadow-[#2164b6]/25 transition-all duration-200 active:scale-[0.99]"
                 >
                   {loading ? (
                     <><Loader2 weight="fill" className="mr-2 h-5 w-5 animate-spin" /> Resetting…</>
@@ -194,7 +194,7 @@ export function ResetPasswordPage() {
         <div className="text-center">
           <Link
             to="/login"
-            className="inline-flex items-center gap-1.5 text-xs font-medium text-[#2164b6] dark:text-[#7ab0ff] hover:underline underline-offset-4"
+            className="inline-flex items-center gap-1.5 text-xs font-medium text-[var(--shell-accent)] dark:text-[var(--shell-accent)] hover:underline underline-offset-4"
           >
             Back to login
           </Link>

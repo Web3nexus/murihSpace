@@ -1,4 +1,6 @@
-import { useState, useEffect, useCallback } from "react";
+import { logger } from "@/lib/logger";
+import { safeHref } from "@/lib/safeUrl";
+import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router";
 import { toast } from "sonner";
 import { TimeCircle as Clock, TickSquare as CheckCircle2, CloseSquare as XCircle, ArrowLeft as ChevronLeft, ArrowRight as ChevronRight, Bag as ShoppingBag, ShieldFail as ShieldWarning, ShieldDone as ShieldCheck, Document as FileText } from "@/components/icons";
@@ -58,44 +60,52 @@ export function AdminRoleApplicationsPage() {
   const [selectedApp, setSelectedApp] = useState<RoleApplication | null>(null);
   const [roleFilter, setRoleFilter] = useState<string>("all");
 
-  const fetchApplications = useCallback(async () => {
+  const [fetchApplicationsKey, setFetchApplicationsKey] = useState(0);
+  const fetchApplications = () => {
     setLoading(true);
-    try {
-      const params: Record<string, string | number> = { page };
-      if (currentStatus !== "all") {
-        params.status = currentStatus;
-      }
-      if (roleFilter !== "all") {
-        params.role = roleFilter;
-      }
-
-      const res = await apiClient.get("/securegate/role-applications", { params });
-
-      const raw = res.data;
-      let paginator = raw?.data ?? raw;
-      if (paginator && typeof paginator === "object" && !Array.isArray(paginator) && "data" in paginator && typeof paginator.data === "object" && !Array.isArray(paginator.data) && "data" in paginator.data) {
-        paginator = paginator.data;
-      }
-      const items: RoleApplication[] = Array.isArray(paginator?.data)
-        ? paginator.data
-        : Array.isArray(paginator)
-        ? paginator
-        : [];
-
-      setApplications(items);
-      setLastPage(paginator?.last_page || 1);
-      setTotal(paginator?.total || items.length);
-    } catch (err) {
-      console.error("Failed to load role applications:", err);
-      toast.error("Failed to load role applications.");
-    } finally {
-      setLoading(false);
-    }
-  }, [currentStatus, roleFilter, page]);
+    setFetchApplicationsKey((k) => k + 1);
+  };
 
   useEffect(() => {
-    fetchApplications();
-  }, [fetchApplications]);
+    let active = true;
+    (async () => {
+      try {
+        const params: Record<string, string | number> = { page };
+        if (currentStatus !== "all") {
+          params.status = currentStatus;
+        }
+        if (roleFilter !== "all") {
+          params.role = roleFilter;
+        }
+
+        const res = await apiClient.get("/securegate/role-applications", { params });
+
+        const raw = res.data;
+        let paginator = raw?.data ?? raw;
+        if (paginator && typeof paginator === "object" && !Array.isArray(paginator) && "data" in paginator && typeof paginator.data === "object" && !Array.isArray(paginator.data) && "data" in paginator.data) {
+          paginator = paginator.data;
+        }
+        const items: RoleApplication[] = Array.isArray(paginator?.data)
+          ? paginator.data
+          : Array.isArray(paginator)
+          ? paginator
+          : [];
+
+        if (active) setApplications(items);
+        if (active) setLastPage(paginator?.last_page || 1);
+        if (active) setTotal(paginator?.total || items.length);
+      } catch (err) {
+        logger.error("Failed to load role applications:", err);
+        toast.error("Failed to load role applications.");
+      } finally {
+        if (active) setLoading(false);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [fetchApplicationsKey, currentStatus, roleFilter, page]);
+
 
   const handleApprove = async (app: RoleApplication) => {
     setProcessingId(app.id);
@@ -188,7 +198,8 @@ export function AdminRoleApplicationsPage() {
               <button
                 key={tab.key}
                 onClick={() => {
-                  setSearchParams({ status: tab.key });
+                  if (tab.key === currentStatus) return;
+                  setLoading(true); setSearchParams({ status: tab.key });
                   setPage(1);
                 }}
                 className={`flex items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-medium transition-colors whitespace-nowrap ${
@@ -209,7 +220,7 @@ export function AdminRoleApplicationsPage() {
           <select
             value={roleFilter}
             onChange={(e) => {
-              setRoleFilter(e.target.value);
+              setLoading(true); setRoleFilter(e.target.value);
               setPage(1);
             }}
             className="rounded-lg border-none bg-card px-3 py-1.5 text-sm font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
@@ -294,7 +305,7 @@ export function AdminRoleApplicationsPage() {
                                 : userKyc === "pending"
                                 ? "bg-amber-500/15 text-amber-500"
                                 : isKycRequested
-                                ? "bg-blue-500/15 text-blue-500"
+                                ? "bg-[var(--shell-accent-solid)]/15 text-[var(--shell-accent)]"
                                 : "bg-muted text-muted-foreground"
                             }`}
                           >
@@ -310,7 +321,7 @@ export function AdminRoleApplicationsPage() {
                           </span>
                           {app.user?.kyc_document && (
                             <a
-                              href={app.user.kyc_document}
+                              href={safeHref(app.user.kyc_document)}
                               target="_blank"
                               rel="noreferrer"
                               className="inline-flex items-center gap-1 text-[10px] text-primary hover:underline font-medium"
@@ -368,7 +379,7 @@ export function AdminRoleApplicationsPage() {
                                 setKycNote(app.metadata?.kyc_request_note || "");
                               }}
                               disabled={processingId === app.id}
-                              className="inline-flex items-center gap-1 rounded-lg border border-blue-500/30 bg-blue-500/10 px-3 py-1.5 text-xs font-semibold text-blue-500 hover:bg-blue-500/20 transition-colors disabled:opacity-50"
+                              className="inline-flex items-center gap-1 rounded-lg border border-[var(--shell-accent)]/30 bg-[var(--shell-accent-solid)]/10 px-3 py-1.5 text-xs font-semibold text-[var(--shell-accent)] hover:bg-[var(--shell-accent-solid)]/20 transition-colors disabled:opacity-50"
                               title="Prompt user to submit KYC documents"
                             >
                               <ShieldWarning weight="fill" className="h-3.5 w-3.5" />
@@ -412,14 +423,14 @@ export function AdminRoleApplicationsPage() {
             <div className="flex items-center gap-2">
               <button
                 disabled={page <= 1}
-                onClick={() => setPage(page - 1)}
+                onClick={() => { setLoading(true); setPage(page - 1); }}
                 className="rounded-lg border-none p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground disabled:opacity-40"
               >
                 <ChevronLeft weight="fill" className="h-4 w-4" />
               </button>
               <button
                 disabled={page >= lastPage}
-                onClick={() => setPage(page + 1)}
+                onClick={() => { setLoading(true); setPage(page + 1); }}
                 className="rounded-lg border-none p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground disabled:opacity-40"
               >
                 <ChevronRight weight="fill" className="h-4 w-4" />
@@ -476,7 +487,7 @@ export function AdminRoleApplicationsPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
           <div className="w-full max-w-md rounded-lg border-none bg-card p-4 shadow-xl space-y-4">
             <div className="flex items-center gap-2">
-              <div className="p-2 rounded-lg bg-blue-500/10 text-blue-500">
+              <div className="p-2 rounded-lg bg-[var(--shell-accent-solid)]/10 text-[var(--shell-accent)]">
                 <ShieldWarning weight="fill" className="h-5 w-5" />
               </div>
               <div>
@@ -492,8 +503,8 @@ export function AdminRoleApplicationsPage() {
             </p>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-foreground">Instructions / Note for Applicant (Optional):</label>
-              <textarea
+              <label htmlFor="f--adminroleapplicationspage-tsx-495" className="text-xs font-medium text-foreground">Instructions / Note for Applicant (Optional):</label>
+              <textarea id="f--adminroleapplicationspage-tsx-495"
                 rows={3}
                 value={kycNote}
                 onChange={(e) => setKycNote(e.target.value)}
@@ -517,7 +528,7 @@ export function AdminRoleApplicationsPage() {
                 type="button"
                 onClick={handleRequestKyc}
                 disabled={processingId === kycTarget.id}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold text-white shadow hover:bg-blue-700 disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--shell-accent-solid)] px-4 py-2 text-xs font-semibold text-white shadow hover:bg-[var(--shell-accent-hover)] disabled:opacity-50"
               >
                 {processingId === kycTarget.id && <Loader2 weight="fill" className="h-3.5 w-3.5 animate-spin" />}
                 Send KYC Request
@@ -562,7 +573,7 @@ export function AdminRoleApplicationsPage() {
                 <div className="flex justify-between py-1 border-b border-border/40">
                   <span className="text-muted-foreground">KYC Document</span>
                   <a
-                    href={selectedApp.user.kyc_document}
+                    href={safeHref(selectedApp.user.kyc_document)}
                     target="_blank"
                     rel="noreferrer"
                     className="text-xs text-primary inline-flex items-center gap-1 font-semibold hover:underline"
@@ -572,8 +583,8 @@ export function AdminRoleApplicationsPage() {
                 </div>
               )}
               {selectedApp.metadata?.kyc_requested && (
-                <div className="rounded-lg border border-blue-500/30 bg-blue-500/10 p-3 mt-2">
-                  <div className="text-xs font-semibold text-blue-500">KYC Verification Requested</div>
+                <div className="rounded-lg border border-[var(--shell-accent)]/30 bg-[var(--shell-accent-solid)]/10 p-3 mt-2">
+                  <div className="text-xs font-semibold text-[var(--shell-accent)]">KYC Verification Requested</div>
                   <p className="text-xs text-muted-foreground mt-1">
                     {selectedApp.metadata.kyc_request_note || "Identity verification requested."}
                   </p>

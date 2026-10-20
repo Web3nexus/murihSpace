@@ -15,4 +15,10 @@ class Ad extends Model
     {
         return $this->hasMany(AdMetric::class);
     }
+
+    // AdController::index eager-loads this; the column already exists (ads.creative_id).
+    public function creative()
+    {
+        return $this->belongsTo(Creative::class);
+    }
 }

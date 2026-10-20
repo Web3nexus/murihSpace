@@ -1,3 +1,5 @@
+import { logger } from "@/lib/logger";
+import { asApiError } from "@/lib/apiError";
 import { useEffect, useRef, useState } from 'react';
 import { Voice as Mic, Video as VideoIcon, N2User as Users, TickSquare as Check, TimeCircle as Clock, DangerSquare as WarningCircle, Chat as ChatCircle, Send as PaperPlaneTilt, Swap as ArrowsClockwise, ShieldDone as ShieldCheck, Profile as UserCircle } from "@/components/icons";
 import { CallSilent as PhoneSlash } from "@/components/icons";
@@ -109,7 +111,7 @@ export function LiveKitVideoConference({
       const bytes = new TextEncoder().encode(JSON.stringify(payload));
       room.localParticipant.publishData(bytes, { reliable: true });
     } catch (e) {
-      console.error('[Meeting] publishData error', e);
+      logger.error('[Meeting] publishData error', e);
     }
   };
 
@@ -380,13 +382,14 @@ export function LiveKitVideoConference({
       setStage('connected');
       updateParticipantsState();
     } catch (err: unknown) {
+      const apiErr = asApiError(err);
       if (createdRoom) {
         await createdRoom.disconnect().catch(() => undefined);
       }
       if (roomRef.current === createdRoom) {
         roomRef.current = null;
       }
-      const rawMsg = err instanceof Error ? err.message : 'Connection error';
+      const rawMsg = err instanceof Error ? apiErr.message : 'Connection error';
       const mapped = mapApplicationError(err);
       if (mountedRef.current) {
         setConnectionError({
@@ -473,7 +476,7 @@ export function LiveKitVideoConference({
       await roomRef.current.localParticipant.setScreenShareEnabled(nextState);
       setIsScreenSharing(nextState);
     } catch (e) {
-      console.error('Screen share error', e);
+      logger.error('Screen share error', e);
     }
   };
 

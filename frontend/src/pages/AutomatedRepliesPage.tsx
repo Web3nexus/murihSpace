@@ -1,6 +1,7 @@
+import { logger } from "@/lib/logger";
 import { useState, useEffect, useCallback } from "react";
 import { Chat as ChatCircleDots, TimeCircle as Clock, Download as FloppyDisk, TickSquare as CheckCircle, Show as Eye } from "@/components/icons";
-import { Sparkle, Moon, Spinner as Loader2, Lightning, Storefront } from "@/components/icons/rounded";;
+import { Moon, Spinner as Loader2, Lightning, Storefront } from "@/components/icons/rounded";;
 import { Button } from "@/components/ui/button";
 import { authFetch } from "@/lib/api/authFetch";
 import { useAuth } from "@/hooks/useAuth";
@@ -68,7 +69,7 @@ export default function AutomatedRepliesPage() {
         );
       }
     } catch (err) {
-      console.error("Failed to load chat settings", err);
+      logger.error("Failed to load chat settings", err);
       toast.error("Could not load automated replies settings.");
     } finally {
       setLoading(false);
@@ -76,7 +77,9 @@ export default function AutomatedRepliesPage() {
   }, []);
 
   useEffect(() => {
-    fetchSettings();
+    (async () => {
+      await fetchSettings();
+    })();
   }, [fetchSettings]);
 
   const handleSave = async () => {
@@ -164,7 +167,7 @@ export default function AutomatedRepliesPage() {
             <div className="flex items-start justify-between gap-4">
               <div className="flex items-center gap-3">
                 <div className="p-2.5 rounded-xl bg-primary/10 text-primary shrink-0">
-                  <Sparkle weight="fill" className="h-5 w-5" />
+                  <Lightning weight="fill" className="h-5 w-5" />
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-foreground">Welcome Greeting Message</h3>
@@ -175,8 +178,8 @@ export default function AutomatedRepliesPage() {
               </div>
 
               {/* Toggle switch */}
-              <label className="relative inline-flex items-center cursor-pointer shrink-0">
-                <input
+              <label htmlFor="f-pages-automatedrepliespage-tsx-178" aria-label="Welcome Greeting Message" className="relative inline-flex items-center cursor-pointer shrink-0">
+                <input id="f-pages-automatedrepliespage-tsx-178"
                   type="checkbox"
                   checked={greetingEnabled}
                   onChange={(e) => setGreetingEnabled(e.target.checked)}
@@ -240,8 +243,8 @@ export default function AutomatedRepliesPage() {
               </div>
 
               {/* Toggle switch */}
-              <label className="relative inline-flex items-center cursor-pointer shrink-0">
-                <input
+              <label htmlFor="f-pages-automatedrepliespage-tsx-243" aria-label="Away / Offline Message" className="relative inline-flex items-center cursor-pointer shrink-0">
+                <input id="f-pages-automatedrepliespage-tsx-243"
                   type="checkbox"
                   checked={awayEnabled}
                   onChange={(e) => setAwayEnabled(e.target.checked)}
@@ -346,7 +349,7 @@ export default function AutomatedRepliesPage() {
                   <div className="max-w-[85%] rounded-2xl rounded-bl-sm bg-card border border-border p-3 text-xs text-foreground leading-relaxed shadow-sm space-y-1">
                     <div className="flex items-center gap-1.5">
                       <span className="text-[9px] font-black uppercase tracking-wider bg-primary/10 text-primary px-1.5 py-0.5 rounded-full inline-flex items-center gap-1">
-                        <Sparkle weight="fill" className="h-2.5 w-2.5" />
+                        <Lightning weight="fill" className="h-2.5 w-2.5" />
                         Auto Reply
                       </span>
                     </div>

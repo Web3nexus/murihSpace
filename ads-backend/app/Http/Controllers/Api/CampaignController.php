@@ -7,20 +7,26 @@ use App\Http\Requests\StoreCampaignRequest;
 use App\Http\Requests\UpdateCampaignRequest;
 use App\Models\Campaign;
 use App\Models\AdAccountMember;
+use App\Services\Reporting\AdMetricsAggregator;
 use Illuminate\Http\Request;
 
 class CampaignController extends Controller
 {
     private function getAuthorizedAccountIds()
     {
-        return AdAccountMember::where('murihspace_user_id', request()->user()->id)
+        return AdAccountMember::where('murihspace_user_id', request()->user()->murihspace_user_id)
             ->pluck('ad_account_id');
     }
 
-    public function index(Request $request)
+    public function index(Request $request, AdMetricsAggregator $metrics)
     {
+        $request->validate(AdMetricsAggregator::rangeRules());
+
         $campaigns = Campaign::whereIn('advertiser_id', $this->getAuthorizedAccountIds())
-            ->paginate(20);
+            ->paginate(AdMetricsAggregator::perPage($request));
+
+        $metrics->attach($campaigns, AdMetricsAggregator::LEVEL_CAMPAIGN, $request->query('start_date'), $request->query('end_date'));
+
         return response()->json($campaigns);
     }
 

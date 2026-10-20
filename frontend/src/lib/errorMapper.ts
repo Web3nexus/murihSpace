@@ -20,14 +20,15 @@ export function mapApplicationError(error: unknown): MappedError {
   if (typeof error === "string") {
     rawMessage = error;
   } else if (error && typeof error === "object") {
-    if ("message" in error && typeof (error as any).message === "string") {
-      rawMessage = (error as any).message;
+    if ("message" in error && typeof error.message === "string") {
+      rawMessage = error.message;
     }
-    if ("stack" in error && typeof (error as any).stack === "string") {
-      stack = (error as any).stack;
+    if ("stack" in error && typeof error.stack === "string") {
+      stack = error.stack;
     }
-    if ("statusText" in error && typeof (error as any).statusText === "string") {
-      rawMessage = `${(error as any).status || ""} ${(error as any).statusText}`.trim();
+    if ("statusText" in error && typeof error.statusText === "string") {
+      const status = "status" in error && (typeof error.status === "number" || typeof error.status === "string") ? error.status : "";
+      rawMessage = `${status} ${error.statusText}`.trim();
     }
   }
 

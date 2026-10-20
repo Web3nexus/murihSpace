@@ -9,11 +9,13 @@ use App\Models\User;
 use App\Services\NativeStore\Contracts\StoreVerifier;
 use App\Services\NativeStore\StoreVerificationResult;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\SignsAppleNotifications;
 use Tests\TestCase;
 
 class NativeStorePurchaseTest extends TestCase
 {
     use RefreshDatabase;
+    use SignsAppleNotifications;
 
     protected function setUp(): void
     {
@@ -208,17 +210,53 @@ class NativeStorePurchaseTest extends TestCase
         ]);
 
         $txnJws = 'header.' . rtrim(strtr(base64_encode(json_encode(['transactionId' => 'txn_apple_refund_1'])), '+/', '-_'), '=') . '.sig';
-        $payloadJws = 'header.' . rtrim(strtr(base64_encode(json_encode([
-            'notificationType' => 'REFUND',
-            'data' => ['signedTransactionInfo' => $txnJws],
-        ])), '+/', '-_'), '=') . '.sig';
+        $payloadJws = $this->appleSignedPayload(
+            ['notificationType' => 'REFUND', 'data' => ['signedTransactionInfo' => $txnJws]],
+            $this->appleFixture('apple-chain-leaf.key'),
+            [$this->appleFixture('apple-chain-leaf.pem'), $this->appleFixture('apple-chain-intermediate.pem')],
+        );
+
+        $this->useAppleTestRoot();
+        config(['payments.stores.apple.webhook_token' => 'apple-test-token']);
 
         $response = $this->postJson('/api/v1/webhooks/apple-store', [
             'signedPayload' => $payloadJws,
-        ]);
+        ], ['X-Webhook-Token' => 'apple-test-token']);
 
         $response->assertStatus(200);
         $this->assertSame('revoked', $purchase->fresh()->status);
+    }
+
+    public function test_apple_webhook_without_a_configured_token_is_rejected(): void
+    {
+        $user = User::factory()->create(['email_verified_at' => now()]);
+        $pack = $this->pack();
+
+        $purchase = NativeStorePurchase::create([
+            'user_id' => $user->id,
+            'coin_pack_id' => $pack->id,
+            'store' => 'apple',
+            'store_transaction_id' => 'txn_apple_forged_1',
+            'product_id' => 'com.murihspace.coins.275',
+            'amount_minor' => 2500,
+            'currency' => 'USD',
+            'credited_coins' => 275,
+            'status' => 'completed',
+            'internal_reference' => 'NSP-A-87654321',
+        ]);
+
+        config(['payments.stores.apple.webhook_token' => null]);
+
+        $txnJws = 'h.'.rtrim(strtr(base64_encode(json_encode(['transactionId' => 'txn_apple_forged_1'])), '+/', '-_'), '=').'.sig';
+        $payloadJws = 'h.'.rtrim(strtr(base64_encode(json_encode([
+            'notificationType' => 'REFUND',
+            'data' => ['signedTransactionInfo' => $txnJws],
+        ])), '+/', '-_'), '=').'.sig';
+
+        $this->postJson('/api/v1/webhooks/apple-store', ['signedPayload' => $payloadJws])
+            ->assertStatus(401);
+
+        $this->assertSame('completed', $purchase->fresh()->status);
     }
 
     public function test_google_webhook_marks_purchase_as_revoked(): void
@@ -246,11 +284,13 @@ class NativeStorePurchaseTest extends TestCase
             ],
         ]));
 
+        config(['payments.stores.google.webhook_token' => 'google-test-token']);
+
         $response = $this->postJson('/api/v1/webhooks/google-play', [
             'message' => [
                 'data' => $data,
             ],
-        ]);
+        ], ['X-Webhook-Token' => 'google-test-token']);
 
         $response->assertStatus(200);
         $this->assertSame('revoked', $purchase->fresh()->status);

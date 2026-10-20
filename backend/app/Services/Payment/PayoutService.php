@@ -31,12 +31,23 @@ class PayoutService
      *     currency: string,
      *     payout_destination_id: int,
      *     idempotency_key: string,
-     *     narration?: string
+     *     narration?: string,
+     *     wallet_type?: string // Wallet the balance is debited from. Defaults to 'creator'.
      * } $data
      */
     public function createPayout(array $data): array
     {
         $idempotencyKey = $data['idempotency_key'] ?? (string) Str::uuid();
+
+        // No payout of any kind for a user who has not completed KYC.
+        $payee = \App\Models\User::find($data['user_id'] ?? null);
+        if (! $payee?->hasVerifiedKyc()) {
+            throw new PaymentException(
+                'Identity verification (KYC) is required before any payout.',
+                'KYC_REQUIRED',
+                403,
+            );
+        }
 
         // 1. Idempotency Check
         $existing = IdempotencyKey::where('key', $idempotencyKey)
@@ -54,6 +65,7 @@ class PayoutService
         $amount = (int) $data['amount'];
         $currency = strtoupper($data['currency']);
         $country = $destination->country_code;
+        $walletType = $data['wallet_type'] ?? 'creator';
 
         // 2. Resolve Payout Provider
         $provider = $this->router->resolve(
@@ -100,48 +112,6 @@ class PayoutService
 
         try {
             $payoutRes = $provider->initiatePayout($req);
-
-            $payout->update([
-                'provider_payout_id' => $payoutRes->providerPayoutId,
-                'provider_reference' => $payoutRes->providerReference,
-                'status' => $payoutRes->status,
-                'fee_amount' => $payoutRes->feeAmount,
-                'net_amount' => max(0, $amount - $payoutRes->feeAmount),
-                'dispatched_at' => now(),
-            ]);
-
-            // If immediate success, mark completed and record ledger debit
-            if ($payoutRes->status === PayoutStatus::Successful) {
-                $payout->update(['completed_at' => now()]);
-                $this->ledgerService->recordTransaction(
-                    type: 'withdrawal',
-                    amount: $payout->amount,
-                    currency: $payout->currency,
-                    description: "Payout withdrawal [Ref: {$payout->public_reference}]",
-                    metadata: ['payout_id' => $payout->id, 'provider' => $provider->providerCode()],
-                    initiatedBy: $payout->user_id
-                );
-            }
-
-            $responsePayload = [
-                'success' => true,
-                'payout_id' => $payout->id,
-                'public_reference' => $payout->public_reference,
-                'status' => $payout->status->value,
-                'amount' => $payout->amount,
-                'currency' => $payout->currency,
-            ];
-
-            IdempotencyKey::create([
-                'key' => $idempotencyKey,
-                'scope' => 'payout_create',
-                'user_id' => $data['user_id'],
-                'request_hash' => hash('sha256', json_encode($data)),
-                'response_status' => 200,
-                'response_body' => $responsePayload,
-            ]);
-
-            return $responsePayload;
         } catch (Exception $e) {
             $payout->update([
                 'status' => PayoutStatus::Failed,
@@ -150,5 +120,54 @@ class PayoutService
 
             throw $e;
         }
+
+        // The provider has accepted the payout. A failure below is not a payout failure, so it is not caught above.
+        $payout->update([
+            'provider_payout_id' => $payoutRes->providerPayoutId,
+            'provider_reference' => $payoutRes->providerReference,
+            'status' => $payoutRes->status,
+            'fee_amount' => $payoutRes->feeAmount,
+            'net_amount' => max(0, $amount - $payoutRes->feeAmount),
+            'dispatched_at' => now(),
+        ]);
+
+        // An immediate success is paid now, so the seller's withdrawable balance is debited once.
+        // The ledger key comes from the caller's idempotency key, so a retry cannot debit again.
+        if ($payoutRes->status === PayoutStatus::Successful) {
+            DB::transaction(function () use ($payout, $walletType, $idempotencyKey, $provider) {
+                $payout->update(['completed_at' => now()]);
+                $this->ledgerService->debit(
+                    user: $payout->user_id,
+                    amount: $payout->amount,
+                    currency: $payout->currency,
+                    walletType: $walletType,
+                    balanceCategory: 'withdrawable',
+                    type: 'withdrawal',
+                    description: "Payout withdrawal [Ref: {$payout->public_reference}]",
+                    idempotencyKey: "PAYOUT_{$idempotencyKey}_DEBIT",
+                    metadata: ['payout_id' => $payout->id, 'provider' => $provider->providerCode()],
+                );
+            });
+        }
+
+        $responsePayload = [
+            'success' => true,
+            'payout_id' => $payout->id,
+            'public_reference' => $payout->public_reference,
+            'status' => $payout->status->value,
+            'amount' => $payout->amount,
+            'currency' => $payout->currency,
+        ];
+
+        IdempotencyKey::create([
+            'key' => $idempotencyKey,
+            'scope' => 'payout_create',
+            'user_id' => $data['user_id'],
+            'request_hash' => hash('sha256', json_encode($data)),
+            'response_status' => 200,
+            'response_body' => $responsePayload,
+        ]);
+
+        return $responsePayload;
     }
 }

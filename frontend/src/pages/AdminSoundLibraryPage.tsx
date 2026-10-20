@@ -1,3 +1,15 @@
+import { pickArray } from "@/lib/api/pickArray";
+interface SoundTrack {
+  id: number;
+  title: string;
+  artist?: string | null;
+  category?: string | null;
+  audio_url: string;
+  cover_url?: string | null;
+  duration?: number | null;
+  is_active: boolean;
+}
+
 import { useState, useEffect, useCallback } from "react";
 import { Plus, Edit, Delete as Trash2, TickSquare as Check, DangerSquare as AlertCircle, Play, VolumeUp as Volume2 } from "@/components/icons";
 import { MusicNote as Music, Spinner as Loader2, Pause } from "@/components/icons/rounded";;
@@ -9,18 +21,17 @@ import { useConfirm } from "@/components/ui/DialogProvider";
 
 const CATEGORIES = ["General", "Ambient", "Acoustic", "Electronic", "Hip Hop", "Cinematic", "Pop", "Jazz"];
 
-function safeArray<T = any>(val: any): T[] {
-  if (Array.isArray(val)) return val;
-  if (Array.isArray(val?.data)) return val.data;
-  if (Array.isArray(val?.data?.data)) return val.data.data;
-  return [];
+function safeArray<T>(val: T[]): T[];
+function safeArray<T = unknown>(val: unknown): T[];
+function safeArray(val: unknown): unknown[] {
+  return pickArray(val, ["tracks"]);
 }
 
 export default function AdminSoundLibraryPage() {
-  const [tracks, setTracks] = useState<any[]>([]);
+  const [tracks, setTracks] = useState<SoundTrack[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [editing, setEditing] = useState<any | null>(null);
+  const [editing, setEditing] = useState<SoundTrack | null>(null);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
@@ -56,13 +67,15 @@ export default function AdminSoundLibraryPage() {
   }, []);
 
   useEffect(() => {
-    fetchTracks();
+    // Deferred so the loading state is not set synchronously inside the effect body
+    const timer = setTimeout(() => fetchTracks(), 0);
     return () => {
+      clearTimeout(timer);
       if (audioEl) audioEl.pause();
     };
   }, [fetchTracks]);
 
-  const togglePlay = (track: any) => {
+  const togglePlay = (track: SoundTrack) => {
     if (playingId === track.id) {
       if (audioEl) audioEl.pause();
       setPlayingId(null);
@@ -278,7 +291,7 @@ export default function AdminSoundLibraryPage() {
               <div className="flex items-center justify-between pt-4 mt-4 border-t border-border">
                 <span className="text-xs text-muted-foreground flex items-center gap-1">
                   <Volume2 weight="fill" className="w-3.5 h-3.5" />
-                  {Math.floor(track.duration / 60)}:{(track.duration % 60).toString().padStart(2, "0")}
+                  {Math.floor((track.duration ?? 0) / 60)}:{((track.duration ?? 0) % 60).toString().padStart(2, "0")}
                 </span>
                 <div className="flex items-center gap-1">
                   <Button

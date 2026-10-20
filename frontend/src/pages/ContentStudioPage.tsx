@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router";
 import { useConfirm } from "@/components/ui/DialogProvider";
 import { useProfile } from "@/hooks/useProfile";
@@ -27,10 +27,10 @@ const TYPE_ICONS: Record<string, typeof Video> = {
 };
 
 const TYPE_COLORS: Record<string, string> = {
-  video: "bg-[#2164b6]/10 text-[#2164b6] dark:bg-[#2164b6]/20 dark:text-[#7ab0ff]",
-  article: "bg-[#2164b6]/10 text-[#2164b6] dark:bg-[#2164b6]/20 dark:text-[#7ab0ff]",
-  audio: "bg-[#2164b6]/10 text-[#2164b6] dark:bg-[#2164b6]/20 dark:text-[#7ab0ff]",
-  image: "bg-[#2164b6]/10 text-[#2164b6] dark:bg-[#2164b6]/20 dark:text-[#7ab0ff]",
+  video: "bg-[var(--shell-accent-solid)]/10 text-[var(--shell-accent)] dark:bg-[var(--shell-accent-solid)]/20 dark:text-[var(--shell-accent)]",
+  article: "bg-[var(--shell-accent-solid)]/10 text-[var(--shell-accent)] dark:bg-[var(--shell-accent-solid)]/20 dark:text-[var(--shell-accent)]",
+  audio: "bg-[var(--shell-accent-solid)]/10 text-[var(--shell-accent)] dark:bg-[var(--shell-accent-solid)]/20 dark:text-[var(--shell-accent)]",
+  image: "bg-[var(--shell-accent-solid)]/10 text-[var(--shell-accent)] dark:bg-[var(--shell-accent-solid)]/20 dark:text-[var(--shell-accent)]",
 };
 
 export default function ContentStudioPage() {
@@ -67,49 +67,53 @@ export default function ContentStudioPage() {
     earnings: (profile?.coins ?? 0) / 100,
   });
 
-  const fetchItems = useCallback(async () => {
+  const [fetchItemsKey, setFetchItemsKey] = useState(0);
+  const fetchItems = () => {
     setLoading(true);
     setError(null);
-    try {
-      const [res, aRes] = await Promise.all([
-        authFetch(`/content?limit=50`),
-        authFetch(`/analytics/overview`),
-      ]);
-
-      if (res.ok) {
-        const j = await res.json();
-        const list = j?.success ? j?.data : j;
-        setItems(Array.isArray(list?.data ?? list) ? (list?.data ?? list) : []);
-      }
-
-      if (aRes.ok) {
-        const aJson = await aRes.json();
-        const aData = aJson?.data ?? aJson;
-        if (aData) {
-          const rev = aData?.revenue?.total ?? 0;
-          const f = aData?.audience?.followers ?? profile?.followers_count ?? 0;
-          const clicks = aData?.engagement?.referral_clicks ?? 0;
-          const refs = aData?.engagement?.referrals ?? 0;
-          const rate = clicks > 0 ? `${((refs / clicks) * 100).toFixed(1)}%` : "0.0%";
-
-          setAnalytics({
-            followers: f,
-            views: 0,
-            engagement: rate,
-            earnings: rev > 0 ? rev / 100 : (profile?.coins ?? 0) / 100,
-          });
-        }
-      }
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to load content studio");
-    } finally {
-      setLoading(false);
-    }
-  }, [profile?.followers_count, profile?.coins]);
+    setFetchItemsKey((k) => k + 1);
+  };
 
   useEffect(() => {
-    fetchItems();
-  }, [fetchItems]);
+    (async () => {
+      try {
+        const [res, aRes] = await Promise.all([
+          authFetch(`/content?limit=50`),
+          authFetch(`/analytics/overview`),
+        ]);
+
+        if (res.ok) {
+          const j = await res.json();
+          const list = j?.success ? j?.data : j;
+          setItems(Array.isArray(list?.data ?? list) ? (list?.data ?? list) : []);
+        }
+
+        if (aRes.ok) {
+          const aJson = await aRes.json();
+          const aData = aJson?.data ?? aJson;
+          if (aData) {
+            const rev = aData?.revenue?.total ?? 0;
+            const f = aData?.audience?.followers ?? profile?.followers_count ?? 0;
+            const clicks = aData?.engagement?.referral_clicks ?? 0;
+            const refs = aData?.engagement?.referrals ?? 0;
+            const rate = clicks > 0 ? `${((refs / clicks) * 100).toFixed(1)}%` : "0.0%";
+
+            setAnalytics({
+              followers: f,
+              views: 0,
+              engagement: rate,
+              earnings: rev > 0 ? rev / 100 : (profile?.coins ?? 0) / 100,
+            });
+          }
+        }
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Failed to load content studio");
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [fetchItemsKey, profile?.followers_count, profile?.coins]);
+
 
   const resetForm = () => {
     setTitle("");
@@ -211,7 +215,7 @@ export default function ContentStudioPage() {
               if (showForm) resetForm();
               else setShowForm(true);
             }}
-            className="h-9 gap-1.5 text-xs font-bold rounded-lg bg-[#2164b6] hover:bg-[#2164b6]/90 text-white shadow-sm"
+            className="h-9 gap-1.5 text-xs font-bold rounded-lg bg-[var(--shell-accent-solid)] hover:bg-[var(--shell-accent-solid)]/90 text-white shadow-sm"
           >
             {showForm ? <X className="h-4 w-4" /> : <Plus weight="bold" className="h-4 w-4" />}
             <span>{showForm ? "Cancel" : "Create Content"}</span>
@@ -223,7 +227,7 @@ export default function ContentStudioPage() {
       <div className="rounded-lg border border-border bg-card p-5 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <div className="relative">
-            <div className="h-14 w-14 rounded-full p-0.5 bg-[#2164b6]">
+            <div className="h-14 w-14 rounded-full p-0.5 bg-[var(--shell-accent-solid)]">
               {avatarUrl ? (
                 <img
                   src={avatarUrl}
@@ -240,10 +244,10 @@ export default function ContentStudioPage() {
           <div>
             <div className="flex items-center gap-1.5">
               <h2 className="text-base font-black text-foreground">{displayName}</h2>
-              <SealCheck weight="fill" className="h-4 w-4 text-[#2164b6]" />
+              <SealCheck weight="fill" className="h-4 w-4 text-[var(--shell-accent)]" />
             </div>
             <p className="text-xs text-muted-foreground font-medium">@{username}</p>
-            <div className="mt-1.5 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#2164b6]/10 text-[#2164b6] text-[11px] font-bold">
+            <div className="mt-1.5 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[var(--shell-accent-solid)]/10 text-[var(--shell-accent)] text-[11px] font-bold">
               <Star weight="fill" className="h-3 w-3" />
               <span>Creator Account</span>
             </div>
@@ -313,8 +317,8 @@ export default function ContentStudioPage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-foreground">Content Title</label>
-              <Input
+              <label htmlFor="f-pages-contentstudiopage-tsx-316" className="text-xs font-semibold text-foreground">Content Title</label>
+              <Input id="f-pages-contentstudiopage-tsx-316"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="e.g. Masterclass Episode 1: Building Audience"
@@ -324,11 +328,11 @@ export default function ContentStudioPage() {
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-foreground">Format Type</label>
-              <select
+              <label htmlFor="f-pages-contentstudiopage-tsx-327" className="text-xs font-semibold text-foreground">Format Type</label>
+              <select id="f-pages-contentstudiopage-tsx-327"
                 value={contentType}
                 onChange={(e) => setContentType(e.target.value as ContentItem["type"])}
-                className="h-10 w-full rounded-lg border border-input bg-background px-3 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-[#2164b6]"
+                className="h-10 w-full rounded-lg border border-input bg-background px-3 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-[var(--shell-accent)]"
               >
                 <option value="video">Video / Reel</option>
                 <option value="article">Article / Post</option>
@@ -339,7 +343,7 @@ export default function ContentStudioPage() {
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-foreground">Cover Thumbnail</label>
+            <span className="text-xs font-semibold text-foreground">Cover Thumbnail</span>
             <ImageUploader
               value={thumbnailUrl}
               onChange={(url) => setThumbnailUrl(url ?? "")}
@@ -355,7 +359,7 @@ export default function ContentStudioPage() {
               type="submit"
               size="sm"
               disabled={saving}
-              className="h-9 text-xs font-bold rounded-lg bg-[#2164b6] hover:bg-[#2164b6]/90 text-white"
+              className="h-9 text-xs font-bold rounded-lg bg-[var(--shell-accent-solid)] hover:bg-[var(--shell-accent-solid)]/90 text-white"
             >
               {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : editing ? "Save Changes" : "Publish Content"}
             </Button>
@@ -376,7 +380,7 @@ export default function ContentStudioPage() {
           <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold text-muted-foreground">Followers</span>
-              <div className="p-1.5 rounded-lg bg-[#2164b6]/10 text-[#2164b6] dark:bg-[#2164b6]/20 dark:text-[#7ab0ff]">
+              <div className="p-1.5 rounded-lg bg-[var(--shell-accent-solid)]/10 text-[var(--shell-accent)] dark:bg-[var(--shell-accent-solid)]/20 dark:text-[var(--shell-accent)]">
                 <Users weight="bold" className="h-4 w-4" />
               </div>
             </div>
@@ -389,7 +393,7 @@ export default function ContentStudioPage() {
           <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold text-muted-foreground">Views</span>
-              <div className="p-1.5 rounded-lg bg-[#2164b6]/10 text-[#2164b6] dark:bg-[#2164b6]/20 dark:text-[#7ab0ff]">
+              <div className="p-1.5 rounded-lg bg-[var(--shell-accent-solid)]/10 text-[var(--shell-accent)] dark:bg-[var(--shell-accent-solid)]/20 dark:text-[var(--shell-accent)]">
                 <Eye weight="bold" className="h-4 w-4" />
               </div>
             </div>
@@ -402,7 +406,7 @@ export default function ContentStudioPage() {
           <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold text-muted-foreground">Engagement</span>
-              <div className="p-1.5 rounded-lg bg-[#2164b6]/10 text-[#2164b6] dark:bg-[#2164b6]/20 dark:text-[#7ab0ff]">
+              <div className="p-1.5 rounded-lg bg-[var(--shell-accent-solid)]/10 text-[var(--shell-accent)] dark:bg-[var(--shell-accent-solid)]/20 dark:text-[var(--shell-accent)]">
                 <Heart weight="bold" className="h-4 w-4" />
               </div>
             </div>
@@ -413,7 +417,7 @@ export default function ContentStudioPage() {
           <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold text-muted-foreground">Earnings</span>
-              <div className="p-1.5 rounded-lg bg-[#2164b6]/10 text-[#2164b6] dark:bg-[#2164b6]/20 dark:text-[#7ab0ff]">
+              <div className="p-1.5 rounded-lg bg-[var(--shell-accent-solid)]/10 text-[var(--shell-accent)] dark:bg-[var(--shell-accent-solid)]/20 dark:text-[var(--shell-accent)]">
                 <TrendUp weight="bold" className="h-4 w-4" />
               </div>
             </div>
@@ -434,7 +438,7 @@ export default function ContentStudioPage() {
           }}
           className="flex items-center gap-3 p-3.5 rounded-lg border border-border bg-card hover:bg-muted/50 transition text-left group shadow-sm"
         >
-          <div className="h-10 w-10 rounded-lg bg-[#2164b6]/10 text-[#2164b6] flex items-center justify-center shrink-0 group-hover:scale-105 transition">
+          <div className="h-10 w-10 rounded-lg bg-[var(--shell-accent-solid)]/10 text-[var(--shell-accent)] flex items-center justify-center shrink-0 group-hover:scale-105 transition">
             <Plus weight="bold" className="h-5 w-5" />
           </div>
           <div>
@@ -447,7 +451,7 @@ export default function ContentStudioPage() {
           to="/app/events"
           className="flex items-center gap-3 p-3.5 rounded-lg border border-border bg-card hover:bg-muted/50 transition text-left group shadow-sm"
         >
-          <div className="h-10 w-10 rounded-lg bg-[#2164b6]/10 text-[#2164b6] dark:bg-[#2164b6]/20 dark:text-[#7ab0ff] flex items-center justify-center shrink-0 group-hover:scale-105 transition">
+          <div className="h-10 w-10 rounded-lg bg-[var(--shell-accent-solid)]/10 text-[var(--shell-accent)] dark:bg-[var(--shell-accent-solid)]/20 dark:text-[var(--shell-accent)] flex items-center justify-center shrink-0 group-hover:scale-105 transition">
             <Broadcast weight="fill" className="h-5 w-5" />
           </div>
           <div>
@@ -460,7 +464,7 @@ export default function ContentStudioPage() {
           to="/app/brand-deals"
           className="flex items-center gap-3 p-3.5 rounded-lg border border-border bg-card hover:bg-muted/50 transition text-left group shadow-sm"
         >
-          <div className="h-10 w-10 rounded-lg bg-[#2164b6]/10 text-[#2164b6] dark:bg-[#2164b6]/20 dark:text-[#7ab0ff] flex items-center justify-center shrink-0 group-hover:scale-105 transition">
+          <div className="h-10 w-10 rounded-lg bg-[var(--shell-accent-solid)]/10 text-[var(--shell-accent)] dark:bg-[var(--shell-accent-solid)]/20 dark:text-[var(--shell-accent)] flex items-center justify-center shrink-0 group-hover:scale-105 transition">
             <Handshake weight="fill" className="h-5 w-5" />
           </div>
           <div>
@@ -473,7 +477,7 @@ export default function ContentStudioPage() {
           to="/app/insights"
           className="flex items-center gap-3 p-3.5 rounded-lg border border-border bg-card hover:bg-muted/50 transition text-left group shadow-sm"
         >
-          <div className="h-10 w-10 rounded-lg bg-[#2164b6]/10 text-[#2164b6] dark:bg-[#2164b6]/20 dark:text-[#7ab0ff] flex items-center justify-center shrink-0 group-hover:scale-105 transition">
+          <div className="h-10 w-10 rounded-lg bg-[var(--shell-accent-solid)]/10 text-[var(--shell-accent)] dark:bg-[var(--shell-accent-solid)]/20 dark:text-[var(--shell-accent)] flex items-center justify-center shrink-0 group-hover:scale-105 transition">
             <ChartBar weight="fill" className="h-5 w-5" />
           </div>
           <div>
@@ -488,7 +492,7 @@ export default function ContentStudioPage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <TrendUp weight="bold" className="h-4 w-4 text-[#2164b6]" />
+              <TrendUp weight="bold" className="h-4 w-4 text-[var(--shell-accent)]" />
               <h3 className="text-sm font-black text-foreground">Grow faster with consistency</h3>
             </div>
             <p className="text-xs text-muted-foreground max-w-xl">
@@ -499,10 +503,10 @@ export default function ContentStudioPage() {
           <div className="w-full sm:w-48 space-y-1.5 shrink-0">
             <div className="flex items-center justify-between text-xs font-bold">
               <span className="text-muted-foreground">Weekly Target</span>
-              <span className="text-[#2164b6]">2 / 3 posts</span>
+              <span className="text-[var(--shell-accent)]">2 / 3 posts</span>
             </div>
             <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
-              <div className="h-full bg-[#2164b6] rounded-full w-[66%]" />
+              <div className="h-full bg-[var(--shell-accent-solid)] rounded-full w-[66%]" />
             </div>
           </div>
         </div>
@@ -519,7 +523,7 @@ export default function ContentStudioPage() {
             }}
             className="flex items-start gap-3 p-4 rounded-lg border border-border bg-card hover:bg-muted/40 transition text-left shadow-sm"
           >
-            <div className="p-2 rounded-lg bg-[#2164b6]/10 text-[#2164b6] shrink-0">
+            <div className="p-2 rounded-lg bg-[var(--shell-accent-solid)]/10 text-[var(--shell-accent)] shrink-0">
               <FileText weight="bold" className="h-5 w-5" />
             </div>
             <div>
@@ -534,7 +538,7 @@ export default function ContentStudioPage() {
             to="/app/marketing"
             className="flex items-start gap-3 p-4 rounded-lg border border-border bg-card hover:bg-muted/40 transition text-left shadow-sm"
           >
-            <div className="p-2 rounded-lg bg-[#2164b6]/10 text-[#2164b6] dark:bg-[#2164b6]/20 dark:text-[#7ab0ff] shrink-0">
+            <div className="p-2 rounded-lg bg-[var(--shell-accent-solid)]/10 text-[var(--shell-accent)] dark:bg-[var(--shell-accent-solid)]/20 dark:text-[var(--shell-accent)] shrink-0">
               <Clock weight="bold" className="h-5 w-5" />
             </div>
             <div>
@@ -549,7 +553,7 @@ export default function ContentStudioPage() {
             to="/app/settings/connected-accounts"
             className="flex items-start gap-3 p-4 rounded-lg border border-border bg-card hover:bg-muted/40 transition text-left shadow-sm"
           >
-            <div className="p-2 rounded-lg bg-[#2164b6]/10 text-[#2164b6] dark:bg-[#2164b6]/20 dark:text-[#7ab0ff] shrink-0">
+            <div className="p-2 rounded-lg bg-[var(--shell-accent-solid)]/10 text-[var(--shell-accent)] dark:bg-[var(--shell-accent-solid)]/20 dark:text-[var(--shell-accent)] shrink-0">
               <ShareNetwork weight="bold" className="h-5 w-5" />
             </div>
             <div>
@@ -609,7 +613,7 @@ export default function ContentStudioPage() {
 
         {loading ? (
           <div className="h-44 w-full flex items-center justify-center">
-            <Loader2 weight="fill" className="h-6 w-6 animate-spin text-[#2164b6]" />
+            <Loader2 weight="fill" className="h-6 w-6 animate-spin text-[var(--shell-accent)]" />
           </div>
         ) : filteredItems.length === 0 ? (
           <div className="rounded-lg border border-dashed border-border bg-card p-10 text-center">
@@ -626,7 +630,7 @@ export default function ContentStudioPage() {
                 resetForm();
                 setShowForm(true);
               }}
-              className="mt-4 h-8 text-xs font-bold rounded-lg bg-[#2164b6] hover:bg-[#2164b6]/90 text-white"
+              className="mt-4 h-8 text-xs font-bold rounded-lg bg-[var(--shell-accent-solid)] hover:bg-[var(--shell-accent-solid)]/90 text-white"
             >
               <Plus className="h-3.5 w-3.5 mr-1.5" />
               <span>Create Your First Content</span>
@@ -636,12 +640,12 @@ export default function ContentStudioPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
             {filteredItems.map((item) => {
               const Icon = TYPE_ICONS[item.type] ?? Video;
-              const colorClass = TYPE_COLORS[item.type] ?? "bg-[#2164b6]/10 text-[#2164b6] dark:bg-[#2164b6]/20 dark:text-[#7ab0ff]";
+              const colorClass = TYPE_COLORS[item.type] ?? "bg-[var(--shell-accent-solid)]/10 text-[var(--shell-accent)] dark:bg-[var(--shell-accent-solid)]/20 dark:text-[var(--shell-accent)]";
 
               return (
                 <div
                   key={item.id}
-                  className="rounded-lg border border-border bg-card p-4 space-y-3 shadow-sm hover:border-[#2164b6]/30 transition group"
+                  className="rounded-lg border border-border bg-card p-4 space-y-3 shadow-sm hover:border-[var(--shell-accent)]/30 transition group"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-2">

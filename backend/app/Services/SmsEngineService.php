@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\AdminSetting;
+use App\Support\LogRedactor;
 use Exception;
 use GuzzleHttp\Client;
 use Illuminate\Support\Facades\Crypt;
@@ -162,8 +163,8 @@ class SmsEngineService
 
         Log::info('[sms-engine] [log] message dispatched', [
             'sid' => $sid,
-            'to' => $to,
-            'body' => $body,
+            'to' => LogRedactor::maskPhone($to),
+            'body' => LogRedactor::maskCodes($body),
         ]);
 
         return $sid;

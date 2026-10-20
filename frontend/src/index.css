@@ -7,6 +7,38 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* App shell tokens — sidebar, header, bottom bar and page canvas.
+   Dark values follow the navy canvas in web/DESIGN.md. */
+:root {
+  --shell-canvas: #F0F2F5;
+  --shell-surface: #FFFFFF;
+  --shell-hover: #E4E6EB;
+  --shell-hover-strong: #D8DADF;
+  --shell-border: #DADDE1;
+  --shell-text: #050505;
+  --shell-muted: #65676B;
+  --shell-accent: #2164b6;
+  --shell-accent-solid: #2164b6;
+  --shell-accent-hover: #1a5091;
+  --shell-accent-tint: #E7F3FF;
+  --shell-subtle: #F5F7FA;
+}
+
+.dark {
+  --shell-canvas: #050E18;
+  --shell-surface: #0B1C2E;
+  --shell-hover: #12283D;
+  --shell-hover-strong: #1C3349;
+  --shell-border: #1C3349;
+  --shell-text: #F5F8FB;
+  --shell-muted: #9FB3C4;
+  --shell-accent: #4D8FE8;
+  --shell-accent-solid: #2164b6;
+  --shell-accent-hover: #1a5091;
+  --shell-accent-tint: #173852;
+  --shell-subtle: #0F2238;
+}
+
 :root {
   /* MurihSpace Light Theme Tokens (from docs/Design.md & docs/selected-frames-agent-prompt.md) */
   --text: #050505;

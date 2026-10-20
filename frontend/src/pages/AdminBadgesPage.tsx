@@ -1,4 +1,6 @@
-import { useState, useEffect, useCallback } from "react";
+import { logger } from "@/lib/logger";
+import { asApiError } from "@/lib/apiError";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { ShieldDone as ShieldCheck, Star, N2User as Users, TickSquare as CheckCircle, Plus, Swap as ArrowClockwise, Edit as PencilSimple, AddUser as UserPlus, Search as MagnifyingGlass, CloseSquare as X } from "@/components/icons";
 import { Medal, Trophy, Cube, Crown } from "@/components/icons/rounded";;
@@ -141,31 +143,35 @@ export function AdminBadgesPage() {
   const [awardUserId, setAwardUserId] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  const fetchBadges = useCallback(async () => {
-    try {
-      setLoading(true);
-      const params: Record<string, string> = {};
-      if (search) params.search = search;
-      if (filterActive !== "all") params.is_active = filterActive === "active" ? "1" : "0";
-
-      const res = await apiClient.get("/securegate/badges", { params });
-      const envelope = res.data;
-      const payload = envelope?.success ? envelope.data : envelope;
-      setBadges(Array.isArray(payload?.data) ? payload.data : []);
-      if (payload?.stats) {
-        setStats(payload.stats);
-      }
-    } catch (err) {
-      console.error("Failed to load badges:", err);
-      toast.error("Failed to load activity badges.");
-    } finally {
-      setLoading(false);
-    }
-  }, [search, filterActive]);
+  const [fetchBadgesKey, setFetchBadgesKey] = useState(0);
+  const fetchBadges = () => {
+    setFetchBadgesKey((k) => k + 1);
+  };
 
   useEffect(() => {
-    fetchBadges();
-  }, [fetchBadges]);
+    (async () => {
+      try {
+        setLoading(true);
+        const params: Record<string, string> = {};
+        if (search) params.search = search;
+        if (filterActive !== "all") params.is_active = filterActive === "active" ? "1" : "0";
+
+        const res = await apiClient.get("/securegate/badges", { params });
+        const envelope = res.data;
+        const payload = envelope?.success ? envelope.data : envelope;
+        setBadges(Array.isArray(payload?.data) ? payload.data : []);
+        if (payload?.stats) {
+          setStats(payload.stats);
+        }
+      } catch (err) {
+        logger.error("Failed to load badges:", err);
+        toast.error("Failed to load activity badges.");
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [fetchBadgesKey, search, filterActive]);
+
 
   const handleSeed = async () => {
     try {
@@ -176,7 +182,7 @@ export function AdminBadgesPage() {
       );
       fetchBadges();
     } catch (err) {
-      console.error(err);
+      logger.error("Failed to seed badges", err);
       toast.error("Failed to seed badges.");
     } finally {
       setSubmitting(false);
@@ -193,7 +199,7 @@ export function AdminBadgesPage() {
         prev.map((b) => (b.id === badge.id ? { ...b, is_active: nextActive } : b))
       );
       toast.success(`Badge "${badge.name}" is now ${nextActive ? "Active" : "Disabled"}.`);
-    } catch (err) {
+    } catch {
       toast.error("Failed to update badge status.");
     }
   };
@@ -234,7 +240,7 @@ export function AdminBadgesPage() {
       toast.success("Badge updated successfully!");
       setIsEditOpen(false);
       fetchBadges();
-    } catch (err) {
+    } catch {
       toast.error("Failed to update badge.");
     } finally {
       setSubmitting(false);
@@ -261,7 +267,7 @@ export function AdminBadgesPage() {
       toast.success("New 3D Badge created successfully!");
       setIsCreateOpen(false);
       fetchBadges();
-    } catch (err) {
+    } catch {
       toast.error("Failed to create badge. Make sure slug is unique.");
     } finally {
       setSubmitting(false);
@@ -280,8 +286,9 @@ export function AdminBadgesPage() {
       setIsAwardOpen(false);
       setAwardUserId("");
       fetchBadges();
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || "Failed to award badge to user.");
+    } catch (err: unknown) {
+      const apiErr = asApiError(err);
+      toast.error(apiErr.response?.data?.message || "Failed to award badge to user.");
     } finally {
       setSubmitting(false);
     }
@@ -293,14 +300,14 @@ export function AdminBadgesPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-blue-600/10 flex items-center justify-center text-[#2164b6]">
+            <div className="w-8 h-8 rounded-lg bg-[var(--shell-accent-solid)]/10 flex items-center justify-center text-[var(--shell-accent)]">
               <Medal weight="fill" size={20} />
             </div>
-            <h1 className="text-2xl font-bold tracking-tight text-neutral-900 dark:text-neutral-100">
+            <h1 className="text-2xl font-bold tracking-tight text-[var(--shell-text)] dark:text-neutral-100">
               3D Activity Badges Management
             </h1>
           </div>
-          <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-1">
+          <p className="text-sm text-[var(--shell-muted)] dark:text-[var(--shell-muted)] mt-1">
             Configure automated unlock rules, award 3D achievements, and inspect creator engagement badges.
           </p>
         </div>
@@ -309,9 +316,9 @@ export function AdminBadgesPage() {
           <button
             onClick={handleSeed}
             disabled={submitting}
-            className="flex items-center gap-2 px-3.5 py-2 text-sm font-medium rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors shadow-sm disabled:opacity-50"
+            className="flex items-center gap-2 px-3.5 py-2 text-sm font-medium rounded-xl border border-[var(--shell-border)] dark:border-[var(--shell-border)] bg-white dark:bg-neutral-900 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors shadow-sm disabled:opacity-50"
           >
-            <ArrowClockwise className={submitting ? "animate-spin size-4" : "size-4 text-blue-600"} />
+            <ArrowClockwise className={submitting ? "animate-spin size-4" : "size-4 text-[var(--shell-accent)]"} />
             <span>Reset / Seed Defaults</span>
           </button>
 
@@ -330,7 +337,7 @@ export function AdminBadgesPage() {
               });
               setIsCreateOpen(true);
             }}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-xl bg-[#2164b6] text-white hover:bg-blue-700 transition-all shadow-md shadow-blue-500/20 active:scale-95"
+            className="flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-xl bg-[var(--shell-accent-solid)] text-white hover:bg-[var(--shell-accent-hover)] transition-all shadow-md shadow-blue-500/20 active:scale-95"
           >
             <Plus weight="bold" size={16} />
             <span>New 3D Badge</span>
@@ -340,62 +347,62 @@ export function AdminBadgesPage() {
 
       {/* Metric Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="p-4 rounded-2xl bg-white dark:bg-neutral-900 border border-neutral-200/80 dark:border-neutral-800 shadow-sm flex items-center gap-4">
+        <div className="p-4 rounded-2xl bg-white dark:bg-neutral-900 border border-[var(--shell-border)]/80 dark:border-[var(--shell-border)] shadow-sm flex items-center gap-4">
           <div className="w-12 h-12 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center shrink-0">
             <Star weight="fill" size={24} />
           </div>
           <div>
-            <div className="text-2xl font-bold text-neutral-900 dark:text-neutral-100">
+            <div className="text-2xl font-bold text-[var(--shell-text)] dark:text-neutral-100">
               {stats.total_badges}
             </div>
-            <div className="text-xs font-medium text-neutral-500">Total System Badges</div>
+            <div className="text-xs font-medium text-[var(--shell-muted)]">Total System Badges</div>
           </div>
         </div>
 
-        <div className="p-4 rounded-2xl bg-white dark:bg-neutral-900 border border-neutral-200/80 dark:border-neutral-800 shadow-sm flex items-center gap-4">
+        <div className="p-4 rounded-2xl bg-white dark:bg-neutral-900 border border-[var(--shell-border)]/80 dark:border-[var(--shell-border)] shadow-sm flex items-center gap-4">
           <div className="w-12 h-12 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center shrink-0">
             <CheckCircle weight="fill" size={24} />
           </div>
           <div>
-            <div className="text-2xl font-bold text-neutral-900 dark:text-neutral-100">
+            <div className="text-2xl font-bold text-[var(--shell-text)] dark:text-neutral-100">
               {stats.active_badges}
             </div>
-            <div className="text-xs font-medium text-neutral-500">Active Unlockable Badges</div>
+            <div className="text-xs font-medium text-[var(--shell-muted)]">Active Unlockable Badges</div>
           </div>
         </div>
 
-        <div className="p-4 rounded-2xl bg-white dark:bg-neutral-900 border border-neutral-200/80 dark:border-neutral-800 shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-blue-500/10 text-[#2164b6] flex items-center justify-center shrink-0">
+        <div className="p-4 rounded-2xl bg-white dark:bg-neutral-900 border border-[var(--shell-border)]/80 dark:border-[var(--shell-border)] shadow-sm flex items-center gap-4">
+          <div className="w-12 h-12 rounded-xl bg-[var(--shell-accent-solid)]/10 text-[var(--shell-accent)] flex items-center justify-center shrink-0">
             <Users weight="fill" size={24} />
           </div>
           <div>
-            <div className="text-2xl font-bold text-neutral-900 dark:text-neutral-100">
+            <div className="text-2xl font-bold text-[var(--shell-text)] dark:text-neutral-100">
               {stats.total_awarded}
             </div>
-            <div className="text-xs font-medium text-neutral-500">Times Awarded to Users</div>
+            <div className="text-xs font-medium text-[var(--shell-muted)]">Times Awarded to Users</div>
           </div>
         </div>
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 bg-white dark:bg-neutral-900 rounded-2xl border border-neutral-200/80 dark:border-neutral-800 shadow-sm">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 bg-white dark:bg-neutral-900 rounded-2xl border border-[var(--shell-border)]/80 dark:border-[var(--shell-border)] shadow-sm">
         <div className="relative w-full sm:w-72">
-          <MagnifyingGlass className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-neutral-400" />
+          <MagnifyingGlass className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-[var(--shell-muted)]" />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by name, slug or rule..."
-            className="w-full pl-10 pr-4 py-2 text-sm rounded-xl bg-neutral-50 dark:bg-neutral-800 border-none focus:ring-2 focus:ring-[#2164b6] outline-none"
+            className="w-full pl-10 pr-4 py-2 text-sm rounded-xl bg-neutral-50 dark:bg-neutral-800 border-none focus:ring-2 focus:ring-[var(--shell-accent)] outline-none"
           />
         </div>
 
         <div className="flex items-center gap-2 w-full sm:w-auto">
-          <div className="flex p-1 bg-neutral-100 dark:bg-neutral-800 rounded-xl text-xs font-medium text-neutral-600 dark:text-neutral-400">
+          <div className="flex p-1 bg-neutral-100 dark:bg-neutral-800 rounded-xl text-xs font-medium text-[var(--shell-muted)] dark:text-[var(--shell-muted)]">
             <button
               onClick={() => setFilterActive("all")}
               className={`px-3 py-1.5 rounded-lg transition-colors ${
-                filterActive === "all" ? "bg-white dark:bg-neutral-700 text-neutral-900 dark:text-white shadow-sm font-semibold" : ""
+                filterActive === "all" ? "bg-white dark:bg-neutral-700 text-[var(--shell-text)] dark:text-white shadow-sm font-semibold" : ""
               }`}
             >
               All
@@ -403,7 +410,7 @@ export function AdminBadgesPage() {
             <button
               onClick={() => setFilterActive("active")}
               className={`px-3 py-1.5 rounded-lg transition-colors ${
-                filterActive === "active" ? "bg-white dark:bg-neutral-700 text-neutral-900 dark:text-white shadow-sm font-semibold" : ""
+                filterActive === "active" ? "bg-white dark:bg-neutral-700 text-[var(--shell-text)] dark:text-white shadow-sm font-semibold" : ""
               }`}
             >
               Active
@@ -411,7 +418,7 @@ export function AdminBadgesPage() {
             <button
               onClick={() => setFilterActive("inactive")}
               className={`px-3 py-1.5 rounded-lg transition-colors ${
-                filterActive === "inactive" ? "bg-white dark:bg-neutral-700 text-neutral-900 dark:text-white shadow-sm font-semibold" : ""
+                filterActive === "inactive" ? "bg-white dark:bg-neutral-700 text-[var(--shell-text)] dark:text-white shadow-sm font-semibold" : ""
               }`}
             >
               Inactive
@@ -424,7 +431,7 @@ export function AdminBadgesPage() {
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {[1, 2, 3, 4, 5, 6].map((i) => (
-            <div key={i} className="p-5 rounded-2xl bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800">
+            <div key={i} className="p-5 rounded-2xl bg-white dark:bg-neutral-900 border border-[var(--shell-border)] dark:border-[var(--shell-border)]">
               <Skeleton className="h-14 w-14 rounded-2xl mb-4" />
               <Skeleton className="h-5 w-3/4 mb-2" />
               <Skeleton className="h-4 w-1/2 mb-4" />
@@ -433,10 +440,10 @@ export function AdminBadgesPage() {
           ))}
         </div>
       ) : badges.length === 0 ? (
-        <div className="p-12 text-center bg-white dark:bg-neutral-900 rounded-2xl border border-neutral-200 dark:border-neutral-800">
-          <Medal className="size-12 mx-auto text-neutral-400 mb-3" />
+        <div className="p-12 text-center bg-white dark:bg-neutral-900 rounded-2xl border border-[var(--shell-border)] dark:border-[var(--shell-border)]">
+          <Medal className="size-12 mx-auto text-[var(--shell-muted)] mb-3" />
           <h3 className="text-base font-semibold text-neutral-800 dark:text-neutral-200">No Badges Found</h3>
-          <p className="text-sm text-neutral-500 mt-1 max-w-sm mx-auto">
+          <p className="text-sm text-[var(--shell-muted)] mt-1 max-w-sm mx-auto">
             Click "Reset / Seed Defaults" to generate the standard set of 3D profile badges or create a new one.
           </p>
         </div>
@@ -447,8 +454,8 @@ export function AdminBadgesPage() {
               key={badge.id}
               className={`relative flex flex-col justify-between p-5 rounded-2xl bg-white dark:bg-neutral-900 border transition-all duration-200 hover:shadow-lg ${
                 badge.is_active
-                  ? "border-neutral-200/90 dark:border-neutral-800 hover:border-blue-500/50"
-                  : "border-dashed border-neutral-300 dark:border-neutral-800 opacity-60"
+                  ? "border-[var(--shell-border)]/90 dark:border-[var(--shell-border)] hover:border-[var(--shell-accent)]/50"
+                  : "border-dashed border-neutral-300 dark:border-[var(--shell-border)] opacity-60"
               }`}
             >
               <div>
@@ -457,11 +464,11 @@ export function AdminBadgesPage() {
                   <div className="flex items-center gap-3">
                     <Badge3DRenderer type={badge.icon_3d} size={54} />
                     <div>
-                      <h3 className="font-bold text-neutral-900 dark:text-neutral-100 text-base leading-snug">
+                      <h3 className="font-bold text-[var(--shell-text)] dark:text-neutral-100 text-base leading-snug">
                         {badge.name}
                       </h3>
                       {badge.level_label && (
-                        <span className="inline-block mt-0.5 text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-50 text-[#2164b6] dark:bg-blue-950/40 dark:text-blue-400 border border-blue-200/60 dark:border-blue-800/40">
+                        <span className="inline-block mt-0.5 text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-50 text-[var(--shell-accent)] dark:bg-blue-950/40 dark:text-[var(--shell-accent)] border border-blue-200/60 dark:border-blue-800/40">
                           {badge.level_label}
                         </span>
                       )}
@@ -485,14 +492,14 @@ export function AdminBadgesPage() {
 
                 {/* Description */}
                 {badge.description && (
-                  <p className="text-xs text-neutral-600 dark:text-neutral-400 line-clamp-2 mb-3">
+                  <p className="text-xs text-[var(--shell-muted)] dark:text-[var(--shell-muted)] line-clamp-2 mb-3">
                     {badge.description}
                   </p>
                 )}
 
                 {/* Criteria Box */}
-                <div className="p-3 rounded-xl bg-neutral-50 dark:bg-neutral-800/50 border border-neutral-100 dark:border-neutral-800 mb-4 text-xs space-y-1">
-                  <div className="flex items-center justify-between text-neutral-500">
+                <div className="p-3 rounded-xl bg-neutral-50 dark:bg-neutral-800/50 border border-neutral-100 dark:border-[var(--shell-border)] mb-4 text-xs space-y-1">
+                  <div className="flex items-center justify-between text-[var(--shell-muted)]">
                     <span className="font-medium">Rule Logic:</span>
                     <span className="font-mono text-neutral-700 dark:text-neutral-300">
                       {badge.criteria?.metric || "manual"} {badge.criteria?.value ? `>= ${badge.criteria.value}` : ""}
@@ -507,8 +514,8 @@ export function AdminBadgesPage() {
               </div>
 
               {/* Bottom Actions & Award Counter */}
-              <div className="pt-3 border-t border-neutral-100 dark:border-neutral-800 flex items-center justify-between text-xs">
-                <div className="flex items-center gap-1.5 text-neutral-500">
+              <div className="pt-3 border-t border-neutral-100 dark:border-[var(--shell-border)] flex items-center justify-between text-xs">
+                <div className="flex items-center gap-1.5 text-[var(--shell-muted)]">
                   <Users size={14} />
                   <span>Awarded: <strong>{badge.awarded_count || 0}</strong></span>
                 </div>
@@ -520,14 +527,14 @@ export function AdminBadgesPage() {
                       setAwardUserId("");
                       setIsAwardOpen(true);
                     }}
-                    className="p-1.5 rounded-lg text-[#2164b6] hover:bg-blue-50 dark:hover:bg-blue-950/30 transition-colors"
+                    className="p-1.5 rounded-lg text-[var(--shell-accent)] hover:bg-blue-50 dark:hover:bg-blue-950/30 transition-colors"
                     title="Award to specific user"
                   >
                     <UserPlus size={16} weight="bold" />
                   </button>
                   <button
                     onClick={() => handleOpenEdit(badge)}
-                    className="p-1.5 rounded-lg text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+                    className="p-1.5 rounded-lg text-[var(--shell-muted)] dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
                     title="Edit badge rules"
                   >
                     <PencilSimple size={16} weight="bold" />
@@ -542,9 +549,9 @@ export function AdminBadgesPage() {
       {/* Create / Edit Modal */}
       {(isCreateOpen || isEditOpen) && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="w-full max-w-lg bg-white dark:bg-neutral-900 rounded-3xl p-6 shadow-2xl border border-neutral-200 dark:border-neutral-800 space-y-5">
+          <div className="w-full max-w-lg bg-white dark:bg-neutral-900 rounded-3xl p-6 shadow-2xl border border-[var(--shell-border)] dark:border-[var(--shell-border)] space-y-5">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-bold text-neutral-900 dark:text-white">
+              <h2 className="text-lg font-bold text-[var(--shell-text)] dark:text-white">
                 {isEditOpen ? "Edit 3D Activity Badge" : "Create New 3D Badge"}
               </h2>
               <button
@@ -552,23 +559,23 @@ export function AdminBadgesPage() {
                   setIsCreateOpen(false);
                   setIsEditOpen(false);
                 }}
-                className="p-1.5 rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-400 hover:text-neutral-600"
+                className="p-1.5 rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800 text-[var(--shell-muted)] hover:text-[var(--shell-muted)]"
               >
                 <X size={18} />
               </button>
             </div>
 
             <form onSubmit={isEditOpen ? handleSaveEdit : handleCreate} className="space-y-4">
-              <div className="flex items-center gap-4 p-3 bg-neutral-50 dark:bg-neutral-800/40 rounded-2xl border border-neutral-100 dark:border-neutral-800">
+              <div className="flex items-center gap-4 p-3 bg-neutral-50 dark:bg-neutral-800/40 rounded-2xl border border-neutral-100 dark:border-[var(--shell-border)]">
                 <Badge3DRenderer type={formData.icon_3d} size={56} />
                 <div className="flex-1">
-                  <label className="block text-xs font-semibold text-neutral-600 dark:text-neutral-400 mb-1">
+                  <label htmlFor="f-pages-adminbadgespage-tsx-565" className="block text-xs font-semibold text-[var(--shell-muted)] dark:text-[var(--shell-muted)] mb-1">
                     3D Icon Glyph & Volume Style
                   </label>
-                  <select
+                  <select id="f-pages-adminbadgespage-tsx-565"
                     value={formData.icon_3d}
                     onChange={(e) => setFormData({ ...formData, icon_3d: e.target.value })}
-                    className="w-full text-xs font-medium p-2 rounded-xl bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700"
+                    className="w-full text-xs font-medium p-2 rounded-xl bg-white dark:bg-neutral-900 border border-[var(--shell-border)] dark:border-neutral-700"
                   >
                     <option value="3d-star">3D Star (Amber / Orange Gold)</option>
                     <option value="3d-cube">3D Cube (Web3 / Purple Violet)</option>
@@ -583,69 +590,69 @@ export function AdminBadgesPage() {
 
               {!isEditOpen && (
                 <div>
-                  <label className="block text-xs font-semibold text-neutral-600 dark:text-neutral-400 mb-1">
+                  <label htmlFor="f-pages-adminbadgespage-tsx-586" className="block text-xs font-semibold text-[var(--shell-muted)] dark:text-[var(--shell-muted)] mb-1">
                     Slug ID (Immutable)
                   </label>
-                  <input
+                  <input id="f-pages-adminbadgespage-tsx-586"
                     type="text"
                     required
                     value={formData.slug}
                     onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
                     placeholder="e.g. top_creator_2026"
-                    className="w-full text-xs p-2.5 rounded-xl bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700"
+                    className="w-full text-xs p-2.5 rounded-xl bg-neutral-50 dark:bg-neutral-800 border border-[var(--shell-border)] dark:border-neutral-700"
                   />
                 </div>
               )}
 
               <div>
-                <label className="block text-xs font-semibold text-neutral-600 dark:text-neutral-400 mb-1">
+                <label htmlFor="f-pages-adminbadgespage-tsx-601" className="block text-xs font-semibold text-[var(--shell-muted)] dark:text-[var(--shell-muted)] mb-1">
                   Badge Display Name
                 </label>
-                <input
+                <input id="f-pages-adminbadgespage-tsx-601"
                   type="text"
                   required
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   placeholder="e.g. Creator Economy Star"
-                  className="w-full text-xs p-2.5 rounded-xl bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700"
+                  className="w-full text-xs p-2.5 rounded-xl bg-neutral-50 dark:bg-neutral-800 border border-[var(--shell-border)] dark:border-neutral-700"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-neutral-600 dark:text-neutral-400 mb-1">
+                <label htmlFor="f-pages-adminbadgespage-tsx-615" className="block text-xs font-semibold text-[var(--shell-muted)] dark:text-[var(--shell-muted)] mb-1">
                   Level / Tier Subtitle
                 </label>
-                <input
+                <input id="f-pages-adminbadgespage-tsx-615"
                   type="text"
                   value={formData.level_label}
                   onChange={(e) => setFormData({ ...formData, level_label: e.target.value })}
                   placeholder="e.g. Master Creator · Level 2"
-                  className="w-full text-xs p-2.5 rounded-xl bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700"
+                  className="w-full text-xs p-2.5 rounded-xl bg-neutral-50 dark:bg-neutral-800 border border-[var(--shell-border)] dark:border-neutral-700"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-neutral-600 dark:text-neutral-400 mb-1">
+                <label htmlFor="f-pages-adminbadgespage-tsx-628" className="block text-xs font-semibold text-[var(--shell-muted)] dark:text-[var(--shell-muted)] mb-1">
                   Description
                 </label>
-                <textarea
+                <textarea id="f-pages-adminbadgespage-tsx-628"
                   rows={2}
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   placeholder="Details of what this badge represents..."
-                  className="w-full text-xs p-2.5 rounded-xl bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700"
+                  className="w-full text-xs p-2.5 rounded-xl bg-neutral-50 dark:bg-neutral-800 border border-[var(--shell-border)] dark:border-neutral-700"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-neutral-600 dark:text-neutral-400 mb-1">
+                  <label htmlFor="f-pages-adminbadgespage-tsx-642" className="block text-xs font-semibold text-[var(--shell-muted)] dark:text-[var(--shell-muted)] mb-1">
                     Auto-Award Metric
                   </label>
-                  <select
+                  <select id="f-pages-adminbadgespage-tsx-642"
                     value={formData.metric}
                     onChange={(e) => setFormData({ ...formData, metric: e.target.value })}
-                    className="w-full text-xs p-2.5 rounded-xl bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700"
+                    className="w-full text-xs p-2.5 rounded-xl bg-neutral-50 dark:bg-neutral-800 border border-[var(--shell-border)] dark:border-neutral-700"
                   >
                     <option value="followers">Followers Count</option>
                     <option value="posts">Posts / Reels Count</option>
@@ -658,28 +665,28 @@ export function AdminBadgesPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-neutral-600 dark:text-neutral-400 mb-1">
+                  <label htmlFor="f-pages-adminbadgespage-tsx-661" className="block text-xs font-semibold text-[var(--shell-muted)] dark:text-[var(--shell-muted)] mb-1">
                     Required Metric Value
                   </label>
-                  <input
+                  <input id="f-pages-adminbadgespage-tsx-661"
                     type="number"
                     value={formData.metric_value}
                     onChange={(e) => setFormData({ ...formData, metric_value: Number(e.target.value) })}
-                    className="w-full text-xs p-2.5 rounded-xl bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700"
+                    className="w-full text-xs p-2.5 rounded-xl bg-neutral-50 dark:bg-neutral-800 border border-[var(--shell-border)] dark:border-neutral-700"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-neutral-600 dark:text-neutral-400 mb-1">
+                <label htmlFor="f-pages-adminbadgespage-tsx-674" className="block text-xs font-semibold text-[var(--shell-muted)] dark:text-[var(--shell-muted)] mb-1">
                   Rule Explanation
                 </label>
-                <input
+                <input id="f-pages-adminbadgespage-tsx-674"
                   type="text"
                   value={formData.rule}
                   onChange={(e) => setFormData({ ...formData, rule: e.target.value })}
                   placeholder="e.g. Reached 20+ followers and community connections"
-                  className="w-full text-xs p-2.5 rounded-xl bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700"
+                  className="w-full text-xs p-2.5 rounded-xl bg-neutral-50 dark:bg-neutral-800 border border-[var(--shell-border)] dark:border-neutral-700"
                 />
               </div>
 
@@ -689,7 +696,7 @@ export function AdminBadgesPage() {
                   id="badge_active"
                   checked={formData.is_active}
                   onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-                  className="rounded text-[#2164b6] focus:ring-[#2164b6]"
+                  className="rounded text-[var(--shell-accent)] focus:ring-[var(--shell-accent)]"
                 />
                 <label htmlFor="badge_active" className="text-xs font-medium text-neutral-700 dark:text-neutral-300">
                   Active (automatically awarded by system rule engine)
@@ -703,14 +710,14 @@ export function AdminBadgesPage() {
                     setIsCreateOpen(false);
                     setIsEditOpen(false);
                   }}
-                  className="px-4 py-2 text-xs font-medium rounded-xl text-neutral-600 hover:bg-neutral-100 dark:hover:bg-neutral-800"
+                  className="px-4 py-2 text-xs font-medium rounded-xl text-[var(--shell-muted)] hover:bg-neutral-100 dark:hover:bg-neutral-800"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-5 py-2 text-xs font-bold rounded-xl bg-[#2164b6] text-white hover:bg-blue-700 transition shadow-md shadow-blue-500/20 disabled:opacity-50"
+                  className="px-5 py-2 text-xs font-bold rounded-xl bg-[var(--shell-accent-solid)] text-white hover:bg-[var(--shell-accent-hover)] transition shadow-md shadow-blue-500/20 disabled:opacity-50"
                 >
                   {submitting ? "Saving..." : isEditOpen ? "Update Badge" : "Create Badge"}
                 </button>
@@ -723,45 +730,45 @@ export function AdminBadgesPage() {
       {/* Manual Award to User Modal */}
       {isAwardOpen && selectedBadge && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="w-full max-w-md bg-white dark:bg-neutral-900 rounded-3xl p-6 shadow-2xl border border-neutral-200 dark:border-neutral-800 space-y-4">
+          <div className="w-full max-w-md bg-white dark:bg-neutral-900 rounded-3xl p-6 shadow-2xl border border-[var(--shell-border)] dark:border-[var(--shell-border)] space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-base font-bold text-neutral-900 dark:text-white">
+              <h2 className="text-base font-bold text-[var(--shell-text)] dark:text-white">
                 Award Badge to User
               </h2>
               <button
                 onClick={() => setIsAwardOpen(false)}
-                className="p-1.5 rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-400 hover:text-neutral-600"
+                className="p-1.5 rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800 text-[var(--shell-muted)] hover:text-[var(--shell-muted)]"
               >
                 <X size={18} />
               </button>
             </div>
 
-            <div className="flex items-center gap-3 p-3 bg-neutral-50 dark:bg-neutral-800/50 rounded-2xl border border-neutral-100 dark:border-neutral-800">
+            <div className="flex items-center gap-3 p-3 bg-neutral-50 dark:bg-neutral-800/50 rounded-2xl border border-neutral-100 dark:border-[var(--shell-border)]">
               <Badge3DRenderer type={selectedBadge.icon_3d} size={48} />
               <div>
-                <h4 className="font-bold text-sm text-neutral-900 dark:text-white">
+                <h4 className="font-bold text-sm text-[var(--shell-text)] dark:text-white">
                   {selectedBadge.name}
                 </h4>
-                <p className="text-xs text-neutral-500">{selectedBadge.level_label || selectedBadge.slug}</p>
+                <p className="text-xs text-[var(--shell-muted)]">{selectedBadge.level_label || selectedBadge.slug}</p>
               </div>
             </div>
 
             <form onSubmit={handleAwardUser} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-neutral-600 dark:text-neutral-400 mb-1">
+                <label htmlFor="f-pages-adminbadgespage-tsx-751" className="block text-xs font-semibold text-[var(--shell-muted)] dark:text-[var(--shell-muted)] mb-1">
                   Target User ID
                 </label>
-                <input
+                <input id="f-pages-adminbadgespage-tsx-751"
                   type="number"
                   required
                   value={awardUserId}
                   onChange={(e) => setAwardUserId(e.target.value)}
                   placeholder="Enter User ID (e.g. 1)"
-                  className="w-full text-xs p-2.5 rounded-xl bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700"
+                  className="w-full text-xs p-2.5 rounded-xl bg-neutral-50 dark:bg-neutral-800 border border-[var(--shell-border)] dark:border-neutral-700"
                 />
               </div>
 
-              <p className="text-[11px] text-neutral-500">
+              <p className="text-[11px] text-[var(--shell-muted)]">
                 Awarding this badge manually grants it immediately to the specified user and increases the system awarded counter.
               </p>
 
@@ -769,14 +776,14 @@ export function AdminBadgesPage() {
                 <button
                   type="button"
                   onClick={() => setIsAwardOpen(false)}
-                  className="px-4 py-2 text-xs font-medium rounded-xl text-neutral-600 hover:bg-neutral-100 dark:hover:bg-neutral-800"
+                  className="px-4 py-2 text-xs font-medium rounded-xl text-[var(--shell-muted)] hover:bg-neutral-100 dark:hover:bg-neutral-800"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-5 py-2 text-xs font-bold rounded-xl bg-[#2164b6] text-white hover:bg-blue-700 transition shadow-md shadow-blue-500/20 disabled:opacity-50"
+                  className="px-5 py-2 text-xs font-bold rounded-xl bg-[var(--shell-accent-solid)] text-white hover:bg-[var(--shell-accent-hover)] transition shadow-md shadow-blue-500/20 disabled:opacity-50"
                 >
                   {submitting ? "Awarding..." : "Award Badge"}
                 </button>

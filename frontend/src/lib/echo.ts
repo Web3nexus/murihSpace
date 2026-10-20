@@ -1,12 +1,11 @@
 import Echo from 'laravel-echo';
 import Pusher from 'pusher-js';
 import { env } from '@/config/env';
-import { getAuthToken } from '@/lib/auth/token';
+import { createBroadcastAuthorizer } from '@/lib/broadcastAuth';
 
-type EchoInstance = Echo<'reverb'>;
+export type EchoInstance = Echo<'reverb'>;
 
 let echoInstance: EchoInstance | null = null;
-let echoToken: string | null = null;
 
 declare global {
   interface Window {
@@ -15,15 +14,6 @@ declare global {
 }
 
 export function getEcho(): EchoInstance {
-  const token = getAuthToken();
-
-  // Recreate the connection when the auth token changes
-  // (login, logout, token refresh) so channel auth uses fresh credentials.
-  if (echoInstance && token !== echoToken) {
-    echoInstance.disconnect();
-    echoInstance = null;
-  }
-
   if (echoInstance) return echoInstance;
 
   if (typeof window !== 'undefined') {
@@ -39,8 +29,6 @@ export function getEcho(): EchoInstance {
     : env.VITE_REVERB_PORT;
   const scheme = isHttps ? 'https' : rawScheme;
 
-  echoToken = token;
-
   echoInstance = new Echo<'reverb'>({
     broadcaster: 'reverb',
     key: env.VITE_REVERB_APP_KEY,
@@ -51,9 +39,14 @@ export function getEcho(): EchoInstance {
     forceTLS: isHttps,
     enabledTransports: ['ws', 'wss'],
     authEndpoint: `${env.VITE_API_BASE_URL.replace('/api/v1', '')}/broadcasting/auth`,
+    // pusher-js ignores credentials on its own channel auth request, so private
+    // channels are authorised by a fetch-based handler that sends the session cookie.
+    channelAuthorization: {
+      customHandler: createBroadcastAuthorizer(),
+    },
     auth: {
       headers: {
-        Authorization: `Bearer ${token}`,
+        // The session cookie authorises channels. A bearer header is only sent during impersonation.
         Accept: 'application/json',
       },
     },
@@ -66,6 +59,5 @@ export function disconnectEcho(): void {
   if (echoInstance) {
     echoInstance.disconnect();
     echoInstance = null;
-    echoToken = null;
   }
 }

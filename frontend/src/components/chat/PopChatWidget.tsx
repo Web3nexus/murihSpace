@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import type { MessageStatus } from "@/types/chat";
 import { useLocation, useNavigate } from "react-router";
 import { Message as ChatTeardropText, CloseSquare as X, ArrowLeft, Send as PaperPlaneRight, TickSquare as CheckCheck, TickSquare as CheckIcon, Call as Phone, Video as VideoCamera } from "@/components/icons";
 import { Minus, ArrowSquareOut, SpinnerGap } from "@/components/icons/rounded";;
@@ -17,44 +18,6 @@ import { playMessageReceivedSound } from "@/lib/sound";
 import { UserAvatar } from "@/components/ui/avatar";
 import { Bubble, BubbleContent } from "@/components/ui/bubble";
 import { Message } from "@/components/ui/message";
-
-export function formatMessagePreview(msg?: { content?: string; type?: string; attachment_type?: string } | null): string {
-  if (!msg || !msg.content) return "No messages yet";
-  const content = typeof msg.content === "string" ? msg.content.trim() : "";
-  const isCall =
-    msg.type === "call" ||
-    msg.attachment_type === "call" ||
-    content.startsWith('{"call_id"') ||
-    (content.startsWith("{") && content.includes('"call_id"'));
-
-  if (isCall) {
-    try {
-      const d = JSON.parse(content);
-      const isVideo = d.call_type === "video";
-      const isMissed = d.status === "missed" || d.status === "declined";
-      const dur = Number(d.duration) || 0;
-      if (isMissed) {
-        return isVideo ? "📹 Missed Video Call" : "📞 Missed Call";
-      }
-      if (dur > 0) {
-        const m = Math.floor(dur / 60);
-        const s = dur % 60;
-        const ds = m > 0 ? `${m}m ${s}s` : `${s}s`;
-        return isVideo ? `📹 Video Call · ${ds}` : `📞 Voice Call · ${ds}`;
-      }
-      return isVideo ? "📹 Video Call" : "📞 Voice Call";
-    } catch {
-      return "📞 Call";
-    }
-  }
-
-  if (msg.attachment_type === "image" || msg.type === "image") return "📷 Photo";
-  if (msg.attachment_type === "video" || msg.type === "video") return "🎬 Video";
-  if (msg.attachment_type === "voice" || msg.type === "voice") return "🎤 Voice message";
-  if (msg.attachment_type === "file" || msg.type === "file") return "📎 File";
-
-  return msg.content;
-}
 
 export function PopChatWidget() {
   const { user, isAuthenticated } = useAuth();
@@ -192,38 +155,42 @@ export function PopChatWidget() {
   // Fetch messages when active conversation changes
   useEffect(() => {
     if (!activeConv || !isAuthenticated || isOnChatPage) {
-      setMessages([]);
-      return;
+      // Deferred so the reset is not set synchronously inside the effect body
+      const clearTimer = setTimeout(() => setMessages([]), 0);
+      return () => clearTimeout(clearTimer);
     }
 
     let cancelled = false;
-    setLoadingMessages(true);
+    // Deferred so the loading state is not set synchronously inside the effect body
+    const timer = setTimeout(() => {
+      setLoadingMessages(true);
 
-    apiClient
-      .get(`/conversations/${activeConv.id}/messages`)
-      .then((res) => {
-        if (cancelled) return;
-        const list = extractMessages(res.data);
-        const formatted = list.map((m: any) => ({
-          ...m,
-          status: m.read === true ? "read" : (m.status && m.status !== "sent" ? m.status : "sent"),
-        }));
-        setMessages(formatted);
-        apiClient.post(`/conversations/${activeConv.id}/read`).catch(() => {});
-        import("@/lib/chatUnread").then(({ getUnreadCount, setUnreadCount, refreshUnreadCount }) => {
-          const conv = activeConv as any;
-          const unread = conv?.unread_count ?? 0;
-          if (unread > 0) setUnreadCount(Math.max(0, getUnreadCount() - unread));
-          refreshUnreadCount().catch(() => {});
+      apiClient
+        .get(`/conversations/${activeConv.id}/messages`)
+        .then((res) => {
+          if (cancelled) return;
+          const list = extractMessages(res.data);
+          const formatted = list.map((m) => ({
+            ...m,
+            status: (m.read === true ? "read" : (m.status && m.status !== "sent" ? m.status : "sent")) as MessageStatus,
+          }));
+          setMessages(formatted);
+          apiClient.post(`/conversations/${activeConv.id}/read`).catch(() => {});
+          import("@/lib/chatUnread").then(({ getUnreadCount, setUnreadCount, refreshUnreadCount }) => {
+            const unread = activeConv.unread_count ?? 0;
+            if (unread > 0) setUnreadCount(Math.max(0, getUnreadCount() - unread));
+            refreshUnreadCount().catch(() => {});
+          });
+        })
+        .catch(() => {})
+        .finally(() => {
+          if (!cancelled) setLoadingMessages(false);
         });
-      })
-      .catch(() => {})
-      .finally(() => {
-        if (!cancelled) setLoadingMessages(false);
-      });
+    }, 0);
 
     return () => {
       cancelled = true;
+      clearTimeout(timer);
     };
   }, [activeConv?.id]);
 
@@ -259,8 +226,8 @@ export function PopChatWidget() {
       user: {
         id: user?.id ?? 0,
         name: user?.name ?? "Me",
-        username: (user as any)?.username ?? "me",
-        avatar_url: (user as any)?.avatar_url || (user as any)?.avatar,
+        username: user?.username ?? "me",
+        avatar_url: user?.avatar_url || user?.avatar,
       },
     };
 
@@ -358,7 +325,7 @@ export function PopChatWidget() {
     <div className="fixed bottom-14 md:bottom-0 right-2 sm:right-10 z-50 w-[340px] max-w-[calc(100vw-1rem)] h-[480px] max-h-[calc(100vh-4.5rem)] rounded-t-xl bg-card border border-b-0 border-border/80 shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom-4 duration-200">
 
       {/* ── Header (square, not rounded) ── */}
-      <div className="h-12 px-3 bg-[#2164b6] flex items-center justify-between flex-shrink-0">
+      <div className="h-12 px-3 bg-[var(--shell-accent-solid)] flex items-center justify-between flex-shrink-0">
         <div className="flex items-center gap-2.5 min-w-0">
           <button
             type="button"
@@ -457,7 +424,7 @@ export function PopChatWidget() {
                 !msg.attachment_type &&
                 isEmojiOnlyMessage(content);
 
-              let callData: any = null;
+              let callData: { status?: string; call_type?: string; duration?: number | string } | null = null;
               if (isCall) {
                 try {
                   callData = JSON.parse(content);
@@ -593,7 +560,7 @@ export function PopChatWidget() {
           <button
             type="submit"
             disabled={!inputText.trim() || sending}
-            className="h-8 w-8 rounded-full bg-[#2164b6] text-white flex items-center justify-center disabled:opacity-40 hover:bg-[#1a5091] active:scale-95 transition-all flex-shrink-0"
+            className="h-8 w-8 rounded-full bg-[var(--shell-accent-solid)] text-white flex items-center justify-center disabled:opacity-40 hover:bg-[var(--shell-accent-hover)] active:scale-95 transition-all flex-shrink-0"
           >
             <PaperPlaneRight weight="fill" className="h-3.5 w-3.5" />
           </button>

@@ -38,7 +38,7 @@ export function ListShell({ tabs, onTabChange, toolbarActions, children, totalIt
       </div>
       
       {/* Control Bar */}
-      <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-800">
+      <div className="flex flex-wrap items-center justify-between gap-2 p-4 border-b border-slate-200 dark:border-slate-800">
         {toolbarActions}
       </div>
       
@@ -48,7 +48,7 @@ export function ListShell({ tabs, onTabChange, toolbarActions, children, totalIt
       </div>
       
       {/* Pagination Footer */}
-      <div className="flex items-center justify-between p-4 border-t border-slate-200 dark:border-slate-800 text-sm text-slate-500">
+      <div className="flex flex-wrap items-center justify-between gap-2 p-4 border-t border-slate-200 dark:border-slate-800 text-sm text-slate-500">
         <div>Total {totalItems} items</div>
         <div className="flex items-center gap-4">
           <span>{itemsPerPage} / page</span>

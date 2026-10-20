@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { Chart as BarChart3, Graph as TrendingUp, Swap as RotateCcw, Play, TickSquare as Check, DangerSquare as AlertCircle, Plus, Delete as Trash2, Document as FileText } from "@/components/icons";
 import { Spinner as Loader2, ToggleLeft, ToggleRight, Square, Flask, Lightning as Zap } from "@/components/icons/rounded";;
 import { Button } from "@/components/ui/button";
@@ -13,13 +13,57 @@ import { useConfirm, usePrompt } from "@/components/ui/DialogProvider";
 
 const FEED_TYPES = ["home", "following", "trending", "community", "recommended"];
 
+interface AlgoWeight {
+  id: number;
+  label: string | null;
+  signal_name: string;
+  group: string | null;
+  weight: string;
+  is_active: boolean;
+}
+
+interface AlgoConfig {
+  id: number;
+  label: string;
+  stage: string;
+  is_active: boolean;
+}
+
+interface AlgoBoost {
+  id: number;
+  boostable_type: string;
+  boostable_id: number;
+  boost_factor: number | string;
+  reason: string | null;
+  ends_at: string | null;
+}
+
+interface AlgoAbTest {
+  id: number;
+  name: string;
+  feed_type: string;
+  traffic_percentage: number | string;
+  status: string;
+}
+
+interface AlgoChange {
+  id: number;
+  action: string;
+  created_at: string;
+  admin: { name?: string } | null;
+  signal_name: string | null;
+  previous_weight: string | null;
+  new_weight: string | null;
+  reason: string | null;
+}
+
 export default function AdminAlgorithmPage() {
   const [tab, setTab] = useState<"weights" | "configs" | "boosts" | "abtests" | "changes">("weights");
-  const [weights, setWeights] = useState<any[]>([]);
-  const [configs, setConfigs] = useState<any[]>([]);
-  const [boosts, setBoosts] = useState<any[]>([]);
-  const [abTests, setAbTests] = useState<any[]>([]);
-  const [changes, setChanges] = useState<any[]>([]);
+  const [weights, setWeights] = useState<AlgoWeight[]>([]);
+  const [configs, setConfigs] = useState<AlgoConfig[]>([]);
+  const [boosts, setBoosts] = useState<AlgoBoost[]>([]);
+  const [abTests, setAbTests] = useState<AlgoAbTest[]>([]);
+  const [changes, setChanges] = useState<AlgoChange[]>([]);
   const [loading, setLoading] = useState(true);
   const [feedType, setFeedType] = useState("home");
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
@@ -30,35 +74,45 @@ export default function AdminAlgorithmPage() {
   const [showAbForm, setShowAbForm] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  const fetchAll = useCallback(async () => {
+  const [fetchAllKey, setFetchAllKey] = useState(0);
+  const fetchAll = () => {
     setLoading(true);
-    try {
-      const [wRes, cRes, bRes, aRes, chRes] = await Promise.all([
-        authFetch(`/securegate/feed-algorithm/weights?feed_type=${feedType}`, {  }),
-        authFetch(`/securegate/feed-algorithm/configs`, {  }),
-        authFetch(`/securegate/feed-algorithm/boosts`, {  }),
-        authFetch(`/securegate/feed-algorithm/ab-tests`, {  }),
-        authFetch(`/securegate/feed-algorithm/changes`, {  }),
-      ]);
-      if (wRes.ok) setWeights(await wRes.json());
-      if (cRes.ok) setConfigs(await cRes.json());
-      if (bRes.ok) setBoosts(await bRes.json());
-      if (aRes.ok) setAbTests(await aRes.json());
-      if (chRes.ok) { const j = await chRes.json(); setChanges(j?.data ?? j ?? []); }
-    } catch { /* ignore */ }
-    finally { setLoading(false); }
-  }, [feedType]);
+    setFetchAllKey((k) => k + 1);
+  };
 
-  useEffect(() => { fetchAll(); }, [fetchAll]);
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const [wRes, cRes, bRes, aRes, chRes] = await Promise.all([
+          authFetch(`/securegate/feed-algorithm/weights?feed_type=${feedType}`, {  }),
+          authFetch(`/securegate/feed-algorithm/configs`, {  }),
+          authFetch(`/securegate/feed-algorithm/boosts`, {  }),
+          authFetch(`/securegate/feed-algorithm/ab-tests`, {  }),
+          authFetch(`/securegate/feed-algorithm/changes`, {  }),
+        ]);
+        if (wRes.ok) if (active) setWeights(await wRes.json());
+        if (cRes.ok) if (active) setConfigs(await cRes.json());
+        if (bRes.ok) if (active) setBoosts(await bRes.json());
+        if (aRes.ok) if (active) setAbTests(await aRes.json());
+        if (chRes.ok) { const j = await chRes.json(); if (active) setChanges(j?.data ?? j ?? []); }
+      } catch { /* ignore */ }
+      finally { if (active) setLoading(false); }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [fetchAllKey, feedType]);
+
 
   const confirm = useConfirm();
   const prompt = usePrompt();
 
-  const handleUpdateWeight = async (id: number, field: string, value: any) => {
+  const handleUpdateWeight = async (id: number, field: string, value: string | boolean) => {
     const reason = await prompt({ title: "Reason Required", message: "Reason for this weight change:" });
     if (!reason) return;
     try {
-      const body: any = { reason };
+      const body: Record<string, unknown> = { reason };
       body[field] = value;
       const res = await authFetch(`/securegate/feed-algorithm/weights/${id}`, {
         method: "PUT", 
@@ -115,7 +169,7 @@ export default function AdminAlgorithmPage() {
       });
       if (res.ok) { setMsg({ ok: true, text: "A/B test created." }); setShowAbForm(false); setAbForm({ name: "", feed_type: "home", control_config: "{}", variant_config: "{}", traffic_percentage: "50" }); fetchAll(); }
       else { const j = await res.json(); setMsg({ ok: false, text: j.message || "Failed." }); }
-    } catch (e: any) { setMsg({ ok: false, text: "Invalid JSON in config." }); }
+    } catch { setMsg({ ok: false, text: "Invalid JSON in config." }); }
     finally { setSaving(false); }
   };
 
@@ -131,8 +185,8 @@ export default function AdminAlgorithmPage() {
     <div className="max-w-7xl mx-auto px-4 py-6">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-xl font-bold flex items-center gap-2"><BarChart3 weight="fill" className="w-6 h-6 text-blue-500" /> Feed Algorithm</h1>
-          <p className="text-sm text-gray-500 mt-1">Manage ranking weights, boosting, A/B tests, and feed configuration</p>
+          <h1 className="text-xl font-bold flex items-center gap-2"><BarChart3 weight="fill" className="w-6 h-6 text-[var(--shell-accent)]" /> Feed Algorithm</h1>
+          <p className="text-sm text-[var(--shell-muted)] mt-1">Manage ranking weights, boosting, A/B tests, and feed configuration</p>
         </div>
         <div className="flex gap-2">
           <Button variant={tab === "weights" ? "default" : "outline"} size="sm" onClick={() => setTab("weights")}>Weights</Button>
@@ -152,8 +206,8 @@ export default function AdminAlgorithmPage() {
       {tab === "weights" && (
         <div>
           <div className="flex items-center gap-3 mb-4">
-            <label className="text-sm font-medium">Feed Type:</label>
-            <select value={feedType} onChange={e => setFeedType(e.target.value)} className="border rounded-lg px-3 py-1.5 text-sm">
+            <label htmlFor="f-pages-adminalgorithmpage-tsx-155" className="text-sm font-medium">Feed Type:</label>
+            <select id="f-pages-adminalgorithmpage-tsx-155" value={feedType} onChange={e => { setLoading(true); setFeedType(e.target.value); }} className="border rounded-lg px-3 py-1.5 text-sm">
               {FEED_TYPES.map(ft => <option key={ft} value={ft}>{ft.charAt(0).toUpperCase() + ft.slice(1)}</option>)}
             </select>
             <Button variant="outline" size="sm" onClick={handleSeed}><RotateCcw weight="fill" className="w-3 h-3 mr-1" />Seed Defaults</Button>
@@ -161,17 +215,17 @@ export default function AdminAlgorithmPage() {
           <div className="bg-white border rounded-lg  overflow-hidden">
             <div className="p-4 border-b bg-gray-50"><h2 className="font-semibold">Ranking Signals</h2></div>
             {loading ? (
-              <div className="p-12 text-center"><Loader2 weight="fill" className="w-6 h-6 animate-spin mx-auto text-gray-400" /></div>
+              <div className="p-12 text-center"><Loader2 weight="fill" className="w-6 h-6 animate-spin mx-auto text-[var(--shell-muted)]" /></div>
             ) : (
               <div className="divide-y">
-                {weights.map((w: any) => (
+                {weights.map((w) => (
                   <div key={w.id} className="p-4 flex items-center justify-between hover:bg-gray-50">
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
                         <span className="font-medium">{w.label || w.signal_name}</span>
-                        <Badge className={w.is_active ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}>{w.is_active ? "Active" : "Disabled"}</Badge>
+                        <Badge className={w.is_active ? "bg-green-100 text-green-700" : "bg-gray-100 text-[var(--shell-muted)]"}>{w.is_active ? "Active" : "Disabled"}</Badge>
                       </div>
-                      <p className="text-xs text-gray-400">{w.signal_name} {w.group && `- ${w.group}`}</p>
+                      <p className="text-xs text-[var(--shell-muted)]">{w.signal_name} {w.group && `- ${w.group}`}</p>
                     </div>
                     <div className="flex items-center gap-3">
                       <div className="flex items-center gap-1">
@@ -180,7 +234,7 @@ export default function AdminAlgorithmPage() {
                         <Button variant="ghost" size="sm" onClick={() => handleUpdateWeight(w.id, "weight", (parseFloat(w.weight) + 0.5).toFixed(4))} disabled={!w.is_active}>+</Button>
                       </div>
                       <Button variant="ghost" size="sm" onClick={() => handleUpdateWeight(w.id, "is_active", !w.is_active)}>
-                        {w.is_active ? <ToggleRight className="w-4 h-4 text-green-600" /> : <ToggleLeft weight="fill" className="w-4 h-4 text-gray-400" />}
+                        {w.is_active ? <ToggleRight className="w-4 h-4 text-green-600" /> : <ToggleLeft weight="fill" className="w-4 h-4 text-[var(--shell-muted)]" />}
                       </Button>
                     </div>
                   </div>
@@ -194,13 +248,13 @@ export default function AdminAlgorithmPage() {
       {tab === "configs" && (
         <div className="bg-white border rounded-lg  overflow-hidden">
           <div className="p-4 border-b bg-gray-50"><h2 className="font-semibold">Feed Configurations</h2></div>
-          {loading ? <div className="p-12 text-center"><Loader2 weight="fill" className="w-6 h-6 animate-spin mx-auto text-gray-400" /></div> : (
+          {loading ? <div className="p-12 text-center"><Loader2 weight="fill" className="w-6 h-6 animate-spin mx-auto text-[var(--shell-muted)]" /></div> : (
             <div className="divide-y">
-              {configs.map((c: any) => (
+              {configs.map((c) => (
                 <div key={c.id} className="p-4 flex items-center justify-between">
                   <div>
                     <p className="font-medium">{c.label}</p>
-                    <p className="text-xs text-gray-400">Stage: <Badge className={c.stage === "production" ? "bg-green-100 text-green-700" : c.stage === "staging" ? "bg-yellow-100 text-yellow-700" : "bg-gray-100 text-gray-600"}>{c.stage}</Badge> {c.is_active ? "Active" : "Inactive"}</p>
+                    <p className="text-xs text-[var(--shell-muted)]">Stage: <Badge className={c.stage === "production" ? "bg-green-100 text-green-700" : c.stage === "staging" ? "bg-yellow-100 text-yellow-700" : "bg-gray-100 text-[var(--shell-muted)]"}>{c.stage}</Badge> {c.is_active ? "Active" : "Inactive"}</p>
                   </div>
                   <div className="flex gap-2">
                     {c.stage !== "production" && <Button variant="outline" size="sm" onClick={() => handlePromote(c.id)}><TrendingUp weight="fill" className="w-3 h-3 mr-1" />Promote</Button>}
@@ -236,14 +290,14 @@ export default function AdminAlgorithmPage() {
           <div className="bg-white border rounded-lg  overflow-hidden">
             <div className="p-4 border-b bg-gray-50"><h2 className="font-semibold">Active Boosts</h2></div>
             {boosts.length === 0 ? (
-              <div className="text-center py-8 text-gray-400 text-sm">No active boosts</div>
+              <div className="text-center py-8 text-[var(--shell-muted)] text-sm">No active boosts</div>
             ) : (
               <div className="divide-y">
-                {boosts.map((b: any) => (
+                {boosts.map((b) => (
                   <div key={b.id} className="p-4 flex items-center justify-between">
                     <div>
                       <p className="font-medium">{b.boostable_type} #{b.boostable_id} &times;{b.boost_factor}</p>
-                      <p className="text-xs text-gray-400">{b.reason} {b.ends_at && <>until {new Date(b.ends_at).toLocaleDateString()}</>}</p>
+                      <p className="text-xs text-[var(--shell-muted)]">{b.reason} {b.ends_at && <>until {new Date(b.ends_at).toLocaleDateString()}</>}</p>
                     </div>
                     <div className="flex items-center gap-2">
                       <Badge className="bg-green-100 text-green-700">Active</Badge>
@@ -282,17 +336,17 @@ export default function AdminAlgorithmPage() {
           <div className="bg-white border rounded-lg  overflow-hidden">
             <div className="p-4 border-b bg-gray-50"><h2 className="font-semibold">A/B Tests</h2></div>
             {abTests.length === 0 ? (
-              <div className="text-center py-8 text-gray-400 text-sm">No A/B tests created</div>
+              <div className="text-center py-8 text-[var(--shell-muted)] text-sm">No A/B tests created</div>
             ) : (
               <div className="divide-y">
-                {abTests.map((t: any) => (
+                {abTests.map((t) => (
                   <div key={t.id} className="p-4 flex items-center justify-between">
                     <div>
                       <p className="font-medium">{t.name}</p>
-                      <p className="text-xs text-gray-400">{t.feed_type} &middot; {t.traffic_percentage}% variant</p>
+                      <p className="text-xs text-[var(--shell-muted)]">{t.feed_type} &middot; {t.traffic_percentage}% variant</p>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Badge className={t.status === "running" ? "bg-green-100 text-green-700" : t.status === "draft" ? "bg-gray-100 text-gray-600" : "bg-blue-100 text-blue-700"}>{t.status}</Badge>
+                      <Badge className={t.status === "running" ? "bg-green-100 text-green-700" : t.status === "draft" ? "bg-gray-100 text-[var(--shell-muted)]" : "bg-blue-100 text-[var(--shell-accent)]"}>{t.status}</Badge>
                       {t.status === "draft" && <Button variant="outline" size="sm" onClick={async () => { await authFetch(`/securegate/feed-algorithm/ab-tests/${t.id}/start`, { method: "POST",  }); fetchAll(); }}><Play weight="fill" className="w-3 h-3 mr-1" />Start</Button>}
                       {t.status === "running" && <Button variant="outline" size="sm" onClick={async () => { await authFetch(`/securegate/feed-algorithm/ab-tests/${t.id}/end`, { method: "POST",  }); fetchAll(); }}><Square weight="fill" className="w-3 h-3 mr-1" />End</Button>}
                     </div>
@@ -307,22 +361,22 @@ export default function AdminAlgorithmPage() {
       {tab === "changes" && (
         <div className="bg-white border rounded-lg  overflow-hidden">
           <div className="p-4 border-b bg-gray-50"><h2 className="font-semibold">Algorithm Change Audit Log</h2></div>
-          {loading ? <div className="p-12 text-center"><Loader2 weight="fill" className="w-6 h-6 animate-spin mx-auto text-gray-400" /></div> : changes.length === 0 ? (
-            <div className="text-center py-8 text-gray-400 text-sm"><FileText weight="fill" className="w-8 h-8 mx-auto mb-2 opacity-40" /><p>No changes recorded yet</p></div>
+          {loading ? <div className="p-12 text-center"><Loader2 weight="fill" className="w-6 h-6 animate-spin mx-auto text-[var(--shell-muted)]" /></div> : changes.length === 0 ? (
+            <div className="text-center py-8 text-[var(--shell-muted)] text-sm"><FileText weight="fill" className="w-8 h-8 mx-auto mb-2 opacity-40" /><p>No changes recorded yet</p></div>
           ) : (
             <div className="divide-y">
-              {changes.map((ch: any) => (
+              {changes.map((ch) => (
                 <div key={ch.id} className="p-4 text-sm">
                   <div className="flex items-center justify-between">
                     <p className="font-medium">{ch.action.replace(/_/g, " ")}</p>
-                    <span className="text-xs text-gray-400">{new Date(ch.created_at).toLocaleString()}</span>
+                    <span className="text-xs text-[var(--shell-muted)]">{new Date(ch.created_at).toLocaleString()}</span>
                   </div>
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-xs text-[var(--shell-muted)] mt-1">
                     by {ch.admin?.name || "Unknown"}
                     {ch.signal_name && <> &middot; {ch.signal_name}</>}
                     {ch.previous_weight !== null && ch.new_weight !== null && <> &middot; {parseFloat(ch.previous_weight).toFixed(2)} &rarr; {parseFloat(ch.new_weight).toFixed(2)}</>}
                   </p>
-                  {ch.reason && <p className="text-xs text-gray-400 mt-0.5">Reason: {ch.reason}</p>}
+                  {ch.reason && <p className="text-xs text-[var(--shell-muted)] mt-0.5">Reason: {ch.reason}</p>}
                 </div>
               ))}
             </div>

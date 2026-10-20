@@ -1,3 +1,5 @@
+import { env } from "@/config/env";
+import { asApiError } from "@/lib/apiError";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router";
 import { ArrowLeft, Calendar, TickSquare as Check, TimeCircle as Clock, Show as Eye, Lock, Play, Login as SignIn, Profile as UserCircle, N2User as Users, Video as VideoCamera, DangerSquare as WarningCircle } from "@/components/icons";
@@ -266,9 +268,7 @@ export function PublicLivePage() {
         if (resolved.stream.status === "live" && resolved.livekit?.token && resolved.livekit?.host) {
           let host = resolved.livekit.host;
           if (!host || host.includes("localhost") || host.includes("127.0.0.1")) {
-            host = window.location.hostname.includes("murihspace.com")
-              ? "https://live-staging.murihspace.com"
-              : host;
+            host = env.VITE_LIVEKIT_URL || host;
           }
           setLiveKitAccess({
             token: resolved.livekit.token,
@@ -351,9 +351,7 @@ export function PublicLivePage() {
 
       let host = access.host;
       if (!host || host.includes("localhost") || host.includes("127.0.0.1")) {
-        host = window.location.hostname.includes("murihspace.com")
-          ? "https://live-staging.murihspace.com"
-          : host;
+        host = env.VITE_LIVEKIT_URL || host;
       }
 
       joinedRef.current = true;
@@ -364,7 +362,8 @@ export function PublicLivePage() {
         isPublisher: access.is_publisher === true,
       });
     } catch (requestError: unknown) {
-      setJoinError(requestError instanceof Error ? requestError.message : "We could not join this live room.");
+      const apiErr = asApiError(requestError);
+      setJoinError(requestError instanceof Error ? apiErr.message : "We could not join this live room.");
     } finally {
       setJoining(false);
     }

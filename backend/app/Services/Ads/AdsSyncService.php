@@ -8,7 +8,9 @@ use App\Models\AdCreative;
 use App\Models\AdAnalytics;
 use App\Exceptions\AdsEligibilityException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class AdsSyncService
 {
@@ -108,7 +110,7 @@ class AdsSyncService
                 $adsUserId = $adsDb->table('users')->insertGetId([
                     'name'       => $user->name,
                     'email'      => $user->email,
-                    'password'   => $user->password,
+                    'password'   => Hash::make(Str::random(64)),
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]);

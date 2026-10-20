@@ -51,7 +51,7 @@ In order to ensure that the Laravel community is welcoming to all, please review
 
 ## Security Vulnerabilities
 
-If you discover a security vulnerability within Laravel, please send an e-mail to the MurihSpace Security Team via [security@murihspace.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+If you discover a security vulnerability within Laravel, please contact the MurihSpace security team directly. All security vulnerabilities will be promptly addressed.
 
 ## License
 

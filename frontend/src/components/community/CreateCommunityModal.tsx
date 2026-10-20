@@ -1,3 +1,5 @@
+import { authFetch } from "@/lib/api/authFetch";
+import { asApiError } from "@/lib/apiError";
 import * as React from "react";
 import {
   Dialog,
@@ -24,7 +26,10 @@ import { ShieldDone as ShieldCheck, Lock, Discovery as Globe, Plus, Delete as Tr
 import { CurrencyDollar as DollarSign } from "@/components/icons/rounded";;
 import type { Community, CreateCommunityInput } from "@/types/community";
 import { ImageUploader } from "@/components/upload/ImageUploader";
-import { getAuthToken } from "@/lib/auth/token";
+import { siteUrl } from "@/lib/deepLinks";
+
+/** Host the app is served from, shown in the community URL preview. */
+const siteHost = () => siteUrl().replace(/^https?:\/\//, "");
 
 interface CreateCommunityModalProps {
   open: boolean;
@@ -104,13 +109,11 @@ export function CreateCommunityModal({
     setIsSubmitting(true);
 
     try {
-      const token = getAuthToken();
-      const res = await fetch(`${API_BASE}/my-communities`, {
+      const res = await authFetch(`${API_BASE}/my-communities`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Accept: "application/json",
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(formData),
       });
@@ -140,7 +143,8 @@ export function CreateCommunityModal({
         ],
       });
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "An unexpected error occurred.");
+      const apiErr = asApiError(err);
+      setError(err instanceof Error ? apiErr.message : "An unexpected error occurred.");
     } finally {
       setIsSubmitting(false);
     }
@@ -186,7 +190,7 @@ export function CreateCommunityModal({
             />
             {formData.name && (
               <p className="text-xs text-muted-foreground font-mono">
-                URL Preview: <span className="text-secondary font-semibold">web.murihspace.com/communities/{handleSlugPreview(formData.name)}</span>
+                URL Preview: <span className="text-secondary font-semibold">{siteHost()}/communities/{handleSlugPreview(formData.name)}</span>
               </p>
             )}
           </div>

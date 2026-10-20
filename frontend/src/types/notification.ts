@@ -40,8 +40,8 @@ export interface AppNotification {
     is_official?: boolean;
     is_verified?: boolean;
     code?: string;
-    metadata?: Record<string, any>;
-    [key: string]: any;
+    metadata?: Record<string, unknown>;
+    [key: string]: unknown;
   };
   read_at: string | null;
   created_at: string;

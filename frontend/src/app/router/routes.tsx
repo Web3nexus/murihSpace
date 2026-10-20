@@ -1,4 +1,4 @@
-import { Suspense, useEffect } from "react";
+import { Suspense } from "react";
 import type { RouteObject } from "react-router";
 import { Navigate } from "react-router";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
@@ -7,55 +7,16 @@ import { ChatLayout } from "@/components/layout/ChatLayout";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { lazyWithRetry } from "@/lib/lazyWithRetry";
 import { ChatDeepLinkRedirect } from "./ChatDeepLinkRedirect";
-import { isProfileDomainHost, mainSiteUrl } from "@/lib/deepLinks";
+import { PageLoader, RootRedirect } from "./RouteFallbacks";
 
 import {
   NotFoundState,
 } from "@/components/common/UIStateComponents";
 import { RoutePaths } from "./route-paths";
 
-import { BrandPreloader } from "@/components/common/BrandPreloader";
-
-const PageLoader = () => <BrandPreloader size="md" />;
-
-/**
- * Sends the browser to another origin (React Router's <Navigate> only handles
- * in-app paths). Renders the brand loader while the browser navigates.
- */
-function ExternalRedirect({ to }: { to: string }) {
-  useEffect(() => {
-    window.location.replace(to);
-  }, [to]);
-  return <PageLoader />;
-}
-
-/**
- * Root route. On the vanity profile domain (e.g. `murih.me`, `s.murih.me`) a
- * bare hit with no handle has nothing to show, so we hand the visitor to the
- * main site — mirroring `wa.me` → `whatsapp.com`. Everywhere else, `/` keeps its
- * existing dashboard redirect.
- */
-function RootRedirect() {
-  if (isProfileDomainHost()) {
-    const currentHost = window.location.hostname.replace(/^www\./i, "").toLowerCase();
-    let targetHost = "";
-    const target = mainSiteUrl();
-    try {
-      targetHost = new URL(target).hostname.replace(/^www\./i, "").toLowerCase();
-    } catch {
-      targetHost = "";
-    }
-    // Only bounce externally when we have a valid, different target — otherwise
-    // we'd loop back to this same host or navigate to an unusable URL.
-    if (targetHost && targetHost !== currentHost) {
-      return <ExternalRedirect to={target} />;
-    }
-  }
-  return <Navigate to="/app" replace />;
-}
-
 // Lazy-loaded pages with automated deployment chunk-retry
 const LoginPage = lazyWithRetry(() => import("@/pages/LoginPage"), "LoginPage");
+const AdsSsoAuthorizePage = lazyWithRetry(() => import("@/pages/AdsSsoAuthorizePage"), "AdsSsoAuthorizePage");
 const ForgotPasswordPage = lazyWithRetry(() => import("@/pages/ForgotPasswordPage"), "ForgotPasswordPage");
 const ResetPasswordPage = lazyWithRetry(() => import("@/pages/ResetPasswordPage"), "ResetPasswordPage");
 const AdminLoginPage = lazyWithRetry(() => import("@/pages/AdminLoginPage"), "AdminLoginPage");
@@ -216,6 +177,7 @@ export const routes: RouteObject[] = [
   { path: "/securegate", element: <Navigate to={RoutePaths.SECUREGATE_LOGIN} replace /> },
   // Web registration is retired — accounts are created in the mobile app.
   { path: RoutePaths.REGISTER, element: <Navigate to={RoutePaths.LOGIN} replace /> },
+  { path: "/ads/sso/authorize", element: <Suspense fallback={<PageLoader />}><AdsSsoAuthorizePage /></Suspense> },
   { path: "/social/callback", element: <Suspense fallback={<PageLoader />}><SocialAuthCallbackPage /></Suspense> },
   { path: "/store/:shortCode", element: <Suspense fallback={<PageLoader />}><PublicStorefrontPage /></Suspense> },
   { path: "/store/:shortCode/p/:id", element: <Suspense fallback={<PageLoader />}><PublicProductPage /></Suspense> },
@@ -558,7 +520,7 @@ export const routes: RouteObject[] = [
         element: <ProtectedRoute requiredRole="creator"><Suspense fallback={<PageLoader />}><CreatorWalletPage /></Suspense></ProtectedRoute>,
       },
 
-      // ── Marketing & Automations ────────────────
+      // ── Marketing (opens the Ads Manager) & email tools ──
       {
         path: "marketing",
         element: <ProtectedRoute requiredRole="creator"><Suspense fallback={<PageLoader />}><MarketingPage /></Suspense></ProtectedRoute>,

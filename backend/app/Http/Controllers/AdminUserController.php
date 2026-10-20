@@ -8,6 +8,8 @@ use App\Models\User;
 use App\Models\UserWarning;
 use App\Services\NotificationService;
 use App\Services\UserEnforcementService;
+use App\Support\ImpersonationSession;
+use App\Support\WebSession;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use RuntimeException;
@@ -66,9 +68,12 @@ class AdminUserController extends Controller
         $sortDir = $validated['sort_dir'] ?? 'desc';
         $query->orderBy($sortField, $sortDir);
 
-        return response()->json(
-            $query->paginate($validated['per_page'] ?? 20)
-        );
+        // Contact details are visible only inside the user-management routes, which
+        // are already gated by the `users` admin permission.
+        $page = $query->paginate($validated['per_page'] ?? 20);
+        $page->getCollection()->each(fn (User $u) => $u->makeVisible(['email', 'mobile_number']));
+
+        return response()->json($page);
     }
 
     public function show(int $id): JsonResponse
@@ -89,6 +94,8 @@ class AdminUserController extends Controller
                 $q->where('buyer_id', $id)->orWhere('seller_id', $id);
             })->count();
         $kycRecord = \App\Models\KycVerification::where('user_id', $id)->latest()->first();
+
+        $user->makeVisible(['email', 'mobile_number']);
 
         return response()->json([
             'data' => $user,
@@ -161,6 +168,18 @@ class AdminUserController extends Controller
     public function impersonate(Request $request, int $id): JsonResponse
     {
         $admin = $request->user();
+        $adminTokenId = WebSession::boundTokenId($request);
+
+        // Impersonation lives in the administrator's web session. A bearer
+        // caller has no session to switch.
+        if ($adminTokenId === null) {
+            return response()->json(['message' => 'Impersonation requires a signed-in web session.'], 403);
+        }
+
+        if (! ImpersonationSession::adminStillAuthorised($admin, $adminTokenId)) {
+            return response()->json(['message' => 'Administrator session has expired. Sign in again.', 'code' => 'admin_mfa_required'], 403);
+        }
+
         $target = User::findOrFail($id);
 
         if ($target->isAdmin()) {
@@ -171,49 +190,21 @@ class AdminUserController extends Controller
             return response()->json(['message' => 'Cannot impersonate a suspended, banned, or deleted user.'], 403);
         }
 
-        $target->tokens()->where('name', 'impersonation-token')->delete();
+        ImpersonationSession::start($request, $admin, $target, $adminTokenId);
 
-        // Issue token capped at 2 hours max, linked to admin session & 15m idle timeout
-        $tokenResult = $target->createToken(
-            'impersonation-token',
-            ['*', 'impersonate'],
-            now()->addHours(2)
-        );
-        $tokenId = $tokenResult->accessToken->id;
-        $plainTextToken = $tokenResult->plainTextToken;
-
-        $adminTokenId = $admin->currentAccessToken()?->id;
-
-        \Illuminate\Support\Facades\Cache::put("impersonation_session_{$tokenId}", [
-            'admin_id'             => $admin->id,
-            'admin_email'          => $admin->email,
-            'admin_token_id'       => $adminTokenId,
-            'target_id'            => $target->id,
-            'target_email'         => $target->email,
-            'started_at'           => now()->timestamp,
-            'last_activity_at'     => now()->timestamp,
-            'idle_timeout_seconds' => 900, // 15 minutes of inactivity triggers automatic timeout
-        ], now()->addHours(2));
-
-        AuditLog::create([
-            'user_id'       => $admin->id,
-            'action'        => 'user.impersonated',
-            'resource_type' => 'user',
-            'resource_id'   => (string) $target->id,
-            'metadata'      => [
-                'target_role'       => $target->role,
-                'target_email'      => $target->email,
-                'admin_role'        => $admin->admin_role ?? 'super_admin',
-                'admin_permissions' => $admin->admin_permissions ?? ['users'],
-                'idle_timeout_min'  => 15,
-            ],
-            'ip_address'    => $request->ip(),
-            'user_agent'    => $request->userAgent(),
+        ImpersonationSession::audit($admin->id, 'user.impersonated', $target->id, $request, [
+            'target_role'       => $target->role,
+            'target_email'      => $target->email,
+            'admin_role'        => $admin->admin_role ?? 'super_admin',
+            'admin_permissions' => $admin->admin_permissions ?? ['users'],
+            'idle_timeout_min'  => (int) (ImpersonationSession::IDLE_SECONDS / 60),
+            'max_minutes'       => (int) (ImpersonationSession::MAX_SECONDS / 60),
         ]);
 
         return response()->json([
-            'token' => $plainTextToken,
-            'idle_timeout_seconds' => 900,
+            'impersonating'         => true,
+            'idle_timeout_seconds'  => ImpersonationSession::IDLE_SECONDS,
+            'expires_at'            => now()->addSeconds(ImpersonationSession::MAX_SECONDS)->toIso8601String(),
             'user'  => [
                 'id'       => $target->id,
                 'name'     => $target->name,
@@ -225,11 +216,30 @@ class AdminUserController extends Controller
     }
 
     /**
-     * Stop impersonation session immediately.
+     * Stop impersonation and return the session to the administrator.
      */
     public function stopImpersonate(Request $request): JsonResponse
     {
         $user = $request->user();
+
+        if (ImpersonationSession::active($request)) {
+            $targetId = ImpersonationSession::targetId($request);
+            $adminId = ImpersonationSession::impersonatorId($request);
+
+            $admin = ImpersonationSession::stop($request);
+
+            ImpersonationSession::audit($adminId, 'user.impersonation_stopped', (int) $targetId, $request, [
+                'restored' => $admin !== null,
+            ]);
+
+            return response()->json([
+                'message'       => 'Impersonation ended successfully.',
+                'status'        => 'success',
+                'impersonating' => false,
+            ]);
+        }
+
+        // Legacy bearer impersonation token, issued before web impersonation moved to the session.
         $token = $user?->currentAccessToken();
 
         if ($token && EnsureImpersonationLiveness::isImpersonationToken($token)) {
@@ -249,8 +259,9 @@ class AdminUserController extends Controller
         }
 
         return response()->json([
-            'message' => 'Impersonation ended successfully.',
-            'status'  => 'success',
+            'message'       => 'Impersonation ended successfully.',
+            'status'        => 'success',
+            'impersonating' => false,
         ]);
     }
 

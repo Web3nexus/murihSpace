@@ -1,14 +1,13 @@
+import { authFetch } from "@/lib/api/authFetch";
 import { useState, useCallback, useId } from "react";
 import { Upload, CloseSquare as X, Image as ImageIcon } from "@/components/icons";
 import { Spinner as Loader2, DotsSixVertical } from "@/components/icons/rounded";;
 import { useDropzone } from "react-dropzone";
-import { getAuthToken } from "@/lib/auth/token";
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? "http://localhost:8000/api/v1";
 
 function getAuthHeaders() {
-  const token = getAuthToken();
-  return { ...(token ? { Authorization: `Bearer ${token}` } : {}) };
+  return { };
 }
 
 interface ImageUploaderProps {
@@ -34,7 +33,7 @@ async function uploadFile(file: File, folder: string): Promise<string> {
   const form = new FormData();
   form.append("file", file);
   form.append("folder", folder);
-  const res = await fetch(`${API_BASE}/upload`, {
+  const res = await authFetch(`${API_BASE}/upload`, {
     method: "POST",
     headers: getAuthHeaders(),
     body: form,
@@ -63,7 +62,7 @@ function UploadZone({
   if (uploading) {
     return (
       <div className="border-2 border-dashed border-border rounded-lg p-4 text-center">
-        <Loader2 weight="fill" className="h-6 w-6 animate-spin text-[#2164b6] dark:text-[#7ab0ff] mx-auto" />
+        <Loader2 weight="fill" className="h-6 w-6 animate-spin text-[var(--shell-accent)] dark:text-[var(--shell-accent)] mx-auto" />
         <span className="text-xs text-muted-foreground mt-2 block">Uploading...</span>
       </div>
     );
@@ -71,7 +70,7 @@ function UploadZone({
   return (
     <div
       {...getRootProps()}
-      className={`border-2 border-dashed rounded-lg p-4 text-center cursor-pointer hover:border-[#2164b6]/50 hover:bg-muted/50 transition-all focus:outline-none focus:border-[#2164b6] ${isDragActive ? "border-[#2164b6] bg-[#2164b6]/5" : "border-border"}`}
+      className={`border-2 border-dashed rounded-lg p-4 text-center cursor-pointer hover:border-[var(--shell-accent)]/50 hover:bg-muted/50 transition-all focus:outline-none focus:border-[var(--shell-accent)] ${isDragActive ? "border-[var(--shell-accent)] bg-[var(--shell-accent-solid)]/5" : "border-border"}`}
     >
       <input {...getInputProps()} accept={accept} />
       <ImageIcon weight="fill" className="h-8 w-8 text-muted-foreground/50 mx-auto" />
@@ -227,11 +226,11 @@ export function MultiImageUploader({ values, onChange, folder = "uploads", accep
           {values.length < maxImages && (
             <div
               {...getRootProps()}
-              className={`border-2 border-dashed rounded-lg aspect-square flex items-center justify-center cursor-pointer hover:border-[#2164b6]/50 hover:bg-muted/50 transition-all ${isDragActive ? "border-[#2164b6] bg-[#2164b6]/5" : "border-border"}`}
+              className={`border-2 border-dashed rounded-lg aspect-square flex items-center justify-center cursor-pointer hover:border-[var(--shell-accent)]/50 hover:bg-muted/50 transition-all ${isDragActive ? "border-[var(--shell-accent)] bg-[var(--shell-accent-solid)]/5" : "border-border"}`}
             >
               <div className="text-center">
                 {uploading ? (
-                  <Loader2 weight="fill" className="h-5 w-5 animate-spin text-[#2164b6] dark:text-[#7ab0ff] mx-auto" />
+                  <Loader2 weight="fill" className="h-5 w-5 animate-spin text-[var(--shell-accent)] dark:text-[var(--shell-accent)] mx-auto" />
                 ) : (
                   <>
                     <ImageIcon weight="fill" className="h-5 w-5 text-muted-foreground/50 mx-auto" />

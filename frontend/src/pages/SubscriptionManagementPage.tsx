@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, Edit as Pencil, Delete as Trash2, CloseSquare as X, N2User as Users, Wallet as Money, Calendar, Show as Eye, Hide as EyeOff, DangerSquare as AlertCircle, Profile as UserIcon } from "@/components/icons";
 import { Crown, Spinner as Loader2 } from "@/components/icons/rounded";;
@@ -121,7 +122,7 @@ export function SubscriptionManagementPage() {
       toast.success("Plan deleted.");
       fetchData();
     } catch (e) {
-      console.error(e);
+      logger.error("Failed to delete plan", e);
       toast.error("Failed to delete plan.");
     }
   };
@@ -134,7 +135,7 @@ export function SubscriptionManagementPage() {
         body: JSON.stringify({ is_active: !plan.is_active }),
       });
       fetchData();
-    } catch (e) { console.error(e); }
+    } catch (e) { logger.error("Failed to update plan", e); }
   };
 
   const formatCycle = (c: string) => c === 'yearly' ? '/yr' : '/mo';

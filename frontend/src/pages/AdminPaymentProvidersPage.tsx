@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { Wallet as CreditCard, Swap as RefreshCw, TickSquare as CheckCircle2, CloseSquare as XCircle, DangerTriangle as AlertTriangle, Activity, Plus, Password as Key, ShieldDone as ShieldCheck, Delete as Trash, Edit as PencilSimple, CloseSquare as X, InfoSquare as Info } from "@/components/icons";
 import { Cpu, Shuffle, CurrencyDollar as DollarSign, HardDrives, Lightning as Zap } from "@/components/icons/rounded";;
 import { Button } from '@/components/ui/button';
@@ -118,43 +118,47 @@ export function AdminPaymentProvidersPage() {
   const [simCurrency, setSimCurrency] = useState('NGN');
   const [simMethod, setSimMethod] = useState('card');
   const [simAmount, setSimAmount] = useState('500000');
-  const [simResult, setSimResult] = useState<any | null>(null);
+  const [simResult, setSimResult] = useState<{ message?: string; provider_name?: string | null; resolved_provider?: string | null; is_available?: boolean } | null>(null);
   const [simulating, setSimulating] = useState(false);
 
-  const loadData = useCallback(async () => {
+  const [loadDataKey, setLoadDataKey] = useState(0);
+  const loadData = () => {
     setLoading(true);
     setActionMsg(null);
-    try {
-      const [resProv, resRoutes, resStats] = await Promise.all([
-        authFetch('/securegate/payment-providers'),
-        authFetch('/securegate/payment-routes'),
-        authFetch('/securegate/payments/stats').catch(() => null),
-      ]);
-
-      if (resProv.ok) {
-        const j = await resProv.json();
-        const list = Array.isArray(j) ? j : (j?.data ?? []);
-        setProviders(list);
-      }
-      if (resRoutes && resRoutes.ok) {
-        const j = await resRoutes.json();
-        const list = Array.isArray(j) ? j : (j?.data ?? []);
-        setRoutes(list);
-      }
-      if (resStats && resStats.ok) {
-        const j = await resStats.json();
-        setStats(j?.data ?? null);
-      }
-    } catch {
-      setActionMsg({ ok: false, text: 'Unable to load payment infrastructure data.' });
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+    setLoadDataKey((k) => k + 1);
+  };
 
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    (async () => {
+      try {
+        const [resProv, resRoutes, resStats] = await Promise.all([
+          authFetch('/securegate/payment-providers'),
+          authFetch('/securegate/payment-routes'),
+          authFetch('/securegate/payments/stats').catch(() => null),
+        ]);
+
+        if (resProv.ok) {
+          const j = await resProv.json();
+          const list = Array.isArray(j) ? j : (j?.data ?? []);
+          setProviders(list);
+        }
+        if (resRoutes && resRoutes.ok) {
+          const j = await resRoutes.json();
+          const list = Array.isArray(j) ? j : (j?.data ?? []);
+          setRoutes(list);
+        }
+        if (resStats && resStats.ok) {
+          const j = await resStats.json();
+          setStats(j?.data ?? null);
+        }
+      } catch {
+        setActionMsg({ ok: false, text: 'Unable to load payment infrastructure data.' });
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [loadDataKey]);
+
 
   const handleTestConnection = async (code: string) => {
     setTestingProvider(code);
@@ -443,7 +447,7 @@ export function AdminPaymentProvidersPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-black tracking-tight flex items-center gap-2.5">
-            <CreditCard weight="fill" className="h-6 w-6 text-[#2164b6] dark:text-[#7ab0ff]" />
+            <CreditCard weight="fill" className="h-6 w-6 text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" />
             Payment Infrastructure & Gateways
           </h1>
           <p className="text-xs text-muted-foreground mt-1">
@@ -457,7 +461,7 @@ export function AdminPaymentProvidersPage() {
             onClick={() => setShowGuide(!showGuide)}
             className="text-xs"
           >
-            <Info weight="fill" className="h-3.5 w-3.5 mr-1 text-[#2164b6]" />
+            <Info weight="fill" className="h-3.5 w-3.5 mr-1 text-[var(--shell-accent)]" />
             {showGuide ? 'Hide Guide' : 'How It Works'}
           </Button>
           <Button
@@ -473,7 +477,7 @@ export function AdminPaymentProvidersPage() {
           <Button
             size="sm"
             onClick={() => openConfigModal()}
-            className="text-xs bg-[#2164b6] hover:bg-[#1a5091] text-white font-bold"
+            className="text-xs bg-[var(--shell-accent-solid)] hover:bg-[var(--shell-accent-hover)] text-white font-bold"
           >
             <Plus weight="bold" className="h-3.5 w-3.5 mr-1" />
             Connect / Add Gateway
@@ -497,10 +501,10 @@ export function AdminPaymentProvidersPage() {
 
       {/* EDUCATIONAL GUIDE */}
       {showGuide && (
-        <div className="rounded-lg bg-gradient-to-br from-[#2164b6]/5 to-[#1a6b9e]/10 border border-[#2164b6]/20 p-5 space-y-4">
+        <div className="rounded-lg bg-gradient-to-br from-[var(--shell-accent-solid)]/5 to-[#1a6b9e]/10 border border-[var(--shell-accent)]/20 p-5 space-y-4">
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-2">
-              <div className="h-7 w-7 rounded-md bg-[#2164b6] text-white flex items-center justify-center">
+              <div className="h-7 w-7 rounded-md bg-[var(--shell-accent-solid)] text-white flex items-center justify-center">
                 <ShieldCheck weight="fill" className="h-4 w-4" />
               </div>
               <h2 className="text-sm font-bold text-foreground">How Payment Infrastructure Works on MurihSpace</h2>
@@ -513,7 +517,7 @@ export function AdminPaymentProvidersPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
             <div className="bg-card/80 p-3.5 rounded-lg border border-border/60 space-y-1.5">
               <p className="font-bold text-foreground flex items-center gap-1.5 text-xs">
-                <span className="h-5 w-5 rounded-full bg-[#2164b6]/10 text-[#2164b6] font-bold flex items-center justify-center text-[10px]">1</span>
+                <span className="h-5 w-5 rounded-full bg-[var(--shell-accent-solid)]/10 text-[var(--shell-accent)] font-bold flex items-center justify-center text-[10px]">1</span>
                 Connect Providers & API Keys
               </p>
               <p className="text-muted-foreground leading-relaxed">
@@ -523,7 +527,7 @@ export function AdminPaymentProvidersPage() {
 
             <div className="bg-card/80 p-3.5 rounded-lg border border-border/60 space-y-1.5">
               <p className="font-bold text-foreground flex items-center gap-1.5 text-xs">
-                <span className="h-5 w-5 rounded-full bg-[#2164b6]/10 text-[#2164b6] font-bold flex items-center justify-center text-[10px]">2</span>
+                <span className="h-5 w-5 rounded-full bg-[var(--shell-accent-solid)]/10 text-[var(--shell-accent)] font-bold flex items-center justify-center text-[10px]">2</span>
                 Dynamic Multi-Gateway Routing
               </p>
               <p className="text-muted-foreground leading-relaxed">
@@ -533,7 +537,7 @@ export function AdminPaymentProvidersPage() {
 
             <div className="bg-card/80 p-3.5 rounded-lg border border-border/60 space-y-1.5">
               <p className="font-bold text-foreground flex items-center gap-1.5 text-xs">
-                <span className="h-5 w-5 rounded-full bg-[#2164b6]/10 text-[#2164b6] font-bold flex items-center justify-center text-[10px]">3</span>
+                <span className="h-5 w-5 rounded-full bg-[var(--shell-accent-solid)]/10 text-[var(--shell-accent)] font-bold flex items-center justify-center text-[10px]">3</span>
                 Auto-Failover Circuit Breaker
               </p>
               <p className="text-muted-foreground leading-relaxed">
@@ -561,7 +565,7 @@ export function AdminPaymentProvidersPage() {
           <div className="bg-card border border-border/50 p-4 rounded-lg">
             <div className="flex items-center justify-between text-muted-foreground text-xs">
               <span>Platform Net Revenue</span>
-              <Zap weight="fill" className="h-4 w-4 text-[#2164b6]" />
+              <Zap weight="fill" className="h-4 w-4 text-[var(--shell-accent)]" />
             </div>
             <div className="text-xl font-black mt-2 text-foreground">
               {(stats.net_revenue_minor / 100).toLocaleString(undefined, { minimumFractionDigits: 2 })}
@@ -574,7 +578,7 @@ export function AdminPaymentProvidersPage() {
           <div className="bg-card border border-border/50 p-4 rounded-lg">
             <div className="flex items-center justify-between text-muted-foreground text-xs">
               <span>Active Providers</span>
-              <HardDrives weight="fill" className="h-4 w-4 text-blue-500" />
+              <HardDrives weight="fill" className="h-4 w-4 text-[var(--shell-accent)]" />
             </div>
             <div className="text-xl font-black mt-2 text-foreground">
               {providers.filter((p) => p.is_enabled).length} / {providers.length}
@@ -652,7 +656,7 @@ export function AdminPaymentProvidersPage() {
               return (
                 <div
                   key={p.code}
-                  className="bg-card border border-border/60 rounded-lg overflow-hidden flex flex-col justify-between hover:border-[#2164b6]/30 transition-all"
+                  className="bg-card border border-border/60 rounded-lg overflow-hidden flex flex-col justify-between hover:border-[var(--shell-accent)]/30 transition-all"
                 >
                   <div className="p-5 space-y-4">
                     <div className="flex items-center justify-between">
@@ -848,7 +852,7 @@ export function AdminPaymentProvidersPage() {
                 setRouteIsActive(true);
                 setRouteModalOpen(true);
               }}
-              className="text-xs bg-[#2164b6] hover:bg-[#1a5091] text-white font-bold"
+              className="text-xs bg-[var(--shell-accent-solid)] hover:bg-[var(--shell-accent-hover)] text-white font-bold"
             >
               <Plus weight="bold" className="h-3.5 w-3.5 mr-1" />
               Add Routing Rule
@@ -892,7 +896,7 @@ export function AdminPaymentProvidersPage() {
                     <div className="text-right text-xs">
                       <div className="text-muted-foreground">Primary: <b className="text-emerald-500">{r.primary_provider?.name ?? 'None'}</b></div>
                       <div className="text-muted-foreground">
-                        Fallback: {r.fallback_provider ? <b className="text-blue-400">{r.fallback_provider.name}</b> : 'None'}
+                        Fallback: {r.fallback_provider ? <b className="text-[var(--shell-accent)]">{r.fallback_provider.name}</b> : 'None'}
                       </div>
                     </div>
                     <div className="flex items-center gap-1">
@@ -933,8 +937,8 @@ export function AdminPaymentProvidersPage() {
 
           <div className="grid grid-cols-2 gap-4 text-xs">
             <div>
-              <label className="font-semibold block mb-1">Transaction Type</label>
-              <select
+              <label htmlFor="f--adminpaymentproviderspage-tsx-936" className="font-semibold block mb-1">Transaction Type</label>
+              <select id="f--adminpaymentproviderspage-tsx-936"
                 value={simType}
                 onChange={(e) => setSimType(e.target.value)}
                 className="w-full bg-background border border-border rounded-lg p-2 text-xs"
@@ -952,8 +956,8 @@ export function AdminPaymentProvidersPage() {
             </div>
 
             <div>
-              <label className="font-semibold block mb-1">Country (ISO 2 or * for all)</label>
-              <Input
+              <label htmlFor="f--adminpaymentproviderspage-tsx-955" className="font-semibold block mb-1">Country (ISO 2 or * for all)</label>
+              <Input id="f--adminpaymentproviderspage-tsx-955"
                 value={simCountry}
                 onChange={(e) => setSimCountry(e.target.value.toUpperCase())}
                 placeholder="NG, US, GB, KE, or *"
@@ -962,8 +966,8 @@ export function AdminPaymentProvidersPage() {
             </div>
 
             <div>
-              <label className="font-semibold block mb-1">Currency (ISO 3)</label>
-              <Input
+              <label htmlFor="f--adminpaymentproviderspage-tsx-965" className="font-semibold block mb-1">Currency (ISO 3)</label>
+              <Input id="f--adminpaymentproviderspage-tsx-965"
                 value={simCurrency}
                 onChange={(e) => setSimCurrency(e.target.value.toUpperCase())}
                 placeholder="NGN, USD, EUR, KES..."
@@ -972,8 +976,8 @@ export function AdminPaymentProvidersPage() {
             </div>
 
             <div>
-              <label className="font-semibold block mb-1">Payment Method</label>
-              <select
+              <label htmlFor="f--adminpaymentproviderspage-tsx-975" className="font-semibold block mb-1">Payment Method</label>
+              <select id="f--adminpaymentproviderspage-tsx-975"
                 value={simMethod}
                 onChange={(e) => setSimMethod(e.target.value)}
                 className="w-full bg-background border border-border rounded-lg p-2 text-xs"
@@ -987,8 +991,8 @@ export function AdminPaymentProvidersPage() {
             </div>
 
             <div className="col-span-2">
-              <label className="font-semibold block mb-1">Amount (in Minor Units e.g. 500000 = 5,000.00)</label>
-              <Input
+              <label htmlFor="f--adminpaymentproviderspage-tsx-990" className="font-semibold block mb-1">Amount (in Minor Units e.g. 500000 = 5,000.00)</label>
+              <Input id="f--adminpaymentproviderspage-tsx-990"
                 value={simAmount}
                 onChange={(e) => setSimAmount(e.target.value)}
                 placeholder="500000"
@@ -997,7 +1001,7 @@ export function AdminPaymentProvidersPage() {
             </div>
           </div>
 
-          <Button onClick={handleSimulate} disabled={simulating} className="w-full text-xs font-bold bg-[#2164b6] hover:bg-[#1a5091] text-white">
+          <Button onClick={handleSimulate} disabled={simulating} className="w-full text-xs font-bold bg-[var(--shell-accent-solid)] hover:bg-[var(--shell-accent-hover)] text-white">
             {simulating ? 'Evaluating Capabilities...' : 'Run Simulation'}
           </Button>
 
@@ -1045,8 +1049,8 @@ export function AdminPaymentProvidersPage() {
 
           <div className="space-y-3 py-2 text-xs">
             <div>
-              <label className="font-semibold block mb-1">Gateway Provider</label>
-              <select
+              <label htmlFor="f--adminpaymentproviderspage-tsx-1048" className="font-semibold block mb-1">Gateway Provider</label>
+              <select id="f--adminpaymentproviderspage-tsx-1048"
                 value={editingCode}
                 onChange={(e) => {
                   const code = e.target.value;
@@ -1070,8 +1074,8 @@ export function AdminPaymentProvidersPage() {
             </div>
 
             <div>
-              <label className="font-semibold block mb-1">Display Name</label>
-              <Input
+              <label htmlFor="f--adminpaymentproviderspage-tsx-1073" className="font-semibold block mb-1">Display Name</label>
+              <Input id="f--adminpaymentproviderspage-tsx-1073"
                 value={providerName}
                 onChange={(e) => setProviderName(e.target.value)}
                 placeholder="e.g. Paystack Payments"
@@ -1081,8 +1085,8 @@ export function AdminPaymentProvidersPage() {
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="font-semibold block mb-1">Environment Mode</label>
-                <select
+                <label htmlFor="f--adminpaymentproviderspage-tsx-1084" className="font-semibold block mb-1">Environment Mode</label>
+                <select id="f--adminpaymentproviderspage-tsx-1084"
                   value={providerEnv}
                   onChange={(e) => setProviderEnv(e.target.value)}
                   className="w-full bg-background border border-border rounded-lg p-2 text-xs"
@@ -1093,8 +1097,8 @@ export function AdminPaymentProvidersPage() {
               </div>
 
               <div>
-                <label className="font-semibold block mb-1">Priority (1-100)</label>
-                <Input
+                <label htmlFor="f--adminpaymentproviderspage-tsx-1096" className="font-semibold block mb-1">Priority (1-100)</label>
+                <Input id="f--adminpaymentproviderspage-tsx-1096"
                   type="number"
                   value={providerPriority}
                   onChange={(e) => setProviderPriority(parseInt(e.target.value, 10) || 10)}
@@ -1106,10 +1110,10 @@ export function AdminPaymentProvidersPage() {
             {/* Provider-specific Key Fields */}
             {(editingCode === 'paystack' || editingCode === 'flutterwave' || editingCode === 'stripe' || editingCode === 'custom') && (
               <div>
-                <label className="font-semibold block mb-1">
+                <label htmlFor="f--adminpaymentproviderspage-tsx-1109" className="font-semibold block mb-1">
                   Public Key / Publishable Key
                 </label>
-                <Input
+                <Input id="f--adminpaymentproviderspage-tsx-1109"
                   value={providerPublicKey}
                   onChange={(e) => setProviderPublicKey(e.target.value)}
                   placeholder={editingCode === 'paystack' ? 'pk_test_... or pk_live_...' : editingCode === 'flutterwave' ? 'FLWPUBK_...' : 'pk_...'}
@@ -1120,10 +1124,10 @@ export function AdminPaymentProvidersPage() {
 
             {(editingCode === 'paystack' || editingCode === 'flutterwave' || editingCode === 'stripe' || editingCode === 'custom') && (
               <div>
-                <label className="font-semibold block mb-1">
+                <label htmlFor="f--adminpaymentproviderspage-tsx-1123" className="font-semibold block mb-1">
                   Secret Key
                 </label>
-                <Input
+                <Input id="f--adminpaymentproviderspage-tsx-1123"
                   type="password"
                   value={providerSecretKey}
                   onChange={(e) => setProviderSecretKey(e.target.value)}
@@ -1135,10 +1139,10 @@ export function AdminPaymentProvidersPage() {
 
             {editingCode === 'flutterwave' && (
               <div>
-                <label className="font-semibold block mb-1">
+                <label htmlFor="f--adminpaymentproviderspage-tsx-1138" className="font-semibold block mb-1">
                   Encryption Key (optional)
                 </label>
-                <Input
+                <Input id="f--adminpaymentproviderspage-tsx-1138"
                   type="password"
                   value={providerEncryptionKey}
                   onChange={(e) => setProviderEncryptionKey(e.target.value)}
@@ -1154,8 +1158,8 @@ export function AdminPaymentProvidersPage() {
             {editingCode === 'airwallex' && (
               <>
                 <div>
-                  <label className="font-semibold block mb-1">Airwallex Client ID</label>
-                  <Input
+                  <label htmlFor="f--adminpaymentproviderspage-tsx-1157" className="font-semibold block mb-1">Airwallex Client ID</label>
+                  <Input id="f--adminpaymentproviderspage-tsx-1157"
                     value={providerClientId}
                     onChange={(e) => setProviderClientId(e.target.value)}
                     placeholder="Enter Airwallex Client ID"
@@ -1163,8 +1167,8 @@ export function AdminPaymentProvidersPage() {
                   />
                 </div>
                 <div>
-                  <label className="font-semibold block mb-1">Airwallex API Key</label>
-                  <Input
+                  <label htmlFor="f--adminpaymentproviderspage-tsx-1166" className="font-semibold block mb-1">Airwallex API Key</label>
+                  <Input id="f--adminpaymentproviderspage-tsx-1166"
                     type="password"
                     value={providerApiKey}
                     onChange={(e) => setProviderApiKey(e.target.value)}
@@ -1179,8 +1183,8 @@ export function AdminPaymentProvidersPage() {
               <>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="font-semibold block mb-1">Vendor ID</label>
-                    <Input
+                    <label htmlFor="f--adminpaymentproviderspage-tsx-1182" className="font-semibold block mb-1">Vendor ID</label>
+                    <Input id="f--adminpaymentproviderspage-tsx-1182"
                       value={providerVendorId}
                       onChange={(e) => setProviderVendorId(e.target.value)}
                       placeholder="Paddle vendor ID"
@@ -1188,8 +1192,8 @@ export function AdminPaymentProvidersPage() {
                     />
                   </div>
                   <div>
-                    <label className="font-semibold block mb-1">Client Token</label>
-                    <Input
+                    <label htmlFor="f--adminpaymentproviderspage-tsx-1191" className="font-semibold block mb-1">Client Token</label>
+                    <Input id="f--adminpaymentproviderspage-tsx-1191"
                       value={providerClientToken}
                       onChange={(e) => setProviderClientToken(e.target.value)}
                       placeholder="Paddle client-side token"
@@ -1198,8 +1202,8 @@ export function AdminPaymentProvidersPage() {
                   </div>
                 </div>
                 <div>
-                  <label className="font-semibold block mb-1">Paddle API Key (Server-to-Server)</label>
-                  <Input
+                  <label htmlFor="f--adminpaymentproviderspage-tsx-1201" className="font-semibold block mb-1">Paddle API Key (Server-to-Server)</label>
+                  <Input id="f--adminpaymentproviderspage-tsx-1201"
                     type="password"
                     value={providerApiKey}
                     onChange={(e) => setProviderApiKey(e.target.value)}
@@ -1208,8 +1212,8 @@ export function AdminPaymentProvidersPage() {
                   />
                 </div>
                 <div>
-                  <label className="font-semibold block mb-1">Webhook Public Key (Ed25519)</label>
-                  <Input
+                  <label htmlFor="f--adminpaymentproviderspage-tsx-1211" className="font-semibold block mb-1">Webhook Public Key (Ed25519)</label>
+                  <Input id="f--adminpaymentproviderspage-tsx-1211"
                     type="password"
                     value={providerWebhookPublicKey}
                     onChange={(e) => setProviderWebhookPublicKey(e.target.value)}
@@ -1221,8 +1225,8 @@ export function AdminPaymentProvidersPage() {
             )}
 
             <div>
-              <label className="font-semibold block mb-1">Webhook Secret (Optional)</label>
-              <Input
+              <label htmlFor="f--adminpaymentproviderspage-tsx-1224" className="font-semibold block mb-1">Webhook Secret (Optional)</label>
+              <Input id="f--adminpaymentproviderspage-tsx-1224"
                 type="password"
                 value={providerWebhookSecret}
                 onChange={(e) => setProviderWebhookSecret(e.target.value)}
@@ -1259,7 +1263,7 @@ export function AdminPaymentProvidersPage() {
               size="sm"
               onClick={handleSaveProvider}
               disabled={savingProvider}
-              className="bg-[#2164b6] hover:bg-[#1a5091] text-white font-bold"
+              className="bg-[var(--shell-accent-solid)] hover:bg-[var(--shell-accent-hover)] text-white font-bold"
             >
               {savingProvider ? 'Saving...' : 'Save & Activate'}
             </Button>
@@ -1275,7 +1279,7 @@ export function AdminPaymentProvidersPage() {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-base">
-              <Shuffle weight="fill" className="h-5 w-5 text-[#2164b6]" />
+              <Shuffle weight="fill" className="h-5 w-5 text-[var(--shell-accent)]" />
               {editingRouteId ? 'Edit Routing Rule' : 'New Dynamic Routing Rule'}
             </DialogTitle>
             <DialogDescription className="text-xs">
@@ -1287,8 +1291,8 @@ export function AdminPaymentProvidersPage() {
 
           <div className="space-y-3 py-2 text-xs">
             <div>
-              <label className="font-semibold block mb-1">Rule Name</label>
-              <Input
+              <label htmlFor="f--adminpaymentproviderspage-tsx-1290" className="font-semibold block mb-1">Rule Name</label>
+              <Input id="f--adminpaymentproviderspage-tsx-1290"
                 value={routeName}
                 onChange={(e) => setRouteName(e.target.value)}
                 placeholder="e.g. Nigeria Cards & Transfers"
@@ -1298,8 +1302,8 @@ export function AdminPaymentProvidersPage() {
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="font-semibold block mb-1">Transaction Type</label>
-                <select
+                <label htmlFor="f--adminpaymentproviderspage-tsx-1301" className="font-semibold block mb-1">Transaction Type</label>
+                <select id="f--adminpaymentproviderspage-tsx-1301"
                   value={routeTxType}
                   onChange={(e) => setRouteTxType(e.target.value)}
                   className="w-full bg-background border border-border rounded-lg p-2 text-xs"
@@ -1317,8 +1321,8 @@ export function AdminPaymentProvidersPage() {
               </div>
 
               <div>
-                <label className="font-semibold block mb-1">Currency (or * for all)</label>
-                <Input
+                <label htmlFor="f--adminpaymentproviderspage-tsx-1320" className="font-semibold block mb-1">Currency (or * for all)</label>
+                <Input id="f--adminpaymentproviderspage-tsx-1320"
                   value={routeCurrency}
                   onChange={(e) => setRouteCurrency(e.target.value.toUpperCase())}
                   placeholder="NGN, USD, KES, EUR, *"
@@ -1329,8 +1333,8 @@ export function AdminPaymentProvidersPage() {
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="font-semibold block mb-1">Country (ISO 2 or *)</label>
-                <Input
+                <label htmlFor="f--adminpaymentproviderspage-tsx-1332" className="font-semibold block mb-1">Country (ISO 2 or *)</label>
+                <Input id="f--adminpaymentproviderspage-tsx-1332"
                   value={routeCountry}
                   onChange={(e) => setRouteCountry(e.target.value.toUpperCase())}
                   placeholder="NG, US, KE, GB, *"
@@ -1339,8 +1343,8 @@ export function AdminPaymentProvidersPage() {
               </div>
 
               <div>
-                <label className="font-semibold block mb-1">Payment Method</label>
-                <select
+                <label htmlFor="f--adminpaymentproviderspage-tsx-1342" className="font-semibold block mb-1">Payment Method</label>
+                <select id="f--adminpaymentproviderspage-tsx-1342"
                   value={routeMethod}
                   onChange={(e) => setRouteMethod(e.target.value)}
                   className="w-full bg-background border border-border rounded-lg p-2 text-xs"
@@ -1357,8 +1361,8 @@ export function AdminPaymentProvidersPage() {
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="font-semibold block mb-1">Primary Gateway</label>
-                <select
+                <label htmlFor="f--adminpaymentproviderspage-tsx-1360" className="font-semibold block mb-1">Primary Gateway</label>
+                <select id="f--adminpaymentproviderspage-tsx-1360"
                   value={routePrimaryId}
                   onChange={(e) => setRoutePrimaryId(parseInt(e.target.value, 10))}
                   className="w-full bg-background border border-border rounded-lg p-2 text-xs font-medium"
@@ -1370,8 +1374,8 @@ export function AdminPaymentProvidersPage() {
               </div>
 
               <div>
-                <label className="font-semibold block mb-1">Fallback Gateway (Optional)</label>
-                <select
+                <label htmlFor="f--adminpaymentproviderspage-tsx-1373" className="font-semibold block mb-1">Fallback Gateway (Optional)</label>
+                <select id="f--adminpaymentproviderspage-tsx-1373"
                   value={routeFallbackId}
                   onChange={(e) => setRouteFallbackId(parseInt(e.target.value, 10))}
                   className="w-full bg-background border border-border rounded-lg p-2 text-xs"
@@ -1386,8 +1390,8 @@ export function AdminPaymentProvidersPage() {
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="font-semibold block mb-1">Priority Order (Lower = First)</label>
-                <Input
+                <label htmlFor="f--adminpaymentproviderspage-tsx-1389" className="font-semibold block mb-1">Priority Order (Lower = First)</label>
+                <Input id="f--adminpaymentproviderspage-tsx-1389"
                   type="number"
                   value={routePriority}
                   onChange={(e) => setRoutePriority(parseInt(e.target.value, 10) || 10)}
@@ -1397,8 +1401,8 @@ export function AdminPaymentProvidersPage() {
               </div>
 
               <div>
-                <label className="font-semibold block mb-1">Rule Status</label>
-                <select
+                <label htmlFor="f--adminpaymentproviderspage-tsx-1400" className="font-semibold block mb-1">Rule Status</label>
+                <select id="f--adminpaymentproviderspage-tsx-1400"
                   value={routeIsActive ? 'active' : 'inactive'}
                   onChange={(e) => setRouteIsActive(e.target.value === 'active')}
                   className="w-full bg-background border border-border rounded-lg p-2 text-xs font-medium"
@@ -1425,7 +1429,7 @@ export function AdminPaymentProvidersPage() {
               size="sm"
               onClick={handleSaveRoute}
               disabled={savingRoute}
-              className="bg-[#2164b6] hover:bg-[#1a5091] text-white font-bold"
+              className="bg-[var(--shell-accent-solid)] hover:bg-[var(--shell-accent-hover)] text-white font-bold"
             >
               {savingRoute ? 'Saving...' : editingRouteId ? 'Update Routing Rule' : 'Create Routing Rule'}
             </Button>

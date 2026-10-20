@@ -99,7 +99,9 @@ export const vendorNav: NavGroup[] = [
       },
       {
         title: "Ads Manager",
-        url: "/app/ads",
+        url: "",
+        external: "ads-manager",
+        description: "Sign in with your MurihSpace account on the Ads Manager site. Opens in a new tab.",
         icon: <Megaphone weight="fill" className="h-5 w-5" />,
       },
     ],

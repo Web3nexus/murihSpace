@@ -1,7 +1,9 @@
+import { logger } from "@/lib/logger";
+import { asApiError } from "@/lib/apiError";
 import * as React from "react";
 import { useParams, useNavigate, Link } from "react-router";
 import { N3User as UsersThree, Discovery as Globe, Lock, ShieldDone as ShieldCheck, Setting as Gear, Chat as ChatCircleDots, N2User as Users, InfoSquare as Info, AddUser as UserPlus, TickSquare as Check, Delete as Trash, TimeCircle as Hourglass, ArrowLeft, Location as MapPin, DangerTriangle as Warning, Profile as UserIcon, Search as MagnifyingGlass, Send as PaperPlaneTilt } from "@/components/icons";
-import { Newspaper, Copy, SpinnerGap, ShareNetwork, Sparkle } from "@/components/icons/rounded";;
+import { Newspaper, Copy, SpinnerGap, ShareNetwork, Medal } from "@/components/icons/rounded";;
 import { useAuth } from "@/hooks/useAuth";
 import { apiClient } from "@/lib/api/client";
 import { Button } from "@/components/ui/button";
@@ -102,123 +104,127 @@ export function GroupDetailPage() {
   );
 
   // Fetch Group Data
-  const fetchGroup = React.useCallback(async () => {
-    if (!slug) return;
-    try {
-      setLoading(true);
-      setError(null);
-      const res = await apiClient.get(`/groups/${slug}`);
-      const raw = res.data;
-
-      // Extract cleanly across any wrapping layer
-      const data: Group | null =
-        raw?.data?.data && typeof raw.data.data === "object" && raw.data.data.slug
-          ? raw.data.data
-          : raw?.data && typeof raw.data === "object" && raw.data.slug
-          ? raw.data
-          : raw?.group && typeof raw.group === "object" && raw.group.slug
-          ? raw.group
-          : raw?.slug
-          ? raw
-          : null;
-
-      if (!data) {
-        throw new Error(raw?.message || "Group not found or unavailable.");
-      }
-
-      setGroup(data);
-      setSettingsForm({
-        name: data.name || "",
-        description: data.description || "",
-        category: data.category || "General",
-        privacy: data.privacy || "public",
-        avatar_url: data.avatar_url || "",
-        cover_url: data.cover_url || "",
-        rules: data.rules || "",
-        who_can_post: data.settings?.who_can_post || "all_members",
-        who_can_chat: data.settings?.who_can_chat || "all_members",
-        who_can_invite: data.settings?.who_can_invite || "all_members",
-      });
-    } catch (err: any) {
-      setError(err.response?.data?.message || err.message || "Failed to load group.");
-    } finally {
-      setLoading(false);
-    }
-  }, [slug]);
+  const [groupReloadKey, setGroupReloadKey] = React.useState(0);
+  const fetchGroup = () => setGroupReloadKey((k) => k + 1);
 
   React.useEffect(() => {
-    fetchGroup();
-  }, [fetchGroup]);
+    (async () => {
+      if (!slug) return;
+      try {
+        setLoading(true);
+        setError(null);
+        const res = await apiClient.get(`/groups/${slug}`);
+        const raw = res.data;
+
+        // Extract cleanly across any wrapping layer
+        const data: Group | null =
+          raw?.data?.data && typeof raw.data.data === "object" && raw.data.data.slug
+            ? raw.data.data
+            : raw?.data && typeof raw.data === "object" && raw.data.slug
+            ? raw.data
+            : raw?.group && typeof raw.group === "object" && raw.group.slug
+            ? raw.group
+            : raw?.slug
+            ? raw
+            : null;
+
+        if (!data) {
+          throw new Error(raw?.message || "Group not found or unavailable.");
+        }
+
+        setGroup(data);
+        setSettingsForm({
+          name: data.name || "",
+          description: data.description || "",
+          category: data.category || "General",
+          privacy: data.privacy || "public",
+          avatar_url: data.avatar_url || "",
+          cover_url: data.cover_url || "",
+          rules: data.rules || "",
+          who_can_post: data.settings?.who_can_post || "all_members",
+          who_can_chat: data.settings?.who_can_chat || "all_members",
+          who_can_invite: data.settings?.who_can_invite || "all_members",
+        });
+      } catch (err: unknown) {
+        const apiErr = asApiError(err);
+        setError(apiErr.response?.data?.message || apiErr.message || "Failed to load group.");
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [slug, groupReloadKey]);
 
   // Fetch Feed Posts
-  const fetchPosts = React.useCallback(async () => {
-    if (!group) return;
-    try {
-      setLoadingFeed(true);
-      const res = await apiClient.get(`/groups/${group.id}/posts`);
-      const raw = res.data;
-      const list = Array.isArray(raw)
-        ? raw
-        : Array.isArray(raw?.data)
-        ? raw.data
-        : Array.isArray(raw?.data?.data)
-        ? raw.data.data
-        : [];
-      setPosts(list);
-    } catch (err) {
-      console.error("Failed to load group posts", err);
-      setPosts([]);
-    } finally {
-      setLoadingFeed(false);
-    }
-  }, [group]);
+  const [postsReloadKey, setPostsReloadKey] = React.useState(0);
+  const fetchPosts = () => setPostsReloadKey((k) => k + 1);
 
   React.useEffect(() => {
     if (activeTab === "feed" && group?.id) {
-      fetchPosts();
+      (async () => {
+        if (!group) return;
+        try {
+          setLoadingFeed(true);
+          const res = await apiClient.get(`/groups/${group.id}/posts`);
+          const raw = res.data;
+          const list = Array.isArray(raw)
+            ? raw
+            : Array.isArray(raw?.data)
+            ? raw.data
+            : Array.isArray(raw?.data?.data)
+            ? raw.data.data
+            : [];
+          setPosts(list);
+        } catch (err) {
+          logger.error("Failed to load group posts", err);
+          setPosts([]);
+        } finally {
+          setLoadingFeed(false);
+        }
+      })();
     }
-  }, [activeTab, group?.id, fetchPosts]);
+  }, [activeTab, group?.id, group, postsReloadKey]);
 
   // Fetch Members & Join Requests
-  const fetchMembers = React.useCallback(async () => {
-    if (!group) return;
-    try {
-      setLoadingMembers(true);
-      const res = await apiClient.get(`/groups/${group.id}/members`);
-      const raw = res.data;
-      const list = Array.isArray(raw)
-        ? raw
-        : Array.isArray(raw?.data)
-        ? raw.data
-        : Array.isArray(raw?.data?.data)
-        ? raw.data.data
-        : [];
-      setMembers(list);
-
-      if (group.is_admin_or_owner) {
-        const reqRes = await apiClient.get(`/groups/${group.id}/join-requests`);
-        const reqRaw = reqRes.data;
-        const reqList = Array.isArray(reqRaw)
-          ? reqRaw
-          : Array.isArray(reqRaw?.data)
-          ? reqRaw.data
-          : Array.isArray(reqRaw?.data?.data)
-          ? reqRaw.data.data
-          : [];
-        setJoinRequests(reqList);
-      }
-    } catch (err) {
-      console.error("Failed to load members", err);
-    } finally {
-      setLoadingMembers(false);
-    }
-  }, [group]);
+  const [membersReloadKey, setMembersReloadKey] = React.useState(0);
+  const fetchMembers = () => setMembersReloadKey((k) => k + 1);
 
   React.useEffect(() => {
     if (activeTab === "members" && group?.id) {
-      fetchMembers();
+      (async () => {
+        if (!group) return;
+        try {
+          setLoadingMembers(true);
+          const res = await apiClient.get(`/groups/${group.id}/members`);
+          const raw = res.data;
+          const list = Array.isArray(raw)
+            ? raw
+            : Array.isArray(raw?.data)
+            ? raw.data
+            : Array.isArray(raw?.data?.data)
+            ? raw.data.data
+            : [];
+          setMembers(list);
+
+          if (group.is_admin_or_owner) {
+            const reqRes = await apiClient.get(`/groups/${group.id}/join-requests`);
+            const reqRaw = reqRes.data;
+            const reqList = Array.isArray(reqRaw)
+              ? reqRaw
+              : Array.isArray(reqRaw?.data)
+              ? reqRaw.data
+              : Array.isArray(reqRaw?.data?.data)
+              ? reqRaw.data.data
+              : [];
+            setJoinRequests(reqList);
+          }
+        } catch (err) {
+          logger.error("Failed to load members", err);
+        } finally {
+          setLoadingMembers(false);
+        }
+      })();
     }
-  }, [activeTab, group?.id, fetchMembers]);
+  }, [activeTab, group?.id, group, membersReloadKey]);
 
   // Handle Share Group
   const handleShareGroup = () => {
@@ -239,8 +245,9 @@ export function GroupDetailPage() {
       } else {
         setGroup((prev) => (prev ? { ...prev, has_pending_request: true } : prev));
       }
-    } catch (err: any) {
-      alert(err.response?.data?.error || err.response?.data?.message || "Failed to join group.");
+    } catch (err: unknown) {
+      const apiErr = asApiError(err);
+      alert(apiErr.response?.data?.error || apiErr.response?.data?.message || "Failed to join group.");
     } finally {
       setActionLoading(false);
     }
@@ -254,8 +261,9 @@ export function GroupDetailPage() {
       setActionLoading(true);
       await apiClient.post(`/groups/${group.id}/leave`);
       fetchGroup();
-    } catch (err: any) {
-      alert(err.response?.data?.error || err.response?.data?.message || "Failed to leave group.");
+    } catch (err: unknown) {
+      const apiErr = asApiError(err);
+      alert(apiErr.response?.data?.error || apiErr.response?.data?.message || "Failed to leave group.");
     } finally {
       setActionLoading(false);
     }
@@ -272,7 +280,7 @@ export function GroupDetailPage() {
       const link = raw?.invite_url || raw?.data?.invite_url || raw?.url || raw?.data?.url;
       setInviteUrl(link || null);
     } catch (err) {
-      console.error("Failed to fetch invite link", err);
+      logger.error("Failed to fetch invite link", err);
     }
   };
 
@@ -289,10 +297,11 @@ export function GroupDetailPage() {
       const successMsg = res.data?.message || res.data?.data?.message || "Invitation sent successfully!";
       setInviteStatus(successMsg);
       setInviteUsername("");
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const apiErr = asApiError(err);
       setInviteStatus(
-        err.response?.data?.error ||
-        err.response?.data?.message ||
+        apiErr.response?.data?.error ||
+        apiErr.response?.data?.message ||
         "Failed to send invitation."
       );
     }
@@ -319,8 +328,9 @@ export function GroupDetailPage() {
       setNewPostContent("");
       setNewPostType("post");
       fetchPosts();
-    } catch (err: any) {
-      alert(err.response?.data?.error || "Failed to create post.");
+    } catch (err: unknown) {
+      const apiErr = asApiError(err);
+      alert(apiErr.response?.data?.error || "Failed to create post.");
     } finally {
       setSubmittingPost(false);
     }
@@ -334,8 +344,9 @@ export function GroupDetailPage() {
       setJoinRequests((prev) => prev.filter((r) => r.id !== requestId));
       fetchMembers();
       fetchGroup();
-    } catch (err: any) {
-      alert(err.response?.data?.error || "Failed to process request.");
+    } catch (err: unknown) {
+      const apiErr = asApiError(err);
+      alert(apiErr.response?.data?.error || "Failed to process request.");
     }
   };
 
@@ -345,8 +356,9 @@ export function GroupDetailPage() {
     try {
       await apiClient.put(`/groups/${group.id}/members/${memberId}/role`, { role: newRole });
       fetchMembers();
-    } catch (err: any) {
-      alert(err.response?.data?.error || "Failed to update role.");
+    } catch (err: unknown) {
+      const apiErr = asApiError(err);
+      alert(apiErr.response?.data?.error || "Failed to update role.");
     }
   };
 
@@ -357,8 +369,9 @@ export function GroupDetailPage() {
       await apiClient.delete(`/groups/${group.id}/members/${memberId}?ban=${ban ? 1 : 0}`);
       fetchMembers();
       fetchGroup();
-    } catch (err: any) {
-      alert(err.response?.data?.error || "Failed to remove member.");
+    } catch (err: unknown) {
+      const apiErr = asApiError(err);
+      alert(apiErr.response?.data?.error || "Failed to remove member.");
     }
   };
 
@@ -388,8 +401,9 @@ export function GroupDetailPage() {
       setSettingsSuccess(true);
       fetchGroup();
       setTimeout(() => setSettingsSuccess(false), 3000);
-    } catch (err: any) {
-      alert(err.response?.data?.error || "Failed to save settings.");
+    } catch (err: unknown) {
+      const apiErr = asApiError(err);
+      alert(apiErr.response?.data?.error || "Failed to save settings.");
     } finally {
       setSavingSettings(false);
     }
@@ -406,8 +420,9 @@ export function GroupDetailPage() {
     try {
       await apiClient.delete(`/groups/${group.id}`);
       navigate("/app/groups");
-    } catch (err: any) {
-      alert(err.response?.data?.error || "Failed to delete group.");
+    } catch (err: unknown) {
+      const apiErr = asApiError(err);
+      alert(apiErr.response?.data?.error || "Failed to delete group.");
     }
   };
 
@@ -767,9 +782,9 @@ export function GroupDetailPage() {
                   >
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-2xl bg-primary/10 overflow-hidden flex items-center justify-center font-bold text-primary flex-shrink-0">
-                        {(user as any)?.avatar ? (
+                        {user?.avatar ? (
                           <img
-                            src={(user as any).avatar}
+                            src={user?.avatar}
                             alt={user?.name}
                             className="w-full h-full object-cover"
                           />
@@ -785,7 +800,7 @@ export function GroupDetailPage() {
                       {group.is_admin_or_owner && (
                         <select
                           value={newPostType}
-                          onChange={(e) => setNewPostType(e.target.value as any)}
+                          onChange={(e) => setNewPostType(e.target.value as "post" | "announcement")}
                           className="text-xs rounded-xl bg-muted border border-border/80 px-2.5 py-1 font-semibold focus:outline-none"
                         >
                           <option value="post">Standard Post</option>
@@ -804,7 +819,7 @@ export function GroupDetailPage() {
 
                     <div className="flex items-center justify-between pt-1">
                       <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                        <Sparkle className="h-3.5 w-3.5 text-primary" />
+                        <Medal className="h-3.5 w-3.5 text-primary" />
                         <span>Visible to group members</span>
                       </div>
                       <Button
@@ -1019,7 +1034,7 @@ export function GroupDetailPage() {
                           {group.is_admin_or_owner && m.role !== "owner" ? (
                             <select
                               value={m.role}
-                              onChange={(e) => handleMemberRole(m.id, e.target.value as any)}
+                              onChange={(e) => handleMemberRole(m.id, e.target.value as "admin" | "moderator" | "member")}
                               className="text-[10px] uppercase font-bold px-2 py-1 rounded-lg bg-muted border border-border/80 text-foreground cursor-pointer focus:outline-none"
                             >
                               <option value="member">Member</option>
@@ -1153,7 +1168,7 @@ export function GroupDetailPage() {
                     <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Who can post in feed?</Label>
                     <select
                       value={settingsForm.who_can_post}
-                      onChange={(e) => setSettingsForm({ ...settingsForm, who_can_post: e.target.value as any })}
+                      onChange={(e) => setSettingsForm({ ...settingsForm, who_can_post: e.target.value as "all_members" | "admins_only" })}
                       className="w-full h-11 rounded-2xl bg-background border border-border px-3 text-xs focus:outline-none"
                     >
                       <option value="all_members">All active members</option>
@@ -1165,7 +1180,7 @@ export function GroupDetailPage() {
                     <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Who can chat?</Label>
                     <select
                       value={settingsForm.who_can_chat}
-                      onChange={(e) => setSettingsForm({ ...settingsForm, who_can_chat: e.target.value as any })}
+                      onChange={(e) => setSettingsForm({ ...settingsForm, who_can_chat: e.target.value as "all_members" | "admins_only" })}
                       className="w-full h-11 rounded-2xl bg-background border border-border px-3 text-xs focus:outline-none"
                     >
                       <option value="all_members">All active members</option>
@@ -1361,7 +1376,7 @@ export function GroupDetailPage() {
               </Label>
               <select
                 value={settingsForm.who_can_post}
-                onChange={(e) => setSettingsForm({ ...settingsForm, who_can_post: e.target.value as any })}
+                onChange={(e) => setSettingsForm({ ...settingsForm, who_can_post: e.target.value as "all_members" | "admins_only" })}
                 className="w-full h-11 rounded-2xl bg-background border border-border px-3 text-xs focus:outline-none"
               >
                 <option value="all_members">All active members</option>
@@ -1375,7 +1390,7 @@ export function GroupDetailPage() {
               </Label>
               <select
                 value={settingsForm.who_can_chat}
-                onChange={(e) => setSettingsForm({ ...settingsForm, who_can_chat: e.target.value as any })}
+                onChange={(e) => setSettingsForm({ ...settingsForm, who_can_chat: e.target.value as "all_members" | "admins_only" })}
                 className="w-full h-11 rounded-2xl bg-background border border-border px-3 text-xs focus:outline-none"
               >
                 <option value="all_members">All active members</option>

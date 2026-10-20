@@ -14,18 +14,9 @@ export function OpenInAppBanner({
   title = "Open in MurihSpace App",
   subtitle = "Experience full features, live chat, and audio rooms in the app",
 }: OpenInAppBannerProps) {
-  const [isMobile, setIsMobile] = React.useState(false);
-  const [isDismissed, setIsDismissed] = React.useState(true);
-
-  React.useEffect(() => {
-    // Only show on actual mobile devices (iOS / Android)
-    const ua = navigator.userAgent || "";
-    const mobileMatch = /Android|iPhone|iPad|iPod/i.test(ua);
-    const dismissed = sessionStorage.getItem("murihspace_dismiss_app_banner") === "1";
-
-    setIsMobile(mobileMatch);
-    setIsDismissed(dismissed);
-  }, []);
+  // Only show on actual mobile devices (iOS / Android). Read once at mount.
+  const [isMobile] = React.useState(() => /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || ""));
+  const [isDismissed, setIsDismissed] = React.useState(() => sessionStorage.getItem("murihspace_dismiss_app_banner") === "1");
 
   if (!isMobile || isDismissed) {
     return null;
@@ -42,7 +33,7 @@ export function OpenInAppBanner({
   };
 
   return (
-    <div className="relative z-50 bg-gradient-to-r from-[#102840] via-[#173852] to-[#2164b6] text-white px-4 py-2.5  flex items-center justify-between gap-3 border-b border-white/10">
+    <div className="relative z-50 bg-gradient-to-r from-[#102840] via-[#173852] to-[var(--shell-accent-solid)] text-white px-4 py-2.5  flex items-center justify-between gap-3 border-b border-white/10">
       <div className="flex items-center gap-3 min-w-0">
         <div className="h-9 w-9 rounded-lg bg-white/10 border border-white/20 flex items-center justify-center shrink-0 shadow-inner">
           <Smartphone weight="fill" className="h-5 w-5 text-white" />

@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
+import { logger } from "@/lib/logger";
+import { useState, useEffect } from "react";
 import { Plus, Swap as RefreshCw, Setting as Sliders, Edit as Pencil, Delete as Trash2 } from "@/components/icons";
 import { Receipt, ToggleLeft, ToggleRight, Spinner } from "@/components/icons/rounded";;
 import { toast } from "sonner";
@@ -69,30 +70,34 @@ export function AdminFeeManagementPage() {
   const [walletType, setWalletType] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("");
 
-  const fetchRules = useCallback(async () => {
+  const [fetchRulesKey, setFetchRulesKey] = useState(0);
+  const fetchRules = () => {
     setLoading(true);
-    try {
-      const res = await authFetch("/securegate/fees");
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        console.error("Fees error:", res.status, err);
-        toast.error(err.message || `Failed to load platform fee rules (${res.status}).`);
-        return;
-      }
-      const json = await res.json();
-      const list = Array.isArray(json?.data) ? json.data : Array.isArray(json?.data?.data) ? json.data.data : Array.isArray(json) ? json : [];
-      setRules(list);
-    } catch (e) {
-      console.error("Network error loading fee rules:", e);
-      toast.error("Network error loading platform fee rules.");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+    setFetchRulesKey((k) => k + 1);
+  };
 
   useEffect(() => {
-    fetchRules();
-  }, [fetchRules]);
+    (async () => {
+      try {
+        const res = await authFetch("/securegate/fees");
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          logger.error("Fees error:", { status: res.status, error: err });
+          toast.error(err.message || `Failed to load platform fee rules (${res.status}).`);
+          return;
+        }
+        const json = await res.json();
+        const list = Array.isArray(json?.data) ? json.data : Array.isArray(json?.data?.data) ? json.data.data : Array.isArray(json) ? json : [];
+        setRules(list);
+      } catch (e) {
+        logger.error("Network error loading fee rules:", e);
+        toast.error("Network error loading platform fee rules.");
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [fetchRulesKey]);
+
 
   const handleOpenAdd = () => {
     setEditingRule(null);
@@ -224,7 +229,7 @@ export function AdminFeeManagementPage() {
       {/* Header Banner */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 sm:p-6 rounded-2xl bg-gradient-to-br from-[#102840] via-[#173852] to-[#102840] text-white shadow-xl border border-white/10">
         <div className="space-y-1.5">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#2164b6]/30 text-[#7ab0ff] text-xs font-bold uppercase tracking-wider border border-[#2164b6]/40">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[var(--shell-accent-solid)]/30 text-[var(--shell-accent)] text-xs font-bold uppercase tracking-wider border border-[var(--shell-accent)]/40">
             <Receipt weight="fill" className="h-3.5 w-3.5" /> Platform Fees & Charges
           </div>
           <h1 className="text-2xl sm:text-3xl font-black tracking-tight">Platform Fee Rules Management</h1>
@@ -245,7 +250,7 @@ export function AdminFeeManagementPage() {
           </Button>
           <Button
             onClick={handleOpenAdd}
-            className="bg-[#2164b6] hover:bg-[#2d94c2] text-white font-bold h-11 px-5 rounded-xl shadow-md transition-all gap-2"
+            className="bg-[var(--shell-accent-solid)] hover:bg-[#2d94c2] text-white font-bold h-11 px-5 rounded-xl shadow-md transition-all gap-2"
           >
             <Plus weight="bold" className="h-4 w-4" /> Add Fee Rule
           </Button>
@@ -255,7 +260,7 @@ export function AdminFeeManagementPage() {
       {/* KPI Stats Summary Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
         <div className="rounded-2xl border border-border/40 bg-card p-4 text-center shadow-sm hover:border-primary/40 transition-all">
-          <p className="text-2xl sm:text-3xl font-black text-[#2164b6] dark:text-[#7ab0ff]">{rules.length}</p>
+          <p className="text-2xl sm:text-3xl font-black text-[var(--shell-accent)] dark:text-[var(--shell-accent)]">{rules.length}</p>
           <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mt-1">Total Fee Rules</p>
         </div>
 
@@ -265,7 +270,7 @@ export function AdminFeeManagementPage() {
         </div>
 
         <div className="rounded-2xl border border-border/40 bg-card p-4 text-center shadow-sm hover:border-primary/40 transition-all">
-          <p className="text-2xl sm:text-3xl font-black text-blue-500">{depositRulesCount}</p>
+          <p className="text-2xl sm:text-3xl font-black text-[var(--shell-accent)]">{depositRulesCount}</p>
           <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mt-1">Deposit & Inflow</p>
         </div>
 
@@ -283,7 +288,7 @@ export function AdminFeeManagementPage() {
             onClick={() => setFilterCategory(cat)}
             className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all whitespace-nowrap ${
               filterCategory === cat
-                ? "bg-[#2164b6] text-white shadow-md"
+                ? "bg-[var(--shell-accent-solid)] text-white shadow-md"
                 : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
             }`}
           >
@@ -343,7 +348,7 @@ export function AdminFeeManagementPage() {
 
                     <td className="px-4 py-3.5 text-xs font-bold">
                       {rule.fee_type === "fixed" && (
-                        <span className="px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-500 border border-blue-500/20">
+                        <span className="px-2 py-0.5 rounded-md bg-[var(--shell-accent-solid)]/10 text-[var(--shell-accent)] border border-[var(--shell-accent)]/20">
                           {currencySymbol(rule.currency)}{(rule.fixed_amount / 100).toFixed(2)} Fixed
                         </span>
                       )}
@@ -628,7 +633,7 @@ export function AdminFeeManagementPage() {
               <Button
                 type="submit"
                 disabled={submitting || !name || !code}
-                className="bg-[#2164b6] hover:bg-[#2d94c2] text-white font-bold rounded-xl h-10 px-5"
+                className="bg-[var(--shell-accent-solid)] hover:bg-[#2d94c2] text-white font-bold rounded-xl h-10 px-5"
               >
                 {submitting ? <Spinner weight="bold" className="h-4 w-4 mr-2 animate-spin" /> : null}
                 Save Rule

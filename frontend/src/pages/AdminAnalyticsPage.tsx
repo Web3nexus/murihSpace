@@ -24,6 +24,37 @@ const CURRENCY_SYMBOLS: Record<string, string> = {
 
 const SUPPORTED_CURRENCIES = ["NGN", "USD", "GBP", "EUR", "GHS", "KES", "ZAR", "XOF"];
 
+/** Analytics overview payload (summary cards). */
+interface AnalyticsOverview {
+  users?: { total?: number; members?: number; creators?: number; verified_kyc?: number; pending_kyc?: number };
+  wallet?: { user_balances?: number; platform_balance?: number };
+  subscriptions?: { total_plans?: number; active_plans?: number };
+  revenue?: { mrr?: number; digital_revenue?: number; digital_orders?: number; active_subscriptions?: number };
+  content?: { physical_products?: number; published_products?: number; public_communities?: number; digital_products?: number; communities?: number };
+}
+
+/** Analytics tab payload (growth, revenue, top content). */
+interface AnalyticsData {
+  total_users?: number;
+  new_users_30d?: number;
+  signups_by_day?: { date: string; count: number }[];
+  role_breakdown?: { role: string; count: number | string }[];
+  kyc_stats?: { verified?: number; pending?: number; none?: number };
+  revenue_trend?: { date: string; amount: number | string }[];
+  revenue_by_source?: Record<string, number | string>;
+  platform_fees?: number;
+  digital_revenue?: number;
+  digital_orders?: number;
+  mrr?: number;
+  active_subscriptions?: number;
+  pending_payouts?: number;
+  active_creators?: number;
+  gmv_30d?: number;
+  top_digital_products?: { id: number; title: string; sales_count?: number }[];
+  top_creators?: { id: number; name: string; username?: string; subscriber_count?: number; product_count?: number }[];
+  top_communities?: { id: number; name: string; members_count?: number; category?: string }[];
+}
+
 function formatAmount(cents: number, currency = "NGN"): string {
   const sym = CURRENCY_SYMBOLS[currency] ?? currency + " ";
   return (sym + (cents / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
@@ -61,7 +92,7 @@ function TabButton({ active, onClick, children }: { active: boolean; onClick: ()
     <button
       onClick={onClick}
       className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${
-        active ? "bg-[#2164b6]/10 text-[#2164b6] dark:text-[#7ab0ff] " : "text-muted-foreground hover:text-foreground hover:bg-muted"
+        active ? "bg-[var(--shell-accent-solid)]/10 text-[var(--shell-accent)] dark:text-[var(--shell-accent)] " : "text-muted-foreground hover:text-foreground hover:bg-muted"
       }`}
     >
       {children}
@@ -77,10 +108,10 @@ export function AdminAnalyticsPage() {
     ["overview", "growth", "revenue", "content"].includes(pathTab) ? pathTab as "overview" | "growth" | "revenue" | "content" : "overview"
   );
 
-  const [overview, setOverview] = useState<any>(null);
-  const [topContent, setTopContent] = useState<any>(null);
-  const [growth, setGrowth] = useState<any>(null);
-  const [revenue, setRevenue] = useState<any>(null);
+  const [overview, setOverview] = useState<AnalyticsOverview | null>(null);
+  const [topContent, setTopContent] = useState<AnalyticsData | null>(null);
+  const [growth, setGrowth] = useState<AnalyticsData | null>(null);
+  const [revenue, setRevenue] = useState<AnalyticsData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [currency, setCurrency] = useState<string>("NGN");
@@ -128,7 +159,7 @@ export function AdminAnalyticsPage() {
   if (isLoading && loadingCurrency) {
     return (
       <div className="w-full flex items-center justify-center h-64">
-        <Loader2 weight="fill" className="w-6 h-6 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" />
+        <Loader2 weight="fill" className="w-6 h-6 animate-spin text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" />
       </div>
     );
   }
@@ -150,7 +181,7 @@ export function AdminAnalyticsPage() {
     <div className="w-full mx-auto max-w-[1400px] space-y-6 p-4 lg:p-10">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 sm:p-5 rounded-lg bg-gradient-to-br from-[#102840] via-[#173852] to-[#102840] text-white shadow-lg">
         <div className="space-y-1.5">
-          <span className="px-2.5 py-0.5 rounded-full bg-[#2164b6]/20 text-[#2164b6] dark:text-[#7ab0ff] text-xs font-semibold uppercase tracking-wider border border-[#2164b6]/30">
+          <span className="px-2.5 py-0.5 rounded-full bg-[var(--shell-accent-solid)]/20 text-[var(--shell-accent)] dark:text-[var(--shell-accent)] text-xs font-semibold uppercase tracking-wider border border-[var(--shell-accent)]/30">
             Admin
           </span>
           <h1 className="text-xl sm:text-xl font-extrabold tracking-tight">Platform Analytics</h1>
@@ -167,7 +198,7 @@ export function AdminAnalyticsPage() {
               aria-label="Analytics currency"
             >
               {SUPPORTED_CURRENCIES.map((c) => (
-                <option key={c} value={c} className="text-slate-900">{c} — {CURRENCY_SYMBOLS[c]}</option>
+                <option key={c} value={c} className="text-[var(--shell-text)]">{c} — {CURRENCY_SYMBOLS[c]}</option>
               ))}
             </select>
           </div>
@@ -205,7 +236,7 @@ export function AdminAnalyticsPage() {
   );
 }
 
-function OverviewTab({ overview, topContent, currency }: { overview: any; topContent: any; currency: string }) {
+function OverviewTab({ overview, topContent, currency }: { overview: AnalyticsOverview | null; topContent: AnalyticsData | null; currency: string }) {
   const stats = [
     { label: "Total Users", value: compact(overview?.users?.total ?? 0), sub: `${compact(overview?.users?.creators ?? 0)} creators \u00B7 ${compact(overview?.users?.members ?? 0)} members`, icon: <Users weight="fill" className="h-4 w-4" /> },
     { label: "Digital Revenue", value: formatAmount(overview?.revenue?.digital_revenue ?? 0, currency), sub: `${overview?.revenue?.digital_orders ?? 0} orders`, icon: <DollarSign weight="fill" className="h-4 w-4" /> },
@@ -227,10 +258,10 @@ function OverviewTab({ overview, topContent, currency }: { overview: any; topCon
         {Array.isArray(topContent?.top_digital_products) && topContent.top_digital_products.length > 0 && (
           <div className="rounded-lg border-none bg-card p-5">
             <h3 className="font-semibold text-sm text-foreground mb-3 flex items-center gap-2">
-              <ShoppingBag weight="fill" className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" /> Top Digital Products
+              <ShoppingBag weight="fill" className="h-4 w-4 text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" /> Top Digital Products
             </h3>
             <div className="space-y-2.5">
-              {topContent.top_digital_products.slice(0, 5).map((p: any, i: number) => (
+              {topContent.top_digital_products.slice(0, 5).map((p, i: number) => (
                 <div key={p.id} className="flex items-center justify-between text-sm">
                   <div className="flex items-center gap-2 min-w-0">
                     <span className="text-[10px] font-bold text-muted-foreground w-4 shrink-0">#{i + 1}</span>
@@ -246,10 +277,10 @@ function OverviewTab({ overview, topContent, currency }: { overview: any; topCon
         {Array.isArray(topContent?.top_creators) && topContent.top_creators.length > 0 && (
           <div className="rounded-lg border-none bg-card p-5">
             <h3 className="font-semibold text-sm text-foreground mb-3 flex items-center gap-2">
-              <Crown weight="fill" className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" /> Top Creators
+              <Crown weight="fill" className="h-4 w-4 text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" /> Top Creators
             </h3>
             <div className="space-y-2.5">
-              {topContent.top_creators.slice(0, 5).map((c: any, i: number) => (
+              {topContent.top_creators.slice(0, 5).map((c, i: number) => (
                 <div key={c.id} className="flex items-center justify-between text-sm">
                   <div className="flex items-center gap-2 min-w-0">
                     <span className="text-[10px] font-bold text-muted-foreground w-4 shrink-0">#{i + 1}</span>
@@ -265,10 +296,10 @@ function OverviewTab({ overview, topContent, currency }: { overview: any; topCon
         {Array.isArray(topContent?.top_communities) && topContent.top_communities.length > 0 && (
           <div className="rounded-lg border-none bg-card p-5">
             <h3 className="font-semibold text-sm text-foreground mb-3 flex items-center gap-2">
-              <Globe weight="fill" className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" /> Top Communities
+              <Globe weight="fill" className="h-4 w-4 text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" /> Top Communities
             </h3>
             <div className="space-y-2.5">
-              {topContent.top_communities.slice(0, 5).map((c: any, i: number) => (
+              {topContent.top_communities.slice(0, 5).map((c, i: number) => (
                 <div key={c.id} className="flex items-center justify-between text-sm">
                   <div className="flex items-center gap-2 min-w-0">
                     <span className="text-[10px] font-bold text-muted-foreground w-4 shrink-0">#{i + 1}</span>
@@ -285,11 +316,11 @@ function OverviewTab({ overview, topContent, currency }: { overview: any; topCon
   );
 }
 
-function GrowthTab({ data, currency }: { data: any; currency: string }) {
+function GrowthTab({ data, currency }: { data: AnalyticsData | null; currency: string }) {
   if (!data) return <p className="text-sm text-muted-foreground">No growth data available.</p>;
 
   const signups = Array.isArray(data.signups_by_day) ? data.signups_by_day : [];
-  const roleData = (Array.isArray(data.role_breakdown) ? data.role_breakdown : []).map((r: any) => ({ name: r.role, value: parseInt(r.count) }));
+  const roleData = (Array.isArray(data.role_breakdown) ? data.role_breakdown : []).map((r: { role: string; count: string | number }) => ({ name: r.role, value: parseInt(String(r.count)) }));
   const kyc = data.kyc_stats ?? {};
   const kycTotal = (kyc.verified ?? 0) + (kyc.pending ?? 0) + (kyc.none ?? 0);
 
@@ -335,7 +366,7 @@ function GrowthTab({ data, currency }: { data: any; currency: string }) {
                   <ResponsiveContainer width={140} height={140}>
                     <PieChart>
                       <Pie data={roleData} cx="50%" cy="50%" innerRadius={35} outerRadius={65} dataKey="value" paddingAngle={2}>
-                        {roleData.map((_: any, i: number) => (
+                        {roleData.map((_, i: number) => (
                           <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
                         ))}
                       </Pie>
@@ -344,7 +375,7 @@ function GrowthTab({ data, currency }: { data: any; currency: string }) {
                   </ResponsiveContainer>
                 </div>
                 <div className="space-y-2">
-                  {roleData.map((r: any, i: number) => (
+                  {roleData.map((r, i: number) => (
                     <div key={r.name} className="flex items-center gap-2 text-xs">
                       <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }} />
                       <span className="text-muted-foreground capitalize">{r.name}</span>
@@ -384,7 +415,7 @@ function GrowthTab({ data, currency }: { data: any; currency: string }) {
   );
 }
 
-function RevenueTab({ data, currency }: { data: any; currency: string }) {
+function RevenueTab({ data, currency }: { data: AnalyticsData | null; currency: string }) {
   if (!data) return <p className="text-sm text-muted-foreground">No revenue data available.</p>;
 
   const trend = Array.isArray(data.revenue_trend) ? data.revenue_trend : [];
@@ -413,7 +444,7 @@ function RevenueTab({ data, currency }: { data: any; currency: string }) {
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis dataKey="month" tick={{ fontSize: 10 }} tickLine={false} axisLine={false} />
                 <YAxis tick={{ fontSize: 10 }} tickLine={false} axisLine={false} tickFormatter={(v) => formatAmount(v * 100, currency)} />
-                <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} formatter={(value: any) => [formatAmount(Number(value) * 100, currency), "Revenue"]} />
+                <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} formatter={(value) => [formatAmount(Number(value) * 100, currency), "Revenue"]} />
                 <Bar dataKey="revenue" fill="#2164b6" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
@@ -430,16 +461,16 @@ function RevenueTab({ data, currency }: { data: any; currency: string }) {
                 <ResponsiveContainer width={160} height={160}>
                   <PieChart>
                     <Pie data={sourceData} cx="50%" cy="50%" innerRadius={45} outerRadius={75} dataKey="value" paddingAngle={3}>
-                      {sourceData.map((_: any, i: number) => (
+                      {sourceData.map((_, i: number) => (
                         <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
                       ))}
                     </Pie>
-                    <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} formatter={(value: any) => [formatAmount(Number(value), currency), ""]} />
+                    <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} formatter={(value) => [formatAmount(Number(value), currency), ""]} />
                   </PieChart>
                 </ResponsiveContainer>
               </div>
               <div className="space-y-3">
-                {sourceData.map((s: any, i: number) => (
+                {sourceData.map((s, i: number) => (
                   <div key={s.name} className="flex items-center gap-2 text-xs">
                     <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }} />
                     <span className="text-muted-foreground">{s.name}</span>
@@ -457,18 +488,18 @@ function RevenueTab({ data, currency }: { data: any; currency: string }) {
   );
 }
 
-function ContentTab({ data }: { data: any }) {
+function ContentTab({ data }: { data: AnalyticsData | null }) {
   if (!data) return <p className="text-sm text-muted-foreground">No content data available.</p>;
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
       <div className="rounded-lg border-none bg-card p-5">
         <h3 className="font-semibold text-sm text-foreground mb-4 flex items-center gap-2">
-          <ShoppingBag weight="fill" className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" /> Top Digital Products
+          <ShoppingBag weight="fill" className="h-4 w-4 text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" /> Top Digital Products
         </h3>
         <div className="space-y-3">
           {Array.isArray(data.top_digital_products) && data.top_digital_products.length > 0 ? (
-            data.top_digital_products.map((p: any, i: number) => (
+            data.top_digital_products.map((p, i: number) => (
               <div key={p.id} className="flex items-center justify-between text-sm">
                 <div className="flex items-center gap-2 min-w-0">
                   <span className="text-[10px] font-bold text-muted-foreground w-4 shrink-0">#{i + 1}</span>
@@ -485,11 +516,11 @@ function ContentTab({ data }: { data: any }) {
 
       <div className="rounded-lg border-none bg-card p-5">
         <h3 className="font-semibold text-sm text-foreground mb-4 flex items-center gap-2">
-          <Crown weight="fill" className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" /> Top Creators
+          <Crown weight="fill" className="h-4 w-4 text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" /> Top Creators
         </h3>
         <div className="space-y-3">
           {Array.isArray(data.top_creators) && data.top_creators.length > 0 ? (
-            data.top_creators.map((c: any, i: number) => (
+            data.top_creators.map((c, i: number) => (
               <div key={c.id} className="flex items-center justify-between text-sm">
                 <div className="flex items-center gap-2 min-w-0">
                   <span className="text-[10px] font-bold text-muted-foreground w-4 shrink-0">#{i + 1}</span>
@@ -509,11 +540,11 @@ function ContentTab({ data }: { data: any }) {
 
       <div className="rounded-lg border-none bg-card p-5">
         <h3 className="font-semibold text-sm text-foreground mb-4 flex items-center gap-2">
-          <Globe weight="fill" className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" /> Top Communities
+          <Globe weight="fill" className="h-4 w-4 text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" /> Top Communities
         </h3>
         <div className="space-y-3">
           {Array.isArray(data.top_communities) && data.top_communities.length > 0 ? (
-            data.top_communities.map((c: any, i: number) => (
+            data.top_communities.map((c, i: number) => (
               <div key={c.id} className="flex items-center justify-between text-sm">
                 <div className="flex items-center gap-2 min-w-0">
                   <span className="text-[10px] font-bold text-muted-foreground w-4 shrink-0">#{i + 1}</span>

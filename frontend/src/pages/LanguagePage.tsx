@@ -142,9 +142,9 @@ export default function LanguagePage() {
         </h3>
         <div className="space-y-4">
           <div>
-            <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block mb-1.5">
+            <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block mb-1.5">
               Date Format
-            </label>
+            </span>
             <div className="grid grid-cols-3 gap-2">
               {DATE_FORMATS.map((df) => {
                 const active = dateFormat === df.value;
@@ -166,9 +166,9 @@ export default function LanguagePage() {
           </div>
 
           <div>
-            <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block mb-1.5">
+            <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block mb-1.5">
               First Day of Week
-            </label>
+            </span>
             <div className="grid grid-cols-3 gap-2">
               {FIRST_DAYS.map((fd) => {
                 const active = firstDay === fd.value;

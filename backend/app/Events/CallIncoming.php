@@ -42,15 +42,7 @@ class CallIncoming implements ShouldBroadcastNow
         $caller = $this->call->caller;
         $targetId = $this->targetUserId ?? $this->call->recipient_id;
 
-        $host = (string) config('livekit.host', 'https://live-staging.murihspace.com');
-        $host = rtrim($host, '/');
-        if (str_starts_with($host, 'https://')) {
-            $livekitHost = 'wss://' . substr($host, 8);
-        } elseif (str_starts_with($host, 'http://')) {
-            $livekitHost = 'ws://' . substr($host, 7);
-        } else {
-            $livekitHost = $host;
-        }
+        $livekitHost = \App\Support\LiveKitUrl::websocket();
 
         // Pre-generate a LiveKit token for the callee so that when they tap Accept,
         // they can connect to the room immediately without an extra round-trip.

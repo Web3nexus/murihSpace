@@ -113,8 +113,8 @@ class EscrowController extends Controller
             return response()->json(['message' => 'Forbidden.'], 403);
         }
 
-        if ($escrow->status !== 'held') {
-            return response()->json(['message' => 'Only held escrows can be disputed.'], 400);
+        if (! in_array($escrow->status, ['held', 'on_hold'], true)) {
+            return response()->json(['message' => 'Only held or on-hold escrows can be disputed.'], 400);
         }
 
         $existing = Dispute::where('escrow_id', $escrow->id)

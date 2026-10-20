@@ -226,6 +226,9 @@ class CheckoutController extends Controller
             }
         }
 
+        // Chargebacks and disputes from any provider hold or reverse the sale. See ChargebackEventHandler.
+        app(\App\Services\Payment\ChargebackEventHandler::class)->handle($request->json()->all());
+
         // Handle payment failure events
         if (in_array($event['event_type'], ['payment.failed', 'payment_intent.payment_failed'])) {
             Order::where('payment_intent_id', $event['intent_id'])
@@ -260,7 +263,8 @@ class CheckoutController extends Controller
     {
         $subtotal = round((float) $product->price, 2);
         $subtotalCents = (int) round($subtotal * 100);
-        $platformFee = $this->commissionService->calculateFee($subtotal, 'digital');
+        // Flat buyer fee on the digital price. Fees carry no VAT: the tax below applies to the price only.
+        $platformFee = $this->commissionService->calculateFee($subtotal, 'digital_buyer');
 
         $storefront = Storefront::where('user_id', $product->creator_id)->first();
         $storefrontRate = $storefront ? (float) $storefront->tax_rate : 0.0;
@@ -288,6 +292,9 @@ class CheckoutController extends Controller
      */
     private function recordOrderRevenue(Order $order): void
     {
+        // The seller is paid in the app: the share is held for 48 hours, then released.
+        app(\App\Services\Wallet\DigitalSaleService::class)->settleOrder($order);
+
         $this->accountingService->recordCommerceSale(
             orderNumber: $order->order_number,
             sourceId: $order->id,

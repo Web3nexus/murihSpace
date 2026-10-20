@@ -33,7 +33,7 @@ export function WalletActionToolbar({
         type="button"
         className="flex flex-col items-center gap-1.5 group p-1 focus:outline-none"
       >
-        <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-[#2164b6] text-white flex items-center justify-center shadow-md transition-transform duration-200 group-hover:scale-105 group-hover:bg-[#1a5091] focus-visible:ring-2 focus-visible:ring-[#2164b6]">
+        <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-[var(--shell-accent-solid)] text-white flex items-center justify-center shadow-md transition-transform duration-200 group-hover:scale-105 group-hover:bg-[#1a5091] focus-visible:ring-2 focus-visible:ring-[var(--shell-accent)]">
           <Plus weight="bold" className="h-5 w-5" />
         </div>
         <span className="text-[11px] sm:text-xs font-semibold text-foreground tracking-tight">Deposit</span>
@@ -58,7 +58,7 @@ export function WalletActionToolbar({
           type="button"
           className="flex flex-col items-center gap-1.5 group p-1 focus:outline-none"
         >
-          <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-sky-500/10 text-[#2164b6] dark:bg-sky-500/20 flex items-center justify-center transition-transform duration-200 group-hover:scale-105 group-hover:bg-sky-500/20">
+          <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-sky-500/10 text-[var(--shell-accent)] dark:bg-sky-500/20 flex items-center justify-center transition-transform duration-200 group-hover:scale-105 group-hover:bg-sky-500/20">
             <PaperPlaneRight weight="fill" className="h-5 w-5" />
           </div>
           <span className="text-[11px] sm:text-xs font-semibold text-foreground tracking-tight">Send Money</span>
@@ -83,7 +83,7 @@ export function WalletActionToolbar({
         type="button"
         className="flex flex-col items-center gap-1.5 group p-1 focus:outline-none"
       >
-        <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-blue-500/10 text-[#2164b6] dark:bg-blue-500/20 flex items-center justify-center transition-transform duration-200 group-hover:scale-105 group-hover:bg-blue-500/20">
+        <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-[var(--shell-accent-solid)]/10 text-[var(--shell-accent)] dark:bg-[var(--shell-accent-solid)]/20 flex items-center justify-center transition-transform duration-200 group-hover:scale-105 group-hover:bg-[var(--shell-accent-solid)]/20">
           <QrCode weight="bold" className="h-5 w-5" />
         </div>
         <span className="text-[11px] sm:text-xs font-semibold text-foreground tracking-tight">Receive</span>

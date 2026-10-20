@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Discount as GiftIcon } from "@/components/icons";
-import { Sparkle, Coins } from "@/components/icons/rounded";;
+import { Coins } from "@/components/icons/rounded";;
 
 export interface GiftAnimationData {
   giftName: string;
@@ -16,18 +16,33 @@ interface GiftAnimationOverlayProps {
 }
 
 export function GiftAnimationOverlay({ data, onComplete }: GiftAnimationOverlayProps) {
-  const [visible, setVisible] = useState(false);
+  // Random particle layout, generated once per mount so renders stay pure.
+  const [particles] = useState(() =>
+    Array.from({ length: 16 }, () => ({
+      size: Math.random() * 8 + 4,
+      dx: (Math.random() - 0.5) * 350,
+      dy: (Math.random() - 0.5) * 350,
+      duration: 1 + Math.random() * 1.5,
+      delay: Math.random() * 0.5,
+    })),
+  );
+
+  // Show each new gift during render; the effect only schedules the hide timer.
+  const [visible, setVisible] = useState(Boolean(data));
+  const [shownData, setShownData] = useState(data);
+  if (data !== shownData) {
+    setShownData(data);
+    setVisible(Boolean(data));
+  }
 
   useEffect(() => {
-    if (data) {
-      setVisible(true);
-      const duration = data.animationType === "full_screen" ? 4500 : data.animationType === "premium" ? 3500 : 2500;
-      const timer = setTimeout(() => {
-        setVisible(false);
-        if (onComplete) onComplete();
-      }, duration);
-      return () => clearTimeout(timer);
-    }
+    if (!data) return;
+    const duration = data.animationType === "full_screen" ? 4500 : data.animationType === "premium" ? 3500 : 2500;
+    const timer = setTimeout(() => {
+      setVisible(false);
+      if (onComplete) onComplete();
+    }, duration);
+    return () => clearTimeout(timer);
   }, [data, onComplete]);
 
   if (!visible || !data) return null;
@@ -47,16 +62,16 @@ export function GiftAnimationOverlay({ data, onComplete }: GiftAnimationOverlayP
 
       {/* Sparkling Floating Particles */}
       <div className="absolute inset-0 flex items-center justify-center">
-        {[...Array(16)].map((_, i) => (
+        {particles.map((p, i) => (
           <div
             key={i}
             className="absolute rounded-full bg-amber-400 animate-ping"
             style={{
-              width: `${Math.random() * 8 + 4}px`,
-              height: `${Math.random() * 8 + 4}px`,
-              transform: `translate(${(Math.random() - 0.5) * 350}px, ${(Math.random() - 0.5) * 350}px)`,
-              animationDuration: `${1 + Math.random() * 1.5}s`,
-              animationDelay: `${Math.random() * 0.5}s`,
+              width: `${p.size}px`,
+              height: `${p.size}px`,
+              transform: `translate(${p.dx}px, ${p.dy}px)`,
+              animationDuration: `${p.duration}s`,
+              animationDelay: `${p.delay}s`,
             }}
           />
         ))}
@@ -84,7 +99,7 @@ export function GiftAnimationOverlay({ data, onComplete }: GiftAnimationOverlayP
         {/* Sender & Gift Banner */}
         <div className="space-y-1 bg-background/90 border border-amber-500/40 px-6 py-3 rounded-lg shadow-2xl backdrop-blur-xl">
           <p className="text-xs uppercase tracking-widest font-bold text-amber-500 flex items-center justify-center gap-1">
-            <Sparkle weight="fill" className="w-3.5 h-3.5" /> Gift Sent! <Sparkle weight="fill" className="w-3.5 h-3.5" />
+            <Coins weight="fill" className="w-3.5 h-3.5" /> Gift Sent! <Coins weight="fill" className="w-3.5 h-3.5" />
           </p>
           <h3 className="text-xl sm:text-xl font-black text-foreground">
             {data.senderName ? `${data.senderName} sent ` : ""}{data.giftName}

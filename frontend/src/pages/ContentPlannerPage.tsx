@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { Calendar, TimeCircle as Clock, Document as FileText, Delete as Trash2, Swap as RefreshCw } from "@/components/icons";
 import { Spinner as Loader2 } from "@/components/icons/rounded";;
 import { authFetch } from "@/lib/api/authFetch";
@@ -23,18 +23,24 @@ export default function ContentPlannerPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const loadPlan = useCallback(async () => {
+  const [loadPlanKey, setLoadPlanKey] = useState(0);
+  const loadPlan = () => {
     setLoading(true);
-    try {
-      const res = await authFetch(`/content-planner/upcoming`, {  });
-      if (!res.ok) { setError("Failed to load content plan"); return; }
-      const json = await res.json();
-      setScheduled(json.data ?? []);
-    } catch { setError("Network error"); }
-    finally { setLoading(false); }
-  }, []);
+    setLoadPlanKey((k) => k + 1);
+  };
 
-  useEffect(() => { loadPlan(); }, [loadPlan]);
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await authFetch(`/content-planner/upcoming`, {  });
+        if (!res.ok) { setError("Failed to load content plan"); return; }
+        const json = await res.json();
+        setScheduled(json.data ?? []);
+      } catch { setError("Network error"); }
+      finally { setLoading(false); }
+    })();
+  }, [loadPlanKey]);
+
 
   const handleUnschedule = async (id: number) => {
     try {

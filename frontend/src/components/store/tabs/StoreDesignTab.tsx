@@ -37,14 +37,14 @@ export const StoreDesignTab: React.FC<StoreDesignTabProps> = ({
   return (
     <div className="space-y-6 pt-2">
       {/* Top action header */}
-      <div className="bg-[#171D25] border border-[#29313C] rounded-2xl p-5 flex items-center justify-between shadow-sm">
+      <div className="bg-[var(--shell-surface)] border border-[var(--shell-border)] rounded-2xl p-5 flex items-center justify-between shadow-sm">
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-[#087FFF]">
+          <div className="h-10 w-10 rounded-xl bg-[var(--shell-accent-solid)]/10 border border-[var(--shell-accent)]/20 flex items-center justify-center text-[var(--shell-accent)]">
             <Palette className="h-5 w-5" />
           </div>
           <div>
             <h3 className="text-base font-bold text-white tracking-tight">Store Design & Branding</h3>
-            <p className="text-xs text-[#A7B0BE] mt-0.5">
+            <p className="text-xs text-[var(--shell-muted)] mt-0.5">
               Customize your banner graphics, storefront avatar, and visual theme presentation.
             </p>
           </div>
@@ -54,7 +54,7 @@ export const StoreDesignTab: React.FC<StoreDesignTabProps> = ({
           size="sm"
           onClick={onSaveAll}
           disabled={isSaving}
-          className="h-9 px-4 text-xs font-bold rounded-xl bg-[#087FFF] hover:bg-[#0770E3] text-white flex items-center gap-1.5 shadow-sm"
+          className="h-9 px-4 text-xs font-bold rounded-xl bg-[var(--shell-accent-solid)] hover:bg-[var(--shell-accent-hover)] text-white flex items-center gap-1.5 shadow-sm"
         >
           <Check className="h-4 w-4" />
           {isSaving ? 'Saving…' : 'Save Design Changes'}

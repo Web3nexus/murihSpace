@@ -154,15 +154,33 @@ class OAuthProviderService
 
     /* ─────────────────────── state (CSRF) ─────────────────────── */
 
-    public function state(string $provider): string
+    /**
+     * @param  bool  $web  The flow was started by the web app. Carried in the encrypted
+     *                     state so the callback, a plain browser redirect with no Origin,
+     *                     can still tell web from mobile.
+     */
+    public function state(string $provider, bool $web = false): string
     {
         $payload = [
             'p' => $provider,
             't' => now()->addMinutes(self::STATE_TTL_MINUTES)->timestamp,
             'r' => bin2hex(random_bytes(16)),
+            'w' => $web,
         ];
 
         return Crypt::encryptString(json_encode($payload));
+    }
+
+    /** Whether a state produced by state() was started by the web app. */
+    public function isWebState(string $state): bool
+    {
+        try {
+            $payload = json_decode(Crypt::decryptString($state), true);
+        } catch (Exception $e) {
+            return false;
+        }
+
+        return is_array($payload) && ($payload['w'] ?? false) === true;
     }
 
     public function verifyState(string $state, string $provider): bool
@@ -251,7 +269,7 @@ class OAuthProviderService
         $accessToken = $token['access_token'] ?? null;
 
         if ($tokenRes->getStatusCode() !== 200 || ! $accessToken) {
-            Log::warning('Google OAuth token exchange failed', ['status' => $tokenRes->getStatusCode(), 'body' => $token]);
+            Log::warning('Google OAuth token exchange failed', ['status' => $tokenRes->getStatusCode(), 'error' => $token['error'] ?? null]);
 
             return null;
         }
@@ -287,7 +305,7 @@ class OAuthProviderService
         $token = json_decode((string) $tokenRes->getBody(), true);
 
         if ($tokenRes->getStatusCode() !== 200 || empty($token['id_token'])) {
-            Log::warning('Apple OAuth token exchange failed', ['status' => $tokenRes->getStatusCode(), 'body' => $token]);
+            Log::warning('Apple OAuth token exchange failed', ['status' => $tokenRes->getStatusCode(), 'error' => $token['error'] ?? null]);
 
             return null;
         }

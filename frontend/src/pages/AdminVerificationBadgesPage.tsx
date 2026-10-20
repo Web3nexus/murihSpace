@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "react-router";
 import { toast } from "sonner";
@@ -73,7 +74,7 @@ export function AdminVerificationBadgesPage() {
 
       setCachedData(cacheKey, { items, lastPage: lp, total: tot });
     } catch (err) {
-      console.error("Failed to load verification badges:", err);
+      logger.error("Failed to load verification badges:", err);
       toast.error("Failed to load verification badges.");
     } finally {
       setLoading(false);
@@ -81,7 +82,9 @@ export function AdminVerificationBadgesPage() {
   }, [cacheKey, currentStatus, page]);
 
   useEffect(() => {
-    fetchBadges(Boolean(getCachedData(cacheKey)));
+    // Deferred so the loading state is not set synchronously inside the effect body
+    const timer = setTimeout(() => fetchBadges(Boolean(getCachedData(cacheKey))), 0);
+    return () => clearTimeout(timer);
   }, [cacheKey, fetchBadges]);
 
   // Optimistic Status Update
@@ -125,7 +128,7 @@ export function AdminVerificationBadgesPage() {
       {/* Header */}
       <div>
         <h1 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
-          <VerifiedBadge className="h-6 w-6 text-[#1B64F2]" />
+          <VerifiedBadge className="h-6 w-6 text-[var(--shell-accent)]" />
           Verification Badge Management
         </h1>
         <p className="text-xs sm:text-sm text-muted-foreground mt-1">
@@ -147,7 +150,7 @@ export function AdminVerificationBadgesPage() {
                 }}
                 className={`flex items-center gap-2 rounded-lg px-4 py-2 text-xs font-bold transition-colors whitespace-nowrap ${
                   isActive
-                    ? "bg-[#1877f2] text-white "
+                    ? "bg-[var(--shell-accent-solid)] text-white "
                     : "bg-card text-muted-foreground hover:bg-muted hover:text-foreground border-none"
                 }`}
               >
@@ -192,14 +195,14 @@ export function AdminVerificationBadgesPage() {
                   <tr key={u.id} className="hover:bg-muted/20 transition-colors">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#1877f2]/10 text-[#1877f2] font-bold text-xs">
+                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--shell-accent-solid)]/10 text-[var(--shell-accent)] font-bold text-xs">
                           {u.name ? u.name.charAt(0).toUpperCase() : "U"}
                         </div>
                         <div>
                           <div className="font-bold text-foreground flex items-center gap-1.5 text-xs">
                             {u.name}
                             {(u.verification_badge_status === "active" || u.verification_badge_status === "verified") && (
-                              <VerifiedBadge className="h-4 w-4 text-[#1B64F2] shrink-0" aria-label="Verified" />
+                              <VerifiedBadge className="h-4 w-4 text-[var(--shell-accent)] shrink-0" aria-label="Verified" />
                             )}
                           </div>
                           <div className="text-[11px] text-muted-foreground">{u.email}</div>

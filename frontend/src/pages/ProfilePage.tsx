@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from "react";
+import { asApiError } from "@/lib/apiError";
+import React, { useState, useRef } from "react";
 import { Link } from "react-router";
 import { useProfile } from "@/hooks/useProfile";
 import { Input } from "@/components/ui/input";
@@ -10,7 +11,7 @@ import { cn } from "@/lib/utils";
 import { ShareModal } from "@/components/common/ShareModal";
 import { authFetch } from "@/lib/api/authFetch";
 import { toast } from "sonner";
-import { absolute, profileUrl } from "@/lib/deepLinks";
+import { linkInBioUrl, profileDomain, profileUrl } from "@/lib/deepLinks";
 
 function getInitials(nameStr: string): string {
   const parts = nameStr.trim().split(/\s+/).filter(Boolean);
@@ -69,9 +70,12 @@ export function ProfilePage() {
     }
   }, [profile]);
 
-  useEffect(() => {
+  // Re-sync form state during render whenever the profile object changes
+  const [syncedProfile, setSyncedProfile] = useState<typeof profile | undefined>(undefined);
+  if (profile !== syncedProfile) {
+    setSyncedProfile(profile);
     populateFromProfile();
-  }, [populateFromProfile]);
+  }
 
   // Track whether there are unsaved changes
   const isDirty = React.useMemo(() => {
@@ -127,7 +131,8 @@ export function ProfilePage() {
         toast.success("Profile photo updated successfully!");
       }
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Failed to upload avatar.";
+      const apiErr = asApiError(err);
+      const msg = err instanceof Error ? apiErr.message : "Failed to upload avatar.";
       toast.error(msg);
     } finally {
       setUploadingAvatar(false);
@@ -169,7 +174,8 @@ export function ProfilePage() {
         toast.success("Cover banner updated successfully!");
       }
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Failed to upload cover banner.";
+      const apiErr = asApiError(err);
+      const msg = err instanceof Error ? apiErr.message : "Failed to upload cover banner.";
       toast.error(msg);
     } finally {
       setUploadingBanner(false);
@@ -213,7 +219,11 @@ export function ProfilePage() {
   };
 
   const copyLinkInBio = () => {
-    const link = `https://murihspace.com/l/${username || profile?.username || ""}`;
+    const link = linkInBioUrl(username || profile?.username || "");
+    if (!link) {
+      toast.error("The link-in-bio address is not available yet. Try again shortly.");
+      return;
+    }
     navigator.clipboard.writeText(link);
     setCopiedLink(true);
     toast.success("Copied Link-in-Bio URL to clipboard!");
@@ -223,7 +233,7 @@ export function ProfilePage() {
   if (loading) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <Loader2 weight="fill" className="h-7 w-7 animate-spin text-[#2164b6]" />
+        <Loader2 weight="fill" className="h-7 w-7 animate-spin text-[var(--shell-accent)]" />
       </div>
     );
   }
@@ -276,7 +286,7 @@ export function ProfilePage() {
                 size="sm"
                 className="h-9 gap-1.5 text-xs font-bold rounded-xl border-border hover:bg-muted"
               >
-                <Eye weight="bold" className="h-4 w-4 text-[#2164b6]" />
+                <Eye weight="bold" className="h-4 w-4 text-[var(--shell-accent)]" />
                 <span>Public Profile Preview</span>
               </Button>
             </Link>
@@ -289,7 +299,7 @@ export function ProfilePage() {
               size="sm"
               className="h-9 gap-1.5 text-xs font-bold rounded-xl border-border hover:bg-muted"
             >
-              <Video weight="bold" className="h-4 w-4 text-[#2164b6]" />
+              <Video weight="bold" className="h-4 w-4 text-[var(--shell-accent)]" />
               <span>Creator Studio</span>
             </Button>
           </Link>
@@ -322,7 +332,7 @@ export function ProfilePage() {
             size="sm"
             onClick={() => handleUpdate()}
             disabled={updating}
-            className="h-9 gap-1.5 text-xs font-bold rounded-xl bg-[#2164b6] hover:bg-[#2164b6]/90 text-white shadow-sm"
+            className="h-9 gap-1.5 text-xs font-bold rounded-xl bg-[var(--shell-accent-solid)] hover:bg-[var(--shell-accent-solid)]/90 text-white shadow-sm"
           >
             {updating ? (
               <Loader2 weight="fill" className="h-3.5 w-3.5 animate-spin" />
@@ -352,11 +362,11 @@ export function ProfilePage() {
       {/* ── PROFILE HERO VISUALS CARD ──────────────────────────── */}
       <div className="overflow-hidden rounded-3xl border border-border bg-card shadow-sm">
         {/* Cover Banner with Live Upload */}
-        <div className="h-44 sm:h-52 w-full bg-[#131b26] dark:bg-[#0d131d] border-b border-border/80 relative overflow-hidden group">
+        <div className="h-44 sm:h-52 w-full bg-[var(--shell-canvas)] dark:bg-[var(--shell-canvas)] border-b border-border/80 relative overflow-hidden group">
           {bannerUrl ? (
             <img src={bannerUrl} alt="Profile Cover Banner" className="w-full h-full object-cover" />
           ) : (
-            <div className="absolute inset-0 bg-[#131b26] dark:bg-[#0d131d] flex items-center justify-end pr-8">
+            <div className="absolute inset-0 bg-[var(--shell-canvas)] dark:bg-[var(--shell-canvas)] flex items-center justify-end pr-8">
               {/* Subtle geometric dot pattern */}
               <div
                 className="absolute inset-0 opacity-[0.07]"
@@ -399,7 +409,7 @@ export function ProfilePage() {
             <div className="flex flex-col sm:flex-row sm:items-end gap-4">
               {/* Interactive Avatar Circle with Integrated Camera Action */}
               <div className="relative group self-start">
-                <div
+                <div role="button" tabIndex={0} onKeyDown={(e) => { if (e.target !== e.currentTarget) return; if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.currentTarget.click(); } }}
                   onClick={() => avatarInputRef.current?.click()}
                   className="w-28 h-28 rounded-full border-4 border-card bg-slate-800 dark:bg-slate-700 flex items-center justify-center overflow-hidden shrink-0 shadow-lg cursor-pointer relative"
                   title="Click to change profile photo"
@@ -434,7 +444,7 @@ export function ProfilePage() {
                     avatarInputRef.current?.click();
                   }}
                   disabled={uploadingAvatar}
-                  className="absolute bottom-1 right-1 p-2 rounded-full bg-[#2164b6] hover:bg-[#2164b6]/90 text-white shadow-md border-2 border-card transition-transform active:scale-95"
+                  className="absolute bottom-1 right-1 p-2 rounded-full bg-[var(--shell-accent-solid)] hover:bg-[var(--shell-accent-solid)]/90 text-white shadow-md border-2 border-card transition-transform active:scale-95"
                   title="Upload profile photo"
                 >
                   <Camera weight="bold" className="w-3.5 h-3.5" />
@@ -448,7 +458,7 @@ export function ProfilePage() {
                     {name || "Your Name"}
                   </h2>
                   {profile?.has_active_verification_badge && (
-                    <VerifiedBadge className="h-5 w-5 text-[#1B64F2] shrink-0" aria-label="Verified" />
+                    <VerifiedBadge className="h-5 w-5 text-[var(--shell-accent)] shrink-0" aria-label="Verified" />
                   )}
                   {profile?.role === "admin" ? (
                     <span className="px-2.5 py-0.5 rounded-full bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30 text-[11px] font-bold tracking-wide">
@@ -463,7 +473,7 @@ export function ProfilePage() {
                       Storefront Owner
                     </span>
                   ) : (
-                    <span className="px-2.5 py-0.5 rounded-full bg-[#2164b6]/10 text-[#2164b6] border border-[#2164b6]/30 text-[11px] font-bold tracking-wide">
+                    <span className="px-2.5 py-0.5 rounded-full bg-[var(--shell-accent-solid)]/10 text-[var(--shell-accent)] border border-[var(--shell-accent)]/30 text-[11px] font-bold tracking-wide">
                       Member
                     </span>
                   )}
@@ -504,24 +514,24 @@ export function ProfilePage() {
       </div>
 
       {/* ── NATIVE LINK-IN-BIO SHORTCUT CARD ─────────────────────── */}
-      <div className="rounded-3xl border border-[#2164b6]/30 bg-gradient-to-r from-[#2164b6]/5 via-background to-background p-5 shadow-sm">
+      <div className="rounded-3xl border border-[var(--shell-accent)]/30 bg-gradient-to-r from-[var(--shell-accent-solid)]/5 via-background to-background p-5 shadow-sm">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-start gap-3.5">
-            <div className="h-11 w-11 rounded-2xl bg-[#2164b6]/10 text-[#2164b6] flex items-center justify-center shrink-0">
+            <div className="h-11 w-11 rounded-2xl bg-[var(--shell-accent-solid)]/10 text-[var(--shell-accent)] flex items-center justify-center shrink-0">
               <LinkIcon weight="bold" className="h-5 w-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="text-sm font-bold text-foreground">Native Link-in-Bio Experience</h3>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#2164b6]/15 text-[#2164b6]">
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[var(--shell-accent-solid)]/15 text-[var(--shell-accent)]">
                   Built-in
                 </span>
               </div>
               <p className="text-xs text-muted-foreground mt-0.5">
                 Share all your content, storefront, and socials using your official MurihSpace link.
               </p>
-              <div className="mt-2 flex items-center gap-2 text-xs font-mono font-bold text-[#2164b6] bg-[#2164b6]/10 px-3 py-1.5 rounded-xl border border-[#2164b6]/20 w-fit">
-                <span>https://murihspace.com/l/{cleanHandle}</span>
+              <div className="mt-2 flex items-center gap-2 text-xs font-mono font-bold text-[var(--shell-accent)] bg-[var(--shell-accent-solid)]/10 px-3 py-1.5 rounded-xl border border-[var(--shell-accent)]/20 w-fit">
+                <span>{linkInBioUrl(cleanHandle).replace(/^https?:\/\//, "") || "Link unavailable"}</span>
               </div>
             </div>
           </div>
@@ -537,14 +547,14 @@ export function ProfilePage() {
               {copiedLink ? <CheckCircle2 weight="fill" className="h-4 w-4 text-emerald-500" /> : <Copy weight="bold" className="h-4 w-4" />}
               <span>{copiedLink ? "Copied!" : "Copy Link"}</span>
             </Button>
-            <a href={`/l/${cleanHandle}`} target="_blank" rel="noreferrer">
+            <a href={linkInBioUrl(cleanHandle) || undefined} target="_blank" rel="noreferrer">
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
                 className="h-9 gap-1.5 text-xs font-semibold rounded-xl border-border hover:bg-muted"
               >
-                <ArrowSquareOut weight="bold" className="h-3.5 w-3.5 text-[#2164b6]" />
+                <ArrowSquareOut weight="bold" className="h-3.5 w-3.5 text-[var(--shell-accent)]" />
                 <span>Preview</span>
               </Button>
             </a>
@@ -552,7 +562,7 @@ export function ProfilePage() {
               <Button
                 type="button"
                 size="sm"
-                className="h-9 text-xs font-bold rounded-xl bg-[#2164b6] hover:bg-[#2164b6]/90 text-white"
+                className="h-9 text-xs font-bold rounded-xl bg-[var(--shell-accent-solid)] hover:bg-[var(--shell-accent-solid)]/90 text-white"
               >
                 Manage Link-in-Bio
               </Button>
@@ -566,7 +576,7 @@ export function ProfilePage() {
         {/* Card 1: Personal Details */}
         <div className="p-6 rounded-3xl bg-card border border-border shadow-sm space-y-4">
           <div className="flex items-center gap-2 pb-2 border-b border-border/50">
-            <User weight="bold" className="h-4 w-4 text-[#2164b6]" />
+            <User weight="bold" className="h-4 w-4 text-[var(--shell-accent)]" />
             <h2 className="text-sm font-bold text-foreground">Personal Information</h2>
           </div>
 
@@ -603,7 +613,7 @@ export function ProfilePage() {
                 />
               </div>
               <p className="text-[11px] text-muted-foreground mt-1">
-                Public URL: murihspace.com/u/{cleanHandle}
+                Public URL: {profileDomain()}/u/{cleanHandle}
               </p>
               {fieldErrors.username && <p className="text-xs text-destructive mt-1">{fieldErrors.username[0]}</p>}
             </Field>
@@ -646,7 +656,7 @@ export function ProfilePage() {
                 value={website}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setWebsite(e.target.value)}
                 placeholder="https://linktr.ee/lorduzih"
-                className="h-11 rounded-xl bg-muted/40 text-xs text-[#2164b6] font-medium"
+                className="h-11 rounded-xl bg-muted/40 text-xs text-[var(--shell-accent)] font-medium"
               />
             </Field>
 
@@ -698,7 +708,7 @@ export function ProfilePage() {
               value={bio}
               onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setBio(e.target.value)}
               placeholder="Tell community members, buyers, and collaborators about yourself..."
-              className="w-full rounded-xl border border-input bg-muted/40 px-3.5 py-2.5 text-xs text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#2164b6] resize-none"
+              className="w-full rounded-xl border border-input bg-muted/40 px-3.5 py-2.5 text-xs text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--shell-accent)] resize-none"
             />
           </Field>
         </div>
@@ -765,7 +775,7 @@ export function ProfilePage() {
           <Button
             type="submit"
             disabled={updating}
-            className="h-11 px-6 rounded-xl bg-[#2164b6] hover:bg-[#2164b6]/90 text-white font-bold text-xs gap-2 shadow-sm"
+            className="h-11 px-6 rounded-xl bg-[var(--shell-accent-solid)] hover:bg-[var(--shell-accent-solid)]/90 text-white font-bold text-xs gap-2 shadow-sm"
           >
             {updating ? (
               <Loader2 weight="fill" className="h-4 w-4 animate-spin" />
@@ -781,7 +791,7 @@ export function ProfilePage() {
       {isDirty && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-[92%] max-w-xl bg-slate-900 text-white dark:bg-card dark:text-foreground border border-white/10 dark:border-border rounded-2xl p-4 shadow-2xl backdrop-blur-xl flex items-center justify-between gap-4 animate-in fade-in slide-in-from-bottom-4">
           <div className="flex items-center gap-2.5">
-            <div className="h-2 w-2 rounded-full bg-[#2164b6] animate-pulse" />
+            <div className="h-2 w-2 rounded-full bg-[var(--shell-accent-solid)] animate-pulse" />
             <span className="text-xs font-bold">You have unsaved changes</span>
           </div>
           <div className="flex items-center gap-2">
@@ -799,7 +809,7 @@ export function ProfilePage() {
               size="sm"
               onClick={() => handleUpdate()}
               disabled={updating}
-              className="h-8 text-xs font-bold bg-[#2164b6] hover:bg-[#2164b6]/90 text-white rounded-lg px-4"
+              className="h-8 text-xs font-bold bg-[var(--shell-accent-solid)] hover:bg-[var(--shell-accent-solid)]/90 text-white rounded-lg px-4"
             >
               {updating ? <Loader2 weight="fill" className="h-3.5 w-3.5 animate-spin" /> : "Save Changes"}
             </Button>
@@ -811,7 +821,7 @@ export function ProfilePage() {
       <div className="p-6 rounded-3xl bg-card border border-border shadow-sm space-y-4">
         <div className="flex items-center justify-between pb-2 border-b border-border/50">
           <div className="flex items-center gap-2">
-            <ShieldWarning weight="fill" className="h-4 w-4 text-[#2164b6]" />
+            <ShieldWarning weight="fill" className="h-4 w-4 text-[var(--shell-accent)]" />
             <h2 className="text-sm font-bold text-foreground">Identity Verification (KYC)</h2>
           </div>
           <div>
@@ -860,7 +870,7 @@ export function ProfilePage() {
             <Button
               type="submit"
               size="sm"
-              className="w-full sm:w-auto h-11 px-5 rounded-xl text-xs font-bold gap-1.5 shrink-0 bg-[#2164b6] hover:bg-[#2164b6]/90 text-white"
+              className="w-full sm:w-auto h-11 px-5 rounded-xl text-xs font-bold gap-1.5 shrink-0 bg-[var(--shell-accent-solid)] hover:bg-[var(--shell-accent-solid)]/90 text-white"
               disabled={updating || !kycDocInput.trim()}
             >
               {updating ? <Loader2 weight="fill" className="h-3.5 w-3.5 animate-spin" /> : <ShieldWarning weight="fill" className="h-3.5 w-3.5" />}
@@ -876,7 +886,7 @@ export function ProfilePage() {
         onClose={() => setShowShareModal(false)}
         title={name || username || "User Profile"}
         description={bio || `Check out ${name || username}'s profile on MurihSpace`}
-        url={absolute(profileUrl(cleanHandle))}
+        url={profileUrl(cleanHandle)}
         type="profile"
         imageUrl={avatar}
         badge={profile?.role}

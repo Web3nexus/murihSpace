@@ -1,3 +1,5 @@
+import { authFetch } from "@/lib/api/authFetch";
+import { logger } from "@/lib/logger";
 import { useState, useEffect, useRef, useMemo } from "react";
 import { ArrowDown as ChevronDown, Search } from "@/components/icons";
 import { Spinner as Loader2 } from "@/components/icons/rounded";;
@@ -28,43 +30,40 @@ export function StateSelect({
   disabled = false,
   className = "",
 }: StateSelectProps) {
-  const [states, setStates] = useState<StateItem[]>([]);
-  const [loading, setLoading] = useState(false);
+  // States are tied to the country they were fetched for, so a stale list is
+  // never shown and no state is reset inside the effect.
+  const [loaded, setLoaded] = useState<{ iso2: string; list: StateItem[] } | null>(null);
+  const states = countryIso2 && loaded?.iso2 === countryIso2 ? loaded.list : [];
+  const loading = Boolean(countryIso2) && loaded?.iso2 !== countryIso2;
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!countryIso2) {
-      setStates([]);
-      return;
-    }
+    if (!countryIso2) return;
+    const iso2 = countryIso2;
 
     let active = true;
-    setLoading(true);
 
     async function loadStates() {
+      let list: StateItem[] = [];
       try {
-        const res = await fetch(`${API_BASE}/countries/${countryIso2}/states`, {
+        const res = await authFetch(`${API_BASE}/countries/${iso2}/states`, {
           headers: { Accept: "application/json" },
         });
         if (!res.ok) throw new Error("Failed to load states");
         const json = await res.json();
-        const list: StateItem[] = Array.isArray(json?.data) 
-          ? json.data 
-          : Array.isArray(json?.data?.data) 
-            ? json.data.data 
-            : Array.isArray(json) 
-              ? json 
+        list = Array.isArray(json?.data)
+          ? json.data
+          : Array.isArray(json?.data?.data)
+            ? json.data.data
+            : Array.isArray(json)
+              ? json
               : [];
-        if (active) {
-          setStates(list);
-        }
       } catch (err) {
-        console.error("States fetch error:", err);
-        if (active) setStates([]);
+        logger.error("States fetch error:", err);
       } finally {
-        if (active) setLoading(false);
+        if (active) setLoaded({ iso2, list });
       }
     }
 
@@ -110,7 +109,7 @@ export function StateSelect({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className={`w-full rounded-lg border-none bg-card px-3 py-2.5 text-sm font-medium text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-[#2164b6]/50 ${className}`}
+        className={`w-full rounded-lg border-none bg-card px-3 py-2.5 text-sm font-medium text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-[var(--shell-accent)]/50 ${className}`}
       />
     );
   }
@@ -121,7 +120,7 @@ export function StateSelect({
         type="button"
         disabled={disabled || loading}
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-lg border-none bg-card text-foreground text-sm font-medium focus:outline-none focus:border-[#2164b6]/50 disabled:opacity-50 transition-colors"
+        className="w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-lg border-none bg-card text-foreground text-sm font-medium focus:outline-none focus:border-[var(--shell-accent)]/50 disabled:opacity-50 transition-colors"
       >
         <span className="flex items-center gap-2 truncate">
           {loading ? (
@@ -147,7 +146,6 @@ export function StateSelect({
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search state..."
               className="w-full bg-transparent text-xs font-medium text-foreground placeholder:text-muted-foreground focus:outline-none"
-              autoFocus
             />
           </div>
           <div className="max-h-60 overflow-y-auto p-1 space-y-0.5 scrollbar-thin">
@@ -167,7 +165,7 @@ export function StateSelect({
                     }}
                     className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
                       isSelected
-                        ? "bg-[#2164b6]/10 text-[#2164b6] dark:text-[#7ab0ff] font-bold"
+                        ? "bg-[var(--shell-accent-solid)]/10 text-[var(--shell-accent)] dark:text-[var(--shell-accent)] font-bold"
                         : "hover:bg-muted/50 text-foreground"
                     }`}
                   >

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { Message as ChatText, Plus, Delete as Trash2, Edit, Show as Eye, Hide as EyeOff, TickSquare as Check, DangerSquare as AlertCircle, CloseSquare as X } from "@/components/icons";
 import { Spinner as Loader2 } from "@/components/icons/rounded";;
 import { Button } from "@/components/ui/button";
@@ -57,19 +57,27 @@ export default function StorePostsPage() {
   const [textAlign, setTextAlign] = useState<TextAlign>("center");
   const [isPublished, setIsPublished] = useState(true);
 
-  const fetchPosts = useCallback(async () => {
+  const [fetchPostsKey, setFetchPostsKey] = useState(0);
+  const fetchPosts = () => {
     setLoading(true);
-    try {
-      const res = await authFetch(`/store/posts`, {  });
-      if (res.ok) {
-        const json = await res.json();
-        setPosts(json.data?.data ?? []);
-      }
-    } catch { /* ignore */ }
-    setLoading(false);
-  }, []);
+    setFetchPostsKey((k) => k + 1);
+  };
 
-  useEffect(() => { fetchPosts(); }, [fetchPosts]);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await authFetch(`/store/posts`, {  });
+        if (!cancelled && res.ok) {
+          const json = await res.json();
+          if (!cancelled) setPosts(json.data?.data ?? []);
+        }
+      } catch { /* ignore */ }
+      if (!cancelled) setLoading(false);
+    })();
+    return () => { cancelled = true; };
+  }, [fetchPostsKey]);
+
 
   const resetForm = () => {
     setContent(""); setFontFamily("sans"); setBgColor("#1a1a2e"); setTextColor("#ffffff");
@@ -152,8 +160,8 @@ export default function StorePostsPage() {
           <h2 className="text-sm font-bold text-foreground">{editing ? "Edit Post" : "New Post"}</h2>
 
           <div className="space-y-2">
-            <label className="text-xs font-bold text-foreground uppercase tracking-wider">Content</label>
-            <textarea value={content} onChange={(e) => setContent(e.target.value)} required rows={4}
+            <label htmlFor="f-pages-storepostspage-tsx-155" className="text-xs font-bold text-foreground uppercase tracking-wider">Content</label>
+            <textarea id="f-pages-storepostspage-tsx-155" value={content} onChange={(e) => setContent(e.target.value)} required rows={4}
               placeholder="What's on your mind?"
               className="w-full rounded-lg border-none bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-secondary/50 transition-colors resize-none"
               maxLength={5000}
@@ -162,7 +170,7 @@ export default function StorePostsPage() {
           </div>
 
           <div className="space-y-2">
-            <label className="text-xs font-bold text-foreground uppercase tracking-wider">Font Style</label>
+            <span className="text-xs font-bold text-foreground uppercase tracking-wider">Font Style</span>
             <div className="flex gap-2 flex-wrap">
               {FONTS.map((f) => (
                 <button key={f.value} type="button" onClick={() => setFontFamily(f.value)}
@@ -180,7 +188,7 @@ export default function StorePostsPage() {
           </div>
 
           <div className="space-y-2">
-            <label className="text-xs font-bold text-foreground uppercase tracking-wider">Background Color</label>
+            <span className="text-xs font-bold text-foreground uppercase tracking-wider">Background Color</span>
             <div className="flex gap-2 flex-wrap">
               {COLORS.map((c) => (
                 <button key={c.bg + c.text} type="button" onClick={() => { setBgColor(c.bg); setTextColor(c.text); }}
@@ -195,7 +203,7 @@ export default function StorePostsPage() {
           </div>
 
           <div className="space-y-2">
-            <label className="text-xs font-bold text-foreground uppercase tracking-wider">Alignment</label>
+            <span className="text-xs font-bold text-foreground uppercase tracking-wider">Alignment</span>
             <div className="flex gap-2">
               {ALIGNS.map((a) => (
                 <button key={a} type="button" onClick={() => setTextAlign(a)}
@@ -218,7 +226,7 @@ export default function StorePostsPage() {
           </label>
 
           <div className="space-y-2">
-            <label className="text-xs font-bold text-foreground uppercase tracking-wider">Preview</label>
+            <span className="text-xs font-bold text-foreground uppercase tracking-wider">Preview</span>
             <div className="rounded-lg overflow-hidden border-none" style={{ backgroundColor: bgColor }}>
               <div className="p-5 sm:p-12" style={{ fontFamily: selectedFont.family, textAlign: textAlign }}>
                 <p className="text-lg sm:text-xl font-medium leading-relaxed whitespace-pre-wrap" style={{ color: textColor }}>

@@ -1,3 +1,4 @@
+import { authFetch } from "@/lib/api/authFetch";
 import * as React from "react";
 import {
   Dialog,
@@ -13,7 +14,6 @@ import { TimeCircle as Clock, ShieldDone as ShieldCheck, TickSquare as Check, Cl
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? 'http://localhost:8000/api/v1';
 import type { JoinRequest } from "@/types/community";
-import { getAuthToken } from "@/lib/auth/token";
 
 interface JoinRequestsModalProps {
   open: boolean;
@@ -22,53 +22,52 @@ interface JoinRequestsModalProps {
   communityName: string;
 }
 
-export function JoinRequestsModal({
-  open,
-  onOpenChange,
-  communityId,
-  communityName,
-}: JoinRequestsModalProps) {
+function JoinRequestsBody({ communityId }: { communityId: number }) {
   const [requests, setRequests] = React.useState<JoinRequest[]>([]);
-  const [isLoading, setIsLoading] = React.useState(false);
+  const [isLoading, setIsLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const [processingId, setProcessingId] = React.useState<number | null>(null);
+  const [attempt, setAttempt] = React.useState(0);
 
-  // Fetch pending join requests
-  const fetchRequests = React.useCallback(async () => {
-    if (!open || !communityId) return;
-    setIsLoading(true);
-    setError(null);
-    try {
-      const token = getAuthToken();
-      const res = await fetch(`${API_BASE}/communities/${communityId}/requests`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setRequests(data.requests || []);
-      } else {
-        setError("Failed to load join requests. Please try again.");
-      }
-    } catch {
-      setError("Unable to connect to the server. Please check your connection and try again.");
-    } finally {
-      setIsLoading(false);
-    }
-  }, [open, communityId]);
-
+  // Mounted when the dialog opens, so loading starts true. Results are only
+  // written after the request settles.
   React.useEffect(() => {
-    fetchRequests();
-  }, [fetchRequests]);
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await authFetch(`${API_BASE}/communities/${communityId}/requests`, {
+        });
+        if (cancelled) return;
+        if (res.ok) {
+          const data = await res.json();
+          setRequests(data.requests || []);
+        } else {
+          setError("Failed to load join requests. Please try again.");
+        }
+      } catch {
+        if (!cancelled) setError("Unable to connect to the server. Please check your connection and try again.");
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [communityId, attempt]);
+
+  const retry = () => {
+    setError(null);
+    setIsLoading(true);
+    setAttempt((n) => n + 1);
+  };
 
   const handleAction = async (requestId: number, action: "approve" | "reject") => {
     setProcessingId(requestId);
     try {
-      const token = getAuthToken();
-      await fetch(`${API_BASE}/memberships/${requestId}/${action}`, {
+      await authFetch(`${API_BASE}/memberships/${requestId}/${action}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
       });
 
@@ -83,28 +82,13 @@ export function JoinRequestsModal({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-xl md:max-w-2xl rounded-lg p-4 sm:p-5">
-        <DialogHeader>
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400">
-              <Clock weight="fill" className="h-5 w-5" />
-            </div>
-            <div>
-              <DialogTitle className="text-lg font-bold">Join Requests Queue</DialogTitle>
-              <DialogDescription className="text-xs text-muted-foreground">
-                Review pending membership applications for <span className="font-semibold text-foreground">{communityName}</span>
-              </DialogDescription>
-            </div>
-          </div>
-        </DialogHeader>
-
+    <>
         <div className="space-y-4 my-2 max-h-[60vh] overflow-y-auto pr-1">
           {error ? (
             <ErrorState
               title="Failed to load requests"
               description={error}
-              onRetry={fetchRequests}
+              onRetry={retry}
             />
           ) : isLoading ? (
             <div className="space-y-3 p-4">
@@ -164,6 +148,34 @@ export function JoinRequestsModal({
             ))
           )}
         </div>
+    </>
+  );
+}
+
+export function JoinRequestsModal({
+  open,
+  onOpenChange,
+  communityId,
+  communityName,
+}: JoinRequestsModalProps) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-xl md:max-w-2xl rounded-lg p-4 sm:p-5">
+        <DialogHeader>
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400">
+              <Clock weight="fill" className="h-5 w-5" />
+            </div>
+            <div>
+              <DialogTitle className="text-lg font-bold">Join Requests Queue</DialogTitle>
+              <DialogDescription className="text-xs text-muted-foreground">
+                Review pending membership applications for <span className="font-semibold text-foreground">{communityName}</span>
+              </DialogDescription>
+            </div>
+          </div>
+        </DialogHeader>
+
+        <JoinRequestsBody key={communityId} communityId={communityId} />
       </DialogContent>
     </Dialog>
   );

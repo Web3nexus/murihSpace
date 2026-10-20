@@ -159,7 +159,7 @@ export function EmojiPickerPopover({
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         className={`p-2 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer flex items-center justify-center ${
-          isOpen ? "text-[#2164b6] bg-[#2164b6]/10 dark:bg-[#2164b6]/20" : ""
+          isOpen ? "text-[var(--shell-accent)] bg-[var(--shell-accent-solid)]/10 dark:bg-[var(--shell-accent-solid)]/20" : ""
         } ${buttonClassName}`}
         title="Insert emoji"
         aria-label="Insert emoji"

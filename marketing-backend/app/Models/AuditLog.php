@@ -60,6 +60,20 @@ class AuditLog extends Model
 
     public const REFUND_ESCALATE = 'refund.escalate';
 
+    public const STAFF_ACCOUNT_CREATE = 'staff.account.create';
+
+    public const STAFF_ACCOUNT_UPDATE = 'staff.account.update';
+
+    public const STAFF_ACCOUNT_DISABLE = 'staff.account.disable';
+
+    public const STAFF_ACCOUNT_ENABLE = 'staff.account.enable';
+
+    public const STAFF_API_LOGIN = 'staff.api.login';
+
+    public const STAFF_API_LOGOUT = 'staff.api.logout';
+
+    public const STAFF_ADS_TOKEN_ISSUE = 'staff.ads_token.issue';
+
     /**
      * Human-readable labels for every auditable action.
      */
@@ -86,6 +100,13 @@ class AuditLog extends Model
         self::SLA_TOGGLE => 'SLA policy toggled',
         self::SLA_DELETE => 'SLA policy deleted',
         self::REFUND_ESCALATE => 'Refund escalated',
+        self::STAFF_ACCOUNT_CREATE => 'Staff account created',
+        self::STAFF_ACCOUNT_UPDATE => 'Staff account updated',
+        self::STAFF_ACCOUNT_DISABLE => 'Staff account disabled',
+        self::STAFF_ACCOUNT_ENABLE => 'Staff account re-enabled',
+        self::STAFF_API_LOGIN => 'Staff API login',
+        self::STAFF_API_LOGOUT => 'Staff API logout',
+        self::STAFF_ADS_TOKEN_ISSUE => 'Ads staff token issued',
     ];
 
     protected $fillable = [

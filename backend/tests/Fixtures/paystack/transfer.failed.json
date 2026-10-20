@@ -1,0 +1,11 @@
+{
+  "event": "transfer.failed",
+  "data": {
+    "id": 4212345,
+    "reference": "PO-20261020-ABCDEFGH",
+    "transfer_code": "TRF_8c4bnb0iy3qwx9b",
+    "amount": 50000,
+    "currency": "NGN",
+    "status": "failed"
+  }
+}

@@ -403,8 +403,9 @@ class AirwallexProvider implements CollectionProviderInterface, PayoutProviderIn
             'payment_intent.succeeded' => 'successful',
             'payment_intent.payment_attempt_failed' => 'failed',
             'payment_intent.cancelled' => 'cancelled',
-            'payout.succeeded', 'transfer.succeeded' => 'successful',
-            'payout.failed', 'transfer.failed' => 'failed',
+            // Current Airwallex payout events (payout.transfer.*). Settlement uses paid / failed / cancelled only.
+            'payout.transfer.paid' => 'successful',
+            'payout.transfer.failed', 'payout.transfer.cancelled' => 'failed',
             'refund.succeeded' => 'successful',
             default => 'processing',
         };

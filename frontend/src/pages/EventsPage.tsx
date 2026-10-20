@@ -1,3 +1,5 @@
+import { logger } from "@/lib/logger";
+import { asApiError } from "@/lib/apiError";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { Link, useSearchParams } from "react-router";
 import { Video as VideoCamera, Calendar, Calendar as CalendarCheck, Search as MagnifyingGlass, Location as MapPin, N2User as Users, TimeCircle as Clock, Plus, Delete as Trash, TickSquare as Check, DangerSquare as WarningCircle, ShieldDone as ShieldCheck, CloseSquare as X, Discovery as Globe, Discovery as Compass, Swap as ArrowsClockwise, Profile as UserIcon, Video as VideoConference } from "@/components/icons";
@@ -12,7 +14,6 @@ import { ActionTooltip } from "@/components/ui/action-tooltip";
 import { authFetch } from "@/lib/api/authFetch";
 import { safeArray } from "@/lib/api/cacheStore";
 import { env } from "@/config/env";
-import { getAuthToken } from "@/lib/auth/token";
 import type { EventData } from "@/types/events";
 
 const API = env.VITE_API_BASE_URL;
@@ -153,9 +154,7 @@ export function EventsPage() {
     setIsEventsLoading(true);
     setEventsError(null);
     try {
-      const token = getAuthToken();
-      const res = await fetch(`${API}/events`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      const res = await authFetch(`${API}/events`, {
       });
       if (!res.ok) throw new Error("Failed to load community events");
       const body = await res.json();
@@ -172,9 +171,7 @@ export function EventsPage() {
     setIsMyEventsLoading(true);
     setMyEventsError(null);
     try {
-      const token = getAuthToken();
-      const res = await fetch(`${API}/my-events`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      const res = await authFetch(`${API}/my-events`, {
       });
       if (!res.ok) throw new Error("Failed to load your events");
       const body = await res.json();
@@ -189,27 +186,55 @@ export function EventsPage() {
   // ── Fetch Audio / Live Rooms ──
   const fetchRooms = useCallback(async () => {
     try {
-      const token = getAuthToken();
       const res = await authFetch("/audio-rooms", {
-        headers: { Accept: "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        headers: { Accept: "application/json", },
       });
       if (res.ok) {
         const json = await res.json();
-        setRooms(safeArray<AudioRoom>(json));
+        const list = safeArray<AudioRoom>(json);
+        setRooms(list);
+        // A room that ended elsewhere must not stay open here, or clicking it
+        // would reconnect to a closed call.
+        setSelectedRoom((prev) => {
+          if (!prev) return prev;
+          // Only an explicit "ended" closes the call. A room missing from this list may be
+          // one the host just started, because a fetch that began before the create can resolve without it.
+          const current = list.find((r) => r.id === prev.id);
+          return current?.status === "ended" ? null : prev;
+        });
       }
     } catch {
       setRooms([]);
     }
   }, []);
 
+  // Keep "Live Now" current while the page is open: poll, and refresh as soon
+  // as the tab is visible again.
   useEffect(() => {
-    fetchEvents();
-    fetchRooms();
+    const timer = setInterval(() => void fetchRooms(), 15000);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void fetchRooms();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [fetchRooms]);
+
+  // The initial loads run just after the effects so the loaders' state updates are not synchronous in the effect bodies
+  useEffect(() => {
+    const first = setTimeout(() => {
+      fetchEvents();
+      fetchRooms();
+    }, 0);
+    return () => clearTimeout(first);
   }, [fetchEvents, fetchRooms]);
 
   useEffect(() => {
     if (activeTab === "my-events") {
-      fetchMyEvents();
+      const first = setTimeout(() => fetchMyEvents(), 0);
+      return () => clearTimeout(first);
     }
   }, [activeTab, fetchMyEvents]);
 
@@ -226,7 +251,6 @@ export function EventsPage() {
     if (!isKycVerified) return;
     setIsSubmittingLive(true);
     setLiveErrorNotice(null);
-    const token = getAuthToken();
     try {
       const body = {
         title: liveTitle.trim() || `${user?.name ?? "Creator"}'s Live Video Stream`,
@@ -238,7 +262,6 @@ export function EventsPage() {
         headers: {
           "Content-Type": "application/json",
           Accept: "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify(body),
       });
@@ -247,7 +270,7 @@ export function EventsPage() {
       const roomData = json.data ?? json;
       await authFetch(`/audio-rooms/${roomData.id}/start`, {
         method: "POST",
-        headers: { Accept: "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        headers: { Accept: "application/json", },
       });
       setShowLiveStudioModal(false);
       setSelectedRoom({ ...roomData, status: "live" });
@@ -255,7 +278,8 @@ export function EventsPage() {
       setActiveTab("live");
       fetchRooms();
     } catch (err: unknown) {
-      setLiveErrorNotice(err instanceof Error ? err.message : "Could not launch live video broadcast.");
+      const apiErr = asApiError(err);
+      setLiveErrorNotice(err instanceof Error ? apiErr.message : "Could not launch live video broadcast.");
     } finally {
       setIsSubmittingLive(false);
     }
@@ -266,7 +290,6 @@ export function EventsPage() {
     if (!isKycVerified) return;
     setIsSubmittingLive(true);
     setLiveErrorNotice(null);
-    const token = getAuthToken();
     try {
       const body = {
         title: schedTitle.trim(),
@@ -279,7 +302,6 @@ export function EventsPage() {
         headers: {
           "Content-Type": "application/json",
           Accept: "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify(body),
       });
@@ -290,7 +312,8 @@ export function EventsPage() {
       setActiveTab("live");
       fetchRooms();
     } catch (err: unknown) {
-      setLiveErrorNotice(err instanceof Error ? err.message : "Could not schedule live stream.");
+      const apiErr = asApiError(err);
+      setLiveErrorNotice(err instanceof Error ? apiErr.message : "Could not schedule live stream.");
     } finally {
       setIsSubmittingLive(false);
     }
@@ -300,12 +323,10 @@ export function EventsPage() {
   const handlePublishToggle = async (event: EventData) => {
     const newStatus = event.status === "published" ? "draft" : "published";
     try {
-      const token = getAuthToken();
-      const res = await fetch(`${API}/my-events/${event.id}/publish`, {
+      const res = await authFetch(`${API}/my-events/${event.id}/publish`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({ status: newStatus }),
       });
@@ -313,7 +334,7 @@ export function EventsPage() {
       fetchMyEvents();
       fetchEvents();
     } catch {
-      console.error("Failed to update event status");
+      logger.error("Failed to update event status");
     }
   };
 
@@ -325,16 +346,14 @@ export function EventsPage() {
     });
     if (!ok) return;
     try {
-      const token = getAuthToken();
-      const res = await fetch(`${API}/my-events/${id}`, {
+      const res = await authFetch(`${API}/my-events/${id}`, {
         method: "DELETE",
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       if (!res.ok) throw new Error("Failed to delete");
       setMyEvents((prev) => prev.filter((e) => e.id !== id));
       setEvents((prev) => prev.filter((e) => e.id !== id));
     } catch {
-      console.error("Failed to delete event");
+      logger.error("Failed to delete event");
     }
   };
 
@@ -1074,8 +1093,8 @@ export function EventsPage() {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Destination</label>
-                  <select
+                  <label htmlFor="f-pages-eventspage-tsx-1077" className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Destination</label>
+                  <select id="f-pages-eventspage-tsx-1077"
                     value={liveDestination}
                     onChange={(e) => setLiveDestination(e.target.value)}
                     className="w-full px-3.5 py-2.5 text-xs rounded-xl bg-card border border-border/70 text-foreground outline-none focus:ring-1 focus:ring-primary font-semibold"
@@ -1085,8 +1104,8 @@ export function EventsPage() {
                   </select>
                 </div>
                 <div className="space-y-2 pt-2 border-t border-border/40">
-                  <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Stream Title</label>
-                  <Input
+                  <label htmlFor="f-pages-eventspage-tsx-1088" className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Stream Title</label>
+                  <Input id="f-pages-eventspage-tsx-1088"
                     value={liveTitle}
                     onChange={(e) => setLiveTitle(e.target.value)}
                     placeholder="e.g. Creator Q&amp;A session"
@@ -1174,12 +1193,12 @@ export function EventsPage() {
             </div>
             <form onSubmit={handleScheduleLiveSubmit} className="space-y-4">
               <div className="space-y-1">
-                <label className="text-xs font-bold text-foreground uppercase tracking-wider">Session Title *</label>
-                <Input value={schedTitle} onChange={(e) => setSchedTitle(e.target.value)} required placeholder="e.g. Creator Q&A &amp; Community Chat" className="text-xs h-10 rounded-xl" />
+                <label htmlFor="f-pages-eventspage-tsx-1177" className="text-xs font-bold text-foreground uppercase tracking-wider">Session Title *</label>
+                <Input id="f-pages-eventspage-tsx-1177" value={schedTitle} onChange={(e) => setSchedTitle(e.target.value)} required placeholder="e.g. Creator Q&A &amp; Community Chat" className="text-xs h-10 rounded-xl" />
               </div>
               <div className="space-y-1">
-                <label className="text-xs font-bold text-foreground uppercase tracking-wider">Description</label>
-                <textarea
+                <label htmlFor="f-pages-eventspage-tsx-1181" className="text-xs font-bold text-foreground uppercase tracking-wider">Description</label>
+                <textarea id="f-pages-eventspage-tsx-1181"
                   value={schedDesc}
                   onChange={(e) => setSchedDesc(e.target.value)}
                   rows={3}
@@ -1189,12 +1208,12 @@ export function EventsPage() {
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-foreground uppercase tracking-wider">Date &amp; Time *</label>
-                  <Input type="datetime-local" value={schedDateTime} onChange={(e) => setSchedDateTime(e.target.value)} required className="text-xs h-10 rounded-xl" />
+                  <label htmlFor="f-pages-eventspage-tsx-1192" className="text-xs font-bold text-foreground uppercase tracking-wider">Date &amp; Time *</label>
+                  <Input id="f-pages-eventspage-tsx-1192" type="datetime-local" value={schedDateTime} onChange={(e) => setSchedDateTime(e.target.value)} required className="text-xs h-10 rounded-xl" />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-foreground uppercase tracking-wider">Participant Limit</label>
-                  <Input type="number" value={schedMaxParticipants} onChange={(e) => setSchedMaxParticipants(e.target.value)} placeholder="Unlimited" className="text-xs h-10 rounded-xl" />
+                  <label htmlFor="f-pages-eventspage-tsx-1196" className="text-xs font-bold text-foreground uppercase tracking-wider">Participant Limit</label>
+                  <Input id="f-pages-eventspage-tsx-1196" type="number" value={schedMaxParticipants} onChange={(e) => setSchedMaxParticipants(e.target.value)} placeholder="Unlimited" className="text-xs h-10 rounded-xl" />
                 </div>
               </div>
               <div className="flex justify-end gap-2.5 pt-2">

@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import { useState, useEffect } from 'react';
 import { TickSquare as Check, Wallet as CreditCard, DangerSquare as AlertCircle, CloseSquare as X } from "@/components/icons";
 import { Crown, Spinner as Loader2 } from "@/components/icons/rounded";;
@@ -25,7 +26,7 @@ export function BrowsePlansPage() {
     authFetch(`/subscriptions/plans/public`, {  })
       .then((r) => r.json())
       .then((json) => setPlans(json.data?.data ?? []))
-      .catch(console.error)
+      .catch((err) => logger.error("Failed to load plans", err))
       .finally(() => setIsLoading(false));
   }, []);
 

@@ -1,3 +1,5 @@
+import { authFetch } from "@/lib/api/authFetch";
+import { safeHref } from "@/lib/safeUrl";
 import { useState, useEffect } from "react";
 import { Plus as PlusIcon, Delete as Trash2Icon, Swap as RefreshCwIcon, ShieldDone as BadgeCheckIcon, N2User as Users } from "@/components/icons";
 import { ShareNetwork as Share2Icon, ArrowSquareOut as ExternalLinkIcon } from "@/components/icons/rounded";;
@@ -46,38 +48,38 @@ export default function ConnectedAccountsPage() {
   const [profileUrl, setProfileUrl] = useState("");
   const [followerCount, setFollowerCount] = useState<number | "">("");
   const [submitting, setSubmitting] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    (async () => {
+      setLoading(true);
+      try {
+        const [accRes, sumRes, provRes] = await Promise.all([
+          authFetch("/social-accounts", { headers: { Accept: "application/json" } }),
+          authFetch("/social-accounts/follower-summary", { headers: { Accept: "application/json" } }),
+          authFetch("/social-accounts/supported-providers", { headers: { Accept: "application/json" } }),
+        ]);
 
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      const [accRes, sumRes, provRes] = await Promise.all([
-        fetch("/api/v1/social-accounts", { headers: { Accept: "application/json" } }),
-        fetch("/api/v1/social-accounts/follower-summary", { headers: { Accept: "application/json" } }),
-        fetch("/api/v1/social-accounts/supported-providers", { headers: { Accept: "application/json" } }),
-      ]);
+        if (accRes.ok) {
+          const d = await accRes.json();
+          setAccounts(d.data?.data || d.data || []);
+        }
+        if (sumRes.ok) {
+          const d = await sumRes.json();
+          setSummary(d.data?.data || d.data || null);
+        }
+        if (provRes.ok) {
+          const d = await provRes.json();
+          setProviders(d.data?.data || d.data || []);
+        }
+      } catch {
+        toast.error("Failed to load connected accounts data.");
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [reloadKey]);
 
-      if (accRes.ok) {
-        const d = await accRes.json();
-        setAccounts(d.data?.data || d.data || []);
-      }
-      if (sumRes.ok) {
-        const d = await sumRes.json();
-        setSummary(d.data?.data || d.data || null);
-      }
-      if (provRes.ok) {
-        const d = await provRes.json();
-        setProviders(d.data?.data || d.data || []);
-      }
-    } catch (e) {
-      toast.error("Failed to load connected accounts data.");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleManualConnect = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -88,7 +90,7 @@ export default function ConnectedAccountsPage() {
 
     setSubmitting(true);
     try {
-      const res = await fetch("/api/v1/social-accounts/manual", {
+      const res = await authFetch("/social-accounts/manual", {
         method: "POST",
         headers: { "Content-Type": "application/json", Accept: "application/json" },
         body: JSON.stringify({
@@ -105,12 +107,12 @@ export default function ConnectedAccountsPage() {
         setUsername("");
         setProfileUrl("");
         setFollowerCount("");
-        fetchData();
+        setReloadKey((k) => k + 1);
       } else {
         const err = await res.json();
         toast.error(err.message || "Failed to connect account.");
       }
-    } catch (e) {
+    } catch {
       toast.error("Connection error.");
     } finally {
       setSubmitting(false);
@@ -123,18 +125,18 @@ export default function ConnectedAccountsPage() {
     if (!await confirm({ title: "Disconnect Account", message: "Are you sure you want to disconnect this social account?", variant: "destructive" })) return;
 
     try {
-      const res = await fetch(`/api/v1/social-accounts/${id}`, {
+      const res = await authFetch(`/social-accounts/${id}`, {
         method: "DELETE",
         headers: { Accept: "application/json" },
       });
 
       if (res.ok) {
         toast.success("Account disconnected.");
-        fetchData();
+        setReloadKey((k) => k + 1);
       } else {
         toast.error("Failed to disconnect account.");
       }
-    } catch (e) {
+    } catch {
       toast.error("Network error.");
     }
   };
@@ -252,7 +254,7 @@ export default function ConnectedAccountsPage() {
               <div className="flex items-center gap-2">
                 {acc.profile_url && (
                   <a
-                    href={acc.profile_url}
+                    href={safeHref(acc.profile_url)}
                     target="_blank"
                     rel="noreferrer"
                     className="p-2 text-muted-foreground hover:text-foreground rounded-lg border border-transparent hover:border-border transition"
@@ -289,8 +291,8 @@ export default function ConnectedAccountsPage() {
 
             <form onSubmit={handleManualConnect} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-1">Platform</label>
-                <select
+                <label htmlFor="f-ages-connectedaccountspage-tsx-292" className="block text-sm font-medium mb-1">Platform</label>
+                <select id="f-ages-connectedaccountspage-tsx-292"
                   value={selectedProvider}
                   onChange={(e) => setSelectedProvider(e.target.value)}
                   className="w-full rounded-lg border-none bg-background px-3 py-2 text-sm"
@@ -304,8 +306,8 @@ export default function ConnectedAccountsPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-1">Username / Handle</label>
-                <input
+                <label htmlFor="f-ages-connectedaccountspage-tsx-307" className="block text-sm font-medium mb-1">Username / Handle</label>
+                <input id="f-ages-connectedaccountspage-tsx-307"
                   type="text"
                   placeholder="e.g. johndoe_official"
                   value={username}
@@ -316,8 +318,8 @@ export default function ConnectedAccountsPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-1">Follower Count</label>
-                <input
+                <label htmlFor="f-ages-connectedaccountspage-tsx-319" className="block text-sm font-medium mb-1">Follower Count</label>
+                <input id="f-ages-connectedaccountspage-tsx-319"
                   type="number"
                   placeholder="e.g. 5000"
                   value={followerCount}
@@ -329,8 +331,8 @@ export default function ConnectedAccountsPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-1">Profile Link (optional)</label>
-                <input
+                <label htmlFor="f-ages-connectedaccountspage-tsx-332" className="block text-sm font-medium mb-1">Profile Link (optional)</label>
+                <input id="f-ages-connectedaccountspage-tsx-332"
                   type="url"
                   placeholder="https://instagram.com/johndoe_official"
                   value={profileUrl}

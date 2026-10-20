@@ -1,5 +1,4 @@
-import { getAuthToken } from "@/lib/auth/token";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { Search, DangerSquare as AlertCircle } from "@/components/icons";
 import { ClipboardText, Spinner as Loader2 } from "@/components/icons/rounded";;
 import { Input } from "@/components/ui/input";
@@ -7,45 +6,66 @@ import { authFetch } from "@/lib/api/authFetch";
 
 
 
+interface AuditLog {
+  id: number;
+  user?: { name?: string } | null;
+  user_name?: string | null;
+  action: string;
+  resource_type?: string | null;
+  resource_id?: number | string | null;
+  ip_address?: string | null;
+  created_at: string;
+}
+
 function authHeaders() {
-  const t = getAuthToken();
-  return { Accept: "application/json", "Content-Type": "application/json", ...(t ? { Authorization: `Bearer ${t}` } : {}) };
+  return { Accept: "application/json", "Content-Type": "application/json", };
 }
 
 export default function AdminAuditTrailPage() {
-  const [logs, setLogs] = useState<any[]>([]);
+  const [logs, setLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [lastPage, setLastPage] = useState(1);
 
-  const loadData = useCallback(async () => {
+  const [loadDataKey, setLoadDataKey] = useState(0);
+  const loadData = () => {
     setFetchError(null);
-    try {
-      const params = new URLSearchParams();
-      if (search) params.set("search", search);
-      params.set("page", String(page));
-      params.set("per_page", "20");
-      const res = await authFetch(`/securegate/audit-trail?${params}`, { headers: authHeaders() });
-      if (!res.ok) throw new Error("Failed to load audit trail");
-      const j = await res.json();
-      const list = j?.success ? j?.data : j;
-      setLogs(list?.data ?? list ?? []);
-      setLastPage(j.data?.last_page ?? j.data?.data?.last_page ?? 1);
-    } catch (e) { setFetchError(e instanceof Error ? e.message : "Failed to load audit trail"); }
-    finally { setLoading(false); }
-  }, [search, page]);
+    setLoadDataKey((k) => k + 1);
+  };
 
-  useEffect(() => { loadData(); }, [loadData]);
+  useEffect(() => {
+    (async () => {
+      try {
+        const params = new URLSearchParams();
+        if (search) params.set("search", search);
+        params.set("page", String(page));
+        params.set("per_page", "20");
+        const res = await authFetch(`/securegate/audit-trail?${params}`, { headers: authHeaders() });
+        if (!res.ok) throw new Error("Failed to load audit trail");
+        const j = await res.json();
+        const list = j?.success ? j?.data : j;
+        setLogs(list?.data ?? list ?? []);
+        setLastPage(j.data?.last_page ?? j.data?.data?.last_page ?? 1);
+      } catch (e) { setFetchError(e instanceof Error ? e.message : "Failed to load audit trail"); }
+      finally { setLoading(false); }
+    })();
+  }, [loadDataKey, search, page]);
 
-  useEffect(() => { setPage(1); }, [search]);
 
-  if (loading) return <div className="flex justify-center py-24"><Loader2 weight="fill" className="h-8 w-8 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" /></div>;
+  // Back to page 1 whenever the search changes.
+  const [pagedSearch, setPagedSearch] = useState(search);
+  if (search !== pagedSearch) {
+    setPagedSearch(search);
+    setPage(1);
+  }
+
+  if (loading) return <div className="flex justify-center py-24"><Loader2 weight="fill" className="h-8 w-8 animate-spin text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" /></div>;
 
   return (
     <div className="w-full mx-auto max-w-[1400px] space-y-6 p-4 lg:p-10">
-      <div><h1 className="text-xl font-black tracking-tight flex items-center gap-2.5"><ClipboardText weight="fill" className="h-6 w-6 text-[#2164b6] dark:text-[#7ab0ff]" /> Audit Trail</h1><p className="text-xs text-muted-foreground mt-1">View platform audit logs.</p></div>
+      <div><h1 className="text-xl font-black tracking-tight flex items-center gap-2.5"><ClipboardText weight="fill" className="h-6 w-6 text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" /> Audit Trail</h1><p className="text-xs text-muted-foreground mt-1">View platform audit logs.</p></div>
 
       <div className="relative max-w-xs">
         <Search weight="fill" className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -69,7 +89,7 @@ export default function AdminAuditTrailPage() {
                 <tr className="text-left">{["User", "Action", "Resource", "IP Address", "Date"].map((h) => <th key={h} className="px-4 py-3 text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider whitespace-nowrap">{h}</th>)}</tr>
               </thead>
               <tbody className="divide-y divide-border/50">
-                {logs.map((l: any) => (
+                {logs.map((l) => (
                   <tr key={l.id} className="hover:bg-muted/10 transition-colors">
                     <td className="px-4 py-3 font-semibold text-foreground whitespace-nowrap">{l.user?.name ?? l.user_name ?? "—"}</td>
                     <td className="px-4 py-3"><span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-muted text-muted-foreground">{l.action}</span></td>

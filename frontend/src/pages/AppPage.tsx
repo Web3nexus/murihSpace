@@ -1,4 +1,6 @@
-import { useState, useEffect, useCallback } from "react";
+import { logger } from "@/lib/logger";
+import type { ApiPost } from "@/lib/feed";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { Link } from "react-router";
 import { AnimatedPage } from "@/components/common/AnimatedPage";
@@ -278,7 +280,7 @@ export function AppPage() {
       setStoryText("");
       setStoryComposerOpen(false);
     } catch (err) {
-      console.error("Story creation failed:", err);
+      logger.error("Story creation failed:", err);
       toast.error("Failed to create story. Please try again.");
     } finally {
       setStoryUploading(false);
@@ -294,7 +296,7 @@ export function AppPage() {
       setPosts((prev) =>
         prev.map((p) => (p.id === postId ? { ...p, commentList: comments } : p))
       );
-    } catch {}
+    } catch { /* ignored: best-effort, failure is non-fatal */ }
     setLoadingComments((prev) => {
       const next = new Set(prev);
       next.delete(postId);
@@ -302,20 +304,25 @@ export function AppPage() {
     });
   }
 
-  const loadFeed = useCallback(async () => {
-    setFeedLoading(true);
-    try {
-      const feedRes = await apiClient.get("/feed?page=1&per_page=20");
-      const feedData = feedRes.data?.data ?? feedRes.data;
-      const apiPosts = feedData?.data ?? (Array.isArray(feedData) ? feedData : []);
-      if (apiPosts.length > 0) {
-        const mapped = apiPosts.map((p: any) => mapApiPost(p, user?.id));
-        setPosts(mapped);
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const feedRes = await apiClient.get("/feed?page=1&per_page=20");
+        const feedData = feedRes.data?.data ?? feedRes.data;
+        const apiPosts: ApiPost[] = feedData?.data ?? (Array.isArray(feedData) ? feedData : []);
+        if (active && apiPosts.length > 0) {
+          const mapped = apiPosts.map((p) => mapApiPost(p, user?.id));
+          setPosts(mapped);
+        }
+      } catch {
+        // ignore
       }
-    } catch (e) {
-      // ignore
-    }
-    setFeedLoading(false);
+      if (active) setFeedLoading(false);
+    })();
+    return () => {
+      active = false;
+    };
   }, [user?.id]);
 
   useEffect(() => {
@@ -355,15 +362,14 @@ export function AppPage() {
             }));
           }
         }
-      } catch (e) {
+      } catch {
         // ignore
       }
     }
 
     loadData();
-    loadFeed();
     return () => { active = false; };
-  }, [user?.id, loadFeed]);
+  }, [user?.id]);
 
   async function handleCreatePost() {
     if (!postText.trim() || !selectedCommunityId || submittingPost) return;
@@ -396,7 +402,7 @@ export function AppPage() {
         setComposerOpen(false);
       }
     } catch (err) {
-      console.error("Post creation failed:", err);
+      logger.error("Post creation failed:", err);
       setPostError("Failed to publish the post. Please try again.");
     }
     setSubmittingPost(false);
@@ -456,7 +462,7 @@ export function AppPage() {
         )
       );
       setCommentInput("");
-    } catch {}
+    } catch { /* ignored: best-effort, failure is non-fatal */ }
     setSubmittingComment(false);
   }
 
@@ -507,7 +513,7 @@ export function AppPage() {
         .then((res) => {
           const raw = res.data?.communities ?? res.data?.data ?? [];
           const list = Array.isArray(raw)
-            ? raw.map((c: any) => ({ id: c.id, name: c.name, logo_url: c.logo_url }))
+            ? raw.map((c) => ({ id: c.id, name: c.name, logo_url: c.logo_url }))
             : [];
           setUserCommunities(list);
           if (list.length > 0 && !selectedCommunityId) {
@@ -519,14 +525,14 @@ export function AppPage() {
   }, [composerOpen, userCommunities.length, selectedCommunityId]);
 
   return (
-    <AnimatedPage className="w-full min-h-screen bg-[#F0F2F5] dark:bg-[#18191A] text-[#050505] dark:text-[#E4E6EB]">
+    <AnimatedPage className="w-full min-h-screen bg-[var(--shell-canvas)] dark:bg-[var(--shell-canvas)] text-[var(--shell-text)] dark:text-[var(--shell-text)]">
       <div className="flex w-full justify-center max-w-[1400px] mx-auto min-h-0">
 
         <div className="flex-1 min-w-0 p-3 sm:p-4 space-y-4 max-w-[680px] w-full mx-auto">
 
-          <div className="bg-white dark:bg-[#242526] rounded-lg shadow-xs p-3.5 sm:p-4 space-y-3">
+          <div className="bg-white dark:bg-[var(--shell-surface)] rounded-lg shadow-xs p-3.5 sm:p-4 space-y-3">
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-full bg-[#2164b6] flex items-center justify-center text-white shrink-0 overflow-hidden">
+              <div className="h-10 w-10 rounded-full bg-[var(--shell-accent-solid)] flex items-center justify-center text-white shrink-0 overflow-hidden">
                 {user?.avatar_url ? (
                   <img src={user.avatar_url} alt="" className="w-full h-full object-cover" />
                 ) : (
@@ -539,7 +545,7 @@ export function AppPage() {
                   setComposerOpen(true);
                   setCommunityPickerOpen(false);
                 }}
-                className="w-full rounded-full bg-[#F0F2F5] dark:bg-[#3A3B3C] hover:bg-[#E4E6EB] dark:hover:bg-[#4E4F50] transition-colors px-4 py-2.5 text-xs sm:text-[14px] text-[#65676B] dark:text-[#B0B3B8] cursor-pointer flex items-center justify-between"
+                className="w-full rounded-full bg-[var(--shell-canvas)] dark:bg-[var(--shell-hover)] hover:bg-[var(--shell-hover)] dark:hover:bg-[var(--shell-hover-strong)] transition-colors px-4 py-2.5 text-xs sm:text-[14px] text-[var(--shell-muted)] dark:text-[var(--shell-muted)] cursor-pointer flex items-center justify-between"
               >
                 <span>What's on your mind?</span>
               </button>
@@ -551,8 +557,7 @@ export function AppPage() {
                   value={postText}
                   onChange={(e) => setPostText(e.target.value)}
                   placeholder="Write your post here... Share thoughts, updates, or announcements."
-                  className="w-full h-28 p-3.5 text-xs sm:text-sm rounded-lg border-none bg-background focus:outline-none focus:ring-2 focus:ring-[#2164b6]/40 resize-none"
-                  autoFocus
+                  className="w-full h-28 p-3.5 text-xs sm:text-sm rounded-lg border-none bg-background focus:outline-none focus:ring-2 focus:ring-[var(--shell-accent)]/40 resize-none"
                 />
 
                 <div className="relative">
@@ -577,13 +582,13 @@ export function AppPage() {
                             setCommunityPickerOpen(false);
                           }}
                           className={`w-full text-left px-3 py-2 text-xs font-semibold hover:bg-muted transition-colors flex items-center gap-2 ${
-                            selectedCommunityId === c.id ? "text-[#2164b6] dark:text-[#7ab0ff]" : "text-foreground"
+                            selectedCommunityId === c.id ? "text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" : "text-foreground"
                           }`}
                         >
                           {c.logo_url ? (
                             <img src={c.logo_url} alt="" className="h-5 w-5 rounded-full object-cover" />
                           ) : (
-                            <div className="h-5 w-5 rounded-full bg-[#2164b6]/10 text-[#2164b6] dark:text-[#7ab0ff] flex items-center justify-center text-[9px] font-bold">
+                            <div className="h-5 w-5 rounded-full bg-[var(--shell-accent-solid)]/10 text-[var(--shell-accent)] dark:text-[var(--shell-accent)] flex items-center justify-center text-[9px] font-bold">
                               {c.name.charAt(0)}
                             </div>
                           )}
@@ -595,7 +600,7 @@ export function AppPage() {
                   {communityPickerOpen && userCommunities.length === 0 && (
                     <div className="absolute top-full left-0 mt-1 w-56 bg-card border-none rounded-lg shadow-lg z-30 py-3 px-3 text-xs text-muted-foreground text-center">
                       <p className="font-semibold mb-1">No communities yet</p>
-                      <Link to="/app/communities" className="text-[#2164b6] dark:text-[#7ab0ff] hover:underline" onClick={() => setCommunityPickerOpen(false)}>
+                      <Link to="/app/communities" className="text-[var(--shell-accent)] dark:text-[var(--shell-accent)] hover:underline" onClick={() => setCommunityPickerOpen(false)}>
                         Create a community first
                       </Link>
                     </div>
@@ -612,7 +617,7 @@ export function AppPage() {
                   <button
                     onClick={handleCreatePost}
                     disabled={submittingPost || !postText.trim() || !selectedCommunityId}
-                    className="px-4 py-2 rounded-lg bg-[#2164b6] hover:bg-[#1a5091] disabled:opacity-50 text-white font-bold text-xs transition-colors flex items-center gap-1.5 "
+                    className="px-4 py-2 rounded-lg bg-[var(--shell-accent-solid)] hover:bg-[var(--shell-accent-hover)] disabled:opacity-50 text-white font-bold text-xs transition-colors flex items-center gap-1.5 "
                   >
                     {submittingPost ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send weight="fill" className="h-3.5 w-3.5" />}
                     Publish Post
@@ -628,11 +633,11 @@ export function AppPage() {
 
             <div className="flex items-center justify-between gap-1 sm:gap-2 border-t border-border/60 pt-3 overflow-x-auto no-scrollbar">
               {[
-                { icon: <Plus weight="fill" className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" />, label: "Create Post", action: () => { setComposerOpen(true); setCommunityPickerOpen(false); } },
+                { icon: <Plus weight="fill" className="h-4 w-4 text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" />, label: "Create Post", action: () => { setComposerOpen(true); setCommunityPickerOpen(false); } },
                 { icon: <Package weight="fill" className="h-4 w-4 text-rose-500" />, label: "Add Product", to: "/app/store" },
                 { icon: <Video weight="fill" className="h-4 w-4 text-red-500" />, label: "Go Live", to: "/app/audio-rooms" },
                 { icon: <Video weight="fill" className="h-4 w-4 text-emerald-500" />, label: "New Meeting", to: "/app/meetings" },
-                { icon: <Calendar weight="fill" className="h-4 w-4 text-blue-500" />, label: "New Event", to: "/app/events" },
+                { icon: <Calendar weight="fill" className="h-4 w-4 text-[var(--shell-accent)]" />, label: "New Event", to: "/app/events" },
                 { icon: <BarChart2 weight="fill" className="h-4 w-4 text-amber-500" />, label: "Poll", to: "/app/communities" },
               ].map((act, i) => (
                 act.to ? (
@@ -657,7 +662,7 @@ export function AppPage() {
               <button
                 onClick={() => setStoryComposerOpen(true)}
                 disabled={storyUploading}
-                className="relative shrink-0 w-28 sm:w-32 h-44 rounded-lg overflow-hidden bg-gradient-to-b from-[#2164b6] to-blue-600  cursor-pointer group hover:scale-[1.02] transition-transform flex flex-col items-center justify-center text-white p-3 disabled:opacity-70 disabled:cursor-not-allowed"
+                className="relative shrink-0 w-28 sm:w-32 h-44 rounded-lg overflow-hidden bg-gradient-to-b from-[var(--shell-accent-solid)] to-blue-600  cursor-pointer group hover:scale-[1.02] transition-transform flex flex-col items-center justify-center text-white p-3 disabled:opacity-70 disabled:cursor-not-allowed"
               >
                 <div className="h-10 w-10 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
                   {storyUploading
@@ -683,7 +688,7 @@ export function AppPage() {
                   )}
 
                   <div className="absolute top-2.5 left-2.5 z-10">
-                    <div className="h-9 w-9 rounded-full p-[2px] bg-[#1877f2]">
+                    <div className="h-9 w-9 rounded-full p-[2px] bg-[var(--shell-accent-solid)]">
                       {story.avatar
                         ? <img src={story.avatar} alt="" className="w-full h-full rounded-full object-cover border-2 border-white/40" />
                         : <div className="w-full h-full rounded-full bg-muted flex items-center justify-center text-xs font-bold text-white border-2 border-white/40">{story.name.charAt(0).toUpperCase()}</div>
@@ -706,7 +711,7 @@ export function AppPage() {
                   onChange={(e) => setStoryText(e.target.value)}
                   placeholder="Share an update with your audience…"
                   maxLength={500}
-                  className="w-full h-24 p-3.5 text-xs sm:text-sm rounded-lg border-none bg-background focus:outline-none focus:ring-2 focus:ring-[#2164b6]/40 resize-none"
+                  className="w-full h-24 p-3.5 text-xs sm:text-sm rounded-lg border-none bg-background focus:outline-none focus:ring-2 focus:ring-[var(--shell-accent)]/40 resize-none"
                 />
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] text-muted-foreground">{storyText.length}/500</span>
@@ -720,7 +725,7 @@ export function AppPage() {
                     <button
                       onClick={handleCreateTextStory}
                       disabled={storyUploading || !storyText.trim()}
-                      className="px-4 py-1.5 rounded-lg bg-[#2164b6] hover:bg-[#1a5091] disabled:opacity-50 text-white font-bold text-xs transition-colors flex items-center gap-1.5 "
+                      className="px-4 py-1.5 rounded-lg bg-[var(--shell-accent-solid)] hover:bg-[var(--shell-accent-hover)] disabled:opacity-50 text-white font-bold text-xs transition-colors flex items-center gap-1.5 "
                     >
                       {storyUploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send weight="fill" className="h-3.5 w-3.5" />}
                       Publish Story
@@ -746,7 +751,7 @@ export function AppPage() {
                 <p className="text-sm font-semibold">No posts in your feed yet</p>
                 <p className="text-xs">Follow communities and creators to see their posts here.</p>
                 <Link to="/app/communities">
-                  <button className="mt-2 px-4 py-2 rounded-lg bg-[#2164b6] hover:bg-[#1a5091] text-white font-bold text-xs transition-colors">
+                  <button className="mt-2 px-4 py-2 rounded-lg bg-[var(--shell-accent-solid)] hover:bg-[var(--shell-accent-hover)] text-white font-bold text-xs transition-colors">
                     Browse Communities
                   </button>
                 </Link>
@@ -760,7 +765,7 @@ export function AppPage() {
                 <div key={post.id} className="bg-card border-none  rounded-lg p-4 sm:p-5 space-y-3">
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-full bg-[#1877f2] p-[2px]">
+                      <div className="h-10 w-10 rounded-full bg-[var(--shell-accent-solid)] p-[2px]">
                         {post.avatar ? (
                           <img src={post.avatar} alt="" className="w-full h-full rounded-full object-cover" />
                         ) : (
@@ -773,7 +778,7 @@ export function AppPage() {
                         <div className="flex items-center gap-1.5">
                           <span className="text-sm font-bold text-foreground">{post.author}</span>
                           {post.authorVerified && (
-                            <VerifiedBadge className="h-3.5 w-3.5 text-[#1B64F2]" aria-label="Verified" />
+                            <VerifiedBadge className="h-3.5 w-3.5 text-[var(--shell-accent)]" aria-label="Verified" />
                           )}
                         </div>
                         <p className="text-[11px] text-muted-foreground">{post.badge} · {post.time} · 🌐</p>
@@ -798,7 +803,7 @@ export function AppPage() {
                       </div>
                       <div className="p-3.5 flex flex-col justify-center bg-card flex-1 border-t sm:border-t-0 sm:border-l border-border">
                         <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider block mb-1">YOUTUBE.COM</span>
-                        <h4 className="text-xs sm:text-sm font-bold text-foreground leading-snug group-hover:text-[#2164b6] dark:text-[#7ab0ff] transition-colors">
+                        <h4 className="text-xs sm:text-sm font-bold text-foreground leading-snug group-hover:text-[var(--shell-accent)] dark:text-[var(--shell-accent)] transition-colors">
                           {post.embedTitle}
                         </h4>
                         <p className="text-[11px] text-muted-foreground mt-1 line-clamp-2 leading-tight">
@@ -810,7 +815,7 @@ export function AppPage() {
 
                   {post.embedType === "product" && (
                     <div className="p-3.5 rounded-lg border-none bg-slate-50/50 dark:bg-muted/30 flex items-center gap-4">
-                      <div className="h-20 w-16 rounded-lg bg-gradient-to-br from-[#2164b6] to-blue-700 shrink-0 overflow-hidden  flex items-center justify-center text-white p-2">
+                      <div className="h-20 w-16 rounded-lg bg-gradient-to-br from-[var(--shell-accent-solid)] to-blue-700 shrink-0 overflow-hidden  flex items-center justify-center text-white p-2">
                         <div className="text-center">
                           <p className="text-[8px] font-extrabold uppercase tracking-widest text-white/80">LINK</p>
                           <p className="text-[10px] font-black leading-tight mt-1">External</p>
@@ -824,7 +829,7 @@ export function AppPage() {
                         {post.price && <p className="text-xs font-black text-foreground mt-1.5">{post.price}</p>}
                       </div>
                       <Link to="/app/store">
-                        <button className="px-3.5 py-1.5 rounded-lg bg-[#2164b6]/10 text-[#2164b6] dark:text-[#7ab0ff] hover:bg-[#2164b6]/20 font-bold text-xs transition-colors shrink-0">
+                        <button className="px-3.5 py-1.5 rounded-lg bg-[var(--shell-accent-solid)]/10 text-[var(--shell-accent)] dark:text-[var(--shell-accent)] hover:bg-[var(--shell-accent-solid)]/20 font-bold text-xs transition-colors shrink-0">
                           View Product
                         </button>
                       </Link>
@@ -840,16 +845,16 @@ export function AppPage() {
                   <div className="flex items-center justify-between text-xs text-muted-foreground pt-1 border-t border-border/40">
                     <div className="flex items-center gap-1">
                       <span className="inline-flex -space-x-1">
-                        <span className="h-4 w-4 rounded-full bg-blue-500 flex items-center justify-center text-[9px] text-white">👍</span>
+                        <span className="h-4 w-4 rounded-full bg-[var(--shell-accent-solid)] flex items-center justify-center text-[9px] text-white">👍</span>
                         <span className="h-4 w-4 rounded-full bg-rose-500 flex items-center justify-center text-[9px] text-white">❤️</span>
                       </span>
                       <span className="font-semibold text-foreground text-[11px] ml-1">{post.likes}</span>
                     </div>
                     <div className="flex items-center gap-3 text-[11px]">
-                      <button onClick={() => handleClickComment(post.id)} className="hover:text-[#2164b6] dark:text-[#7ab0ff] transition-colors">
+                      <button onClick={() => handleClickComment(post.id)} className="hover:text-[var(--shell-accent)] dark:text-[var(--shell-accent)] transition-colors">
                         {post.comments} Comments
                       </button>
-                      <button onClick={() => handleShare(post)} className="hover:text-[#2164b6] dark:text-[#7ab0ff] transition-colors">
+                      <button onClick={() => handleShare(post)} className="hover:text-[var(--shell-accent)] dark:text-[var(--shell-accent)] transition-colors">
                         {post.shares} Shares
                       </button>
                     </div>
@@ -859,7 +864,7 @@ export function AppPage() {
                     <button
                       onClick={() => toggleLike(post.id)}
                       className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
-                        post.isLiked ? "text-[#2164b6] dark:text-[#7ab0ff] bg-[#2164b6]/10" : "text-muted-foreground hover:bg-muted"
+                        post.isLiked ? "text-[var(--shell-accent)] dark:text-[var(--shell-accent)] bg-[var(--shell-accent-solid)]/10" : "text-muted-foreground hover:bg-muted"
                       }`}
                     >
                       <Heart weight="fill" className={`h-4 w-4 ${post.isLiked ? "fill-[#2164b6]" : ""}`} /> Like
@@ -867,7 +872,7 @@ export function AppPage() {
                     <button
                       onClick={() => handleClickComment(post.id)}
                       className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
-                        isCommenting ? "text-[#2164b6] dark:text-[#7ab0ff] bg-[#2164b6]/10" : "text-muted-foreground hover:bg-muted"
+                        isCommenting ? "text-[var(--shell-accent)] dark:text-[var(--shell-accent)] bg-[var(--shell-accent-solid)]/10" : "text-muted-foreground hover:bg-muted"
                       }`}
                     >
                       <MessageCircle weight="fill" className="h-4 w-4" /> Comment
@@ -892,7 +897,7 @@ export function AppPage() {
                         <div className="space-y-2.5">
                           {post.commentList.map((cmt) => (
                             <div key={cmt.id} className="flex items-start gap-2.5 text-xs p-2.5 rounded-lg bg-slate-50 dark:bg-muted/40">
-                              <div className="h-7 w-7 rounded-full bg-[#1877f2] flex items-center justify-center text-white shrink-0">
+                              <div className="h-7 w-7 rounded-full bg-[var(--shell-accent-solid)] flex items-center justify-center text-white shrink-0">
                                 {cmt.avatar_url ? <img src={cmt.avatar_url} alt="" className="w-full h-full rounded-full object-cover" /> : <UserIcon weight="fill" className="text-white/90" style={{ width: 14, height: 14 }} />}
                               </div>
                               <div className="flex-1 min-w-0">
@@ -900,7 +905,7 @@ export function AppPage() {
                                   <span className="font-bold text-foreground text-[11px]">
                                     {cmt.user_name}
                                     {cmt.verified && (
-                                      <VerifiedBadge size={12} className="inline-block ml-0.5 text-[#1B64F2] -mt-0.5" aria-label="Verified" />
+                                      <VerifiedBadge size={12} className="inline-block ml-0.5 text-[var(--shell-accent)] -mt-0.5" aria-label="Verified" />
                                     )}
                                   </span>
                                   <span className="text-[9px] text-muted-foreground">{cmt.time}</span>
@@ -919,12 +924,12 @@ export function AppPage() {
                           onChange={(e) => setCommentInput(e.target.value)}
                           onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleAddComment(post.id); } }}
                           placeholder="Write a comment..."
-                          className="flex-1 h-9 px-3.5 text-xs rounded-full border-none bg-background focus:outline-none focus:ring-2 focus:ring-[#2164b6]/40"
+                          className="flex-1 h-9 px-3.5 text-xs rounded-full border-none bg-background focus:outline-none focus:ring-2 focus:ring-[var(--shell-accent)]/40"
                         />
                         <button
                           onClick={() => handleAddComment(post.id)}
                           disabled={submittingComment || !commentInput.trim()}
-                          className="px-3.5 h-9 rounded-lg bg-[#2164b6] hover:bg-[#1a5091] disabled:opacity-50 text-white font-bold text-xs transition-colors flex items-center gap-1 shrink-0"
+                          className="px-3.5 h-9 rounded-lg bg-[var(--shell-accent-solid)] hover:bg-[var(--shell-accent-hover)] disabled:opacity-50 text-white font-bold text-xs transition-colors flex items-center gap-1 shrink-0"
                         >
                           {submittingComment ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send weight="fill" className="h-3.5 w-3.5" />}
                         </button>
@@ -943,19 +948,19 @@ export function AppPage() {
         <div className="w-[280px] xl:w-[320px] shrink-0 hidden lg:block py-4 px-2 space-y-4 overflow-y-auto max-h-[calc(100dvh-3.5rem)] self-start sticky top-0 no-scrollbar">
 
           {/* 1. Requests (Friends & Communities) */}
-          <div className="rounded-lg bg-white dark:bg-[#242526] shadow-xs p-3.5 space-y-3">
+          <div className="rounded-lg bg-white dark:bg-[var(--shell-surface)] shadow-xs p-3.5 space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Users weight="fill" className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" />
-                <h3 className="font-bold text-[#050505] dark:text-[#E4E6EB] text-xs sm:text-sm">Requests</h3>
+                <Users weight="fill" className="h-4 w-4 text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" />
+                <h3 className="font-bold text-[var(--shell-text)] dark:text-[var(--shell-text)] text-xs sm:text-sm">Requests</h3>
                 {totalRequests > 0 && (
-                  <span className="h-4 min-w-[18px] px-1 rounded-full bg-[#2164b6] text-white text-[9px] font-extrabold flex items-center justify-center">
+                  <span className="h-4 min-w-[18px] px-1 rounded-full bg-[var(--shell-accent-solid)] text-white text-[9px] font-extrabold flex items-center justify-center">
                     {totalRequests > 99 ? "99+" : totalRequests}
                   </span>
                 )}
               </div>
               <div className="flex items-center gap-1.5 text-[11px] font-semibold">
-                <Link to="/app/requests" className="text-[#2164b6] dark:text-[#7ab0ff] hover:underline">See all</Link>
+                <Link to="/app/requests" className="text-[var(--shell-accent)] dark:text-[var(--shell-accent)] hover:underline">See all</Link>
               </div>
             </div>
 
@@ -964,21 +969,21 @@ export function AppPage() {
                 <Loader2 weight="fill" className="h-4 w-4 animate-spin text-muted-foreground/50" />
               </div>
             ) : requestItems.length === 0 ? (
-              <p className="text-[11px] text-[#65676B] dark:text-[#B0B3B8] text-center py-2">
+              <p className="text-[11px] text-[var(--shell-muted)] dark:text-[var(--shell-muted)] text-center py-2">
                 No pending requests
               </p>
             ) : (
               <div className="space-y-2.5">
                 {requestItems.map((item) => (
                   <div key={`${item.kind}-${item.id}`} className="flex items-center gap-2.5 min-w-0">
-                    <div className="h-8 w-8 rounded-full shrink-0 overflow-hidden bg-[#2164b6] flex items-center justify-center text-white">
+                    <div className="h-8 w-8 rounded-full shrink-0 overflow-hidden bg-[var(--shell-accent-solid)] flex items-center justify-center text-white">
                       {item.avatarUrl
                         ? <img src={item.avatarUrl} alt="" className="w-full h-full object-cover" />
                         : <UserIcon weight="fill" className="text-white/90" style={{ width: 16, height: 16 }} />}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-[12px] font-semibold text-[#050505] dark:text-[#E4E6EB] truncate leading-snug">{item.name}</p>
-                      <p className="text-[10px] text-[#65676B] dark:text-[#B0B3B8] truncate">{item.sub}</p>
+                      <p className="text-[12px] font-semibold text-[var(--shell-text)] dark:text-[var(--shell-text)] truncate leading-snug">{item.name}</p>
+                      <p className="text-[10px] text-[var(--shell-muted)] dark:text-[var(--shell-muted)] truncate">{item.sub}</p>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
                       <button
@@ -989,7 +994,7 @@ export function AppPage() {
                         }
                         disabled={reqActionId === item.id}
                         title={item.kind === "friend" ? "Accept" : "Approve"}
-                        className="h-7 w-7 rounded-md bg-[#2164b6] text-white hover:bg-[#1a5091] flex items-center justify-center transition-colors disabled:opacity-50"
+                        className="h-7 w-7 rounded-md bg-[var(--shell-accent-solid)] text-white hover:bg-[var(--shell-accent-hover)] flex items-center justify-center transition-colors disabled:opacity-50"
                       >
                         {reqActionId === item.id
                           ? <Loader2 weight="fill" className="h-3.5 w-3.5 animate-spin" />
@@ -1003,7 +1008,7 @@ export function AppPage() {
                         }
                         disabled={reqActionId === item.id}
                         title={item.kind === "friend" ? "Decline" : "Reject"}
-                        className="h-7 w-7 rounded-md bg-[#E4E6EB] dark:bg-[#3A3B3C] text-[#050505] dark:text-[#E4E6EB] hover:bg-[#D8DADF] flex items-center justify-center transition-colors disabled:opacity-50"
+                        className="h-7 w-7 rounded-md bg-[var(--shell-hover)] dark:bg-[var(--shell-hover)] text-[var(--shell-text)] dark:text-[var(--shell-text)] hover:bg-[var(--shell-hover-strong)] flex items-center justify-center transition-colors disabled:opacity-50"
                       >
                         <X weight="bold" className="h-3.5 w-3.5" />
                       </button>
@@ -1015,25 +1020,25 @@ export function AppPage() {
           </div>
 
           {/* 2. Suggested Communities */}
-          <div className="rounded-lg bg-white dark:bg-[#242526] shadow-xs p-3.5 space-y-3">
+          <div className="rounded-lg bg-white dark:bg-[var(--shell-surface)] shadow-xs p-3.5 space-y-3">
             <div className="flex items-center justify-between">
-              <h3 className="font-bold text-[#050505] dark:text-[#E4E6EB] text-xs sm:text-sm">
+              <h3 className="font-bold text-[var(--shell-text)] dark:text-[var(--shell-text)] text-xs sm:text-sm">
                 Suggested Communities
               </h3>
-              <Link to="/app/communities" className="text-[11px] font-semibold text-[#2164b6] dark:text-[#7ab0ff] hover:underline">
+              <Link to="/app/communities" className="text-[11px] font-semibold text-[var(--shell-accent)] dark:text-[var(--shell-accent)] hover:underline">
                 See all
               </Link>
             </div>
 
             {suggestedCommunities.length === 0 ? (
-              <p className="text-[11px] text-[#65676B] dark:text-[#B0B3B8] text-center py-2">
+              <p className="text-[11px] text-[var(--shell-muted)] dark:text-[var(--shell-muted)] text-center py-2">
                 No new suggestions
               </p>
             ) : (
               <div className="space-y-2.5">
                 {suggestedCommunities.map((comm) => (
                   <div key={comm.id} className="flex items-center gap-2.5 min-w-0">
-                    <div className="h-9 w-9 rounded-lg shrink-0 overflow-hidden bg-[#2164b6]/10 text-[#2164b6] flex items-center justify-center">
+                    <div className="h-9 w-9 rounded-lg shrink-0 overflow-hidden bg-[var(--shell-accent-solid)]/10 text-[var(--shell-accent)] flex items-center justify-center">
                       {comm.logo_url ? (
                         <img src={comm.logo_url} alt="" className="w-full h-full object-cover" />
                       ) : (
@@ -1041,16 +1046,16 @@ export function AppPage() {
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-[12px] font-semibold text-[#050505] dark:text-[#E4E6EB] truncate leading-tight">
+                      <p className="text-[12px] font-semibold text-[var(--shell-text)] dark:text-[var(--shell-text)] truncate leading-tight">
                         {comm.name}
                       </p>
-                      <p className="text-[10px] text-[#65676B] dark:text-[#B0B3B8] truncate">
+                      <p className="text-[10px] text-[var(--shell-muted)] dark:text-[var(--shell-muted)] truncate">
                         {comm.members_count ? `${comm.members_count} members` : "Active group"}
                       </p>
                     </div>
                     <Link
                       to={`/app/communities/${comm.slug}`}
-                      className="px-2.5 py-1 rounded-md bg-[#F0F2F5] dark:bg-[#3A3B3C] hover:bg-[#E4E6EB] dark:hover:bg-[#4E4F50] text-[#050505] dark:text-[#E4E6EB] text-[11px] font-semibold transition-colors shrink-0"
+                      className="px-2.5 py-1 rounded-md bg-[var(--shell-canvas)] dark:bg-[var(--shell-hover)] hover:bg-[var(--shell-hover)] dark:hover:bg-[var(--shell-hover-strong)] text-[var(--shell-text)] dark:text-[var(--shell-text)] text-[11px] font-semibold transition-colors shrink-0"
                     >
                       View
                     </Link>
@@ -1061,12 +1066,12 @@ export function AppPage() {
           </div>
 
           {/* 3. Upcoming Events */}
-          <div className="rounded-lg bg-white dark:bg-[#242526] shadow-xs p-3.5 space-y-3">
+          <div className="rounded-lg bg-white dark:bg-[var(--shell-surface)] shadow-xs p-3.5 space-y-3">
             <div className="flex items-center justify-between">
-              <h3 className="font-bold text-[#050505] dark:text-[#E4E6EB] text-xs sm:text-sm">
+              <h3 className="font-bold text-[var(--shell-text)] dark:text-[var(--shell-text)] text-xs sm:text-sm">
                 Upcoming Events
               </h3>
-              <Link to="/app/events" className="text-[11px] font-semibold text-[#2164b6] dark:text-[#7ab0ff] hover:underline">
+              <Link to="/app/events" className="text-[11px] font-semibold text-[var(--shell-accent)] dark:text-[var(--shell-accent)] hover:underline">
                 See all
               </Link>
             </div>
@@ -1078,10 +1083,10 @@ export function AppPage() {
                   <span className="text-xs">{analytics.upcomingEvent.day || "•"}</span>
                 </div>
                 <div className="min-w-0">
-                  <p className="text-[11px] font-semibold text-[#050505] dark:text-[#E4E6EB] truncate">
+                  <p className="text-[11px] font-semibold text-[var(--shell-text)] dark:text-[var(--shell-text)] truncate">
                     {analytics.upcomingEvent.title || "No scheduled events"}
                   </p>
-                  <p className="text-[10px] text-[#65676B] dark:text-[#B0B3B8]">
+                  <p className="text-[10px] text-[var(--shell-muted)] dark:text-[var(--shell-muted)]">
                     {analytics.upcomingEvent.date || "Stay tuned for new lives"}
                   </p>
                 </div>
@@ -1096,17 +1101,17 @@ export function AppPage() {
                     <Link
                       key={evt.id}
                       to="/app/events"
-                      className="flex items-center gap-2.5 p-1 rounded-lg hover:bg-[#F0F2F5] dark:hover:bg-[#3A3B3C] transition-colors"
+                      className="flex items-center gap-2.5 p-1 rounded-lg hover:bg-[var(--shell-hover)] dark:hover:bg-[var(--shell-hover)] transition-colors"
                     >
                       <div className="h-9 w-9 rounded-lg bg-rose-500/10 text-rose-600 shrink-0 font-bold text-center text-[9px] leading-tight flex flex-col items-center justify-center">
                         <span>{month}</span>
                         <span className="text-xs font-black">{day}</span>
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="text-[12px] font-semibold text-[#050505] dark:text-[#E4E6EB] truncate leading-tight">
+                        <p className="text-[12px] font-semibold text-[var(--shell-text)] dark:text-[var(--shell-text)] truncate leading-tight">
                           {evt.title}
                         </p>
-                        <p className="text-[10px] text-[#65676B] dark:text-[#B0B3B8] truncate">
+                        <p className="text-[10px] text-[var(--shell-muted)] dark:text-[var(--shell-muted)] truncate">
                           {evt.location || "Online Studio"}
                         </p>
                       </div>
@@ -1118,12 +1123,12 @@ export function AppPage() {
           </div>
 
           {/* 4. Conversations */}
-          <div className="rounded-lg bg-white dark:bg-[#242526] shadow-xs p-3.5 space-y-2.5">
+          <div className="rounded-lg bg-white dark:bg-[var(--shell-surface)] shadow-xs p-3.5 space-y-2.5">
             <div className="flex items-center justify-between">
-              <h3 className="font-bold text-[#050505] dark:text-[#E4E6EB] text-xs sm:text-sm">
+              <h3 className="font-bold text-[var(--shell-text)] dark:text-[var(--shell-text)] text-xs sm:text-sm">
                 Conversations
               </h3>
-              <Link to="/app/messages" className="text-[11px] font-semibold text-[#2164b6] dark:text-[#7ab0ff] hover:underline">
+              <Link to="/app/messages" className="text-[11px] font-semibold text-[var(--shell-accent)] dark:text-[var(--shell-accent)] hover:underline">
                 Open Chat
               </Link>
             </div>
@@ -1132,13 +1137,13 @@ export function AppPage() {
                 <Link
                   key={idx}
                   to="/app/messages"
-                  className="flex items-center justify-between p-2 rounded-lg hover:bg-[#F0F2F5] dark:hover:bg-[#3A3B3C] transition-colors"
+                  className="flex items-center justify-between p-2 rounded-lg hover:bg-[var(--shell-hover)] dark:hover:bg-[var(--shell-hover)] transition-colors"
                 >
                   <div className="flex items-center gap-2 min-w-0">
                     <div className="h-2 w-2 rounded-full bg-emerald-500 shrink-0" />
-                    <span className="text-[12px] font-medium text-[#050505] dark:text-[#E4E6EB] truncate">{ch.name}</span>
+                    <span className="text-[12px] font-medium text-[var(--shell-text)] dark:text-[var(--shell-text)] truncate">{ch.name}</span>
                   </div>
-                  <span className="text-[10px] text-[#65676B] dark:text-[#B0B3B8] shrink-0">{ch.badge}</span>
+                  <span className="text-[10px] text-[var(--shell-muted)] dark:text-[var(--shell-muted)] shrink-0">{ch.badge}</span>
                 </Link>
               ))}
             </div>
@@ -1153,7 +1158,7 @@ export function AppPage() {
           <div className="bg-card border-none shadow-2xl rounded-lg p-5 max-w-sm w-full space-y-4 animate-in fade-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between border-b border-border pb-3">
               <h3 className="font-bold text-foreground text-sm flex items-center gap-2">
-                <Share2 weight="fill" className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" /> Share Post
+                <Share2 weight="fill" className="h-4 w-4 text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" /> Share Post
               </h3>
               <button onClick={() => setShareModalPost(null)} className="text-muted-foreground hover:text-foreground">
                 <X weight="fill" className="h-4 w-4" />
@@ -1173,7 +1178,7 @@ export function AppPage() {
               />
               <button
                 onClick={handleCopyLink}
-                className="px-3 h-9 rounded-lg bg-[#2164b6] hover:bg-[#1a5091] text-white font-bold text-xs transition-colors flex items-center gap-1 shrink-0"
+                className="px-3 h-9 rounded-lg bg-[var(--shell-accent-solid)] hover:bg-[var(--shell-accent-hover)] text-white font-bold text-xs transition-colors flex items-center gap-1 shrink-0"
               >
                 {copiedLink ? <Check className="h-3.5 w-3.5" /> : <Copy weight="fill" className="h-3.5 w-3.5" />}
                 {copiedLink ? "Copied!" : "Copy"}

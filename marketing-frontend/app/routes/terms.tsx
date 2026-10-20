@@ -1,4 +1,4 @@
-import { FileText, ShieldAlert, Award, Scale } from "lucide-react";
+import { Scale } from "lucide-react";
 
 export function meta() {
   return [

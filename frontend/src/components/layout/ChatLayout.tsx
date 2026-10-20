@@ -1,10 +1,13 @@
+import { authFetch } from "@/lib/api/authFetch";
+import { logger } from "@/lib/logger";
+import { safeHref } from "@/lib/safeUrl";
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router';
 import { Message as MessageSquare, Search, Send, Bookmark, N2User as Users, ArrowLeft, DangerSquare as AlertCircle, Swap as RotateCcw, MoreSquare as MoreVertical, TickSquare as CheckIcon, TickSquare as CheckCheck, Chat as ChatBubble, AddUser as UserPlus, ShieldDone as Shield, Lock, Delete as Trash, Call as Phone, Video as VideoCamera, Edit as PencilSimple, CloseSquare as X } from "@/components/icons";
 import { Spinner as Loader2, BellSlash as BellOff, Archive, ArrowUUpLeft as Reply, Paperclip, Storefront, Copy } from "@/components/icons/rounded";;
 import { toast } from 'sonner';
 import { safeFormatDistanceToNow, safeFormat } from '@/lib/date';
-import { extractMessages, messagePreview } from '@/lib/chatMessages';
+import { extractDeleteLock, extractMessages, messagePreview } from '@/lib/chatMessages';
 import { refreshUnreadCount } from '@/lib/chatUnread';
 import type { ConversationItem, ChatMessage, MessageStatus, MessageReaction } from '@/types/chat';
 import { ReplyPreviewBar } from '@/components/chat/ReplyPreviewBar';
@@ -20,7 +23,6 @@ import { NewChatModal } from '@/components/chat/NewChatModal';
 import { useCall } from '@/context/CallContext';
 import { useRealtimeMessaging } from '@/hooks/useRealtimeMessaging';
 import { useAuth } from '@/hooks/useAuth';
-import { getAuthToken } from "@/lib/auth/token";
 import { playMessageReceivedSound, playMessageSentSound } from '@/lib/sound';
 import { Plus, Video } from "@/components/icons";
 import { Voice as Mic } from "@/components/icons";
@@ -40,18 +42,13 @@ const JUMBO_EMOJI_SIZES: Record<number, string> = {
   3: 'h-[38px] w-[38px]',
 };
 
-function getToken(): string | null {
-  return getAuthToken();
-}
 
 async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
-  const token = getToken();
-  const res = await fetch(`${API_BASE}${path}`, {
+  const res = await authFetch(`${API_BASE}${path}`, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
       Accept: 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(options?.headers ?? {}),
     },
   });
@@ -123,6 +120,8 @@ export function ChatLayout() {
   const [emojiMenu, setEmojiMenu] = useState<{ msg: ChatMessage; x: number; y: number } | null>(null);
   const [forwardMsg, setForwardMsg] = useState<ChatMessage | null>(null);
   const [pendingDelete, setPendingDelete] = useState<ChatMessage | null>(null);
+  // Set while a business chat is locked: delete-for-everyone is unavailable until this date.
+  const [deleteLockedUntil, setDeleteLockedUntil] = useState<string | null>(null);
   const [editingMsg, setEditingMsg] = useState<ChatMessage | null>(null);
   const [editDraft, setEditDraft] = useState('');
   const [isSavingEdit, setIsSavingEdit] = useState(false);
@@ -136,15 +135,15 @@ export function ChatLayout() {
   const { user } = useAuth();
   const currentUserId = user?.id;
   const currentUserName = user?.name || user?.username || 'there';
-  const currentUserAvatar = (user as any)?.avatar_url || (user as any)?.avatar;
+  const currentUserAvatar = user?.avatar_url || user?.avatar;
 
   useEffect(() => {
     let cancelled = false;
-    apiFetch<any>('/stories')
+    apiFetch<{ user?: { id?: number; name?: string; username?: string; avatar?: string } }[] | { data?: { user?: { id?: number; name?: string; username?: string; avatar?: string } }[] }>('/stories')
       .then((data) => {
         if (cancelled) return;
         const list = Array.isArray(data) ? data : (data?.data ?? []);
-        const mapped: StoryUser[] = list.map((item: any) => ({
+        const mapped: StoryUser[] = list.map((item: { user?: { id?: number; name?: string; username?: string; avatar?: string } }) => ({
           id: item.user?.id || Math.random(),
           name: item.user?.name || item.user?.username || 'Member',
           avatar_url: item.user?.avatar,
@@ -166,7 +165,7 @@ export function ChatLayout() {
       const res = await apiFetch<{ data: { is_muted: boolean; is_archived: boolean } }>(`/conversations/${convId}/settings`);
       setIsMuted(res.data?.is_muted ?? false);
       setIsArchived(res.data?.is_archived ?? false);
-    } catch (e) { console.error('Failed to load conv settings', e); }
+    } catch (e) { logger.error('Failed to load conv settings', e); }
   };
 
   const selectConversation = async (conv: ConversationItem) => {
@@ -178,11 +177,12 @@ export function ChatLayout() {
     try {
       const res = await apiFetch(`/conversations/${conv.id}/messages`);
       const list = extractMessages(res);
+      setDeleteLockedUntil(extractDeleteLock(res));
       const formatted = list.map((m) => ({
         ...m,
         // Use the 'read' boolean the backend computes from last_read_at so
         // messages sent by me show the correct tick (read vs sent) on load.
-        status: ((m as any).read === true
+        status: (m.read === true
           ? 'read'
           : (m.status && m.status !== 'sent' ? m.status : 'sent')) as MessageStatus,
       }));
@@ -208,7 +208,7 @@ export function ChatLayout() {
         }).catch(() => {});
       }
     } catch (e) {
-      console.error('Failed to select conversation', e);
+      logger.error('Failed to select conversation', e);
       setMessages([]);
     } finally {
       setIsLoadingMsgs(false);
@@ -419,7 +419,7 @@ export function ChatLayout() {
       const res = await apiFetch<{ data: ConversationItem[] } | ConversationItem[]>('/conversations');
       const list = 'data' in res ? res.data : res;
       setConversations(Array.isArray(list) ? list : []);
-    } catch (e) { console.error('Failed to load conversations', e);
+    } catch (e) { logger.error('Failed to load conversations', e);
     } finally {
       setIsLoadingList(false);
     }
@@ -438,7 +438,7 @@ export function ChatLayout() {
       const fullItem: ConversationItem = { id: conv.id, type: 'saved', title: 'Saved Messages', unread_count: 0, updated_at: conv.updated_at };
       selectConversation(fullItem);
       loadConversations();
-    } catch (e) { console.error('Failed to open saved messages', e); }
+    } catch (e) { logger.error('Failed to open saved messages', e); }
   };
 
   const executeSendMessage = async (msg: ChatMessage) => {
@@ -461,7 +461,7 @@ export function ChatLayout() {
       playMessageSentSound();
       loadConversations();
     } catch (e) {
-      console.error('Failed to send message', e);
+      logger.error('Failed to send message', e);
       setMessages((prev) => prev.map((m) => (m.client_uuid === msg.client_uuid ? { ...m, status: 'failed' } : m)));
     }
   };
@@ -479,9 +479,9 @@ export function ChatLayout() {
         try {
           lastTypingSentRef.current = 0;
           await apiFetch(`/conversations/${activeConv.id}/typing`, { method: 'POST', body: JSON.stringify({ is_typing: false }) });
-        } catch (e) { console.error('Failed to stop typing', e); }
+        } catch (e) { logger.error('Failed to stop typing', e); }
       }, 2500);
-    } catch (e) { console.error('Failed to send typing indicator', e); }
+    } catch (e) { logger.error('Failed to send typing indicator', e); }
   };
 
   const handleSendMessage = (e?: React.FormEvent) => {
@@ -507,7 +507,7 @@ export function ChatLayout() {
       reply_to_id: replyingTo?.id ?? undefined,
       reply_to: replyingTo ? { id: replyingTo.id!, user_id: replyingTo.user_id, content: replyingTo.content } : undefined,
       created_at: new Date().toISOString(),
-      user: { id: currentUserId ?? 0, name: currentUserName, username: (user as any)?.username ?? 'you', avatar_url: currentUserAvatar },
+      user: { id: currentUserId ?? 0, name: currentUserName, username: user?.username ?? 'you', avatar_url: currentUserAvatar },
     };
 
     setReplyingTo(null);
@@ -522,15 +522,13 @@ export function ChatLayout() {
 
     setUploading(true);
     try {
-      const token = getToken();
       const formData = new FormData();
       formData.append('file', file);
 
-      const res = await fetch(`${API_BASE}/messages/attachments`, {
+      const res = await authFetch(`${API_BASE}/messages/attachments`, {
         method: 'POST',
         headers: {
           Accept: 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: formData,
       });
@@ -550,13 +548,13 @@ export function ChatLayout() {
         attachment_url,
         attachment_type: attachment_type as ChatMessage['attachment_type'],
         created_at: new Date().toISOString(),
-        user: { id: currentUserId ?? 0, name: currentUserName, username: (user as any)?.username ?? 'you', avatar_url: currentUserAvatar },
+        user: { id: currentUserId ?? 0, name: currentUserName, username: user?.username ?? 'you', avatar_url: currentUserAvatar },
       };
 
       setMessages((prev) => [...prev, draft]);
       executeSendMessage(draft);
     } catch (err) {
-      console.error('Failed to upload file', err);
+      logger.error('Failed to upload file', err);
     } finally {
       setUploading(false);
     }
@@ -575,16 +573,14 @@ export function ChatLayout() {
     if (!activeConv || !recorderSendRef.current) return;
     setIsSendingVoice(true);
     try {
-      const token = getToken();
       const formData = new FormData();
       const ext = blob.type.includes('ogg') ? 'ogg' : blob.type.includes('webm') ? 'webm' : 'm4a';
       formData.append('file', blob, `voice-${Date.now()}.${ext}`);
 
-      const res = await fetch(`${API_BASE}/messages/attachments`, {
+      const res = await authFetch(`${API_BASE}/messages/attachments`, {
         method: 'POST',
         headers: {
           Accept: 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: formData,
       });
@@ -604,12 +600,12 @@ export function ChatLayout() {
         attachment_url,
         attachment_type: (attachment_type || 'voice') as ChatMessage['attachment_type'],
         created_at: new Date().toISOString(),
-        user: { id: currentUserId ?? 0, name: currentUserName, username: (user as any)?.username ?? 'you', avatar_url: currentUserAvatar },
+        user: { id: currentUserId ?? 0, name: currentUserName, username: user?.username ?? 'you', avatar_url: currentUserAvatar },
       };
       setMessages((prev) => [...prev, draft]);
       await executeSendMessage(draft);
     } catch (err) {
-      console.error('Failed to send voice message', err);
+      logger.error('Failed to send voice message', err);
       toast.error('Could not send voice message');
     } finally {
       setIsSendingVoice(false);
@@ -666,7 +662,7 @@ export function ChatLayout() {
         setRecordingSeconds((s) => s + 1);
       }, 1000);
     } catch (err) {
-      console.error('Mic permission denied', err);
+      logger.error('Mic permission denied', err);
       toast.error('Microphone access is required to record a voice message');
     }
   };
@@ -682,7 +678,7 @@ export function ChatLayout() {
       await apiFetch(`/conversations/${activeConv.id}/settings`, { method: 'PUT', body: JSON.stringify({ [key]: newVal }) });
       if (key === 'is_muted') setIsMuted(newVal);
       else setIsArchived(newVal);
-    } catch (e) { console.error('Failed to toggle setting', e); }
+    } catch (e) { logger.error('Failed to toggle setting', e); }
     setShowHeaderMenu(false);
   };
 
@@ -700,11 +696,11 @@ export function ChatLayout() {
         ? (res.data.reactions ?? [])
         : (res && 'reactions' in res ? (res.reactions ?? []) : []);
       setMessages((prev) => prev.map((m) => (m.id === messageId ? { ...m, reactions } : m)));
-    } catch (e) { console.error('Failed to react to message', e); }
+    } catch (e) { logger.error('Failed to react to message', e); }
   };
 
   const copyMessage = async (msg: ChatMessage) => {
-    try { await navigator.clipboard.writeText(msg.content ?? ''); } catch (e) { console.error('Failed to copy message', e); }
+    try { await navigator.clipboard.writeText(msg.content ?? ''); } catch (e) { logger.error('Failed to copy message', e); }
   };
 
   const messageKey = (msg: ChatMessage) => String(msg.client_uuid ?? msg.id ?? '');
@@ -724,7 +720,7 @@ export function ChatLayout() {
         body: JSON.stringify({ mode }),
       });
       setMessages((prev) => prev.filter((m) => m.id !== msg.id && m.client_uuid !== msg.client_uuid));
-    } catch (e) { console.error('Failed to delete message', e); }
+    } catch (e) { logger.error('Failed to delete message', e); }
   };
 
   const enterSelectionMode = (msg?: ChatMessage) => {
@@ -772,7 +768,7 @@ export function ChatLayout() {
         deletedKeys.add(messageKey(m));
       } catch (e) {
         failed += 1;
-        console.error('Failed to delete message', e);
+        logger.error('Failed to delete message', e);
       }
     }));
     if (deletedKeys.size > 0) {
@@ -851,7 +847,7 @@ export function ChatLayout() {
       });
       setForwardMsg(null);
       loadConversations();
-    } catch (e) { console.error('Failed to forward message', e); }
+    } catch (e) { logger.error('Failed to forward message', e); }
   };
 
   const filteredConversations = conversations.filter((c) => {
@@ -1115,7 +1111,9 @@ export function ChatLayout() {
                 <div className="py-20 text-center space-y-2"><Loader2 weight="fill" className="h-6 w-6 animate-spin text-secondary mx-auto" /><p className="text-xs text-muted-foreground">Loading message history…</p></div>
               ) : messages.length === 0 ? (
                 <div className="py-20 text-center space-y-2"><MessageSquare weight="fill" className="h-8 w-8 text-secondary/40 mx-auto" /><p className="text-xs font-bold text-foreground">Start the conversation!</p></div>
-              ) : messages.map((msg) => {
+              ) : (
+                // eslint-disable-next-line react-hooks/refs -- drag-to-reply gesture keeps its start point in a ref by design (state would re-render on every pointer down)
+                messages.map((msg) => {
                 const isMine = msg.user_id === currentUserId;
                 const isPending = msg.status === 'pending';
                 const isFailed = msg.status === 'failed';
@@ -1158,6 +1156,7 @@ export function ChatLayout() {
 
                     <div
                       className={`max-w-[78%] sm:max-w-[68%] space-y-1 cursor-default ${dragStartRef.current?.id === msg.id ? 'opacity-80' : ''}`}
+                      role="presentation"
                       onPointerDown={(e) => { if (!selectionMode) dragStartRef.current = { id: msg.id, x: e.clientX }; }}
                       onPointerUp={(e) => {
                         if (selectionMode) return;
@@ -1257,12 +1256,12 @@ export function ChatLayout() {
                               ? <img src={msg.attachment_url} alt="attachment" className="max-w-full rounded-lg max-h-48 object-cover mb-1" />
                               : msg.attachment_type === 'voice'
                               ? <div className="mb-1"><VoiceMessagePlayer src={msg.attachment_url} isMine={isMine} /></div>
-                              : <a href={msg.attachment_url} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-xs font-semibold underline"><Paperclip weight="fill" className="h-3.5 w-3.5" /> Attachment</a>
+                              : <a href={safeHref(msg.attachment_url)} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-xs font-semibold underline"><Paperclip weight="fill" className="h-3.5 w-3.5" /> Attachment</a>
                           )}
 
                           {/* Call Message Card */}
                           {msg.type === 'call' || (typeof msg.content === 'string' && (msg.content.trim().startsWith('{"call_id"') || (msg.content.trim().startsWith('{') && msg.content.includes('"call_id"')))) ? (() => {
-                            let callData: any = {};
+                            let callData: { status?: string; call_type?: string; duration?: number };
                             try {
                               callData = JSON.parse(msg.content);
                             } catch {
@@ -1389,7 +1388,7 @@ export function ChatLayout() {
                     )}
                   </Message>
                 );
-              })}
+              }))}
 
               {/* Typing indicator */}
               {typingUsers.length > 0 && (
@@ -1657,7 +1656,9 @@ export function ChatLayout() {
             <h3 className="text-sm font-extrabold text-foreground mb-1">Delete message</h3>
             <p className="text-xs text-muted-foreground mb-4">
               {pendingDelete.user_id === currentUserId
-                ? 'Delete this message for yourself or for everyone?'
+                ? deleteLockedUntil
+                  ? `Business chats can be deleted for everyone only after ${new Date(deleteLockedUntil).toLocaleDateString()}.`
+                  : 'Delete this message for yourself or for everyone?'
                 : 'Remove this message from your view?'}
             </p>
             <div className="flex flex-col gap-2">
@@ -1668,7 +1669,7 @@ export function ChatLayout() {
               >
                 Delete for me
               </button>
-              {pendingDelete.user_id === currentUserId && (
+              {pendingDelete.user_id === currentUserId && !deleteLockedUntil && (
                 <button
                   type="button"
                   onClick={() => { deleteMessage(pendingDelete, 'everyone'); setPendingDelete(null); }}

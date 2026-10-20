@@ -1,4 +1,4 @@
-import { getAuthToken } from "@/lib/auth/token";
+import { asApiError } from "@/lib/apiError";
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Link } from 'react-router';
@@ -61,7 +61,7 @@ function RoomCard({ room, onAction, currentUserId }: { room: AudioRoom; onAction
   const badge = STATUS_BADGE[room.status] ?? STATUS_BADGE.ended;
 
   return (
-    <div className="rounded-lg border-none bg-card overflow-hidden  hover: hover:border-[#1877f2]/30 transition-all duration-200 p-5 flex flex-col justify-between">
+    <div className="rounded-lg border-none bg-card overflow-hidden  hover: hover:border-[var(--shell-accent)]/30 transition-all duration-200 p-5 flex flex-col justify-between">
       <div>
         <div className="flex items-start justify-between gap-2 mb-2">
           <div className="flex items-center gap-2 min-w-0">
@@ -77,7 +77,7 @@ function RoomCard({ room, onAction, currentUserId }: { room: AudioRoom; onAction
 
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-muted-foreground mb-3 font-medium">
           {room.community && (
-            <span className="flex items-center gap-1"><Radio weight="fill" className="h-3 w-3 text-[#1877f2]" />{room.community.name}</span>
+            <span className="flex items-center gap-1"><Radio weight="fill" className="h-3 w-3 text-[var(--shell-accent)]" />{room.community.name}</span>
           )}
           {room.scheduled_at && room.status !== 'live' && (
             <span className="flex items-center gap-1"><Calendar weight="fill" className="h-3 w-3" />{formatDateTime(room.scheduled_at)}</span>
@@ -92,7 +92,7 @@ function RoomCard({ room, onAction, currentUserId }: { room: AudioRoom; onAction
       <div>
         {room.creator && (
           <div className="flex items-center gap-2 mb-3 pt-2 border-t border-border/50">
-            <div className="h-6 w-6 rounded-full bg-[#1877f2] text-white text-[9px] font-black flex items-center justify-center shrink-0 overflow-hidden">
+            <div className="h-6 w-6 rounded-full bg-[var(--shell-accent-solid)] text-white text-[9px] font-black flex items-center justify-center shrink-0 overflow-hidden">
               {room.creator.avatar_url ? <img src={room.creator.avatar_url} alt="" className="w-full h-full object-cover" /> : <UserIcon weight="fill" className="text-white/90" style={{ width: 14, height: 14 }} />}
             </div>
             <span className="text-[11px] font-bold text-foreground">by {room.creator.name}</span>
@@ -112,7 +112,7 @@ function RoomCard({ room, onAction, currentUserId }: { room: AudioRoom; onAction
           )}
           {room.status === 'scheduled' && room.creator_id === currentUserId && (
             <Button onClick={() => onAction('start', room)} variant="ghost" size="sm" className="p-2 rounded-lg">
-              <Play weight="fill" className="h-4 w-4 text-[#1877f2]" />
+              <Play weight="fill" className="h-4 w-4 text-[var(--shell-accent)]" />
             </Button>
           )}
         </div>
@@ -150,7 +150,6 @@ export function AudioRoomsPage() {
 
   const fetchRooms = useCallback(async (activeTab: Tab) => {
     setIsLoading(true);
-    const token = getAuthToken();
     try {
       let url = `/audio-rooms`;
       if (activeTab === 'my-rooms') {
@@ -164,7 +163,7 @@ export function AudioRoomsPage() {
       }
 
       const res = await authFetch(url, {
-        headers: { Accept: 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        headers: { Accept: 'application/json', },
       });
 
       if (res.ok) {
@@ -182,7 +181,9 @@ export function AudioRoomsPage() {
   }, []);
 
   useEffect(() => {
-    fetchRooms(tab);
+    // Deferred so the loading state is not set synchronously inside the effect body
+    const timer = setTimeout(() => fetchRooms(tab), 0);
+    return () => clearTimeout(timer);
   }, [tab, fetchRooms]);
 
   const handleOpenGoLive = () => {
@@ -205,7 +206,6 @@ export function AudioRoomsPage() {
     if (!isKycVerified) return;
     setIsSubmitting(true);
     setErrorNotice(null);
-    const token = getAuthToken();
     try {
       const body = {
         title: fTitle.trim() || `${user?.name ?? 'Creator'}'s Live Video Stream`,
@@ -218,7 +218,6 @@ export function AudioRoomsPage() {
         headers: {
           'Content-Type': 'application/json',
           Accept: 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify(body),
       });
@@ -229,15 +228,16 @@ export function AudioRoomsPage() {
       const roomData = json.data ?? json;
       await authFetch(`/audio-rooms/${roomData.id}/start`, {
         method: 'POST',
-        headers: { Accept: 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        headers: { Accept: 'application/json', },
       });
 
       setShowLiveStudioModal(false);
       setSelectedRoom({ ...roomData, status: 'live' });
       setIsVideoMode(true);
       fetchRooms(tab);
-    } catch (err: any) {
-      setErrorNotice(err instanceof Error ? err.message : 'Could not launch live video broadcast.');
+    } catch (err: unknown) {
+      const apiErr = asApiError(err);
+      setErrorNotice(err instanceof Error ? apiErr.message : 'Could not launch live video broadcast.');
     } finally {
       setIsSubmitting(false);
     }
@@ -248,7 +248,6 @@ export function AudioRoomsPage() {
     if (!isKycVerified) return;
     setIsSubmitting(true);
     setErrorNotice(null);
-    const token = getAuthToken();
     try {
       const body = {
         title: fTitle.trim(),
@@ -263,7 +262,6 @@ export function AudioRoomsPage() {
         headers: {
           'Content-Type': 'application/json',
           Accept: 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify(body),
       });
@@ -274,8 +272,9 @@ export function AudioRoomsPage() {
       setShowEventForm(false);
       setFTitle(''); setFDesc(''); setFScheduledAt(''); setFMaxParticipants(''); setFCoverUrl('');
       fetchRooms(tab);
-    } catch (err: any) {
-      setErrorNotice(err instanceof Error ? err.message : 'Could not schedule event.');
+    } catch (err: unknown) {
+      const apiErr = asApiError(err);
+      setErrorNotice(err instanceof Error ? apiErr.message : 'Could not schedule event.');
     } finally {
       setIsSubmitting(false);
     }
@@ -299,7 +298,7 @@ export function AudioRoomsPage() {
       <PageSecondaryNav 
         title="Live Video Studio & Audio Rooms"
         subtitle="Broadcast live video, interact with your audience in real-time, or schedule upcoming video events."
-        icon={<Video weight="fill" className="h-5 w-5 text-[#1877f2]" />}
+        icon={<Video weight="fill" className="h-5 w-5 text-[var(--shell-accent)]" />}
         tabs={eventTabs}
         actions={
           <div className="flex items-center gap-2 shrink-0">
@@ -309,7 +308,7 @@ export function AudioRoomsPage() {
                 variant="outline"
                 className="font-bold h-9 px-3.5 rounded-lg text-xs gap-1.5"
               >
-                <Calendar weight="fill" className="h-3.5 w-3.5 text-[#1877f2]" /> Schedule Event
+                <Calendar weight="fill" className="h-3.5 w-3.5 text-[var(--shell-accent)]" /> Schedule Event
               </Button>
             </ActionTooltip>
 
@@ -340,7 +339,7 @@ export function AudioRoomsPage() {
             onClick={() => setTab(t)}
             className={`px-4 py-2.5 text-xs font-bold border-b-2 transition-all capitalize whitespace-nowrap ${
               tab === t
-                ? 'border-[#1877f2] text-[#1877f2]'
+                ? 'border-[var(--shell-accent)] text-[var(--shell-accent)]'
                 : 'border-transparent text-muted-foreground hover:text-foreground'
             }`}
           >
@@ -373,13 +372,13 @@ export function AudioRoomsPage() {
       {/* Grid or Empty State */}
       {isLoading ? (
         <div className="py-20 text-center space-y-2">
-          <Loader2 weight="fill" className="h-8 w-8 animate-spin text-[#1877f2] mx-auto" />
+          <Loader2 weight="fill" className="h-8 w-8 animate-spin text-[var(--shell-accent)] mx-auto" />
           <p className="text-xs text-muted-foreground font-medium">Loading live video streams…</p>
         </div>
       ) : safeArray(rooms).length === 0 ? (
         <div className="p-16 text-center border border-dashed border-border rounded-3xl bg-card space-y-3 flex flex-col items-center justify-center">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
-            <Radio weight="fill" className="h-6 w-6 text-[#1877f2]" />
+            <Radio weight="fill" className="h-6 w-6 text-[var(--shell-accent)]" />
           </div>
           <h3 className="text-sm font-bold text-foreground text-center">No live streams right now</h3>
           <p className="text-xs text-muted-foreground max-w-sm mx-auto text-center">
@@ -388,7 +387,7 @@ export function AudioRoomsPage() {
           <div className="pt-2 flex justify-center gap-3">
             <Button
               onClick={handleOpenGoLive}
-              className="bg-[#1877f2] hover:bg-[#166fe5] text-white font-bold text-xs rounded-lg h-9 px-4"
+              className="bg-[var(--shell-accent-solid)] hover:bg-[var(--shell-accent-hover)] text-white font-bold text-xs rounded-lg h-9 px-4"
             >
               Start Live Video
             </Button>
@@ -425,7 +424,7 @@ export function AudioRoomsPage() {
             <div className="space-y-4 py-1">
               {/* Req 1: Account status active */}
               <div className="flex items-start gap-3">
-                <div className="h-6 w-6 rounded-full bg-[#1877f2] text-white flex items-center justify-center shrink-0 mt-0.5">
+                <div className="h-6 w-6 rounded-full bg-[var(--shell-accent-solid)] text-white flex items-center justify-center shrink-0 mt-0.5">
                   <Check weight="fill" className="h-3.5 w-3.5 stroke-[3]" />
                 </div>
                 <div className="text-xs font-semibold text-foreground pt-0.5">
@@ -455,7 +454,7 @@ export function AudioRoomsPage() {
               </Button>
               <Link to="/app/kyc" className="flex-1 sm:flex-none">
                 <Button
-                  className="w-full bg-[#1877f2] hover:bg-[#166fe5] text-white font-bold text-xs h-10 px-6 rounded-lg gap-2"
+                  className="w-full bg-[var(--shell-accent-solid)] hover:bg-[var(--shell-accent-hover)] text-white font-bold text-xs h-10 px-6 rounded-lg gap-2"
                 >
                   <ShieldCheck weight="fill" className="h-4 w-4" /> Verify KYC Now
                 </Button>
@@ -472,7 +471,7 @@ export function AudioRoomsPage() {
             {/* Header bar */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-muted/20">
               <h3 className="text-base font-bold text-foreground flex items-center gap-2">
-                <Video weight="fill" className="h-5 w-5 text-[#1877f2]" /> Create Live Video
+                <Video weight="fill" className="h-5 w-5 text-[var(--shell-accent)]" /> Create Live Video
               </h3>
               <button
                 onClick={() => setShowLiveStudioModal(false)}
@@ -486,7 +485,7 @@ export function AudioRoomsPage() {
               {/* Left sidebar: Host profile & Destination */}
               <div className="p-4 space-y-6 bg-muted/10">
                 <div className="flex items-center gap-3 p-3 rounded-lg bg-card border-none ">
-                  <div className="h-10 w-10 rounded-full bg-[#1877f2] text-white font-bold flex items-center justify-center shrink-0 overflow-hidden">
+                  <div className="h-10 w-10 rounded-full bg-[var(--shell-accent-solid)] text-white font-bold flex items-center justify-center shrink-0 overflow-hidden">
                     {user?.avatar_url ? <img src={user.avatar_url} alt="" className="w-full h-full object-cover" /> : <UserIcon weight="fill" className="text-white/90" style={{ width: 20, height: 20 }} />}
                   </div>
                   <div className="min-w-0">
@@ -496,13 +495,13 @@ export function AudioRoomsPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+                  <label htmlFor="f-pages-audioroomspage-tsx-499" className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
                     Choose where live video should be posted
                   </label>
-                  <select
+                  <select id="f-pages-audioroomspage-tsx-499"
                     value={destination}
                     onChange={(e) => setDestination(e.target.value)}
-                    className="w-full px-3.5 py-2.5 text-xs rounded-lg bg-card border-none outline-none focus:ring-1 focus:ring-[#1877f2] font-semibold"
+                    className="w-full px-3.5 py-2.5 text-xs rounded-lg bg-card border-none outline-none focus:ring-1 focus:ring-[var(--shell-accent)] font-semibold"
                   >
                     <option value="profile">Post on profile</option>
                     <option value="community">Post to community feed</option>
@@ -510,10 +509,10 @@ export function AudioRoomsPage() {
                 </div>
 
                 <div className="space-y-2 pt-4 border-t border-border">
-                  <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+                  <label htmlFor="f-pages-audioroomspage-tsx-513" className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
                     Stream Title (Optional)
                   </label>
-                  <Input
+                  <Input id="f-pages-audioroomspage-tsx-513"
                     value={fTitle}
                     onChange={(e) => setFTitle(e.target.value)}
                     placeholder="What is your live stream about?"
@@ -533,7 +532,7 @@ export function AudioRoomsPage() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
                   {/* Option 1: Start Live Broadcast */}
-                  <div className="border-none rounded-lg bg-card p-4 flex flex-col justify-between space-y-4 hover:border-[#1877f2]/50 transition-all ">
+                  <div className="border-none rounded-lg bg-card p-4 flex flex-col justify-between space-y-4 hover:border-[var(--shell-accent)]/50 transition-all ">
                     <div className="space-y-3">
                       <div className="h-12 w-12 rounded-full bg-destructive/10 text-destructive flex items-center justify-center">
                         <Video weight="fill" className="h-6 w-6" />
@@ -541,11 +540,11 @@ export function AudioRoomsPage() {
                       <h3 className="text-sm font-bold text-foreground">Start live broadcast</h3>
                       <ul className="space-y-2 text-xs text-muted-foreground">
                         <li className="flex items-start gap-2">
-                          <Users weight="fill" className="h-3.5 w-3.5 text-[#1877f2] shrink-0 mt-0.5" />
+                          <Users weight="fill" className="h-3.5 w-3.5 text-[var(--shell-accent)] shrink-0 mt-0.5" />
                           <span>Going live alone or together with guests</span>
                         </li>
                         <li className="flex items-start gap-2">
-                          <Globe weight="fill" className="h-3.5 w-3.5 text-[#1877f2] shrink-0 mt-0.5" />
+                          <Globe weight="fill" className="h-3.5 w-3.5 text-[var(--shell-accent)] shrink-0 mt-0.5" />
                           <span>Choose where you want to publish your live video</span>
                         </li>
                       </ul>
@@ -554,7 +553,7 @@ export function AudioRoomsPage() {
                     <Button
                       onClick={handleStartLiveNow}
                       disabled={isSubmitting}
-                      className="w-full bg-[#1877f2] hover:bg-[#166fe5] text-white font-bold text-xs h-10 rounded-lg gap-2"
+                      className="w-full bg-[var(--shell-accent-solid)] hover:bg-[var(--shell-accent-hover)] text-white font-bold text-xs h-10 rounded-lg gap-2"
                     >
                       {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Radio weight="fill" className="h-4 w-4" />}
                       Setting up live video
@@ -562,19 +561,19 @@ export function AudioRoomsPage() {
                   </div>
 
                   {/* Option 2: Create Live Event */}
-                  <div className="border-none rounded-lg bg-card p-4 flex flex-col justify-between space-y-4 hover:border-[#1877f2]/50 transition-all ">
+                  <div className="border-none rounded-lg bg-card p-4 flex flex-col justify-between space-y-4 hover:border-[var(--shell-accent)]/50 transition-all ">
                     <div className="space-y-3">
-                      <div className="h-12 w-12 rounded-full bg-[#1877f2]/10 text-[#1877f2] flex items-center justify-center">
+                      <div className="h-12 w-12 rounded-full bg-[var(--shell-accent-solid)]/10 text-[var(--shell-accent)] flex items-center justify-center">
                         <Calendar weight="fill" className="h-6 w-6" />
                       </div>
                       <h3 className="text-sm font-bold text-foreground">Create a live video event</h3>
                       <ul className="space-y-2 text-xs text-muted-foreground">
                         <li className="flex items-start gap-2">
-                          <Calendar weight="fill" className="h-3.5 w-3.5 text-[#1877f2] shrink-0 mt-0.5" />
+                          <Calendar weight="fill" className="h-3.5 w-3.5 text-[var(--shell-accent)] shrink-0 mt-0.5" />
                           <span>Schedule an event to share with your audience in advance</span>
                         </li>
                         <li className="flex items-start gap-2">
-                          <UserCheck weight="fill" className="h-3.5 w-3.5 text-[#1877f2] shrink-0 mt-0.5" />
+                          <UserCheck weight="fill" className="h-3.5 w-3.5 text-[var(--shell-accent)] shrink-0 mt-0.5" />
                           <span>Viewers can RSVP to receive instant reminders</span>
                         </li>
                       </ul>
@@ -602,26 +601,26 @@ export function AudioRoomsPage() {
             <h3 className="text-lg font-bold text-foreground">Schedule Live Video Event</h3>
             <form onSubmit={handleCreateEventSubmit} className="space-y-4">
               <div className="space-y-1">
-                <label className="text-xs font-bold text-foreground uppercase tracking-wider">Event Title *</label>
-                <Input value={fTitle} onChange={(e) => setFTitle(e.target.value)} required placeholder="e.g. Creator Q&A & Product Launch" className="text-xs h-10 rounded-lg" />
+                <label htmlFor="f-pages-audioroomspage-tsx-605" className="text-xs font-bold text-foreground uppercase tracking-wider">Event Title *</label>
+                <Input id="f-pages-audioroomspage-tsx-605" value={fTitle} onChange={(e) => setFTitle(e.target.value)} required placeholder="e.g. Creator Q&A & Product Launch" className="text-xs h-10 rounded-lg" />
               </div>
               <div className="space-y-1">
-                <label className="text-xs font-bold text-foreground uppercase tracking-wider">Description</label>
-                <textarea value={fDesc} onChange={(e) => setFDesc(e.target.value)} rows={3} placeholder="What will be discussed during this live video?" className="w-full p-3 text-xs rounded-lg bg-muted border-0 outline-none focus:ring-1 focus:ring-[#1877f2] resize-none" />
+                <label htmlFor="f-pages-audioroomspage-tsx-609" className="text-xs font-bold text-foreground uppercase tracking-wider">Description</label>
+                <textarea id="f-pages-audioroomspage-tsx-609" value={fDesc} onChange={(e) => setFDesc(e.target.value)} rows={3} placeholder="What will be discussed during this live video?" className="w-full p-3 text-xs rounded-lg bg-muted border-0 outline-none focus:ring-1 focus:ring-[var(--shell-accent)] resize-none" />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-foreground uppercase tracking-wider">Date & Time *</label>
-                  <Input type="datetime-local" value={fScheduledAt} onChange={(e) => setFScheduledAt(e.target.value)} required className="text-xs h-10 rounded-lg" />
+                  <label htmlFor="f-pages-audioroomspage-tsx-614" className="text-xs font-bold text-foreground uppercase tracking-wider">Date & Time *</label>
+                  <Input id="f-pages-audioroomspage-tsx-614" type="datetime-local" value={fScheduledAt} onChange={(e) => setFScheduledAt(e.target.value)} required className="text-xs h-10 rounded-lg" />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-foreground uppercase tracking-wider">Max Participants</label>
-                  <Input type="number" value={fMaxParticipants} onChange={(e) => setFMaxParticipants(e.target.value)} placeholder="Unlimited" className="text-xs h-10 rounded-lg" />
+                  <label htmlFor="f-pages-audioroomspage-tsx-618" className="text-xs font-bold text-foreground uppercase tracking-wider">Max Participants</label>
+                  <Input id="f-pages-audioroomspage-tsx-618" type="number" value={fMaxParticipants} onChange={(e) => setFMaxParticipants(e.target.value)} placeholder="Unlimited" className="text-xs h-10 rounded-lg" />
                 </div>
               </div>
               <div className="flex justify-end gap-2 pt-2">
                 <Button type="button" variant="outline" onClick={() => setShowEventForm(false)} className="text-xs">Cancel</Button>
-                <Button type="submit" disabled={isSubmitting} className="bg-[#1877f2] hover:bg-[#166fe5] text-white font-bold text-xs h-10 rounded-lg px-5">
+                <Button type="submit" disabled={isSubmitting} className="bg-[var(--shell-accent-solid)] hover:bg-[var(--shell-accent-hover)] text-white font-bold text-xs h-10 rounded-lg px-5">
                   {isSubmitting ? <Loader2 weight="fill" className="h-4 w-4 animate-spin" /> : 'Schedule Event'}
                 </Button>
               </div>

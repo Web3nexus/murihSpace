@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { logger } from "@/lib/logger";
+import React, { useState, useEffect } from 'react';
 import { Discount as Gift, Heart, Send, DangerSquare as AlertCircle, TickSquare as CheckCircle2 } from "@/components/icons";
 import { Spinner as Loader2 } from "@/components/icons/rounded";;
 import { Button } from '@/components/ui/button';
@@ -27,6 +28,7 @@ export function DonationsPage() {
   const [sentDonations, setSentDonations] = useState<Donation[]>([]);
   const [receivedDonations, setReceivedDonations] = useState<Donation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [refreshKey, setRefreshKey] = useState(0);
   const [showSend, setShowSend] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [actionMessage, setActionMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -36,23 +38,29 @@ export function DonationsPage() {
   const [sentPage, setSentPage] = useState(1);
   const [sentLastPage, setSentLastPage] = useState(1);
 
-  const fetchSent = useCallback(async () => {
-    try {
-      const res = await authFetch(`/wallet/donations/sent?page=${sentPage}&per_page=20`, {  });
-      if (res.ok) { const json = await res.json(); setSentDonations(json.data?.data ?? []); setSentLastPage(json.data?.last_page ?? 1); }
-    } catch (e) { console.error('Failed to fetch sent donations', e); }
-  }, [sentPage]);
-
-  const fetchReceived = useCallback(async () => {
-    try {
-      const res = await authFetch(`/wallet/donations/received?page=${recvPage}&per_page=20`, {  });
-      if (res.ok) { const json = await res.json(); setReceivedDonations(json.data?.data ?? []); setRecvLastPage(json.data?.last_page ?? 1); }
-    } catch (e) { console.error('Failed to fetch received donations', e); }
-  }, [recvPage]);
-
   useEffect(() => {
-    Promise.all([fetchSent(), fetchReceived()]).finally(() => setIsLoading(false));
-  }, [fetchSent, fetchReceived]);
+    (async () => {
+      try {
+        await Promise.all([
+          (async () => {
+            try {
+              const res = await authFetch(`/wallet/donations/sent?page=${sentPage}&per_page=20`, {  });
+              if (res.ok) { const json = await res.json(); setSentDonations(json.data?.data ?? []); setSentLastPage(json.data?.last_page ?? 1); }
+            } catch (e) { logger.error('Failed to fetch sent donations', e); }
+          })(),
+          (async () => {
+            try {
+              const res = await authFetch(`/wallet/donations/received?page=${recvPage}&per_page=20`, {  });
+              if (res.ok) { const json = await res.json(); setReceivedDonations(json.data?.data ?? []); setRecvLastPage(json.data?.last_page ?? 1); }
+            } catch (e) { logger.error('Failed to fetch received donations', e); }
+          })(),
+        ]);
+      } finally {
+        setIsLoading(false);
+      }
+    })();
+  }, [sentPage, recvPage, refreshKey]);
+
 
   const handleSendDonation = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -76,7 +84,7 @@ export function DonationsPage() {
       if (res.ok) {
         setActionMessage({ type: 'success', text: `Sent ${formatAmount(payload.amount)} tip to @${payload.recipient_username}!` });
         setShowSend(false);
-        fetchSent(); fetchReceived();
+        setRefreshKey((k) => k + 1);
       } else {
         setActionMessage({ type: 'error', text: json.message || 'Donation failed.' });
       }
@@ -124,7 +132,7 @@ export function DonationsPage() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {[
           { label: 'Received (this page)', value: formatAmount(stats.totalReceived), sub: `${stats.countReceived} tips`, icon: Heart, color: 'text-rose-600 bg-rose-100 dark:text-rose-400 dark:bg-rose-950' },
-          { label: 'Sent (this page)', value: formatAmount(stats.totalSent), sub: `${stats.countSent} tips`, icon: Gift, color: 'text-blue-600 bg-blue-100 dark:text-blue-400 dark:bg-blue-950' },
+          { label: 'Sent (this page)', value: formatAmount(stats.totalSent), sub: `${stats.countSent} tips`, icon: Gift, color: 'text-[var(--shell-accent)] bg-blue-100 dark:text-[var(--shell-accent)] dark:bg-blue-950' },
         ].map((m) => (
           <div key={m.label} className="border-none rounded-lg bg-card p-4  flex items-center gap-4">
             <div className={`p-2.5 rounded-lg ${m.color} shrink-0`}>

@@ -30,7 +30,7 @@ class WalletController extends Controller
         }
 
         $isMember = \App\Models\AdAccountMember::where('ad_account_id', $advertiserId)
-            ->where('murihspace_user_id', $request->user()->id)
+            ->where('murihspace_user_id', $request->user()->murihspace_user_id)
             ->exists();
             
         if (!$isMember) {
@@ -60,7 +60,7 @@ class WalletController extends Controller
         $advertiserId = $request->input('advertiser_id');
 
         $isMember = \App\Models\AdAccountMember::where('ad_account_id', $advertiserId)
-            ->where('murihspace_user_id', $request->user()->id)
+            ->where('murihspace_user_id', $request->user()->murihspace_user_id)
             ->exists();
             
         if (!$isMember) {

@@ -80,9 +80,15 @@ class AdminTaxController extends Controller
             'search' => ['nullable', 'string', 'max:100'],
             'page'   => ['nullable', 'integer', 'min:1'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:200'],
+            'status' => ['nullable', 'string', 'in:unconfirmed'],
         ]);
 
         $query = TaxRate::query();
+
+        // Countries with no rate on file are charged 0% until someone confirms the rate.
+        if (($validated['status'] ?? null) === 'unconfirmed') {
+            $query->where('notes', TaxRate::UNCONFIRMED_NOTE);
+        }
 
         if (! empty($validated['search'])) {
             $search = trim($validated['search']);
@@ -96,6 +102,10 @@ class AdminTaxController extends Controller
 
         $perPage = $validated['per_page'] ?? 25;
         $paginator = $query->orderBy('country_name')->paginate($perPage);
+        $paginator->getCollection()->each(fn (TaxRate $rate) => $rate->setAttribute(
+            'needs_confirmation',
+            $rate->notes === TaxRate::UNCONFIRMED_NOTE,
+        ));
 
         return response()->json([
             'rates' => $paginator->items(),
@@ -104,6 +114,7 @@ class AdminTaxController extends Controller
                 'last_page'    => $paginator->lastPage(),
                 'per_page'     => $paginator->perPage(),
                 'total'        => $paginator->total(),
+                'unconfirmed_total' => TaxRate::where('notes', TaxRate::UNCONFIRMED_NOTE)->count(),
             ],
         ]);
     }

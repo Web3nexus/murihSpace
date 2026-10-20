@@ -1,3 +1,5 @@
+import { safeHref } from "@/lib/safeUrl";
+import { asApiError } from "@/lib/apiError";
 import { useState, useEffect } from "react";
 import { useParams, useSearchParams, Link } from "react-router";
 import { authFetch } from "@/lib/api/authFetch";
@@ -76,7 +78,8 @@ export function PublicStorefrontPage() {
           setPosts(postsJson.data?.data ?? postsJson.data ?? []);
         }
       } catch (err: unknown) {
-        setError(err instanceof Error ? err.message : "Unable to display storefront.");
+      const apiErr = asApiError(err);
+        setError(err instanceof Error ? apiErr.message : "Unable to display storefront.");
       } finally {
         setIsLoading(false);
       }
@@ -265,7 +268,7 @@ export function PublicStorefrontPage() {
                   {store.links.map((link, idx) => (
                     <a
                       key={idx}
-                      href={link.url}
+                      href={safeHref(link.url)}
                       target="_blank"
                       rel="noreferrer"
                       className="group flex items-center gap-1.5 rounded-full border border-border/80 bg-background/80 px-3.5 py-2 text-sm font-semibold shadow-xs transition-all hover:-translate-y-0.5 hover:border-primary/60 hover:shadow-md"

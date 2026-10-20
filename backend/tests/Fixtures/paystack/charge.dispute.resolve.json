@@ -1,0 +1,15 @@
+{
+  "event": "charge.dispute.resolve",
+  "data": {
+    "id": 31415926,
+    "status": "resolved",
+    "resolution": "merchant-accepted",
+    "transaction": {
+      "id": 987654321,
+      "reference": "PAY-20261019-XYZ999",
+      "amount": 10500,
+      "currency": "NGN",
+      "status": "success"
+    }
+  }
+}

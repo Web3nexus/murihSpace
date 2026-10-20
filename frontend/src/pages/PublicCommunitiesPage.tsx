@@ -1,5 +1,5 @@
 import { authFetch } from "@/lib/api/authFetch";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router";
 import { AnimatedPage } from "@/components/common/AnimatedPage";
 import { Search, N2User as Users, Discovery as Globe, ArrowRight, Profile as UserIcon } from "@/components/icons";
@@ -31,11 +31,13 @@ interface PaginatedResponse {
 
 export function PublicCommunitiesPage() {
   const [communities, setCommunities] = useState<PublicCommunity[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [loadedKey, setLoadedKey] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [page, setPage] = useState(1);
   const [meta, setMeta] = useState<{ lastPage: number; total: number } | null>(null);
+  // Loading is derived: it holds until the results for the current page/search have arrived
+  const isLoading = loadedKey !== `${page}|${debouncedSearch}`;
 
   // Debounce search
   useEffect(() => {
@@ -46,32 +48,35 @@ export function PublicCommunitiesPage() {
     return () => clearTimeout(t);
   }, [searchQuery]);
 
-  const fetchCommunities = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const params = new URLSearchParams({ page: String(page) });
-      if (debouncedSearch) params.set("search", debouncedSearch);
-      const res = await authFetch(`/public/communities?${params}`, {
-        headers: { Accept: "application/json" },
-      });
-      const json = await res.json();
-      const paginatedData = json.data as PaginatedResponse;
-      const items: PublicCommunity[] = paginatedData?.data ?? [];
-      setCommunities(items);
-      setMeta({ lastPage: paginatedData.last_page, total: paginatedData.total });
-    } catch {
-      setCommunities([]);
-    } finally {
-      setIsLoading(false);
-    }
+  useEffect(() => {
+    const key = `${page}|${debouncedSearch}`;
+    let active = true;
+    (async () => {
+      try {
+        const params = new URLSearchParams({ page: String(page) });
+        if (debouncedSearch) params.set("search", debouncedSearch);
+        const res = await authFetch(`/public/communities?${params}`, {
+          headers: { Accept: "application/json" },
+        });
+        const json = await res.json();
+        if (!active) return;
+        const paginatedData = json.data as PaginatedResponse;
+        const items: PublicCommunity[] = paginatedData?.data ?? [];
+        setCommunities(items);
+        setMeta({ lastPage: paginatedData.last_page, total: paginatedData.total });
+      } catch {
+        if (active) setCommunities([]);
+      } finally {
+        if (active) setLoadedKey(key);
+      }
+    })();
+    return () => {
+      active = false;
+    };
   }, [page, debouncedSearch]);
 
-  useEffect(() => {
-    fetchCommunities();
-  }, [fetchCommunities]);
-
   const categoryColors: Record<string, string> = {
-    tech: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
+    tech: "bg-[var(--shell-accent-solid)]/10 text-[var(--shell-accent)] dark:text-[var(--shell-accent)]",
     art: "bg-purple-500/10 text-purple-600 dark:text-purple-400",
     music: "bg-pink-500/10 text-pink-600 dark:text-pink-400",
     business: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
@@ -100,7 +105,7 @@ export function PublicCommunitiesPage() {
       </header>
 
       {/* Hero Banner */}
-      <section className="relative overflow-hidden bg-[#1877f2] px-6 py-16 text-white text-center">
+      <section className="relative overflow-hidden bg-[var(--shell-accent-solid)] px-6 py-16 text-white text-center">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(255,255,255,0.08),transparent)] pointer-events-none" />
         <div className="relative max-w-2xl mx-auto space-y-4">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-white/20 bg-white/10 text-white/90 text-xs font-semibold backdrop-blur-sm">
@@ -126,7 +131,7 @@ export function PublicCommunitiesPage() {
             placeholder="Search communities by name or description…"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 h-11 rounded-lg border-none bg-background text-sm focus:outline-none focus:ring-2 focus:ring-[#2164b6]/40 transition-shadow"
+            className="w-full pl-10 pr-4 h-11 rounded-lg border-none bg-background text-sm focus:outline-none focus:ring-2 focus:ring-[var(--shell-accent)]/40 transition-shadow"
           />
         </div>
       </div>
@@ -136,7 +141,7 @@ export function PublicCommunitiesPage() {
         <div className="max-w-7xl mx-auto">
           {isLoading ? (
             <div className="flex items-center justify-center py-24">
-              <Loader2 weight="fill" className="h-8 w-8 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" />
+              <Loader2 weight="fill" className="h-8 w-8 animate-spin text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" />
             </div>
           ) : communities.length === 0 ? (
             <div className="flex flex-col items-center justify-center min-h-[320px] px-6 text-center gap-4">
@@ -190,8 +195,8 @@ export function PublicCommunitiesPage() {
                         </div>
                       )}
                       {!community.logo_url && (
-                        <div className="absolute -bottom-5 left-4 h-12 w-12 rounded-lg bg-white dark:bg-card border-2 border-white  flex items-center justify-center text-[#2164b6] dark:text-[#7ab0ff] font-black text-xl">
-                          <UserIcon weight="fill" className="text-[#2164b6] dark:text-[#7ab0ff]" style={{ width: 24, height: 24 }} />
+                        <div className="absolute -bottom-5 left-4 h-12 w-12 rounded-lg bg-white dark:bg-card border-2 border-white  flex items-center justify-center text-[var(--shell-accent)] dark:text-[var(--shell-accent)] font-black text-xl">
+                          <UserIcon weight="fill" className="text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" style={{ width: 24, height: 24 }} />
                         </div>
                       )}
                     </div>
@@ -199,7 +204,7 @@ export function PublicCommunitiesPage() {
                     {/* Content */}
                     <div className="p-4 pt-8">
                       <div className="flex items-start justify-between gap-2 mb-1">
-                        <h3 className="font-bold text-sm text-foreground group-hover:text-[#2164b6] dark:text-[#7ab0ff] transition-colors line-clamp-1">
+                        <h3 className="font-bold text-sm text-foreground group-hover:text-[var(--shell-accent)] dark:text-[var(--shell-accent)] transition-colors line-clamp-1">
                           {community.name}
                         </h3>
                         {community.category && (
@@ -220,14 +225,14 @@ export function PublicCommunitiesPage() {
 
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                          <Globe weight="fill" className="h-3.5 w-3.5 text-[#2164b6] dark:text-[#7ab0ff]" />
+                          <Globe weight="fill" className="h-3.5 w-3.5 text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" />
                           <span className="flex items-center gap-1">
                             <Users weight="fill" className="h-3 w-3" />
                             <span className="font-semibold text-foreground">{community.member_count.toLocaleString()}</span> members
                           </span>
                         </div>
                         <Link to={`/login?redirect=/app/communities/${community.slug}`}>
-                          <button className="px-3 py-1.5 rounded-lg bg-[#2164b6] hover:bg-[#1a5091] text-white text-[11px] font-bold transition-colors flex items-center gap-1">
+                          <button className="px-3 py-1.5 rounded-lg bg-[var(--shell-accent-solid)] hover:bg-[var(--shell-accent-hover)] text-white text-[11px] font-bold transition-colors flex items-center gap-1">
                             Join <ArrowRight weight="fill" className="h-3 w-3" />
                           </button>
                         </Link>
@@ -273,14 +278,14 @@ export function PublicCommunitiesPage() {
       </main>
 
       {/* CTA Footer Banner */}
-      <section className="bg-gradient-to-r from-[#2164b6] to-[#7c3aed] px-6 py-10 text-white text-center">
+      <section className="bg-gradient-to-r from-[var(--shell-accent-solid)] to-[#7c3aed] px-6 py-10 text-white text-center">
         <div className="max-w-xl mx-auto space-y-4">
           <h2 className="text-xl font-bold">Ready to start your own community?</h2>
           <p className="text-sm text-white/80">
             Create public or private spaces, grow your audience, and monetize your expertise.
           </p>
           <Link to="/login">
-            <Button className="bg-white text-[#2164b6] dark:text-[#7ab0ff] hover:bg-white/90 font-bold gap-2 mt-2">
+            <Button className="bg-white text-[var(--shell-accent)] dark:text-[var(--shell-accent)] hover:bg-white/90 font-bold gap-2 mt-2">
               Sign in to get started <ArrowRight weight="fill" className="h-4 w-4" />
             </Button>
           </Link>
@@ -293,7 +298,7 @@ export function PublicCommunitiesPage() {
           <span className="font-bold text-foreground">MurihSpace</span>
           <div className="flex items-center gap-4">
             <Link to="/" className="hover:text-foreground">Home</Link>
-            <Link to="/login" className="hover:text-foreground font-semibold text-[#2164b6] dark:text-[#7ab0ff]">Sign In</Link>
+            <Link to="/login" className="hover:text-foreground font-semibold text-[var(--shell-accent)] dark:text-[var(--shell-accent)]">Sign In</Link>
           </div>
         </div>
       </footer>

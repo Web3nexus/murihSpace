@@ -10,6 +10,9 @@ class TaxRate extends Model
 {
     use HasFactory;
 
+    /** Note on a 0% row for a country whose rate has not been confirmed. */
+    public const UNCONFIRMED_NOTE = 'No rate on file. Confirm the rate before charging VAT.';
+
     protected $fillable = [
         'country_code',
         'country_name',

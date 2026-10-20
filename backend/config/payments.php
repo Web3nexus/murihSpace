@@ -105,6 +105,7 @@ return [
             'verify_receipt_url' => 'https://buy.itunes.apple.com/verifyReceipt',
             'verify_receipt_sandbox_url' => 'https://sandbox.itunes.apple.com/verifyReceipt',
             'webhook_token' => env('APPLE_WEBHOOK_TOKEN'),
+            'root_certificate' => resource_path('certificates/apple/AppleRootCA-G3.pem'), // trust anchor for signedPayload JWS
             'timeout' => (int) env('APPLE_STORE_TIMEOUT', 30),
         ],
 

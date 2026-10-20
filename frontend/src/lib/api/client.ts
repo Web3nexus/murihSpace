@@ -1,7 +1,8 @@
+import { logger } from "@/lib/logger";
 import axios, { type AxiosError, type AxiosResponse, type InternalAxiosRequestConfig } from "axios";
 import { env } from "@/config/env";
-import { getAuthToken, getAdminToken, updateImpersonationActivity, isImpersonating, clearImpersonationToken } from "@/lib/auth/token";
 import { getLiveSessionId, isLiveRequest } from "@/lib/live/liveSession";
+import { ensureCsrfCookie, isUnsafeMethod, readXsrfToken, refreshCsrfCookie, XSRF_HEADER } from "@/lib/api/csrf";
 
 export interface ApiError {
   message: string;
@@ -22,16 +23,18 @@ export const apiClient = axios.create({
   },
 });
 
+// Marks a request that already had one CSRF retry, so a persistent 419 cannot loop.
+// A flag on the config survives mergeConfig, unlike the config object's identity.
+type CsrfRetryConfig = InternalAxiosRequestConfig & { _csrfRetried?: boolean };
+
 // Request interceptor
 apiClient.interceptors.request.use(
-  (config: InternalAxiosRequestConfig) => {
-    if (isImpersonating()) {
-      updateImpersonationActivity();
-    }
-    const isAdminEndpoint = config.url?.includes("/securegate") || config.url?.startsWith("securegate");
-    const token = isAdminEndpoint ? (getAdminToken() || getAuthToken()) : getAuthToken();
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+  async (config: InternalAxiosRequestConfig) => {
+    if (isUnsafeMethod(config.method)) {
+      const xsrf = await ensureCsrfCookie();
+      if (xsrf) {
+        config.headers[XSRF_HEADER] = xsrf;
+      }
     }
     if (!config.headers["X-Client-Platform"]) {
       config.headers["X-Client-Platform"] = "web";
@@ -54,7 +57,19 @@ apiClient.interceptors.response.use(
   (response: AxiosResponse) => {
     return response;
   },
-  (error: AxiosError) => {
+  async (error: AxiosError) => {
+    // A 419 means the CSRF cookie expired. Refresh it and resend the request once.
+    const config = error.config as CsrfRetryConfig | undefined;
+    if (error.response?.status === 419 && config && isUnsafeMethod(config.method) && !config._csrfRetried) {
+      config._csrfRetried = true;
+      await refreshCsrfCookie();
+      const xsrf = readXsrfToken();
+      if (xsrf) {
+        config.headers[XSRF_HEADER] = xsrf;
+      }
+      return apiClient.request(config);
+    }
+
     const apiError: ApiError = {
       message: "An unexpected error occurred",
       code: "UNKNOWN_ERROR",
@@ -81,23 +96,16 @@ apiClient.interceptors.response.use(
       switch (status) {
         case 401:
           apiError.code = apiError.code === "UNKNOWN_ERROR" ? "UNAUTHORIZED" : apiError.code;
-          if (isImpersonating()) {
-            console.warn("[API Client] 401 while impersonating. Inactive session or admin timeout.");
-            clearImpersonationToken();
-            if (typeof window !== "undefined" && !window.location.pathname.startsWith("/app/securegate")) {
-              window.location.assign("/app/securegate/users");
-            }
-          }
           break;
         case 403:
           apiError.code = "FORBIDDEN";
           apiError.message = apiError.message || "You do not have permission to perform this action.";
-          console.warn("[API Client] 403 Forbidden detected.");
+          logger.warn("[API Client] 403 Forbidden detected.");
           break;
         case 419:
           apiError.code = "CSRF_TOKEN_MISMATCH";
           apiError.message = "Session expired or CSRF token invalid. Please refresh the page.";
-          console.warn("[API Client] 419 CSRF Token mismatch detected.");
+          logger.warn("[API Client] 419 CSRF Token mismatch detected.");
           break;
         case 422:
           apiError.code = "VALIDATION_ERROR";

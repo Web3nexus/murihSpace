@@ -20,14 +20,14 @@ export const StorePageHeader: React.FC<StoreHeaderProps> = ({
   return (
     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2">
       <div className="flex items-center gap-3.5">
-        <div className="h-12 w-12 rounded-xl bg-[#087FFF]/10 border border-[#087FFF]/20 flex items-center justify-center shrink-0 shadow-inner">
-          <Storefront weight="fill" className="h-6 w-6 text-[#087FFF]" />
+        <div className="h-12 w-12 rounded-xl bg-[var(--shell-accent-solid)]/10 border border-[#087FFF]/20 flex items-center justify-center shrink-0 shadow-inner">
+          <Storefront weight="fill" className="h-6 w-6 text-[var(--shell-accent)]" />
         </div>
         <div>
           <h1 className="text-2xl font-black tracking-tight text-white flex items-center gap-2">
             Your Store
           </h1>
-          <p className="text-xs text-[#A7B0BE] font-medium mt-0.5">
+          <p className="text-xs text-[var(--shell-muted)] font-medium mt-0.5">
             Build your storefront, publish products, and manage your catalog.
           </p>
         </div>
@@ -56,9 +56,9 @@ export const StorePageHeader: React.FC<StoreHeaderProps> = ({
             href={`/store/${encodeURIComponent(shortCode)}?preview=true`}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 h-9 px-3.5 text-xs font-semibold rounded-lg bg-[#171D25] border border-[#29313C] text-[#F5F7FA] hover:bg-[#202731] hover:text-white transition-all shadow-sm"
+            className="inline-flex items-center gap-1.5 h-9 px-3.5 text-xs font-semibold rounded-lg bg-[var(--shell-surface)] border border-[var(--shell-border)] text-[var(--shell-text)] hover:bg-[var(--shell-hover)] hover:text-white transition-all shadow-sm"
           >
-            <ArrowSquareOut weight="bold" className="h-4 w-4 text-[#A7B0BE]" />
+            <ArrowSquareOut weight="bold" className="h-4 w-4 text-[var(--shell-muted)]" />
             Preview
           </a>
         )}
@@ -68,9 +68,9 @@ export const StorePageHeader: React.FC<StoreHeaderProps> = ({
           variant="outline"
           size="sm"
           onClick={onShare}
-          className="h-9 px-3.5 text-xs font-semibold rounded-lg bg-[#171D25] border-[#29313C] text-[#F5F7FA] hover:bg-[#202731] hover:text-white transition-all gap-1.5"
+          className="h-9 px-3.5 text-xs font-semibold rounded-lg bg-[var(--shell-surface)] border-[var(--shell-border)] text-[var(--shell-text)] hover:bg-[var(--shell-hover)] hover:text-white transition-all gap-1.5"
         >
-          <ShareNetwork weight="bold" className="h-4 w-4 text-[#A7B0BE]" />
+          <ShareNetwork weight="bold" className="h-4 w-4 text-[var(--shell-muted)]" />
           Share
         </Button>
 
@@ -81,8 +81,8 @@ export const StorePageHeader: React.FC<StoreHeaderProps> = ({
           disabled={isTogglingPublish}
           className={`h-9 px-4 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 shadow-sm ${
             isPublished
-              ? 'bg-[#202731] hover:bg-[#29313C] text-white border border-[#29313C]'
-              : 'bg-[#087FFF] hover:bg-[#0770E3] text-white shadow-[#087FFF]/20'
+              ? 'bg-[var(--shell-surface)] hover:bg-[var(--shell-hover-strong)] text-white border border-[var(--shell-border)]'
+              : 'bg-[var(--shell-accent-solid)] hover:bg-[var(--shell-accent-hover)] text-white shadow-[#087FFF]/20'
           }`}
         >
           {isTogglingPublish ? (

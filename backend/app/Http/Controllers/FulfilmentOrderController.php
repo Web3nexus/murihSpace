@@ -344,8 +344,7 @@ class FulfilmentOrderController extends Controller
         if ($validated['status'] === 'delivered') {
             $update['delivered_at'] = now();
             $eventDesc = 'Package has been delivered.';
-            $this->releaseEscrow($order);
-            $this->createPayout($order);
+            $this->recordFulfilmentDelivery($order);
         }
 
         if ($validated['status'] === 'cancelled') {
@@ -440,16 +439,20 @@ class FulfilmentOrderController extends Controller
         ]);
     }
 
-    private function releaseEscrow(FulfilmentOrder $order): void
+    /**
+     * Records the physical delivery and starts the release clock (7 days after the
+     * buyer confirms receipt, or 10 days without confirmation). Funds are not released
+     * here. A delivery on a held escrow raises an alert instead.
+     */
+    private function recordFulfilmentDelivery(FulfilmentOrder $order): void
     {
         $escrow = Escrow::where('fulfilment_order_id', $order->id)
-            ->where('status', 'held')
+            ->whereIn('status', ['held', 'on_hold'])
             ->first();
 
         if (! $escrow) return;
 
-        // Single source of truth for the wallet movement (EscrowService).
-        app(EscrowService::class)->release($escrow, note: "Fulfilment order #{$order->order_number}");
+        app(\App\Services\Escrow\EscrowTimingService::class)->recordDelivery($escrow, 'physical');
     }
 
     private function refundEscrow(FulfilmentOrder $order): void
@@ -462,29 +465,6 @@ class FulfilmentOrderController extends Controller
 
         // Credit the buyer's wallet via the same escrow service.
         app(EscrowService::class)->refund($escrow, reason: "Fulfilment order #{$order->order_number} cancelled");
-    }
-
-    private function createPayout(FulfilmentOrder $order): void
-    {
-        $gross = (int) $order->total;
-        $fee   = (int) $order->platform_fee;
-        $net   = max(0, $gross - $fee);
-        $escrow = Escrow::where('fulfilment_order_id', $order->id)->first();
-        $creatorId = $escrow?->seller_id ?? $order->items->first()?->physicalProduct?->creator_id;
-
-        if (! $creatorId) return;
-
-        FulfilmentPayout::create([
-            'creator_id' => $creatorId,
-            'fulfilment_order_id' => $order->id,
-            'gross_amount' => $gross,
-            'platform_fee' => $fee,
-            'net_amount' => $net,
-            'currency' => $order->currency,
-            'status' => 'pending',
-        ]);
-
-        $this->createTrackingEvent($order, 'delivered', null, 'Funds released to creator.');
     }
 
     private function getStatusTransition(string $from, string $to): bool

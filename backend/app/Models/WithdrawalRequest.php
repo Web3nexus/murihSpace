@@ -17,7 +17,12 @@ class WithdrawalRequest extends Model
         'processed_at' => 'datetime',
     ];
 
-    public const STATUSES = ['pending', 'approved', 'processing', 'completed', 'rejected'];
+    /**
+     * pending -> processing (provider transfer sent) -> completed | failed.
+     * dispatch_failed: the provider did not accept the transfer; funds stay reserved until a retry or a
+     * provider failure. Only the provider's confirmation can complete or fail a payout.
+     */
+    public const STATUSES = ['pending', 'approved', 'processing', 'dispatch_failed', 'completed', 'failed', 'rejected'];
 
     public function user(): BelongsTo
     {

@@ -38,7 +38,8 @@ class TaxRateSeeder extends Seeder
             $rate = $row['rate'] ?? 0.00;
             $rate = (float) $rate;
             $taxName = $row['axe'] ?? ($rate > 0 ? 'Value Added Tax (VAT)' : 'No VAT/GST');
-            $notes = $row['note'] ?? null;
+            // A country with no row in the rates file is charged 0% until someone confirms its rate.
+            $notes = $row['note'] ?? ($row ? null : TaxRate::UNCONFIRMED_NOTE);
 
             $streamRates = [
                 'ads'           => $rate,

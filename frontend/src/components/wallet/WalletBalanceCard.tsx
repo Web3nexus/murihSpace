@@ -89,7 +89,7 @@ export function WalletBalanceCard({ wallet, onDeposit, onTransfer, onWithdraw }:
           {!isSystem && onTransfer && (
             <button
               onClick={onTransfer}
-              className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-lg bg-white text-slate-900 font-bold text-sm shadow hover:bg-white/90 transition"
+              className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-lg bg-white text-[var(--shell-text)] font-bold text-sm shadow hover:bg-white/90 transition"
             >
               <ArrowUpRight weight="fill" className="h-4 w-4" /> Transfer to System Wallet
             </button>
@@ -117,7 +117,7 @@ export function WalletBalanceCard({ wallet, onDeposit, onTransfer, onWithdraw }:
 
         <div className="p-3 rounded-lg bg-white/5 border border-white/5">
           <div className="flex items-center gap-1.5 text-white/60 text-xs font-medium">
-            <Lock weight="fill" className="h-3.5 w-3.5 text-blue-400" /> Reserved
+            <Lock weight="fill" className="h-3.5 w-3.5 text-[var(--shell-accent)]" /> Reserved
           </div>
           <p className="text-sm font-bold text-white mt-1">{wallet.formatted.reserved}</p>
         </div>

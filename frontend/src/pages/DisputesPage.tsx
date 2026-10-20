@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
+import { DismissOnEscape } from "@/components/ui/DismissOnEscape";
+import { useState, useEffect } from 'react';
 import { ShieldFail as ShieldWarning, Plus, Show as Eye, TimeCircle as Clock, TickSquare as CheckCircle, CloseSquare as XCircle } from "@/components/icons";
 import { Spinner as Loader2 } from "@/components/icons/rounded";;
 import { Button } from "@/components/ui/button";
@@ -34,7 +35,7 @@ interface Dispute {
 const STATUS_CFG: Record<string, { label: string; className: string; icon: typeof Clock }> = {
   open:          { label: 'Open',          className: 'bg-muted text-muted-foreground',                   icon: ShieldWarning },
   under_review:  { label: 'Under Review',  className: 'bg-muted text-muted-foreground',                   icon: Clock },
-  resolved:      { label: 'Resolved',      className: 'bg-[#2164b6]/20 text-[#2164b6] dark:text-[#7ab0ff] border border-[#2164b6]/30', icon: CheckCircle },
+  resolved:      { label: 'Resolved',      className: 'bg-[var(--shell-accent-solid)]/20 text-[var(--shell-accent)] dark:text-[var(--shell-accent)] border border-[var(--shell-accent)]/30', icon: CheckCircle },
   dismissed:     { label: 'Dismissed',     className: 'bg-muted text-muted-foreground',                  icon: XCircle },
 };
 
@@ -58,21 +59,27 @@ export function DisputesPage() {
     { value: 'other', label: 'Other' },
   ];
 
-  const fetchDisputes = useCallback(async () => {
-    try {
-      const res = await authFetch(`/store/disputes`, {  });
-      if (res.ok) {
-        const json = await res.json();
-        setDisputes(json.data?.data ?? []);
-      }
-    } catch {
-      // ignore
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+  const [fetchDisputesKey, setFetchDisputesKey] = useState(0);
+  const fetchDisputes = () => {
+    setFetchDisputesKey((k) => k + 1);
+  };
 
-  useEffect(() => { fetchDisputes(); }, [fetchDisputes]);
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await authFetch(`/store/disputes`, {  });
+        if (res.ok) {
+          const json = await res.json();
+          setDisputes(json.data?.data ?? []);
+        }
+      } catch {
+        // ignore
+      } finally {
+        setIsLoading(false);
+      }
+    })();
+  }, [fetchDisputesKey]);
+
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -114,14 +121,16 @@ export function DisputesPage() {
     );
   }
 
-  const DetailModal = () => {
+  const renderDetailModal = () => {
     if (!selected) return null;
     const sc = STATUS_CFG[selected.status] ?? STATUS_CFG.open;
     const Icon = sc.icon;
 
     return (
-      <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setSelected(null)}>
-        <div className="bg-card rounded-lg max-w-lg w-full max-h-[90vh] overflow-y-auto p-4 shadow-lg border-none" onClick={e => e.stopPropagation()}>
+      <div role="presentation" onKeyDown={(e) => { if (e.key === "Escape") e.currentTarget.click(); }}
+ className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={(e) => { if (e.target === e.currentTarget) { setSelected(null); } }}>
+          <DismissOnEscape onDismiss={() => { setSelected(null); }} />
+        <div role="dialog" aria-modal="true" className="bg-card rounded-lg max-w-lg w-full max-h-[90vh] overflow-y-auto p-4 shadow-lg border-none">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-bold">Dispute #{selected.id}</h2>
             <Badge className={sc.className + ' flex items-center gap-1'}>
@@ -193,7 +202,7 @@ export function DisputesPage() {
           <p className="text-sm text-white/80 max-w-xl">Manage and resolve marketplace order disputes securely with Escrow protection.</p>
         </div>
         <Button onClick={() => setShowForm(true)}
-          className="bg-[#2164b6] text-white hover:bg-[#1a5091] font-semibold h-11 px-5 rounded-lg gap-2 shrink-0 self-start sm:self-auto">
+          className="bg-[var(--shell-accent-solid)] text-white hover:bg-[var(--shell-accent-hover)] font-semibold h-11 px-5 rounded-lg gap-2 shrink-0 self-start sm:self-auto">
           <Plus weight="fill" className="h-5 w-5" />
           Open Dispute
         </Button>
@@ -201,32 +210,34 @@ export function DisputesPage() {
 
       {message && (
         <div className={`mb-4 px-4 py-3 rounded-lg text-sm flex items-center gap-2 ${
-          message.type === 'success' ? 'bg-[#2164b6]/20 text-[#2164b6] dark:text-[#7ab0ff]' : 'bg-muted text-muted-foreground'
+          message.type === 'success' ? 'bg-[var(--shell-accent-solid)]/20 text-[var(--shell-accent)] dark:text-[var(--shell-accent)]' : 'bg-muted text-muted-foreground'
         }`}>
           {message.text}
         </div>
       )}
 
       {showForm && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setShowForm(false)}>
-          <div className="bg-card rounded-lg max-w-lg w-full p-4 shadow-lg border-none" onClick={e => e.stopPropagation()}>
+        <div role="presentation" onKeyDown={(e) => { if (e.key === "Escape") e.currentTarget.click(); }}
+ className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={(e) => { if (e.target === e.currentTarget) { setShowForm(false); } }}>
+          <DismissOnEscape onDismiss={() => { setShowForm(false); }} />
+          <div role="dialog" aria-modal="true" className="bg-card rounded-lg max-w-lg w-full p-4 shadow-lg border-none">
             <h2 className="text-lg font-bold mb-4">Open a Dispute</h2>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm text-muted-foreground mb-1.5">Fulfilment Order ID *</label>
-                <Input value={fOrderId} onChange={e => setFOrderId(e.target.value)}
+                <label htmlFor="f-pages-disputespage-tsx-216" className="block text-sm text-muted-foreground mb-1.5">Fulfilment Order ID *</label>
+                <Input id="f-pages-disputespage-tsx-216" value={fOrderId} onChange={e => setFOrderId(e.target.value)}
                   required type="number" placeholder="Enter the order ID" />
               </div>
               <div>
-                <label className="block text-sm text-muted-foreground mb-1.5">Subject *</label>
-                <select value={fSubject} onChange={e => setFSubject(e.target.value)}
+                <label htmlFor="f-pages-disputespage-tsx-221" className="block text-sm text-muted-foreground mb-1.5">Subject *</label>
+                <select id="f-pages-disputespage-tsx-221" value={fSubject} onChange={e => setFSubject(e.target.value)}
                   className="w-full bg-card border-none rounded-lg px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring">
                   {SUBJECTS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
                 </select>
               </div>
               <div>
-                <label className="block text-sm text-muted-foreground mb-1.5">Description *</label>
-                <textarea value={fDesc} onChange={e => setFDesc(e.target.value)} rows={4}
+                <label htmlFor="f-pages-disputespage-tsx-228" className="block text-sm text-muted-foreground mb-1.5">Description *</label>
+                <textarea id="f-pages-disputespage-tsx-228" value={fDesc} onChange={e => setFDesc(e.target.value)} rows={4}
                   required minLength={10}
                   className="w-full bg-card border-none rounded-lg px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-none"
                   placeholder="Describe the issue (min 10 characters)" />
@@ -279,7 +290,7 @@ export function DisputesPage() {
                 </div>
                 <p className="text-sm text-foreground/80 mt-2 line-clamp-2">{d.description}</p>
                 {d.resolution && (
-                  <p className="text-xs text-[#2164b6] dark:text-[#7ab0ff] mt-1">Resolution: {d.resolution}</p>
+                  <p className="text-xs text-[var(--shell-accent)] dark:text-[var(--shell-accent)] mt-1">Resolution: {d.resolution}</p>
                 )}
               </div>
             );
@@ -287,7 +298,7 @@ export function DisputesPage() {
         </div>
       )}
 
-      {selected && <DetailModal />}
+      {selected && renderDetailModal()}
     </div>
   );
 }

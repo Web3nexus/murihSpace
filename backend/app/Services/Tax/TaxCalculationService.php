@@ -5,6 +5,7 @@ namespace App\Services\Tax;
 use App\Models\AdminSetting;
 use App\Models\Country;
 use App\Models\TaxLiability;
+use Illuminate\Support\Facades\Cache;
 use App\Models\TaxRate;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -102,6 +103,10 @@ class TaxCalculationService
             ? TaxRate::where('country_code', $iso3)->where('is_active', true)->first()
             : null;
 
+        if ($iso3 && (! $taxRate || $taxRate->notes === TaxRate::UNCONFIRMED_NOTE)) {
+            $this->alertMissingRate($iso3);
+        }
+
         if ($taxRate) {
             $percentage = (float) $taxRate->standard_rate_percentage;
             if (! empty($taxRate->stream_rates) && isset($taxRate->stream_rates[$streamType])) {
@@ -134,6 +139,32 @@ class TaxCalculationService
             'country_code'        => $iso3,
             'taxable_base_cents'  => $amountCents,
         ];
+    }
+
+    /**
+     * A checkout in a country with no rate on file charges no statutory tax. Tell an admin, once a
+     * day per country, so the rate can be confirmed. The checkout itself is not blocked.
+     */
+    private function alertMissingRate(string $iso3): void
+    {
+        $key = "tax_missing_rate:{$iso3}:".now()->toDateString();
+        if (! Cache::add($key, true, now()->endOfDay())) {
+            return;
+        }
+
+        try {
+            app(\App\Services\AdminAlertService::class)->dispatch([
+                'event_type' => 'tax_rate_missing',
+                'severity' => 'warning',
+                'title' => "No VAT rate on file for {$iso3}",
+                'description' => "A checkout in {$iso3} was charged no statutory tax because there is no active tax rate for it. Confirm the rate in the admin tax rates.",
+                'reference' => "tax_rate:{$iso3}",
+                'affected_service' => 'tax',
+                'metadata' => ['country_code' => $iso3],
+            ]);
+        } catch (\Throwable $e) {
+            report($e);
+        }
     }
 
     /**

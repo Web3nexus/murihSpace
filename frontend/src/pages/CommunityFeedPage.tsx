@@ -1,4 +1,5 @@
-import { getAuthToken } from "@/lib/auth/token";
+import { logger } from "@/lib/logger";
+import { asApiError } from "@/lib/apiError";
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router';
 import { N2User as Users, Setting as Settings, ArrowLeft, Swap as RefreshCw, Lock, Discovery as Globe, Notification as Bell } from "@/components/icons";
@@ -25,13 +26,11 @@ interface Community {
 }
 
 async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
-  const token = getAuthToken();
   const res = await authFetch(`${path}`, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
       Accept: 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(options?.headers ?? {}),
     },
   });
@@ -75,9 +74,10 @@ export default function CommunityFeedPage() {
       // Handle community response - check for success flag or extract data
       let commData: Community | null = null;
       if (commRes && typeof commRes === 'object') {
-        const commObj = commRes as any;
-        if (commObj.success && commObj.data?.data) {
-          commData = commObj.data.data;
+        const commObj = commRes as { success?: boolean; data?: unknown };
+        const commInner = (commObj.data as { data?: Community } | undefined)?.data;
+        if (commObj.success && commInner) {
+          commData = commInner;
         } else if (commObj.data && typeof commObj.data === 'object') {
           commData = commObj.data as Community;
         } else if (Array.isArray(commObj.data)) {
@@ -89,9 +89,10 @@ export default function CommunityFeedPage() {
       // Handle posts response
       let rawPosts: Post[] = [];
       if (postsRes && typeof postsRes === 'object') {
-        const postsObj = postsRes as any;
-        if (postsObj.success && postsObj.data?.data) {
-          rawPosts = postsObj.data.data;
+        const postsObj = postsRes as { success?: boolean; data?: unknown };
+        const postsInner = (postsObj.data as { data?: Post[] } | undefined)?.data;
+        if (postsObj.success && postsInner) {
+          rawPosts = postsInner;
         } else if (Array.isArray(postsObj.data)) {
           rawPosts = postsObj.data;
         } else if (Array.isArray(postsRes)) {
@@ -100,9 +101,10 @@ export default function CommunityFeedPage() {
       }
       setPosts(rawPosts);
     } catch (e: unknown) {
-      const errorMessage = e instanceof Error ? e.message : 'Failed to load community';
+      const apiErr = asApiError(e);
+      const errorMessage = e instanceof Error ? apiErr.message : 'Failed to load community';
       setError(errorMessage);
-      console.error('Community feed error:', e);
+      logger.error('Community feed error:', e);
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
@@ -123,7 +125,8 @@ export default function CommunityFeedPage() {
       const newPost = createdEnvelope.success ? createdEnvelope.data.data : (created as unknown as Post);
       setPosts((prev) => [newPost as Post, ...prev]);
     } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : '';
+      const apiErr = asApiError(e);
+      const message = e instanceof Error ? apiErr.message : '';
       if (message.includes('LINK_SHARING_RESTRICTED')) {
         setPostError('You don\'t have permission to share links in this community.');
       } else {

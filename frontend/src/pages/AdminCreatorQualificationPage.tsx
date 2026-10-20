@@ -33,39 +33,39 @@ export default function AdminCreatorQualificationPage() {
   const [settings, setSettings] = useState<QualificationSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
-    fetchSettings();
-  }, []);
+    (async () => {
+      setLoading(true);
+      try {
+        // Use the shared apiClient so Authorization header and base URL are set correctly.
+        const res = await apiClient.get("/securegate/creator-qualification/settings");
+        const d = res.data;
+        const raw = d.data?.data || d.data || {};
+        setSettings({
+          enabled:                raw.enabled === undefined ? true : Boolean(Number(raw.enabled)),
+          follower_threshold:     Number(raw.follower_threshold ?? 10000),
+          delay_amount:           Number(raw.delay_amount ?? 24),
+          delay_unit:             raw.delay_unit || "hours",
+          enabled_providers:      Array.isArray(raw.enabled_providers) ? raw.enabled_providers : ALL_PROVIDERS.map(p => p.id),
+          min_connected_accounts: Number(raw.min_connected_accounts ?? 1),
+          combine_counts:         raw.combine_counts === undefined ? true : Boolean(Number(raw.combine_counts)),
+          email_enabled:          raw.email_enabled === undefined ? true : Boolean(Number(raw.email_enabled)),
+          email_subject:          raw.email_subject || "You may qualify as a MurihSpace Creator!",
+          email_content:          raw.email_content || "Congratulations! Your combined social following has reached our creator threshold.",
+          reminder_enabled:       raw.reminder_enabled === undefined ? false : Boolean(Number(raw.reminder_enabled)),
+          reminder_delay_hours:   Number(raw.reminder_delay_hours ?? 48),
+          auto_expiry_hours:      Number(raw.auto_expiry_hours ?? 168),
+        });
+      } catch {
+        toast.error("Failed to load qualification settings.");
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [reloadKey]);
 
-  const fetchSettings = async () => {
-    setLoading(true);
-    try {
-      // Use the shared apiClient so Authorization header and base URL are set correctly.
-      const res = await apiClient.get("/securegate/creator-qualification/settings");
-      const d = res.data;
-      const raw = d.data?.data || d.data || {};
-      setSettings({
-        enabled:                raw.enabled === undefined ? true : Boolean(Number(raw.enabled)),
-        follower_threshold:     Number(raw.follower_threshold ?? 10000),
-        delay_amount:           Number(raw.delay_amount ?? 24),
-        delay_unit:             raw.delay_unit || "hours",
-        enabled_providers:      Array.isArray(raw.enabled_providers) ? raw.enabled_providers : ALL_PROVIDERS.map(p => p.id),
-        min_connected_accounts: Number(raw.min_connected_accounts ?? 1),
-        combine_counts:         raw.combine_counts === undefined ? true : Boolean(Number(raw.combine_counts)),
-        email_enabled:          raw.email_enabled === undefined ? true : Boolean(Number(raw.email_enabled)),
-        email_subject:          raw.email_subject || "You may qualify as a MurihSpace Creator!",
-        email_content:          raw.email_content || "Congratulations! Your combined social following has reached our creator threshold.",
-        reminder_enabled:       raw.reminder_enabled === undefined ? false : Boolean(Number(raw.reminder_enabled)),
-        reminder_delay_hours:   Number(raw.reminder_delay_hours ?? 48),
-        auto_expiry_hours:      Number(raw.auto_expiry_hours ?? 168),
-      });
-    } catch {
-      toast.error("Failed to load qualification settings.");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -75,7 +75,7 @@ export default function AdminCreatorQualificationPage() {
     try {
       await apiClient.put("/securegate/creator-qualification/settings", settings);
       toast.success("Creator qualification settings updated!");
-      fetchSettings();
+      setReloadKey((k) => k + 1);
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
       toast.error(msg || "Failed to save settings.");

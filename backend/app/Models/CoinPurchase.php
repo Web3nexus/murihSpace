@@ -12,7 +12,7 @@ class CoinPurchase extends Model
 
     protected $fillable = [
         'user_id', 'coin_pack_id', 'coins', 'bonus_coins',
-        'amount_paid', 'tax', 'total_charged', 'tax_rate', 'tax_country_code', 'tax_type', 'tax_name',
+        'amount_paid', 'tax', 'total_charged', 'transaction_fee', 'tax_rate', 'tax_country_code', 'tax_type', 'tax_name',
         'currency', 'status', 'provider', 'reference',
     ];
 

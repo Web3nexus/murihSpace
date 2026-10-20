@@ -40,15 +40,19 @@ export default function SearchPage() {
 
   useEffect(() => {
     if (!query.trim()) return;
-    setLoading(true);
-    const typeParam = tab === "all" ? "" : `&type=${tab}`;
-    authFetch(`/search?q=${encodeURIComponent(query)}${typeParam}&per_page=20`, {
-      
-    })
-      .then((r) => r.json())
-      .then((json) => setResults(json.results ?? {}))
-      .catch(() => setResults({}))
-      .finally(() => setLoading(false));
+    // Deferred so the loading state is not set synchronously inside the effect body
+    const timer = setTimeout(() => {
+      setLoading(true);
+      const typeParam = tab === "all" ? "" : `&type=${tab}`;
+      authFetch(`/search?q=${encodeURIComponent(query)}${typeParam}&per_page=20`, {
+
+      })
+        .then((r) => r.json())
+        .then((json) => setResults(json.results ?? {}))
+        .catch(() => setResults({}))
+        .finally(() => setLoading(false));
+    }, 0);
+    return () => clearTimeout(timer);
   }, [query, tab]);
 
   function switchTab(t: TabType) {

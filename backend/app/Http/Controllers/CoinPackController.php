@@ -83,6 +83,14 @@ class CoinPackController extends Controller
     /**
      * Number of MSH coins credited per 1 USD. Editable by admins.
      */
+    /** The transaction fee on a coin pack purchase, in minor units. Admin-set; see CommissionService. */
+    private function coinPurchaseFee(int $priceMinor): int
+    {
+        $fee = app(\App\Services\Commission\CommissionService::class)->calculateFee($priceMinor / 100, 'coin_purchase');
+
+        return (int) round($fee * 100);
+    }
+
     public static function coinConversionRate(): float
     {
         $rate = (float) AdminSetting::get('coin_conversion_rate', 10);
@@ -106,7 +114,7 @@ class CoinPackController extends Controller
             ? strtoupper($request->query('currency'))
             : $localContext['currency'];
         $rateService = app(\App\Services\Payment\LiveExchangeRateService::class);
-        $rate = $rateService->getRate('USD', $targetCurrency);
+        $rate = $rateService->chargeRate('USD', $targetCurrency);
         $coinRate = self::coinConversionRate();
 
         $packs = CoinPack::active()->orderBy('sort_order')->get()->map(function ($pack) use ($targetCurrency, $rate, $rateService, $coinRate) {
@@ -267,11 +275,13 @@ class CoinPackController extends Controller
 
         $taxInfo = $this->purchaseTaxInfo($request, (int) $pack->price);
         $taxCents = (int) $taxInfo['tax_amount_cents'];
-        $totalCharged = (int) $pack->price + $taxCents;
+        // Transaction fee on the coin pack purchase: the buyer pays it, the coins are not reduced.
+        $txFee = $this->coinPurchaseFee((int) $pack->price);
+        $totalCharged = (int) $pack->price + $taxCents + $txFee;
 
-        // External provider flow (Paddle MoR handles tax itself, so we charge pre-tax gross).
+        // External provider flow (Paddle MoR handles tax itself, so we charge pre-tax gross plus the fee).
         $async = $this->startExternalCheckout($request, 'coin_pack', [
-            'amount_minor' => (int) $pack->price,
+            'amount_minor' => (int) $pack->price + $txFee,
             'country_code' => $request->input('country_code'),
             'reference' => $reference,
             'return_url' => $request->input('return_url'),
@@ -280,8 +290,9 @@ class CoinPackController extends Controller
                 'coin_pack_type' => 'pack',
                 'payment_method' => $validated['payment_method'] ?? 'card',
                 'amount_usd_minor' => (int) $pack->price,
+                'transaction_fee' => $txFee,
                 'tax' => 0,
-                'total_charged' => (int) $pack->price,
+                'total_charged' => (int) $pack->price + $txFee,
                 'tax_rate' => 0.0,
                 'tax_type' => 'provider_handled',
                 'coin_conversion_rate' => self::coinConversionRate(),
@@ -292,7 +303,7 @@ class CoinPackController extends Controller
             return response()->json($async, 202);
         }
 
-        $purchase = \Illuminate\Support\Facades\DB::transaction(function () use ($user, $pack, $reference, $totalCoins, $taxInfo, $taxCents, $totalCharged) {
+        $purchase = \Illuminate\Support\Facades\DB::transaction(function () use ($user, $pack, $reference, $totalCoins, $taxInfo, $taxCents, $totalCharged, $txFee) {
             $this->ledgerService->credit(
                 user: $user->id,
                 amount: $totalCoins,
@@ -313,6 +324,7 @@ class CoinPackController extends Controller
                 'amount_paid' => $pack->price,
                 'tax' => $taxCents,
                 'total_charged' => $totalCharged,
+                'transaction_fee' => $txFee,
                 'tax_rate' => $taxInfo['tax_rate_percentage'],
                 'tax_country_code' => $taxInfo['country_code'],
                 'tax_type' => $taxInfo['tax_type'],
@@ -326,6 +338,17 @@ class CoinPackController extends Controller
 
         $purchase->refresh();
         $this->recordCoinPurchaseRevenue($purchase, $taxInfo, $reference);
+
+        // The transaction fee is platform revenue, recorded in the ledger.
+        if ($txFee > 0) {
+            $this->ledgerService->creditPlatformRevenue(
+                amount: $txFee,
+                currency: $pack->currency,
+                description: "Coin pack transaction fee: {$pack->name}",
+                idempotencyKey: "COIN_FEE_{$reference}",
+                metadata: ['reference' => $reference, 'coin_pack_id' => $pack->id],
+            );
+        }
 
         return response()->json([
             'message' => 'Coins added to your wallet.',
@@ -402,11 +425,12 @@ class CoinPackController extends Controller
 
         $taxInfo = $this->purchaseTaxInfo($request, $amountMinor);
         $taxCents = (int) $taxInfo['tax_amount_cents'];
-        $totalCharged = $amountMinor + $taxCents;
+        $txFee = $this->coinPurchaseFee($amountMinor);
+        $totalCharged = $amountMinor + $taxCents + $txFee;
 
-        // External provider flow (Paddle MoR handles tax itself, so we charge pre-tax gross).
+        // External provider flow (Paddle MoR handles tax itself, so we charge pre-tax gross plus the fee).
         $async = $this->startExternalCheckout($request, 'coin_pack', [
-            'amount_minor' => $amountMinor,
+            'amount_minor' => $amountMinor + $txFee,
             'country_code' => $request->input('country_code'),
             'reference' => $reference,
             'return_url' => $request->input('return_url'),
@@ -415,7 +439,8 @@ class CoinPackController extends Controller
                 'payment_method' => $validated['payment_method'] ?? 'card',
                 'amount_usd_minor' => $amountMinor,
                 'tax' => 0,
-                'total_charged' => $amountMinor,
+                'transaction_fee' => $txFee,
+                'total_charged' => $amountMinor + $txFee,
                 'tax_rate' => 0.0,
                 'tax_type' => 'provider_handled',
                 'coin_conversion_rate' => $coinRate,
@@ -426,7 +451,7 @@ class CoinPackController extends Controller
             return response()->json($async, 202);
         }
 
-        $purchase = \Illuminate\Support\Facades\DB::transaction(function () use ($user, $reference, $totalCoins, $amountMinor, $taxInfo, $taxCents, $totalCharged) {
+        $purchase = \Illuminate\Support\Facades\DB::transaction(function () use ($user, $reference, $totalCoins, $amountMinor, $taxInfo, $taxCents, $totalCharged, $txFee) {
             $this->ledgerService->credit(
                 user: $user->id,
                 amount: $totalCoins,
@@ -447,6 +472,7 @@ class CoinPackController extends Controller
                 'amount_paid' => $amountMinor,
                 'tax' => $taxCents,
                 'total_charged' => $totalCharged,
+                'transaction_fee' => $txFee,
                 'tax_rate' => $taxInfo['tax_rate_percentage'],
                 'tax_country_code' => $taxInfo['country_code'],
                 'tax_type' => $taxInfo['tax_type'],
@@ -460,6 +486,16 @@ class CoinPackController extends Controller
 
         $purchase->refresh();
         $this->recordCoinPurchaseRevenue($purchase, $taxInfo, $reference);
+
+        if ($txFee > 0) {
+            $this->ledgerService->creditPlatformRevenue(
+                amount: $txFee,
+                currency: 'USD',
+                description: 'Coin purchase transaction fee (custom amount)',
+                idempotencyKey: "COIN_FEE_{$reference}",
+                metadata: ['reference' => $reference],
+            );
+        }
 
         return response()->json([
             'message' => 'Coins added to your wallet.',

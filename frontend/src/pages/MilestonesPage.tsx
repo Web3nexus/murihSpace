@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
+import { DismissOnEscape } from "@/components/ui/DismissOnEscape";
+import { useState, useEffect } from 'react';
 import { useConfirm } from '@/components/ui/DialogProvider';
 import { Plus, Edit, Delete as Trash2, Graph as TrendingUp, Bag as ShoppingBag, Heart } from "@/components/icons";
 import { Trophy, Medal as Award, Spinner as Loader2, Target, CurrencyDollar as DollarSign } from "@/components/icons/rounded";;
@@ -11,7 +12,7 @@ import { authFetch } from "@/lib/api/authFetch";
 interface Milestone {
   id: number; title: string; description: string | null;
   metric_type: string; target_value: number;
-  reward_type: string | null; reward_data: any;
+  reward_type: string | null; reward_data: Record<string, unknown> | null;
   is_active: boolean; starts_at: string | null; ends_at: string | null;
   created_at: string;
 }
@@ -29,7 +30,7 @@ interface UserBadge {
 interface MilestoneProgress {
   milestone_id: number; progress: number; target: number;
   achieved: boolean; achieved_at: string | null;
-  milestone: { id: number; title: string; description: string | null; metric_type: string; reward_type: string | null; reward_data: any } | null;
+  milestone: { id: number; title: string; description: string | null; metric_type: string; reward_type: string | null; reward_data: Record<string, unknown> | null } | null;
 }
 
 const METRIC_LABELS: Record<string, string> = {
@@ -61,21 +62,27 @@ export function MilestonesPage() {
   const [fReward, setFReward] = useState('');
   const [fActive, setFActive] = useState(true);
 
-  const fetchAll = useCallback(async () => {
+  const [fetchAllKey, setFetchAllKey] = useState(0);
+  const fetchAll = () => {
     setIsLoading(true);
-    try {
-      const [mRes, pRes, bRes] = await Promise.all([
-        authFetch(`/milestones`, {  }),
-        authFetch(`/milestones/my-progress`, {  }),
-        authFetch(`/badges/my`, {  }),
-      ]);
-      if (mRes.ok) { const j = await mRes.json(); setMilestones(j.data?.data ?? []); }
-      if (pRes.ok) { const j = await pRes.json(); setProgress(j.data?.data ?? []); }
-      if (bRes.ok) { const j = await bRes.json(); setBadges(j.data?.data ?? []); }
-    } catch { /* ignore */ } finally { setIsLoading(false); }
-  }, []);
+    setFetchAllKey((k) => k + 1);
+  };
 
-  useEffect(() => { fetchAll(); }, [fetchAll]);
+  useEffect(() => {
+    (async () => {
+      try {
+        const [mRes, pRes, bRes] = await Promise.all([
+          authFetch(`/milestones`, {  }),
+          authFetch(`/milestones/my-progress`, {  }),
+          authFetch(`/badges/my`, {  }),
+        ]);
+        if (mRes.ok) { const j = await mRes.json(); setMilestones(j.data?.data ?? []); }
+        if (pRes.ok) { const j = await pRes.json(); setProgress(j.data?.data ?? []); }
+        if (bRes.ok) { const j = await bRes.json(); setBadges(j.data?.data ?? []); }
+      } catch { /* ignore */ } finally { setIsLoading(false); }
+    })();
+  }, [fetchAllKey]);
+
 
   function openNew() {
     setEditing(null); setFTitle(''); setFDesc(''); setFMetric('followers');
@@ -116,10 +123,10 @@ export function MilestonesPage() {
   }
 
   if (isLoading) {
-    return <div className="w-full flex items-center justify-center h-64"><Loader2 weight="fill" className="w-6 h-6 animate-spin text-gray-400" /></div>;
+    return <div className="w-full flex items-center justify-center h-64"><Loader2 weight="fill" className="w-6 h-6 animate-spin text-[var(--shell-muted)]" /></div>;
   }
 
-  const tabStyle = (t: string) => `px-5 py-2 rounded-lg text-sm font-medium transition ${tab === t ? 'bg-white ' : 'text-gray-600 hover:text-gray-900'}`;
+  const tabStyle = (t: string) => `px-5 py-2 rounded-lg text-sm font-medium transition ${tab === t ? 'bg-white ' : 'text-[var(--shell-muted)] hover:text-[var(--shell-text)]'}`;
 
   return (
     <div className="space-y-6 w-full max-w-7xl mx-auto p-4 lg:p-5">
@@ -142,33 +149,35 @@ export function MilestonesPage() {
 
       {/* Form Modal */}
       {showForm && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setShowForm(false)}>
-          <div className="bg-white rounded-lg max-w-lg w-full p-4" onClick={e => e.stopPropagation()}>
+        <div role="presentation" onKeyDown={(e) => { if (e.key === "Escape") e.currentTarget.click(); }}
+ className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={(e) => { if (e.target === e.currentTarget) { setShowForm(false); } }}>
+          <DismissOnEscape onDismiss={() => { setShowForm(false); }} />
+          <div role="dialog" aria-modal="true" className="bg-white rounded-lg max-w-lg w-full p-4">
             <h2 className="text-lg font-bold mb-4">{editing ? 'Edit Milestone' : 'New Milestone'}</h2>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm text-gray-600 mb-1">Title *</label>
-                <input value={fTitle} onChange={e => setFTitle(e.target.value)} required className="w-full border rounded-lg px-3 py-2 text-sm" placeholder="e.g. 100 Followers" />
+                <label htmlFor="f-pages-milestonespage-tsx-150" className="block text-sm text-[var(--shell-muted)] mb-1">Title *</label>
+                <input id="f-pages-milestonespage-tsx-150" value={fTitle} onChange={e => setFTitle(e.target.value)} required className="w-full border rounded-lg px-3 py-2 text-sm" placeholder="e.g. 100 Followers" />
               </div>
               <div>
-                <label className="block text-sm text-gray-600 mb-1">Description</label>
-                <textarea value={fDesc} onChange={e => setFDesc(e.target.value)} rows={3} className="w-full border rounded-lg px-3 py-2 text-sm" />
+                <label htmlFor="f-pages-milestonespage-tsx-154" className="block text-sm text-[var(--shell-muted)] mb-1">Description</label>
+                <textarea id="f-pages-milestonespage-tsx-154" value={fDesc} onChange={e => setFDesc(e.target.value)} rows={3} className="w-full border rounded-lg px-3 py-2 text-sm" />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm text-gray-600 mb-1">Metric *</label>
-                  <select value={fMetric} onChange={e => setFMetric(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm">
+                  <label htmlFor="f-pages-milestonespage-tsx-159" className="block text-sm text-[var(--shell-muted)] mb-1">Metric *</label>
+                  <select id="f-pages-milestonespage-tsx-159" value={fMetric} onChange={e => setFMetric(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm">
                     {Object.entries(METRIC_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-600 mb-1">Target Value *</label>
-                  <input value={fTarget} onChange={e => setFTarget(e.target.value)} required type="number" min="1" className="w-full border rounded-lg px-3 py-2 text-sm" />
+                  <label htmlFor="f-pages-milestonespage-tsx-165" className="block text-sm text-[var(--shell-muted)] mb-1">Target Value *</label>
+                  <input id="f-pages-milestonespage-tsx-165" value={fTarget} onChange={e => setFTarget(e.target.value)} required type="number" min="1" className="w-full border rounded-lg px-3 py-2 text-sm" />
                 </div>
               </div>
               <div>
-                <label className="block text-sm text-gray-600 mb-1">Reward Type</label>
-                <select value={fReward} onChange={e => setFReward(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm">
+                <label htmlFor="f-pages-milestonespage-tsx-170" className="block text-sm text-[var(--shell-muted)] mb-1">Reward Type</label>
+                <select id="f-pages-milestonespage-tsx-170" value={fReward} onChange={e => setFReward(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm">
                   <option value="">No reward</option>
                   <option value="badge">Badge</option>
                   <option value="feature">Feature</option>
@@ -196,7 +205,7 @@ export function MilestonesPage() {
           <div className="flex flex-col items-center text-center gap-4 py-16">
             <Target weight="fill" className="w-16 h-16 text-gray-300" />
             <h2 className="text-xl font-semibold text-gray-700">No milestones yet</h2>
-            <p className="text-gray-500">Create goals for your audience to reach.</p>
+            <p className="text-[var(--shell-muted)]">Create goals for your audience to reach.</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -206,23 +215,23 @@ export function MilestonesPage() {
                 <div key={m.id} className="bg-white border rounded-lg p-5">
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3">
-                      <div className={`p-2.5 rounded-lg ${m.is_active ? 'bg-blue-50 text-blue-600' : 'bg-gray-100 text-gray-400'}`}>
+                      <div className={`p-2.5 rounded-lg ${m.is_active ? 'bg-blue-50 text-[var(--shell-accent)]' : 'bg-gray-100 text-[var(--shell-muted)]'}`}>
                         <Icon className="w-5 h-5" />
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
                           <h3 className="font-semibold">{m.title}</h3>
-                          <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${m.is_active ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-500'}`}>{m.is_active ? 'Active' : 'Inactive'}</span>
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${m.is_active ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-[var(--shell-muted)]'}`}>{m.is_active ? 'Active' : 'Inactive'}</span>
                         </div>
-                        <p className="text-sm text-gray-500">{METRIC_LABELS[m.metric_type]}: {m.target_value.toLocaleString()}{m.reward_type ? ` · Reward: ${m.reward_type}` : ''}</p>
+                        <p className="text-sm text-[var(--shell-muted)]">{METRIC_LABELS[m.metric_type]}: {m.target_value.toLocaleString()}{m.reward_type ? ` · Reward: ${m.reward_type}` : ''}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <button onClick={() => openEdit(m)} className="p-1.5 hover:bg-gray-100 rounded-lg"><Edit weight="fill" className="w-4 h-4 text-gray-500" /></button>
+                      <button onClick={() => openEdit(m)} className="p-1.5 hover:bg-gray-100 rounded-lg"><Edit weight="fill" className="w-4 h-4 text-[var(--shell-muted)]" /></button>
                       <button onClick={() => deleteMilestone(m.id)} className="p-1.5 hover:bg-gray-100 rounded-lg"><Trash2 weight="fill" className="w-4 h-4 text-red-400" /></button>
                     </div>
                   </div>
-                  {m.description && <p className="text-sm text-gray-600 mt-2">{m.description}</p>}
+                  {m.description && <p className="text-sm text-[var(--shell-muted)] mt-2">{m.description}</p>}
                 </div>
               );
             })}
@@ -236,7 +245,7 @@ export function MilestonesPage() {
           <div className="flex flex-col items-center text-center gap-4 py-16">
             <TrendingUp weight="fill" className="w-16 h-16 text-gray-300" />
             <h2 className="text-xl font-semibold text-gray-700">No progress yet</h2>
-            <p className="text-gray-500">Complete milestones to track your achievements.</p>
+            <p className="text-[var(--shell-muted)]">Complete milestones to track your achievements.</p>
           </div>
         ) : (
           <div className="space-y-4">
@@ -249,12 +258,12 @@ export function MilestonesPage() {
                       <h3 className="font-semibold text-sm">{p.milestone?.title}</h3>
                       {p.achieved && <span className="text-xs bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full font-medium">Achieved!</span>}
                     </div>
-                    <span className="text-sm text-gray-500">{p.progress.toLocaleString()} / {p.target.toLocaleString()}</span>
+                    <span className="text-sm text-[var(--shell-muted)]">{p.progress.toLocaleString()} / {p.target.toLocaleString()}</span>
                   </div>
                   <div className="w-full bg-gray-100 rounded-full h-2.5">
-                    <div className={`h-2.5 rounded-full transition-all ${p.achieved ? 'bg-emerald-500' : 'bg-blue-500'}`} style={{ width: `${pct}%` }} />
+                    <div className={`h-2.5 rounded-full transition-all ${p.achieved ? 'bg-emerald-500' : 'bg-[var(--shell-accent-solid)]'}`} style={{ width: `${pct}%` }} />
                   </div>
-                  <p className="text-xs text-gray-400 mt-1">{pct}% complete</p>
+                  <p className="text-xs text-[var(--shell-muted)] mt-1">{pct}% complete</p>
                 </div>
               );
             })}
@@ -268,7 +277,7 @@ export function MilestonesPage() {
           <div className="flex flex-col items-center text-center gap-4 py-16">
             <Award weight="fill" className="w-16 h-16 text-gray-300" />
             <h2 className="text-xl font-semibold text-gray-700">No badges yet</h2>
-            <p className="text-gray-500">Earn badges by completing milestones and achievements.</p>
+            <p className="text-[var(--shell-muted)]">Earn badges by completing milestones and achievements.</p>
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
@@ -278,8 +287,8 @@ export function MilestonesPage() {
                   <Award weight="fill" className="w-7 h-7" style={{ color: ub.badge?.color ?? '#2164b6' }} />
                 </div>
                 <h3 className="font-semibold text-sm">{ub.badge?.name}</h3>
-                <p className="text-xs text-gray-500 mt-1">{ub.badge?.description}</p>
-                <p className="text-xs text-gray-400 mt-2">Earned {new Date(ub.earned_at).toLocaleDateString()}</p>
+                <p className="text-xs text-[var(--shell-muted)] mt-1">{ub.badge?.description}</p>
+                <p className="text-xs text-[var(--shell-muted)] mt-2">Earned {new Date(ub.earned_at).toLocaleDateString()}</p>
               </div>
             ))}
           </div>

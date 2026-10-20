@@ -1,3 +1,4 @@
+import { asApiError } from "@/lib/apiError";
 import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router";
 import { authFetch } from "@/lib/api/authFetch";
@@ -73,7 +74,8 @@ export default function PublicProductPage() {
         }
         setProduct(data);
       } catch (err: unknown) {
-        setError(err instanceof Error ? err.message : "Failed to load product.");
+      const apiErr = asApiError(err);
+        setError(err instanceof Error ? apiErr.message : "Failed to load product.");
       } finally {
         setLoading(false);
       }
@@ -301,9 +303,9 @@ export default function PublicProductPage() {
             <div className="space-y-3">
               {isPhysical && inStock && (
                 <div className="flex items-center gap-3">
-                  <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
                     Quantity:
-                  </label>
+                  </span>
                   <div className="flex items-center border border-border rounded-xl bg-card">
                     <button
                       onClick={() => setQuantity((q) => Math.max(1, q - 1))}

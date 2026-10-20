@@ -5,15 +5,21 @@ interface CacheEntry<T> {
   timestamp: number;
 }
 
-const memoryCache = new Map<string, CacheEntry<any>>();
+const memoryCache = new Map<string, CacheEntry<unknown>>();
 
-export function safeArray<T = any>(val: any): T[] {
-  if (Array.isArray(val)) return val;
-  if (Array.isArray(val?.data)) return val.data;
-  if (Array.isArray(val?.data?.data)) return val.data.data;
-  if (Array.isArray(val?.items)) return val.items;
-  if (Array.isArray(val?.products)) return val.products;
-  if (Array.isArray(val?.communities)) return val.communities;
+type Envelope = { data?: unknown; items?: unknown; products?: unknown; communities?: unknown };
+
+export function safeArray<T>(val: T[]): T[];
+export function safeArray<T = unknown>(val: unknown): T[];
+export function safeArray<T = unknown>(val: unknown): T[] {
+  if (Array.isArray(val)) return val as T[];
+  const env = (val && typeof val === "object" ? val : {}) as Envelope;
+  if (Array.isArray(env.data)) return env.data as T[];
+  const inner = (env.data && typeof env.data === "object" ? env.data : {}) as Envelope;
+  if (Array.isArray(inner.data)) return inner.data as T[];
+  if (Array.isArray(env.items)) return env.items as T[];
+  if (Array.isArray(env.products)) return env.products as T[];
+  if (Array.isArray(env.communities)) return env.communities as T[];
   return [];
 }
 
@@ -54,7 +60,20 @@ export function useCachedFetch<T>(
   const [loading, setLoading] = useState<boolean>(!cached && !initialData);
   const [error, setError] = useState<Error | null>(null);
   const fetcherRef = useRef(fetcher);
-  fetcherRef.current = fetcher;
+  useEffect(() => {
+    fetcherRef.current = fetcher;
+  });
+
+  // Apply a cached value in the render that changes the key, rather than inside the fetch effect.
+  const [prevCacheKey, setPrevCacheKey] = useState({ key, ttlMs });
+  if (prevCacheKey.key !== key || prevCacheKey.ttlMs !== ttlMs) {
+    setPrevCacheKey({ key, ttlMs });
+    const existing = getCachedData<T>(key, ttlMs);
+    if (existing) {
+      setData(existing);
+      setLoading(false);
+    }
+  }
 
   const refresh = useCallback(async (isSilent = false) => {
     if (!isSilent && !getCachedData<T>(key, ttlMs)) {
@@ -65,7 +84,7 @@ export function useCachedFetch<T>(
       const result = await fetcherRef.current();
       setCachedData(key, result);
       setData(result);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setError(err instanceof Error ? err : new Error(String(err)));
     } finally {
       setLoading(false);
@@ -74,14 +93,14 @@ export function useCachedFetch<T>(
 
   useEffect(() => {
     const existing = getCachedData<T>(key, ttlMs);
-    if (existing) {
-      setData(existing);
-      setLoading(false);
-      // Silent revalidate in background
-      refresh(true);
-    } else {
-      refresh(false);
-    }
+    (async () => {
+      if (existing) {
+        // Silent revalidate in background
+        await refresh(true);
+      } else {
+        await refresh(false);
+      }
+    })();
   }, [key, refresh, ttlMs]);
 
   const mutate = useCallback((updater: T | ((prev: T | null) => T), shouldRevalidate = false) => {

@@ -361,6 +361,11 @@ class FlutterwaveProvider implements CollectionProviderInterface, PayoutProvider
         $data = $payload['data'] ?? [];
 
         $eventId = (string) ($data['id'] ?? ('flw_'.md5($request->getContent())));
+        if ($event === 'transfer.completed') {
+            // Transfer ids are not charge ids. Include the status so the SUCCESSFUL and FAILED results
+            // of one transfer are separate events.
+            $eventId = "{$event}:{$eventId}:".strtoupper((string) ($data['status'] ?? ''));
+        }
         $txRef = (string) ($data['tx_ref'] ?? '');
         $rawStatus = strtolower((string) ($data['status'] ?? ''));
         $amountMinor = isset($data['amount']) ? (int) round(((float) $data['amount']) * 100) : null;

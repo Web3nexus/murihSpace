@@ -51,10 +51,11 @@ class FxService
         }
 
         // Apply controlled platform markup
-        $markupRate = $baseRate * (1 - self::MARKUP_PERCENT);
+        // Money we pay out is converted at the payout rate: the low side of the admin-set spread.
+        $markupRate = $rateService->payoutRate($src, $dst);
         $rawDestAmount = $sourceAmountMinor * $markupRate;
         $destAmountMinor = (int) round($rawDestAmount);
-        $markupMinor = (int) round($sourceAmountMinor * $baseRate * self::MARKUP_PERCENT);
+        $markupMinor = (int) round($sourceAmountMinor * ($baseRate - $markupRate));
 
         return FxQuote::create([
             'quote_reference' => 'FXQ-'.strtoupper(Str::random(12)),

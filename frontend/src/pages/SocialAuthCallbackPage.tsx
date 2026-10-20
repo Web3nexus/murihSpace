@@ -6,6 +6,7 @@ import { Spinner as Loader2 } from "@/components/icons/rounded";;
 import { AuthLayout } from "@/components/layout/AuthLayout";
 import { sanitiseReturnTo } from "@/lib/deepLinks";
 import { takeSocialReturn } from "@/lib/usePostAuthRedirect";
+import { setSessionHint } from "@/lib/auth/sessionHint";
 import { Link } from "react-router";
 
 
@@ -28,9 +29,10 @@ export function SocialAuthCallbackPage() {
   useEffect(() => {
     let cancelled = false;
 
-    const finish = (token: string, _user: CallbackUser) => {
-      localStorage.setItem("murihspace-token", token);
-      // Let the auth provider re-hydrate from /user on the next screen.
+    const finish = () => {
+      setSessionHint(true);
+      // The session cookie is already set. The full page load below lets the
+      // auth provider re-hydrate from /user on the next screen.
       // Honour the shared link the visitor arrived with, so a Google or Apple
       // sign-in started from /m/abc or /e/12 still lands on that meeting or
       // event instead of the dashboard.
@@ -75,7 +77,10 @@ export function SocialAuthCallbackPage() {
       }
 
       if (hash.token) {
-        finish(hash.token, hash.user ?? ({} as CallbackUser));
+        // The server puts a token in the fragment only when it did not bind a web
+        // session, so no session cookie came with it. Browsers never hold the
+        // token, so this sign-in cannot complete here.
+        finishWithError("This sign-in link is incomplete or has expired. Please try again.");
         return;
       }
 
@@ -94,17 +99,25 @@ export function SocialAuthCallbackPage() {
           headers: { Accept: "application/json", "Content-Type": "application/json" },
           body: JSON.stringify({ code, state: params.get("state") }),
         });
-        const j = await res.json();
         if (!res.ok) {
-          finishWithError(j?.message ?? "Sign-in could not be completed. Please try again.");
+          // The server answers this POST with HTML, so the body may not be JSON.
+          let message: string | undefined;
+          try {
+            message = (await res.json())?.message;
+          } catch {
+            message = undefined;
+          }
+          finishWithError(message ?? "Sign-in could not be completed. Please try again.");
           return;
         }
-        const d = j?.success ? j?.data : j;
-        if (!d?.token || !d?.user) {
-          finishWithError("Invalid response from sign-in. Please try again.");
+        // The session cookie carries the sign-in. Confirm it arrived before going on,
+        // so a response without a cookie is reported instead of a signed-out /app.
+        const me = await authFetch("/user", { headers: { Accept: "application/json" } });
+        if (!me.ok) {
+          finishWithError("Sign-in could not be completed. Please try again.");
           return;
         }
-        finish(d.token, d.user as CallbackUser);
+        finish();
       } catch {
         finishWithError("Network error during sign-in. Please try again.");
       }
@@ -120,8 +133,8 @@ export function SocialAuthCallbackPage() {
       <div className="flex flex-col items-center gap-5 py-8 text-center">
         {status === "loading" && (
           <>
-            <Loader2 weight="fill" className="h-10 w-10 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" />
-            <p className="text-sm text-slate-500 dark:text-slate-400">Signing you in…</p>
+            <Loader2 weight="fill" className="h-10 w-10 animate-spin text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" />
+            <p className="text-sm text-[var(--shell-muted)] dark:text-[var(--shell-muted)]">Signing you in…</p>
           </>
         )}
         {status === "error" && (
@@ -132,7 +145,7 @@ export function SocialAuthCallbackPage() {
             </div>
             <Link
               to="/login"
-              className="text-xs font-bold text-[#2164b6] dark:text-[#7ab0ff] hover:underline underline-offset-2"
+              className="text-xs font-bold text-[var(--shell-accent)] dark:text-[var(--shell-accent)] hover:underline underline-offset-2"
             >
               Back to login
             </Link>

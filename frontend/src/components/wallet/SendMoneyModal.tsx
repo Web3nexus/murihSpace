@@ -87,7 +87,7 @@ export function SendMoneyModal({
       <DialogContent className="sm:max-w-md p-6">
         <DialogHeader className="space-y-1">
           <DialogTitle className="flex items-center gap-2 text-lg font-bold">
-            <PaperPlaneRight weight="fill" className="h-5 w-5 text-[#2164b6]" />
+            <PaperPlaneRight weight="fill" className="h-5 w-5 text-[var(--shell-accent)]" />
             Send Money
           </DialogTitle>
           <DialogDescription className="text-xs text-muted-foreground">
@@ -98,17 +98,17 @@ export function SendMoneyModal({
         <form onSubmit={handleSubmit} className="space-y-4 pt-1">
           {/* Recipient Search Input */}
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
+            <label htmlFor="f-ents-wallet-sendmoneymodal-tsx-101" className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
               Recipient
             </label>
             <div className="relative">
               <MagnifyingGlass weight="bold" className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <input
+              <input id="f-ents-wallet-sendmoneymodal-tsx-101"
                 type="text"
                 value={recipient}
                 onChange={(e) => setRecipient(e.target.value)}
                 placeholder="Search people, username or phone..."
-                className="w-full pl-9 pr-3 py-2 text-sm bg-muted/30 border border-border rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-[#2164b6]"
+                className="w-full pl-9 pr-3 py-2 text-sm bg-muted/30 border border-border rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-[var(--shell-accent)]"
               />
             </div>
           </div>
@@ -127,7 +127,7 @@ export function SendMoneyModal({
                 <div
                   className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-xs shadow-xs transition-colors ${
                     recipient === c.username
-                      ? "bg-[#2164b6] text-white ring-2 ring-[#2164b6]/30"
+                      ? "bg-[var(--shell-accent-solid)] text-white ring-2 ring-[var(--shell-accent)]/30"
                       : "bg-muted text-foreground group-hover:bg-muted/80"
                   }`}
                 >
@@ -142,7 +142,7 @@ export function SendMoneyModal({
 
           {/* Amount Input */}
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
+            <label htmlFor="send-money-amount" className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
               Amount
             </label>
             <div className="relative">
@@ -150,13 +150,14 @@ export function SendMoneyModal({
                 {walletCurrency === "USD" ? "$" : walletCurrency}
               </span>
               <input
+                id="send-money-amount"
                 type="number"
                 step="0.01"
                 min="0.5"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 placeholder="0.00"
-                className="w-full pl-9 pr-16 py-2.5 text-xl font-bold bg-muted/30 border border-border rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-[#2164b6]"
+                className="w-full pl-9 pr-16 py-2.5 text-xl font-bold bg-muted/30 border border-border rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-[var(--shell-accent)]"
               />
               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground bg-muted px-2 py-1 rounded-md">
                 {walletCurrency}
@@ -173,7 +174,7 @@ export function SendMoneyModal({
                 onClick={() => setAmount(q)}
                 className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all border ${
                   amount === q
-                    ? "border-[#2164b6] bg-[#2164b6]/10 text-[#2164b6]"
+                    ? "border-[var(--shell-accent)] bg-[var(--shell-accent-solid)]/10 text-[var(--shell-accent)]"
                     : "border-border bg-card text-muted-foreground hover:text-foreground hover:bg-muted/40"
                 }`}
               >
@@ -185,36 +186,37 @@ export function SendMoneyModal({
           {/* Note Input */}
           <div>
             <div className="flex justify-between items-center mb-1">
-              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              <label htmlFor="send-money-note" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
                 Add a note (optional)
               </label>
               <span className="text-[10px] text-muted-foreground">{note.length}/100</span>
             </div>
             <textarea
+              id="send-money-note"
               rows={2}
               maxLength={100}
               value={note}
               onChange={(e) => setNote(e.target.value)}
               placeholder="e.g. Thanks for your help!"
-              className="w-full px-3 py-2 text-xs bg-muted/30 border border-border rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-[#2164b6] resize-none"
+              className="w-full px-3 py-2 text-xs bg-muted/30 border border-border rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-[var(--shell-accent)] resize-none"
             />
           </div>
 
           {/* Security PIN Input if enabled */}
           {hasPin && (
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
+              <label htmlFor="f-ents-wallet-sendmoneymodal-tsx-206" className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
                 4-Digit Security PIN
               </label>
               <div className="relative">
                 <Lock weight="bold" className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <input
+                <input id="f-ents-wallet-sendmoneymodal-tsx-206"
                   type="password"
                   maxLength={4}
                   value={pin}
                   onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))}
                   placeholder="••••"
-                  className="w-full pl-9 pr-3 py-2 text-sm bg-muted/30 border border-border rounded-xl text-foreground tracking-widest font-mono text-center focus:outline-none focus:ring-1 focus:ring-[#2164b6]"
+                  className="w-full pl-9 pr-3 py-2 text-sm bg-muted/30 border border-border rounded-xl text-foreground tracking-widest font-mono text-center focus:outline-none focus:ring-1 focus:ring-[var(--shell-accent)]"
                 />
               </div>
             </div>
@@ -225,7 +227,7 @@ export function SendMoneyModal({
             <Button
               type="submit"
               disabled={loading || !recipient}
-              className="w-full h-11 bg-[#2164b6] hover:bg-[#1a5091] text-white font-bold text-sm rounded-xl shadow-xs"
+              className="w-full h-11 bg-[var(--shell-accent-solid)] hover:bg-[var(--shell-accent-hover)] text-white font-bold text-sm rounded-xl shadow-xs"
             >
               {loading ? (
                 <span className="flex items-center gap-2">

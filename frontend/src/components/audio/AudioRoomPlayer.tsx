@@ -1,14 +1,13 @@
+import { authFetch } from "@/lib/api/authFetch";
 import { useEffect, useRef, useState } from 'react';
 import { Voice as Mic } from "@/components/icons";
 import { MicrophoneSlash as MicOff, Headphones, Spinner as Loader2 } from "@/components/icons/rounded";;
 import { Room, LocalTrackPublication } from 'livekit-client';
-import { getAuthToken } from "@/lib/auth/token";
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? 'http://localhost:8000/api/v1';
 
 function getAuthHeaders() {
-  const token = getAuthToken();
-  return { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
+  return { 'Content-Type': 'application/json', };
 }
 
 interface Props {
@@ -28,7 +27,7 @@ export default function AudioRoomPlayer({ roomId, onError }: Props) {
     async function connect() {
       setState('connecting');
       try {
-        const res = await fetch(`${API_BASE}/audio-rooms/${roomId}/livekit-token`, {
+        const res = await authFetch(`${API_BASE}/audio-rooms/${roomId}/livekit-token`, {
           headers: getAuthHeaders(),
         });
         if (!res.ok) {

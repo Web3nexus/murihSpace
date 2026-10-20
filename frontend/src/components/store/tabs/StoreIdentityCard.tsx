@@ -77,14 +77,14 @@ export const StoreIdentityCard: React.FC<StoreIdentityCardProps> = ({
   };
 
   return (
-    <div className="bg-[#171D25] border border-[#29313C] rounded-2xl p-5 sm:p-6 transition-all shadow-sm h-full flex flex-col justify-between">
+    <div className="bg-[var(--shell-surface)] border border-[var(--shell-border)] rounded-2xl p-5 sm:p-6 transition-all shadow-sm h-full flex flex-col justify-between">
       {/* Header */}
-      <div className="flex items-center justify-between pb-4 border-b border-[#29313C]/60 mb-5">
+      <div className="flex items-center justify-between pb-4 border-b border-[var(--shell-border)]/60 mb-5">
         <div className="flex items-center gap-2.5">
-          <div className="h-2 w-2 rounded-full bg-[#087FFF]" />
+          <div className="h-2 w-2 rounded-full bg-[var(--shell-accent-solid)]" />
           <div>
             <h3 className="text-base font-bold text-white tracking-tight">Store identity</h3>
-            <p className="text-xs text-[#A7B0BE] mt-0.5">This information appears on your public storefront.</p>
+            <p className="text-xs text-[var(--shell-muted)] mt-0.5">This information appears on your public storefront.</p>
           </div>
         </div>
 
@@ -93,9 +93,9 @@ export const StoreIdentityCard: React.FC<StoreIdentityCardProps> = ({
             variant="outline"
             size="sm"
             onClick={startEdit}
-            className="h-8 px-3 text-xs font-semibold rounded-lg bg-[#202731] border-[#29313C] text-[#F5F7FA] hover:bg-[#29313C] hover:text-white transition-all gap-1.5"
+            className="h-8 px-3 text-xs font-semibold rounded-lg bg-[var(--shell-surface)] border-[var(--shell-border)] text-[var(--shell-text)] hover:bg-[var(--shell-hover-strong)] hover:text-white transition-all gap-1.5"
           >
-            <Edit3 className="h-3.5 w-3.5 text-[#A7B0BE]" />
+            <Edit3 className="h-3.5 w-3.5 text-[var(--shell-muted)]" />
             Edit
           </Button>
         ) : (
@@ -105,7 +105,7 @@ export const StoreIdentityCard: React.FC<StoreIdentityCardProps> = ({
               size="sm"
               onClick={cancelEdit}
               disabled={isSaving}
-              className="h-8 px-2.5 text-xs font-medium rounded-lg bg-[#202731] border-[#29313C] text-[#A7B0BE] hover:text-white"
+              className="h-8 px-2.5 text-xs font-medium rounded-lg bg-[var(--shell-surface)] border-[var(--shell-border)] text-[var(--shell-muted)] hover:text-white"
             >
               <X className="h-3.5 w-3.5 mr-1" />
               Cancel
@@ -114,7 +114,7 @@ export const StoreIdentityCard: React.FC<StoreIdentityCardProps> = ({
               size="sm"
               onClick={handleSave}
               disabled={isSaving}
-              className="h-8 px-3 text-xs font-bold rounded-lg bg-[#087FFF] hover:bg-[#0770E3] text-white gap-1"
+              className="h-8 px-3 text-xs font-bold rounded-lg bg-[var(--shell-accent-solid)] hover:bg-[var(--shell-accent-hover)] text-white gap-1"
             >
               {isSaving ? (
                 <Spinner weight="bold" className="h-3.5 w-3.5 animate-spin" />
@@ -137,7 +137,7 @@ export const StoreIdentityCard: React.FC<StoreIdentityCardProps> = ({
       <div className="flex flex-col sm:flex-row items-start gap-5">
         {/* Avatar preview / button */}
         <div className="relative shrink-0 group self-center sm:self-start">
-          <div className="h-20 w-20 rounded-full bg-[#087FFF] border-2 border-[#29313C] flex items-center justify-center text-white text-xl font-black overflow-hidden shadow-md">
+          <div className="h-20 w-20 rounded-full bg-[var(--shell-accent-solid)] border-2 border-[var(--shell-border)] flex items-center justify-center text-white text-xl font-black overflow-hidden shadow-md">
             {avatarUrl ? (
               <img src={avatarUrl} alt={displayName} className="h-full w-full object-cover" />
             ) : (
@@ -149,7 +149,7 @@ export const StoreIdentityCard: React.FC<StoreIdentityCardProps> = ({
               onClick={onOpenAvatarUpload}
               title="Change avatar"
               type="button"
-              className="absolute -bottom-1 -right-1 h-7 w-7 rounded-full bg-[#202731] border border-[#29313C] flex items-center justify-center text-[#A7B0BE] hover:text-white hover:bg-[#29313C] transition-colors shadow"
+              className="absolute -bottom-1 -right-1 h-7 w-7 rounded-full bg-[var(--shell-surface)] border border-[var(--shell-border)] flex items-center justify-center text-[var(--shell-muted)] hover:text-white hover:bg-[var(--shell-hover-strong)] transition-colors shadow"
             >
               <Camera className="h-3.5 w-3.5" />
             </button>
@@ -161,19 +161,19 @@ export const StoreIdentityCard: React.FC<StoreIdentityCardProps> = ({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* Store Title */}
             <div>
-              <label className="block text-[11px] font-bold text-[#A7B0BE] uppercase tracking-wider mb-1.5">
+              <label htmlFor="f-ore-tabs-storeidentitycard-tsx-164" className="block text-[11px] font-bold text-[var(--shell-muted)] uppercase tracking-wider mb-1.5">
                 Store title
               </label>
               {isEditing ? (
-                <input
+                <input id="f-ore-tabs-storeidentitycard-tsx-164"
                   type="text"
                   value={formDisplayName}
                   onChange={(e) => setFormDisplayName(e.target.value)}
-                  className="w-full bg-[#0B0F14] border border-[#29313C] rounded-xl px-3.5 py-2 text-sm text-white placeholder-[#5A6577] focus:outline-none focus:border-[#087FFF] transition-colors"
+                  className="w-full bg-[var(--shell-canvas)] border border-[var(--shell-border)] rounded-xl px-3.5 py-2 text-sm text-white placeholder-[var(--shell-muted)] focus:outline-none focus:border-[var(--shell-accent)] transition-colors"
                   placeholder="e.g. Vincent"
                 />
               ) : (
-                <div className="w-full bg-[#0B0F14]/70 border border-[#29313C]/80 rounded-xl px-3.5 py-2 text-sm text-white font-medium">
+                <div className="w-full bg-[var(--shell-canvas)]/70 border border-[var(--shell-border)]/80 rounded-xl px-3.5 py-2 text-sm text-white font-medium">
                   {displayName || 'Untitled Store'}
                 </div>
               )}
@@ -181,25 +181,26 @@ export const StoreIdentityCard: React.FC<StoreIdentityCardProps> = ({
 
             {/* Custom Short Handle */}
             <div>
-              <label className="block text-[11px] font-bold text-[#A7B0BE] uppercase tracking-wider mb-1.5">
+              <label htmlFor="store-short-handle" className="block text-[11px] font-bold text-[var(--shell-muted)] uppercase tracking-wider mb-1.5">
                 Custom short handle
               </label>
               {isEditing ? (
-                <div className="flex items-center bg-[#0B0F14] border border-[#29313C] rounded-xl overflow-hidden focus-within:border-[#087FFF] transition-colors">
-                  <span className="px-3 text-xs text-[#A7B0BE] font-semibold bg-[#202731]/60 border-r border-[#29313C] select-none py-2">
+                <div className="flex items-center bg-[var(--shell-canvas)] border border-[var(--shell-border)] rounded-xl overflow-hidden focus-within:border-[#087FFF] transition-colors">
+                  <span className="px-3 text-xs text-[var(--shell-muted)] font-semibold bg-[var(--shell-surface)]/60 border-r border-[var(--shell-border)] select-none py-2">
                     /store/
                   </span>
                   <input
+                    id="store-short-handle"
                     type="text"
                     value={formShortCode}
                     onChange={(e) => setFormShortCode(e.target.value)}
-                    className="w-full bg-transparent px-3 py-2 text-sm text-white placeholder-[#5A6577] focus:outline-none"
+                    className="w-full bg-transparent px-3 py-2 text-sm text-white placeholder-[var(--shell-muted)] focus:outline-none"
                     placeholder="web3nexus"
                   />
                 </div>
               ) : (
-                <div className="flex items-center bg-[#0B0F14]/70 border border-[#29313C]/80 rounded-xl overflow-hidden">
-                  <span className="px-3 text-xs text-[#A7B0BE] font-semibold bg-[#202731]/40 border-r border-[#29313C]/60 select-none py-2">
+                <div className="flex items-center bg-[var(--shell-canvas)]/70 border border-[var(--shell-border)]/80 rounded-xl overflow-hidden">
+                  <span className="px-3 text-xs text-[var(--shell-muted)] font-semibold bg-[var(--shell-surface)]/40 border-r border-[var(--shell-border)]/60 select-none py-2">
                     /store/
                   </span>
                   <span className="px-3 py-2 text-sm text-white font-medium">
@@ -212,40 +213,40 @@ export const StoreIdentityCard: React.FC<StoreIdentityCardProps> = ({
 
           {/* Tagline */}
           <div>
-            <label className="block text-[11px] font-bold text-[#A7B0BE] uppercase tracking-wider mb-1.5">
+            <label htmlFor="f-ore-tabs-storeidentitycard-tsx-215" className="block text-[11px] font-bold text-[var(--shell-muted)] uppercase tracking-wider mb-1.5">
               Tagline
             </label>
             {isEditing ? (
-              <input
+              <input id="f-ore-tabs-storeidentitycard-tsx-215"
                 type="text"
                 value={formTagline}
                 onChange={(e) => setFormTagline(e.target.value)}
-                className="w-full bg-[#0B0F14] border border-[#29313C] rounded-xl px-3.5 py-2 text-sm text-white placeholder-[#5A6577] focus:outline-none focus:border-[#087FFF] transition-colors"
+                className="w-full bg-[var(--shell-canvas)] border border-[var(--shell-border)] rounded-xl px-3.5 py-2 text-sm text-white placeholder-[var(--shell-muted)] focus:outline-none focus:border-[var(--shell-accent)] transition-colors"
                 placeholder="Welcome to my official creator storefront."
               />
             ) : (
-              <div className="w-full bg-[#0B0F14]/70 border border-[#29313C]/80 rounded-xl px-3.5 py-2 text-sm text-[#F5F7FA]">
-                {tagline || <span className="text-[#5A6577] italic">No tagline added yet.</span>}
+              <div className="w-full bg-[var(--shell-canvas)]/70 border border-[var(--shell-border)]/80 rounded-xl px-3.5 py-2 text-sm text-[var(--shell-text)]">
+                {tagline || <span className="text-[var(--shell-muted)] italic">No tagline added yet.</span>}
               </div>
             )}
           </div>
 
           {/* Biography / Description */}
           <div>
-            <label className="block text-[11px] font-bold text-[#A7B0BE] uppercase tracking-wider mb-1.5">
+            <label htmlFor="f-ore-tabs-storeidentitycard-tsx-235" className="block text-[11px] font-bold text-[var(--shell-muted)] uppercase tracking-wider mb-1.5">
               Biography / Description
             </label>
             {isEditing ? (
-              <textarea
+              <textarea id="f-ore-tabs-storeidentitycard-tsx-235"
                 rows={2}
                 value={formBio}
                 onChange={(e) => setFormBio(e.target.value)}
-                className="w-full bg-[#0B0F14] border border-[#29313C] rounded-xl px-3.5 py-2 text-sm text-white placeholder-[#5A6577] focus:outline-none focus:border-[#087FFF] transition-colors resize-none"
+                className="w-full bg-[var(--shell-canvas)] border border-[var(--shell-border)] rounded-xl px-3.5 py-2 text-sm text-white placeholder-[var(--shell-muted)] focus:outline-none focus:border-[var(--shell-accent)] transition-colors resize-none"
                 placeholder="Explore my digital products, community memberships, and exclusive content."
               />
             ) : (
-              <div className="w-full bg-[#0B0F14]/70 border border-[#29313C]/80 rounded-xl px-3.5 py-2 text-sm text-[#A7B0BE] leading-relaxed">
-                {bio || <span className="text-[#5A6577] italic">No biography added yet.</span>}
+              <div className="w-full bg-[var(--shell-canvas)]/70 border border-[var(--shell-border)]/80 rounded-xl px-3.5 py-2 text-sm text-[var(--shell-muted)] leading-relaxed">
+                {bio || <span className="text-[var(--shell-muted)] italic">No biography added yet.</span>}
               </div>
             )}
           </div>

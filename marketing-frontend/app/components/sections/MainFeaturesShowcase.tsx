@@ -1,5 +1,5 @@
 import { Link } from "react-router";
-import { Mic, Shield, Sparkles, CheckCircle2, ShoppingBag, ArrowRight, Radio, Share2, Users, Hand, Lock } from "lucide-react";
+import { Mic, Shield, Sparkles, CheckCircle2, ShoppingBag, ArrowRight, Radio, Share2, Users, Hand } from "lucide-react";
 import { useCmsSingle } from "../../hooks/useCms";
 
 export interface CmsMainFeatures {

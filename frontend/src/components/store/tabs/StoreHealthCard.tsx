@@ -32,14 +32,14 @@ export const StoreHealthCard: React.FC<StoreHealthCardProps> = ({
   const strokeDashoffset = circumference - (percentage / 100) * circumference;
 
   return (
-    <div className="bg-[#171D25] border border-[#29313C] rounded-2xl p-5 sm:p-6 transition-all shadow-sm flex flex-col justify-between h-full">
+    <div className="bg-[var(--shell-surface)] border border-[var(--shell-border)] rounded-2xl p-5 sm:p-6 transition-all shadow-sm flex flex-col justify-between h-full">
       {/* Header */}
-      <div className="pb-4 border-b border-[#29313C]/60 mb-5">
+      <div className="pb-4 border-b border-[var(--shell-border)]/60 mb-5">
         <div className="flex items-center gap-2.5">
-          <div className="h-2 w-2 rounded-full bg-[#087FFF]" />
+          <div className="h-2 w-2 rounded-full bg-[var(--shell-accent-solid)]" />
           <div>
             <h3 className="text-base font-bold text-white tracking-tight">Store health</h3>
-            <p className="text-xs text-[#A7B0BE] mt-0.5">Complete these steps to publish your store.</p>
+            <p className="text-xs text-[var(--shell-muted)] mt-0.5">Complete these steps to publish your store.</p>
           </div>
         </div>
       </div>
@@ -80,7 +80,7 @@ export const StoreHealthCard: React.FC<StoreHealthCardProps> = ({
           <button
             type="button"
             onClick={onNavigateToCover}
-            className="w-full flex items-center justify-between p-2.5 rounded-xl bg-[#202731]/60 hover:bg-[#202731] border border-[#29313C]/50 hover:border-[#29313C] transition-all text-left group"
+            className="w-full flex items-center justify-between p-2.5 rounded-xl bg-[var(--shell-surface)]/60 hover:bg-[var(--shell-hover)] border border-[var(--shell-border)]/50 hover:border-[#29313C] transition-all text-left group"
           >
             <div className="flex items-center gap-3">
               <div
@@ -92,24 +92,24 @@ export const StoreHealthCard: React.FC<StoreHealthCardProps> = ({
               >
                 {hasCover && <Check className="h-2.5 w-2.5" />}
               </div>
-              <div className="h-8 w-8 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 shrink-0">
+              <div className="h-8 w-8 rounded-lg bg-[var(--shell-accent-solid)]/10 border border-[var(--shell-accent)]/20 flex items-center justify-center text-[var(--shell-accent)] shrink-0">
                 <ImageIcon className="h-4 w-4" />
               </div>
               <div>
                 <p className="text-xs font-bold text-white group-hover:text-[#087FFF] transition-colors">
                   Add a cover image
                 </p>
-                <p className="text-[11px] text-[#A7B0BE]">Make your store stand out</p>
+                <p className="text-[11px] text-[var(--shell-muted)]">Make your store stand out</p>
               </div>
             </div>
-            <span className="text-xs text-[#5A6577] group-hover:text-white transition-colors">›</span>
+            <span className="text-xs text-[var(--shell-muted)] group-hover:text-white transition-colors">›</span>
           </button>
 
           {/* Item 2: Add products */}
           <button
             type="button"
             onClick={onNavigateToProducts}
-            className="w-full flex items-center justify-between p-2.5 rounded-xl bg-[#202731]/60 hover:bg-[#202731] border border-[#29313C]/50 hover:border-[#29313C] transition-all text-left group"
+            className="w-full flex items-center justify-between p-2.5 rounded-xl bg-[var(--shell-surface)]/60 hover:bg-[var(--shell-hover)] border border-[var(--shell-border)]/50 hover:border-[#29313C] transition-all text-left group"
           >
             <div className="flex items-center gap-3">
               <div
@@ -128,17 +128,17 @@ export const StoreHealthCard: React.FC<StoreHealthCardProps> = ({
                 <p className="text-xs font-bold text-white group-hover:text-[#087FFF] transition-colors">
                   Add products
                 </p>
-                <p className="text-[11px] text-[#A7B0BE]">List your digital or physical products</p>
+                <p className="text-[11px] text-[var(--shell-muted)]">List your digital or physical products</p>
               </div>
             </div>
-            <span className="text-xs text-[#5A6577] group-hover:text-white transition-colors">›</span>
+            <span className="text-xs text-[var(--shell-muted)] group-hover:text-white transition-colors">›</span>
           </button>
 
           {/* Item 3: Add external links */}
           <button
             type="button"
             onClick={onNavigateToLinks}
-            className="w-full flex items-center justify-between p-2.5 rounded-xl bg-[#202731]/60 hover:bg-[#202731] border border-[#29313C]/50 hover:border-[#29313C] transition-all text-left group"
+            className="w-full flex items-center justify-between p-2.5 rounded-xl bg-[var(--shell-surface)]/60 hover:bg-[var(--shell-hover)] border border-[var(--shell-border)]/50 hover:border-[#29313C] transition-all text-left group"
           >
             <div className="flex items-center gap-3">
               <div
@@ -157,10 +157,10 @@ export const StoreHealthCard: React.FC<StoreHealthCardProps> = ({
                 <p className="text-xs font-bold text-white group-hover:text-[#087FFF] transition-colors">
                   Add external links
                 </p>
-                <p className="text-[11px] text-[#A7B0BE]">Connect your social media and other platforms</p>
+                <p className="text-[11px] text-[var(--shell-muted)]">Connect your social media and other platforms</p>
               </div>
             </div>
-            <span className="text-xs text-[#5A6577] group-hover:text-white transition-colors">›</span>
+            <span className="text-xs text-[var(--shell-muted)] group-hover:text-white transition-colors">›</span>
           </button>
         </div>
       </div>

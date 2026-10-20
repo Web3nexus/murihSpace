@@ -34,6 +34,11 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // Production refuses to start without the LiveKit server address (there is no fallback domain).
+        if ($this->app->environment('production') && blank(config('livekit.host'))) {
+            throw new \RuntimeException('LIVEKIT_HOST must be set in production.');
+        }
+
         Post::observe(PostObserver::class);
 
         RateLimiter::for('auth', function (Request $request) {

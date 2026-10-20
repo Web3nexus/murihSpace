@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, Edit, Delete as Trash2, Discovery as Globe } from "@/components/icons";
 import { Truck, Spinner as Loader2 } from "@/components/icons/rounded";;
 import { Button } from "@/components/ui/button";
@@ -51,21 +51,27 @@ export function ShippingProfilesPage() {
   const [fCountries, setFCountries] = useState<string[]>([]);
   const [fActive, setFActive] = useState(true);
 
-  const fetchProfiles = useCallback(async () => {
-    try {
-      const res = await authFetch(`/store/shipping/profiles`, {  });
-      if (res.ok) {
-        const json = await res.json();
-        setProfiles(json.data?.data ?? []);
-      }
-    } catch {
-      // ignore
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+  const [fetchProfilesKey, setFetchProfilesKey] = useState(0);
+  const fetchProfiles = () => {
+    setFetchProfilesKey((k) => k + 1);
+  };
 
-  useEffect(() => { fetchProfiles(); }, [fetchProfiles]);
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await authFetch(`/store/shipping/profiles`, {  });
+        if (res.ok) {
+          const json = await res.json();
+          setProfiles(json.data?.data ?? []);
+        }
+      } catch {
+        // ignore
+      } finally {
+        setIsLoading(false);
+      }
+    })();
+  }, [fetchProfilesKey]);
+
 
   function openNew() {
     setEditing(null);
@@ -167,7 +173,7 @@ export function ShippingProfilesPage() {
         description="Configure shipping rates and delivery options for your products."
         action={
           <Button onClick={openNew}
-            className="bg-[#2164b6] text-white hover:bg-[#1a5091] font-semibold h-11 px-5 rounded-lg  gap-2"
+            className="bg-[var(--shell-accent-solid)] text-white hover:bg-[var(--shell-accent-hover)] font-semibold h-11 px-5 rounded-lg  gap-2"
           >
             <Plus weight="fill" className="h-5 w-5" /> New Profile
           </Button>
@@ -186,41 +192,41 @@ export function ShippingProfilesPage() {
           <h2 className="font-semibold">{editing ? 'Edit Profile' : 'New Shipping Profile'}</h2>
 
           <div>
-            <label className="block text-sm text-muted-foreground mb-1.5">Name *</label>
-            <Input value={fName} onChange={e => setFName(e.target.value)}
+            <label htmlFor="f-pages-shippingprofilespage-tsx-189" className="block text-sm text-muted-foreground mb-1.5">Name *</label>
+            <Input id="f-pages-shippingprofilespage-tsx-189" value={fName} onChange={e => setFName(e.target.value)}
               required placeholder="e.g. Standard, Express" />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm text-muted-foreground mb-1.5">Base Rate (cents) *</label>
-              <Input value={fBase} onChange={e => setFBase(e.target.value)}
+              <label htmlFor="f-pages-shippingprofilespage-tsx-196" className="block text-sm text-muted-foreground mb-1.5">Base Rate (cents) *</label>
+              <Input id="f-pages-shippingprofilespage-tsx-196" value={fBase} onChange={e => setFBase(e.target.value)}
                 required type="number" min="0" />
             </div>
             <div>
-              <label className="block text-sm text-muted-foreground mb-1.5">Per Extra Item (cents) *</label>
-              <Input value={fPerItem} onChange={e => setFPerItem(e.target.value)}
+              <label htmlFor="f-pages-shippingprofilespage-tsx-201" className="block text-sm text-muted-foreground mb-1.5">Per Extra Item (cents) *</label>
+              <Input id="f-pages-shippingprofilespage-tsx-201" value={fPerItem} onChange={e => setFPerItem(e.target.value)}
                 required type="number" min="0" />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm text-muted-foreground mb-1.5">Est. Min Days *</label>
-              <Input value={fMinDays} onChange={e => setFMinDays(e.target.value)}
+              <label htmlFor="f-pages-shippingprofilespage-tsx-209" className="block text-sm text-muted-foreground mb-1.5">Est. Min Days *</label>
+              <Input id="f-pages-shippingprofilespage-tsx-209" value={fMinDays} onChange={e => setFMinDays(e.target.value)}
                 required type="number" min="1" />
             </div>
             <div>
-              <label className="block text-sm text-muted-foreground mb-1.5">Est. Max Days *</label>
-              <Input value={fMaxDays} onChange={e => setFMaxDays(e.target.value)}
+              <label htmlFor="f-pages-shippingprofilespage-tsx-214" className="block text-sm text-muted-foreground mb-1.5">Est. Max Days *</label>
+              <Input id="f-pages-shippingprofilespage-tsx-214" value={fMaxDays} onChange={e => setFMaxDays(e.target.value)}
                 required type="number" min="1" />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm text-muted-foreground mb-2">
+            <span className="block text-sm text-muted-foreground mb-2">
               Countries (leave empty for all)
-            </label>
+            </span>
             <div className="flex flex-wrap gap-2">
               {COUNTRY_OPTIONS.map(({ code, name }) => (
                 <button key={code} type="button" onClick={() => toggleCountry(code)}
@@ -267,7 +273,7 @@ export function ShippingProfilesPage() {
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-2">
                   <h3 className="font-semibold">{p.name}</h3>
-                  <Badge className={p.is_active ? 'bg-[#2164b6]/20 text-[#2164b6] dark:text-[#7ab0ff] border-[#2164b6]/30' : 'bg-muted text-muted-foreground border-border'}>
+                  <Badge className={p.is_active ? 'bg-[var(--shell-accent-solid)]/20 text-[var(--shell-accent)] dark:text-[var(--shell-accent)] border-[var(--shell-accent)]/30' : 'bg-muted text-muted-foreground border-border'}>
                     {p.is_active ? 'Active' : 'Inactive'}
                   </Badge>
                 </div>

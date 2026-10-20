@@ -1,5 +1,5 @@
 import { Link } from "react-router";
-import { ShoppingBag, ShieldCheck, Zap, Users, Package, Truck, Award, FileText, ArrowRight, CheckCircle2, Shield, DollarSign } from "lucide-react";
+import { ShoppingBag, ShieldCheck, Zap, Users, Package, Truck, Award, FileText, ArrowRight } from "lucide-react";
 import { getLoginUrl, getRegisterUrl, getWebClientUrl } from "~/lib/env";
 
 export function meta() {

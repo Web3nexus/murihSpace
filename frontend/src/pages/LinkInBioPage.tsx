@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useConfirm } from "@/components/ui/DialogProvider";
 import { Edit, Delete as Trash2, Discovery as Globe, Ticket as Tag, Bag as ShoppingCart, Plus, CloseSquare as X, Camera, Chat as MessageCircle, Send, Video as FilmStrip, TickSquare as Check, ArrowRight as ChevronRight, ArrowLeft as ChevronLeft } from "@/components/icons";
 import { Link, Spinner as Loader2, MusicNote as Music, Hash, Link as LinkIcon, Crown, Palette, Browsers } from "@/components/icons/rounded";;
@@ -118,51 +118,57 @@ export default function LinkInBioPage() {
 
   // ── Fetch ─────────────────────────────────────────────────────
 
-  const fetchAll = useCallback(async () => {
+  const [fetchAllKey, setFetchAllKey] = useState(0);
+  const fetchAll = () => {
     setLoading(true);
-    try {
-      const [bioRes, desRes] = await Promise.all([
-        authFetch(`/link-in-bio`, {  }),
-        authFetch(`/link-in-bio/design`, {  }),
-      ]);
-      if (bioRes.ok) {
-        const j = await bioRes.json();
-        const list = j?.success ? j?.data : j;
-        const data = list?.data ?? list;
-        setLinks(Array.isArray(data?.links ?? data) ? (data?.links ?? []) : []);
-        setSocials(Array.isArray(data?.social_links) ? data.social_links : []);
-        setProducts(Array.isArray(data?.products) ? data.products : []);
-        if (data) {
-          setProfileName(data.profile_name ?? "");
-          setProfileBio(data.profile_bio ?? "");
-          setAvatarUrl(data.avatar_url ?? "");
-          setBannerUrl(data.banner_url ?? "");
-        }
-      }
-      if (desRes.ok) {
-        const j = await desRes.json();
-        const d = j?.success ? j?.data : j;
-        const unwrapped = d?.data ?? d;
-        if (unwrapped) {
-          setAvailableThemes(unwrapped.available_themes ?? []);
-          setSelectedTheme(unwrapped.theme_id);
-          setDesignBg(unwrapped.bg ?? designBg);
-          setDesignCardBg(unwrapped.card_bg ?? designCardBg);
-          setDesignText(unwrapped.text_color ?? designText);
-          setDesignAccent(unwrapped.accent ?? designAccent);
-          setFont(unwrapped.font ?? font);
-          setButtonStyle(unwrapped.button_style ?? buttonStyle);
-          setLayout(unwrapped.layout ?? layout);
-          setTemplate(unwrapped.template ?? "minimal");
-          setDesignBgType(unwrapped.background_type ?? "solid");
-          setDesignBgValue(unwrapped.background_value ?? null);
-        }
-      }
-    } catch { /* ignore */ }
-    finally { setLoading(false); }
-  }, []);
+    setFetchAllKey((k) => k + 1);
+  };
 
-  useEffect(() => { fetchAll(); }, [fetchAll]);
+  useEffect(() => {
+    (async () => {
+      try {
+        const [bioRes, desRes] = await Promise.all([
+          authFetch(`/link-in-bio`, {  }),
+          authFetch(`/link-in-bio/design`, {  }),
+        ]);
+        if (bioRes.ok) {
+          const j = await bioRes.json();
+          const list = j?.success ? j?.data : j;
+          const data = list?.data ?? list;
+          setLinks(Array.isArray(data?.links ?? data) ? (data?.links ?? []) : []);
+          setSocials(Array.isArray(data?.social_links) ? data.social_links : []);
+          setProducts(Array.isArray(data?.products) ? data.products : []);
+          if (data) {
+            setProfileName(data.profile_name ?? "");
+            setProfileBio(data.profile_bio ?? "");
+            setAvatarUrl(data.avatar_url ?? "");
+            setBannerUrl(data.banner_url ?? "");
+          }
+        }
+        if (desRes.ok) {
+          const j = await desRes.json();
+          const d = j?.success ? j?.data : j;
+          const unwrapped = d?.data ?? d;
+          if (unwrapped) {
+            setAvailableThemes(unwrapped.available_themes ?? []);
+            setSelectedTheme(unwrapped.theme_id);
+            setDesignBg(unwrapped.bg ?? designBg);
+            setDesignCardBg(unwrapped.card_bg ?? designCardBg);
+            setDesignText(unwrapped.text_color ?? designText);
+            setDesignAccent(unwrapped.accent ?? designAccent);
+            setFont(unwrapped.font ?? font);
+            setButtonStyle(unwrapped.button_style ?? buttonStyle);
+            setLayout(unwrapped.layout ?? layout);
+            setTemplate(unwrapped.template ?? "minimal");
+            setDesignBgType(unwrapped.background_type ?? "solid");
+            setDesignBgValue(unwrapped.background_value ?? null);
+          }
+        }
+      } catch { /* ignore */ }
+      finally { setLoading(false); }
+    })();
+  }, [fetchAllKey]);
+
 
   // ── Theme apply ──────────────────────────────────────────────
 
@@ -363,7 +369,7 @@ export default function LinkInBioPage() {
     setProdMediaUrl(p.media_url ?? ""); setProdCheckoutUrl(p.checkout_url ?? ""); setShowProductForm(true);
   };
 
-  if (loading) return <div className="flex justify-center py-24"><Loader2 weight="fill" className="h-8 w-8 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" /></div>;
+  if (loading) return <div className="flex justify-center py-24"><Loader2 weight="fill" className="h-8 w-8 animate-spin text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" /></div>;
 
   const msgBg = msg ? (msg.ok ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" : "bg-rose-500/10 border-rose-500/20 text-rose-400") : "";
 
@@ -372,7 +378,7 @@ export default function LinkInBioPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-black tracking-tight flex items-center gap-2.5">
-            <Link weight="fill" className="h-6 w-6 text-[#2164b6] dark:text-[#7ab0ff]" /> Link in Bio Builder
+            <Link weight="fill" className="h-6 w-6 text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" /> Link in Bio Builder
           </h1>
           <p className="text-xs text-muted-foreground mt-1">Set up your page in 6 easy steps.</p>
         </div>
@@ -402,7 +408,7 @@ export default function LinkInBioPage() {
             <div className="space-y-4">
               <div className="border-none rounded-lg bg-card p-4">
                 <div className="flex items-center gap-2 mb-1">
-                  <Browsers weight="fill" className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" />
+                  <Browsers weight="fill" className="h-4 w-4 text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" />
                   <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Choose a Template</h2>
                 </div>
                 <p className="text-[11px] text-muted-foreground mb-4">Full layouts with built-in colors — switch anytime. You can fine-tune in the Style step.</p>
@@ -412,9 +418,9 @@ export default function LinkInBioPage() {
                     return (
                       <button key={t.slug} onClick={() => applyTemplate(t.slug)} disabled={saving}
                         className={`relative rounded-lg border-2 transition-all overflow-hidden text-left ${
-                          isActive ? "border-[#2164b6] " : "border-border hover:border-[#2164b6]/50"
+                          isActive ? "border-[var(--shell-accent)] " : "border-border hover:border-[var(--shell-accent)]/50"
                         }`}>
-                        {isActive && <span className="absolute top-1.5 left-1.5 z-10 bg-[#2164b6] text-white rounded-full p-0.5"><Check weight="fill" className="h-3 w-3" /></span>}
+                        {isActive && <span className="absolute top-1.5 left-1.5 z-10 bg-[var(--shell-accent-solid)] text-white rounded-full p-0.5"><Check weight="fill" className="h-3 w-3" /></span>}
                         <div className="p-2"><TemplateThumb template={t} /></div>
                         <div className="px-2.5 pb-2.5">
                           <p className="text-xs font-bold truncate text-foreground">{t.name}</p>
@@ -434,7 +440,7 @@ export default function LinkInBioPage() {
               {/* Color presets */}
               <div className="border-none rounded-lg bg-card p-4">
                 <div className="flex items-center gap-2 mb-1">
-                  <Palette weight="fill" className="h-4 w-4 text-[#2164b6] dark:text-[#7ab0ff]" />
+                  <Palette weight="fill" className="h-4 w-4 text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" />
                   <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Color Presets</h2>
                 </div>
                 <p className="text-[11px] text-muted-foreground mb-4">Apply a preset palette on top of your chosen template.</p>
@@ -445,10 +451,10 @@ export default function LinkInBioPage() {
                     return (
                       <button key={theme.id} onClick={() => applyTheme(theme)} disabled={saving}
                         className={`relative p-3 rounded-lg border-2 transition-all text-left overflow-hidden ${
-                          isActive ? "border-[#2164b6] " : "border-border hover:border-[#2164b6]/50"
+                          isActive ? "border-[var(--shell-accent)] " : "border-border hover:border-[var(--shell-accent)]/50"
                         }`} style={{ background: c.bg, color: c.text_color }}>
                         {theme.is_premium && <span className="absolute top-1 right-1"><Crown weight="fill" className="h-3 w-3 text-amber-400" /></span>}
-                        {isActive && <span className="absolute top-1 left-1 bg-[#2164b6] text-white rounded-full p-0.5"><Check weight="fill" className="h-3 w-3" /></span>}
+                        {isActive && <span className="absolute top-1 left-1 bg-[var(--shell-accent-solid)] text-white rounded-full p-0.5"><Check weight="fill" className="h-3 w-3" /></span>}
                         <div className="flex gap-1 mb-2">
                           <div className="w-4 h-4 rounded-full" style={{ background: c.bg, border: "1px solid rgba(0,0,0,0.1)" }} />
                           <div className="w-4 h-4 rounded-full" style={{ background: c.card_bg, border: "1px solid rgba(0,0,0,0.1)" }} />
@@ -483,29 +489,29 @@ export default function LinkInBioPage() {
               <div className="border-t border-border pt-4 space-y-4">
                 <div className="grid grid-cols-3 gap-4">
                   <div>
-                    <label className="text-[10px] font-bold text-muted-foreground block mb-1.5">Font</label>
+                    <span className="text-[10px] font-bold text-muted-foreground block mb-1.5">Font</span>
                     <div className="flex gap-1">
                       {FONT_OPTIONS.map((f) => (
                         <button key={f.value} onClick={() => setFont(f.value)}
-                          className={`flex-1 px-2 py-1.5 rounded-lg text-[10px] font-bold transition-colors ${font === f.value ? "bg-[#2164b6] text-white" : "bg-muted text-muted-foreground"}`}>{f.label}</button>
+                          className={`flex-1 px-2 py-1.5 rounded-lg text-[10px] font-bold transition-colors ${font === f.value ? "bg-[var(--shell-accent-solid)] text-white" : "bg-muted text-muted-foreground"}`}>{f.label}</button>
                       ))}
                     </div>
                   </div>
                   <div>
-                    <label className="text-[10px] font-bold text-muted-foreground block mb-1.5">Buttons</label>
+                    <span className="text-[10px] font-bold text-muted-foreground block mb-1.5">Buttons</span>
                     <div className="flex gap-1">
                       {BUTTON_STYLES.map((b) => (
                         <button key={b.value} onClick={() => setButtonStyle(b.value)}
-                          className={`flex-1 px-2 py-1.5 rounded-lg text-[10px] font-bold transition-colors ${buttonStyle === b.value ? "bg-[#2164b6] text-white" : "bg-muted text-muted-foreground"}`}>{b.label}</button>
+                          className={`flex-1 px-2 py-1.5 rounded-lg text-[10px] font-bold transition-colors ${buttonStyle === b.value ? "bg-[var(--shell-accent-solid)] text-white" : "bg-muted text-muted-foreground"}`}>{b.label}</button>
                       ))}
                     </div>
                   </div>
                   <div>
-                    <label className="text-[10px] font-bold text-muted-foreground block mb-1.5">Layout</label>
+                    <span className="text-[10px] font-bold text-muted-foreground block mb-1.5">Layout</span>
                     <div className="flex gap-1">
                       {LAYOUT_OPTIONS.map((l) => (
                         <button key={l.value} onClick={() => setLayout(l.value)}
-                          className={`flex-1 px-2 py-1.5 rounded-lg text-[10px] font-bold transition-colors ${layout === l.value ? "bg-[#2164b6] text-white" : "bg-muted text-muted-foreground"}`}>{l.label}</button>
+                          className={`flex-1 px-2 py-1.5 rounded-lg text-[10px] font-bold transition-colors ${layout === l.value ? "bg-[var(--shell-accent-solid)] text-white" : "bg-muted text-muted-foreground"}`}>{l.label}</button>
                       ))}
                     </div>
                   </div>
@@ -523,7 +529,7 @@ export default function LinkInBioPage() {
           {/* Step 2: Profile */}
           {step === 2 && (
             <div className="border-none rounded-lg bg-card overflow-hidden">
-              <div className="h-32 sm:h-40 bg-gradient-to-br from-[#2164b6]/20 to-[#2164b6]/20 relative">
+              <div className="h-32 sm:h-40 bg-gradient-to-br from-[var(--shell-accent-solid)]/20 to-[var(--shell-accent-solid)]/20 relative">
                 {bannerUrl && <img src={bannerUrl} alt="" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />}
                 <div className="absolute inset-0 flex items-end p-4">
                   <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-card bg-muted ">
@@ -539,12 +545,12 @@ export default function LinkInBioPage() {
                   <ImageUploader value={avatarUrl} onChange={setAvatarUrl} folder="avatars" label="Avatar" />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-muted-foreground">Display Name</label>
-                  <Input value={profileName} onChange={(e) => setProfileName(e.target.value)} placeholder="Your name" />
+                  <label htmlFor="f-pages-linkinbiopage-tsx-542" className="text-xs font-bold text-muted-foreground">Display Name</label>
+                  <Input id="f-pages-linkinbiopage-tsx-542" value={profileName} onChange={(e) => setProfileName(e.target.value)} placeholder="Your name" />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-muted-foreground">Bio</label>
-                  <textarea value={profileBio} onChange={(e) => setProfileBio(e.target.value)} rows={2} className="w-full rounded-lg border-none bg-card p-2.5 text-sm font-medium text-foreground placeholder:text-muted-foreground resize-none" placeholder="A short bio..." />
+                  <label htmlFor="f-pages-linkinbiopage-tsx-546" className="text-xs font-bold text-muted-foreground">Bio</label>
+                  <textarea id="f-pages-linkinbiopage-tsx-546" value={profileBio} onChange={(e) => setProfileBio(e.target.value)} rows={2} className="w-full rounded-lg border-none bg-card p-2.5 text-sm font-medium text-foreground placeholder:text-muted-foreground resize-none" placeholder="A short bio..." />
                 </div>
                 <Button onClick={saveProfile} disabled={saving} className="text-sm font-bold w-full">
                   {saving ? <Loader2 weight="fill" className="h-4 w-4 animate-spin mr-2" /> : null}Save Profile
@@ -563,17 +569,17 @@ export default function LinkInBioPage() {
               <form onSubmit={handleSave} className="border-none rounded-lg bg-card p-4 space-y-4">
                 <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{editing ? "Edit Link" : "Add Link"}</h2>
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-muted-foreground">Title</label>
-                  <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. 1-on-1 Strategy Consultation" required />
+                  <label htmlFor="f-pages-linkinbiopage-tsx-566" className="text-xs font-bold text-muted-foreground">Title</label>
+                  <Input id="f-pages-linkinbiopage-tsx-566" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. 1-on-1 Strategy Consultation" required />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-muted-foreground">URL</label>
-                  <Input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://..." required />
+                  <label htmlFor="f-pages-linkinbiopage-tsx-570" className="text-xs font-bold text-muted-foreground">URL</label>
+                  <Input id="f-pages-linkinbiopage-tsx-570" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://..." required />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1.5">
-                    <label className="text-[11px] font-bold text-muted-foreground">Category</label>
-                    <select
+                    <label htmlFor="f-pages-linkinbiopage-tsx-575" className="text-[11px] font-bold text-muted-foreground">Category</label>
+                    <select id="f-pages-linkinbiopage-tsx-575"
                       value={category}
                       onChange={(e) => setCategory(e.target.value)}
                       className="w-full rounded-lg border-none bg-muted/60 p-2 text-xs font-medium text-foreground"
@@ -587,8 +593,8 @@ export default function LinkInBioPage() {
                     </select>
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-[11px] font-bold text-muted-foreground">Badge (Optional)</label>
-                    <select
+                    <label htmlFor="f-pages-linkinbiopage-tsx-590" className="text-[11px] font-bold text-muted-foreground">Badge (Optional)</label>
+                    <select id="f-pages-linkinbiopage-tsx-590"
                       value={badge}
                       onChange={(e) => setBadge(e.target.value)}
                       className="w-full rounded-lg border-none bg-muted/60 p-2 text-xs font-medium text-foreground"
@@ -604,8 +610,8 @@ export default function LinkInBioPage() {
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1.5">
-                    <label className="text-[11px] font-bold text-muted-foreground">Price (Optional)</label>
-                    <Input
+                    <label htmlFor="f-pages-linkinbiopage-tsx-607" className="text-[11px] font-bold text-muted-foreground">Price (Optional)</label>
+                    <Input id="f-pages-linkinbiopage-tsx-607"
                       type="number"
                       step="0.01"
                       value={price}
@@ -614,8 +620,8 @@ export default function LinkInBioPage() {
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-[11px] font-bold text-muted-foreground">3D Icon</label>
-                    <select
+                    <label htmlFor="f-pages-linkinbiopage-tsx-617" className="text-[11px] font-bold text-muted-foreground">3D Icon</label>
+                    <select id="f-pages-linkinbiopage-tsx-617"
                       value={icon3d}
                       onChange={(e) => setIcon3d(e.target.value)}
                       className="w-full rounded-lg border-none bg-muted/60 p-2 text-xs font-medium text-foreground"
@@ -661,7 +667,7 @@ export default function LinkInBioPage() {
                                 </span>
                               ) : null}
                               {link.badge ? (
-                                <span className="text-[9px] font-bold text-blue-500 bg-blue-500/10 px-1.5 py-0.5 rounded">
+                                <span className="text-[9px] font-bold text-[var(--shell-accent)] bg-[var(--shell-accent-solid)]/10 px-1.5 py-0.5 rounded">
                                   {link.badge}
                                 </span>
                               ) : null}
@@ -741,35 +747,35 @@ export default function LinkInBioPage() {
                 <form onSubmit={handleSaveProduct} className="space-y-3 border-none rounded-lg p-4 bg-muted/30">
                   <div className="grid grid-cols-2 gap-3">
                     <div className="col-span-2">
-                      <label className="text-[10px] font-bold text-muted-foreground">Title</label>
-                      <Input value={prodTitle} onChange={(e) => setProdTitle(e.target.value)} placeholder="Product name" required />
+                      <label htmlFor="f-pages-linkinbiopage-tsx-744" className="text-[10px] font-bold text-muted-foreground">Title</label>
+                      <Input id="f-pages-linkinbiopage-tsx-744" value={prodTitle} onChange={(e) => setProdTitle(e.target.value)} placeholder="Product name" required />
                     </div>
                     <div className="col-span-2">
-                      <label className="text-[10px] font-bold text-muted-foreground">Description</label>
-                      <textarea value={prodDesc} onChange={(e) => setProdDesc(e.target.value)} rows={2} className="w-full rounded-lg border-none bg-card p-2.5 text-xs font-medium text-foreground placeholder:text-muted-foreground resize-none" />
+                      <label htmlFor="f-pages-linkinbiopage-tsx-748" className="text-[10px] font-bold text-muted-foreground">Description</label>
+                      <textarea id="f-pages-linkinbiopage-tsx-748" value={prodDesc} onChange={(e) => setProdDesc(e.target.value)} rows={2} className="w-full rounded-lg border-none bg-card p-2.5 text-xs font-medium text-foreground placeholder:text-muted-foreground resize-none" />
                     </div>
                     <div>
-                      <label className="text-[10px] font-bold text-muted-foreground">Price</label>
+                      <label htmlFor="f-pages-linkinbiopage-tsx-752-price" className="text-[10px] font-bold text-muted-foreground">Price</label>
                       <div className="flex gap-1">
-                        <select value={prodCurrency} onChange={(e) => setProdCurrency(e.target.value)} className="w-16 rounded-lg border-none bg-card p-2 text-xs font-medium text-foreground">
+                        <select id="f-pages-linkinbiopage-tsx-752" aria-label="Currency" value={prodCurrency} onChange={(e) => setProdCurrency(e.target.value)} className="w-16 rounded-lg border-none bg-card p-2 text-xs font-medium text-foreground">
                           {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
                         </select>
-                        <Input type="number" step="0.01" min="0" value={prodPrice} onChange={(e) => setProdPrice(e.target.value)} placeholder="0.00" required />
+                        <Input id="f-pages-linkinbiopage-tsx-752-price" type="number" step="0.01" min="0" value={prodPrice} onChange={(e) => setProdPrice(e.target.value)} placeholder="0.00" required />
                       </div>
                     </div>
                     <div>
-                      <label className="text-[10px] font-bold text-muted-foreground">Product Type</label>
+                      <span className="text-[10px] font-bold text-muted-foreground">Product Type</span>
                       <div className="flex gap-1">
-                        <button type="button" onClick={() => setProdType("digital")} className={`flex-1 px-2 py-1.5 rounded-lg text-[10px] font-bold ${prodType === "digital" ? "bg-[#2164b6] text-white" : "bg-muted text-muted-foreground"}`}>Digital</button>
-                        <button type="button" onClick={() => setProdType("physical")} className={`flex-1 px-2 py-1.5 rounded-lg text-[10px] font-bold ${prodType === "physical" ? "bg-[#2164b6] text-white" : "bg-muted text-muted-foreground"}`}>Physical</button>
+                        <button type="button" onClick={() => setProdType("digital")} className={`flex-1 px-2 py-1.5 rounded-lg text-[10px] font-bold ${prodType === "digital" ? "bg-[var(--shell-accent-solid)] text-white" : "bg-muted text-muted-foreground"}`}>Digital</button>
+                        <button type="button" onClick={() => setProdType("physical")} className={`flex-1 px-2 py-1.5 rounded-lg text-[10px] font-bold ${prodType === "physical" ? "bg-[var(--shell-accent-solid)] text-white" : "bg-muted text-muted-foreground"}`}>Physical</button>
                       </div>
                     </div>
                     <div className="col-span-2">
                       <ImageUploader value={prodMediaUrl} onChange={setProdMediaUrl} folder="products" label="Product image" />
                     </div>
                     <div className="col-span-2">
-                      <label className="text-[10px] font-bold text-muted-foreground">Checkout URL</label>
-                      <Input value={prodCheckoutUrl} onChange={(e) => setProdCheckoutUrl(e.target.value)} placeholder="https://..." />
+                      <label htmlFor="f-pages-linkinbiopage-tsx-771" className="text-[10px] font-bold text-muted-foreground">Checkout URL</label>
+                      <Input id="f-pages-linkinbiopage-tsx-771" value={prodCheckoutUrl} onChange={(e) => setProdCheckoutUrl(e.target.value)} placeholder="https://..." />
                     </div>
                   </div>
                   <div className="flex gap-2 pt-1">

@@ -16,6 +16,8 @@ use App\Services\NotificationService;
 use App\Services\RoleTransitionService;
 use App\Services\SupportEventPublisher;
 use App\Services\TwoFactorAuthService;
+use App\Support\ImpersonationSession;
+use App\Support\WebSession;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -199,7 +201,7 @@ class AuthController extends Controller
 
         return response()->json([
             'message' => 'User registered successfully.',
-            'token' => $token,
+            'token' => app(AuthSessionService::class)->deliver($request, $token),
             'user' => [
                 'id' => $user->id,
                 'name' => $user->name,
@@ -346,7 +348,7 @@ class AuthController extends Controller
 
         return response()->json([
             'message' => 'Login successful.',
-            'token' => $token,
+            'token' => app(AuthSessionService::class)->deliver($request, $token),
             'user' => [
                 'id' => $user->id,
                 'name' => $user->name,
@@ -380,7 +382,17 @@ class AuthController extends Controller
 
     public function logout(Request $request): JsonResponse
     {
-        $request->user()->currentAccessToken()->delete();
+        // An impersonated session has no token row (TransientToken). It ends with the session below.
+        $currentToken = $request->user()->currentAccessToken();
+        if ($currentToken instanceof PersonalAccessToken) {
+            $currentToken->delete();
+        }
+
+        // A web session ends with its token: invalidate the session so the
+        // cookie no longer authenticates. Bearer requests have no session.
+        if ($request->hasSession()) {
+            WebSession::end($request);
+        }
 
         return response()->json([
             'message' => 'Logout successful.',
@@ -397,7 +409,14 @@ class AuthController extends Controller
         $user = $request->user();
         $user->update(['password' => Hash::make($data['password'])]);
 
-        $user->tokens()->where('id', '!=', $user->currentAccessToken()->id)->delete();
+        $currentToken = $user->currentAccessToken();
+        if ($currentToken instanceof PersonalAccessToken) {
+            $user->tokens()->where('id', '!=', $currentToken->id)->delete();
+        } elseif (! ImpersonationSession::active($request)) {
+            // A session login with no token row keeps the existing behaviour: every token ends. An
+            // impersonation never reaches this, because it must not revoke the target's devices.
+            $user->tokens()->delete();
+        }
 
         return response()->json(['message' => 'Password updated successfully.']);
     }
@@ -483,7 +502,8 @@ class AuthController extends Controller
 
     public function sessions(Request $request): JsonResponse
     {
-        $currentTokenId = $request->user()->currentAccessToken()->id;
+        $currentToken = $request->user()->currentAccessToken();
+        $currentTokenId = $currentToken instanceof PersonalAccessToken ? $currentToken->id : null;
 
         $tokens = $request->user()->tokens()
             ->orderBy('last_used_at', 'desc')
@@ -589,7 +609,7 @@ class AuthController extends Controller
         ]);
     }
 
-    public function checkDeviceLoginStatus(string $token): JsonResponse
+    public function checkDeviceLoginStatus(Request $request, string $token): JsonResponse
     {
         $pending = PendingLoginRequest::where('request_token', $token)->firstOrFail();
 
@@ -600,11 +620,23 @@ class AuthController extends Controller
                 return response()->json(['status' => 'failed', 'message' => 'Token decryption error.'], 500);
             }
 
+            // Deliver the token once: claim the request before handing it out, and clear the stored copy.
+            $claimed = PendingLoginRequest::whereKey($pending->id)
+                ->where('status', 'approved')
+                ->update(['status' => 'consumed', 'authorized_token' => null]);
+
+            if ($claimed === 0) {
+                return response()->json([
+                    'status' => 'consumed',
+                    'message' => 'This login authorization was already delivered.',
+                ], 410);
+            }
+
             $user = $pending->user;
 
             return response()->json([
                 'status' => 'approved',
-                'token' => $plainToken,
+                'token' => app(AuthSessionService::class)->deliver($request, $plainToken),
                 'user' => [
                     'id' => $user->id,
                     'name' => $user->name,
@@ -624,6 +656,13 @@ class AuthController extends Controller
                 'status' => 'denied',
                 'message' => 'Login request was rejected by your existing device.',
             ], 403);
+        }
+
+        if ($pending->status === 'consumed') {
+            return response()->json([
+                'status' => 'consumed',
+                'message' => 'This login authorization was already delivered.',
+            ], 410);
         }
 
         if ($pending->expires_at->isPast() || $pending->status === 'expired') {
@@ -653,7 +692,7 @@ class AuthController extends Controller
 
             return response()->json([
                 'status' => 'approved',
-                'token' => $result['token'],
+                'token' => app(AuthSessionService::class)->deliver($request, $result['token']),
                 'user' => [
                     'id' => $user->id,
                     'name' => $user->name,
@@ -702,6 +741,12 @@ class AuthController extends Controller
             DeviceSession::where('user_id', $user->id)
                 ->where('personal_access_token_id', '!=', $tokenId)
                 ->update(['revoked_at' => now()]);
+        } elseif (ImpersonationSession::active($request)) {
+            // The target's devices belong to the target. An impersonation must not revoke them.
+            return response()->json([
+                'message' => 'Other sessions cannot be revoked while impersonating.',
+                'code' => 'IMPERSONATION_ACTIVE',
+            ], 403);
         } else {
             // In testing / session-based auth
             $user->tokens()->delete();

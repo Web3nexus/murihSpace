@@ -1,6 +1,6 @@
+import { authFetch } from "@/lib/api/authFetch";
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { CloseSquare as X, ArrowLeft as ChevronLeft, ArrowRight as ChevronRight, Delete as Trash2 } from "@/components/icons";
-import { getAuthToken } from "@/lib/auth/token";
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? 'http://localhost:8000/api/v1';
 
@@ -26,8 +26,7 @@ interface StoryGroup {
 }
 
 function getAuthHeaders(): Record<string, string> {
-  const token = getAuthToken();
-  return token ? { Authorization: `Bearer ${token}` } : {};
+  return {};
 }
 
 interface Props {
@@ -71,13 +70,19 @@ export default function StoryViewer({ groups, initialIndex, onClose }: Props) {
     }
   }, [storyIdx, groupIdx, groups]);
 
+  // Restart the progress bar when the story or the advance handler changes (derived during render, not in the effect)
+  const [progressRun, setProgressRun] = useState({ story: currentStory, advance });
+  if (progressRun.story !== currentStory || progressRun.advance !== advance) {
+    setProgressRun({ story: currentStory, advance });
+    if (currentStory) setProgress(0);
+  }
+
   useEffect(() => {
     if (!currentStory) return;
     const duration = 5000;
     const interval = 50;
     const step = (interval / duration) * 100;
 
-    setProgress(0);
     timerRef.current = setInterval(() => {
       setProgress((p) => {
         const next = p + step;
@@ -117,7 +122,7 @@ export default function StoryViewer({ groups, initialIndex, onClose }: Props) {
   async function handleDelete() {
     if (!currentStory) return;
     try {
-      await fetch(`${API_BASE}/stories/${currentStory.id}`, {
+      await authFetch(`${API_BASE}/stories/${currentStory.id}`, {
         method: 'DELETE',
         headers: getAuthHeaders(),
       });
@@ -179,7 +184,7 @@ export default function StoryViewer({ groups, initialIndex, onClose }: Props) {
       </div>
 
       {/* Media area */}
-      <div
+      <div role="button" tabIndex={0} aria-label="Next story" onKeyDown={(e) => { if (e.target !== e.currentTarget) return; if (e.key === "Enter" || e.key === " ") { e.preventDefault(); advance(); } }}
         className="w-full h-full flex items-center justify-center cursor-pointer select-none"
         onClick={handleContainerClick}
       >
@@ -196,7 +201,9 @@ export default function StoryViewer({ groups, initialIndex, onClose }: Props) {
             autoPlay
             playsInline
             onEnded={advance}
-          />
+          >
+            <track kind="captions" />
+          </video>
         ) : (
           <img
             src={currentStory.media_url}

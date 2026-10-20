@@ -200,11 +200,11 @@ export default function SecurityPage() {
         </h3>
         <form onSubmit={handlePasswordChange} className="space-y-3">
           <div className="relative">
-            <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block mb-1">
+            <label htmlFor="f-pages-securitypage-tsx-203" className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block mb-1">
               Current Password
             </label>
             <div className="relative">
-              <input
+              <input id="f-pages-securitypage-tsx-203"
                 type={showPasswords ? "text" : "password"}
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
@@ -216,10 +216,10 @@ export default function SecurityPage() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block mb-1">
+              <label htmlFor="f-pages-securitypage-tsx-219" className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block mb-1">
                 New Password
               </label>
-              <input
+              <input id="f-pages-securitypage-tsx-219"
                 type={showPasswords ? "text" : "password"}
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
@@ -233,7 +233,7 @@ export default function SecurityPage() {
                   {PASSWORD_RULES.map((rule, idx) => (
                     <div key={idx} className="flex items-center gap-2">
                       {rule.check(newPassword) ? <Check weight="fill" className="w-3.5 h-3.5 text-emerald-500" /> : <div className="w-3.5 h-3.5 rounded-full border border-slate-300 dark:border-slate-700" />}
-                      <span className={`text-[11px] font-medium ${rule.check(newPassword) ? 'text-emerald-500' : 'text-slate-500 dark:text-slate-400'}`}>{rule.label}</span>
+                      <span className={`text-[11px] font-medium ${rule.check(newPassword) ? 'text-emerald-500' : 'text-[var(--shell-muted)] dark:text-[var(--shell-muted)]'}`}>{rule.label}</span>
                     </div>
                   ))}
                   <div className="h-1 w-full rounded-full bg-muted overflow-hidden mt-2">
@@ -244,10 +244,10 @@ export default function SecurityPage() {
               )}
             </div>
             <div>
-              <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block mb-1">
+              <label htmlFor="f-pages-securitypage-tsx-247" className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block mb-1">
                 Confirm Password
               </label>
-              <input
+              <input id="f-pages-securitypage-tsx-247"
                 type={showPasswords ? "text" : "password"}
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
@@ -348,11 +348,11 @@ export default function SecurityPage() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block">
+              <label htmlFor="f-pages-securitypage-tsx-351" className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block">
                 Confirm setup — enter 6-digit code from app
               </label>
               <div className="flex gap-2">
-                <input
+                <input id="f-pages-securitypage-tsx-351"
                   type="text"
                   inputMode="numeric"
                   maxLength={6}

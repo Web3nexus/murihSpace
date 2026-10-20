@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { Document as FileText, Plus, TickSquare as CheckCircle, Send, Delete as Trash2, DangerSquare as AlertCircle, CloseSquare as X, Download } from "@/components/icons";
 import { Spinner as Loader2, Buildings as Building2, FileXls, CurrencyDollar as DollarSign } from "@/components/icons/rounded";;
 import { authFetch } from "@/lib/api/authFetch";
@@ -29,7 +29,7 @@ interface Invoice {
 
 const INVOICE_STATUS_STYLES: Record<string, string> = {
   draft: 'bg-muted/50 text-muted-foreground border-border/50',
-  sent: 'bg-blue-500/10 text-blue-500 border-blue-500/20',
+  sent: 'bg-[var(--shell-accent-solid)]/10 text-[var(--shell-accent)] border-[var(--shell-accent)]/20',
   paid: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
   overdue: 'bg-rose-500/10 text-rose-500 border-rose-500/20',
   cancelled: 'bg-muted text-muted-foreground border-border',
@@ -50,20 +50,26 @@ export function BrandInvoicingPage() {
     amount: '', currency: 'NGN', description: '', due_date: '', notes: '',
   });
 
-  const fetchAll = useCallback(async () => {
+  const [fetchAllKey, setFetchAllKey] = useState(0);
+  const fetchAll = () => {
     setIsLoading(true);
-    try {
-      const [iRes, dRes] = await Promise.all([
-        authFetch(`/brand-invoices`, {  }),
-        authFetch(`/brand-deals`, {  }),
-      ]);
-      if (iRes.ok) { const j = await iRes.json(); setInvoices(j.data?.data ?? []); }
-      if (dRes.ok) { const j = await dRes.json(); setDeals(j.data?.data?.map((d: any) => ({ id: d.id, title: d.title })) ?? []); }
-    } catch { /* ignore */ }
-    finally { setIsLoading(false); }
-  }, []);
+    setFetchAllKey((k) => k + 1);
+  };
 
-  useEffect(() => { fetchAll(); }, [fetchAll]);
+  useEffect(() => {
+    (async () => {
+      try {
+        const [iRes, dRes] = await Promise.all([
+          authFetch(`/brand-invoices`, {  }),
+          authFetch(`/brand-deals`, {  }),
+        ]);
+        if (iRes.ok) { const j = await iRes.json(); setInvoices(j.data?.data ?? []); }
+        if (dRes.ok) { const j = await dRes.json(); setDeals(j.data?.data?.map((d: { id: number; title: string }) => ({ id: d.id, title: d.title })) ?? []); }
+      } catch { /* ignore */ }
+      finally { setIsLoading(false); }
+    })();
+  }, [fetchAllKey]);
+
 
   function showMsg(type: 'success' | 'error', text: string) {
     setMessage({ type, text });
@@ -80,7 +86,7 @@ export function BrandInvoicingPage() {
     if (!form.brand_name || !form.amount) return;
     setSaving(true);
     try {
-      const body: Record<string, any> = {
+      const body: Record<string, unknown> = {
         brand_name: form.brand_name, 
         brand_email: form.brand_email || null,
         amount: Math.round(Number(form.amount) * 100), 
@@ -144,8 +150,8 @@ export function BrandInvoicingPage() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
         <div className="relative">
-          <div className="absolute inset-0 rounded-full blur-xl bg-[#2164b6]/20 animate-pulse"></div>
-          <Loader2 weight="fill" className="h-10 w-10 animate-spin text-[#2164b6] relative z-10" />
+          <div className="absolute inset-0 rounded-full blur-xl bg-[var(--shell-accent-solid)]/20 animate-pulse"></div>
+          <Loader2 weight="fill" className="h-10 w-10 animate-spin text-[var(--shell-accent)] relative z-10" />
         </div>
         <p className="text-sm text-muted-foreground font-medium animate-pulse">Loading Invoices...</p>
       </div>
@@ -172,7 +178,7 @@ export function BrandInvoicingPage() {
             className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all shadow-xs ${
               showForm 
                 ? 'bg-muted text-foreground hover:bg-muted/80' 
-                : 'bg-[#2164b6] hover:bg-[#1a5091] text-white'
+                : 'bg-[var(--shell-accent-solid)] hover:bg-[var(--shell-accent-hover)] text-white'
             }`}
           >
             {showForm ? <X className="h-4 w-4" /> : <Plus weight="fill" className="h-4 w-4" />}
@@ -190,7 +196,7 @@ export function BrandInvoicingPage() {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 animate-in slide-in-from-bottom-4 duration-500">
-        <StatCard icon={FileText} label="Total Invoices" value={String(invoices.length)} color="bg-blue-500 text-blue-500" />
+        <StatCard icon={FileText} label="Total Invoices" value={String(invoices.length)} color="bg-[var(--shell-accent-solid)] text-[var(--shell-accent)]" />
         <StatCard icon={AlertCircle} label="Outstanding" value={formatPrice(totalPending)} color="bg-amber-500 text-amber-500" />
         <StatCard icon={CheckCircle} label="Total Paid" value={formatPrice(totalPaid)} color="bg-emerald-500 text-emerald-500" />
       </div>
@@ -198,7 +204,7 @@ export function BrandInvoicingPage() {
       {showForm && (
         <div className="rounded-lg border-none/50 bg-card/50 backdrop-blur-xl shadow-xl overflow-hidden animate-in slide-in-from-top-4 duration-500">
           <div className="p-4 border-b border-border/50 flex items-center gap-4 bg-background/50">
-            <div className="p-2.5 rounded-lg bg-[#2164b6]/10 text-[#2164b6] shrink-0">
+            <div className="p-2.5 rounded-lg bg-[var(--shell-accent-solid)]/10 text-[var(--shell-accent)] shrink-0">
               <FileXls weight="fill" className="w-5 h-5" />
             </div>
             <div>
@@ -215,38 +221,38 @@ export function BrandInvoicingPage() {
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Related Brand Deal (Optional)</label>
-                  <select 
+                  <label htmlFor="f-pages-brandinvoicingpage-tsx-218" className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Related Brand Deal (Optional)</label>
+                  <select id="f-pages-brandinvoicingpage-tsx-218" 
                     value={form.brand_deal_id} 
                     onChange={e => {
                       const dealId = e.target.value;
                       setForm(f => ({ ...f, brand_deal_id: dealId }));
                       // Auto-fill brand name if possible based on deal
                     }}
-                    className="w-full h-12 rounded-lg bg-background border-none/50 px-4 text-sm font-medium focus:ring-2 focus:ring-[#2164b6]/50 transition-all appearance-none"
+                    className="w-full h-12 rounded-lg bg-background border-none/50 px-4 text-sm font-medium focus:ring-2 focus:ring-[var(--shell-accent)]/50 transition-all appearance-none"
                   >
                     <option value="">Select a deal...</option>
                     {deals.map(d => <option key={d.id} value={d.id}>{d.title}</option>)}
                   </select>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Brand Name</label>
-                  <input 
+                  <label htmlFor="f-pages-brandinvoicingpage-tsx-233" className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Brand Name</label>
+                  <input id="f-pages-brandinvoicingpage-tsx-233" 
                     value={form.brand_name} 
                     onChange={e => setForm({ ...form, brand_name: e.target.value })} 
                     required
                     placeholder="e.g. Nike, Spotify"
-                    className="w-full h-12 rounded-lg bg-background border-none/50 px-4 text-sm font-medium focus:ring-2 focus:ring-[#2164b6]/50 transition-all" 
+                    className="w-full h-12 rounded-lg bg-background border-none/50 px-4 text-sm font-medium focus:ring-2 focus:ring-[var(--shell-accent)]/50 transition-all" 
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Brand Contact Email</label>
-                  <input 
+                  <label htmlFor="f-pages-brandinvoicingpage-tsx-243" className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Brand Contact Email</label>
+                  <input id="f-pages-brandinvoicingpage-tsx-243" 
                     type="email"
                     value={form.brand_email} 
                     onChange={e => setForm({ ...form, brand_email: e.target.value })} 
                     placeholder="billing@brand.com"
-                    className="w-full h-12 rounded-lg bg-background border-none/50 px-4 text-sm font-medium focus:ring-2 focus:ring-[#2164b6]/50 transition-all" 
+                    className="w-full h-12 rounded-lg bg-background border-none/50 px-4 text-sm font-medium focus:ring-2 focus:ring-[var(--shell-accent)]/50 transition-all" 
                   />
                 </div>
               </div>
@@ -261,22 +267,22 @@ export function BrandInvoicingPage() {
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div className="lg:col-span-2 space-y-2">
-                  <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Description of Services</label>
-                  <input 
+                  <label htmlFor="f-pages-brandinvoicingpage-tsx-264" className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Description of Services</label>
+                  <input id="f-pages-brandinvoicingpage-tsx-264" 
                     value={form.description} 
                     onChange={e => setForm({ ...form, description: e.target.value })} 
                     required
                     placeholder="e.g. 1x Instagram Reel + Link in Bio"
-                    className="w-full h-12 rounded-lg bg-background border-none/50 px-4 text-sm font-medium focus:ring-2 focus:ring-[#2164b6]/50 transition-all" 
+                    className="w-full h-12 rounded-lg bg-background border-none/50 px-4 text-sm font-medium focus:ring-2 focus:ring-[var(--shell-accent)]/50 transition-all" 
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Due Date</label>
-                  <input 
+                  <label htmlFor="f-pages-brandinvoicingpage-tsx-274" className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Due Date</label>
+                  <input id="f-pages-brandinvoicingpage-tsx-274" 
                     type="date"
                     value={form.due_date} 
                     onChange={e => setForm({ ...form, due_date: e.target.value })} 
-                    className="w-full h-12 rounded-lg bg-background border-none/50 px-4 text-sm font-medium focus:ring-2 focus:ring-[#2164b6]/50 transition-all" 
+                    className="w-full h-12 rounded-lg bg-background border-none/50 px-4 text-sm font-medium focus:ring-2 focus:ring-[var(--shell-accent)]/50 transition-all" 
                   />
                 </div>
               </div>
@@ -291,11 +297,11 @@ export function BrandInvoicingPage() {
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Currency</label>
-                  <select 
+                  <label htmlFor="f-pages-brandinvoicingpage-tsx-294" className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Currency</label>
+                  <select id="f-pages-brandinvoicingpage-tsx-294" 
                     value={form.currency} 
                     onChange={e => setForm({ ...form, currency: e.target.value })} 
-                    className="w-full h-12 rounded-lg bg-background border-none/50 px-4 text-sm font-medium focus:ring-2 focus:ring-[#2164b6]/50 transition-all appearance-none"
+                    className="w-full h-12 rounded-lg bg-background border-none/50 px-4 text-sm font-medium focus:ring-2 focus:ring-[var(--shell-accent)]/50 transition-all appearance-none"
                   >
                     <option value="NGN">NGN (₦)</option>
                     <option value="USD">USD ($)</option>
@@ -304,24 +310,24 @@ export function BrandInvoicingPage() {
                   </select>
                 </div>
                 <div className="md:col-span-2 space-y-2">
-                  <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Total Amount</label>
-                  <input 
+                  <label htmlFor="f-pages-brandinvoicingpage-tsx-307" className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Total Amount</label>
+                  <input id="f-pages-brandinvoicingpage-tsx-307" 
                     type="number" min="0" step="0.01"
                     value={form.amount} 
                     onChange={e => setForm({ ...form, amount: e.target.value })} 
                     required
                     placeholder="0.00"
-                    className="w-full h-12 rounded-lg bg-background border-none/50 px-4 text-sm font-medium focus:ring-2 focus:ring-[#2164b6]/50 transition-all text-xl" 
+                    className="w-full h-12 rounded-lg bg-background border-none/50 px-4 text-sm font-medium focus:ring-2 focus:ring-[var(--shell-accent)]/50 transition-all text-xl" 
                   />
                 </div>
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Additional Notes or Payment Terms</label>
-                <textarea 
+                <label htmlFor="f-pages-brandinvoicingpage-tsx-319" className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Additional Notes or Payment Terms</label>
+                <textarea id="f-pages-brandinvoicingpage-tsx-319" 
                   value={form.notes} 
                   onChange={e => setForm({ ...form, notes: e.target.value })}
                   placeholder="e.g. Payment due via wire transfer within 30 days."
-                  className="w-full rounded-lg bg-background border-none/50 p-4 text-sm font-medium focus:ring-2 focus:ring-[#2164b6]/50 transition-all resize-none h-24" 
+                  className="w-full rounded-lg bg-background border-none/50 p-4 text-sm font-medium focus:ring-2 focus:ring-[var(--shell-accent)]/50 transition-all resize-none h-24" 
                 />
               </div>
             </div>
@@ -337,7 +343,7 @@ export function BrandInvoicingPage() {
               <button 
                 type="submit" 
                 disabled={saving}
-                className="px-8 py-3 rounded-lg bg-[#2164b6] text-white text-sm font-bold hover:bg-[#1a5091] hover:shadow-lg transition-all duration-300 disabled:opacity-50 flex items-center gap-2"
+                className="px-8 py-3 rounded-lg bg-[var(--shell-accent-solid)] text-white text-sm font-bold hover:bg-[var(--shell-accent-hover)] hover:shadow-lg transition-all duration-300 disabled:opacity-50 flex items-center gap-2"
               >
                 {saving && <Loader2 weight="fill" className="w-4 h-4 animate-spin" />}
                 Generate Invoice
@@ -349,8 +355,8 @@ export function BrandInvoicingPage() {
 
       {invoices.length === 0 ? (
         <div className="flex flex-col items-center justify-center text-center gap-4 py-24 rounded-3xl border border-dashed border-border/50 bg-card/30 backdrop-blur-sm">
-          <div className="w-20 h-20 rounded-3xl bg-[#2164b6]/10 flex items-center justify-center mb-2">
-            <FileXls weight="fill" className="h-10 w-10 text-[#2164b6]" />
+          <div className="w-20 h-20 rounded-3xl bg-[var(--shell-accent-solid)]/10 flex items-center justify-center mb-2">
+            <FileXls weight="fill" className="h-10 w-10 text-[var(--shell-accent)]" />
           </div>
           <h2 className="text-xl font-bold text-foreground tracking-tight">No invoices yet</h2>
           <p className="text-sm text-muted-foreground max-w-md">Professionalize your brand deals by generating and sending beautifully formatted PDF invoices.</p>
@@ -413,7 +419,7 @@ export function BrandInvoicingPage() {
                   {inv.brand_email && inv.status === 'draft' && (
                     <button 
                       onClick={() => markSent(inv.id)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-500/10 text-blue-500 border border-blue-500/20 text-xs font-bold hover:bg-blue-500 hover:text-white transition-colors"
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--shell-accent-solid)]/10 text-[var(--shell-accent)] border border-[var(--shell-accent)]/20 text-xs font-bold hover:bg-[var(--shell-accent-solid)] hover:text-white transition-colors"
                     >
                       <Send weight="fill" className="w-3.5 h-3.5" /> Send
                     </button>

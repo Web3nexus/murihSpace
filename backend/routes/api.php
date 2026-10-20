@@ -155,6 +155,8 @@ use App\Http\Controllers\VerificationController;
 use App\Http\Controllers\WalletController;
 use App\Http\Controllers\WithdrawalController;
 use App\Services\Kyc\KycProviderManager;
+use App\Support\ImpersonationSession;
+use App\Support\WebSession;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -237,7 +239,8 @@ Route::prefix('v1')->group(function () {
         // Social Auth
         Route::prefix('social')->group(function () {
             Route::get('/{provider}/redirect', [SocialAuthController::class, 'redirect']);
-            Route::match(['get', 'post'], '/{provider}/callback', [SocialAuthController::class, 'callback']);
+            Route::match(['get', 'post'], '/{provider}/callback', [SocialAuthController::class, 'callback'])
+                ->middleware(WebSession::cookieMiddleware());
         });
 
         // Device approval status check & code verification (Public for Device B)
@@ -265,6 +268,12 @@ Route::prefix('v1')->group(function () {
             Route::get('/sessions', [AuthController::class, 'sessions']);
             Route::delete('/sessions/{id}', [AuthController::class, 'destroySession']);
             Route::post('/sessions/revoke-all-others', [AuthController::class, 'revokeAllOtherSessions']);
+
+            // Opt-in approximate location (about 1 km) for nearby suggestions
+            Route::get('/location', [\App\Http\Controllers\LocationController::class, 'show']);
+            Route::put('/location/sharing', [\App\Http\Controllers\LocationController::class, 'updateSharing']);
+            Route::post('/location', [\App\Http\Controllers\LocationController::class, 'store'])->middleware('throttle:20,60');
+            Route::delete('/location', [\App\Http\Controllers\LocationController::class, 'destroy']);
 
             // Verified Mobile Number Change
             Route::post('/phone/change-request', [PhoneVerificationController::class, 'requestChange'])->middleware('throttle:otp');
@@ -493,6 +502,7 @@ Route::prefix('v1')->group(function () {
                 'email_verified' => $user->hasVerifiedEmail(),
                 'onboarding_completed' => $isOnboarded,
                 'ai_onboarding_completed' => $isOnboarded,
+                'impersonating' => ImpersonationSession::active($request),
                 'posts_count' => $user->posts()->count(),
                 'followers_count' => $user->followers()->count(),
                 'following_count' => $user->follows()->count(),
@@ -1024,9 +1034,10 @@ Route::prefix('v1')->group(function () {
             Route::get('/', [AdController::class, 'index']);
             Route::post('/', [AdController::class, 'store']);
             Route::post('/sso-token', [AdsSsoController::class, 'getSsoToken']);
+            Route::post('/sso/code', [AdsSsoController::class, 'issueSsoCode'])->middleware('throttle:10,1');
             Route::get('/sso-launch', [AdsSsoController::class, 'launchSso']);
             Route::get('/meta', [AdController::class, 'meta']);
-            Route::get('/{id}', [AdController::class, 'show']);
+            Route::get('/{id}', [AdController::class, 'show'])->whereNumber('id');
             Route::put('/{id}', [AdController::class, 'update']);
             Route::delete('/{id}', [AdController::class, 'destroy']);
             Route::post('/{id}/pause', [AdController::class, 'pause']);
@@ -1186,7 +1197,7 @@ Route::prefix('v1')->group(function () {
             Route::get('/birthdays', [FriendRequestController::class, 'birthdays']);
             Route::get('/suggestions', [FriendRequestController::class, 'suggestions']);
             Route::get('/search', [FriendRequestController::class, 'search']);
-            Route::post('/contacts/sync', [FriendRequestController::class, 'syncContacts']);
+            Route::post('/contacts/sync', [FriendRequestController::class, 'syncContacts'])->middleware('throttle:5,60');
             Route::get('/requests', [FriendRequestController::class, 'index']);
             Route::get('/requests/incoming', [FriendRequestController::class, 'index']);
             Route::get('/requests/sent', [FriendRequestController::class, 'sent']);
@@ -1197,7 +1208,7 @@ Route::prefix('v1')->group(function () {
             Route::post('/requests/{id}/cancel', [FriendRequestController::class, 'cancel']);
             Route::delete('/{userId}', [FriendRequestController::class, 'unfriend']);
         });
-        Route::post('/contacts/sync', [FriendRequestController::class, 'syncContacts']);
+        Route::post('/contacts/sync', [FriendRequestController::class, 'syncContacts'])->middleware('throttle:5,60');
 
         // ── Account & Settings (apiClient) ───────────────────────────
         Route::prefix('settings')->group(function () {
@@ -1305,6 +1316,8 @@ Route::prefix('v1')->group(function () {
         });
 
         Route::prefix('orders')->group(function () {
+            // Buyer dispute on a digital purchase: allowed within 48 hours of payment
+            Route::post('/{id}/dispute', [\App\Http\Controllers\DigitalSaleController::class, 'buyerDispute']);
             Route::get('/mine', [OrderController::class, 'myOrders']);
             Route::get('/sales', [OrderController::class, 'creatorSales']);
             Route::get('/{id}/receipt', [OrderController::class, 'receipt']);
@@ -1345,6 +1358,10 @@ Route::prefix('v1')->group(function () {
             Route::post('/withdrawals', [WithdrawalController::class, 'request'])->middleware('kyc');
             Route::get('/withdrawals', [WithdrawalController::class, 'myRequests']);
 
+            // Buyer refund balances from disputes they won, and their return to the original card
+            Route::get('/refund-balances', [\App\Http\Controllers\DisputeRefundController::class, 'index']);
+            Route::post('/refund-balances/{id}/refund-to-card', [\App\Http\Controllers\DisputeRefundController::class, 'refundToCard']);
+
             // Escrow (Sprint 29)
             Route::prefix('escrow')->group(function () {
                 Route::get('/disputes', [EscrowController::class, 'disputes']);
@@ -1354,6 +1371,13 @@ Route::prefix('v1')->group(function () {
                 Route::get('/{id}', [EscrowController::class, 'show']);
                 Route::post('/{id}/release', [EscrowController::class, 'release']);
                 Route::post('/{id}/refund', [EscrowController::class, 'refund']);
+
+                // Release timing: buyer actions and the counterparty contact on paid orders
+                Route::post('/{id}/confirm-receipt', [\App\Http\Controllers\EscrowTimingController::class, 'confirmReceipt']);
+                Route::post('/{id}/release-now', [\App\Http\Controllers\EscrowTimingController::class, 'releaseNow']);
+                Route::post('/{id}/resume', [\App\Http\Controllers\EscrowTimingController::class, 'resume']);
+                Route::get('/{id}/counterparty-contact', [\App\Http\Controllers\EscrowTimingController::class, 'counterpartyContact'])
+                    ->middleware('throttle:30,1');
             });
         });
 
@@ -1613,6 +1637,8 @@ Route::prefix('v1')->group(function () {
             Route::prefix('withdrawals')->middleware('admin.permission:payouts')->group(function () {
                 Route::get('/', [WithdrawalController::class, 'adminIndex']);
                 Route::post('/{id}/process', [WithdrawalController::class, 'adminProcess']);
+                // Recovery only: re-sends a transfer the provider did not accept. Never completes or moves money.
+                Route::post('/{id}/retry-transfer', [WithdrawalController::class, 'adminRetryTransfer']);
             });
 
             // Reports
@@ -1633,6 +1659,7 @@ Route::prefix('v1')->group(function () {
 
             // Orders
             Route::get('/orders', [OrderController::class, 'adminIndex'])->middleware('admin.permission:commerce');
+            Route::post('/digital-sales/{id}/resolve', [\App\Http\Controllers\DigitalSaleController::class, 'resolve'])->middleware('admin.permission:commerce');
 
             // Audit Logs
             Route::prefix('audit-logs')->middleware('admin.permission:analytics')->group(function () {
@@ -1663,14 +1690,14 @@ Route::prefix('v1')->group(function () {
             });
 
             // Payment Infrastructure (Providers, Routing, Transactions, Payouts, Refunds)
-            Route::prefix('payment-providers')->middleware('admin.permission:settings')->group(function () {
+            Route::prefix('payment-providers')->middleware(['admin.permission:settings', 'admin.super'])->group(function () {
                 Route::get('/', [AdminPaymentProviderController::class, 'index']);
                 Route::post('/', [AdminPaymentProviderController::class, 'store']);
                 Route::put('/{code}', [AdminPaymentProviderController::class, 'update']);
                 Route::post('/{code}/test-connection', [AdminPaymentProviderController::class, 'testConnection']);
             });
 
-            Route::prefix('payment-routes')->middleware('admin.permission:settings')->group(function () {
+            Route::prefix('payment-routes')->middleware(['admin.permission:settings', 'admin.super'])->group(function () {
                 Route::get('/', [AdminPaymentProviderController::class, 'routes']);
                 Route::post('/', [AdminPaymentProviderController::class, 'storeRoute']);
                 Route::put('/{id}', [AdminPaymentProviderController::class, 'updateRoute']);
@@ -1797,10 +1824,15 @@ Route::prefix('v1')->group(function () {
                 Route::put('/disputes/{id}/resolve', [EscrowController::class, 'resolveDispute']);
             });
 
+            // Staff escrow holds: fund-level access (wallets) or super admin, recorded in the audit log
+            Route::prefix('escrow')->middleware('admin.permission:wallets')->group(function () {
+                Route::post('/{id}/hold', [\App\Http\Controllers\EscrowTimingController::class, 'hold']);
+                Route::post('/{id}/unhold', [\App\Http\Controllers\EscrowTimingController::class, 'unhold']);
+            });
+
             // ── Sprint 41: Payouts Management ────────────────────────────────
             Route::prefix('payouts')->middleware('admin.permission:payouts')->group(function () {
                 Route::get('/', [FulfilmentPayoutController::class, 'adminIndex']);
-                Route::put('/{id}/mark-paid', [FulfilmentPayoutController::class, 'adminMarkPaid']);
             });
 
             // ── Sprint 42: Platform Analytics ────────────────────────────────
@@ -1938,7 +1970,6 @@ Route::prefix('v1')->group(function () {
                 Route::get('/', [GiftController::class, 'adminPayouts']);
                 Route::post('/{id}/approve', [GiftController::class, 'adminApprovePayout']);
                 Route::post('/{id}/reject', [GiftController::class, 'adminRejectPayout']);
-                Route::post('/{id}/mark-paid', [GiftController::class, 'adminMarkPaid']);
             });
 
             // ── Coin Packs Management ─────────────────────────────────────

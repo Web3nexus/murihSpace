@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { Edit, DangerTriangle as AlertTriangle } from "@/components/icons";
 import { Package, Spinner as Loader2 } from "@/components/icons/rounded";;
 import { Button } from "@/components/ui/button";
@@ -21,18 +21,24 @@ export default function InventoryPage() {
   const [editQty, setEditQty] = useState("");
   const [saving, setSaving] = useState(false);
 
-  const fetchItems = useCallback(async () => {
-    try {
-      const res = await authFetch(`/store/inventory`, {  });
-      if (!res.ok) throw new Error();
-      const j = await res.json();
-      const list = j?.success ? j?.data : j;
-      setItems(list?.data ?? list ?? []);
-    } catch { /* ignore */ }
-    finally { setLoading(false); }
-  }, []);
+  const [fetchItemsKey, setFetchItemsKey] = useState(0);
+  const fetchItems = () => {
+    setFetchItemsKey((k) => k + 1);
+  };
 
-  useEffect(() => { fetchItems(); }, [fetchItems]);
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await authFetch(`/store/inventory`, {  });
+        if (!res.ok) throw new Error();
+        const j = await res.json();
+        const list = j?.success ? j?.data : j;
+        setItems(list?.data ?? list ?? []);
+      } catch { /* ignore */ }
+      finally { setLoading(false); }
+    })();
+  }, [fetchItemsKey]);
+
 
   const handleUpdate = async (id: number) => {
     setSaving(true);
@@ -46,13 +52,13 @@ export default function InventoryPage() {
     } finally { setSaving(false); }
   };
 
-  if (loading) return <div className="flex justify-center py-24"><Loader2 weight="fill" className="h-8 w-8 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" /></div>;
+  if (loading) return <div className="flex justify-center py-24"><Loader2 weight="fill" className="h-8 w-8 animate-spin text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" /></div>;
 
   return (
     <div className="w-full max-w-7xl mx-auto space-y-6 p-4 lg:p-5">
       <div>
         <h1 className="text-xl font-black tracking-tight flex items-center gap-2.5">
-          <Package weight="fill" className="h-6 w-6 text-[#2164b6] dark:text-[#7ab0ff]" /> Inventory Management
+          <Package weight="fill" className="h-6 w-6 text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" /> Inventory Management
         </h1>
         <p className="text-xs text-muted-foreground mt-1">Track and manage product stock levels.</p>
       </div>

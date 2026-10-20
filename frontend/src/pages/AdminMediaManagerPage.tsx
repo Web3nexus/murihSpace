@@ -1,21 +1,46 @@
-import { useState, useEffect, useCallback } from "react";
+import { asApiError } from "@/lib/apiError";
+import { useState, useEffect } from "react";
 import { Video as FilmStrip, Image as ImageIcon, Swap as RefreshCw, Search, Delete as Trash2, DangerSquare as AlertCircle, TickSquare as CheckCircle2, TimeCircle as Clock } from "@/components/icons";
 import { HardDrive, Spinner as Loader2 } from "@/components/icons/rounded";;
-import { getAuthToken } from "@/lib/auth/token";
 import { authFetch } from "@/lib/api/authFetch";
 
+interface MediaItem {
+  id: number;
+  uuid: string;
+  filename?: string;
+  original_name?: string;
+  url?: string;
+  thumbnail_url?: string;
+  media_type?: string;
+  disk: string;
+  processing_status: string;
+  size_bytes: number;
+  width?: number;
+  height?: number;
+  duration_seconds?: number;
+  user_id: number;
+  user?: { name?: string; username?: string };
+  created_at: string;
+}
+
+interface MediaStats {
+  total_media_count?: number;
+  total_storage_formatted?: string;
+  by_type: { images?: number; videos?: number; documents?: number };
+  by_status: { queued?: number; processing?: number; completed?: number; failed?: number };
+}
+
+
 function authHeaders() {
-  const t = getAuthToken();
   return {
     Accept: "application/json",
     "Content-Type": "application/json",
-    ...(t ? { Authorization: `Bearer ${t}` } : {}),
   };
 }
 
 export default function AdminMediaManagerPage() {
-  const [stats, setStats] = useState<any>(null);
-  const [mediaList, setMediaList] = useState<any[]>([]);
+  const [stats, setStats] = useState<MediaStats | null>(null);
+  const [mediaList, setMediaList] = useState<MediaItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [search, setSearch] = useState("");
@@ -25,43 +50,48 @@ export default function AdminMediaManagerPage() {
   const [lastPage, setLastPage] = useState(1);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
-  const loadData = useCallback(async () => {
+  const [loadDataKey, setLoadDataKey] = useState(0);
+  const loadData = () => {
     setErrorMsg(null);
-    try {
-      // Fetch Stats & List in parallel
-      const params = new URLSearchParams();
-      if (search) params.set("search", search);
-      if (typeFilter) params.set("media_type", typeFilter);
-      if (statusFilter) params.set("status", statusFilter);
-      params.set("page", String(page));
-      params.set("per_page", "15");
-
-      const [statsRes, listRes] = await Promise.all([
-        authFetch("/securegate/media/stats", { headers: authHeaders() }),
-        authFetch(`/securegate/media?${params}`, { headers: authHeaders() }),
-      ]);
-
-      if (statsRes.ok) {
-        const sj = await statsRes.json();
-        setStats(sj.data);
-      }
-
-      if (listRes.ok) {
-        const lj = await listRes.json();
-        const listData = lj.data;
-        setMediaList(listData?.data ?? []);
-        setLastPage(listData?.last_page ?? 1);
-      }
-    } catch (e: any) {
-      setErrorMsg(e.message || "Failed to load media management data.");
-    } finally {
-      setLoading(false);
-    }
-  }, [search, typeFilter, statusFilter, page]);
+    setLoadDataKey((k) => k + 1);
+  };
 
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    (async () => {
+      try {
+        // Fetch Stats & List in parallel
+        const params = new URLSearchParams();
+        if (search) params.set("search", search);
+        if (typeFilter) params.set("media_type", typeFilter);
+        if (statusFilter) params.set("status", statusFilter);
+        params.set("page", String(page));
+        params.set("per_page", "15");
+
+        const [statsRes, listRes] = await Promise.all([
+          authFetch("/securegate/media/stats", { headers: authHeaders() }),
+          authFetch(`/securegate/media?${params}`, { headers: authHeaders() }),
+        ]);
+
+        if (statsRes.ok) {
+          const sj = await statsRes.json();
+          setStats(sj.data);
+        }
+
+        if (listRes.ok) {
+          const lj = await listRes.json();
+          const listData = lj.data;
+          setMediaList(listData?.data ?? []);
+          setLastPage(listData?.last_page ?? 1);
+        }
+      } catch (e: unknown) {
+        const apiErr = asApiError(e);
+        setErrorMsg(apiErr.message || "Failed to load media management data.");
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [loadDataKey, search, typeFilter, statusFilter, page]);
+
 
   const handleRetry = async (uuid: string) => {
     setActionLoading(uuid);
@@ -72,8 +102,9 @@ export default function AdminMediaManagerPage() {
       });
       if (!res.ok) throw new Error("Failed to retry media processing.");
       await loadData();
-    } catch (err: any) {
-      alert(err.message || "Retry failed");
+    } catch (err: unknown) {
+      const apiErr = asApiError(err);
+      alert(apiErr.message || "Retry failed");
     } finally {
       setActionLoading(null);
     }
@@ -89,8 +120,9 @@ export default function AdminMediaManagerPage() {
       });
       if (!res.ok) throw new Error("Failed to delete media.");
       await loadData();
-    } catch (err: any) {
-      alert(err.message || "Deletion failed");
+    } catch (err: unknown) {
+      const apiErr = asApiError(err);
+      alert(apiErr.message || "Deletion failed");
     } finally {
       setActionLoading(null);
     }
@@ -133,7 +165,7 @@ export default function AdminMediaManagerPage() {
           <div className="border-none rounded-lg p-5 bg-card space-y-1">
             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Media Breakdown</p>
             <div className="flex items-center gap-3 text-xs font-bold text-foreground">
-              <span className="flex items-center gap-1"><FilmStrip weight="fill" className="h-3.5 w-3.5 text-blue-500" /> {stats.by_type.videos} Videos</span>
+              <span className="flex items-center gap-1"><FilmStrip weight="fill" className="h-3.5 w-3.5 text-[var(--shell-accent)]" /> {stats.by_type.videos} Videos</span>
               <span className="flex items-center gap-1"><ImageIcon weight="fill" className="h-3.5 w-3.5 text-emerald-500" /> {stats.by_type.images} Images</span>
             </div>
             <p className="text-[10px] text-muted-foreground">{stats.by_type.documents} documents & audio</p>
@@ -143,7 +175,7 @@ export default function AdminMediaManagerPage() {
             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Processing Queue</p>
             <div className="flex items-center gap-3 text-xs font-bold text-foreground">
               <span className="flex items-center gap-1 text-emerald-500"><CheckCircle2 weight="fill" className="h-3.5 w-3.5" /> {stats.by_status.completed} Ready</span>
-              <span className="flex items-center gap-1 text-amber-500"><Clock weight="fill" className="h-3.5 w-3.5" /> {stats.by_status.processing + stats.by_status.queued} Queued</span>
+              <span className="flex items-center gap-1 text-amber-500"><Clock weight="fill" className="h-3.5 w-3.5" /> {(stats.by_status.processing ?? 0) + (stats.by_status.queued ?? 0)} Queued</span>
             </div>
             <p className="text-[10px] text-muted-foreground">FFmpeg HLS background workers</p>
           </div>
@@ -231,7 +263,7 @@ export default function AdminMediaManagerPage() {
                               className="h-full w-full object-cover"
                             />
                           ) : m.media_type === "video" ? (
-                            <FilmStrip weight="fill" className="h-5 w-5 text-blue-500" />
+                            <FilmStrip weight="fill" className="h-5 w-5 text-[var(--shell-accent)]" />
                           ) : (
                             <ImageIcon weight="fill" className="h-5 w-5 text-emerald-500" />
                           )}

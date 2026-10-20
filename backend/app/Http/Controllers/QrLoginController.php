@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\DeviceSession;
 use App\Services\QrLoginService;
 use Illuminate\Http\JsonResponse;
+use App\Services\AuthSessionService;
 use Illuminate\Http\Request;
 use Laravel\Sanctum\PersonalAccessToken;
 
@@ -26,6 +27,10 @@ class QrLoginController extends Controller
         ]);
 
         $result = $this->qr->poll($validated['poll_token']);
+
+        if (isset($result['token'])) {
+            $result['token'] = app(AuthSessionService::class)->deliver($request, $result['token']);
+        }
 
         $status = match ($result['status'] ?? 'unknown') {
             'approved' => 200,
@@ -62,10 +67,6 @@ class QrLoginController extends Controller
 
     public function approve(Request $request, int $id): JsonResponse
     {
-        $validated = $request->validate([
-            'confirmation_code' => ['required', 'string', 'max:12'],
-        ]);
-
         $user = $request->user();
 
         $currentToken = $user->currentAccessToken();
@@ -78,7 +79,7 @@ class QrLoginController extends Controller
             : null;
 
         try {
-            $this->qr->approve($id, $user, $validated['confirmation_code'], $currentSession);
+            $this->qr->approve($id, $user, $currentSession);
         } catch (\InvalidArgumentException $e) {
             $msg = $e->getMessage();
             $code = str_contains(strtolower($msg), 'unauthorized') ? 403 : 422;

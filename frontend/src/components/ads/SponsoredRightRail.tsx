@@ -1,3 +1,4 @@
+import { safeHref } from "@/lib/safeUrl";
 import { useState, useEffect } from "react";
 import { Link } from "react-router";
 import { useAuth } from "@/hooks/useAuth";
@@ -24,12 +25,9 @@ export function SponsoredRightRail() {
   const [ads, setAds] = useState<SponsoredAdItem[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Strictly suppress sponsored ads for admin users
-  if (user?.role === "admin") {
-    return null;
-  }
-
   useEffect(() => {
+    // Admins never see this rail, so no ads are fetched or counted as impressions.
+    if (user?.role === "admin") return;
     let cancelled = false;
 
     apiClient
@@ -52,11 +50,16 @@ export function SponsoredRightRail() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [user?.role]);
 
   const handleAdClick = (ad: SponsoredAdItem) => {
     apiClient.post("/ads/track/click", { ad_id: ad.id, campaign_id: ad.campaign_id }).catch(() => {});
   };
+
+  // Strictly suppress sponsored ads for admin users (checked after hooks so hook order never changes)
+  if (user?.role === "admin") {
+    return null;
+  }
 
   if (!loading && ads.length === 0) {
     return null;
@@ -77,7 +80,7 @@ export function SponsoredRightRail() {
 
         <Link
           to="/app/ads"
-          className="text-[11px] font-semibold text-[#2164b6] dark:text-[#7ab0ff] hover:underline flex items-center gap-1"
+          className="text-[11px] font-semibold text-[var(--shell-accent)] dark:text-[var(--shell-accent)] hover:underline flex items-center gap-1"
         >
           <span>Create Ad</span>
         </Link>
@@ -156,7 +159,7 @@ export function SponsoredRightRail() {
                 {/* Body Details */}
                 <div className="p-3 space-y-2 flex-1 flex flex-col justify-between">
                   <div>
-                    <h4 className="text-xs font-bold text-foreground leading-snug line-clamp-2 group-hover:text-[#2164b6] dark:text-[#7ab0ff] transition-colors">
+                    <h4 className="text-xs font-bold text-foreground leading-snug line-clamp-2 group-hover:text-[var(--shell-accent)] transition-colors">
                       {ad.headline}
                     </h4>
                     <p className="text-[11px] text-muted-foreground mt-1 line-clamp-2 leading-relaxed">
@@ -171,18 +174,18 @@ export function SponsoredRightRail() {
                         <Link
                           to={ad.destination_url}
                           onClick={() => handleAdClick(ad)}
-                          className="w-full h-8 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-[#2164b6] dark:text-[#7ab0ff] font-bold text-xs transition-colors flex items-center justify-center gap-1.5"
+                          className="w-full h-8 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-[var(--shell-accent)] dark:text-[var(--shell-accent)] font-bold text-xs transition-colors flex items-center justify-center gap-1.5"
                         >
                           <span>{ad.cta_text || "Learn More"}</span>
                           <ArrowSquareOut weight="bold" className="w-3.5 h-3.5" />
                         </Link>
                       ) : (
                         <a
-                          href={ad.destination_url}
+                          href={safeHref(ad.destination_url)}
                           target="_blank"
                           rel="noopener noreferrer"
                           onClick={() => handleAdClick(ad)}
-                          className="w-full h-8 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-[#2164b6] dark:text-[#7ab0ff] font-bold text-xs transition-colors flex items-center justify-center gap-1.5"
+                          className="w-full h-8 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-[var(--shell-accent)] dark:text-[var(--shell-accent)] font-bold text-xs transition-colors flex items-center justify-center gap-1.5"
                         >
                           <span>{ad.cta_text || "Learn More"}</span>
                           <ArrowSquareOut weight="bold" className="w-3.5 h-3.5" />

@@ -1,4 +1,6 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import { authFetch } from "@/lib/api/authFetch";
+import { logger } from "@/lib/logger";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { ArrowDown as ChevronDown, Search } from "@/components/icons";
 import { Spinner as Loader2 } from "@/components/icons/rounded";;
 
@@ -45,12 +47,14 @@ export function CountrySelect({
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const containerRef = useRef<HTMLDivElement>(null);
+  // Stable ref callback that focuses the field once on mount (same effect as autoFocus, without refocusing on re-render)
+  const focusOnMount = useCallback((el: HTMLElement | null) => { el?.focus(); }, []);
 
   useEffect(() => {
     let active = true;
     async function loadCountries() {
       try {
-        const res = await fetch(`${API_BASE}/countries`, {
+        const res = await authFetch(`${API_BASE}/countries`, {
           headers: { Accept: "application/json" },
         });
         if (!res.ok) throw new Error("Failed to load countries");
@@ -66,7 +70,7 @@ export function CountrySelect({
           setCountries(list);
         }
       } catch (err) {
-        console.error("Country fetch error:", err);
+        logger.error("Country fetch error:", err);
       } finally {
         if (active) setLoading(false);
       }
@@ -117,7 +121,7 @@ export function CountrySelect({
         type="button"
         disabled={disabled || loading}
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-lg border-none bg-card text-foreground text-sm font-medium focus:outline-none focus:border-[#2164b6]/50 disabled:opacity-50 transition-colors"
+        className="w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-lg border-none bg-card text-foreground text-sm font-medium focus:outline-none focus:border-[var(--shell-accent)]/50 disabled:opacity-50 transition-colors"
       >
         <span className="flex items-center gap-2 truncate">
           {loading ? (
@@ -145,7 +149,7 @@ export function CountrySelect({
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search country or code..."
               className="w-full bg-transparent text-xs font-medium text-foreground placeholder:text-muted-foreground focus:outline-none"
-              autoFocus
+              ref={focusOnMount}
             />
           </div>
           <div className="max-h-60 overflow-y-auto p-1 space-y-0.5 scrollbar-thin">
@@ -161,7 +165,7 @@ export function CountrySelect({
                     onClick={() => handleSelect(c)}
                     className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
                       isSelected
-                        ? "bg-[#2164b6]/10 text-[#2164b6] dark:text-[#7ab0ff] font-bold"
+                        ? "bg-[var(--shell-accent-solid)]/10 text-[var(--shell-accent)] dark:text-[var(--shell-accent)] font-bold"
                         : "hover:bg-muted/50 text-foreground"
                     }`}
                   >

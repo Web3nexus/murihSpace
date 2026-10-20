@@ -1,4 +1,3 @@
-import { getAuthToken } from "@/lib/auth/token";
 import { useEffect, useState } from "react";
 import { Download as FloppyDisk, ShieldDone as ShieldCheck, DangerSquare as AlertCircle, TickSquare as CheckCircle2, Message as Envelope, Discovery as Globe } from "@/components/icons";
 import { Spinner as Loader2, DeviceMobile as Smartphone, Fingerprint, AppleLogo as AppleIcon } from "@/components/icons/rounded";;
@@ -53,8 +52,7 @@ const METHOD_META: Record<MethodKey, { label: string; desc: string; icon: React.
 const METHOD_KEYS: MethodKey[] = ["phone_otp", "email_password", "google", "apple", "passkey"];
 
 function authHeaders() {
-  const t = getAuthToken();
-  return { Accept: "application/json", "Content-Type": "application/json", ...(t ? { Authorization: `Bearer ${t}` } : {}) };
+  return { Accept: "application/json", "Content-Type": "application/json", };
 }
 
 export default function AdminAuthMethodsPage() {
@@ -80,7 +78,7 @@ export default function AdminAuthMethodsPage() {
   }, []);
 
   if (loading || !config) {
-    return <div className="flex justify-center py-24"><Loader2 weight="fill" className="h-8 w-8 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" /></div>;
+    return <div className="flex justify-center py-24"><Loader2 weight="fill" className="h-8 w-8 animate-spin text-[var(--shell-accent)]" /></div>;
   }
 
   const loginEnabledCount = METHOD_KEYS.filter((k) => config.methods[k].login).length;
@@ -138,7 +136,7 @@ export default function AdminAuthMethodsPage() {
     <div className="w-full mx-auto max-w-[860px] space-y-6 p-4 lg:p-10">
       <div>
         <h1 className="text-xl font-black tracking-tight flex items-center gap-2.5">
-          <ShieldCheck weight="fill" className="h-6 w-6 text-[#2164b6] dark:text-[#7ab0ff]" /> Authentication Methods
+          <ShieldCheck weight="fill" className="h-6 w-6 text-[var(--shell-accent)]" /> Authentication Methods
         </h1>
         <p className="text-xs text-muted-foreground mt-1">
           Choose which sign-in and registration methods are available. Changes apply instantly to the login and register screens. At least one core method (Phone OTP or Email &amp; password) must stay enabled to avoid locking users out.
@@ -174,14 +172,14 @@ export default function AdminAuthMethodsPage() {
           return (
             <div key={key} className={cn("flex items-center justify-between gap-4 px-5 py-4", i > 0 && "border-t border-border")}>
               <div className="flex items-center gap-3 min-w-0">
-                <div className="h-9 w-9 rounded-lg bg-muted/60 flex items-center justify-center text-[#2164b6] dark:text-[#7ab0ff] shrink-0">
+                <div className="h-9 w-9 rounded-lg bg-muted/60 flex items-center justify-center text-[var(--shell-accent)] shrink-0">
                   {meta.icon}
                 </div>
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
                     <p className="text-sm font-bold text-foreground">{meta.label}</p>
                     {isPrimary && (
-                      <span className="text-[9px] font-black uppercase tracking-wide text-[#2164b6] dark:text-[#7ab0ff] bg-[#2164b6]/10 rounded-full px-2 py-0.5">
+                      <span className="text-[9px] font-black uppercase tracking-wide text-[var(--shell-accent)] bg-[var(--shell-accent-solid)]/10 rounded-full px-2 py-0.5">
                         Primary
                       </span>
                     )}
@@ -216,9 +214,9 @@ export default function AdminAuthMethodsPage() {
                   className={cn(
                     "text-[10px] font-black uppercase tracking-wide rounded-lg px-3 py-1.5 border transition-colors",
                     isPrimary
-                      ? "border-[#2164b6] bg-[#2164b6]/10 text-[#2164b6] dark:text-[#7ab0ff]"
+                      ? "border-[var(--shell-accent)] bg-[var(--shell-accent-solid)]/10 text-[var(--shell-accent)]"
                       : m.login
-                        ? "border-border text-muted-foreground hover:text-[#2164b6] dark:text-[#7ab0ff] hover:border-[#2164b6]/50"
+                        ? "border-border text-muted-foreground hover:text-[var(--shell-accent)] hover:border-[var(--shell-accent)]/50"
                         : "border-border text-muted-foreground/40 cursor-not-allowed"
                   )}
                   title={m.login ? "Set as primary" : "Enable login to set as primary"}

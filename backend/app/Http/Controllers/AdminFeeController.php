@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\FeeRule;
+use App\Services\Commission\CommissionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class AdminFeeController extends Controller
 {
@@ -67,14 +69,27 @@ class AdminFeeController extends Controller
             'priority'              => ['nullable', 'integer'],
         ]);
 
-        $rule = FeeRule::create(array_merge([
-            'currency'     => 'USD',
-            'fixed_amount' => 0,
-            'percentage'   => 0,
-            'minimum_fee'  => 0,
-            'enabled'      => true,
-            'priority'     => 0,
-        ], array_filter($validated, static fn ($value) => $value !== null)));
+        $commissionType = CommissionService::commissionTypeForRuleCode($validated['code']);
+        if ($commissionType !== null) {
+            $this->assertCommissionRuleShape($validated, $validated['fee_type'], isset($validated['percentage']));
+        }
+
+        $rule = DB::transaction(function () use ($validated, $commissionType, $request) {
+            $rule = FeeRule::create(array_merge([
+                'currency'     => 'USD',
+                'fixed_amount' => 0,
+                'percentage'   => 0,
+                'minimum_fee'  => 0,
+                'enabled'      => true,
+                'priority'     => 0,
+            ], array_filter($validated, static fn ($value) => $value !== null)));
+
+            if ($commissionType !== null) {
+                $this->writeCommissionRate($rule, $request);
+            }
+
+            return $rule;
+        });
 
         return response()->json([
             'message' => 'Fee rule created successfully.',
@@ -115,7 +130,32 @@ class AdminFeeController extends Controller
             'priority'              => ['nullable', 'integer'],
         ]);
 
-        $rule->update($validated);
+        $previousCode = $rule->code;
+        $wasCommissionRule = CommissionService::commissionTypeForRuleCode($previousCode) !== null;
+        $newCode = $validated['code'] ?? $previousCode;
+        $commissionType = CommissionService::commissionTypeForRuleCode($newCode);
+
+        if ($wasCommissionRule && $newCode !== $previousCode) {
+            return response()->json([
+                'message' => 'The code of a commission fee rule cannot be changed. Edit its rate instead.',
+            ], 422);
+        }
+
+        if ($commissionType !== null) {
+            $this->assertCommissionRuleShape(
+                $validated,
+                $validated['fee_type'] ?? $rule->fee_type,
+                (array_key_exists('percentage', $validated) ? $validated['percentage'] : $rule->percentage) !== null,
+            );
+        }
+
+        DB::transaction(function () use ($rule, $validated, $commissionType, $request) {
+            $rule->update($validated);
+
+            if ($commissionType !== null) {
+                $this->writeCommissionRate($rule, $request);
+            }
+        });
 
         return response()->json([
             'message' => 'Fee rule updated successfully.',
@@ -130,6 +170,12 @@ class AdminFeeController extends Controller
     public function toggle(int $id): JsonResponse
     {
         $rule = FeeRule::findOrFail($id);
+        if ($this->isCommissionRule($rule)) {
+            return response()->json([
+                'message' => 'A commission fee rule is always in force. Change its rate instead of disabling it.',
+            ], 422);
+        }
+
         $rule->update(['enabled' => ! $rule->enabled]);
 
         return response()->json([
@@ -145,6 +191,12 @@ class AdminFeeController extends Controller
     public function destroy(int $id): JsonResponse
     {
         $rule = FeeRule::findOrFail($id);
+        if ($this->isCommissionRule($rule)) {
+            return response()->json([
+                'message' => 'A commission fee rule cannot be deleted. Change its rate instead.',
+            ], 422);
+        }
+
         $rule->delete();
 
         return response()->json(['message' => 'Fee rule deleted.']);
@@ -182,5 +234,50 @@ class AdminFeeController extends Controller
             'message' => 'Platform commission percentage rates updated successfully.',
             'data'    => $updated,
         ]);
+    }
+
+    private function isCommissionRule(FeeRule $rule): bool
+    {
+        return CommissionService::commissionTypeForRuleCode($rule->code) !== null;
+    }
+
+    /**
+     * A commission rule is a percentage that is always in force, so it must be one.
+     */
+    private function assertCommissionRuleShape(array $validated, string $feeType, bool $hasPercentage): void
+    {
+        if ($feeType !== 'percentage') {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'fee_type' => ['A commission fee rule must be a percentage.'],
+            ]);
+        }
+
+        if (! $hasPercentage) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'percentage' => ['A commission fee rule needs a percentage.'],
+            ]);
+        }
+
+        if (array_key_exists('enabled', $validated) && $validated['enabled'] === false) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'enabled' => ['A commission fee rule is always in force.'],
+            ]);
+        }
+    }
+
+    /**
+     * Write the rule's rate into the commission setting CommissionService reads. The caller
+     * is already inside a transaction. The cache is cleared now and again after commit.
+     */
+    private function writeCommissionRate(FeeRule $rule, Request $request): void
+    {
+        $service = app(CommissionService::class);
+        $type = $service->setRateFromFeeRule($rule, $request->user(), $request->ip(), $request->userAgent());
+
+        if ($type !== null) {
+            $service->forgetCachedRate($type);
+            // Clear again once committed, so a read between the two cannot cache the old rate.
+            DB::afterCommit(fn () => $service->forgetCachedRate($type));
+        }
     }
 }

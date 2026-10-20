@@ -1,43 +1,52 @@
-import { getAuthToken } from "@/lib/auth/token";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { Chart as BarChart3, N2User as Users, Bag as ShoppingCart, Wallet as CreditCard, Swap as Repeat, ArrowRight, DangerSquare as AlertCircle } from "@/components/icons";
 import { Spinner as Loader2 } from "@/components/icons/rounded";;
 import { authFetch } from "@/lib/api/authFetch";
 
 
 
+interface ConversionFunnel { visitors?: number; creators?: number; vendors?: number; first_order?: number; repeat_order?: number }
+interface ConversionRates { signup_to_creator?: number; creator_to_seller?: number; checkout_completion?: number; order_completion?: number }
+interface ConversionTotals { total_users?: number; total_creators?: number; total_orders?: number; completed_orders?: number }
+
+
 function authHeaders() {
-  const t = getAuthToken();
-  return { Accept: "application/json", "Content-Type": "application/json", ...(t ? { Authorization: `Bearer ${t}` } : {}) };
+  return { Accept: "application/json", "Content-Type": "application/json", };
 }
 
 export default function AdminConversionMetricsPage() {
-  const [funnel, setFunnel] = useState<any>(null);
-  const [rates, setRates] = useState<any>(null);
-  const [totals, setTotals] = useState<any>(null);
+  const [funnel, setFunnel] = useState<ConversionFunnel | null>(null);
+  const [rates, setRates] = useState<ConversionRates | null>(null);
+  const [totals, setTotals] = useState<ConversionTotals | null>(null);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
 
-  const loadData = useCallback(async () => {
+  const [loadDataKey, setLoadDataKey] = useState(0);
+  const loadData = () => {
     setFetchError(null);
-    try {
-      const res = await authFetch(`/securegate/analytics/conversions`, { headers: authHeaders() });
-      if (!res.ok) throw new Error("Failed to load conversion metrics");
-      const j = await res.json();
-      const d = j?.success ? j?.data : j;
-      setFunnel(d?.data?.funnel ?? d?.funnel ?? d);
-      setRates(d?.data?.conversion_rates ?? d?.conversion_rates ?? null);
-      setTotals(d?.data?.totals ?? d?.totals ?? null);
-    } catch (e) { setFetchError(e instanceof Error ? e.message : "Failed to load metrics"); }
-    finally { setLoading(false); }
-  }, []);
+    setLoadDataKey((k) => k + 1);
+  };
 
-  useEffect(() => { loadData(); }, [loadData]);
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await authFetch(`/securegate/analytics/conversions`, { headers: authHeaders() });
+        if (!res.ok) throw new Error("Failed to load conversion metrics");
+        const j = await res.json();
+        const d = j?.success ? j?.data : j;
+        setFunnel(d?.data?.funnel ?? d?.funnel ?? d);
+        setRates(d?.data?.conversion_rates ?? d?.conversion_rates ?? null);
+        setTotals(d?.data?.totals ?? d?.totals ?? null);
+      } catch (e) { setFetchError(e instanceof Error ? e.message : "Failed to load metrics"); }
+      finally { setLoading(false); }
+    })();
+  }, [loadDataKey]);
 
-  if (loading) return <div className="flex justify-center py-24"><Loader2 weight="fill" className="h-8 w-8 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" /></div>;
+
+  if (loading) return <div className="flex justify-center py-24"><Loader2 weight="fill" className="h-8 w-8 animate-spin text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" /></div>;
 
   const steps = [
-    { label: "Visitors", value: funnel?.visitors ?? 0, icon: Users, color: "bg-blue-500" },
+    { label: "Visitors", value: funnel?.visitors ?? 0, icon: Users, color: "bg-[var(--shell-accent-solid)]" },
     { label: "Creators", value: funnel?.creators ?? 0, icon: BarChart3, color: "bg-violet-500" },
     { label: "Vendors", value: funnel?.vendors ?? 0, icon: ShoppingCart, color: "bg-amber-500" },
     { label: "First Order", value: funnel?.first_order ?? 0, icon: CreditCard, color: "bg-emerald-500" },
@@ -55,7 +64,7 @@ export default function AdminConversionMetricsPage() {
 
   return (
     <div className="w-full mx-auto max-w-[1400px] space-y-6 p-4 lg:p-10">
-      <div><h1 className="text-xl font-black tracking-tight flex items-center gap-2.5"><BarChart3 weight="fill" className="h-6 w-6 text-[#2164b6] dark:text-[#7ab0ff]" /> Conversion Metrics</h1><p className="text-xs text-muted-foreground mt-1">Platform conversion funnel analytics.</p></div>
+      <div><h1 className="text-xl font-black tracking-tight flex items-center gap-2.5"><BarChart3 weight="fill" className="h-6 w-6 text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" /> Conversion Metrics</h1><p className="text-xs text-muted-foreground mt-1">Platform conversion funnel analytics.</p></div>
 
       {fetchError && (
         <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-xs text-destructive">
@@ -97,7 +106,7 @@ export default function AdminConversionMetricsPage() {
           {rateCards.map(r => (
             <div key={r.label} className="border-none rounded-lg bg-card p-4 text-center">
               <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">{r.label}</p>
-              <p className="text-xl font-black text-[#2164b6] dark:text-[#7ab0ff]">{r.value}</p>
+              <p className="text-xl font-black text-[var(--shell-accent)] dark:text-[var(--shell-accent)]">{r.value}</p>
             </div>
           ))}
         </div>

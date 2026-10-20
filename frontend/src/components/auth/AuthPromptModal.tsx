@@ -34,7 +34,7 @@ export function AuthPromptModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md p-4 overflow-hidden">
         <div className="flex flex-col items-center text-center space-y-4 pt-2">
-          <div className="h-14 w-14 rounded-lg bg-gradient-to-tr from-[#2164b6] to-[#102840] flex items-center justify-center text-white shadow-lg shadow-[#2164b6]/20">
+          <div className="h-14 w-14 rounded-lg bg-gradient-to-tr from-[var(--shell-accent-solid)] to-[#102840] flex items-center justify-center text-white shadow-lg shadow-[#2164b6]/20">
             <Users weight="fill" className="h-7 w-7 text-white" />
           </div>
 

@@ -1,5 +1,5 @@
 import { Link } from "react-router";
-import { Shield, Lock, EyeOff, CheckCircle2, ShieldCheck, ArrowRight, Key, Award, Database, UserX, Smartphone } from "lucide-react";
+import { Lock, EyeOff, CheckCircle2, ShieldCheck, ArrowRight, Key, Award, Database, UserX } from "lucide-react";
 
 export function meta() {
   return [

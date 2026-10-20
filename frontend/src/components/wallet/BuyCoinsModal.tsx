@@ -130,12 +130,12 @@ export function BuyCoinsModal({
             packs.map((pack) => {
               const isSelected = selectedPackId === pack.id;
               return (
-                <div
+                <div role="button" tabIndex={0} onKeyDown={(e) => { if (e.target !== e.currentTarget) return; if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.currentTarget.click(); } }}
                   key={pack.id}
                   onClick={() => setSelectedPackId(pack.id)}
                   className={`p-3 rounded-xl border flex items-center justify-between gap-3 cursor-pointer transition-all ${
                     isSelected
-                      ? "border-[#2164b6] bg-[#2164b6]/5 ring-1 ring-[#2164b6]"
+                      ? "border-[var(--shell-accent)] bg-[var(--shell-accent-solid)]/5 ring-1 ring-[var(--shell-accent)]"
                       : "border-border hover:border-border/80 bg-card hover:bg-muted/30"
                   }`}
                 >
@@ -152,7 +152,7 @@ export function BuyCoinsModal({
                           <span
                             className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
                               pack.badge.toLowerCase().includes("popular")
-                                ? "bg-blue-500/10 text-[#2164b6] border border-blue-500/20"
+                                ? "bg-[var(--shell-accent-solid)]/10 text-[var(--shell-accent)] border border-[var(--shell-accent)]/20"
                                 : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
                             }`}
                           >
@@ -183,7 +183,7 @@ export function BuyCoinsModal({
             type="button"
             disabled={!selectedPackId || purchasing}
             onClick={handlePurchase}
-            className="w-full h-11 bg-[#2164b6] hover:bg-[#1a5091] text-white font-bold text-sm rounded-xl shadow-xs"
+            className="w-full h-11 bg-[var(--shell-accent-solid)] hover:bg-[var(--shell-accent-hover)] text-white font-bold text-sm rounded-xl shadow-xs"
           >
             {purchasing ? (
               <span className="flex items-center gap-2">

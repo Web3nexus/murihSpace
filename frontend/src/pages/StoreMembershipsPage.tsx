@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router";
 import { useConfirm } from "@/components/ui/DialogProvider";
 import { Plus, Edit, Delete as Trash2, N2User as Users, N3User as UsersThree, Chat as ChatCircleDots } from "@/components/icons";
@@ -38,19 +38,25 @@ export default function StoreMembershipsPage() {
   const [currency, setCurrency] = useState("USD");
   const [interval, setInterval] = useState<"monthly" | "yearly">("monthly");
 
-  const fetchPlans = useCallback(async () => {
-    try {
-      const res = await authFetch(`/store/memberships?page=${page}&per_page=20`, {  });
-      if (!res.ok) throw new Error("Failed to load");
-      const j = await res.json();
-      const list = j?.success ? j?.data : j;
-      setPlans(list?.data ?? list ?? []);
-      setLastPage(list?.last_page ?? 1);
-    } catch { /* ignore */ }
-    finally { setLoading(false); }
-  }, [page]);
+  const [fetchPlansKey, setFetchPlansKey] = useState(0);
+  const fetchPlans = () => {
+    setFetchPlansKey((k) => k + 1);
+  };
 
-  useEffect(() => { fetchPlans(); }, [fetchPlans]);
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await authFetch(`/store/memberships?page=${page}&per_page=20`, {  });
+        if (!res.ok) throw new Error("Failed to load");
+        const j = await res.json();
+        const list = j?.success ? j?.data : j;
+        setPlans(list?.data ?? list ?? []);
+        setLastPage(list?.last_page ?? 1);
+      } catch { /* ignore */ }
+      finally { setLoading(false); }
+    })();
+  }, [fetchPlansKey, page]);
+
 
   const resetForm = () => { setName(""); setPrice("9.99"); setCurrency("USD"); setInterval("monthly"); setEditing(null); setShowForm(false); setMsg(null); };
 
@@ -86,14 +92,14 @@ export default function StoreMembershipsPage() {
     fetchPlans();
   };
 
-  if (loading) return <div className="flex justify-center py-24"><Loader2 weight="fill" className="h-8 w-8 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" /></div>;
+  if (loading) return <div className="flex justify-center py-24"><Loader2 weight="fill" className="h-8 w-8 animate-spin text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" /></div>;
 
   return (
     <div className="w-full max-w-7xl mx-auto space-y-6 p-4 lg:p-5">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-black tracking-tight flex items-center gap-2.5">
-            <Crown weight="fill" className="h-6 w-6 text-[#2164b6] dark:text-[#7ab0ff]" /> Memberships
+            <Crown weight="fill" className="h-6 w-6 text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" /> Memberships
           </h1>
           <p className="text-xs text-muted-foreground mt-1">Create and manage recurring membership plans.</p>
         </div>
@@ -136,23 +142,23 @@ export default function StoreMembershipsPage() {
           {msg && <div className={`p-3 rounded-lg text-xs font-bold ${msg.ok ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'}`}>{msg.text}</div>}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <label className="text-xs font-bold text-muted-foreground">Plan Name</label>
-              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Premium Membership" required />
+              <label htmlFor="f-pages-storemembershipspage-tsx-139" className="text-xs font-bold text-muted-foreground">Plan Name</label>
+              <Input id="f-pages-storemembershipspage-tsx-139" value={name} onChange={(e) => setName(e.target.value)} placeholder="Premium Membership" required />
             </div>
             <div className="space-y-2">
-              <label className="text-xs font-bold text-muted-foreground">Billing Interval</label>
-              <select value={interval} onChange={(e) => setInterval(e.target.value as "monthly" | "yearly")} className="w-full rounded-lg border-none bg-card p-2.5 text-sm font-medium text-foreground">
+              <label htmlFor="f-pages-storemembershipspage-tsx-143" className="text-xs font-bold text-muted-foreground">Billing Interval</label>
+              <select id="f-pages-storemembershipspage-tsx-143" value={interval} onChange={(e) => setInterval(e.target.value as "monthly" | "yearly")} className="w-full rounded-lg border-none bg-card p-2.5 text-sm font-medium text-foreground">
                 <option value="monthly">Monthly</option>
                 <option value="yearly">Yearly</option>
               </select>
             </div>
             <div className="space-y-2">
-              <label className="text-xs font-bold text-muted-foreground">Price</label>
-              <Input type="number" step="0.01" min="0" value={price} onChange={(e) => setPrice(e.target.value)} className="font-mono" />
+              <label htmlFor="f-pages-storemembershipspage-tsx-150" className="text-xs font-bold text-muted-foreground">Price</label>
+              <Input id="f-pages-storemembershipspage-tsx-150" type="number" step="0.01" min="0" value={price} onChange={(e) => setPrice(e.target.value)} className="font-mono" />
             </div>
             <div className="space-y-2">
-              <label className="text-xs font-bold text-muted-foreground">Currency</label>
-              <select value={currency} onChange={(e) => setCurrency(e.target.value)} className="w-full rounded-lg border-none bg-card p-2.5 text-sm font-medium text-foreground">
+              <label htmlFor="f-pages-storemembershipspage-tsx-154" className="text-xs font-bold text-muted-foreground">Currency</label>
+              <select id="f-pages-storemembershipspage-tsx-154" value={currency} onChange={(e) => setCurrency(e.target.value)} className="w-full rounded-lg border-none bg-card p-2.5 text-sm font-medium text-foreground">
                 {["USD", "NGN", "GBP", "EUR"].map((c) => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>

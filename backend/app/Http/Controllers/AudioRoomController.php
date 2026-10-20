@@ -4,7 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\AudioRoom;
 use App\Models\AudioRoomParticipant;
+use App\Services\LiveKitAdminService;
 use App\Services\LiveKitService;
+use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -188,6 +190,14 @@ class AudioRoomController extends Controller
         AudioRoomParticipant::where('audio_room_id', $room->id)
             ->whereNull('left_at')
             ->update(['left_at' => now()]);
+
+        // Drop anyone still connected to the media room, so the call really
+        // closes for listeners instead of staying up after the room is ended.
+        try {
+            app(LiveKitAdminService::class)->removeAllParticipants("audio-room-{$room->id}");
+        } catch (\Throwable $e) {
+            Log::warning('[AudioRoom] Could not close the LiveKit room: '.$e->getMessage(), ['room_id' => $room->id]);
+        }
 
         return response()->json(['data' => $room->fresh()]);
     }

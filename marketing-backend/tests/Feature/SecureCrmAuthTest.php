@@ -86,4 +86,66 @@ class SecureCrmAuthTest extends TestCase
 
         $this->assertGuest('staff');
     }
+
+    public function test_five_failed_web_logins_lock_the_account(): void
+    {
+        $staff = StaffUser::factory()->create([
+            'email' => 'lockout@securecrm.com',
+            'password' => Hash::make('secret-password'),
+        ]);
+
+        for ($attempt = 1; $attempt <= 5; $attempt++) {
+            $this->post('/securecrm/login', [
+                'email' => 'lockout@securecrm.com',
+                'password' => 'wrong-password',
+            ])->assertSessionHasErrors('email');
+        }
+
+        $staff->refresh();
+        $this->assertSame(5, (int) $staff->failed_login_attempts);
+        $this->assertTrue($staff->isLocked());
+
+        // While locked, the correct password is refused too.
+        $this->post('/securecrm/login', [
+            'email' => 'lockout@securecrm.com',
+            'password' => 'secret-password',
+        ])->assertSessionHasErrors('email');
+
+        $this->assertGuest('staff');
+    }
+
+    public function test_a_successful_web_login_resets_the_failure_count(): void
+    {
+        $staff = StaffUser::factory()->create([
+            'email' => 'reset@securecrm.com',
+            'password' => Hash::make('secret-password'),
+        ]);
+
+        for ($attempt = 1; $attempt <= 3; $attempt++) {
+            $this->post('/securecrm/login', ['email' => 'reset@securecrm.com', 'password' => 'wrong-password']);
+        }
+
+        $this->post('/securecrm/login', ['email' => 'reset@securecrm.com', 'password' => 'secret-password'])
+            ->assertRedirect('/securecrm/overview');
+
+        $staff->refresh();
+        $this->assertSame(0, (int) $staff->failed_login_attempts);
+        $this->assertFalse($staff->isLocked());
+    }
+
+    public function test_a_disabled_account_is_refused_even_with_the_right_password(): void
+    {
+        $staff = StaffUser::factory()->inactive()->create([
+            'email' => 'disabled-web@securecrm.com',
+            'password' => Hash::make('secret-password'),
+        ]);
+
+        $this->post('/securecrm/login', [
+            'email' => 'disabled-web@securecrm.com',
+            'password' => 'secret-password',
+        ])->assertSessionHasErrors('email');
+
+        $this->assertGuest('staff');
+        $this->assertNull($staff->fresh()->last_login_at);
+    }
 }

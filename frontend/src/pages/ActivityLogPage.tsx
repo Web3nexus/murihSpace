@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { TimeCircle as ClockCounterClockwise, Swap as RefreshCw, Document as FileText, N2User as Users, Bag as ShoppingCart, Wallet, Discount as Gift, Calendar, Wallet as CreditCard } from "@/components/icons";
 import { Spinner as Loader2 } from "@/components/icons/rounded";;
 import { authFetch } from "@/lib/api/authFetch";
@@ -24,7 +24,7 @@ const ACTIVITY_ICONS: Record<string, typeof FileText> = {
 };
 
 const ACTIVITY_COLORS: Record<string, string> = {
-  "post.created": "bg-blue-500/20 text-blue-400",
+  "post.created": "bg-[var(--shell-accent-solid)]/20 text-[var(--shell-accent)]",
   "post.published": "bg-green-500/20 text-green-400",
   "community.joined": "bg-violet-500/20 text-violet-400",
   "purchase.completed": "bg-emerald-500/20 text-emerald-400",
@@ -41,19 +41,21 @@ export default function ActivityLogPage() {
   const [page, setPage] = useState(1);
   const [lastPage, setLastPage] = useState(1);
 
-  const loadActivities = useCallback(async (p: number) => {
-    setLoading(true);
-    try {
-      const res = await authFetch(`/activity-logs?page=${p}&per_page=25`);
-      if (!res.ok) { setError("Failed to load activity"); return; }
-      const json = await res.json();
-      setActivities(json.data?.data ?? json.data ?? []);
-      setLastPage(json.data?.last_page ?? json.meta?.last_page ?? 1);
-    } catch { setError("Network error"); }
-    finally { setLoading(false); }
-  }, []);
+  const [reloadKey, setReloadKey] = useState(0);
 
-  useEffect(() => { loadActivities(page); }, [loadActivities, page]);
+  useEffect(() => {
+    (async () => {
+      setLoading(true);
+      try {
+        const res = await authFetch(`/activity-logs?page=${page}&per_page=25`);
+        if (!res.ok) { setError("Failed to load activity"); return; }
+        const json = await res.json();
+        setActivities(json.data?.data ?? json.data ?? []);
+        setLastPage(json.data?.last_page ?? json.meta?.last_page ?? 1);
+      } catch { setError("Network error"); }
+      finally { setLoading(false); }
+    })();
+  }, [page, reloadKey]);
 
   const groupByDate = (items: ActivityItem[]) => {
     const groups: Record<string, ActivityItem[]> = {};
@@ -78,7 +80,7 @@ export default function ActivityLogPage() {
           <p className="text-sm text-muted-foreground mt-1">Your recent activity on the platform</p>
         </div>
         <button
-          onClick={() => loadActivities(page)}
+          onClick={() => setReloadKey((k) => k + 1)}
           className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
         >
           <RefreshCw weight="fill" className="h-3 w-3" />
@@ -114,7 +116,7 @@ export default function ActivityLogPage() {
               <div className="space-y-2">
                 {groups[date].map((item) => {
                   const Icon = ACTIVITY_ICONS[item.type] ?? ClockCounterClockwise;
-                  const color = ACTIVITY_COLORS[item.type] ?? "bg-gray-500/20 text-gray-400";
+                  const color = ACTIVITY_COLORS[item.type] ?? "bg-gray-500/20 text-[var(--shell-muted)]";
                   return (
                     <div key={item.id} className="flex items-start gap-3 rounded-lg border-none/50 bg-card p-3">
                       <div className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${color}`}>

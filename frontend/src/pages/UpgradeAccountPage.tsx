@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
+import { logger } from "@/lib/logger";
+import { useState, useEffect } from "react";
 import { Bag as ShoppingBag, TimeCircle as Clock, TickSquare as CheckCircle2, CloseSquare as XCircle, Document as FileText } from "@/components/icons";
 import { Spinner as Loader2 } from "@/components/icons/rounded";;
 import { toast } from "sonner";
@@ -30,37 +31,41 @@ export function UpgradeAccountPage() {
   const [kycRequestNote, setKycRequestNote] = useState<string | null>(null);
   const [history, setHistory] = useState<ApplicationRecord[]>([]);
 
-  const fetchApplicationState = useCallback(async () => {
+  const [fetchApplicationStateKey, setFetchApplicationStateKey] = useState(0);
+  const fetchApplicationState = () => {
     setLoading(true);
-    try {
-      const [appRes, historyRes] = await Promise.all([
-        apiClient.get("/role/application"),
-        apiClient.get("/role/history"),
-      ]);
-
-      if (appRes.data?.application) {
-        setApplication(appRes.data.application);
-      } else {
-        setApplication(null);
-      }
-
-      setUserKycStatus(appRes.data?.user_kyc_status || user?.kyc_status || "not_required");
-      setKycRequested(Boolean(appRes.data?.kyc_requested));
-      setKycRequestNote(appRes.data?.kyc_request_note || null);
-
-      if (historyRes.data?.history) {
-        setHistory(historyRes.data.history);
-      }
-    } catch (err) {
-      console.error("Failed to load role application data:", err);
-    } finally {
-      setLoading(false);
-    }
-  }, [user]);
+    setFetchApplicationStateKey((k) => k + 1);
+  };
 
   useEffect(() => {
-    fetchApplicationState();
-  }, [fetchApplicationState]);
+    (async () => {
+      try {
+        const [appRes, historyRes] = await Promise.all([
+          apiClient.get("/role/application"),
+          apiClient.get("/role/history"),
+        ]);
+
+        if (appRes.data?.application) {
+          setApplication(appRes.data.application);
+        } else {
+          setApplication(null);
+        }
+
+        setUserKycStatus(appRes.data?.user_kyc_status || user?.kyc_status || "not_required");
+        setKycRequested(Boolean(appRes.data?.kyc_requested));
+        setKycRequestNote(appRes.data?.kyc_request_note || null);
+
+        if (historyRes.data?.history) {
+          setHistory(historyRes.data.history);
+        }
+      } catch (err) {
+        logger.error("Failed to load role application data:", err);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [fetchApplicationStateKey, user]);
+
 
   const handleApply = async (requestedRole: "creator" | "vendor") => {
     setSubmitting(requestedRole);
@@ -148,9 +153,9 @@ export function UpgradeAccountPage() {
 
               {/* KYC Condition Callout */}
               {(kycRequested || userKycStatus !== "verified") && (
-                <div className="mt-4 p-4 rounded-lg border border-blue-500/30 bg-blue-500/10 space-y-2">
+                <div className="mt-4 p-4 rounded-lg border border-[var(--shell-accent)]/30 bg-[var(--shell-accent-solid)]/10 space-y-2">
                   <div className="flex items-center justify-between flex-wrap gap-2">
-                    <h4 className="text-xs font-bold text-blue-500 flex items-center gap-1.5">
+                    <h4 className="text-xs font-bold text-[var(--shell-accent)] flex items-center gap-1.5">
                       <FileText weight="fill" className="h-4 w-4" /> Identity Verification (KYC)
                     </h4>
                     <span className="text-[11px] font-semibold text-muted-foreground capitalize">
@@ -166,7 +171,7 @@ export function UpgradeAccountPage() {
                     <div className="pt-1">
                       <a
                         href="/app/settings/kyc"
-                        className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-3.5 py-1.5 text-xs font-bold text-white shadow hover:bg-blue-700 transition-colors"
+                        className="inline-flex items-center gap-2 rounded-lg bg-[var(--shell-accent-solid)] px-3.5 py-1.5 text-xs font-bold text-white shadow hover:bg-[var(--shell-accent-hover)] transition-colors"
                       >
                         Submit KYC Verification →
                       </a>

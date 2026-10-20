@@ -1,6 +1,7 @@
+import { DismissOnEscape } from "@/components/ui/DismissOnEscape";
 import { Search, Show as Eye, Location as MapPin, TimeCircle as Clock } from "@/components/icons";
 import { Package, Truck, Spinner as Loader2 } from "@/components/icons/rounded";;
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { usePrompt } from '@/components/ui/DialogProvider';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -79,23 +80,29 @@ export function FulfilmentPage() {
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const fetchOrders = useCallback(async () => {
+  const [fetchOrdersKey, setFetchOrdersKey] = useState(0);
+  const fetchOrders = () => {
     setIsLoading(true);
-    try {
-      const endpoint = tab === 'sales' ? `/store/fulfilment/sales` : `/store/fulfilment/orders`;
-      const res = await authFetch(endpoint, {  });
-      if (res.ok) {
-        const json = await res.json();
-        setOrders(json.data?.data ?? []);
-      }
-    } catch {
-      // ignore
-    } finally {
-      setIsLoading(false);
-    }
-  }, [tab]);
+    setFetchOrdersKey((k) => k + 1);
+  };
 
-  useEffect(() => { fetchOrders(); }, [fetchOrders]);
+  useEffect(() => {
+    (async () => {
+      try {
+        const endpoint = tab === 'sales' ? `/store/fulfilment/sales` : `/store/fulfilment/orders`;
+        const res = await authFetch(endpoint, {  });
+        if (res.ok) {
+          const json = await res.json();
+          setOrders(json.data?.data ?? []);
+        }
+      } catch {
+        // ignore
+      } finally {
+        setIsLoading(false);
+      }
+    })();
+  }, [fetchOrdersKey, tab]);
+
 
   async function updateStatus(orderId: number, status: string) {
     setMessage(null);
@@ -173,13 +180,16 @@ export function FulfilmentPage() {
     );
   }
 
-  const DetailModal = () => {
+  // Called as a plain function, not used as a component type, so React does not remount it on every render.
+  const renderDetailModal = () => {
     if (!selected) return null;
     const cfg = STATUS_FLOW[selected.status] ?? STATUS_FLOW.pending;
 
     return (
-      <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setSelected(null)}>
-        <div className="border-none rounded-lg bg-card p-4 max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl" onClick={e => e.stopPropagation()}>
+      <div role="presentation" onKeyDown={(e) => { if (e.key === "Escape") e.currentTarget.click(); }}
+ className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={(e) => { if (e.target === e.currentTarget) { setSelected(null); } }}>
+          <DismissOnEscape onDismiss={() => { setSelected(null); }} />
+        <div role="dialog" aria-modal="true" className="border-none rounded-lg bg-card p-4 max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h2 className="text-lg font-bold text-foreground">{selected.order_number}</h2>
@@ -304,7 +314,7 @@ export function FulfilmentPage() {
       {/* Tabs */}
       <div className="flex p-1 bg-muted rounded-lg gap-1 w-fit">
         <button
-          onClick={() => setTab('sales')}
+          onClick={() => { if (tab !== 'sales') { setIsLoading(true); setTab('sales'); } }}
           className={`flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-lg transition-all ${
             tab === 'sales' ? 'bg-card text-foreground ' : 'text-muted-foreground hover:text-foreground'
           }`}
@@ -312,7 +322,7 @@ export function FulfilmentPage() {
           Sales to Fulfil
         </button>
         <button
-          onClick={() => setTab('orders')}
+          onClick={() => { if (tab !== 'orders') { setIsLoading(true); setTab('orders'); } }}
           className={`flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-lg transition-all ${
             tab === 'orders' ? 'bg-card text-foreground ' : 'text-muted-foreground hover:text-foreground'
           }`}
@@ -432,7 +442,7 @@ export function FulfilmentPage() {
         </div>
       )}
 
-      {selected && <DetailModal />}
+      {selected && renderDetailModal()}
     </div>
   );
 }

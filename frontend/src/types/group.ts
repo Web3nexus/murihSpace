@@ -102,7 +102,7 @@ export interface GroupPost {
   link_url?: string | null;
   poll_question?: string | null;
   poll_options?: string[] | { text: string; votes?: number }[] | null;
-  poll_results?: Record<string, any> | null;
+  poll_results?: Record<string, unknown> | null;
   poll_ends_at?: string | null;
   is_pinned?: boolean;
   pinned_at?: string | null;

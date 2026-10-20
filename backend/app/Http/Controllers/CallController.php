@@ -34,15 +34,7 @@ class CallController extends Controller
 
     private function getLivekitHost(): string
     {
-        $host = (string) config('livekit.host', 'https://live-staging.murihspace.com');
-        $host = rtrim($host, '/');
-        if (str_starts_with($host, 'https://')) {
-            return 'wss://' . substr($host, 8);
-        }
-        if (str_starts_with($host, 'http://')) {
-            return 'ws://' . substr($host, 7);
-        }
-        return $host;
+        return \App\Support\LiveKitUrl::websocket();
     }
 
     private function resolveLivekitService(): ?LiveKitService

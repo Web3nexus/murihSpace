@@ -1,7 +1,7 @@
 import * as React from "react";
 import { useRouteError, Link } from "react-router";
 import { DangerSquare as WarningCircle, Swap as ArrowsClockwise, Home as House, Lock as LockKey, TickSquare as Check, ArrowDown as CaretDown, ArrowUp as CaretUp, Login as SignIn } from "@/components/icons";
-import { Sparkle, VideoCameraSlash, WifiSlash, Copy } from "@/components/icons/rounded";;
+import { Lightning, VideoCameraSlash, WifiSlash, Copy } from "@/components/icons/rounded";;
 import { Button } from "@/components/ui/button";
 import { mapApplicationError } from "@/lib/errorMapper";
 
@@ -15,7 +15,7 @@ export function RootErrorBoundary() {
   const handleReload = () => {
     try {
       sessionStorage.clear();
-    } catch (_) {}
+    } catch { /* ignored: best-effort, failure is non-fatal */ }
     window.location.reload();
   };
 
@@ -42,14 +42,14 @@ export function RootErrorBoundary() {
         );
       case "auth":
         return (
-          <div className="h-16 w-16 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-500 mx-auto">
+          <div className="h-16 w-16 rounded-full bg-[var(--shell-accent-solid)]/10 flex items-center justify-center text-[var(--shell-accent)] mx-auto">
             <LockKey weight="fill" className="h-8 w-8" />
           </div>
         );
       case "chunk":
         return (
-          <div className="h-16 w-16 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-500 mx-auto">
-            <Sparkle weight="fill" className="h-8 w-8" />
+          <div className="h-16 w-16 rounded-full bg-[var(--shell-accent-solid)]/10 flex items-center justify-center text-[var(--shell-accent)] mx-auto">
+            <Lightning weight="fill" className="h-8 w-8" />
           </div>
         );
       default:

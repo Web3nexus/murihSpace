@@ -1,5 +1,4 @@
-import { getAuthToken } from "@/lib/auth/token";
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { TickSquare as CheckCircle2, TimeCircle as Clock, CloseSquare as XCircle, DangerSquare as AlertCircle, TickSquare as Check, Search } from "@/components/icons";
 import { CurrencyDollar, Spinner as Loader2 } from "@/components/icons/rounded";;
 import { Button } from '@/components/ui/button';
@@ -9,8 +8,7 @@ import { authFetch } from "@/lib/api/authFetch";
 
 
 const authHeaders = () => {
-  const t = getAuthToken();
-  return { Accept: 'application/json', 'Content-Type': 'application/json', ...(t ? { Authorization: `Bearer ${t}` } : {}) };
+  return { Accept: 'application/json', 'Content-Type': 'application/json', };
 };
 
 const requestId = { current: 0 };
@@ -25,21 +23,27 @@ export function AdminTransactionsPage() {
   const [lastPage, setLastPage] = useState(1);
   const [search, setSearch] = useState('');
 
-  const loadWithdrawals = useCallback(async () => {
-    const id = ++requestId.current;
-    setError(null);
-    try {
-      const params = new URLSearchParams({ page: String(page), per_page: '20' });
-      if (search) params.set('search', search);
-      const res = await authFetch(`/securegate/withdrawals?${params}`, { headers: authHeaders() });
-      if (id !== requestId.current) return;
-      if (res.ok) { const j = await res.json(); setWithdrawals(j?.data?.data ?? j?.data ?? []); setLastPage(j.data?.last_page ?? j.data?.data?.last_page ?? 1); }
-      else setError('Failed to load withdrawals.');
-    } catch { if (id === requestId.current) setError('Unable to connect.'); }
-    finally { if (id === requestId.current) setLoading(false); }
-  }, [page, search]);
+  const [loadWithdrawalsKey, setLoadWithdrawalsKey] = useState(0);
+  const loadWithdrawals = () => {
+    setLoadWithdrawalsKey((k) => k + 1);
+  };
 
-  useEffect(() => { loadWithdrawals(); }, [loadWithdrawals]);
+  useEffect(() => {
+    (async () => {
+      const id = ++requestId.current;
+      setError(null);
+      try {
+        const params = new URLSearchParams({ page: String(page), per_page: '20' });
+        if (search) params.set('search', search);
+        const res = await authFetch(`/securegate/withdrawals?${params}`, { headers: authHeaders() });
+        if (id !== requestId.current) return;
+        if (res.ok) { const j = await res.json(); setWithdrawals(j?.data?.data ?? j?.data ?? []); setLastPage(j.data?.last_page ?? j.data?.data?.last_page ?? 1); }
+        else setError('Failed to load withdrawals.');
+      } catch { if (id === requestId.current) setError('Unable to connect.'); }
+      finally { if (id === requestId.current) setLoading(false); }
+    })();
+  }, [loadWithdrawalsKey, page, search]);
+
 
   const handleProcess = async (id: number, action: 'approve' | 'reject') => {
     setProcessing(id);
@@ -57,7 +61,7 @@ export function AdminTransactionsPage() {
 
   const statusColor: Record<string, string> = {
     pending: 'bg-amber-500/20 text-amber-400',
-    approved: 'bg-blue-500/20 text-blue-400',
+    approved: 'bg-[var(--shell-accent-solid)]/20 text-[var(--shell-accent)]',
     completed: 'bg-emerald-500/20 text-emerald-400',
     rejected: 'bg-rose-500/20 text-rose-400',
   };
@@ -66,7 +70,7 @@ export function AdminTransactionsPage() {
     <div className="w-full mx-auto max-w-[1400px] space-y-6 p-4 lg:p-10">
       <div>
         <h1 className="text-xl font-black tracking-tight flex items-center gap-2.5">
-          <CurrencyDollar weight="fill" className="h-6 w-6 text-[#2164b6] dark:text-[#7ab0ff]" /> Transactions
+          <CurrencyDollar weight="fill" className="h-6 w-6 text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" /> Transactions
         </h1>
         <p className="text-xs text-muted-foreground mt-1">Review withdrawals, orders, and platform transactions.</p>
       </div>
@@ -91,7 +95,7 @@ export function AdminTransactionsPage() {
             <Input value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} placeholder="Search by ID, user, status..." className="pl-8 h-8 text-xs" />
           </div>
         </div>
-        {loading ? <div className="flex justify-center py-12"><Loader2 weight="fill" className="h-8 w-8 animate-spin text-[#2164b6] dark:text-[#7ab0ff]" /></div>
+        {loading ? <div className="flex justify-center py-12"><Loader2 weight="fill" className="h-8 w-8 animate-spin text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" /></div>
           : withdrawals.length === 0 ? <div className="p-12 text-center"><CurrencyDollar weight="fill" className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" /><p className="text-xs text-muted-foreground">No withdrawal requests.</p></div>
           : <div className="divide-y divide-border/50">
               {withdrawals.map((w) => (

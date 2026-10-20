@@ -1,17 +1,18 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import { env } from "@/config/env";
+import { authFetch } from "@/lib/api/authFetch";
+import type { CallSignal } from "@/types/calls";
+import { asApiError } from "@/lib/apiError";
+import React, { createContext, useContext, useState, useEffect, useLayoutEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { getEcho } from '@/lib/echo';
-import { getAuthToken } from '@/lib/auth/token';
+import { getEcho, type EchoInstance } from '@/lib/echo';
 import { toast } from 'sonner';
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? 'https://api-staging.murihspace.com/api/v1';
+const API_BASE = env.VITE_API_BASE_URL;
 
 function getAuthHeaders() {
-  const token = getAuthToken();
   return {
     'Content-Type': 'application/json',
     Accept: 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
   };
 }
 
@@ -60,6 +61,7 @@ interface CallContextType {
 
 const CallContext = createContext<CallContextType | null>(null);
 
+// eslint-disable-next-line react-refresh/only-export-components -- hook is co-located with its provider; moving it would touch every consumer
 export const useCall = () => {
   const ctx = useContext(CallContext);
   if (!ctx) throw new Error('useCall must be used within CallProvider');
@@ -70,13 +72,15 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const { user } = useAuth();
   const [call, setCall] = useState<WebCallSession | null>(null);
   const callRef = useRef<WebCallSession | null>(null);
-  callRef.current = call;
+  useLayoutEffect(() => {
+    callRef.current = call;
+  }, [call]);
 
   // Listen to incoming call events via Echo
   useEffect(() => {
     if (!user?.id) return;
 
-    let echo: any;
+    let echo: EchoInstance | undefined;
     try {
       echo = getEcho();
     } catch {
@@ -86,7 +90,7 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const userChannel = echo.private(`user.${user.id}`);
     const appUserChannel = echo.private(`App.Models.User.${user.id}`);
 
-    const onCallIncoming = (raw: any) => {
+    const onCallIncoming = (raw: CallSignal) => {
       const data = raw?.call || raw?.data?.call || raw?.data || raw;
       const caller = data.caller || raw.caller || data.caller_user;
       const id = Number(data.id || raw.id || 0);
@@ -99,7 +103,7 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // Acknowledge receipt to backend immediately
       if (id > 0) {
-        fetch(`${API_BASE}/calls/${id}/ringing`, {
+        authFetch(`${API_BASE}/calls/${id}/ringing`, {
           method: 'POST',
           headers: getAuthHeaders(),
         }).catch(() => {});
@@ -121,7 +125,7 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
     };
 
-    const onCallEnded = (raw: any) => {
+    const onCallEnded = (raw: CallSignal) => {
       const data = raw?.data ?? raw;
       const id = Number(data?.id || raw?.id || 0);
       if (callRef.current && callRef.current.callId === id) {
@@ -130,7 +134,7 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     };
 
-    const onCallDeclined = (raw: any) => {
+    const onCallDeclined = (raw: CallSignal) => {
       const data = raw?.data ?? raw;
       const id = Number(data?.id || raw?.id || 0);
       if (callRef.current && callRef.current.callId === id) {
@@ -152,7 +156,7 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const pollInterval = setInterval(() => {
       if (callRef.current && callRef.current.status !== 'idle' && callRef.current.status !== 'ended') return;
 
-      fetch(`${API_BASE}/calls/incoming/active`, { headers: getAuthHeaders() })
+      authFetch(`${API_BASE}/calls/incoming/active`, { headers: getAuthHeaders() })
         .then((res) => (res.ok ? res.json() : null))
         .then((raw) => {
           if (!raw || (callRef.current && callRef.current.status !== 'idle' && callRef.current.status !== 'ended')) return;
@@ -213,7 +217,7 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
           isMinimized: false,
         });
 
-        const res = await fetch(`${API_BASE}/calls/initiate`, {
+        const res = await authFetch(`${API_BASE}/calls/initiate`, {
           method: 'POST',
           headers: getAuthHeaders(),
           body: JSON.stringify({
@@ -242,8 +246,9 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
               }
             : null
         );
-      } catch (err: any) {
-        toast.error(err.message || 'Failed to initiate call');
+      } catch (err: unknown) {
+      const apiErr = asApiError(err);
+        toast.error(apiErr.message || 'Failed to initiate call');
         setCall(null);
       }
     },
@@ -257,7 +262,7 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setCall((prev) => (prev ? { ...prev, status: 'connecting' } : null));
 
     try {
-      const res = await fetch(`${API_BASE}/calls/${current.callId}/accept`, {
+      const res = await authFetch(`${API_BASE}/calls/${current.callId}/accept`, {
         method: 'POST',
         headers: getAuthHeaders(),
       });
@@ -272,13 +277,13 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
           : null
       );
-    } catch (_) {}
+    } catch { /* ignored: best-effort, failure is non-fatal */ }
   }, []);
 
   const declineCall = useCallback(() => {
     const current = callRef.current;
     if (current?.callId) {
-      fetch(`${API_BASE}/calls/${current.callId}/decline`, {
+      authFetch(`${API_BASE}/calls/${current.callId}/decline`, {
         method: 'POST',
         headers: getAuthHeaders(),
       }).catch(() => {});
@@ -290,7 +295,7 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const endCall = useCallback(() => {
     const current = callRef.current;
     if (current?.callId) {
-      fetch(`${API_BASE}/calls/${current.callId}/end`, {
+      authFetch(`${API_BASE}/calls/${current.callId}/end`, {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify({ duration_seconds: 0 }),

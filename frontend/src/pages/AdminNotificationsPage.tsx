@@ -1,18 +1,16 @@
+import { logger } from "@/lib/logger";
 import { useState, useEffect, useCallback } from "react";
 import { Notification as Bell, TickSquare as CheckCheck, TickSquare as Check, ShieldFail as ShieldWarning, ShieldDone as ShieldCheck, AddUser as UserPlus, Setting as Sliders, Swap as RefreshCw, Wallet, DangerSquare as WarningCircle, DangerTriangle as AlertTriangle, Wallet as CreditCard, Password as Key, Search as MagnifyingGlass, ArrowRight, Message as EnvelopeSimple, Send as PaperPlaneRight } from "@/components/icons";
 import { Spinner as Loader2, Lifebuoy, Cpu } from "@/components/icons/rounded";;
 import { Button } from "@/components/ui/button";
 import { authFetch } from "@/lib/api/authFetch";
-import { getAuthToken } from "@/lib/auth/token";
 import { toast } from "sonner";
 import { Link } from "react-router";
 
 function authHeaders() {
-  const t = getAuthToken();
   return {
     Accept: "application/json",
     "Content-Type": "application/json",
-    ...(t ? { Authorization: `Bearer ${t}` } : {}),
   };
 }
 
@@ -54,9 +52,9 @@ const CATEGORY_ICONS: Record<string, { icon: React.ReactNode; color: string; bg:
     bg: "bg-amber-500/10 border-amber-500/20",
   },
   deposit_request: {
-    icon: <Wallet weight="fill" className="h-4 w-4 text-blue-500" />,
-    color: "text-blue-500",
-    bg: "bg-blue-500/10 border-blue-500/20",
+    icon: <Wallet weight="fill" className="h-4 w-4 text-[var(--shell-accent)]" />,
+    color: "text-[var(--shell-accent)]",
+    bg: "bg-[var(--shell-accent-solid)]/10 border-[var(--shell-accent)]/20",
   },
   withdrawal_request: {
     icon: <CreditCard weight="fill" className="h-4 w-4 text-purple-500" />,
@@ -89,8 +87,8 @@ const CATEGORY_ICONS: Record<string, { icon: React.ReactNode; color: string; bg:
     bg: "bg-orange-500/10 border-orange-500/20",
   },
   infrastructure_notifications: {
-    icon: <Cpu weight="fill" className="h-4 w-4 text-slate-400" />,
-    color: "text-slate-400",
+    icon: <Cpu weight="fill" className="h-4 w-4 text-[var(--shell-muted)]" />,
+    color: "text-[var(--shell-muted)]",
     bg: "bg-slate-500/10 border-slate-500/20",
   },
 };
@@ -135,7 +133,7 @@ export default function AdminNotificationsPage() {
           setLastPage(data.pagination.last_page ?? 1);
         }
       } catch (err) {
-        console.error("Failed to load admin notifications", err);
+        logger.error("Failed to load admin notifications", err);
       } finally {
         setLoading(false);
         setRefreshing(false);
@@ -144,29 +142,30 @@ export default function AdminNotificationsPage() {
     [page, activeCategory, statusFilter]
   );
 
-  const loadPreferences = useCallback(async () => {
-    try {
-      const res = await authFetch(`/securegate/notifications/preferences`, {
-        headers: authHeaders(),
-      });
-      if (res.ok) {
-        const json = await res.json();
-        setPrefs(json.data ?? {});
-      }
-    } catch (e) {
-      console.error("Failed to load admin preferences", e);
-    }
-  }, []);
 
+  // The first load runs just after the effect so the loader's state updates are not synchronous in the effect body
   useEffect(() => {
-    loadNotifications();
+    const first = setTimeout(() => { void loadNotifications(); }, 0);
+    return () => clearTimeout(first);
   }, [loadNotifications]);
 
   useEffect(() => {
     if (activeTab === "preferences") {
-      loadPreferences();
+      (async () => {
+      try {
+        const res = await authFetch(`/securegate/notifications/preferences`, {
+          headers: authHeaders(),
+        });
+        if (res.ok) {
+          const json = await res.json();
+          setPrefs(json.data ?? {});
+        }
+      } catch (e) {
+        logger.error("Failed to load admin preferences", e);
+      }
+      })();
     }
-  }, [activeTab, loadPreferences]);
+  }, [activeTab]);
 
   const handleMarkRead = async (id: number) => {
     try {
@@ -277,7 +276,7 @@ export default function AdminNotificationsPage() {
         <div>
           <div className="flex items-center gap-3">
             <h1 className="text-xl font-black tracking-tight flex items-center gap-2.5">
-              <Bell weight="fill" className="h-6 w-6 text-[#2164b6] dark:text-[#7ab0ff]" />
+              <Bell weight="fill" className="h-6 w-6 text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" />
               Admin Notification Center
             </h1>
             {totalUnread > 0 && (
@@ -331,7 +330,7 @@ export default function AdminNotificationsPage() {
               variant="default"
               size="sm"
               onClick={handleMarkAllRead}
-              className="h-8 px-3 rounded-xl text-xs gap-1 bg-[#2164b6] hover:bg-[#1a5194] text-white"
+              className="h-8 px-3 rounded-xl text-xs gap-1 bg-[var(--shell-accent-solid)] hover:bg-[#1a5194] text-white"
             >
               <CheckCheck weight="bold" className="w-3.5 h-3.5" />
               <span>Mark All Read</span>
@@ -351,7 +350,7 @@ export default function AdminNotificationsPage() {
               }}
               className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
                 activeCategory === "all"
-                  ? "bg-[#2164b6] text-white shadow-sm"
+                  ? "bg-[var(--shell-accent-solid)] text-white shadow-sm"
                   : "bg-card border border-border/60 text-muted-foreground hover:text-foreground hover:bg-muted"
               }`}
             >
@@ -369,7 +368,7 @@ export default function AdminNotificationsPage() {
                   }}
                   className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap flex items-center gap-1.5 transition-all ${
                     isSelected
-                      ? "bg-[#2164b6] text-white shadow-sm"
+                      ? "bg-[var(--shell-accent-solid)] text-white shadow-sm"
                       : "bg-card border border-border/60 text-muted-foreground hover:text-foreground hover:bg-muted"
                   }`}
                 >
@@ -378,7 +377,7 @@ export default function AdminNotificationsPage() {
                     <span
                       className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
                         isSelected
-                          ? "bg-white text-[#2164b6]"
+                          ? "bg-white text-[var(--shell-accent)]"
                           : "bg-rose-500 text-white"
                       }`}
                     >
@@ -435,7 +434,7 @@ export default function AdminNotificationsPage() {
                 placeholder="Search admin notifications…"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-8 pr-3 py-1.5 text-xs rounded-xl bg-card border border-border/60 focus:outline-none focus:ring-1 focus:ring-[#2164b6]"
+                className="w-full pl-8 pr-3 py-1.5 text-xs rounded-xl bg-card border border-border/60 focus:outline-none focus:ring-1 focus:ring-[var(--shell-accent)]"
               />
             </div>
           </div>
@@ -443,7 +442,7 @@ export default function AdminNotificationsPage() {
           {/* Alert List */}
           {loading ? (
             <div className="flex justify-center py-20">
-              <Loader2 weight="fill" className="h-7 w-7 animate-spin text-[#2164b6]" />
+              <Loader2 weight="fill" className="h-7 w-7 animate-spin text-[var(--shell-accent)]" />
             </div>
           ) : filteredNotifications.length === 0 ? (
             <div className="rounded-3xl border border-border/60 bg-card p-12 text-center space-y-2">
@@ -472,7 +471,7 @@ export default function AdminNotificationsPage() {
                     className={`p-4 rounded-2xl border transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 ${
                       notif.is_read
                         ? "bg-card/60 border-border/50 opacity-80"
-                        : "bg-card border-border shadow-xs hover:border-[#2164b6]/50"
+                        : "bg-card border-border shadow-xs hover:border-[var(--shell-accent)]/50"
                     }`}
                   >
                     <div className="flex items-start gap-3.5 flex-1 min-w-0">
@@ -491,13 +490,13 @@ export default function AdminNotificationsPage() {
                                 ? "bg-rose-500/20 text-rose-500"
                                 : notif.severity === "warning"
                                 ? "bg-amber-500/20 text-amber-500"
-                                : "bg-blue-500/20 text-blue-500"
+                                : "bg-[var(--shell-accent-solid)]/20 text-[var(--shell-accent)]"
                             }`}
                           >
                             {notif.severity}
                           </span>
                           {!notif.is_read && (
-                            <span className="w-2 h-2 rounded-full bg-[#2164b6] animate-pulse" />
+                            <span className="w-2 h-2 rounded-full bg-[var(--shell-accent-solid)] animate-pulse" />
                           )}
                         </div>
 
@@ -515,7 +514,7 @@ export default function AdminNotificationsPage() {
                       {notif.action_url && (
                         <Link
                           to={notif.action_url}
-                          className="px-3 py-1.5 rounded-xl text-xs font-bold bg-[#2164b6] text-white hover:bg-[#1a5194] transition-colors flex items-center gap-1"
+                          className="px-3 py-1.5 rounded-xl text-xs font-bold bg-[var(--shell-accent-solid)] text-white hover:bg-[#1a5194] transition-colors flex items-center gap-1"
                         >
                           <span>Review</span>
                           <ArrowRight weight="bold" className="h-3 w-3" />
@@ -570,8 +569,8 @@ export default function AdminNotificationsPage() {
       ) : (
         /* Preferences Tab */
         <div className="rounded-3xl border border-border/70 bg-card p-6 space-y-6">
-          <div className="p-4 rounded-2xl bg-[#2164b6]/10 border border-[#2164b6]/20 flex items-start gap-3">
-            <Sliders weight="fill" className="h-5 w-5 text-[#2164b6] shrink-0 mt-0.5" />
+          <div className="p-4 rounded-2xl bg-[var(--shell-accent-solid)]/10 border border-[var(--shell-accent)]/20 flex items-start gap-3">
+            <Sliders weight="fill" className="h-5 w-5 text-[var(--shell-accent)] shrink-0 mt-0.5" />
             <div className="space-y-1">
               <h4 className="text-xs font-bold text-foreground">
                 Section 17: Admin Notification Routing Preferences
@@ -609,7 +608,7 @@ export default function AdminNotificationsPage() {
                         checked={inAppEnabled}
                         disabled={savingPrefs}
                         onChange={() => handleTogglePreference(cat.key, "in_app", inAppEnabled)}
-                        className="rounded border-border text-[#2164b6] focus:ring-[#2164b6]"
+                        className="rounded border-border text-[var(--shell-accent)] focus:ring-[var(--shell-accent)]"
                       />
                       <span className="text-[11px] font-medium text-foreground">In-App Console</span>
                     </label>
@@ -621,7 +620,7 @@ export default function AdminNotificationsPage() {
                         checked={emailEnabled}
                         disabled={savingPrefs}
                         onChange={() => handleTogglePreference(cat.key, "email", emailEnabled)}
-                        className="rounded border-border text-[#2164b6] focus:ring-[#2164b6]"
+                        className="rounded border-border text-[var(--shell-accent)] focus:ring-[var(--shell-accent)]"
                       />
                       <span className="text-[11px] font-medium text-foreground flex items-center gap-1">
                         <EnvelopeSimple weight="bold" className="h-3 w-3" />
@@ -636,7 +635,7 @@ export default function AdminNotificationsPage() {
                         checked={telegramEnabled}
                         disabled={savingPrefs}
                         onChange={() => handleTogglePreference(cat.key, "telegram", telegramEnabled)}
-                        className="rounded border-border text-[#2164b6] focus:ring-[#2164b6]"
+                        className="rounded border-border text-[var(--shell-accent)] focus:ring-[var(--shell-accent)]"
                       />
                       <span className="text-[11px] font-medium text-foreground flex items-center gap-1">
                         <PaperPlaneRight weight="bold" className="h-3 w-3" />

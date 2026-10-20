@@ -27,15 +27,12 @@ const TRANSPARENT_PIXEL =
 export function AnimatedEmoji({ emoji, className, alt, title }: AnimatedEmojiProps) {
   const url = emojiAssetUrl(emoji);
   const imgRef = useRef<HTMLImageElement>(null);
-  const [inView, setInView] = useState(false);
+  // Without IntersectionObserver there is nothing to wait for, so show immediately.
+  const [inView, setInView] = useState(() => typeof IntersectionObserver === 'undefined');
 
   useEffect(() => {
     const el = imgRef.current;
     if (!el || inView) return;
-    if (typeof IntersectionObserver === 'undefined') {
-      setInView(true);
-      return;
-    }
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries.some((entry) => entry.isIntersecting)) {

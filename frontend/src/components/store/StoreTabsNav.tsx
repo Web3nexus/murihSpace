@@ -17,7 +17,7 @@ const TABS: { key: StoreTabKey; label: string }[] = [
 
 export const StoreTabsNav: React.FC<StoreTabsNavProps> = ({ activeTab, onTabChange }) => {
   return (
-    <div className="border-b border-[#29313C] w-full">
+    <div className="border-b border-[var(--shell-border)] w-full">
       <nav className="flex space-x-8 -mb-px overflow-x-auto scrollbar-none" aria-label="Store Tabs">
         {TABS.map((tab) => {
           const isActive = activeTab === tab.key;
@@ -28,12 +28,12 @@ export const StoreTabsNav: React.FC<StoreTabsNavProps> = ({ activeTab, onTabChan
               className={`whitespace-nowrap py-3.5 px-1 text-sm font-semibold transition-all relative ${
                 isActive
                   ? 'text-white'
-                  : 'text-[#A7B0BE] hover:text-[#F5F7FA]'
+                  : 'text-[var(--shell-muted)] hover:text-[#F5F7FA]'
               }`}
             >
               {tab.label}
               {isActive && (
-                <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#087FFF] rounded-full" />
+                <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-[var(--shell-accent-solid)] rounded-full" />
               )}
             </button>
           );

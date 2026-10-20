@@ -1,15 +1,8 @@
-import { Outlet, Link, redirect } from "react-router";
-import type { LoaderFunctionArgs } from "react-router";
-
-export async function loader({ request }: LoaderFunctionArgs) {
-  const cookie = request.headers.get("Cookie");
-  if (!cookie || !cookie.includes("admin_session=")) {
-    return redirect("/secureads/login");
-  }
-  return null;
-}
+import { useEffect, useState } from "react";
 import { SidebarProvider, SidebarTrigger, Sidebar, SidebarContent, SidebarGroup, SidebarGroupLabel, SidebarGroupContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarInset } from "../../components/ui/sidebar";
+import { Link, Outlet } from "react-router";
 import { ShieldAlert, Users, Image as ImageIcon } from "lucide-react";
+import { readAdsToken, sendToStaffSignIn } from "../../lib/staff-session";
 
 const navItems = [
   { title: "Verification Queue", url: "/secureads/advertisers/verification", icon: Users },
@@ -17,6 +10,20 @@ const navItems = [
 ];
 
 export default function SecureAdsLayout() {
+  // The staff token lives in localStorage, which the server cannot read. The
+  // admin shell therefore renders only once a token is present in the browser.
+  // The ads API still enforces the staff ability on every admin call.
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    if (readAdsToken()) {
+      setReady(true);
+    } else {
+      sendToStaffSignIn();
+    }
+  }, []);
+
+  if (!ready) return null;
+
   return (
     <SidebarProvider>
       <Sidebar className="border-r border-red-900/20 shadow-sm bg-slate-900 text-slate-100">

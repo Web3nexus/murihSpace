@@ -1,3 +1,5 @@
+import { authFetch } from "@/lib/api/authFetch";
+import { asApiError } from "@/lib/apiError";
 import React, { useState } from 'react';
 import {
   Dialog,
@@ -11,7 +13,6 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ShieldFail as ShieldWarning, DangerTriangle as AlertTriangle, TickSquare as CheckCircle2 } from "@/components/icons";
 import type { ReportReason, ReportedType } from '@/types/moderation';
-import { getAuthToken } from "@/lib/auth/token";
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? 'http://localhost:8000/api/v1';
 
@@ -49,14 +50,12 @@ export function ReportModal({
     setIsSubmitting(true);
     setError(null);
 
-    const token = getAuthToken();
     try {
-      const res = await fetch(`${API_BASE}/reports`, {
+      const res = await authFetch(`${API_BASE}/reports`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Accept: 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({
           reported_type: reportedType,
@@ -80,7 +79,8 @@ export function ReportModal({
         setSelectedReason('spam');
       }, 1800);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'An error occurred while submitting the report.');
+      const apiErr = asApiError(err);
+      setError(err instanceof Error ? apiErr.message : 'An error occurred while submitting the report.');
     } finally {
       setIsSubmitting(false);
     }

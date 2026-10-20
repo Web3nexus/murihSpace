@@ -34,7 +34,7 @@ export function ReceiveMoneyModal({
       <DialogContent className="sm:max-w-sm p-6 text-center">
         <DialogHeader className="space-y-1">
           <DialogTitle className="flex items-center justify-center gap-2 text-lg font-bold">
-            <QrCode weight="bold" className="h-5 w-5 text-[#2164b6]" />
+            <QrCode weight="bold" className="h-5 w-5 text-[var(--shell-accent)]" />
             Receive Money
           </DialogTitle>
           <DialogDescription className="text-xs text-muted-foreground">
@@ -46,7 +46,7 @@ export function ReceiveMoneyModal({
         <div className="my-3 flex flex-col items-center justify-center">
           <div className="p-4 bg-white rounded-2xl border border-border shadow-xs inline-block">
             {/* Clean SVG QR code graphic */}
-            <svg className="w-40 h-40 text-slate-900" viewBox="0 0 100 100" fill="currentColor">
+            <svg className="w-40 h-40 text-[var(--shell-text)]" viewBox="0 0 100 100" fill="currentColor">
               {/* Corner position markers */}
               <rect x="10" y="10" width="22" height="22" rx="4" />
               <rect x="14" y="14" width="14" height="14" fill="white" />
@@ -100,7 +100,7 @@ export function ReceiveMoneyModal({
           <Button
             type="button"
             onClick={handleCopy}
-            className="flex-1 h-10 bg-[#2164b6] hover:bg-[#1a5091] text-white font-bold text-xs rounded-xl"
+            className="flex-1 h-10 bg-[var(--shell-accent-solid)] hover:bg-[var(--shell-accent-hover)] text-white font-bold text-xs rounded-xl"
           >
             {copied ? (
               <span className="flex items-center gap-1.5">

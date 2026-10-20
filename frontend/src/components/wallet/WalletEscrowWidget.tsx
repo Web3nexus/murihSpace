@@ -62,7 +62,7 @@ export function WalletEscrowWidget({
       default:
         return {
           label: "Completed",
-          color: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20",
+          color: "bg-[var(--shell-accent-solid)]/10 text-[var(--shell-accent)] dark:text-[var(--shell-accent)] border-[var(--shell-accent)]/20",
         };
     }
   };
@@ -74,7 +74,7 @@ export function WalletEscrowWidget({
         <button
           onClick={() => navigate("/app/wallet/escrow")}
           type="button"
-          className="text-xs font-semibold text-[#2164b6] hover:underline"
+          className="text-xs font-semibold text-[var(--shell-accent)] hover:underline"
         >
           View All
         </button>
@@ -86,13 +86,13 @@ export function WalletEscrowWidget({
           const Icon = idx % 2 === 0 ? Headphones : VideoCamera;
 
           return (
-            <div
+            <div role="button" tabIndex={0} onKeyDown={(e) => { if (e.target !== e.currentTarget) return; if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.currentTarget.click(); } }}
               key={deal.id}
               onClick={() => navigate(`/app/wallet/escrow`)}
               className="p-3 rounded-xl bg-muted/30 border border-border/70 hover:border-border flex items-center justify-between gap-3 cursor-pointer transition-all hover:bg-muted/50"
             >
               <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-9 h-9 rounded-lg bg-[#2164b6]/10 text-[#2164b6] flex items-center justify-center shrink-0">
+                <div className="w-9 h-9 rounded-lg bg-[var(--shell-accent-solid)]/10 text-[var(--shell-accent)] flex items-center justify-center shrink-0">
                   <Icon weight="fill" className="h-4 w-4" />
                 </div>
                 <div className="min-w-0">

@@ -1,11 +1,10 @@
+import { authFetch } from "@/lib/api/authFetch";
 import { useEffect, useRef } from 'react';
-import { getAuthToken } from "@/lib/auth/token";
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? 'http://localhost:8000/api/v1';
 
 function getAuthHeaders(): Record<string, string> {
-  const token = getAuthToken();
-  return { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
+  return { 'Content-Type': 'application/json', };
 }
 
 const PUBLIC_VAPID_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY ?? '';
@@ -31,7 +30,7 @@ export function usePushNotifications() {
       .then((subscription) => {
         if (!subscription) return;
         const sub = subscription.toJSON();
-        fetch(`${API_BASE}/push-tokens`, {
+        authFetch(`${API_BASE}/push-tokens`, {
           method: 'POST',
           headers: getAuthHeaders(),
           body: JSON.stringify({

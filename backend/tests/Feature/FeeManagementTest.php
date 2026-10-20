@@ -2,10 +2,13 @@
 
 namespace Tests\Feature;
 
+use App\Models\AdminSetting;
 use App\Models\FeeRule;
 use App\Models\User;
+use App\Services\Commission\CommissionService;
 use App\Services\Wallet\FeeCalculatorService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 use Tests\Concerns\ActsAsSession;
 use Tests\TestCase;
 
@@ -104,5 +107,28 @@ class FeeManagementTest extends TestCase
         $deleteRes->assertStatus(200);
 
         $this->assertDatabaseMissing('fee_rules', ['id' => $ruleId]);
+    }
+
+    public function test_a_saved_general_rate_does_not_override_the_per_type_schedule(): void
+    {
+        Cache::flush();
+        AdminSetting::set('commission_percentage_general', 7);
+
+        $service = app(CommissionService::class);
+
+        $this->assertSame(5.0, $service->getCommissionPercentage('digital_buyer'));
+        $this->assertSame(5.0, $service->getCommissionPercentage('coin_purchase'));
+        $this->assertSame(20.0, $service->getCommissionPercentage('digital'));
+        $this->assertSame(30.0, $service->getCommissionPercentage('gifts'));
+        // Unknown types still fall back to the general setting.
+        $this->assertSame(7.0, $service->getCommissionPercentage('some_new_type'));
+    }
+
+    public function test_a_per_type_admin_setting_still_overrides_the_default(): void
+    {
+        Cache::flush();
+        AdminSetting::set('commission_percentage_digital', 12);
+
+        $this->assertSame(12.0, app(CommissionService::class)->getCommissionPercentage('digital'));
     }
 }

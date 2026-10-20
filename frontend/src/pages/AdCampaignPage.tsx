@@ -9,6 +9,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { authFetch } from "@/lib/api/authFetch";
 import { ImageUploader } from "@/components/upload/ImageUploader";
+import { getAdsManagerHref } from "@/lib/adsManager";
+
+// Full stats live in the Ads Manager web app. Hidden when the env var is missing or unsafe.
+const ADS_MANAGER_URL = getAdsManagerHref() ?? "";
 
 const OBJECTIVES = [
   { value: "post_engagement", label: "Post Engagement", icon: CursorClick },
@@ -40,7 +44,7 @@ const STATUS_CONFIG: Record<string, { label: string; class: string }> = {
   draft: { label: "Draft", class: "bg-muted text-muted-foreground border-border/80" },
   active: { label: "Active", class: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/25" },
   paused: { label: "Paused", class: "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/25" },
-  completed: { label: "Completed", class: "bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/25" },
+  completed: { label: "Completed", class: "bg-[var(--shell-accent-solid)]/15 text-[var(--shell-accent)] dark:text-[var(--shell-accent)] border-[var(--shell-accent)]/25" },
   cancelled: { label: "Cancelled", class: "bg-rose-500/15 text-rose-600 dark:text-rose-400 border-rose-500/25" },
 };
 
@@ -52,8 +56,22 @@ const REVIEW_CONFIG: Record<string, { label: string; class: string }> = {
   removed: { label: "Removed", class: "bg-muted text-muted-foreground border-border/80" },
 };
 
+interface AdCampaign {
+  id: number;
+  name: string | null;
+  status: string | null;
+  review_status: string | null;
+  objective: string | null;
+  headline: string | null;
+  daily_budget: string | number | null;
+  total_budget: string | number | null;
+  start_date: string | null;
+  end_date: string | null;
+  created_at: string | null;
+}
+
 export default function AdCampaignPage() {
-  const [campaigns, setCampaigns] = useState<any[]>([]);
+  const [campaigns, setCampaigns] = useState<AdCampaign[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -68,10 +86,12 @@ export default function AdCampaignPage() {
 
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
-  const [launchingStudio, setLaunchingStudio] = useState(false);
+  // Starts already "launching" when the URL asks for Ads Studio, so the auto-launch effect needs no state write.
+  const [launchingStudio, setLaunchingStudio] = useState(
+    () => new URLSearchParams(window.location.search).get("launch_studio") === "true"
+  );
 
   const handleLaunchStudio = useCallback(async () => {
-    setLaunchingStudio(true);
     try {
       const res = await authFetch(`/ads/sso-token`, { method: "POST" });
       if (res.ok) {
@@ -93,47 +113,56 @@ export default function AdCampaignPage() {
     }
   }, []);
 
-  const fetchCampaigns = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await authFetch(`/ads`);
-      if (res.ok) {
-        const j = await res.json();
-        const payload = j?.data ?? j;
-        let list: any[] = [];
-        if (Array.isArray(payload)) {
-          list = payload;
-        } else if (Array.isArray(payload?.data)) {
-          list = payload.data;
-        } else if (Array.isArray(j?.data?.data)) {
-          list = j.data.data;
-        } else if (Array.isArray(j)) {
-          list = j;
-        }
-        setCampaigns(list);
-      } else {
-        setCampaigns([]);
-      }
-    } catch {
-      setCampaigns([]);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
-    fetchCampaigns();
+    (async () => {
+      setLoading(true);
+      try {
+        const res = await authFetch(`/ads`);
+        if (res.ok) {
+          const j = await res.json();
+          const payload = j?.data ?? j;
+          let list: AdCampaign[] = [];
+          if (Array.isArray(payload)) {
+            list = payload;
+          } else if (Array.isArray(payload?.data)) {
+            list = payload.data;
+          } else if (Array.isArray(j?.data?.data)) {
+            list = j.data.data;
+          } else if (Array.isArray(j)) {
+            list = j;
+          }
+          setCampaigns(list);
+        } else {
+          setCampaigns([]);
+        }
+      } catch {
+        setCampaigns([]);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [reloadKey]);
+
+  // Buttons mark the launch as in progress, then run it.
+  const startLaunchStudio = () => {
+    setLaunchingStudio(true);
+    handleLaunchStudio();
+  };
+
+  useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("launch_studio") === "true") {
       handleLaunchStudio();
     }
-  }, [fetchCampaigns, handleLaunchStudio]);
+  }, [handleLaunchStudio]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true); setMsg(null);
     try {
-      const body: any = { ...form };
+      const body: Record<string, unknown> = { ...form };
       if (form.start_date) body.start_date = new Date(form.start_date).toISOString();
       if (form.end_date) body.end_date = new Date(form.end_date).toISOString();
       if (form.daily_budget) body.daily_budget = parseFloat(form.daily_budget);
@@ -146,7 +175,7 @@ export default function AdCampaignPage() {
       });
       if (res.ok) {
         setMsg({ ok: true, text: "Campaign created! Submitted for review." });
-        setShowForm(false); fetchCampaigns();
+        setShowForm(false); setReloadKey((k) => k + 1);
         setForm({ name: "", objective: "post_engagement", daily_budget: "", total_budget: "", start_date: "", end_date: "", headline: "", description: "", cta_text: "", destination_url: "", media_url: "", placements: [], targeting: { country: [], region: [], city: [], age_min: 18, age_max: 65, language: [], interests: [] } });
       } else {
         const j = await res.json().catch(() => ({}));
@@ -159,7 +188,7 @@ export default function AdCampaignPage() {
   const handleAction = async (id: number, action: string) => {
     try {
       const res = await authFetch(`/ads/${id}/${action}`, { method: "POST" });
-      if (res.ok) fetchCampaigns();
+      if (res.ok) setReloadKey((k) => k + 1);
     } catch { /* ignore */ }
   };
 
@@ -169,18 +198,18 @@ export default function AdCampaignPage() {
     if (!await confirm({ title: "Cancel Campaign", message: "Cancel this campaign?", variant: "destructive" })) return;
     try {
       await authFetch(`/ads/${id}`, { method: "DELETE" });
-      fetchCampaigns();
+      setReloadKey((k) => k + 1);
     } catch { /* ignore */ }
   };
 
   const handleDuplicate = async (id: number) => {
     try {
       await authFetch(`/ads/${id}/duplicate`, { method: "POST" });
-      fetchCampaigns();
+      setReloadKey((k) => k + 1);
     } catch { /* ignore */ }
   };
 
-  const loadAnalytics = async (campaign: any) => {
+  const loadAnalytics = async (campaign: { id: number }) => {
     try {
       const res = await authFetch(`/ads/${campaign.id}/analytics`);
       if (res.ok) {
@@ -190,13 +219,13 @@ export default function AdCampaignPage() {
     } catch { /* ignore */ }
   };
 
-  const formatCurrency = (v: any) => v ? `$${parseFloat(v).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "-";
+  const formatCurrency = (v: string | number | null | undefined) => v ? `$${parseFloat(String(v)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "-";
 
   const campaignList = Array.isArray(campaigns) ? campaigns : [];
   const activeCount = campaignList.filter(c => c && c.status === "active").length;
   const pausedCount = campaignList.filter(c => c && c.status === "paused").length;
   const draftCount = campaignList.filter(c => c && c.status === "draft").length;
-  const totalBudget = campaignList.reduce((acc, c) => acc + (parseFloat(c?.total_budget) || 0), 0);
+  const totalBudget = campaignList.reduce((acc, c) => acc + (parseFloat(String(c?.total_budget)) || 0), 0);
 
   const filteredCampaigns = campaignList.filter(c => {
     if (!c) return false;
@@ -217,7 +246,7 @@ export default function AdCampaignPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-black tracking-tight text-foreground flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-xl bg-[#2164b6]/10 text-[#2164b6] dark:text-[#7ab0ff] flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-[var(--shell-accent-solid)]/10 text-[var(--shell-accent)] dark:text-[var(--shell-accent)] flex items-center justify-center">
               <Megaphone weight="fill" className="w-5 h-5" />
             </div>
             Ads Manager
@@ -231,7 +260,7 @@ export default function AdCampaignPage() {
           <Button
             variant="outline"
             disabled={launchingStudio}
-            onClick={handleLaunchStudio}
+            onClick={startLaunchStudio}
             className="border-primary/30 text-primary hover:bg-primary/10 font-bold text-xs rounded-xl"
           >
             {launchingStudio ? (
@@ -243,7 +272,7 @@ export default function AdCampaignPage() {
           </Button>
           <Button
             onClick={() => setShowForm(!showForm)}
-            className="bg-[#2164b6] hover:bg-[#1a5091] text-white font-bold text-xs rounded-xl shadow-xs"
+            className="bg-[var(--shell-accent-solid)] hover:bg-[var(--shell-accent-hover)] text-white font-bold text-xs rounded-xl shadow-xs"
           >
             {showForm ? (
               <>
@@ -265,7 +294,7 @@ export default function AdCampaignPage() {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="space-y-1.5 max-w-2xl">
             <div className="flex items-center flex-wrap gap-2">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#2164b6] text-white">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[var(--shell-accent-solid)] text-white">
                   <CheckCircle2 weight="fill" className="w-3 h-3" />
                   Dedicated Ads Studio
               </span>
@@ -273,7 +302,7 @@ export default function AdCampaignPage() {
                 <Database weight="fill" className="w-3 h-3" />
                 Database Synced
               </span>
-              <span className="inline-flex items-center gap-1 text-[11px] font-medium text-blue-600 dark:text-blue-400">
+              <span className="inline-flex items-center gap-1 text-[11px] font-medium text-[var(--shell-accent)] dark:text-[var(--shell-accent)]">
                 <ShieldCheck weight="fill" className="w-3 h-3" />
                 SSO Enabled
               </span>
@@ -289,8 +318,8 @@ export default function AdCampaignPage() {
           <button
             type="button"
             disabled={launchingStudio}
-            onClick={handleLaunchStudio}
-            className="px-4 py-2.5 rounded-xl bg-[#2164b6] hover:bg-[#1a5091] text-white font-bold text-xs shadow-md transition-all flex items-center justify-center gap-2 self-start md:self-auto cursor-pointer"
+            onClick={startLaunchStudio}
+            className="px-4 py-2.5 rounded-xl bg-[var(--shell-accent-solid)] hover:bg-[var(--shell-accent-hover)] text-white font-bold text-xs shadow-md transition-all flex items-center justify-center gap-2 self-start md:self-auto cursor-pointer"
           >
             <span>Log in to Ads Account</span>
             <ArrowSquareOut weight="bold" className="w-3.5 h-3.5" />
@@ -298,56 +327,58 @@ export default function AdCampaignPage() {
         </div>
       </div>
 
-      {/* ── Metric Snapshot Cards ── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
-        <div className="p-4 sm:p-5 rounded-2xl bg-card border border-border/80 shadow-xs flex flex-col justify-between hover:border-border transition-colors">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
-              Total Campaigns
-            </span>
-            <div className="w-7 h-7 rounded-lg bg-muted/60 text-muted-foreground flex items-center justify-center">
-              <Megaphone weight="fill" className="w-3.5 h-3.5" />
-            </div>
+      {/* ── Headline Snapshot + Full Stats CTA ── */}
+      <div className="space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <h2 className="text-sm font-bold text-foreground">Campaign snapshot</h2>
+            {ADS_MANAGER_URL && (
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Log in on the web to see full stats, reports and audience breakdowns.
+              </p>
+            )}
           </div>
-          <p className="text-2xl sm:text-3xl font-black text-foreground tracking-tight">{campaignList.length}</p>
+          {ADS_MANAGER_URL && (
+            <Button
+              asChild
+              variant="outline"
+              className="border-primary/30 text-primary hover:bg-primary/10 font-bold text-xs rounded-xl self-start sm:self-auto"
+            >
+              <a href={ADS_MANAGER_URL} target="_blank" rel="noopener noreferrer">
+                View full stats
+                <ArrowSquareOut weight="bold" className="w-4 h-4 ml-1.5" aria-hidden="true" />
+                <span className="sr-only">(opens in a new tab)</span>
+              </a>
+            </Button>
+          )}
         </div>
 
-        <div className="p-4 sm:p-5 rounded-2xl bg-card border border-border/80 shadow-xs flex flex-col justify-between hover:border-border transition-colors">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
-              Active Campaigns
-            </span>
-            <div className="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-              <Play weight="fill" className="w-3.5 h-3.5" />
+        <div className="grid grid-cols-2 gap-3.5">
+          <div className="p-4 sm:p-5 rounded-2xl bg-card border border-border/80 shadow-xs flex flex-col justify-between hover:border-border transition-colors">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+                Active Campaigns
+              </span>
+              <div className="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                <Play weight="fill" className="w-3.5 h-3.5" />
+              </div>
             </div>
+            <p className="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-400 tracking-tight">{activeCount}</p>
           </div>
-          <p className="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-400 tracking-tight">{activeCount}</p>
-        </div>
 
-        <div className="p-4 sm:p-5 rounded-2xl bg-card border border-border/80 shadow-xs flex flex-col justify-between hover:border-border transition-colors">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
-              Allocated Budget
-            </span>
-            <div className="w-7 h-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
-              <DollarSign weight="bold" className="w-3.5 h-3.5" />
+          <div className="p-4 sm:p-5 rounded-2xl bg-card border border-border/80 shadow-xs flex flex-col justify-between hover:border-border transition-colors">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+                Allocated Budget
+              </span>
+              <div className="w-7 h-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+                <DollarSign weight="bold" className="w-3.5 h-3.5" />
+              </div>
             </div>
+            <p className="text-2xl sm:text-3xl font-black text-foreground tracking-tight">
+              ${totalBudget.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </p>
           </div>
-          <p className="text-2xl sm:text-3xl font-black text-foreground tracking-tight">
-            ${totalBudget.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-          </p>
-        </div>
-
-        <div className="p-4 sm:p-5 rounded-2xl bg-card border border-border/80 shadow-xs flex flex-col justify-between hover:border-border transition-colors">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
-              Placements Active
-            </span>
-            <div className="w-7 h-7 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center">
-              <Globe weight="bold" className="w-3.5 h-3.5" />
-            </div>
-          </div>
-          <p className="text-2xl sm:text-3xl font-black text-primary tracking-tight">Web & Feed</p>
         </div>
       </div>
 
@@ -544,7 +575,7 @@ export default function AdCampaignPage() {
               <Button
                 type="submit"
                 disabled={saving || !form.name}
-                className="bg-[#2164b6] hover:bg-[#1a5091] text-white font-bold text-xs rounded-xl px-5 py-2.5 shadow-sm"
+                className="bg-[var(--shell-accent-solid)] hover:bg-[var(--shell-accent-hover)] text-white font-bold text-xs rounded-xl px-5 py-2.5 shadow-sm"
               >
                 {saving ? <Loader2 weight="fill" className="w-4 h-4 mr-2 animate-spin" /> : null}
                 Create Campaign
@@ -649,7 +680,7 @@ export default function AdCampaignPage() {
           </div>
         ) : filteredCampaigns.length === 0 ? (
           <div className="text-center py-16 px-4 max-w-md mx-auto flex flex-col items-center">
-            <div className="w-16 h-16 rounded-2xl bg-[#2164b6]/10 text-[#2164b6] dark:text-[#7ab0ff] flex items-center justify-center mb-4 shadow-inner">
+            <div className="w-16 h-16 rounded-2xl bg-[var(--shell-accent-solid)]/10 text-[var(--shell-accent)] dark:text-[var(--shell-accent)] flex items-center justify-center mb-4 shadow-inner">
               <Megaphone weight="fill" className="w-8 h-8" />
             </div>
             <h3 className="text-base font-bold text-foreground">
@@ -663,7 +694,7 @@ export default function AdCampaignPage() {
             <div className="flex items-center gap-3 mt-6">
               <Button
                 onClick={() => setShowForm(true)}
-                className="bg-[#2164b6] hover:bg-[#1a5091] text-white font-bold text-xs shadow-sm rounded-xl px-4 py-2"
+                className="bg-[var(--shell-accent-solid)] hover:bg-[var(--shell-accent-hover)] text-white font-bold text-xs shadow-sm rounded-xl px-4 py-2"
               >
                 <Plus weight="bold" className="w-4 h-4 mr-1.5" />
                 Create First Campaign
@@ -671,7 +702,7 @@ export default function AdCampaignPage() {
               <Button
                 variant="outline"
                 disabled={launchingStudio}
-                onClick={handleLaunchStudio}
+                onClick={startLaunchStudio}
                 className="border-border/80 text-foreground hover:bg-muted font-bold text-xs rounded-xl px-4 py-2"
               >
                 <ArrowSquareOut weight="bold" className="w-4 h-4 mr-1.5" />
@@ -681,13 +712,13 @@ export default function AdCampaignPage() {
           </div>
         ) : (
           <div className="divide-y divide-border/50">
-            {filteredCampaigns.map((c: any) => {
-              const statusCfg = STATUS_CONFIG[c?.status] || STATUS_CONFIG.draft;
-              const reviewCfg = REVIEW_CONFIG[c?.review_status] || REVIEW_CONFIG.pending;
+            {filteredCampaigns.map((c, i) => {
+              const statusCfg = STATUS_CONFIG[c?.status ?? ""] || STATUS_CONFIG.draft;
+              const reviewCfg = REVIEW_CONFIG[c?.review_status ?? ""] || REVIEW_CONFIG.pending;
               const objectiveLabel = OBJECTIVES.find(o => o.value === c?.objective)?.label || c?.objective || "General";
 
               return (
-                <div key={c?.id ?? Math.random()} className="p-4 sm:p-5 hover:bg-muted/30 transition-colors">
+                <div key={c?.id ?? i} className="p-4 sm:p-5 hover:bg-muted/30 transition-colors">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center flex-wrap gap-2 mb-1.5">
