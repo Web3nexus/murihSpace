@@ -5,7 +5,6 @@ import { CloseSquare as X, Home, Discovery as Compass, Plus, Profile as User, Me
 import { Lightning } from "@/components/icons/rounded";;
 import { AppSidebar } from "@/components/app-sidebar";
 import { SiteHeader } from "@/components/site-header";
-import { ImpersonationBanner } from "@/components/ImpersonationBanner";
 import { useAuth } from "@/hooks/useAuth";
 import { usePlatformConfig } from "@/hooks/usePlatformConfig";
 import { WebLockedPage } from "@/components/WebLockedPage";
@@ -161,9 +160,6 @@ export function DashboardLayout() {
 
   return (
     <div className="h-[100dvh] overflow-hidden flex flex-col bg-[var(--shell-canvas)] dark:bg-[var(--shell-canvas)] text-[var(--shell-text)] dark:text-[var(--shell-text)]">
-      {/* 100vw Impersonation banner at the very top */}
-      <ImpersonationBanner />
-
       {/* Global live notification + badge listeners */}
       <RealtimeNotificationsHost />
 

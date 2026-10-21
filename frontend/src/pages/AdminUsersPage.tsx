@@ -3,7 +3,7 @@ import { logger } from "@/lib/logger";
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router';
 import { toast } from 'sonner';
-import { N2User as Users, Search, ShieldDone as ShieldCheck, Swap as RotateCcw, DangerSquare as AlertCircle, TickSquare as CheckCircle2, Login as SignIn, ArrowUp, ArrowDown, Download } from "@/components/icons";
+import { N2User as Users, Search, ShieldDone as ShieldCheck, Swap as RotateCcw, DangerSquare as AlertCircle, TickSquare as CheckCircle2, ArrowUp, ArrowDown, Download } from "@/components/icons";
 import { ShieldFail as ShieldSlash } from "@/components/icons";
 import { Spinner as Loader2, Prohibit, ArrowsDownUp } from "@/components/icons/rounded";;
 import { Button } from '@/components/ui/button';
@@ -12,7 +12,6 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from '@/components/ui/dialog';
 import type { AdminUser } from '@/types/admin';
-import { useAuth } from "@/hooks/useAuth";
 import { authFetch } from "@/lib/api/authFetch";
 
 const authHeaders = () => {
@@ -33,7 +32,6 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export function AdminUsersPage() {
-  const { startImpersonation } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
@@ -160,17 +158,6 @@ export function AdminUsersPage() {
     setSubmitting(false);
   };
 
-  const handleImpersonate = async (u: AdminUser) => {
-    const started = await startImpersonation(u.id);
-    if (!started) {
-      setMsg({ type: 'error', text: 'Impersonation failed.' });
-      return;
-    }
-    // The session cookie is shared by every tab in this browser, so the change
-    // applies here. Load /app in this tab, where the banner shows the account.
-    window.location.assign('/app');
-  };
-
   return (
     <div className="w-full mx-auto max-w-[1400px] space-y-6 p-4 lg:p-10">
       <div>
@@ -229,11 +216,6 @@ export function AdminUsersPage() {
                       <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{u.created_at && !isNaN(new Date(u.created_at).getTime()) ? new Date(u.created_at).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }) : '—'}</td>
                       <td className="px-4 py-3">
                         <div className="flex gap-1">
-                          {u.role !== 'admin' && u.status === 'active' && (
-                            <Button size="sm" variant="ghost" className="h-7 text-[10px] text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" onClick={() => handleImpersonate(u)} title={`Sign in as ${u.name}`}>
-                              <SignIn weight="fill" className="h-3 w-3" />
-                            </Button>
-                          )}
                           {u.kyc_status !== 'verified' && (
                             <Button size="sm" variant="ghost" className="h-7 text-[10px] text-emerald-600 hover:text-emerald-700 hover:bg-emerald-500/10" onClick={() => { setActionUser(u); setActionType('verify-kyc'); setMsg(null); }} title="Manually verify KYC">
                               <ShieldCheck weight="fill" className="h-3.5 w-3.5" />

@@ -249,7 +249,6 @@ Route::prefix('v1')->group(function () {
 
         Route::middleware('auth:sanctum')->group(function () {
             Route::post('/logout', [AuthController::class, 'logout']);
-            Route::post('/stop-impersonate', [AdminUserController::class, 'stopImpersonate']);
             Route::post('/email/send-code', [VerificationController::class, 'sendCode']);
             Route::post('/email/verify-code', [VerificationController::class, 'verifyCode']);
             Route::post('/email/resend', [VerificationController::class, 'resend']);
@@ -1575,8 +1574,6 @@ Route::prefix('v1')->group(function () {
                 Route::get('/{id}', [AdminUserController::class, 'show']);
                 Route::post('/{id}/activate', [AdminUserController::class, 'activate']);
                 Route::post('/{id}/restore', [AdminUserController::class, 'restore']);
-                Route::post('/{id}/impersonate', [AdminUserController::class, 'impersonate']);
-                Route::post('/stop-impersonate', [AdminUserController::class, 'stopImpersonate']);
             });
 
             // Admins (admin management — super admin only)

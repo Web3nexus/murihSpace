@@ -119,8 +119,6 @@ interface AuthContextValue {
   isCreatorOrAdmin: boolean;
   hasPermission: (permission: string) => boolean;
   refreshUser: () => Promise<void>;
-  startImpersonation: (userId: number) => Promise<boolean>;
-  stopImpersonation: () => Promise<boolean>;
   markOnboardingCompleted: () => void;
   savedAccounts: SavedAccount[];
   addAccount: (email: string, password: string) => Promise<UserProfile | null>;
@@ -548,48 +546,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch { /* ignore */ }
   }, []);
 
-  /**
-   * Views the app as another account. The server switches this browser's session
-   * cookie to that account, so no token is stored here. Returns false when the
-   * server refuses. The caller should reload the page so cached data is not shown
-   * for the wrong account.
-   */
-  const startImpersonation = useCallback(async (userId: number): Promise<boolean> => {
-    try {
-      const res = await apiClient.post(`/securegate/users/${userId}/impersonate`);
-      const envelope = res.data;
-      const data = envelope?.success ? envelope.data : envelope;
-      if (data?.impersonating !== true) {
-        toast.error("Impersonation was not started.");
-        return false;
-      }
-    } catch (err: unknown) {
-      const apiErr = err && typeof err === "object" ? (err as ApiError) : undefined;
-      toast.error(apiErr?.message || "Impersonation failed. Please try again.");
-      return false;
-    }
-    await refreshUser();
-    return true;
-  }, [refreshUser]);
-
-  /**
-   * Ends impersonation: the server restores the administrator's session on this
-   * browser, then the administrator is reloaded from /user. The reload runs even
-   * when the stop request fails, so the banner always reflects the server.
-   */
-  const stopImpersonation = useCallback(async (): Promise<boolean> => {
-    let stopped = true;
-    try {
-      await apiClient.post("/auth/stop-impersonate");
-    } catch (err) {
-      stopped = false;
-      logger.error("Stop impersonation request failed:", err instanceof Error ? err.message : "unknown error");
-      toast.error("Could not confirm that impersonation ended. Reloading your account.");
-    }
-    await refreshUser();
-    return stopped;
-  }, [refreshUser]);
-
   const markOnboardingCompleted = useCallback(() => {
     setUser((prev) => (prev ? { ...prev, onboarding_completed: true } : prev));
   }, []);
@@ -654,8 +610,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return user.permissions?.includes(permission) ?? false;
     },
     refreshUser,
-    startImpersonation,
-    stopImpersonation,
     markOnboardingCompleted,
     savedAccounts,
     addAccount,
