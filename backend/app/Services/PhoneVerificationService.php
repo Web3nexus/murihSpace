@@ -75,9 +75,13 @@ class PhoneVerificationService
             ->where('status', 'pending')
             ->update(['status' => 'expired']);
 
-        // Generate 6-digit numeric OTP code
+        $this->smsService->apply();
+        $isTwilioVerify = $this->smsService->selected() === 'twilio'
+            && (string) (config('services.twilio.verify_service_sid') ?: config('services.sms.verify_service_sid')) !== '';
+
+        // Generate 6-digit numeric OTP code (used for local/log driver or fallback)
         $code = (string) random_int(100000, 999999);
-        $codeHash = hash('sha256', $code);
+        $codeHash = $isTwilioVerify ? 'twilio_verify' : hash('sha256', $code);
 
         $request = PhoneChangeRequest::create([
             'user_id' => $user->id,
@@ -89,9 +93,9 @@ class PhoneVerificationService
             'expires_at' => now()->addMinutes(10),
         ]);
 
-        // Send OTP via SMS service
+        // Send OTP via Twilio Verify / SMS service
         try {
-            $this->smsService->send($normalized, "Your MurihSpace verification code is: {$code}. Valid for 10 minutes.");
+            $this->smsService->startVerification($normalized, $code);
         } catch (\Throwable $e) {
             report($e);
         }
@@ -125,8 +129,20 @@ class PhoneVerificationService
 
         $request->increment('attempts');
 
-        $inputHash = hash('sha256', trim($code));
-        if (! hash_equals($request->verification_code_hash, $inputHash)) {
+        $approved = false;
+        if ($request->verification_code_hash === 'twilio_verify') {
+            try {
+                $approved = $this->smsService->checkVerification($request->new_phone_e164, trim($code));
+            } catch (\Throwable $e) {
+                report($e);
+                $approved = false;
+            }
+        } else {
+            $inputHash = hash('sha256', trim($code));
+            $approved = hash_equals($request->verification_code_hash, $inputHash);
+        }
+
+        if (! $approved) {
             throw ValidationException::withMessages([
                 'code' => ['The verification code entered is incorrect. (' . (5 - $request->attempts) . ' attempts remaining)'],
             ]);

@@ -12,8 +12,8 @@ import { authFetch } from "@/lib/api/authFetch";
 const TRANSPORTS: { id: string; label: string; desc: string; color: string; icon: typeof Archive }[] = [
   {
     id: "twilio",
-    label: "Twilio",
-    desc: "Programmable SMS over a Twilio phone number or messaging service.",
+    label: "Twilio Verify",
+    desc: "Managed OTP & phone verification via Twilio Verify Service SID (automatic sender routing).",
     color: "from-rose-500/20 to-red-500/20",
     icon: ChatText,
   },
@@ -31,7 +31,9 @@ interface SmsSettings {
   default_transport: string;
   twilio: {
     account_sid: string;
-    from_number: string;
+    verify_service_sid?: string;
+    channel?: string;
+    from_number?: string;
     has_auth_token: boolean;
   };
 }
@@ -86,7 +88,9 @@ export default function AdminSmsEngineSettingsPage() {
       const body: Record<string, unknown> = {
         transport: settings.transport,
         account_sid: settings.twilio.account_sid,
-        from_number: settings.twilio.from_number,
+        verify_service_sid: settings.twilio.verify_service_sid ?? "",
+        channel: settings.twilio.channel || "sms",
+        from_number: settings.twilio.from_number ?? "",
         auth_token: authToken || undefined,
       };
       const res = await authFetch(`/securegate/sms-settings`, {
@@ -186,11 +190,11 @@ export default function AdminSmsEngineSettingsPage() {
       {s.transport === "twilio" && (
         <div className="border-none rounded-lg bg-card p-4 space-y-4">
           <p className="text-xs font-black text-foreground uppercase tracking-wide flex items-center gap-1.5">
-            <ChatText weight="fill" className="h-3.5 w-3.5 text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" /> Twilio settings
+            <ChatText weight="fill" className="h-3.5 w-3.5 text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" /> Twilio Verify settings
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <Label className="text-[11px] font-bold text-muted-foreground">Account SID</Label>
+              <Label className="text-[11px] font-bold text-muted-foreground">Account SID (TWILIO_ACCOUNT_SID)</Label>
               <Input
                 value={s.twilio.account_sid ?? ""}
                 onChange={(e) => patch(["twilio", "account_sid"], e.target.value)}
@@ -200,19 +204,22 @@ export default function AdminSmsEngineSettingsPage() {
               />
             </div>
             <div>
-              <Label className="text-[11px] font-bold text-muted-foreground">From number (E.164)</Label>
+              <Label className="text-[11px] font-bold text-muted-foreground">Verify Service SID (TWILIO_VERIFY_SERVICE_SID)</Label>
               <Input
-                value={s.twilio.from_number ?? ""}
-                onChange={(e) => patch(["twilio", "from_number"], e.target.value)}
-                placeholder="+12025550123"
+                value={s.twilio.verify_service_sid ?? ""}
+                onChange={(e) => patch(["twilio", "verify_service_sid"], e.target.value)}
+                placeholder="VAxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
                 className="mt-1"
                 autoComplete="off"
               />
+              <p className="text-[10px] text-muted-foreground mt-1">
+                Twilio Verify handles sender routing automatically — no dedicated &ldquo;From&rdquo; phone number is required.
+              </p>
             </div>
           </div>
           <div>
             <Label className="text-[11px] font-bold text-muted-foreground flex items-center gap-1">
-              <Lock weight="fill" className="h-3 w-3" /> Auth token
+              <Lock weight="fill" className="h-3 w-3" /> Auth token (TWILIO_AUTH_TOKEN)
             </Label>
             <div className="relative mt-1">
               <Input
@@ -231,6 +238,18 @@ export default function AdminSmsEngineSettingsPage() {
                 {revealToken ? <EyeOff className="h-4 w-4" /> : <Eye weight="fill" className="h-4 w-4" />}
               </button>
             </div>
+          </div>
+          <div>
+            <Label className="text-[11px] font-bold text-muted-foreground">
+              From number (E.164) <span className="font-normal opacity-75">— Optional / Deprecated (legacy SMS fallback only)</span>
+            </Label>
+            <Input
+              value={s.twilio.from_number ?? ""}
+              onChange={(e) => patch(["twilio", "from_number"], e.target.value)}
+              placeholder="Leave blank when using Twilio Verify"
+              className="mt-1"
+              autoComplete="off"
+            />
           </div>
         </div>
       )}

@@ -29,6 +29,8 @@ class AdminSmsSettingsController extends Controller
         $validated = $request->validate([
             'transport' => ['sometimes', 'string', Rule::in($this->engine->transports())],
             'account_sid' => ['sometimes', 'nullable', 'string', 'max:191'],
+            'verify_service_sid' => ['sometimes', 'nullable', 'string', 'max:191'],
+            'channel' => ['sometimes', 'nullable', 'string', Rule::in(['sms', 'whatsapp', 'call'])],
             'from_number' => ['sometimes', 'nullable', 'string', 'max:32'],
             'auth_token' => ['sometimes', 'nullable', 'string'],
         ]);
@@ -53,23 +55,21 @@ class AdminSmsSettingsController extends Controller
         $this->engine->apply();
 
         try {
-            $this->engine->send(
-                $validated['to'],
-                'This is a test message from MurihSpace to confirm your SMS engine is configured correctly.'
-            );
+            $sid = $this->engine->startVerification($validated['to'], '123456');
 
             return response()->json([
-                'message' => 'Test SMS sent to ' . $validated['to'] . '.',
+                'message' => 'Test verification sent to ' . $validated['to'] . '.',
                 'data' => [
                     'transport' => $this->engine->selected(),
-                    'from_number' => config('services.sms.from_number'),
+                    'verify_service_sid' => config('services.twilio.verify_service_sid') ?: config('services.sms.verify_service_sid'),
+                    'sid' => $sid,
                 ],
             ]);
         } catch (\Throwable $e) {
             report($e);
 
             return response()->json([
-                'message' => 'Failed to send test SMS: ' . $e->getMessage(),
+                'message' => 'Failed to send test verification: ' . $e->getMessage(),
             ], 500);
         }
     }

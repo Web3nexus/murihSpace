@@ -189,9 +189,11 @@ return [
     ],
 
     'sms' => [
-        'driver' => env('SMS_DRIVER', 'log'),
+        'driver' => env('SMS_DRIVER', env('OTP_DRIVER', 'log')),
         'account_sid' => env('TWILIO_ACCOUNT_SID'),
         'auth_token' => env('TWILIO_AUTH_TOKEN'),
+        'verify_service_sid' => env('TWILIO_VERIFY_SERVICE_SID'),
+        'channel' => env('TWILIO_OTP_CHANNEL', 'sms'),
         'from_number' => env('TWILIO_SMS_FROM'),
     ],
     /*

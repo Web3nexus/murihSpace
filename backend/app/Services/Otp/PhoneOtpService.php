@@ -12,6 +12,7 @@ use App\Models\User;
 use App\Notifications\MurihOfficialNotification;
 use App\Services\AuthMethodConfigService;
 use App\Services\AuthSessionService;
+use App\Services\SmsEngineService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
@@ -493,6 +494,12 @@ class PhoneOtpService
 
     private function driver(): OtpDriverInterface
     {
+        try {
+            app(SmsEngineService::class)->apply();
+        } catch (\Throwable $e) {
+            // Ignore if AdminSetting table is unavailable during early boot
+        }
+
         // A set-but-blank OTP_DRIVER (e.g. "OTP_DRIVER=" in a .env) makes
         // env() return "", not the default, which fell through to `default`
         // and surfaced as a 503 "verification could not be sent" on every

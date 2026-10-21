@@ -5,10 +5,12 @@ namespace Tests\Feature;
 use App\Models\PhoneChangeRequest;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\ActsAsSession;
 use Tests\TestCase;
 
 class PhoneChangeVerificationTest extends TestCase
 {
+    use ActsAsSession;
     use RefreshDatabase;
 
     public function test_user_can_request_phone_change_and_receives_otp_challenge(): void
@@ -99,5 +101,28 @@ class PhoneChangeVerificationTest extends TestCase
 
         $this->assertEquals(1, $req->fresh()->attempts);
         $this->assertEquals('+2348011111111', $user->fresh()->mobile_number); // Unchanged
+    }
+
+    public function test_admin_can_save_twilio_verify_service_sid_without_from_number(): void
+    {
+        $admin = User::factory()->create([
+            'role' => 'admin',
+            'admin_role' => 'super_admin',
+        ]);
+        $this->actAsSession($admin);
+
+        $res = $this->putJson('/api/v1/securegate/sms-settings', [
+            'transport' => 'twilio',
+            'account_sid' => 'ACtest',
+            'verify_service_sid' => 'VAtest',
+            'auth_token' => 'secret-auth-token-123',
+        ]);
+
+        $res->assertStatus(200);
+        $payload = $res->json('data.data') ?? $res->json('data') ?? $res->json();
+        $this->assertSame('twilio', $payload['transport']);
+        $this->assertSame('ACtest', $payload['config']['twilio']['account_sid']);
+        $this->assertSame('VAtest', $payload['config']['twilio']['verify_service_sid']);
+        $this->assertTrue($payload['config']['twilio']['has_auth_token']);
     }
 }
