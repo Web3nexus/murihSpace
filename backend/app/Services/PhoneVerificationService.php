@@ -97,7 +97,12 @@ class PhoneVerificationService
         try {
             $this->smsService->startVerification($normalized, $code);
         } catch (\Throwable $e) {
+            $request->update(['status' => 'failed']);
             report($e);
+
+            throw ValidationException::withMessages([
+                'phone' => ['Unable to send verification code right now. Please try again shortly.'],
+            ]);
         }
 
         return $request;

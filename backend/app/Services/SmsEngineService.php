@@ -41,7 +41,7 @@ class SmsEngineService
 
     public function selected(): string
     {
-        $defaultDriver = config('services.twilio.otp_driver') ?: config('services.sms.driver', 'log');
+        $defaultDriver = config('services.sms.driver') ?: config('services.twilio.otp_driver', 'log');
         $selected = strtolower(trim((string) AdminSetting::get('sms_engine', $defaultDriver)));
 
         return in_array($selected, $this->transports(), true) ? $selected : 'log';
@@ -265,17 +265,25 @@ class SmsEngineService
         $verifyServiceSid = (string) (config('services.twilio.verify_service_sid') ?: config('services.sms.verify_service_sid'));
         $from = (string) config('services.sms.from_number');
 
-        // Primary path: Twilio Verify API (/v2/Services/{Sid}/Verifications)
-        if ($verifyServiceSid !== '' || $from === '') {
+        // When no custom SMS body is supplied (or no legacy From number is configured for custom SMS),
+        // route verification dispatches through Twilio Verify (/v2/Services/{Sid}/Verifications).
+        if (trim($body) === '') {
             return $this->startTwilioVerify($to);
         }
 
-        // Legacy fallback only when Verify Service SID is unset and a From number is explicitly provided
+        if ($from === '') {
+            if ($verifyServiceSid !== '') {
+                throw new \RuntimeException('Twilio Verify only dispatches verification OTPs via startVerification(). A From number (TWILIO_SMS_FROM) is required to send arbitrary SMS body text.');
+            }
+
+            throw new \RuntimeException('Twilio SMS is not configured. Set an Account SID, Auth Token, and Verify Service SID (or From number for custom SMS).');
+        }
+
         $accountSid = (string) (config('services.twilio.account_sid') ?: config('services.sms.account_sid'));
         $authToken = (string) (config('services.twilio.auth_token') ?: config('services.sms.auth_token'));
 
         if ($accountSid === '' || $authToken === '') {
-            throw new \RuntimeException('Twilio Verify is not configured. Set an Account SID, Auth Token, and Verify Service SID (TWILIO_VERIFY_SERVICE_SID).');
+            throw new \RuntimeException('Twilio is not configured. Set an Account SID and Auth Token.');
         }
 
         $res = $this->http->post(self::TWILIO_BASE_URL . '/' . $accountSid . '/Messages.json', [
