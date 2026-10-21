@@ -197,7 +197,7 @@ function PerformanceChart({
                 y2={y}
                 stroke="currentColor"
                 strokeDasharray="3 3"
-                className="text-[#DADDE1] dark:text-[#3E4042]/70"
+                className="text-[var(--shell-border)]"
                 strokeWidth="1"
               />
               <text
@@ -610,7 +610,7 @@ export function AnalyticsPage() {
                 No recent posts published in this date range.
               </p>
             ) : (
-              <div className="divide-y divide-[#DADDE1] dark:divide-[#3E4042]">
+              <div className="divide-y divide-[var(--shell-border)]">
                 {data.top_content.map((post) => (
                   <div
                     key={post.id}

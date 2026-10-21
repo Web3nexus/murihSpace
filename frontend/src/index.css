@@ -10,13 +10,13 @@
 /* App shell tokens — sidebar, header, bottom bar and page canvas.
    Dark values follow the navy canvas in web/DESIGN.md. */
 :root {
-  --shell-canvas: #F0F2F5;
+  --shell-canvas: #F7FAFC;
   --shell-surface: #FFFFFF;
-  --shell-hover: #E4E6EB;
-  --shell-hover-strong: #D8DADF;
-  --shell-border: #DADDE1;
-  --shell-text: #050505;
-  --shell-muted: #65676B;
+  --shell-hover: #F0F5F8;
+  --shell-hover-strong: #E2ECF3;
+  --shell-border: #D6E0E8;
+  --shell-text: #102840;
+  --shell-muted: #667085;
   --shell-accent: #2164b6;
   --shell-accent-solid: #2164b6;
   --shell-accent-hover: #1a5091;
@@ -41,16 +41,16 @@
 
 :root {
   /* MurihSpace Light Theme Tokens (from docs/Design.md & docs/selected-frames-agent-prompt.md) */
-  --text: #050505;
-  --text-h: #050505;
-  --bg: #F0F2F5;
-  --border: #DADDE1;
-  --code-bg: #E4E6EB;
+  --text: #102840;
+  --text-h: #102840;
+  --bg: #F7FAFC;
+  --border: #D6E0E8;
+  --code-bg: #F0F5F8;
   --accent: #E7F3FF;
   --accent-bg: rgba(33, 100, 182, 0.1);
   --accent-border: rgba(33, 100, 182, 0.4);
-  --social-bg: rgba(240, 242, 245, 0.6);
-  --shadow: 0px 4px 12px rgba(5, 5, 5, 0.08);
+  --social-bg: rgba(240, 245, 248, 0.6);
+  --shadow: 0px 4px 12px rgba(16, 40, 64, 0.08);
 
   --sans: 'Inter Variable', system-ui, -apple-system, sans-serif;
   --heading: 'Inter Variable', system-ui, -apple-system, sans-serif;
@@ -66,14 +66,14 @@
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 
-  --background: #F0F2F5;
-  --foreground: #050505;
+  --background: #F7FAFC;
+  --foreground: #102840;
 
   --card: #FFFFFF;
-  --card-foreground: #050505;
+  --card-foreground: #102840;
 
   --popover: #FFFFFF;
-  --popover-foreground: #050505;
+  --popover-foreground: #102840;
 
   --primary: #2164b6;
   --primary-foreground: #FFFFFF;
@@ -81,8 +81,8 @@
   --secondary: #2164b6;
   --secondary-foreground: #FFFFFF;
 
-  --muted: #E4E6EB;
-  --muted-foreground: #65676B;
+  --muted: #F0F5F8;
+  --muted-foreground: #667085;
 
   --accent: #E7F3FF;
   --accent-foreground: #2164b6;
@@ -97,7 +97,7 @@
   --info: #0EA5E9;
   --info-foreground: #FFFFFF;
 
-  --input: #DADDE1;
+  --input: #D6E0E8;
   --ring: #2164b6;
 
   --radius: 0.75rem;
@@ -110,36 +110,36 @@
 
   /* Sidebar — engineered surfaces aligned to brand navy */
   --sidebar: #FFFFFF;
-  --sidebar-foreground: #050505;
+  --sidebar-foreground: #102840;
   --sidebar-primary: #2164b6;
   --sidebar-primary-foreground: #FFFFFF;
   --sidebar-accent: #E7F3FF;
   --sidebar-accent-foreground: #2164b6;
-  --sidebar-border: #DADDE1;
+  --sidebar-border: #D6E0E8;
   --sidebar-ring: #2164b6;
 }
 
 .dark {
   /* MurihSpace Dark Theme Tokens (from docs/Design.md) */
-  --text: #E4E6EB;
-  --text-h: #E4E6EB;
-  --bg: #18191A;
-  --border: #3E4042;
-  --code-bg: #3A3B3C;
-  --accent: #2D3F54;
+  --text: #F5F8FB;
+  --text-h: #F5F8FB;
+  --bg: #050E18;
+  --border: #1C3349;
+  --code-bg: #12283D;
+  --accent: #173852;
   --accent-bg: rgba(33, 100, 182, 0.25);
   --accent-border: rgba(122, 176, 255, 0.4);
-  --social-bg: #242526;
+  --social-bg: #0B1C2E;
   --shadow: 0px 4px 16px rgba(0, 0, 0, 0.45);
 
-  --background: #18191A;
-  --foreground: #E4E6EB;
+  --background: #050E18;
+  --foreground: #F5F8FB;
 
-  --card: #242526;
-  --card-foreground: #E4E6EB;
+  --card: #0B1C2E;
+  --card-foreground: #F5F8FB;
 
-  --popover: #242526;
-  --popover-foreground: #E4E6EB;
+  --popover: #0B1C2E;
+  --popover-foreground: #F5F8FB;
 
   --primary: #2164b6;
   --primary-foreground: #FFFFFF;
@@ -147,10 +147,10 @@
   --secondary: #2164b6;
   --secondary-foreground: #FFFFFF;
 
-  --muted: #3A3B3C;
-  --muted-foreground: #B0B3B8;
+  --muted: #12283D;
+  --muted-foreground: #9FB3C4;
 
-  --accent: #2D3F54;
+  --accent: #173852;
   --accent-foreground: #7ab0ff;
 
   --success: #22c55e;
@@ -163,17 +163,17 @@
   --destructive: #f87171;
   --destructive-foreground: #081827;
 
-  --input: #3E4042;
+  --input: #1C3349;
   --ring: #7ab0ff;
 
   /* Sidebar — deep brand navy canvas in dark mode */
-  --sidebar: #242526;
-  --sidebar-foreground: #E4E6EB;
+  --sidebar: #0B1C2E;
+  --sidebar-foreground: #F5F8FB;
   --sidebar-primary: #2164b6;
   --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: #2D3F54;
+  --sidebar-accent: #173852;
   --sidebar-accent-foreground: #7ab0ff;
-  --sidebar-border: #3E4042;
+  --sidebar-border: #1C3349;
   --sidebar-ring: #7ab0ff;
 
   color-scheme: dark;

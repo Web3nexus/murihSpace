@@ -785,7 +785,7 @@ export default function FriendsPage({ initialTab }: FriendsPageProps) {
                     })}
                   </div>
                 ) : (
-                  <div className="bg-white dark:bg-[var(--shell-surface)] border border-[var(--shell-border)] dark:border-[var(--shell-border)] rounded-xl divide-y divide-[#DADDE1]/60 dark:divide-[#3E4042]/60 overflow-hidden shadow-2xs">
+                  <div className="bg-white dark:bg-[var(--shell-surface)] border border-[var(--shell-border)] dark:border-[var(--shell-border)] rounded-xl divide-y divide-[var(--shell-border)]/60 overflow-hidden shadow-2xs">
                     {filteredFriends.map((item) => {
                       if (!item.friend) return null;
                       return (
@@ -1016,7 +1016,7 @@ export default function FriendsPage({ initialTab }: FriendsPageProps) {
                       No other birthdays in the next 60 days.
                     </p>
                   ) : (
-                    <div className="bg-white dark:bg-[var(--shell-surface)] border border-[var(--shell-border)] dark:border-[var(--shell-border)] rounded-xl divide-y divide-[#DADDE1]/60 dark:divide-[#3E4042]/60 overflow-hidden shadow-2xs">
+                    <div className="bg-white dark:bg-[var(--shell-surface)] border border-[var(--shell-border)] dark:border-[var(--shell-border)] rounded-xl divide-y divide-[var(--shell-border)]/60 overflow-hidden shadow-2xs">
                       {birthdays.upcoming.map((user) => (
                         <div
                           key={user.id}
