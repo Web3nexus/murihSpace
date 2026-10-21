@@ -1,0 +1,10 @@
+providers = ['node']
+
+[phases.setup]
+nixPkgs = ['nodejs_22']
+
+[phases.install]
+cmds = ['npm install']
+
+[variables]
+NIXPACKS_NODE_VERSION = '22'
