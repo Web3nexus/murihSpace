@@ -1,0 +1,27 @@
+{
+	admin off
+	auto_https off
+}
+
+:{$PORT:80} {
+	root * /app/public
+	encode zstd gzip
+
+	header {
+		X-Frame-Options "SAMEORIGIN"
+		X-Content-Type-Options "nosniff"
+	}
+
+	# Laravel Reverb: websocket connections and the HTTP broadcast API.
+	handle /app/* {
+		reverse_proxy 127.0.0.1:8080
+	}
+
+	handle /apps/* {
+		reverse_proxy 127.0.0.1:8080
+	}
+
+	handle {
+		php_server
+	}
+}
