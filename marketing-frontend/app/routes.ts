@@ -8,6 +8,7 @@ export default [
     index("routes/home.tsx"),
     route("features", "routes/features.tsx"),
     route("business", "routes/business.tsx"),
+    route("ads-manager", "routes/ads-manager.tsx"),
     route("download", "routes/download.tsx"),
     route("creators", "routes/creators.tsx"),
     route("blog", "routes/blog.tsx"),

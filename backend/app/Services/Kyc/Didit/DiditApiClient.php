@@ -71,6 +71,36 @@ class DiditApiClient
     }
 
     /**
+     * Import a session another Didit application shared with us.
+     *
+     * Returns the HTTP status with the body so callers can tell a rejected
+     * token (400/403) from a transport failure (null). Didit authenticates
+     * these endpoints with the x-api-key header, not a bearer token.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array{status: int, body: array<string, mixed>}|null
+     */
+    public function importShared(array $data): ?array
+    {
+        try {
+            $response = Http::baseUrl($this->baseUrl())
+                ->acceptJson()
+                ->withHeaders(['x-api-key' => (string) $this->cfg('api_key')])
+                ->timeout((int) $this->cfg('timeout'))
+                ->post('/v3/session/import-shared/', $data);
+
+            return [
+                'status' => $response->status(),
+                'body' => $response->json() ?? [],
+            ];
+        } catch (ConnectionException $e) {
+            Log::warning('Didit shared import request error', ['error' => $e->getMessage()]);
+
+            return null;
+        }
+    }
+
+    /**
      * @return array<string, mixed>|null
      */
     protected function get(string $path): ?array

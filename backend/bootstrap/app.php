@@ -14,6 +14,7 @@ use App\Http\Middleware\IsCreator;
 use App\Http\Middleware\IsStoreOwner;
 use App\Http\Middleware\IsVendor;
 use App\Http\Middleware\RequiresKyc;
+use App\Http\Middleware\RequiresOwnershipConfirmation;
 use App\Http\Middleware\RequiresPermission;
 use App\Http\Middleware\SecurityHeaders;
 use App\Providers\AuthServiceProvider;
@@ -76,6 +77,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'store.owner' => IsStoreOwner::class,
             'permission' => RequiresPermission::class,
             'kyc' => RequiresKyc::class,
+            'ownership' => RequiresOwnershipConfirmation::class,
             'verified' => EnsureEmailIsVerified::class,
             'cache.public' => CachePublicResponse::class,
             'internal' => EnsureInternalRequest::class,

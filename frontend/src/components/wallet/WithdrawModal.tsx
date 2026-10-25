@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Lock, Wallet as Bank } from "@/components/icons";
@@ -15,14 +15,25 @@ interface WithdrawModalProps {
   onSuccess: () => void;
 }
 
+// Mirrors WithdrawalController's `min:100` validation on amount (USD cents).
+const MIN_WITHDRAWAL_CENTS = 100;
+
 const DEST_CURRENCIES = [
-  { code: "USD", symbol: "$", rate: 1.0 },
-  { code: "NGN", symbol: "₦", rate: 1326.0 },
-  { code: "KES", symbol: "KSh", rate: 129.5 },
-  { code: "GHS", symbol: "GH₵", rate: 11.4 },
-  { code: "EUR", symbol: "€", rate: 0.86 },
-  { code: "GBP", symbol: "£", rate: 0.74 },
+  { code: "USD", symbol: "$" },
+  { code: "NGN", symbol: "₦" },
+  { code: "KES", symbol: "KSh" },
+  { code: "GHS", symbol: "GH₵" },
+  { code: "EUR", symbol: "€" },
+  { code: "GBP", symbol: "£" },
 ];
+
+// Shape of POST /withdrawals/preview. Fees and FX come from the backend, never from the client.
+interface WithdrawalPreview {
+  fee_usd: number;
+  net_usd: number;
+  rate: number;
+  estimated_payout_formatted: string;
+}
 
 export function WithdrawModal({
   isOpen,
@@ -36,32 +47,46 @@ export function WithdrawModal({
   const [destCurrency, setDestCurrency] = useState("NGN");
   const [pin, setPin] = useState("");
   const [loading, setLoading] = useState(false);
+  // Preview is tagged with the amount and currency it was requested for, so a stale quote is never shown.
+  const [preview, setPreview] = useState<{ key: string; data: WithdrawalPreview } | null>(null);
   const availableUsd = availableBalanceMinor / 100;
 
+  const amountCents = Math.round((parseFloat(amountUsd) || 0) * 100);
+  const meetsMinimum = amountCents >= MIN_WITHDRAWAL_CENTS;
+  const previewKey = `${amountCents}:${destCurrency}`;
+  const activePreview = meetsMinimum && preview?.key === previewKey ? preview.data : null;
 
-  // Calculate live estimate
-  const preview = useMemo(() => {
-    const raw = parseFloat(amountUsd) || 0;
-    if (raw <= 0) return null;
-    const currObj = DEST_CURRENCIES.find((c) => c.code === destCurrency) || DEST_CURRENCIES[0];
-    const fee = Math.max(0.5, raw * 0.015); // 1.5% fee or min $0.50
-    const net = Math.max(0, raw - fee);
-    const estimated = net * currObj.rate;
+  // Live estimate from the backend, debounced so typing does not fire a request per keystroke.
+  useEffect(() => {
+    if (!isOpen || !meetsMinimum) return;
 
-    return {
-      fee_usd: fee,
-      exchange_rate: currObj.rate,
-      estimated_payout: estimated,
+    let cancelled = false;
+    const timer = window.setTimeout(async () => {
+      try {
+        const res = await apiClient.post<WithdrawalPreview>("/withdrawals/preview", {
+          amount: amountCents,
+          destination_currency: destCurrency,
+          wallet_type: walletType,
+        });
+        if (!cancelled) setPreview({ key: previewKey, data: res.data });
+      } catch {
+        if (!cancelled) setPreview(null);
+      }
+    }, 300);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
     };
-  }, [amountUsd, destCurrency]);
+  }, [isOpen, amountCents, destCurrency, walletType, meetsMinimum, previewKey]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const raw = parseFloat(amountUsd) || 0;
     const cents = Math.round(raw * 100);
 
-    if (cents < 500) {
-      toast.error("Minimum withdrawal amount is $5.00 USD.");
+    if (cents < MIN_WITHDRAWAL_CENTS) {
+      toast.error("Minimum withdrawal amount is $1.00 USD.");
       return;
     }
     if (cents > availableBalanceMinor) {
@@ -135,7 +160,7 @@ export function WithdrawModal({
                   id="withdraw-amount"
                   type="number"
                   step="0.01"
-                  min="5"
+                  min="1"
                   value={amountUsd}
                   onChange={(e) => setAmountUsd(e.target.value)}
                   placeholder="0.00"
@@ -163,7 +188,7 @@ export function WithdrawModal({
           </div>
 
           {/* Payout & FX Breakdown Box */}
-          {preview && (
+          {activePreview && (
             <div className="p-3.5 rounded-xl bg-emerald-500/5 dark:bg-emerald-500/10 border border-emerald-500/20 space-y-2 text-xs">
               <div className="flex justify-between items-center text-muted-foreground">
                 <span>Requested Gross:</span>
@@ -172,20 +197,20 @@ export function WithdrawModal({
 
               <div className="flex justify-between items-center text-muted-foreground">
                 <span>Platform Withdrawal Fee:</span>
-                <span className="text-rose-500 font-semibold">-${preview.fee_usd.toFixed(2)} USD</span>
+                <span className="text-rose-500 font-semibold">-${activePreview.fee_usd.toFixed(2)} USD</span>
               </div>
 
               <div className="flex justify-between items-center text-muted-foreground">
                 <span>Live Exchange Rate:</span>
                 <span className="font-mono text-foreground">
-                  $1 = {currMeta.symbol}{preview.exchange_rate.toFixed(2)} {currMeta.code}
+                  $1 = {currMeta.symbol}{activePreview.rate.toFixed(2)} {currMeta.code}
                 </span>
               </div>
 
               <div className="pt-2 border-t border-emerald-500/20 flex justify-between items-center">
                 <span className="font-bold text-foreground">Estimated Bank Credit:</span>
                 <span className="text-sm font-extrabold text-emerald-600 dark:text-emerald-400 font-mono">
-                  {currMeta.symbol}{preview.estimated_payout.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {currMeta.code}
+                  {activePreview.estimated_payout_formatted}
                 </span>
               </div>
             </div>
@@ -215,7 +240,7 @@ export function WithdrawModal({
           <div className="pt-2">
             <Button
               type="submit"
-              disabled={loading || parseFloat(amountUsd || "0") < 5}
+              disabled={loading || !meetsMinimum}
               className="w-full h-11 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm rounded-xl shadow-xs"
             >
               {loading ? (

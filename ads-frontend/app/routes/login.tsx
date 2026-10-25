@@ -37,6 +37,16 @@ export default function LoginPage() {
             <div className="w-12 h-12 rounded-2xl bg-brand text-white flex items-center justify-center font-black text-xl shadow-lg shadow-blue-500/20">
               M
             </div>
+            <img
+              src="/logos/member-icon-light.png"
+              alt="MurihSpace"
+              className="w-12 h-12 object-contain dark:hidden drop-shadow-md"
+            />
+            <img
+              src="/logos/member-icon-dark.png"
+              alt="MurihSpace"
+              className="hidden w-12 h-12 object-contain dark:block drop-shadow-md"
+            />
             <h1 className="text-5xl font-semibold leading-tight tracking-tight text-slate-900 dark:text-slate-100">
               Get started with
               <br />
@@ -135,6 +145,16 @@ export default function LoginPage() {
             <div className="w-12 h-12 rounded-2xl bg-brand text-white flex items-center justify-center font-black text-xl shadow-lg shadow-blue-500/20">
               M
             </div>
+            <img
+              src="/logos/member-icon-light.png"
+              alt="MurihSpace"
+              className="w-12 h-12 object-contain dark:hidden drop-shadow-md"
+            />
+            <img
+              src="/logos/member-icon-dark.png"
+              alt="MurihSpace"
+              className="hidden w-12 h-12 object-contain dark:block drop-shadow-md"
+            />
             <h1 className="text-xl font-semibold text-slate-900 dark:text-slate-100">Get started with Ads Manager</h1>
           </div>
 

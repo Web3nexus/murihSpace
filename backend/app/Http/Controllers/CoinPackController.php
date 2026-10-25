@@ -303,6 +303,12 @@ class CoinPackController extends Controller
             return response()->json($async, 202);
         }
 
+        // No payment provider started the charge. Never fall through to the mock path, which completes a purchase for free.
+        return response()->json([
+            'message' => 'Payments are temporarily unavailable. Please try again shortly.',
+            'code' => 'PAYMENT_PROVIDER_UNAVAILABLE',
+        ], 503);
+
         $purchase = \Illuminate\Support\Facades\DB::transaction(function () use ($user, $pack, $reference, $totalCoins, $taxInfo, $taxCents, $totalCharged, $txFee) {
             $this->ledgerService->credit(
                 user: $user->id,
@@ -450,6 +456,12 @@ class CoinPackController extends Controller
         if ($async !== null) {
             return response()->json($async, 202);
         }
+
+        // No payment provider started the charge. Never fall through to the mock path, which completes a purchase for free.
+        return response()->json([
+            'message' => 'Payments are temporarily unavailable. Please try again shortly.',
+            'code' => 'PAYMENT_PROVIDER_UNAVAILABLE',
+        ], 503);
 
         $purchase = \Illuminate\Support\Facades\DB::transaction(function () use ($user, $reference, $totalCoins, $amountMinor, $taxInfo, $taxCents, $totalCharged, $txFee) {
             $this->ledgerService->credit(

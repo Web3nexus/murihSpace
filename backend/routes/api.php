@@ -1235,6 +1235,9 @@ Route::prefix('v1')->group(function () {
             Route::post('/start', [KycController::class, 'start'])->middleware('throttle:kyc.session');
             Route::get('/history', [KycController::class, 'history']);
             Route::get('/callback', [KycController::class, 'callback']);
+            Route::post('/import-shared', [KycController::class, 'importShared'])->middleware('throttle:kyc.session');
+            Route::post('/ownership/start', [KycController::class, 'ownershipStart'])->middleware('throttle:kyc.session');
+            Route::get('/ownership/status', [KycController::class, 'ownershipStatus']);
         });
 
         // ── Verified badge (blue checkmark) ─────────────────────────
@@ -1330,7 +1333,7 @@ Route::prefix('v1')->group(function () {
             Route::get('/type/{type}', [WalletController::class, 'showByType'])->whereIn('type', ['system', 'creator', 'business']);
             Route::post('/deposit', [WalletController::class, 'deposit']);
             Route::post('/deposit-estimate', [WalletController::class, 'depositEstimate']);
-            Route::post('/internal-transfer', [WalletController::class, 'internalTransfer']);
+            Route::post('/internal-transfer', [WalletController::class, 'internalTransfer'])->middleware('ownership');
             Route::post('/fees/preview', [FeeController::class, 'preview']);
             Route::post('/pin/setup', [WalletController::class, 'setupPin']);
             Route::post('/pin/update', [WalletController::class, 'updatePin']);
@@ -1339,7 +1342,7 @@ Route::prefix('v1')->group(function () {
             Route::get('/transactions', [WalletController::class, 'transactions']);
 
             // Transfers
-            Route::post('/transfers/send', [TransferController::class, 'send']);
+            Route::post('/transfers/send', [TransferController::class, 'send'])->middleware('ownership');
             Route::get('/transfers/sent', [TransferController::class, 'sent']);
             Route::get('/transfers/received', [TransferController::class, 'received']);
 
@@ -1354,7 +1357,7 @@ Route::prefix('v1')->group(function () {
 
             // Withdrawals
             Route::post('/withdrawals/preview', [WithdrawalController::class, 'preview'])->middleware('kyc');
-            Route::post('/withdrawals', [WithdrawalController::class, 'request'])->middleware('kyc');
+            Route::post('/withdrawals', [WithdrawalController::class, 'request'])->middleware(['kyc', 'ownership']);
             Route::get('/withdrawals', [WithdrawalController::class, 'myRequests']);
 
             // Buyer refund balances from disputes they won, and their return to the original card

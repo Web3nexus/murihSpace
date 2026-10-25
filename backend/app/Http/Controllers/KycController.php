@@ -154,6 +154,72 @@ class KycController extends Controller
     }
 
     /**
+     * Import a verification another app shared with the signed-in user (MurihPay).
+     * The token is only valid for this app, for a short window, and only once.
+     */
+    public function importShared(Request $request, \App\Services\Kyc\Didit\DiditSharedKycImporter $importer): JsonResponse
+    {
+        $validated = $request->validate(['share_token' => ['required', 'string', 'max:4096']]);
+
+        $user = $request->user();
+        $verification = $importer->import($user, $validated['share_token']);
+
+        if ($verification === null) {
+            return response()->json([
+                'message' => 'This shared verification could not be imported. Request a new one from MurihPay and try again.',
+            ], 422);
+        }
+
+        return response()->json([
+            'kyc_status' => $user->fresh()->kyc_status,
+            'kyc_verification_id' => $verification->id,
+            // Money movement stays locked until this sign-in passes the owner check.
+            'ownership_required' => true,
+        ]);
+    }
+
+    /**
+     * Start a selfie check that confirms the signed-in person owns this account.
+     */
+    public function ownershipStart(Request $request, \App\Services\Kyc\Didit\DiditOwnershipVerifier $ownership): JsonResponse
+    {
+        $session = $ownership->start($request->user());
+
+        if ($session === null) {
+            return response()->json(['message' => 'Ownership verification is unavailable right now.'], 503);
+        }
+
+        return response()->json([
+            'session_url' => $session['url'],
+            'ownership_status' => 'pending',
+        ]);
+    }
+
+    /**
+     * Resolve the pending ownership check and report whether it is confirmed.
+     */
+    public function ownershipStatus(Request $request, \App\Services\Kyc\Didit\DiditOwnershipVerifier $ownership): JsonResponse
+    {
+        $status = $ownership->check($request->user(), $this->currentTokenId($request));
+
+        return response()->json([
+            'ownership_status' => $status,
+            'confirmed' => $status === 'confirmed',
+        ]);
+    }
+
+    /**
+     * The access token behind this request, or null for a cookie session.
+     */
+    private function currentTokenId(Request $request): ?int
+    {
+        $token = $request->user()?->currentAccessToken();
+
+        // A cookie session returns a TransientToken, which has no id.
+        return $token instanceof \Laravel\Sanctum\PersonalAccessToken ? $token->getKey() : null;
+    }
+
+    /**
      * Public webhook receiver for a given provider.
      * Signature is verified before any state is changed; heavy work is queued.
      */

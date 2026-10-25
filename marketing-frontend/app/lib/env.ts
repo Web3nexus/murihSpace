@@ -44,3 +44,17 @@ export function getRegisterUrl(): string {
 export function getWebClientUrl(): string {
   return getAppUrl();
 }
+
+// Sign-in page of the Ads Manager app (web/ads-frontend). Signed-out users of
+// that app are sent to its /login route, so the marketing CTAs point there.
+// Set VITE_ADS_MANAGER_URL to the ads app's origin, e.g. https://ads.example.com.
+// Without it the link falls back to the main sign-in page.
+export function getAdsLoginUrl(): string {
+  const envVal =
+    (typeof import.meta !== "undefined" && import.meta.env?.VITE_ADS_MANAGER_URL) ||
+    (typeof process !== "undefined" && process.env?.VITE_ADS_MANAGER_URL);
+  if (envVal) {
+    return `${String(envVal).replace(/\/+$/, "")}/login`;
+  }
+  return getLoginUrl();
+}

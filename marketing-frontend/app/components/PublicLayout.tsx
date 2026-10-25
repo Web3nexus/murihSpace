@@ -13,6 +13,7 @@ const defaultNavLinks: CmsNavLink[] = [
   { label: "For Creators", href: "/creators" },
   { label: "For Business", href: "/business" },
   { label: "Features", href: "/features" },
+  { label: "Ads Manager", href: "/ads-manager" },
   { label: "Privacy & Security", href: "/privacy" },
   { label: "Apps", href: "/download" },
   { label: "Web Client", href: getWebClientUrl() },

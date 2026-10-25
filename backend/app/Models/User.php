@@ -92,6 +92,8 @@ class User extends Authenticatable implements MustVerifyEmail
             'password' => 'hashed',
             'username_trial_ends_at' => 'datetime',
             'is_premium' => 'boolean',
+            'requires_ownership_check' => 'boolean',
+            'ownership_confirmed_at' => 'datetime',
             'admin_permissions' => 'array',
             'two_factor_confirmed_at' => 'datetime',
             'email_verify_code_expires_at' => 'datetime',

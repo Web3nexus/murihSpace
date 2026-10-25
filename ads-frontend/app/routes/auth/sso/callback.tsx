@@ -76,6 +76,16 @@ export default function SsoCallback() {
         <div className="w-14 h-14 mx-auto rounded-2xl bg-brand/10 text-brand flex items-center justify-center font-bold text-xl">
           M
         </div>
+        <img
+          src="/logos/member-icon-light.png"
+          alt="MurihSpace"
+          className="w-14 h-14 mx-auto object-contain dark:hidden"
+        />
+        <img
+          src="/logos/member-icon-dark.png"
+          alt="MurihSpace"
+          className="hidden w-14 h-14 mx-auto object-contain dark:block"
+        />
 
         {status === "processing" && (
           <div className="space-y-3">

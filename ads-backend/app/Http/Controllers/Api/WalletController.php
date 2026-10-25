@@ -52,6 +52,13 @@ class WalletController extends Controller
      */
     public function fund(Request $request)
     {
+        // Disabled: this credited any amount with no payment behind it. Re-enable only when deposits
+        // are confirmed by Murihpay custody.
+        return response()->json([
+            'message' => 'Deposits are temporarily unavailable.',
+            'code' => 'DEPOSITS_DISABLED',
+        ], 503);
+
         $request->validate([
             'advertiser_id' => 'required|exists:advertisers,id',
             'amount' => 'required|integer|min:1', // Amount in cents

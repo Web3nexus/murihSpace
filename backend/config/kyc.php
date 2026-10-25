@@ -32,6 +32,9 @@ return [
     'session_rate_limit_minutes' => (int) env('KYC_SESSION_RATE_LIMIT_MINUTES', 60),
     'data_retention_days' => (int) env('KYC_DATA_RETENTION_DAYS', 365),
 
+    // Cookie sessions have no token to bind to, so an owner check stays valid this long.
+    'ownership_session_minutes' => (int) env('KYC_OWNERSHIP_SESSION_MINUTES', 720),
+
     /*
     |--------------------------------------------------------------------------
     | Didit provider (ID check + liveness via hosted session)
@@ -44,6 +47,8 @@ return [
         'client_id' => env('DIDIT_CLIENT_ID', ''),
         'client_secret' => env('DIDIT_CLIENT_SECRET', ''),
         'workflow_id' => env('DIDIT_WORKFLOW_ID', ''),
+        // Liveness + face-match workflow used to confirm the account owner on sign-in.
+        'ownership_workflow_id' => env('DIDIT_OWNERSHIP_WORKFLOW_ID', ''),
         'webhook_secret' => env('DIDIT_WEBHOOK_SECRET', ''),
         'callback_url' => env('DIDIT_CALLBACK_URL', ''),
         'sandbox' => (bool) env('DIDIT_SANDBOX', true),
