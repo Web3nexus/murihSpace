@@ -230,7 +230,7 @@ class OnboardingController extends Controller
                     'content_interests' => $profile?->content_interests ?? [],
                 ],
                 'social_links' => $socialLinks,
-                'template' => $design->template ?? 'minimal',
+                'template' => $design->template ?? \App\Http\Controllers\LinkInBioController::DEFAULT_TEMPLATE,
                 'profile_draft' => AiMemory::recall($user->id, 'profile_draft'),
             ],
         ]);

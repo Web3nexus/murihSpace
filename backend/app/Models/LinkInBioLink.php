@@ -17,6 +17,7 @@ class LinkInBioLink extends Model
         'currency',
         'icon_emoji',
         'icon_3d',
+        'image_url',
         'is_active',
         'click_count',
         'unique_visitors',

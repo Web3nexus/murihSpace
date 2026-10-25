@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ImageUploader } from "@/components/upload/ImageUploader";
 import { authFetch } from "@/lib/api/authFetch";
-import { TEMPLATES, templateBySlug } from "@/lib/linkBioTemplates";
+import { TEMPLATES, DEFAULT_TEMPLATE, templateBySlug, cardTextColor, type ColourScheme } from "@/lib/linkBioTemplates";
+import { contrastRatio, contrastLevel } from "@/lib/colorContrast";
 import TemplateRenderer from "@/components/linkbio/TemplateRenderer";
 import TemplateThumb from "@/components/linkbio/TemplateThumb";
 
@@ -23,10 +24,14 @@ interface LinkItem {
   currency?: string | null;
   icon_3d?: string | null;
   icon_emoji?: string | null;
+  image_url?: string | null;
   unique_visitors?: number;
 }
 interface SocialLink { id: number; platform: string; url: string; sort_order: number; }
 interface ProductItem { id: number; title: string; description: string | null; price: string; currency: string; type: string; media_url: string | null; checkout_url: string | null; is_active: boolean; sort_order: number; }
+// One entry from the creator's catalog (physical + digital products).
+interface CatalogItem { id: string; raw_id: number; product_type: "physical" | "digital"; title: string; description: string | null; price: number; currency: string; cover_url: string | null; }
+const catalogKey = (c: CatalogItem) => `${c.product_type}:${c.raw_id}`;
 
 interface Theme {
   id: number; name: string; slug: string; description: string | null; is_premium: boolean;
@@ -61,6 +66,35 @@ const STEPS = [
   { key: "products", label: "Products", icon: ShoppingCart },
 ];
 
+// Shows how readable the chosen colours are, using the same text colour the renderer uses on each surface.
+function ReadabilityCheck({ template, bg, cardBg, text, accent }: { template: string; bg: string; cardBg: string; text: string; accent: string }) {
+  const cardText = cardTextColor({ template, card_bg: cardBg, text_color: text });
+  const checks = [
+    { label: "Text on background", fg: text, bg },
+    { label: "Text on card", fg: cardText, bg: cardBg },
+    { label: "Accent on background", fg: accent, bg },
+  ].map((c) => {
+    const ratio = contrastRatio(c.fg, c.bg);
+    return { ...c, ratio, level: ratio === null ? null : contrastLevel(ratio) };
+  });
+  const hasLow = checks.some((c) => c.level === "Low");
+
+  return (
+    <div className="border-t border-border pt-4 space-y-2">
+      <span className="text-[10px] font-bold text-muted-foreground block">Readability</span>
+      {checks.map((c) => (
+        <div key={c.label} className="flex items-center justify-between text-xs">
+          <span className="text-muted-foreground">{c.label}</span>
+          <span className={`font-bold ${c.level === "Low" ? "text-rose-500" : "text-emerald-600"}`}>
+            {c.ratio === null ? "—" : `${c.ratio.toFixed(1)}:1 · ${c.level}`}
+          </span>
+        </div>
+      ))}
+      {hasLow && <p className="text-[11px] text-rose-500">Some text is hard to read on a phone. Choose a darker or lighter tone.</p>}
+    </div>
+  );
+}
+
 export default function LinkInBioPage() {
   const confirm = useConfirm();
   const [step, setStep] = useState(0);
@@ -78,6 +112,7 @@ export default function LinkInBioPage() {
   const [badge, setBadge] = useState("");
   const [price, setPrice] = useState("");
   const [icon3d, setIcon3d] = useState("link");
+  const [linkImage, setLinkImage] = useState("");
   const [editing, setEditing] = useState<LinkItem | null>(null);
 
   // Profile
@@ -112,7 +147,7 @@ export default function LinkInBioPage() {
   const [font, setFont] = useState("sans");
   const [buttonStyle, setButtonStyle] = useState("rounded");
   const [layout, setLayout] = useState("list");
-  const [template, setTemplate] = useState("minimal");
+  const [template, setTemplate] = useState<string>(DEFAULT_TEMPLATE);
   const [designBgType, setDesignBgType] = useState("solid");
   const [designBgValue, setDesignBgValue] = useState<string | null>(null);
 
@@ -159,7 +194,7 @@ export default function LinkInBioPage() {
             setFont(unwrapped.font ?? font);
             setButtonStyle(unwrapped.button_style ?? buttonStyle);
             setLayout(unwrapped.layout ?? layout);
-            setTemplate(unwrapped.template ?? "minimal");
+            setTemplate(unwrapped.template ?? DEFAULT_TEMPLATE);
             setDesignBgType(unwrapped.background_type ?? "solid");
             setDesignBgValue(unwrapped.background_value ?? null);
           }
@@ -198,6 +233,16 @@ export default function LinkInBioPage() {
       }
     } catch { /* ignore */ }
     setSaving(false);
+  };
+
+  // Copies a template colour scheme into the style fields; saved with the rest of the design.
+  const applyScheme = (s: ColourScheme) => {
+    setDesignBg(s.bg);
+    setDesignCardBg(s.card_bg);
+    setDesignText(s.text_color);
+    setDesignAccent(s.accent);
+    setDesignBgType("solid");
+    setDesignBgValue(null);
   };
 
   const applyTemplate = async (slug: string) => {
@@ -249,6 +294,7 @@ export default function LinkInBioPage() {
     setBadge("");
     setPrice("");
     setIcon3d("link");
+    setLinkImage("");
     setEditing(null);
     setMsg(null);
   };
@@ -266,6 +312,7 @@ export default function LinkInBioPage() {
         price: price ? parseFloat(price) : null,
         currency: "USD",
         icon_3d: icon3d || "link",
+        image_url: linkImage || null,
         sort_order: editing ? editing.sort_order : links.length,
       };
       const res = editing
@@ -292,6 +339,7 @@ export default function LinkInBioPage() {
     setBadge(link.badge || "");
     setPrice(link.price ? String(link.price) : "");
     setIcon3d(link.icon_3d || "link");
+    setLinkImage(link.image_url || "");
     setMsg(null);
   };
 
@@ -334,6 +382,29 @@ export default function LinkInBioPage() {
   };
 
   // ── Products CRUD ────────────────────────────────────────────
+
+  const [catalog, setCatalog] = useState<CatalogItem[]>([]);
+
+  const loadCatalog = async () => {
+    try {
+      const res = await authFetch(`/marketplace/my/products`);
+      const j = await res.json();
+      setCatalog(Array.isArray(j?.data) ? j.data : []);
+    } catch { setCatalog([]); }
+  };
+
+  // Copies a catalog item into the product form; the creator can still edit every field.
+  const pickFromCatalog = (key: string) => {
+    const item = catalog.find((c) => catalogKey(c) === key);
+    if (!item) return;
+    setProdTitle(item.title);
+    setProdDesc(item.description ?? "");
+    setProdPrice(String(item.price));
+    if (CURRENCIES.includes(item.currency)) setProdCurrency(item.currency);
+    setProdType(item.product_type);
+    setProdMediaUrl(item.cover_url ?? "");
+    setProdCheckoutUrl(`${window.location.origin}/p/${item.id}`);
+  };
 
   const resetProductForm = () => {
     setProdTitle(""); setProdDesc(""); setProdPrice(""); setProdCurrency("GBP");
@@ -474,6 +545,27 @@ export default function LinkInBioPage() {
           {step === 1 && (
             <div className="border-none rounded-lg bg-card p-4 space-y-5">
               <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Customize Style</h2>
+              <div className="space-y-3">
+                <div>
+                  <span className="text-[10px] font-bold text-muted-foreground block">Colour schemes for {templateBySlug(template).name}</span>
+                  <p className="text-[11px] text-muted-foreground">Tuned for this template. Pick one, then fine-tune the colours below.</p>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {templateBySlug(template).schemes.map((s) => {
+                    const active = designBg === s.bg && designCardBg === s.card_bg && designText === s.text_color && designAccent === s.accent;
+                    return (
+                      <button key={s.name} type="button" onClick={() => applyScheme(s)} aria-pressed={active}
+                        className={`rounded-lg border-2 p-2 text-left transition-all ${active ? "border-[var(--shell-accent)]" : "border-transparent hover:border-[var(--shell-accent)]/50"}`}>
+                        <div className="h-14 rounded-md overflow-hidden flex flex-col" style={{ background: s.bg }}>
+                          <div className="m-1.5 h-4 rounded-sm" style={{ background: s.card_bg }} />
+                          <div className="mx-1.5 h-2 w-8 rounded-full" style={{ background: s.accent }} />
+                        </div>
+                        <p className="mt-1.5 text-xs font-bold truncate">{s.name}</p>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {([
                   ["Background", designBg, setDesignBg], ["Card", designCardBg, setDesignCardBg],
@@ -486,6 +578,7 @@ export default function LinkInBioPage() {
                   </div>
                 ))}
               </div>
+              <ReadabilityCheck template={template} bg={designBg} cardBg={designCardBg} text={designText} accent={designAccent} />
               <div className="border-t border-border pt-4 space-y-4">
                 <div className="grid grid-cols-3 gap-4">
                   <div>
@@ -634,6 +727,7 @@ export default function LinkInBioPage() {
                     </select>
                   </div>
                 </div>
+                <ImageUploader value={linkImage} onChange={setLinkImage} folder="links" label="Card image (shown on image-led templates)" />
                 <div className="flex gap-2 pt-2">
                   <Button type="submit" disabled={saving || !title.trim() || !url.trim()} className="text-sm font-bold">
                     {saving ? <Loader2 weight="fill" className="h-4 w-4 animate-spin mr-2" /> : null}{editing ? "Update Link" : "Add Link"}
@@ -741,10 +835,19 @@ export default function LinkInBioPage() {
             <div className="border-none rounded-lg bg-card p-4 space-y-4">
               <div className="flex items-center justify-between">
                 <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2"><ShoppingCart weight="fill" className="h-3 w-3" /> Products</h2>
-                {!showProductForm && <Button size="sm" variant="ghost" onClick={() => setShowProductForm(true)} className="text-xs font-bold"><Plus weight="fill" className="h-3 w-3 mr-1" /> Add</Button>}
+                {!showProductForm && <Button size="sm" variant="ghost" onClick={() => { setShowProductForm(true); loadCatalog(); }} className="text-xs font-bold"><Plus weight="fill" className="h-3 w-3 mr-1" /> Add</Button>}
               </div>
               {showProductForm && (
                 <form onSubmit={handleSaveProduct} className="space-y-3 border-none rounded-lg p-4 bg-muted/30">
+                  {!editingProd && catalog.length > 0 && (
+                    <div className="space-y-1.5">
+                      <label htmlFor="f-pages-linkinbiopage-tsx-catalog" className="text-[10px] font-bold text-muted-foreground">Pick from your catalog</label>
+                      <select id="f-pages-linkinbiopage-tsx-catalog" defaultValue="" onChange={(e) => pickFromCatalog(e.target.value)} className="w-full rounded-lg border-none bg-card p-2 text-xs font-medium text-foreground">
+                        <option value="">Select a product to fill the form…</option>
+                        {catalog.map((c) => <option key={catalogKey(c)} value={catalogKey(c)}>{c.title} · {c.currency} {c.price}</option>)}
+                      </select>
+                    </div>
+                  )}
                   <div className="grid grid-cols-2 gap-3">
                     <div className="col-span-2">
                       <label htmlFor="f-pages-linkinbiopage-tsx-744" className="text-[10px] font-bold text-muted-foreground">Title</label>
@@ -832,7 +935,7 @@ export default function LinkInBioPage() {
                 template,
                 background_type: designBgType,
                 background_value: designBgValue,
-                links: links.map((l) => ({ id: l.id, title: l.title, url: l.url, sort_order: l.sort_order })),
+                links: links.map((l) => ({ id: l.id, title: l.title, url: l.url, category: l.category, sort_order: l.sort_order, image_url: l.image_url ?? null })),
                 social_links: socials.map((s) => ({ id: s.id, platform: s.platform, url: s.url })),
                 products: products.map((p) => ({ id: p.id, title: p.title, description: p.description, price: p.price, currency: p.currency, type: p.type, media_url: p.media_url, checkout_url: p.checkout_url })),
               }}

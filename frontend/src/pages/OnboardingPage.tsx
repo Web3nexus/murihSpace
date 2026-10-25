@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { MeraIcon } from "@/components/brand/MeraIcon";
 import { authFetch } from "@/lib/api/authFetch";
 import { useAuth } from "@/hooks/useAuth";
-import { TEMPLATES, templateBySlug } from "@/lib/linkBioTemplates";
+import { TEMPLATES, DEFAULT_TEMPLATE, templateBySlug } from "@/lib/linkBioTemplates";
 import type { LinkBioPageData } from "@/lib/linkBioTypes";
 import TemplateRenderer from "@/components/linkbio/TemplateRenderer";
 import TemplateThumb from "@/components/linkbio/TemplateThumb";
@@ -129,7 +129,7 @@ export default function OnboardingPage() {
   const [draftLoading, setDraftLoading] = useState(false);
 
   // Template
-  const [template, setTemplate] = useState("minimal");
+  const [template, setTemplate] = useState<string>(DEFAULT_TEMPLATE);
 
   const chatEndRef = useRef<HTMLDivElement>(null);
 

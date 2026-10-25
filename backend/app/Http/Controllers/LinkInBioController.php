@@ -15,9 +15,10 @@ use Illuminate\Http\Request;
 class LinkInBioController extends Controller
 {
     public const TEMPLATES = [
-        'minimal', 'grid', 'cards', 'terminal', 'magazine',
-        'storefront', 'portal', 'social', 'compact', 'bold',
+        'hero', 'boutique', 'atelier', 'lookbook', 'showcase',
     ];
+
+    public const DEFAULT_TEMPLATE = 'hero';
 
     // ── Links CRUD ─────────────────────────────────────────────────
 
@@ -63,6 +64,7 @@ class LinkInBioController extends Controller
             'currency' => ['nullable', 'string', 'max:10'],
             'icon_emoji' => ['nullable', 'string', 'max:30'],
             'icon_3d' => ['nullable', 'string', 'max:50'],
+            'image_url' => ['nullable', 'string', 'max:500'],
             'is_active' => ['sometimes', 'boolean'],
             'sort_order' => ['nullable', 'integer', 'min:0'],
         ]);
@@ -88,6 +90,7 @@ class LinkInBioController extends Controller
             'currency' => ['nullable', 'string', 'max:10'],
             'icon_emoji' => ['nullable', 'string', 'max:30'],
             'icon_3d' => ['nullable', 'string', 'max:50'],
+            'image_url' => ['nullable', 'string', 'max:500'],
             'is_active' => ['sometimes', 'boolean'],
             'sort_order' => ['sometimes', 'integer', 'min:0'],
         ]);
@@ -256,7 +259,7 @@ class LinkInBioController extends Controller
                 'font' => $design->font,
                 'button_style' => $design->button_style,
                 'layout' => $design->layout,
-                'template' => $design->template ?? 'minimal',
+                'template' => $design->template ?? self::DEFAULT_TEMPLATE,
                 'background_type' => $design->background_type,
                 'background_value' => $design->background_value,
                 'profile_name' => $design->profile_name,
@@ -473,7 +476,7 @@ class LinkInBioController extends Controller
                 'font' => $design?->font ?? 'sans',
                 'button_style' => $design?->button_style ?? 'rounded',
                 'layout' => $design?->layout ?? 'list',
-                'template' => $design?->template ?? 'minimal',
+                'template' => $design?->template ?? self::DEFAULT_TEMPLATE,
                 'background_type' => $design?->background_type ?? 'solid',
                 'background_value' => $design?->background_value,
                 'links' => $links,

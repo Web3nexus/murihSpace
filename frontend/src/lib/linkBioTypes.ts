@@ -16,6 +16,7 @@ export interface LinkBioLinkItem {
   currency?: string | null;
   icon_3d?: string | null;
   icon_emoji?: string | null;
+  image_url?: string | null;
   unique_visitors?: number;
 }
 

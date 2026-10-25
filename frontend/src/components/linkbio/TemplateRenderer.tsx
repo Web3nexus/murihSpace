@@ -1,8 +1,8 @@
 import { safeHref } from "@/lib/safeUrl";
 import { Discovery as Globe, Bag as ShoppingCart, Ticket as Tag, Camera, Video as FilmStrip, Chat as MessageCircle, Send, ArrowRight as ChevronRight } from "@/components/icons";
-import { ArrowSquareOut as ExternalLink, MusicNote as Music, Hash, Link as LinkIcon, Crown } from "@/components/icons/rounded";;
+import { MusicNote as Music, Hash, Link as LinkIcon, Crown } from "@/components/icons/rounded";;
 import type { LinkBioPageData, LinkBioLinkItem, LinkBioProductItem, LinkBioSocial } from "@/lib/linkBioTypes";
-import { templateBySlug, pageBackground, buttonRadius, fontFamily, avatarRadius } from "@/lib/linkBioTemplates";
+import { templateBySlug, pageBackground, buttonRadius, fontFamily, avatarRadius, cardTextColor } from "@/lib/linkBioTemplates";
 
 export function SocialIcon({ platform, className = "h-4 w-4" }: { platform: string; className?: string }) {
   const icon: Record<string, React.ReactNode> = {
@@ -62,45 +62,6 @@ function SocialRow({ socials, accent, size = "md", center = true }: { socials: L
   );
 }
 
-function LinkButton({ data, link, href, transparent }: { data: LinkBioPageData; link: LinkBioLinkItem; href: string; transparent?: boolean }) {
-  const def = templateBySlug(data.template);
-  return (
-    <a
-      href={safeHref(href)}
-      target="_blank"
-      rel="noreferrer"
-      className={`flex items-center justify-between px-5 py-3.5 text-sm font-bold transition-all hover:scale-[1.02] active:scale-[0.98] ${buttonRadius(data.button_style)}`}
-      style={{
-        background: transparent ? `${data.card_bg}${def.slug === "portal" ? "88" : ""}` : data.card_bg,
-        color: data.text_color,
-        border: `1px solid ${data.text_color}15`,
-        boxShadow: `0 2px 8px ${data.accent}12`,
-        backdropFilter: def.slug === "portal" ? "blur(8px)" : undefined,
-      }}
-    >
-      <div className="flex items-center gap-2 min-w-0">
-        <span className="truncate">{link.title}</span>
-        {link.badge ? (
-          <span
-            className="text-[10px] font-bold px-1.5 py-0.5 rounded-full shrink-0"
-            style={{ background: `${data.accent}25`, color: data.accent }}
-          >
-            {link.badge}
-          </span>
-        ) : null}
-      </div>
-      <div className="flex items-center gap-2 shrink-0 ml-2">
-        {link.price ? (
-          <span className="text-xs font-bold opacity-80">
-            ${parseFloat(String(link.price)).toFixed(2)}
-          </span>
-        ) : null}
-        <ExternalLink weight="fill" className="h-4 w-4 shrink-0" style={{ color: data.accent }} />
-      </div>
-    </a>
-  );
-}
-
 function ProductCard({ data, p, href }: { data: LinkBioPageData; p: LinkBioProductItem; href: string }) {
   return (
     <a
@@ -150,6 +111,34 @@ function ProductsBlock({ data, hrefFor }: { data: LinkBioPageData; hrefFor: (p: 
   );
 }
 
+const DISPLAY_FONT = "Georgia, 'Times New Roman', serif";
+
+function LinkImage({ src, tint, color, className }: { src?: string | null; tint: string; color: string; className: string }) {
+  if (src) {
+    return <img src={src} alt="" className={`object-cover ${className}`} onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />;
+  }
+  return (
+    <div className={`flex items-center justify-center ${className}`} style={{ background: tint }}>
+      <LinkIcon weight="fill" className="h-6 w-6" style={{ color }} />
+    </div>
+  );
+}
+
+function HeroImage({ data }: { data: LinkBioPageData }) {
+  const src = data.banner_url || data.avatar_url;
+  if (!src) {
+    return <div className="absolute inset-0" style={{ background: `linear-gradient(135deg, ${data.accent}66, ${data.accent}22)` }} />;
+  }
+  return (
+    <img src={src} alt="" className="absolute inset-0 w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+  );
+}
+
+function Eyebrow({ text, color }: { text?: string | null; color: string }) {
+  if (!text || text === "General") return null;
+  return <p className="text-[10px] font-bold uppercase tracking-[0.2em] mb-1" style={{ color }}>{text}</p>;
+}
+
 export interface TemplateRendererProps {
   data: LinkBioPageData;
   linkHref?: (link: LinkBioLinkItem) => string;
@@ -173,16 +162,98 @@ export default function TemplateRenderer({ data, linkHref, productHref }: Templa
   const links = data.links ?? [];
 
   switch (def.slug) {
-    case "grid":
+    default:
+    case "hero":
       return (
-        <div className="min-h-screen flex flex-col items-center py-12 px-4 transition-all duration-300" style={common}>
-          <div className="w-full max-w-sm mx-auto space-y-4 text-center">
-            <Avatar data={data} size={84} className="mx-auto" />
-            <div className="space-y-1">
-              <h1 className="text-xl font-black tracking-tight">{name}</h1>
-              {data.profile_bio && <p className="text-sm" style={{ color: `${data.text_color}aa` }}>{data.profile_bio}</p>}
+        <div className="min-h-screen flex flex-col items-center pb-12 transition-all duration-300" style={common}>
+          <div className="relative w-full h-72 overflow-hidden">
+            <HeroImage data={data} />
+            <div className="absolute inset-0" style={{ background: `linear-gradient(to bottom, transparent 35%, ${data.bg} 100%)` }} />
+            <div className="absolute inset-x-0 bottom-3 px-6 text-center">
+              <h1 className="text-3xl font-black italic leading-tight" style={{ fontFamily: DISPLAY_FONT }}>{name}</h1>
+              {data.profile_bio && <p className="text-xs mt-1 opacity-75">{data.profile_bio}</p>}
+            </div>
+          </div>
+          <div className="w-full max-w-sm mx-auto px-5 space-y-4">
+            <SocialRow socials={socials} accent={data.accent} />
+            <div className="space-y-3">
+              {links.map((link) => (
+                <a
+                  key={link.id}
+                  href={safeHref(hrefForLink(link))}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center gap-4 p-3 rounded-2xl transition-transform hover:scale-[1.02]"
+                  style={{ background: data.card_bg, color: data.text_color, boxShadow: `0 6px 18px ${data.accent}1f` }}
+                >
+                  <div className="flex-1 min-w-0 px-1">
+                    <Eyebrow text={link.category} color={data.accent} />
+                    <p className="text-lg font-bold leading-snug" style={{ fontFamily: DISPLAY_FONT }}>{link.title}</p>
+                  </div>
+                  <LinkImage src={link.image_url} tint={`${data.accent}20`} color={data.accent} className="h-20 w-20 rounded-xl shrink-0" />
+                </a>
+              ))}
+            </div>
+            <ProductsBlock data={data} hrefFor={hrefForProduct} />
+            <div className="pt-2 text-center"><Footer data={data} /></div>
+          </div>
+        </div>
+      );
+
+    case "boutique":
+      return (
+        <div className="min-h-screen flex flex-col items-center pb-12 transition-all duration-300" style={common}>
+          <div className="relative w-full h-64 overflow-hidden">
+            <HeroImage data={data} />
+            <div className="absolute inset-0" style={{ background: `linear-gradient(to bottom, transparent 30%, ${data.bg} 100%)` }} />
+          </div>
+          <div className="w-full max-w-sm mx-auto px-5 -mt-6 relative space-y-6 text-center">
+            <div className="space-y-2">
+              <h1 className="text-2xl font-black uppercase tracking-[0.18em]" style={{ fontFamily: DISPLAY_FONT, color: data.accent }}>{name}</h1>
+              <div className="mx-auto h-px w-16" style={{ background: data.accent }} />
+              {data.profile_bio && <p className="text-xs" style={{ color: `${data.text_color}aa` }}>{data.profile_bio}</p>}
             </div>
             <SocialRow socials={socials} accent={data.accent} />
+            <div className="space-y-3">
+              {links.map((link) => (
+                <a
+                  key={link.id}
+                  href={safeHref(hrefForLink(link))}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center gap-4 p-3 rounded-xl transition-transform hover:scale-[1.02]"
+                  style={{ background: `linear-gradient(120deg, ${data.card_bg} 0%, ${data.card_bg}cc 100%)`, color: cardTextColor(data) }}
+                >
+                  <LinkImage src={link.image_url} tint="rgba(0,0,0,0.12)" color={data.text_color} className="h-16 w-16 rounded-lg shrink-0" />
+                  <div className="flex-1 min-w-0 text-left">
+                    <Eyebrow text={link.category} color={`${cardTextColor(data)}99`} />
+                    <p className="text-sm font-black uppercase tracking-wide truncate">{link.title}</p>
+                  </div>
+                  <ChevronRight weight="fill" className="h-4 w-4 shrink-0" />
+                </a>
+              ))}
+            </div>
+            <ProductsBlock data={data} hrefFor={hrefForProduct} />
+            <div className="pt-2"><Footer data={data} /></div>
+          </div>
+        </div>
+      );
+
+    case "atelier":
+      return (
+        <div className="min-h-screen flex flex-col items-center pb-12 transition-all duration-300" style={common}>
+          <div className="relative w-full h-44 overflow-hidden">
+            <HeroImage data={data} />
+            <div className="absolute inset-x-0 bottom-0 h-1" style={{ background: data.accent }} />
+          </div>
+          <div className="w-full max-w-sm mx-auto px-5 -mt-14 relative z-10 space-y-6 text-center">
+            <div className="mx-auto w-fit rounded-full p-1.5" style={{ background: data.accent, boxShadow: `0 0 0 4px ${data.bg}` }}>
+              <Avatar data={data} size={108} />
+            </div>
+            <div className="space-y-2">
+              <h1 className="text-2xl font-bold uppercase tracking-[0.12em]" style={{ fontFamily: DISPLAY_FONT, color: data.accent }}>{name}</h1>
+              {data.profile_bio && <p className="text-[11px] uppercase tracking-[0.3em] opacity-80">{data.profile_bio}</p>}
+            </div>
             <div className="grid grid-cols-2 gap-3">
               {links.map((link) => (
                 <a
@@ -190,266 +261,74 @@ export default function TemplateRenderer({ data, linkHref, productHref }: Templa
                   href={safeHref(hrefForLink(link))}
                   target="_blank"
                   rel="noreferrer"
-                  className={`flex flex-col items-center justify-center gap-1 px-3 py-5 text-sm font-bold text-center transition-all hover:scale-[1.02] ${buttonRadius(data.button_style)}`}
-                  style={{ background: data.card_bg, color: data.text_color, border: `1px solid ${data.text_color}15` }}
+                  className="flex items-center justify-center px-3 py-3 text-xs font-bold uppercase tracking-wider truncate rounded-full transition-transform hover:scale-[1.03]"
+                  style={{ background: `${data.card_bg}26`, color: data.text_color, border: `1px solid ${data.text_color}55` }}
                 >
-                  <ExternalLink weight="fill" className="h-4 w-4" style={{ color: data.accent }} />
-                  <span className="truncate w-full">{link.title}</span>
+                  {link.title}
                 </a>
               ))}
-            </div>
-            <ProductsBlock data={data} hrefFor={hrefForProduct} />
-            <div className="pt-2"><Footer data={data} /></div>
-          </div>
-        </div>
-      );
-
-    case "cards":
-      return (
-        <div className="min-h-screen flex flex-col items-center py-12 px-4 transition-all duration-300" style={common}>
-          <div className="w-full max-w-sm mx-auto space-y-5 text-center">
-            <Avatar data={data} size={92} className="mx-auto" />
-            <div className="space-y-1">
-              <h1 className="text-xl font-black tracking-tight">{name}</h1>
-              {data.profile_bio && <p className="text-sm" style={{ color: `${data.text_color}aa` }}>{data.profile_bio}</p>}
-            </div>
-            <SocialRow socials={socials} accent={data.accent} />
-            <div className="space-y-3">
-              {links.map((link, i) => (
-                <a
-                  key={link.id}
-                  href={safeHref(hrefForLink(link))}
-                  target="_blank"
-                  rel="noreferrer"
-                  className={`flex items-center gap-4 px-5 py-4 text-sm font-bold transition-all hover:scale-[1.02] ${buttonRadius(data.button_style)}`}
-                  style={{ background: data.card_bg, color: data.text_color, border: `1px solid ${data.text_color}15`, boxShadow: `0 6px 18px ${data.accent}15` }}
-                >
-                  <span className="w-9 h-9 rounded-full flex items-center justify-center shrink-0" style={{ background: `${data.accent}20`, color: data.accent }}>
-                    <SocialIcon platform={socials[i % socials.length]?.platform ?? ""} className="h-4 w-4" />
-                  </span>
-                  <span className="flex-1 text-left truncate">{link.title}</span>
-                  <ChevronRight weight="fill" className="h-4 w-4 shrink-0" style={{ color: data.accent }} />
-                </a>
-              ))}
-            </div>
-            <ProductsBlock data={data} hrefFor={hrefForProduct} />
-            <div className="pt-2"><Footer data={data} /></div>
-          </div>
-        </div>
-      );
-
-    case "terminal":
-      return (
-        <div className="min-h-screen flex flex-col items-center py-12 px-4 transition-all duration-300" style={common}>
-          <div className="w-full max-w-sm mx-auto space-y-3">
-            <div className="text-xs font-bold opacity-60" style={{ color: data.accent }}>
-              murihspace://{data.username}
-            </div>
-            <div className="flex items-center gap-4 p-4" style={{ background: `${data.card_bg}66`, border: `1px solid ${data.accent}30` }}>
-              <Avatar data={data} size={56} />
-              <div className="min-w-0">
-                <h1 className="text-base font-bold truncate" style={{ color: data.accent }}>&gt; {name}</h1>
-                {data.profile_bio && <p className="text-xs mt-0.5 opacity-70 truncate">{data.profile_bio}</p>}
-              </div>
-            </div>
-            <SocialRow socials={socials} accent={data.accent} center={false} />
-            <div className="space-y-1.5 pt-2">
-              {links.map((link) => (
-                <a
-                  key={link.id}
-                  href={safeHref(hrefForLink(link))}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex items-center justify-between px-4 py-2.5 text-sm font-bold transition-colors hover:opacity-80"
-                  style={{ background: data.card_bg, color: data.text_color, borderLeft: `3px solid ${data.accent}` }}
-                >
-                  <span className="truncate">~/ {link.title}</span>
-                  <span style={{ color: data.accent }}>→</span>
-                </a>
-              ))}
-            </div>
-            <ProductsBlock data={data} hrefFor={hrefForProduct} />
-            <div className="pt-1 text-xs opacity-50" style={{ color: data.text_color }}>$ end of profile</div>
-          </div>
-        </div>
-      );
-
-    case "magazine":
-      return (
-        <div className="min-h-screen flex flex-col items-center py-12 px-4 transition-all duration-300" style={common}>
-          <div className="w-full max-w-sm mx-auto space-y-5">
-            <div className="text-center">
-              <h1 className="text-xl font-black uppercase tracking-tight">{name}</h1>
-              <div className="mx-auto mt-2 h-px w-24" style={{ background: data.accent }} />
-              {data.profile_bio && <p className="text-sm mt-2 italic" style={{ color: `${data.text_color}99` }}>{data.profile_bio}</p>}
-            </div>
-            <div className="flex justify-center"><Avatar data={data} size={76} /></div>
-            <SocialRow socials={socials} accent={data.accent} />
-            <div className="space-y-0 divide-y" style={{ borderColor: `${data.text_color}15` }}>
-              {links.map((link) => (
-                <a
-                  key={link.id}
-                  href={safeHref(hrefForLink(link))}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex items-center justify-between py-3.5 text-base font-bold transition-colors hover:opacity-70"
-                >
-                  <span className="truncate">{link.title}</span>
-                  <span style={{ color: data.accent }}>↗</span>
-                </a>
-              ))}
-            </div>
-            <ProductsBlock data={data} hrefFor={hrefForProduct} />
-            <div className="pt-2"><Footer data={data} /></div>
-          </div>
-        </div>
-      );
-
-    case "storefront":
-      return (
-        <div className="min-h-screen flex flex-col items-center py-12 px-4 transition-all duration-300" style={common}>
-          <div className="w-full max-w-sm mx-auto">
-            <div className="h-44 rounded-lg overflow-hidden shadow-lg" style={{ background: data.banner_url ? "transparent" : `linear-gradient(135deg, ${data.accent}40 0%, ${data.accent}20 100%)` }}>
-              {data.banner_url ? (
-                <img src={data.banner_url} alt="" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center"><ShoppingCart weight="fill" className="h-12 w-12" style={{ color: `${data.accent}40` }} /></div>
-              )}
-            </div>
-            <div className="px-4 -mt-10 relative z-10 text-center space-y-4">
-              <Avatar data={data} size={80} className="mx-auto" />
-              <div className="space-y-1">
-                <h1 className="text-xl font-black tracking-tight">{name}</h1>
-                {data.profile_bio && <p className="text-sm" style={{ color: `${data.text_color}aa` }}>{data.profile_bio}</p>}
-              </div>
-              <SocialRow socials={socials} accent={data.accent} />
-              <ProductsBlock data={data} hrefFor={hrefForProduct} />
-              <div className={`space-y-2 ${data.layout === "grid" ? "grid grid-cols-2 gap-2" : ""}`}>
-                {links.map((link) => <LinkButton key={link.id} data={data} link={link} href={hrefForLink(link)} />)}
-              </div>
-              <div className="pt-1"><Footer data={data} /></div>
-            </div>
-          </div>
-        </div>
-      );
-
-    case "portal":
-      return (
-        <div className="min-h-screen flex flex-col items-center py-12 px-4 transition-all duration-300" style={common}>
-          <div className="w-full max-w-sm mx-auto space-y-5 text-center">
-            <Avatar data={data} size={96} className="mx-auto" />
-            <div className="space-y-1">
-              <h1 className="text-xl font-black tracking-tight">{name}</h1>
-              {data.profile_bio && <p className="text-sm" style={{ color: `${data.text_color}aa` }}>{data.profile_bio}</p>}
             </div>
             <SocialRow socials={socials} accent={data.accent} size="lg" />
-            <div className="space-y-3">
-              {links.map((link) => (
-                <a
-                  key={link.id}
-                  href={safeHref(hrefForLink(link))}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex items-center justify-between px-5 py-4 text-sm font-bold transition-all hover:scale-[1.02]"
-                  style={{
-                    background: `${data.card_bg}66`,
-                    color: data.text_color,
-                    border: `1px solid ${data.text_color}18`,
-                    backdropFilter: "blur(12px)",
-                    WebkitBackdropFilter: "blur(12px)",
-                    boxShadow: `0 8px 24px ${data.accent}22`,
-                  }}
-                >
-                  <span className="truncate">{link.title}</span>
-                  <ExternalLink weight="fill" className="h-4 w-4 shrink-0 ml-2" style={{ color: data.accent }} />
-                </a>
-              ))}
-            </div>
             <ProductsBlock data={data} hrefFor={hrefForProduct} />
             <div className="pt-2"><Footer data={data} /></div>
           </div>
         </div>
       );
 
-    case "social":
+    case "lookbook":
       return (
-        <div className="min-h-screen flex flex-col items-center py-12 px-4 transition-all duration-300" style={common}>
-          <div className="w-full max-w-sm mx-auto space-y-5 text-center">
-            <Avatar data={data} size={84} className="mx-auto" />
-            <div className="space-y-1">
-              <h1 className="text-xl font-black tracking-tight">{name}</h1>
-              {data.profile_bio && <p className="text-sm" style={{ color: `${data.text_color}aa` }}>{data.profile_bio}</p>}
+        <div className="min-h-screen flex flex-col items-center pb-12 transition-all duration-300" style={common}>
+          <div className="relative w-full h-80 overflow-hidden">
+            <HeroImage data={data} />
+            <div className="absolute inset-0" style={{ background: "linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.6) 100%)" }} />
+            <div className="absolute inset-x-0 bottom-5 px-6 text-center text-white">
+              <h1 className="text-3xl italic leading-tight" style={{ fontFamily: DISPLAY_FONT }}>{name}</h1>
+              {data.profile_bio && <p className="text-[11px] uppercase tracking-[0.25em] mt-1 opacity-85">{data.profile_bio}</p>}
             </div>
-            {socials.length > 0 && (
-              <div className="grid grid-cols-2 gap-2.5">
-                {socials.map((s) => (
-                  <a
-                    key={s.id}
-                    href={safeHref(s.url)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={`flex items-center justify-center gap-2 px-4 py-3 text-xs font-bold transition-transform hover:scale-[1.03] ${buttonRadius(data.button_style)}`}
-                    style={{ background: data.card_bg, color: data.text_color, border: `1px solid ${data.text_color}15` }}
-                  >
-                    <SocialIcon platform={s.platform} className="h-4 w-4" />
-                    <span className="capitalize">{s.platform}</span>
-                  </a>
-                ))}
-              </div>
-            )}
+          </div>
+          <div className="w-full max-w-sm mx-auto px-5 pt-5 space-y-4">
+            <SocialRow socials={socials} accent={data.accent} />
+            <div className="space-y-4">
+              {links.map((link) => (
+                <a
+                  key={link.id}
+                  href={safeHref(hrefForLink(link))}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex overflow-hidden rounded-2xl min-h-[112px] transition-transform hover:scale-[1.02]"
+                  style={{ background: data.card_bg, color: data.text_color, boxShadow: `0 8px 24px ${data.accent}1a` }}
+                >
+                  <div className="flex-1 min-w-0 p-5 flex flex-col justify-center">
+                    <Eyebrow text={link.category} color={data.accent} />
+                    <p className="text-xl leading-tight" style={{ fontFamily: DISPLAY_FONT }}>{link.title}</p>
+                    <span className="mt-2 text-[11px] font-bold uppercase tracking-wider" style={{ color: data.accent }}>View →</span>
+                  </div>
+                  <LinkImage src={link.image_url} tint={`${data.accent}20`} color={data.accent} className="w-2/5 self-stretch shrink-0" />
+                </a>
+              ))}
+            </div>
+            <ProductsBlock data={data} hrefFor={hrefForProduct} />
+            <div className="pt-2 text-center"><Footer data={data} /></div>
+          </div>
+        </div>
+      );
+
+    case "showcase":
+      return (
+        <div className="min-h-screen flex flex-col items-center pb-12 transition-all duration-300" style={common}>
+          <div className="relative w-full h-64 overflow-hidden">
+            <HeroImage data={data} />
+            <div className="absolute inset-0" style={{ background: `linear-gradient(to bottom, transparent 30%, ${data.bg} 100%)` }} />
+          </div>
+          <div className="w-full max-w-sm mx-auto px-5 -mt-8 relative space-y-5 text-center">
             <div className="space-y-2">
-              {links.map((link) => <LinkButton key={link.id} data={data} link={link} href={hrefForLink(link)} />)}
-            </div>
-            <ProductsBlock data={data} hrefFor={hrefForProduct} />
-            <div className="pt-2"><Footer data={data} /></div>
-          </div>
-        </div>
-      );
-
-    case "compact":
-      return (
-        <div className="min-h-screen flex flex-col items-center py-12 px-5 transition-all duration-300" style={common}>
-          <div className="w-full max-w-sm mx-auto">
-            <div className="flex items-center gap-4 mb-5">
-              <Avatar data={data} size={56} />
-              <div className="min-w-0">
-                <h1 className="text-base font-black tracking-tight truncate">{name}</h1>
-                {data.profile_bio && <p className="text-xs mt-0.5 truncate" style={{ color: `${data.text_color}88` }}>{data.profile_bio}</p>}
+              <div className="mx-auto h-16 w-16 rounded-full p-1" style={{ background: data.accent }}>
+                <Avatar data={data} size={56} className="!rounded-full" />
               </div>
+              <h1 className="text-xl font-black uppercase tracking-[0.2em]" style={{ color: data.accent }}>{name}</h1>
+              {data.profile_bio && <p className="text-xs" style={{ color: `${data.text_color}aa` }}>{data.profile_bio}</p>}
             </div>
-            <SocialRow socials={socials} accent={data.accent} size="sm" center={false} />
-            <div className="space-y-1.5 mt-4">
-              {links.map((link) => (
-                <a
-                  key={link.id}
-                  href={safeHref(hrefForLink(link))}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex items-center justify-between px-3.5 py-2.5 text-sm font-medium transition-colors hover:opacity-80"
-                  style={{ background: data.card_bg, color: data.text_color, borderBottom: `1px solid ${data.text_color}10` }}
-                >
-                  <span className="truncate">{link.title}</span>
-                  <span className="text-xs" style={{ color: `${data.accent}` }}>›</span>
-                </a>
-              ))}
-            </div>
-            <ProductsBlock data={data} hrefFor={hrefForProduct} />
-            <div className="pt-3"><Footer data={data} /></div>
-          </div>
-        </div>
-      );
-
-    case "bold":
-      return (
-        <div className="min-h-screen flex flex-col items-center py-12 px-4 transition-all duration-300" style={common}>
-          <div className="w-full max-w-sm mx-auto space-y-5 text-center">
-            <div className="py-3 text-[11px] font-black uppercase tracking-[0.3em] opacity-50">MurihSpace</div>
-            <Avatar data={data} size={104} className="mx-auto" />
-            <div className="space-y-1">
-              <h1 className="text-xl font-black uppercase tracking-tight">{name}</h1>
-              {data.profile_bio && <p className="text-sm" style={{ color: `${data.text_color}aa` }}>{data.profile_bio}</p>}
-            </div>
-            <SocialRow socials={socials} accent={data.accent} size="lg" />
+            <SocialRow socials={socials} accent={data.accent} />
             <div className="space-y-3">
               {links.map((link) => (
                 <a
@@ -457,11 +336,15 @@ export default function TemplateRenderer({ data, linkHref, productHref }: Templa
                   href={safeHref(hrefForLink(link))}
                   target="_blank"
                   rel="noreferrer"
-                  className="flex items-center justify-between w-full px-5 py-4 text-sm font-black uppercase tracking-wide transition-transform hover:scale-[1.02] active:scale-[0.98]"
-                  style={{ background: data.card_bg, color: data.text_color, border: `2px solid ${data.accent}55` }}
+                  className="relative block h-28 overflow-hidden rounded-xl transition-transform hover:scale-[1.02]"
+                  style={{ border: `1px solid ${data.accent}66` }}
                 >
-                  <span className="truncate">{link.title}</span>
-                  <span className="text-lg" style={{ color: data.accent }}>→</span>
+                  <LinkImage src={link.image_url} tint={data.card_bg} color={data.accent} className="absolute inset-0 w-full h-full" />
+                  <div className="absolute inset-0" style={{ background: "linear-gradient(90deg, rgba(0,0,0,0.85) 25%, rgba(0,0,0,0.1) 100%)" }} />
+                  <div className="relative h-full flex flex-col justify-center px-5 text-left">
+                    <Eyebrow text={link.category} color={data.accent} />
+                    <p className="text-lg font-black uppercase tracking-wide" style={{ color: data.accent }}>{link.title}</p>
+                  </div>
                 </a>
               ))}
             </div>
@@ -471,35 +354,6 @@ export default function TemplateRenderer({ data, linkHref, productHref }: Templa
         </div>
       );
 
-    // minimal (default)
-    default:
-      return (
-        <div className="min-h-screen flex flex-col items-center py-12 px-4 transition-all duration-300" style={common}>
-          <div className="w-full max-w-sm mx-auto">
-            <div className="h-40 rounded-lg overflow-hidden shadow-lg" style={{ background: data.banner_url ? "transparent" : `linear-gradient(135deg, ${data.accent}40 0%, ${data.accent}20 100%)` }}>
-              {data.banner_url ? (
-                <img src={data.banner_url} alt="" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center"><Globe weight="fill" className="h-12 w-12" style={{ color: `${data.accent}40` }} /></div>
-              )}
-            </div>
-            <div className="px-4 -mt-10 relative z-10 text-center space-y-4">
-              <Avatar data={data} size={80} className="mx-auto" />
-              <div className="space-y-1">
-                <h1 className="text-xl font-black tracking-tight">{name}</h1>
-                {data.profile_bio && <p className="text-sm" style={{ color: `${data.text_color}aa` }}>{data.profile_bio}</p>}
-              </div>
-              <SocialRow socials={socials} accent={data.accent} />
-              <div className={`space-y-3 ${data.layout === "grid" ? "grid grid-cols-2 gap-3" : ""}`}>
-                {links.map((link) => <LinkButton key={link.id} data={data} link={link} href={hrefForLink(link)} />)}
-                {links.length === 0 && <p className="text-sm py-8" style={{ color: `${data.text_color}60` }}>No links yet</p>}
-              </div>
-              <ProductsBlock data={data} hrefFor={hrefForProduct} />
-              <div className="pt-2"><Footer data={data} /></div>
-            </div>
-          </div>
-        </div>
-      );
   }
 }
 
