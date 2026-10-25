@@ -95,19 +95,17 @@ class PhoneOtpService
                 ],
             ]);
 
-            // Staging delivers the code to the active device, and testers also read
-            // it from the log when no other device is signed in. In production the
-            // code is never written to the cache or the log. Delivery to the
-            // signed-in device is unchanged.
+            // Delivery to the signed-in device is unchanged. On non-production builds
+            // with OTP_DEV_CONSOLE enabled, the code is also shown in the process
+            // output for testers. DevOtpConsole never prints in production.
             if (! app()->environment('production')) {
-                Cache::put('phone-otp:dev:'.$row->id, $code, now()->addMinutes($ttlMinutes));
-
                 Log::info('[phone-otp] in-app active-device code issued', [
                     'phone' => $row->maskedPhone(),
                     'intent' => $intent,
                     'request_id' => $row->id,
-                    'code' => $code,
                 ]);
+
+                DevOtpConsole::publish($row, $code);
             }
 
             try {

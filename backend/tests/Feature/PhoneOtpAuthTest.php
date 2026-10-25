@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Country;
 use App\Models\PhoneOtpRequest;
 use App\Models\User;
+use App\Services\Otp\DevOtpConsole;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Testing\TestResponse;
@@ -43,7 +44,7 @@ class PhoneOtpAuthTest extends TestCase
     {
         $row = PhoneOtpRequest::where('phone_e164', $phone)->latest('id')->firstOrFail();
 
-        return (string) Cache::get('phone-otp:dev:'.$row->id);
+        return (string) DevOtpConsole::codeFor($row->id);
     }
 
     private function requestOtp(string $intent, array $extra = []): TestResponse

@@ -5,8 +5,10 @@ namespace Tests\Feature;
 use App\Models\DeviceSession;
 use App\Models\PhoneOtpRequest;
 use App\Models\User;
+use App\Services\Otp\DevOtpConsole;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
 
 /**
@@ -51,7 +53,7 @@ class OtpStagingDriverTest extends TestCase
         return is_file($this->logPath) ? (string) file_get_contents($this->logPath) : '';
     }
 
-    private function sendOtp(string $phone = '+2348012345678'): \Illuminate\Testing\TestResponse
+    private function sendOtp(string $phone = '+2348012345678'): TestResponse
     {
         return $this->postJson('/api/v1/auth/otp/request', [
             'intent' => 'login',
@@ -99,10 +101,18 @@ class OtpStagingDriverTest extends TestCase
             foreach (['OTP_DRIVER', 'APP_ENV'] as $key) {
                 unset($_ENV[$key], $_SERVER[$key]);
             }
-            if ($backup[0] !== null) $_ENV['OTP_DRIVER'] = $backup[0];
-            if ($backup[1] !== null) $_ENV['APP_ENV'] = $backup[1];
-            if ($backup[2] !== null) $_SERVER['OTP_DRIVER'] = $backup[2];
-            if ($backup[3] !== null) $_SERVER['APP_ENV'] = $backup[3];
+            if ($backup[0] !== null) {
+                $_ENV['OTP_DRIVER'] = $backup[0];
+            }
+            if ($backup[1] !== null) {
+                $_ENV['APP_ENV'] = $backup[1];
+            }
+            if ($backup[2] !== null) {
+                $_SERVER['OTP_DRIVER'] = $backup[2];
+            }
+            if ($backup[3] !== null) {
+                $_SERVER['APP_ENV'] = $backup[3];
+            }
         }
     }
 
@@ -126,16 +136,16 @@ class OtpStagingDriverTest extends TestCase
         );
     }
 
-    public function test_log_driver_writes_a_six_digit_code_to_the_log(): void
+    public function test_log_driver_shows_the_code_in_the_dev_console_not_the_log(): void
     {
         config(['services.twilio.otp_driver' => 'log']);
 
         $this->sendOtp()->assertOk();
 
-        $this->assertMatchesRegularExpression(
-            '/dev driver verification requested.*code.{0,40}"?\d{6}/s',
-            $this->logContents(),
-        );
+        $row = PhoneOtpRequest::latest('id')->first();
+        $this->assertMatchesRegularExpression('/^\d{6}$/', (string) DevOtpConsole::codeFor($row->id));
+        $this->assertStringContainsString('dev driver verification requested', $this->logContents());
+        $this->assertStringNotContainsString(DevOtpConsole::codeFor($row->id), $this->logContents());
     }
 
     /**
@@ -154,7 +164,6 @@ class OtpStagingDriverTest extends TestCase
         $this->assertStringContainsString('never be used in production', $this->logContents());
         $this->assertStringNotContainsString('dev driver verification requested', $this->logContents());
     }
-
 
     public function test_twilio_driver_names_the_missing_variables(): void
     {
@@ -209,15 +218,16 @@ class OtpStagingDriverTest extends TestCase
      */
     public function test_production_writes_no_otp_to_the_log_on_any_path(): void
     {
+        DevOtpConsole::forgetAll();
         $this->loginUserWithActiveDevice('+2348012345678');
         $this->app['env'] = 'production';
 
         $this->sendOtp()->assertOk()->assertJsonPath('data.channel', 'in_app_active_device');
 
         $row = PhoneOtpRequest::latest('id')->first();
-        $this->assertNull(Cache::get('phone-otp:dev:'.$row->id));
+        $this->assertNull(DevOtpConsole::codeFor($row->id));
 
-        $notification = \Illuminate\Support\Facades\DB::table('notifications')
+        $notification = DB::table('notifications')
             ->where('type', 'like', '%auth_login_otp%')
             ->latest('created_at')
             ->first();
@@ -252,7 +262,7 @@ class OtpStagingDriverTest extends TestCase
         // The in-app code must be readable in the log for staging testing...
         $this->assertStringContainsString('in-app active-device code issued', $this->logContents());
         // ...and must still verify normally.
-        $this->assertNotNull(Cache::get('phone-otp:dev:'.$row->id));
+        $this->assertNotNull(DevOtpConsole::codeFor($row->id));
 
         // It must also be persisted in the notifications table so the notifications page displays it.
         $this->assertDatabaseHas('notifications', [
@@ -272,7 +282,6 @@ class OtpStagingDriverTest extends TestCase
             $this->logContents(),
         );
     }
-
 
     public function test_any_recently_used_login_session_receives_the_inapp_code(): void
     {

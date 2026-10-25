@@ -155,6 +155,14 @@ return [
     ],
 
     /*
+    | Shows verification codes in the process output of non-production builds.
+    | Ignored in production. Staging sets OTP_DEV_CONSOLE=true.
+    */
+    'otp' => [
+        'dev_console' => (bool) env('OTP_DEV_CONSOLE', false),
+    ],
+
+    /*
     |--------------------------------------------------------------------------
     | Phone OTP (Twilio Verify)
     |--------------------------------------------------------------------------
@@ -165,8 +173,9 @@ return [
     |
     | OTP_DRIVER selects the driver:
     |   - twilio  real Twilio Verify (production)
-    |   - log     local dev/test driver that writes the code to the log and a
-    |             temporary cache key (never used in production)
+    |   - log     local dev/test driver. The code is shown through DevOtpConsole
+    |             when OTP_DEV_CONSOLE is enabled, never in the log or cache
+    |             (never used in production)
     |
     | All values below are runtime-only secrets; they are never exposed to the
     | frontend.
