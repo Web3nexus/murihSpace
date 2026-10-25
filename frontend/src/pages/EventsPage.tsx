@@ -2,7 +2,7 @@ import { logger } from "@/lib/logger";
 import { asApiError } from "@/lib/apiError";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { Link, useSearchParams } from "react-router";
-import { Video as VideoCamera, Calendar, Calendar as CalendarCheck, Search as MagnifyingGlass, Location as MapPin, N2User as Users, TimeCircle as Clock, Plus, Delete as Trash, TickSquare as Check, DangerSquare as WarningCircle, ShieldDone as ShieldCheck, CloseSquare as X, Discovery as Globe, Discovery as Compass, Swap as ArrowsClockwise, Profile as UserIcon, Video as VideoConference } from "@/components/icons";
+import { Video as VideoCamera, Calendar, Calendar as CalendarCheck, Search as MagnifyingGlass, Location as MapPin, N2User as Users, TimeCircle as Clock, Plus, Delete as Trash, TickSquare as Check, DangerSquare as WarningCircle, ShieldDone as ShieldCheck, CloseSquare as X, Discovery as Globe, Discovery as Compass, Swap as ArrowsClockwise, Profile as UserIcon } from "@/components/icons";
 import { Radio, Broadcast, Spinner } from "@/components/icons/rounded";;
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -419,16 +419,6 @@ export function EventsPage() {
           </p>
         </div>
         <div className="flex items-center gap-2.5 shrink-0 pl-14 md:pl-0 flex-wrap">
-          <Button
-            asChild
-            variant="outline"
-            className="h-10 px-4 rounded-xl text-sm font-semibold gap-2 border-border/80 hover:bg-muted/60"
-          >
-            <Link to="/app/meetings">
-              <VideoConference weight="fill" className="h-4 w-4 text-indigo-500" />
-              Join / Start Meeting
-            </Link>
-          </Button>
           <Button
             variant="outline"
             onClick={() => setActiveTab("my-events")}

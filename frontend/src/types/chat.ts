@@ -68,6 +68,8 @@ export interface ConversationItem {
   is_muted?: boolean;
   is_archived?: boolean;
   has_active_escrow?: boolean;
+  /** Brand deal or vendor-order chat, where video meetings can be started. */
+  is_business?: boolean;
   member_count?: number;
   escrow_amount?: number;
 }

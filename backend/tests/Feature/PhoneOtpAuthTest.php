@@ -171,16 +171,8 @@ class PhoneOtpAuthTest extends TestCase
     {
         User::factory()->create(['mobile_number' => self::NG_NUMBER, 'phone_verified_at' => now()]);
 
-        $this->requestOtp('register')->assertOk();
-        $code = $this->otpCode(self::NG_NUMBER);
-
-        $verify = $this->postJson('/api/v1/auth/otp/verify', [
-            'intent' => 'register',
-            'phone_e164' => self::NG_NUMBER,
-            'code' => $code,
-        ]);
-
-        $verify->assertStatus(422)->assertJsonValidationErrors('phone');
+        // A number that already belongs to an account is refused before any code is sent.
+        $this->requestOtp('register')->assertStatus(422)->assertJsonValidationErrors('phone');
     }
 
     /* ────────────────────────────── login ─────────────────────────────── */

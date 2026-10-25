@@ -77,6 +77,7 @@ export function ChatLayout() {
   const navigate = useNavigate();
   const [conversations, setConversations] = useState<ConversationItem[]>([]);
   const [activeConv, setActiveConv] = useState<ConversationItem | null>(null);
+  const [attachMenuOpen, setAttachMenuOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoadingList, setIsLoadingList] = useState(true);
   const [isLoadingMsgs, setIsLoadingMsgs] = useState(false);
@@ -487,14 +488,19 @@ export function ChatLayout() {
   const handleSendMessage = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!activeConv || !inputContent.trim()) return;
+    const contentText = inputContent.trim();
+    setInputContent('');
+    sendTextMessage(contentText);
+  };
+
+  const sendTextMessage = (contentText: string) => {
+    if (!activeConv) return;
     if (typingTimeoutRef.current) {
       clearTimeout(typingTimeoutRef.current);
       typingTimeoutRef.current = null;
     }
     lastTypingSentRef.current = 0;
     apiFetch(`/conversations/${activeConv.id}/typing`, { method: 'POST', body: JSON.stringify({ is_typing: false }) }).catch(() => {});
-    const contentText = inputContent.trim();
-    setInputContent('');
     const clientUuid = crypto.randomUUID ? crypto.randomUUID() : `uuid-${Date.now()}`;
 
     const draft: ChatMessage = {
@@ -513,6 +519,23 @@ export function ChatLayout() {
     setReplyingTo(null);
     setMessages((prev) => [...prev, draft]);
     executeSendMessage(draft);
+  };
+
+  // Creates a meeting for this business chat and sends its link as a message, so both parties can open it.
+  const startVideoMeeting = async () => {
+    if (!activeConv) return;
+    setAttachMenuOpen(false);
+    try {
+      const res = await authFetch(`${API_BASE}/conversations/${activeConv.id}/meeting`, {
+        method: 'POST',
+        headers: { Accept: 'application/json' },
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json?.message ?? 'Could not start the meeting.');
+      sendTextMessage(json.data.url);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Could not start the meeting.');
+    }
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1410,16 +1433,36 @@ export function ChatLayout() {
 
             {/* Composer */}
             <form onSubmit={handleSendMessage} className="p-3 border-t border-border bg-card flex items-center gap-2 shrink-0">
-              {/* Attachment button */}
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={uploading}
-                className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors shrink-0 disabled:opacity-50"
-                title="Attach file"
-              >
-                {uploading ? <Loader2 weight="fill" className="h-3.5 w-3.5 animate-spin" /> : <Paperclip weight="fill" className="h-3.5 w-3.5" />}
-              </button>
+              {/* Attachment button; business chats open a menu that also offers a video meeting */}
+              <div className="relative shrink-0">
+                {attachMenuOpen && activeConv?.is_business && (
+                  <div className="absolute bottom-full left-0 mb-2 w-44 rounded-lg border border-border bg-card p-1 shadow-lg z-10">
+                    <button
+                      type="button"
+                      onClick={() => { setAttachMenuOpen(false); fileInputRef.current?.click(); }}
+                      className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-xs font-semibold hover:bg-muted"
+                    >
+                      <Paperclip weight="fill" className="h-3.5 w-3.5" /> Attach file
+                    </button>
+                    <button
+                      type="button"
+                      onClick={startVideoMeeting}
+                      className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-xs font-semibold hover:bg-muted"
+                    >
+                      <VideoCamera weight="fill" className="h-3.5 w-3.5" /> Video meeting
+                    </button>
+                  </div>
+                )}
+                <button
+                  type="button"
+                  onClick={() => (activeConv?.is_business ? setAttachMenuOpen((open) => !open) : fileInputRef.current?.click())}
+                  disabled={uploading}
+                  className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+                  title="Attach"
+                >
+                  {uploading ? <Loader2 weight="fill" className="h-3.5 w-3.5 animate-spin" /> : <Paperclip weight="fill" className="h-3.5 w-3.5" />}
+                </button>
+              </div>
               <input
                 ref={fileInputRef}
                 type="file"

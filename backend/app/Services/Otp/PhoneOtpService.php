@@ -56,6 +56,33 @@ class PhoneOtpService
         $this->assertDestinationAllowed($countryIso2);
         $this->assertRequestRateLimits($phone, $request);
 
+        if ($intent === 'register' && User::withTrashed()->where('mobile_number', $phone)->exists()) {
+            // A number tied to any account, including suspended, banned or deleted ones, cannot open a new one.
+            throw ValidationException::withMessages([
+                'phone' => ['An account already exists with this number. Sign in instead.'],
+            ]);
+        }
+
+        if ($intent === 'login') {
+            $existing = User::withTrashed()->where('mobile_number', $phone)->first();
+
+            // A suspended account gets no code. The app opens the appeal screen instead.
+            if ($existing && ! $existing->trashed() && $existing->status === 'suspended') {
+                return [
+                    'account_status' => 'suspended',
+                    'requires_appeal' => true,
+                    'phone_e164' => $phone,
+                    'country_iso2' => $countryIso2,
+                ];
+            }
+
+            if ($existing && ($existing->trashed() || $existing->status === 'banned' || $existing->status === 'deleted')) {
+                throw ValidationException::withMessages([
+                    'phone' => ['This account is no longer available. If you think this is a mistake, contact support.'],
+                ]);
+            }
+        }
+
         $remaining = $this->resendCooldownSeconds($phone);
         if ($remaining > 0) {
             throw ValidationException::withMessages([
@@ -521,7 +548,7 @@ class PhoneOtpService
      */
     private function registerVerified(array $input, PhoneOtpRequest $row, ?User $user, Request $request): array
     {
-        if ($user) {
+        if ($user || User::withTrashed()->where('mobile_number', $row->phone_e164)->exists()) {
             throw ValidationException::withMessages([
                 'phone' => ['An account already exists with this number. Sign in instead.'],
             ]);

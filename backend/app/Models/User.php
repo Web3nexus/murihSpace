@@ -27,6 +27,7 @@ use App\Support\WebSession;
 #[Fillable([
     'uuid', 'name', 'email', 'password', 'username', 'country',
     'mobile_number', 'birthday', 'county', 'state', 'role', 'admin_role', 'admin_permissions', 'status',
+    'suspended_at', 'suspension_reason', 'suspension_source',
     'bio', 'avatar', 'avatar_url', 'banner_url',
     'website', 'gender', 'category', 'interests', 'languages',
     'is_creator_account', 'show_interests', 'allow_tagging', 'show_contact_info', 'account_privacy',

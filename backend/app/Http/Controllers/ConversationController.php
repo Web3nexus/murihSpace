@@ -16,6 +16,7 @@ use App\Models\Group;
 use App\Models\GroupMember;
 use App\Models\Media;
 use App\Models\Message;
+use App\Models\Meeting;
 use App\Models\MessageUserState;
 use App\Models\User;
 use App\Models\UserBlock;
@@ -82,8 +83,19 @@ class ConversationController extends Controller
             ->whereIn('status', ['held', 'disputed', 'pending', 'active'])
             ->get();
 
+        // Business status for every direct chat in one pass, not several queries per conversation.
+        $directOtherIds = $conversations
+            ->where('type', 'direct')
+            ->map(fn ($conv) => $conv->users->firstWhere('id', '!=', $userId)?->id)
+            ->filter()
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
+        $businessCounterparts = array_flip(app(BusinessChatPolicy::class)->businessCounterparts($userId, $directOtherIds));
+
         $conversations = $conversations
-            ->map(function ($conv) use ($userId, $settings, $unreadCounts, $activeEscrows) {
+            ->map(function ($conv) use ($userId, $settings, $unreadCounts, $activeEscrows, $businessCounterparts) {
                 $unreadCount = (int) ($unreadCounts->get($conv->id) ?? 0);
 
                 // For direct conversations, resolve recipient user
@@ -137,6 +149,8 @@ class ConversationController extends Controller
                     'escrow_currency' => $escrowCurrency,
                     'is_financial' => $hasActiveEscrow,
                     'tags' => $hasActiveEscrow ? ['#Business: Escrow Deal', '#Financial'] : [],
+                    'is_business' => $conv->type === 'marketplace'
+                        || ($otherUser !== null && isset($businessCounterparts[(int) $otherUser->id])),
                 ];
             })
             ->sort(function ($a, $b) {
@@ -419,6 +433,13 @@ class ConversationController extends Controller
         }
         $this->authorizeParticipant($request, $conversation);
         $request->user()->forceFill(['last_seen_at' => now()])->saveQuietly();
+
+        if ($this->isBlockedInDirectChat($conversation, $request->user()->id)) {
+            return response()->json([
+                'message' => 'You cannot message this person. One of you has blocked the other.',
+                'code' => 'BLOCKED',
+            ], 403);
+        }
 
         // Financial chat speed limit check ("manage illegal speed from admin")
         $isFinancialChat = $conversation->type === 'marketplace'
@@ -821,36 +842,32 @@ class ConversationController extends Controller
             return $this->businessChatLocked($policy, $conversation);
         }
 
+        // A direct chat's history belongs to each person separately, so one person can never
+        // clear it for the other. "Clear for everyone" is only for group and community chats.
+        if ($mode === 'everyone' && $conversation->type === 'direct') {
+            return response()->json([
+                'message' => 'You can only clear this chat for yourself. Clearing for everyone is only available in group chats.',
+            ], 403);
+        }
+
         if ($mode === 'everyone') {
-            if ($conversation->type === 'direct') {
-                // In direct chat, either participant can clear for everyone
-                $messages = Message::where('conversation_id', $conversationId)->get();
-                DB::transaction(function () use ($messages) {
-                    foreach ($messages as $msg) {
-                        $msg->update(['status' => Message::STATUS_DELETED, 'content' => '', 'attachment_url' => null]);
-                        $msg->delete();
-                    }
-                });
-                return response()->json(['message' => 'Chat history cleared for everyone.']);
-            } else {
-                $isMod = CommunityMembership::where('community_id', $conversation->community_id)
-                    ->where('user_id', $request->user()->id)
-                    ->whereIn('role', ['admin', 'moderator'])
-                    ->exists();
+            $isMod = CommunityMembership::where('community_id', $conversation->community_id)
+                ->where('user_id', $request->user()->id)
+                ->whereIn('role', ['admin', 'moderator'])
+                ->exists();
 
-                if (! $isMod && $conversation->creator_id !== $request->user()->id) {
-                    return response()->json(['message' => 'Only admins can clear chat for everyone in groups.'], 403);
-                }
-
-                $messages = Message::where('conversation_id', $conversationId)->get();
-                DB::transaction(function () use ($messages) {
-                    foreach ($messages as $msg) {
-                        $msg->update(['status' => Message::STATUS_DELETED, 'content' => '', 'attachment_url' => null]);
-                        $msg->delete();
-                    }
-                });
-                return response()->json(['message' => 'Chat history cleared for everyone.']);
+            if (! $isMod && $conversation->creator_id !== $request->user()->id) {
+                return response()->json(['message' => 'Only admins can clear chat for everyone in groups.'], 403);
             }
+
+            $messages = Message::where('conversation_id', $conversationId)->get();
+            DB::transaction(function () use ($messages) {
+                foreach ($messages as $msg) {
+                    $msg->update(['status' => Message::STATUS_DELETED, 'content' => '', 'attachment_url' => null]);
+                    $msg->delete();
+                }
+            });
+            return response()->json(['message' => 'Chat history cleared for everyone.']);
         }
 
         // Delete for me: hide all messages for this user
@@ -955,6 +972,13 @@ class ConversationController extends Controller
         $this->authorizeParticipant($request, $targetConv);
 
         $this->authorizeParticipant($request, $original->conversation);
+
+        if ($this->isBlockedInDirectChat($targetConv, $request->user()->id)) {
+            return response()->json([
+                'message' => 'You cannot message this person. One of you has blocked the other.',
+                'code' => 'BLOCKED',
+            ], 403);
+        }
 
         $clientUuid = $validated['client_uuid'] ?? null;
         if ($clientUuid) {
@@ -1123,6 +1147,61 @@ class ConversationController extends Controller
     /**
      * Resolve conversation by ID, or seamlessly resolve synthetic direct ID (e.g. 9000 + userId).
      */
+    /**
+     * Starts a video meeting from a business chat. Either party can start one. The
+     * returned link is then sent as a message, so both people see it in the chat.
+     */
+    public function createMeeting(Request $request, int $id, BusinessChatPolicy $policy): JsonResponse
+    {
+        $conversation = $this->resolveConversation($request, $id);
+        if (! $conversation) {
+            return response()->json(['message' => 'Conversation not found.'], 404);
+        }
+        $this->authorizeParticipant($request, $conversation);
+
+        if (! $policy->isBusiness($conversation)) {
+            return response()->json([
+                'message' => 'Video meetings are only available in business chats (brand deals or vendor orders).',
+                'code' => 'NOT_BUSINESS_CHAT',
+            ], 403);
+        }
+
+        $user = $request->user();
+        $code = Meeting::generateCode();
+
+        Meeting::create([
+            'code' => $code,
+            'host_user_id' => $user->id,
+            'room' => "meeting-{$code}",
+            'title' => "{$user->name}'s Meeting",
+            'expires_at' => now()->addHours(8),
+        ]);
+
+        return response()->json([
+            'code' => $code,
+            'url' => rtrim((string) config('app.frontend_url'), '/')."/m/{$code}",
+        ], 201);
+    }
+
+    /** True when either side of a direct chat has blocked the other. */
+    private function isBlockedInDirectChat(Conversation $conversation, int $userId): bool
+    {
+        if ($conversation->type !== 'direct') {
+            return false;
+        }
+
+        $otherId = $conversation->participants()->where('user_id', '!=', $userId)->value('user_id');
+        if (! $otherId) {
+            return false;
+        }
+
+        return UserBlock::where(function ($q) use ($userId, $otherId) {
+            $q->where('blocker_id', $userId)->where('blocked_id', $otherId);
+        })->orWhere(function ($q) use ($userId, $otherId) {
+            $q->where('blocker_id', $otherId)->where('blocked_id', $userId);
+        })->exists();
+    }
+
     private function resolveConversation(Request $request, int $id): ?Conversation
     {
         $conversation = Conversation::find($id);

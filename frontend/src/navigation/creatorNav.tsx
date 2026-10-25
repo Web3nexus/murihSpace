@@ -1,4 +1,4 @@
-import { Chart as ChartBar, N2User as Users, N3User as UsersThree, Chat as ChatCircleDots, Video as VideoCamera, Video as VideoConference, Calendar as CalendarCheck, Bag as ShoppingBag, Graph as TrendUp, Discount as Gift, Star, Wallet, Setting as Gear, ShieldDone as ShieldCheck } from "@/components/icons";
+import { Chart as ChartBar, N2User as Users, N3User as UsersThree, Chat as ChatCircleDots, Video as VideoCamera, Calendar as CalendarCheck, Bag as ShoppingBag, Graph as TrendUp, Discount as Gift, Star, Wallet, Setting as Gear, ShieldDone as ShieldCheck } from "@/components/icons";
 import { LinkSimple, GraduationCap, Megaphone, Handshake } from "@/components/icons/rounded";;
 import type { NavGroup } from "./navTypes";
 
@@ -44,11 +44,6 @@ export const creatorNav: NavGroup[] = [
         url: "/app/events",
         icon: <VideoCamera weight="fill" className="h-5 w-5" />,
         featureFlag: "events",
-      },
-      {
-        title: "Video Meetings",
-        url: "/app/meetings",
-        icon: <VideoConference weight="fill" className="h-5 w-5" />,
       },
       {
         title: "Online Courses",

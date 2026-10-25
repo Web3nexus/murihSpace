@@ -321,14 +321,6 @@ export function SiteHeader({ onOpenMobileSidebar }: SiteHeaderProps) {
                   <span>Live Studio</span>
                 </Link>
                 <Link
-                  to="/app/meetings"
-                  onClick={() => setShowQuickMenu(false)}
-                  className="flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-[var(--shell-hover)] dark:hover:bg-[var(--shell-hover)] transition-colors font-medium text-[var(--shell-text)] dark:text-[var(--shell-text)]"
-                >
-                  <VideoCamera weight="fill" className="h-4 w-4 text-indigo-500" />
-                  <span>Meeting &amp; Conference</span>
-                </Link>
-                <Link
                   to="/app/store"
                   onClick={() => setShowQuickMenu(false)}
                   className="flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-[var(--shell-hover)] dark:hover:bg-[var(--shell-hover)] transition-colors font-medium text-[var(--shell-text)] dark:text-[var(--shell-text)]"

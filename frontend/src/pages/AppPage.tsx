@@ -636,7 +636,6 @@ export function AppPage() {
                 { icon: <Plus weight="fill" className="h-4 w-4 text-[var(--shell-accent)] dark:text-[var(--shell-accent)]" />, label: "Create Post", action: () => { setComposerOpen(true); setCommunityPickerOpen(false); } },
                 { icon: <Package weight="fill" className="h-4 w-4 text-rose-500" />, label: "Add Product", to: "/app/store" },
                 { icon: <Video weight="fill" className="h-4 w-4 text-red-500" />, label: "Go Live", to: "/app/audio-rooms" },
-                { icon: <Video weight="fill" className="h-4 w-4 text-emerald-500" />, label: "New Meeting", to: "/app/meetings" },
                 { icon: <Calendar weight="fill" className="h-4 w-4 text-[var(--shell-accent)]" />, label: "New Event", to: "/app/events" },
                 { icon: <BarChart2 weight="fill" className="h-4 w-4 text-amber-500" />, label: "Poll", to: "/app/communities" },
               ].map((act, i) => (

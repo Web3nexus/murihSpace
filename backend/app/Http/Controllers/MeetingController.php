@@ -38,11 +38,7 @@ class MeetingController extends Controller
 
         $title = $request->input('title') ?: ($user->name . "'s Meeting");
 
-        // Generate a Google Meet style code (e.g. abc-defg-hij)
-        $part1 = Str::lower(Str::random(3));
-        $part2 = Str::lower(Str::random(4));
-        $part3 = Str::lower(Str::random(3));
-        $code = "{$part1}-{$part2}-{$part3}";
+        $code = Meeting::generateCode();
         $roomName = "meeting-{$code}";
 
         try {

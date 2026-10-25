@@ -151,20 +151,27 @@ class UserEnforcementService
         });
     }
 
-    public function suspend(User $actor, User $target, string $reason): User
+    /**
+     * Suspends an account. A suspended account can appeal; a banned one cannot.
+     *
+     * @param  ?User  $actor  null when the system suspends the account automatically
+     * @param  string  $source  'manual', or 'auto_reports' when the report threshold is reached
+     */
+    public function suspend(?User $actor, User $target, string $reason, string $source = 'manual'): User
     {
         $target->update([
             'status' => 'suspended',
             'suspended_at' => now(),
             'suspension_reason' => $reason,
+            'suspension_source' => $source,
         ]);
 
         AuditLog::create([
-            'user_id' => $actor->id,
+            'user_id' => $actor?->id,
             'action' => 'user.suspended',
             'resource_type' => 'user',
             'resource_id' => (string) $target->id,
-            'metadata' => ['reason' => $reason],
+            'metadata' => ['reason' => $reason, 'source' => $source],
         ]);
 
         return $target->refresh();

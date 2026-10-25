@@ -57,9 +57,12 @@ class PhoneOtpController extends Controller
             return response()->json($payload, 503);
         }
 
-        return response()->json(array_merge([
-            'message' => 'Verification code sent.',
-        ], $result));
+        // A suspended account receives no code; the app shows the appeal screen for it.
+        $message = isset($result['account_status'])
+            ? 'This account is suspended. You can appeal the suspension.'
+            : 'Verification code sent.';
+
+        return response()->json(array_merge(['message' => $message], $result));
     }
 
     public function verify(Request $request): JsonResponse

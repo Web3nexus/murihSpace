@@ -114,6 +114,7 @@ use App\Http\Controllers\PageSectionController;
 use App\Http\Controllers\PasswordResetController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\PaymentWebhookController;
+use App\Http\Controllers\AccountAppealController;
 use App\Http\Controllers\PhoneOtpController;
 use App\Http\Controllers\PhoneVerificationController;
 use App\Http\Controllers\PhysicalProductController;
@@ -231,6 +232,9 @@ Route::prefix('v1')->group(function () {
             Route::post('/request', [PhoneOtpController::class, 'request'])->middleware('throttle:otp');
             Route::post('/verify', [PhoneOtpController::class, 'verify'])->middleware('throttle:otp');
         });
+
+        // Appeals from suspended accounts (no sign-in needed; they cannot sign in).
+        Route::post('/account/appeals', [AccountAppealController::class, 'store'])->middleware('throttle:5,1');
 
         // Password Reset
         Route::post('/forgot-password', [PasswordResetController::class, 'forgotPassword'])->middleware('throttle:auth');
@@ -710,6 +714,7 @@ Route::prefix('v1')->group(function () {
             Route::get('/community/{communityId}', [ConversationController::class, 'getCommunityChat']);
             Route::get('/saved', [ConversationController::class, 'getSavedMessages']);
             Route::get('/{id}/messages', [ConversationController::class, 'messages']);
+            Route::post('/{id}/meeting', [ConversationController::class, 'createMeeting'])->middleware('throttle:10,1');
             Route::post('/{id}/messages', [ConversationController::class, 'sendMessage']);
             Route::delete('/{id}/messages', [ConversationController::class, 'clearMessages']);
             Route::post('/{id}/read', [ConversationController::class, 'markRead']);
@@ -1642,6 +1647,12 @@ Route::prefix('v1')->group(function () {
             });
 
             // Reports
+            Route::prefix('account-appeals')->middleware('admin.permission:warnings')->group(function () {
+                Route::get('/', [AccountAppealController::class, 'index']);
+                Route::post('/{appeal}/decision', [AccountAppealController::class, 'decide']);
+            });
+
+            // Reports: the content team, and the account team that handles suspensions.
             Route::prefix('reports')->middleware('admin.permission:content')->group(function () {
                 Route::get('/', [ModerationController::class, 'index']);
                 Route::get('/pending-count', [ModerationController::class, 'pendingCount']);

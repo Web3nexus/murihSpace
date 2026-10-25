@@ -21,6 +21,14 @@ class Meeting extends Model
         'expires_at' => 'datetime',
     ];
 
+    /** Google Meet style room code, e.g. abc-defg-hij. */
+    public static function generateCode(): string
+    {
+        return \Illuminate\Support\Str::lower(\Illuminate\Support\Str::random(3))
+            .'-'.\Illuminate\Support\Str::lower(\Illuminate\Support\Str::random(4))
+            .'-'.\Illuminate\Support\Str::lower(\Illuminate\Support\Str::random(3));
+    }
+
     public function host(): BelongsTo
     {
         return $this->belongsTo(User::class, 'host_user_id');

@@ -9,6 +9,7 @@ use App\Models\Report;
 use App\Models\User;
 use App\Services\NotificationService;
 use App\Services\UserEnforcementService;
+use App\Services\Moderation\ReportThresholdSuspension;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -55,6 +56,14 @@ class ModerationController extends Controller
             'details' => $validated['details'] ?? null,
             'status' => 'pending',
         ]);
+
+        // Several different people reporting one account in a short space of time suspends it automatically.
+        if ($validated['reported_type'] === 'user') {
+            $reported = User::find($validated['reported_id']);
+            if ($reported && $reported->id !== $request->user()->id) {
+                app(ReportThresholdSuspension::class)->evaluate($reported);
+            }
+        }
 
         return response()->json([
             'message' => 'Report submitted. Our moderation team will review it.',

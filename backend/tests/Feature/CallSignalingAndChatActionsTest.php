@@ -172,7 +172,7 @@ class CallSignalingAndChatActionsTest extends TestCase
         $this->assertGreaterThanOrEqual(145, $payload['duration']);
     }
 
-    public function test_user_can_clear_chat_for_everyone(): void
+    public function test_direct_chat_cannot_be_cleared_for_the_other_person(): void
     {
         Sanctum::actingAs($this->user1);
 
@@ -182,21 +182,14 @@ class CallSignalingAndChatActionsTest extends TestCase
             'content' => 'First message',
             'type' => 'text',
         ]);
-        Message::create([
-            'conversation_id' => $this->conv->id,
-            'user_id' => $this->user2->id,
-            'content' => 'Second message',
-            'type' => 'text',
-        ]);
 
+        // A direct chat belongs to each person separately, so clearing is for yourself only.
         $response = $this->deleteJson("/api/v1/conversations/{$this->conv->id}/messages", [
             'mode' => 'everyone',
         ]);
 
-        $response->assertOk();
-        $response->assertJson(['message' => 'Chat history cleared for everyone.']);
-
-        $this->assertSoftDeleted('messages', ['content' => '']);
+        $response->assertStatus(403);
+        $this->assertDatabaseHas('messages', ['content' => 'First message']);
     }
 
     public function test_user_can_get_mutual_communities(): void

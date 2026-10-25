@@ -15,6 +15,7 @@ enum AdminRole: string
     case ComplianceAdmin = 'compliance_admin';
     case OperationsAdmin = 'operations_admin';
     case SupportStaff = 'support_staff';
+    case AccountAdmin = 'account_admin';
     case Moderator = 'moderator';
 
     public function label(): string
@@ -31,6 +32,7 @@ enum AdminRole: string
             self::ComplianceAdmin => 'Compliance & Risk Admin',
             self::OperationsAdmin => 'Operations & Staff Admin',
             self::SupportStaff => 'Support Representative / Staff',
+            self::AccountAdmin => 'Account & Trust Team',
             self::Moderator => 'Content Moderator / Staff',
         };
     }
@@ -124,6 +126,14 @@ enum AdminRole: string
             // Narrowest roles. Staff can act only in their own lane.
             self::SupportStaff => [
                 AdminPermission::Support,
+            ],
+
+            // Handles user reports and appeals from suspended accounts: reads reports,
+            // suspends and reinstates accounts. No money movement.
+            self::AccountAdmin => [
+                AdminPermission::Users,
+                AdminPermission::Warnings,
+                AdminPermission::Content,
             ],
 
             // A moderator may flag content and warn, but not ban: DEC-012 keeps

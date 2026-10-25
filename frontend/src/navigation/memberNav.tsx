@@ -1,4 +1,4 @@
-import { Discovery as Compass, N2User as Users, Chat as ChatCircleDots, Video as VideoCamera, Video as VideoConference, Location as MapPin, Chat as ChatCircle, Star, Wallet, Profile as UserCircle, ShieldDone as ShieldCheck, Setting as Gear } from "@/components/icons";
+import { Discovery as Compass, N2User as Users, Chat as ChatCircleDots, Video as VideoCamera, Location as MapPin, Chat as ChatCircle, Star, Wallet, Profile as UserCircle, ShieldDone as ShieldCheck, Setting as Gear } from "@/components/icons";
 import { Rss, Broadcast, Crown } from "@/components/icons/rounded";;
 import type { NavGroup } from "./navTypes";
 
@@ -39,11 +39,6 @@ export const memberNav: NavGroup[] = [
         url: "/app/events",
         icon: <VideoCamera weight="fill" className="h-5 w-5" />,
         featureFlag: "events",
-      },
-      {
-        title: "Meetings",
-        url: "/app/meetings",
-        icon: <VideoConference weight="fill" className="h-5 w-5" />,
       },
       {
         title: "Friends",
