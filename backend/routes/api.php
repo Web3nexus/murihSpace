@@ -2048,3 +2048,15 @@ Route::prefix('v1/auth/qr')->group(function () {
             ->middleware('throttle:qr-login');
     });
 });
+
+// End-to-end encryption key directory. Public keys only: the server never
+// receives private keys or plaintext message contents.
+Route::prefix('v1')->group(function () {
+    Route::prefix('e2ee')->middleware(['auth:sanctum', 'throttle:api'])->group(function () {
+        Route::post('/devices', [\App\Http\Controllers\E2eeKeyController::class, 'register']);
+        Route::post('/devices/{deviceUuid}/prekeys', [\App\Http\Controllers\E2eeKeyController::class, 'uploadPrekeys']);
+    });
+
+    Route::get('/e2ee/users/{user}/bundles', [\App\Http\Controllers\E2eeKeyController::class, 'bundles'])
+        ->middleware(['auth:sanctum', 'throttle:30,1']);
+});
