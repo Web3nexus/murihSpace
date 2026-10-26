@@ -21,6 +21,10 @@ wasm-bindgen = "0.2.129"
 futures = "0.3"
 uuid = "1"
 
+[features]
+# Native C ABI for the Flutter app. Not enabled for the WebAssembly build.
+ffi = []
+
 [dev-dependencies]
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 getrandom = { version = "0.4.3", features = ["wasm_js"] }
