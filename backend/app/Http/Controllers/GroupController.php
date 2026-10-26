@@ -377,10 +377,13 @@ class GroupController extends Controller
                     ['title' => $group->name]
                 );
 
-                ConversationParticipant::firstOrCreate(
+                $joined = ConversationParticipant::firstOrCreate(
                     ['conversation_id' => $conv->id, 'user_id' => $user->id],
                     ['last_read_at' => now()]
                 );
+                if ($joined->wasRecentlyCreated) {
+                    app(\App\Services\E2eeGroupService::class)->bumpEpoch($conv);
+                }
             });
 
             return response()->json([
@@ -438,9 +441,12 @@ class GroupController extends Controller
 
             $conv = Conversation::where('type', 'group')->where('group_id', $group->id)->first();
             if ($conv) {
-                ConversationParticipant::where('conversation_id', $conv->id)
+                $left = ConversationParticipant::where('conversation_id', $conv->id)
                     ->where('user_id', $userId)
                     ->delete();
+                if ($left > 0) {
+                    app(\App\Services\E2eeGroupService::class)->bumpEpoch($conv);
+                }
             }
         });
 

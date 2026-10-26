@@ -31,10 +31,13 @@ class GroupChatController extends Controller
             ['title' => $group->name]
         );
 
-        ConversationParticipant::firstOrCreate(
+        $joined = ConversationParticipant::firstOrCreate(
             ['conversation_id' => $conversation->id, 'user_id' => $user->id],
             ['last_read_at' => now()]
         );
+        if ($joined->wasRecentlyCreated) {
+            app(\App\Services\E2eeGroupService::class)->bumpEpoch($conversation);
+        }
 
         return response()->json([
             'success' => true,

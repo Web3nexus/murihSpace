@@ -21,6 +21,7 @@ use App\Models\MessageUserState;
 use App\Models\User;
 use App\Models\UserBlock;
 use App\Notifications\NewMessageNotification;
+use App\Services\E2eeGroupService;
 use App\Services\MessageEditingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -418,6 +419,8 @@ class ConversationController extends Controller
         // Lets the app hide "delete for everyone" while a business chat is locked, and show when it opens.
         $body = $messages->toArray();
         $body['delete_for_everyone_unlocks_at'] = app(BusinessChatPolicy::class)->unlocksAt($conversation)?->toIso8601String();
+        // The current key epoch of an encrypted group, so clients know which key to use.
+        $body['e2ee_epoch'] = (int) $conversation->e2ee_epoch;
 
         return response()->json($body);
     }
@@ -466,7 +469,8 @@ class ConversationController extends Controller
         $validated = $request->validate([
             'content' => ['required_without_all:attachment_url,ciphertext', 'nullable', 'string', 'max:5000'],
             'ciphertext' => ['nullable', 'string', 'max:65536'],
-            'encryption' => ['nullable', 'string', 'in:signal_v1'],
+            'encryption' => ['nullable', 'string', 'in:signal_v1,'.E2eeGroupService::ENCRYPTION],
+            'key_epoch' => ['nullable', 'integer', 'min:0'],
             'client_uuid' => ['nullable', 'string', 'max:64'],
             'reply_to_id' => ['nullable', 'integer', 'exists:messages,id'],
             'attachment_url' => ['nullable', 'string', 'max:2000'],
@@ -486,6 +490,30 @@ class ConversationController extends Controller
         }
         if (($validated['encryption'] ?? null) !== null && trim((string) ($validated['content'] ?? '')) !== '') {
             return response()->json(['message' => 'Encrypted messages cannot include plaintext content.'], 422);
+        }
+
+        // Group chats use one sender-key ciphertext per message, tied to the group's
+        // current key epoch. A pairwise ciphertext in a group could be read by one member only.
+        $groups = app(E2eeGroupService::class);
+        if (($validated['encryption'] ?? null) === E2eeGroupService::ENCRYPTION) {
+            if (! $groups->supports($conversation)) {
+                return response()->json(['message' => 'Group encryption is only for group chats.'], 422);
+            }
+            if (($validated['key_epoch'] ?? null) === null) {
+                return response()->json(['message' => 'Group messages need key_epoch.'], 422);
+            }
+            if ((int) $validated['key_epoch'] !== (int) $conversation->e2ee_epoch) {
+                return response()->json([
+                    'message' => 'Stale key epoch. Rotate and distribute your sender key before sending.',
+                    'code' => 'STALE_KEY_EPOCH',
+                    'epoch' => (int) $conversation->e2ee_epoch,
+                ], 409);
+            }
+        } elseif (($validated['encryption'] ?? null) !== null && $groups->supports($conversation)) {
+            return response()->json(['message' => 'Messages in group chats must use group encryption.'], 422);
+        }
+        if (($validated['encryption'] ?? null) === null && array_key_exists('key_epoch', $validated) && $validated['key_epoch'] !== null) {
+            return response()->json(['message' => 'key_epoch needs group encryption.'], 422);
         }
 
         $clientUuid = $validated['client_uuid'] ?? null;
@@ -519,6 +547,9 @@ class ConversationController extends Controller
                 'content' => trim($validated['content'] ?? ''),
                 'encryption' => $validated['encryption'] ?? null,
                 'ciphertext' => $validated['ciphertext'] ?? null,
+                'key_epoch' => ($validated['encryption'] ?? null) === E2eeGroupService::ENCRYPTION
+                    ? (int) $validated['key_epoch']
+                    : null,
                 'type' => $messageType,
                 'status' => Message::STATUS_SENT,
                 'client_uuid' => $clientUuid,
@@ -796,6 +827,11 @@ class ConversationController extends Controller
             ->withTrashed()
             ->findOrFail($messageId);
 
+        // Editing writes plaintext. An encrypted message has none, so it cannot be edited.
+        if ($message->encryption !== null) {
+            return response()->json(['message' => 'Encrypted messages cannot be edited.'], 422);
+        }
+
         $content = trim($validated['content']);
 
         if ($reason = $editing->blockedReason($message, $request->user())) {
@@ -981,6 +1017,11 @@ class ConversationController extends Controller
     public function forwardMessage(Request $request, int $messageId): JsonResponse
     {
         $original = Message::with('media')->findOrFail($messageId);
+
+        // A forwarded copy would have no body, and it would not carry the ciphertext.
+        if ($original->encryption !== null) {
+            return response()->json(['message' => 'Encrypted messages cannot be forwarded.'], 422);
+        }
 
         $validated = $request->validate([
             'to_conversation_id' => ['required', 'integer', 'exists:conversations,id'],
