@@ -20,11 +20,17 @@ import {
   LocalParticipant,
   Track,
   Participant,
+  isE2EESupported,
 } from 'livekit-client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { getAuthToken } from '@/lib/auth/token';
 import { mapApplicationError } from '@/lib/errorMapper';
+import {
+  RoomKeyManager,
+  createE2eeRoomSetup,
+  type E2eePeerTransport,
+} from '@/lib/e2ee';
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? 'http://localhost:8000/api/v1';
 
@@ -42,6 +48,18 @@ interface Props {
   meetingCode?: string;
   onLeave?: () => void;
   onError?: (msg: string) => void;
+  /**
+   * Enables LiveKit end-to-end encryption with a room key shared over the peer
+   * transport. Peer ids are LiveKit participant identities. Without this prop the
+   * call runs unencrypted, as before.
+   */
+  e2ee?: {
+    transport: E2eePeerTransport;
+    /** Stable id both sides agree on for this call or livestream. */
+    roomId: string;
+    /** True for the host who creates the room key. */
+    isInitiator: boolean;
+  };
 }
 
 interface ParticipantTrackState {
@@ -59,6 +77,7 @@ export function LiveKitVideoConference({
   meetingCode,
   onLeave,
   onError,
+  e2ee,
 }: Props) {
   const [stage, setStage] = useState<'prejoin' | 'connecting' | 'connected'>('prejoin');
   const [isMicOn, setIsMicOn] = useState(true);
@@ -72,6 +91,7 @@ export function LiveKitVideoConference({
   const [connectionError, setConnectionError] = useState<{ title: string; message: string; suggestion?: string } | null>(null);
 
   const roomRef = useRef<Room | null>(null);
+  const keyManagerRef = useRef<RoomKeyManager | null>(null);
   const localVideoRef = useRef<HTMLVideoElement | null>(null);
   const previewStreamRef = useRef<MediaStream | null>(null);
 
@@ -161,12 +181,19 @@ export function LiveKitVideoConference({
         host = json.host;
       }
 
+      // Refuse to fall back to unencrypted media when encryption was requested.
+      if (e2ee && !isE2EESupported()) {
+        throw new Error('End-to-end encryption is not supported in this browser.');
+      }
+      const e2eeSetup = e2ee ? createE2eeRoomSetup() : null;
+
       const room = new Room({
         adaptiveStream: true,
         dynacast: true,
         videoCaptureDefaults: {
           resolution: { width: 1280, height: 720, frameRate: 30 },
         },
+        ...(e2eeSetup ? { e2ee: e2eeSetup.e2ee } : {}),
       });
 
       const updateParticipantsState = () => {
@@ -206,6 +233,39 @@ export function LiveKitVideoConference({
       await room.connect(host, token);
       roomRef.current = room;
 
+      if (e2ee && e2eeSetup) {
+        const keys = new RoomKeyManager({
+          roomId: e2ee.roomId,
+          transport: e2ee.transport,
+          keyring: e2eeSetup.keyProvider,
+          localIdentity: room.localParticipant.identity,
+          // Share the key only with people who are currently in the LiveKit room.
+          canShareWith: (peerId) => room.remoteParticipants.has(peerId),
+        });
+        keyManagerRef.current = keys;
+        keys.start();
+        await room.setE2EEEnabled(true);
+
+        const remoteIds = Array.from(room.remoteParticipants.keys());
+        if (e2ee.isInitiator) {
+          await keys.createAndShare(remoteIds);
+        } else {
+          await keys.requestFrom(remoteIds);
+        }
+
+        room.on(RoomEvent.ParticipantConnected, (p: Participant) => {
+          // A newcomer without the key asks the holders; holders answer through canShareWith.
+          if (!keys.hasKey) void keys.requestFrom([p.identity]);
+        });
+        room.on(RoomEvent.ParticipantDisconnected, (p: Participant) => {
+          const remaining = Array.from(room.remoteParticipants.keys()).filter((id) => id !== p.identity);
+          void keys.onParticipantLeft(remaining);
+        });
+        room.on(RoomEvent.EncryptionError, (err: Error) => {
+          console.warn('LiveKit E2EE error', err);
+        });
+      }
+
       // Apply initial mic/camera states
       await room.localParticipant.setMicrophoneEnabled(isMicOn);
       await room.localParticipant.setCameraEnabled(isCamOn);
@@ -226,6 +286,8 @@ export function LiveKitVideoConference({
   };
 
   const leaveConference = () => {
+    keyManagerRef.current?.stop();
+    keyManagerRef.current = null;
     if (roomRef.current) {
       roomRef.current.disconnect();
       roomRef.current = null;
@@ -276,6 +338,7 @@ export function LiveKitVideoConference({
 
   useEffect(() => {
     return () => {
+      keyManagerRef.current?.stop();
       if (roomRef.current) {
         roomRef.current.disconnect();
       }
