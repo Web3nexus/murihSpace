@@ -1,0 +1,22 @@
+[package]
+name = "murih-e2ee"
+version = "0.1.0"
+edition = "2021"
+description = "Browser bridge to Signal's protocol (X3DH + Double Ratchet) for MuriSpace end-to-end encrypted chat"
+license = "AGPL-3.0-only"
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+# Pinned to a specific commit of Signal's official repository. Update deliberately.
+libsignal-protocol = { git = "https://github.com/signalapp/libsignal", rev = "fc90b90fa2b9c37822fa47ba0e0dcdf387a0c071" }
+rand = "0.9"
+
+[dev-dependencies]
+futures = "0.3"
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+getrandom = { version = "0.4.3", features = ["wasm_js"] }
+getrandom03 = { package = "getrandom", version = "0.3.4", features = ["wasm_js"] }
