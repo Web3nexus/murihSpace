@@ -2056,6 +2056,12 @@ Route::prefix('v1')->group(function () {
     Route::prefix('e2ee')->middleware(['auth:sanctum', 'throttle:api'])->group(function () {
         Route::post('/devices', [\App\Http\Controllers\E2eeKeyController::class, 'register']);
         Route::post('/devices/{deviceUuid}/prekeys', [\App\Http\Controllers\E2eeKeyController::class, 'uploadPrekeys']);
+
+        // Encrypted key backup: ciphertext only, owner only.
+        Route::put('/backup', [\App\Http\Controllers\E2eeBackupController::class, 'store'])
+            ->middleware('throttle:10,1');
+        Route::get('/backup', [\App\Http\Controllers\E2eeBackupController::class, 'show'])
+            ->middleware('throttle:30,1');
     });
 
     Route::get('/e2ee/users/{user}/bundles', [\App\Http\Controllers\E2eeKeyController::class, 'bundles'])
