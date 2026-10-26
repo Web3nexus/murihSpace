@@ -9,11 +9,12 @@ use async_trait::async_trait;
 use libsignal_protocol::{
     Direction, GenericSignedPreKey, IdentityChange, IdentityKey, IdentityKeyPair, IdentityKeyStore,
     KyberPreKeyId, KyberPreKeyRecord, KyberPreKeyStore, PreKeyId, PreKeyRecord, PreKeyStore,
-    ProtocolAddress, PublicKey, SessionRecord, SessionStore, SignalProtocolError, SignedPreKeyId,
-    SignedPreKeyRecord, SignedPreKeyStore,
+    ProtocolAddress, PublicKey, SenderKeyRecord, SenderKeyStore, SessionRecord, SessionStore,
+    SignalProtocolError, SignedPreKeyId, SignedPreKeyRecord, SignedPreKeyStore,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use uuid::Uuid;
 
 fn address_key(address: &ProtocolAddress) -> String {
     format!("{}:{}", address.name(), address.device_id())
@@ -46,6 +47,61 @@ pub struct KyberPreKeyPart {
     kyber_pre_keys: HashMap<u32, Vec<u8>>,
 }
 
+/// Group (sender key) state.
+///
+/// `records` holds sender key records, both our own and those received from other
+/// members, keyed by sender address and distribution id. `own` maps each group id to
+/// the distribution id of our current sender key for that group. `received` maps
+/// "sender|group" to the distribution ids that sender has announced for the group, so
+/// a message is only accepted under a key that was sent for that group.
+#[derive(Serialize, Deserialize, Default)]
+pub struct SenderKeyPart {
+    records: HashMap<String, Vec<u8>>,
+    own: HashMap<String, String>,
+    received: HashMap<String, Vec<String>>,
+}
+
+fn sender_key_record_key(address: &ProtocolAddress, distribution_id: Uuid) -> String {
+    format!("{}|{}", address_key(address), distribution_id)
+}
+
+fn received_key(sender: &str, group_id: &str) -> String {
+    format!("{sender}|{group_id}")
+}
+
+impl SenderKeyPart {
+    /// Our current distribution id for a group, if we have created one.
+    pub fn own_distribution(&self, group_id: &str) -> Option<Uuid> {
+        self.own.get(group_id).and_then(|id| Uuid::parse_str(id).ok())
+    }
+
+    pub fn set_own_distribution(&mut self, group_id: &str, distribution_id: Uuid) {
+        self.own.insert(group_id.to_string(), distribution_id.to_string());
+    }
+
+    /// Forgets our sender key for a group, so the next one is a fresh chain.
+    pub fn drop_own_distribution(&mut self, own_address: &ProtocolAddress, group_id: &str) {
+        if let Some(distribution_id) = self.own_distribution(group_id) {
+            self.records.remove(&sender_key_record_key(own_address, distribution_id));
+        }
+        self.own.remove(group_id);
+    }
+
+    pub fn remember_received(&mut self, sender: &str, group_id: &str, distribution_id: Uuid) {
+        let ids = self.received.entry(received_key(sender, group_id)).or_default();
+        let id = distribution_id.to_string();
+        if !ids.contains(&id) {
+            ids.push(id);
+        }
+    }
+
+    pub fn has_received(&self, sender: &str, group_id: &str, distribution_id: Uuid) -> bool {
+        self.received
+            .get(&received_key(sender, group_id))
+            .is_some_and(|ids| ids.contains(&distribution_id.to_string()))
+    }
+}
+
 /// All of one device's keys and sessions.
 #[derive(Serialize, Deserialize, Default)]
 pub struct DeviceStore {
@@ -54,6 +110,9 @@ pub struct DeviceStore {
     pub pre_keys: PreKeyPart,
     pub signed_pre_keys: SignedPreKeyPart,
     pub kyber_pre_keys: KyberPreKeyPart,
+    /// Absent in exports made before group support, so those still restore.
+    #[serde(default)]
+    pub sender_keys: SenderKeyPart,
 }
 
 impl DeviceStore {
@@ -148,6 +207,13 @@ impl SessionStore for SessionPart {
     }
 }
 
+impl PreKeyPart {
+    /// The lowest one-time prekey id not yet used up. This is the one a bundle advertises.
+    pub fn lowest_id(&self) -> Option<u32> {
+        self.pre_keys.keys().copied().min()
+    }
+}
+
 #[async_trait(?Send)]
 impl PreKeyStore for PreKeyPart {
     async fn get_pre_key(&self, prekey_id: PreKeyId) -> Result<PreKeyRecord, SignalProtocolError> {
@@ -227,5 +293,29 @@ impl KyberPreKeyStore for KyberPreKeyPart {
     ) -> Result<(), SignalProtocolError> {
         // The Kyber prekey is kept as the last-resort key, so it is not removed here.
         Ok(())
+    }
+}
+
+#[async_trait(?Send)]
+impl SenderKeyStore for SenderKeyPart {
+    async fn store_sender_key(
+        &mut self,
+        sender: &ProtocolAddress,
+        distribution_id: Uuid,
+        record: &SenderKeyRecord,
+    ) -> Result<(), SignalProtocolError> {
+        self.records.insert(sender_key_record_key(sender, distribution_id), record.serialize()?);
+        Ok(())
+    }
+
+    async fn load_sender_key(
+        &mut self,
+        sender: &ProtocolAddress,
+        distribution_id: Uuid,
+    ) -> Result<Option<SenderKeyRecord>, SignalProtocolError> {
+        match self.records.get(&sender_key_record_key(sender, distribution_id)) {
+            None => Ok(None),
+            Some(bytes) => Ok(Some(SenderKeyRecord::deserialize(bytes)?)),
+        }
     }
 }
