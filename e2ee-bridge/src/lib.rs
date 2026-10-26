@@ -1,46 +1,53 @@
-//! Signal protocol primitives for MuriSpace end-to-end encryption.
+//! Signal protocol bridge for MuriSpace end-to-end encryption.
 //!
-//! The server never sees keys or plaintext. Each device creates its keys here,
-//! publishes only the public parts, and encrypts or decrypts on the device.
+//! Each device creates its keys here, publishes only the public parts, and
+//! encrypts or decrypts on the device. The server never sees keys or plaintext.
+//! The same code runs in the browser (WebAssembly) and in native tests.
 
+use base64::prelude::*;
+use futures::executor::block_on;
 use libsignal_protocol::{
     kem, message_decrypt, message_encrypt, process_prekey_bundle, CiphertextMessage, DeviceId,
-    GenericSignedPreKey, IdentityKeyPair, IdentityKeyStore, InMemSignalProtocolStore, KeyPair,
-    KyberPreKeyId, KyberPreKeyRecord, KyberPreKeyStore, PreKeyBundle, PreKeyId, PreKeyRecord,
-    PreKeyStore, ProtocolAddress, SignalProtocolError, SignedPreKeyId, SignedPreKeyRecord,
+    GenericSignedPreKey, IdentityKey, IdentityKeyPair, IdentityKeyStore,
+    InMemSignalProtocolStore, KeyPair, KyberPreKeyId, KyberPreKeyRecord, KyberPreKeyStore,
+    PreKeyBundle, PreKeyId, PreKeyRecord, PreKeySignalMessage, PreKeyStore, ProtocolAddress,
+    PublicKey, SignalMessage, SignalProtocolError, SignedPreKeyId, SignedPreKeyRecord,
     SignedPreKeyStore, Timestamp,
 };
+use serde::{Deserialize, Serialize};
 use std::time::SystemTime;
+use wasm_bindgen::prelude::*;
 
-/// Creates a device's full key set and returns its store, which holds the private keys.
-/// The public parts are what gets uploaded to the key directory.
-pub async fn new_device(
-    registration_id: u32,
-    prekey_count: u32,
-) -> Result<InMemSignalProtocolStore, SignalProtocolError> {
-    let mut rng = rand::rng();
-    let identity = IdentityKeyPair::generate(&mut rng);
-    let mut store = InMemSignalProtocolStore::new(identity, registration_id)?;
+/// The first byte of every ciphertext says which Signal message type follows.
+const TAG_PREKEY: u8 = 3;
+const TAG_WHISPER: u8 = 2;
 
-    let signed_id = SignedPreKeyId::from(1u32);
-    let signed_pair = KeyPair::generate(&mut rng);
-    let signed_sig = identity.private_key().calculate_signature(&signed_pair.public_key.serialize(), &mut rng)?;
-    let now = Timestamp::from_epoch_millis(now_millis());
-    store
-        .signed_pre_key_store
-        .save_signed_pre_key(signed_id, &SignedPreKeyRecord::new(signed_id, now, &signed_pair, &signed_sig))
-        .await?;
+/// Public part of a device's keys. This is what the server stores and hands out.
+#[derive(Serialize, Deserialize)]
+pub struct PublicBundle {
+    pub registration_id: u32,
+    pub device_id: u32,
+    pub identity_key: String,
+    pub prekey_id: u32,
+    pub prekey_public: String,
+    pub signed_prekey_id: u32,
+    pub signed_prekey_public: String,
+    pub signed_prekey_signature: String,
+    pub kyber_prekey_id: u32,
+    pub kyber_prekey_public: String,
+    pub kyber_prekey_signature: String,
+}
 
-    let kyber_id = KyberPreKeyId::from(1u32);
-    let kyber_record = KyberPreKeyRecord::generate(kem::KeyType::Kyber1024, kyber_id, identity.private_key())?;
-    store.kyber_pre_key_store.save_kyber_pre_key(kyber_id, &kyber_record).await?;
+fn js_err(e: impl std::fmt::Display) -> String {
+    e.to_string()
+}
 
-    for id in 1..=prekey_count {
-        let pre_key_id = PreKeyId::from(id);
-        let pair = KeyPair::generate(&mut rng);
-        store.pre_key_store.save_pre_key(pre_key_id, &PreKeyRecord::new(pre_key_id, &pair)).await?;
-    }
-    Ok(store)
+fn decode(value: &str) -> Result<Vec<u8>, String> {
+    BASE64_STANDARD.decode(value).map_err(js_err)
+}
+
+fn address(name: &str) -> Result<ProtocolAddress, String> {
+    Ok(ProtocolAddress::new(name.to_string(), DeviceId::new(1).map_err(js_err)?))
 }
 
 fn now_millis() -> u64 {
@@ -50,79 +57,210 @@ fn now_millis() -> u64 {
         .unwrap_or(0)
 }
 
+/// One device's keys and sessions. The private keys stay inside this object.
+#[wasm_bindgen]
+pub struct Device {
+    store: InMemSignalProtocolStore,
+    name: String,
+    registration_id: u32,
+    prekey_count: u32,
+}
+
+#[wasm_bindgen]
+impl Device {
+    /// Creates a device with fresh identity, signed, Kyber and one-time prekeys.
+    #[wasm_bindgen(constructor)]
+    pub fn new(name: String, registration_id: u32, prekey_count: u32) -> Result<Device, String> {
+        let mut rng = rand::rng();
+        let identity = IdentityKeyPair::generate(&mut rng);
+        let mut store = InMemSignalProtocolStore::new(identity, registration_id).map_err(js_err)?;
+
+        block_on(async {
+            let signed_id = SignedPreKeyId::from(1u32);
+            let signed_pair = KeyPair::generate(&mut rng);
+            let signed_sig = identity
+                .private_key()
+                .calculate_signature(&signed_pair.public_key.serialize(), &mut rng)?;
+            let now = Timestamp::from_epoch_millis(now_millis());
+            store
+                .signed_pre_key_store
+                .save_signed_pre_key(
+                    signed_id,
+                    &SignedPreKeyRecord::new(signed_id, now, &signed_pair, &signed_sig),
+                )
+                .await?;
+
+            let kyber_id = KyberPreKeyId::from(1u32);
+            let kyber = KyberPreKeyRecord::generate(kem::KeyType::Kyber1024, kyber_id, identity.private_key())?;
+            store.kyber_pre_key_store.save_kyber_pre_key(kyber_id, &kyber).await?;
+
+            for id in 1..=prekey_count {
+                let pre_key_id = PreKeyId::from(id);
+                let pair = KeyPair::generate(&mut rng);
+                store
+                    .pre_key_store
+                    .save_pre_key(pre_key_id, &PreKeyRecord::new(pre_key_id, &pair))
+                    .await?;
+            }
+            Ok::<(), SignalProtocolError>(())
+        })
+        .map_err(js_err)?;
+
+        Ok(Device { store, name, registration_id, prekey_count })
+    }
+
+    /// The public keys to upload to the key directory, as JSON.
+    #[wasm_bindgen(js_name = publicBundle)]
+    pub fn public_bundle(&self) -> Result<String, String> {
+        let identity = block_on(self.store.identity_store.get_identity_key_pair()).map_err(js_err)?;
+        let signed = block_on(self.store.signed_pre_key_store.get_signed_pre_key(SignedPreKeyId::from(1u32)))
+            .map_err(js_err)?;
+        let kyber = block_on(self.store.kyber_pre_key_store.get_kyber_pre_key(KyberPreKeyId::from(1u32)))
+            .map_err(js_err)?;
+        let first_pre_key = block_on(self.store.pre_key_store.get_pre_key(PreKeyId::from(1u32)))
+            .map_err(js_err)?;
+
+        let bundle = PublicBundle {
+            registration_id: self.registration_id,
+            device_id: 1,
+            identity_key: BASE64_STANDARD.encode(identity.identity_key().serialize()),
+            prekey_id: 1,
+            prekey_public: BASE64_STANDARD.encode(first_pre_key.public_key().map_err(js_err)?.serialize()),
+            signed_prekey_id: 1,
+            signed_prekey_public: BASE64_STANDARD.encode(signed.public_key().map_err(js_err)?.serialize()),
+            signed_prekey_signature: BASE64_STANDARD.encode(signed.signature().map_err(js_err)?),
+            kyber_prekey_id: 1,
+            kyber_prekey_public: BASE64_STANDARD.encode(kyber.public_key().map_err(js_err)?.serialize()),
+            kyber_prekey_signature: BASE64_STANDARD.encode(kyber.signature().map_err(js_err)?),
+        };
+        serde_json::to_string(&bundle).map_err(js_err)
+    }
+
+    /// Starts an encrypted session with another device, from its public bundle.
+    #[wasm_bindgen(js_name = startSession)]
+    pub fn start_session(&mut self, remote_name: String, remote_bundle_json: String) -> Result<(), String> {
+        let remote: PublicBundle = serde_json::from_str(&remote_bundle_json).map_err(js_err)?;
+        let identity = IdentityKey::decode(&decode(&remote.identity_key)?).map_err(js_err)?;
+        let bundle = PreKeyBundle::new(
+            remote.registration_id,
+            DeviceId::new(remote.device_id as u8).map_err(js_err)?,
+            Some((
+                PreKeyId::from(remote.prekey_id),
+                PublicKey::deserialize(&decode(&remote.prekey_public)?).map_err(js_err)?,
+            )),
+            SignedPreKeyId::from(remote.signed_prekey_id),
+            PublicKey::deserialize(&decode(&remote.signed_prekey_public)?).map_err(js_err)?,
+            decode(&remote.signed_prekey_signature)?,
+            KyberPreKeyId::from(remote.kyber_prekey_id),
+            kem::PublicKey::deserialize(&decode(&remote.kyber_prekey_public)?).map_err(js_err)?,
+            decode(&remote.kyber_prekey_signature)?,
+            identity,
+        )
+        .map_err(js_err)?;
+
+        let mut rng = rand::rng();
+        block_on(process_prekey_bundle(
+            &address(&remote_name)?,
+            &address(&self.name)?,
+            &mut self.store.session_store,
+            &mut self.store.identity_store,
+            &bundle,
+            SystemTime::now(),
+            &mut rng,
+        ))
+        .map_err(js_err)
+    }
+
+    /// Encrypts a message for a remote device. The result starts with a type tag.
+    pub fn encrypt(&mut self, remote_name: String, plaintext: Vec<u8>) -> Result<Vec<u8>, String> {
+        let mut rng = rand::rng();
+        let message = block_on(message_encrypt(
+            &plaintext,
+            &address(&remote_name)?,
+            &address(&self.name)?,
+            &mut self.store.session_store,
+            &mut self.store.identity_store,
+            SystemTime::now(),
+            &mut rng,
+        ))
+        .map_err(js_err)?;
+
+        let (tag, body) = match &message {
+            CiphertextMessage::PreKeySignalMessage(m) => (TAG_PREKEY, m.serialized().to_vec()),
+            CiphertextMessage::SignalMessage(m) => (TAG_WHISPER, m.serialized().to_vec()),
+            _ => return Err(js_err("unexpected ciphertext type")),
+        };
+        let mut out = Vec::with_capacity(body.len() + 1);
+        out.push(tag);
+        out.extend_from_slice(&body);
+        Ok(out)
+    }
+
+    /// Decrypts a message received from a remote device.
+    pub fn decrypt(&mut self, remote_name: String, data: Vec<u8>) -> Result<Vec<u8>, String> {
+        let (tag, body) = data.split_first().ok_or_else(|| js_err("empty ciphertext"))?;
+        let message = match *tag {
+            TAG_PREKEY => CiphertextMessage::PreKeySignalMessage(PreKeySignalMessage::try_from(body).map_err(js_err)?),
+            TAG_WHISPER => CiphertextMessage::SignalMessage(SignalMessage::try_from(body).map_err(js_err)?),
+            _ => return Err(js_err("unknown ciphertext type")),
+        };
+
+        let mut rng = rand::rng();
+        block_on(message_decrypt(
+            &message,
+            &address(&remote_name)?,
+            &address(&self.name)?,
+            &mut self.store.session_store,
+            &mut self.store.identity_store,
+            &mut self.store.pre_key_store,
+            &self.store.signed_pre_key_store,
+            &mut self.store.kyber_pre_key_store,
+            &mut rng,
+        ))
+        .map_err(js_err)
+    }
+
+    /// Number of one-time prekeys this device created.
+    #[wasm_bindgen(js_name = prekeyCount)]
+    pub fn prekey_count(&self) -> u32 {
+        self.prekey_count
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use futures::executor::block_on;
 
     #[test]
     fn two_devices_exchange_messages_end_to_end() {
-        block_on(async {
-            let mut rng = rand::rng();
-            let alice_addr = ProtocolAddress::new("alice".to_string(), DeviceId::new(1).unwrap());
-            let bob_addr = ProtocolAddress::new("bob".to_string(), DeviceId::new(1).unwrap());
+        let mut bob = Device::new("bob".to_string(), 4242, 1).unwrap();
+        let mut alice = Device::new("alice".to_string(), 1111, 0).unwrap();
 
-            let mut bob = new_device(4242, 1).await.unwrap();
-            let mut alice = new_device(1111, 0).await.unwrap();
+        // Bob publishes his public bundle; Alice fetches it and starts a session.
+        let bob_bundle = bob.public_bundle().unwrap();
+        alice.start_session("bob".to_string(), bob_bundle).unwrap();
 
-            // Bob's public bundle, as the server would hand it out.
-            let bob_identity = bob.identity_store.get_identity_key_pair().await.unwrap();
-            let pre_key = bob.pre_key_store.get_pre_key(PreKeyId::from(1u32)).await.unwrap();
-            let signed = bob.signed_pre_key_store.get_signed_pre_key(SignedPreKeyId::from(1u32)).await.unwrap();
-            let kyber = bob.kyber_pre_key_store.get_kyber_pre_key(KyberPreKeyId::from(1u32)).await.unwrap();
-            let bundle = PreKeyBundle::new(
-                4242,
-                DeviceId::new(1).unwrap(),
-                Some((PreKeyId::from(1u32), pre_key.public_key().unwrap())),
-                SignedPreKeyId::from(1u32),
-                signed.public_key().unwrap(),
-                signed.signature().unwrap(),
-                KyberPreKeyId::from(1u32),
-                kyber.public_key().unwrap(),
-                kyber.signature().unwrap(),
-                *bob_identity.identity_key(),
-            )
-            .unwrap();
+        let first = alice.encrypt("bob".to_string(), b"hello bob".to_vec()).unwrap();
+        assert_eq!(first[0], TAG_PREKEY);
+        assert_eq!(bob.decrypt("alice".to_string(), first).unwrap(), b"hello bob");
 
-            process_prekey_bundle(
-                &bob_addr,
-                &alice_addr,
-                &mut alice.session_store,
-                &mut alice.identity_store,
-                &bundle,
-                SystemTime::now(),
-                &mut rng,
-            )
-            .await
-            .unwrap();
+        let reply = bob.encrypt("alice".to_string(), b"hi alice".to_vec()).unwrap();
+        assert_eq!(reply[0], TAG_WHISPER);
+        assert_eq!(alice.decrypt("bob".to_string(), reply).unwrap(), b"hi alice");
 
-            let ciphertext = message_encrypt(
-                b"hello bob",
-                &bob_addr,
-                &alice_addr,
-                &mut alice.session_store,
-                &mut alice.identity_store,
-                SystemTime::now(),
-                &mut rng,
-            )
-            .await
-            .unwrap();
-            assert!(matches!(ciphertext, CiphertextMessage::PreKeySignalMessage(_)));
+        let again = alice.encrypt("bob".to_string(), b"ratchet moved".to_vec()).unwrap();
+        assert_eq!(bob.decrypt("alice".to_string(), again).unwrap(), b"ratchet moved");
+    }
 
-            let plaintext = message_decrypt(
-                &ciphertext,
-                &alice_addr,
-                &bob_addr,
-                &mut bob.session_store,
-                &mut bob.identity_store,
-                &mut bob.pre_key_store,
-                &bob.signed_pre_key_store,
-                &mut bob.kyber_pre_key_store,
-                &mut rng,
-            )
-            .await
-            .unwrap();
-            assert_eq!(plaintext, b"hello bob");
-        });
+    #[test]
+    fn a_tampered_message_is_rejected() {
+        let mut bob = Device::new("bob".to_string(), 4242, 1).unwrap();
+        let mut alice = Device::new("alice".to_string(), 1111, 0).unwrap();
+        alice.start_session("bob".to_string(), bob.public_bundle().unwrap()).unwrap();
+
+        let mut sealed = alice.encrypt("bob".to_string(), b"secret".to_vec()).unwrap();
+        let last = sealed.len() - 1;
+        sealed[last] ^= 0x01;
+        assert!(bob.decrypt("alice".to_string(), sealed).is_err());
     }
 }
