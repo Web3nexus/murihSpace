@@ -155,9 +155,12 @@ class GroupMemberController extends Controller
 
             $conv = Conversation::where('type', 'group')->where('group_id', $group->id)->first();
             if ($conv) {
-                ConversationParticipant::where('conversation_id', $conv->id)
+                $removed = ConversationParticipant::where('conversation_id', $conv->id)
                     ->where('user_id', $targetMember->user_id)
                     ->delete();
+                if ($removed > 0) {
+                    app(\App\Services\E2eeGroupService::class)->bumpEpoch($conv);
+                }
             }
         });
 
@@ -230,10 +233,13 @@ class GroupMemberController extends Controller
                     ['title' => $group->name]
                 );
 
-                ConversationParticipant::firstOrCreate(
+                $joined = ConversationParticipant::firstOrCreate(
                     ['conversation_id' => $conv->id, 'user_id' => $joinReq->user_id],
                     ['last_read_at' => now()]
                 );
+                if ($joined->wasRecentlyCreated) {
+                    app(\App\Services\E2eeGroupService::class)->bumpEpoch($conv);
+                }
             } else {
                 $joinReq->update([
                     'status' => 'rejected',

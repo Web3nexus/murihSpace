@@ -720,6 +720,10 @@ Route::prefix('v1')->group(function () {
             Route::post('/read-all', [ConversationController::class, 'readAll']);
             Route::post('/{id}/read', [ConversationController::class, 'markRead']);
             Route::post('/{id}/delivered', [ConversationController::class, 'markDelivered']);
+            // Encrypted group chats: sender key distributions (opaque 1:1 ciphertexts)
+            Route::get('/{id}/sender-keys', [\App\Http\Controllers\E2eeSenderKeyController::class, 'index']);
+            Route::post('/{id}/sender-keys', [\App\Http\Controllers\E2eeSenderKeyController::class, 'store']);
+            Route::post('/{id}/sender-keys/ack', [\App\Http\Controllers\E2eeSenderKeyController::class, 'acknowledge']);
             // Sprint 12
             Route::post('/{id}/typing', [ConversationController::class, 'typing']);
             Route::get('/{id}/settings', [ConversationSettingsController::class, 'show']);
