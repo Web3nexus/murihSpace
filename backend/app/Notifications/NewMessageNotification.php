@@ -30,7 +30,7 @@ class NewMessageNotification extends Notification
             'conversation_id' => $this->conversation->id,
             'conversation_type' => $this->conversation->type,
             'message_id' => $this->message->id,
-            'message_preview' => mb_substr($this->message->content ?? '(attachment)', 0, 120),
+            'message_preview' => $this->preview(),
             'sender_id' => $this->sender->id,
             'sender_name' => $this->sender->name,
             'sender_username' => $this->sender->username,
@@ -45,7 +45,7 @@ class NewMessageNotification extends Notification
             'conversation_id' => $this->conversation->id,
             'conversation_type' => $this->conversation->type,
             'message_id' => $this->message->id,
-            'message_preview' => mb_substr($this->message->content ?? '(attachment)', 0, 120),
+            'message_preview' => $this->preview(),
             'sender_id' => $this->sender->id,
             'sender_name' => $this->sender->name,
             'sender_username' => $this->sender->username,
@@ -61,5 +61,15 @@ class NewMessageNotification extends Notification
     public function broadcastType(): string
     {
         return 'new_message';
+    }
+
+    /** Encrypted messages carry no readable text, so the preview says so. */
+    private function preview(): string
+    {
+        if ($this->message->encryption) {
+            return 'New encrypted message';
+        }
+
+        return mb_substr($this->message->content ?? '(attachment)', 0, 120);
     }
 }

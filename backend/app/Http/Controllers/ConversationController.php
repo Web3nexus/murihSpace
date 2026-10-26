@@ -464,7 +464,9 @@ class ConversationController extends Controller
         }
 
         $validated = $request->validate([
-            'content' => ['required_without:attachment_url', 'nullable', 'string', 'max:5000'],
+            'content' => ['required_without_all:attachment_url,ciphertext', 'nullable', 'string', 'max:5000'],
+            'ciphertext' => ['nullable', 'string', 'max:65536'],
+            'encryption' => ['nullable', 'string', 'in:signal_v1'],
             'client_uuid' => ['nullable', 'string', 'max:64'],
             'reply_to_id' => ['nullable', 'integer', 'exists:messages,id'],
             'attachment_url' => ['nullable', 'string', 'max:2000'],
@@ -472,6 +474,19 @@ class ConversationController extends Controller
             'media_id' => ['nullable', 'integer', 'exists:media,id'],
             'media_status' => ['nullable', 'string', 'in:uploading,processing,ready,failed,rejected'],
         ]);
+
+        // An encrypted message carries ciphertext only. Plaintext next to it, or
+        // ciphertext without the encryption type, is refused so nothing readable
+        // is ever stored under an encrypted row.
+        if (($validated['encryption'] ?? null) !== null && empty($validated['ciphertext'] ?? null)) {
+            return response()->json(['message' => 'Encrypted messages need ciphertext.'], 422);
+        }
+        if (($validated['encryption'] ?? null) === null && ! empty($validated['ciphertext'] ?? null)) {
+            return response()->json(['message' => 'Ciphertext needs an encryption type.'], 422);
+        }
+        if (($validated['encryption'] ?? null) !== null && trim((string) ($validated['content'] ?? '')) !== '') {
+            return response()->json(['message' => 'Encrypted messages cannot include plaintext content.'], 422);
+        }
 
         $clientUuid = $validated['client_uuid'] ?? null;
 
@@ -502,6 +517,8 @@ class ConversationController extends Controller
                 'conversation_id' => $conversation->id,
                 'user_id' => $request->user()->id,
                 'content' => trim($validated['content'] ?? ''),
+                'encryption' => $validated['encryption'] ?? null,
+                'ciphertext' => $validated['ciphertext'] ?? null,
                 'type' => $messageType,
                 'status' => Message::STATUS_SENT,
                 'client_uuid' => $clientUuid,
@@ -548,7 +565,9 @@ class ConversationController extends Controller
 
                     // Dispatch standard Push Notification for Chat Message via FcmService
                     try {
-                        $preview = mb_substr($loadedMessage->content ?? 'Sent an attachment', 0, 120);
+                        $preview = $loadedMessage->encryption
+                            ? 'New encrypted message'
+                            : mb_substr($loadedMessage->content ?? 'Sent an attachment', 0, 120);
                         \App\Services\FcmService::sendToUser(
                             $participant->user->id,
                             $request->user()->name,

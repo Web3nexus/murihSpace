@@ -17,6 +17,8 @@ class Message extends Model
         'conversation_id',
         'user_id',
         'content',
+        'encryption',
+        'ciphertext',
         'type',
         'status',
         'media_status',
