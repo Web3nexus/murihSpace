@@ -11,7 +11,7 @@ class AudioRoom extends Model
     protected $fillable = [
         'community_id', 'creator_id', 'title', 'description', 'cover_url',
         'status', 'scheduled_at', 'started_at', 'ended_at',
-        'max_participants', 'is_recorded', 'recording_url',
+        'max_participants', 'is_recorded', 'recording_url', 'e2ee',
     ];
 
     protected $casts = [
@@ -19,6 +19,7 @@ class AudioRoom extends Model
         'started_at' => 'datetime',
         'ended_at' => 'datetime',
         'is_recorded' => 'boolean',
+        'e2ee' => 'boolean',
         'max_participants' => 'integer',
     ];
 
