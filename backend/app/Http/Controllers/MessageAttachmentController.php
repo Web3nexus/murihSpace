@@ -27,7 +27,7 @@ class MessageAttachmentController extends Controller
     public function upload(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'file' => ['required', 'file', 'max:10240', 'mimes:jpg,jpeg,png,gif,webp,pdf,doc,docx,txt,mp3,mp4,mov,zip,csv,xlsx,pptx'],
+            'file' => ['required', 'file', 'max:10240', 'mimes:jpg,jpeg,png,gif,webp,pdf,doc,docx,txt,mp3,mp4,mov,zip,csv,xlsx,pptx,m4a,aac,ogg,oga,opus,wav,webm'],
             'client_uuid' => ['nullable', 'string', 'max:64'],
         ]);
 

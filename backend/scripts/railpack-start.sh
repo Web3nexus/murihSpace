@@ -20,4 +20,12 @@ php artisan optimize
 # Reverb listens on 8080; Caddy proxies /app/* and /apps/* to it.
 php artisan reverb:start --host=0.0.0.0 --port=8080 &
 
+# Background jobs: uploads, chat media, video conversion and queued notifications.
+# Without this worker, queued jobs never run. The loop restarts it after the
+# hourly --max-time recycle, so memory stays bounded.
+(while true; do php artisan queue:work --sleep=3 --tries=3 --max-time=3600; sleep 2; done) &
+
+# Scheduled tasks (cleanup, retention, digests).
+php artisan schedule:work &
+
 exec docker-php-entrypoint --config /app/scripts/Caddyfile.railpack --adapter caddyfile

@@ -159,6 +159,35 @@ return [
             'report' => false,
         ],
 
+        // Private files (chat attachments, digital products). Never public: reads
+        // go through signed temporary URLs only.
+        'contabo_private' => [
+            'driver' => 's3',
+            'key' => env('CONTABO_ACCESS_KEY_ID'),
+            'secret' => env('CONTABO_SECRET_ACCESS_KEY'),
+            'region' => env('CONTABO_REGION', 'eu-central-1'),
+            'bucket' => env('CONTABO_PRIVATE_BUCKET', 'murihspace-private'),
+            'endpoint' => env('CONTABO_ENDPOINT', 'https://eu2.contabostorage.com'),
+            'use_path_style_endpoint' => env('CONTABO_USE_PATH_STYLE_ENDPOINT', true),
+            'visibility' => 'private',
+            'throw' => false,
+            'report' => false,
+        ],
+
+        // Sensitive documents (identity and KYC files). Never public.
+        'contabo_sensitive' => [
+            'driver' => 's3',
+            'key' => env('CONTABO_ACCESS_KEY_ID'),
+            'secret' => env('CONTABO_SECRET_ACCESS_KEY'),
+            'region' => env('CONTABO_REGION', 'eu-central-1'),
+            'bucket' => env('CONTABO_SENSITIVE_BUCKET', 'murihspace-sensitive'),
+            'endpoint' => env('CONTABO_ENDPOINT', 'https://eu2.contabostorage.com'),
+            'use_path_style_endpoint' => env('CONTABO_USE_PATH_STYLE_ENDPOINT', true),
+            'visibility' => 'private',
+            'throw' => false,
+            'report' => false,
+        ],
+
     ],
 
     /*
