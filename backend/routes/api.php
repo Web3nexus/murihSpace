@@ -717,6 +717,7 @@ Route::prefix('v1')->group(function () {
             Route::post('/{id}/meeting', [ConversationController::class, 'createMeeting'])->middleware('throttle:10,1');
             Route::post('/{id}/messages', [ConversationController::class, 'sendMessage']);
             Route::delete('/{id}/messages', [ConversationController::class, 'clearMessages']);
+            Route::post('/read-all', [ConversationController::class, 'readAll']);
             Route::post('/{id}/read', [ConversationController::class, 'markRead']);
             Route::post('/{id}/delivered', [ConversationController::class, 'markDelivered']);
             // Sprint 12

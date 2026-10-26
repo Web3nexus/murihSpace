@@ -1063,6 +1063,18 @@ class ConversationController extends Controller
     /**
      * Mark conversation as read and broadcast read receipts.
      */
+    /** Marks every conversation the user is in as read, in one update. */
+    public function readAll(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $user->forceFill(['last_seen_at' => now()])->saveQuietly();
+
+        ConversationParticipant::where('user_id', $user->id)
+            ->update(['last_read_at' => now()]);
+
+        return response()->json(['message' => 'All conversations marked as read.']);
+    }
+
     public function markRead(Request $request, int $id): JsonResponse
     {
         $conversation = $this->resolveConversation($request, $id);
