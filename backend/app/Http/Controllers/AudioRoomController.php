@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\AudioRoom;
 use App\Models\AudioRoomParticipant;
+use App\Services\LiveKit\RoomRecordingPolicy;
 use App\Services\LiveKitService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -50,6 +51,7 @@ class AudioRoomController extends Controller
             'scheduled_at' => ['nullable', 'date', 'after:now'],
             'max_participants' => ['nullable', 'integer', 'min:1', 'max:10000'],
             'is_recorded' => ['nullable', 'boolean'],
+            'e2ee' => ['nullable', 'boolean'],
         ]);
 
         $user = $request->user();
@@ -64,7 +66,15 @@ class AudioRoomController extends Controller
         $validated['creator_id'] = $user->id;
         $validated['scheduled_at'] = $validated['scheduled_at'] ?? null;
         $validated['status'] = !empty($validated['scheduled_at']) ? 'scheduled' : 'scheduled';
+        $validated['e2ee'] = (bool) ($validated['e2ee'] ?? false);
         $validated['is_recorded'] ??= false;
+
+        $recordingSkip = $validated['is_recorded']
+            ? RoomRecordingPolicy::skipReason($validated['e2ee'])
+            : null;
+        if ($recordingSkip !== null) {
+            $validated['is_recorded'] = false;
+        }
 
         $room = AudioRoom::create($validated);
 
@@ -79,7 +89,13 @@ class AudioRoomController extends Controller
         $room->load('creator:id,name,username,avatar');
         $room->loadCount('activeParticipants');
 
-        return response()->json(['data' => $room], 201);
+        return response()->json(array_filter([
+            'data' => $room,
+            'recording_skipped' => $recordingSkip === null ? null : [
+                'reason' => $recordingSkip,
+                'message' => RoomRecordingPolicy::skipMessage($recordingSkip),
+            ],
+        ], fn ($value) => $value !== null), 201);
     }
 
     public function show(Request $request, int $id): JsonResponse
@@ -114,12 +130,26 @@ class AudioRoomController extends Controller
             'scheduled_at' => ['nullable', 'date', 'after:now'],
             'max_participants' => ['nullable', 'integer', 'min:1', 'max:10000'],
             'is_recorded' => ['nullable', 'boolean'],
+            'e2ee' => ['nullable', 'boolean'],
             'status' => ['nullable', 'in:scheduled,live,ended,cancelled'],
         ]);
 
+        $effectiveE2ee = (bool) ($validated['e2ee'] ?? $room->e2ee);
+        $effectiveRecorded = (bool) ($validated['is_recorded'] ?? $room->is_recorded);
+        $recordingSkip = $effectiveRecorded ? RoomRecordingPolicy::skipReason($effectiveE2ee) : null;
+        if ($recordingSkip !== null) {
+            $validated['is_recorded'] = false;
+        }
+
         $room->update($validated);
 
-        return response()->json(['data' => $room->fresh()->loadCount('activeParticipants')]);
+        return response()->json(array_filter([
+            'data' => $room->fresh()->loadCount('activeParticipants'),
+            'recording_skipped' => $recordingSkip === null ? null : [
+                'reason' => $recordingSkip,
+                'message' => RoomRecordingPolicy::skipMessage($recordingSkip),
+            ],
+        ], fn ($value) => $value !== null));
     }
 
     public function destroy(Request $request, int $id): JsonResponse
