@@ -25,6 +25,9 @@ export interface ChatMessage {
   content: string;
   type: 'text' | 'image' | 'file' | 'voice' | 'call' | string;
   client_uuid?: string;
+  /** Set on end-to-end encrypted messages. Such rows carry `ciphertext` and an empty `content`. */
+  encryption?: string | null;
+  ciphertext?: string | null;
   status?: MessageStatus;
   read?: boolean;
   is_automated?: boolean;

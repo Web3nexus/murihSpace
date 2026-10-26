@@ -31,6 +31,7 @@ import { UserAvatar } from '@/components/ui/avatar';
 import { Bubble, BubbleContent } from '@/components/ui/bubble';
 import { Message, MessageAvatar } from '@/components/ui/message';
 import { VoiceMessagePlayer } from '@/components/chat/VoiceMessagePlayer';
+import { sendEncrypted } from '@/lib/e2ee';
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL) ?? 'http://localhost:8000/api/v1';
 
@@ -446,10 +447,17 @@ export function ChatLayout() {
     if (!activeConv) return;
     setMessages((prev) => prev.map((m) => (m.client_uuid === msg.client_uuid ? { ...m, status: 'pending' } : m)));
     try {
+      // Text in a 1:1 direct chat is encrypted on this device. Encryption failures
+      // throw here, so the message is marked failed and never sent as plaintext.
+      const peerId = activeConv.type === 'direct' ? activeConv.other_user?.id : undefined;
+      const encrypt = peerId !== undefined && msg.type === 'text' && !msg.attachment_url && msg.content.length > 0;
+      const body = encrypt
+        ? { content: '', ciphertext: await sendEncrypted(peerId, msg.content), encryption: 'signal_v1' }
+        : { content: msg.content };
       const res = await apiFetch<{ data: ChatMessage } | ChatMessage>(`/conversations/${activeConv.id}/messages`, {
         method: 'POST',
         body: JSON.stringify({
-          content: msg.content,
+          ...body,
           client_uuid: msg.client_uuid,
           reply_to_id: msg.reply_to_id ?? null,
           attachment_url: msg.attachment_url ?? null,
@@ -457,8 +465,10 @@ export function ChatLayout() {
         }),
       });
       const serverMsg = 'data' in res ? res.data : res;
-      setMessages((prev) => prev.map((m) => m.client_uuid === msg.client_uuid ? { ...serverMsg, status: 'sent', client_uuid: msg.client_uuid } : m));
-      setConversations((prev) => prev.map((c) => c.id === activeConv.id ? { ...c, latest_message: serverMsg, updated_at: serverMsg.created_at } : c));
+      // The server keeps ciphertext only, so the sender's own copy keeps the text for this session.
+      const shown: ChatMessage = encrypt ? { ...serverMsg, content: msg.content } : serverMsg;
+      setMessages((prev) => prev.map((m) => m.client_uuid === msg.client_uuid ? { ...shown, status: 'sent', client_uuid: msg.client_uuid } : m));
+      setConversations((prev) => prev.map((c) => c.id === activeConv.id ? { ...c, latest_message: shown, updated_at: serverMsg.created_at } : c));
       playMessageSentSound();
       loadConversations();
     } catch (e) {
@@ -1331,7 +1341,7 @@ export function ChatLayout() {
                               ))}
                             </div>
                           ) : (
-                            <p className="leading-relaxed whitespace-pre-wrap break-words font-normal"><EmojiRichText text={msg.content} /></p>
+                            <p className="leading-relaxed whitespace-pre-wrap break-words font-normal"><EmojiRichText text={msg.encryption && !msg.content ? 'Encrypted message' : msg.content} /></p>
                           )}
 
                           <div className="flex items-center justify-end gap-1 text-[9px] opacity-80 pt-0.5">
@@ -1625,7 +1635,7 @@ export function ChatLayout() {
           >
             <Reply weight="fill" className="h-4 w-4" /> Reply
           </button>
-          {actionMenu.msg.can_edit && actionMenu.msg.type === 'text' && (
+          {actionMenu.msg.can_edit && actionMenu.msg.type === 'text' && !actionMenu.msg.encryption && (
             <button
               type="button"
               onClick={() => { startEditing(actionMenu.msg); setActionMenu(null); }}
