@@ -57,7 +57,7 @@ class LinkInBioController extends Controller
     {
         $data = $request->validate([
             'title' => ['required', 'string', 'max:150'],
-            'url' => ['required', 'string', 'url', 'max:500'],
+            'url' => ['required', 'string', 'url', 'max:500', self::notRedirectRoute()],
             'category' => ['nullable', 'string', 'max:50'],
             'badge' => ['nullable', 'string', 'max:50'],
             'price' => ['nullable', 'numeric', 'min:0'],
@@ -83,7 +83,7 @@ class LinkInBioController extends Controller
 
         $data = $request->validate([
             'title' => ['sometimes', 'string', 'max:150'],
-            'url' => ['sometimes', 'string', 'url', 'max:500'],
+            'url' => ['sometimes', 'string', 'url', 'max:500', self::notRedirectRoute()],
             'category' => ['nullable', 'string', 'max:50'],
             'badge' => ['nullable', 'string', 'max:50'],
             'price' => ['nullable', 'numeric', 'min:0'],
@@ -417,13 +417,35 @@ class LinkInBioController extends Controller
         return response()->json(['data' => ['click_count' => $link->fresh()->click_count]]);
     }
 
+
+    /**
+     * A link must not point at one of our own click or affiliate redirect routes.
+     * Otherwise two links (or one link to itself) bounce the visitor between
+     * redirects until the browser gives up.
+     */
+    public static function isRedirectRoute(?string $url): bool
+    {
+        $path = (string) parse_url((string) $url, PHP_URL_PATH);
+
+        return (bool) preg_match('#/l/(click|affiliate)/#', $path);
+    }
+
+    private static function notRedirectRoute(): \Closure
+    {
+        return function (string $attribute, mixed $value, \Closure $fail): void {
+            if (self::isRedirectRoute((string) $value)) {
+                $fail('A link cannot point at a redirect route.');
+            }
+        };
+    }
+
     // ── Public Redirect (click tracking) ───────────────────────────
 
     public function redirectClick(int $linkId): RedirectResponse
     {
         $link = LinkInBioLink::find($linkId);
 
-        if (! $link || ! $link->is_active) {
+        if (! $link || ! $link->is_active || self::isRedirectRoute($link->url)) {
             abort(404);
         }
 
