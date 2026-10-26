@@ -6,6 +6,10 @@
 
 mod store;
 
+/// C ABI for Dart (Android and iOS). Only built with the `ffi` feature.
+#[cfg(feature = "ffi")]
+pub mod ffi;
+
 use base64::prelude::*;
 use futures::executor::block_on;
 use libsignal_protocol::{
