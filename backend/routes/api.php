@@ -91,6 +91,7 @@ use App\Http\Controllers\MarketingCampaignController;
 use App\Http\Controllers\MarketplaceController;
 use App\Http\Controllers\MediaKitController;
 use App\Http\Controllers\MembershipController;
+use App\Http\Controllers\EncryptedAttachmentController;
 use App\Http\Controllers\MessageAttachmentController;
 use App\Http\Controllers\MessageReactionController;
 use App\Http\Controllers\MilestoneController;
@@ -620,6 +621,13 @@ Route::prefix('v1')->group(function () {
             Route::post('/{id}/reactions', [MessageReactionController::class, 'toggle']);
             Route::get('/{id}/reactions', [MessageReactionController::class, 'index']);
             Route::post('/{id}/forward', [ConversationController::class, 'forwardMessage']);
+        });
+
+        // Client-side encrypted attachments (server only sees ciphertext).
+        // Plaintext uploads above remain unchanged.
+        Route::prefix('attachments/encrypted')->group(function () {
+            Route::post('/', [EncryptedAttachmentController::class, 'store'])->middleware('throttle:30,1');
+            Route::get('/{attachment}/url', [EncryptedAttachmentController::class, 'url'])->middleware('throttle:60,1');
         });
 
         // Secure chat media access

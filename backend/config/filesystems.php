@@ -159,6 +159,21 @@ return [
             'report' => false,
         ],
 
+        // Private bucket for encrypted (ciphertext-only) attachments. Never public.
+        // Shares credentials with 'contabo'; only the bucket name differs.
+        'contabo_private' => [
+            'driver' => 's3',
+            'key' => env('CONTABO_ACCESS_KEY_ID'),
+            'secret' => env('CONTABO_SECRET_ACCESS_KEY'),
+            'region' => env('CONTABO_REGION', 'eu-central-1'),
+            'bucket' => env('CONTABO_PRIVATE_BUCKET', 'murihspace-private'),
+            'endpoint' => env('CONTABO_ENDPOINT', 'https://eu2.contabostorage.com'),
+            'use_path_style_endpoint' => env('CONTABO_USE_PATH_STYLE_ENDPOINT', true),
+            'visibility' => 'private',
+            'throw' => false,
+            'report' => false,
+        ],
+
     ],
 
     /*
