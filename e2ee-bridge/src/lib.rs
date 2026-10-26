@@ -50,8 +50,20 @@ fn address(name: &str) -> Result<ProtocolAddress, String> {
     Ok(ProtocolAddress::new(name.to_string(), DeviceId::new(1).map_err(js_err)?))
 }
 
+/// Current time. WebAssembly has no system clock in std, so the browser's clock is used there.
+fn now() -> SystemTime {
+    #[cfg(target_arch = "wasm32")]
+    {
+        SystemTime::UNIX_EPOCH + std::time::Duration::from_millis(js_sys::Date::now() as u64)
+    }
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        SystemTime::now()
+    }
+}
+
 fn now_millis() -> u64 {
-    SystemTime::now()
+    now()
         .duration_since(SystemTime::UNIX_EPOCH)
         .map(|d| d.as_millis() as u64)
         .unwrap_or(0)
@@ -91,7 +103,12 @@ impl Device {
                 .await?;
 
             let kyber_id = KyberPreKeyId::from(1u32);
-            let kyber = KyberPreKeyRecord::generate(kem::KeyType::Kyber1024, kyber_id, identity.private_key())?;
+            // Built here rather than with KyberPreKeyRecord::generate, which reads the system clock.
+            let kyber_pair = kem::KeyPair::generate(kem::KeyType::Kyber1024, &mut rng);
+            let kyber_sig = identity
+                .private_key()
+                .calculate_signature(&kyber_pair.public_key.serialize(), &mut rng)?;
+            let kyber = KyberPreKeyRecord::new(kyber_id, now, &kyber_pair, &kyber_sig);
             store.kyber_pre_key_store.save_kyber_pre_key(kyber_id, &kyber).await?;
 
             for id in 1..=prekey_count {
@@ -165,7 +182,7 @@ impl Device {
             &mut self.store.session_store,
             &mut self.store.identity_store,
             &bundle,
-            SystemTime::now(),
+            now(),
             &mut rng,
         ))
         .map_err(js_err)
@@ -180,7 +197,7 @@ impl Device {
             &address(&self.name)?,
             &mut self.store.session_store,
             &mut self.store.identity_store,
-            SystemTime::now(),
+            now(),
             &mut rng,
         ))
         .map_err(js_err)?;
