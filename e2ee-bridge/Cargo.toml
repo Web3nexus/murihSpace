@@ -13,6 +13,7 @@ crate-type = ["cdylib", "rlib"]
 # Pinned to a specific commit of Signal's official repository. Update deliberately.
 libsignal-protocol = { git = "https://github.com/signalapp/libsignal", rev = "fc90b90fa2b9c37822fa47ba0e0dcdf387a0c071" }
 rand = "0.9"
+async-trait = "0.1"
 base64 = "0.23"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"

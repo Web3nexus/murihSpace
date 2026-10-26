@@ -4,18 +4,20 @@
 //! encrypts or decrypts on the device. The server never sees keys or plaintext.
 //! The same code runs in the browser (WebAssembly) and in native tests.
 
+mod store;
+
 use base64::prelude::*;
 use futures::executor::block_on;
 use libsignal_protocol::{
     kem, message_decrypt, message_encrypt, process_prekey_bundle, CiphertextMessage, DeviceId,
-    GenericSignedPreKey, IdentityKey, IdentityKeyPair, IdentityKeyStore,
-    InMemSignalProtocolStore, KeyPair, KyberPreKeyId, KyberPreKeyRecord, KyberPreKeyStore,
-    PreKeyBundle, PreKeyId, PreKeyRecord, PreKeySignalMessage, PreKeyStore, ProtocolAddress,
-    PublicKey, SignalMessage, SignalProtocolError, SignedPreKeyId, SignedPreKeyRecord,
-    SignedPreKeyStore, Timestamp,
+    GenericSignedPreKey, IdentityKey, IdentityKeyPair, IdentityKeyStore, KeyPair, KyberPreKeyId,
+    KyberPreKeyRecord, KyberPreKeyStore, PreKeyBundle, PreKeyId, PreKeyRecord, PreKeySignalMessage,
+    PreKeyStore, ProtocolAddress, PublicKey, SignalMessage, SignalProtocolError, SignedPreKeyId,
+    SignedPreKeyRecord, SignedPreKeyStore, Timestamp,
 };
 use serde::{Deserialize, Serialize};
 use std::time::SystemTime;
+use store::DeviceStore;
 use wasm_bindgen::prelude::*;
 
 /// The first byte of every ciphertext says which Signal message type follows.
@@ -69,12 +71,12 @@ fn now_millis() -> u64 {
         .unwrap_or(0)
 }
 
-/// One device's keys and sessions. The private keys stay inside this object.
+/// One device's keys and sessions. Private keys stay inside this object, and are
+/// exported only as JSON that the browser encrypts before storing.
 #[wasm_bindgen]
 pub struct Device {
-    store: InMemSignalProtocolStore,
+    store: DeviceStore,
     name: String,
-    registration_id: u32,
     prekey_count: u32,
 }
 
@@ -85,7 +87,7 @@ impl Device {
     pub fn new(name: String, registration_id: u32, prekey_count: u32) -> Result<Device, String> {
         let mut rng = rand::rng();
         let identity = IdentityKeyPair::generate(&mut rng);
-        let mut store = InMemSignalProtocolStore::new(identity, registration_id).map_err(js_err)?;
+        let mut store = DeviceStore::new(&identity, registration_id);
 
         block_on(async {
             let signed_id = SignedPreKeyId::from(1u32);
@@ -95,27 +97,27 @@ impl Device {
                 .calculate_signature(&signed_pair.public_key.serialize(), &mut rng)?;
             let now = Timestamp::from_epoch_millis(now_millis());
             store
-                .signed_pre_key_store
+                .signed_pre_keys
                 .save_signed_pre_key(
                     signed_id,
                     &SignedPreKeyRecord::new(signed_id, now, &signed_pair, &signed_sig),
                 )
                 .await?;
 
-            let kyber_id = KyberPreKeyId::from(1u32);
             // Built here rather than with KyberPreKeyRecord::generate, which reads the system clock.
+            let kyber_id = KyberPreKeyId::from(1u32);
             let kyber_pair = kem::KeyPair::generate(kem::KeyType::Kyber1024, &mut rng);
             let kyber_sig = identity
                 .private_key()
                 .calculate_signature(&kyber_pair.public_key.serialize(), &mut rng)?;
             let kyber = KyberPreKeyRecord::new(kyber_id, now, &kyber_pair, &kyber_sig);
-            store.kyber_pre_key_store.save_kyber_pre_key(kyber_id, &kyber).await?;
+            store.kyber_pre_keys.save_kyber_pre_key(kyber_id, &kyber).await?;
 
             for id in 1..=prekey_count {
                 let pre_key_id = PreKeyId::from(id);
                 let pair = KeyPair::generate(&mut rng);
                 store
-                    .pre_key_store
+                    .pre_keys
                     .save_pre_key(pre_key_id, &PreKeyRecord::new(pre_key_id, &pair))
                     .await?;
             }
@@ -123,22 +125,33 @@ impl Device {
         })
         .map_err(js_err)?;
 
-        Ok(Device { store, name, registration_id, prekey_count })
+        Ok(Device { store, name, prekey_count })
+    }
+
+    /// Restores a device from the JSON produced by `export`.
+    pub fn restore(name: String, state_json: String) -> Result<Device, String> {
+        let store = DeviceStore::from_json(&state_json).map_err(js_err)?;
+        Ok(Device { store, name, prekey_count: 0 })
+    }
+
+    /// Everything this device must keep: keys and sessions, as JSON. The caller
+    /// must encrypt this before storing it anywhere.
+    pub fn export(&self) -> Result<String, String> {
+        self.store.to_json().map_err(js_err)
     }
 
     /// The public keys to upload to the key directory, as JSON.
     #[wasm_bindgen(js_name = publicBundle)]
     pub fn public_bundle(&self) -> Result<String, String> {
-        let identity = block_on(self.store.identity_store.get_identity_key_pair()).map_err(js_err)?;
-        let signed = block_on(self.store.signed_pre_key_store.get_signed_pre_key(SignedPreKeyId::from(1u32)))
+        let identity = block_on(self.store.identity.get_identity_key_pair()).map_err(js_err)?;
+        let signed = block_on(self.store.signed_pre_keys.get_signed_pre_key(SignedPreKeyId::from(1u32)))
             .map_err(js_err)?;
-        let kyber = block_on(self.store.kyber_pre_key_store.get_kyber_pre_key(KyberPreKeyId::from(1u32)))
+        let kyber = block_on(self.store.kyber_pre_keys.get_kyber_pre_key(KyberPreKeyId::from(1u32)))
             .map_err(js_err)?;
-        let first_pre_key = block_on(self.store.pre_key_store.get_pre_key(PreKeyId::from(1u32)))
-            .map_err(js_err)?;
+        let first_pre_key = block_on(self.store.pre_keys.get_pre_key(PreKeyId::from(1u32))).map_err(js_err)?;
 
         let bundle = PublicBundle {
-            registration_id: self.registration_id,
+            registration_id: block_on(self.store.identity.get_local_registration_id()).map_err(js_err)?,
             device_id: 1,
             identity_key: BASE64_STANDARD.encode(identity.identity_key().serialize()),
             prekey_id: 1,
@@ -179,8 +192,8 @@ impl Device {
         block_on(process_prekey_bundle(
             &address(&remote_name)?,
             &address(&self.name)?,
-            &mut self.store.session_store,
-            &mut self.store.identity_store,
+            &mut self.store.sessions,
+            &mut self.store.identity,
             &bundle,
             now(),
             &mut rng,
@@ -195,8 +208,8 @@ impl Device {
             &plaintext,
             &address(&remote_name)?,
             &address(&self.name)?,
-            &mut self.store.session_store,
-            &mut self.store.identity_store,
+            &mut self.store.sessions,
+            &mut self.store.identity,
             now(),
             &mut rng,
         ))
@@ -227,11 +240,11 @@ impl Device {
             &message,
             &address(&remote_name)?,
             &address(&self.name)?,
-            &mut self.store.session_store,
-            &mut self.store.identity_store,
-            &mut self.store.pre_key_store,
-            &self.store.signed_pre_key_store,
-            &mut self.store.kyber_pre_key_store,
+            &mut self.store.sessions,
+            &mut self.store.identity,
+            &mut self.store.pre_keys,
+            &self.store.signed_pre_keys,
+            &mut self.store.kyber_pre_keys,
             &mut rng,
         ))
         .map_err(js_err)
@@ -279,5 +292,23 @@ mod tests {
         let last = sealed.len() - 1;
         sealed[last] ^= 0x01;
         assert!(bob.decrypt("alice".to_string(), sealed).is_err());
+    }
+
+    #[test]
+    fn a_device_restored_from_its_export_still_reads_and_replies() {
+        let mut bob = Device::new("bob".to_string(), 4242, 2).unwrap();
+        let mut alice = Device::new("alice".to_string(), 1111, 0).unwrap();
+        alice.start_session("bob".to_string(), bob.public_bundle().unwrap()).unwrap();
+        let first = alice.encrypt("bob".to_string(), b"before reload".to_vec()).unwrap();
+        assert_eq!(bob.decrypt("alice".to_string(), first).unwrap(), b"before reload");
+
+        // Simulate a page reload: Bob's state is exported and restored into a new object.
+        let exported = bob.export().unwrap();
+        let mut bob_after_reload = Device::restore("bob".to_string(), exported).unwrap();
+
+        let second = alice.encrypt("bob".to_string(), b"after reload".to_vec()).unwrap();
+        assert_eq!(bob_after_reload.decrypt("alice".to_string(), second).unwrap(), b"after reload");
+        let reply = bob_after_reload.encrypt("alice".to_string(), b"still here".to_vec()).unwrap();
+        assert_eq!(alice.decrypt("bob".to_string(), reply).unwrap(), b"still here");
     }
 }
