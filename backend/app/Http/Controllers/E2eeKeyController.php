@@ -13,23 +13,43 @@ use Illuminate\Support\Facades\DB;
  * Public key directory for end-to-end encryption.
  *
  * The server stores and hands out public keys only. Each device registers its
- * identity key and signed prekey, uploads one-time prekeys, and other users
- * fetch a bundle to start an encrypted session. Each one-time prekey is handed
+ * identity key, signed prekey and Kyber prekey, uploads one-time prekeys, and other
+ * users fetch a bundle to start an encrypted session. Each one-time prekey is handed
  * out once. Signature checks and the session itself happen on the device.
+ *
+ * Wire shape (the bridge's publicBundle uses the same names; see e2ee-bridge/src/lib.rs):
+ *
+ * Register body: device_uuid, registration_id, identity_key, signed_prekey_id,
+ * signed_prekey_public, signed_prekey_signature, kyber_prekey_id, kyber_prekey_public,
+ * kyber_prekey_signature. All keys are standard base64.
+ *
+ * Upload body: { "prekeys": [{ "key_id": int, "public_key": base64 }] }, at most 100.
+ *
+ * Bundle element: device_uuid, registration_id, identity_key, signed_prekey_id,
+ * signed_prekey_public, signed_prekey_signature, kyber_prekey_id, kyber_prekey_public,
+ * kyber_prekey_signature, and one_time_prekey ({ id, public_key } or null when the
+ * device has none left). Devices registered without Kyber keys are left out, since
+ * they cannot start a session.
  */
 class E2eeKeyController extends Controller
 {
     private const MAX_PREKEYS_PER_UPLOAD = 100;
+
+    /** Longest accepted key string. A Kyber1024 public key is about 2.1 KB in base64. */
+    private const MAX_KEY_LENGTH = 4096;
 
     public function register(Request $request): JsonResponse
     {
         $validated = $request->validate([
             'device_uuid' => ['required', 'string', 'max:64'],
             'registration_id' => ['required', 'integer', 'min:0', 'max:2147483647'],
-            'identity_key' => ['required', 'string', 'max:256'],
+            'identity_key' => ['required', 'string', 'max:'.self::MAX_KEY_LENGTH],
             'signed_prekey_id' => ['required', 'integer', 'min:0', 'max:2147483647'],
-            'signed_prekey_public' => ['required', 'string', 'max:256'],
-            'signed_prekey_signature' => ['required', 'string', 'max:256'],
+            'signed_prekey_public' => ['required', 'string', 'max:'.self::MAX_KEY_LENGTH],
+            'signed_prekey_signature' => ['required', 'string', 'max:'.self::MAX_KEY_LENGTH],
+            'kyber_prekey_id' => ['required', 'integer', 'min:0', 'max:2147483647'],
+            'kyber_prekey_public' => ['required', 'string', 'max:'.self::MAX_KEY_LENGTH],
+            'kyber_prekey_signature' => ['required', 'string', 'max:'.self::MAX_KEY_LENGTH],
         ]);
 
         $device = E2eeDevice::updateOrCreate(
@@ -75,17 +95,19 @@ class E2eeKeyController extends Controller
     public function bundles(User $user): JsonResponse
     {
         $bundles = E2eeDevice::where('user_id', $user->id)
+            ->whereNotNull('kyber_prekey_public')
             ->orderBy('id')
             ->get()
             ->map(fn (E2eeDevice $device) => [
                 'device_uuid' => $device->device_uuid,
                 'registration_id' => $device->registration_id,
                 'identity_key' => $device->identity_key,
-                'signed_prekey' => [
-                    'id' => $device->signed_prekey_id,
-                    'public_key' => $device->signed_prekey_public,
-                    'signature' => $device->signed_prekey_signature,
-                ],
+                'signed_prekey_id' => $device->signed_prekey_id,
+                'signed_prekey_public' => $device->signed_prekey_public,
+                'signed_prekey_signature' => $device->signed_prekey_signature,
+                'kyber_prekey_id' => $device->kyber_prekey_id,
+                'kyber_prekey_public' => $device->kyber_prekey_public,
+                'kyber_prekey_signature' => $device->kyber_prekey_signature,
                 'one_time_prekey' => $this->claimOneTimePrekey($device),
             ])
             ->values();
