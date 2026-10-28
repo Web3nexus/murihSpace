@@ -50,25 +50,18 @@ export, tampered ciphertext, NULL and invalid-UTF-8 arguments, and empty plainte
 
 These came from reading the bridge against `backend/app/Http/Controllers/E2eeKeyController.php`,
 the migration `2026_10_26_120000_create_e2ee_key_tables.php`, and `ConversationController::sendMessage`.
-They affect the web client too, so they need a decision with the web team.
+Items 1 to 3 are resolved in the current code. Item 4 is still open.
 
-1. **Kyber prekey has nowhere to go.** The pinned libsignal `PreKeyBundle` requires a Kyber
-   key, and `publicBundle` always includes `kyber_prekey_*`. The backend has no Kyber columns, does
-   not validate them on register, and does not return them from `bundles`. A Kyber1024 public key
-   is about 1.57 KB, which is about 2.1 KB base64, far over the 256-character columns. Needed: a
-   migration (id, public key, signature with larger columns), register and bundles changes, and the
-   same on the web side. The alternative, dropping Kyber from the bridge, changes the protocol and
-   is a decision for the owners, not an implementation detail.
-2. **Only one one-time prekey is exported.** `publicBundle` exports prekey id 1 only. The server
-   expects batches (`POST /v1/e2ee/devices/{uuid}/prekeys`, up to 100 per upload), and the Rust
-   `Device` creates prekeys only in `new`. Needed: a function that lists generated prekeys, and a
-   way to generate more later. This is not in the function list above and is a follow-up.
-3. **Bundle shapes differ.** The bridge's `PublicBundle` JSON uses `prekey_id`, `prekey_public`,
-   `signed_prekey_id`, and so on. The server returns
+1. **Resolved: Kyber prekey is stored and served.** The migration
+   `2026_10_26_150000_add_kyber_prekeys_to_e2ee_devices.php` adds the Kyber columns, `register`
+   accepts `kyber_prekey_*`, and `bundles` returns them, so the pinned libsignal `PreKeyBundle` can be built.
+2. **Resolved: one-time prekeys are generated and advertised.** The bridge generates a batch of
+   one-time prekeys and advertises them. The server accepts uploads (`POST /v1/e2ee/devices/{uuid}/prekeys`,
+   up to 100 per upload) and reports the remaining count.
+3. **Resolved: the bundle shape is flat.** The server returns
    `{device_uuid, registration_id, identity_key, signed_prekey:{id,public_key,signature}, one_time_prekey:{id,public_key}|null}`.
-   The server returns `one_time_prekey: null` when prekeys run out. `startSession` always requires one, so
-   the phone needs an adapter, or the bridge needs to accept the server shape.
-4. **Addressing.** The bridge uses device id 1 and a caller-supplied name. Use the server user id
+   `one_time_prekey` is `null` when prekeys run out, so the client must handle a bundle with no one-time prekey.
+4. **Addressing and multi-device (open).** The bridge uses device id 1 and a caller-supplied name. Use the server user id
    (as a string) as the remote name on both sides. Multi-device per user is not handled yet.
 
 ## 3. Dart binding plan
