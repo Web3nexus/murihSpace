@@ -4,6 +4,9 @@
  *
  * One device per signed-in user per browser. Every operation runs one at a time,
  * because each one moves the ratchet forward and must be saved before the next.
+ * Across browser tabs, operations also hold an exclusive Web Lock per user, and
+ * each one re-reads the sealed device first, because another tab may have moved
+ * the ratchet forward since this tab last saved it.
  */
 import { Device, loadBridge, type PublicBundleJson } from './bridge';
 import { fetchBundles, registerDevice, uploadPrekeys, type DeviceBundle } from './directory';
@@ -50,6 +53,23 @@ function serialize<T>(task: () => Promise<T>): Promise<T> {
     () => undefined,
   );
   return run;
+}
+
+/** Web Lock name for one user's device. Shared by every tab of this browser. */
+const lockNameFor = (userId: number): string => `murihspace-e2ee-device:${userId}`;
+
+/**
+ * Runs a task while holding this user's exclusive lock across all tabs.
+ * Falls back to the in-tab queue only when navigator.locks is unavailable
+ * (older browsers). In that case two tabs can interleave their device operations,
+ * so the sealed state may be stale; the caller's reload step is the only guard.
+ */
+function withUserLock<T>(userId: number, task: () => Promise<T>): Promise<T> {
+  if (typeof navigator !== 'undefined' && navigator.locks) {
+    return navigator.locks.request(lockNameFor(userId), { mode: 'exclusive' }, task);
+  }
+  // Fallback: navigator.locks is missing, so only the in-tab queue (serialize) applies.
+  return task();
 }
 
 /** Protocol name of a user's device. The bridge addresses sessions by this name. */
@@ -107,54 +127,71 @@ function requireActive(): ActiveDevice {
   return active;
 }
 
+/** Reads this user's sealed device from storage, or null when none exists yet. */
+async function loadFromStorage(userId: number): Promise<ActiveDevice | null> {
+  const sealed = await loadSealedDevice(userId);
+  if (!sealed) return null;
+  const key = await getWrapKey();
+  const stored = await open<StoredDevice>(key, userId, sealed);
+  return {
+    userId,
+    deviceUuid: stored.deviceUuid,
+    registered: stored.registered,
+    device: Device.restore(nameFor(userId), stored.state),
+    sessionPeers: new Set(stored.sessionPeers),
+  };
+}
+
+function replaceActive(next: ActiveDevice): void {
+  const previous = active;
+  active = next;
+  if (previous && previous !== next) previous.device.free();
+}
+
+/**
+ * Re-reads the sealed device so this tab works on the newest ratchet state, then
+ * checks it is ready for this user. Call only while holding the user's lock.
+ */
+async function reloadReady(userId: number): Promise<ActiveDevice> {
+  await loadBridge();
+  const stored = await loadFromStorage(userId);
+  if (stored) replaceActive(stored);
+  const s = requireActive();
+  if (s.userId !== userId) {
+    throw new E2eeError('NOT_READY', 'End-to-end encryption is not ready for this session.');
+  }
+  return s;
+}
+
 /**
  * Creates or restores this browser's device for a signed-in user, and makes sure
  * its public keys are in the key directory. Call it on sign-in.
+ * Initialization runs under the user's lock, so two tabs cannot both create a device.
  */
 export function ensureDevice(userId: number): Promise<void> {
-  return serialize(async () => {
-    if (active?.userId === userId) {
-      if (!active.registered) {
-        await publish(active);
-        await persist(active);
-      }
-      return;
-    }
-
+  return serialize(() => withUserLock(userId, async () => {
     await loadBridge();
-    const key = await getWrapKey();
-    const sealed = await loadSealedDevice(userId);
-
-    let next: ActiveDevice;
-    if (sealed) {
-      const stored = await open<StoredDevice>(key, userId, sealed);
-      next = {
-        userId,
-        deviceUuid: stored.deviceUuid,
-        registered: stored.registered,
-        device: Device.restore(nameFor(userId), stored.state),
-        sessionPeers: new Set(stored.sessionPeers),
-      };
-    } else {
-      next = {
+    const stored = await loadFromStorage(userId);
+    if (stored) {
+      replaceActive(stored);
+    } else if (active?.userId !== userId) {
+      const fresh: ActiveDevice = {
         userId,
         deviceUuid: crypto.randomUUID(),
         registered: false,
         device: new Device(nameFor(userId), randomRegistrationId(), PREKEY_COUNT),
         sessionPeers: new Set(),
       };
-      await persist(next);
+      await persist(fresh);
+      replaceActive(fresh);
     }
 
-    const previous = active;
-    active = next;
-    previous?.device.free();
-
-    if (!next.registered) {
-      await publish(next);
-      await persist(next);
+    const current = active;
+    if (current && !current.registered) {
+      await publish(current);
+      await persist(current);
     }
-  });
+  }));
 }
 
 /** Drops the in-memory device on sign-out. The sealed copy stays in IndexedDB. */
@@ -205,23 +242,29 @@ async function startSession(s: ActiveDevice, peerUserId: number): Promise<void> 
  */
 export function sendEncrypted(peerUserId: number, text: string): Promise<string> {
   return serialize(async () => {
-    const s = requireActive();
-    if (!s.sessionPeers.has(peerUserId)) {
-      await startSession(s, peerUserId);
-    }
-    const bytes = s.device.encrypt(nameFor(peerUserId), new TextEncoder().encode(text));
-    await persist(s);
-    return bytesToBase64(bytes);
+    const userId = requireActive().userId;
+    return withUserLock(userId, async () => {
+      const s = await reloadReady(userId);
+      if (!s.sessionPeers.has(peerUserId)) {
+        await startSession(s, peerUserId);
+      }
+      const bytes = s.device.encrypt(nameFor(peerUserId), new TextEncoder().encode(text));
+      await persist(s);
+      return bytesToBase64(bytes);
+    });
   });
 }
 
 /** Decrypts base64 ciphertext received from another user. */
 export function receiveDecrypted(senderUserId: number, ciphertext: string): Promise<string> {
   return serialize(async () => {
-    const s = requireActive();
-    const plaintext = s.device.decrypt(nameFor(senderUserId), base64ToBytes(ciphertext));
-    s.sessionPeers.add(senderUserId);
-    await persist(s);
-    return new TextDecoder().decode(plaintext);
+    const userId = requireActive().userId;
+    return withUserLock(userId, async () => {
+      const s = await reloadReady(userId);
+      const plaintext = s.device.decrypt(nameFor(senderUserId), base64ToBytes(ciphertext));
+      s.sessionPeers.add(senderUserId);
+      await persist(s);
+      return new TextDecoder().decode(plaintext);
+    });
   });
 }
