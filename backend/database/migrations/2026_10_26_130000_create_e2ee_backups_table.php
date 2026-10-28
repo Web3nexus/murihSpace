@@ -20,7 +20,7 @@ return new class extends Migration
             $table->string('salt', 128);
             $table->string('iv', 64);
             $table->unsignedInteger('iterations');
-            $table->text('ciphertext');
+            $table->longText('ciphertext');
             $table->timestamps();
         });
     }
